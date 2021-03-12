@@ -279,7 +279,7 @@ enum
     MFX_NUM_ENTRY_POINTS = 2
 };
 
-mfxStatus MFXVideoVPP_RunFrameVPPAsync_impl(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp)
+mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp)
 {
     mfxStatus mfxRes;
 
@@ -495,12 +495,6 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync_impl(mfxSession session, mfxFrameSurface1
 
 } // mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp)
 
-// This separation is required for avoiding possible linkage conflict with function loaded from dispatcher
-mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp)
-{
-    return MFXVideoVPP_RunFrameVPPAsync_impl(session, in, out, aux, syncp);
-}
-
 mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, mfxSyncPoint *syncp)
 {
 #if !defined(MFX_ENABLE_USER_VPP)
@@ -604,7 +598,7 @@ mfxStatus MFXVideoVPP_ProcessFrameAsync(mfxSession session, mfxFrameSurface1 *in
     MFX_CHECK(*out, MFX_ERR_MEMORY_ALLOC);
 
     mfxSyncPoint syncPoint;
-    return MFXVideoVPP_RunFrameVPPAsync_impl(session, in, *out, nullptr, &syncPoint);
+    return MFXVideoVPP_RunFrameVPPAsync(session, in, *out, nullptr, &syncPoint);
 }
 //
 // THE OTHER VPP FUNCTIONS HAVE IMPLICIT IMPLEMENTATION
