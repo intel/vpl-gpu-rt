@@ -1024,8 +1024,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 
-    bool* core20_interface = reinterpret_cast<bool*>(m_core->QueryCoreInterface(MFXICORE_API_2_0_GUID));
-    bool allow_null_work_surface = core20_interface && *core20_interface;
+    bool allow_null_work_surface = Supports20FeatureSet(*m_core);
 
     if (allow_null_work_surface)
     {
@@ -1055,7 +1054,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_HEVC, m_platform != MFX_PLATFORM_SOFTWARE);
             MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
 
-            if (surface_work->Data.MemId || surface_work->Data.Y || surface_work->Data.R || surface_work->Data.A || surface_work->Data.UV) // opaq surface
+            if (!IsSurfaceEmpty(*surface_work)) // opaq surface
                 MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
             surface_work = GetOriginalSurface(surface_work);

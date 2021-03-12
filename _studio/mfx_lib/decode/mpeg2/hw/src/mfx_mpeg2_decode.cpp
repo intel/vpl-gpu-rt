@@ -660,8 +660,7 @@ mfxStatus VideoDECODEMPEG2::DecodeFrameCheck(mfxBitstream* bs, mfxFrameSurface1*
     }
     else
     {
-        bool* core20_interface = reinterpret_cast<bool*>(m_core->QueryCoreInterface(MFXICORE_API_2_0_GUID));
-        bool allow_null_work_surface = core20_interface && *core20_interface;
+        bool allow_null_work_surface = Supports20FeatureSet(*m_core);
 
         /*
         In case 1.x core and nullptr surface_work we need to return back to user one of surfaces which were previously decoded.

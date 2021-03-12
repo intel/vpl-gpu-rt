@@ -644,8 +644,7 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
     if (NeedToReturnCriticalStatus(p_bs))
         return ReturningCriticalStatus();
 
-    bool* core20_interface = reinterpret_cast<bool*>(m_p_core->QueryCoreInterface(MFXICORE_API_2_0_GUID));
-    bool allow_null_work_surface = core20_interface && *core20_interface;
+    bool allow_null_work_surface = Supports20FeatureSet(*m_p_core);
 
     if (allow_null_work_surface)
     {

@@ -2693,7 +2693,7 @@ mfxStatus MfxHwH264Encode::GetNativeHandleToRawSurface(
     return sts;
 }
 
-mfxHDL MfxHwH264Encode::ConvertMidToNativeHandle(
+mfxHDL MfxHwH264Encode::GetNativeHandle(
     VideoCORE & core,
     mfxFrameSurface1& surf,
     bool        external)

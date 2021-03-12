@@ -160,24 +160,24 @@ inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU16 Ty
     switch (Info.FourCC)
     {
     case MFX_FOURCC_YV12:
-        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2 >> 1) + (Pitch >> 1)*(Height2 >> 1);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * (Height2 >> 1) + (Pitch >> 1) * (Height2 >> 1);
         break;
     case MFX_FOURCC_NV12:
-        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2 >> 1) + (Pitch >> 1)*(Height2 >> 1);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * (Height2 >> 1) + (Pitch >> 1) * (Height2 >> 1);
         break;
     case MFX_FOURCC_P010:
 #if (MFX_VERSION >= 1031)
     case MFX_FOURCC_P016:
 #endif
         Pitch  = mfx::align2_value(Info.Width * 2, 32);
-        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2 >> 1) + (Pitch >> 1)*(Height2 >> 1);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * (Height2 >> 1) + (Pitch >> 1) * (Height2 >> 1);
         break;
     case MFX_FOURCC_P210:
         Pitch  = mfx::align2_value(Info.Width * 2, 32);
-        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2)+(Pitch >> 1)*(Height2);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * Height2 + (Pitch >> 1) * Height2;
         break;
     case MFX_FOURCC_YUY2:
-        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2)+(Pitch >> 1)*(Height2);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * Height2 + (Pitch >> 1) * Height2;
         break;
     case MFX_FOURCC_RGB3:
 #ifdef MFX_ENABLE_RGBP
@@ -191,7 +191,7 @@ inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU16 Ty
 
 #if defined (MFX_ENABLE_FOURCC_RGB565)
     case MFX_FOURCC_RGB565:
-        nbytes = 2 * Pitch*Height2;
+        nbytes = 2 * Pitch * Height2;
         break;
 #endif // MFX_ENABLE_FOURCC_RGB565
     case MFX_FOURCC_BGR4:
@@ -205,7 +205,7 @@ inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU16 Ty
     case MFX_FOURCC_IMC3:
         MFX_CHECK(Type & (MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_FROM_DECODE), MFX_ERR_UNSUPPORTED);
 
-        nbytes = Pitch * Height2 + (Pitch)*(Height2 >> 1) + (Pitch)*(Height2 >> 1);
+        nbytes = Pitch * Height2 + Pitch * (Height2 >> 1) + Pitch * (Height2 >> 1);
         break;
 
     case MFX_FOURCC_P8:
@@ -221,7 +221,7 @@ inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU16 Ty
     case MFX_FOURCC_Y216:
 #endif
         Pitch  = mfx::align2_value(Info.Width * 2, 32);
-        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2)+(Pitch >> 1)*(Height2);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * Height2 + (Pitch >> 1) * Height2;
         break;
 
     case MFX_FOURCC_Y410:

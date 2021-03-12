@@ -873,8 +873,7 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo &info)
 
 mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surface_work, mfxFrameSurface1** surface_out)
 {
-    bool* core20_interface = reinterpret_cast<bool*>(m_core->QueryCoreInterface(MFXICORE_API_2_0_GUID));
-    bool allow_null_work_surface = core20_interface && *core20_interface;
+    bool allow_null_work_surface = Supports20FeatureSet(*m_core);
 
     if (allow_null_work_surface)
     {
@@ -887,21 +886,18 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
 
     if (surface_work)
     {
-        bool workSfsIsClean =
-            !(surface_work->Data.MemId || surface_work->Data.Y
-                || surface_work->Data.UV || surface_work->Data.R
-                || surface_work->Data.A);
+        bool workSfsIsEmpty = IsSurfaceEmpty(*surface_work);
 
         if (m_opaque)
         {
-            MFX_CHECK(workSfsIsClean, MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(workSfsIsEmpty, MFX_ERR_UNDEFINED_BEHAVIOR);
             // work with the native (original) surface
             surface_work = GetOriginalSurface(surface_work);
             MFX_CHECK(surface_work, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
         else
         {
-            MFX_CHECK(!workSfsIsClean, MFX_ERR_LOCK_MEMORY);
+            MFX_CHECK(!workSfsIsEmpty, MFX_ERR_LOCK_MEMORY);
         }
 
         mfxStatus sts = MFX_ERR_NONE;

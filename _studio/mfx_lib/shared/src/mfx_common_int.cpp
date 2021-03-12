@@ -1022,6 +1022,11 @@ mfxStatus GetFramePointerChecked(mfxFrameInfo const& info, mfxFrameData const& d
     return MFX_ERR_NONE;
 }
 
+bool IsSurfaceEmpty(const mfxFrameSurface1 & surface)
+{
+    return !(surface.Data.MemId || surface.Data.Y || surface.Data.U || surface.Data.V || surface.Data.A);
+}
+
 mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, const mfxFrameSurface1& surface)
 {
     mfxFrameSurface1 tmpSrf{};

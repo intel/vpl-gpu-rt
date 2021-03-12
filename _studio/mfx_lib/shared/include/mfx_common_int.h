@@ -140,6 +140,7 @@ private:
 mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const&);
 mfxU8* GetFramePointer(const mfxFrameSurface1& surf);
 mfxStatus GetFramePointerChecked(mfxFrameInfo const& info, mfxFrameData const&, mfxU8**);
+bool IsSurfaceEmpty(const mfxFrameSurface1 & surface);
 
 mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, const mfxFrameSurface1& surface);
 mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, mfxMemId mid);
