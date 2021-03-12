@@ -1163,8 +1163,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     MFX_CHECK_NULL_PTR1(surface_out);
     *surface_out = nullptr;
 
-    bool* core20_interface = reinterpret_cast<bool*>(m_core->QueryCoreInterface(MFXICORE_API_2_0_GUID));
-    bool allow_null_work_surface = core20_interface && *core20_interface;
+    bool allow_null_work_surface = Supports20FeatureSet(*m_core);
 
     if (!allow_null_work_surface)
     {
@@ -1175,12 +1174,9 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     {
         if (m_is_opaque_memory)
         {
-            bool opaqueSfsIsClean =
-                !(surface_work->Data.MemId || surface_work->Data.Y
-                    || surface_work->Data.UV || surface_work->Data.R
-                    || surface_work->Data.A);
+            bool opaqueSfsIsEmpty = IsSurfaceEmpty(*surface_work);
 
-            MFX_CHECK(opaqueSfsIsClean, MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(opaqueSfsIsEmpty, MFX_ERR_UNDEFINED_BEHAVIOR);
 
             // work with the native (original) surface
             surface_work = GetOriginalSurface(surface_work);

@@ -28,6 +28,7 @@
 #include "umc_defs.h"
 #include "mfx_ext_buffers.h"
 #include "libmfx_core_interface.h"
+#include "libmfx_core.h"
 
 using namespace MfxHwMJpegEncode;
 
@@ -628,10 +629,10 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Init(mfxVideoParam *par)
     par = &checked; // from now work with fixed copy of input!
 
 
-    bool* core20_interface = reinterpret_cast<bool*>(m_pCore->QueryCoreInterface(MFXICORE_API_2_0_GUID));
+    bool core20_interface = Supports20FeatureSet(*m_pCore);
 
     if (!m_pCore->IsExternalFrameAllocator()
-        && !(core20_interface && *core20_interface)
+        && !core20_interface
         && (par->IOPattern & (MFX_IOPATTERN_OUT_VIDEO_MEMORY | MFX_IOPATTERN_IN_VIDEO_MEMORY)))
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
@@ -904,7 +905,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::GetEncodeStat(mfxEncodeStat *stat)
     return MFX_ERR_UNSUPPORTED;
 }
 
-// main function to run encoding process, syncronous
+// main function to run encoding process, synchronous
 mfxStatus MFXVideoENCODEMJPEG_HW::EncodeFrameCheck(
                                mfxEncodeCtrl *ctrl,
                                mfxFrameSurface1 *inSurface,
@@ -937,12 +938,12 @@ mfxStatus MFXVideoENCODEMJPEG_HW::EncodeFrameCheck(
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    bool* core20_interface = reinterpret_cast<bool*>(m_pCore->QueryCoreInterface(MFXICORE_API_2_0_GUID));
+    bool core20_interface = Supports20FeatureSet(*m_pCore);
 
     mfxStatus checkSts = CheckEncodeFrameParam(
         surface,
         bs,
-        m_pCore->IsExternalFrameAllocator() || (core20_interface && *core20_interface));
+        m_pCore->IsExternalFrameAllocator() || core20_interface);
     MFX_CHECK(checkSts >= MFX_ERR_NONE, checkSts);
 
     mfxStatus status = checkSts;

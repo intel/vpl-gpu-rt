@@ -4071,7 +4071,7 @@ private:
         MfxVideoParam const & video,
         DdiTask const &       task);
 
-    mfxHDL ConvertMidToNativeHandle(
+    mfxHDL GetNativeHandle(
         VideoCORE & core,
         mfxFrameSurface1& surf,
         bool        external = false);

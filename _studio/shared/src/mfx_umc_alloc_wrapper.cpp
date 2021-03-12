@@ -24,6 +24,7 @@
 #include "mfx_common.h"
 #include "libmfx_core.h"
 #include "mfx_common_int.h"
+#include "mfx_common_decode_int.h"
 #include <functional>
 
 #if !defined MFX_DEC_VIDEO_POSTPROCESS_DISABLE
@@ -273,74 +274,8 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
     m_pCore = mfxCore;
     m_IsUseExternalFrames = isUseExternalFrames;
 
-    Ipp32s bit_depth;
-    if (params->mfx.FrameInfo.FourCC == MFX_FOURCC_P010 ||
-        params->mfx.FrameInfo.FourCC == MFX_FOURCC_P210
-#if (MFX_VERSION >= 1027)
-        || params->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
-        || params->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410
-#endif
-        )
-        bit_depth = 10;
-#if (MFX_VERSION >= 1031)
-    else if (params->mfx.FrameInfo.FourCC == MFX_FOURCC_P016 ||
-             params->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216 ||
-             params->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416)
-        bit_depth = 12;
-#endif
-    else
-        bit_depth = 8;
-
-    UMC::ColorFormat color_format;
-
-    switch (params->mfx.FrameInfo.FourCC)
-    {
-    case MFX_FOURCC_NV12:
-        color_format = UMC::NV12;
-        break;
-    case MFX_FOURCC_P010:
-        color_format = UMC::NV12;
-        break;
-    case MFX_FOURCC_NV16:
-        color_format = UMC::NV16;
-        break;
-    case MFX_FOURCC_P210:
-        color_format = UMC::NV16;
-        break;
-    case MFX_FOURCC_RGB4:
-        color_format = UMC::RGB32;
-        break;
-    case MFX_FOURCC_YV12:
-        color_format = UMC::YUV420;
-        break;
-    case MFX_FOURCC_YUY2:
-        color_format = UMC::YUY2;
-        break;
-    case MFX_FOURCC_AYUV:
-        color_format = UMC::AYUV;
-        break;
-#if (MFX_VERSION >= 1027)
-    case MFX_FOURCC_Y210:
-        color_format = UMC::Y210;
-        break;
-    case MFX_FOURCC_Y410:
-        color_format = UMC::Y410;
-        break;
-#endif
-#if (MFX_VERSION >= 1031)
-    case MFX_FOURCC_P016:
-        color_format = UMC::P016;
-        break;
-    case MFX_FOURCC_Y216:
-        color_format = UMC::Y216;
-        break;
-    case MFX_FOURCC_Y416:
-        color_format = UMC::Y416;
-        break;
-#endif
-    default:
-        return UMC::UMC_ERR_UNSUPPORTED;
-    }
+    mfxU32 bit_depth              = BitDepthFromFourcc(params->mfx.FrameInfo.FourCC);
+    UMC::ColorFormat color_format = ConvertFOURCCToUMCColorFormat(params->mfx.FrameInfo.FourCC);
 
     UMC::Status umcSts = m_info.Init(request->Info.Width, request->Info.Height, color_format, bit_depth);
 
@@ -1174,9 +1109,9 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
     // Since DECODE uses internal allocation at init step (when we can't actually understand whether user will use
     // MSDK 2.0 interface or not) we are forcing 1.x interface in case if ext allocator set
 
-    bool* core20_interface = reinterpret_cast<bool*>(m_core->QueryCoreInterface(MFXICORE_API_2_0_GUID));
+    bool core20_interface = Supports20FeatureSet(*m_core);
 
-    m_redirect_to_msdk20 = core20_interface && *core20_interface && !m_core->IsExternalFrameAllocator();
+    m_redirect_to_msdk20 = core20_interface && !m_core->IsExternalFrameAllocator();
 
     if (m_redirect_to_msdk20)
     {
@@ -1237,79 +1172,8 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
             m_surface20_cache_output_surfaces.reset(new SurfaceCache(*msdk20_core, needVppJPEG ? request_type : output_type, needVppJPEG ? request_info : output_info));
         }
 
-        mfxU32 bit_depth;
-
-        switch (video_param.mfx.FrameInfo.FourCC)
-        {
-        case MFX_FOURCC_P010:
-        case MFX_FOURCC_P210:
-#if (MFX_VERSION >= 1027)
-        case MFX_FOURCC_Y210:
-        case MFX_FOURCC_Y410:
-#endif
-            bit_depth = 10;
-            break;
-
-#if (MFX_VERSION >= 1031)
-        case MFX_FOURCC_P016:
-        case MFX_FOURCC_Y216:
-        case MFX_FOURCC_Y416:
-            bit_depth = 12;
-#endif
-        default:
-            bit_depth = 8;
-        }
-
-        UMC::ColorFormat color_format;
-
-        switch (video_param.mfx.FrameInfo.FourCC)
-        {
-        case MFX_FOURCC_NV12:
-            color_format = UMC::NV12;
-            break;
-        case MFX_FOURCC_P010:
-            color_format = UMC::NV12;
-            break;
-        case MFX_FOURCC_NV16:
-            color_format = UMC::NV16;
-            break;
-        case MFX_FOURCC_P210:
-            color_format = UMC::NV16;
-            break;
-        case MFX_FOURCC_RGB4:
-            color_format = UMC::RGB32;
-            break;
-        case MFX_FOURCC_YV12:
-            color_format = UMC::YUV420;
-            break;
-        case MFX_FOURCC_YUY2:
-            color_format = UMC::YUY2;
-            break;
-        case MFX_FOURCC_AYUV:
-            color_format = UMC::AYUV;
-            break;
-#if (MFX_VERSION >= 1027)
-        case MFX_FOURCC_Y210:
-            color_format = UMC::Y210;
-            break;
-        case MFX_FOURCC_Y410:
-            color_format = UMC::Y410;
-            break;
-#endif
-#if (MFX_VERSION >= 1031)
-        case MFX_FOURCC_P016:
-            color_format = UMC::P016;
-            break;
-        case MFX_FOURCC_Y216:
-            color_format = UMC::Y216;
-            break;
-        case MFX_FOURCC_Y416:
-            color_format = UMC::Y416;
-            break;
-#endif
-        default:
-            MFX_CHECK_WITH_THROW(false, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
-        }
+        mfxU32 bit_depth              = BitDepthFromFourcc(video_param.mfx.FrameInfo.FourCC);
+        UMC::ColorFormat color_format = ConvertFOURCCToUMCColorFormat(video_param.mfx.FrameInfo.FourCC);
 
         UMC::Status umcSts = m_video_data_info.Init(request.Info.Width, request.Info.Height, color_format, bit_depth);
         MFX_CHECK_WITH_THROW(ConvertStatusUmc2Mfx(umcSts) == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));

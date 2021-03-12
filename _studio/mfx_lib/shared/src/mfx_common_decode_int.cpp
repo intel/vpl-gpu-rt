@@ -220,7 +220,7 @@ UMC::ColorFormat ConvertFOURCCToUMCColorFormat(mfxU32 fourcc)
         case MFX_FOURCC_Y416:    return UMC::Y416;
 #endif
 
-        case MFX_FOURCC_AYUV:    return UMC::YUV444A;
+        case MFX_FOURCC_AYUV:    return UMC::AYUV;
 
         case MFX_FOURCC_IMC3:    return UMC::IMC3;
         case MFX_FOURCC_YUV400:  return UMC::GRAY;
@@ -301,8 +301,8 @@ void ConvertUMCParamsToMFX(UMC::VideoStreamInfo const* si, mfxVideoParam* par)
     par->mfx.FrameInfo.CropH  = mfxU16(si->disp_clip_info.height);
     par->mfx.FrameInfo.CropW  = mfxU16(si->disp_clip_info.width);
 
-    par->mfx.FrameInfo.BitDepthLuma = 0;
-        par->mfx.FrameInfo.BitDepthChroma = 0;
+    par->mfx.FrameInfo.BitDepthLuma   = 0;
+    par->mfx.FrameInfo.BitDepthChroma = 0;
 
     par->mfx.FrameInfo.FourCC = ConvertUMCColorFormatToFOURCC(si->color_format);
 
