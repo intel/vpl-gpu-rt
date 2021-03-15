@@ -275,7 +275,62 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
     m_IsUseExternalFrames = isUseExternalFrames;
 
     mfxU32 bit_depth              = BitDepthFromFourcc(params->mfx.FrameInfo.FourCC);
-    UMC::ColorFormat color_format = ConvertFOURCCToUMCColorFormat(params->mfx.FrameInfo.FourCC);
+
+    UMC::ColorFormat color_format;
+
+    switch (params->mfx.FrameInfo.FourCC)
+    {
+    case MFX_FOURCC_NV12:
+        color_format = UMC::NV12;
+        break;
+    case MFX_FOURCC_P010:
+        color_format = UMC::NV12;
+        break;
+    case MFX_FOURCC_NV16:
+        color_format = UMC::NV16;
+        break;
+    case MFX_FOURCC_P210:
+        color_format = UMC::NV16;
+        break;
+    case MFX_FOURCC_RGB4:
+        color_format = UMC::RGB32;
+        break;
+    case MFX_FOURCC_YV12:
+        color_format = UMC::YUV420;
+        break;
+    case MFX_FOURCC_YUY2:
+        color_format = UMC::YUY2;
+        break;
+    case MFX_FOURCC_AYUV:
+        color_format = UMC::AYUV;
+        break;
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+        color_format = UMC::Y210;
+        break;
+    case MFX_FOURCC_Y410:
+        color_format = UMC::Y410;
+        break;
+#endif
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_P016:
+        color_format = UMC::P016;
+        break;
+    case MFX_FOURCC_Y216:
+        color_format = UMC::Y216;
+        break;
+    case MFX_FOURCC_Y416:
+        color_format = UMC::Y416;
+        break;
+#endif
+#if defined (MFX_VA_WIN)
+    case DXGI_FORMAT_AYUV:
+        color_format = UMC::RGB32;
+        break;
+#endif
+    default:
+        return UMC::UMC_ERR_UNSUPPORTED;
+    }
 
     UMC::Status umcSts = m_info.Init(request->Info.Width, request->Info.Height, color_format, bit_depth);
 
@@ -1173,7 +1228,62 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         }
 
         mfxU32 bit_depth              = BitDepthFromFourcc(video_param.mfx.FrameInfo.FourCC);
-        UMC::ColorFormat color_format = ConvertFOURCCToUMCColorFormat(video_param.mfx.FrameInfo.FourCC);
+
+        UMC::ColorFormat color_format;
+
+        switch (video_param.mfx.FrameInfo.FourCC)
+        {
+        case MFX_FOURCC_NV12:
+            color_format = UMC::NV12;
+            break;
+        case MFX_FOURCC_P010:
+            color_format = UMC::NV12;
+            break;
+        case MFX_FOURCC_NV16:
+            color_format = UMC::NV16;
+            break;
+        case MFX_FOURCC_P210:
+            color_format = UMC::NV16;
+            break;
+        case MFX_FOURCC_RGB4:
+            color_format = UMC::RGB32;
+            break;
+        case MFX_FOURCC_YV12:
+            color_format = UMC::YUV420;
+            break;
+        case MFX_FOURCC_YUY2:
+            color_format = UMC::YUY2;
+            break;
+        case MFX_FOURCC_AYUV:
+            color_format = UMC::AYUV;
+            break;
+#if (MFX_VERSION >= 1027)
+        case MFX_FOURCC_Y210:
+            color_format = UMC::Y210;
+            break;
+        case MFX_FOURCC_Y410:
+            color_format = UMC::Y410;
+            break;
+#endif
+#if (MFX_VERSION >= 1031)
+        case MFX_FOURCC_P016:
+            color_format = UMC::P016;
+            break;
+        case MFX_FOURCC_Y216:
+            color_format = UMC::Y216;
+            break;
+        case MFX_FOURCC_Y416:
+            color_format = UMC::Y416;
+            break;
+#endif
+#if defined (MFX_VA_WIN)
+        case DXGI_FORMAT_AYUV:
+            color_format = UMC::RGB32;
+            break;
+#endif
+        default:
+            MFX_CHECK_WITH_THROW(false, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
+        }
 
         UMC::Status umcSts = m_video_data_info.Init(request.Info.Width, request.Info.Height, color_format, bit_depth);
         MFX_CHECK_WITH_THROW(ConvertStatusUmc2Mfx(umcSts) == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
