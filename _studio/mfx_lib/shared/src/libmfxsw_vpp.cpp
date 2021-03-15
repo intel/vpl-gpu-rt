@@ -594,11 +594,17 @@ mfxStatus MFXVideoVPP_ProcessFrameAsync(mfxSession session, mfxFrameSurface1 *in
     MFX_CHECK_HDL(session);
     MFX_CHECK(session->m_pVPP.get(), MFX_ERR_NOT_INITIALIZED);
 
-    *out = session->m_pVPP->GetSurfaceOut();
-    MFX_CHECK(*out, MFX_ERR_MEMORY_ALLOC);
+    surface_refcount_scoped_lock surf_out(session->m_pVPP->GetSurfaceOut());
+    MFX_CHECK(surf_out, MFX_ERR_MEMORY_ALLOC);
 
     mfxSyncPoint syncPoint;
-    return MFXVideoVPP_RunFrameVPPAsync(session, in, *out, nullptr, &syncPoint);
+    mfxStatus mfxRes = MFXVideoVPP_RunFrameVPPAsync(session, in, surf_out.get(), nullptr, &syncPoint);
+
+    // If output is not available then release out_surf (which should mark it as free) and return status
+    MFX_CHECK(syncPoint, mfxRes);
+
+    *out = surf_out.release();
+    return mfxRes;
 }
 //
 // THE OTHER VPP FUNCTIONS HAVE IMPLICIT IMPLEMENTATION

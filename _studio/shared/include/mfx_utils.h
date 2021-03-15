@@ -686,6 +686,35 @@ inline mfxStatus CheckAndDestroyVAbuffer(VADisplay display, VABufferID & buffer_
     return MFX_ERR_NONE;
 }
 
+inline mfxStatus AddRefSurface(mfxFrameSurface1 & surf, bool allow_legacy_surface = false)
+{
+    if (allow_legacy_surface && !surf.FrameInterface) { return MFX_ERR_NONE; }
+
+    MFX_CHECK(surf.FrameInterface && surf.FrameInterface->AddRef, MFX_ERR_UNSUPPORTED);
+
+    return surf.FrameInterface->AddRef(&surf);
+}
+
+inline mfxStatus ReleaseSurface(mfxFrameSurface1 & surf, bool allow_legacy_surface = false)
+{
+    if (allow_legacy_surface && !surf.FrameInterface) { return MFX_ERR_NONE; }
+
+    MFX_CHECK(surf.FrameInterface && surf.FrameInterface->Release, MFX_ERR_UNSUPPORTED);
+
+    return surf.FrameInterface->Release(&surf);
+}
+
+struct surface_refcount_scoped_lock : public std::unique_ptr<mfxFrameSurface1, void(*)(mfxFrameSurface1* surface)>
+{
+    surface_refcount_scoped_lock(mfxFrameSurface1* surface)
+        : std::unique_ptr<mfxFrameSurface1, void(*)(mfxFrameSurface1* surface)>(
+            surface, [](mfxFrameSurface1* surface)
+    {
+        std::ignore = MFX_STS_TRACE(ReleaseSurface(*surface));
+    })
+    {}
+};
+
 #define MFX_EQ_FIELD(Field) l.Field == r.Field
 #define MFX_EQ_ARRAY(Array, Num) std::equal(l.Array, l.Array + Num, r.Array)
 
