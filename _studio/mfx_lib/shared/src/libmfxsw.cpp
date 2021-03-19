@@ -91,7 +91,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     // check the library version
     if (MakeVersion(par.Version.Major, par.Version.Minor) > MFX_VERSION)
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     // check error(s)
@@ -103,7 +103,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         (MFX_IMPL_HARDWARE3 != impl) &&
         (MFX_IMPL_HARDWARE4 != impl))
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     // if user did not specify MFX_IMPL_VIA_* treat it as MFX_IMPL_VIA_ANY
@@ -114,7 +114,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         (MFX_IMPL_VIA_VAAPI != implInterface) &&
         (MFX_IMPL_VIA_ANY != implInterface))
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     // set the adapter number
@@ -141,7 +141,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     // app. must use MFXInitialize for 2.x features
     if (par.Version.Major > 1)
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     mfxStatus sts = MFXInit_Internal(par, session, implInterface, adapterNum);
@@ -207,7 +207,7 @@ mfxStatus MFXDoWork(mfxSession session)
     // check error(s)
     if (0 == session)
     {
-        return MFX_ERR_INVALID_HANDLE;
+        MFX_RETURN(MFX_ERR_INVALID_HANDLE);
     }
 
     MFXIUnknown * pInt = session->m_pScheduler;
@@ -216,7 +216,7 @@ mfxStatus MFXDoWork(mfxSession session)
 
     if (!newScheduler)
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
     newScheduler->Release();
 
@@ -232,7 +232,7 @@ mfxStatus MFXClose(mfxSession session)
     // check error(s)
     if (0 == session)
     {
-        return MFX_ERR_INVALID_HANDLE;
+        MFX_RETURN(MFX_ERR_INVALID_HANDLE);
     }
 
     try
@@ -259,7 +259,7 @@ mfxStatus MFXClose(mfxSession session)
 
         if (session->IsParentSession())
         {
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
         // deallocate the object
@@ -296,7 +296,7 @@ mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* sess
         par.Implementation |= MFX_IMPL_VIA_VAAPI;
         break;
     default:
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     par.Version.Major = MFX_VERSION_MAJOR;
@@ -515,7 +515,7 @@ mfxStatus MFX_CDECL MFXReleaseImplDescription(mfxHDL hdl)
     }
     catch (...)
     {
-        return MFX_ERR_UNKNOWN;
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 
     return MFX_ERR_NONE;
