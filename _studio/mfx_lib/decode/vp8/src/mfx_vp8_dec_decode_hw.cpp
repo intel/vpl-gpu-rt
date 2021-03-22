@@ -744,10 +744,10 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
         }
         else if (m_is_opaque_memory)
         {
-            p_surface_work->Info.CropW = p_surface_work->Info.CropW ? p_surface_work->Info.CropW : m_on_init_video_params.mfx.FrameInfo.CropW;
-            p_surface_work->Info.CropH = p_surface_work->Info.CropH ? p_surface_work->Info.CropH : m_on_init_video_params.mfx.FrameInfo.CropH;
+            MFX_CHECK_NULL_PTR1(p_surface_work);
 
             p_surface_work = m_p_core->GetOpaqSurface(p_surface_work->Data.MemId, true);
+            MFX_CHECK_NULL_PTR1(p_surface_work);
         }
 
         if (p_surface_work)
@@ -761,7 +761,7 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
         sFrameInfo info;
         info.frameType = m_frame_info.frameType;
         info.memId = memId;
-        info.currIndex = static_cast<mfxU16>(memId);;
+        info.currIndex = static_cast<mfxU16>(memId);
         info.goldIndex = gold_indx;
         info.altrefIndex = altref_indx;
         info.lastrefIndex = lastrefIndex;
