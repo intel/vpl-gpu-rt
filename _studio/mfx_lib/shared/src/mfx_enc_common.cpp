@@ -489,7 +489,7 @@ mfxStatus AllocInternalEncBuffer(VideoCORE* pCore, const mfxU16& numFrameMin, co
 
     mfxFrameAllocRequest request = {};
     request.Info = par.mfx.FrameInfo;
-    request.Type = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_SHARED_RESOURCE;
+    request.Type = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_INTERNAL_FRAME;
     request.NumFrameMin = request.NumFrameSuggested = numFrameMin;
 
     mfxStatus sts = pCore->AllocFrames(&request, &response);

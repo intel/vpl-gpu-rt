@@ -267,8 +267,7 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
         return mfxSts;
 
     if (useInternal)
-        request.Type |= MFX_MEMTYPE_INTERNAL_FRAME
-        ;
+        request.Type |= MFX_MEMTYPE_INTERNAL_FRAME;
     else
         request.Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
 
