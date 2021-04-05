@@ -1170,9 +1170,6 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     {
         request.Type |= MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET;
     }
-    else
-    {
-    }
     sts = m_rec.Alloc(m_core, request, bPanicModeSupport);
     MFX_CHECK_STS(sts);
 
