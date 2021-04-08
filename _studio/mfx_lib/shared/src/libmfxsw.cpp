@@ -318,8 +318,24 @@ namespace mfx
 {
     class ImplDescriptionHolder;
 
+    struct ImplCapsCommon
+    {
+        virtual ~ImplCapsCommon() {};
+        static void Release(mfxHDL hdl)
+        {
+            auto p = (ImplCapsCommon*)((mfxU8*)hdl - sizeof(ImplCapsCommon));
+            delete p;
+        }
+        template<class T>
+        static mfxHDL GetHDL(T& caps)
+        {
+             return mfxHDL((mfxU8*)&caps + sizeof(ImplCapsCommon));
+        }
+    };
+
     class ImplDescription
-        : public mfxImplDescription
+        : public ImplCapsCommon
+        , public mfxImplDescription
         , public PODArraysHolder
     {
     public:
@@ -341,7 +357,7 @@ namespace mfx
         ImplDescription& PushBack()
         {
             m_impls.emplace_back(new ImplDescription(this));
-            m_implsArray.push_back(m_impls.back().get());
+            m_implsArray.push_back(ImplCapsCommon::GetHDL(*m_impls.back()));
             return *m_impls.back();
         }
 
@@ -374,6 +390,57 @@ namespace mfx
         if (m_pHolder)
             m_pHolder->Release();
     }
+
+    class ImplFunctions
+        : public ImplCapsCommon
+        , public mfxImplementedFunctions
+    {
+    public:
+        template<typename T>
+        void PushFuncName(T&& name)
+        {
+            m_funcNames.emplace_back(std::vector<mfxChar>(std::begin(name), std::end(name)));
+        }
+
+        ImplFunctions()
+        {
+#define MFX_API_FUNCTION_IMPL(NAME, RTYPE, ARGS_DECL, ARGS) PushFuncName(#NAME);
+#undef _MFX_FUNCTIONS_H_
+#include "mfx_functions.h"
+
+            m_funcArray.resize(m_funcNames.size(), nullptr);
+            std::transform(m_funcNames.begin(), m_funcNames.end(), m_funcArray.begin()
+                , [](std::vector<mfxChar>& name) {return name.data(); });
+
+            NumFunctions = mfxU16(m_funcArray.size());
+            FunctionsName = m_funcArray.data();
+
+            m_implArray[0] = ImplCapsCommon::GetHDL(*this);
+        }
+
+        mfxHDL* GetArray() { return m_implArray; }
+
+        size_t  GetSize() { return 1; }
+
+        void Remove(const mfxChar* substr, bool bExact = false)
+        {
+            auto it = std::remove_if(m_funcArray.begin(), m_funcArray.end()
+                , [=](mfxChar* str) { return str == strstr(str, substr) && (!bExact || (str && strlen(str) == strlen(substr))); });
+
+            if (it != m_funcArray.end())
+            {
+                m_funcArray.erase(it, m_funcArray.end());
+
+                NumFunctions = mfxU16(m_funcArray.size());
+                FunctionsName = m_funcArray.data();
+            }
+        }
+
+    protected:
+        std::list<std::vector<mfxChar>> m_funcNames;
+        std::vector<mfxChar*>  m_funcArray;
+        mfxHDL m_implArray[1] = {};
+    };
 };
 
 mfxStatus QueryImplsDescription(VideoCORE&, mfxEncoderDescription&, mfx::PODArraysHolder&);
@@ -382,12 +449,35 @@ mfxStatus QueryImplsDescription(VideoCORE&, mfxVPPDescription&, mfx::PODArraysHo
 
 mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfxU32* num_impls)
 {
-    auto IsVplHW = [](eMFXHWType hw) -> bool
-    {
-        return hw >= MFX_HW_TGL_LP;
-    };
+    if (!num_impls)
+        return nullptr;
 
-    if (!num_impls || format != MFX_IMPLCAPS_IMPLDESCSTRUCTURE)
+    if (format == MFX_IMPLCAPS_IMPLEMENTEDFUNCTIONS)
+    {
+        try
+        {
+            std::unique_ptr<mfx::ImplFunctions> holder(new mfx::ImplFunctions);
+
+            //remove non-VPL functions
+            holder->Remove("MFXInit", true);
+            holder->Remove("MFXInitEx", true);
+            holder->Remove("MFXDoWork", true);
+            holder->Remove("MFXVideoCORE_SetBufferAllocator", true);
+            holder->Remove("MFXVideoVPP_RunFrameVPPAsyncEx", true);
+            holder->Remove("MFXVideoUSER_");
+            holder->Remove("MFXVideoENC_");
+            holder->Remove("MFXVideoPAK_");
+
+            *num_impls = mfxU32(holder->GetSize());
+            return holder.release()->GetArray();
+        }
+        catch (...)
+        {
+            return nullptr;
+        }
+    }
+
+    if (format != MFX_IMPLCAPS_IMPLDESCSTRUCTURE)
         return nullptr;
 
     try
@@ -395,6 +485,10 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
         std::unique_ptr<mfx::ImplDescriptionHolder> holder(new mfx::ImplDescriptionHolder);
         std::set<mfxU32> deviceIds;
 
+        auto IsVplHW = [](eMFXHWType hw) -> bool
+        {
+            return hw >= MFX_HW_TGL_LP;
+        };
         auto QueryImplDesc = [&](VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum) -> bool
         {
             if (   !IsVplHW(core.GetHWType())
@@ -511,7 +605,7 @@ mfxStatus MFX_CDECL MFXReleaseImplDescription(mfxHDL hdl)
 
     try
     {
-        delete (mfx::ImplDescription*)hdl;
+        mfx::ImplCapsCommon::Release(hdl);
     }
     catch (...)
     {
