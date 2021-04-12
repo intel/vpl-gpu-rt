@@ -425,7 +425,7 @@ namespace mfx
         void Remove(const mfxChar* substr, bool bExact = false)
         {
             auto it = std::remove_if(m_funcArray.begin(), m_funcArray.end()
-                , [=](mfxChar* str) { return str == strstr(str, substr) && (!bExact || (str && strlen(str) == strlen(substr))); });
+                , [=](mfxChar* str) { return !str || (substr && (str == strstr(str, substr)) && (!bExact || strlen(str) == strlen(substr))); });
 
             if (it != m_funcArray.end())
             {
