@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2020 Intel Corporation
+// Copyright (c) 2008-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -57,7 +57,8 @@ const mfxU32 g_TABLE_DO_NOT_USE [] =
 #endif
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
-    MFX_EXTBUFF_VPP_MIRRORING
+    MFX_EXTBUFF_VPP_MIRRORING,
+    MFX_EXTBUFF_VPP_3DLUT
 };
 
 
@@ -84,7 +85,8 @@ const mfxU32 g_TABLE_DO_USE [] =
     MFX_EXTBUFF_VPP_DEINTERLACING,
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
-    MFX_EXTBUFF_VPP_MIRRORING
+    MFX_EXTBUFF_VPP_MIRRORING,
+    MFX_EXTBUFF_VPP_3DLUT
 };
 
 
@@ -109,7 +111,8 @@ const mfxU32 g_TABLE_CONFIG [] =
 #if (MFX_VERSION >= 1025)
     MFX_EXTBUFF_VPP_COLOR_CONVERSION,
 #endif
-    MFX_EXTBUFF_VPP_MIRRORING
+    MFX_EXTBUFF_VPP_MIRRORING,
+    MFX_EXTBUFF_VPP_3DLUT
 };
 
 
@@ -139,7 +142,8 @@ const mfxU32 g_TABLE_EXT_PARAM [] =
 #if (MFX_VERSION >= 1025)
     MFX_EXTBUFF_VPP_COLOR_CONVERSION,
 #endif
-    MFX_EXTBUFF_VPP_MIRRORING
+    MFX_EXTBUFF_VPP_MIRRORING,
+    MFX_EXTBUFF_VPP_3DLUT
 };
 
 PicStructMode GetPicStructMode(mfxU16 inPicStruct, mfxU16 outPicStruct)
@@ -699,6 +703,11 @@ void ShowPipeline( std::vector<mfxU32> pipelineList )
                 break;
             }
 #endif
+            case (mfxU32)MFX_EXTBUFF_VPP_3DLUT:
+            {
+                fprintf(stderr, "MFX_EXTBUFF_VPP_3DLUT\n");
+                break;
+            }
             default:
             {
                 fprintf(stderr, "UNKNOWN Filter ID!!! \n");
@@ -831,7 +840,11 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
         newList[index] = MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION;
         index++;
     }
-
+    if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_3DLUT ) )
+    {
+        newList[index] = MFX_EXTBUFF_VPP_3DLUT;
+        index++;
+    }
     if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_SCENE_ANALYSIS ) )
     {
         newList[index] = MFX_EXTBUFF_VPP_SCENE_ANALYSIS;
@@ -1289,6 +1302,13 @@ mfxStatus GetPipelineList(
         if( !IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO ) )
         {
             pipelineList.push_back( MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO );
+        }
+    }
+    if( IsFilterFound( &configList[0], configCount, MFX_EXTBUFF_VPP_3DLUT ) && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_3DLUT) )
+    {
+        if( !IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_3DLUT ) )
+        {
+            pipelineList.push_back( MFX_EXTBUFF_VPP_3DLUT );
         }
     }
 
@@ -2237,6 +2257,11 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
     if(caps.uScaling)
     {
         list.push_back(MFX_EXTBUFF_VPP_SCALING);
+    }
+
+    if(caps.u3DLut)
+    {
+        list.push_back(MFX_EXTBUFF_VPP_3DLUT);
     }
 
 #if (MFX_VERSION >= 1025)
