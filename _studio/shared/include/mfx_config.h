@@ -145,6 +145,8 @@
 #define UMC_ENABLE_FIO_READER
 #define UMC_ENABLE_VC1_SPLITTER
 
+#if !defined(NDEBUG)
 #define MFX_ENV_CFG_ENABLE
+#endif
 
 #endif // _MFX_CONFIG_H_
