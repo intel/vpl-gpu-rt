@@ -1647,6 +1647,7 @@ bool CommonCORE::CheckOpaqueRequest(mfxFrameAllocRequest *request,
     if (request->NumFrameMin != NumOpaqueSurface)
         return false;
 
+    std::ignore = ExtendedSearch;
     return false;
 }
 

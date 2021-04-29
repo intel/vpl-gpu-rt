@@ -225,7 +225,7 @@ mfxStatus VideoDECODEVP8_HW::Init(mfxVideoParam *p_video_param)
 } // mfxStatus VideoDECODEVP8_HW::Init(mfxVideoParam *p_video_param)
 
 mfxStatus VideoDECODEVP8_HW::QueryImplsDescription(
-    VideoCORE& core,
+    VideoCORE&,
     mfxDecoderDescription::decoder& caps,
     mfx::PODArraysHolder& ah)
 {

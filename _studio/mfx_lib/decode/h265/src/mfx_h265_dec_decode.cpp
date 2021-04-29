@@ -366,7 +366,7 @@ mfxStatus VideoDECODEH265::QueryImplsDescription(
     mfxDecoderDescription::decoder& caps,
     mfx::PODArraysHolder& ah)
 {
-    const mfxU32 SupportedProfiles[] =
+    const mfxU16 SupportedProfiles[] =
     {
         MFX_PROFILE_HEVC_MAIN
         , MFX_PROFILE_HEVC_MAIN10
@@ -401,7 +401,7 @@ mfxStatus VideoDECODEH265::QueryImplsDescription(
     par.mfx.CodecLevel = caps.MaxcodecLevel;
 
     mfxStatus sts = MFX_ERR_NONE;
-    for (mfxU32 profile : SupportedProfiles)
+    for (mfxU16 profile : SupportedProfiles)
     {
         par.mfx.CodecProfile = profile;
         par.mfx.FrameInfo.ChromaFormat = 0;
@@ -422,8 +422,8 @@ mfxStatus VideoDECODEH265::QueryImplsDescription(
 
             for (auto fccChroma : SupportedFourCCChromaFormat)
             {
-                par.mfx.FrameInfo.FourCC = fccChroma[0];
-                par.mfx.FrameInfo.ChromaFormat = fccChroma[1];
+                par.mfx.FrameInfo.FourCC       = fccChroma[0];
+                par.mfx.FrameInfo.ChromaFormat = mfxU16(fccChroma[1]);
 
                 sts = VideoDECODEH265::Query(&core, &par, &par);
                 if (sts != MFX_ERR_NONE) continue;

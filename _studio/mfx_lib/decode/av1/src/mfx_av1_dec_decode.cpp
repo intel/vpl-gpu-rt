@@ -246,7 +246,7 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
 }
 
 mfxStatus VideoDECODEAV1::QueryImplsDescription(
-    VideoCORE& core,
+    VideoCORE&,
     mfxDecoderDescription::decoder& caps,
     mfx::PODArraysHolder& ah)
 {
@@ -270,7 +270,6 @@ mfxStatus VideoDECODEAV1::QueryImplsDescription(
     caps.CodecID = MFX_CODEC_AV1;
     caps.MaxcodecLevel = MFX_LEVEL_AV1_63;
 
-    mfxStatus sts = MFX_ERR_NONE;
     for (mfxU32 profile : SupportedProfiles)
     {
         auto& pfCaps = ah.PushBack(caps.Profiles);

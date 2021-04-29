@@ -178,7 +178,6 @@ mfxStatus MFXVideoDECODEVC1::Init(mfxVideoParam *par)
     UMC::Status     IntUMCStatus = UMC::UMC_OK;
     UMC::Status     umcSts = UMC::UMC_OK;
     bool            isPartMode = false;
-    bool            Polar   = false;
 
     m_isSWPlatform = true;
     m_CurrentTask = 0;
@@ -340,7 +339,7 @@ mfxStatus MFXVideoDECODEVC1::QueryImplsDescription(
     mfxDecoderDescription::decoder& caps,
     mfx::PODArraysHolder& ah)
 {
-    const mfxU32 SupportedProfiles[] =
+    const mfxU16 SupportedProfiles[] =
     {
         MFX_PROFILE_VC1_SIMPLE
         , MFX_PROFILE_VC1_MAIN
@@ -365,7 +364,7 @@ mfxStatus MFXVideoDECODEVC1::QueryImplsDescription(
     par.mfx.CodecLevel = caps.MaxcodecLevel;
 
     mfxStatus sts = MFX_ERR_NONE;
-    for (mfxU32 profile : SupportedProfiles)
+    for (mfxU16 profile : SupportedProfiles)
     {
         par.mfx.CodecProfile = profile;
         // Set FourCC & ChromaFormat to pass Query check
