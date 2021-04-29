@@ -170,7 +170,7 @@ public:
     bool IsFastCompositingEnabled(void) const;
 
 
-    virtual eMFXHWType   GetHWType() override { return m_HWType; }
+    virtual eMFXHWType   GetHWType() override;
 
     virtual mfxStatus    CreateVA(mfxVideoParam * param, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, UMC::FrameAllocator *allocator) override;
     // to check HW capabilities
@@ -203,6 +203,7 @@ protected:
     mfxStatus              ProcessRenderTargets(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, mfxBaseWideFrameAllocator* pAlloc);
     mfxStatus              TraceFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, mfxStatus sts);
     mfxStatus              OnDeblockingInWinRegistry(mfxU32 codecId);
+    mfxStatus              CheckOrInitDisplay();
 
     void                   ReleaseHandle();
 
@@ -211,6 +212,7 @@ protected:
     mfxHDL                                      m_VAConfigHandle;
     mfxHDL                                      m_VAContextHandle;
     bool                                        m_KeepVAState;
+    int                                         m_intDRM = -1;
 
     const mfxU32                                m_adapterNum; // Ordinal number of adapter to work
     bool                                        m_bUseExtAllocForHWFrames;
@@ -255,6 +257,8 @@ public:
 
     virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)                                                              override;
     virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType)                         override;
+
+    virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)                                                   override;
 
 protected:
     VAAPIVideoCORE20(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
