@@ -407,8 +407,8 @@ mfxStatus VideoDECODEH265::QueryImplsDescription(
 
             for (auto fccChroma : SupportedFourCCChromaFormat)
             {
-                par.mfx.FrameInfo.FourCC = fccChroma[0];
-                par.mfx.FrameInfo.ChromaFormat = fccChroma[1];
+                par.mfx.FrameInfo.FourCC       = fccChroma[0];
+                par.mfx.FrameInfo.ChromaFormat = mfxU16(fccChroma[1]);
 
                 sts = VideoDECODEH265::Query(&core, &par, &par);
                 if (sts != MFX_ERR_NONE) continue;
