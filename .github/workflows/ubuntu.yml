@@ -47,6 +47,7 @@ jobs:
           libxext-dev \
           libxfixes-dev \
           libwayland-dev \
+          ninja-build \
           make
     - name: print tools versions
       run: |
@@ -98,6 +99,7 @@ jobs:
           libxext-dev \
           libxfixes-dev \
           libwayland-dev \
+          ninja-build \
           make
     - name: print tools versions
       run: |
