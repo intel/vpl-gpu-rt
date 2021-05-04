@@ -45,16 +45,18 @@ public:
          const mfxFrameAllocRequest & req
         , bool isCopyRequired);
 
-    mfxStatus AllocOpaque(
+    virtual mfxStatus AllocOpaque(
         const mfxFrameInfo & info
         , mfxU16 type
         , mfxFrameSurface1 **surfaces
         , mfxU16 numSurface);
 
+    virtual Resource  Acquire();
+    virtual void      Release(mfxU32 idx) { Unlock(idx); }
+
     mfxFrameAllocResponse GetResponse()   const { return m_response; }
     mfxFrameInfo          GetInfo()       const { return m_info; }
-    Resource              Acquire();
-    void                  Release(mfxU32 idx) { Unlock(idx); }
+
     void                  ClearFlag(mfxU32 idx);
     void                  SetFlag(mfxU32 idx, mfxU32 flag);
     mfxU32                GetFlag(mfxU32 idx);
@@ -84,4 +86,4 @@ protected:
     mfxU16                             m_numFrameActual = 0;
 };
 
-} //namespace MfxEHW
+} //namespace MfxEncodeHW

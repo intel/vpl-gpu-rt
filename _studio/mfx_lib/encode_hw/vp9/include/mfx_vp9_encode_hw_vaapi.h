@@ -1,15 +1,15 @@
-// Copyright (c) 2018-2020 Intel Corporation
-// 
+// Copyright (c) 2012-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,7 +25,6 @@
 
 namespace MfxHwVP9Encode
 {
-#if defined (MFX_VA_LINUX)
 #include <va/va.h>
 #include <va/va_enc_vp9.h>
 
@@ -87,7 +86,7 @@ namespace MfxHwVP9Encode
             Task const &task,
             mfxHDLPair pair) override;
 
-        // recommendation from HW
+        // recomendation from HW
         virtual
         mfxStatus QueryCompBufferInfo(
             D3DDDIFORMAT type,
@@ -131,7 +130,6 @@ namespace MfxHwVP9Encode
         VAEncMiscParameterTypeVP9PerSegmantParam    m_segPar;
         VAEncMiscParameterRateControl               m_vaBrcPar;
         VAEncMiscParameterFrameRate                 m_vaFrameRate;
-        VAContextParameterUpdateBuffer              m_priorityBuffer;
 
         VP9SeqLevelParam                            m_seqParam;
 
@@ -144,7 +142,6 @@ namespace MfxHwVP9Encode
         VABufferID m_qualityLevelBufferId;
         VABufferID m_packedHeaderParameterBufferId;
         VABufferID m_packedHeaderDataBufferId;
-        VABufferID m_priorityBufferId;
 
         // max number of temp layers is 8, but now supported only 4
         VABufferID m_tempLayersBufferId;
@@ -159,7 +156,7 @@ namespace MfxHwVP9Encode
 
         std::vector<mfxU8> m_frameHeaderBuf;
 
-        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 27; // sps, pps, bitstream, uncomp header, segment map, per-segment parameters, temp layers, frame rate(up to 8), rate ctrl(up to 8), hrd, quality level
+        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 26; // sps, pps, bitstream, uncomp header, segment map, per-segment parameters, temp layers, frame rate(up to 8), rate ctrl(up to 8), hrd, quality level
 
         mfxU32 m_width;
         mfxU32 m_height;
@@ -167,10 +164,8 @@ namespace MfxHwVP9Encode
 
         ENCODE_CAPS_VP9 m_caps;
         eMFXHWType m_platform;
-        mfxU32 m_MaxContextPriority;
 
         UMC::Mutex                      m_guard;
     };
-#endif // (MFX_VA_LINUX)
 } // MfxHwVP9Encode
 

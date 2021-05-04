@@ -1,15 +1,15 @@
-// Copyright (c) 2018-2020 Intel Corporation
-// 
+// Copyright (c) 2012-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,11 +24,9 @@
 #include "mfx_vp9_encode_hw_vaapi.h"
 #include "mfx_common_int.h"
 #include <map>
-#include "mfx_session.h"
 
 namespace MfxHwVP9Encode
 {
-#if defined(MFX_VA_LINUX)
 
  /* ----------- Functions to convert MediaSDK into DDI --------------------- */
 
@@ -189,7 +187,7 @@ namespace MfxHwVP9Encode
         for (mfxU16 i = 0; i < 2; i ++)
             pps.mode_lf_delta[i] = framePar.lfModeDelta[i];
 
-        pps.ref_flags.bits.temporal_id = static_cast<mfxU8>(framePar.temporalLayer);
+       pps.ref_flags.bits.temporal_id = static_cast<mfxU8>(framePar.temporalLayer);
 
         pps.bit_offset_ref_lf_delta         = offsets.BitOffsetForLFRefDelta;
         pps.bit_offset_mode_lf_delta        = offsets.BitOffsetForLFModeDelta;
@@ -366,7 +364,7 @@ mfxStatus SetRateControl(
 
     mfxU8 numTL = par.m_numLayers;
     bool TL_attached = false;
-    if (numTL == 0) 
+    if (numTL == 0)
         numTL = 1;
     else
         TL_attached = true;
@@ -400,14 +398,21 @@ mfxStatus SetRateControl(
         misc_param->type = VAEncMiscParameterTypeRateControl;
         rate_param = (VAEncMiscParameterRateControl *)misc_param->data;
 
-        if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
+        if (IsBitrateBasedBRC(par.mfx.RateControlMethod))
         {
-            rate_param->bits_per_second = TL_attached ? extTL.Layer[tl].TargetKbps * 1000 : par.mfx.MaxKbps * 1000;
+            if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR)
+            {
+                rate_param->bits_per_second = TL_attached ? extTL.Layer[tl].TargetKbps * 1000 : par.mfx.MaxKbps * 1000;
+            }
+            else
+            {
+                rate_param->bits_per_second = par.mfx.MaxKbps * 1000;
 
-            if (rate_param->bits_per_second)
-                rate_param->target_percentage = TL_attached ?
-                (unsigned int)(100.0 * (mfxF64)extTL.Layer[tl].TargetKbps / (mfxF64)extTL.Layer[tl].TargetKbps) :
-                (unsigned int)(100.0 * (mfxF64)par.mfx.TargetKbps / (mfxF64)par.mfx.MaxKbps);
+                if (rate_param->bits_per_second)
+                    rate_param->target_percentage = TL_attached ?
+                    (unsigned int)(100.0 * (mfxF64)extTL.Layer[tl].TargetKbps / (mfxF64)par.mfx.MaxKbps) :
+                    (unsigned int)(100.0 * (mfxF64)par.mfx.TargetKbps / (mfxF64)par.mfx.MaxKbps);
+            }
 
             rate_param->rc_flags.bits.reset = isBrcResetRequired;
             rate_param->rc_flags.bits.temporal_id = tl;
@@ -576,9 +581,9 @@ VAAPIEncoder::VAAPIEncoder()
 , m_vaConfig(VA_INVALID_ID)
 , m_sps()
 , m_pps()
+, m_segPar()
 , m_vaBrcPar()
 , m_vaFrameRate()
-, m_priorityBuffer()
 , m_seqParam()
 , m_spsBufferId(VA_INVALID_ID)
 , m_ppsBufferId(VA_INVALID_ID)
@@ -588,7 +593,6 @@ VAAPIEncoder::VAAPIEncoder()
 , m_qualityLevelBufferId(VA_INVALID_ID)
 , m_packedHeaderParameterBufferId(VA_INVALID_ID)
 , m_packedHeaderDataBufferId(VA_INVALID_ID)
-, m_priorityBufferId(VA_INVALID_ID)
 , m_tempLayersBufferId(VA_INVALID_ID)
 , m_tempLayersParamsReset(false)
 , m_width(0)
@@ -596,7 +600,6 @@ VAAPIEncoder::VAAPIEncoder()
 , m_isBrcResetRequired(false)
 , m_caps()
 , m_platform()
-, m_MaxContextPriority(0)
 {
 } // VAAPIEncoder::VAAPIEncoder(VideoCORE* core)
 
@@ -642,7 +645,7 @@ void HardcodeCaps(ENCODE_CAPS_VP9& caps, eMFXHWType platform)
 #endif
 #else
     std::ignore = platform;
-#endif // (MFX_VERSION >= 1027)
+#endif //(MFX_VERSION >= 1027)
 
     caps.ForcedSegmentationSupport = 1;
     caps.AutoSegmentationSupport = 1;
@@ -672,6 +675,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_width  = par.mfx.FrameInfo.Width;
     m_height = par.mfx.FrameInfo.Height;
 
+    // set encoder CAPS on our own for now
     memset(&m_caps, 0, sizeof(m_caps));
 
     std::map<VAConfigAttribType, int> idx_map;
@@ -689,7 +693,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         VAConfigAttribEncMacroblockInfo,
         VAConfigAttribEncMaxRefFrames,
         VAConfigAttribEncSkipFrame,
-        VAConfigAttribContextPriority
     };
     std::vector<VAConfigAttrib> attrs;
 
@@ -769,9 +772,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         m_caps.FrameLevelRateCtrl = attrs[idx_map[VAConfigAttribProcessingRate]].value == VA_PROCESSING_RATE_ENCODE;
         m_caps.BRCReset = attrs[idx_map[VAConfigAttribProcessingRate]].value == VA_PROCESSING_RATE_ENCODE;
     }
-
-    if (attrs[ idx_map[VAConfigAttribContextPriority] ].value != VA_ATTRIB_NOT_SUPPORTED)
-        m_MaxContextPriority = attrs[ idx_map[VAConfigAttribContextPriority] ].value;
 
     HardcodeCaps(m_caps, m_platform);
 
@@ -921,7 +921,7 @@ mfxStatus VAAPIEncoder::Reset(VP9MfxVideoParam const & par)
     mfxSts = SetHRD(par, m_vaDisplay, m_vaContextEncode, m_hrdBufferId);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
 
-    // even we have not temporal layers (after reset), 
+    // even we have not temporal layers (after reset),
     // we have to update driver temporal layers structures in the next render cycle
     mfxSts = SetTemporalStructure(par, m_vaDisplay, m_vaContextEncode, m_tempLayersBufferId);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
@@ -1189,41 +1189,6 @@ mfxStatus VAAPIEncoder::Execute(
 
         // 12. quality level
         configBuffers.push_back(m_qualityLevelBufferId);
-
-        // 13. Gpu Priority
-        if(m_MaxContextPriority)
-        {
-            mfxPriority contextPriority = m_pmfxCore->GetSession()->m_priority;
-            memset(&m_priorityBuffer, 0, sizeof(VAContextParameterUpdateBuffer));
-            m_priorityBuffer.flags.bits.context_priority_update = 1;   //need to set by parameter
-
-            if(contextPriority == MFX_PRIORITY_LOW)
-            {
-                m_priorityBuffer.context_priority.bits.priority = 0;
-            }
-            else if (contextPriority == MFX_PRIORITY_HIGH)
-            {
-                m_priorityBuffer.context_priority.bits.priority = m_MaxContextPriority;
-            }
-            else
-            {
-                m_priorityBuffer.context_priority.bits.priority = m_MaxContextPriority/2;
-            }
-
-            sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_priorityBufferId);
-            MFX_CHECK_STS(sts);
-
-            vaSts = vaCreateBuffer(m_vaDisplay,
-                                   m_vaContextEncode,
-                                   VAContextParameterUpdateBufferType,
-                                   sizeof(m_priorityBuffer),
-                                   1,
-                                   &m_priorityBuffer,
-                                   &m_priorityBufferId);
-            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-            configBuffers.push_back(m_priorityBufferId);
-	}
     }
 
     //------------------------------------------------------------------
@@ -1247,7 +1212,7 @@ mfxStatus VAAPIEncoder::Execute(
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
     {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL_VTUNE, "vaEndPicture");//??
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "vaEndPicture");//??
         vaSts = vaEndPicture(m_vaDisplay, m_vaContextEncode);
 
         MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|ENCODE|VP9|PACKET_END|", "%d|%d", m_vaContextEncode, task.m_taskIdForDriver);
@@ -1323,6 +1288,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
         codedBuffer = m_bsQueue[waitIdxBs].surface;
 
     VASurfaceStatus surfSts = VASurfaceSkipped;
+#if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
 
     vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
@@ -1332,6 +1298,17 @@ mfxStatus VAAPIEncoder::QueryStatus(
         m_feedbackCache.erase( m_feedbackCache.begin() + indxSurf );
     }
     surfSts = VASurfaceReady;
+#else
+
+    vaSts = vaQuerySurfaceStatus(m_vaDisplay, waitSurface, &surfSts);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    if (VASurfaceReady == surfSts)
+    {
+        UMC::AutomaticUMCMutex guard(m_guard);
+        m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
+    }
+#endif
 
     switch (surfSts)
     {
@@ -1406,12 +1383,6 @@ mfxStatus VAAPIEncoder::Destroy()
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_tempLayersBufferId);
     std::ignore = MFX_STS_TRACE(sts);
 
-    if(m_MaxContextPriority)
-    {
-        sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_priorityBufferId);
-        std::ignore = MFX_STS_TRACE(sts);
-    }
-
     for (VABufferID& id : m_frameRateBufferIds)
     {
         sts = CheckAndDestroyVAbuffer(m_vaDisplay, id);
@@ -1440,7 +1411,6 @@ mfxStatus VAAPIEncoder::Destroy()
     return MFX_ERR_NONE;
 
 } // mfxStatus VAAPIEncoder::Destroy()
-#endif // (MFX_VA_LINUX)
 
 } // MfxHwVP9Encode
 

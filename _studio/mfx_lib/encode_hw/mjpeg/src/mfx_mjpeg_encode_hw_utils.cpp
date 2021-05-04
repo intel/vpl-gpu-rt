@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2008-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
-#if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
+#if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE) && defined (MFX_VA)
 
 #include "mfx_mjpeg_encode_hw_utils.h"
 #include "libmfx_core_factory.h"
@@ -35,6 +35,11 @@ mfxStatus MfxHwMJpegEncode::QueryHwCaps(VideoCORE * core, JpegEncCaps & hwCaps)
 {
     MFX_CHECK_NULL_PTR1(core);
 
+    // Should be replaced with once quering capabs as other encoders do
+    // remove this when driver starts returning actual encode caps
+    hwCaps.MaxPicWidth      = 4096;
+    hwCaps.MaxPicHeight     = 4096;
+
     if (core->GetVAType() == MFX_HW_VAAPI && core->GetHWType() < MFX_HW_CHT)
         return MFX_ERR_UNSUPPORTED;
 
@@ -43,8 +48,6 @@ mfxStatus MfxHwMJpegEncode::QueryHwCaps(VideoCORE * core, JpegEncCaps & hwCaps)
     if (ddi.get() == 0)
         return MFX_ERR_NULL_PTR;
 
-    // the device is created just to query caps,
-    // so width/height are insignificant
     mfxStatus sts = ddi->CreateAuxilliaryDevice(core, 640, 480, true);
     MFX_CHECK_STS(sts);
 
@@ -57,9 +60,9 @@ mfxStatus MfxHwMJpegEncode::QueryHwCaps(VideoCORE * core, JpegEncCaps & hwCaps)
 bool MfxHwMJpegEncode::IsJpegParamExtBufferIdSupported(mfxU32 id)
 {
     return
-        id == MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION ||
-        id == MFX_EXTBUFF_JPEG_QT ||
-        id == MFX_EXTBUFF_JPEG_HUFFMAN;
+           id == MFX_EXTBUFF_JPEG_QT
+        || id == MFX_EXTBUFF_JPEG_HUFFMAN
+        ;
 }
 
 mfxStatus MfxHwMJpegEncode::CheckExtBufferId(mfxVideoParam const & par)
@@ -140,27 +143,23 @@ mfxStatus MfxHwMJpegEncode::CheckJpegParam(VideoCORE *core, mfxVideoParam & par,
 }
 
 mfxStatus MfxHwMJpegEncode::FastCopyFrameBufferSys2Vid(
-    VideoCORE    * core,
-    mfxMemId       vidMemId,
-    mfxFrameData & sysSurf,
-    mfxFrameInfo & frmInfo
+    VideoCORE*        core,
+    mfxMemId          vidMemId,
+    mfxFrameSurface1* sysSurf,
+    mfxFrameInfo &    frmInfo
     )
 {
     MFX_CHECK_NULL_PTR1(core);
-    mfxFrameData vidSurf = {};
-    mfxStatus sts = MFX_ERR_NONE;
-    vidSurf.MemId = vidMemId;
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Copy input (sys->vid)");
-        mfxFrameSurface1 surfSrc = { {0,}, frmInfo, sysSurf };
-        mfxFrameSurface1 surfDst = { {0,}, frmInfo, vidSurf };
-        sts = core->DoFastCopyWrapper(&surfDst,MFX_MEMTYPE_INTERNAL_FRAME|MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET, &surfSrc,MFX_MEMTYPE_EXTERNAL_FRAME|MFX_MEMTYPE_SYSTEM_MEMORY);
-        MFX_CHECK_STS(sts);
-    }
-    MFX_CHECK_STS(sts);
+        mfxFrameSurface1 surfSrc = MakeSurface(frmInfo, *sysSurf);
+        mfxFrameSurface1 surfDst = MakeSurface(frmInfo, vidMemId);
 
-    return sts;
+        MFX_SAFE_CALL(core->DoFastCopyWrapper(&surfDst,MFX_MEMTYPE_INTERNAL_FRAME|MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET, &surfSrc,MFX_MEMTYPE_EXTERNAL_FRAME|MFX_MEMTYPE_SYSTEM_MEMORY));
+    }
+
+    return MFX_ERR_NONE;
 }
 
 mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * ctrl, JpegEncCaps const * hwCaps)
@@ -200,7 +199,7 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
         m_app14_data.flags1H   = 0;
         m_app14_data.flags1L   = 0;
         m_app14_data.transform = 0; //RGB
-
+        
         mfxU32 payloadSize = 16;
         if (m_payload_base.length + payloadSize > m_payload_base.maxLength)
         {
@@ -282,7 +281,6 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
         }
     }
 
-#if defined (MFX_VA_LINUX)
     // Picture Header
     memset(&m_pps, 0, sizeof(m_pps));
     m_pps.reconstructed_picture = 0;
@@ -467,7 +465,6 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
             m_scan_list[0].components[2].ac_table_selector = 1;
         }
     }
-#endif
 
     return sts;
 }

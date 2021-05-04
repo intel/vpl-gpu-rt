@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2006-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,17 +25,24 @@
 #include "mfx_common.h"
 #include "mfxstructures-int.h"
 
+#if defined (UMC_VA) || defined (MFX_VA) || defined (UMC_VA_DXVA) || defined(UMC_VA_LINUX)
 
 #ifndef UMC_VA
 #   define UMC_VA
 #endif
 
+#   ifndef UMC_VA_LINUX
+#       define UMC_VA_LINUX          // HW acceleration through Linux VA
+#   endif
+#   ifndef SYNCHRONIZATION_BY_VA_SYNC_SURFACE
+#       ifdef ANDROID
+#           define SYNCHRONIZATION_BY_VA_SYNC_SURFACE
+#       else
+#           define SYNCHRONIZATION_BY_VA_SYNC_SURFACE
+#       endif
+#   endif
 
-#if defined(LINUX32) || defined(LINUX64)
-#else
-    #error unsupported platform
-#endif
-
+#endif //  defined (MFX_VA) || defined (UMC_VA)
 
 #ifdef  __cplusplus
 #include "umc_structures.h"
@@ -43,8 +50,10 @@
 
 #ifdef _MSVC_LANG
 #pragma warning(disable : 4201)
+#pragma warning(disable : 26812)
 #endif
 
+#ifdef UMC_VA_LINUX
 #include <va/va.h>
 #include <va/va_dec_vp8.h>
 #include <va/va_vpp.h>
@@ -57,13 +66,21 @@
 #ifndef UNREFERENCED_PARAMETER
 #define UNREFERENCED_PARAMETER(p) (p);
 #endif
+#endif
 
 
+#ifdef UMC_VA_DXVA
+#include <windows.h>
+#endif
 
 
+#ifdef UMC_VA_DXVA
+#include <d3d9.h>
+#include <dxva2api.h>
+#include <dxva.h>
+#endif
 
 
-#if defined(LINUX32) || defined(LINUX64)
 #ifndef GUID_TYPE_DEFINED
 typedef struct {
     unsigned long  Data1;
@@ -73,8 +90,8 @@ typedef struct {
 } GUID;
 #define GUID_TYPE_DEFINED
 #endif
-#endif
 
+#define UMC_VA_AV1_MSFT
 
 namespace UMC
 {
@@ -95,23 +112,24 @@ enum VideoAccelerationProfile
     VA_VP8          = 0x0006,
     VA_H265         = 0x0007,
     VA_VP9          = 0x0008,
-#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
     VA_AV1          = 0x0009,
-#endif
 
     // Entry points
     VA_ENTRY_POINT  = 0xfff00,
     VA_VLD          = 0x00400,
 
     VA_PROFILE                  = 0xff000,
+	VA_PROFILE_MVC              = 0x04000,
+    VA_PROFILE_MVC_MV           = 0x05000,
+    VA_PROFILE_MVC_STEREO       = 0x06000,
+    VA_PROFILE_MVC_STEREO_PROG  = 0x07000,
+
     VA_PROFILE_422              = 0x0a000,
     VA_PROFILE_444              = 0x0b000,
     VA_PROFILE_10               = 0x10000,
     VA_PROFILE_REXT             = 0x20000,
-#if (MFX_VERSION >= 1031)
     VA_PROFILE_12               = 0x40000,
     VA_PROFILE_SCC              = 0x80000,
-#endif
 
     // configurations
     VA_CONFIGURATION            = 0x0ff00000,
@@ -127,10 +145,8 @@ enum VideoAccelerationProfile
     VP8_VLD         = VA_VP8 | VA_VLD,
     HEVC_VLD        = VA_H265 | VA_VLD,
     VP9_VLD         = VA_VP9 | VA_VLD,
-#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
     AV1_VLD         = VA_AV1 | VA_VLD,
     AV1_10_VLD      = VA_AV1 | VA_VLD | VA_PROFILE_10,
-#endif
 
     H265_VLD_REXT               = VA_H265 | VA_VLD | VA_PROFILE_REXT,
     H265_10_VLD_REXT            = VA_H265 | VA_VLD | VA_PROFILE_REXT | VA_PROFILE_10,
@@ -140,28 +156,23 @@ enum VideoAccelerationProfile
     H265_10_VLD_422             = VA_H265 | VA_VLD | VA_PROFILE_REXT | VA_PROFILE_10 | VA_PROFILE_422,
     H265_10_VLD_444             = VA_H265 | VA_VLD | VA_PROFILE_REXT | VA_PROFILE_10 | VA_PROFILE_444,
 
-#if (MFX_VERSION >= 1031)
+
     H265_12_VLD_420             = VA_H265 | VA_VLD | VA_PROFILE_REXT | VA_PROFILE_12,
     H265_12_VLD_422             = VA_H265 | VA_VLD | VA_PROFILE_REXT | VA_PROFILE_12 | VA_PROFILE_422,
     H265_12_VLD_444             = VA_H265 | VA_VLD | VA_PROFILE_REXT | VA_PROFILE_12 | VA_PROFILE_444,
-#endif
 
-#if (MFX_VERSION >= 1032)
     H265_VLD_SCC                = VA_H265 | VA_VLD | VA_PROFILE_SCC,
     H265_VLD_444_SCC            = VA_H265 | VA_VLD | VA_PROFILE_SCC  | VA_PROFILE_444,
     H265_10_VLD_SCC             = VA_H265 | VA_VLD | VA_PROFILE_SCC  | VA_PROFILE_10,
     H265_10_VLD_444_SCC         = VA_H265 | VA_VLD | VA_PROFILE_SCC  | VA_PROFILE_10 | VA_PROFILE_444,
-#endif
 
     VP9_10_VLD                  = VA_VP9 | VA_VLD | VA_PROFILE_10,
     VP9_VLD_422                 = VA_VP9 | VA_VLD | VA_PROFILE_422,
     VP9_VLD_444                 = VA_VP9 | VA_VLD | VA_PROFILE_444,
     VP9_10_VLD_422              = VA_VP9 | VA_VLD | VA_PROFILE_10 | VA_PROFILE_422,
     VP9_10_VLD_444              = VA_VP9 | VA_VLD | VA_PROFILE_10 | VA_PROFILE_444,
-#if (MFX_VERSION >= 1031)
     VP9_12_VLD_420              = VA_VP9 | VA_VLD | VA_PROFILE_12,
     VP9_12_VLD_444              = VA_VP9 | VA_VLD | VA_PROFILE_12 | VA_PROFILE_444,
-#endif
 
 };
 
@@ -191,44 +202,45 @@ class FrameAllocator;
 class VideoAcceleratorParams
 {
     DYNAMIC_CAST_DECL_BASE(VideoAcceleratorParams);
+
 public:
 
-    VideoAcceleratorParams(void)
-    {
-        m_pVideoStreamInfo = NULL;
-        m_iNumberSurfaces  = 0; // 0 means use default value
-        m_protectedVA = 0;
-        m_needVideoProcessingVA = false;
-        m_surf = 0;
-        m_allocator = 0;
-    }
+    VideoAcceleratorParams()
+        : m_pVideoStreamInfo(nullptr)
+        , m_iNumberSurfaces(0)
+        , m_protectedVA(0)
+        , m_needVideoProcessingVA(false)
+        , m_allocator(nullptr)
+        , m_surf(nullptr)
+    {}
 
-    virtual ~VideoAcceleratorParams(void){}
+    virtual ~VideoAcceleratorParams(){}
 
     VideoStreamInfo *m_pVideoStreamInfo;
     int32_t          m_iNumberSurfaces;
     int32_t          m_protectedVA;
-    bool            m_needVideoProcessingVA;
+    bool             m_needVideoProcessingVA;
 
     FrameAllocator  *m_allocator;
 
     // if extended surfaces exist
-    void** m_surf;
+    void*           *m_surf;
 };
 
 
 class VideoAccelerator
 {
     DYNAMIC_CAST_DECL_BASE(VideoAccelerator);
+
 public:
     VideoAccelerator() :
         m_Profile(UNKNOWN),
         m_Platform(VA_UNKNOWN_PLATFORM),
         m_HWPlatform(MFX_HW_UNKNOWN),
-        m_MaxContextPriority(0),
-        m_ContextPriority(MFX_PRIORITY_LOW),
         m_protectedVA(nullptr),
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
         m_videoProcessingVA(0),
+#endif
         m_allocator(0),
         m_bH264ShortSlice(false),
         m_bH264MVCSupport(false),
@@ -243,8 +255,8 @@ public:
     }
 
     virtual Status Init(VideoAcceleratorParams* pInfo) = 0; // Initilize and allocate all resources
-    virtual Status Close(void);
-    virtual Status Reset(void);
+    virtual Status Close();
+    virtual Status Reset();
 
     virtual Status BeginFrame   (int32_t  index) = 0; // Begin decoding for specified index
 
@@ -260,24 +272,91 @@ public:
                                  UMCVACompBuffer** buf   = NULL,
                                  int32_t            size  = -1,
                                  int32_t            index = -1) = 0; // request buffer
-    virtual Status Execute      (void) = 0;          // execute decoding
+
+    virtual Status Execute      () = 0;                  // execute decoding
     virtual Status ExecuteExtensionBuffer(void * buffer) = 0;
     virtual Status ExecuteStatusReportBuffer(void * buffer, int32_t size) = 0;
     virtual Status SyncTask(int32_t index, void * error = NULL) = 0;
     virtual Status QueryTaskStatus(int32_t index, void * status, void * error) = 0;
-    virtual Status ReleaseBuffer(int32_t type) = 0;   // release buffer
-    virtual Status EndFrame     (void * handle = 0) = 0;          // end frame
+    virtual Status ReleaseBuffer(int32_t type) = 0;      // release buffer
+    virtual Status EndFrame     (void * handle = 0) = 0; // end frame
+
+    virtual Status UnwrapBuffer(mfxMemId /*bufferId*/) { return MFX_ERR_NONE; };
 
     virtual bool IsIntelCustomGUID() const = 0;
     /* TODO: is used on Linux only? On Linux there are isues with signed/unsigned return value. */
-    virtual int32_t GetSurfaceID(int32_t idx) { return idx; }
+    virtual int32_t GetSurfaceID(int32_t idx) const { return idx; }
 
     virtual ProtectedVA * GetProtectedVA() {return m_protectedVA;}
+
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     virtual VideoProcessingVA * GetVideoProcessingVA() {return m_videoProcessingVA;}
+#endif
+
+    bool IsGPUSyncEventEnable() const
+    {
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC_DECODE
+        VideoAccelerationProfile codec = (VideoAccelerationProfile)(m_Profile & VA_CODEC);
+        VideoAccelerationProfile profile = (VideoAccelerationProfile)(m_Profile & VA_PROFILE);
+        bool isHybrid = ((codec == VA_H265 && profile == VA_PROFILE_10) || codec == VA_VP9) && (m_HWPlatform < MFX_HW_APL);
+        bool isEnabled = false;
+        switch (codec)
+        {
+        case VA_MPEG2:
+#if defined (MFX_ENABLE_HW_BLOCKING_TASK_SYNC_MPEG2D)
+            isEnabled = true;
+#endif
+            break;
+        case VA_H264:
+#if defined (MFX_ENABLE_HW_BLOCKING_TASK_SYNC_H264D)
+            isEnabled = true;
+#endif
+            break;
+        case VA_VC1:
+#if defined (MFX_ENABLE_HW_BLOCKING_TASK_SYNC_VC1D)
+            isEnabled = true;
+#endif
+            break;
+        case VA_JPEG:
+#if defined (MFX_ENABLE_HW_BLOCKING_TASK_SYNC_JPEGD)
+            isEnabled = true;
+#endif
+            break;
+        case VA_VP8:
+#if defined (MFX_ENABLE_HW_BLOCKING_TASK_SYNC_VP8D)
+            isEnabled = true;
+#endif
+            break;
+        case VA_H265:
+#if defined(MFX_ENABLE_HW_BLOCKING_TASK_SYNC_H265D)
+            isEnabled = true;
+#endif
+            break;
+        case VA_VP9:
+#if defined(MFX_ENABLE_HW_BLOCKING_TASK_SYNC_VP9D)
+            isEnabled = true;
+#endif
+            break;
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+        case VA_AV1:
+#if defined(MFX_ENABLE_HW_BLOCKING_TASK_SYNC_AV1D)
+            isEnabled = true;
+#endif
+            break;
+#endif
+        default:
+            break;
+        }
+
+        return !isHybrid && isEnabled;
+#else
+        return false;
+#endif
+    }
 
     bool IsLongSliceControl() const { return (!m_bH264ShortSlice); };
     bool IsMVCSupport() const {return m_bH264MVCSupport; };
-    bool IsUseStatusReport() { return m_isUseStatuReport; }
+    bool IsUseStatusReport() const { return m_isUseStatuReport; }
     void SetStatusReportUsing(bool isUseStatuReport) { m_isUseStatuReport = isUseStatuReport; }
 
     int32_t ScalingListScanOrder() const
@@ -285,21 +364,35 @@ public:
 
     virtual void GetVideoDecoder(void **handle) = 0;
 
+    /* Contains private data for the [ExecuteExtension] method */
+    struct ExtensionData
+    {
+        std::pair<void*, size_t> input;      //Pointer & size (in bytes) to private input data passed to the driver.
+        std::pair<void*, size_t> output;     //Pointer & size (in bytes) to private output data reveived from the driver.
+        std::vector<void*>       resources;  //Array of resource pointers passed to the driver
+    };
+
+    /* Executes an extended <function> operation on the current frame. */
+    virtual Status ExecuteExtension(int function, ExtensionData const&) = 0;
+
     VideoAccelerationProfile    m_Profile;          // entry point
     VideoAccelerationPlatform   m_Platform;         // DXVA, LinuxVA, etc
     eMFXHWType                  m_HWPlatform;
-    uint32_t                    m_MaxContextPriority;
-    mfxPriority                 m_ContextPriority;
 
 protected:
+
     ProtectedVA       *  m_protectedVA;
+
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     VideoProcessingVA *  m_videoProcessingVA;
+#endif
+
     FrameAllocator    *  m_allocator;
 
-    bool            m_bH264ShortSlice;
-    bool            m_bH264MVCSupport;
-    bool            m_isUseStatuReport;
-    int32_t          m_H265ScalingListScanOrder; //0 - up-right, 1 - raster . Default is 1 (raster).
+    bool                 m_bH264ShortSlice;
+    bool                 m_bH264MVCSupport;
+    bool                 m_isUseStatuReport;
+    int32_t              m_H265ScalingListScanOrder; //0 - up-right, 1 - raster . Default is 1 (raster).
 };
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -318,6 +411,7 @@ public:
         FirstMb = -1;
         NumOfMB = -1;
         FirstSlice = -1;
+        memset(PVPStateBuf, 0, sizeof(PVPStateBuf));
     }
     virtual ~UMCVACompBuffer(){}
 
@@ -334,11 +428,11 @@ public:
 
     // Get
     int32_t  GetType()       const { return type; }
-    void*   GetPtr()        const { return ptr; }
+    void*    GetPtr()        const { return ptr; }
     int32_t  GetBufferSize() const { return BufferSize; }
     int32_t  GetDataSize()   const { return DataSize; }
-    void*   GetPVPStatePtr()const { return PVPState; }
-    int32_t   GetPVPStateSize()const { return (NULL == PVPState ? 0 : sizeof(PVPStateBuf)); }
+    void*    GetPVPStatePtr()const { return PVPState; }
+    int32_t  GetPVPStateSize()const { return (NULL == PVPState ? 0 : sizeof(PVPStateBuf)); }
 
     // public fields
     int32_t      FirstMb;

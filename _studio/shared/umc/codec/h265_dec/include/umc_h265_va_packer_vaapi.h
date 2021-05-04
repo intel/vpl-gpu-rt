@@ -26,6 +26,8 @@
 
 #include "umc_h265_va_packer.h"
 
+#ifndef UMC_RESTRICTED_CODE_VA
+
 #include "umc_h265_task_supplier.h"
 
 namespace UMC_HEVC_DECODER
@@ -35,6 +37,8 @@ namespace UMC_HEVC_DECODER
     {
         return length/(1 << cbsize);
     }
+
+#if defined(UMC_VA_LINUX)
 
     class PackerVAAPI
         : public Packer
@@ -51,6 +55,9 @@ namespace UMC_HEVC_DECODER
         UMC::Status SyncTask(int32_t index, void* error) override
         { return m_va->SyncTask(index, error); }
 
+        bool IsGPUSyncEventEnable() override
+        { return false; }
+
         void BeginFrame(H265DecoderFrame*) override;
         void EndFrame() override
         { /* Nothing to do */}
@@ -60,17 +67,20 @@ namespace UMC_HEVC_DECODER
         bool PackSliceParams(H265Slice const* slice, size_t, bool last_slice) override
         { return PackSliceParams(slice, last_slice) ? true : false; }
 
+        void PackProcessingInfo(H265DecoderFrameInfo * sliceInfo);
+
     protected:
 
         virtual VASliceParameterBufferBase* PackSliceParams(H265Slice const*, bool last_slice) = 0;
         virtual void CreateSliceParamBuffer(size_t count) = 0;
         virtual void PackSliceParams(VASliceParameterBufferBase* sp_base, H265Slice const* slice, bool last_slice) = 0;
-        void PackProcessingInfo(H265DecoderFrameInfo * sliceInfo);
-        void PackPriorityParams();
-		
+
     private:
         void PackQmatrix(H265Slice const*) override;
     };
+
+
+#endif // UMC_VA_LINUX
 
     template <>
     struct Type2Buffer<VAPictureParameterBufferHEVC>
@@ -157,6 +167,8 @@ namespace UMC_HEVC_DECODER
 #else
     #include "platform/umc_h265_va_packer_vaapi_g11.hpp"
 #endif
+
+#endif // UMC_RESTRICTED_CODE_VA
 
 #endif // __UMC_H265_VA_PACKER_VAAPI_H
 #endif // MFX_ENABLE_H265_VIDEO_DECODE

@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2004-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,6 +23,7 @@
 #if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
 #include "umc_vc1_dec_seq.h"
+#include "umc_vc1_dec_debug.h"
 
 static const uint32_t bc_lut_1[] = {4,0,1,3};
 static const uint32_t bc_lut_2[] = {0,1,2,3};
@@ -35,6 +36,10 @@ VC1Status DecodePictHeaderParams_ProgressivePpicture_Adv    (VC1Context* pContex
     VC1PictureLayerHeader* picLayerHeader = pContext->m_picLayerHeader;
     VC1SequenceLayerHeader* seqLayerHeader = &pContext->m_seqLayerHeader;
 
+#ifdef VC1_DEBUG_ON
+    VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BFRAMES,
+        VM_STRING("P frame type  \n"));
+#endif
     
     //extended MV range flag
     MVRangeDecode(pContext);
@@ -90,7 +95,6 @@ VC1Status DecodePictHeaderParams_ProgressivePpicture_Adv    (VC1Context* pContex
 
                 //Luma shift
                 VC1_GET_BITS(6, picLayerHeader->LUMSHIFT);
-
 
                 pContext->m_frmBuff.m_pFrames[pContext->m_frmBuff.m_iPrevIndex].m_bIsExpanded = 0;
                 pContext->m_frmBuff.m_pFrames[pContext->m_frmBuff.m_iCurrIndex].ICFieldMask = 0xC;
@@ -148,7 +152,6 @@ VC1Status DecodePictHeaderParams_ProgressivePpicture_Adv    (VC1Context* pContex
 
                 //Luma shift
                 VC1_GET_BITS(6, picLayerHeader->LUMSHIFT);
-
 
                 pContext->m_frmBuff.m_pFrames[pContext->m_frmBuff.m_iPrevIndex].m_bIsExpanded = 0;
 
@@ -211,7 +214,6 @@ VC1Status DecodePictHeaderParams_ProgressivePpicture_Adv    (VC1Context* pContex
     //intra transfrmDC table
     VC1_GET_BITS(1, picLayerHeader->TRANSDCTAB);       //TRANSDCTAB
 
-
     return vc1Res;
 }
 
@@ -224,6 +226,10 @@ VC1Status DecodePictHeaderParams_InterlacePpicture_Adv    (VC1Context* pContext)
     uint32_t tempValue;
 
 
+#ifdef VC1_DEBUG_ON
+    VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BFRAMES,
+        VM_STRING("P frame type  \n"));
+#endif
 
     //extended MV range flag
     MVRangeDecode(pContext);
@@ -277,7 +283,6 @@ VC1Status DecodePictHeaderParams_InterlacePpicture_Adv    (VC1Context* pContext)
         pContext->m_bIntensityCompensation = 1;
         VC1_GET_BITS(6, picLayerHeader->LUMSCALE);
         VC1_GET_BITS(6, picLayerHeader->LUMSHIFT);
-
 
        pContext->m_frmBuff.m_pFrames[pContext->m_frmBuff.m_iCurrIndex].ICFieldMask = 0xC;
     }
@@ -334,7 +339,6 @@ VC1Status DecodePictHeaderParams_InterlacePpicture_Adv    (VC1Context* pContext)
 
     VC1_GET_BITS(1, picLayerHeader->TRANSDCTAB);       //TRANSDCTAB
 
-
     return vc1Res;
 }
 
@@ -346,6 +350,10 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
 
     uint32_t tempValue;
 
+#ifdef VC1_DEBUG_ON
+    VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BFRAMES,
+                                            VM_STRING("P frame type  \n"));
+#endif
 
     VC1_GET_BITS(5,picLayerHeader->PQINDEX);
 
@@ -478,7 +486,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
                         VC1_GET_BITS(6, picLayerHeader->LUMSCALE);
                         //Luma shift
                         VC1_GET_BITS(6, picLayerHeader->LUMSHIFT);
-
                     }
 
                     if(VC1_IS_INT_BOTTOM_FIELD(picLayerHeader->INTCOMFIELD) )
@@ -490,7 +497,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
                         VC1_GET_BITS(6, picLayerHeader->LUMSCALE1);
                         //Luma shift
                         VC1_GET_BITS(6, picLayerHeader->LUMSHIFT1);
-
                     }
                     pContext->m_frmBuff.m_pFrames[pContext->m_frmBuff.m_iCurrIndex].ICFieldMask |= picLayerHeader->INTCOMFIELD << (2 * (1 - picLayerHeader->CurrField));
 
@@ -583,7 +589,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
                         VC1_GET_BITS(6, picLayerHeader->LUMSCALE);
                         //Luma shift
                         VC1_GET_BITS(6, picLayerHeader->LUMSHIFT);
-
                     }
 
                     if(VC1_IS_INT_BOTTOM_FIELD(picLayerHeader->INTCOMFIELD) )
@@ -595,7 +600,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
                         VC1_GET_BITS(6, picLayerHeader->LUMSCALE1);
                         //Luma shift
                         VC1_GET_BITS(6, picLayerHeader->LUMSHIFT1);
-
                     }
 
                     pContext->m_frmBuff.m_pFrames[pContext->m_frmBuff.m_iCurrIndex].ICFieldMask |= picLayerHeader->INTCOMFIELD << (2*(1 - picLayerHeader->CurrField));
@@ -658,5 +662,4 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
 
     return vc1Res;
 }
-
 #endif //MFX_ENABLE_VC1_VIDEO_DECODE

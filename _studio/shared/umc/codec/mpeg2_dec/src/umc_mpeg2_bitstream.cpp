@@ -20,7 +20,7 @@
 
 #include "umc_defs.h"
 #include "mfx_utils.h"
-#if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
+#if defined MFX_ENABLE_MPEG2_VIDEO_DECODE
 
 #include "umc_mpeg2_defs.h"
 #include "umc_mpeg2_slice.h"
@@ -49,18 +49,18 @@ namespace UMC_MPEG2_DECODER
         Seek(1); // marker_bit shall be '1' to prevent emulation of start codes. But ignore this for corrupted streams.
 
         seq.vbv_buffer_size_value = GetBits(10);
-        seq.constrained_parameters_flag = GetBits(1);
-        seq.load_intra_quantiser_matrix = GetBits(1);
+        seq.constrained_parameters_flag = (uint8_t)GetBits(1);
+        seq.load_intra_quantiser_matrix = (uint8_t)GetBits(1);
         if (seq.load_intra_quantiser_matrix)
         {
             for (uint32_t i = 0; i < 64; ++i)
-                seq.intra_quantiser_matrix[i] = GetBits(8);
+                seq.intra_quantiser_matrix[i] = (uint8_t)GetBits(8);
         }
-        seq.load_non_intra_quantiser_matrix = GetBits(1);
+        seq.load_non_intra_quantiser_matrix = (uint8_t)GetBits(1);
         if (seq.load_non_intra_quantiser_matrix)
         {
             for (uint32_t i = 0; i < 64; ++i)
-                seq.non_intra_quantiser_matrix[i] = GetBits(8);
+                seq.non_intra_quantiser_matrix[i] = (uint8_t)GetBits(8);
         }
     }
 
@@ -68,67 +68,67 @@ namespace UMC_MPEG2_DECODER
     void MPEG2HeadersBitstream::GetSequenceExtension(MPEG2SequenceExtension & seqExt)
     {
         // 6.2.2.3 Sequence extension
-        seqExt.profile_and_level_indication = GetBits(8);
-        seqExt.progressive_sequence = GetBits(1);
-        seqExt.chroma_format = GetBits(2);
+        seqExt.profile_and_level_indication = (uint8_t)GetBits(8);
+        seqExt.progressive_sequence = (uint8_t)GetBits(1);
+        seqExt.chroma_format = (uint8_t)GetBits(2);
         if (0 == seqExt.chroma_format)
             throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-        seqExt.horizontal_size_extension = GetBits(2);
-        seqExt.vertical_size_extension = GetBits(2);
+        seqExt.horizontal_size_extension = (uint8_t)GetBits(2);
+        seqExt.vertical_size_extension = (uint8_t)GetBits(2);
         seqExt.bit_rate_extension = GetBits(12);
 
         Seek(1); // marker_bit shall be '1' to prevent emulation of start codes. But ignore this for corrupted streams.
 
         seqExt.vbv_buffer_size_extension = GetBits(8);
-        seqExt.low_delay = GetBits(1);
-        seqExt.frame_rate_extension_n = GetBits(2);
-        seqExt.frame_rate_extension_d = GetBits(5);
+        seqExt.low_delay = (uint8_t)GetBits(1);
+        seqExt.frame_rate_extension_n = (uint8_t)GetBits(2);
+        seqExt.frame_rate_extension_d = (uint8_t)GetBits(5);
     }
 
     // Parse sequence display extension
     void MPEG2HeadersBitstream::GetSequenceDisplayExtension(MPEG2SequenceDisplayExtension & dispExt)
     {
         // 6.2.2.4 Sequence display extension
-        dispExt.video_format = GetBits(3);
-        dispExt.colour_description = GetBits(1);
+        dispExt.video_format = (uint8_t)GetBits(3);
+        dispExt.colour_description = (uint8_t)GetBits(1);
         if (dispExt.colour_description)
         {
-            dispExt.colour_primaries = GetBits(8);
-            dispExt.transfer_characteristics = GetBits(8);
-            dispExt.matrix_coefficients = GetBits(8);
+            dispExt.colour_primaries = (uint8_t)GetBits(8);
+            dispExt.transfer_characteristics = (uint8_t)GetBits(8);
+            dispExt.matrix_coefficients = (uint8_t)GetBits(8);
         }
 
-        dispExt.display_horizontal_size = GetBits(14);
+        dispExt.display_horizontal_size = (uint16_t)GetBits(14);
 
-        uint8_t marker_bit = GetBits(1);
+        uint8_t marker_bit = (uint8_t)GetBits(1);
         if (0 == marker_bit) // shall be '1'. This bit prevents emulation of start codes.
             throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-        dispExt.display_vertical_size = GetBits(14);
+        dispExt.display_vertical_size = (uint16_t)GetBits(14);
     }
 
     // Parse picture header
     void MPEG2HeadersBitstream::GetPictureHeader(MPEG2PictureHeader & pic)
     {
-        pic.temporal_reference = GetBits(10);
+        pic.temporal_reference = (uint16_t)GetBits(10);
 
-        pic.picture_coding_type = GetBits(3);
+        pic.picture_coding_type = (uint8_t)GetBits(3);
         if (pic.picture_coding_type > MPEG2_B_PICTURE || pic.picture_coding_type < MPEG2_I_PICTURE)
             throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-        pic.vbv_delay = GetBits(16);
+        pic.vbv_delay = (uint16_t)GetBits(16);
 
         if (pic.picture_coding_type == MPEG2_P_PICTURE || pic.picture_coding_type == MPEG2_B_PICTURE)
         {
-            pic.full_pel_forward_vector = GetBits(1);
-            pic.forward_f_code = GetBits(3);
+            pic.full_pel_forward_vector = (uint8_t)GetBits(1);
+            pic.forward_f_code = (uint8_t)GetBits(3);
         }
 
         if (pic.picture_coding_type == MPEG2_B_PICTURE)
         {
-            pic.full_pel_backward_vector = GetBits(1);
-            pic.backward_f_code = GetBits(3);
+            pic.full_pel_backward_vector = (uint8_t)GetBits(1);
+            pic.backward_f_code = (uint8_t)GetBits(3);
         }
         /*
         while (GetBits(1))
@@ -141,69 +141,69 @@ namespace UMC_MPEG2_DECODER
     // Parse picture extension
     void MPEG2HeadersBitstream::GetPictureExtensionHeader(MPEG2PictureCodingExtension & picExt)
     {
-        picExt.f_code[0] = GetBits(4); // forward horizontal
-        picExt.f_code[1] = GetBits(4); // forward vertical
-        picExt.f_code[2] = GetBits(4); // backward horizontal
-        picExt.f_code[3] = GetBits(4); // backward vertical
-        picExt.intra_dc_precision = GetBits(2);
+        picExt.f_code[0] = (uint8_t)GetBits(4); // forward horizontal
+        picExt.f_code[1] = (uint8_t)GetBits(4); // forward vertical
+        picExt.f_code[2] = (uint8_t)GetBits(4); // backward horizontal
+        picExt.f_code[3] = (uint8_t)GetBits(4); // backward vertical
+        picExt.intra_dc_precision = (uint8_t)GetBits(2);
 
-        picExt.picture_structure = GetBits(2);
+        picExt.picture_structure = (uint8_t)GetBits(2);
         if (picExt.picture_structure == 0)
             throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-        picExt.top_field_first = GetBits(1);
-        picExt.frame_pred_frame_dct = GetBits(1);
-        picExt.concealment_motion_vectors = GetBits(1);
-        picExt.q_scale_type = GetBits(1);
-        picExt.intra_vlc_format = GetBits(1);
-        picExt.alternate_scan = GetBits(1);
-        picExt.repeat_first_field = GetBits(1);
-        picExt.chroma_420_type = GetBits(1);
-        picExt.progressive_frame = GetBits(1);
-        picExt.composite_display_flag = GetBits(1);
+        picExt.top_field_first = (uint8_t)GetBits(1);
+        picExt.frame_pred_frame_dct = (uint8_t)GetBits(1);
+        picExt.concealment_motion_vectors = (uint8_t)GetBits(1);
+        picExt.q_scale_type = (uint8_t)GetBits(1);
+        picExt.intra_vlc_format = (uint8_t)GetBits(1);
+        picExt.alternate_scan = (uint8_t)GetBits(1);
+        picExt.repeat_first_field = (uint8_t)GetBits(1);
+        picExt.chroma_420_type = (uint8_t)GetBits(1);
+        picExt.progressive_frame = (uint8_t)GetBits(1);
+        picExt.composite_display_flag = (uint8_t)GetBits(1);
         if (picExt.composite_display_flag)
         {
-            picExt.v_axis = GetBits(1);
-            picExt.field_sequence = GetBits(3);
-            picExt.sub_carrier = GetBits(1);
-            picExt.burst_amplitude = GetBits(7);
-            picExt.sub_carrier_phase = GetBits(8);
+            picExt.v_axis = (uint8_t)GetBits(1);
+            picExt.field_sequence = (uint8_t)GetBits(3);
+            picExt.sub_carrier = (uint8_t)GetBits(1);
+            picExt.burst_amplitude = (uint8_t)GetBits(7);
+            picExt.sub_carrier_phase = (uint8_t)GetBits(8);
         }
     }
 
     // Parse quant matrix extension
     void MPEG2HeadersBitstream::GetQuantMatrix(MPEG2QuantMatrix & qm)
     {
-        qm.load_intra_quantiser_matrix = GetBits(1);
+        qm.load_intra_quantiser_matrix = (uint8_t)GetBits(1);
         if (qm.load_intra_quantiser_matrix)
         {
             for (uint8_t i= 0; i < 64; ++i)
             {
-                qm.intra_quantiser_matrix[i] = GetBits(8);
+                qm.intra_quantiser_matrix[i] = (uint8_t)GetBits(8);
             }
         }
-        qm.load_non_intra_quantiser_matrix = GetBits(1);
+        qm.load_non_intra_quantiser_matrix = (uint8_t)GetBits(1);
         if (qm.load_non_intra_quantiser_matrix)
         {
             for (uint8_t i= 0; i < 64; ++i)
             {
-                qm.non_intra_quantiser_matrix[i] = GetBits(8);
+                qm.non_intra_quantiser_matrix[i] = (uint8_t)GetBits(8);
             }
         }
-        qm.load_chroma_intra_quantiser_matrix = GetBits(1);
+        qm.load_chroma_intra_quantiser_matrix = (uint8_t)GetBits(1);
         if (qm.load_chroma_intra_quantiser_matrix)
         {
             for (uint8_t i= 0; i < 64; ++i)
             {
-                qm.chroma_intra_quantiser_matrix[i] = GetBits(8);
+                qm.chroma_intra_quantiser_matrix[i] = (uint8_t)GetBits(8);
             }
         }
-        qm.load_chroma_non_intra_quantiser_matrix = GetBits(1);
+        qm.load_chroma_non_intra_quantiser_matrix = (uint8_t)GetBits(1);
         if (qm.load_chroma_non_intra_quantiser_matrix)
         {
             for (uint8_t i= 0; i < 64; ++i)
             {
-                qm.chroma_non_intra_quantiser_matrix[i] = GetBits(8);
+                qm.chroma_non_intra_quantiser_matrix[i] = (uint8_t)GetBits(8);
             }
         }
     }
@@ -211,43 +211,43 @@ namespace UMC_MPEG2_DECODER
     // Parse quant matrix extension (Table 6-11)
     void MPEG2HeadersBitstream::GetGroupOfPicturesHeader(MPEG2GroupOfPictures& g)
     {
-        g.drop_frame_flag    = GetBits(1);
-        g.time_code_hours    = GetBits(5);
+        g.drop_frame_flag    = (uint8_t)GetBits(1);
+        g.time_code_hours    = (uint8_t)GetBits(5);
 
         if (g.time_code_hours > 23)
             throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-        g.time_code_minutes  = GetBits(6);
+        g.time_code_minutes  = (uint8_t)GetBits(6);
         if (g.time_code_minutes > 59)
             throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
 
         Seek(1); // marker_bit
 
-        g.time_code_seconds  = GetBits(6);
+        g.time_code_seconds  = (uint8_t)GetBits(6);
         if (g.time_code_seconds > 59)
             throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-        g.time_code_pictures = GetBits(6);
+        g.time_code_pictures = (uint8_t)GetBits(6);
         if (g.time_code_pictures > 59)
             throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-        g.closed_gop         = GetBits(1);
-        g.broken_link        = GetBits(1);
+        g.closed_gop         = (uint8_t)GetBits(1);
+        g.broken_link        = (uint8_t)GetBits(1);
     }
 
     // Parse slice header
     UMC::Status MPEG2HeadersBitstream::GetSliceHeader(MPEG2SliceHeader & sliceHdr, const MPEG2SequenceHeader &seq, const MPEG2SequenceExtension & seqExt)
     {
-        sliceHdr.slice_vertical_position = GetBits(8);
+        sliceHdr.slice_vertical_position = (uint8_t)GetBits(8);
 
-        uint16_t vertical_size = seq.vertical_size_value | (seqExt.vertical_size_extension << 14);
+        uint16_t vertical_size = (uint16_t)(seq.vertical_size_value | (seqExt.vertical_size_extension << 14));
 
         if (vertical_size > 2800)
         {
             if (sliceHdr.slice_vertical_position > 128) // 6.3.16
                 throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-            sliceHdr.slice_vertical_position_extension = GetBits(3);
+            sliceHdr.slice_vertical_position_extension = (uint8_t)GetBits(3);
         }
         else
         {
@@ -255,14 +255,14 @@ namespace UMC_MPEG2_DECODER
                 throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
         }
 
-        sliceHdr.quantiser_scale_code = GetBits(5);
+        sliceHdr.quantiser_scale_code = (uint8_t)GetBits(5);
         if (!sliceHdr.quantiser_scale_code)
             throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
 
         if (Check1Bit())
         {
-            sliceHdr.intra_slice_flag = GetBits(1);
-            sliceHdr.intra_slice = GetBits(1);
+            sliceHdr.intra_slice_flag = (uint8_t)GetBits(1);
+            sliceHdr.intra_slice = (uint8_t)GetBits(1);
             Seek(7); // reserved_bits
 
             while (Check1Bit())
@@ -365,7 +365,7 @@ namespace UMC_MPEG2_DECODER
 
         for (;;)
         {
-            bitsToRead = BitsLeft() <= 11 ? BitsLeft() : 11;
+            bitsToRead = (uint8_t)(BitsLeft() <= 11 ? BitsLeft() : 11);
 
             cc = GetBits(bitsToRead);
             if (11 - bitsToRead) // if left bits are less than 11

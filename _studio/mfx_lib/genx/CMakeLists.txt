@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2019 Intel Corporation
+# Copyright (c) 2018-2021 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -78,54 +78,41 @@ if(MFX_ENABLE_KERNELS)
 
   if( MFX_ENABLE_ASC )
     if(BUILD_KERNELS)
-      foreach(platform gen8 gen9 gen11 gen11lp gen12lp)
+      foreach(platform gen12lp)
         add_cmc_target(${MSDK_GENX_ROOT}/asc/src/genx_scd.cpp ${platform} ${MSDK_GENX_ROOT}/asc/isa)
       endforeach()
     endif()
 
     set( prefix ${MSDK_GENX_ROOT}/asc/isa )
     list( APPEND sources
-        ${prefix}/genx_scd_gen8_isa.cpp
-        ${prefix}/genx_scd_gen9_isa.cpp
-        ${prefix}/genx_scd_gen11_isa.cpp
-        ${prefix}/genx_scd_gen11lp_isa.cpp
         ${prefix}/genx_scd_gen12lp_isa.cpp
     )
   endif()
 
   if(BUILD_KERNELS)
-    foreach(platform gen8 gen9 gen11 gen11lp gen12lp)
+    foreach(platform gen12lp)
       add_cmc_target(${MSDK_GENX_ROOT}/copy_kernels/src/genx_copy_kernel.cpp ${platform} ${MSDK_GENX_ROOT}/copy_kernels/isa)
     endforeach()
   endif()
 
   set( prefix ${MSDK_GENX_ROOT}/copy_kernels/isa )
   list( APPEND sources
-    ${prefix}/genx_copy_kernel_gen8_isa.cpp
-    ${prefix}/genx_copy_kernel_gen9_isa.cpp
-    ${prefix}/genx_copy_kernel_gen11_isa.cpp
-    ${prefix}/genx_copy_kernel_gen11lp_isa.cpp
     ${prefix}/genx_copy_kernel_gen12lp_isa.cpp
   )
 
   if(BUILD_KERNELS)
-    foreach(platform gen8 gen9 gen11 gen11lp gen12lp)
+    foreach(platform gen12lp)
       add_cmc_target(${MSDK_GENX_ROOT}/field_copy/src/genx_fcopy.cpp ${platform} ${MSDK_GENX_ROOT}/field_copy/isa)
     endforeach()
   endif()
 
   set( prefix ${MSDK_GENX_ROOT}/field_copy/isa )
   list( APPEND sources
-    ${prefix}/genx_fcopy_gen8_isa.cpp
-    ${prefix}/genx_fcopy_gen9_isa.cpp
-    ${prefix}/genx_fcopy_gen11_isa.cpp
-    ${prefix}/genx_fcopy_gen11lp_isa.cpp
     ${prefix}/genx_fcopy_gen12lp_isa.cpp
   )
 
   if(BUILD_KERNELS)
-    add_cmc_target(${MSDK_GENX_ROOT}/h264_encode/src/genx_simple_me.cpp gen8 ${MSDK_GENX_ROOT}/h264_encode/isa)
-    foreach(platform gen9 gen11 gen11lp gen12lp)
+    foreach(platform gen12lp)
       add_cmc_target(${MSDK_GENX_ROOT}/h264_encode/src/genx_histogram.cpp ${platform} ${MSDK_GENX_ROOT}/h264_encode/isa)
       add_cmc_target(${MSDK_GENX_ROOT}/h264_encode/src/genx_simple_me.cpp ${platform} ${MSDK_GENX_ROOT}/h264_encode/isa)
     endforeach()
@@ -133,21 +120,14 @@ if(MFX_ENABLE_KERNELS)
 
   set( prefix ${MSDK_GENX_ROOT}/h264_encode/isa )
   list( APPEND sources
-    ${prefix}/genx_simple_me_gen8_isa.cpp
-    ${prefix}/genx_simple_me_gen9_isa.cpp
-    ${prefix}/genx_simple_me_gen11_isa.cpp
-    ${prefix}/genx_simple_me_gen11lp_isa.cpp
+    ${MSDK_GENX_ROOT}/h264_encode/src/genx_hsw_simple_me_proto.cpp
     ${prefix}/genx_simple_me_gen12lp_isa.cpp
-    
-    ${prefix}/genx_histogram_gen9_isa.cpp
-    ${prefix}/genx_histogram_gen11_isa.cpp
-    ${prefix}/genx_histogram_gen11lp_isa.cpp
     ${prefix}/genx_histogram_gen12lp_isa.cpp
   )
 
   if(MFX_ENABLE_MCTF)
     if(BUILD_KERNELS)
-      foreach(platform gen8 gen9 gen11 gen11lp gen12lp)
+      foreach(platform gen12lp)
         add_cmc_target(${MSDK_GENX_ROOT}/mctf/src/genx_me.cpp ${platform} ${MSDK_GENX_ROOT}/mctf/isa)
         add_cmc_target(${MSDK_GENX_ROOT}/mctf/src/genx_mc.cpp ${platform} ${MSDK_GENX_ROOT}/mctf/isa)
         add_cmc_target(${MSDK_GENX_ROOT}/mctf/src/genx_sd.cpp ${platform} ${MSDK_GENX_ROOT}/mctf/isa)
@@ -156,24 +136,30 @@ if(MFX_ENABLE_KERNELS)
 
     set( prefix ${MSDK_GENX_ROOT}/mctf/isa )
     list( APPEND sources
-      ${prefix}/genx_mc_gen8_isa.cpp
-      ${prefix}/genx_mc_gen9_isa.cpp
-      ${prefix}/genx_mc_gen11_isa.cpp
-      ${prefix}/genx_mc_gen11lp_isa.cpp
       ${prefix}/genx_mc_gen12lp_isa.cpp
-      ${prefix}/genx_me_gen8_isa.cpp
-      ${prefix}/genx_me_gen9_isa.cpp
-      ${prefix}/genx_me_gen11_isa.cpp
-      ${prefix}/genx_me_gen11lp_isa.cpp
       ${prefix}/genx_me_gen12lp_isa.cpp
-      ${prefix}/genx_sd_gen8_isa.cpp
-      ${prefix}/genx_sd_gen9_isa.cpp
-      ${prefix}/genx_sd_gen11_isa.cpp
-      ${prefix}/genx_sd_gen11lp_isa.cpp
       ${prefix}/genx_sd_gen12lp_isa.cpp
     )
   endif()
 
-  make_library(genx none static )
-  set( defs "" )
+  add_library(genx STATIC ${sources})
+  set_property(TARGET genx PROPERTY FOLDER "kernels")
+
+  target_include_directories(genx
+    PUBLIC
+      asc/isa
+      copy_kernels/isa
+      field_copy/isa
+      h264_encode/isa
+      mctf/isa
+    )
+
+  target_link_libraries(genx
+    PUBLIC
+      mfx_static_lib
+    PRIVATE
+      mfx_sdl_properties
+    )
 endif()
+
+include(sources_ext.cmake OPTIONAL)

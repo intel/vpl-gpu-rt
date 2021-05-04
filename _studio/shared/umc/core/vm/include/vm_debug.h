@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2018 Intel Corporation
-// 
+// Copyright (c) 2003-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -35,8 +35,18 @@ extern "C"
 /* ============================================================================
 // Define ASSERT and VERIFY for debugging purposes
 */
+#ifdef VM_DEBUG
+#include <assert.h>
+#define VM_ASSERT(f) assert((f))
+#else /* VM_DEBUG */
 #define VM_ASSERT(f) ((void) 0)
+#endif /* VM_DEBUG */
 
+#if defined(_WIN32_WCE)
+#if (_WIN32_WCE == 0x0300)
+#define VM_ASSERT(exp) ((void)0)
+#endif /* (_WIN32_WCE == 0x0300) */
+#endif /* defined(_WIN32_WCE) */
 
 typedef enum vm_debug_level {  /* debug level */
     VM_DEBUG_NONE           = 0x0000, /* none of the debug levels */
@@ -73,6 +83,14 @@ typedef enum vm_debug_output {  /* debug output */
 
 /* ///////////////////// */
 
+vm_debug_level vm_debug_setlevel(vm_debug_level level);
+vm_debug_output vm_debug_setoutput(vm_debug_output output);
+void vm_debug_setfile(vm_char *file, int32_t truncate);
+
+void vm_debug_message(const vm_char *format, ...);
+
+/* ///////////////////// */
+
 #if defined(UNICODE) || defined(_UNICODE)
 #define VM_STRING_FORMAT VM_STRING("%S")
 #else
@@ -81,6 +99,49 @@ typedef enum vm_debug_output {  /* debug output */
 
 /* ///////////////////// */
 
+#ifdef VM_DEBUG
+
+#ifdef _MSC_VER
+#define VM_DEBUG_FUNC_NAME  VM_STRING(__FUNCTION__) /* Microsoft-specific */
+#else
+#define VM_DEBUG_FUNC_NAME  NULL /* name of function, redefine in code */
+#endif
+/*
+#define PTR_THIS this */
+#define PTR_THIS NULL
+
+void vm_debug_trace_ex(int32_t level,
+                       const void *ptr_this,
+                       const vm_char *func_name,
+                       const vm_char *file_name,
+                       int32_t num_line,
+                       const vm_char *format,
+                       ...);
+
+#define vm_debug_trace(level, format) \
+  vm_debug_trace_ex(level, PTR_THIS, VM_DEBUG_FUNC_NAME, VM_STRING(__FILE__), __LINE__, format)
+
+#define vm_debug_trace1(level, format, a1) \
+  vm_debug_trace_ex(level, PTR_THIS, VM_DEBUG_FUNC_NAME, VM_STRING(__FILE__), __LINE__, format, a1)
+
+#define vm_debug_trace2(level, format, a1, a2) \
+  vm_debug_trace_ex(level, PTR_THIS, VM_DEBUG_FUNC_NAME, VM_STRING(__FILE__), __LINE__, format, a1, a2)
+
+#define vm_debug_trace3(level, format, a1, a2, a3) \
+  vm_debug_trace_ex(level, PTR_THIS, VM_DEBUG_FUNC_NAME, VM_STRING(__FILE__), __LINE__, format, a1, a2, a3)
+
+#define vm_debug_trace4(level, format, a1, a2, a3, a4) \
+  vm_debug_trace_ex(level, PTR_THIS, VM_DEBUG_FUNC_NAME, VM_STRING(__FILE__), __LINE__, format, a1, a2, a3, a4)
+
+#define vm_debug_trace_withfunc(level, func, format) \
+  vm_debug_trace_ex(level, PTR_THIS, func, VM_STRING(__FILE__), __LINE__, format)
+
+#define vm_trace_GUID(guid) \
+{ \
+    vm_trace_fourcc(guid.Data1); \
+}
+
+#else /* VM_DEBUG */
 
 #define vm_debug_trace(level, format)
 #define vm_debug_trace1(level, format, a1)
@@ -91,6 +152,10 @@ typedef enum vm_debug_output {  /* debug output */
 
 #define vm_trace_GUID(guid)
 
+#endif /* VM_DEBUG */
+
+#define vm_trace_hresult(hr, mess, pthis) \
+    vm_trace_hresult_func(hr, mess, pthis, (vm_char*)VM_STRING(__FUNCTION__), VM_STRING(__FILE__), __LINE__)
 
 /* ////////////////// */
 
@@ -146,6 +211,8 @@ if (PTR) \
         _PRINTABLE(((char*)&(x))[1]),  \
         _PRINTABLE(((char*)&(x))[2]),  \
         _PRINTABLE(((char*)&(x))[3]))
+
+int32_t vm_trace_hresult_func(int32_t hr, vm_char *mess, void *pthis, vm_char *func, vm_char *file, uint32_t line);
 
 /* ///////////////////// */
 

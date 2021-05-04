@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2003-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,10 @@
 #ifndef __UMC_H264_DEC_DEFS_DEC_H__
 #define __UMC_H264_DEC_DEFS_DEC_H__
 
+#if defined (__ICL)
+    // remark #981: operands are evaluated in unspecified order
+#pragma warning(disable: 981)
+#endif
 
 #include <vector>
 #include "umc_structures.h"
@@ -81,6 +85,9 @@ typedef uint8_t PlaneUVCommon;
 
 typedef PlaneYCommon * PlanePtrYCommon;
 typedef PlaneUVCommon * PlanePtrUVCommon;
+
+typedef int16_t CoeffsCommon;
+typedef CoeffsCommon * CoeffsPtrCommon;
 
 typedef enum {
     NAL_UT_UNSPECIFIED  = 0, // Unspecified

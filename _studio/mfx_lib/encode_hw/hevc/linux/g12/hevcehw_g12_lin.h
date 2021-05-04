@@ -21,7 +21,7 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_base_lin.h"
 #include "hevcehw_g12_data.h"
@@ -43,7 +43,7 @@ namespace Gen12
     {
     public:
         using TBaseGen = Linux::Base::MFXVideoENCODEH265_HW;
-    
+
         MFXVideoENCODEH265_HW(
             VideoCORE& core
             , mfxStatus& status

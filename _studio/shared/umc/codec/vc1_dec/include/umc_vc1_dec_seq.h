@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2004-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -68,7 +68,6 @@ VC1Status DecodePicHeader                             (VC1Context* pContext);
 VC1Status DecodePictHeaderParams_InterlaceFieldPicture_Adv (VC1Context* pContext);
 VC1Status DecodeSkippicture                       (VC1Context* pContext);
 
-
 // Simple/Main
 VC1Status DecodePictureLayer_ProgressiveIpicture            (VC1Context* pContext);
 // Advanced
@@ -104,8 +103,6 @@ VC1Status CalculatePQuant(VC1Context* pContext);
 void  DecodeBitplane(VC1Context* pContext, VC1Bitplane* pBitplane, int32_t rowMB, int32_t colMB, int32_t offset);
 
 VC1Status EntryPointLayer(VC1Context* m_pContext);
-
-
 
 #endif //__umc_vc1_dec_seq_H__
 #endif //MFX_ENABLE_VC1_VIDEO_DECODE

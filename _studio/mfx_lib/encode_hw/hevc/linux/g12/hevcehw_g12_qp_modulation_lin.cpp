@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_g12_qp_modulation_lin.h"
 #include "hevcehw_g12_data.h"
@@ -71,10 +71,11 @@ void Linux::Gen12::QpModulation::InitInternal(const FeatureBlocks& /*blocks*/, T
             bool bHLByTemporalID = sps.seq_fields.bits.low_delay_seq && bsSPS.max_sub_layers_minus1;
             bool bHLByPyrLevel = sps.seq_fields.bits.low_delay_seq && !bHLByTemporalID;
 
-            // QP modulation feature; used in low delay mode only
+            // QP modulation in LDB mode
             SetIf(pps.hierarchical_level_plus1, bHLByTemporalID, task.TemporalID + 1);
             SetIf(pps.hierarchical_level_plus1, bHLByPyrLevel, task.PyramidLevel + 1);
 
+            // QP modulation in RAB mode
             if (bHLByCodingType)
             {
                 ThrowAssert(Check<mfxU8, 1, 2, 3, 4, 5>(task.CodingType), "invalid coding type");

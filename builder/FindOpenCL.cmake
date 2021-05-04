@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2014-2020 Intel Corporation
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,11 +25,13 @@ set( OCL_LIBS "" )
 
 if ( NOT OPENCL_INCLUDE MATCHES NOTFOUND )
     if ( NOT OPENCL_LIBRARY MATCHES NOTFOUND )
-        set ( OPENCL_FOUND TRUE )
+        if ( EXISTS /etc/OpenCL/vendors/intel.icd )
+            set ( OPENCL_FOUND TRUE )
 
-        get_filename_component( OPENCL_LIBRARY_PATH ${OPENCL_LIBRARY} PATH )
+            get_filename_component( OPENCL_LIBRARY_PATH ${OPENCL_LIBRARY} PATH )
 
-        list( APPEND OPENCL_LIBS OpenCL )
+            list( APPEND OPENCL_LIBS OpenCL )
+        endif()
     endif()
 endif()
 

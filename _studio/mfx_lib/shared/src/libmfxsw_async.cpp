@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2008-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,12 +22,14 @@
 #include <mfx_session.h>
 #include <mfx_trace.h>
 #include <mfx_utils.h>
+#include "libmfx_core_interface.h"
 
 mfxStatus MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfxU32 wait)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFX_SyncOperation");
-    mfxStatus mfxRes;
+    mfxStatus mfxRes = MFX_ERR_NONE;
 
+    MFX_AUTO_TRACE("SyncOperaton");
+    ETW_NEW_EVENT(MFX_TRACE_API_SYNC_OPERATION_TASK, 0, make_event_data(session, syncp, wait), [&](){ return make_event_data(mfxRes, syncp);});
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(syncp, MFX_ERR_NULL_PTR);
 

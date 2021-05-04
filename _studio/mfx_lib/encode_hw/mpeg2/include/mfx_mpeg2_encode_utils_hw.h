@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2008-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -193,6 +193,8 @@ namespace MPEG2EncoderHW
             Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out, bool bAVBR_WA = false);
         static mfxStatus  
             QueryIOSurf  (VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
+        static mfxStatus
+            QueryImplsDescription(VideoCORE& core, mfxEncoderDescription::encoder& caps, mfx::PODArraysHolder& ah);
 
         mfxStatus ReorderFrame(mfxEncodeInternalParams *pInInternalParams, mfxFrameSurface1 *in,
             mfxEncodeInternalParams *pOutInternalParams, mfxFrameSurface1 **out);
@@ -460,10 +462,14 @@ namespace MPEG2EncoderHW
         FramesSet           m_Frames;
         VideoCORE*          m_pCore;
         mfxU32              m_nFrameOrder;
-        mfxEncodeInternalParams 
+        mfxEncodeInternalParams
                             m_sEncodeInternalParams;
         mfxU32              m_FeedbackNumber;
         mfxU32              m_BitstreamFrameNumber;
+
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+        GPU_SYNC_EVENT_HANDLE     m_GpuEvent;
+#endif
 
     protected:
         inline
@@ -478,6 +484,9 @@ namespace MPEG2EncoderHW
             m_Frames.Reset();
             m_FeedbackNumber = 0;
             m_BitstreamFrameNumber = 0;
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+            m_GpuEvent = {};
+#endif
         }
 
     public:
@@ -521,7 +530,6 @@ namespace MPEG2EncoderHW
             return sts;
         }
     };
-  
 }
 
 

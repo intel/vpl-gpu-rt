@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2014-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 
 #include "mfx_common.h"
 
-#if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
+#if defined(MFX_ENABLE_VP8_VIDEO_DECODE)
 
 #include "mfx_common_int.h"
 #include "mfx_umc_alloc_wrapper.h"
@@ -175,6 +175,7 @@ public:
 
     static mfxStatus Query(VideoCORE *pCore, mfxVideoParam *pIn, mfxVideoParam *pOut);
     static mfxStatus QueryIOSurf(VideoCORE *pCore, mfxVideoParam *pPar, mfxFrameAllocRequest *pRequest);
+    static mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription::decoder&, mfx::PODArraysHolder&);
 
     virtual mfxStatus Init(mfxVideoParam *pPar);
     virtual mfxStatus Reset(mfxVideoParam *pPar);
@@ -192,13 +193,15 @@ public:
     virtual mfxStatus GetPayload(mfxU64 *pTimeStamp, mfxPayload *pPayload);
     virtual mfxStatus SetSkipMode(mfxSkipMode mode);
 
+    virtual mfxFrameSurface1* GetSurface() override;
+
 private:
 
     mfxFrameSurface1 * GetOriginalSurface(mfxFrameSurface1 *);
     mfxStatus GetOutputSurface(mfxFrameSurface1 **, mfxFrameSurface1 *, UMC::FrameMemID);
 
     mfxStatus ConstructFrame(mfxBitstream *, mfxBitstream *, VP8DecodeCommon::IVF_FRAME&);
-    mfxStatus PreDecodeFrame(mfxBitstream *, mfxFrameSurface1 *);
+    mfxStatus PreDecodeFrame(mfxBitstream *, mfxU32&, mfxU32&);
 
     mfxStatus DecodeFrameHeader(mfxBitstream *p_bistream);
     void UpdateSegmentation(MFX_VP8_BoolDecoder &);
@@ -262,15 +265,16 @@ private:
     std::vector<UMC::FrameMemID> m_memIdReadyToFree;
 
     mfxFrameAllocResponse   m_response;
+    mfxFrameAllocResponse   m_response_alien;
     mfxDecodeStat           m_stat;
     mfxFrameAllocRequest    m_request;
 
-    std::unique_ptr<mfx_UMC_FrameAllocator> m_p_frame_allocator;
+    std::unique_ptr<SurfaceSource>    m_surface_source;
     UMC::VideoAccelerator *m_p_video_accelerator;
 
     UMC::Mutex              m_mGuard;
 };
 
-#endif // _MFX_VP8_DECODE_HW_H_
-#endif // MFX_ENABLE_VP8_VIDEO_DECODE_HW && MFX_VA
-/* EOF */
+#endif //MFX_ENABLE_VP8_VIDEO_DECODE
+#endif //_MFX_VP8_DECODE_HW_H_
+

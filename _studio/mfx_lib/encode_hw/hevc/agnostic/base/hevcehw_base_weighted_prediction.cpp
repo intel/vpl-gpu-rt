@@ -191,7 +191,7 @@ void WeightPred::PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Pu
 
         CopyLxPWT(0, std::min<mfxU16>(ssh.num_ref_idx_l0_active_minus1 + 1, caps.MaxNum_WeightedPredL0));
         CopyLxPWT(1, std::min<mfxU16>(ssh.num_ref_idx_l1_active_minus1 + 1, caps.MaxNum_WeightedPredL1));
-
+        
         bool bForceSameWeights =
             task.isLDB
             && std::equal(

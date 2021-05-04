@@ -126,12 +126,11 @@ namespace UMC_AV1_DECODER
         AV1DecoderFrame* FindFrameInProgress();
         AV1DecoderFrame* GetCurrFrame()
         { return Curr; }
+        UMC::FrameMemID  GetRepeatedFrame(){return repeateFrame;}
         void SetInFrameRate(mfxF64 rate)
         { in_framerate = rate; }
 
         virtual bool QueryFrames() = 0;
-
-        AV1DecoderParams* GetAv1DecoderParams() {return &params;}
 
     protected:
 
@@ -174,6 +173,7 @@ namespace UMC_AV1_DECODER
         DPBType                         refs_temp; // previous updated frameDPB
         mfxU16                          frame_order;
         mfxF64                          in_framerate;
+        UMC::FrameMemID                 repeateFrame;//frame to be repeated
     };
 }
 

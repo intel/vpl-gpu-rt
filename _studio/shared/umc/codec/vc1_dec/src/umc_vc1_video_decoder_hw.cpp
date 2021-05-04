@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2004-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,6 +25,7 @@
 #include "umc_vc1_video_decoder_hw.h"
 #include "umc_video_data.h"
 #include "umc_media_data_ex.h"
+#include "umc_vc1_dec_debug.h"
 #include "umc_vc1_dec_seq.h"
 #include "vm_sys_info.h"
 #include "umc_vc1_dec_task_store.h"
@@ -112,12 +113,7 @@ Status VC1VideoDecoderHW::Reset(void)
 
 bool VC1VideoDecoderHW::InitVAEnvironment()
 {
-    if (!m_pContext->m_frmBuff.m_pFrames)
-    {
-        m_pHeap->s_new_one(&m_pContext->m_frmBuff.m_pFrames, m_SurfaceNum);
-        if (!m_pContext->m_frmBuff.m_pFrames)
-            return false;
-    }
+    m_pContext->m_frmBuff.m_pFrames.Reset(m_FrameStorage);
 
     SetVideoHardwareAccelerator(m_va);
     return true;
@@ -127,13 +123,13 @@ uint32_t VC1VideoDecoderHW::CalculateHeapSize()
 {
     uint32_t Size = 0;
 
-    Size += mfx::align2_value(sizeof(VC1TaskStore));
+    Size += mfx::align2_value<uint32_t>(sizeof(VC1TaskStore));
     if (!m_va)
-        Size += mfx::align2_value(sizeof(Frame)*(2*m_iMaxFramesInProcessing + 2*VC1NUMREFFRAMES));
+        Size += mfx::align2_value<uint32_t>(sizeof(Frame)*(2*m_iMaxFramesInProcessing + 2*VC1NUMREFFRAMES));
     else
-        Size += mfx::align2_value(sizeof(Frame)*(m_SurfaceNum));
+        Size += mfx::align2_value<uint32_t>(sizeof(Frame)*(m_SurfaceNum));
 
-    Size += mfx::align2_value(sizeof(MediaDataEx));
+    Size += mfx::align2_value<uint32_t>(sizeof(MediaDataEx));
     return Size;
 }
 
@@ -143,7 +139,7 @@ Status VC1VideoDecoderHW::Close(void)
 
     m_AllocBuffer = 0;
 
-    // reset all values 
+    // reset all values
     umcRes = Reset();
 
     if (m_pStore)
@@ -243,6 +239,27 @@ bool VC1VideoDecoderHW::InitAlloc(VC1Context* pContext, uint32_t )
     return true;
 }
 
+#ifdef UMC_VA_DXVA
+Status VC1VideoDecoderHW::GetStatusReport(DXVA_Status_VC1 *pStatusReport)
+{
+    UMC::Status sts = UMC_OK;
+    {
+        sts = m_va->ExecuteStatusReportBuffer((void*)pStatusReport, sizeof(DXVA_Status_VC1)*VC1_MAX_REPORTS);
+        if (sts != UMC_OK)
+            return UMC_ERR_FAILED;
+
+        for (uint32_t i = 0; i < VC1_MAX_REPORTS; i++)
+        {
+            // status report presents
+            if (pStatusReport[i].StatusReportFeedbackNumber)
+            {
+                return sts;
+            }
+        }
+        return UMC_WRN_INFO_NOT_READY;
+    }
+}
+#endif
 
 void VC1VideoDecoderHW::GetStartCodes_HW(MediaData* in, uint32_t &sShift)
 {
@@ -410,9 +427,22 @@ Status VC1VideoDecoderHW::FillAndExecute(MediaData* in)
 
 Status VC1VideoDecoderHW::VC1DecodeFrame(MediaData* in, VideoData* out_data)
 {
+    (void)in;
+    (void)out_data;
+
     if (m_va->m_Profile == VC1_VLD)
     {
+#if defined (UMC_VA_DXVA)
+        if (m_va->IsIntelCustomGUID())
+        {
+                return VC1DecodeFrame_VLD<VC1FrameDescriptorVA_EagleLake<VC1PackerDXVA_EagleLake> >(in, out_data);
+        }
+        else
+            return VC1DecodeFrame_VLD<VC1FrameDescriptorVA<VC1PackerDXVA> >(in, out_data);
+#endif
+#if defined (UMC_VA_LINUX)
         return VC1DecodeFrame_VLD<VC1FrameDescriptorVA_Linux<VC1PackerLVA> >(in, out_data);
+#endif
     }
     return UMC_ERR_FAILED;
 }

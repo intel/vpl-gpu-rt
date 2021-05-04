@@ -17,6 +17,13 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+
+#pragma warning(disable: 4127)
+#pragma warning(disable: 4244)
+#pragma warning(disable: 4018)
+#pragma warning(disable: 4189)
+#pragma warning(disable: 4505)
 #include "../include/genx_blend_mc.h"
 #include "../include/genx_sd_common.h"
 

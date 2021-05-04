@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2010-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,8 +20,16 @@
 
 #include "mfxdefs.h"
 #include "mfx_trace.h"
-#if (MFX_VERSION >= 1027)
-#include "mfxfeihevc.h"
+
+#if (MFX_VERSION >= 1025)
+static mfx_reflect::AccessibleTypesCollection g_Reflection;
+#endif
+
+#if (MFX_VERSION >= 1025)
+mfx_reflect::AccessibleTypesCollection GetReflection()
+{
+    return g_Reflection;
+}
 #endif
 
 #ifdef MFX_TRACE_ENABLE
@@ -35,13 +43,17 @@ extern "C"
 #include "mfx_trace_utils.h"
 #include "mfx_trace_textlog.h"
 #include "mfx_trace_stat.h"
+#include "mfx_trace_etw.h"
+#include "mfx_trace_tal.h"
 #include "mfx_trace_itt.h"
 #include "mfx_trace_ftrace.h"
 }
 #include <stdlib.h>
 #include <string.h>
 #include "vm_interlocked.h"
+#if (MFX_VERSION >= 1025)
 #include "mfx_reflect.h"
+#endif
 
 /*------------------------------------------------------------------------------*/
 
@@ -67,7 +79,8 @@ typedef mfxTraceU32 (*MFXTrace_BeginTaskFn)(mfxTraceStaticHandle *static_handle,
                                        const char *file_name, mfxTraceU32 line_num,
                                        const char *function_name,
                                        mfxTraceChar* category, mfxTraceLevel level,
-                                       const char *task_name, mfxTraceTaskHandle *task_handle,
+                                       const char *task_name, const mfxTraceTaskType task_type,
+                                       mfxTraceTaskHandle *task_handle,
                                        const void *task_params);
 
 typedef mfxTraceU32 (*MFXTrace_EndTaskFn)(mfxTraceStaticHandle *static_handle,
@@ -123,6 +136,32 @@ mfxTraceAlgorithm g_TraceAlgorithms[] =
         MFXTraceStat_BeginTask,
         MFXTraceStat_EndTask,
         MFXTraceStat_Close
+    },
+#endif
+#ifdef MFX_TRACE_ENABLE_ETW
+    {
+        0,
+        MFX_TRACE_OUTPUT_ETW,
+        MFXTraceETW_Init,
+        MFXTraceETW_SetLevel,
+        MFXTraceETW_DebugMessage,
+        MFXTraceETW_vDebugMessage,
+        MFXTraceETW_BeginTask,
+        MFXTraceETW_EndTask,
+        MFXTraceETW_Close
+    },
+#endif
+#ifdef MFX_TRACE_ENABLE_TAL
+    {
+        0,
+        MFX_TRACE_OUTPUT_TAL,
+        MFXTraceTAL_Init,
+        MFXTraceTAL_SetLevel,
+        MFXTraceTAL_DebugMessage,
+        MFXTraceTAL_vDebugMessage,
+        MFXTraceTAL_BeginTask,
+        MFXTraceTAL_EndTask,
+        MFXTraceTAL_Close
     },
 #endif
 #ifdef MFX_TRACE_ENABLE_ITT
@@ -225,11 +264,23 @@ mfxTraceU32 MFXTrace_Init()
     mfxTraceU32 i = 0;
     mfxTraceU32 output_mode = 0;
 
+#if defined(MFX_TRACE_ENABLE_TRASH)
+    g_OutputMode |= MFX_TRACE_OUTPUT_TRASH;
+#endif
 #if defined(MFX_TRACE_ENABLE_TEXTLOG)
     g_OutputMode |= MFX_TRACE_OUTPUT_TEXTLOG;
 #endif
 #if defined(MFX_TRACE_ENABLE_STAT)
     g_OutputMode |= MFX_TRACE_OUTPUT_STAT;
+#endif
+#if defined(MFX_TRACE_ENABLE_STAT)
+    g_OutputMode |= MFX_TRACE_OUTPUT_STAT;
+#endif
+#if defined(MFX_TRACE_ENABLE_ETW)
+    g_OutputMode |= MFX_TRACE_OUTPUT_ETW;
+#endif
+#if defined(MFX_TRACE_ENABLE_TAL)
+    g_OutputMode |= MFX_TRACE_OUTPUT_TAL;
 #endif
 #if defined(MFX_TRACE_ENABLE_ITT)
     g_OutputMode |= MFX_TRACE_OUTPUT_ITT;
@@ -243,10 +294,12 @@ mfxTraceU32 MFXTrace_Init()
         return sts;
     }
 
-#if defined(MFX_TRACE_ENABLE_REFLECT)
-    if (g_OutputMode & (MFX_TRACE_OUTPUT_ETW | MFX_TRACE_OUTPUT_TEXTLOG))
+#if (MFX_VERSION >= 1025)
+    if (!g_Reflection.m_bIsInitialized &&
+        g_OutputMode & (MFX_TRACE_OUTPUT_ETW | MFX_TRACE_OUTPUT_TEXTLOG))
     {
-        mfx_reflect::AccessibleTypesCollection::Initialize();
+        g_Reflection.DeclareMsdkStructs();
+        g_Reflection.m_bIsInitialized = true;
     }
 #endif
 
@@ -392,7 +445,8 @@ mfxTraceU32 MFXTrace_BeginTask(mfxTraceStaticHandle *static_handle,
                           const char *file_name, mfxTraceU32 line_num,
                           const char *function_name,
                           mfxTraceChar* category, mfxTraceLevel level,
-                          const char *task_name, mfxTraceTaskHandle *task_handle,
+                          const char *task_name, const mfxTraceTaskType task_type,
+                          mfxTraceTaskHandle *task_handle,
                           const void *task_params)
 {
     // store category and level to check for MFXTrace_IsPrintableCategoryAndLevel in MFXTrace_EndTask
@@ -415,7 +469,8 @@ mfxTraceU32 MFXTrace_BeginTask(mfxTraceStaticHandle *static_handle,
                                                      file_name, line_num,
                                                      function_name,
                                                      category, level,
-                                                     task_name, task_handle, task_params);
+                                                     task_name, task_type,
+                                                     task_handle, task_params);
             if (!sts && res) sts = res;
         }
     }
@@ -473,6 +528,7 @@ MFXTraceTask::MFXTraceTask(mfxTraceStaticHandle *static_handle,
                  const char *function_name,
                  mfxTraceChar* category, mfxTraceLevel level,
                  const char *task_name,
+                 const mfxTraceTaskType task_type,
                  const bool bCreateID)
 {
     mfxTraceU32 sts;
@@ -483,7 +539,7 @@ MFXTraceTask::MFXTraceTask(mfxTraceStaticHandle *static_handle,
                        file_name, line_num,
                        function_name,
                        category, level,
-                       task_name,
+                       task_name, task_type,
                        &m_TraceTaskHandle,
                        (bCreateID) ? &m_TaskID : 0);
     m_bStarted = (sts == 0);

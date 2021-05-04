@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2020 Intel Corporation
-// 
+// Copyright (c) 2012-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -1310,6 +1310,7 @@ void H265HeadersBitstream::xParsePredWeightTable(const H265SeqParamSet *sps, H26
     wpScalingParam* wp;
     SliceType       eSliceType  = sliceHdr->slice_type;
     int32_t         iNbRef      = (eSliceType == B_SLICE ) ? (2) : (1);
+    int32_t         iPresent    = 0;
 
     sliceHdr->luma_log2_weight_denom = GetVLCElementU(); // used in HW decoder
     if (sliceHdr->luma_log2_weight_denom > 7)
@@ -1342,13 +1343,14 @@ void H265HeadersBitstream::xParsePredWeightTable(const H265SeqParamSet *sps, H26
 
             if (sliceHdr->m_RefPOCList[eRefPicList][iRefIdx] == sliceHdr->m_poc)
             {
-                wp[0].present_flag = 0;         // luma_weight_lX_flag
+                iPresent = 0;
             }
             else
             {
-                wp[0].present_flag = Get1Bit(); // luma_weight_lX_flag
+                iPresent = Get1Bit();
             }
 
+            wp[0].present_flag = (iPresent == 1); // luma_weight_lX_flag
             uTotalSignalledWeightFlags += wp[0].present_flag;
         }
 
@@ -1360,13 +1362,14 @@ void H265HeadersBitstream::xParsePredWeightTable(const H265SeqParamSet *sps, H26
                 
                 if (sliceHdr->m_RefPOCList[eRefPicList][iRefIdx] == sliceHdr->m_poc)
                 {
-                    wp[1].present_flag = wp[2].present_flag = 0;         // chroma_weight_lX_flag
+                    iPresent = 0;
                 }
                 else
                 {
-                    wp[1].present_flag = wp[2].present_flag = Get1Bit(); // chroma_weight_lX_flag
+                    iPresent = Get1Bit();
                 }
 
+                wp[1].present_flag = wp[2].present_flag = (iPresent == 1); // chroma_weight_lX_flag
                 uTotalSignalledWeightFlags += 2*wp[1].present_flag;
             }
         }
@@ -1828,11 +1831,6 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
             if (pps->pps_curr_pic_ref_enabled_flag)
                 numPicTotalCurr++;
 
-            if (numPicTotalCurr > 8)
-                //A.4.1 General tier and level limits
-                //The value of NumPicTotalCurr shall be less than or equal to 8
-                throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
-
             //7.4.7.2 value of list_entry_l0/list_entry_l1[ i ] shall be in the range of 0 to NumPicTotalCurr - 1, inclusive
             for (int32_t idx = 0; idx < pSlice->getNumRefIdx(REF_PIC_LIST_0); idx++)
             {
@@ -2015,11 +2013,6 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
         sliceHdr->num_entry_point_offsets = GetVLCElementU();
 
         uint32_t PicHeightInCtbsY = sps->HeightInCU;
-
-        if (sliceHdr->num_entry_point_offsets > 440)
-        {
-            vm_string_printf(VM_STRING("slice has more than 440 offsets:%d\n"), sliceHdr->num_entry_point_offsets);
-        }
 
         if (!pps->tiles_enabled_flag && pps->entropy_coding_sync_enabled_flag && sliceHdr->num_entry_point_offsets > PicHeightInCtbsY)
             throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);

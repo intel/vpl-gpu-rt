@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
 
 #include "umc_defs.h"
 
-#if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
+#if defined MFX_ENABLE_MPEG2_VIDEO_DECODE
 
 #include "umc_mpeg2_decoder.h"
 
@@ -48,6 +48,34 @@ namespace UMC_MPEG2_DECODER
         void AllocateFrameData(UMC::VideoDataInfo const&, UMC::FrameMemID, MPEG2DecoderFrame&) override;
         // Pass picture to driver
         UMC::Status Submit(MPEG2DecoderFrame&, uint8_t) override;
+
+        class ReportItem
+        {
+        public:
+            uint32_t  m_index;
+            uint32_t  m_field;
+            uint8_t   m_status;
+
+            ReportItem(uint32_t index, uint32_t field, uint8_t status)
+                : m_index(index)
+                , m_field(field)
+                , m_status(status)
+            {
+            }
+
+            bool operator == (const ReportItem & item)
+            {
+                return (item.m_index == m_index) && (item.m_field == m_field);
+            }
+
+            bool operator != (const ReportItem & item)
+            {
+                return (item.m_index != m_index) || (item.m_field != m_field);
+            }
+        };
+
+        typedef std::vector<ReportItem> Report;
+        Report m_reports;
     };
 }
 

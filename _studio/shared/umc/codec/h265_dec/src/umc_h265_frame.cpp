@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2012-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,7 +25,6 @@
 #include "umc_h265_frame.h"
 #include "umc_h265_task_supplier.h"
 #include "umc_h265_debug.h"
-
 
 
 namespace UMC_HEVC_DECODER
@@ -54,7 +53,7 @@ H265DecoderFrame::H265DecoderFrame(UMC::MemoryAllocator *pMemoryAllocator, Heap_
 
     ResetRefCounter();
 
-    m_pSlicesInfo = new H265DecoderFrameInfo(this, m_pObjHeap);
+    m_pSlicesInfo = new H265DecoderFrameInfo(this);
 
     m_Flags.isFull = 0;
     m_Flags.isDecoded = 0;
@@ -320,7 +319,6 @@ bool H265DecoderFrame::CheckReferenceFrameError()
 
     return false;
 }
-
 
 } // end namespace UMC_HEVC_DECODER
 #endif // MFX_ENABLE_H265_VIDEO_DECODE

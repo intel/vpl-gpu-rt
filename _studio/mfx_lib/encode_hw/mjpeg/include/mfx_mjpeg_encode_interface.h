@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2011-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,6 +31,10 @@
 #include "mfxvideo++int.h"
 
 #include "mfx_mjpeg_encode_hw_utils.h"
+
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+#include "mfx_win_event_cache.h"
+#endif
 
 namespace MfxHwMJpegEncode
 {
@@ -78,11 +82,20 @@ namespace MfxHwMJpegEncode
 
         virtual
         mfxStatus Destroy() = 0;
+
+        virtual
+            mfxStatus CreateWrapBuffers(
+                const mfxU16& /*numFrameMin*/,
+                const mfxVideoParam& /*par*/) { return MFX_ERR_NONE; }
+
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+        std::unique_ptr<EventCache> m_EventCache;
+#endif
     };
 
     DriverEncoder* CreatePlatformMJpegEncoder( VideoCORE* core );
 
 }; // namespace
 
-#endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE) && defined (MFX_VA)
+#endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
 #endif // __MFX_MJPEG_ENCODE_INTERFACE_H__

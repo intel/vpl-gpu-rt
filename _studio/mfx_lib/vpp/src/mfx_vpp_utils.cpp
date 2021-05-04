@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2008-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,18 @@
 #include "mfx_vpp_utils.h"
 
 #include "mfx_vpp_hw.h"
+
+#if defined (MFX_VA)
+#include "mfxpcp.h"
+
+
+#endif //defined(MFX_VA)
+
+#include "ipps.h"
+#include "ippi.h"
+#include "ippcc.h"
+
+#include "umc_defs.h"
 
 const mfxU32 g_TABLE_DO_NOT_USE [] =
 {
@@ -66,6 +78,9 @@ const mfxU32 g_TABLE_DO_USE [] =
 #if (MFX_VERSION >= 1025)
     MFX_EXTBUFF_VPP_COLOR_CONVERSION,
 #endif
+#ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
+    MFX_EXTBUFF_VPP_VARIANCE_REPORT,
+#endif
     MFX_EXTBUFF_VPP_DEINTERLACING,
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
@@ -100,7 +115,6 @@ const mfxU32 g_TABLE_CONFIG [] =
 
 const mfxU32 g_TABLE_EXT_PARAM [] =
 {
-    MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION,
     MFX_EXTBUFF_MVC_SEQ_DESC,
 
     MFX_EXTBUFF_VPP_DONOTUSE,
@@ -490,16 +504,13 @@ bool IsRoiDifferent(mfxFrameSurface1 *input, mfxFrameSurface1 *output)
 
 void ShowPipeline( std::vector<mfxU32> pipelineList )
 {
-#if !defined(_DEBUG) && \
-    !defined(_WIN32) && !defined(_WIN64) || \
-    !defined(LINUX) && !defined(LINUX32) && !defined(LINUX64)
+#if !defined(_DEBUG)
 
     (void)pipelineList;
 #endif
 
 #ifdef _DEBUG
 
-#if defined(LINUX) || defined(LINUX32) || defined(LINUX64)
     mfxU32 filterIndx;
     fprintf(stderr, "VPP PIPELINE: \n");
 
@@ -616,7 +627,21 @@ void ShowPipeline( std::vector<mfxU32> pipelineList )
                 break;
             }
 
+#if defined(MFX_ENABLE_IMAGE_STABILIZATION_VPP)
+            case (mfxU32)MFX_EXTBUFF_VPP_IMAGE_STABILIZATION:
+            {
+                fprintf(stderr, "IMAGE_STAB \n");
+                break;
+            }
+#endif
 
+#ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
+            case (mfxU32)MFX_EXTBUFF_VPP_VARIANCE_REPORT:
+            {
+                fprintf(stderr, "VARIANCE_REP \n");
+                break;
+            }
+#endif
 
             case (mfxU32)MFX_EXTBUFF_VPP_COMPOSITE:
             {
@@ -684,7 +709,6 @@ void ShowPipeline( std::vector<mfxU32> pipelineList )
     } //end of filter search
 
     //fprintf(stderr,"\n");
-#endif // #if defined(LINUX) || defined(LINUX32) || defined(LINUX64)
 
 #endif //#ifdef _DEBUG
     return;
@@ -766,6 +790,13 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
     }
 
     /* [IStab] FILTER */
+#if defined(MFX_ENABLE_IMAGE_STABILIZATION_VPP)
+    if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_IMAGE_STABILIZATION ) )
+    {
+        newList[index] = MFX_EXTBUFF_VPP_IMAGE_STABILIZATION;
+        index++;
+    }
+#endif
 
     // Resize for Best Quality
     if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_RESIZE ) )
@@ -786,6 +817,14 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
         index++;
     }
 
+#ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
+    /* [VarianceRep] FILTER */
+    if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_VARIANCE_REPORT ) )
+    {
+        newList[index] = MFX_EXTBUFF_VPP_VARIANCE_REPORT;
+        index++;
+    }
+#endif
 
     if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION ) )
     {
@@ -1109,7 +1148,7 @@ mfxStatus GetPipelineList(
         {
             pipelineList.push_back(MFX_EXTBUFF_VPP_ITC);
         }
-        else if (0 != deinterlacingMode)
+        else if (0 != deinterlacingMode) // no need to create filter if both picstructs are progressive.
         {
             /* Put DI filter in pipeline only if filter configured via Ext buffer */
             pipelineList.push_back(MFX_EXTBUFF_VPP_DEINTERLACING);
@@ -1327,7 +1366,6 @@ mfxU32 GetFilterIndex( mfxU32* pList, mfxU32 len, mfxU32 filterName )
 /* check each field of FrameInfo excluding PicStruct */
 mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform)
 {
-    (void)platform;
     mfxStatus mfxSts = MFX_ERR_NONE;
 
     /* FourCC */
@@ -1343,13 +1381,13 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
         case MFX_FOURCC_P210:
         case MFX_FOURCC_NV16:
         case MFX_FOURCC_YUY2:
-        case MFX_FOURCC_AYUV:
         // A2RGB10 supported as input in case of passthru copy
         case MFX_FOURCC_A2RGB10:
-#if defined(MFX_VA_LINUX)
         // UYVY is supported on Linux only
         case MFX_FOURCC_UYVY:
-#endif
+            break;
+        case MFX_FOURCC_AYUV:
+            MFX_CHECK(platform >= MFX_HW_ICL, MFX_ERR_INVALID_VIDEO_PARAM);
             break;
 #if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y210:
@@ -1695,6 +1733,12 @@ size_t GetConfigSize( mfxU32 filterId )
         {
             return sizeof(mfxExtVPPFrameRateConversion);
         }
+#if defined(MFX_ENABLE_IMAGE_STABILIZATION_VPP)
+    case MFX_EXTBUFF_VPP_IMAGE_STABILIZATION:
+        {
+            return sizeof(mfxExtVPPImageStab);
+        }
+#endif
     case MFX_EXTBUFF_VPP_DEINTERLACING:
         {
             return sizeof(mfxExtVPPDeinterlacing);
@@ -1745,83 +1789,6 @@ mfxGamutMode GetGamutMode( mfxU16 srcTransferMatrix, mfxU16 dstTransferMatrix )
 } // mfxGamutMode GetGamutMode( mfxU16 srcTransferMatrix, mfxU16 dstTransferMatrix )
 
 
-mfxStatus CheckOpaqMode( mfxVideoParam* par, bool bOpaqMode[2] )
-{
-    if ( (par->IOPattern & MFX_IOPATTERN_IN_OPAQUE_MEMORY) || (par->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY) )
-    {
-        mfxExtOpaqueSurfaceAlloc *pOpaqAlloc = 0;
-
-        pOpaqAlloc = (mfxExtOpaqueSurfaceAlloc *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
-
-        if (!pOpaqAlloc)
-        {
-            return MFX_ERR_INVALID_VIDEO_PARAM;
-        }
-        else
-        {
-            if( par->IOPattern & MFX_IOPATTERN_IN_OPAQUE_MEMORY )
-            {
-                if (!(pOpaqAlloc->In.Type & (MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET)) && !(pOpaqAlloc->In.Type  & MFX_MEMTYPE_SYSTEM_MEMORY))
-                {
-                    return MFX_ERR_INVALID_VIDEO_PARAM;
-                }
-
-                if ((pOpaqAlloc->In.Type & MFX_MEMTYPE_SYSTEM_MEMORY) && (pOpaqAlloc->In.Type & (MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET)))
-                {
-                    return MFX_ERR_INVALID_VIDEO_PARAM;
-                }
-
-                bOpaqMode[VPP_IN] = true;
-            }
-
-            if( par->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY )
-            {
-                if (!(pOpaqAlloc->Out.Type & (MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET)) && !(pOpaqAlloc->Out.Type  & MFX_MEMTYPE_SYSTEM_MEMORY))
-                {
-                    return MFX_ERR_INVALID_VIDEO_PARAM;
-                }
-
-                if ((pOpaqAlloc->Out.Type & MFX_MEMTYPE_SYSTEM_MEMORY) && (pOpaqAlloc->Out.Type & (MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET)))
-                {
-                    return MFX_ERR_INVALID_VIDEO_PARAM;
-                }
-
-                bOpaqMode[VPP_OUT] = true;
-            }
-        }
-    }
-
-    return MFX_ERR_NONE;
-
-} // mfxStatus CheckOpaqMode( mfxVideoParam* par, bool bOpaqMode[2] )
-
-
-mfxStatus GetOpaqRequest( mfxVideoParam* par, bool bOpaqMode[2], mfxFrameAllocRequest requestOpaq[2] )
-{
-    if( bOpaqMode[VPP_IN] || bOpaqMode[VPP_OUT] )
-    {
-        mfxExtOpaqueSurfaceAlloc *pOpaqAlloc = (mfxExtOpaqueSurfaceAlloc *)GetExtendedBufferInternal(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
-
-        if( bOpaqMode[VPP_IN] )
-        {
-            requestOpaq[VPP_IN].Info = par->vpp.In;
-            requestOpaq[VPP_IN].NumFrameMin = requestOpaq[VPP_IN].NumFrameSuggested = (mfxU16)pOpaqAlloc->In.NumSurface;
-            requestOpaq[VPP_IN].Type = (mfxU16)pOpaqAlloc->In.Type;
-        }
-
-        if( bOpaqMode[VPP_OUT] )
-        {
-            requestOpaq[VPP_OUT].Info = par->vpp.Out;
-            requestOpaq[VPP_OUT].NumFrameMin = requestOpaq[VPP_OUT].NumFrameSuggested = (mfxU16)pOpaqAlloc->Out.NumSurface;
-            requestOpaq[VPP_OUT].Type = (mfxU16)pOpaqAlloc->Out.Type;
-        }
-    }
-
-    return MFX_ERR_NONE;
-
-} // mfxStatus GetOpaqRequest( mfxVideoParam* par, bool bOpaqMode[2], mfxFrameAllocRequest requestOpaq[2] )
-
-
 mfxStatus CheckIOPattern_AndSetIOMemTypes(mfxU16 IOPattern, mfxU16* pInMemType, mfxU16* pOutMemType, bool bSWLib)
 {
     if ((IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY) &&
@@ -1847,10 +1814,6 @@ mfxStatus CheckIOPattern_AndSetIOMemTypes(mfxU16 IOPattern, mfxU16* pInMemType, 
     {
         *pInMemType = MFX_MEMTYPE_FROM_VPPIN|MFX_MEMTYPE_EXTERNAL_FRAME|MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET;
     }
-    else if (IOPattern & MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-    {
-        *pInMemType = MFX_MEMTYPE_FROM_VPPIN|MFX_MEMTYPE_OPAQUE_FRAME|nativeMemType;
-    }
     else
     {
         return MFX_ERR_INVALID_VIDEO_PARAM;
@@ -1863,10 +1826,6 @@ mfxStatus CheckIOPattern_AndSetIOMemTypes(mfxU16 IOPattern, mfxU16* pInMemType, 
     else if (IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
     {
         *pOutMemType = MFX_MEMTYPE_FROM_VPPOUT|MFX_MEMTYPE_EXTERNAL_FRAME|MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET;
-    }
-    else if(IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY)
-    {
-        *pOutMemType = MFX_MEMTYPE_FROM_VPPOUT|MFX_MEMTYPE_OPAQUE_FRAME|nativeMemType;
     }
     else
     {
@@ -1953,13 +1912,9 @@ mfxU16 EstimatePicStruct(
 
 mfxU16 MapDNFactor( mfxU16 denoiseFactor )
 {
-#if defined(LINUX32) || defined(LINUX64)
     // On Linux detail and de-noise factors mapped to the real libva values
     // at execution time.
     mfxU16 gfxFactor = denoiseFactor;
-#else
-    mfxU16 gfxFactor = (mfxU16)floor(64.0 / 100.0 * denoiseFactor + 0.5);
-#endif
 
     return gfxFactor;
 
@@ -2139,7 +2094,6 @@ void SignalPlatformCapabilities(
 
 } // mfxStatus SignalPlatformCapabilities(...)
 
-
 void ExtractDoUseList(mfxU32* pSrcList, mfxU32 len, std::vector<mfxU32> & dstList)
 {
     dstList.resize(0);
@@ -2268,10 +2222,6 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
         list.push_back(MFX_EXTBUFF_VPP_IMAGE_STABILIZATION);
     }
 
-    if(caps.uVariance)
-    {
-        list.push_back(MFX_EXTBUFF_VPP_PICSTRUCT_DETECTION);
-    }
 
     if(caps.uRotation)
     {
@@ -2295,8 +2245,18 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
     }
 #endif
 
-    /* FIELD Copy is always present*/
-    list.push_back(MFX_EXTBUFF_VPP_FIELD_PROCESSING);
+    if (caps.uAdvancedDI || caps.uSimpleDI)
+    {
+        list.push_back(MFX_EXTBUFF_VPP_DEINTERLACING);
+    }
+
+    if (caps.uFieldProcessing)
+    {
+        list.push_back(MFX_EXTBUFF_VPP_FIELD_PROCESSING);
+    }
+
+    /*ColorFill is always present*/
+    list.push_back(MFX_EXTBUFF_VPP_COLORFILL);
     /* Field weaving is always present*/
     list.push_back(MFX_EXTBUFF_VPP_FIELD_WEAVING);
     /* Field splitting is always present*/
@@ -2305,7 +2265,6 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
     list.push_back(MFX_EXTBUFF_VPP_COMPOSITE);
 
 } // void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<mfxU32> list)
-
 
 #endif // MFX_ENABLE_VPP
 /* EOF */

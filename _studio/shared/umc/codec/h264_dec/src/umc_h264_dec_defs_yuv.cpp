@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2003-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -66,7 +66,7 @@ void H264DecYUVBufferPadded::deallocate()
 
     m_pYPlane = m_pUPlane = m_pVPlane = m_pUVPlane = 0;
 
-    m_lumaSize = {0, 0};
+    m_lumaSize = { 0, 0 };
     m_pitch_luma = 0;
     m_pitch_chroma = 0;
 }
@@ -94,7 +94,7 @@ void H264DecYUVBufferPadded::Init(const VideoDataInfo *info)
     }
     else
     {
-        m_chromaSize = {0, 0};
+        m_chromaSize = { 0, 0 };
     }
 }
 
@@ -115,7 +115,6 @@ void H264DecYUVBufferPadded::allocate(const FrameData * frameData, const VideoDa
     m_bpp = std::max(info->GetPlaneBitDepth(0), info->GetPlaneBitDepth(1));
 
     m_chroma_format = GetH264ColorFormat(info->GetColorFormat());
-
     m_lumaSize = info->GetPlaneInfo(0)->m_ippSize;
     m_pitch_luma = (int32_t)m_frameData.GetPlaneMemoryInfo(0)->m_pitch / info->GetPlaneInfo(0)->m_iSampleSize;
 
@@ -126,7 +125,6 @@ void H264DecYUVBufferPadded::allocate(const FrameData * frameData, const VideoDa
     {
         if (m_chroma_format == 0)
             info = frameData->GetInfo();
-
         m_chromaSize = info->GetPlaneInfo(1)->m_ippSize;
         m_pitch_chroma = (int32_t)m_frameData.GetPlaneMemoryInfo(1)->m_pitch / info->GetPlaneInfo(1)->m_iSampleSize;
 
@@ -146,7 +144,7 @@ void H264DecYUVBufferPadded::allocate(const FrameData * frameData, const VideoDa
     }
     else
     {
-        m_chromaSize = {0, 0};
+        m_chromaSize = { 0, 0 };
         m_pitch_chroma = 0;
         m_pUPlane = 0;
         m_pVPlane = 0;

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2011-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,18 +21,18 @@
 #include "mfx_common.h"
 
 #if defined (MFX_ENABLE_VPP)
-#if defined (MFX_VA_LINUX)
 
-#include "mfx_session.h"
 #include <math.h>
 #include "mfx_vpp_defs.h"
 #include "mfx_vpp_vaapi.h"
 #include "mfx_utils.h"
 #include "libmfx_core_vaapi.h"
+#include "ippcore.h"
+#include "ippi.h"
 #include <algorithm>
 
 template<typename T>
-bool SetPlaneROI(T value, T* pDst, int dstStep, mfxSize roiSize)
+bool SetPlaneROI(T value, T* pDst, int dstStep, IppiSize roiSize)
 {
     if (!pDst || roiSize.width < 0 || roiSize.height < 0)
         return false;
@@ -44,7 +44,6 @@ bool SetPlaneROI(T value, T* pDst, int dstStep, mfxSize roiSize)
 
     return true;
 }
-
 
 enum QueryStatus
 {
@@ -70,9 +69,8 @@ static float convertValue(const float OldMin,const float OldMax,const float NewM
 #define DEFAULT_CONTRAST 1
 #define DEFAULT_BRIGHTNESS 0
 
-
-#define VA_TOP_FIELD_WEAVE        0x00000004
-#define VA_BOTTOM_FIELD_WEAVE     0x00000008
+#define VA_TOP_FIELD_WEAVE        0x00000002
+#define VA_BOTTOM_FIELD_WEAVE     0x00000004
 
 #define VPP_COMP_BACKGROUND_SURFACE_WIDTH  320
 #define VPP_COMP_BACKGROUND_SURFACE_HEIGHT 256
@@ -88,13 +86,11 @@ VAAPIVideoProcessing::VAAPIVideoProcessing():
 , m_deintFilterID(VA_INVALID_ID)
 , m_procampFilterID(VA_INVALID_ID)
 , m_frcFilterID(VA_INVALID_ID)
-, m_gpuPriorityID(VA_INVALID_ID)
 , m_deintFrameCount(0)
 #ifdef MFX_ENABLE_VPP_FRC
 , m_frcCyclicCounter(0)
 #endif
 , m_numFilterBufs(0)
-, m_MaxContextPriority(0)
 , m_primarySurface4Composition(NULL)
 {
 
@@ -124,25 +120,30 @@ VAAPIVideoProcessing::~VAAPIVideoProcessing()
 
 mfxStatus VAAPIVideoProcessing::CreateDevice(VideoCORE * core, mfxVideoParam* pParams, bool /*isTemporal*/)
 {
-    MFX_CHECK_NULL_PTR1( core );
+    MFX_CHECK_NULL_PTR1(core);
 
-    VAAPIVideoCORE* hwCore = dynamic_cast<VAAPIVideoCORE*>(core);
+    VAAPIVideoCORE* hwCore_10 = dynamic_cast<VAAPIVideoCORE*>(core);
+    if (hwCore_10)
+    {
+        // Legacy MSDK 1.x case
+        MFX_SAFE_CALL(hwCore_10->GetVAService(&m_vaDisplay));
+    }
+    else
+    {
+        // MSDK 2.0 case
+        VAAPIVideoCORE20* hwCore_20 = dynamic_cast<VAAPIVideoCORE20*>(core);
+        MFX_CHECK_NULL_PTR1(hwCore_20);
 
-    MFX_CHECK_NULL_PTR1( hwCore );
+        MFX_SAFE_CALL(hwCore_20->GetVAService(&m_vaDisplay));
+    }
 
-    mfxStatus sts = hwCore->GetVAService( &m_vaDisplay);
-    MFX_CHECK_STS( sts );
-
-    sts = Init( &m_vaDisplay, pParams);
-
-    MFX_CHECK_STS(sts);
+    MFX_SAFE_CALL(Init(&m_vaDisplay, pParams));
 
     m_cachedReadyTaskIndex.clear();
 
     m_core = core;
 
     return MFX_ERR_NONE;
-
 } // mfxStatus VAAPIVideoProcessing::CreateDevice(VideoCORE * core, mfxInitParams* pParams)
 
 
@@ -225,20 +226,16 @@ mfxStatus VAAPIVideoProcessing::Init(_mfxPlatformAccelerationService* pVADisplay
 
         m_cachedReadyTaskIndex.clear();
 
-        VAEntrypoint* va_entrypoints = NULL;
-        VAStatus vaSts;
         int va_max_num_entrypoints   = vaMaxNumEntrypoints(m_vaDisplay);
-        if(va_max_num_entrypoints)
-            va_entrypoints = new VAEntrypoint[va_max_num_entrypoints];
-        else
-            return MFX_ERR_DEVICE_FAILED;
+        MFX_CHECK(va_max_num_entrypoints, MFX_ERR_DEVICE_FAILED);
 
+        std::unique_ptr<VAEntrypoint[]> va_entrypoints(new VAEntrypoint[va_max_num_entrypoints]);
         mfxI32 entrypointsCount = 0, entrypointsIndx = 0;
 
-        vaSts = vaQueryConfigEntrypoints(m_vaDisplay,
-                                            VAProfileNone,
-                                            va_entrypoints,
-                                            &entrypointsCount);
+        VAStatus vaSts = vaQueryConfigEntrypoints(m_vaDisplay,
+                                         VAProfileNone,
+                                         va_entrypoints.get(),
+                                         &entrypointsCount);
         MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
         for( entrypointsIndx = 0; entrypointsIndx < entrypointsCount; entrypointsIndx++ )
@@ -249,7 +246,6 @@ mfxStatus VAAPIVideoProcessing::Init(_mfxPlatformAccelerationService* pVADisplay
                 break;
             }
         }
-        delete[] va_entrypoints;
 
         if( !m_bRunning )
         {
@@ -424,24 +420,26 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
     }
 #endif
 
-    if ((m_pipelineCaps.mirror_flags & VA_MIRROR_HORIZONTAL) &&
-        (m_pipelineCaps.mirror_flags & VA_MIRROR_VERTICAL))
-    {
-        caps.uMirroring = 1;
-    }
-
     if (m_pipelineCaps.max_output_width && m_pipelineCaps.max_output_height)
     {
         caps.uMaxWidth = m_pipelineCaps.max_output_width;
         caps.uMaxHeight = m_pipelineCaps.max_output_height;
+        caps.uMinWidth = m_pipelineCaps.min_output_width;
+        caps.uMinHeight = m_pipelineCaps.min_output_height;
     }
     else
     {
         caps.uMaxWidth = 4096;
         caps.uMaxHeight = 4096;
+        caps.uMinWidth = 16;
+        caps.uMinHeight = 16;
     }
 
+#if defined (MFX_ENABLE_MJPEG_WEAVE_DI_VPP)
     caps.uFieldWeavingControl = 1;
+#else
+    caps.uFieldWeavingControl = 0;
+#endif
 
     // [FourCC]
     // should be changed by libva support
@@ -459,7 +457,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         case MFX_FOURCC_RGB565:
 #endif
 #ifdef MFX_ENABLE_RGBP
-    case MFX_FOURCC_RGBP:
+        case MFX_FOURCC_RGBP:
 #endif
 #if (MFX_VERSION >= 1027)
         case MFX_FOURCC_AYUV:
@@ -487,7 +485,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         case MFX_FOURCC_YV12:
         case MFX_FOURCC_YUY2:
         case MFX_FOURCC_RGB4:
-        case MFX_FOURCC_UYVY:
+        case MFX_FOURCC_A2RGB10:
 #if (MFX_VERSION >= 1027)
         case MFX_FOURCC_AYUV:
         case MFX_FOURCC_Y210:
@@ -502,7 +500,6 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         case MFX_FOURCC_Y416:
 #endif
         case MFX_FOURCC_P010:
-        case MFX_FOURCC_A2RGB10:
             caps.mFormatSupport[fourcc] |= MFX_FORMAT_SUPPORT_OUTPUT;
             break;
         default:
@@ -510,6 +507,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         }
     }
 
+    caps.uMirroring = 1;
     caps.uScaling = 1;
 
     eMFXPlatform platform = m_core->GetPlatformType();
@@ -518,20 +516,19 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         caps.uChromaSiting = m_core->GetHWType() >= MFX_HW_SCL ? 1 : 0;
     }
 
-    std::vector<VAConfigAttrib> attrib(1);
-    attrib[0].type = VAConfigAttribContextPriority;
-    vaSts = vaGetConfigAttributes(m_vaDisplay,
-                                  VAProfileNone,
-                                  VAEntrypointVideoProc,
-                                  attrib.data(),
-                                  attrib.size());
-    MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-    if (attrib[0].value != VA_ATTRIB_NOT_SUPPORTED)
-        m_MaxContextPriority = attrib[0].value;
-
     return MFX_ERR_NONE;
 
 } // mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
+
+mfxStatus VAAPIVideoProcessing::QueryVariance(
+            mfxU32 frameIndex,
+            std::vector<mfxU32> &variance)
+{
+    (void)frameIndex;
+    (void)variance;
+
+    return MFX_ERR_UNSUPPORTED;
+} // mfxStatus VAAPIVideoProcessing::QueryVariance(mfxU32 frameIndex, std::vector<mfxU32> &variance)
 
 /// Setup VPP VAAPI driver parameters
 /*!
@@ -555,8 +552,21 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     bool bUseReference = false;
     VAStatus vaSts = VA_STATUS_SUCCESS;
 
-    VAAPIVideoCORE* hwCore = dynamic_cast<VAAPIVideoCORE*>(m_core);
-    eMFXHWType hwType = hwCore->GetHWType();
+    eMFXHWType hwType;
+    VAAPIVideoCORE* hwCore_10 = dynamic_cast<VAAPIVideoCORE*>(m_core);
+    if (hwCore_10)
+    {
+        // Legacy MSDK 1.x case
+        hwType = hwCore_10->GetHWType();
+    }
+    else
+    {
+        // MSDK 2.0 case
+        VAAPIVideoCORE20* hwCore_20 = dynamic_cast<VAAPIVideoCORE20*>(m_core);
+        MFX_CHECK_NULL_PTR1(hwCore_20);
+
+        hwType = hwCore_20->GetHWType();
+    }
 
     // NOTE the following variables should be visible till vaRenderPicture/vaEndPicture,
     // not till vaCreateBuffer as the data they hold are passed to the driver via a pointer
@@ -586,6 +596,48 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         return mfxSts;
     }
 
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+    struct gpu_hang_trigger
+    {
+        VADisplay   disp;
+        VABufferID  id;
+        VAStatus    sts;
+
+        gpu_hang_trigger(VADisplay disp, VAContextID ctx, bool on)
+            : disp(disp), id(VA_INVALID_ID)
+            , sts(VA_STATUS_SUCCESS)
+        {
+            if (!on)
+                return;
+
+            sts =  vaCreateBuffer(disp, ctx, VATriggerCodecHangBufferType,
+                                             sizeof(unsigned int), 1, 0, &id);
+            if (sts == VA_STATUS_SUCCESS)
+            {
+                unsigned int* trigger = NULL;
+                sts = vaMapBuffer(disp, id, (void**)&trigger);
+                if (sts != VA_STATUS_SUCCESS)
+                    return;
+
+                if (trigger)
+                    *trigger = 1;
+                else
+                    sts = VA_STATUS_ERROR_UNKNOWN;
+
+                vaUnmapBuffer(disp, id);
+            }
+        }
+
+        ~gpu_hang_trigger()
+        {
+            if (id != VA_INVALID_ID)
+                sts = vaDestroyBuffer(disp, id);
+        }
+    } trigger(m_vaDisplay, m_vaContextVPP, pParams->gpuHangTrigger);
+
+    if (trigger.sts != VA_STATUS_SUCCESS)
+        return MFX_ERR_DEVICE_FAILED;
+#endif // #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
 
     // This works for ADI 30i->30p for now
     // Better way may involve enabling bEOS for 30i->30p mode
@@ -1077,22 +1129,6 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     }
 #endif
 
-    /*
-     * Execute mirroring for MIRROR_WO_EXEC only because MSDK will do
-     * copy-with-mirror for others.
-     */
-    if (pParams->mirroringPosition == MIRROR_WO_EXEC) {
-        switch (pParams->mirroring) {
-        case MFX_MIRRORING_HORIZONTAL:
-            m_pipelineParam[0].mirror_state = VA_MIRROR_HORIZONTAL;
-            break;
-
-        case MFX_MIRRORING_VERTICAL:
-            m_pipelineParam[0].mirror_state = VA_MIRROR_VERTICAL;
-            break;
-        }
-    }
-
     // source cropping
     mfxFrameInfo *inInfo = &(pRefSurf->frameInfo);
     input_region.y   = inInfo->CropY;
@@ -1185,19 +1221,52 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             break;
     }
 
-    if (pParams->bFieldWeaving)
+#if defined(MFX_ENABLE_VPP_FIELD_WEAVE_SPLIT)
+    // If field weaving is perform on driver
+    // Kernel don't uses these parameters
+    if (pParams->bFieldWeavingExt)
     {
-        // Field weaving needs flags that are different from usual pipeline
+        // TFF and BFF are output frame types for field weaving
+        switch (pParams->targetSurface.frameInfo.PicStruct)
+        {
+            case MFX_PICSTRUCT_FIELD_TFF:
+            {
+                m_pipelineParam[0].filter_flags = VA_TOP_FIELD_WEAVE;
+                m_pipelineParam[0].input_surface_flag = VA_TOP_FIELD;
+                m_pipelineParam[0].output_surface_flag = VA_TOP_FIELD_FIRST;
+                break;
+            }
+            case MFX_PICSTRUCT_FIELD_BFF:
+            {
+                m_pipelineParam[0].filter_flags = VA_BOTTOM_FIELD_WEAVE;
+                m_pipelineParam[0].input_surface_flag = VA_BOTTOM_FIELD;
+                m_pipelineParam[0].output_surface_flag = VA_BOTTOM_FIELD_FIRST;
+                break;
+            }
+        }
+    }
+
+    // If field splitting is perform on driver
+    if (pParams->bFieldSplittingExt)
+    {
+        // TFF and BFF are input frame types for field splitting
         switch (pRefSurf->frameInfo.PicStruct)
         {
             case MFX_PICSTRUCT_FIELD_TFF:
-                m_pipelineParam[0].filter_flags = VA_TOP_FIELD_WEAVE;
+            {
+                m_pipelineParam[0].input_surface_flag = VA_TOP_FIELD_FIRST;
+                m_pipelineParam[0].output_surface_flag = (pParams->statusReportID % 2 == 0) ? VA_TOP_FIELD : VA_BOTTOM_FIELD;
                 break;
+            }
             case MFX_PICSTRUCT_FIELD_BFF:
-                m_pipelineParam[0].filter_flags = VA_BOTTOM_FIELD_WEAVE;
+            {
+                m_pipelineParam[0].input_surface_flag = VA_BOTTOM_FIELD_FIRST;
+                m_pipelineParam[0].output_surface_flag = (pParams->statusReportID % 2 == 0) ? VA_BOTTOM_FIELD : VA_TOP_FIELD;
                 break;
+            }
         }
     }
+#endif // MFX_ENABLE_VPP_FIELD_WEAVE_SPLIT
 
     m_pipelineParam[0].filters      = m_filterBufs;
     m_pipelineParam[0].num_filters  = m_numFilterBufs;
@@ -1236,6 +1305,16 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     m_pipelineParam[0].input_color_properties.chroma_sample_location  = VA_CHROMA_SITING_UNKNOWN;
     m_pipelineParam[0].output_color_properties.chroma_sample_location = VA_CHROMA_SITING_UNKNOWN;
 
+#if (MFX_VERSION >= 1033)
+    mfxU32 interpolation[4] = {
+        VA_FILTER_INTERPOLATION_DEFAULT,            // MFX_INTERPOLATION_DEFAULT                = 0,
+        VA_FILTER_INTERPOLATION_NEAREST_NEIGHBOR,   // MFX_INTERPOLATION_NEAREST_NEIGHBOR       = 1,
+        VA_FILTER_INTERPOLATION_BILINEAR,           // MFX_INTERPOLATION_BILINEAR               = 2,
+        VA_FILTER_INTERPOLATION_ADVANCED            // MFX_INTERPOLATION_ADVANCED               = 3
+    };
+    mfxSts = (pParams->interpolationMethod > MFX_INTERPOLATION_ADVANCED) ? MFX_ERR_UNSUPPORTED : MFX_ERR_NONE;
+    MFX_CHECK_STS(mfxSts);
+#endif
     /* Scaling params */
     switch (pParams->scalingMode)
     {
@@ -1247,6 +1326,9 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             *  If scaling ratio is less than 1/16 -> bilinear
             */
         m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_DEFAULT;
+#if (MFX_VERSION >= 1033)
+        m_pipelineParam[0].filter_flags |= interpolation[pParams->interpolationMethod];
+#endif
         break;
     case MFX_SCALING_MODE_QUALITY:
         /*  VA_FILTER_SCALING_HQ means the following:
@@ -1254,6 +1336,10 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             *  For all other cases, AVS is used.
             */
         m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_HQ;
+#if (MFX_VERSION >= 1033)
+        m_pipelineParam[0].filter_flags |= interpolation[pParams->interpolationMethod];
+        mfxSts = ((pParams->interpolationMethod == MFX_INTERPOLATION_DEFAULT) || (pParams->interpolationMethod == MFX_INTERPOLATION_ADVANCED)) ? MFX_ERR_NONE : MFX_ERR_UNSUPPORTED;
+#endif
         break;
     case MFX_SCALING_MODE_DEFAULT:
     default:
@@ -1267,8 +1353,13 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             /* Force AVS by default for all platforms except BXT */
             m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_HQ;
         }
+#if (MFX_VERSION >= 1033)
+        m_pipelineParam[0].filter_flags |= interpolation[pParams->interpolationMethod];
+        mfxSts = ((pParams->interpolationMethod == MFX_INTERPOLATION_DEFAULT) || (pParams->interpolationMethod == MFX_INTERPOLATION_ADVANCED)) ? MFX_ERR_NONE : MFX_ERR_UNSUPPORTED;
+#endif
         break;
     }
+    MFX_CHECK_STS(mfxSts);
 
 #if (MFX_VERSION >= 1025)
         uint8_t& chromaSitingMode = m_pipelineParam[0].input_color_properties.chroma_sample_location;
@@ -1310,7 +1401,6 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
 if (pParams->mirroringExt)
 {
     // First priority is HW fixed function scaling engine. If it can't work, revert to AVS
-    // Starting from ATS there is only HW fixed function scaling engine due to AVS removal
     m_pipelineParam[0].filter_flags = VA_FILTER_SCALING_DEFAULT;
 
     switch (pParams->mirroring)
@@ -1323,6 +1413,22 @@ if (pParams->mirroringExt)
         break;
     }
 }
+
+    // Additional parameters for interlaced cases
+    {
+        if (pParams->targetSurface.frameInfo.PicStruct == MFX_PICSTRUCT_FIELD_TFF &&
+            pRefSurf->frameInfo.PicStruct == MFX_PICSTRUCT_FIELD_TFF)
+        {
+            m_pipelineParam[0].input_surface_flag = VA_TOP_FIELD_FIRST;
+            m_pipelineParam[0].output_surface_flag = VA_TOP_FIELD_FIRST;
+        }
+        if (pParams->targetSurface.frameInfo.PicStruct == MFX_PICSTRUCT_FIELD_BFF &&
+            pRefSurf->frameInfo.PicStruct == MFX_PICSTRUCT_FIELD_BFF)
+        {
+            m_pipelineParam[0].input_surface_flag = VA_BOTTOM_FIELD_FIRST;
+            m_pipelineParam[0].output_surface_flag = VA_BOTTOM_FIELD_FIRST;
+        }
+    }
 
     vaSts = vaCreateBuffer(m_vaDisplay,
                         m_vaContextVPP,
@@ -1341,36 +1447,35 @@ if (pParams->mirroringExt)
     if((pParams->bEOS) && (pParams->bDeinterlace30i60p == true))
         m_deintFrameCount = 0;
 
+#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
+// It looks like only BXT supports this at the moment
+#define VPP_NO_COLORFILL
+#endif
+
     VASurfaceID *outputSurface = (VASurfaceID*)(pParams->targetSurface.hdl.first);
 
-    //create gpu priority buffer and bufferID
-    if(m_MaxContextPriority)
-    {
-        mfxPriority contextPriority = m_core->GetSession()->m_priority;
-        VAContextParameterUpdateBuffer GpuPriorityBuf_vpp;
-        memset(&GpuPriorityBuf_vpp, 0, sizeof(VAContextParameterUpdateBuffer));
+#if defined(VPP_NO_COLORFILL)
+    /* Explicitly define regions in output surface
+     * By default, driver assumes that the whole output surface should be used
+     * and in case width/height of the surface are different from input dest region,
+     * it may cause undesired driver behavior like additional forced colorfill
+     */
+    VAProcPipelineParameterBuffer outputParam = {0};
+    VABufferID  outputParamBuf = VA_INVALID_ID;
 
-        GpuPriorityBuf_vpp.flags.bits.context_priority_update = 1;
-        if(contextPriority == MFX_PRIORITY_LOW)
-        {
-            GpuPriorityBuf_vpp.context_priority.bits.priority = 0;
-        }
-        else if (contextPriority == MFX_PRIORITY_HIGH)
-        {
-            GpuPriorityBuf_vpp.context_priority.bits.priority = m_MaxContextPriority;
-        }
-        else
-        {
-            GpuPriorityBuf_vpp.context_priority.bits.priority = m_MaxContextPriority/2;
-        }
+    outputParam.surface = *outputSurface;
+    outputParam.surface_region = &output_region;
+    outputParam.output_region  = &output_region;
 
-        vaSts = vaCreateBuffer((void*)m_vaDisplay,
-                            m_vaContextVPP,
-                            VAContextParameterUpdateBufferType,
-                            sizeof(GpuPriorityBuf_vpp), 1,
-                            &GpuPriorityBuf_vpp, &m_gpuPriorityID);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-    }
+    vaSts = vaCreateBuffer(m_vaDisplay,
+                           m_vaContextVPP,
+                           VAProcPipelineParameterBufferType,
+                           sizeof(VAProcPipelineParameterBuffer),
+                           1,
+                           &outputParam,
+                           &outputParamBuf);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+#endif
 
     MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|VPP|FILTER|PACKET_START|", "%d|%d", m_vaContextVPP, 0);
     {
@@ -1381,12 +1486,23 @@ if (pParams->mirroringExt)
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
 
-    if(m_MaxContextPriority)
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+    if (trigger.id != VA_INVALID_ID)
     {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture_gpuPriority");
-        vaSts = vaRenderPicture(m_vaDisplay, m_vaContextVPP, &m_gpuPriorityID, 1);
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
+        vaSts = vaRenderPicture(m_vaDisplay, m_vaContextVPP, &trigger.id, 1);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
+#endif
+
+#if defined(VPP_NO_COLORFILL)
+    if(0 == output_region.x && 0 == output_region.y) // Do not disable colorfill if letterboxing is used
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
+        vaSts = vaRenderPicture(m_vaDisplay, m_vaContextVPP, &outputParamBuf, 1);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    }
+#endif
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
@@ -1407,15 +1523,13 @@ if (pParams->mirroringExt)
         MFX_CHECK_STS(mfxSts);
     }
 
-    if(m_MaxContextPriority)
-    {
-        mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_gpuPriorityID);
-        MFX_CHECK_STS(mfxSts);
-    }
+#if defined(VPP_NO_COLORFILL)
+    vaSts = vaDestroyBuffer(m_vaDisplay, outputParamBuf);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+#endif
 
     mfxSts = RemoveBufferFromPipe(m_deintFilterID);
     MFX_CHECK_STS(mfxSts);
-
     // (3) info needed for sync operation
     //-------------------------------------------------------
     {
@@ -1738,7 +1852,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
         }
 
         m_pipelineParam[i].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
-        m_pipelineParam[i].filter_flags |= VA_FILTER_SCALING_HQ;
+        m_pipelineParam[i].filter_flags   |= VA_FILTER_SCALING_HQ;
 
         m_pipelineParam[i].filters      = 0;
         m_pipelineParam[i].num_filters  = 0;
@@ -1888,7 +2002,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
             )
         {
             attrib.value.value.i = VA_FOURCC_P010; // We're going to flood fill this surface, so let's use most common 10-bit format
-            rt_format = VA_RT_FORMAT_YUV420;
+            rt_format = VA_RT_FORMAT_YUV420_10BPP;
         }
 #if (MFX_VERSION >= 1031)
         else if(inInfo->FourCC == MFX_FOURCC_P016
@@ -1926,7 +2040,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
             vaSts = vaMapBuffer(m_vaDisplay, imagePrimarySurface.buf, (void **) &pPrimarySurfaceBuffer);
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-            mfxSize roiSize;
+            IppiSize roiSize;
             roiSize.width = imagePrimarySurface.width;
             roiSize.height = imagePrimarySurface.height;
 
@@ -1935,30 +2049,30 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
              * it is easy for ARGB format as Initial background value ARGB*/
             if (imagePrimarySurface.format.fourcc == VA_FOURCC_ARGB)
             {
-                uint32_t A, R, G, B;
-                uint32_t iBackgroundColorRGBA;
+                Ipp32u A, R, G, B;
+                Ipp32u iBackgroundColorRGBA;
 
-                A = (uint32_t)((pParams->iBackgroundColor >> 48) & 0x00ff);
-                R = (uint32_t)((pParams->iBackgroundColor >> 32) & 0x00ff);
-                G = (uint32_t)((pParams->iBackgroundColor >> 16) & 0x00ff);
-                B = (uint32_t)((pParams->iBackgroundColor >>  0) & 0x00ff);
+                A = (Ipp32u)((pParams->iBackgroundColor >> 48) & 0x00ff);
+                R = (Ipp32u)((pParams->iBackgroundColor >> 32) & 0x00ff);
+                G = (Ipp32u)((pParams->iBackgroundColor >> 16) & 0x00ff);
+                B = (Ipp32u)((pParams->iBackgroundColor >>  0) & 0x00ff);
 
                 iBackgroundColorRGBA = (A << 24) | (R << 16) | (G << 8) | (B << 0);
 
-                bool setPlaneSts = SetPlaneROI<uint32_t>(iBackgroundColorRGBA, (uint32_t *)pPrimarySurfaceBuffer, imagePrimarySurface.pitches[0], roiSize);
+                bool setPlaneSts = SetPlaneROI<Ipp32u>(iBackgroundColorRGBA, (Ipp32u *)pPrimarySurfaceBuffer, imagePrimarySurface.pitches[0], roiSize);
                 MFX_CHECK(setPlaneSts, MFX_ERR_DEVICE_FAILED);
             }
             /* A bit more complicated for NV12 as you need to do conversion ARGB => NV12 */
             if (imagePrimarySurface.format.fourcc == VA_FOURCC_NV12)
             {
-                uint32_t Y = (uint32_t)((pParams->iBackgroundColor >> 32) & 0x00ff);
-                uint32_t U = (uint32_t)((pParams->iBackgroundColor >> 16) & 0x00ff);
-                uint32_t V = (uint32_t)((pParams->iBackgroundColor >>  0) & 0x00ff);
+                Ipp32u Y = (Ipp32u)((pParams->iBackgroundColor >> 32) & 0x00ff);
+                Ipp32u U = (Ipp32u)((pParams->iBackgroundColor >> 16) & 0x00ff);
+                Ipp32u V = (Ipp32u)((pParams->iBackgroundColor >>  0) & 0x00ff);
 
                 uint8_t valueY = (uint8_t) Y;
                 int16_t valueUV = (int16_t)((V<<8)  + U); // Keep in mind that short is stored in memory using little-endian notation
 
-                bool setPlaneSts = SetPlaneROI<uint8_t>(valueY, pPrimarySurfaceBuffer, imagePrimarySurface.pitches[0], roiSize);
+                bool setPlaneSts = SetPlaneROI<Ipp8u>(valueY, pPrimarySurfaceBuffer, imagePrimarySurface.pitches[0], roiSize);
                 MFX_CHECK(setPlaneSts, MFX_ERR_DEVICE_FAILED);
 
                 // NV12 format -> need to divide height 2 times less
@@ -1966,7 +2080,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
                 // "UV" this is short (16 bit) value already
                 // so need to divide width 2 times less too!
                 roiSize.width = roiSize.width/2;
-                setPlaneSts = SetPlaneROI<int16_t>(valueUV, (int16_t *)(pPrimarySurfaceBuffer + imagePrimarySurface.offsets[1]),
+                setPlaneSts = SetPlaneROI<Ipp16s>(valueUV, (Ipp16s *)(pPrimarySurfaceBuffer + imagePrimarySurface.offsets[1]),
                                                 imagePrimarySurface.pitches[1], roiSize);
                 MFX_CHECK(setPlaneSts, MFX_ERR_DEVICE_FAILED);
             }
@@ -2138,14 +2252,8 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
         if (pParams->bComposite)
         {
             m_pipelineParam[refIdx].num_filters  = 0;
-
-            if (m_pipelineCaps.pipeline_flags & VA_PROC_PIPELINE_FAST) 
-                m_pipelineParam[refIdx].pipeline_flags  |= VA_PROC_PIPELINE_FAST;
-            else
-                m_pipelineParam[refIdx].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
-
-            if (m_pipelineCaps.filter_flags & VA_FILTER_SCALING_HQ)
-                m_pipelineParam[refIdx].filter_flags |= VA_FILTER_SCALING_HQ;
+            m_pipelineParam[refIdx].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
+            m_pipelineParam[refIdx].filter_flags   |= VA_FILTER_SCALING_HQ;
         }
     }
 
@@ -2411,8 +2519,9 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 }
 #endif //#ifdef MFX_ENABLE_VPP_COMPOSITION
 
-mfxStatus VAAPIVideoProcessing::QueryTaskStatus(mfxU32 taskIndex)
+mfxStatus VAAPIVideoProcessing::QueryTaskStatus(SynchronizedTask* pSyncTask)
 {
+#if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
     VASurfaceID waitSurface = VA_INVALID_SURFACE;
     mfxU32 indxSurf = 0;
 
@@ -2423,7 +2532,7 @@ mfxStatus VAAPIVideoProcessing::QueryTaskStatus(mfxU32 taskIndex)
 
         for (indxSurf = 0; indxSurf < m_feedbackCache.size(); indxSurf++)
         {
-            if (m_feedbackCache[indxSurf].number == taskIndex)
+            if (m_feedbackCache[indxSurf].number == pSyncTask->taskIndex)
             {
                 waitSurface = m_feedbackCache[indxSurf].surface;
                 break;
@@ -2449,8 +2558,56 @@ mfxStatus VAAPIVideoProcessing::QueryTaskStatus(mfxU32 taskIndex)
 #endif
 
     return MFX_TASK_DONE;
-} // mfxStatus VAAPIVideoProcessing::QueryTaskStatus(mfxU32 taskIndex)
+#else
 
-#endif // #if defined (MFX_VA_LINUX)
+    FASTCOMP_QUERY_STATUS queryStatus;
+
+    // (1) find params (sutface & number) are required by feedbackNumber
+    //-----------------------------------------------
+    {
+        UMC::AutomaticUMCMutex guard(m_guard);
+
+        std::vector<ExtVASurface>::iterator iter = m_feedbackCache.begin();
+        while(iter != m_feedbackCache.end())
+        {
+            ExtVASurface currentFeedback = *iter;
+            VASurfaceStatus surfSts = VASurfaceSkipped;
+
+            VAStatus vaSts = vaQuerySurfaceStatus(m_vaDisplay,  currentFeedback.surface, &surfSts);
+            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+            switch (surfSts)
+            {
+                case VASurfaceReady:
+                    queryStatus.QueryStatusID = currentFeedback.number;
+                    queryStatus.Status = VPREP_GPU_READY;
+                    m_cachedReadyTaskIndex.insert(queryStatus.QueryStatusID);
+                    iter = m_feedbackCache.erase(iter);
+                    break;
+                case VASurfaceRendering:
+                case VASurfaceDisplaying:
+                    ++iter;
+                    break;
+                case VASurfaceSkipped:
+                default:
+                    assert(!"bad feedback status");
+                    return MFX_ERR_DEVICE_FAILED;
+            }
+        }
+
+        std::set<mfxU32>::iterator iterator = m_cachedReadyTaskIndex.find(pSyncTask->taskIndex);
+
+        if (m_cachedReadyTaskIndex.end() == iterator)
+        {
+            return MFX_TASK_BUSY;
+        }
+
+        m_cachedReadyTaskIndex.erase(iterator);
+    }
+
+    return MFX_TASK_DONE;
+#endif
+} // mfxStatus VAAPIVideoProcessing::QueryTaskStatus(SynchronizedTask* pSyncTask)
+
 #endif // #if defined (MFX_VPP_ENABLE)
 /* EOF */

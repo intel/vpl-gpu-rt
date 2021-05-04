@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2003-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -313,9 +313,14 @@ Status MJPEGVideoDecoderBaseMFX::DecodeHeader(MediaData* in)
     return sts;
 }
 
-Status MJPEGVideoDecoderBaseMFX::SetRotation(uint16_t /* rotation */)
+Status MJPEGVideoDecoderBaseMFX::SetRotation(uint16_t rotation)
 {
+#ifdef MFX_ENABLE_MJPEG_ROTATE_VPP
+    (void)rotation;
     m_rotation = 0;
+#else
+    m_rotation = rotation;
+#endif
     return UMC_OK;
 }
 
@@ -330,7 +335,7 @@ Status MJPEGVideoDecoderBaseMFX::_GetFrameInfo(const uint8_t* pBitStream, size_t
     if (!m_IsInit)
         return UMC_ERR_NOT_INITIALIZED;
 
-    jerr = m_decBase->SetSource(pBitStream,nSize);
+    jerr = m_decBase->SetSource(pBitStream, nSize);
     if(JPEG_OK != jerr)
         return UMC_ERR_FAILED;
 
@@ -368,12 +373,13 @@ void MJPEGVideoDecoderBaseMFX::SetFrameAllocator(FrameAllocator * frameAllocator
 
 Status MJPEGVideoDecoderBaseMFX::FindStartOfImage(MediaData * in)
 {
+    CMemBuffInput source;
     JERRCODE jerr;
 
     if (!m_IsInit)
         return UMC_ERR_NOT_INITIALIZED;
 
-    jerr = m_decBase->SetSource((uint8_t*) in->GetDataPointer(), in->GetDataSize());
+    jerr = m_decBase->SetSource((uint8_t*)in->GetDataPointer(), in->GetDataSize());
     if(JPEG_OK != jerr)
         return UMC_ERR_FAILED;
 

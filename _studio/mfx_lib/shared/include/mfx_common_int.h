@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2008-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,7 +25,6 @@
 #include <memory>
 #include <errno.h>
 #include "mfx_common.h"
-#include "mfxaudio.h"
 
 
 mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 codecId);
@@ -33,16 +32,12 @@ mfxStatus CheckFrameInfoEncoders(mfxFrameInfo  *info);
 mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId = MFX_CODEC_AVC, bool isHW = false);
 
 mfxStatus CheckVideoParamEncoders(mfxVideoParam *in, bool IsExternalFrameAllocator, eMFXHWType type);
-mfxStatus CheckVideoParamDecoders(mfxVideoParam *in, bool IsExternalFrameAllocator, eMFXHWType type);
+mfxStatus CheckVideoParamDecoders(mfxVideoParam *in, bool IsExternalFrameAllocator, eMFXHWType type, bool IsCompatibleForOpaq);
 
-mfxStatus CheckAudioParamEncoders(mfxAudioParam *in);
-mfxStatus CheckAudioParamCommon(mfxAudioParam *in);
-mfxStatus CheckAudioParamDecoders(mfxAudioParam *in);
 
 mfxStatus CheckBitstream(const mfxBitstream *bs);
-mfxStatus CheckAudioFrame(const mfxAudioFrame *aFrame);
-mfxStatus CheckEncryptedBitstream(const mfxBitstream *bs);
 mfxStatus CheckFrameData(const mfxFrameSurface1 *surface);
+mfxStatus CheckEncryptedBitstream(const mfxBitstream *bs);
 
 mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par);
 
@@ -143,6 +138,15 @@ private:
 };
 
 mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const&);
+mfxU8* GetFramePointer(const mfxFrameSurface1& surf);
 mfxStatus GetFramePointerChecked(mfxFrameInfo const& info, mfxFrameData const&, mfxU8**);
+
+mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, const mfxFrameSurface1& surface);
+mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, mfxMemId mid);
+mfxU16 BitDepthFromFourcc(mfxU32 fourcc);
+mfxU16 ChromaFormatFromFourcc(mfxU32 fourcc);
+
+mfxStatus AddRefSurface(mfxFrameSurface1 & surf,  bool allow_legacy_surface = false);
+mfxStatus ReleaseSurface(mfxFrameSurface1 & surf, bool allow_legacy_surface = false);
 
 #endif

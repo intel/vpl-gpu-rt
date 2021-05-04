@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2020-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -50,7 +50,7 @@ mfxStatus TaskManager::TaskNew(
     MFX_CHECK(pSurf || m_nPicBuffered, MFX_ERR_MORE_DATA);
 
     auto pBs = &bs;
-    auto pTask = MoveTask(Stage(S_NEW), Stage(S_PREPARE));
+    auto pTask = MoveTaskForward(Stage(S_NEW));
     MFX_CHECK(pTask, MFX_WRN_DEVICE_BUSY);
 
     SetActiveTask(*pTask);
@@ -71,20 +71,22 @@ mfxStatus TaskManager::TaskNew(
     return sts;
 }
 
-mfxStatus TaskManager::TaskPrepare(StorageW& task)
+mfxStatus TaskManager::TaskPrepare(StorageW& /*task*/ )
 {
     std::unique_lock<std::mutex> closeGuard(m_closeMtx);
 
     MFX_CHECK(!m_nRecodeTasks, MFX_ERR_NONE);
-    MFX_CHECK(GetStage(task) == Stage(S_PREPARE), MFX_ERR_NONE);
-    MFX_CHECK(IsInputTask(task), MFX_ERR_NONE);// leave fake task in "prepare" stage for now
+    auto pTask = GetTask(Stage(S_PREPARE));
 
-    auto sts = RunQueueTaskPreReorder(task);
+    MFX_CHECK(pTask, MFX_ERR_NONE);
+    MFX_CHECK(IsInputTask(*pTask), MFX_ERR_NONE);// leave fake task in "prepare" stage for now
+
+    auto sts = RunQueueTaskPreReorder(*pTask);
     MFX_CHECK_STS(sts);
 
-    auto pTask = MoveTask(Stage(S_PREPARE), Stage(S_REORDER), FixedTask(task));
+    auto pTaskToDo = MoveTaskForward(Stage(S_PREPARE), FixedTask(*pTask));
 
-    MFX_CHECK(&(StorageW&)*pTask == &task, MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_CHECK(&(StorageW&)*pTaskToDo == pTask, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     return MFX_ERR_NONE;
 }
@@ -93,7 +95,7 @@ mfxStatus TaskManager::TaskReorder(StorageW& task)
 {
     std::unique_lock<std::mutex> closeGuard(m_closeMtx);
     bool bNeedTask = !m_nRecodeTasks
-        && (m_stages.at(Stage(S_SUBMIT)).size() + m_nTasksInExecution) < m_maxParallelSubmits;
+        && (m_stages.at(NextStage(S_REORDER)).size() + m_nTasksInExecution) < m_maxParallelSubmits;
     MFX_CHECK(bNeedTask, MFX_ERR_NONE);
 
     auto       IsInputTask = [this](StorageR& rTask) { return this->IsInputTask(rTask); };
@@ -106,7 +108,7 @@ mfxStatus TaskManager::TaskReorder(StorageW& task)
         GetNextTask = FirstTask;
     }
 
-    pTask = MoveTask(Stage(S_REORDER), Stage(S_SUBMIT), GetNextTask);
+    pTask = MoveTaskForward(Stage(S_REORDER), GetNextTask);
     MFX_CHECK(pTask, MFX_ERR_NONE);
 
     return RunQueueTaskPostReorder(*pTask);
@@ -120,13 +122,13 @@ mfxStatus TaskManager::TaskSubmit(StorageW& /*task*/)
     {
         bool bSync =
             (m_maxParallelSubmits <= m_nTasksInExecution)
-            || (IsForceSync(*pTask) && GetTask(Stage(S_QUERY)));
+            || (IsForceSync(*pTask) && GetTask(NextStage(S_SUBMIT)));
         MFX_CHECK(!bSync, MFX_ERR_NONE);
 
         auto sts = RunQueueTaskSubmit(*pTask);
         MFX_CHECK_STS(sts);
 
-        MoveTask(Stage(S_SUBMIT), Stage(S_QUERY), FixedTask(*pTask));
+        MoveTaskForward(Stage(S_SUBMIT), FixedTask(*pTask));
         ++m_nTasksInExecution;
         m_nRecodeTasks -= !!m_nRecodeTasks;
     }

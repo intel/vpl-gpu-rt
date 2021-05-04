@@ -1,15 +1,15 @@
-// Copyright (c) 2018-2019 Intel Corporation
-// 
+// Copyright (c) 2016-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,11 +21,9 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined MFX_VA_LINUX
 #include "mfx_h264_encode_struct_vaapi.h"
-#endif
 #include "mfx_vp9_encode_hw_utils.h"
-#include "mfx_platform_headers.h"
+#include "mfx_platform_defs.h"
 
 namespace MfxHwVP9Encode
 {
@@ -158,6 +156,11 @@ typedef struct tagENCODE_CAPS_VP9
 
         virtual
         mfxStatus Destroy() = 0;
+
+        virtual
+        mfxStatus CreateWrapBuffers(
+            const mfxU16& /*numFrameMin*/,
+            const mfxVideoParam& /*par*/) { return MFX_ERR_NONE; }
     };
 
 #define VP9_MAX_UNCOMPRESSED_HEADER_SIZE 1000
@@ -193,19 +196,19 @@ typedef struct tagENCODE_CAPS_VP9
         if (bufferSize < sizeof(ivf_file_header))
             return MFX_ERR_MORE_DATA;
 
-        std::copy(std::begin(ivf_file_header),std::end(ivf_file_header), reinterpret_cast<mfxU32*>(pBitstream));
+        std::copy(std::begin(ivf_file_header),std::end(ivf_file_header), reinterpret_cast <mfxU32*> (pBitstream));
 
         return MFX_ERR_NONE;
     };
 
     inline mfxStatus AddPictureHeader(mfxU8* pBitstream, mfxU32 bufferSize)
     {
-        mfxU32 number_of_zero_bytes = 3*sizeof(mfxU32);
+        mfxU32 number_of_zero_bytes = 3 * sizeof(mfxU32);
 
         if (bufferSize < number_of_zero_bytes)
                 return MFX_ERR_MORE_DATA;
 
-        std::fill_n(pBitstream, number_of_zero_bytes, 0);
+        std::fill_n(pBitstream, number_of_zero_bytes, mfxU8(0));
 
         return MFX_ERR_NONE;
     };

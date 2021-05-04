@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -44,7 +44,7 @@ namespace UMC_HEVC_DECODER
 
             auto si = frame->GetAU();
             if (!si)
-                throw h265_exception(UMC::UMC_ERR_FAILED);
+                throw h265_exception(UMC::UMC_ERR_FAILED); 
 
             auto slice = si->GetSlice(0);
             assert(slice);

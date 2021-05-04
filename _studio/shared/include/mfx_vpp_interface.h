@@ -1,15 +1,15 @@
-// Copyright (c) 2018-2020 Intel Corporation
-// 
+// Copyright (c) 2011-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,8 +31,6 @@
 #include "libmfx_core.h"
 #include "mfx_platform_headers.h"
 
-
-#if defined(MFX_VA_LINUX)
     typedef unsigned int   UINT;
 
     typedef struct tagVPreP_StatusParams_V1_0
@@ -61,7 +59,6 @@
         ISTAB_MODE_BLACKEN,
         ISTAB_MODE_UPSCALE
     } VPREP_ISTAB_MODE;
-#endif
 
 namespace MfxHwVideoProcessing
 {
@@ -146,6 +143,134 @@ namespace MfxHwVideoProcessing
         mfxU32 TileId;
     };
 
+#ifndef MFX_CAMERA_FEATURE_DISABLE
+    typedef struct _CameraCaps
+    {
+        mfxU32 uBlackLevelCorrection;
+        mfxU32 uHotPixelCheck;
+        mfxU32 uWhiteBalance;
+        mfxU32 uColorCorrectionMatrix;
+        mfxU32 uGammaCorrection;
+        mfxU32 uVignetteCorrection;
+        mfxU32 u3DLUT;
+    } CameraCaps;
+
+    typedef struct _CameraBlackLevelParams
+    {
+        mfxU32 uR;
+        mfxU32 uG0;
+        mfxU32 uG1;
+        mfxU32 uB;
+    } CameraBlackLevelParams;
+
+    typedef struct _CameraWhiteBalanceParams
+    {
+        mfxF32 fR;
+        mfxF32 fG0;
+        mfxF32 fG1;
+        mfxF32 fB;
+    } CameraWhiteBalanceParams;
+
+    typedef struct _CameraHotPixelRemovalParams
+    {
+        mfxU32 uPixelThresholdDifference;
+        mfxU32 uPixelCountThreshold;
+    } CameraHotPixelRemovalParams;
+
+    typedef struct _CameraCCM
+    {
+        mfxF32 CCM[3][3];
+    } CameraCCMParams;
+
+
+    typedef struct _CameraTCCParams
+    {
+        mfxU8 Red;
+        mfxU8 Green;
+        mfxU8 Blue;
+        mfxU8 Cyan;
+        mfxU8 Magenta;
+        mfxU8 Yellow;
+    } CameraTCCParams;
+
+    typedef struct _CameraRGBToYUVParams
+    {
+        mfxU8 Red;
+        mfxF32 PreOffset[3];
+        mfxF32 Matrix[3][3];
+        mfxF32 PostOffset[3];
+    } CameraRGBToYUVParams;
+    typedef struct _CameraLensCorrectionParams
+    {
+        mfxF32 a[3];
+        mfxF32 b[3];
+        mfxF32 c[3];
+        mfxF32 d[3];
+    } CameraLensCorrectionParams;
+
+    typedef struct _CameraForwardGammaCorrectionSeg
+    {
+        mfxU16 PixelValue;
+        mfxU16 RedChannelCorrectedValue;
+        mfxU16 GreenChannelCorrectedValue;
+        mfxU16 BlueChannelCorrectedValue;
+    } CameraForwardGammaCorrectionSeg;
+
+    typedef struct _CameraForwardGammaCorrectionParams
+    {
+        CameraForwardGammaCorrectionSeg Segment[64];
+    } CameraForwardGammaCorrectionParams;
+
+    typedef struct _LUT_ENTRY
+    {
+        USHORT R;
+        USHORT G;
+        USHORT B;
+        USHORT Reserved;
+    } LUT_ENTRY;
+
+    const int LUT17_SEG = 17;
+    const int LUT17_MUL = 32;
+    const int LUT33_SEG = 33;
+    const int LUT33_MUL = 64;
+    const int LUT65_SEG = 65;
+    const int LUT65_MUL = 128;
+    typedef LUT_ENTRY LUT17[LUT17_SEG][LUT17_SEG][LUT17_MUL];
+    typedef LUT_ENTRY LUT33[LUT33_SEG][LUT33_SEG][LUT33_MUL];
+    typedef LUT_ENTRY LUT65[LUT65_SEG][LUT65_SEG][LUT65_MUL];
+
+    typedef struct _Camera3DLUTParams
+    {
+        UINT  bActive;
+        UINT  LUTSize;
+        LUT_ENTRY *lut;
+    } Camera3DLUTParams;
+
+    typedef struct _CameraVignette_unsigned_8_8
+    {
+        USHORT      integer   : 8;
+        USHORT      mantissa  : 8;
+    } CameraVignette_unsigned_8_8;
+
+  
+    typedef struct _CameraVignetteCorrectionElem
+    {
+        CameraVignette_unsigned_8_8   R;
+        CameraVignette_unsigned_8_8   G0;
+        CameraVignette_unsigned_8_8   B;
+        CameraVignette_unsigned_8_8   G1;
+        USHORT                reserved;
+    } CameraVignetteCorrectionElem;
+
+    typedef struct _CameraVignetteCorrectionParams
+    {
+        UINT      bActive;
+        UINT      Width;
+        UINT      Height;
+        UINT      Stride;
+        CameraVignetteCorrectionElem *pCorrectionMap;
+    } CameraVignetteCorrectionParams;
+#endif // #ifndef MFX_CAMERA_FEATURE_DISABLE
 
     struct mfxVppCaps
     {
@@ -159,6 +284,9 @@ namespace MfxHwVideoProcessing
         mfxU32 uDetailFilter;
         mfxU32 uProcampFilter;
         mfxU32 uSceneChangeDetection;
+#ifndef MFX_CAMERA_FEATURE_DISABLE
+        CameraCaps cameraCaps;
+#endif
 
         mfxU32 uFrameRateConversion;
         mfxU32 uDeinterlacing;
@@ -173,6 +301,8 @@ namespace MfxHwVideoProcessing
 
         mfxU32 uMaxWidth;
         mfxU32 uMaxHeight;
+        mfxU32 uMinWidth;
+        mfxU32 uMinHeight;
 
         mfxU32 uFieldWeavingControl;
 
@@ -185,6 +315,8 @@ namespace MfxHwVideoProcessing
         std::map <mfxU32, mfxU32> mFormatSupport;
 
         mfxU32 uMirroring;
+
+        mfxU32 uFieldProcessing;
 
         mfxVppCaps()
             : uAdvancedDI(0)
@@ -207,13 +339,19 @@ namespace MfxHwVideoProcessing
             , iNumForwardSamples(0)
             , uMaxWidth(0)
             , uMaxHeight(0)
+            , uMinWidth(0)
+            , uMinHeight(0)
             , uFieldWeavingControl(0)
             , uRotation(0)
             , uScaling(0)
             , uChromaSiting(0)
             , mFormatSupport()
             , uMirroring(0)
+            , uFieldProcessing(0)
         {
+#ifndef MFX_CAMERA_FEATURE_DISABLE
+            memset(&cameraCaps, 0, sizeof(CameraCaps));
+#endif
         };
     };
 
@@ -288,7 +426,32 @@ namespace MfxHwVideoProcessing
                ,execIdx(NO_INDEX)
                ,statusReportID(0)
                ,bFieldWeaving(false)
+               ,bFieldWeavingExt(false)
+               ,bFieldSplittingExt(false)
                ,iFieldProcessingMode(0)
+#ifndef MFX_CAMERA_FEATURE_DISABLE
+               ,bCameraPipeEnabled(false)
+               ,bCameraBlackLevelCorrection(false)
+               ,CameraBlackLevel()
+               ,bCameraWhiteBalaceCorrection(false)
+               ,CameraWhiteBalance()
+               ,bCameraHotPixelRemoval(false)
+               ,CameraHotPixel()
+               ,bCCM(false)
+               ,CCMParams()
+               ,bCameraTCC(false)
+               ,CameraTCC()
+               ,bCameraRGBtoYUV(false)
+               ,CameraRGBToYUV()               
+               ,bCameraGammaCorrection(false)
+               ,CameraForwardGammaCorrection()
+               ,bCameraVignetteCorrection(false)
+               ,CameraVignetteCorrection()
+               ,bCameraLensCorrection(false)
+               ,CameraLensCorrection()
+               ,bCamera3DLUT(false)
+               ,Camera3DLUT()
+#endif
                ,rotation(0)
                ,scalingMode(MFX_SCALING_MODE_DEFAULT)
 #if (MFX_VERSION >= 1033)
@@ -303,6 +466,9 @@ namespace MfxHwVideoProcessing
                ,mirroringExt(false)
                ,scene(VPP_NO_SCENE_CHANGE)
                ,bDeinterlace30i60p(false)
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+               ,gpuHangTrigger(false)
+#endif
 #ifdef MFX_ENABLE_MCTF
                , bEnableMctf(false)
                , MctfFilterStrength(0)
@@ -315,6 +481,9 @@ namespace MfxHwVideoProcessing
 #endif
 #endif
                , reset(0)
+#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
+               , m_GpuEvent()
+#endif
             {
                    memset(&targetSurface, 0, sizeof(mfxDrvSurface));
                    dstRects.clear();
@@ -349,7 +518,17 @@ namespace MfxHwVideoProcessing
                     bFRCEnable != false ||
                     bComposite != false ||
                     bFieldWeaving != false ||
+                    bFieldSplittingExt != false ||
                     iFieldProcessingMode != 0 ||
+#ifndef MFX_CAMERA_FEATURE_DISABLE
+                    bCameraPipeEnabled != false ||
+                    bCameraBlackLevelCorrection != false ||
+                    bCameraGammaCorrection != false ||
+                    bCameraHotPixelRemoval != false ||
+                    bCameraWhiteBalaceCorrection != false ||
+                    bCCM != false ||
+                    bCameraLensCorrection != false ||
+#endif
                     rotation != 0 ||
                     scalingMode != MFX_SCALING_MODE_DEFAULT ||
                     mirroring != 0 ||
@@ -417,17 +596,43 @@ namespace MfxHwVideoProcessing
         mfxU32         statusReportID;
 
         bool           bFieldWeaving;
+        bool           bFieldWeavingExt;
+        bool           bFieldSplittingExt;
 
         mfxU32         iFieldProcessingMode;
 
+#ifndef MFX_CAMERA_FEATURE_DISABLE
+        //  Camera Pipe specific params
+        bool                     bCameraPipeEnabled;
+        bool                     bCameraBlackLevelCorrection;
+        CameraBlackLevelParams   CameraBlackLevel;
+        bool                     bCameraWhiteBalaceCorrection;
+        CameraWhiteBalanceParams CameraWhiteBalance;
+        bool                     bCameraHotPixelRemoval;
+        CameraHotPixelRemovalParams CameraHotPixel;
+        bool                     bCCM;
+        CameraCCMParams          CCMParams;
+        bool bCameraTCC;
+        CameraTCCParams CameraTCC;
+        bool bCameraRGBtoYUV;
+        CameraRGBToYUVParams CameraRGBToYUV;
+        bool                     bCameraGammaCorrection;
+        CameraForwardGammaCorrectionParams CameraForwardGammaCorrection;
+
+        bool                     bCameraVignetteCorrection;
+        CameraVignetteCorrectionParams     CameraVignetteCorrection;
+
+        bool                     bCameraLensCorrection;
+        CameraLensCorrectionParams         CameraLensCorrection;
+        bool                     bCamera3DLUT;
+        Camera3DLUTParams        Camera3DLUT;
+#endif
         int         rotation;
 
         mfxU16      scalingMode;
-
 #if (MFX_VERSION >= 1033)
         mfxU16      interpolationMethod;
 #endif
-
         mfxU16      chromaSiting;
 
         bool        bEOS;
@@ -444,6 +649,9 @@ namespace MfxHwVideoProcessing
         vppScene    scene;     // Keep information about scene change
         bool        bDeinterlace30i60p;
 
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+        bool       gpuHangTrigger;
+#endif
 
 #ifdef MFX_ENABLE_MCTF
         bool         bEnableMctf;
@@ -457,6 +665,9 @@ namespace MfxHwVideoProcessing
 #endif
 #endif
         bool reset;
+#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
+        GPU_SYNC_EVENT_HANDLE m_GpuEvent;
+#endif
     };
 
     class DriverVideoProcessing
@@ -473,16 +684,22 @@ namespace MfxHwVideoProcessing
 
         virtual mfxStatus Register(mfxHDLPair* pSurfaces, mfxU32 num, BOOL bRegister) = 0;
 
-        virtual mfxStatus QueryTaskStatus(mfxU32 idx) = 0;
+        virtual mfxStatus QueryTaskStatus(SynchronizedTask* pSyncTask) = 0;
 
         virtual mfxStatus Execute(mfxExecuteParams *pParams) = 0;
 
         virtual mfxStatus QueryCapabilities( mfxVppCaps& caps ) = 0;
 
+        virtual mfxStatus CreateWrapBuffers(
+            const mfxU16& /*numFrameMinInput*/, 
+            const mfxU16& /*numFrameMinOut*/, 
+            const mfxVideoParam& /*par*/) { return MFX_ERR_NONE; }
+
+        virtual mfxStatus UnwrapBuffers(mfxMemId /*input*/, mfxMemId /*output*/) { return MFX_ERR_NONE; }
+
         virtual mfxStatus QueryVariance(
             mfxU32 frameIndex,
             std::vector<UINT> &variance) = 0;
-
     }; // DriverVideoProcessing
 
     DriverVideoProcessing* CreateVideoProcessing( VideoCORE* core );

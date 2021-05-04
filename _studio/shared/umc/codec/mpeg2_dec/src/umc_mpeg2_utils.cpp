@@ -21,7 +21,7 @@
 
 #include "umc_defs.h"
 
-#if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
+#if defined MFX_ENABLE_MPEG2_VIDEO_DECODE
 
 #include "mfxstructures.h"
 #include "umc_video_decoder.h"
@@ -56,12 +56,10 @@ namespace UMC_MPEG2_DECODER
 
         if (platform != MFX_PLATFORM_SOFTWARE)
         {
-#if defined (MFX_VA_LINUX)
             if (MFX_ERR_NONE != core->IsGuidSupported(sDXVA2_ModeMPEG2_VLD, par))
             {
                 platform = MFX_PLATFORM_SOFTWARE;
             }
-#endif
         }
 
         return platform;
@@ -72,10 +70,8 @@ namespace UMC_MPEG2_DECODER
         if ((par->mfx.CodecProfile == MFX_PROFILE_MPEG1 && core->GetPlatformType()== MFX_PLATFORM_HARDWARE))
             return false;
 
-#if defined (MFX_VA_LINUX)
         if (MFX_ERR_NONE != core->IsGuidSupported(sDXVA2_ModeMPEG2_VLD, par))
             return false;
-#endif
 
         return true;
     }
@@ -171,7 +167,7 @@ namespace UMC_MPEG2_DECODER
 
             out->mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
 
-            out->IOPattern = type == MFX_HW_UNKNOWN ? MFX_IOPATTERN_OUT_SYSTEM_MEMORY : MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+            out->IOPattern = type == (mfxU16)(MFX_HW_UNKNOWN ? MFX_IOPATTERN_OUT_SYSTEM_MEMORY : MFX_IOPATTERN_OUT_VIDEO_MEMORY);
 
             // DECODE's configurables
             out->mfx.NumThread = 1;
@@ -189,14 +185,6 @@ namespace UMC_MPEG2_DECODER
             }
 
             CHECK_UNSUPPORTED( (in->NumExtParam == 0) != (in->ExtParam == nullptr) );
-
-            if (in->NumExtParam && !in->Protected)
-            {
-                auto pOpaq = (mfxExtOpaqueSurfaceAlloc *)GetExtendedBuffer(in->ExtParam, in->NumExtParam, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
-
-                // ignore opaque extension buffer
-                CHECK_UNSUPPORTED(in->NumExtParam != 1 || !(in->NumExtParam == 1 && NULL != pOpaq));
-            }
 
             mfxExtBuffer **pExtBuffer = out->ExtParam;
             mfxU16 numDistBuf = out->NumExtParam;
@@ -324,8 +312,8 @@ namespace UMC_MPEG2_DECODER
             if (v <= denom || h <= denom)
                 break;
         }
-        par_h = h;
-        par_v = v;
+        par_h = (uint16_t)h;
+        par_v = (uint16_t)v;
     }
 
     void CalcAspectRatio(uint32_t dar, uint32_t width, uint32_t height,
@@ -386,17 +374,14 @@ namespace UMC_MPEG2_DECODER
         if (in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
             return false;
 
-        if (!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && !(in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) && !(in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY))
+        if (   !(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
+            && !(in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
+            )
             return false;
 
         if ((in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
             return false;
 
-        if ((in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
-            return false;
-
-        if ((in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
-            return false;
 
         return true;
     }
@@ -409,15 +394,15 @@ namespace UMC_MPEG2_DECODER
     {
         par.mfx.CodecId = MFX_CODEC_MPEG2;
 
-        par.mfx.FrameInfo.PicStruct = seqExt && seqExt->progressive_sequence ? MFX_PICSTRUCT_PROGRESSIVE : MFX_PICSTRUCT_UNKNOWN;
+        par.mfx.FrameInfo.PicStruct = (mfxU16)(seqExt && seqExt->progressive_sequence ? MFX_PICSTRUCT_PROGRESSIVE : MFX_PICSTRUCT_UNKNOWN);
 
         par.mfx.FrameInfo.CropX = 0;
         par.mfx.FrameInfo.CropY = 0;
-        par.mfx.FrameInfo.CropW = seq.horizontal_size_value;
-        par.mfx.FrameInfo.CropH = seq.vertical_size_value;
+        par.mfx.FrameInfo.CropW = (mfxU16)seq.horizontal_size_value;
+        par.mfx.FrameInfo.CropH = (mfxU16)seq.vertical_size_value;
 
-        par.mfx.FrameInfo.Width  = mfx::align2_value(par.mfx.FrameInfo.CropW, 16);
-        par.mfx.FrameInfo.Height = mfx::align2_value(par.mfx.FrameInfo.CropH, (MFX_PICSTRUCT_PROGRESSIVE == par.mfx.FrameInfo.PicStruct) ? 16 : 32);
+        par.mfx.FrameInfo.Width = mfx::align2_value<mfxU16>(par.mfx.FrameInfo.CropW, 16);
+        par.mfx.FrameInfo.Height = mfx::align2_value<mfxU16>(par.mfx.FrameInfo.CropH, (MFX_PICSTRUCT_PROGRESSIVE == par.mfx.FrameInfo.PicStruct) ? 16 : 32);
 
         par.mfx.FrameInfo.BitDepthLuma   = 8;
         par.mfx.FrameInfo.BitDepthChroma = 8;
@@ -425,11 +410,11 @@ namespace UMC_MPEG2_DECODER
 
         if (seqExt)
         {
-            par.mfx.FrameInfo.ChromaFormat = seqExt->chroma_format == CHROMA_FORMAT_420 ?
+            par.mfx.FrameInfo.ChromaFormat = (mfxU16)(seqExt->chroma_format == CHROMA_FORMAT_420 ?
                                                 MFX_CHROMAFORMAT_YUV420 :
                                                 (seqExt->chroma_format == CHROMA_FORMAT_422 ?
                                                         MFX_CHROMAFORMAT_YUV422 :
-                                                        MFX_CHROMAFORMAT_YUV444);
+                                                        MFX_CHROMAFORMAT_YUV444));
 
             // Table 8-1 – Meaning of bits in profile_and_level_indication
             par.mfx.CodecProfile = GetMfxCodecProfile((seqExt->profile_and_level_indication >> 4) & 7); // [6:4] bits
@@ -447,7 +432,7 @@ namespace UMC_MPEG2_DECODER
         uint32_t h = dispExt ? dispExt->display_vertical_size : seq.vertical_size_value;
         CalcAspectRatio(seq.aspect_ratio_information, w, h, par.mfx.FrameInfo.AspectRatioW, par.mfx.FrameInfo.AspectRatioH);
 
-        GetMfxFrameRate(seq.frame_rate_code, par.mfx.FrameInfo.FrameRateExtN, par.mfx.FrameInfo.FrameRateExtD);
+        GetMfxFrameRate((uint8_t)seq.frame_rate_code, par.mfx.FrameInfo.FrameRateExtN, par.mfx.FrameInfo.FrameRateExtD);
 
         par.mfx.FrameInfo.FourCC = MFX_FOURCC_NV12;
 

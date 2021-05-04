@@ -1,4 +1,4 @@
-# Intel® Media SDK Shaders
+# Intel® oneVPL GPU Runtime Shaders
 
 This folder contains Shaders (EU Kernels) used in Intel® Media SDK library and some helper tools
 to rebuild them. Shaders are provided in 2 forms:
@@ -7,7 +7,7 @@ to rebuild them. Shaders are provided in 2 forms:
 
 See also: [Media SDK Binary Kernels](https://github.com/Intel-Media-SDK/MediaSDK/wiki/Media-SDK-Binary-Kernels) wiki page.
 
-By default Media SDK library is built against pre-built Shaders. Optionally it is
+By default oneVPL library is built against pre-built Shaders. Optionally it is
 possible to rebuild them from sources configuring with:
 ```sh
 cmake -DBUILD_KERNELS=ON ...

@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2008-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,11 +25,9 @@
 
 #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
 
-#if defined (MFX_VA_LINUX)
 #include <va/va.h>
 #include <va/va_enc_jpeg.h>
 
-#endif
 
 #include "mfxstructures.h"
 
@@ -122,10 +120,10 @@ namespace MfxHwMJpegEncode
         JpegEncCaps const & hwCaps);
 
     mfxStatus FastCopyFrameBufferSys2Vid(
-        VideoCORE    * core,
-        mfxMemId       vidMemId,
-        mfxFrameData & sysSurf,
-        mfxFrameInfo & frmInfo
+        VideoCORE*        core,
+        mfxMemId          vidMemId,
+        mfxFrameSurface1* sysSurf,
+        mfxFrameInfo &    frmInfo
         );
 
     struct ExecuteBuffers
@@ -141,13 +139,11 @@ namespace MfxHwMJpegEncode
         mfxStatus Init(mfxVideoParam const *par, mfxEncodeCtrl const * ctrl, JpegEncCaps const * hwCaps);
         void      Close();
 
-#if defined (MFX_VA_LINUX)
         VAEncPictureParameterBufferJPEG               m_pps;
         std::vector<VAEncSliceParameterBufferJPEG>    m_scan_list;
         std::vector<VAQMatrixBufferJPEG>              m_dqt_list;
         std::vector<VAHuffmanTableBufferJPEGBaseline> m_dht_list;
 
-#endif
         std::vector<JpegPayload>                      m_payload_list;
         JpegPayload                                   m_payload_base;
         JpegApp0Data                                  m_app0_data;
@@ -164,6 +160,9 @@ namespace MfxHwMJpegEncode
         mfxU32             m_bsDataLength;       // output bitstream length
         bool               m_cleanDdiData;
         ExecuteBuffers   * m_pDdiData;
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+        GPU_SYNC_EVENT_HANDLE     m_GpuEvent;
+#endif
     } DdiTask;
 
     class TaskManager
@@ -187,5 +186,5 @@ namespace MfxHwMJpegEncode
 
 }; // namespace MfxHwMJpegEncode
 
-#endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE) && defined (MFX_VA)
+#endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
 #endif // __MFX_MJPEG_ENCODE_HW_UTILS_H__

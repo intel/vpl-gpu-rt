@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2008-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,8 +31,17 @@ enum {
 };
 #endif
 
+#ifdef MFX_DEBUG_TOOLS
+// internal(undocumented) handles for VideoCORE::SetHandle
+#define MFX_HANDLE_TIMING_LOG       ((mfxHandleType)1001)
+#define MFX_HANDLE_EXT_OPTIONS      ((mfxHandleType)1002)
+#define MFX_HANDLE_TIMING_SUMMARY   ((mfxHandleType)1003)
+#define MFX_HANDLE_TIMING_TAL       ((mfxHandleType)1004)
+#endif
 
+#ifndef MFX_ADAPTIVE_PLAYBACK_DISABLE
 #define MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK MFX_MAKEFOURCC('A','P','B','K')
+#endif
 
 #define MFX_EXTBUFF_DDI MFX_MAKEFOURCC('D','D','I','P')
 
@@ -69,8 +78,8 @@ typedef struct {
 
     mfxU16 EarlySkip;       // 0=default (let driver choose), 1=enabled, 2=disabled
     mfxU16 LaScaleFactor;   // 0=default (let msdk choose), 1=1x, 2=2x, 4=4x; Deprecated for legacy H264 encoder, for legacy use mfxExtCodingOption2::LookAheadDS instead
-    mfxU16 reserved1;       //
-    mfxU16 reserved2;       //
+    mfxU16 IBC;             // on/off - SCC IBC Mode
+    mfxU16 Palette;         // on/off - SCC Palette Mode
     mfxU16 StrengthN;       // strength=StrengthN/100.0
     mfxU16 FractionalQP;    // 0=disabled (default), 1=enabled
 
@@ -86,7 +95,7 @@ typedef struct {
     mfxU16 LongStartCodes;          // tri-state, use long start-codes for all NALU
     mfxU16 CabacInitIdcPlus1;       // 0 - use default value, 1 - cabac_init_idc = 0 and so on
     mfxU16 NumActiveRefBL1;         //
-    mfxU16 QpUpdateRange;           // 
+    mfxU16 QpUpdateRange;           //
     mfxU16 RegressionWindow;        //
     mfxU16 LookAheadDependency;     // LookAheadDependency < LookAhead
     mfxU16 Hme;                     // tri-state
@@ -96,13 +105,95 @@ typedef struct {
     mfxU16 ChangeFrameContextIdxForTS;
     mfxU16 SuperFrameForTS;
     mfxU16 QpAdjust;                // on/off - forces sps.QpAdjustment
+    mfxU16 TMVP;                    // tri-state: 0, MFX_CODINGOPTION_OFF, MFX_CODINGOPTION_ON
 
 } mfxExtCodingOptionDDI;
 
+#ifdef MFX_UNDOCUMENTED_QUANT_MATRIX
+#define MFX_EXTBUFF_QM MFX_MAKEFOURCC('E','X','Q','P')
+
+typedef struct {
+    mfxExtBuffer Header;
+    mfxU16 bIntraQM;
+    mfxU16 bInterQM;
+    mfxU16 bChromaIntraQM;
+    mfxU16 bChromaInterQM;
+    mfxU8 IntraQM[64];
+    mfxU8 InterQM[64];
+    mfxU8 ChromaIntraQM[64];
+    mfxU8 ChromaInterQM[64];
+} mfxExtCodingOptionQuantMatrix;
+#endif // #ifdef MFX_UNDOCUMENTED_QUANT_MATRIX
 
 
+#ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
+#define MFX_EXTBUFF_VPP_VARIANCE_REPORT MFX_MAKEFOURCC('V','R','P','F')
+
+#ifdef _MSVC_LANG
+#pragma warning (disable: 4201 ) /* disable nameless struct/union */
+#endif
+
+typedef struct {
+    mfxExtBuffer    Header;
+    union{
+        struct{
+            mfxU32  SpatialComplexity;
+            mfxU32  TemporalComplexity;
+       };
+       struct{
+           mfxU16  PicStruct;
+           mfxU16  reserved[3];
+       };
+   };
+
+    mfxU16          SceneChangeRate;
+    mfxU16          RepeatedFrame;
+
+    // variances
+    mfxU32          Variances[11];
+} mfxExtVppReport;
+#endif // #ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
 
 
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+#define MFX_EXTBUFF_GPU_HANG MFX_MAKEFOURCC('H','A','N','G')
 
+typedef struct {
+    mfxExtBuffer Header;
+} mfxExtIntGPUHang;
+#endif
+
+#if defined (MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA)
+#define MFX_EXTBUFF_LP_LOOKAHEAD MFX_MAKEFOURCC('L','P','L','A')
+typedef struct {
+    mfxExtBuffer Header;
+    mfxU16       LookAheadDepth;
+    mfxU16       InitialDelayInKB;
+    mfxU16       BufferSizeInKB;
+    mfxU16       TargetKbps;
+    mfxU8        LookAheadScaleX;
+    mfxU8        LookAheadScaleY;
+    mfxU16       GopRefDist;
+    mfxU16       MaxAdaptiveGopSize;
+    mfxU16       MinAdaptiveGopSize;
+    mfxU16       reserved[20];
+} mfxExtLplaParam;
+
+#endif
+
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+#define MFX_EXTBUFF_LPLA_STATUS MFX_MAKEFOURCC('L', 'P', 'L', 'S')
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU32          StatusReportFeedbackNumber;
+    mfxU8           CqmHint; // Custom quantization matrix hint. 0x00 - flat matrix; 0x01 - CQM; 0xFF - invalid hint; other values are reserved.
+    mfxU8           IntraHint;
+    mfxU8           MiniGopSize;
+    mfxU8           QpModulationStrength;
+    mfxU32          TargetFrameSize;
+    mfxU32          TargetBufferFullnessInBit;
+    mfxU16          reserved[19];
+} mfxExtLpLaStatus;
+#endif
 
 #endif // __MFX_EXT_BUFFERS_H__

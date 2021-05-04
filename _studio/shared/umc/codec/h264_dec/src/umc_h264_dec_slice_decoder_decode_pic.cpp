@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2003-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -74,12 +74,12 @@ Status H264Slice::UpdateReferenceList(ViewList &views,
     H264DecoderFrame *pLastInList[2] = {NULL, NULL};
 
     if (m_pCurrentFrame == nullptr)
-        return UMC_ERR_NULL_PTR;
+        return UMC_ERR_FAILED;
 
     const H264DecoderRefPicList* pH264DecRefPicList0 = m_pCurrentFrame->GetRefPicList(m_iNumber, 0);
     const H264DecoderRefPicList* pH264DecRefPicList1 = m_pCurrentFrame->GetRefPicList(m_iNumber, 1);
     if (pH264DecRefPicList0 == nullptr || pH264DecRefPicList1 == nullptr)
-        return UMC_ERR_NULL_PTR;
+        return UMC_ERR_FAILED;
 
     pRefPicList0 = pH264DecRefPicList0->m_RefPicList;
     pRefPicList1 = pH264DecRefPicList1->m_RefPicList;
@@ -138,6 +138,10 @@ Status H264Slice::UpdateReferenceList(ViewList &views,
             return UMC_ERR_INVALID_STREAM;
         }
 
+#ifdef ENABLE_LIST_TRACE
+        static int kkkk = 0;
+        kkkk++;
+#endif
 
         // Initialize the reference picture lists
         // Note the slice header get function always fills num_ref_idx_lx_active
@@ -217,6 +221,28 @@ Status H264Slice::UpdateReferenceList(ViewList &views,
             }
         }
 
+#ifdef ENABLE_LIST_TRACE
+        {
+        FILE  * fl = fopen(LIST_TRACE_FILE_NAME, "a+");
+        fprintf(fl, "init - l0 - %d\n", kkkk);
+        for (int32_t k1 = 0; k1 < m_SliceHeader.num_ref_idx_l0_active; k1++)
+        {
+            if (!pRefPicList0[k1])
+                break;
+            fprintf(fl, "i - %d, field - %d, poc %d \n", k1, pFields0[k1].field, pRefPicList0[k1]->m_PicOrderCnt[pRefPicList0[k1]->GetNumberByParity(pFields0[k1].field)]);
+        }
+
+        fprintf(fl, "l1 - %d\n", kkkk);
+        for (int32_t  k1 = 0; k1 < m_SliceHeader.num_ref_idx_l1_active; k1++)
+        {
+            if (!pRefPicList1[k1])
+                break;
+            fprintf(fl, "i - %d, field - %d, poc %d \n", k1, pFields1[k1].field, pRefPicList1[k1]->m_PicOrderCnt[pRefPicList1[k1]->GetNumberByParity(pFields1[k1].field)]);
+        }
+
+        fclose(fl);
+        }
+#endif
 
         if (pReorderInfo_L0->num_entries > 0)
             ReOrderRefPicList(pRefPicList0, pFields0, pReorderInfo_L0, uMaxPicNum, views, dIdIndex, 0);
@@ -232,6 +258,28 @@ Status H264Slice::UpdateReferenceList(ViewList &views,
         }
 
 
+#ifdef ENABLE_LIST_TRACE
+        {kkkk++;
+        FILE  * fl = fopen(LIST_TRACE_FILE_NAME, "a+");
+        fprintf(fl, "reorder - l0 - %d\n", kkkk);
+        for (int32_t k1 = 0; k1 < m_SliceHeader.num_ref_idx_l0_active; k1++)
+        {
+            if (!pRefPicList0[k1])
+                break;
+            fprintf(fl, "i - %d, field - %d, poc %d \n", k1, pFields0[k1].field, pRefPicList0[k1]->m_PicOrderCnt[pRefPicList0[k1]->GetNumberByParity(pFields0[k1].field)]);
+        }
+
+        fprintf(fl, "l1 - %d\n", kkkk);
+        for (int32_t  k1 = 0; k1 < m_SliceHeader.num_ref_idx_l1_active; k1++)
+        {
+            if (!pRefPicList1[k1])
+                break;
+            fprintf(fl, "i - %d, field - %d, poc %d \n", k1, pFields1[k1].field, pRefPicList1[k1]->m_PicOrderCnt[pRefPicList1[k1]->GetNumberByParity(pFields1[k1].field)]);
+        }
+
+        fclose(fl);
+        }
+#endif
 
         // set absent references
         {
@@ -590,8 +638,8 @@ void H264Slice::ReOrderRefPicList(H264DecoderFrame **pRefPicList,
             int32_t curPOC = m_pCurrentFrame->PicOrderCnt(m_pCurrentFrame->GetNumberByParity(m_SliceHeader.bottom_field_flag), pocForce);
 
             // set current VO index
-            const auto currView = std::find_if(m_pSeqParamSetMvcEx->viewInfo.begin(), m_pSeqParamSetMvcEx->viewInfo.end(),
-                                         [this](const UMC_H264_DECODER::H264ViewRefInfo &item){ return item.view_id == m_SliceHeader.nal_ext.mvc.view_id; });
+            const auto & currView = std::find_if(m_pSeqParamSetMvcEx->viewInfo.begin(), m_pSeqParamSetMvcEx->viewInfo.end(),
+                [this](const UMC_H264_DECODER::H264ViewRefInfo & item) { return item.view_id == m_SliceHeader.nal_ext.mvc.view_id; });
             if (currView == m_pSeqParamSetMvcEx->viewInfo.end())
             {
                 throw h264_exception(UMC_ERR_INVALID_STREAM);

@@ -29,10 +29,18 @@
 #ifndef __IPPDEFS_H__
 #define __IPPDEFS_H__
 
-#include "umc_defs.h" // for mfxSize
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#if defined( _WIN32 ) || defined ( _WIN64 )
+  #define __STDCALL  __stdcall
+  #define __CDECL    __cdecl
+#else
+  #define __STDCALL
+  #define __CDECL
 #endif
 
 #if !defined( IPPAPI )
@@ -140,10 +148,16 @@ typedef unsigned int    Ipp32u;
 typedef signed char    Ipp8s;
 typedef signed short   Ipp16s;
 typedef signed int     Ipp32s;
-typedef float   Ipp32f;
-typedef __INT64 Ipp64s;
-typedef __UINT64 Ipp64u;
-typedef double  Ipp64f;
+typedef float          Ipp32f;
+typedef double         Ipp64f;
+
+#if defined(_WIN32) || defined(_WIN64)
+    typedef __int64            Ipp64s;
+    typedef unsigned __int64   Ipp64u;
+#else
+    typedef long long          Ipp64s;
+    typedef unsigned long long Ipp64u;
+#endif
 
 typedef struct {
     Ipp64s  re;
@@ -156,7 +170,10 @@ typedef enum {
     ippRndFinancial
 } IppRoundMode;
 
-typedef mfxSize IppiSize;
+typedef struct {
+    int width;
+    int height;
+} IppiSize;
 
 enum {
      IPP_UPPER        = 1,

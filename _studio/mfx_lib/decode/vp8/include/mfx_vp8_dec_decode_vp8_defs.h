@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2018 Intel Corporation
-// 
+// Copyright (c) 2014-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,13 +18,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "mfx_common.h"
-
-#if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
-
 #ifndef _MFX_VP8_DEC_DECODE_VP8_DEFS_H_
 #define _MFX_VP8_DEC_DECODE_VP8_DEFS_H_
 
+#include "mfx_common.h"
+
+#if defined(MFX_ENABLE_VP8_VIDEO_DECODE)
+
+#include "umc_defs.h"
 #include "umc_structures.h"
 
 namespace VP8Defs
@@ -118,6 +119,10 @@ enum
 
 
 extern const uint8_t  vp8_range_normalization_shift[64];
+
+extern const int32_t vp8_quant_dc[VP8_MAX_QP + 1 + 32];
+extern const int32_t vp8_quant_ac[VP8_MAX_QP + 1 + 32];
+extern const int32_t vp8_quant_dc2[VP8_MAX_QP + 1 + 32];
 
 extern const uint8_t  vp8_kf_mb_mode_y_probs[VP8_NUM_MB_MODES_Y - 1];
 extern const uint8_t  vp8_kf_mb_mode_uv_probs[VP8_NUM_MB_MODES_UV - 1];
@@ -339,6 +344,6 @@ typedef struct _vp8_FrameData
 
 } // namespace UMC
 
-#endif // __VP8_DEC_H__
+#endif // MFX_ENABLE_VP8_VIDEO_DECODE
 
 #endif // _MFX_VP8_DEC_DECODE_VP8_DEFS_H_

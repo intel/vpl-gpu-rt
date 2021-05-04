@@ -1,9 +1,4 @@
 # build folder
 __cmake/
-tests/gold/
-tests/results/
-tests/ted/__pycache__/
-tests/test_results.json
 .vs
-samples/_build
 *.user

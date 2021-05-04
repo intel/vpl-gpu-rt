@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2010-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -266,7 +266,7 @@ mfxStatus VideoUSERPlugin::Query(VideoCORE * /*core*/, mfxVideoParam *in, mfxVid
         //printf("ERROR: VideoUSERPlugin::Query, plugin_codec_id=%c%c%c%c, query_codec_id=%c%c%c%c\n", U32TOFOURCC(m_param.CodecId), U32TOFOURCC(out->mfx.CodecId));
         return MFX_ERR_UNSUPPORTED;
     }
-
+    
     return m_plugin.Video->Query(m_plugin.pthis, in, out);
 }
 
@@ -399,27 +399,47 @@ mfxStatus VideoUSERPlugin::GetPayload(mfxU64 *ts, mfxPayload *payload) {
 #pragma warning (disable: 4100)
 #endif
 
-mfxStatus VideoUSERPlugin::GetFrameParam(mfxFrameParam * /* par */) {
+mfxStatus VideoUSERPlugin::GetFrameParam(mfxFrameParam *par) {
+    (void)par;
+
     return MFX_ERR_UNSUPPORTED;
 }
 
-mfxStatus VideoUSERPlugin::GetEncodeStat(mfxEncodeStat * /* stat */) {
+mfxStatus VideoUSERPlugin::GetEncodeStat(mfxEncodeStat *stat) {
+    (void)stat;
+
     return MFX_ERR_UNSUPPORTED;
 }
-mfxStatus VideoUSERPlugin::GetDecodeStat(mfxDecodeStat * /* stat */) {
+mfxStatus VideoUSERPlugin::GetDecodeStat(mfxDecodeStat *stat) {
+    (void)stat;
+
     return MFX_ERR_UNSUPPORTED;
 }
-mfxStatus VideoUSERPlugin::GetVPPStat(mfxVPPStat * /* stat */) {
+mfxStatus VideoUSERPlugin::GetVPPStat(mfxVPPStat *stat) {
+    (void)stat;
+
     return MFX_ERR_UNSUPPORTED;
 }
-mfxStatus VideoUSERPlugin::SetSkipMode(mfxSkipMode /* mode */) {
+mfxStatus VideoUSERPlugin::SetSkipMode(mfxSkipMode mode) {
+    (void)mode;
+
     return MFX_ERR_UNSUPPORTED;
 }
 
-mfxStatus VideoUSERPlugin::EncodeFrame(mfxEncodeCtrl * /* ctrl */, mfxEncodeInternalParams * /* pInternalParams */, mfxFrameSurface1 * /* surface */, mfxBitstream * /* bs */) {
+mfxStatus VideoUSERPlugin::EncodeFrame(mfxEncodeCtrl *ctrl, mfxEncodeInternalParams *pInternalParams, mfxFrameSurface1 *surface, mfxBitstream *bs) {
+    (void)ctrl;
+    (void)pInternalParams;
+    (void)surface;
+    (void)bs;
+
     return MFX_ERR_UNSUPPORTED;
 }
-mfxStatus VideoUSERPlugin::CancelFrame(mfxEncodeCtrl * /* ctrl */, mfxEncodeInternalParams * /* pInternalParams */, mfxFrameSurface1 * /* surface */, mfxBitstream * /* bs */) {
+mfxStatus VideoUSERPlugin::CancelFrame(mfxEncodeCtrl *ctrl, mfxEncodeInternalParams *pInternalParams, mfxFrameSurface1 *surface, mfxBitstream *bs) {
+    (void)ctrl;
+    (void)pInternalParams;
+    (void)surface;
+    (void)bs;
+
     return MFX_ERR_UNSUPPORTED;
 }
 mfxStatus VideoUSERPlugin::EncFrame(mfxENCInput * /* in */, mfxENCOutput * /* out */)

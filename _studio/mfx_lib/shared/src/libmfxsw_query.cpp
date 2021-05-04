@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2007-2021 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -36,7 +36,8 @@ mfxStatus MFXQueryIMPL(mfxSession session, mfxIMPL *impl)
     }
 
     // set the library's type
-    if (0 == session->m_adapterNum)
+#ifdef MFX_VA
+    if (0 == session->m_adapterNum || session->m_adapterNum >= 4)
     {
         currentImpl = MFX_IMPL_HARDWARE;
     }
@@ -45,6 +46,9 @@ mfxStatus MFXQueryIMPL(mfxSession session, mfxIMPL *impl)
         currentImpl = (mfxIMPL) (MFX_IMPL_HARDWARE2 + (session->m_adapterNum - 1));
     }
     currentImpl |= session->m_implInterface;
+#else
+    currentImpl = MFX_IMPL_SOFTWARE;
+#endif
 
     // save the current implementation type
     *impl = currentImpl;
@@ -65,8 +69,7 @@ mfxStatus MFXQueryVersion(mfxSession session, mfxVersion *pVersion)
     }
 
     // set the library's version
-    pVersion->Major = MFX_VERSION_MAJOR;
-    pVersion->Minor = MFX_VERSION_MINOR;
+    *pVersion = session->m_versionToReport;
 
     return MFX_ERR_NONE;
 

@@ -17,6 +17,11 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+#pragma warning(disable: 4127)
+#pragma warning(disable: 4244)
+#pragma warning(disable: 4018)
+#pragma warning(disable: 4189)
+#pragma warning(disable: 4505)
 #include <cm/cm.h>
 #include <cm/cmtl.h>
 

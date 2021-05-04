@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2020 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +22,13 @@
 
 #pragma once
 
-/* These string constants set Media SDK version information for Linux, Android, OSX. */
 #ifdef __linux__
+
+#ifdef MFX_VA
 #include "va/va.h"
+#else
+#define VA_VERSION_S "VA doesn't link"
+#endif
 
 #ifndef MFX_API_VERSION
 
@@ -32,9 +36,9 @@
 #define CONVERT_TO_STRING(s) STRINGIZE(s)
 
 #if MFX_VERSION >= MFX_VERSION_NEXT
-#define MFX_API_VERSION CONVERT_TO_STRING(MFX_VERSION_MAJOR) "." CONVERT_TO_STRING(MFX_VERSION_MINOR) "+";
+#define MFX_API_VERSION CONVERT_TO_STRING(MFX_VERSION_MAJOR) "." CONVERT_TO_STRING(MFX_VERSION_MINOR) "+"
 #else
-#define MFX_API_VERSION CONVERT_TO_STRING(MFX_VERSION_MAJOR) "." CONVERT_TO_STRING(MFX_VERSION_MINOR);
+#define MFX_API_VERSION CONVERT_TO_STRING(MFX_VERSION_MAJOR) "." CONVERT_TO_STRING(MFX_VERSION_MINOR)
 #endif //MFX_VERSION >= MFX_VERSION_NEXT
 
 #endif //MFX_API_VERSION

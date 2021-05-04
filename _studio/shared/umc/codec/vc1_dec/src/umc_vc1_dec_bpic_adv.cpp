@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2004-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@
 #if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
 #include "umc_vc1_dec_seq.h"
+#include "umc_vc1_dec_debug.h"
 #include "umc_vc1_huffman.h"
 #include "umc_vc1_common_tables.h"
 
@@ -35,6 +36,10 @@ VC1Status DecodePictHeaderParams_ProgressiveBpicture_Adv (VC1Context* pContext)
     VC1PictureLayerHeader* picLayerHeader = pContext->m_picLayerHeader;
     VC1SequenceLayerHeader* seqLayerHeader = &pContext->m_seqLayerHeader;
 
+#ifdef VC1_DEBUG_ON
+    VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BFRAMES,
+                                            VM_STRING("B frame type  \n"));
+#endif
 
     //extended MV range flag
     MVRangeDecode(pContext);
@@ -103,6 +108,10 @@ VC1Status DecodePictHeaderParams_InterlaceBpicture_Adv(VC1Context* pContext)
 
     uint32_t tempValue;
 
+#ifdef VC1_DEBUG_ON
+    VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BFRAMES,
+                                            VM_STRING("B frame type  \n"));
+#endif
 
     {
         //B picture fraction
@@ -237,6 +246,10 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldBpicture_Adv (VC1Context* pConte
     VC1SequenceLayerHeader* seqLayerHeader = &pContext->m_seqLayerHeader;
     uint32_t tempValue;
 
+#ifdef VC1_DEBUG_ON
+    VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BFRAMES,
+                                            VM_STRING("B frame type  \n"));
+#endif
 
     picLayerHeader->NUMREF = 1;
 
@@ -371,7 +384,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldBpicture_Adv (VC1Context* pConte
 
 
     picLayerHeader->REFDIST = *pContext->pRefDist;
-
 
     return vc1Res;
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2004-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,6 @@
 #include "umc_va_base.h"
 #include "umc_vc1_dec_frame_descr_va.h"
 
-
 namespace UMC
 {
     VC1TaskStore::VC1TaskStore(MemoryAllocator *pMemoryAllocator):
@@ -38,6 +37,7 @@ namespace UMC
                                                                 m_pDescriptorQueue(nullptr),
                                                                 m_iNumFramesProcessing(0),
                                                                 m_iNumDSActiveinQueue(0),
+                                                                m_mDSGuard(),
                                                                 m_pGuardGet(),
                                                                 pMainVC1Decoder(nullptr),
                                                                 m_lNextFrameCounter(1),
@@ -177,16 +177,30 @@ namespace UMC
 
     uint32_t VC1TaskStore::CalculateHeapSize()
     {
-        uint32_t Size = mfx::align2_value(sizeof(VC1FrameDescriptor*)*(m_iNumFramesProcessing));
+        uint32_t Size = mfx::align2_value<uint32_t>(sizeof(VC1FrameDescriptor*)*(m_iNumFramesProcessing));
 
         for (uint32_t counter = 0; counter < m_iNumFramesProcessing; counter++)
         {
-                if (pMainVC1Decoder->m_va)
+#ifdef UMC_VA_DXVA
+            if (pMainVC1Decoder->m_va)
+            {
+                if (pMainVC1Decoder->m_va->IsIntelCustomGUID())
                 {
-                    Size += mfx::align2_value(sizeof(VC1FrameDescriptorVA_Linux<VC1PackerLVA>));
+                        Size += mfx::align2_value<uint32_t>(sizeof(VC1FrameDescriptorVA_EagleLake<VC1PackerDXVA_EagleLake>));
                 }
                 else
-                    Size += mfx::align2_value(sizeof(VC1FrameDescriptor));
+                    Size += mfx::align2_value<uint32_t>(sizeof(VC1FrameDescriptorVA<VC1PackerDXVA>));
+            }
+            else
+#endif
+#ifdef UMC_VA_LINUX
+                if (pMainVC1Decoder->m_va)
+                {
+                    Size += mfx::align2_value<uint32_t>(sizeof(VC1FrameDescriptorVA_Linux<VC1PackerLVA>));
+                }
+                else
+#endif
+                    Size += mfx::align2_value<uint32_t>(sizeof(VC1FrameDescriptor));
         }
 
         return Size;
@@ -201,9 +215,27 @@ namespace UMC
         m_pSHeap->s_new(&m_pDescriptorQueue,m_iNumFramesProcessing);
         for (uint32_t i = 0; i < m_iNumFramesProcessing; i++)
         {
+#ifdef UMC_VA_DXVA
+            uint8_t* pBuf;
+            if (va->IsIntelCustomGUID())
+            {
+                {
+                    pBuf = m_pSHeap->s_alloc<VC1FrameDescriptorVA_EagleLake<VC1PackerDXVA_EagleLake>>();
+                    m_pDescriptorQueue[i] = new(pBuf) VC1FrameDescriptorVA_EagleLake<VC1PackerDXVA_EagleLake>(m_pMemoryAllocator,va);
+                }
+            }
+            else
+            {
+                pBuf = m_pSHeap->s_alloc<VC1FrameDescriptorVA<VC1PackerDXVA>>();
+                m_pDescriptorQueue[i] = new(pBuf) VC1FrameDescriptorVA<VC1PackerDXVA>(m_pMemoryAllocator,va);
+            }
+#elif defined(UMC_VA_LINUX)
             uint8_t* pBuf;
             pBuf = m_pSHeap->s_alloc<VC1FrameDescriptorVA_Linux<VC1PackerLVA> >();
             m_pDescriptorQueue[i] = new(pBuf) VC1FrameDescriptorVA_Linux<VC1PackerLVA>(m_pMemoryAllocator,va);
+#else
+            m_pDescriptorQueue[i] = 0;
+#endif
 
             if (!m_pDescriptorQueue[i])
                 return false;
@@ -279,6 +311,8 @@ namespace UMC
         if (Idx < 0)
             return Idx;
 
+        pMainVC1Decoder->m_pContext->m_frmBuff.m_pFrames.AdjustToIndex(static_cast<uint32_t>(Idx));
+
         if (!pMainVC1Decoder->m_va)
             throw  VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
 
@@ -289,7 +323,6 @@ namespace UMC
 
             if (UMC_OK != sts)
                 return -1;
-
         }
 
         *mid = Idx;
@@ -325,7 +358,7 @@ namespace UMC
     {
         return m_NextIndex;
     }
-    FrameMemID VC1TaskStore::GetBFrameIndex(void)
+    FrameMemID VC1TaskStore::GetBFrameIndex(void) 
     {
         return m_BFrameIndex;
     }
@@ -353,8 +386,6 @@ namespace UMC
     {
         m_iICIndex = Index;
     }
-
-
 }// namespace UMC
-#endif
+#endif 
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2009-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,8 +34,25 @@
 #include "mfx_ext_buffers.h"
 #include "mfx_h264_encode_interface.h"
 #include "mfx_h264_encode_cm.h"
+#include "ippi.h"
 #include "vm_time.h"
 #include "asc.h"
+#include "libmfx_core_interface.h"
+
+#if defined(AS_H264LA_PLUGIN)
+  #undef MFX_ENABLE_ENCTOOLS
+  #undef MFX_ENABLE_LP_LOOKAHEAD
+  #ifdef MFX_ENABLE_ENCTOOLS_LPLA
+    #undef MFX_ENABLE_ENCTOOLS_LPLA
+  #endif
+#endif
+
+#if defined(MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA)
+#include "mfx_lp_lookahead.h"
+#endif
+#if defined(MFX_ENABLE_LP_LOOKAHEAD)
+class MfxLpLookAhead;
+#endif
 
 #ifdef MFX_ENABLE_MCTF_IN_AVC
 #include "cmvm.h"
@@ -45,20 +62,43 @@
 #ifndef _MFX_H264_ENCODE_HW_UTILS_H_
 #define _MFX_H264_ENCODE_HW_UTILS_H_
 
-#if defined(AS_H264LA_PLUGIN) && defined(MFX_ENABLE_ENCTOOLS)
-#undef MFX_ENABLE_ENCTOOLS
-#endif
 
-#define bRateControlLA(RCMethod) ((RCMethod == MFX_RATECONTROL_LA)||(RCMethod == MFX_RATECONTROL_LA_ICQ)||(RCMethod == MFX_RATECONTROL_LA_EXT)||(RCMethod == MFX_RATECONTROL_LA_HRD))
-#define bIntRateControlLA(RCMethod) ((RCMethod == MFX_RATECONTROL_LA)||(RCMethod == MFX_RATECONTROL_LA_ICQ)||(RCMethod == MFX_RATECONTROL_LA_HRD))
+
+#include <unordered_map>
+#include <queue>
+#include <mutex>
+
+inline constexpr
+bool bIntRateControlLA(mfxU16 mode)
+{
+    return
+           (mode == MFX_RATECONTROL_LA)
+        || (mode == MFX_RATECONTROL_LA_ICQ)
+        || (mode == MFX_RATECONTROL_LA_HRD)
+        ;
+}
+
+inline constexpr
+bool bRateControlLA(mfxU16 mode)
+{
+    return bIntRateControlLA(mode)
+        ;
+}
+
 
 #define MFX_H264ENC_HW_TASK_TIMEOUT 2000
+#define MFX_H264ENC_HW_TASK_TIMEOUT_SIM 600000
 
 #define MFX_ARRAY_SIZE(ARR) (sizeof(ARR)/sizeof(ARR[0]))
 const int MFX_MAX_DIRTY_RECT_COUNT = MFX_ARRAY_SIZE(mfxExtDirtyRect::Rect);
 const int MFX_MAX_MOVE_RECT_COUNT = MFX_ARRAY_SIZE(mfxExtMoveRect::Rect);
 const int DEFAULT_PPYR_INTERVAL = 3;
 
+#if USE_AGOP
+#define MAX_B_FRAMES 10
+#define MAX_GOP_SEQUENCE 255
+#define MAX_SEQUENCE_COST (0x7FFFFFFF>>1)
+#endif
 
 namespace MfxHwH264Encode
 {
@@ -88,7 +128,7 @@ namespace MfxHwH264Encode
         MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_EXTERNAL_FRAME;
 
 
-    mfxU16 CalcNumFrameMin(const MfxHwH264Encode::MfxVideoParam &par, MFX_ENCODE_CAPS const & hwCaps);
+    mfxU16 CalcNumFrameMin(const MfxHwH264Encode::MfxVideoParam &par, MFX_ENCODE_CAPS const & hwCaps, eMFXHWType platform);
 
     enum
     {
@@ -325,6 +365,9 @@ namespace MfxHwH264Encode
         MFX_ENCODE_CAPS caps,
         eMFXHWType platform);
     // Helper which checks number of allocated frames and auto-free.
+#if USE_AGOP
+    static bool IsZero (mfxU32 i) { return (i == 0); }
+#endif
     enum
     {
         H264_FRAME_FLAG_SKIPPED = 1,
@@ -386,6 +429,12 @@ namespace MfxHwH264Encode
         void   ClearFlag(mfxU32 idx);
         void   SetFlag(mfxU32 idx, mfxU32 flag);
         mfxU32 GetFlag(mfxU32 idx) const;
+
+#if USE_AGOP //for debug
+        mfxI32 CountNonLocked(){ return std::count_if(m_locked.begin(), m_locked.end(), IsZero); }
+        mfxI32 CountLocked(){ return m_locked.size() - std::count_if(m_locked.begin(), m_locked.end(), IsZero); }
+#endif
+
     private:
         MfxFrameAllocResponse(MfxFrameAllocResponse const &);
         MfxFrameAllocResponse & operator =(MfxFrameAllocResponse const &);
@@ -432,13 +481,13 @@ namespace MfxHwH264Encode
 
     // add hwType param
     mfxStatus CheckEncodeFrameParam(
-        MfxVideoParam const &      video,
-        mfxEncodeCtrl *            ctrl,
-        mfxFrameSurface1 *         surface,
-        mfxBitstream *             bs,
-        bool                       isExternalFrameAllocator,
-        MFX_ENCODE_CAPS const &    caps,
-        eMFXHWType                 hwType = MFX_HW_UNKNOWN);
+        MfxVideoParam const &     video,
+        mfxEncodeCtrl *           ctrl,
+        mfxFrameSurface1 *        surface,
+        mfxBitstream *            bs,
+        bool                      isExternalFrameAllocator,
+        MFX_ENCODE_CAPS const &   caps,
+        eMFXHWType                hwType = MFX_HW_UNKNOWN);
 
     template<typename T> void Clear(std::vector<T> & v)
     {
@@ -634,14 +683,6 @@ namespace MfxHwH264Encode
     struct IntraRefreshState
     {
         IntraRefreshState() : refrType(0), IntraLocation(0), IntraSize(0), IntRefQPDelta(0), firstFrameInCycle(false) {}
-        bool operator==(const IntraRefreshState& rhs) const
-        {
-            return refrType == rhs.refrType &&
-                IntraLocation == rhs.IntraLocation &&
-                IntraSize == rhs.IntraSize &&
-                IntRefQPDelta == rhs.IntRefQPDelta &&
-                firstFrameInCycle == rhs.firstFrameInCycle;
-        }
 
         mfxU16  refrType;
         mfxU16  IntraLocation;
@@ -887,13 +928,45 @@ namespace MfxHwH264Encode
         mfxF32 weight;
         mfxU32 cost;
     };
-
+#if !defined(MFX_EXT_BRC_DISABLE)
     struct BRCFrameParams : mfxBRCFrameParam
     {
         mfxU16 picStruct;
         mfxU32 OptimalFrameSizeInBytes;
         mfxU32 optimalBufferFullness;
     };
+#else
+    struct BRCFrameParams
+    {
+        mfxU32 reserved[23];
+        mfxU16 SceneChange;     // Frame is Scene Chg frame
+        mfxU16 LongTerm;        // Frame is long term refrence
+        mfxU32 FrameCmplx;      // Frame Complexity
+        mfxU32 EncodedOrder;    // Frame number in a sequence of reordered frames starting from encoder Init()
+        mfxU32 DisplayOrder;    // Frame number in a sequence of frames in display order starting from last IDR
+        mfxU32 CodedFrameSize;  // Size of frame in bytes after encoding
+        mfxU16 FrameType;       // See FrameType enumerator
+        mfxU16 PyramidLayer;    // B-pyramid or P-pyramid layer, frame belongs to
+        mfxU16 NumRecode;       // Number of recodings performed for this frame
+        mfxU16 NumExtParam;
+        mfxExtBuffer** ExtParam;
+        mfxU16 picStruct;
+        mfxU32 OptimalFrameSizeInBytes;
+        mfxU32 optimalBufferFullness;
+    };
+#endif
+
+#ifdef MFX_ENABLE_GPU_BASED_SYNC
+    struct GPUSyncInfo
+    {
+        bool    EnableSync;
+        bool    RepeatFrame;
+        mfxU16  MarkerOffsetX;
+        mfxU16  MarkerOffsetY;
+        mfxU8*  MarkerValue;
+        mfxU32  MarkerSize;
+    };
+#endif
 
     class DdiTask : public Reconstruct
     {
@@ -969,6 +1042,9 @@ namespace MfxHwH264Encode
             , m_midRaw(MID_INVALID)
             , m_midRec(MID_INVALID)
             , m_midBit(mfxMemId(MID_INVALID))
+#if USE_AGOP
+            , m_cmEventAGOP(0)
+#endif
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
             , m_midMCTF(mfxMemId(MID_INVALID))
             , m_idxMCTF(NO_INDEX)
@@ -990,11 +1066,10 @@ namespace MfxHwH264Encode
             , m_singleFieldMode(false)
             , m_fieldCounter(0)
             , m_timeStamp(0)
-            , m_decodeTimeStamp(0)
             , m_minQP(0)
             , m_maxQP(0)
             , m_resetBRC(false)
-
+            , m_mbqp(0)
             , m_idxMBQP(NO_INDEX)
             , m_midMBQP(MID_INVALID)
             , m_isMBQP(false)
@@ -1004,19 +1079,14 @@ namespace MfxHwH264Encode
             , m_isMBControl(false)
             , m_midMBControl(MID_INVALID)
             , m_idxMBControl(NO_INDEX)
-
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+            , m_adaptiveCQMHint(CQM_HINT_INVALID)
+#endif
             , m_cmRawForHist(0)
             , m_cmHist(0)
             , m_cmHistSys(0)
             , m_isENCPAK(false)
             , m_startTime(0)
-#ifdef MFX_ENABLE_MFE
-            , m_beginTime(0)
-            , m_endTime(0)
-            , m_flushMfe(0)
-            , m_mfeTimeToWait(0)
-            , m_userTimeout(false)
-#endif
             , m_hwType(MFX_HW_UNKNOWN)
             , m_TCBRCTargetFrameSize(0)
             , m_SceneChange(0)
@@ -1037,6 +1107,20 @@ namespace MfxHwH264Encode
             , m_wsGpuImage(0)
             , m_wsIdxGpuImage(0)
             , m_Yscd(0)
+#ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
+            , m_qMatrix()
+#endif
+#ifdef MFX_ENABLE_GPU_BASED_SYNC
+            , m_gpuSync()
+#endif
+#if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
+            , m_procBO{0,0}
+            , m_scanBO{0,0}
+            , m_nextMarkerPtr{nullptr, nullptr}
+            , m_curNALtype()
+            , m_bsPO{}
+#endif
+
         {
             Zero(m_ctrl);
             Zero(m_internalListCtrl);
@@ -1053,6 +1137,9 @@ namespace MfxHwH264Encode
             m_collectUnitsInfo = false;
             m_headersCache[0].reserve(10);
             m_headersCache[1].reserve(10);
+#endif
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+            Zero(m_GpuEvent);
 #endif
         }
 
@@ -1093,13 +1180,6 @@ namespace MfxHwH264Encode
 
             return false;
         }
-        inline bool isSEIHRDParam(mfxExtCodingOption const & extOpt, mfxExtCodingOption2 const & extOpt2)
-        {
-            return (((GetFrameType() & MFX_FRAMETYPE_IDR) ||
-                ((GetFrameType() & MFX_FRAMETYPE_I) && (extOpt2.BufferingPeriodSEI == MFX_BPSEI_IFRAME))) &&
-                (IsOn(extOpt.VuiNalHrdParameters) || IsOn(extOpt.VuiVclHrdParameters)));
-        }
-
         inline void InitBRCParams()
         {
             Zero(m_brcFrameParams);
@@ -1114,6 +1194,16 @@ namespace MfxHwH264Encode
             if (!m_brcFrameParams.PyramidLayer && (m_type[m_fid[0]] & MFX_FRAMETYPE_P) && m_LowDelayPyramidLayer)
                 m_brcFrameParams.PyramidLayer = (mfxU16)m_LowDelayPyramidLayer;
             m_brcFrameParams.picStruct = GetPicStructForEncode();
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+            m_brcFrameParams.OptimalFrameSizeInBytes = m_lplastatus.TargetFrameSize;
+            //m_brcFrameParams.optimalBufferFullness =  m_lplastatus.TargetBufferFullness;
+#endif
+        }
+        inline bool isSEIHRDParam(mfxExtCodingOption const & extOpt, mfxExtCodingOption2 const & extOpt2)
+        {
+            return (((GetFrameType() & MFX_FRAMETYPE_IDR) ||
+                ((GetFrameType() & MFX_FRAMETYPE_I) && (extOpt2.BufferingPeriodSEI == MFX_BPSEI_IFRAME))) &&
+                (IsOn(extOpt.VuiNalHrdParameters) || IsOn(extOpt.VuiVclHrdParameters)));
         }
 
         mfxEncodeCtrl   m_ctrl;
@@ -1223,6 +1313,13 @@ namespace MfxHwH264Encode
         mfxU32          m_idxMCTF;
         CmSurface2D *   m_cmMCTF;
 #endif
+#if USE_AGOP
+        CmSurface2D *   m_cmRaw4X;      // down-sized input surface for AGOP
+        CmEvent*        m_cmEventAGOP;
+        mfxU32          m_costCache[MAX_B_FRAMES][MAX_B_FRAMES]; //if != MAX_COST => already checked
+        CmBuffer*       m_cmCurbeAGOP[MAX_B_FRAMES][MAX_B_FRAMES]; // Curbe Data for each combination
+        mfxHDLPair      m_cmMbAGOP[MAX_B_FRAMES][MAX_B_FRAMES]; // Results of kernel run, buf+sys ptr
+#endif
         CmSurface2D *   m_cmRaw;        // CM surface made of m_handleRaw
         CmSurface2D *   m_cmRawLa;      // down-sized input surface for Lookahead
         CmBufferUP *    m_cmMb;         // macroblock data, VME kernel output
@@ -1247,7 +1344,6 @@ namespace MfxHwH264Encode
         mfxU8   m_fid[2];               // progressive fid=[0,0]; tff fid=[0,1]; bff fid=[1,0]
         mfxU8   m_fieldCounter;
         mfxU64  m_timeStamp;
-        mfxI64  m_decodeTimeStamp;
 
         mfxU8   m_minQP;
         mfxU8   m_maxQP;
@@ -1257,6 +1353,7 @@ namespace MfxHwH264Encode
 
         bool m_resetBRC;
 
+        const mfxExtMBQP *m_mbqp;
         mfxU32   m_idxMBQP;
         mfxMemId m_midMBQP;
         bool     m_isMBQP;
@@ -1267,8 +1364,12 @@ namespace MfxHwH264Encode
         bool     m_isMBControl;
         mfxMemId m_midMBControl;
         mfxU32   m_idxMBControl;
-
-
+#if defined(MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA)
+        mfxLplastatus m_lplastatus;
+#endif
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        mfxU32 m_adaptiveCQMHint;
+#endif
         CmSurface2D *         m_cmRawForHist;
         CmBufferUP *          m_cmHist;     // Histogram data, kernel output
         void *                m_cmHistSys;
@@ -1280,13 +1381,6 @@ namespace MfxHwH264Encode
         std::vector<SliceStructInfo> m_SliceInfo;
 
         mfxU32 m_startTime;
-#ifdef MFX_ENABLE_MFE
-        vm_tick m_beginTime;//where we start counting
-        vm_tick m_endTime;//where we get bitstream
-        mfxU16  m_flushMfe;//flush MFE frame buffer
-        mfxU32  m_mfeTimeToWait;//set by user or used equal to frame rate latency by default
-        bool m_userTimeout;
-#endif
         eMFXHWType m_hwType;  // keep HW type information
 
 
@@ -1317,119 +1411,29 @@ namespace MfxHwH264Encode
 
         BRCFrameParams  m_brcFrameParams;
         mfxBRCFrameCtrl m_brcFrameCtrl;
+
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+        GPU_SYNC_EVENT_HANDLE m_GpuEvent[2]; // events for every field.
+#endif
+#ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
+        ENCODE_SET_PICTURE_QUANT m_qMatrix; //buffer for quantization matrix
+#endif
+#ifdef MFX_ENABLE_GPU_BASED_SYNC
+        GPUSyncInfo     m_gpuSync;
+#endif
+#if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
+        mfxU32       m_procBO[2];
+        mfxU32       m_scanBO[2];
+        mfxU8*       m_nextMarkerPtr[2];
+        mfxU8        m_curNALtype;
+
+        mfxFrameData m_bsPO[2];
+#endif
     };
 
     typedef std::list<DdiTask>::iterator DdiTaskIter;
     typedef std::list<DdiTask>::const_iterator DdiTaskCiter;
 
-    class TaskManager
-    {
-    public:
-        TaskManager();
-
-        ~TaskManager();
-
-        void Init(
-            VideoCORE *           core,
-            MfxVideoParam const & video,
-            mfxU32                viewIdx);
-
-        void Reset(
-            MfxVideoParam const & video); // w/o re-allocation
-
-        void Close();
-
-        mfxStatus AssignTask(
-            mfxEncodeCtrl *    ctrl,
-            mfxFrameSurface1 * surface,
-            mfxBitstream *     bs,
-            DdiTask *&         newTask,
-            mfxU16             requiredFrameType = MFX_FRAMETYPE_UNKNOWN); //use provided frame type istead of frame type generator
-
-        void ConfirmTask(
-            DdiTask & task);
-
-        void CompleteTask(
-            DdiTask & task);
-
-        mfxEncodeStat const & GetEncodeStat() const { return m_stat; }
-
-        mfxU32 CountRunningTasks();
-
-    protected:
-        void BuildRefPicLists(
-            DdiTask & task,
-            mfxU32    field); // 0 - top/progressive, 1 - bottom
-
-        void ModifyRefPicLists(
-            DdiTask & task,
-            mfxU32    fieldId) const;
-
-        void UpdateDpb(
-            DdiTask       & task,
-            mfxU32          fieldId,
-            ArrayDpbFrame & dpbPostEncoding);
-
-        void UpdateRefFrames(
-            ArrayDpbFrame const & dpb,
-            DdiTask const &       task,
-            mfxU32                field);
-
-        void SwitchLastB2P();
-
-        DdiTask* PushNewTask(
-            mfxFrameSurface1 * surface,
-            mfxEncodeCtrl *    ctrl,
-            PairU8             type,
-            mfxU32             frameOrder);
-
-        mfxU32 CountL1Refs(
-            Reconstruct const & bframe) const;
-
-        mfxU32 FindFrameWithMinFrameNumWrap() const;
-
-        void ProcessFields(
-            mfxU32                field,
-            ArrayDpbFrame const & dpb,
-            ArrayU8x33 const &    picListFrm,
-            ArrayU8x33 &          picListFld) const;
-
-        bool IsSubmitted(
-            DdiTask const & task) const;
-
-        DdiTask * SelectNextBFrameFromTail();
-        DdiTask * FindFrameToEncode();
-
-    private:
-        TaskManager(TaskManager const &);
-        TaskManager & operator =(TaskManager const &);
-
-        VideoCORE *   m_core;
-        UMC::Mutex    m_mutex;
-        MfxVideoParam m_video;
-
-        std::vector<DdiTask>     m_tasks;
-        std::vector<Surface>     m_raws;
-        std::vector<Surface>     m_bitstreams;
-        std::vector<Reconstruct> m_recons;
-
-        mfxEncodeStat              m_stat;
-        FrameTypeGenerator         m_frameTypeGen;
-        ArrayDpbFrame              m_dpb;
-        DecRefPicMarkingRepeatInfo m_decRefPicMrkRep;
-
-        mfxU16    m_frameNum;
-        mfxU16    m_frameNumMax;
-        mfxU32    m_frameOrder;
-        mfxU32    m_frameOrderIdr;              // most recent idr frame in encoding order
-        mfxU32    m_frameOrderI;                // most recent i frame in encoding order
-        mfxU16    m_idrPicId;
-        mfxU32    m_viewIdx;
-        mfxU32    m_cpbRemoval;                 // similar to frame_num but increments every frame (reference or not)
-        mfxU32    m_cpbRemovalBufferingPeriod;  // cpbRemoval of picture with previous buffering period
-        mfxU32    m_numReorderFrames;
-        DdiTask * m_pushed;
-    };
 
     template <size_t N>
     class Regression
@@ -1488,7 +1492,6 @@ namespace MfxHwH264Encode
         virtual mfxU32 Report(const BRCFrameParams& par, mfxU32 userDataLength, mfxU32 maxFrameSize, mfxBRCFrameCtrl &frameCtrl) = 0;
         virtual mfxU32 GetMinFrameSize() = 0;
 
-        virtual mfxStatus SetFrameVMEData(const mfxExtLAFrameStatistics*, mfxU32 , mfxU32 ) {return MFX_ERR_NONE;}
     };
 
     BrcIface * CreateBrc(MfxVideoParam const & video, MFX_ENCODE_CAPS const & hwCaps);
@@ -1547,10 +1550,8 @@ namespace MfxHwH264Encode
         {
             return m_impl->GetMinFrameSize();
         }
-        mfxStatus SetFrameVMEData(const mfxExtLAFrameStatistics * pLAOutput, mfxU32 width, mfxU32 height)
-        {
-            return m_impl->SetFrameVMEData(pLAOutput,width,height);
-        }
+
+
     private:
         std::unique_ptr<BrcIface> m_impl;
     };
@@ -1624,6 +1625,7 @@ namespace MfxHwH264Encode
         mfxF64 minAvgRateRatio;       // minimum allowed ratio = avgRate/initialRate, avg rate is calculated per rateCalcPeriod
     };
 
+
     class LookAheadBrc2 : public BrcIface
     {
     public:
@@ -1645,6 +1647,7 @@ namespace MfxHwH264Encode
 
         mfxU32 GetMinFrameSize() { return 0; }
         void  SetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl);
+
 
     public:
         struct LaFrameData
@@ -1697,72 +1700,6 @@ namespace MfxHwH264Encode
         void SaveStat(mfxU32 frameOrder);
     };
 
-    class VMEBrc : public BrcIface
-    {
-    public:
-        ~VMEBrc() { Close(); }
-
-        mfxStatus Init(MfxVideoParam  & video);
-        mfxStatus Reset(MfxVideoParam  & ) { return MFX_ERR_NONE; }
-        void Close();
-
-        void GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl);
-        void GetQpForRecode(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl);
-
-        mfxF32 GetFractionalQp(const BRCFrameParams& ) { assert(0); return 26.0f; }
-
-        void SetQp(const BRCFrameParams& , mfxBRCFrameCtrl & ) { assert(0); }
-
-        void PreEnc(const BRCFrameParams& par, std::vector<VmeData *> const & vmeData);
-
-        mfxU32 Report(const BRCFrameParams& par, mfxU32 userDataLength, mfxU32 maxFrameSize, mfxBRCFrameCtrl &frameCtrl);
-
-        mfxU32 GetMinFrameSize() { return 0; }
-
-        mfxStatus SetFrameVMEData(const mfxExtLAFrameStatistics *, mfxU32 widthMB, mfxU32 heightMB );
-
-
-    public:
-        struct LaFrameData
-        {
-            mfxU32  encOrder;
-            mfxU32  dispOrder;
-            mfxI32  poc;
-            mfxI32  deltaQp;
-            mfxF64  estRate[52];
-            mfxF64  estRateTotal[52];
-            mfxU32  interCost;
-            mfxU32  intraCost;
-            mfxU32  propCost;
-            mfxU32  bframe;
-            bool    bNotUsed;
-        };
-
-    protected:
-        mfxU32  m_lookAhead;
-        mfxU16  m_LaScaleFactor;
-        mfxU32  m_strength;
-        mfxU32  m_totNumMb;
-        mfxF64  m_initTargetRate;
-        mfxF64  m_targetRateMin;
-        mfxF64  m_targetRateMax;
-        mfxU32  m_framesBehind;
-        mfxF64  m_bitsBehind;
-        mfxI32  m_curBaseQp;
-        mfxI32  m_curQp;
-        mfxU16  m_qpUpdateRange;
-        mfxF64  m_fr;
-        mfxU16  m_skipped;
-        mfxU8   m_QPMin[3]; // for I, P and B
-        mfxU8   m_QPMax[3]; // for I, P and B
-        mfxU32  m_maxFrameSize;
-
-
-        AVGBitrate* m_AvgBitrate;
-
-        std::list <LaFrameData>     m_laData;
-        Regression<20>              m_rateCoeffHistory[52];
-    };
 
     class LookAheadCrfBrc : public BrcIface
     {
@@ -1796,7 +1733,9 @@ namespace MfxHwH264Encode
         mfxU32  m_propCost;
         mfxU8   m_QPMin[3]; // for I, P and B
         mfxU8   m_QPMax[3]; // for I, P and B
+
     };
+#if !defined(MFX_EXT_BRC_DISABLE)
     class H264SWBRC : public BrcIface
     {
     public:
@@ -1864,7 +1803,7 @@ namespace MfxHwH264Encode
             }
             return MFX_BRC_OK;
         }
-        void GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
+        void  GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
         {
             mfxBRCFrameParam frame_par = *((mfxBRCFrameParam*)&par);
             m_pBRC->GetFrameCtrl(m_pBRC->pthis,&frame_par, &frameCtrl);
@@ -1881,15 +1820,12 @@ namespace MfxHwH264Encode
         mfxU32 GetMinFrameSize()
         {
             return m_minSize;
-
         }
         mfxF32 GetFractionalQp(const BRCFrameParams& /*par*/) { assert(0); return 26.0f; }
 
         virtual void        PreEnc(const BRCFrameParams& /*par*/, std::vector<VmeData *> const & /* vmeData */) {}
-        virtual mfxStatus SetFrameVMEData(const mfxExtLAFrameStatistics*, mfxU32 , mfxU32 )
-        {
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
-        }
+
+
         virtual bool IsVMEBRC()  {return false;}
 
     private:
@@ -1898,9 +1834,12 @@ namespace MfxHwH264Encode
         mfxExtBRC   m_BRCLocal;
 
 };
+#endif
 
 
 #if defined(MFX_ENABLE_ENCTOOLS)
+
+constexpr mfxU32 ENCTOOLS_QUERY_TIMEOUT = 5000;
 
 inline bool IsNotDefined(mfxU16 param)
 {
@@ -2038,10 +1977,7 @@ public:
 
     static bool isEncToolNeeded(MfxVideoParam &video)
     {
-        if (!(video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR || video.mfx.RateControlMethod == MFX_RATECONTROL_CQP))
-            return false;
-
-        mfxEncTools *encTools = GetExtBuffer(video);
+        mfxEncTools * encTools = GetExtBuffer(video);
         mfxExtEncToolsConfig *config = GetExtBuffer(video);
 
         if (!(encTools && encTools->Context) && (!config))
@@ -2052,6 +1988,7 @@ public:
             tmpConfig = *config;
 
         GetRequiredFunc(video, tmpConfig);
+
 
         return IsEncToolsOptOn(tmpConfig);
     }
@@ -2114,6 +2051,7 @@ public:
             IsOn(m_EncToolConfig.BRC));
     }
 
+    //GetPreEncDelay returns 0 if any error in EncTools configuration.
     static mfxU32 GetPreEncDelay(const MfxVideoParam &par)
     {
         MfxVideoParam video = par;
@@ -2127,8 +2065,13 @@ public:
         mfxExtEncToolsConfig requiredConfig = {};
         mfxEncToolsCtrl ctrl = {};
 
-        MFX_CHECK_STS(CreateEncTools(video, encTools, bCreated));
-        MFX_CHECK_STS(InitCtrl(video, &ctrl));
+        mfxStatus sts = CreateEncTools(video, encTools, bCreated);
+        if (MFX_FAILED(sts))
+            return 0;
+
+        sts = InitCtrl(video, &ctrl);
+        if (MFX_FAILED(sts))
+            return 0;
 
         encTools->GetSupportedConfig(encTools->Context, &supportedConfig,&ctrl);
 
@@ -2147,16 +2090,17 @@ public:
 
     static mfxStatus Query(MfxVideoParam &video)
     {
-        mfxStatus sts = MFX_ERR_NONE;
-
         mfxExtEncToolsConfig supportedConfig = {};
+        mfxExtEncToolsConfig requiredConfig = {};
         mfxEncToolsCtrl ctrl = {};
 
         mfxEncTools *encTools = 0;
         bool bCreated = false;
 
-        MFX_CHECK_STS(CreateEncTools(video, encTools, bCreated));
-        MFX_CHECK_STS(InitCtrl(video, &ctrl));
+        mfxStatus sts = CreateEncTools(video, encTools, bCreated);
+        MFX_CHECK_STS(sts);
+        sts = InitCtrl(video, &ctrl);
+        MFX_CHECK_STS(sts);
 
         encTools->GetSupportedConfig(encTools->Context, &supportedConfig,&ctrl);
 
@@ -2205,7 +2149,6 @@ public:
             pConfig->Header = header;
         }
 
-
         return MFX_ERR_NONE;
     }
 
@@ -2225,9 +2168,12 @@ public:
         MFX_CHECK(m_pEncTools != 0, MFX_ERR_NOT_INITIALIZED);
 
         mfxEncToolsCtrl newCtrl = {};
-        MFX_CHECK_STS(InitCtrl(video, &newCtrl));
+        mfxStatus sts = InitCtrl(video, &newCtrl);
+        MFX_CHECK_STS(sts);
 
-        MFX_CHECK_STS(m_pEncTools->Reset(m_pEncTools->Context, &m_EncToolConfig, &newCtrl));
+        sts = m_pEncTools->Reset(m_pEncTools->Context, &m_EncToolConfig, &newCtrl);
+        MFX_CHECK_STS(sts);
+
         m_EncToolCtrl = newCtrl;
 
         return MFX_ERR_NONE;
@@ -2289,10 +2235,7 @@ public:
         par.ExtParam = &extParams[0];
         par.NumExtParam = (mfxU16)extParams.size();
 
-
-        mfxStatus sts = MFX_ERR_NONE;
-        sts = m_pEncTools->Query(m_pEncTools->Context, &par, 5000);
-        return sts;
+        return m_pEncTools->Query(m_pEncTools->Context, &par, ENCTOOLS_QUERY_TIMEOUT);
     }
 
     mfxStatus QueryPreEncARef(mfxU32 displayOrder, mfxEncToolsHintPreEncodeARefFrames &preEncodeARef)
@@ -2314,10 +2257,52 @@ public:
         par.ExtParam = extParams.data();
         par.NumExtParam = (mfxU16)extParams.size();
 
-        mfxStatus sts = MFX_ERR_NONE;
-        sts = m_pEncTools->Query(m_pEncTools->Context, &par, 5000);
-        return sts;
+        return m_pEncTools->Query(m_pEncTools->Context, &par, ENCTOOLS_QUERY_TIMEOUT);
     }
+
+#if defined (MFX_ENABLE_ENCTOOLS_LPLA)
+    mfxStatus QueryLookAheadStatus(mfxU32 displayOrder, mfxEncToolsBRCBufferHint *bufHint, mfxEncToolsHintPreEncodeGOP *gopHint, mfxEncToolsHintQuantMatrix *cqmHint)
+    {
+        MFX_CHECK(m_pEncTools != 0, MFX_ERR_NOT_INITIALIZED);
+        MFX_CHECK(bufHint || gopHint || cqmHint, MFX_ERR_NULL_PTR);
+        MFX_CHECK((m_EncToolCtrl.ScenarioInfo == MFX_SCENARIO_GAME_STREAMING) &&
+            (IsOn(m_EncToolConfig.AdaptiveQuantMatrices) || IsOn(m_EncToolConfig.BRCBufferHints) || IsOn(m_EncToolConfig.AdaptivePyramidQuantP)), MFX_ERR_NOT_INITIALIZED);
+
+        mfxEncToolsTaskParam par = {};
+        par.DisplayOrder = displayOrder;
+        std::vector<mfxExtBuffer*> extParams;
+
+        if (bufHint)
+        {
+            *bufHint = {};
+            bufHint->Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_BUFFER_HINT;
+            bufHint->Header.BufferSz = sizeof(*bufHint);
+            extParams.push_back((mfxExtBuffer *)bufHint);
+        }
+
+        if (gopHint)
+        {
+            *gopHint = {};
+            gopHint->Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_GOP;
+            gopHint->Header.BufferSz = sizeof(*gopHint);
+            extParams.push_back((mfxExtBuffer *)gopHint);
+        }
+
+        if (cqmHint)
+        {
+            *cqmHint = {};
+            cqmHint->Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_MATRIX;
+            cqmHint->Header.BufferSz = sizeof(*cqmHint);
+            extParams.push_back((mfxExtBuffer *)cqmHint);
+        }
+
+        par.ExtParam = &extParams[0];
+        par.NumExtParam = (mfxU16)extParams.size();
+
+        return m_pEncTools->Query(m_pEncTools->Context, &par, ENCTOOLS_QUERY_TIMEOUT);
+    }
+#endif
+
 
     mfxStatus SubmitFrameForEncoding(DdiTask &task)
     {
@@ -2359,9 +2344,7 @@ public:
         par.ExtParam = &extParams[0];
         par.NumExtParam = (mfxU16)extParams.size();
 
-        mfxStatus sts = MFX_ERR_NONE;
-        sts = m_pEncTools->Submit(m_pEncTools->Context, &par);
-        return sts;
+        return m_pEncTools->Submit(m_pEncTools->Context, &par);
     }
 
     mfxStatus GetFrameCtrl(mfxBRCFrameCtrl *frame_ctrl, mfxU32 dispOrder)
@@ -2371,22 +2354,31 @@ public:
         par.DisplayOrder = dispOrder;
         std::vector<mfxExtBuffer*> extParams;
 
-        mfxEncToolsBRCQuantControl extFrameQP;
+        mfxEncToolsBRCQuantControl extFrameQP = {};
         extFrameQP.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_QUANT_CONTROL;
         extFrameQP.Header.BufferSz = sizeof(extFrameQP);
-
         extParams.push_back((mfxExtBuffer *)&extFrameQP);
+
+        mfxEncToolsBRCHRDPos extHRDPos = {};
+        extHRDPos.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_HRD_POS;
+        extHRDPos.Header.BufferSz = sizeof(extHRDPos);
+        extParams.push_back((mfxExtBuffer *)&extHRDPos);
+
         par.ExtParam = &extParams[0];
         par.NumExtParam = (mfxU16)extParams.size();
 
         mfxStatus sts;
-        sts = m_pEncTools->Query(m_pEncTools->Context, &par, 5000);
+        sts = m_pEncTools->Query(m_pEncTools->Context, &par, ENCTOOLS_QUERY_TIMEOUT);
         MFX_CHECK_STS(sts);
 
         frame_ctrl->QpY = extFrameQP.QpY;
         frame_ctrl->MaxFrameSize = extFrameQP.MaxFrameSize;
         std::copy(extFrameQP.DeltaQP, extFrameQP.DeltaQP + 8, frame_ctrl->DeltaQP);
         frame_ctrl->MaxNumRepak = extFrameQP.NumDeltaQP;
+
+        frame_ctrl->InitialCpbRemovalDelay = extHRDPos.InitialCpbRemovalDelay;
+        frame_ctrl->InitialCpbRemovalOffset = extHRDPos.InitialCpbRemovalDelayOffset;
+
         return sts;
     }
 
@@ -2409,10 +2401,7 @@ public:
         par.ExtParam = &extParams[0];
         par.NumExtParam = (mfxU16)extParams.size();
 
-        mfxStatus sts;
-        sts = m_pEncTools->Submit(m_pEncTools->Context, &par);
-        MFX_CHECK_STS(sts);
-        return sts;
+        return m_pEncTools->Submit(m_pEncTools->Context, &par);
     }
 
     mfxStatus GetEncodeStatus(mfxBRCFrameStatus *frame_status, mfxU32 dispOrder)
@@ -2430,8 +2419,7 @@ public:
         par.ExtParam = &extParams[0];
         par.NumExtParam = (mfxU16)extParams.size();
 
-        mfxStatus sts;
-        sts = m_pEncTools->Query(m_pEncTools->Context, &par, 5000);
+        mfxStatus sts = m_pEncTools->Query(m_pEncTools->Context, &par, ENCTOOLS_QUERY_TIMEOUT);
 
         *frame_status = extSts.FrameStatus;
         return sts;
@@ -2453,19 +2441,16 @@ protected:
 
    static void GetRequiredFunc(MfxVideoParam &video, mfxExtEncToolsConfig &config)
     {
-        /*mfxExtCodingOption2  &extOpt2 = GetExtBufferRef(video);*/
+        mfxExtCodingOption2  &extOpt2 = GetExtBufferRef(video);
         mfxExtCodingOption3  &extOpt3 = GetExtBufferRef(video);
         mfxExtEncToolsConfig *pConfig = (mfxExtEncToolsConfig *)GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
         if (pConfig)
             config = *pConfig;
 
-        /* currently, adaptive pyramid quantization and EncTools' own BRC are enabled, other features are disabled */
-
         if (extOpt3.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING)
         {
             if (CheckSCConditions(video))
             {
-/*
                 bool bGopStrict = (video.mfx.GopOptFlag & MFX_GOP_STRICT);
                 config.AdaptiveI = IsNotDefined(config.AdaptiveI) ?
                     (IsNotDefined(extOpt2.AdaptiveI) ? (mfxU16)(bGopStrict ? MFX_CODINGOPTION_OFF: MFX_CODINGOPTION_ON) : extOpt2.AdaptiveI) : config.AdaptiveI;
@@ -2479,8 +2464,8 @@ protected:
                     config.AdaptiveI : config.AdaptivePyramidQuantB;
 
                 mfxU16 bAdaptRef = config.AdaptiveI;
-                mfxExtCodingOptionDDI const * extDdi = GetExtBuffer(video);
-                if (extDdi->NumActiveRefP == 1)
+                mfxExtCodingOptionDDI const & extDdi = GetExtBufferRef(video);
+                if (extDdi.NumActiveRefP == 1)
                     bAdaptRef = (mfxU16)MFX_CODINGOPTION_OFF;
 
                 config.AdaptiveRefB = IsNotDefined(config.AdaptiveRefB) ?
@@ -2491,22 +2476,32 @@ protected:
 
                 config.AdaptiveLTR = IsNotDefined(config.AdaptiveLTR) ?
                     bAdaptRef : config.AdaptiveLTR;
-*/
-
-                config.AdaptivePyramidQuantP = config.AdaptivePyramidQuantB = MFX_CODINGOPTION_ON;
-
             }
-/*
             config.BRC = IsNotDefined(config.BRC) ?
                 ((video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
                     video.mfx.RateControlMethod == MFX_RATECONTROL_VBR) ?
                     (mfxU16)MFX_CODINGOPTION_ON : (mfxU16)MFX_CODINGOPTION_OFF) : config.BRC;
-*/
-
-            config.BRC = (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR) ?
-                    (mfxU16)MFX_CODINGOPTION_ON : (mfxU16)MFX_CODINGOPTION_OFF;
         }
+#ifdef MFX_ENABLE_ENCTOOLS_LPLA
+        else
+        {
+            bool bLA = (extOpt2.LookAheadDepth > 0 &&
+                (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
+                video.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
 
+            config.BRCBufferHints = (mfxU16)(IsNotDefined(config.BRCBufferHints) ?
+                (bLA ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF) : config.BRCBufferHints);
+
+            config.AdaptivePyramidQuantP = (mfxU16)(IsNotDefined(config.AdaptivePyramidQuantP) ?
+                (bLA ?  MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF) : config.AdaptivePyramidQuantP);
+
+            config.AdaptiveQuantMatrices = (mfxU16)(IsNotDefined(config.AdaptiveQuantMatrices) ?
+                (bLA ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF) : config.AdaptiveQuantMatrices);
+
+            config.AdaptiveI = (mfxU16)(IsNotDefined(config.AdaptiveI) ?
+                MFX_CODINGOPTION_OFF : config.AdaptiveI);
+        }
+#endif
    }
    static void CheckFlag(mfxU16 &tested, mfxU16 ref, mfxU32 &errCount)
    {
@@ -2528,7 +2523,7 @@ protected:
    static mfxU32 CorrectVideoParams(MfxVideoParam &video, mfxExtEncToolsConfig& supportedConfig)
    {
        mfxExtCodingOption2  &extOpt2 = GetExtBufferRef(video);
-       mfxExtCodingOptionDDI *    extDdi = GetExtBuffer(video);
+       mfxExtCodingOptionDDI &extDdi = GetExtBufferRef(video);
 
        mfxExtBRC*  extBRC = GetExtBuffer(video);
        mfxU32 numChanges = 0;
@@ -2540,7 +2535,7 @@ protected:
                video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) &&
                video.calcParam.numTemporalLayer == 0);
            bool bGopStrict = ((video.mfx.GopOptFlag & MFX_GOP_STRICT) != 0);
-           bool bMultiRef = (extDdi->NumActiveRefP != 1);
+           bool bMultiRef = (extDdi.NumActiveRefP != 1);
 
            CheckFlag(pConfig->AdaptiveI, bEncToolsCnd && (!bGopStrict), numChanges);
 
@@ -2594,7 +2589,7 @@ protected:
    {
        encTools = GetExtBuffer(video);
        bCreated = false;
-       if (!encTools->Context)
+       if (!(encTools && encTools->Context))
        {
            encTools = MFXVideoENCODE_CreateEncTools();
            MFX_CHECK(encTools != 0, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -2619,6 +2614,8 @@ private:
     class DdiTask2ndField
     {
     public:
+        DdiTask2ndField() : m_1stFieldTask(nullptr) {}
+
         DdiTask * m_1stFieldTask;
         DdiTask   m_2ndFieldTask;
     };
@@ -2694,6 +2691,10 @@ private:
     public:
         enum {
             STG_ACCEPT_FRAME,
+#if USE_AGOP
+            STG_START_AGOP,
+            STG_WAIT_AGOP,
+#endif
             STG_START_SCD,
             STG_WAIT_SCD,
             STG_START_MCTF,
@@ -2710,6 +2711,10 @@ private:
         enum {
             STG_BIT_CALL_EMULATOR = 0,
             STG_BIT_ACCEPT_FRAME  = 1 << STG_ACCEPT_FRAME,
+#if USE_AGOP
+            STG_BIT_START_AGOP          = 1 << STG_START_AGOP,
+            STG_BIT_WAIT_AGOP          = 1 << STG_WAIT_AGOP,
+#endif
             STG_BIT_START_SCD     = 1 << STG_START_SCD,
             STG_BIT_WAIT_SCD      = 1 << STG_WAIT_SCD,
             STG_BIT_START_MCTF    = 1 << STG_START_MCTF,
@@ -2725,9 +2730,9 @@ private:
 
         AsyncRoutineEmulator();
 
-        AsyncRoutineEmulator(MfxVideoParam const & video,  mfxU32  adaptGopDelay);
+        AsyncRoutineEmulator(MfxVideoParam const & video,  mfxU32  adaptGopDelay, eMFXHWType platform);
 
-        void Init(MfxVideoParam const & video, mfxU32  adaptGopDelay);
+        void Init(MfxVideoParam const & video, mfxU32  adaptGopDelay, eMFXHWType platform);
 
         mfxU32 GetTotalGreediness() const;
 
@@ -2747,6 +2752,17 @@ private:
     struct LAOutObject;
 
     using ns_asc::ASC;
+
+    struct QpHistory
+    {
+        QpHistory() { Reset(); }
+        void Reset() { std::fill_n(history, HIST_SIZE, mfxU8(52)); }
+        void Add(mfxU32 qp);
+        mfxU8 GetAverageQp() const;
+    private:
+        static const mfxU32 HIST_SIZE = 16;
+        mfxU8 history[HIST_SIZE];
+    };
 
     class ImplementationAvc : public VideoENCODE
     {
@@ -2817,6 +2833,14 @@ private:
         virtual mfxStatus GetFrameParam(mfxFrameParam * par);
 
         virtual mfxStatus GetEncodeStat(mfxEncodeStat * stat);
+
+        virtual mfxTaskThreadingPolicy GetThreadingPolicy() {
+            return mfxTaskThreadingPolicy(MFX_TASK_THREADING_INTRA
+#if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
+                | (m_isPOut ? MFX_TASK_POLLING : 0)
+#endif
+            );
+        }
 
         virtual mfxStatus EncodeFrameCheck(
             mfxEncodeCtrl *,
@@ -2891,13 +2915,16 @@ private:
         mfxStatus BuildPPyr(
             DdiTask & task,
             mfxU32 pyrWidth,
-            bool bLastFrameUsing);
+            bool bLastFrameUsing,
+            bool bResetPyr);
+
         void setFrameInfo(DdiTask & task,
             mfxU32    fid);
-        void      AssignDecodeTimeStamp(
-            DdiTask & task);
-        void PreserveTimeStamp(
-            mfxU64 timeStamp);
+
+#if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
+        void addPartialOutputOffset(DdiTask & task, mfxU64 offset, bool last = false);
+#endif
+
         mfxStatus UpdateBitstream(
             DdiTask & task,
             mfxU32    fid); // 0 - top/progressive, 1 - bottom
@@ -2918,17 +2945,26 @@ private:
         mfxStatus CheckBufferSize(DdiTask &task, bool &bToRecode, mfxU32 bsDataLength, mfxBitstream * bs);
         mfxStatus CheckBRCStatus(DdiTask &task, bool &bToRecode, mfxU32 bsDataLength);
         mfxStatus FillPreEncParams(DdiTask &task);
+
+#if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
+        mfxStatus NextBitstreamDataLength(
+            mfxBitstream * bs);
+#endif
+
         void OnNewFrame();
         void SubmitScd();
         void OnScdQueried();
         void OnScdFinished();
 
-        void SubmitAdaptiveGOP();
-        bool OnAdaptiveGOPSubmitted();
-
         void SubmitMCTF();
         void OnMctfQueried();
         void OnMctfFinished();
+
+#if USE_AGOP
+        void SubmitMiniGopSize();
+
+        bool OnMiniGopSizeSubmitted();
+#endif
 
         void OnLookaheadSubmitted(DdiTaskIter task);
 
@@ -2950,6 +2986,10 @@ private:
             mfxU32 threadNumber,
             mfxU32 callNumber);
 
+        static mfxStatus UpdateBitstreamData(
+            void * state,
+            void * param);
+
         void RunPreMe(
             MfxVideoParam const & video,
             DdiTask const &       task);
@@ -2962,8 +3002,21 @@ private:
 
         mfxStatus QueryStatus(
             DdiTask & task,
-            mfxU32    ffid);
+            mfxU32    ffid,
+            bool      useEvent = true);
 
+#if USE_AGOP
+        mfxU32 CalcCostAGOP(
+            DdiTask const & task,
+            mfxI32 prevP,
+            mfxI32 nextP);
+
+        void RunPreMeAGOP(
+            DdiTask* p0,
+            DdiTask* b,
+            DdiTask* p1
+            );
+#endif
 
         mfxStatus MiniGopSize(
             mfxEncodeCtrl**           ctrl,
@@ -3008,7 +3061,6 @@ private:
         std::list<DdiTask>  m_histRun;
         std::list<DdiTask>  m_histWait;
         std::list<DdiTask>  m_encoding;
-        std::list<mfxU64>   m_timeStamps;
         UMC::Mutex          m_listMutex;
         DdiTask             m_lastTask;
         mfxU32              m_stagesToGo;
@@ -3021,6 +3073,7 @@ private:
         mfxU32      m_frameOrderIdrInDisplayOrder;    // frame order of last IDR frame (in display order)
         mfxU32      m_frameOrderIntraInDisplayOrder;  // frame order of last I frame (in display order)
         mfxU32      m_frameOrderIPInDisplayOrder;  // frame order of last I or P frame (in display order)
+        mfxU32      m_frameOrderPyrStart;          // frame order of the first frame of pyramid
         mfxU32      m_miniGopCount;
         mfxU32      m_frameOrderStartTScalStructure; // starting point of temporal scalability structure
 
@@ -3038,11 +3091,21 @@ private:
         mfxU32      m_maxBsSize;
 
         std::unique_ptr<DriverEncoder>    m_ddi;
-
+#if defined(MFX_ENABLE_LP_LOOKAHEAD)
+        std::unique_ptr<MfxLpLookAhead> m_lpLookAhead;
+#endif
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        QpHistory m_qpHistory;
+#endif
         std::vector<mfxU32>     m_recFrameOrder;
 
         mfxU32 m_recNonRef[2];
 
+#if USE_AGOP
+        MfxFrameAllocResponse   m_raw4X;
+        MfxFrameAllocResponse   m_mbAGOP;
+        MfxFrameAllocResponse   m_curbeAGOP;
+#endif
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
         MfxFrameAllocResponse   m_mctf;
 #endif
@@ -3057,7 +3120,6 @@ private:
         MfxFrameAllocResponse   m_bit;
         MfxFrameAllocResponse   m_opaqResponse;     // Response for opaq
         MfxFrameAllocResponse   m_histogram;
-
         MFX_ENCODE_CAPS         m_caps;
         mfxStatus               m_failedStatus;
         mfxU32                  m_inputFrameType;
@@ -3078,6 +3140,15 @@ private:
         bool        m_isENCPAK;
         bool        m_resetBRC;
 
+#if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
+        bool         m_isPOut;
+        int          m_modePOut;
+        mfxU32       m_blockPOut;
+
+        std::mutex   m_offsetMutex;
+        std::unordered_map<mfxBitstream*, std::queue<uint64_t>> m_offsetsMap;
+#endif
+
         // bitrate reset for SNB
 
         std::unique_ptr<CmContext>    m_cmCtx;
@@ -3085,16 +3156,24 @@ private:
         std::vector<VmeData *>      m_tmpVmeData;
 
 
-        std::list<DdiTask>  m_adaptiveGOPBuffered;
-        std::list<DdiTask>  m_adaptiveGOPSubmitted;
-        std::list<DdiTask>  m_adaptiveGOPFinished;
-        std::list<DdiTask>  m_adaptiveGOPReady;
+#if USE_AGOP
+        mfxI32        m_agopBestIdx;
+        mfxI32        m_agopCurrentLen;
+        mfxI32        m_agopFinishedLen;
+        mfxI32        m_agopDeps;
+        std::list<DdiTask>  m_MiniGopSizeBuffered;
+        std::list<DdiTask>  m_MiniGopSizeSubmitted;
+        std::list<DdiTask>  m_MiniGopSizeFinished;
+        std::list<DdiTask>  m_MiniGopSizeReady;
+        mfxU8 m_bestGOPSequence[MAX_B_FRAMES][MAX_GOP_SEQUENCE+1];
+        mfxU32 m_bestGOPCost[MAX_B_FRAMES];
+        std::vector<LAOutObject>       m_mbData;
+#endif
         mfxU32      m_LowDelayPyramidLayer;
         mfxI32      m_LtrQp;
         mfxI32      m_LtrOrder;
         mfxI32      m_RefQp;
         mfxI32      m_RefOrder;
-
     };
 
 
@@ -3190,6 +3269,177 @@ private:
         NalUnit slice; // first slice if multi-sliced
     };
 
+#ifdef MFX_ENABLE_MVC_VIDEO_ENCODE_HW
+    class ImplementationMvc : public VideoENCODE
+    {
+    public:
+        static mfxStatus Query(
+            VideoCORE *     core,
+            mfxVideoParam * in,
+            mfxVideoParam * out);
+
+        static mfxStatus QueryIOSurf(
+            VideoCORE *            core,
+            mfxVideoParam *        par,
+            mfxFrameAllocRequest * request);
+
+        ImplementationMvc(
+            VideoCORE * core);
+
+// MVC BD {
+        void GetInitialHrdState(
+            MvcTask & task,
+            mfxU32 viewIdx);
+
+        void PatchTask(
+            MvcTask const & mvcTask,\
+            DdiTask & curTask,
+            mfxU32 fieldId);
+// MVC BD }
+
+        virtual mfxStatus Init(mfxVideoParam *par);
+
+        virtual mfxStatus Close();
+
+        virtual mfxTaskThreadingPolicy GetThreadingPolicy();
+
+        virtual mfxStatus Reset(mfxVideoParam *par);
+
+        virtual mfxStatus GetVideoParam(mfxVideoParam *par);
+
+        virtual mfxStatus GetFrameParam(mfxFrameParam *par);
+
+        virtual mfxStatus GetEncodeStat(mfxEncodeStat *stat);
+
+        virtual mfxStatus EncodeFrameCheck(
+            mfxEncodeCtrl *,
+            mfxFrameSurface1 *,
+            mfxBitstream *,
+            mfxFrameSurface1 **,
+            mfxEncodeInternalParams *)
+        {
+            return MFX_ERR_UNSUPPORTED;
+        }
+
+        virtual mfxStatus EncodeFrameCheck(
+            mfxEncodeCtrl *           ctrl,
+            mfxFrameSurface1 *        surface,
+            mfxBitstream *            bs,
+            mfxFrameSurface1 **       reordered_surface,
+            mfxEncodeInternalParams * pInternalParams,
+            MFX_ENTRY_POINT           pEntryPoints[],
+            mfxU32 &                  numEntryPoints);
+
+        virtual mfxStatus EncodeFrame(
+            mfxEncodeCtrl *,
+            mfxEncodeInternalParams *,
+            mfxFrameSurface1 *,
+            mfxBitstream *)
+        {
+            return MFX_ERR_UNSUPPORTED;
+        }
+
+        virtual mfxStatus CancelFrame(
+            mfxEncodeCtrl *,
+            mfxEncodeInternalParams *,
+            mfxFrameSurface1 *,
+            mfxBitstream *)
+        {
+            return MFX_ERR_UNSUPPORTED;
+        }
+
+    protected:
+        ImplementationMvc(ImplementationMvc const &);
+        ImplementationMvc & operator =(ImplementationMvc const &);
+
+        static mfxStatus TaskRoutineDoNothing(
+            void * state,
+            void * param,
+            mfxU32 threadNumber,
+            mfxU32 callNumber);
+
+        static mfxStatus TaskRoutineSubmit(
+            void * state,
+            void * param,
+            mfxU32 threadNumber,
+            mfxU32 callNumber);
+
+// MVC BD {
+        static mfxStatus TaskRoutineSubmitOneView(
+            void * state,
+            void * param,
+            mfxU32 threadNumber,
+            mfxU32 callNumber);
+
+        static mfxStatus TaskRoutineQueryOneView(
+            void * state,
+            void * param,
+            mfxU32 threadNumber,
+            mfxU32 callNumber);
+// MVC BD }
+
+        static mfxStatus TaskRoutineQuery(
+            void * state,
+            void * param,
+            mfxU32 threadNumber,
+            mfxU32 callNumber);
+
+        mfxStatus UpdateBitstream(
+            MvcTask & task,
+            mfxU32    fieldId); // 0 - top/progressive, 1 - bottom
+
+// MVC BD {
+        mfxStatus UpdateBitstreamBaseView(
+            DdiTask & task,
+            mfxU32    fieldId); // 0 - top/progressive, 1 - bottom
+        mfxStatus UpdateBitstreamDepView(
+            DdiTask & task,
+            mfxU32    fieldId); // 0 - top/progressive, 1 - bottom
+        // w/a for SNB/IVB: calculate size of padding to compensate re-pack  of AVC headers to MVC
+        mfxU32 CalcPaddingToCompensateRepack(
+            DdiTask & task,
+            mfxU32 fieldId);
+
+        mfxStatus CopyRawSurface(DdiTask const & task);
+
+        mfxMemId GetRawSurfaceMemId(DdiTask const & task);
+
+        mfxStatus GetRawSurfaceHandle(DdiTask const & task, mfxHDLPair & hdl);
+// MVC BD }
+
+        VideoCORE *         m_core;
+        MfxVideoParam       m_video;
+        MfxVideoParam       m_videoInit;  // m_video may change by Reset, m_videoInit doesn't change
+        TaskManagerMvc      m_taskMan;
+        MFX_ENCODE_CAPS     m_ddiCaps;
+
+        std::vector<Hrd>            m_hrd;
+// MVC BD {
+        std::unique_ptr<DriverEncoder> m_ddi[2];
+        mfxU8                        m_numEncs;
+        MfxFrameAllocResponse       m_raw[2];
+        MfxFrameAllocResponse       m_bitstream[2];
+        MfxFrameAllocResponse       m_recon[2];
+        // w/a for SNB/IVB: m_spsSubsetSpsDiff is used to calculate padding size for compensation of re-pack AVC headers to MVC
+        mfxU32                      m_spsSubsetSpsDiff;
+// MVC BD }
+        MfxFrameAllocResponse       m_opaqResponse;     // Response for opaq
+
+        PreAllocatedVector          m_sei;
+        std::vector<mfxU8>          m_sysMemBits;
+        std::vector<BitstreamDesc>  m_bitsDesc;
+        eMFXHWType m_currentPlatform;
+        bool m_useWAForHighBitrates; // FIXME: w/a for SNB/IBV issue with HRD at high bitrates
+// MVC BD {
+        std::vector<mfxU16> m_submittedPicStructs[2];
+// MVC BD }
+
+        mfxU32                      m_inputFrameType;
+#ifdef MVC_ADD_REF
+        mfxI32                      m_bufferSizeModifier; // required to obey HRD conformance after 'dummy' run in ViewOutput mode
+#endif // MVC_ADD_REF
+    };
+#endif // #ifdef MFX_ENABLE_MVC_VIDEO_ENCODE_HW
 
     class InputBitstream
     {
@@ -3303,7 +3553,6 @@ private:
 // MVC BD }
 
 
-
     mfxU8 const * SkipStartCode(mfxU8 const * begin, mfxU8 const * end);
     mfxU8 *       SkipStartCode(mfxU8 *       begin, mfxU8 *       end);
 
@@ -3382,10 +3631,243 @@ private:
 
     void PrepareSeiMessageBufferDepView(
         MfxVideoParam const & video,
+#ifdef AVC_BS
+        DdiTask &       task,
+#else // AVC_BS
         DdiTask const &       task,
+#endif // AVC_BS
         mfxU32                fieldId, // 0 - top/progressive, 1 - bottom
         PreAllocatedVector &  sei);
 
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+    class SvcTask : public Surface
+    {
+    public:
+        SvcTask()
+            : m_layerNum(0)
+        {
+        }
+
+        void Allocate(mfxU32 layerNum)
+        {
+            m_layer.reset(new DdiTask *[layerNum]);
+            m_layerNum = layerNum;
+        }
+
+        mfxU32 LayerNum() const
+        {
+            return m_layerNum;
+        }
+
+        DdiTask *& operator [](mfxU32 i)
+        {
+            assert(i < m_layerNum);
+            assert(m_layer.cptr());
+            return m_layer[i];
+        }
+
+        DdiTask * const & operator [](mfxU32 i) const
+        {
+            assert(i < m_layerNum);
+            assert(m_layer.cptr());
+            return m_layer[i];
+        }
+
+    private:
+        ScopedArray<DdiTask *> m_layer;
+        mfxU32                 m_layerNum;
+    };
+
+    class TaskManagerSvc
+    {
+    public:
+        TaskManagerSvc();
+        ~TaskManagerSvc();
+
+        void Init(
+            VideoCORE *           core,
+            MfxVideoParam const & video);
+
+        void Reset(MfxVideoParam const & video); // w/o re-allocation
+
+        void Close();
+
+        mfxStatus AssignTask(
+            mfxEncodeCtrl *    ctrl,
+            mfxFrameSurface1 * surface,
+            mfxBitstream *     bs,
+            SvcTask *&         newTask);
+
+        void CompleteTask(SvcTask & task);
+
+        const mfxEncodeStat & GetEncodeStat() const { return m_stat; }
+
+    private:
+        mfxStatus AssignAndConfirmAvcTask(
+            mfxEncodeCtrl *    ctrl,
+            mfxFrameSurface1 * surface,
+            mfxBitstream *     bs,
+            mfxU32             layerId);
+
+        TaskManagerSvc(TaskManagerSvc const &);
+        TaskManagerSvc & operator =(TaskManagerSvc const &);
+
+        VideoCORE *              m_core;
+        MfxVideoParam const *    m_video;
+        UMC::Mutex               m_mutex;
+
+        ScopedArray<TaskManager> m_layer;
+        mfxU32                   m_layerNum;
+
+        std::vector<std::pair<mfxU32, mfxU32> > m_dqid;
+
+        ScopedArray<SvcTask>     m_task;
+        mfxU32                   m_taskNum;
+
+        SvcTask *                m_currentTask;
+        mfxU32                   m_currentLayerId;
+        mfxEncodeStat            m_stat;
+    };
+
+    typedef CompleteTaskOnExit<TaskManagerSvc, SvcTask> CompleteTaskOnExitSvc;
+
+    class ImplementationSvc : public VideoENCODE
+    {
+    public:
+        static mfxStatus Query(
+            VideoCORE *     core,
+            mfxVideoParam * in,
+            mfxVideoParam * out);
+
+        static mfxStatus QueryIOSurf(
+            VideoCORE *            core,
+            mfxVideoParam *        par,
+            mfxFrameAllocRequest * request);
+
+        ImplementationSvc(VideoCORE * core);
+
+        virtual ~ImplementationSvc();
+
+        virtual mfxStatus Init(mfxVideoParam * par);
+
+        virtual mfxStatus Close() { return MFX_ERR_NONE; }
+
+        virtual mfxStatus Reset(mfxVideoParam * par);
+
+        virtual mfxStatus GetVideoParam(mfxVideoParam * par);
+
+        virtual mfxStatus GetFrameParam(mfxFrameParam * par);
+
+        virtual mfxStatus GetEncodeStat(mfxEncodeStat * stat);
+
+        virtual mfxTaskThreadingPolicy GetThreadingPolicy() {
+            return MFX_TASK_THREADING_INTRA;
+        }
+
+        virtual mfxStatus EncodeFrameCheck(
+            mfxEncodeCtrl *,
+            mfxFrameSurface1 *,
+            mfxBitstream *,
+            mfxFrameSurface1 **,
+            mfxEncodeInternalParams *)
+        {
+            return MFX_ERR_UNSUPPORTED;
+        }
+
+        virtual mfxStatus EncodeFrameCheck(
+            mfxEncodeCtrl *           ctrl,
+            mfxFrameSurface1 *        surface,
+            mfxBitstream *            bs,
+            mfxFrameSurface1 **       reordered_surface,
+            mfxEncodeInternalParams * internalParams,
+            MFX_ENTRY_POINT *         entryPoints,
+            mfxU32 &                  numEntryPoints);
+
+        virtual mfxStatus EncodeFrame(
+            mfxEncodeCtrl *,
+            mfxEncodeInternalParams *,
+            mfxFrameSurface1 *,
+            mfxBitstream *)
+        {
+            return MFX_ERR_UNSUPPORTED;
+        }
+
+        virtual mfxStatus CancelFrame(
+            mfxEncodeCtrl *,
+            mfxEncodeInternalParams *,
+            mfxFrameSurface1 *,
+            mfxBitstream *)
+        {
+            return MFX_ERR_UNSUPPORTED;
+        }
+
+    protected:
+
+        mfxStatus AssignTask(
+            mfxEncodeCtrl *    ctrl,
+            mfxFrameSurface1 * surface,
+            mfxBitstream *     bs,
+            SvcTask **         newTask);
+
+        mfxStatus CopyRawSurface(
+            DdiTask const & task);
+
+        mfxHDLPair GetRawSurfaceHandle(
+            DdiTask const & task);
+
+        mfxStatus UpdateBitstream(
+            SvcTask & task,
+            mfxU32    fieldId); // 0 - top/progressive, 1 - bottom
+
+        void PrepareSeiMessageBuffer(
+            DdiTask const &      task,
+            mfxU32               fieldId, // 0 - top/progressive, 1 - bottom
+            PreAllocatedVector & sei);
+
+        static mfxStatus TaskRoutineDoNothing(
+            void * state,
+            void * param,
+            mfxU32 threadNumber,
+            mfxU32 callNumber);
+
+        static mfxStatus TaskRoutineSubmit(
+            void * state,
+            void * param,
+            mfxU32 threadNumber,
+            mfxU32 callNumber);
+
+        static mfxStatus TaskRoutineQuery(
+            void * state,
+            void * param,
+            mfxU32 threadNumber,
+            mfxU32 callNumber);
+
+        mfxStatus UpdateDeviceStatus(mfxStatus sts);
+
+        mfxStatus CheckDevice();
+
+    private:
+        VideoCORE *                         m_core;
+        MfxVideoParam                       m_video;
+        MfxVideoParam                       m_videoInit;    // m_video may change by Reset, m_videoInit doesn't change
+        Hrd                                 m_hrd;
+        std::unique_ptr<DriverEncoder>        m_ddi;
+        GUID                                m_guid;
+        TaskManagerSvc                      m_manager;
+        mfxU32                              m_maxBsSize;
+        MfxFrameAllocResponse               m_raw;
+        MfxFrameAllocResponse               m_recon;
+        MfxFrameAllocResponse               m_bitstream;
+        MfxFrameAllocResponse               m_opaqResponse;     // Response for opaq
+        ENCODE_MBDATA_LAYOUT                m_layout;
+        MFX_ENCODE_CAPS                     m_caps;
+        bool                                m_deviceFailed;
+        mfxU32                              m_inputFrameType;
+        PreAllocatedVector                  m_sei;
+        std::vector<mfxU8>                  m_tmpBsBuf;
+        std::vector<mfxU8>                  m_scalabilityInfo;
+    };
+#endif // #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
 
     bool IsInplacePatchNeeded(
         MfxVideoParam const & par,
@@ -3591,7 +4073,7 @@ private:
 
     mfxHDL ConvertMidToNativeHandle(
         VideoCORE & core,
-        mfxMemId    mid,
+        mfxFrameSurface1& surf,
         bool        external = false);
 
     void AnalyzeVmeData(
@@ -3656,6 +4138,120 @@ private:
 
         return p;
     }
+
+#ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
+    /// <summary>Function reads array[inSize] to array[outSize][outSize] in ZigZag order.</summary>
+    /// <description>Function reads array[inSize] to array[outSize][outSize] in ZigZag order.
+    /// 1 2 3    1 2 6
+    /// 4 5 6 -> 3 5 7
+    /// 7 8 9    4 8 9
+    /// </description>
+    /// <param name="inPtr">Pointer for the input array, has to be non-NULL</param>
+    /// <param name="inSize">Size of input array, works only with quad arrays. For example, inSize for matrix 4x4 is 16</param>
+    /// <param name="outPtr">Pointer for the output array, has to be non-NULL</param>
+    /// <param name="outSize">Size of output buffer, has to be not less than multiplied dimensions of input matrix. For example, outSize for matrix 4x4 has to be greater than or equal to 4x4</param>
+    template<class T> void MakeZigZag(void const * const inPtr, const size_t inSize, void * const outPtr, const size_t outSize)
+    {
+        T const * const in = static_cast<T const * const>(inPtr);
+        T * const out = static_cast<T * const>(outPtr);
+
+        assert(inPtr != NULL);
+        assert(outPtr != NULL);
+        assert((inSize * inSize) <= outSize);
+        (void)outSize;
+
+        uint64_t y = 0, x = 0;
+        for (uint64_t i = 0, pos = 0, size = inSize * inSize; i < inSize; ++i)
+        {
+            if (y <= x)
+            {
+                y = i;
+                x = 0;
+                for (; x <= i; --y, ++x, ++pos)
+                {
+                    out[y*inSize + x] = in[(pos / inSize)*inSize + pos % inSize];
+                    out[(inSize - y - 1)*inSize + inSize - x - 1] = in[((size - pos - 1) / inSize)*inSize + (size - pos - 1) % inSize];
+                }
+            }
+            else
+            {
+                x = i;
+                y = 0;
+                for (; y <= i; --x, ++y, ++pos)
+                {
+                    out[y*inSize + x] = in[(pos / inSize)*inSize + pos % inSize];
+                    out[(inSize - y - 1)*inSize + inSize - x - 1] = in[((size - pos - 1) / inSize)*inSize + (size - pos - 1) % inSize];
+                }
+            }
+        }
+    }
+
+    /// <summary>Function reads array[inSize][inSize] in ZigZag order to array[outSize].</summary>
+    /// <description>Function reads T array[inSize][inSize] in ZigZag order into T array[outSize].
+    /// 1 2 6    1 2 3
+    /// 3 5 7 -> 4 5 6
+    /// 4 8 9    7 8 9
+    /// </description>
+    /// <param name="inPtr">Pointer for the input array, has to be non-NULL</param>
+    /// <param name="inSize">Size of input array, works only with quad arrays. For example, inSize for matrix 4x4 is 4</param>
+    /// <param name="outPtr">Pointer for the output array, has to be non-NULL</param>
+    /// <param name="outSize">Size of output buffer, has to be not less than inSize*inSize. For example, outSize for matrix 4x4 has to be greater than or equal to 16</param>
+    template<class T> void ZigZagToPlane(void const * const inPtr, const size_t inSize, void * const outPtr, const size_t outSize)
+    {
+        T const * const in = static_cast<T const * const>(inPtr);
+        T * const out = static_cast<T * const>(outPtr);
+
+        assert(inPtr != NULL);
+        assert(outPtr != NULL);
+        assert((inSize * inSize) <= outSize);
+        (void)outSize;
+
+        uint64_t y = 0, x = 0;
+        for (uint64_t i = 0, pos = 0, size = inSize * inSize; i < inSize; ++i)
+        {
+            if (y <= x)
+            {
+                y = i;
+                x = 0;
+                for (; x <= i; --y, ++x, ++pos)
+                {
+                    out[(pos / inSize)*inSize + pos % inSize] = in[y*inSize + x];
+                    out[((size - pos - 1) / inSize)*inSize + (size - pos - 1) % inSize] = in[(inSize - y - 1)*inSize + inSize - x - 1];
+                }
+            }
+            else
+            {
+                x = i;
+                y = 0;
+                for (; y <= i; --x, ++y, ++pos)
+                {
+                    out[(pos / inSize)*inSize + pos % inSize] = in[y*inSize + x];
+                    out[((size - pos - 1) / inSize)*inSize + (size - pos - 1) % inSize] = in[(inSize - y - 1)*inSize + inSize - x - 1];
+                }
+            }
+        }
+    }
+    ///<summary>Function fills custom quantization matrices into inMatrix, writes in ZigZag orde</summary>
+    ///<param name="ScenarioInfo">Fills matrices depends on selected ScenarioInfo (CodingOption3)</param>
+    ///<return>MFX_ERR_NONE if matrices were copied, MFX_ERR_NOT_FOUND if requested ScenarioInfo isn't supported</return>
+    mfxStatus FillCustomScalingLists(void *inMatrix, mfxU16 ScenarioInfo, mfxU8 maxtrixIndex = 0);
+
+    ///<summary>Function fills default values of scaling list</summary>
+    ///<param name="outList">Pointer to the output list</param>
+    ///<param name="outListSize">Size of output list, has to be not less than 16 for indexes 0..5, and not less than 64 for 6..11</param>
+    ///<param name="index">Index of scaling list according Table 7-2 Rec. ITU-T H.264, has to be in range 0..11</param>
+    ///<param name="zigzag">Flag, if set to true, output values will be ordered in zigzag order, default - false</param>
+    ///<return>MFX_ERR_NONE if default values were copied, MFX_ERR_NOT_FOUND if index not in range 0..11</return>
+    mfxStatus GetDefaultScalingList(mfxU8 *outList, mfxU8 outListSize, mfxU8 index, bool zigzag);
+
+    ///<summary>Function fills qMatrix for task based on values provided in extSps and extPps</summary>
+    ///<description>Function expects value of extSps.seqScalingMatrixPresentFlag and value of extPps.picScalingMatrixPresentFlag
+    ///were verified before call. Otherwise default scaling lists will be used, but it won't be expected behavior</description>
+    ///<param name="extSps">SPS header with defined (or not defined) scaling lists</param>
+    ///<param name="extPps">PPS header with defined (or not defined) scaling lists</param>
+    ///<param name="task">DDI task for the filling scaling lists for current frame</param>
+    void FillTaskScalingList(mfxExtSpsHeader const &extSps, mfxExtPpsHeader const &extPps, DdiTask &task);
+#endif
 }; // namespace MfxHwH264Encode
 
 #endif // _MFX_H264_ENCODE_HW_UTILS_H_

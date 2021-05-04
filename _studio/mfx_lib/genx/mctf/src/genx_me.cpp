@@ -17,6 +17,13 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+
+#pragma warning(disable: 4127)
+#pragma warning(disable: 4244)
+#pragma warning(disable: 4018)
+#pragma warning(disable: 4189)
+#pragma warning(disable: 4505)
 #include "../include/genx_me_common.h"
 #define COMPLEX_BIDIR 1
 #define INVERTMOTION  1
@@ -928,22 +935,8 @@ void MeP16_1ME_2BiRef_MRE_8x8(
     vector<short, 2>
         mv16;
     VME_GET_IMEOutput_Rec0_16x16_Mv(imeOut, mv16);
-
-
-#if 0
-    mvPred2 = -mv16;
-    // M0.5 Reference Window Width & Height
-    VME_SET_UNIInput_RefW(uniIn, 32);//48);
-    VME_SET_UNIInput_RefH(uniIn, 32);//40);
-    SetRef(sourceXY, mvPred2, searchWindow, widthHeight, ref1XY);
-    run_vme_ime(uniIn, imeIn,
-        VME_STREAM_OUT, VME_SEARCH_SINGLE_REF_SINGLE_REC_SINGLE_START,
-        SURF_SRC_AND_REF2, ref1XY, NULL, costCenter, imeOut);
-    mv8_2 = imeOut.row(8).format<short>().select<8, 1>(8); // 4 MVs
-    dist8_2 = imeOut.row(7).format<ushort>().select<4, 1>(4);
-#else
     mv8_2 = -mv8; // 4 MVs
-#endif
+
     // distortions Integer search results
     // 8x8
     write(SURF_DIST8x8, mbX * DIST_SIZE * 2, mbY * 2, dist8.format<uint, 2, 2>());     //8x8 Forward SAD

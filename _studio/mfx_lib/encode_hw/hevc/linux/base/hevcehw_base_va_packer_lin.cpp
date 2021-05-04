@@ -21,10 +21,9 @@
 #include "mfx_common.h"
 #include "hevcehw_base_va_packer_lin.h"
 
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 #include "mfx_common_int.h"
 #include "hevcehw_base_va_lin.h"
-#include "mfx_session.h"
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
@@ -50,7 +49,7 @@ void VAPacker::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
             + (64 >> 4) * (!bBase);
 
         caps.BRCReset                   = 1; // no bitrate resolution control
-        caps.BlockSize                  = 2;
+        caps.BlockSize                  = (platform >= MFX_HW_TGL_LP) ? 1 : 2;
         caps.MbQpDataSupport            = 1;
         caps.TUSupport                  = 73;
         caps.ParallelBRC                = bLP ? 0 : 1;
@@ -81,7 +80,7 @@ void InitSPS(
 
     if (   par.mfx.RateControlMethod != MFX_RATECONTROL_CQP
         && par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ
-        && par.mfx.RateControlMethod != MFX_RATECONTROL_LA_EXT)
+        )
     {
         sps.bits_per_second = TargetKbps(par.mfx) * 1000;
     }
@@ -216,29 +215,6 @@ void InitSSH(
         slices.rbegin()->slice_fields.bits.last_slice_of_pic_flag = 1;
 }
 
-void InitPriority(
-    const mfxU32& maxContextPriority,
-    const mfxPriority& contextPriority,
-    VAContextParameterUpdateBuffer& hevcPriorityBuffer)
-{
-    memset(&hevcPriorityBuffer, 0, sizeof(VAContextParameterUpdateBuffer));
-
-    hevcPriorityBuffer.flags.bits.context_priority_update = 1;
-
-    if(contextPriority == MFX_PRIORITY_LOW)
-    {
-        hevcPriorityBuffer.context_priority.bits.priority = 0;
-    }
-    else if (contextPriority == MFX_PRIORITY_HIGH)
-    {
-        hevcPriorityBuffer.context_priority.bits.priority = maxContextPriority;
-    }
-    else
-    {
-        hevcPriorityBuffer.context_priority.bits.priority = maxContextPriority/2;
-    }
-}
-
 void AddVaMiscHRD(
     const Glob::VideoParam::TRef& par
     , std::list<std::vector<mfxU8>>& buf)
@@ -259,9 +235,9 @@ void AddVaMiscRC(
     auto& rc = AddVaMisc<VAEncMiscParameterRateControl>(VAEncMiscParameterTypeRateControl, buf);
 
     uint32_t bNeedRateParam =
-            par.mfx.RateControlMethod != MFX_RATECONTROL_CQP
+           par.mfx.RateControlMethod != MFX_RATECONTROL_CQP
         && par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ
-        && par.mfx.RateControlMethod != MFX_RATECONTROL_LA_EXT;
+        ;
 
     rc.bits_per_second = bNeedRateParam * MaxKbps(par.mfx) * 1000;
 
@@ -390,6 +366,7 @@ void AddVaMiscMaxSliceSize(
 
 void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples, mfxU32 blockSize)
 {
+    //16 or 32 : driver limitation
     mfxU32 blkSz   = 8 << blockSize;
     m_width        = (picWidthInLumaSamples  + blkSz - 1) / blkSz;
     m_height       = (picHeightInLumaSamples + blkSz - 1) / blkSz;
@@ -412,7 +389,9 @@ static bool FillCUQPDataVA(
         cuqpMap.m_width
         && cuqpMap.m_height
         && cuqpMap.m_block_width
-        && cuqpMap.m_block_height;
+        && cuqpMap.m_block_height
+        && cuqpMap.m_pitch
+        && cuqpMap.m_h_aligned;
 
     if (!bInitialized)
         return false;
@@ -420,8 +399,8 @@ static bool FillCUQPDataVA(
     const mfxExtHEVCParam & HEVCParam = ExtBuffer::Get(par);
 
     mfxU32 drBlkW = cuqpMap.m_block_width;  // block size of driver
-    mfxU32 drBlkH = cuqpMap.m_block_height;  // block size of driver
-    mfxU16 inBlkSize = 16;                    //mbqp->BlockSize ? mbqp->BlockSize : 16;  //input block size
+    mfxU32 drBlkH = cuqpMap.m_block_height; // block size of driver
+    mfxU16 inBlkSize = 16; //mbqp->BlockSize ? mbqp->BlockSize : 16;  //input block size
 
     mfxU32 inputW = CeilDiv(HEVCParam.PicWidthInLumaSamples, inBlkSize);
     mfxU32 inputH = CeilDiv(HEVCParam.PicHeightInLumaSamples, inBlkSize);
@@ -430,6 +409,7 @@ static bool FillCUQPDataVA(
     if (bInvalid)
         return false;
 
+    // Fill all LCU blocks: HW hevc averages QP
     for (mfxU32 i = 0; i < cuqpMap.m_h_aligned; i++)
     {
         for (mfxU32 j = 0; j < cuqpMap.m_pitch; j++)
@@ -450,8 +430,8 @@ void UpdatePPS(
     , const std::vector<VASurfaceID> & rec
     , VAEncPictureParameterBufferHEVC & pps)
 {
-    pps.pic_fields.bits.idr_pic_flag       = !!(task.FrameType & MFX_FRAMETYPE_IDR);
-    pps.pic_fields.bits.coding_type        = task.CodingType;
+    pps.pic_fields.bits.idr_pic_flag = !!(task.FrameType & MFX_FRAMETYPE_IDR);
+    pps.pic_fields.bits.coding_type = task.CodingType;
     pps.pic_fields.bits.reference_pic_flag = !!(task.FrameType & MFX_FRAMETYPE_REF);
 
     pps.collocated_ref_pic_index = 0xff;
@@ -464,23 +444,23 @@ void UpdatePPS(
     pps.nal_unit_type                   = task.SliceNUT;
 
     auto pDpbBegin = task.DPB.Active;
-    auto pDpbEnd   = task.DPB.Active + Size(task.DPB.Active);
+    auto pDpbEnd = task.DPB.Active + Size(task.DPB.Active);
     auto pDpbValidEnd = std::find_if(pDpbBegin, pDpbEnd
         , [](decltype(*pDpbBegin) ref) { return ref.Rec.Idx == IDX_INVALID; });
 
     std::transform(pDpbBegin, pDpbValidEnd, pps.reference_frames
         , [&](decltype(*pDpbBegin) ref)
     {
-        VAPictureHEVC vaRef  = {};
-        vaRef.picture_id     = rec.at(ref.Rec.Idx);
-        vaRef.pic_order_cnt  = ref.POC;
-        vaRef.flags          = VA_PICTURE_HEVC_LONG_TERM_REFERENCE * !!ref.isLTR;
+        VAPictureHEVC vaRef = {};
+        vaRef.picture_id = rec.at(ref.Rec.Idx);
+        vaRef.pic_order_cnt = ref.POC;
+        vaRef.flags = VA_PICTURE_HEVC_LONG_TERM_REFERENCE * !!ref.isLTR;
         return vaRef;
     });
 
     VAPictureHEVC vaRefInvalid = {};
     vaRefInvalid.picture_id = VA_INVALID_SURFACE;
-    vaRefInvalid.flags      = VA_PICTURE_HEVC_INVALID;
+    vaRefInvalid.flags = VA_PICTURE_HEVC_INVALID;
 
     std::fill(
         pps.reference_frames + (pDpbValidEnd - pDpbBegin)
@@ -498,7 +478,7 @@ void VAPacker::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         const auto& par = Glob::VideoParam::Get(strg);
         auto& cc = CC::GetOrConstruct(strg);
 
-        cc.InitSPS.Push([ &par](
+        cc.InitSPS.Push([&par](
             CallChains::TInitSPS::TExt
             , const StorageR& glob
             , VAEncSequenceParameterBufferHEVC& sps)
@@ -859,8 +839,6 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         , [this](StorageW& global, StorageW& s_task) -> mfxStatus
     {
         auto& task      = Task::Common::Get(s_task);
-        auto& core      = Glob::VideoCore::Get(global);
-        const auto& priority_par = Glob::PriorityPar::Get(global);
         bool  bSkipCurr =
             !(task.SkipCMD & SKIPCMD_NeedDriverCall)
             && (task.SkipCMD & SKIPCMD_NeedCurrentFrameSkipping);
@@ -971,13 +949,6 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
                 auto& misc = m_vaPerPicMiscData.back();
                 par.push_back(PackVaBuffer(VAEncMiscParameterBufferType, misc.data(), (mfxU32)misc.size()));
             }
-        }
-
-        if(priority_par.m_MaxContextPriority)
-        {
-            mfxPriority contextPriority = core.GetSession()->m_priority;
-            InitPriority(priority_par.m_MaxContextPriority, contextPriority, m_hevcPriorityBuf);
-            par.push_back(PackVaBuffer(VAContextParameterUpdateBufferType , m_hevcPriorityBuf));
         }
 
         SetFeedback(task.StatusReportId, *(VASurfaceID*)task.HDLRaw.first, GetResources(RES_BS).at(task.BS.Idx));

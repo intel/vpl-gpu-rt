@@ -1,15 +1,15 @@
-// Copyright (c) 2020 Intel Corporation
-// 
+// Copyright (c) 2014-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,6 +22,9 @@
 
 #include "umc_structures.h"
 #include "umc_defs.h"
+#include "ippcore.h"
+#include "ipps.h"
+#include "ippcc.h"
 #include "mfx_common.h"
 #include "mfx_common_decode_int.h"
 #include "mfx_common_int.h"
@@ -161,9 +164,13 @@ mfxStatus MFX_VP8_Utility::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVide
 
     if (p_in == p_out)
     {
-        mfxVideoParam in1 = *p_in;
+        mfxVideoParam in1;
+        MFX_INTERNAL_CPY(&in1, p_in, sizeof(mfxVideoParam));
         return Query(p_core, &in1, p_out, type);
     }
+
+    if (p_core->GetPlatformType() == MFX_PLATFORM_HARDWARE && p_core->GetHWType() >= MFX_HW_ADL_S)
+        return MFX_ERR_UNSUPPORTED;
 
     memset(&p_out->mfx, 0, sizeof(mfxInfoMFX));
 
@@ -263,29 +270,6 @@ mfxStatus MFX_VP8_Utility::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVide
             sts = MFX_ERR_UNSUPPORTED;
         }
 
-        mfxExtOpaqueSurfaceAlloc *opaque_in = (mfxExtOpaqueSurfaceAlloc *)GetExtBuffer(p_in->ExtParam, p_in->NumExtParam, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
-        mfxExtOpaqueSurfaceAlloc *opaque_out = (mfxExtOpaqueSurfaceAlloc *)GetExtBuffer(p_out->ExtParam, p_out->NumExtParam, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
-
-        if (opaque_in && opaque_out)
-        {
-            MFX_CHECK(opaque_out->In.Surfaces && opaque_in->In.Surfaces, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-            opaque_out->In.Type = opaque_in->In.Type;
-            opaque_out->In.NumSurface = opaque_in->In.NumSurface;
-            if (opaque_in->In.Surfaces != opaque_out->In.Surfaces)
-                std::copy_n(opaque_in->In.Surfaces, opaque_in->In.NumSurface, opaque_out->In.Surfaces);
-
-            MFX_CHECK(opaque_out->Out.Surfaces && opaque_in->Out.Surfaces, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-            opaque_out->Out.Type = opaque_in->Out.Type;
-            opaque_out->Out.NumSurface = opaque_in->Out.NumSurface;
-            if (opaque_in->Out.Surfaces !=  opaque_out->Out.Surfaces)
-                std::copy_n(opaque_in->Out.Surfaces, opaque_in->Out.NumSurface, opaque_out->Out.Surfaces);
-        }
-        else
-        {
-            MFX_CHECK(!opaque_out && !opaque_in, MFX_ERR_UNDEFINED_BEHAVIOR);
-        }
 
         if (GetPlatform(p_core, p_out) != p_core->GetPlatformType() && sts == MFX_ERR_NONE)
         {

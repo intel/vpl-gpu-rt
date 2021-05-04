@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2003-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,9 +20,25 @@
 
 #include "umc_color_space_conversion.h"
 #include "umc_video_data.h"
+#if !defined(MSDK_USE_EXTERNAL_IPP)
 #include "ippi.h"
 #include "ippcc.h"
 #include "ippvc.h"
+#else
+#include "ippcc2mfx.h"
+#include "ipp2mfx.h"
+#endif
+
+#if defined(__GNUC__)
+#if defined(__INTEL_COMPILER)
+#pragma warning (disable:1478)
+#else
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#endif
+#if defined(__INTEL_COMPILER)
+    #pragma warning disable 1478
+#endif
 
 using namespace UMC;
 
@@ -276,7 +292,7 @@ Status ColorSpaceConversion::GetFrameInternal(MediaData *input, MediaData *outpu
   case IMC3:
     switch (dstFormat) {
     case YUV420:
-      //status = ippiYCbCr411ToYCbCr420_8u_P3R(pSrc, pSrcStep, pDst, pDstStep, srcSize);
+      //status = mfxiYCbCr411ToYCbCr420_8u_P3R(pSrc, pSrcStep, pDst, pDstStep, srcSize);
 
         status = cc_IMC3_to_YUV420(pSrc, pSrcStep, pDst, pDstStep, srcSize);
       break;
@@ -287,7 +303,7 @@ Status ColorSpaceConversion::GetFrameInternal(MediaData *input, MediaData *outpu
   case YUV411:
     switch (dstFormat) {
     case YUV420:
-      //status = ippiYCbCr411ToYCbCr420_8u_P3R(pSrc, pSrcStep, pDst, pDstStep, srcSize);
+      //status = mfxiYCbCr411ToYCbCr420_8u_P3R(pSrc, pSrcStep, pDst, pDstStep, srcSize);
       status = cc_YUV411_to_YUV420(pSrc, pSrcStep, pDst, pDstStep, srcSize);
       break;
     default:

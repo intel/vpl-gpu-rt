@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2008-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
+#include "ipps.h"
 
 #include <cmath>
 #include <algorithm>
@@ -27,7 +28,7 @@
 #include "mfx_utils.h"
 
 //----MFX data -> UMC data--------------------------------------------
-uint8_t CalculateMAXBFrames (mfxU8 GopRefDist)
+Ipp8u CalculateMAXBFrames (mfxU8 GopRefDist)
 {
     if(GopRefDist)
         return (GopRefDist - 1);
@@ -35,7 +36,7 @@ uint8_t CalculateMAXBFrames (mfxU8 GopRefDist)
         return 0;
 }
 
-uint16_t CalculateUMCGOPLength (mfxU16 GOPSize, mfxU8 targetUsage)
+Ipp16u CalculateUMCGOPLength (mfxU16 GOPSize, mfxU8 targetUsage)
 {
     if(GOPSize)
         return (GOPSize);
@@ -59,7 +60,7 @@ uint16_t CalculateUMCGOPLength (mfxU16 GOPSize, mfxU8 targetUsage)
         }
     return 1;
 }
-bool SetUFParameters(mfxU8 TargetUsages, bool& mixed,uint32_t& twoRef )
+bool SetUFParameters(mfxU8 TargetUsages, bool& mixed,Ipp32u& twoRef )
 {
     switch (TargetUsages)
     {
@@ -89,7 +90,7 @@ bool SetUFParameters(mfxU8 TargetUsages, bool& mixed,uint32_t& twoRef )
     }
     return true;
 }
-bool SetPROParameters (mfxU8 TargetUsages,uint8_t &MESpeed, bool &UseFB, bool &FastFB, bool &bIntensityCompensation,
+bool SetPROParameters (mfxU8 TargetUsages,Ipp8u &MESpeed, bool &UseFB, bool &FastFB, bool &bIntensityCompensation,
                        bool &bChangeInterpolationType, bool &bChangeVLCTables,bool &bTrellisQuantization, bool &bUsePadding,
                        bool &bVSTransform, bool &deblocking, mfxU8 &smoothing, bool &fastUVMC)
 {
@@ -144,20 +145,20 @@ bool SetPROParameters (mfxU8 TargetUsages,uint8_t &MESpeed, bool &UseFB, bool &F
 }
 
 
-uint32_t CalculateUMCBitrate(mfxU16    TargetKbps)
+Ipp32u CalculateUMCBitrate(mfxU16    TargetKbps)
 {
     return TargetKbps*1000;
 }
 
-double CalculateUMCFramerate( mfxU32 FrameRateExtN, mfxU32 FrameRateExtD)
+Ipp64f CalculateUMCFramerate( mfxU32 FrameRateExtN, mfxU32 FrameRateExtD)
 {
     if (FrameRateExtN && FrameRateExtD)
-        return (double)FrameRateExtN / FrameRateExtD;
+        return (Ipp64f)FrameRateExtN / FrameRateExtD;
     else
         return 0;
 }
 
-void CalculateMFXFramerate(double framerate, mfxU32* FrameRateExtN, mfxU32* FrameRateExtD)
+void CalculateMFXFramerate(Ipp64f framerate, mfxU32* FrameRateExtN, mfxU32* FrameRateExtD)
 {
   mfxU32 fr;
   if (!FrameRateExtN || !FrameRateExtD)
@@ -205,7 +206,7 @@ UMC::FrameType GetFrameType (mfxU16 FrameOrder, mfxInfoMFX* info)
 
 //----UMC data -> MFX data--------------------------------------------
 
-mfxU16 CalculateMFXGOPLength (uint16_t GOPSize)
+mfxU16 CalculateMFXGOPLength (Ipp16u GOPSize)
 {
     if(!GOPSize)
         return GOPSize;
@@ -291,13 +292,13 @@ mfxU8 GetFrameLockMarker(mfxFrameData* pFrame)
 
 const Rational RATETAB[8]=
 {
-    {24000, 1001}, 
-    {   24,    1}, 
-    {   25,    1}, 
-    {30000, 1001}, 
-    {   30,    1}, 
-    {   50,    1}, 
-    {60000, 1001}, 
+    {24000, 1001},
+    {   24,    1},
+    {   25,    1},
+    {30000, 1001},
+    {   30,    1},
+    {   50,    1},
+    {60000, 1001},
     {   60,    1},
 };
 
@@ -313,12 +314,12 @@ static const Rational SORTED_RATIO[] =
 
 class FR_Compare
 {
-public:    
+public:
 
     bool operator () (Rational rfirst, Rational rsecond)
     {
         mfxF64 first = (mfxF64) rfirst.n/rfirst.d;
-        mfxF64 second = (mfxF64) rsecond.n/rsecond.d;     
+        mfxF64 second = (mfxF64) rsecond.n/rsecond.d;
         return ( first < second );
     }
 };
@@ -331,10 +332,10 @@ void ConvertFrameRateMPEG2(mfxU32 FrameRateExtD, mfxU32 FrameRateExtN, mfxI32 &f
     mfxF64 minDifference = MFX_MAXABS_64F;
 
     for (mfxU32 i = 0; i < sizeof(RATETAB) / sizeof(RATETAB[0]); i++)
-    {        
+    {
         if (FrameRateExtN * RATETAB[i].d == FrameRateExtD * RATETAB[i].n )
         {
-            frame_rate_code = i + 1;      
+            frame_rate_code = i + 1;
             frame_rate_extension_n = 0;
             frame_rate_extension_d = 0;
 
@@ -343,7 +344,7 @@ void ConvertFrameRateMPEG2(mfxU32 FrameRateExtD, mfxU32 FrameRateExtN, mfxI32 &f
     }
 
     for (mfxU32 i = 0; i < sizeof(RATETAB) / sizeof(RATETAB[0]); i++)
-    {        
+    {
         convertedFR.n = (mfxI64) FrameRateExtN * RATETAB[i].d;
         convertedFR.d = (mfxI64) FrameRateExtD * RATETAB[i].n;
 
@@ -355,10 +356,10 @@ void ConvertFrameRateMPEG2(mfxU32 FrameRateExtD, mfxU32 FrameRateExtN, mfxI32 &f
 
         if (it_lower == SORTED_RATIO + sizeof(SORTED_RATIO) / sizeof(SORTED_RATIO[0]))  // exceed max FR
         {
-            it_lower--;            
+            it_lower--;
         }
         else if (it_lower != SORTED_RATIO) // min FR not reached
-        {            
+        {
             if ( std::abs( (mfxF64) (it_lower - 1)->n / (it_lower - 1)->d - (mfxF64) convertedFR.n / convertedFR.d) <
                 std::abs((mfxF64)it_lower->n / it_lower->d - (mfxF64)convertedFR.n / convertedFR.d))
             {
@@ -371,14 +372,14 @@ void ConvertFrameRateMPEG2(mfxU32 FrameRateExtD, mfxU32 FrameRateExtN, mfxI32 &f
             minDifference = std::abs((mfxF64)convertedFR.n / convertedFR.d - (mfxF64)it_lower->n / it_lower->d);
             frame_rate_code = i + 1;
             bestFR = *it_lower;
-        } 
+        }
     }
 
     for (mfxU32 i = 0; i < sizeof(RATETAB) / sizeof(RATETAB[0]); i++)
-    {// check that exist equal RATETAB with FR = 1:1        
+    {// check that exist equal RATETAB with FR = 1:1
         if (RATETAB[i].d * RATETAB[frame_rate_code - 1].n * bestFR.n == RATETAB[i].n * RATETAB[frame_rate_code - 1].d * bestFR.d)
         {
-            frame_rate_code = i + 1;      
+            frame_rate_code = i + 1;
             frame_rate_extension_n = 0;
             frame_rate_extension_d = 0;
             return;
@@ -399,13 +400,13 @@ mfxStatus CheckFrameRateMPEG2(mfxU32 &FrameRateExtD, mfxU32 &FrameRateExtN)
     mfxF64 difference_ratio = 0;
 
     ConvertFrameRateMPEG2(FrameRateExtD, FrameRateExtN, frame_rate_code, frame_rate_extension_n, frame_rate_extension_d);
-    difference_ratio =  fabs(input_ratio - (mfxF64)(frame_rate_extension_n + 1) / (frame_rate_extension_d + 1) * RATETAB[frame_rate_code - 1].n / RATETAB[frame_rate_code - 1].d);    
+    difference_ratio =  fabs(input_ratio - (mfxF64)(frame_rate_extension_n + 1) / (frame_rate_extension_d + 1) * RATETAB[frame_rate_code - 1].n / RATETAB[frame_rate_code - 1].d);
 
     if (difference_ratio < input_ratio / 50000)
     { //difference less than 0.05%
        return MFX_ERR_NONE;
     }
-    else 
+    else
     {
        FrameRateExtD = (mfxU32) ((frame_rate_extension_d + 1) * RATETAB[frame_rate_code - 1].d);
        FrameRateExtN = (mfxU32) ((frame_rate_extension_n + 1) * RATETAB[frame_rate_code - 1].n);
@@ -439,19 +440,19 @@ mfxStatus CheckAspectRatioMPEG2 (mfxU16 &aspectRatioW, mfxU16 &aspectRatioH, mfx
         if (k > (400000/3 - 133) && k < (400000/3 + 133))
         {
             return MFX_ERR_NONE;
-        } 
+        }
         else if ( k > ( 1600000/9 - 177) && k < (1600000/9 + 177) )
         {
             return MFX_ERR_NONE;
-        } 
+        }
         else if (k > (22100000/100 - 221) && k < (22100000/100 + 221))
         {
              return MFX_ERR_NONE;
-        } 
+        }
         else
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-    } 
-    else 
+    }
+    else
     {
         if (width == 0 && height == 0)
             return MFX_ERR_NONE;
@@ -463,13 +464,13 @@ mfxU8 GetAspectRatioCode (mfxU32 dispAspectRatioW, mfxU32 dispAspectRatioH)
 {
     if (dispAspectRatioH == 0)
     {
-        return 1;    
+        return 1;
     }
     mfxU64 k  = ((mfxU64)dispAspectRatioW*1000)/(dispAspectRatioH);
 
      if  (k <= (4000/3  + 1)  && k >= (4000/3 - 1))
      {
-         return 2;         
+         return 2;
      }
      if (k <= (16000/9  + 1)  && k >= (16000/9 - 1))
      {
@@ -482,6 +483,21 @@ mfxU8 GetAspectRatioCode (mfxU32 dispAspectRatioW, mfxU32 dispAspectRatioH)
      return 1;
 }
 
+mfxStatus AllocInternalEncBuffer(VideoCORE* pCore, const mfxU16& numFrameMin, const mfxVideoParam& par, mfxFrameAllocResponse& response)
+{
+    MFX_CHECK(pCore && par.IOPattern != MFX_IOPATTERN_IN_SYSTEM_MEMORY, MFX_ERR_NONE);
+
+    mfxFrameAllocRequest request = {};
+    request.Info = par.mfx.FrameInfo;
+    request.Type = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_SHARED_RESOURCE;
+    request.NumFrameMin = request.NumFrameSuggested = numFrameMin;
+
+    mfxStatus sts = pCore->AllocFrames(&request, &response);
+    MFX_CHECK_STS(sts);
+
+    return MFX_ERR_NONE;
+}
+
 bool CorrectProfileLevelMpeg2(mfxU16 &profile, mfxU16 & level, mfxU32 w, mfxU32 h, mfxF64 frame_rate, mfxU32 bitrate, mfxU32 GopRefDist)
 {
     mfxU16 oldLevel   = level;
@@ -492,9 +508,6 @@ bool CorrectProfileLevelMpeg2(mfxU16 &profile, mfxU16 & level, mfxU32 w, mfxU32 
 
     if (MFX_PROFILE_MPEG2_SIMPLE != profile
         && MFX_PROFILE_MPEG2_MAIN != profile
-#if !defined(MFX_VA_LINUX)
-        && MFX_PROFILE_MPEG2_HIGH != profile
-#endif
         )
     {
         profile = MFX_PROFILE_MPEG2_MAIN;
@@ -535,86 +548,42 @@ bool CorrectProfileLevelMpeg2(mfxU16 &profile, mfxU16 & level, mfxU32 w, mfxU32 
     if (MFX_PROFILE_MPEG2_HIGH == profile && MFX_LEVEL_MPEG2_LOW == level )
     {
         profile = MFX_PROFILE_MPEG2_MAIN;
-    } 
-    return (((oldLevel!=0) && (oldLevel!=level)) || ((oldProfile!=0) && (oldProfile!=profile))); 
+    }
+    return (((oldLevel!=0) && (oldLevel!=level)) || ((oldProfile!=0) && (oldProfile!=profile)));
 
 }
 mfxStatus InputSurfaces::Reset(mfxVideoParam *par, mfxU16 NumFrameMin)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-    mfxU32 ioPattern = par->IOPattern & (MFX_IOPATTERN_IN_VIDEO_MEMORY|MFX_IOPATTERN_IN_SYSTEM_MEMORY|MFX_IOPATTERN_IN_OPAQUE_MEMORY);
+    mfxU32 ioPattern = par->IOPattern & (
+        MFX_IOPATTERN_IN_VIDEO_MEMORY
+        | MFX_IOPATTERN_IN_SYSTEM_MEMORY
+    );
     if (ioPattern & (ioPattern - 1))
         return MFX_ERR_INVALID_VIDEO_PARAM;
-    
+
     MFX_INTERNAL_CPY(&m_Info,&par->mfx.FrameInfo,sizeof(mfxFrameInfo));
 
-    bool bOpaq = (par->IOPattern & MFX_IOPATTERN_IN_OPAQUE_MEMORY)!=0;
-
-    MFX_CHECK(bOpaq == m_bOpaq || !m_bInitialized, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);     
-
-    if (bOpaq)
-    {
-        MFX_CHECK (m_pCore->IsCompatibleForOpaq(), MFX_ERR_UNDEFINED_BEHAVIOR);
-
-        mfxExtOpaqueSurfaceAlloc * pOpaqAlloc = (mfxExtOpaqueSurfaceAlloc *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
-        MFX_CHECK (pOpaqAlloc, MFX_ERR_INVALID_VIDEO_PARAM);
-
-        switch (pOpaqAlloc->In.Type & (MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_SYSTEM_MEMORY|MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET))
-        {
-        case MFX_MEMTYPE_SYSTEM_MEMORY:
-            m_bSysMemFrames = true;
-            break;
-        case MFX_MEMTYPE_DXVA2_DECODER_TARGET:
-        case MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET:
-            m_bSysMemFrames = false;
-            break;
-        default:
-            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;        
-        }
-
-       if (pOpaqAlloc->In.NumSurface < NumFrameMin)
-            return m_bInitialized ? MFX_ERR_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_INVALID_VIDEO_PARAM;
-        if (pOpaqAlloc->In.NumSurface > m_request.NumFrameMin && m_bInitialized)
-            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-
-        if (!m_bInitialized)
-        {
-            m_request.Info = par->mfx.FrameInfo;
-            m_request.NumFrameMin = m_request.NumFrameSuggested = (mfxU16)pOpaqAlloc->In.NumSurface;
-            m_request.Type = (mfxU16)pOpaqAlloc->In.Type;
-
-            sts = m_pCore->AllocFrames(&m_request,
-                &m_response,
-                pOpaqAlloc->In.Surfaces, 
-                pOpaqAlloc->In.NumSurface);
-
-            if (MFX_ERR_UNSUPPORTED == sts && (pOpaqAlloc->In.Type & MFX_MEMTYPE_FROM_ENCODE) == 0)  sts = MFX_ERR_NONE;
-            MFX_CHECK_STS(sts);
-        }
-        m_bOpaq = true;
-    }
-    else
     {
         bool bSysMemFrames = (par->IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY) != 0;
         MFX_CHECK(bSysMemFrames == m_bSysMemFrames || !m_bInitialized, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
         m_bSysMemFrames = bSysMemFrames;
     }
     m_bInitialized = true;
-    return sts;     
+    return sts;
 }
 mfxStatus InputSurfaces::Close()
 {
     if (m_response.NumFrameActual != 0)
     {
-        m_pCore->FreeFrames (&m_response);         
+        m_pCore->FreeFrames (&m_response);
     }
-    m_bOpaq = false;
     m_bSysMemFrames = false;
     m_bInitialized = false;
 
     memset(&m_request,  0, sizeof(mfxFrameAllocRequest));
-    memset(&m_response, 0, sizeof (mfxFrameAllocResponse)); 
+    memset(&m_response, 0, sizeof (mfxFrameAllocResponse));
 
     return MFX_ERR_NONE;
 }

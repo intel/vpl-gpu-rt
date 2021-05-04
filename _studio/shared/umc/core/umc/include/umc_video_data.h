@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2003-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -90,16 +90,16 @@ class VideoData : public MediaData
 public:
     struct PlaneInfo
     {
-        uint8_t*   m_pPlane;         // pointer to plane data
-        mfxSize m_ippSize;        // width and height of the plane
-        int32_t   m_iSampleSize;    // sample size (in bytes)
-        int32_t   m_iSamples;       // number of samples per plane element
-        int32_t   m_iBitDepth;      // number of significant bits per sample (should be <= 8*m_iSampleSize)
+        uint8_t* m_pPlane;         // pointer to plane data
+        mfxSize  m_ippSize;        // width and height of the plane
+        int32_t  m_iSampleSize;    // sample size (in bytes)
+        int32_t  m_iSamples;       // number of samples per plane element
+        int32_t  m_iBitDepth;      // number of significant bits per sample (should be <= 8*m_iSampleSize)
         size_t   m_nPitch;         // plane pitch (should be >= width*m_iSamples*m_iSampleSize)
         size_t   m_nOffset;        // Offset from the beginning of aligned memory block
         size_t   m_nMemSize;       // size of occupied memory (pitch*height)
-        int32_t   m_iWidthDiv;      // Horizontal downsampling factor
-        int32_t   m_iHeightDiv;     // Vertical downsampling factor
+        int32_t  m_iWidthDiv;      // Horizontal downsampling factor
+        int32_t  m_iHeightDiv;     // Vertical downsampling factor
     };
 
     // Default constructor

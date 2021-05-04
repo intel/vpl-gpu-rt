@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2008-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -135,6 +135,11 @@ FullEncode::FullEncode(VideoCORE *core, mfxStatus *sts)
     *sts = (core ? MFX_ERR_NONE : MFX_ERR_NULL_PTR);
 }
 
+FullEncode::~FullEncode()
+{
+    Close();
+}
+
 mfxStatus FullEncode::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam *out)
 {
     return ControllerBase::Query(core,in, out, AVBR_WA);
@@ -203,7 +208,7 @@ mfxStatus FullEncode::ResetImpl()
 
     if (!m_pFrameTasks)
     {
-        m_nFrameTasks = paramsEx->mfxVideoParams.mfx.GopRefDist + paramsEx->mfxVideoParams.AsyncDepth;
+        m_nFrameTasks = paramsEx->mfxVideoParams.AsyncDepth > 0 ? paramsEx->mfxVideoParams.AsyncDepth : 2;
         m_pFrameTasks = new EncodeFrameTask[m_nFrameTasks]; 
     }
 
@@ -352,14 +357,13 @@ mfxStatus FullEncode::EncodeFrameCheck(
     if (m_runtimeErr)
         return m_runtimeErr;
 
-
     return  m_pController->EncodeFrameCheck(ctrl,surface,bs,reordered_surface,pInternalParams);
 }
 mfxStatus FullEncode::CancelFrame(mfxEncodeCtrl * /*ctrl*/, mfxEncodeInternalParams * /*pInternalParams*/, mfxFrameSurface1 *surface, mfxBitstream * /*bs*/)
 {
     MFX_CHECK_NULL_PTR1(surface)
         m_pController->FinishFrame(0);
-    return m_pCore->DecreaseReference(&surface->Data);
+    return m_pCore->DecreaseReference(*surface);
 }
 
 // Async algorithm
@@ -367,6 +371,9 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "FullEncode::SubmitFrame");
     mfxStatus         sts           = MFX_ERR_NONE;
+    EncodeFrameTask*  pIntTask      = 0;
+    mfxU32            nIntTask      = 0;
+    //bool              bInputFrame   = true;
 
     if(!is_initialized())
         return MFX_ERR_NOT_INITIALIZED;
@@ -381,8 +388,11 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
 
     MFX_CHECK_NULL_PTR1(bs);
 
-    EncodeFrameTask*  pIntTask = GetIntTask(pExtTask->m_nInternalTask);
-    MFX_CHECK(pIntTask, MFX_ERR_UNDEFINED_BEHAVIOR);
+    nIntTask = GetFreeIntTask();
+    MFX_CHECK(nIntTask!=0,MFX_TASK_BUSY);
+
+    pIntTask = GetIntTask(nIntTask);
+    MFX_CHECK(pIntTask!=0,MFX_TASK_BUSY);
 
     mfxEncodeInternalParams* pInternalParams = &pIntTask->m_sEncodeInternalParams;
     if (input_surface)
@@ -396,6 +406,7 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
         return MFX_ERR_NONE;
     }
     MFX_CHECK_STS(sts);
+    // bInputFrame = false;
 
     sts = m_pFrameStore->NextFrame( surface,
                                     pInternalParams->FrameOrder,
@@ -410,12 +421,15 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
 
     bs->FrameType = pInternalParams->FrameType;
     bs->TimeStamp = pIntTask->m_Frames.m_pInputFrame->Data.TimeStamp;
+
+    double fr = CalculateUMCFramerate(pParams->mfxVideoParams.mfx.FrameInfo.FrameRateExtN, pParams->mfxVideoParams.mfx.FrameInfo.FrameRateExtD);
+    MFX_CHECK(fr != 0, MFX_ERR_UNDEFINED_BEHAVIOR);
+
     bs->DecodeTimeStamp = (pInternalParams->FrameType & MFX_FRAMETYPE_B)
         ? CalcDTSForNonRefFrameMpeg2(bs->TimeStamp)
         : CalcDTSForRefFrameMpeg2(bs->TimeStamp,
         Frames.m_nFrame - Frames.m_nRefFrame[0],
-        pParams->mfxVideoParams.mfx.GopRefDist,
-        CalculateUMCFramerate(pParams->mfxVideoParams.mfx.FrameInfo.FrameRateExtN, pParams->mfxVideoParams.mfx.FrameInfo.FrameRateExtD));
+        pParams->mfxVideoParams.mfx.GopRefDist, fr);
 
     sts = pIntTask->FillFrameParams((mfxU8)pInternalParams->FrameType,
                                         m_pController->getVideoParamsEx(),
@@ -426,7 +440,7 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
                                         (pInternalParams->InternalFlags & MFX_IFLAG_ADD_EOS) ? 1:0);
     MFX_CHECK_STS(sts);
 
-    sts = m_pCore->DecreaseReference(&surface->Data);
+    sts = m_pCore->DecreaseReference(*surface);
     MFX_CHECK_STS(sts);
 
    // coding
@@ -442,7 +456,7 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
             if (pParams->bMbqpMode)
             {
                 const mfxExtMBQP *mbqp = (mfxExtMBQP *)GetExtBuffer(pInternalParams->ExtParam, pInternalParams->NumExtParam, MFX_EXTBUFF_MBQP);
-
+                
                 mfxU32 wMB = (pParams->mfxVideoParams.mfx.FrameInfo.CropW + 15) / 16;
                 mfxU32 hMB = (pParams->mfxVideoParams.mfx.FrameInfo.CropH + 15) / 16;
 
@@ -469,6 +483,13 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
         }
 
         MFX_CHECK_STS(sts);
+
+
+        pExtTask->m_nInternalTask = nIntTask;
+        {
+            UMC::AutomaticUMCMutex lock(m_guard);
+            pIntTask->m_taskStatus = ENC_STARTED;
+        }
     }
 
     return MFX_ERR_NONE;
@@ -485,13 +506,13 @@ mfxStatus FullEncode::QueryFrame(sExtTask2 *pExtTask)
     if(!is_initialized())
         return MFX_ERR_NOT_INITIALIZED;
 
-    pIntTask = GetIntTask(pExtTask->m_nInternalTask);
-    MFX_CHECK_NULL_PTR1(pIntTask);
-
-    if (pIntTask->m_pBitstream == 0)
+    if (pExtTask->m_nInternalTask == 0)
     {
         return MFX_ERR_NONE;
     }
+    
+    pIntTask = GetIntTask(pExtTask->m_nInternalTask);
+    MFX_CHECK_NULL_PTR1(pIntTask);
 
     bs = pIntTask->m_pBitstream;
 
@@ -523,7 +544,7 @@ mfxStatus TaskRoutineSubmit(void *pState, void *param, mfxU32 /*n*/, mfxU32 /*ca
     sExtTask2 *pExtTask = (sExtTask2 *)param;
 
     sts = th->m_pExtTasks->CheckTaskForSubmit(pExtTask);
-    MFX_CHECK_STS(sts);   
+    MFX_CHECK_STS(sts);
 
     sts = th->SubmitFrame(pExtTask);
     MFX_CHECK_STS(sts);  
@@ -551,7 +572,6 @@ mfxStatus TaskRoutineQuery(void *pState, void *param, mfxU32 /*n*/, mfxU32 /*cal
         
     return MFX_TASK_DONE;
 }
-    
 
 mfxStatus FullEncode::EncodeFrameCheck(
                                        mfxEncodeCtrl *           ctrl,
@@ -585,42 +605,26 @@ mfxStatus FullEncode::EncodeFrameCheck(
         pOriginalSurface->Data.FrameOrder = surface->Data.FrameOrder;
     }
 
-    // check availability of an internal task in sync part
-    mfxU32 nIntTask = GetFreeIntTask();
-    MFX_CHECK(nIntTask != 0, MFX_WRN_DEVICE_BUSY);
-
-    EncodeFrameTask* pIntTask = GetIntTask(nIntTask);
-    MFX_CHECK(pIntTask, MFX_WRN_DEVICE_BUSY);
-
     sts_ret = EncodeFrameCheck(ctrl, pOriginalSurface, bs, reordered_surface, internalParams);
 
     if (sts_ret != MFX_ERR_NONE && sts_ret !=(mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK && sts_ret<0)
-        return sts_ret;
-
+        return sts_ret;  
 
     sts = m_pExtTasks->AddTask( internalParams,*reordered_surface, bs, &pExtTask);
     MFX_CHECK_STS(sts);
-
-    pExtTask->m_nInternalTask = nIntTask;
-    {
-        UMC::AutomaticUMCMutex lock(m_guard);
-        pIntTask->m_taskStatus = ENC_STARTED;
-    }
 
     entryPoints[0].pState = this;
     entryPoints[0].pParam = pExtTask;
     entryPoints[0].pRoutine = TaskRoutineSubmit;
     entryPoints[0].pCompleteProc = 0;
-    entryPoints[0].pGetSubTaskProc = 0;
-    entryPoints[0].pCompleteSubTaskProc = 0;
+    entryPoints[0].pOutputPostProc    = 0;
     entryPoints[0].requiredNumThreads = 1;
 
     entryPoints[1].pState = this;
     entryPoints[1].pParam = pExtTask;
     entryPoints[1].pRoutine = TaskRoutineQuery;
     entryPoints[1].pCompleteProc = 0;
-    entryPoints[1].pGetSubTaskProc = 0;
-    entryPoints[1].pCompleteSubTaskProc = 0;
+    entryPoints[1].pOutputPostProc    = 0;
     entryPoints[1].requiredNumThreads = 1;
 
     numEntryPoints = 2;
@@ -642,32 +646,32 @@ mfxStatus UserDataBuffer::AddUserData(mfxU8* pUserData, mfxU32 len)
             if (pCurr < (pUserData + len - 4) && pCurr[2]== 1 && pCurr[3] == 0xB2)
             {
                 //user data start code
-                if (pCurr == pUserData) bFirstUDSCode = true; 
-                pCurr += 3;                    
+                if (pCurr == pUserData) bFirstUDSCode = true;
+                pCurr += 3;
             }
             else
             {
                 bProhibitedSymbols = true;
-                break;                    
-            }         
+                break;
+            }
 
         }
         pCurr ++;  
     } 
-    size = bProhibitedSymbols ? static_cast<mfxU32>(pCurr - pUserData) : len ;            
+    size = bProhibitedSymbols ? static_cast<mfxU32>(pCurr - pUserData) : len ;
     // copy into buffer
     if (size > 0)
     {
         pCurr = m_pBuffer + m_dataSize;
         m_dataSize += size + (bFirstUDSCode ? 0 : 4) ;
 
-        MFX_CHECK( m_dataSize < m_bufSize, MFX_ERR_UNDEFINED_BEHAVIOR);                
+        MFX_CHECK( m_dataSize < m_bufSize, MFX_ERR_UNDEFINED_BEHAVIOR);
         if (!bFirstUDSCode)
         {
             *(pCurr++) = 0; 
             *(pCurr++) = 0; 
             *(pCurr++) = 1;
-            *(pCurr++) = 0xB2;           
+            *(pCurr++) = 0xB2;
         }
         std::copy(pUserData, pUserData + std::min(m_bufSize - m_dataSize, size), pCurr);
     }

@@ -29,6 +29,7 @@
 #include "umc_av1_frame.h"
 #include "umc_av1_bitstream.h"
 #include "umc_av1_va_packer.h"
+#include "umc_av1_msft_ddi.h"
 
 #include "umc_frame_data.h"
 
@@ -71,7 +72,11 @@ namespace UMC_AV1_DECODER
         if (firstSubmission)
         {
             // it's first submission for current frame - need to call BeginFrame
+#ifdef UMC_VA_LINUX
             sts = va->BeginFrame(frame.GetMemID(SURFACE_RECON));
+#else
+            sts = va->BeginFrame(frame.GetMemID());
+#endif
             if (sts != UMC::UMC_OK)
                 return sts;
 
@@ -113,6 +118,26 @@ namespace UMC_AV1_DECODER
         return frame.DecodingStarted() && !frame.DecodingCompleted();
     }
 
+#ifndef UMC_VA_LINUX
+    inline void SetError(AV1DecoderFrame& frame, uint8_t status)
+    {
+        switch (status)
+        {
+        case 1:
+            frame.AddError(UMC::ERROR_FRAME_MINOR);
+            break;
+        case 2:
+        case 3:
+        case 4:
+        default:
+            frame.AddError(UMC::ERROR_FRAME_MAJOR);
+            break;
+        }
+    }
+
+    const uint32_t NUMBER_OF_STATUS = 32;
+#endif
+
     bool AV1DecoderVA::QueryFrames()
     {
         std::unique_lock<std::mutex> auto_guard(guard);
@@ -134,7 +159,7 @@ namespace UMC_AV1_DECODER
         {
             AV1DecoderFrame& frame = **frm;
             uint32_t index = 0;
-
+#ifdef UMC_VA_LINUX
             VAStatus surfErr = VA_STATUS_SUCCESS;
             index = frame.GetMemID();
             auto_guard.unlock();
@@ -161,6 +186,108 @@ namespace UMC_AV1_DECODER
                         break;
                 }
             }
+#else
+            // check previously cached reports
+            for (uint32_t i = 0; i < reports.size(); i++)
+            {
+                if (reports[i].m_index == static_cast<uint32_t>(frame.GetMemID())) // report for the frame was found in previuously cached reports
+                {
+                    SetError(frame, reports[i].m_status);
+                    frame.CompleteDecoding();
+                    wasCompleted = true;
+                    reports.erase(reports.begin() + i);
+                    break;
+                }
+            }
+
+#ifdef UMC_VA_AV1_MSFT
+            if (!wasCompleted) // nothing from "decode_queue" completed yet - need to get new status reports from the driver
+            {
+                DXVA_Status_AV1 pStatusReport[NUMBER_OF_STATUS];
+
+                std::fill_n(pStatusReport, NUMBER_OF_STATUS, DXVA_Status_AV1{});
+                // get new frame status reports from the driver
+                packer->GetStatusReport(&pStatusReport[0], sizeof(DXVA_Status_AV1)*NUMBER_OF_STATUS);
+
+                // iterate through new status reports
+                for (uint32_t i = 0; i < NUMBER_OF_STATUS; i++)
+                {
+                    if (!pStatusReport[i].StatusReportFeedbackNumber)
+                        continue;
+
+                    bool wasFound = false;
+                    index = pStatusReport[i].CurrPic.Index;
+                    if (index == static_cast<uint32_t>(frame.GetMemID())) // report for the frame was found in new reports
+                    {
+                        SetError(frame, pStatusReport[i].bStatus);
+                        frame.CompleteDecoding();
+                        wasFound = true;
+                        wasCompleted = true;
+                    }
+
+                    if (!wasFound) // new reports don't contain report for current frame
+                    {
+                        if (std::find(reports.begin(), reports.end(), ReportItem(index, 0)) == reports.end()) // discard new reports which duplicate previously cached reports
+                        {
+                            // push unique new reports to status report cache
+                            reports.push_back(ReportItem(index, pStatusReport[i].bStatus));
+                            // if got at least one unique report - stop getting more status reports from the driver
+                            wasCompleted = true;
+                        }
+                    }
+                }
+            }
+#else //intel DDI
+            if (!wasCompleted) // nothing from "decode_queue" completed yet - need to get new status reports from the driver
+            {
+                DXVA_Intel_Status_AV1 pStatusReport[NUMBER_OF_STATUS];
+                std::fill_n(pStatusReport, NUMBER_OF_STATUS, DXVA_Intel_Status_AV1{});
+                // get new frame status reports from the driver
+                packer->GetStatusReport(&pStatusReport[0], sizeof(DXVA_Intel_Status_AV1)*NUMBER_OF_STATUS);
+
+                // iterate through new status reports
+                for (uint32_t i = 0; i < NUMBER_OF_STATUS; i++)
+                {
+                    if (!pStatusReport[i].StatusReportFeedbackNumber)
+                        continue;
+
+                    bool wasFound = false;
+#if AV1D_DDI_VERSION >= 31
+                    index = pStatusReport[i].current_picture.bPicEntry;
+#else
+                    index = pStatusReport[i].current_picture.wPicEntry;
+#endif
+                    if (index == static_cast<uint32_t>(frame.GetMemID())) // report for the frame was found in new reports
+                    {
+                        SetError(frame, pStatusReport[i].bStatus);
+                        frame.CompleteDecoding();
+                        wasFound = true;
+                        wasCompleted = true;
+                    }
+
+                    if (!wasFound) // new reports don't contain report for current frame
+                    {
+                        if (std::find(reports.begin(), reports.end(), ReportItem(index, 0)) == reports.end()) // discard new reports which duplicate previously cached reports
+                        {
+                            // push unique new reports to status report cache
+                            reports.push_back(ReportItem(index, pStatusReport[i].bStatus));
+                            // if got at least one unique report - stop getting more status reports from the driver
+                            wasCompleted = true;
+                        }
+                    }
+                }
+            }
+#endif
+
+#if UMC_AV1_DECODER_REV <= 8500
+            // so far driver doesn't support status reporting for AV1 decoder on Windows
+            // TODO: check if status reporting is still not supported
+            // workaround by marking frame as decoding_completed and setting wasCompleted to true
+            frame.CompleteDecoding();
+            wasCompleted = true;
+#endif
+
+#endif
         }
 
         return wasCompleted;

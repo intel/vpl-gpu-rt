@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2003-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@
 #if defined (MFX_ENABLE_H265_VIDEO_DECODE)
 
 #include "umc_va_base.h"
+#if defined (UMC_VA_LINUX)
 #if defined (MFX_ENABLE_CPLIB)
 
 #include "umc_h265_va_packer_vaapi.h"
@@ -34,11 +35,12 @@
 
 using namespace UMC;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1032)
 #define PACKER_VAAPI G12::PackerVAAPI
 #else
 #define PACKER_VAAPI G11::PackerVAAPI
 #endif
+
 namespace UMC_HEVC_DECODER
 {
 
@@ -205,7 +207,9 @@ namespace UMC_HEVC_DECODER
 
         pParamBuf->SetDataSize(sizeof(VACencStatusParameters));
     }
+
 } // namespace UMC_HEVC_DECODER
 
 #endif // #if defined (MFX_ENABLE_CPLIB)
+#endif // #if defined (UMC_VA_LINUX)
 #endif // MFX_ENABLE_H265_VIDEO_DECODE

@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2011-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -51,6 +51,9 @@ static const MFX_GUID MFXICOREVDAAPI_GUID =
 static const MFX_GUID MFXICORE_API_1_19_GUID =
 { 0xea851c02, 0x7f04, 0x4126, { 0x90, 0x45, 0x48, 0xd8, 0x28, 0x24, 0x34, 0xa5 } };
 
+// {B9C3862C-8AB0-4ACA-A0F1-9407509FBCEC}
+static const MFX_GUID MFXICORE_API_2_0_GUID =
+{ 0xb9c3862c, 0x8ab0, 0x4aca, { 0xa0, 0xf1, 0x94, 0x7, 0x50, 0x9f, 0xbc, 0xec } };
 
 // {6ED94B99-DB70-4EBB-BC5C-C7E348FC2396}
 static const
@@ -86,30 +89,25 @@ static const
 MFX_GUID MFXICMEnabledCore_GUID =
 { 0x2aafdae8, 0xf7ba, 0x46ed, { 0xb2, 0x77, 0xb8, 0x7e, 0x94, 0xf2, 0xd3, 0x84 } };
 
-#ifdef MFX_ENABLE_MFE
-
-//to keep core interface unchanged we need to define 2 guids:
-// MFXMFEDDIENCODER_GUID - for returing MFE adapter by request - need for core to query other cores
-// MFXMFEDDIENCODER_SEARCH_GUID - called by encoder to search through joined sessions
-// cores by MFXMFEDDIENCODER_GUID, to verify adapter availability and return when exist.
-// {E4E4823F-90D2-4945-823E-00B5F3F3184C}
-static const
-MFX_GUID MFXMFEDDIENCODER_GUID =
-{ 0xe4e4823f, 0x90d2, 0x4945, { 0x82, 0x3e, 0x0, 0xb5, 0xf3, 0xf3, 0x18, 0x4c } };
-
-// {AAA16189-4E5A-4DA9-BB97-4CD1B0BAAC73}
-static const MFX_GUID MFXMFEDDIENCODER_SEARCH_GUID =
-{ 0xaaa16189, 0x4e5a, 0x4da9, { 0xbb, 0x97, 0x4c, 0xd1, 0xb0, 0xba, 0xac, 0x73 } };
-
-#endif
-
 // {D53EF10E-D4CF-41A7-B1C2-D30FAB30BB64}
 static const MFX_GUID MFXICORE_GT_CONFIG_GUID =
 { 0xd53ef10e, 0xd4cf, 0x41a7,{ 0xb1, 0xc2, 0xd3, 0xf, 0xab, 0x30, 0xbb, 0x64 } };
 
 // {7DF28D19-889A-45C1-AA05-A4F7EFAE9528}
-static const MFX_GUID MFXIFEIEnabled_GUID =
+static const
+MFX_GUID MFXIFEIEnabled_GUID =
 { 0x7df28d19, 0x889a, 0x45c1,{ 0xaa, 0x5, 0xa4, 0xf7, 0xef, 0xae, 0x95, 0x28 } };
+
+// {2C3163A0-B061-4931-AF0D-2301AC99DA77}
+static const
+MFX_GUID MFXAllocatorWrapper_GUID =
+{ 0x2c3163a0, 0xb061, 0x4931, {0xaf, 0x0d, 0x23, 0x01, 0xac, 0x99, 0xda, 0x77} };
+
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+// {D1CF0B87-6D92-45E1-AA6D-85DAEB15183D}
+static const MFX_GUID MFXBlockingTaskSyncEnabled_GUID =
+{ 0xd1cf0b87, 0x6d92, 0x45e1,{ 0xaa, 0x6d, 0x85, 0xda, 0xeb, 0x15, 0x18, 0x3d } };
+#endif
 
 // Try to obtain required interface
 // Declare a template to query an interface
@@ -206,14 +204,9 @@ class ComPtrCore
 public:
     static const MFX_GUID getGuid()
     {
-
-#if !defined(MFX_ENABLE_MFE)
         return MFXID3D11DECODER_GUID;
-#else
-        return MFXMFEDDIENCODER_GUID;
-#endif
     }
-    ComPtrCore():m_pComPtr(NULL)
+    ComPtrCore():m_pComPtr(nullptr)
     {
     };
     virtual ~ComPtrCore()
@@ -221,7 +214,7 @@ public:
         if (m_pComPtr)
         {
             m_pComPtr->Release();
-            m_pComPtr = NULL;
+            m_pComPtr = nullptr;
         }
     };
     ComPtrCore& operator = (T* ptr)
@@ -244,7 +237,6 @@ protected:
 T* m_pComPtr;
 };
 
-#if defined (MFX_VA_LINUX)
     struct VAAPIInterface
     {
         static const MFX_GUID & getGuid()
@@ -253,7 +245,6 @@ T* m_pComPtr;
         }
     };
 
-#endif
 
 struct CMEnabledCoreInterface
 {

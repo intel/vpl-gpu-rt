@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2004-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 #include <string.h>
 #include "umc_vc1_dec_seq.h"
 #include "umc_vc1_huffman.h"
+#include "umc_vc1_dec_debug.h"
 #include "umc_vc1_common_tables.h"
 
 VC1Status DecodePictureHeader (VC1Context* pContext,  bool isExtHeader)
@@ -77,6 +78,11 @@ VC1Status DecodePictureHeader (VC1Context* pContext,  bool isExtHeader)
         }
     }
 
+    if (pContext->m_FrameSize < SkFrameSize) //changed from 2
+    {
+        picLayerHeader->PTYPE |= VC1_SKIPPED_FRAME;
+    }
+
     if(picLayerHeader->PTYPE == VC1_B_FRAME)
     {
         int8_t  z1;
@@ -100,11 +106,6 @@ VC1Status DecodePictureHeader (VC1Context* pContext,  bool isExtHeader)
             picLayerHeader->BFRACTION_index = VC1_BFraction_indexes[z1][z2];
     }
 
-    if(pContext->m_FrameSize < SkFrameSize) //changed from 2
-    {
-        picLayerHeader->PTYPE |= VC1_SKIPPED_FRAME;
-    }
-
     return vc1Sts;
 }
 
@@ -116,6 +117,10 @@ VC1Status Decode_PictureLayer(VC1Context* pContext)
     {
     case VC1_I_FRAME:
     case VC1_BI_FRAME:
+#ifdef VC1_DEBUG_ON
+        VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BFRAMES,
+                                                VM_STRING("I frame type  \n"));
+#endif
         vc1Sts = DecodePictureLayer_ProgressiveIpicture(pContext);
 
         break;
@@ -125,9 +130,14 @@ VC1Status Decode_PictureLayer(VC1Context* pContext)
         break;
 
     case VC1_B_FRAME:
+#ifdef VC1_DEBUG_ON
+        VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BFRAMES,
+                                                VM_STRING("B frame type  \n"));
+#endif
 
         vc1Sts = DecodePictureLayer_ProgressiveBpicture(pContext);
         break;
+
     }
 
     if (VC1_IS_SKIPPED(pContext->m_picLayerHeader->PTYPE))

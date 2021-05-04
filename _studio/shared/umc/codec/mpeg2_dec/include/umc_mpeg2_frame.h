@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
 
 #include "umc_defs.h"
 
-#if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
+#if defined MFX_ENABLE_MPEG2_VIDEO_DECODE
 
 #include <memory>
 
@@ -48,7 +48,7 @@ namespace UMC_MPEG2_DECODER
         size_t GetSliceCount() const
         { return slices.size(); }
 
-        MPEG2Slice* GetSlice(uint32_t num) const
+        MPEG2Slice* GetSlice(size_t num) const
         {
             return num < slices.size() ? slices[num] : nullptr;
         }
@@ -169,8 +169,8 @@ namespace UMC_MPEG2_DECODER
 
         bool IsFullFrame() const
         { return isFull;}
-        void SetFullFrame(bool isFull)
-        { this->isFull = isFull; }
+        void SetFullFrame(bool IsFull)
+        { this->isFull = IsFull; }
 
         // Clear all references to other frames
         void FreeReferenceFrames();

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2003-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -334,8 +334,10 @@ Status VideoData::SetAlignment(int32_t iAlignment)
 // Allocates memory according to existing information in VideoData and given alignment
 // If image memory was already allocated it is released.
 // return UMC_OK on success, UMC_ERR_INVALID_STREAM if image is improperly described
-Status VideoData::Alloc(size_t /* requiredSize */)
+Status VideoData::Alloc(size_t requiredSize)
 {
+    (void)requiredSize;
+
     size_t nSize;
 
     // Release previous buffer

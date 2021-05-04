@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,85 +23,10 @@
 
 #include "hevcehw_base_ext_brc.h"
 #include "mfx_brc_common.h"
-#include "mfx_h265_encode_hw_brc.h"
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
 
-namespace VmeBrcWrapper
-{
-    //TODO: re-implement VMEBrc w/ proper interfaces (remove MfxVideoParam/Task dependencies)
-    using TBRC = MfxHwH265Encode::VMEBrc;
-
-    static mfxStatus Init(mfxHDL pthis, mfxVideoParam* par)
-    {
-        MFX_CHECK_NULL_PTR2(pthis, par);
-        MfxHwH265Encode::MfxVideoParam tmpPar(*par, MFX_HW_UNKNOWN);
-        return ((TBRC*)pthis)->Init(tmpPar);
-    }
-    static mfxStatus Close(mfxHDL pthis)
-    {
-        MFX_CHECK_NULL_PTR1(pthis);
-        return ((TBRC*)pthis)->Close();
-    }
-    static mfxStatus Reset(mfxHDL pthis, mfxVideoParam* par)
-    {
-        Close(pthis);
-        return Init(pthis, par);
-    }
-    static mfxStatus GetFrameCtrl(mfxHDL pthis, mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
-    {
-        MFX_CHECK_NULL_PTR3(pthis, par, ctrl);
-
-        //only EncodedOrder is really used by VMEBrc::GetQP
-        MfxHwH265Encode::MfxVideoParam fakePar;
-        MfxHwH265Encode::Task task;
-        task.m_eo = par->EncodedOrder;
-
-        ctrl->QpY = ((TBRC*)pthis)->GetQP(fakePar, task);
-
-        return MFX_ERR_NONE;
-    }
-    static mfxStatus Update(mfxHDL pthis, mfxBRCFrameParam* par, mfxBRCFrameCtrl*, mfxBRCFrameStatus* status)
-    {
-        MFX_CHECK_NULL_PTR3(pthis, par, status);
-        ((TBRC*)pthis)->Report(par->FrameType, par->CodedFrameSize, 0, 0, par->EncodedOrder, 0, 0);
-
-        status->BRCStatus = MFX_BRC_OK;
-
-        return MFX_ERR_NONE;
-    }
-    static mfxStatus Create(mfxExtBRC & m_BRC)
-    {
-        MFX_CHECK(!m_BRC.pthis, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-        m_BRC.pthis = new TBRC;
-
-        MFX_CHECK(m_BRC.pthis, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-        m_BRC.Init          = Init;
-        m_BRC.Reset         = Reset;
-        m_BRC.Close         = Close;
-        m_BRC.GetFrameCtrl  = GetFrameCtrl;
-        m_BRC.Update        = Update;
-
-
-        return MFX_ERR_NONE;
-    }
-    static mfxStatus Destroy(mfxExtBRC & m_BRC)
-    {
-        delete (TBRC*)m_BRC.pthis;
-
-        m_BRC.pthis         = nullptr;
-        m_BRC.Init          = nullptr;
-        m_BRC.Reset         = nullptr;
-        m_BRC.Close         = nullptr;
-        m_BRC.GetFrameCtrl  = nullptr;
-        m_BRC.Update        = nullptr;
-
-        return MFX_ERR_NONE;
-    }
-}
 
 void ExtBRC::SetSupported(ParamSupport& blocks)
 {
@@ -171,8 +96,8 @@ void ExtBRC::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
         mfxU32 changed = 0;
 
         MFX_CHECK(pCO2, MFX_ERR_NONE);
-        
-        bool bAllowed = 
+
+        bool bAllowed =
             par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
             || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR;
 
@@ -310,71 +235,6 @@ void ExtBRC::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         bool                       bInternalBRC = IsOn(CO2.ExtBRC) && !brc.pthis && !m_brc.pthis;
         bool                       bExternalBRC = IsOn(CO2.ExtBRC) && brc.pthis && !m_brc.pthis;
 
-        if (par.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT)
-        {
-            auto sts = VmeBrcWrapper::Create(m_brc);
-            MFX_CHECK_STS(sts);
-
-            m_destroy = [this]()
-            {
-                VmeBrcWrapper::Destroy(m_brc);
-            };
-
-            if (par.mfx.EncodedOrder)
-            {
-                auto& cc = Glob::Defaults::Get(strg);
-
-                cc.GetFrameOrder.Push([this](
-                    Defaults::TGetFrameOrder::TExt
-                    , const Defaults::Param& par
-                    , const StorageR& s_task
-                    , mfxU32 /*prevFrameOrder*/)
-                {
-                    auto& ctrl = Task::Common::Get(s_task).ctrl;
-                    mfxExtLAFrameStatistics* pLAStat = ExtBuffer::CastExtractor(ctrl.ExtParam, ctrl.NumExtParam);
-
-                    ThrowIf(!pLAStat, MFX_ERR_NULL_PTR);
-
-                    auto sts = ((VmeBrcWrapper::TBRC*)m_brc.pthis)->SetFrameVMEData(
-                        pLAStat
-                        , par.mvp.mfx.FrameInfo.Width
-                        , par.mvp.mfx.FrameInfo.Height);
-
-                    ThrowIf(!!sts, sts);
-
-                    m_pLAStat = pLAStat;
-
-                    return pLAStat->FrameStat[0].FrameDisplayOrder;
-                });
-
-                cc.GetPreReorderInfo.Push([this](
-                    Defaults::TGetPreReorderInfo::TExt prev
-                    , const Defaults::Param& par
-                    , FrameBaseInfo& fi
-                    , const mfxFrameSurface1* pSurfIn
-                    , const mfxEncodeCtrl*    pCtrl
-                    , mfxU32 prevIDROrder
-                    , mfxI32 prevIPOC
-                    , mfxU32 frameOrder)
-                {
-                    if (pCtrl)
-                    {
-                        auto&         stat = m_pLAStat->FrameStat[0];
-                        mfxEncodeCtrl ctrl = *pCtrl;
-
-                        ctrl.FrameType = mfxU16(stat.FrameType);
-
-                        auto sts = prev(par, fi, pSurfIn, &ctrl, prevIDROrder, prevIPOC, frameOrder);
-
-                        fi.PyramidLevel = stat.Layer;
-
-                        return sts;
-                    }
-
-                    return prev(par, fi, pSurfIn, pCtrl, prevIDROrder, prevIPOC, frameOrder);
-                });
-            }
-        }
 
         if (bInternalBRC)
         {
@@ -468,7 +328,7 @@ void ExtBRC::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         MFX_CHECK(m_brc.Update, MFX_ERR_NONE);
 
         auto& task = Task::Common::Get(s_task);
-            
+
         mfxBRCFrameParam    fp = MakeFrameParam(task);
         mfxBRCFrameCtrl     fc = {};
         mfxBRCFrameStatus   fs = {};
@@ -495,9 +355,7 @@ void ExtBRC::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
             break;
         case MFX_BRC_PANIC_BIG_FRAME:
             task.bSkip = true;
-            MFX_FALLTHROUGH;
         case MFX_BRC_BIG_FRAME:
-            MFX_FALLTHROUGH;
         case MFX_BRC_SMALL_FRAME:
             task.bRecode = true;
             break;

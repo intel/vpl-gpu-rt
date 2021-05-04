@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2011-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,6 @@
 
 #include "mfx_common.h"
 
-#if defined (MFX_VA_LINUX)
 
 #ifndef __LIBMFX_CORE__VAAPI_H__
 #define __LIBMFX_CORE__VAAPI_H__
@@ -32,13 +31,10 @@
 #include "libmfx_core_interface.h"
 
 #include "mfx_platform_headers.h"
+#include "mfx_session.h"
 
 #include "va/va.h"
 #include "vaapi_ext_interface.h"
-
-#if defined (MFX_ENABLE_MFE)
-#include "mfx_mfe_adapter.h"
-#endif
 
 #if defined (MFX_ENABLE_VPP)
 #include "mfx_vpp_interface.h"
@@ -46,36 +42,55 @@
 
 #include <memory>
 
-//helper struct, it is help convert linux GUIDs to VAProfile and VAEntrypoint
+// helper struct, it is helper for conversion from between [linux/android GUIDs] and [VAProfile + VAEntryPoint]
+// linux/android GUIDs is defined in _studio/shared/include/mfxvideo++int.h
+//
+// GUID.Data4 is unused in current implementation, but struct stores it for correct GUID comparison
+// Original mapping between GUID and VAProfile:
+// {00000000 - 0000-0000  - 0000-000000000000}
+// VAProfile |VAEntryPoint|       UNUSED
 struct VaGuidMapper
 {
-    VAProfile profile;
-    VAEntrypoint entrypoint;
+    // VAEntrypoint and VAProfile is libVA enum
+    VAProfile m_profile;
+    VAEntrypoint m_entrypoint;
+    unsigned char  m_Data4[8] = {};
 
-    VaGuidMapper(VAProfile prf, VAEntrypoint ntr){
-        profile    = prf;
-        entrypoint = ntr;
-    }
+    VaGuidMapper(VAProfile profile, VAEntrypoint entrypoint) :
+        m_profile    (profile),
+        m_entrypoint (entrypoint)
+    {}
 
-    VaGuidMapper(int prf, int ntr)
-    {
-        profile    = static_cast<VAProfile>    (prf);
-        entrypoint = static_cast<VAEntrypoint> (ntr);
-    }
+    VaGuidMapper(int profile, int entrypoint) :
+        m_profile    (static_cast<VAProfile>    (profile)),
+        m_entrypoint (static_cast<VAEntrypoint> (entrypoint))
+    {}
 
+    // VaGuidMapper unpacking GUIDs
     VaGuidMapper(GUID guid)
     {
-        profile    = static_cast<VAProfile>    (guid.Data1);
-        entrypoint = static_cast<VAEntrypoint> ((guid.Data2 << 16) + guid.Data3);
+        m_profile    = static_cast<VAProfile>    (guid.Data1);
+        m_entrypoint = static_cast<VAEntrypoint> ((guid.Data2 << 16) + guid.Data3);
+
+        //check to correct copy string
+        static_assert( sizeof(guid.Data4) == sizeof(m_Data4),
+            "Error! Can't store guid.Data4 in m_Data4.");
+        static_assert( sizeof(*guid.Data4) == sizeof(*m_Data4),
+            "Error! Can't store guid.Data4 in m_Data4.");
+
+        std::copy(std::begin(guid.Data4), std::end(guid.Data4), std::begin(m_Data4));
     }
 
     operator GUID() const
     {
-        GUID res = { (unsigned long)  profile,
-                     (unsigned short) (entrypoint >> 16),
-                     (unsigned short) (entrypoint & 0xffff),
-                     {} };
+        // packing enum VAProfile and VAEntrypoint to Data1 and Data2 and Data3
+        GUID res = { (unsigned long)  m_profile,
+                     (unsigned short) (m_entrypoint >> 16),
+                     (unsigned short) (m_entrypoint & 0xffff),
+                     { m_Data4[0], m_Data4[1], m_Data4[2], m_Data4[3],
+                     m_Data4[4], m_Data4[5], m_Data4[6], m_Data4[7] }};
 
+        // check size of Data1 and Data2 and Data3 for enum VAProfile and VAEntrypoint packing
         static_assert( sizeof(res.Data1) >= sizeof(VAProfile),
             "Error! Can't store data profile in guid.data1 (unsigned long).");
         static_assert((sizeof(res.Data2) + sizeof(res.Data3)) >= sizeof(VAEntrypoint),
@@ -103,6 +118,8 @@ class VAAPIVideoCORE_T : public Base
 {
 public:
     friend class FactoryCORE;
+    friend class VAAPIVideoCORE20;
+    friend class VAAPIVideoCORE_T<CommonCORE20>;
     class VAAPIAdapter : public VAAPIInterface
     {
     public:
@@ -177,8 +194,6 @@ public:
     // this function should not be virtual
     mfxStatus            SetCmCopyStatus(bool enable);
 
-    bool CmCopy() const { return m_bCmCopy; }
-
 protected:
     VAAPIVideoCORE_T(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
     virtual void           Close()                                                                            override;
@@ -215,17 +230,36 @@ private:
 
     std::unique_ptr<VAAPIAdapter>               m_pAdapter;
     std::unique_ptr<CMEnabledCoreAdapter>       m_pCmAdapter;
-#ifdef MFX_ENABLE_MFE
-    ComPtrCore<MFEVAAPIEncoder> m_mfe;
-#endif
     //required to WA FEI enabling after move it from plugin to library
-    bool                                 m_bHEVCFEIEnabled;
-    mfxU32                               m_maxContextPriority;
+    bool                                        m_bHEVCFEIEnabled;
 };
 
 using VAAPIVideoCORE = VAAPIVideoCORE_T<CommonCORE>;
 
 
+// Refactored MSDK 2.0 core
+
+using VAAPIVideoCORE20_base = deprecate_from_base < VAAPIVideoCORE_T<CommonCORE20> >;
+
+class VAAPIVideoCORE20 : public VAAPIVideoCORE20_base
+{
+public:
+    friend class FactoryCORE;
+
+    virtual ~VAAPIVideoCORE20();
+
+    virtual mfxStatus SetHandle(mfxHandleType type, mfxHDL handle)                                                                                    override;
+
+    virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool isNeedCopy = true)                             override;
+            mfxStatus ReallocFrame(mfxFrameSurface1 *surf);
+
+    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)                                                              override;
+    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType)                         override;
+
+protected:
+    VAAPIVideoCORE20(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
+};
+
+
 #endif // __LIBMFX_CORE__VAAPI_H__
-#endif // MFX_VA_LINUX
 /* EOF */

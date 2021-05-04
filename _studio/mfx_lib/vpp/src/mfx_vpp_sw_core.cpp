@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2008-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,13 @@
 #include "libmfx_core_factory.h"
 #include "libmfx_core_interface.h"
 
+#include "mfxpcp.h"
+
 #include "mfx_vpp_utils.h"
 #include "mfx_vpp_sw.h"
+
+#include "umc_defs.h"
+#include "ipps.h"
 
 
 using namespace MfxHwVideoProcessing;
@@ -57,10 +62,7 @@ VideoVPPBase* CreateAndInitVPPImpl(mfxVideoParam *par, VideoCORE *core, mfxStatu
             return 0;
         }
 
-        if(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == *mfxSts ||
-            MFX_WRN_FILTER_SKIPPED == *mfxSts ||
-            MFX_WRN_PARTIAL_ACCELERATION == *mfxSts ||
-            MFX_ERR_NONE == *mfxSts)
+        if(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == *mfxSts || MFX_WRN_FILTER_SKIPPED == *mfxSts || MFX_ERR_NONE == *mfxSts)
         {
             return vpp;
         }
@@ -83,11 +85,11 @@ VideoVPPBase* CreateAndInitVPPImpl(mfxVideoParam *par, VideoCORE *core, mfxStatu
 {                                                      \
     if (sts != MFX_ERR_NONE && in)                       \
 {                                                    \
-    m_core->DecreaseReference( &(in->Data) );          \
+    m_core->DecreaseReference(*in);                  \
 }                                                    \
     if (sts != MFX_ERR_NONE && out)                      \
 {                                                    \
-    m_core->DecreaseReference( &(out->Data) );         \
+    m_core->DecreaseReference(*out);                 \
 }                                                    \
     MFX_CHECK_STS( sts );                                \
 }
@@ -102,7 +104,7 @@ VideoVPPBase* CreateAndInitVPPImpl(mfxVideoParam *par, VideoCORE *core, mfxStatu
 
 #define VPP_UNLOCK_SURFACE(sts, surface)                  \
 {                                                         \
-    if( MFX_ERR_NONE == sts )  m_core->DecreaseReference( &surface->Data );\
+    if( MFX_ERR_NONE == sts )  m_core->DecreaseReference(*surface);\
 }
 
 /* ******************************************************************** */
@@ -114,12 +116,6 @@ VideoVPPBase::VideoVPPBase(VideoCORE *core, mfxStatus* sts )
     , m_core(core)
     , m_pHWVPP()
 {
-    /* opaque processing */
-    m_bOpaqMode[VPP_IN]  = false;
-    m_bOpaqMode[VPP_OUT] = false;
-
-    memset(&m_requestOpaq[VPP_IN], 0, sizeof(mfxFrameAllocRequest));
-    memset(&m_requestOpaq[VPP_OUT], 0, sizeof(mfxFrameAllocRequest));
 
     /* common */
     m_bDynamicDeinterlace = false;
@@ -146,21 +142,6 @@ mfxStatus VideoVPPBase::Close(void)
 
     m_bDynamicDeinterlace = false;
 
-    /* opaque processing */
-
-    if( m_bOpaqMode[VPP_IN] )
-    {
-        m_requestOpaq[VPP_IN].NumFrameMin = m_requestOpaq[VPP_IN].NumFrameSuggested = 0;
-        m_requestOpaq[VPP_IN].Type = 0;
-    }
-
-    if( m_bOpaqMode[VPP_OUT] )
-    {
-        m_requestOpaq[VPP_OUT].NumFrameMin = m_requestOpaq[VPP_OUT].NumFrameSuggested = 0;
-        m_requestOpaq[VPP_OUT].Type = 0;
-    }
-
-    m_bOpaqMode[VPP_IN] = m_bOpaqMode[VPP_OUT] = false;
 
     //m_numUsedFilters      = 0;
     m_pipelineList.resize(0);
@@ -208,40 +189,6 @@ mfxStatus VideoVPPBase::Init(mfxVideoParam *par)
     sts = GetPipelineList( par, m_pipelineList, true);
     MFX_CHECK_STS(sts);
 
-    // opaque configuration rules:
-    // (1) in case of OPAQ request VPP should ignore IOPattern and use extBuffer native memory type
-    // (2) VPP_IN abd VPP_OUT should be checked independently of one another
-    sts = CheckOpaqMode( par, m_bOpaqMode );
-    MFX_CHECK_STS( sts );
-
-    if( m_bOpaqMode[VPP_IN] || m_bOpaqMode[VPP_OUT] )
-    {
-        sts = GetOpaqRequest( par, m_bOpaqMode, m_requestOpaq);
-        MFX_CHECK_STS( sts );
-
-        // VPP controls OPAQUE request.
-        // will be combined with SW::CreatePipeline() to prevent multu run of QueryIOSurf()
-        {
-            mfxFrameAllocRequest  cntrlRequest[2];
-            sts = QueryIOSurf(m_core, par, cntrlRequest);
-            VPP_IGNORE_MFX_STS(sts, MFX_WRN_PARTIAL_ACCELERATION);
-            MFX_CHECK_STS( sts );
-
-            if( m_bOpaqMode[VPP_IN] &&
-                (m_requestOpaq[VPP_IN].NumFrameMin < cntrlRequest[VPP_IN].NumFrameMin ||
-                m_requestOpaq[VPP_IN].NumFrameSuggested < cntrlRequest[VPP_IN].NumFrameSuggested) )
-            {
-                return MFX_ERR_INVALID_VIDEO_PARAM;
-            }
-
-            if( m_bOpaqMode[VPP_OUT] &&
-                (m_requestOpaq[VPP_OUT].NumFrameMin < cntrlRequest[VPP_OUT].NumFrameMin ||
-                m_requestOpaq[VPP_OUT].NumFrameSuggested < cntrlRequest[VPP_OUT].NumFrameSuggested) )
-            {
-                return MFX_ERR_INVALID_VIDEO_PARAM;
-            }
-        }
-    }
 
     sts = InternalInit(par);
     if (MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == sts || MFX_WRN_FILTER_SKIPPED == sts)
@@ -300,10 +247,8 @@ mfxStatus VideoVPPBase::VppFrameCheck(mfxFrameSurface1 *in, mfxFrameSurface1 *ou
         return MFX_ERR_NULL_PTR;
     }
 
-    if (out->Data.Locked)
-    {
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
-    }
+    if (!out->FrameInterface)
+       MFX_CHECK(!out->Data.Locked, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     /* *************************************** */
     /*              check info                 */
@@ -529,10 +474,10 @@ mfxStatus VideoVPPBase::CheckIOPattern( mfxVideoParam* par )
       return MFX_ERR_INVALID_VIDEO_PARAM;
   }
 
-  if (!m_core->IsExternalFrameAllocator() && (par->IOPattern & (MFX_IOPATTERN_OUT_VIDEO_MEMORY | MFX_IOPATTERN_IN_VIDEO_MEMORY)))
-  {
-    return MFX_ERR_INVALID_VIDEO_PARAM;
-  }
+  // MSDK 2.0 supports internal allocation without Ext. allocator set
+  bool* core20_interface = reinterpret_cast<bool*>(m_core->QueryCoreInterface(MFXICORE_API_2_0_GUID));
+  if (!core20_interface || !*core20_interface)
+    MFX_CHECK(m_core->IsExternalFrameAllocator() || !(par->IOPattern & (MFX_IOPATTERN_OUT_VIDEO_MEMORY | MFX_IOPATTERN_IN_VIDEO_MEMORY)), MFX_ERR_INVALID_VIDEO_PARAM);
 
   if ((par->IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY) &&
       (par->IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY))
@@ -892,10 +837,6 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
                         }
                         //--------------------------------------
                     }
-                    else if( MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION == in->ExtParam[i]->BufferId )
-                    {
-                        // No specific checks for Opaque ext buffer at the moment.
-                    }
 #ifdef MFX_ENABLE_MCTF
                     else if (MFX_EXTBUFF_VPP_MCTF == in->ExtParam[i]->BufferId)
                     {
@@ -968,9 +909,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
              out->vpp.Out.FourCC != MFX_FOURCC_P010 &&
              out->vpp.Out.FourCC != MFX_FOURCC_P210 &&
              out->vpp.Out.FourCC != MFX_FOURCC_YUY2 &&
-#if defined(MFX_VA_LINUX)
              out->vpp.Out.FourCC != MFX_FOURCC_UYVY &&
-#endif
              out->vpp.Out.FourCC != MFX_FOURCC_AYUV &&
 #if (MFX_VERSION >= 1027)
              out->vpp.Out.FourCC != MFX_FOURCC_Y210 &&
@@ -1063,7 +1002,6 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             out->vpp.Out.FourCC != MFX_FOURCC_NV12 &&
             out->vpp.Out.FourCC != MFX_FOURCC_YUY2 &&
             out->vpp.Out.FourCC != MFX_FOURCC_RGB4 &&
-            out->vpp.Out.FourCC != MFX_FOURCC_UYVY &&
 #ifdef MFX_ENABLE_RGBP
             out->vpp.Out.FourCC != MFX_FOURCC_RGBP &&
 #endif
@@ -1160,17 +1098,14 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             }
             else
             {
-                // doesn't support sw fallback now so return MFX_ERR_UNSUPPORTED
-                // will return MFX_WRN_PARTIAL_ACCELERATION after enabling sw fallback
                 hwQuerySts = MFX_ERR_UNSUPPORTED;
             }
         }
-        else
-        {
-            MFX_RETURN(MFX_ERR_UNSUPPORTED);
-        }
 
-        MFX_CHECK_STS(hwQuerySts);
+        MFX_CHECK_STS(MFX_ERR_UNSUPPORTED);
+
+        if (hwQuerySts != MFX_ERR_NONE)
+            return hwQuerySts;
 
         return mfxSts;
     }//else
@@ -1221,48 +1156,6 @@ mfxStatus VideoVPPBase::Reset(mfxVideoParam *par)
     }
     //-----------------------------------------------------
 
-    /* Opaque */
-    if( m_bOpaqMode[VPP_IN] || m_bOpaqMode[VPP_OUT] )
-    {
-        bool bLocalOpaqMode[2] = {false, false};
-
-        sts = CheckOpaqMode( par, bLocalOpaqMode );
-        MFX_CHECK_STS( sts );
-
-        if( bLocalOpaqMode[VPP_IN] && !m_bOpaqMode[VPP_IN] )
-        {
-            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-        }
-
-        if( bLocalOpaqMode[VPP_OUT] && !m_bOpaqMode[VPP_OUT] )
-        {
-            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-        }
-
-        if( bLocalOpaqMode[VPP_IN] || bLocalOpaqMode[VPP_OUT] )
-        {
-            mfxFrameAllocRequest localOpaqRequest[2];
-            sts = GetOpaqRequest( par, bLocalOpaqMode, localOpaqRequest);
-            MFX_CHECK_STS( sts );
-
-            if( bLocalOpaqMode[VPP_IN] )
-            {
-                if ( m_requestOpaq[VPP_IN].NumFrameMin != localOpaqRequest[VPP_IN].NumFrameMin ||
-                    m_requestOpaq[VPP_IN].NumFrameSuggested != localOpaqRequest[VPP_IN].NumFrameSuggested )
-                {
-                    return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-                }
-            }
-            if( bLocalOpaqMode[VPP_OUT] )
-            {
-                if ( m_requestOpaq[VPP_OUT].NumFrameMin != localOpaqRequest[VPP_OUT].NumFrameMin ||
-                    m_requestOpaq[VPP_OUT].NumFrameSuggested != localOpaqRequest[VPP_OUT].NumFrameSuggested )
-                {
-                    return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-                }
-            }
-        }
-    }// Opaque
 
     bool isCompositionModeInNewParams = IsCompositionMode(par);
     // Enabling/disabling composition via Reset() doesn't work currently.
@@ -1294,7 +1187,7 @@ mfxTaskThreadingPolicy VideoVPPBase::GetThreadingPolicy(void)
 mfxStatus VideoVPPBase::CheckPlatformLimitations(
     VideoCORE* core,
     mfxVideoParam & param,
-    bool /* bCorrectionEnable */)
+    bool bCorrectionEnable)
 {
     std::vector<mfxU32> capsList;
 
@@ -1313,6 +1206,7 @@ mfxStatus VideoVPPBase::CheckPlatformLimitations(
     // compare pipelineList and capsList
     mfxStatus capsSts = GetCrossList(pipelineList, capsList, supportedList, unsupportedList);// this function could return WRN_FILTER_SKIPPED
 
+    (void)bCorrectionEnable;
 
     // check unsupported list if we need to reset ext buffer fields
     if(!unsupportedList.empty())
@@ -1339,19 +1233,20 @@ mfxStatus VideoVPP_HW::InternalInit(mfxVideoParam *par)
     CommonCORE* pCommonCore = NULL;
 
     bool bIsFilterSkipped  = false;
-    bool isFieldProcessing = IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_PROCESSING)
-                          || IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_WEAVING)
-                          || IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_SPLITTING);
 
+    bool isSWFieldProcessing = IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_PROCESSING)
+                            || IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_WEAVING)
+                            || IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_SPLITTING);
 
     pCommonCore = QueryCoreInterface<CommonCORE>(m_core, MFXIVideoCORE_GUID);
     MFX_CHECK(pCommonCore, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    VideoVPPHW::IOMode mode = VideoVPPHW::GetIOMode(par, m_requestOpaq);
+    VideoVPPHW::IOMode mode = VideoVPPHW::GetIOMode(par
+    );
 
     m_pHWVPP.reset(new VideoVPPHW(mode, m_core));
 
-    if (isFieldProcessing)
+    if (isSWFieldProcessing)
     {
         CmDevice * device = QueryCoreInterface<CmDevice>(m_core, MFXICORECM_GUID);
         MFX_CHECK(device, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -1363,10 +1258,6 @@ mfxStatus VideoVPP_HW::InternalInit(mfxVideoParam *par)
     {
         bIsFilterSkipped = true;
         sts = MFX_ERR_NONE;
-    }
-    if (MFX_WRN_PARTIAL_ACCELERATION == sts) // doesn't support sw fallback
-    {
-        sts = MFX_ERR_INVALID_VIDEO_PARAM;
     }
     if (MFX_ERR_NONE != sts)
     {
@@ -1432,7 +1323,7 @@ mfxStatus VideoVPP_HW::VppFrameCheck(mfxFrameSurface1 *in, mfxFrameSurface1 *out
         //internalSts = (mfxStatus) MFX_ERR_MORE_DATA_SUBMIT_TASK;
     }
 
-    if( out && (MFX_ERR_NONE == internalSts || MFX_ERR_MORE_SURFACE == internalSts) )
+    if( out && pTask && (MFX_ERR_NONE == internalSts || MFX_ERR_MORE_SURFACE == internalSts) )
     {
         sts = PassThrough(NULL != in ? &(in->Info) : NULL, &(out->Info), pTask->taskIndex);
         //MFX_CHECK_STS( sts );
@@ -1480,6 +1371,6 @@ mfxStatus VideoVPP_HW::RunFrameVPP(mfxFrameSurface1* , mfxFrameSurface1* , mfxEx
     return MFX_ERR_NONE;
 }
 
-
 #endif // MFX_ENABLE_VPP
 /* EOF */
+

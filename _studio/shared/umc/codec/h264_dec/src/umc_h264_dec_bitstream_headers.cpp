@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2003-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -54,7 +54,7 @@
  \
     VM_ASSERT(offset >= 0 && offset <= 31); \
  \
-    (data) = x & bits_data[nbits]; \
+    (data) = x & UMC::bits_data[nbits]; \
 }
 
 using namespace UMC_H264_DECODER;
@@ -337,10 +337,6 @@ H264HeadersBitstream::H264HeadersBitstream(uint8_t * const pb, const uint32_t ma
 
 inline bool CheckLevel(uint8_t level_idc, bool ignore_level_constrain = false)
 {
-#if (MFX_VERSION < MFX_VERSION_NEXT)
-    std::ignore = ignore_level_constrain;
-#endif
-
     switch(level_idc)
     {
     case H264VideoDecoderParams::H264_LEVEL_1:
@@ -367,12 +363,10 @@ inline bool CheckLevel(uint8_t level_idc, bool ignore_level_constrain = false)
     case H264VideoDecoderParams::H264_LEVEL_9:
         return true;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
     case H264VideoDecoderParams::H264_LEVEL_6:
     case H264VideoDecoderParams::H264_LEVEL_61:
     case H264VideoDecoderParams::H264_LEVEL_62:
         return ignore_level_constrain;
-#endif
 
     default:
         return false;
@@ -1059,7 +1053,7 @@ Status H264HeadersBitstream::GetSequenceParamSetMvcExt(H264SeqParamSetMVCExtensi
     }
 
     // allocate the views' info structs
-    pSPSMvcExt->viewInfo.resize(pSPSMvcExt->num_views_minus1 + 1, H264ViewRefInfo());
+    pSPSMvcExt->viewInfo.resize(pSPSMvcExt->num_views_minus1 + 1);
 
     // parse view IDs
     for (uint32_t i = 0; i <= pSPSMvcExt->num_views_minus1; i += 1)
@@ -1121,7 +1115,7 @@ Status H264HeadersBitstream::GetSequenceParamSetMvcExt(H264SeqParamSetMVCExtensi
     }
 
     // allocate the level info structure
-    pSPSMvcExt->levelInfo.resize(pSPSMvcExt->num_level_values_signalled_minus1 + 1, H264LevelValueSignaled());
+    pSPSMvcExt->levelInfo.resize(pSPSMvcExt->num_level_values_signalled_minus1 + 1);
 
     // decode all ops
     for (uint32_t i = 0; i <= pSPSMvcExt->num_level_values_signalled_minus1; i += 1)
@@ -1141,7 +1135,7 @@ Status H264HeadersBitstream::GetSequenceParamSetMvcExt(H264SeqParamSetMVCExtensi
         }
 
         // allocate the operation points structures
-        levelInfo.opsInfo.resize(levelInfo.num_applicable_ops_minus1 + 1, H264ApplicableOp());
+        levelInfo.opsInfo.resize(levelInfo.num_applicable_ops_minus1 + 1);
 
         // decode operation points
         for (j = 0; j <= levelInfo.num_applicable_ops_minus1; j += 1)
@@ -1160,7 +1154,7 @@ Status H264HeadersBitstream::GetSequenceParamSetMvcExt(H264SeqParamSetMVCExtensi
             }
 
             // allocate the target view ID array
-            op.applicable_op_target_view_id.resize(op.applicable_op_num_target_views_minus1 + 1, 0);
+            op.applicable_op_target_view_id.resize(op.applicable_op_num_target_views_minus1 + 1);
 
             // read target view IDs
             for (k = 0; k <= op.applicable_op_num_target_views_minus1; k += 1)
@@ -2054,7 +2048,7 @@ Status H264HeadersBitstream::GetSliceHeaderPart3(
                 {
                     reordering_of_pic_nums_idc = (uint8_t)GetVLCElement(false);
                     if (reordering_of_pic_nums_idc > 5)
-                      return UMC_ERR_INVALID_STREAM;
+                        return UMC_ERR_INVALID_STREAM;
 
                     if (reordering_of_pic_nums_idc == 3)
                         break;
@@ -2068,7 +2062,7 @@ Status H264HeadersBitstream::GetSliceHeaderPart3(
                                                 (uint8_t)reordering_of_pic_nums_idc;
                     pReorderInfo_L0->reorder_value[reorder_idx]  =
                                                         GetVLCElement(false);
-                  if (reordering_of_pic_nums_idc != 2)
+                    if (reordering_of_pic_nums_idc != 2)
                         // abs_diff_pic_num is coded minus 1
                         pReorderInfo_L0->reorder_value[reorder_idx]++;
                     reorder_idx++;
@@ -2092,19 +2086,13 @@ Status H264HeadersBitstream::GetSliceHeaderPart3(
                         reordering_of_pic_nums_idc = GetVLCElement(false);
                         if (reordering_of_pic_nums_idc > 5)
                             return UMC_ERR_INVALID_STREAM;
-
                         if (reordering_of_pic_nums_idc == 3)
                             break;
-
                         if (reorder_idx >= MAX_NUM_REF_FRAMES)
-                        {
                             return UMC_ERR_INVALID_STREAM;
-                        }
-
                         pReorderInfo_L1->reordering_of_pic_nums_idc[reorder_idx] =
                                                     (uint8_t)reordering_of_pic_nums_idc;
-                        pReorderInfo_L1->reorder_value[reorder_idx]  =
-                                                            GetVLCElement(false);
+                        pReorderInfo_L1->reorder_value[reorder_idx] = GetVLCElement(false);
                         if (reordering_of_pic_nums_idc != 2)
                             // abs_diff_pic_num is coded minus 1
                             pReorderInfo_L1->reorder_value[reorder_idx]++;
@@ -2684,9 +2672,11 @@ void H264HeadersBitstream::unparsed_sei_message(H264SEIPayLoad *spl)
     AlignPointerRight();
 }
 
+// turn off the "local variable is initialized but not referenced" warning
 #ifdef _MSVC_LANG
 #pragma warning(disable : 4189)
 #endif
+
 void H264HeadersBitstream::scalability_info(H264SEIPayLoad *spl)
 {
     spl->SEI_messages.scalability_info.temporal_id_nesting_flag = (uint8_t)Get1Bit();
@@ -2908,9 +2898,11 @@ void H264HeadersBitstream::scalability_info(H264SEIPayLoad *spl)
     }
 }
 
+// restore the "local variable is initialized but not referenced" warning
 #ifdef _MSVC_LANG
 #pragma warning(default : 4189)
 #endif
+
 void SetDefaultScalingLists(H264SeqParamSet * sps)
 {
     int32_t i;

@@ -22,7 +22,9 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_base_packer.h"
+#include <iterator>
 #include <numeric>
+#include <iterator>
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
@@ -773,8 +775,14 @@ mfxU32 Packer::PackSLD(BitstreamWriter& bs, ScalingList const & scl)
 {
     mfxU32 nSE = 0;
     const mfxU32 matrixIds[] = { 0, 1, 2, 3, 4, 5 };
-    auto PackDeltaCoef = [&](mfxU32 sizeId, mfxU32 nextCoef, const mfxU8* scalingList)
+    auto PackDeltaCoef = [&](mfxU32 sizeId, mfxU32 nextCoef, const mfxU8* scalingList, mfxI32 dcCoeff = 0)
     {
+        mfxU8 scaling_list_pred_mode_flag = 1; // no implementation for reference scaling list(scaling_list_pred_mode_flag = 0).
+        nSE += PutBit(bs, scaling_list_pred_mode_flag);
+
+        bool bNeedDC = (sizeId > 1); // 16x16 or 32x32
+        nSE += bNeedDC && PutSE(bs, dcCoeff);
+
         mfxU32 coefNum = std::min(64, (1 << (4 + (sizeId << 1))));
         nSE += PutSE(bs, int8_t(scalingList[0] - nextCoef));
 
@@ -786,27 +794,21 @@ mfxU32 Packer::PackSLD(BitstreamWriter& bs, ScalingList const & scl)
     };
     auto Pack4x4 = [&](mfxU32 matrixId)
     {
-        nSE += PutBit(bs, 0); //scaling_list_pred_mode_flag
         PackDeltaCoef(0, 8, &scl.scalingLists0[matrixId][0]);
     };
     auto Pack8x8 = [&](mfxU32 matrixId)
     {
-        nSE += PutBit(bs, 0); //scaling_list_pred_mode_flag
         PackDeltaCoef(1, 8, &scl.scalingLists1[matrixId][0]);
     };
     auto Pack16x16 = [&](mfxU32 matrixId)
     {
-        nSE += PutBit(bs, 0); //scaling_list_pred_mode_flag
         auto next = scl.scalingLists2[matrixId][0];
-        nSE += PutSE(bs, next - 8);
-        PackDeltaCoef(2, next, &scl.scalingLists2[matrixId][0]);
+        PackDeltaCoef(2, next, &scl.scalingLists2[matrixId][0], next - 8);
     };
     auto Pack32x32 = [&](mfxU32 matrixId)
     {
-        nSE += PutBit(bs, 0); //scaling_list_pred_mode_flag
         auto next = scl.scalingLists3[!!matrixId][0];
-        nSE += PutSE(bs, next - 8);
-        PackDeltaCoef(3, next, &scl.scalingLists3[!!matrixId][0]);
+        PackDeltaCoef(3, next, &scl.scalingLists3[!!matrixId][0], next - 8);
     };
 
     std::for_each(std::begin(matrixIds), std::end(matrixIds), Pack4x4);
@@ -816,10 +818,11 @@ mfxU32 Packer::PackSLD(BitstreamWriter& bs, ScalingList const & scl)
     Pack32x32(3);
 
     assert(nSE ==
-          (1 + sizeof(scl.scalingLists0)
-        + (1 + sizeof(scl.scalingLists1))
-        + (2 + sizeof(scl.scalingLists2))
-        + (2 + sizeof(scl.scalingLists3))));
+        (6 * (1 + 16) // 4x4
+       + 6 * (1 + 64) // 8x8
+       + 6 * (2 + 64) // 16x16
+       + 2 * (2 + 64))); // 32x32
+
 
     return nSE;
 }
@@ -867,7 +870,11 @@ void Packer::PackSPS(BitstreamWriter& bs, SPS const & sps)
     nSE += PutUE(bs, sps.max_transform_hierarchy_depth_intra);
     nSE += PutBit(bs, sps.scaling_list_enabled_flag);
 
-    nSE += sps.scaling_list_enabled_flag && PackSLD(bs, sps.scl);
+    if (sps.scaling_list_enabled_flag)
+    {
+        nSE += PutBit(bs, sps.scaling_list_data_present_flag);
+        nSE += sps.scaling_list_data_present_flag && PackSLD(bs, sps.scl);
+    }
 
     nSE += PutBit(bs, sps.amp_enabled_flag);
     nSE += PutBit(bs, sps.sample_adaptive_offset_enabled_flag);
@@ -988,7 +995,7 @@ void Packer::PackPPS(BitstreamWriter& bs, PPS const &  pps)
     nSE += bNeedDblkOffsets && PutSE(bs, pps.tc_offset_div2);
 
     nSE += PutBit(bs, pps.scaling_list_data_present_flag);
-    assert(0 == pps.scaling_list_data_present_flag);
+    nSE += pps.scaling_list_data_present_flag && PackSLD(bs, pps.sld);
 
     nSE += PutBit(bs, pps.lists_modification_present_flag);
     nSE += PutUE(bs, pps.log2_parallel_merge_level_minus2);
@@ -1132,6 +1139,7 @@ bool Packer::PackSSHPWT(
     mfxI16   wC           = (1 << slice.chroma_log2_weight_denom);
     mfxI16   l2WDc        = slice.chroma_log2_weight_denom;
     auto     startOffset  = bs.GetOffset();
+
     auto     PutPwtLX     = [&](const mfxI16(&pwtLX)[16][3][2], mfxU32 sz)
     {
         mfxU32 szY      = sz * bNeedY;
@@ -1637,7 +1645,7 @@ mfxU32 Packer::GetPrefixSEI(
 
     if (bPackError)
         return 0;
-    
+
     bool bNeedOwnPT = (task.InsertHeaders & INSERT_PTSEI)
         && !std::any_of(prefixPL.begin(), prefixPL.end(), PLTypeEq<1>);
     if (bNeedOwnPT)
@@ -1851,6 +1859,7 @@ void Packer::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             Glob::VPS::Get(global)
             , Glob::SPS::Get(global)
             , Glob::PPS::Get(global)
+            , Glob::CqmPPS::GetOrConstruct(global)
             , Glob::SliceInfo::Get(global)
             , *ph);
         MFX_CHECK_STS(sts);
@@ -1882,14 +1891,17 @@ void Packer::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
         auto& initState = Glob::RealState::Get(global);
         auto& ph = Glob::PackedHeaders::Get(initState);
 
+        m_pGlob = &global;
+
         mfxStatus sts = Reset(
             Glob::VPS::Get(global)
             , Glob::SPS::Get(global)
             , Glob::PPS::Get(global)
+            , Glob::CqmPPS::GetOrConstruct(global)
             , Glob::SliceInfo::Get(global)
             , ph);
         MFX_CHECK_STS(sts);
-        
+
         auto&                     vpar   = Glob::VideoParam::Get(global);
         mfxExtCodingOptionVPS&    vps    = ExtBuffer::Get(vpar);
         mfxExtCodingOptionSPSPPS& spspps = ExtBuffer::Get(vpar);
@@ -1928,6 +1940,7 @@ mfxStatus Packer::Reset(
     const VPS& vps
     , const SPS& sps
     , const PPS& pps
+    , const PPS& cqmpps
     , const std::vector<SliceInfo>& si
     , PackedHeaders& ph)
 {
@@ -1967,6 +1980,15 @@ mfxStatus Packer::Reset(
     MFX_CHECK_STS(sts);
     pESBegin += ph.PPS.BitLen / 8;
 
+    // Pack cqm PPS header for adaptive cqm.
+    if (m_pGlob->Contains(CC::Key) && CC::Get(*m_pGlob).PackCqmHeader(m_pGlob))
+    {
+        PackPPS(rbsp, cqmpps);
+        sts = PackHeader(rbsp, pESBegin, pESEnd, ph.CqmPPS);
+        MFX_CHECK_STS(sts);
+        pESBegin += ph.CqmPPS.BitLen / 8;
+    }
+
     ph.SSH.resize(si.size());
 
     m_pRTBufBegin = pESBegin;
@@ -1994,6 +2016,8 @@ mfxU32 Packer::GetPSEIAndSSH(
     bool            bNeedSEI = (task.InsertHeaders & INSERT_SEI)
                                 || std::any_of(task.ctrl.Payload, task.ctrl.Payload + task.ctrl.NumPayload,
                                     [](const mfxPayload* pPL) { return pPL && !(pPL->CtrlFlags & MFX_PAYLOAD_CTRL_SUFFIX); });
+
+
     auto            PutSSH   = [&](PackedData& d, NALU& nalu)
     {
         rbsp.Reset(pBegin, mfxU32(pEnd - pBegin));
@@ -2094,6 +2118,9 @@ void Packer::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
                 m_pRTBufBegin = ph.PPS.pData + ph.PPS.BitLen / 8;
             }
 
+            // Update Slice header for adaptive cqm.
+            if (global.Contains(CC::Key)) CC::Get(global).UpdateSH(s_task);
+
             mfxU32 sz = GetPSEIAndSSH(
                 Glob::VideoParam::Get(global)
                 , task
@@ -2137,6 +2164,9 @@ void Packer::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
                 || ((task.InsertHeaders & INSERT_SPS) && Res2Bool(sts, BSInsert(ph.SPS)))
                 || ((task.InsertHeaders & INSERT_PPS) && Res2Bool(sts, BSInsert(ph.PPS)));
             MFX_CHECK(!bErr, sts);
+
+            // Update Slice header for adaptive cqm.
+            if (global.Contains(CC::Key)) CC::Get(global).UpdateSH(s_task);
 
             mfxU32 sz = GetPSEIAndSSH(
                 Glob::VideoParam::Get(global)

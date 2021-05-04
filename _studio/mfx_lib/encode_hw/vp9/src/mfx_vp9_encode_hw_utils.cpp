@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2016-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,9 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "math.h"
-#include <map>
 #include "mfx_vp9_encode_hw_utils.h"
+
+#include "umc_defs.h"
+
+#include <math.h>
+#include <map>
 
 namespace MfxHwVP9Encode
 {
@@ -39,12 +42,12 @@ VP9MfxVideoParam::VP9MfxVideoParam()
     Zero(m_layerParam);
     Zero(m_extParam);
     Zero(m_extPar);
-    Zero(m_extOpaque);
     Zero(m_extOpt2);
     Zero(m_extOpt3);
     Zero(m_extOptDDI);
     Zero(m_extSeg);
     Zero(m_extTempLayers);
+    Zero(m_extFrameInfo);
 }
 
 VP9MfxVideoParam::VP9MfxVideoParam(VP9MfxVideoParam const & par)
@@ -80,8 +83,8 @@ VP9MfxVideoParam& VP9MfxVideoParam::operator=(mfxVideoParam const & par)
 
 void VP9MfxVideoParam::CalculateInternalParams()
 {
-    if (IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
-        (IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (m_extOpaque.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
+    if (    IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
+        )
     {
         m_inMemType = INPUT_SYSTEM_MEMORY;
     }
@@ -172,18 +175,16 @@ void VP9MfxVideoParam::Construct(mfxVideoParam const & par)
     Zero(m_extParam);
 
     InitExtBufHeader(m_extPar);
-    InitExtBufHeader(m_extOpaque);
     InitExtBufHeader(m_extOpt2);
     InitExtBufHeader(m_extOpt3);
     InitExtBufHeader(m_extOptDDI);
     InitExtBufHeader(m_extSeg);
     InitExtBufHeader(m_extTempLayers);
+    InitExtBufHeader(m_extFrameInfo);
 
     if (mfxExtVP9Param * opts = GetExtBuffer(par))
         m_extPar = *opts;
 
-    if (mfxExtOpaqueSurfaceAlloc * opts = GetExtBuffer(par))
-        m_extOpaque = *opts;
 
     if (mfxExtCodingOption2 * opts = GetExtBuffer(par))
         m_extOpt2 = *opts;
@@ -208,13 +209,16 @@ void VP9MfxVideoParam::Construct(mfxVideoParam const & par)
         m_tempLayersBufPassed = true;
     }
 
+    if (mfxExtAVCEncodedFrameInfo * opts = GetExtBuffer(par))
+        m_extFrameInfo = *opts;
+
     m_extParam[0] = &m_extPar.Header;
-    m_extParam[1] = &m_extOpaque.Header;
-    m_extParam[2] = &m_extOpt2.Header;
-    m_extParam[3] = &m_extOpt3.Header;
-    m_extParam[4] = &m_extSeg.Header;
-    m_extParam[5] = &m_extTempLayers.Header;
-    m_extParam[6] = &m_extOptDDI.Header;
+    m_extParam[1] = &m_extOpt2.Header;
+    m_extParam[2] = &m_extOpt3.Header;
+    m_extParam[3] = &m_extSeg.Header;
+    m_extParam[4] = &m_extTempLayers.Header;
+    m_extParam[5] = &m_extOptDDI.Header;
+    m_extParam[7] = &m_extFrameInfo.Header;
 
     ExtParam = m_extParam;
     NumExtParam = mfxU16(sizeof m_extParam / sizeof m_extParam[0]);
@@ -225,17 +229,10 @@ void VP9MfxVideoParam::Construct(mfxVideoParam const & par)
 
 bool isVideoSurfInput(mfxVideoParam const & video)
 {
-    mfxExtOpaqueSurfaceAlloc * pOpaq = GetExtBuffer(video);
-
     if (video.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY)
         return true;
-    if (isOpaq(video) && pOpaq)
-    {
-        if (pOpaq->In.Type & MFX_MEMTYPE_DXVA2_DECODER_TARGET)
-        {
-            return true;
-        }
-    }
+
+
     return false;
 }
 
@@ -352,6 +349,7 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
         // in BRC mode driver may update LF level and mode/ref LF deltas
         frameParam.modeRefDeltaEnabled = 1;
         frameParam.modeRefDeltaUpdate = 1;
+
 #if (MFX_VERSION >= 1027)
         if (platform >= MFX_HW_ICL)
         {
@@ -376,11 +374,11 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
 
     frameParam.allowHighPrecisionMV = 1;
 
-    mfxU16 alignedWidth  = mfx::align2_value(frameParam.width,  8); // align to Mode Info block size (8 pixels)
-    mfxU16 alignedHeight = mfx::align2_value(frameParam.height, 8); // align to Mode Info block size (8 pixels)
+    mfxU16 alignedWidth  = mfx::align2_value(mfxU16(frameParam.width),  8); // align to Mode Info block size (8 pixels)
+    mfxU16 alignedHeight = mfx::align2_value(mfxU16(frameParam.height), 8); // align to Mode Info block size (8 pixels)
 
     frameParam.modeInfoRows = alignedHeight >> 3;
-    frameParam.modeInfoCols = alignedWidth >> 3;
+    frameParam.modeInfoCols = alignedWidth  >> 3;
 
     frameParam.temporalLayer = CalcTemporalLayerIndex(par, task.m_frameOrderInGop);
     frameParam.nextTemporalLayer = CalcTemporalLayerIndex(par, task.m_frameOrderInGop + 1);
@@ -790,11 +788,6 @@ mfxStatus GetRealSurface(
     Task const &task,
     mfxFrameSurface1 *& pSurface)
 {
-    if (par.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-    {
-        pSurface = pCore->GetNativeSurface(task.m_pRawFrame->pSurface);
-    }
-    else
     {
         pSurface = task.m_pRawFrame->pSurface;
     }
@@ -832,53 +825,41 @@ mfxStatus CopyRawSurfaceToVideoMemory(
         mfxFrameSurface1 *pDd3dSurf = task.m_pRawLocalFrame->pSurface;
         mfxFrameSurface1 *pSysSurface = 0;
         mfxStatus sts = GetRealSurface(pCore, par, task, pSysSurface);
-
-        mfxFrameSurface1 lockedSurf = {};
-        lockedSurf.Info = par.mfx.FrameInfo;
-
-        if (LumaIsNull(pSysSurface))
-        {
-            pCore->LockFrame(pSysSurface->Data.MemId, &lockedSurf.Data);
-            pSysSurface = &lockedSurf;
-        }
-
-        sts = pCore->CopyFrame(pDd3dSurf, pSysSurface);
         MFX_CHECK_STS(sts);
 
-        if (pSysSurface == &lockedSurf)
-        {
-            pCore->UnlockFrame(pSysSurface->Data.MemId, &lockedSurf.Data);
-        }
+        mfxFrameSurface1 sysSurf = *pSysSurface;
+
+        sts = pCore->DoFastCopyWrapper(
+            pDd3dSurf,
+            MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE,
+            &sysSurf,
+            MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY);
+        MFX_CHECK_STS(sts);
     }
 
     return MFX_ERR_NONE;
 }
 
 mfxStatus GetNativeHandleToRawSurface(
-    VideoCORE & core,
-    mfxMemId mid,
-    mfxHDL *handle,
-    VP9MfxVideoParam const & video)
+    VideoCORE& core,
+    mfxFrameSurface1& surf,
+    mfxHDLPair& handle,
+    VP9MfxVideoParam const& video)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
     mfxU32 iopattern = video.IOPattern;
 
-    mfxExtOpaqueSurfaceAlloc& opaq = GetExtBufferRef(video);
-    mfxU16 opaq_type = opaq.In.Type;
 
-    if (iopattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
-        (iopattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (opaq_type & MFX_MEMTYPE_SYSTEM_MEMORY)))
-        sts = core.GetFrameHDL(mid, handle);
+    if (    iopattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
+        )
+        sts = core.GetFrameHDL(surf, handle);
     else if (iopattern == MFX_IOPATTERN_IN_VIDEO_MEMORY)
-        sts = core.GetExternalFrameHDL(mid, handle);
-    else if (iopattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY) // opaq with internal video memory
-        sts = core.GetFrameHDL(mid, handle);
+        sts = core.GetExternalFrameHDL(surf, handle);
     else
-        sts = MFX_ERR_UNDEFINED_BEHAVIOR;
+        return MFX_ERR_UNDEFINED_BEHAVIOR;
 
     return sts;
 }
 
 } // MfxHwVP9Encode
-

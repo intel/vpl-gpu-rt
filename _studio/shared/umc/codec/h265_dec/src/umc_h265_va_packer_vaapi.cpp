@@ -22,18 +22,60 @@
 
 #ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
+#ifndef UMC_RESTRICTED_CODE_VA
+
 #include "umc_va_base.h"
+
+#ifdef UMC_VA_LINUX
+
 #include "umc_va_linux.h"
 #include "umc_h265_va_packer_vaapi.h"
 #include "umc_h265_task_supplier.h"
 #include "umc_va_video_processing.h"
+
 #include <va/va_dec_hevc.h>
+
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+#include "mfx_ext_buffers.h"
+#include "vaapi_ext_interface.h"
+#endif
 
 namespace UMC_HEVC_DECODER
 {
     void PackerVAAPI::BeginFrame(H265DecoderFrame* frame)
     {
+#if !defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
         (void)frame;
+#else
+        auto fd = frame->GetFrameData();
+        assert(fd);
+
+        auto aux = fd->GetAuxInfo(MFX_EXTBUFF_GPU_HANG);
+        if (aux)
+        {
+            assert(aux->type == MFX_EXTBUFF_GPU_HANG);
+
+            auto ht = reinterpret_cast<mfxExtIntGPUHang*>(aux->ptr);
+            assert(ht && "Buffer pointer should be valid here");
+            if (!ht)
+                throw h265_exception(UMC::UMC_ERR_FAILED);
+
+            //clear trigger to ensure GPU hang fired only once for this frame
+            fd->ClearAuxInfo(aux->type);
+
+            UMC::UMCVACompBuffer* buffer = nullptr;
+            m_va->GetCompBuffer(VATriggerCodecHangBufferType, &buffer, sizeof(unsigned int));
+            if (buffer)
+            {
+                auto trigger =
+                    reinterpret_cast<unsigned int*>(buffer->GetPtr());
+                if (!trigger)
+                    throw h265_exception(UMC::UMC_ERR_FAILED);
+
+                *trigger = 1;
+            }
+        }
+#endif
     }
 
     void PackerVAAPI::PackQmatrix(H265Slice const* slice)
@@ -113,33 +155,8 @@ namespace UMC_HEVC_DECODER
         MFX_INTERNAL_CPY(pipelineBuf, &vpVA->m_pipelineParams, sizeof(VAProcPipelineParameterBuffer));
 
         pipelineBuf->surface = m_va->GetSurfaceID(sliceInfo->m_pFrame->m_index); // should filled in packer
-        pipelineBuf->additional_outputs = (VASurfaceID*)vpVA->GetCurrentOutputSurface();
-    }
-
-    void PackerVAAPI::PackPriorityParams()
-    {
-        mfxPriority priority = m_va->m_ContextPriority;
-        UMC::UMCVACompBuffer *GpuPriorityBuf;
-        VAContextParameterUpdateBuffer* GpuPriorityBuf_H265Decode = (VAContextParameterUpdateBuffer *)m_va->GetCompBuffer(VAContextParameterUpdateBufferType, &GpuPriorityBuf, sizeof(VAContextParameterUpdateBuffer));
-        if (!GpuPriorityBuf_H265Decode)
-            throw h265_exception(UMC::UMC_ERR_FAILED);
-
-        memset(GpuPriorityBuf_H265Decode, 0, sizeof(VAContextParameterUpdateBuffer));
-        GpuPriorityBuf->SetDataSize(sizeof(VAContextParameterUpdateBuffer));
-
-        GpuPriorityBuf_H265Decode->flags.bits.context_priority_update = 1;
-        if(priority == MFX_PRIORITY_LOW)
-        {
-            GpuPriorityBuf_H265Decode->context_priority.bits.priority = 0;
-        }
-        else if (priority == MFX_PRIORITY_HIGH)
-        {
-            GpuPriorityBuf_H265Decode->context_priority.bits.priority = m_va->m_MaxContextPriority;
-        }
-        else
-        {
-            GpuPriorityBuf_H265Decode->context_priority.bits.priority = m_va->m_MaxContextPriority/2;
-        }
+        // To keep output aligned, decode downsampling use this fixed combination of chroma sitting type
+        pipelineBuf->input_color_properties.chroma_sample_location = VA_CHROMA_SITING_HORIZONTAL_LEFT | VA_CHROMA_SITING_VERTICAL_CENTER;
     }
 
     void PackerVAAPI::PackAU(H265DecoderFrame const* frame, TaskSupplier_H265 * supplier)
@@ -172,16 +189,10 @@ namespace UMC_HEVC_DECODER
 
         for (size_t n = 0; n < count; n++)
             PackSliceParams(fi->GetSlice(int32_t(n)), n, n == count - 1);
-		
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
         if (m_va->GetVideoProcessingVA())
             PackProcessingInfo(fi);
 #endif
-
-        //Set Gpu priority
-        if(m_va->m_MaxContextPriority)
-            PackPriorityParams();
-
         auto s = m_va->Execute();
         if (s != UMC::UMC_OK)
             throw h265_exception(s);
@@ -206,5 +217,9 @@ namespace UMC_HEVC_DECODER
 #endif
     }
 }
+
+#endif //UMC_VA_LINUX
+
+#endif //  UMC_RESTRICTED_CODE_VA
 
 #endif //MFX_ENABLE_H265_VIDEO_DECODE

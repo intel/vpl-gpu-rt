@@ -20,7 +20,6 @@
 
 #include "mfx_common.h"
 
-#if defined(MFX_VA_LINUX)
 #include "ehw_device_vaapi.h"
 #include <algorithm>
 #include "feature_blocks/mfx_feature_blocks_utils.h"
@@ -344,16 +343,12 @@ mfxStatus DeviceVAAPI::QueryStatus(DDIFeedback& ddiFB, mfxU32 id)
 
     auto& mbPar = GetArgs(itMB->In, vaMapBuffer);
     // Synchronization using vaSyncBuffer is temporarily disabled
-#if 0
-    auto sts = SyncBuffer(std::get<1>(mbPar), VA_TIMEOUT_INFINITE);
-#else
     auto itSS = std::find_if(ddiFB.ExecParam.begin(), ddiFB.ExecParam.end(), DDIExecParam::IsFunction<VAFID_SyncSurface>);
     MFX_CHECK(itSS != ddiFB.ExecParam.end(), MFX_ERR_UNDEFINED_BEHAVIOR);
 
     auto& ssPar = GetArgs(itSS->In, vaSyncSurface);
 
     auto sts = SyncSurface(std::get<1>(ssPar));
-#endif
     MFX_CHECK_STS(sts);
 
     VACodedBufferSegment* pCBS = nullptr;
@@ -372,4 +367,3 @@ mfxStatus DeviceVAAPI::QueryStatus(DDIFeedback& ddiFB, mfxU32 id)
 }
 
 } //namespace MfxEncodeHW
-#endif //defined(MFX_VA_LINUX)

@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2020 Intel Corporation
-// 
+// Copyright (c) 2013-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,10 +26,17 @@
 
 #include "umc_va_base.h"
 
+#ifdef UMC_VA_DXVA
+#include "umc_hevc_ddi.h"
+#endif
 
+#if defined(UMC_VA_LINUX)
 #include <va/va_dec_hevc.h>
+#endif
 
 #include "umc_h265_tables.h"
+
+#include <cassert>
 
 namespace UMC_HEVC_DECODER
 {
@@ -155,6 +162,7 @@ public:
 
     virtual UMC::Status GetStatusReport(void * pStatusReport, size_t size) = 0;
     virtual UMC::Status SyncTask(int32_t index, void * error) = 0;
+    virtual bool IsGPUSyncEventEnable() = 0;
 
     virtual void BeginFrame(H265DecoderFrame*) = 0;
     virtual void EndFrame() = 0;

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2003-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -411,7 +411,6 @@ public:
 private:
 
     FillnessStatus m_Status;
-
     int32_t m_SliceCount;
 
     bool m_IsNeedDeblocking;

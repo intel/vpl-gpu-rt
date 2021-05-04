@@ -43,6 +43,7 @@ namespace UMC_AV1_DECODER
         , PreFrame_id(0)
         , frame_order(0)
         , in_framerate(0)
+        , repeateFrame(UMC::FRAME_MID_INVALID)
     {
         outputed_frames.clear();
     }
@@ -243,6 +244,7 @@ namespace UMC_AV1_DECODER
             //CompleteDecodedFrames not show_frame case.
             pFrame->IncrementReference();
             VM_ASSERT(pFrame);
+            repeateFrame = pFrame->GetMemID();
 
             //Add one more Reference, and add it into outputted frame list
             //When QueryFrame finished and update status in outputted frame
@@ -387,7 +389,7 @@ namespace UMC_AV1_DECODER
         AV1DecoderFrame* pFrameInProgress = FindFrameInProgress();
         DPBType updated_refs;
         UMC::MediaData tmper = *in;
-
+        repeateFrame = UMC::FRAME_MID_INVALID;
         if ((tmper.GetDataSize() >= MINIMAL_DATA_SIZE) && pPrevFrame && !pFrameInProgress)
         {
             if (!Repeat_show)

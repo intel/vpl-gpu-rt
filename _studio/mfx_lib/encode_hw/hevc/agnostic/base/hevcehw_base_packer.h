@@ -147,6 +147,7 @@ namespace Base
             const VPS& vps
             , const SPS& sps
             , const PPS& pps
+            , const PPS& cqmpps
             , const std::vector<SliceInfo>& si
             , PackedHeaders& ph);
 
@@ -249,6 +250,20 @@ namespace Base
             , const SPS   &  sps
             , const PPS   &  pps
             , const Slice &  slice);
+
+        struct CallChains
+            : Storable
+        {
+            using TUpdateSH = CallChain<void
+                , StorageW&>;
+            TUpdateSH UpdateSH;
+
+            using TPackCqmHeader = CallChain<bool
+                , StorageW*>;
+            TPackCqmHeader PackCqmHeader;
+        };
+
+        using CC = StorageVar<Base::Glob::BasePackerKey, CallChains>;
     };
 
 } //Base

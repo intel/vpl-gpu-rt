@@ -24,11 +24,16 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "mfxvideo.h"
-#include "mfxla.h"
+
+
 #include "mfxbrc.h"
 #include "mfx_ext_buffers.h"
+
+
 #include "mfxvideo++int.h"
+
 #include "mfx_utils_extbuf.h"
+
 #include "feature_blocks/mfx_feature_blocks_init_macros.h"
 #include "feature_blocks/mfx_feature_blocks_base.h"
 #include "hevcehw_utils.h"
@@ -125,6 +130,14 @@ public:
     virtual ImplBase* ApplyMode(mfxU32 /*mode*/)
     {
         return this;
+    }
+
+    virtual mfxStatus QueryImplsDescription(
+        VideoCORE&
+        , mfxEncoderDescription::encoder&
+        , mfx::PODArraysHolder&)
+    {
+        return MFX_ERR_UNSUPPORTED;
     }
 };
 

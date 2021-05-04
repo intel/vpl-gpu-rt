@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2004-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -32,10 +32,10 @@
 #include "umc_vc1_dec_exception.h"
 #include "umc_vc1_dec_task_store.h"
 
-
 namespace UMC
 {
 
+#if defined (UMC_VA_LINUX)
     class VC1PackerLVA
     {
     public:
@@ -171,8 +171,348 @@ namespace UMC
         VAPictureParameterBufferVC1*   m_pPicPtr;
         bool m_bIsPreviousSkip;
     };
+#endif
 
 
+#if defined (UMC_VA_DXVA)
+    class VC1PackerDXVA
+    {
+    public:
+        VC1PackerDXVA():m_va(NULL),
+                        m_pSliceInfo(NULL),
+                        m_pPicPtr(NULL),
+                        m_bIsPreviousSkip(false)
+        {
+        };
+        ~VC1PackerDXVA(){}
+        void   VC1Init(){}; //no need to implement yet
+
+
+        // main function for packing picture parameters based on DXVA2 interface
+        void VC1PackPicParams (VC1Context* pContext,
+                                      DXVA_PictureParameters* ptr,
+                                      VideoAccelerator*              va);
+        void VC1PackPicParamsForOneSlice(VC1Context* pContext)
+        {
+            VC1PackPicParams(pContext,m_pPicPtr,m_va);
+            if (VC1_IS_REFERENCE(pContext->m_picLayerHeader->PTYPE))
+                m_bIsPreviousSkip = false;
+        }
+
+        void VC1PackOneSlice                      (VC1Context* pContext,
+                                                   SliceParams* slparams,
+                                                   uint32_t SliceBufIndex,
+                                                   uint32_t Offset,
+                                                   uint32_t SliceDataSize,
+                                                   uint32_t StartCodeOffset,
+                                                   uint32_t ChoppingType);
+
+        void  VC1PackWholeSliceSM                   (VC1Context* pContext,
+                                                     uint32_t MBOffset,
+                                                     uint32_t SliceDataSize);
+
+        void   VC1PackBitStreamForOneSlice          (VC1Context* pContext, uint32_t Size);
+        //return remain unpacked bitstream data
+        uint32_t   VC1PackBitStream                     (VC1Context* pContext,
+                                                       uint32_t Size,
+                                                       uint8_t* pOriginalData,
+                                                       uint32_t ByteOffset,
+                                                       uint32_t ,
+                                                       uint8_t& )
+        {
+            if (VC1_PROFILE_ADVANCED != pContext->m_seqLayerHeader.PROFILE)
+                return VC1PackBitStreamSM(Size, pOriginalData, ByteOffset);
+            else
+                return VC1PackBitStreamAdv(pContext, Size, pOriginalData, ByteOffset);
+        }
+
+        void   VC1PackBitplaneBuffers               (VC1Context* pContext);
+
+        void   VC1SetSliceBuffer();
+        void   VC1SetPictureBuffer();
+
+        void   VC1SetExtPictureBuffer() {};
+        void   VC1SetBuffersSize                    (uint32_t SliceBufIndex);
+
+        void   SetVideoAccelerator                  (VideoAccelerator*  va)
+        {
+            if (va)
+                m_va = va;
+        };
+        // we sure about our types
+        template <class T, class T1>
+        static T bit_set(T value, uint32_t offset, uint32_t count, T1 in)
+        {
+            return (T)(value | (((1<<count) - 1)&in) << offset);
+        };
+        void MarkFrameAsSkip() {m_bIsPreviousSkip = true;}
+        bool IsPrevFrameIsSkipped() {return m_bIsPreviousSkip;}
+
+        uint32_t VC1GetPicHeaderSize(uint8_t* , uint32_t , uint8_t& )
+        {
+            // compatibility only
+            return 0;
+        }
+
+    protected:
+
+       uint32_t VC1PackBitStreamSM (uint32_t Size,
+                                              uint8_t* pOriginalData,
+                                              uint32_t ByteOffset);
+
+       uint32_t VC1PackBitStreamAdv (VC1Context* pContext,
+                                   uint32_t Size,
+                                   uint8_t* pOriginalData,
+                                   uint32_t ByteOffset);
+        void VC1PackPicParams (VC1Context* pContext)
+        {
+            VC1PackPicParams(pContext,m_pPicPtr,m_va);
+            ++m_pPicPtr;
+        }
+
+        VideoAccelerator*     m_va;
+        DXVA_SliceInfo*    m_pSliceInfo;
+        DXVA_PictureParameters*   m_pPicPtr;
+        bool m_bIsPreviousSkip;
+    };
+
+    class VC1PackerDXVA_EagleLake: public VC1PackerDXVA
+    {
+        public:
+        VC1PackerDXVA_EagleLake(): VC1PackerDXVA(){m_pExtPicInfo = NULL;}
+        ~VC1PackerDXVA_EagleLake(){m_pExtPicInfo = NULL;};
+
+        virtual void VC1PackExtPicParams (VC1Context* pContext,
+                                      DXVA_ExtPicInfo* ptr,
+                                      VideoAccelerator* va);
+
+        virtual void VC1PackPicParams (VC1Context* pContext,
+                                      DXVA_PictureParameters* ptr,
+                                      VideoAccelerator*       va);
+
+
+        virtual void VC1PackPicParamsForOneSlice(VC1Context* pContext)
+        {
+            VC1PackPicParams(pContext,m_pPicPtr,m_va);
+            VC1PackExtPicParams(pContext,m_pExtPicInfo,m_va);
+
+            if (VC1_IS_REFERENCE(pContext->m_picLayerHeader->PTYPE))
+                m_bIsPreviousSkip = false;
+        }
+
+        virtual void VC1PackOneSlice  (VC1Context* pContext,
+                                          SliceParams* slparams,
+                                          uint32_t BufIndex, // only in future realisations
+                                          uint32_t MBOffset,
+                                          uint32_t SliceDataSize,
+                                          uint32_t StartCodeOffset,
+                                          uint32_t ChoppingType);
+
+        virtual void   VC1SetExtPictureBuffer();
+        virtual void   VC1SetBuffersSize                    (uint32_t SliceBufIndex);
+        uint32_t VC1GetPicHeaderSize(uint8_t* pOriginalData, size_t Offset, uint8_t& Flag_03)
+        {
+            uint32_t i = 0;
+            uint32_t numZero = 0;
+            uint8_t* ptr = pOriginalData;
+            for(i = 0; i < Offset; i++)
+            {
+                if(*ptr == 0)
+                    numZero++;
+                else
+                    numZero = 0;
+
+                ptr++;
+
+                if((numZero) == 2 && (*ptr == 0x03))
+                {
+                    if(*(ptr+1) < 4)
+                    {
+                       ptr++;
+                    }
+                    numZero = 0;
+                }
+            }
+
+            if((numZero == 1) && (*ptr == 0) && (*(ptr+1) == 0x03) && (*(ptr+2) < 4))
+            {
+                Flag_03 = 1;
+
+                if((*(ptr+2) == 0) && (*(ptr+3) == 0) && (*(ptr+4) == 0x03) && (*(ptr+5) < 4))
+                    Flag_03 = 5;
+
+                return ((uint32_t)(ptr - pOriginalData) + 1);
+            }
+            else if((*ptr == 0) && (*(ptr+1) == 0) && (*(ptr+2) == 0x03)&& (*(ptr+3) < 4))
+            {
+                Flag_03 = 2;
+                return (uint32_t)(ptr - pOriginalData);
+            }
+            else if((*(ptr + 1) == 0) && (*(ptr+2) == 0) && (*(ptr+3) == 0x03)&& (*(ptr+4) < 4)&& (*(ptr+5) > 3))
+            {
+                Flag_03 = 3;
+                return (uint32_t)(ptr - pOriginalData);
+            }
+            else if((*(ptr + 2) == 0) && (*(ptr+3) == 0) && (*(ptr+4) == 0x03)&& (*(ptr+5) < 4))
+            {
+                Flag_03 = 4;
+                return (uint32_t)(ptr - pOriginalData);
+            }
+            else
+            {
+                Flag_03 = 0;
+                return (uint32_t)(ptr - pOriginalData);
+            }
+
+        }
+
+        virtual uint32_t   VC1PackBitStream             (VC1Context* pContext,
+                                                       uint32_t& Size,
+                                                       uint8_t* pOriginalData,
+                                                       uint32_t OriginalSize,
+                                                       uint32_t ByteOffset,
+                                                       uint8_t& Flag_03)
+        {
+            return VC1PackBitStreamAdv(pContext, Size, pOriginalData, OriginalSize, ByteOffset, Flag_03);
+        }
+
+       virtual uint32_t VC1PackBitStreamAdv (VC1Context* pContext, uint32_t& Size,uint8_t* pOriginalData,
+                                   uint32_t OriginalDataSize, uint32_t ByteOffset, uint8_t& Flag_03);
+
+        virtual void VC1PackBitplaneBuffers(VC1Context* pContext);
+
+    protected:
+        void VC1PackExtPicParams (VC1Context* pContext)
+        {
+            VC1PackExtPicParams(pContext,m_pExtPicInfo,m_va);
+            ++m_pExtPicInfo;
+        }
+
+        DXVA_ExtPicInfo*   m_pExtPicInfo;
+    };
+
+
+    class VC1PackerDXVA_Protected: public VC1PackerDXVA
+    {
+    public:
+        VC1PackerDXVA_Protected(): VC1PackerDXVA(){m_pExtPicInfo = NULL;}
+        ~VC1PackerDXVA_Protected(){m_pExtPicInfo = NULL;};
+
+        virtual void VC1PackExtPicParams (VC1Context* pContext,
+            DXVA_ExtPicInfo* ptr,
+            VideoAccelerator* va);
+
+        virtual void VC1PackPicParams (VC1Context* pContext,
+            DXVA_PictureParameters* ptr,
+            VideoAccelerator*       va);
+
+
+        virtual void VC1PackPicParamsForOneSlice(VC1Context* pContext)
+        {
+            VC1PackPicParams(pContext,m_pPicPtr,m_va);
+            VC1PackExtPicParams(pContext,m_pExtPicInfo,m_va);
+
+            if (VC1_IS_REFERENCE(pContext->m_picLayerHeader->PTYPE))
+                m_bIsPreviousSkip = false;
+        }
+
+        virtual void VC1PackOneSlice  (VC1Context* pContext,
+            SliceParams* slparams,
+            uint32_t BufIndex, // only in future realisations
+            uint32_t MBOffset,
+            uint32_t SliceDataSize,
+            uint32_t StartCodeOffset,
+            uint32_t ChoppingType);
+
+        virtual void   VC1SetExtPictureBuffer();
+        virtual void   VC1SetBuffersSize                    (uint32_t SliceBufIndex);
+
+         virtual uint32_t   VC1PackBitStream(VC1Context* pContext,
+                                                       uint32_t& Size,
+                                                       uint8_t* pOriginalData,
+                                                       uint32_t OriginalSize,
+                                                       uint32_t ByteOffset,
+                                                       uint8_t& Flag_03)
+        {
+            if (VC1_PROFILE_ADVANCED == pContext->m_seqLayerHeader.PROFILE)
+                return VC1PackBitStreamAdv(pContext, Size, pOriginalData, OriginalSize, ByteOffset, Flag_03);
+            else
+                return 0;
+                }
+        uint32_t VC1PackBitStreamAdv (VC1Context* pContext,
+                                                       uint32_t& Size,
+                                                       uint8_t* pOriginalData,
+                                                       uint32_t OriginalSize,
+                                                       uint32_t ByteOffset,
+                                                       uint8_t& Flag_03);
+
+        virtual void VC1PackBitplaneBuffers(VC1Context* pContext);
+
+        uint32_t VC1GetPicHeaderSize(uint8_t* pOriginalData, size_t Offset, uint8_t& Flag_03)
+        {
+            uint32_t i = 0;
+            uint32_t numZero = 0;
+            uint8_t* ptr = pOriginalData;
+            for(i = 0; i < Offset; i++)
+            {
+                if(*ptr == 0)
+                    numZero++;
+                else
+                    numZero = 0;
+
+                ptr++;
+
+                if((numZero) == 2 && (*ptr == 0x03))
+                {
+                    if(*(ptr+1) < 4)
+                    {
+                       ptr++;
+                    }
+                    numZero = 0;
+                }
+            }
+
+            if((numZero == 1) && (*ptr == 0) && (*(ptr+1) == 0x03) && (*(ptr+2) < 4))
+            {
+                Flag_03 = 1;
+
+                if((*(ptr+2) == 0) && (*(ptr+3) == 0) && (*(ptr+4) == 0x03) && (*(ptr+5) < 4))
+                    Flag_03 = 5;
+
+                return ((uint32_t)(ptr - pOriginalData) + 1);
+            }
+            else if((*ptr == 0) && (*(ptr+1) == 0) && (*(ptr+2) == 0x03)&& (*(ptr+3) < 4))
+            {
+                Flag_03 = 2;
+                return (uint32_t)(ptr - pOriginalData);
+            }
+            else if((*(ptr + 1) == 0) && (*(ptr+2) == 0) && (*(ptr+3) == 0x03)&& (*(ptr+4) < 4)&& (*(ptr+5) > 3))
+            {
+                Flag_03 = 3;
+                return (uint32_t)(ptr - pOriginalData);
+            }
+            else if((*(ptr + 2) == 0) && (*(ptr+3) == 0) && (*(ptr+4) == 0x03)&& (*(ptr+5) < 4))
+            {
+                Flag_03 = 4;
+                return (uint32_t)(ptr - pOriginalData);
+            }
+            else
+            {
+                Flag_03 = 0;
+                return (uint32_t)(ptr - pOriginalData);
+            }
+        }
+
+    protected:
+        void VC1PackExtPicParams (VC1Context* pContext)
+        {
+            VC1PackExtPicParams(pContext,m_pExtPicInfo,m_va);
+            ++m_pExtPicInfo;
+        }
+
+        DXVA_ExtPicInfo*   m_pExtPicInfo;
+    };
+#endif
 
     template <class T>
     class VC1FrameDescriptorVA: public VC1FrameDescriptor
@@ -1085,6 +1425,7 @@ namespace UMC
         T m_pPacker;
     };
 
+#ifdef UMC_VA_LINUX
     template <class T>
     class VC1FrameDescriptorVA_Linux: public VC1FrameDescriptorVA<T>
     {
@@ -1506,7 +1847,1891 @@ namespace UMC
          }
     };
 
+#endif
 
+#ifdef UMC_VA_DXVA
+    template <class T>
+    class VC1FrameDescriptorVA_EagleLake: public VC1FrameDescriptorVA<T>
+    {
+    public:
+        // Default constructor
+        VC1FrameDescriptorVA_EagleLake(MemoryAllocator*      pMemoryAllocator,
+                                       VideoAccelerator*     va):VC1FrameDescriptorVA<T>(pMemoryAllocator, va)
+        {
+        }
+
+        virtual ~VC1FrameDescriptorVA_EagleLake(){};
+
+        void PrepareVLDVABuffers(uint32_t*  pOffsets,
+                                 uint32_t*  pValues,
+                                 uint8_t*   pOriginalData,
+                                 MediaDataEx::_MediaDataEx* pOrigStCodes)
+        {
+            if (VC1_IS_SKIPPED(m_pContext->m_picLayerHeader->PTYPE))
+            {
+                m_bIsSkippedFrame = true;
+                m_bIsReadyToProcess = false;
+                m_pPacker.MarkFrameAsSkip();
+            }
+            else
+            {
+                m_pPacker.VC1SetSliceBuffer();
+                m_pPacker.VC1SetPictureBuffer();
+                m_pPacker.VC1SetExtPictureBuffer();
+                VC1PackSlices(pOffsets,pValues,pOriginalData,pOrigStCodes);
+            }
+
+            if ((m_iFrameCounter > 1) ||
+                (!VC1_IS_REFERENCE(m_pContext->m_picLayerHeader->PTYPE)))
+            {
+                m_pStore->SetFirstBusyDescriptorAsReady();
+            }
+        }
+        virtual void VC1PackSlices    (uint32_t*  pOffsets,
+                                       uint32_t*  pValues,
+                                       uint8_t*   pOriginalData,
+                                       MediaDataEx::_MediaDataEx* pOrigStCodes)
+        {
+            uint32_t PicHeaderFlag;
+            uint32_t* pPictHeader = m_pContext->m_bitstream.pBitstream;
+            uint32_t temp_value = 0;
+            uint32_t* bitstream;
+            int32_t bitoffset = 31;
+            uint32_t SliceSize = 0;
+            uint32_t DataSize = 0;
+            uint32_t BitstreamDataSize = 0;
+            uint32_t IntCompField = 0;
+
+                        // need in case of fields
+            uint32_t* pFirstFieldStartCode = m_pContext->m_bitstream.pBitstream;
+            uint32_t Offset = 0;
+
+            uint32_t RemBytesInSlice = 4;
+            uint32_t PicHeaderSize = 0;
+            uint8_t  Flag_03 = 0; //for search 00 00 03 on the end of pic header
+
+            uint32_t* p_CurOriginalOffsets = pOrigStCodes->offsets;
+            uint32_t* p_NextOriginalOffsets = pOrigStCodes->offsets;
+
+            uint32_t*  p_CurOffsets = pOffsets;
+            uint32_t*  p_CurValues = pValues;
+            uint8_t*   p_CurOriginalData = pOriginalData;
+            
+            uint32_t*  p_NextOffsets = pOffsets;
+            uint32_t*  p_NextValues = pValues;
+            
+
+            bool isSecondField = false;
+            m_iSliceBufIndex = 0;
+            m_iPicBufIndex = 0;
+
+            uint32_t MBEndRowOfAlreadyExec = 0;
+
+            SliceParams slparams;
+            memset(&slparams,0,sizeof(SliceParams));
+            slparams.MBStartRow = 0;
+            slparams.MBEndRow = m_pContext->m_seqLayerHeader.heightMB;
+            m_pContext->m_picLayerHeader->CurrField = 0;
+
+#ifdef VC1_DEBUG_ON_LOG
+            static uint32_t Num = 0;
+            Num++;
+
+            printf("\n\n\nPicture type %d  %d\n\n\n", m_pContext->m_picLayerHeader->PTYPE, Num);
+#endif
+            
+            if (VC1_IS_SKIPPED(m_pContext->m_picLayerHeader->PTYPE))
+            {
+                m_bIsSkippedFrame = true;
+                m_bIsReadyToProcess = false;
+                return;
+            }
+            else
+            {
+                m_bIsSkippedFrame = false;
+            }
+
+           //skip start codes till Frame Header
+            while ((*p_CurValues)&&(*p_CurValues != 0x0D010000))
+            {
+                ++p_CurOffsets;
+                ++p_CurValues;
+                ++p_CurOriginalOffsets;
+            }
+
+            //move next st code data pointers
+            p_NextOffsets = p_CurOffsets + 1;
+            p_NextValues = p_CurValues + 1;
+            p_NextOriginalOffsets = p_CurOriginalOffsets + 1;
+
+            if (m_pContext->m_seqLayerHeader.PROFILE == VC1_PROFILE_ADVANCED)
+                DecodePicHeader(m_pContext);
+            else
+                Decode_PictureLayer(m_pContext);
+            IntCompField = m_pContext->m_picLayerHeader->INTCOMFIELD;
+            if (m_pContext->m_seqLayerHeader.PROFILE == VC1_PROFILE_ADVANCED)
+            {
+                PicHeaderSize = (m_pPacker.VC1GetPicHeaderSize(p_CurOriginalData + 4,
+                    (uint32_t)((size_t)sizeof(uint32_t)*(m_pContext->m_bitstream.pBitstream - pPictHeader)), Flag_03));
+            }
+            else
+            {
+                PicHeaderSize = (uint32_t)((size_t)sizeof(uint32_t)*(m_pContext->m_bitstream.pBitstream - pPictHeader));
+            }
+
+            m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+
+
+            slparams.MBRowsToDecode = slparams.MBEndRow-slparams.MBStartRow;
+            slparams.m_bitOffset    = m_pContext->m_bitstream.bitOffset;
+            if (VC1_PROFILE_ADVANCED == m_pContext->m_seqLayerHeader.PROFILE)
+                Offset = PicHeaderSize + 4; // offset in bytes
+            else
+                Offset = PicHeaderSize;
+
+            if (*(p_CurOffsets+1))
+                SliceSize = *(p_CurOriginalOffsets+1) - *p_CurOriginalOffsets - Offset;
+            else
+                SliceSize = m_pContext->m_FrameSize - Offset;
+
+            //skip user data
+            while(*(p_NextValues) == 0x1B010000 || *(p_NextValues) == 0x1D010000 || *(p_NextValues) == 0x1C010000)
+            {
+                p_NextOffsets++;
+                p_NextValues++;
+                p_NextOriginalOffsets++;
+            }
+
+            if (*p_NextValues == 0x0B010000)
+            {
+                //slice
+                bitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *p_NextOffsets);
+                VC1BitstreamParser::GetNBits(bitstream, bitoffset,32, temp_value);
+                bitoffset = 31;
+                VC1BitstreamParser::GetNBits(bitstream,bitoffset,9, slparams.MBEndRow);     //SLICE_ADDR
+                m_pContext->m_picLayerHeader->is_slice = 1;
+            }
+            else if(*p_NextValues == 0x0C010000)
+            {
+                //field
+                slparams.MBEndRow = (m_pContext->m_seqLayerHeader.heightMB+1)/2;
+            }
+
+            VM_ASSERT(SliceSize<0x0FFFFFFF);
+
+            {
+                uint32_t chopType = 1;
+                uint32_t BytesAlreadyExecuted = 0;
+                RemBytesInSlice  = m_pPacker.VC1PackBitStream(m_pContext,
+                                                              DataSize,
+                                                              p_CurOriginalData + Offset,
+                                                              SliceSize,
+                                                              0, Flag_03);
+                if (RemBytesInSlice)
+                {
+                    MBEndRowOfAlreadyExec = slparams.MBEndRow;
+
+                    // fill slices
+                    while (RemBytesInSlice) // we don't have enough buffer - execute it
+                    {
+                        m_pPacker.VC1PackOneSlice(m_pContext, &slparams, m_iSliceBufIndex,
+                                                  0, DataSize,  0,  chopType);
+
+                        m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex+1);
+
+                        if (UMC_OK != m_va->Execute())
+                            throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+
+                        BytesAlreadyExecuted += DataSize;
+
+                        m_pPacker.VC1SetSliceBuffer();
+                        m_pPacker.VC1SetPictureBuffer();
+                        m_pPacker.VC1SetExtPictureBuffer();
+
+                        m_iSliceBufIndex = 0;
+
+                        m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                        RemBytesInSlice  = m_pPacker.VC1PackBitStream(m_pContext,
+                                                                      DataSize,
+                                                                      p_CurOriginalData + BytesAlreadyExecuted + Offset,
+                                                                      RemBytesInSlice,
+                                                                      0, Flag_03);
+                        slparams.m_bitOffset = 0;
+                        chopType = 3;
+                        Offset = 4;
+                    }
+
+                    chopType = 2;
+
+                    m_pPacker.VC1PackOneSlice(m_pContext, &slparams,
+                                              m_iSliceBufIndex,  0,
+                                              DataSize, 0, chopType);
+
+                    m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex+1);
+
+                    m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                    if (UMC_OK != m_va->Execute())
+                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                    m_iSliceBufIndex = 0;
+
+                    // we need receive buffers from drv for future processing
+                    if (MBEndRowOfAlreadyExec != m_pContext->m_seqLayerHeader.heightMB)
+                    {
+                        m_pPacker.VC1SetSliceBuffer();
+                        m_pPacker.VC1SetPictureBuffer();
+                        m_pPacker.VC1SetExtPictureBuffer();
+                    }
+
+                }
+                else
+                {
+                    m_pPacker.VC1PackOneSlice(m_pContext, &slparams, m_iSliceBufIndex,
+                                              0, DataSize, 0, 0);
+                    // let execute in case of fields
+                    if (*p_NextValues== 0x0C010000)
+                    {
+                        // Execute first slice
+                        m_pPacker.VC1PackBitplaneBuffers(m_pContext);
+                        m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex + 1);
+
+                        if (UMC_OK != m_va->Execute())
+                            throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                        m_iSliceBufIndex = 0;
+                    }
+                    else
+                    {
+                        BitstreamDataSize += DataSize;
+                        ++m_iSliceBufIndex;
+                    }
+                }
+            }
+
+            //move current st code data pointers
+            p_CurOffsets = p_NextOffsets;
+            p_CurValues  = p_NextValues;
+            p_CurOriginalOffsets = p_NextOriginalOffsets;
+
+            //move next st code data pointers
+            p_NextOffsets++;
+            p_NextValues++;
+            p_NextOriginalOffsets++;
+
+            while (*p_CurOffsets)
+            {
+                //Fields
+                if (*(p_CurValues) == 0x0C010000)
+                {
+                    m_pContext->m_bitstream.pBitstream = pFirstFieldStartCode;
+
+                    if (UMC_OK != m_va->EndFrame())
+                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+
+                    if (m_pContext->m_seqLayerHeader.RANGE_MAPY_FLAG ||
+                    m_pContext->m_seqLayerHeader.RANGE_MAPUV_FLAG|| 
+                    m_pContext->m_seqLayerHeader.RANGERED)
+                     {
+                        if (UMC_OK != m_va->EndFrame())
+                            throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                    }
+
+                    if (UMC_OK != m_va->BeginFrame(m_pContext->m_frmBuff.m_iCurrIndex))
+                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+
+                    
+                    m_pPacker.VC1SetSliceBuffer();
+                    m_pPacker.VC1SetPictureBuffer();
+                    m_pPacker.VC1SetExtPictureBuffer();
+                    isSecondField = true;
+                    // set swap bitstream for parsing
+                    m_pContext->m_bitstream.pBitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *p_CurOffsets);
+                    m_pContext->m_bitstream.pBitstream += 1; // skip start code
+                    m_pContext->m_bitstream.bitOffset = 31;
+                    pPictHeader = m_pContext->m_bitstream.pBitstream;
+                    PicHeaderSize = 0;
+                    BitstreamDataSize = 0;
+
+                    ++m_pContext->m_picLayerHeader;
+                    *m_pContext->m_picLayerHeader = *m_pContext->m_InitPicLayer;
+                    m_pContext->m_picLayerHeader->BottomField = (uint8_t)m_pContext->m_InitPicLayer->TFF;
+                    m_pContext->m_picLayerHeader->PTYPE = m_pContext->m_InitPicLayer->PTypeField2;
+                    m_pContext->m_picLayerHeader->CurrField = 1;
+
+                    m_pContext->m_picLayerHeader->is_slice = 0;
+                    DecodePicHeader(m_pContext);
+
+                    //m_pContext->m_picLayerHeader->INTCOMFIELD = IntCompField;
+                    PicHeaderSize = (uint32_t)m_pPacker.VC1GetPicHeaderSize(p_CurOriginalData + 4 + *p_CurOriginalOffsets,
+                        (uint32_t)((size_t)sizeof(uint32_t)*(m_pContext->m_bitstream.pBitstream - pPictHeader)), Flag_03);
+
+                    slparams.MBStartRow = (m_pContext->m_seqLayerHeader.heightMB+1)/2;
+
+                    if (*(p_CurOffsets+1))
+                        SliceSize = *(p_CurOriginalOffsets + 1) - *p_CurOriginalOffsets - 4 - PicHeaderSize;
+                    else
+                        SliceSize = m_pContext->m_FrameSize - *p_CurOriginalOffsets - 4 - PicHeaderSize;
+
+                    //skip user data
+                    while(*p_NextValues == 0x1B010000 || *p_NextValues == 0x1D010000 || *p_NextValues == 0x1C010000)
+                    {
+                        p_NextOffsets++;
+                        p_NextValues++;
+                        p_NextOriginalOffsets++;
+                    }   
+
+                    if (*p_NextOffsets && *p_NextValues == 0x0B010000)
+                    {
+                        bitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *p_NextOffsets);
+                        VC1BitstreamParser::GetNBits(bitstream,bitoffset,32, temp_value);
+                        bitoffset = 31;
+                        VC1BitstreamParser::GetNBits(bitstream,bitoffset,9, slparams.MBEndRow);
+                    } else
+                        slparams.MBEndRow = m_pContext->m_seqLayerHeader.heightMB;
+
+                    m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                    ++m_iPicBufIndex;
+                    slparams.MBRowsToDecode = slparams.MBEndRow-slparams.MBStartRow;
+                    slparams.m_bitOffset = m_pContext->m_bitstream.bitOffset;
+                    Offset = PicHeaderSize + 4; // offset in bytes
+                    slparams.MBStartRow = 0; //we should decode fields steb by steb
+
+                    {
+                        uint32_t chopType = 1;
+                        uint32_t BytesAlreadyExecuted = 0;
+                        RemBytesInSlice  = m_pPacker.VC1PackBitStream(m_pContext, DataSize,
+                                                                      p_CurOriginalData + *p_CurOriginalOffsets + Offset,SliceSize,
+                                                                      0, Flag_03);
+                        if (RemBytesInSlice)
+                        {
+                            MBEndRowOfAlreadyExec = slparams.MBEndRow;
+
+                            // fill slices
+                            while (RemBytesInSlice) // we don't have enough buffer - execute it
+                            {
+                                m_pPacker.VC1PackOneSlice(m_pContext,   &slparams,   m_iSliceBufIndex,
+                                                          0, DataSize, 0,   chopType);
+
+                                m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex+1);
+
+                                if (UMC_OK != m_va->Execute())
+                                    throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                                BytesAlreadyExecuted += DataSize;
+
+                                m_pPacker.VC1SetSliceBuffer();
+                                m_pPacker.VC1SetPictureBuffer();
+                                m_iSliceBufIndex = 0;
+
+                                m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                                RemBytesInSlice  = m_pPacker.VC1PackBitStream(m_pContext, DataSize,
+                                                                              p_CurOriginalData + BytesAlreadyExecuted,
+                                                                              RemBytesInSlice,
+                                                                              0, Flag_03);
+                                chopType = 3;
+                                slparams.m_bitOffset = 0;
+                                Offset = 0;
+                            }
+
+                            m_pPacker.VC1PackOneSlice(m_pContext, &slparams,  m_iSliceBufIndex,
+                                                      0, DataSize, 0, 2);
+
+                            m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex+1);
+
+                            m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                            if (UMC_OK != m_va->Execute())
+                                throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                            m_iSliceBufIndex = 0;
+
+                            // we need receive buffers from drv for future processing
+                            if (MBEndRowOfAlreadyExec != m_pContext->m_seqLayerHeader.heightMB)
+                            {
+                                m_pPacker.VC1SetSliceBuffer();
+                                m_pPacker.VC1SetPictureBuffer();
+                                m_pPacker.VC1SetExtPictureBuffer();
+                            }
+                        }
+                        else
+                        {
+                            m_pPacker.VC1PackOneSlice(m_pContext,
+                                                      &slparams,
+                                                      m_iSliceBufIndex,
+                                                      0,
+                                                      DataSize,
+                                                      0, 0);
+                            BitstreamDataSize += DataSize;
+                            ++m_iSliceBufIndex;
+                        }
+                    }
+
+                    //move current st code data pointers
+                    p_CurOffsets = p_NextOffsets;
+                    p_CurValues  = p_NextValues;
+                    p_CurOriginalOffsets = p_NextOriginalOffsets;
+
+                    //move next st code data pointers
+                    p_NextOffsets++;
+                    p_NextValues++;
+                    p_NextOriginalOffsets++;
+                }
+                //Slices
+                else if (*p_CurValues == 0x0B010000)
+                {
+                    m_pContext->m_bitstream.pBitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *p_CurOffsets);
+                    VC1BitstreamParser::GetNBits(m_pContext->m_bitstream.pBitstream,m_pContext->m_bitstream.bitOffset,32, temp_value);
+                    m_pContext->m_bitstream.bitOffset = 31;
+                    pPictHeader = m_pContext->m_bitstream.pBitstream;
+                    PicHeaderSize = 0;
+
+                    VC1BitstreamParser::GetNBits(m_pContext->m_bitstream.pBitstream,m_pContext->m_bitstream.bitOffset,9, slparams.MBStartRow);     //SLICE_ADDR
+                    VC1BitstreamParser::GetNBits(m_pContext->m_bitstream.pBitstream,m_pContext->m_bitstream.bitOffset,1, PicHeaderFlag);            //PIC_HEADER_FLAG
+
+                    if (PicHeaderFlag == 1)                //PIC_HEADER_FLAG
+                    {
+                        ++m_pContext->m_picLayerHeader;
+                        if (isSecondField)
+                            m_pContext->m_picLayerHeader->CurrField = 1;
+                        else
+                            m_pContext->m_picLayerHeader->CurrField = 0;
+
+                        DecodePictureHeader_Adv(m_pContext);
+                        DecodePicHeader(m_pContext);
+                        PicHeaderSize = m_pPacker.VC1GetPicHeaderSize(p_CurOriginalData + 4 + *p_CurOriginalOffsets,
+                            (uint32_t)((size_t)sizeof(uint32_t)*(m_pContext->m_bitstream.pBitstream - pPictHeader)), Flag_03);
+
+                        ++m_iPicBufIndex;
+                    }
+                    m_pContext->m_picLayerHeader->is_slice = 1;
+                    //skip user data
+                    while(*p_NextValues == 0x1B010000 || *p_NextValues == 0x1D010000 || *p_NextValues == 0x1C010000)
+                    {
+                        p_NextOffsets++;
+                        p_NextValues++;
+                        p_NextOriginalOffsets++;
+                    }  
+
+                    if (*p_NextOffsets && *p_NextValues == 0x0B010000)
+                    {
+                        bitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *p_NextOffsets);
+                        VC1BitstreamParser::GetNBits(bitstream,bitoffset,32, temp_value);
+                        bitoffset = 31;
+                        VC1BitstreamParser::GetNBits(bitstream,bitoffset,9, slparams.MBEndRow);
+                    }
+                    else if(*p_NextValues == 0x0C010000)
+                        slparams.MBEndRow = (m_pContext->m_seqLayerHeader.heightMB+1)/2;
+                    else
+                        slparams.MBEndRow = m_pContext->m_seqLayerHeader.heightMB;
+
+                    slparams.MBRowsToDecode = slparams.MBEndRow-slparams.MBStartRow;
+                    slparams.m_bitOffset = m_pContext->m_bitstream.bitOffset;
+                    Offset = PicHeaderSize + 4;
+
+                    if (isSecondField)
+                        slparams.MBStartRow -= (m_pContext->m_seqLayerHeader.heightMB+1)/2;
+
+                    if (*(p_CurOffsets+1))
+                        SliceSize = *(p_CurOriginalOffsets+1) - *p_CurOriginalOffsets - Offset;
+                    else
+                        SliceSize = m_pContext->m_FrameSize - *p_CurOriginalOffsets - Offset;
+
+                    {
+                        uint32_t chopType = 1;
+                        RemBytesInSlice  = m_pPacker.VC1PackBitStream(m_pContext,
+                                                                      DataSize,
+                                                                      p_CurOriginalData + *p_CurOriginalOffsets + Offset,
+                                                                      SliceSize,
+                                                                      BitstreamDataSize, Flag_03);
+                        if (RemBytesInSlice)
+                        {
+                            MBEndRowOfAlreadyExec = slparams.MBEndRow;
+                            uint32_t BytesAlreadyExecuted = 0;
+
+                            // fill slices
+                            while (RemBytesInSlice) // we don't have enough buffer - execute it
+                            {
+                                m_pPacker.VC1PackOneSlice(m_pContext,    &slparams,
+                                                          m_iSliceBufIndex,  0,
+                                                          DataSize,          0,   chopType);
+
+                                m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex+1);
+
+                                m_va->Execute();
+                                BytesAlreadyExecuted += DataSize;
+
+                                m_pPacker.VC1SetSliceBuffer();
+                                m_pPacker.VC1SetPictureBuffer();
+                                m_pPacker.VC1SetExtPictureBuffer();
+
+                                m_iSliceBufIndex = 0;
+
+                                m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                                RemBytesInSlice  = m_pPacker.VC1PackBitStream(m_pContext,
+                                                                              DataSize,
+                                                                              p_CurOriginalData + *p_CurOriginalOffsets + BytesAlreadyExecuted + Offset + 4,
+                                                                              RemBytesInSlice, 0, Flag_03);
+
+                                chopType = 3;
+                                slparams.m_bitOffset = 0;
+                                Offset = 0;
+                            }
+
+                            m_pPacker.VC1PackOneSlice(m_pContext,       &slparams,
+                                                      m_iSliceBufIndex, 0,
+                                                      DataSize,         0, 2);
+                            m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex+1);
+                            m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                            m_va->Execute();
+
+                            m_iSliceBufIndex = 0;
+
+                            // we need receive buffers from drv for future processing
+                            if (MBEndRowOfAlreadyExec != m_pContext->m_seqLayerHeader.heightMB)
+                            {
+                                m_pPacker.VC1SetSliceBuffer();
+                                m_pPacker.VC1SetPictureBuffer();
+                                m_pPacker.VC1SetExtPictureBuffer();
+                            }
+                        }
+                        else
+                        {
+                            m_pPacker.VC1PackOneSlice(m_pContext,         &slparams,
+                                                      m_iSliceBufIndex,   0,
+                                                      DataSize,           BitstreamDataSize, 0);
+
+                        //skip user data
+                        while(*p_NextValues == 0x1B010000 || *p_NextValues == 0x1D010000 || *p_NextValues == 0x1C010000)
+                        {
+                            p_NextOffsets++;
+                            p_NextValues++;
+                            p_NextOriginalOffsets++;
+                        }  
+                            // let execute in case of fields
+                            if (*p_NextValues== 0x0C010000)
+                            {
+                                // Execute first slice
+                                m_pPacker.VC1PackBitplaneBuffers(m_pContext);
+
+                                m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex + 1);
+
+                                if (UMC_OK != m_va->Execute())
+                                    throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                                m_iSliceBufIndex = 0;
+                            }
+                            else
+                            {
+                                BitstreamDataSize += DataSize/*SliceSize - RemBytesInSlice*/;
+                                ++m_iSliceBufIndex;
+                            }
+                        }
+                    }
+                    //move current st code data pointers
+                    p_CurOffsets = p_NextOffsets;
+                    p_CurValues  = p_NextValues;
+                    p_CurOriginalOffsets = p_NextOriginalOffsets;
+
+                    //move next st code data pointers
+                    p_NextOffsets++;
+                    p_NextValues++;
+                    p_NextOriginalOffsets++;
+
+                }
+                else
+                {
+                    //move current st code data pointers
+                    p_CurOffsets = p_NextOffsets;
+                    p_CurValues  = p_NextValues;
+                    p_CurOriginalOffsets = p_NextOriginalOffsets;
+
+                    //move next st code data pointers
+                    p_NextOffsets++;
+                    p_NextValues++;
+                    p_NextOriginalOffsets++;
+                }
+
+            }
+            //need to execute last slice
+            if (MBEndRowOfAlreadyExec != m_pContext->m_seqLayerHeader.heightMB)
+            {
+                m_pPacker.VC1PackBitplaneBuffers(m_pContext);
+                m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex);
+                if (UMC_OK != m_va->Execute())
+                    throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+
+                if (m_pContext->m_seqLayerHeader.RANGE_MAPY_FLAG ||
+                    m_pContext->m_seqLayerHeader.RANGE_MAPUV_FLAG|| 
+                    m_pContext->m_seqLayerHeader.RANGERED)
+                {
+                    if (UMC_OK != m_va->EndFrame())
+                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                }
+            }
+         }
+    };
+
+
+
+    template <class T>
+    class VC1FrameDescriptorVA_Protected: public VC1FrameDescriptorVA<T>
+    {
+    public:
+        // Default constructor
+        VC1FrameDescriptorVA_Protected(MemoryAllocator*      pMemoryAllocator,
+            VideoAccelerator*     va):VC1FrameDescriptorVA(pMemoryAllocator, va)
+        {
+        }
+
+        virtual ~VC1FrameDescriptorVA_Protected(){};
+
+        void PrepareVLDVABuffers(uint32_t*  pOffsets,
+            uint32_t*  pValues,
+            uint8_t*   pOriginalData,
+            MediaDataEx::_MediaDataEx* pOrigStCodes)
+        {
+            if (VC1_IS_SKIPPED(m_pContext->m_picLayerHeader->PTYPE))
+            {
+                m_bIsSkippedFrame = true;
+                m_bIsReadyToProcess = false;
+                m_pPacker.MarkFrameAsSkip();
+            }
+            else
+            {
+                m_pPacker.VC1SetSliceBuffer();
+                m_pPacker.VC1SetPictureBuffer();
+                m_pPacker.VC1SetExtPictureBuffer();
+                VC1PackSlices(pOffsets,pValues,pOriginalData,pOrigStCodes);
+            }
+
+            if ((m_iFrameCounter > 1) ||
+                (!VC1_IS_REFERENCE(m_pContext->m_picLayerHeader->PTYPE)))
+            {
+                m_pStore->SetFirstBusyDescriptorAsReady();
+            }
+        }
+
+        virtual void VC1PackSlices    (uint32_t*  pOffsets,uint32_t*  pValues, uint8_t* pOriginalData,MediaDataEx::_MediaDataEx* pOrigStCodes)
+        {
+            if(m_va->GetProtectedVA()->GetBitstream()->EncryptedData)
+            {
+                VC1PackSlices_Encrypt(pOffsets,pValues, pOriginalData,pOrigStCodes);
+            }
+            else
+            {
+                VC1PackSlices_No_Encrypt(pOffsets,pValues, pOriginalData,pOrigStCodes);
+            }
+
+        }
+
+        virtual void VC1PackSlices_No_Encrypt    (uint32_t*  pOffsets,uint32_t*  pValues, uint8_t* pOriginalData,MediaDataEx::_MediaDataEx* pOrigStCodes)
+        {
+            uint32_t PicHeaderFlag;
+            uint32_t* pPictHeader = m_pContext->m_bitstream.pBitstream;
+            uint32_t temp_value = 0;
+            uint32_t* bitstream;
+            int32_t bitoffset = 31;
+            uint32_t SliceSize = 0;
+            uint32_t DataSize = 0;
+            uint32_t BitstreamDataSize = 0;
+            uint32_t IntCompField = 0;
+
+            uint32_t* pOriginalOffsets = pOrigStCodes->offsets;
+            // need in case of fields
+            uint32_t* pFirstFieldStartCode = m_pContext->m_bitstream.pBitstream;
+            uint32_t Offset = 0;
+
+            uint32_t RemBytesInSlice = 4;
+            uint32_t PicHeaderSize = 0;
+            uint8_t  Flag_03 = 0; //for search 00 00 03 on the end of pic header
+
+            if(NULL != m_va->GetProtectedVA() && MFX_PROTECTION_PAVP == m_va->GetProtectedVA()->GetProtected())
+            {
+                DXVA2_DecodeExtensionData  extensionData = {0};
+                DXVA_EncryptProtocolHeader extensionOutput = {0};
+                HRESULT hr = S_OK;
+                DXVA_Intel_Pavp_Protocol2  extensionInput = {0};
+                extensionInput.EncryptProtocolHeader.dwFunction = 0xffff0001;
+                extensionInput.EncryptProtocolHeader.guidEncryptProtocol = DXVA_NoEncrypt;
+
+                extensionInput.PavpEncryptionMode.eEncryptionType = (PAVP_ENCRYPTION_TYPE) m_va->GetProtectedVA()->GetEncryptionMode();
+                extensionInput.PavpEncryptionMode.eCounterMode = (PAVP_COUNTER_TYPE) m_va->GetProtectedVA()->GetCounterMode();
+
+                extensionData.pPrivateInputData = &extensionInput;
+                extensionData.pPrivateOutputData = &extensionOutput;
+                extensionData.PrivateInputDataSize = sizeof(extensionInput);
+                extensionData.PrivateOutputDataSize = sizeof(extensionOutput);
+                hr = m_va->ExecuteExtensionBuffer(&extensionData);
+
+                if (FAILED(hr) ||
+                    // asomsiko: This is workaround for 15.22 driver that starts returning GUID_NULL instead DXVA_NoEncrypt
+                    /*extensionOutput.guidEncryptProtocol != DXVA_NoEncrypt ||*/
+                    extensionOutput.dwFunction != 0xffff0801)
+                {
+                    throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                }
+            }
+
+            bool isSecondField = false;
+            m_iSliceBufIndex = 0;
+            m_iPicBufIndex = 0;
+
+            uint32_t MBEndRowOfAlreadyExec = 0;
+
+            SliceParams slparams;
+            memset(&slparams,0,sizeof(SliceParams));
+            slparams.MBStartRow = 0;
+            slparams.MBEndRow = m_pContext->m_seqLayerHeader.heightMB;
+            m_pContext->m_picLayerHeader->CurrField = 0;
+
+            VM_ASSERT(VC1_PROFILE_ADVANCED == m_pContext->m_seqLayerHeader.PROFILE);
+
+            if (VC1_PROFILE_ADVANCED != m_pContext->m_seqLayerHeader.PROFILE)
+                return;
+
+#ifdef VC1_DEBUG_ON_LOG
+            static uint32_t Num = 0;
+
+            printf("\n\n\nPicture type %d  %d\n\n\n", m_pContext->m_picLayerHeader->PTYPE, Num);
+            Num++;
+#endif
+
+            if (VC1_IS_SKIPPED(m_pContext->m_picLayerHeader->PTYPE))
+            {
+                m_bIsSkippedFrame = true;
+                m_bIsReadyToProcess = false;
+                return;
+            }
+            else
+            {
+                m_bIsSkippedFrame = false;
+            }
+
+           //skip start codes till Frame Header
+            while ((*pValues)&&(*pValues != 0x0D010000))
+            {
+                ++pOffsets;
+                ++pValues;
+            }
+
+            DecodePicHeader(m_pContext);
+            IntCompField = m_pContext->m_picLayerHeader->INTCOMFIELD;
+            PicHeaderSize = (m_pPacker.VC1GetPicHeaderSize(pOriginalData + 4,
+                (uint32_t)((size_t)sizeof(uint32_t)*(m_pContext->m_bitstream.pBitstream - pPictHeader)), Flag_03));
+
+            m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+
+            if (*(pValues+1) == 0x0B010000)
+            {
+                //slice
+                bitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *(pOffsets+1));
+                VC1BitstreamParser::GetNBits(bitstream, bitoffset,32, temp_value);
+                bitoffset = 31;
+                VC1BitstreamParser::GetNBits(bitstream,bitoffset,9, slparams.MBEndRow);     //SLICE_ADDR
+                m_pContext->m_picLayerHeader->is_slice = 1;
+            }
+            else if(*(pValues+1) == 0x0C010000)
+            {
+                //field
+                slparams.MBEndRow = (m_pContext->m_seqLayerHeader.heightMB+1)/2;
+            }
+
+            slparams.MBRowsToDecode = slparams.MBEndRow-slparams.MBStartRow;
+            slparams.m_bitOffset    = m_pContext->m_bitstream.bitOffset;
+            Offset = PicHeaderSize + 4; // offset in bytes
+
+            if (*(pOffsets+1))
+                SliceSize = *(pOriginalOffsets+1) - *pOriginalOffsets - Offset;
+            else
+                SliceSize = m_pContext->m_FrameSize - Offset;
+
+            VM_ASSERT(SliceSize<0x0FFFFFFF);
+
+            {
+                uint32_t chopType = 1;
+                uint32_t BytesAlreadyExecuted = 0;
+                RemBytesInSlice  = m_pPacker.VC1PackBitStream(m_pContext,
+                                                              DataSize,
+                                                              pOriginalData + Offset,
+                                                              SliceSize,
+                                                              0, Flag_03);
+                if (RemBytesInSlice)
+                {
+                    MBEndRowOfAlreadyExec = slparams.MBEndRow;
+
+                    // fill slices
+                    while (RemBytesInSlice) // we don't have enough buffer - execute it
+                    {
+                        m_pPacker.VC1PackOneSlice(m_pContext, &slparams, m_iSliceBufIndex,
+                                                  0, DataSize,  0,  chopType);
+
+                        m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex+1);
+
+                        if (UMC_OK != m_va->Execute())
+                            throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+
+                        BytesAlreadyExecuted += DataSize;
+
+                        m_pPacker.VC1SetSliceBuffer();
+                        m_pPacker.VC1SetPictureBuffer();
+                        m_pPacker.VC1SetExtPictureBuffer();
+
+                        m_iSliceBufIndex = 0;
+
+                        m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                        RemBytesInSlice  = m_pPacker.VC1PackBitStream(m_pContext,
+                                                                      DataSize,
+                                                                      pOriginalData + BytesAlreadyExecuted + Offset,
+                                                                      RemBytesInSlice,
+                                                                      0, Flag_03);
+                        slparams.m_bitOffset = 0;
+                        chopType = 3;
+                        Offset = 4;
+                    }
+
+                    chopType = 2;
+
+                    m_pPacker.VC1PackOneSlice(m_pContext, &slparams,
+                                              m_iSliceBufIndex,  0,
+                                              DataSize, 0, chopType);
+
+                    m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex+1);
+
+                    m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                    if (UMC_OK != m_va->Execute())
+                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                    m_iSliceBufIndex = 0;
+
+                    // we need receive buffers from drv for future processing
+                    if (MBEndRowOfAlreadyExec != m_pContext->m_seqLayerHeader.heightMB)
+                    {
+                        m_pPacker.VC1SetSliceBuffer();
+                        m_pPacker.VC1SetPictureBuffer();
+                        m_pPacker.VC1SetExtPictureBuffer();
+                    }
+
+                }
+                else
+                {
+                    m_pPacker.VC1PackOneSlice(m_pContext, &slparams, m_iSliceBufIndex,
+                                              0, DataSize, 0, 0);
+                    // let execute in case of fields
+                    if (*(pValues+1)== 0x0C010000)
+                    {
+                        // Execute first slice
+                        m_pPacker.VC1PackBitplaneBuffers(m_pContext);
+                        m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex + 1);
+
+                        if (UMC_OK != m_va->Execute())
+                            throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                        m_iSliceBufIndex = 0;
+                    }
+                    else
+                    {
+                        BitstreamDataSize += DataSize;
+                        ++m_iSliceBufIndex;
+                    }
+                }
+            }
+            ++pOffsets;
+            ++pValues;
+            ++pOriginalOffsets;
+
+
+            while (*pOffsets)
+            {
+                if(NULL != m_va->GetProtectedVA() && MFX_PROTECTION_PAVP == m_va->GetProtectedVA()->GetProtected())
+                {
+                    DXVA2_DecodeExtensionData  extensionData = {0};
+                    DXVA_EncryptProtocolHeader extensionOutput = {0};
+                    HRESULT hr = S_OK;
+
+                    DXVA_Intel_Pavp_Protocol2  extensionInput = {0};
+                    extensionInput.EncryptProtocolHeader.dwFunction = 0xffff0001;
+                    extensionInput.EncryptProtocolHeader.guidEncryptProtocol = DXVA_NoEncrypt;
+                    extensionInput.dwBufferSize = 0;
+
+                    extensionInput.PavpEncryptionMode.eEncryptionType = (PAVP_ENCRYPTION_TYPE) m_va->GetProtectedVA()->GetEncryptionMode();
+                    extensionInput.PavpEncryptionMode.eCounterMode = (PAVP_COUNTER_TYPE) m_va->GetProtectedVA()->GetCounterMode();
+
+                    extensionData.pPrivateInputData = &extensionInput;
+                    extensionData.pPrivateOutputData = &extensionOutput;
+                    extensionData.PrivateInputDataSize = sizeof(extensionInput);
+                    extensionData.PrivateOutputDataSize = sizeof(extensionOutput);
+                    hr = m_va->ExecuteExtensionBuffer(&extensionData);
+
+                    if (FAILED(hr) ||
+                        // asomsiko: This is workaround for 15.22 driver that starts returning GUID_NULL instead DXVA_NoEncrypt
+                        /*extensionOutput.guidEncryptProtocol != DXVA_NoEncrypt ||*/
+                        extensionOutput.dwFunction != 0xffff0801)
+                    {
+                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                    }
+                }
+
+                //Fields
+                if (*(pValues) == 0x0C010000)
+                {
+                    m_pContext->m_bitstream.pBitstream = pFirstFieldStartCode;
+
+                    if (UMC_OK != m_va->EndFrame())
+                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                    if (UMC_OK != m_va->BeginFrame(m_pContext->m_frmBuff.m_iCurrIndex))
+                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+
+
+                    m_pPacker.VC1SetSliceBuffer();
+                    m_pPacker.VC1SetPictureBuffer();
+                    m_pPacker.VC1SetExtPictureBuffer();
+                    isSecondField = true;
+                    // set swap bitstream for parsing
+                    m_pContext->m_bitstream.pBitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *pOffsets);
+                    m_pContext->m_bitstream.pBitstream += 1; // skip start code
+                    m_pContext->m_bitstream.bitOffset = 31;
+                    pPictHeader = m_pContext->m_bitstream.pBitstream;
+                    PicHeaderSize = 0;
+                    BitstreamDataSize = 0;
+
+                    ++m_pContext->m_picLayerHeader;
+                    *m_pContext->m_picLayerHeader = *m_pContext->m_InitPicLayer;
+                    m_pContext->m_picLayerHeader->BottomField = (uint8_t)m_pContext->m_InitPicLayer->TFF;
+                    m_pContext->m_picLayerHeader->PTYPE = m_pContext->m_InitPicLayer->PTypeField2;
+                    m_pContext->m_picLayerHeader->CurrField = 1;
+
+                    m_pContext->m_picLayerHeader->is_slice = 0;
+                    DecodePicHeader(m_pContext);
+
+                    m_pContext->m_picLayerHeader->INTCOMFIELD = IntCompField;
+                    PicHeaderSize = (uint32_t)m_pPacker.VC1GetPicHeaderSize(pOriginalData + 4 + *pOriginalOffsets,
+                        (uint32_t)((size_t)sizeof(uint32_t)*(m_pContext->m_bitstream.pBitstream - pPictHeader)), Flag_03);
+
+                    slparams.MBStartRow = (m_pContext->m_seqLayerHeader.heightMB+1)/2;
+
+                    if (*(pOffsets+1))
+                        SliceSize = *(pOriginalOffsets+1) - *pOriginalOffsets - 4 - PicHeaderSize;
+                    else
+                        SliceSize = m_pContext->m_FrameSize - *pOriginalOffsets - 4 - PicHeaderSize;
+
+                    if (*(pOffsets+1) && *(pValues+1) == 0x0B010000)
+                    {
+                        bitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *(pOffsets+1));
+                        VC1BitstreamParser::GetNBits(bitstream,bitoffset,32, temp_value);
+                        bitoffset = 31;
+                        VC1BitstreamParser::GetNBits(bitstream,bitoffset,9, slparams.MBEndRow);
+                    } else
+                        slparams.MBEndRow = m_pContext->m_seqLayerHeader.heightMB;
+
+                    m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                    ++m_iPicBufIndex;
+                    slparams.MBRowsToDecode = slparams.MBEndRow-slparams.MBStartRow;
+                    slparams.m_bitOffset = m_pContext->m_bitstream.bitOffset;
+                    Offset = PicHeaderSize + 4; // offset in bytes
+                    slparams.MBStartRow = 0; //we should decode fields steb by steb
+
+                    {
+                        uint32_t chopType = 1;
+                        uint32_t BytesAlreadyExecuted = 0;
+                        RemBytesInSlice  = m_pPacker.VC1PackBitStream(m_pContext, DataSize,
+                                                                      pOriginalData + *pOriginalOffsets + Offset,SliceSize,
+                                                                      0, Flag_03);
+                        if (RemBytesInSlice)
+                        {
+                            MBEndRowOfAlreadyExec = slparams.MBEndRow;
+
+                            // fill slices
+                            while (RemBytesInSlice) // we don't have enough buffer - execute it
+                            {
+                                m_pPacker.VC1PackOneSlice(m_pContext,   &slparams,   m_iSliceBufIndex,
+                                                          0, DataSize, 0,   chopType);
+
+                                m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex+1);
+
+                                if (UMC_OK != m_va->Execute())
+                                    throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                                BytesAlreadyExecuted += DataSize;
+
+                                m_pPacker.VC1SetSliceBuffer();
+                                m_pPacker.VC1SetPictureBuffer();
+                                m_iSliceBufIndex = 0;
+
+                                m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                                RemBytesInSlice  = m_pPacker.VC1PackBitStream(m_pContext, DataSize,
+                                                                              pOriginalData + BytesAlreadyExecuted,
+                                                                              RemBytesInSlice,
+                                                                              0, Flag_03);
+                                chopType = 3;
+                                slparams.m_bitOffset = 0;
+                                Offset = 0;
+                            }
+
+                            m_pPacker.VC1PackOneSlice(m_pContext, &slparams,  m_iSliceBufIndex,
+                                                      0, DataSize, 0, 2);
+
+                            m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex+1);
+
+                            m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                            if (UMC_OK != m_va->Execute())
+                                throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                            m_iSliceBufIndex = 0;
+
+                            // we need receive buffers from drv for future processing
+                            if (MBEndRowOfAlreadyExec != m_pContext->m_seqLayerHeader.heightMB)
+                            {
+                                m_pPacker.VC1SetSliceBuffer();
+                                m_pPacker.VC1SetPictureBuffer();
+                                m_pPacker.VC1SetExtPictureBuffer();
+                            }
+                        }
+                        else
+                        {
+                            m_pPacker.VC1PackOneSlice(m_pContext,
+                                                      &slparams,
+                                                      m_iSliceBufIndex,
+                                                      0,
+                                                      DataSize,
+                                                      0, 0);
+                            BitstreamDataSize += DataSize;
+                            ++m_iSliceBufIndex;
+                        }
+                    }
+
+                    ++pOffsets;
+                    ++pValues;
+                    ++pOriginalOffsets;
+                }
+                //Slices
+                else if (*(pValues) == 0x0B010000)
+                {
+                    m_pContext->m_bitstream.pBitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *pOffsets);
+                    VC1BitstreamParser::GetNBits(m_pContext->m_bitstream.pBitstream,m_pContext->m_bitstream.bitOffset,32, temp_value);
+                    m_pContext->m_bitstream.bitOffset = 31;
+                    pPictHeader = m_pContext->m_bitstream.pBitstream;
+                    PicHeaderSize = 0;
+
+                    VC1BitstreamParser::GetNBits(m_pContext->m_bitstream.pBitstream,m_pContext->m_bitstream.bitOffset,9, slparams.MBStartRow);     //SLICE_ADDR
+                    VC1BitstreamParser::GetNBits(m_pContext->m_bitstream.pBitstream,m_pContext->m_bitstream.bitOffset,1, PicHeaderFlag);            //PIC_HEADER_FLAG
+
+                    if (PicHeaderFlag == 1)                //PIC_HEADER_FLAG
+                    {
+                        ++m_pContext->m_picLayerHeader;
+                        if (isSecondField)
+                            m_pContext->m_picLayerHeader->CurrField = 1;
+                        else
+                            m_pContext->m_picLayerHeader->CurrField = 0;
+
+                        DecodePictureHeader_Adv(m_pContext);
+                        DecodePicHeader(m_pContext);
+                        PicHeaderSize = m_pPacker.VC1GetPicHeaderSize(pOriginalData + 4 + *pOriginalOffsets,
+                            (uint32_t)((size_t)sizeof(uint32_t)*(m_pContext->m_bitstream.pBitstream - pPictHeader)), Flag_03);
+
+                        ++m_iPicBufIndex;
+                    }
+                    m_pContext->m_picLayerHeader->is_slice = 1;
+
+                    if (*(pOffsets+1) && *(pValues+1) == 0x0B010000)
+                    {
+                        bitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *(pOffsets+1));
+                        VC1BitstreamParser::GetNBits(bitstream,bitoffset,32, temp_value);
+                        bitoffset = 31;
+                        VC1BitstreamParser::GetNBits(bitstream,bitoffset,9, slparams.MBEndRow);
+                    }
+                    else if(*(pValues+1) == 0x0C010000)
+                        slparams.MBEndRow = (m_pContext->m_seqLayerHeader.heightMB+1)/2;
+                    else
+                        slparams.MBEndRow = m_pContext->m_seqLayerHeader.heightMB;
+
+                    slparams.MBRowsToDecode = slparams.MBEndRow-slparams.MBStartRow;
+                    slparams.m_bitOffset = m_pContext->m_bitstream.bitOffset;
+                    Offset = PicHeaderSize + 4;
+
+                    if (isSecondField)
+                        slparams.MBStartRow -= (m_pContext->m_seqLayerHeader.heightMB+1)/2;
+
+                    if (*(pOffsets+1))
+                        SliceSize = *(pOriginalOffsets+1) - *pOriginalOffsets - Offset;
+                    else
+                        SliceSize = m_pContext->m_FrameSize - *pOriginalOffsets - Offset;
+
+                    {
+                        uint32_t chopType = 1;
+                        RemBytesInSlice  = m_pPacker.VC1PackBitStream(m_pContext,
+                                                                      DataSize,
+                                                                      pOriginalData + *pOriginalOffsets + Offset,
+                                                                      SliceSize,
+                                                                      BitstreamDataSize, Flag_03);
+                        if (RemBytesInSlice)
+                        {
+                            MBEndRowOfAlreadyExec = slparams.MBEndRow;
+                            uint32_t BytesAlreadyExecuted = 0;
+
+                            // fill slices
+                            while (RemBytesInSlice) // we don't have enough buffer - execute it
+                            {
+                                m_pPacker.VC1PackOneSlice(m_pContext,    &slparams,
+                                                          m_iSliceBufIndex,  0,
+                                                          DataSize,          0,   chopType);
+
+                                m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex+1);
+
+                                m_va->Execute();
+                                BytesAlreadyExecuted += DataSize;
+
+                                m_pPacker.VC1SetSliceBuffer();
+                                m_pPacker.VC1SetPictureBuffer();
+                                m_pPacker.VC1SetExtPictureBuffer();
+
+                                m_iSliceBufIndex = 0;
+
+                                m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                                RemBytesInSlice  = m_pPacker.VC1PackBitStream(m_pContext,
+                                                                              DataSize,
+                                                                              pOriginalData + *pOriginalOffsets + BytesAlreadyExecuted + Offset + 4,
+                                                                              RemBytesInSlice, 0, Flag_03);
+
+                                chopType = 3;
+                                slparams.m_bitOffset = 0;
+                                Offset = 0;
+                            }
+
+                            m_pPacker.VC1PackOneSlice(m_pContext,       &slparams,
+                                                      m_iSliceBufIndex, 0,
+                                                      DataSize,         0, 2);
+                            m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex+1);
+                            m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                            m_va->Execute();
+
+                            m_iSliceBufIndex = 0;
+
+                            // we need receive buffers from drv for future processing
+                            if (MBEndRowOfAlreadyExec != m_pContext->m_seqLayerHeader.heightMB)
+                            {
+                                m_pPacker.VC1SetSliceBuffer();
+                                m_pPacker.VC1SetPictureBuffer();
+                                m_pPacker.VC1SetExtPictureBuffer();
+                            }
+                        }
+                        else
+                        {
+                            m_pPacker.VC1PackOneSlice(m_pContext,         &slparams,
+                                                      m_iSliceBufIndex,   0,
+                                                      DataSize,           BitstreamDataSize, 0);
+                            // let execute in case of fields
+                            if (*(pValues+1)== 0x0C010000)
+                            {
+                                // Execute first slice
+                                m_pPacker.VC1PackBitplaneBuffers(m_pContext);
+
+                                m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex + 1);
+
+                                if (UMC_OK != m_va->Execute())
+                                    throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                                m_iSliceBufIndex = 0;
+                            }
+                            else
+                            {
+                                BitstreamDataSize += DataSize/*SliceSize - RemBytesInSlice*/;
+                                ++m_iSliceBufIndex;
+                            }
+                        }
+                    }
+
+                    ++pOffsets;
+                    ++pValues;
+                    ++pOriginalOffsets;
+
+                }
+                else
+                {
+                    ++pOffsets;
+                    ++pValues;
+                    ++pOriginalOffsets;
+                }
+
+            }
+            //need to execute last slice
+            if (MBEndRowOfAlreadyExec != m_pContext->m_seqLayerHeader.heightMB)
+            {
+                m_pPacker.VC1PackBitplaneBuffers(m_pContext);
+                m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex);
+                if (UMC_OK != m_va->Execute())
+                    throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+
+                if (m_pContext->m_seqLayerHeader.RANGE_MAPY_FLAG ||
+                    m_pContext->m_seqLayerHeader.RANGE_MAPUV_FLAG/* ||
+                    pContext->m_picLayerHeader->RANGEREDFRM*/)
+                {
+                    if (UMC_OK != m_va->EndFrame())
+                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                }
+            }
+         }
+
+         //check correctness of encrypted data
+        void CheckData(void)
+        {
+             mfxBitstream * bs = m_va->GetProtectedVA()->GetBitstream();
+
+            if (!bs->EncryptedData) //  no encryption mode
+                return;
+
+            mfxEncryptedData * temp = bs->EncryptedData;
+            for (; temp; )
+            {
+                if(temp->Next)
+                {
+                    unsigned long long counter1 = temp->CipherCounter.Count;
+                    unsigned long long counter2 = temp->Next->CipherCounter.Count;
+                    unsigned long long zero = 0xffffffffffffffff;
+                    if((m_va->GetProtectedVA())->GetCounterMode() == PAVP_COUNTER_TYPE_A)
+                    {
+                        counter1 = LITTLE_ENDIAN_SWAP32((DWORD)(counter1 >> 32));
+                        counter2 = LITTLE_ENDIAN_SWAP32((DWORD)(counter2 >> 32));
+                        zero = 0x00000000ffffffff;
+                    }
+                    else
+                    {
+                        counter1 = LITTLE_ENDIAN_SWAP64(counter1);
+                        counter2 = LITTLE_ENDIAN_SWAP64(counter2);
+                    }
+                    //second slice offset starts after the first, there is no counter overall
+                    if(counter1 <= counter2)
+                    {
+                        uint32_t size = temp->DataLength + temp->DataOffset;
+                        if(size & 0xf)
+                            size= size+(0x10 - (size & 0xf));
+                        uint32_t sizeCount = (uint32_t)(counter2 - counter1) *16;
+                        //if we have hole between slices
+                        if(sizeCount > size)
+                            throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                        else //or overlap between slices is different in different buffers
+                            if(memcmp(temp->Data + sizeCount, temp->Next->Data, size - sizeCount))
+                                throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                    }
+                    else //there is counter overall or second slice offset starts earlier then the first one
+                    {
+                        //length of the second slice offset in 16-bytes blocks
+                        unsigned long long offsetCounter = (temp->Next->DataOffset + 15)/16;
+                        // no counter2 overall
+                        if(zero - counter2 > offsetCounter)
+                        {
+                            uint32_t size = temp->DataLength + temp->DataOffset;
+                            if(size & 0xf)
+                                size= size+(0x10 - (size & 0xf));
+                            unsigned long long counter3 = size / 16;
+                            // no zero during the first slice
+                            if(zero - counter1 >= counter3)
+                            {
+                                //second slice offset contains the first slice with offset
+                                if(counter2 + offsetCounter >= counter3)
+                                {
+                                    temp->Next->Data += (uint32_t)(counter1 - counter2) * 16;
+                                    temp->Next->DataOffset -= (uint32_t)(counter1 - counter2) * 16;
+                                    temp->Next->CipherCounter = temp->CipherCounter;
+                                    //overlap between slices is different in different buffers
+                                    if (memcmp(temp->Data, temp->Next->Data, temp->DataOffset + temp->DataLength))
+                                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                                }
+                                else //overlap between slices data or hole between slices
+                                {
+                                    throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                                }
+                            }
+                            else
+                            {
+                                //size of data between counters
+                                uint32_t sizeCount = (uint32_t)(counter2 + (zero - counter1)) *16;
+                                //hole between slices
+                                if(sizeCount > size)
+                                    throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                                else //or overlap between slices is different in different buffers
+                                    if(memcmp(temp->Data + sizeCount, temp->Next->Data, size - sizeCount))
+                                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                            }
+                        }
+                        else
+                        {
+                            temp->Next->Data += (uint32_t)(counter1 - counter2) * 16;
+                            temp->Next->DataOffset -= (uint32_t)(counter1 - counter2) * 16;
+                            temp->Next->CipherCounter = temp->CipherCounter;
+                            //overlap between slices is different in different buffers
+                            if (memcmp(temp->Data, temp->Next->Data, temp->DataOffset + temp->DataLength))
+                                throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                        }
+                    }
+                }
+                temp = temp->Next;
+            }
+        }
+
+
+       virtual void VC1PackSlices_Encrypt   (uint32_t*  pOffsets,uint32_t*  pValues, uint8_t* ,MediaDataEx::_MediaDataEx* pOrigStCodes)
+        {
+            VM_ASSERT(VC1_PROFILE_ADVANCED == m_pContext->m_seqLayerHeader.PROFILE);
+
+            if (VC1_PROFILE_ADVANCED != m_pContext->m_seqLayerHeader.PROFILE)
+                return;
+
+            if (VC1_IS_SKIPPED(m_pContext->m_picLayerHeader->PTYPE))
+            {
+                m_bIsSkippedFrame = true;
+                m_bIsReadyToProcess = false;
+                return;
+            }
+            else
+            {
+                m_bIsSkippedFrame = false;
+            }
+
+
+            mfxBitstream * bs = 0;
+            mfxEncryptedData * encryptedData = 0;
+
+            bs = m_va->GetProtectedVA()->GetBitstream();
+            encryptedData = bs->EncryptedData;
+
+
+            bool isSecondField = false;
+            m_iSliceBufIndex = 0;
+            m_iPicBufIndex = 0;
+            uint32_t IntCompField = 0;
+            uint32_t temp_value = 0;
+            uint32_t* bitstream = 0;
+            uint32_t PicHeaderFlag = 0;
+            uint32_t MBEndRowOfAlreadyExec = 0;
+            uint32_t BytesAlreadyExecuted = 0;
+            uint8_t *pBuf = 0;
+
+            int32_t bitoffset = 31;
+
+            SliceParams slparams;
+            memset(&slparams,0,sizeof(SliceParams));
+            slparams.MBStartRow = 0;
+            slparams.MBEndRow = m_pContext->m_seqLayerHeader.heightMB;
+            m_pContext->m_picLayerHeader->CurrField = 0;
+            uint32_t encryptedBufferSize = 0;
+            uint32_t* pOriginalOffsets = pOrigStCodes->offsets;
+
+             mfxEncryptedData * temp = bs->EncryptedData;
+             for (; temp; )
+             {
+                 if(temp->Next)
+                {
+                    unsigned long long counter1 = temp->CipherCounter.Count;
+                    unsigned long long counter2 = temp->Next->CipherCounter.Count;
+                    unsigned long long zero = 0xffffffffffffffff;
+                    if((m_va->GetProtectedVA())->GetCounterMode() == PAVP_COUNTER_TYPE_A)
+                    {
+                        counter1 = LITTLE_ENDIAN_SWAP32((DWORD)(counter1 >> 32));
+                        counter2 = LITTLE_ENDIAN_SWAP32((DWORD)(counter2 >> 32));
+                        zero = 0x00000000ffffffff;
+                    }
+                    else
+                    {
+                        counter1 = LITTLE_ENDIAN_SWAP64(counter1);
+                        counter2 = LITTLE_ENDIAN_SWAP64(counter2);
+                    }
+                    if(counter1 <= counter2)
+                        encryptedBufferSize += (uint32_t)(counter2 - counter1) *16;
+                    else
+                        encryptedBufferSize += (uint32_t)(counter2 + (zero - counter1)) *16;
+                }
+                else
+                {
+                    int size = temp->DataLength + temp->DataOffset;
+                    if(size & 0xf)
+                        size= size + (0x10 - (size & 0xf));
+
+                    encryptedBufferSize += size;
+                }
+
+                temp = temp->Next;
+             }
+
+            DXVA2_DecodeExtensionData  extensionData = {0};
+            DXVA_EncryptProtocolHeader extensionOutput = {0};
+            HRESULT hr = S_OK;
+
+            if(NULL != m_va->GetProtectedVA())
+                CheckData();
+            if(NULL != m_va->GetProtectedVA() && MFX_PROTECTION_PAVP == m_va->GetProtectedVA()->GetProtected())
+            {
+                DXVA_Intel_Pavp_Protocol2  extensionInput = {0};
+                extensionInput.EncryptProtocolHeader.dwFunction = 0xffff0001;
+                extensionInput.EncryptProtocolHeader.guidEncryptProtocol = m_va->GetProtectedVA()->GetEncryptionGUID();
+                extensionInput.dwBufferSize = encryptedBufferSize;
+
+                static_assert(sizeof(encryptedData->CipherCounter) <= sizeof(extensionInput.dwAesCounter), "");
+                const uint8_t* src = reinterpret_cast <const uint8_t*> (&encryptedData->CipherCounter);
+                uint8_t* dst = reinterpret_cast <uint8_t*> (extensionInput.dwAesCounter);
+                std::copy(src, src + sizeof(encryptedData->CipherCounter), dst);
+
+                extensionInput.PavpEncryptionMode.eEncryptionType = (PAVP_ENCRYPTION_TYPE) m_va->GetProtectedVA()->GetEncryptionMode();
+                extensionInput.PavpEncryptionMode.eCounterMode = (PAVP_COUNTER_TYPE) m_va->GetProtectedVA()->GetCounterMode();
+
+                extensionData.pPrivateInputData = &extensionInput;
+                extensionData.pPrivateOutputData = &extensionOutput;
+                extensionData.PrivateInputDataSize = sizeof(extensionInput);
+                extensionData.PrivateOutputDataSize = sizeof(extensionOutput);
+                hr = m_va->ExecuteExtensionBuffer(&extensionData);
+
+                if (FAILED(hr) ||
+                    extensionOutput.guidEncryptProtocol != m_va->GetProtectedVA()->GetEncryptionGUID() ||
+                    extensionOutput.dwFunction != 0xffff0801)
+                {
+                    throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                }
+            }
+
+            //skip start codes till Frame Header
+            while ((*pValues)&&(*pValues != 0x0D010000))
+            {
+                ++pOffsets;
+                ++pValues;
+                ++pOriginalOffsets;
+            }
+
+            DecodePicHeader(m_pContext);
+
+            IntCompField = m_pContext->m_picLayerHeader->INTCOMFIELD;
+
+
+            m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+
+            if (*(pValues+1) == 0x0B010000)
+            {
+                //slice
+                bitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *(pOffsets+1));
+                VC1BitstreamParser::GetNBits(bitstream, bitoffset,32, temp_value);
+                bitoffset = 31;
+                VC1BitstreamParser::GetNBits(bitstream,bitoffset,9, slparams.MBEndRow);     //SLICE_ADDR
+                m_pContext->m_picLayerHeader->is_slice = 1;
+            }
+            else if(*(pValues+1) == 0x0C010000)
+            {
+                //field
+                slparams.MBEndRow = (m_pContext->m_seqLayerHeader.heightMB+1)/2;
+            }
+
+            slparams.MBRowsToDecode = slparams.MBEndRow-slparams.MBStartRow;
+            slparams.m_bitOffset    = m_pContext->m_bitstream.bitOffset;
+
+            {
+                //bitstream packing
+                {
+                    UMCVACompBuffer* CompBuf;
+
+                    uint8_t* pBitstream = (uint8_t*)m_va->GetCompBuffer(DXVA_BITSTREAM_DATA_BUFFER, &CompBuf);
+                    pBuf=pBitstream;
+
+                    if(NULL != m_va->GetProtectedVA() && IS_PROTECTION_GPUCP_ANY(m_va->GetProtectedVA()->GetProtected()))
+                        CompBuf->SetPVPState(&encryptedData->CipherCounter, sizeof (encryptedData->CipherCounter));
+                    else
+                        CompBuf->SetPVPState(NULL, 0);
+
+                    uint32_t alignedSize = encryptedData->DataLength + encryptedData->DataOffset;
+                    if(alignedSize & 0xf)
+                        alignedSize = alignedSize+(0x10 - (alignedSize & 0xf));
+
+                    MFX_INTERNAL_CPY(pBuf, encryptedData->Data, alignedSize);
+#ifdef VC1_DEBUG_ON_LOG
+                    {
+                        if(!f)
+                            f = fopen("BS_sample_enc.txt", "wb");
+                        if(f)
+                        {
+                        fprintf(f, "Size = %d\n", encryptedData->DataLength);
+                        fprintf(f, "ByteOffset = %d\n",  encryptedData->DataOffset);
+
+                        for(mfxU32 k = 0; k < encryptedData->DataLength; k++)
+                        {
+                            fprintf(f, "%x ", *(encryptedData->Data + encryptedData->DataOffset + k));
+
+                           if(k%10 == 0)
+                               fprintf(f, "\n");
+                        }
+
+                        fprintf(f, "\n\n\n");
+                        }
+                    }
+#endif
+                    uint32_t diff = (uint32_t)(pBitstream - pBuf) + BytesAlreadyExecuted;
+                    m_pPacker.VC1PackOneSlice(m_pContext, &slparams, m_iSliceBufIndex, 0, 
+                        encryptedData->DataLength, BytesAlreadyExecuted -diff +encryptedData->DataOffset, 0);
+                    BytesAlreadyExecuted += (UINT)(alignedSize - diff);
+                    CompBuf->SetDataSize(BytesAlreadyExecuted);
+                    if(encryptedData->Next)
+                    {
+                        unsigned long long counter1 = encryptedData->CipherCounter.Count;
+                        unsigned long long counter2 = encryptedData->Next->CipherCounter.Count;
+                        unsigned long long zero = 0xffffffffffffffff;
+                        if((m_va->GetProtectedVA())->GetCounterMode() == PAVP_COUNTER_TYPE_A)
+                        {
+                            counter1 = LITTLE_ENDIAN_SWAP32((DWORD)(counter1 >> 32));
+                            counter2 = LITTLE_ENDIAN_SWAP32((DWORD)(counter2 >> 32));
+                            zero = 0x00000000ffffffff;
+                        }
+                        else
+                        {
+                            counter1 = LITTLE_ENDIAN_SWAP64(counter1);
+                            counter2 = LITTLE_ENDIAN_SWAP64(counter2);
+                        }
+                        if(counter2 < counter1)
+                        {
+                            (unsigned char*)pBuf += (uint32_t)(counter2 +(zero - counter1))*16;
+                        }
+                        else
+                        {
+                            (unsigned char*)pBuf += (uint32_t)(counter2 - counter1)*16;
+                        }
+                    }
+                }
+                {
+
+                    // let execute in case of fields
+                    if (*(pValues+1)== 0x0C010000)
+                    {
+                        // Execute first slice
+                        m_pPacker.VC1PackBitplaneBuffers(m_pContext);
+                        m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex + 1);
+
+                        if (UMC_OK != m_va->Execute())
+                            throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+
+                        BytesAlreadyExecuted = 0;
+                        m_iSliceBufIndex = 0;
+                    }
+                    else
+                    {
+                        //BitstreamDataSize += encryptedData->DataLength;
+                        ++m_iSliceBufIndex;
+                    }
+                    encryptedData = encryptedData->Next;
+                }
+            }
+            ++pOffsets;
+            ++pValues;
+            ++pOriginalOffsets;
+
+
+            while (*pOffsets)
+            {
+                //Fields
+                if (*(pValues) == 0x0C010000)
+                {
+                    //m_pContext->m_bitstream.pBitstream = pFirstFieldStartCode;
+
+                    if (UMC_OK != m_va->EndFrame())
+                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                    if (UMC_OK != m_va->BeginFrame(m_pContext->m_frmBuff.m_iCurrIndex))
+                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+
+                    if(NULL != m_va->GetProtectedVA())
+                        CheckData();
+
+                    if(NULL != m_va->GetProtectedVA() && MFX_PROTECTION_PAVP == m_va->GetProtectedVA()->GetProtected())
+                    {
+                        DXVA_Intel_Pavp_Protocol2  extensionInput = {0};
+                        extensionInput.EncryptProtocolHeader.dwFunction = 0xffff0001;
+                        extensionInput.EncryptProtocolHeader.guidEncryptProtocol = m_va->GetProtectedVA()->GetEncryptionGUID();
+                        extensionInput.dwBufferSize = encryptedBufferSize;
+
+                        static_assert(sizeof(encryptedData->CipherCounter) <= sizeof(extensionInput.dwAesCounter), "");
+                        const uint8_t* src = reinterpret_cast <const uint8_t*> (&encryptedData->CipherCounter);
+                        uint8_t* dst = reinterpret_cast <uint8_t*> (extensionInput.dwAesCounter);
+                        std::copy(src, src + sizeof(encryptedData->CipherCounter), dst);
+
+                        extensionInput.PavpEncryptionMode.eEncryptionType = (PAVP_ENCRYPTION_TYPE) m_va->GetProtectedVA()->GetEncryptionMode();
+                        extensionInput.PavpEncryptionMode.eCounterMode = (PAVP_COUNTER_TYPE) m_va->GetProtectedVA()->GetCounterMode();
+
+                        extensionData.pPrivateInputData = &extensionInput;
+                        extensionData.pPrivateOutputData = &extensionOutput;
+                        extensionData.PrivateInputDataSize = sizeof(extensionInput);
+                        extensionData.PrivateOutputDataSize = sizeof(extensionOutput);
+                        hr = m_va->ExecuteExtensionBuffer(&extensionData);
+                    }
+
+                    m_pPacker.VC1SetSliceBuffer();
+                    m_pPacker.VC1SetPictureBuffer();
+                    m_pPacker.VC1SetExtPictureBuffer();
+                    isSecondField = true;
+                    // set swap bitstream for parsing
+                    m_pContext->m_bitstream.pBitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *pOffsets);
+                    m_pContext->m_bitstream.pBitstream += 1; // skip start code
+                    m_pContext->m_bitstream.bitOffset = 31;
+
+                    ++m_pContext->m_picLayerHeader;
+                    *m_pContext->m_picLayerHeader = *m_pContext->m_InitPicLayer;
+                    m_pContext->m_picLayerHeader->BottomField = (uint8_t)m_pContext->m_InitPicLayer->TFF;
+                    m_pContext->m_picLayerHeader->PTYPE = m_pContext->m_InitPicLayer->PTypeField2;
+                    m_pContext->m_picLayerHeader->CurrField = 1;
+
+                    m_pContext->m_picLayerHeader->is_slice = 0;
+                    DecodePicHeader(m_pContext);
+
+                    m_pContext->m_picLayerHeader->INTCOMFIELD = IntCompField;
+
+                    slparams.MBStartRow = (m_pContext->m_seqLayerHeader.heightMB+1)/2;
+
+
+                    if (*(pOffsets+1) && *(pValues+1) == 0x0B010000)
+                    {
+                        bitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *(pOffsets+1));
+                        VC1BitstreamParser::GetNBits(bitstream,bitoffset,32, temp_value);
+                        bitoffset = 31;
+                        VC1BitstreamParser::GetNBits(bitstream,bitoffset,9, slparams.MBEndRow);
+                    } else
+                        slparams.MBEndRow = m_pContext->m_seqLayerHeader.heightMB;
+
+                    m_pPacker.VC1PackPicParamsForOneSlice(m_pContext);
+                    ++m_iPicBufIndex;
+                    slparams.MBRowsToDecode = slparams.MBEndRow-slparams.MBStartRow;
+                    slparams.m_bitOffset = m_pContext->m_bitstream.bitOffset;
+                    //Offset = PicHeaderSize + 4; // offset in bytes
+                    slparams.MBStartRow = 0; //we should decode fields steb by steb
+
+                    {
+                        //bitstream packing
+                        {
+                            UMCVACompBuffer* CompBuf;
+
+                            uint8_t* pBitstream = (uint8_t*)m_va->GetCompBuffer(DXVA_BITSTREAM_DATA_BUFFER, &CompBuf);
+                            pBuf=pBitstream;
+
+                            if(NULL != m_va->GetProtectedVA() && IS_PROTECTION_GPUCP_ANY(m_va->GetProtectedVA()->GetProtected()))
+                                CompBuf->SetPVPState(&encryptedData->CipherCounter, sizeof (encryptedData->CipherCounter));
+                            else
+                                CompBuf->SetPVPState(NULL, 0);
+
+                            uint32_t alignedSize = encryptedData->DataLength + encryptedData->DataOffset;
+                            if(alignedSize & 0xf)
+                                alignedSize = alignedSize+(0x10 - (alignedSize & 0xf));
+
+                            MFX_INTERNAL_CPY(pBuf, encryptedData->Data, alignedSize);
+#ifdef VC1_DEBUG_ON_LOG
+                            {
+                                if(!f)
+                                    f = fopen("BS_sample_enc.txt", "wb");
+                                if(f)
+                                {
+                                fprintf(f, "Size = %d\n", encryptedData->DataLength);
+                                fprintf(f, "ByteOffset = %d\n",  encryptedData->DataOffset);
+
+                                for(mfxU32 k = 0; k < encryptedData->DataLength; k++)
+                                {
+                                    fprintf(f, "%x ", *(encryptedData->Data + encryptedData->DataOffset + k));
+
+                                   if(k%10 == 0)
+                                       fprintf(f, "\n");
+                                }
+
+                                fprintf(f, "\n\n\n");
+                                }
+                            }
+#endif
+                            uint32_t diff = (uint32_t)(pBitstream - pBuf) + BytesAlreadyExecuted;
+                            CompBuf->SetDataSize(BytesAlreadyExecuted + (UINT)(alignedSize - diff));
+                            m_pPacker.VC1PackOneSlice(m_pContext, &slparams, m_iSliceBufIndex, 0,
+                                encryptedData->DataLength, BytesAlreadyExecuted -diff +encryptedData->DataOffset, 0);
+                            BytesAlreadyExecuted += (UINT)(alignedSize - diff);
+                            if(encryptedData->Next)
+                            {
+                                unsigned long long counter1 = encryptedData->CipherCounter.Count;
+                                unsigned long long counter2 = encryptedData->Next->CipherCounter.Count;
+                                unsigned long long zero = 0xffffffffffffffff;
+                                if((m_va->GetProtectedVA())->GetCounterMode() == PAVP_COUNTER_TYPE_A)
+                                {
+                                    counter1 = LITTLE_ENDIAN_SWAP32((DWORD)(counter1 >> 32));
+                                    counter2 = LITTLE_ENDIAN_SWAP32((DWORD)(counter2 >> 32));
+                                    zero = 0x00000000ffffffff;
+                                }
+                                else
+                                {
+                                    counter1 = LITTLE_ENDIAN_SWAP64(counter1);
+                                    counter2 = LITTLE_ENDIAN_SWAP64(counter2);
+                                }
+                                if(counter2 < counter1)
+                                {
+                                    (unsigned char*)pBuf += (uint32_t)(counter2 +(zero - counter1))*16;
+                                }
+                                else
+                                {
+                                    (unsigned char*)pBuf += (uint32_t)(counter2 - counter1)*16;
+                                }
+                            }
+                        }
+
+                           //BitstreamDataSize += encryptedData->DataLength;
+                            ++m_iSliceBufIndex;
+                            encryptedData = encryptedData->Next;
+                    }
+
+                    ++pOffsets;
+                    ++pValues;
+                    ++pOriginalOffsets;
+                }
+                //Slices
+                else if (*(pValues) == 0x0B010000)
+                {
+                    m_pContext->m_bitstream.pBitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *pOffsets);
+                    VC1BitstreamParser::GetNBits(m_pContext->m_bitstream.pBitstream,m_pContext->m_bitstream.bitOffset,32, temp_value);
+                    m_pContext->m_bitstream.bitOffset = 31;
+
+                    VC1BitstreamParser::GetNBits(m_pContext->m_bitstream.pBitstream,m_pContext->m_bitstream.bitOffset,9, slparams.MBStartRow);     //SLICE_ADDR
+                    VC1BitstreamParser::GetNBits(m_pContext->m_bitstream.pBitstream,m_pContext->m_bitstream.bitOffset,1, PicHeaderFlag);            //PIC_HEADER_FLAG
+
+                    if (PicHeaderFlag == 1)                //PIC_HEADER_FLAG
+                    {
+                        ++m_pContext->m_picLayerHeader;
+                        if (isSecondField)
+                            m_pContext->m_picLayerHeader->CurrField = 1;
+                        else
+                            m_pContext->m_picLayerHeader->CurrField = 0;
+
+                        DecodePictureHeader_Adv(m_pContext);
+                        DecodePicHeader(m_pContext);
+
+                        ++m_iPicBufIndex;
+                    }
+                    m_pContext->m_picLayerHeader->is_slice = 1;
+
+                    if (*(pOffsets+1) && *(pValues+1) == 0x0B010000)
+                    {
+                        bitstream = reinterpret_cast<uint32_t*>(m_pContext->m_pBufferStart + *(pOffsets+1));
+                        VC1BitstreamParser::GetNBits(bitstream,bitoffset,32, temp_value);
+                        bitoffset = 31;
+                        VC1BitstreamParser::GetNBits(bitstream,bitoffset,9, slparams.MBEndRow);
+                    }
+                    else if(*(pValues+1) == 0x0C010000)
+                        slparams.MBEndRow = (m_pContext->m_seqLayerHeader.heightMB+1)/2;
+                    else
+                        slparams.MBEndRow = m_pContext->m_seqLayerHeader.heightMB;
+
+                    slparams.MBRowsToDecode = slparams.MBEndRow-slparams.MBStartRow;
+                    slparams.m_bitOffset = m_pContext->m_bitstream.bitOffset;
+                    //Offset = PicHeaderSize + 4;
+
+                    if (isSecondField)
+                        slparams.MBStartRow -= (m_pContext->m_seqLayerHeader.heightMB+1)/2;
+
+
+                    {
+                        //bitstream packing
+                        {
+                            UMCVACompBuffer* CompBuf;
+
+                            uint8_t* pBitstream = (uint8_t*)m_va->GetCompBuffer(DXVA_BITSTREAM_DATA_BUFFER, &CompBuf);
+
+                            if(NULL != m_va->GetProtectedVA() && IS_PROTECTION_GPUCP_ANY(m_va->GetProtectedVA()->GetProtected()))
+                                CompBuf->SetPVPState(&encryptedData->CipherCounter, sizeof (encryptedData->CipherCounter));
+                            else
+                                CompBuf->SetPVPState(NULL, 0);
+
+                            uint32_t alignedSize = encryptedData->DataLength + encryptedData->DataOffset;
+                            if(alignedSize & 0xf)
+                                alignedSize = alignedSize+(0x10 - (alignedSize & 0xf));
+
+                            MFX_INTERNAL_CPY(pBuf, encryptedData->Data, alignedSize);
+#ifdef VC1_DEBUG_ON_LOG
+                            {
+                                if(!f)
+                                    f = fopen("BS_sample_enc.txt", "wb");
+                                if(f)
+                                {
+                                fprintf(f, "Size = %d\n", encryptedData->DataLength);
+                                fprintf(f, "ByteOffset = %d\n",  encryptedData->DataOffset);
+
+                                for(mfxU32 k = 0; k < encryptedData->DataLength; k++)
+                                {
+                                    fprintf(f, "%x ", *(encryptedData->Data + encryptedData->DataOffset + k));
+
+                                   if(k%10 == 0)
+                                       fprintf(f, "\n");
+                                }
+
+                                fprintf(f, "\n\n\n");
+                                }
+                            }
+#endif
+                            uint32_t diff = (uint32_t)(pBitstream - pBuf) + BytesAlreadyExecuted;
+                            CompBuf->SetDataSize(BytesAlreadyExecuted + (UINT)(alignedSize - diff));
+                            m_pPacker.VC1PackOneSlice(m_pContext, &slparams, m_iSliceBufIndex, 0, encryptedData->DataLength, BytesAlreadyExecuted -diff +encryptedData->DataOffset, 0);
+                            BytesAlreadyExecuted += alignedSize - diff;
+                            if(encryptedData->Next)
+                            {
+                                unsigned long long counter1 = encryptedData->CipherCounter.Count;
+                                unsigned long long counter2 = encryptedData->Next->CipherCounter.Count;
+                                unsigned long long zero = 0xffffffffffffffff;
+                                if((m_va->GetProtectedVA())->GetCounterMode() == PAVP_COUNTER_TYPE_A)
+                                {
+                                    counter1 = LITTLE_ENDIAN_SWAP32((DWORD)(counter1 >> 32));
+                                    counter2 = LITTLE_ENDIAN_SWAP32((DWORD)(counter2 >> 32));
+                                    zero = 0x00000000ffffffff;
+                                }
+                                else
+                                {
+                                    counter1 = LITTLE_ENDIAN_SWAP64(counter1);
+                                    counter2 = LITTLE_ENDIAN_SWAP64(counter2);
+                                }
+                                if(counter2 < counter1)
+                                {
+                                    (unsigned char*)pBuf += (uint32_t)(counter2 + (zero - counter1))*16;
+                                }
+                                else
+                                {
+                                    (unsigned char*)pBuf += (uint32_t)(counter2 - counter1)*16;
+                                }
+                           }
+                        }
+
+                        {
+
+
+                            // let execute in case of fields
+                            if (*(pValues+1)== 0x0C010000)
+                            {
+                                // Execute first slice
+                                m_pPacker.VC1PackBitplaneBuffers(m_pContext);
+
+                                m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex + 1);
+
+                                if (UMC_OK != m_va->Execute())
+                                    throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                                m_iSliceBufIndex = 0;
+                            }
+                            else
+                            {
+                              //  BitstreamDataSize +=  encryptedData->Next/*SliceSize - RemBytesInSlice*/;
+                                ++m_iSliceBufIndex;
+                            }
+                            encryptedData = encryptedData->Next;
+                        }
+                    }
+
+                    ++pOffsets;
+                    ++pValues;
+                    ++pOriginalOffsets;
+
+                }
+                else
+                {
+                    ++pOffsets;
+                    ++pValues;
+                    ++pOriginalOffsets;
+                }
+
+            }
+            //need to execute last slice
+            if (MBEndRowOfAlreadyExec != m_pContext->m_seqLayerHeader.heightMB)
+            {
+                m_pPacker.VC1PackBitplaneBuffers(m_pContext);
+                m_pPacker.VC1SetBuffersSize(m_iSliceBufIndex);
+                if (UMC_OK != m_va->Execute())
+                    throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+
+                if (m_pContext->m_seqLayerHeader.RANGE_MAPY_FLAG ||
+                    m_pContext->m_seqLayerHeader.RANGE_MAPUV_FLAG)
+                {
+                    if (UMC_OK != m_va->EndFrame())
+                        throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
+                }
+            }
+        }
+    };
+#endif //UMC_VA_DXVA
 } // namespace UMC
 
 #endif // #if defined(UMC_VA)

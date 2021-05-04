@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2012-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,16 +25,19 @@
 #include "umc_defs.h"
 #include "mfxstructures.h"
 
-#ifdef MFX_ENABLE_VP9_VIDEO_DECODE
+#if defined(MFX_ENABLE_VP9_VIDEO_DECODE) || defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+
 #include "umc_vp9_dec_defs.h"
+
 #define VP9_CHECK_AND_THROW(exp, err) if(!exp) throw UMC_VP9_DECODER::vp9_exception(MFX_ERR_UNKNOWN)
+
 
 namespace UMC_VP9_DECODER
 {
     constexpr auto VP9_INVALID_REF_FRAME = -1;
     class VP9DecoderFrame;
 
-    inline mfxU32 AlignPowerOfTwo(mfxU32 value, mfxU32 n)
+    inline uint32_t AlignPowerOfTwo(uint32_t value, uint32_t n)
     {
         return (((value) + ((1 << (n)) - 1)) & ~((1 << (n)) - 1));
     }

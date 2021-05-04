@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2012-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
+//#define MFX_ENABLE_H265_VIDEO_DECODE
 #ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
 #include "memory"
@@ -46,6 +47,21 @@
 
 namespace UMC_HEVC_DECODER
 {
+
+#if (MFX_VERSION >= 1025)
+inline void SetDecodeErrorTypes(NalUnitType nalUnit, mfxExtDecodeErrorReport *pDecodeErrorReport)
+{
+    if (!pDecodeErrorReport)
+        return;
+
+    switch (nalUnit)
+    {
+        case NAL_UT_SPS: pDecodeErrorReport->ErrorTypes |= MFX_ERROR_SPS; break;
+        case NAL_UT_PPS: pDecodeErrorReport->ErrorTypes |= MFX_ERROR_PPS; break;
+        default: break;
+    };
+}
+#endif
 
 const uint32_t levelIndexArray[] = {
     H265_LEVEL_1,
@@ -106,6 +122,7 @@ UMC::Status DecReferencePictureMarking_H265::UpdateRefPicMarking(ViewItem_H265 &
         // mark all reference pictures as unused
         for (H265DecoderFrame *pCurr = view.pDPB->head(); pCurr; pCurr = pCurr->future())
         {
+            pCurr->GetAU()->m_frameBeforeIDR = 1;
             if (pCurr->isShortTermRef() || pCurr->isLongTermRef())
             {
                 pCurr->SetisShortTermRef(false);
@@ -315,7 +332,7 @@ bool Skipping_H265::IsShouldSkipFrame(H265DecoderFrame * )
 }
 
 // Set decoding skip frame mode
-void Skipping_H265::ChangeVideoDecodingSpeed(int32_t & num)
+mfxStatus Skipping_H265::ChangeVideoDecodingSpeed(int32_t & num)
 {
     m_VideoDecodingSpeed += num;
 
@@ -329,6 +346,8 @@ void Skipping_H265::ChangeVideoDecodingSpeed(int32_t & num)
     int32_t deblocking_off = m_PermanentTurnOffDeblocking;
     if (deblocking_off == 3)
         m_PermanentTurnOffDeblocking = 3;
+
+    return MFX_ERR_NONE;
 }
 
 // Get current skip mode state
@@ -624,6 +643,7 @@ TaskSupplier_H265::TaskSupplier_H265()
     , m_decodedOrder(false)
     , m_checkCRAInsideResetProcess(false)
     , m_bFirstSliceInSequence(true)
+    , m_bFirstSliceInBitstream(true)
     , m_pLastSlice(0)
     , m_pLastDisplayed(0)
     , m_pMemoryAllocator(0)
@@ -792,7 +812,7 @@ void TaskSupplier_H265::Close()
 
     m_RA_POC = 0;
     m_IRAPType = NAL_UT_INVALID;
-    NoRaslOutputFlag = 1;
+    NoRaslOutputFlag = 0;
 
     m_pLastDisplayed = 0;
 
@@ -855,7 +875,7 @@ void TaskSupplier_H265::Reset()
 
     m_RA_POC = 0;
     m_IRAPType = NAL_UT_INVALID;
-    NoRaslOutputFlag = 1;
+    NoRaslOutputFlag = 0;
 
     m_pLastDisplayed = 0;
 
@@ -888,7 +908,7 @@ void TaskSupplier_H265::AfterErrorRestore()
     m_WaitForIDR        = true;
     m_prevSliceBroken   = false;
     m_maxUIDWhenWasDisplayed = 0;
-    NoRaslOutputFlag = 1;
+    NoRaslOutputFlag = 0;
 
     m_pLastDisplayed = 0;
 
@@ -1662,6 +1682,15 @@ UMC::Status TaskSupplier_H265::ProcessNalUnit(UMC::MediaDataEx *nalUnit)
     case NAL_UT_SPS:
     case NAL_UT_PPS:
         umcRes = DecodeHeaders(nalUnit);
+        {
+#if (MFX_VERSION >= 1025)
+            UMC::MediaData::AuxInfo* aux = (nalUnit) ? nalUnit->GetAuxInfo(MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
+            mfxExtDecodeErrorReport* pDecodeErrorReport = (aux) ? reinterpret_cast<mfxExtDecodeErrorReport*>(aux->ptr) : NULL;
+            if (pDecodeErrorReport && umcRes == UMC::UMC_ERR_INVALID_STREAM)
+                SetDecodeErrorTypes(unitType, pDecodeErrorReport);
+#endif
+        }
+
         break;
 
     case NAL_UT_SEI:
@@ -1691,7 +1720,7 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
     }
 
     if (m_checkCRAInsideResetProcess && !pSource)
-        return UMC::UMC_ERR_NOT_ENOUGH_DATA;
+        return UMC::UMC_ERR_FAILED;
 
     size_t moveToSpsOffset = m_checkCRAInsideResetProcess ? pSource->GetDataSize() : 0;
 
@@ -1702,6 +1731,11 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
             break;
 
         UMC::MediaDataEx::_MediaDataEx* pMediaDataEx = nalUnit->GetExData();
+
+#if (MFX_VERSION >= 1025)
+        UMC::MediaData::AuxInfo* aux = (pSource) ? pSource->GetAuxInfo(MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
+        mfxExtDecodeErrorReport* pDecodeErrorReport = (aux) ? reinterpret_cast<mfxExtDecodeErrorReport*>(aux->ptr) : NULL;
+#endif
 
         for (int32_t i = 0; i < (int32_t)pMediaDataEx->count; i++, pMediaDataEx->index ++)
         {
@@ -1755,7 +1789,13 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
                 case NAL_UT_VPS:
                 case NAL_UT_SPS:
                 case NAL_UT_PPS:
-                    DecodeHeaders(nalUnit);
+                    {
+                        UMC::Status sts = DecodeHeaders(nalUnit);
+#if (MFX_VERSION >= 1025)
+                        if (pDecodeErrorReport && sts == UMC::UMC_ERR_INVALID_STREAM)
+                            SetDecodeErrorTypes((NalUnitType)pMediaDataEx->values[i], pDecodeErrorReport);
+#endif
+                    }
                     break;
 
                 default:
@@ -1808,7 +1848,6 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
                         if (umsRes == UMC::UMC_NTF_NEW_RESOLUTION ||
                             (nut == NAL_UT_SPS && umsRes == UMC::UMC_ERR_INVALID_STREAM))
                         {
-
                             int32_t nalIndex = pMediaDataEx->index;
                             int32_t size = pMediaDataEx->offsets[nalIndex + 1] - pMediaDataEx->offsets[nalIndex];
 
@@ -1822,6 +1861,10 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
                             moveToSpsOffset = pSource->GetDataSize() + size + 3;
                             continue;
                         }
+#if (MFX_VERSION >= 1025)
+                        if (pDecodeErrorReport && umsRes == UMC::UMC_ERR_INVALID_STREAM)
+                            SetDecodeErrorTypes(nut, pDecodeErrorReport);
+#endif
 
                         return umsRes;
                     }
@@ -1840,7 +1883,8 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
                 m_RA_POC = 0;
                 m_IRAPType = NAL_UT_INVALID;
                 GetView()->pDPB->IncreaseRefPicListResetCount(0); // for flushing DPB
-                NoRaslOutputFlag = 1;
+                NoRaslOutputFlag = 0;
+                m_bFirstSliceInSequence = true;
                 return UMC::UMC_OK;
                 break;
 
@@ -2040,6 +2084,14 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
                 offsets -= removed_bytes;
                 removed_bytes = 0;
             }
+#ifndef MFX_VA
+            // driver get original bitstream, with start code enulation prevention,
+            // so correct location only for SW case
+            else
+            {
+                pSlice->m_tileByteLocation[tile] -= removed_bytes;
+            }
+#endif
         }
     }
 
@@ -2105,7 +2157,7 @@ void TaskSupplier_H265::CheckCRAOrBLA(const H265Slice *pSlice)
     if (pSlice->GetRapPicFlag())
     {
         if ((pSlice->GetSliceHeader()->nal_unit_type >= NAL_UT_CODED_SLICE_BLA_W_LP &&
-             pSlice->GetSliceHeader()->nal_unit_type <= NAL_UT_CODED_SLICE_IDR_N_LP) ||
+                pSlice->GetSliceHeader()->nal_unit_type <= NAL_UT_CODED_SLICE_IDR_N_LP) ||
             (pSlice->GetSliceHeader()->nal_unit_type == NAL_UT_CODED_SLICE_CRA && m_bFirstSliceInSequence))
         {
             NoRaslOutputFlag = true;
@@ -2122,7 +2174,7 @@ void TaskSupplier_H265::CheckCRAOrBLA(const H265Slice *pSlice)
         }
 
         //the inference for NoOutputPriorPicsFlag
-        if (!m_bFirstSliceInSequence && NoRaslOutputFlag)
+        if (!m_bFirstSliceInBitstream && NoRaslOutputFlag)
         {
             if (pSlice->GetSliceHeader()->nal_unit_type == NAL_UT_CODED_SLICE_CRA)
             {
@@ -2138,15 +2190,30 @@ void TaskSupplier_H265::CheckCRAOrBLA(const H265Slice *pSlice)
     }
 
     m_bFirstSliceInSequence = false;
+    m_bFirstSliceInBitstream = false;
 
     //Check NoOutputPriorPics
     if (pSlice->GetRapPicFlag() && no_output_of_prior_pics_flag)
     {
-
         for (H265DecoderFrame *pCurr = GetView()->pDPB->head(); pCurr; pCurr = pCurr->future())
         {
-            pCurr->m_pic_output = false;
-            pCurr->SetisDisplayable(false);
+            if (pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_IDR_W_RADL ||
+                pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_IDR_N_LP)
+            {
+                if(!pCurr->wasOutputted())
+                {
+                    pCurr->m_pic_output = false;
+                    pCurr->SetisDisplayable(false);
+                }
+            }
+            else
+            {
+                if (!pCurr->GetAU()->m_frameBeforeIDR && !pCurr->wasOutputted())
+                {
+                    pCurr->m_pic_output = false;
+                    pCurr->SetisDisplayable(false);
+                }
+            }
         }
     }
 }
@@ -2225,7 +2292,6 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
             sps->m_changed ||
             pps->m_changed ||
             !IsPictureTheSame(firstSlice, pSlice);
-
         if (changed)
         {
             CompleteFrame(view.pCurFrame);
@@ -2301,7 +2367,6 @@ H265DecoderFrame* TaskSupplier_H265::AddSelfReferenceFrame(H265Slice* slice)
         slice->GetCurrentFrame();
 }
 
-
 // Mark frame as full with slices
 void TaskSupplier_H265::OnFullFrame(H265DecoderFrame * pFrame)
 {
@@ -2338,7 +2403,6 @@ void TaskSupplier_H265::CompleteFrame(H265DecoderFrame * pFrame)
 
     slicesInfo->EliminateASO();
     slicesInfo->EliminateErrors();
-    m_prevSliceBroken = false;
 
     // skipping algorithm
     const H265Slice *slice = slicesInfo->GetSlice(0);
@@ -2368,13 +2432,13 @@ UMC::Status TaskSupplier_H265::InitFreeFrame(H265DecoderFrame * pFrame, const H2
     //int32_t iCUCount = pSeqParam->WidthInCU * pSeqParam->HeightInCU;
     //pFrame->m_CodingData->m_NumCUsInFrame = iCUCount;
 
-    pFrame->m_FrameType   = SliceTypeToFrameType(pSlice->GetSliceHeader()->slice_type);
-    pFrame->m_dFrameTime  = pSlice->m_source.GetTime();
-    pFrame->m_crop_left   = pSeqParam->conf_win_left_offset;
-    pFrame->m_crop_right  = pSeqParam->conf_win_right_offset;
-    pFrame->m_crop_top    = pSeqParam->conf_win_top_offset;
+    pFrame->m_FrameType = SliceTypeToFrameType(pSlice->GetSliceHeader()->slice_type);
+    pFrame->m_dFrameTime = pSlice->m_source.GetTime();
+    pFrame->m_crop_left = pSeqParam->conf_win_left_offset;
+    pFrame->m_crop_right = pSeqParam->conf_win_right_offset;
+    pFrame->m_crop_top = pSeqParam->conf_win_top_offset;
     pFrame->m_crop_bottom = pSeqParam->conf_win_bottom_offset;
-    pFrame->m_crop_flag   = pSeqParam->conformance_window_flag;
+    pFrame->m_crop_flag = pSeqParam->conformance_window_flag;
 
     pFrame->m_aspect_width  = pSeqParam->sar_width;
     pFrame->m_aspect_height = pSeqParam->sar_height;
@@ -2501,7 +2565,6 @@ H265DecoderFrame * TaskSupplier_H265::AllocateNewFrame(const H265Slice *pSlice)
     {
         pFrame->m_DisplayPictureStruct_H265 = DPS_FRAME_H265;
     }
-
 
     InitFrameCounter(pFrame, pSlice);
     return pFrame;
@@ -2638,7 +2701,7 @@ uint32_t GetLevelIDCIndex(uint32_t level_idc)
 }
 
 // Calculate maximum DPB size based on level and resolution
-int32_t CalculateDPBSize(uint32_t /*profile_idc*/, uint32_t &level_idc, int32_t width, int32_t height, uint32_t num_ref_frames)
+int32_t CalculateDPBSize(uint32_t profile_idc, uint32_t &level_idc, int32_t width, int32_t height, uint32_t num_ref_frames)
 {
     // can increase level_idc to hold num_ref_frames
     uint32_t lumaPsArray[] = { 36864, 122880, 245760, 552960, 983040, 2228224, 2228224, 8912896, 8912896, 8912896, 35651584, 35651584, 35651584 };
@@ -2650,11 +2713,8 @@ int32_t CalculateDPBSize(uint32_t /*profile_idc*/, uint32_t &level_idc, int32_t 
 
         uint32_t MaxLumaPs = lumaPsArray[index];
         uint32_t const maxDpbPicBuf =
-#ifndef MFX_VA
-            profile_idc != H265_PROFILE_SCC ? 6 : 7;
-#else
             6;//HW handles second version of current reference (twoVersionsOfCurrDecPicFlag) itself
-#endif
+        (void)profile_idc;
 
         uint32_t PicSizeInSamplesY = width * height;
 

@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2007-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,12 +18,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "mfxvideo++int.h"
 #include "libmfx_allocator.h"
 
-#include "mfxvideo++int.h"
+
+#include "ippcore.h"
+#include "ipps.h"
 
 #include "mfx_utils.h"
 #include "mfx_common.h"
+
+#include <algorithm>
 
 #define ALIGN32(X) (((mfxU32)((X)+31)) & (~ (mfxU32)31))
 #define ID_BUFFER MFX_MAKEFOURCC('B','U','F','F')
@@ -31,7 +36,7 @@
 
 #define ERROR_STATUS(sts) ((sts)<MFX_ERR_NONE)
 
-#define DEFAULT_ALIGNMENT_SIZE 64
+#define DEFAULT_ALIGNMENT_SIZE 32
 
 // Implementation of Internal allocators
 mfxStatus mfxDefaultAllocator::AllocBuffer(mfxHDL pthis, mfxU32 nbytes, mfxU16 type, mfxHDL *mid)
@@ -68,7 +73,7 @@ mfxStatus mfxDefaultAllocator::AllocBuffer(mfxHDL pthis, mfxU32 nbytes, mfxU16 t
 inline
 size_t midToSizeT(mfxHDL mid)
 {
-    return ((uint8_t *) mid - (uint8_t *) 0);
+    return ((Ipp8u *) mid - (Ipp8u *) 0);
 
 } // size_t midToSizeT(mfxHDL mid)
 
@@ -147,6 +152,97 @@ mfxStatus mfxDefaultAllocator::FreeBuffer(mfxHDL pthis, mfxMemId mid)
     }
 }
 
+inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU16 Type, mfxU32& nbytes)
+{
+    mfxU32 Pitch = mfx::align2_value(Info.Width, 32), Height2 = mfx::align2_value(Info.Height, 32);
+
+    // Decoders and Encoders use YV12 and NV12 only
+    switch (Info.FourCC)
+    {
+    case MFX_FOURCC_YV12:
+        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2 >> 1) + (Pitch >> 1)*(Height2 >> 1);
+        break;
+    case MFX_FOURCC_NV12:
+        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2 >> 1) + (Pitch >> 1)*(Height2 >> 1);
+        break;
+    case MFX_FOURCC_P010:
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_P016:
+#endif
+        Pitch  = mfx::align2_value(Info.Width * 2, 32);
+        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2 >> 1) + (Pitch >> 1)*(Height2 >> 1);
+        break;
+    case MFX_FOURCC_P210:
+        Pitch  = mfx::align2_value(Info.Width * 2, 32);
+        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2)+(Pitch >> 1)*(Height2);
+        break;
+    case MFX_FOURCC_YUY2:
+        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2)+(Pitch >> 1)*(Height2);
+        break;
+    case MFX_FOURCC_RGB3:
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+#endif
+        MFX_CHECK(Type & (MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_FROM_VPPOUT), MFX_ERR_UNSUPPORTED);
+
+        nbytes = Pitch * Height2 + Pitch * Height2 + Pitch * Height2;
+        break;
+
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+    case MFX_FOURCC_RGB565:
+        nbytes = 2 * Pitch*Height2;
+        break;
+#endif // MFX_ENABLE_FOURCC_RGB565
+    case MFX_FOURCC_BGR4:
+    case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_AYUV:
+        nbytes = Pitch * Height2 + Pitch * Height2 + Pitch * Height2 + Pitch * Height2;
+        break;
+    case MFX_FOURCC_A2RGB10:
+        nbytes = Pitch * Height2 + Pitch * Height2 + Pitch * Height2 + Pitch * Height2;
+        break;
+    case MFX_FOURCC_IMC3:
+        MFX_CHECK(Type & (MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_FROM_DECODE), MFX_ERR_UNSUPPORTED);
+
+        nbytes = Pitch * Height2 + (Pitch)*(Height2 >> 1) + (Pitch)*(Height2 >> 1);
+        break;
+
+    case MFX_FOURCC_P8:
+    case MFX_FOURCC_P8_TEXTURE:
+        MFX_CHECK(Type & MFX_MEMTYPE_FROM_ENCODE, MFX_ERR_UNSUPPORTED);
+
+        nbytes = Pitch * Height2;
+        break;
+
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y216:
+#endif
+        Pitch  = mfx::align2_value(Info.Width * 2, 32);
+        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2)+(Pitch >> 1)*(Height2);
+        break;
+
+    case MFX_FOURCC_Y410:
+        Pitch  = mfx::align2_value(Info.Width * 4, 32);
+        nbytes = Pitch * Height2;
+        break;
+#endif
+
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y416:
+        Pitch  = mfx::align2_value(Info.Width * 8, 32);
+        nbytes = Pitch * Height2;
+        break;
+#endif
+
+    default:
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
+
+    return MFX_ERR_NONE;
+}
+
 mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
 {
     if (!pthis)
@@ -168,108 +264,16 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
         }
     }
 
-    mfxU32 Pitch=ALIGN32(request->Info.Width);
-    mfxU32 Height2=ALIGN32(request->Info.Height);
     mfxU32 nbytes;
-    // Decoders and Encoders use YV12 and NV12 only
-    switch (request->Info.FourCC) {
-    case MFX_FOURCC_YV12:
-        nbytes=Pitch*Height2 + (Pitch>>1)*(Height2>>1) + (Pitch>>1)*(Height2>>1);
-        break;
-    case MFX_FOURCC_NV12:
-        nbytes=Pitch*Height2 + (Pitch>>1)*(Height2>>1) + (Pitch>>1)*(Height2>>1);
-        break;
-    case MFX_FOURCC_P010:
-#if (MFX_VERSION >= 1031)
-    case MFX_FOURCC_P016:
-#endif
-        Pitch=ALIGN32(request->Info.Width*2);
-        nbytes=Pitch*Height2 + (Pitch>>1)*(Height2>>1) + (Pitch>>1)*(Height2>>1);
-        break;
-    case MFX_FOURCC_P210:
-        Pitch=ALIGN32(request->Info.Width*2);
-        nbytes=Pitch*Height2 + (Pitch>>1)*(Height2) + (Pitch>>1)*(Height2);
-        break;
-    case MFX_FOURCC_YUY2:
-        nbytes=Pitch*Height2 + (Pitch>>1)*(Height2) + (Pitch>>1)*(Height2);
-        break;
-    case MFX_FOURCC_RGB3:
-#ifdef MFX_ENABLE_RGBP
-    case MFX_FOURCC_RGBP:
-#endif
-        if ((request->Type & MFX_MEMTYPE_FROM_VPPIN) ||
-            (request->Type & MFX_MEMTYPE_FROM_VPPOUT) )
-        {
-            nbytes = Pitch*Height2 + Pitch*Height2 + Pitch*Height2;
-            break;
-        }
-        else
-            return MFX_ERR_UNSUPPORTED;
-#if defined (MFX_ENABLE_FOURCC_RGB565)
-    case MFX_FOURCC_RGB565:
-        nbytes = 2*Pitch*Height2;
-        break;
-#endif // MFX_ENABLE_FOURCC_RGB565
-    case MFX_FOURCC_BGR4:
-    case MFX_FOURCC_RGB4:
-    case MFX_FOURCC_AYUV:
-        nbytes = Pitch*Height2 + Pitch*Height2 + Pitch*Height2 + Pitch*Height2;
-        break;
-    case MFX_FOURCC_A2RGB10:
-        nbytes = Pitch*Height2 + Pitch*Height2 + Pitch*Height2 + Pitch*Height2;
-        break;
-    case MFX_FOURCC_IMC3:
-        if ((request->Type & MFX_MEMTYPE_FROM_VPPIN) ||
-            (request->Type & MFX_MEMTYPE_FROM_VPPOUT) ||
-            (request->Type & MFX_MEMTYPE_FROM_DECODE))
-        {
-            nbytes = Pitch*Height2 + (Pitch)*(Height2>>1) + (Pitch)*(Height2>>1);
-            break;
-        }
-        else
-            return MFX_ERR_UNSUPPORTED;
-        break;
-
-    case MFX_FOURCC_P8:
-        if ( request->Type & MFX_MEMTYPE_FROM_ENCODE )
-        {
-            nbytes = Pitch*Height2;
-            break;
-        }
-        else
-            return MFX_ERR_UNSUPPORTED;
-#if (MFX_VERSION >= 1027)
-    case MFX_FOURCC_Y210:
-#if (MFX_VERSION >= 1031)
-    case MFX_FOURCC_Y216:
-#endif
-        Pitch=ALIGN32(request->Info.Width*2);
-        nbytes=Pitch*Height2 + (Pitch>>1)*(Height2) + (Pitch>>1)*(Height2);
-        break;
-
-    case MFX_FOURCC_Y410:
-        Pitch=ALIGN32(request->Info.Width*4);
-        nbytes=Pitch*Height2;
-        break;
-#endif
-
-#if (MFX_VERSION >= 1031)
-    case MFX_FOURCC_Y416:
-        Pitch=ALIGN32(request->Info.Width*8);
-        nbytes=Pitch*Height2;
-        break;
-#endif
-
-    default:
-        return MFX_ERR_UNSUPPORTED;
-    }
+    mfxStatus sts = GetNumBytesRequired(request->Info, request->Type, nbytes);
+    MFX_CHECK_STS(sts);
 
     // allocate frames in cycle
     maxNumFrames = request->NumFrameSuggested;
     pSelf->m_frameHandles.resize(request->NumFrameSuggested);
     for (numAllocated = 0; numAllocated < maxNumFrames; numAllocated += 1)
     {
-        mfxStatus sts = (pSelf->wbufferAllocator.bufferAllocator.Alloc)(pSelf->wbufferAllocator.bufferAllocator.pthis, nbytes + ALIGN32(sizeof(FrameStruct)), request->Type, &pSelf->m_frameHandles[numAllocated]);
+        sts = (pSelf->wbufferAllocator.bufferAllocator.Alloc)(pSelf->wbufferAllocator.bufferAllocator.pthis, nbytes + ALIGN32(sizeof(FrameStruct)), request->Type, &pSelf->m_frameHandles[numAllocated]);
         if (ERROR_STATUS(sts)) break;
 
         FrameStruct *fs;
@@ -291,7 +295,144 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
     pSelf->NumFrames = maxNumFrames;
 
     return MFX_ERR_NONE;
+}
 
+static inline std::pair<mfxU16, mfxU16> pitch_from_width(mfxU32 width, mfxU32 multiplier)
+{
+    mfxU32 pitch = multiplier * mfx::align2_value(width, 32u);
+
+    return { mfxU16(pitch >> 16), mfxU16(pitch & 0xffff) };
+}
+
+static inline mfxStatus SetPointers(mfxFrameData& frame_data, const mfxFrameInfo & info, mfxU8* bytes)
+{
+    clear_frame_data(frame_data);
+
+    mfxU32 Height2 = mfx::align2_value(info.Height, 32u);
+    switch (info.FourCC)
+    {
+    case MFX_FOURCC_NV12:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 1u);
+        frame_data.Y = bytes;
+        frame_data.U = frame_data.Y + frame_data.Pitch*Height2;
+        frame_data.V = frame_data.U + 1;
+        break;
+    case MFX_FOURCC_P010:
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_P016:
+#endif
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 2u);
+        frame_data.Y = bytes;
+        frame_data.U = frame_data.Y + frame_data.Pitch*Height2;
+        frame_data.V = frame_data.U + 2;
+        break;
+    case MFX_FOURCC_P210:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 2u);
+        frame_data.Y = bytes;
+        frame_data.U = frame_data.Y + frame_data.Pitch*Height2;
+        frame_data.V = frame_data.U + 2;
+        break;
+    case MFX_FOURCC_YV12:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 1u);
+        frame_data.Y = bytes;
+        frame_data.V = frame_data.Y + frame_data.Pitch*Height2;
+        frame_data.U = frame_data.V + (frame_data.Pitch >> 1)*(Height2 >> 1);
+        break;
+    case MFX_FOURCC_YUY2:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 2u);
+        frame_data.Y = bytes;
+        frame_data.U = frame_data.Y + 1;
+        frame_data.V = frame_data.Y + 3;
+        break;
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+    case MFX_FOURCC_RGB565:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 2u);
+        frame_data.B = bytes;
+        frame_data.G = frame_data.B;
+        frame_data.R = frame_data.B;
+        break;
+#endif
+    case MFX_FOURCC_RGB3:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 3u);
+        frame_data.B = bytes;
+        frame_data.G = frame_data.B + 1;
+        frame_data.R = frame_data.B + 2;
+        break;
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 1u);
+        frame_data.B = bytes;
+        frame_data.G = frame_data.B + frame_data.Pitch*Height2;
+        frame_data.R = frame_data.B + 2 * frame_data.Pitch*Height2;
+        break;
+#endif
+    case MFX_FOURCC_RGB4:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 4u);
+        frame_data.B = bytes;
+        frame_data.G = frame_data.B + 1;
+        frame_data.R = frame_data.B + 2;
+        frame_data.A = frame_data.B + 3;
+        break;
+    case MFX_FOURCC_BGR4:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 4u);
+        frame_data.R = bytes;
+        frame_data.G = frame_data.R + 1;
+        frame_data.B = frame_data.R + 2;
+        frame_data.A = frame_data.R + 3;
+        break;
+    case MFX_FOURCC_A2RGB10:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 4u);
+        frame_data.R = frame_data.G = frame_data.B = frame_data.A = bytes;
+        break;
+    case MFX_FOURCC_P8:
+        // Linear data buffer, so pitch is the size of buffer
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, Height2);
+        frame_data.Y = bytes;
+        break;
+    case MFX_FOURCC_P8_TEXTURE:
+        // 2-D data buffer, so pitch is width of picture
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 1u);
+        frame_data.Y = bytes;
+        break;
+    case MFX_FOURCC_AYUV:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 4u);
+        frame_data.V = bytes;
+        frame_data.U = frame_data.V + 1;
+        frame_data.Y = frame_data.V + 2;
+        frame_data.A = frame_data.V + 3;
+        break;
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y216:
+#endif
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 4u);
+        frame_data.Y16 = (mfxU16*)bytes;
+        frame_data.U16 = frame_data.Y16 + 1;
+        frame_data.V16 = frame_data.Y16 + 3;
+        break;
+
+    case MFX_FOURCC_Y410:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 4u);
+        frame_data.Y410 = (mfxY410*)bytes;
+        break;
+#endif
+
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y416:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 8u);
+        frame_data.U16 = (mfxU16*)bytes;
+        frame_data.Y16 = frame_data.U16 + 1;
+        frame_data.V16 = frame_data.Y16 + 1;
+        frame_data.A   = (mfxU8 *)(frame_data.V16 + 1);
+        break;
+#endif
+
+    default:
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
+
+    return MFX_ERR_NONE;
 }
 
 
@@ -313,144 +454,9 @@ mfxStatus mfxDefaultAllocator::LockFrame(mfxHDL pthis, mfxHDL mid, mfxFrameData 
     }
 
     //ptr->MemId = mid; !!!!!!!!!!!!!!!!!!!!!!!!!
-    mfxU32 Height2=ALIGN32(fs->info.Height);
-    mfxU8 *sptr = (mfxU8 *)fs+ALIGN32(sizeof(FrameStruct));
-    switch (fs->info.FourCC) {
-    case MFX_FOURCC_NV12:
-        ptr->PitchHigh=0;
-        ptr->PitchLow=(mfxU16)ALIGN32(fs->info.Width);
-        ptr->Y = sptr;
-        ptr->U = ptr->Y + ptr->Pitch*Height2;
-        ptr->V = ptr->U + 1;
-        break;
-    case MFX_FOURCC_P010:
-#if (MFX_VERSION >= 1031)
-    case MFX_FOURCC_P016:
-#endif
-        ptr->PitchHigh=0;
-        ptr->PitchLow=(mfxU16)ALIGN32(fs->info.Width*2);
-        ptr->Y = sptr;
-        ptr->U = ptr->Y + ptr->Pitch*Height2;
-        ptr->V = ptr->U + 2;
-        break;
-    case MFX_FOURCC_P210:
-        ptr->PitchHigh=0;
-        ptr->PitchLow=(mfxU16)ALIGN32(fs->info.Width*2);
-        ptr->Y = sptr;
-        ptr->U = ptr->Y + ptr->Pitch*Height2;
-        ptr->V = ptr->U + 2;
-        break;
-    case MFX_FOURCC_YV12:
-        ptr->PitchHigh=0;
-        ptr->PitchLow=(mfxU16)ALIGN32(fs->info.Width);
-        ptr->Y = sptr;
-        ptr->V = ptr->Y + ptr->Pitch*Height2;
-        ptr->U = ptr->V + (ptr->Pitch>>1)*(Height2>>1);
-        break;
-    case MFX_FOURCC_YUY2:
-        ptr->Y = sptr;
-        ptr->U = ptr->Y + 1;
-        ptr->V = ptr->Y + 3;
-        ptr->PitchHigh = (mfxU16)((2*ALIGN32(fs->info.Width)) / (1 << 16));
-        ptr->PitchLow  = (mfxU16)((2*ALIGN32(fs->info.Width)) % (1 << 16));
-        break;
-#if defined (MFX_ENABLE_FOURCC_RGB565)
-    case MFX_FOURCC_RGB565:
-        ptr->B = sptr;
-        ptr->G = ptr->B;
-        ptr->R = ptr->B;
-        ptr->PitchHigh = (mfxU16)((2*ALIGN32(fs->info.Width)) >> 16);
-        ptr->PitchLow  = (mfxU16)((2*ALIGN32(fs->info.Width)) & 0xffff);
-        break;
-#endif // MFX_ENABLE_FOURCC_RGB565
-    case MFX_FOURCC_RGB3:
-        ptr->B = sptr;
-        ptr->G = ptr->B + 1;
-        ptr->R = ptr->B + 2;
-        ptr->PitchHigh = (mfxU16)((3*ALIGN32(fs->info.Width)) / (1 << 16));
-        ptr->PitchLow  = (mfxU16)((3*ALIGN32(fs->info.Width)) % (1 << 16));
-        break;
-#ifdef MFX_ENABLE_RGBP
-    case MFX_FOURCC_RGBP:
-        ptr->B = sptr;
-        ptr->G = ptr->B + ptr->Pitch*Height2;
-        ptr->R = ptr->B + 2*ptr->Pitch*Height2;;
-        ptr->PitchHigh = (mfxU16)((3*ALIGN32(fs->info.Width)) / (1 << 16));
-        ptr->PitchLow  = (mfxU16)((3*ALIGN32(fs->info.Width)) % (1 << 16));
-        break;
-#endif
-    case MFX_FOURCC_RGB4:
-        ptr->B = sptr;
-        ptr->G = ptr->B + 1;
-        ptr->R = ptr->B + 2;
-        ptr->A = ptr->B + 3;
-        ptr->PitchHigh = (mfxU16)((4*ALIGN32(fs->info.Width)) / (1 << 16));
-        ptr->PitchLow  = (mfxU16)((4*ALIGN32(fs->info.Width)) % (1 << 16));
-        break;
-    case MFX_FOURCC_BGR4:
-        ptr->R = sptr;
-        ptr->G = ptr->R + 1;
-        ptr->B = ptr->R + 2;
-        ptr->A = ptr->R + 3;
-        ptr->PitchHigh = (mfxU16)((4 * ALIGN32(fs->info.Width)) / (1 << 16));
-        ptr->PitchLow = (mfxU16)((4 * ALIGN32(fs->info.Width)) % (1 << 16));
-        break;
-    case MFX_FOURCC_A2RGB10:
-        ptr->R = ptr->G = ptr->B = ptr->A = sptr;
-        ptr->PitchHigh = (mfxU16)((4*ALIGN32(fs->info.Width)) / (1 << 16));
-        ptr->PitchLow  = (mfxU16)((4*ALIGN32(fs->info.Width)) % (1 << 16));
-        break;
-    case MFX_FOURCC_P8:
-        ptr->PitchHigh=0;
-        ptr->PitchLow=(mfxU16)ALIGN32(fs->info.Width);
-        ptr->Y = sptr;
-        ptr->U = 0;
-        ptr->V = 0;
-        break;
-    case MFX_FOURCC_AYUV:
-        ptr->PitchHigh = (mfxU16)((4 * ALIGN32(fs->info.Width)) / (1 << 16));
-        ptr->PitchLow  = (mfxU16)((4 * ALIGN32(fs->info.Width)) % (1 << 16));
-        ptr->V = sptr;
-        ptr->U = ptr->V + 1;
-        ptr->Y = ptr->V + 2;
-        ptr->A = ptr->V + 3;
-        break;
-#if (MFX_VERSION >= 1027)
-    case MFX_FOURCC_Y210:
-#if (MFX_VERSION >= 1031)
-    case MFX_FOURCC_Y216:
-#endif
-        ptr->PitchHigh = (mfxU16)((4 * ALIGN32(fs->info.Width)) / (1 << 16));
-        ptr->PitchLow  = (mfxU16)((4 * ALIGN32(fs->info.Width)) % (1 << 16));
-        ptr->Y16 = (mfxU16*)sptr;
-        ptr->U16 = ptr->Y16 + 1;
-        ptr->V16 = ptr->Y16 + 3;
-        break;
 
-    case MFX_FOURCC_Y410:
-        ptr->PitchHigh = (mfxU16)((4 * ALIGN32(fs->info.Width)) / (1 << 16));
-        ptr->PitchLow  = (mfxU16)((4 * ALIGN32(fs->info.Width)) % (1 << 16));
-        ptr->Y = ptr->U = ptr->V = ptr->A = 0;
-        ptr->Y410 = (mfxY410*)sptr;
-        break;
-#endif
-
-#if (MFX_VERSION >= 1031)
-    case MFX_FOURCC_Y416:
-        ptr->PitchHigh = (mfxU16)(8 * ALIGN32(fs->info.Width) / (1 << 16));
-        ptr->PitchLow  = (mfxU16)(8 * ALIGN32(fs->info.Width) % (1 << 16));
-        ptr->U16 = (mfxU16*)sptr;
-        ptr->Y16 = ptr->U16 + 1;
-        ptr->V16 = ptr->Y16 + 1;
-        ptr->A   = (mfxU8 *)(ptr->V16 + 1);
-        break;
-#endif
-
-    default:
-        return MFX_ERR_UNSUPPORTED;
-    }
-    return sts;
-
+    mfxU8 *sptr = (mfxU8 *)fs+mfx::align2_value(sizeof(FrameStruct), 32);
+    return SetPointers(*ptr, fs->info, sptr);
 }
 mfxStatus mfxDefaultAllocator::GetHDL(mfxHDL pthis, mfxMemId mid, mfxHDL *handle)
 {
@@ -474,8 +480,8 @@ mfxStatus mfxDefaultAllocator::UnlockFrame(mfxHDL pthis, mfxHDL mid, mfxFrameDat
     if (ptr) {
         ptr->PitchHigh=0;
         ptr->PitchLow=0;
-        ptr->U=ptr->V=ptr->Y=0;
-        ptr->A=ptr->R=ptr->G=ptr->B=0;
+        ptr->U=ptr->V=ptr->Y=nullptr;
+        ptr->A=ptr->R=ptr->G=ptr->B=nullptr;
     }
     return sts;
 
@@ -539,5 +545,135 @@ mfxWideSWFrameAllocator::mfxWideSWFrameAllocator(mfxU16 type):mfxBaseWideFrameAl
 }
 
 
+std::atomic<uint32_t> FrameAllocatorBase::m_allocator_num(0u);
 
+mfxStatus FrameAllocatorBase::Synchronize(mfxSyncPoint sp, mfxU32 timeout)
+{
+    if (sp == nullptr)
+        return MFX_ERR_NONE;
+
+    MFX_CHECK(m_session != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_CHECK_HDL(m_session->m_pScheduler);
+
+    mfxStatus sts = MFXVideoCORE_SyncOperation(m_session, sp, timeout);
+
+    // We ignore nullptr sts because in this case mfxFrameSurface1 has been already synchronized
+    return MFX_STS_TRACE(sts) != MFX_ERR_NULL_PTR ? sts : MFX_ERR_NONE;
+}
+
+mfxStatus RWAcessSurface::LockRW(std::unique_lock<std::mutex>& guard, bool write, bool nowait)
+{
+    if (write)
+    {
+        // Try to lock for write, if not succeeded - return
+        MFX_CHECK(!Locked(), MFX_ERR_LOCK_MEMORY);
+
+        m_write_lock = true;
+    }
+    else
+    {
+        if (m_write_lock)
+        {
+            // If there exists lock for write - and nowait is set, return error; otherwise wait untill writing finished
+            MFX_CHECK(!nowait, MFX_ERR_RESOURCE_MAPPED);
+
+            m_wait_before_read.wait(guard, [this] { return !m_write_lock; });
+        }
+        else if (!m_read_locks && !nowait)
+        {
+            MFX_SAFE_CALL(mfxFrameSurfaceBaseInterface::Synchronize(MFX_INFINITE));
+        }
+
+        ++m_read_locks;
+    }
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus RWAcessSurface::UnlockRW()
+{
+    if (m_write_lock)
+    {
+        m_write_lock = false;
+
+        m_wait_before_read.notify_all();
+    }
+    else
+    {
+        // Check if this surface really was locked
+        MFX_CHECK(m_read_locks, MFX_ERR_UNDEFINED_BEHAVIOR);
+        --m_read_locks;
+    }
+
+    return MFX_ERR_NONE;
+}
+
+mfxFrameSurface1_sw::mfxFrameSurface1_sw(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, mfxHDL, mfxHDL, mfxU32, FrameAllocatorBase& allocator)
+    : RWAcessSurface(info, type, mid, allocator)
+{
+    MFX_CHECK_WITH_THROW(m_internal_surface.Data.MemType & MFX_MEMTYPE_SYSTEM_MEMORY, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
+
+    mfxU32 nbytes;
+    mfxStatus sts = GetNumBytesRequired(info, m_internal_surface.Data.MemType, nbytes);
+    MFX_CHECK_WITH_THROW(sts == MFX_ERR_NONE, sts, mfx::mfxStatus_exception(sts));
+
+    m_data.reset(new mfxU8[nbytes]);
+}
+
+mfxStatus mfxFrameSurface1_sw::Lock(mfxU32 flags)
+{
+    MFX_CHECK(FrameAllocatorBase::CheckMemoryFlags(flags), MFX_ERR_LOCK_MEMORY);
+
+    std::unique_lock<std::mutex> guard(m_mutex);
+
+    mfxStatus sts = LockRW(guard, flags & MFX_MAP_WRITE, flags & MFX_MAP_NOWAIT);
+    MFX_CHECK_STS(sts);
+
+    auto Unlock = [](RWAcessSurface* s) { s->UnlockRW(); };
+
+    // Scope guard to decrease locked count if real lock fails
+    std::unique_ptr<RWAcessSurface, decltype(Unlock)> scoped_lock(this, Unlock);
+
+    if (NumReaders() < 2)
+    {
+        // First reader or unique writer has just acquired resource
+        sts = SetPointers(m_internal_surface.Data, m_internal_surface.Info, m_data.get());
+        MFX_CHECK_STS(sts);
+    }
+
+    // No error, remove guard without decreasing locked counter
+    scoped_lock.release();
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus mfxFrameSurface1_sw::Unlock()
+{
+    std::unique_lock<std::mutex> guard(m_mutex);
+
+    MFX_SAFE_CALL(UnlockRW());
+
+    if (NumReaders() == 0) // So it was 1 before UnlockRW
+    {
+        clear_frame_data(m_internal_surface.Data);
+    }
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus mfxFrameSurface1_sw::Realloc(const mfxFrameInfo & info)
+{
+    std::lock_guard<std::mutex> guard(m_mutex);
+
+    MFX_CHECK(!Locked(), MFX_ERR_LOCK_MEMORY);
+
+    mfxU32 nbytes;
+    MFX_SAFE_CALL(GetNumBytesRequired(info, m_internal_surface.Data.MemType, nbytes));
+
+    m_data.reset(new mfxU8[nbytes]);
+
+    m_internal_surface.Info = info;
+
+    return SetPointers(m_internal_surface.Data, m_internal_surface.Info, m_data.get());
+}
 

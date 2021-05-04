@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -123,12 +123,13 @@ namespace Base
         TaskCommonPar m_prevTask;
         mfxU32
             m_frameOrder        = mfxU32(-1)
-            , m_lastIDR         = 0
+            , m_frameOrderTmp   = mfxU32(-1)
             , m_baseLayerOrder  = 0
             , m_forceHeaders    = 0;
         mfxU16
             m_CUQPBlkW          = 0
             , m_CUQPBlkH        = 0;
+        mfxLastKeyFrameInfo LastKeyFrameInfo = {};
         std::function<std::tuple<mfxU16, mfxU16, mfxU16>(const mfxVideoParam&)> m_GetMaxRef;
         std::unique_ptr<Defaults::Param> m_pQWCDefaults;
         NotNull<Defaults*> m_pQNCDefaults;
@@ -137,7 +138,8 @@ namespace Base
         void ResetState()
         {
             m_frameOrder     = mfxU32(-1);
-            m_lastIDR        = 0;
+            m_frameOrderTmp  = mfxU32(-1);
+            LastKeyFrameInfo = {};
             m_baseLayerOrder = 0;
             Invalidate(m_prevTask);
         }
@@ -186,7 +188,7 @@ namespace Base
         mfxStatus CheckCrops(
             mfxVideoParam & par
             , const Defaults::Param& defPar);
-        mfxStatus CheckShift(mfxVideoParam & par, mfxExtOpaqueSurfaceAlloc* pOSA);
+        mfxStatus CheckShift(mfxVideoParam & par);
         mfxStatus CheckFrameRate(mfxVideoParam & par);
         mfxStatus CheckNumRefFrame(
             mfxVideoParam & par
@@ -233,12 +235,15 @@ namespace Base
             , Slice & s);
         static mfxU32 GetRawBytes(mfxU16 w, mfxU16 h, mfxU16 ChromaFormat, mfxU16 BitDepth);
         static bool IsSWBRC(mfxVideoParam const & par, const mfxExtCodingOption2* pCO2);
-        static bool IsInVideoMem(const mfxVideoParam & par, const mfxExtOpaqueSurfaceAlloc* pOSA);
+        static bool IsInVideoMem(const mfxVideoParam & par);
         static bool IsTCBRC(const mfxVideoParam & par, mfxU16 tcbrcSupport);
 
         mfxU16 GetMaxRaw(const mfxVideoParam & par)
         {
-            return par.AsyncDepth + (par.mfx.GopRefDist - 1) + (par.AsyncDepth > 1);
+            // Extend extra Raw for frames buffered between LA submit and LA Query stage
+            const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
+            mfxU16 extRaw = pCO2 ? pCO2->LookAheadDepth : 0;
+            return par.AsyncDepth + (par.mfx.GopRefDist - 1) + (par.AsyncDepth > 1) + extRaw;
         }
         mfxU16 GetMaxBS(mfxVideoParam const & par)
         {

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2009-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +46,7 @@ namespace MfxHwH264Encode
 {
     const mfxU32 NUM_CLOCK_TS[9] = { 1, 1, 1, 2, 2, 3, 3, 2, 3 };
 
-    mfxU16 CalcNumFrameMin(const MfxHwH264Encode::MfxVideoParam &par, MFX_ENCODE_CAPS const & hwCaps)
+    mfxU16 CalcNumFrameMin(const MfxHwH264Encode::MfxVideoParam &par, MFX_ENCODE_CAPS const & hwCaps, eMFXHWType platform)
     {
         mfxU16 numFrameMin = 0;
 
@@ -69,23 +69,48 @@ namespace MfxHwH264Encode
             mfxExtMVCSeqDesc & extMvc = GetExtBufferRef(par);
             numFrameMin = mfxU16(std::min(0xffffu, numFrameMin * extMvc.NumView));
         }
-        if (IsAvcProfile(par.mfx.CodecProfile)) //AVC
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+        if (IsSvcProfile(par.mfx.CodecProfile))//SVC
+        {
+            if (par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
+            {
+                numFrameMin = par.mfx.GopRefDist;
+            }
+            else // MFX_IOPATTERN_IN_VIDEO_MEMORY || MFX_IOPATTERN_IN_OPAQUE_MEMORY
+            {
+                mfxExtCodingOptionDDI & extDdi = GetExtBufferRef(par);
+                numFrameMin = IsOn(extDdi.RefRaw)
+                    ? par.mfx.GopRefDist + par.mfx.NumRefFrame
+                    : par.mfx.GopRefDist;
+            }
+
+            numFrameMin = numFrameMin + par.AsyncDepth - 1;
+
+            mfxExtSVCSeqDesc const * extSvc = GetExtBuffer(par);
+            mfxU16 numDependencyLayer = 0;
+            for (mfxU32 i = 0; i < 8; i++)
+            if (extSvc->DependencyLayer[i].Active)
+                numDependencyLayer++;
+
+            numFrameMin = numDependencyLayer * numFrameMin;
+        }
+#endif
+        if (IsAvcProfile(par.mfx.CodecProfile))//AVC
         {
             mfxExtCodingOption2 *       extOpt2 = GetExtBuffer(par);
             mfxExtCodingOption3 *       extOpt3 = GetExtBuffer(par);
-
+            mfxU16 mctfFrames = IsMctfSupported(par, platform) ? (par.AsyncDepth > 1 ? 0 : 1) : 0;
             mfxU32  adaptGopDelay = 0;
 #if defined(MFX_ENABLE_ENCTOOLS)
             adaptGopDelay = H264EncTools::GetPreEncDelay(par);
 #endif
-            mfxU16 mctfFrames = IsMctfSupported(par) ? (par.AsyncDepth > 1 ? 0 : 1) : 0;
             if (par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
             {
                 numFrameMin = (mfxU16)(par.mfx.GopRefDist + adaptGopDelay + mctfFrames + par.AsyncDepth - 1);
             }
             else // MFX_IOPATTERN_IN_VIDEO_MEMORY || MFX_IOPATTERN_IN_OPAQUE_MEMORY
             {
-                numFrameMin = (mfxU16)AsyncRoutineEmulator(par, adaptGopDelay).GetTotalGreediness() + par.AsyncDepth - 1;
+                numFrameMin = (mfxU16)AsyncRoutineEmulator(par, adaptGopDelay, platform).GetTotalGreediness() + par.AsyncDepth - 1;
 
                 mfxExtCodingOptionDDI & extDdi = GetExtBufferRef(par);
                 numFrameMin += IsOn(extDdi.RefRaw)
@@ -310,10 +335,12 @@ namespace MfxHwH264Encode
         {
             if (task.m_ctrl.QP > 0)
             {
-                if (IsOn(par.mfx.LowPower) && task.m_ctrl.QP < 10)
+#if defined(LOWPOWERENCODE_AVC)
+                if (IsOn(par.mfx.LowPower) && (task.m_ctrl.QP < 10))
                     return 10;
+#endif
                 // get per frame qp
-                return std::min<mfxU8>(task.m_ctrl.QP, 51);
+                return std::min(mfxU8(task.m_ctrl.QP), mfxU8(maxQP));
             }
             else
             {
@@ -667,8 +694,8 @@ void FrameTypeGenerator::Init(MfxVideoParam const & video)
     m_gopRefDist = std::max<mfxU16>(video.mfx.GopRefDist, 1);
     m_idrDist    = m_gopPicSize * (video.mfx.IdrInterval + 1);
 
-    mfxExtCodingOption2 & extOpt2 = GetExtBufferRef(video);
-    m_biPyramid = extOpt2.BRefType == MFX_B_REF_OFF ? 0 : extOpt2.BRefType;
+    mfxExtCodingOption2 * extOpt2 = GetExtBuffer(video);
+    m_biPyramid = extOpt2->BRefType == MFX_B_REF_OFF ? 0 : extOpt2->BRefType;
 
     m_frameOrder = 0;
 }
@@ -744,1782 +771,6 @@ PairU8 FrameTypeGenerator::Get() const
 void FrameTypeGenerator::Next()
 {
     m_frameOrder = (m_frameOrder + 1) % m_idrDist;
-}
-
-
-void TaskManager::UpdateRefFrames(
-    ArrayDpbFrame const & dpb,
-    DdiTask const &       task,
-    mfxU32                field)
-{
-    mfxU32 ps = task.GetPicStructForEncode();
-
-    for (mfxU32 i = 0; i < dpb.Size(); i++)
-    {
-        Reconstruct & ref = m_recons[dpb[i].m_frameIdx];
-
-        if (dpb[i].m_longterm)
-        {
-            // update longTermPicNum
-            if (ps == MFX_PICSTRUCT_PROGRESSIVE)
-            {
-                ref.m_longTermPicNum.top = ref.m_longTermFrameIdx;
-                ref.m_longTermPicNum.bot = ref.m_longTermFrameIdx;
-            }
-            else
-            {
-                ref.m_longTermPicNum.top = 2 * ref.m_longTermFrameIdx + mfxU8( !field);
-                ref.m_longTermPicNum.bot = 2 * ref.m_longTermFrameIdx + mfxU8(!!field);
-            }
-        }
-        else
-        {
-            // update frameNumWrap
-            if (ref.m_frameNum > task.m_frameNum)
-            {
-                ref.m_frameNumWrap = ref.m_frameNum - m_frameNumMax;
-            }
-            else
-            {
-                ref.m_frameNumWrap = mfxI32(ref.m_frameNum);
-            }
-
-            // update picNum
-            if (task.GetPicStructForEncode() & MFX_PICSTRUCT_PROGRESSIVE)
-            {
-                ref.m_picNum.top = ref.m_frameNumWrap;
-                ref.m_picNum.bot = ref.m_frameNumWrap;
-            }
-            else
-            {
-                ref.m_picNum.top = 2 * ref.m_frameNumWrap + ( !field);
-                ref.m_picNum.bot = 2 * ref.m_frameNumWrap + (!!field);
-            }
-        }
-    }
-}
-
-mfxU32 TaskManager::CountL1Refs(Reconstruct const & bframe) const
-{
-    mfxU32 l1RefNum = 0;
-    for (mfxU32 i = 0; i < m_dpb.Size(); i++)
-    {
-        if (Less(bframe.m_frameOrder, m_recons[m_dpb[i].m_frameIdx].m_frameOrder))
-        {
-            l1RefNum++;
-        }
-    }
-
-    return l1RefNum;
-}
-
-
-void TaskManager::BuildRefPicLists(
-    DdiTask & task,
-    mfxU32    field)
-{
-    ArrayU8x33 list0Frm(0xff); // list0 built like current picture is frame
-    ArrayU8x33 list1Frm(0xff); // list1 built like current picture is frame
-
-    ArrayU8x33    & list0 = task.m_list0[field];
-    ArrayU8x33    & list1 = task.m_list1[field];
-    ArrayDpbFrame & dpb   = task.m_dpb[field];
-
-    mfxU32 useRefBasePicFlag = !!(task.m_type[field] & MFX_FRAMETYPE_KEYPIC);
-    if (task.GetPicStructForEncode() == MFX_PICSTRUCT_PROGRESSIVE)
-        field = TFIELD;
-
-    // update frameNumWrap and picNum of reference frames in dpb
-    UpdateRefFrames(dpb, task, field);
-
-    // build lists of reference frame
-    if (task.m_type[field] & MFX_FRAMETYPE_IDR)
-    {
-        // in MVC P or B frame can be IDR
-        // its DPB may be not empty
-        // however it shouldn't have inter-frame references
-    }
-    else if (task.m_type[field] & MFX_FRAMETYPE_P)
-    {
-        // 8.2.4.2.1-2 "Initialisation process for
-        // the reference picture list for P and SP slices in frames/fields"
-        for (mfxU32 i = 0; i < dpb.Size(); i++)
-            if (!dpb[i].m_longterm && (useRefBasePicFlag == dpb[i].m_refBase))
-                list0Frm.PushBack(mfxU8(i));
-
-        std::sort(
-            list0Frm.Begin(),
-            list0Frm.End(),
-            RefPicNumIsGreater(m_recons, dpb));
-
-        mfxU8 * firstLongTerm = list0Frm.End();
-
-        for (mfxU32 i = 0; i < dpb.Size(); i++)
-            if (dpb[i].m_longterm && (useRefBasePicFlag == dpb[i].m_refBase))
-                list0Frm.PushBack(mfxU8(i));
-
-        std::sort(
-            firstLongTerm,
-            list0Frm.End(),
-            LongTermRefPicNumIsLess(m_recons, dpb));
-    }
-    else if (task.m_type[field] & MFX_FRAMETYPE_B)
-    {
-        // 8.2.4.2.3-4 "Initialisation process for
-        // reference picture lists for B slices in frames/fields"
-        for (mfxU32 i = 0; i < dpb.Size(); i++)
-        {
-            if (!dpb[i].m_longterm && (useRefBasePicFlag == dpb[i].m_refBase))
-            {
-                if (Less(dpb[i].m_poc[0], task.GetPoc(0)))
-                    list0Frm.PushBack(mfxU8(i));
-                else
-                    list1Frm.PushBack(mfxU8(i));
-            }
-        }
-
-        std::sort(
-            list0Frm.Begin(),
-            list0Frm.End(),
-            RefPocIsGreater(m_recons, dpb));
-
-        std::sort(
-            list1Frm.Begin(),
-            list1Frm.End(),
-            RefPocIsLess(m_recons, dpb));
-
-        // elements of list1 append list0
-        // elements of list0 append list1
-        mfxU32 list0Size = list0Frm.Size();
-        mfxU32 list1Size = list1Frm.Size();
-
-        for (mfxU32 ref = 0; ref < list1Size; ref++)
-            list0Frm.PushBack(list1Frm[ref]);
-
-        for (mfxU32 ref = 0; ref < list0Size; ref++)
-            list1Frm.PushBack(list0Frm[ref]);
-
-        mfxU8 * firstLongTermL0 = list0Frm.End();
-        mfxU8 * firstLongTermL1 = list1Frm.End();
-
-        for (mfxU32 i = 0; i < dpb.Size(); i++)
-        {
-            if (dpb[i].m_longterm && (useRefBasePicFlag == dpb[i].m_refBase))
-            {
-                list0Frm.PushBack(mfxU8(i));
-                list1Frm.PushBack(mfxU8(i));
-            }
-        }
-
-        std::sort(
-            firstLongTermL0,
-            list0Frm.End(),
-            LongTermRefPicNumIsLess(m_recons, dpb));
-
-        std::sort(
-            firstLongTermL1,
-            list1Frm.End(),
-            LongTermRefPicNumIsLess(m_recons, dpb));
-    }
-
-    if (task.GetPicStructForEncode() & MFX_PICSTRUCT_PROGRESSIVE)
-    {
-        // just copy lists
-        list0 = list0Frm;
-        list1 = list1Frm;
-    }
-    else
-    {
-        // for interlaced picture we need to perform
-        // 8.2.4.2.5 "Initialisation process for reference picture lists in fields"
-
-        list0.Resize(0);
-        list1.Resize(0);
-
-        ProcessFields(field, dpb, list0Frm, list0);
-        ProcessFields(field, dpb, list1Frm, list1);
-    }
-
-    // "When the reference picture list RefPicList1 has more than one entry
-    // and RefPicList1 is identical to the reference picture list RefPicList0,
-    // the first two entries RefPicList1[0] and RefPicList1[1] are switched"
-    if (list1.Size() > 1 && list0 == list1)
-    {
-        std::swap(list1[0], list1[1]);
-    }
-
-    task.m_initSizeList0[field] = list0.Size();
-    task.m_initSizeList1[field] = list1.Size();
-}
-
-void TaskManager::ProcessFields(
-    mfxU32                field,
-    ArrayDpbFrame const & dpb,
-    ArrayU8x33 const &    picListFrm,
-    ArrayU8x33 &          picListFld) const
-{
-    // 8.2.4.2.5 "Initialisation process for reference picture lists in fields"
-    mfxU32 idxSameParity = 0; // index in frameList
-    mfxU32 idxOppositeParity = 0; // index in frameList
-    mfxU32 sameParity = field;
-    mfxU32 oppositeParity = !field;
-
-    picListFld.Resize(0);
-
-    while (idxSameParity < picListFrm.Size() || idxOppositeParity < picListFrm.Size())
-    {
-        for (; idxSameParity < picListFrm.Size(); idxSameParity++)
-        {
-            if (m_recons[dpb[picListFrm[idxSameParity]].m_frameIdx].m_reference[sameParity])
-            {
-                picListFld.PushBack(picListFrm[idxSameParity]);
-                if (field == BFIELD)
-                    picListFld.Back() |= 0x80;
-
-                idxSameParity++;
-                break;
-            }
-        }
-        for (; idxOppositeParity < picListFrm.Size(); idxOppositeParity++)
-        {
-            if (m_recons[dpb[picListFrm[idxOppositeParity]].m_frameIdx].m_reference[oppositeParity])
-            {
-                picListFld.PushBack(picListFrm[idxOppositeParity]);
-                if (field == TFIELD)
-                    picListFld.Back() |= 0x80;
-
-                idxOppositeParity++;
-                break;
-            }
-        }
-    }
-}
-
-bool TaskManager::IsSubmitted(DdiTask const & task) const
-{
-    return task.m_idxBs.top != NO_INDEX && !m_bitstreams[task.m_idxBs.top % m_bitstreams.size()].IsFree();
-}
-
-TaskManager::TaskManager()
-: m_core(NULL)
-, m_stat()
-, m_frameNum(0)
-, m_frameNumMax(0)
-, m_frameOrder(0)
-, m_frameOrderIdr(0)
-, m_frameOrderI(0)
-, m_idrPicId(0)
-, m_viewIdx(0)
-, m_cpbRemoval(0)
-, m_cpbRemovalBufferingPeriod(0)
-, m_numReorderFrames(0)
-, m_pushed(0)
-{
-}
-
-TaskManager::~TaskManager()
-{
-    Close();
-}
-
-void TaskManager::Init(
-    VideoCORE *           core,
-    MfxVideoParam const & video,
-    mfxU32                viewIdx)
-{
-    m_core    = core;
-    m_viewIdx = viewIdx;
-
-    m_frameNum = 0;
-    m_frameNumMax = 256;
-    m_frameOrder = 0;
-    m_frameOrderI = 0;
-    m_frameOrderIdr = 0;
-    m_idrPicId = 0;
-
-    m_video = video;
-
-    if (m_video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-    {
-        mfxExtOpaqueSurfaceAlloc * extOpaq = GetExtBuffer(m_video);
-        m_video.IOPattern = (extOpaq->In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)
-            ? mfxU16(MFX_IOPATTERN_IN_SYSTEM_MEMORY)
-            : mfxU16(MFX_IOPATTERN_IN_VIDEO_MEMORY);
-    }
-
-    m_numReorderFrames = GetNumReorderFrames(video);
-
-    m_dpb.Resize(0);
-
-    m_frameTypeGen.Init(m_video);
-    m_bitstreams.resize(CalcNumSurfBitstream(m_video));
-    m_recons.resize(CalcNumSurfRecon(m_video));
-    m_tasks.resize(CalcNumTasks(m_video));
-
-    // need raw surfaces only when input surfaces are in system memory
-    if (m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
-        m_raws.resize(CalcNumSurfRaw(m_video));
-
-    Zero(m_stat);
-}
-
-void TaskManager::Reset(MfxVideoParam const & video)
-{
-    mfxExtSpsHeader const * extSpsNew = GetExtBuffer(video);
-    mfxExtSpsHeader const * extSpsOld = GetExtBuffer(m_video);
-
-    if (!Equal(*extSpsNew, *extSpsOld))
-    {
-        m_dpb.Resize(0);
-        m_idrPicId = 0;
-        m_frameTypeGen.Init(video);
-        Zero(m_stat);
-
-        std::for_each(m_raws.begin(), m_raws.end(), SetSurfaceFree);
-        std::for_each(m_bitstreams.begin(), m_bitstreams.end(), SetSurfaceFree);
-        std::for_each(m_tasks.begin(), m_tasks.end(), SetReconstructFreeAndDecRef(*m_core));
-        std::for_each(m_recons.begin(), m_recons.end(), SetReconstructFreeAndDecRef(*m_core));
-    }
-
-    m_video = video;
-    m_numReorderFrames = GetNumReorderFrames(m_video);
-}
-
-void TaskManager::Close()
-{
-    UMC::AutomaticUMCMutex guard(m_mutex);
-    Clear(m_tasks);
-    Clear(m_raws);
-    Clear(m_bitstreams);
-    Clear(m_recons);
-}
-
-template<typename T> mfxU32 FindFreeSurface(std::vector<T> const & vec)
-{
-    for (size_t j = 0; j < vec.size(); j++)
-    {
-        if (vec[j].IsFree())
-        {
-            return (mfxU32)j;
-        }
-    }
-
-    return NO_INDEX;
-}
-
-void TaskManager::SwitchLastB2P()
-{
-    DdiTask* latestFrame = 0;
-    for (size_t i = 0; i < m_tasks.size(); i++)
-    {
-        DdiTask& task = m_tasks[i];
-
-        if (task.IsFree() || task.m_bs != 0)
-        {
-            continue;
-        }
-
-        if (latestFrame == 0 || Less(latestFrame->m_frameOrder, task.m_frameOrder))
-        {
-            latestFrame = &task;
-        }
-    }
-
-    if (latestFrame)
-    {
-        mfxU8 frameType = latestFrame->GetFrameType();
-
-        if ((frameType & MFX_FRAMETYPE_B) &&
-            (CountL1Refs(*latestFrame) == 0))
-        {
-            latestFrame->m_type.top = latestFrame->m_type.bot = MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;
-        }
-    }
-}
-
-DdiTask * TaskManager::SelectNextBFrameFromTail()
-{
-    DdiTask * toEncode = 0;
-
-    for (size_t i = 0; i < m_tasks.size(); i++)
-    {
-        DdiTask & task = m_tasks[i];
-
-        if (task.IsFree() || IsSubmitted(task))
-        {
-            continue;
-        }
-
-        if ((task.GetFrameType() & MFX_FRAMETYPE_B) == 0)
-            return 0;
-
-        if (toEncode == 0 || Less(task.m_frameOrder, toEncode->m_frameOrder))
-        {
-            toEncode = &task;
-        }
-    }
-
-    return toEncode;
-}
-
-DdiTask * TaskManager::FindFrameToEncode()
-{
-    DdiTask * toEncode = 0;
-
-    for (size_t i = 0; i < m_tasks.size(); i++)
-    {
-        DdiTask & task = m_tasks[i];
-
-        if (task.IsFree() || IsSubmitted(task))
-        {
-            continue;
-        }
-
-        if (toEncode == 0 || Less(task.m_frameOrder, toEncode->m_frameOrder))
-        {
-            if ((task.GetFrameType() & MFX_FRAMETYPE_B) == 0 ||
-                (CountL1Refs(task) > 0))
-            {
-                toEncode = &task;
-            }
-        }
-    }
-
-    if (toEncode)
-    {
-        mfxU32 idrPicFlag   = !!(toEncode->GetFrameType() & MFX_FRAMETYPE_IDR);
-        mfxU32 intraPicFlag = !!(toEncode->GetFrameType() & MFX_FRAMETYPE_I);
-        mfxU32 closedGop    = !!(m_video.mfx.GopOptFlag & MFX_GOP_CLOSED);
-        mfxU32 strictGop    = !!(m_video.mfx.GopOptFlag & MFX_GOP_STRICT);
-
-        if (!strictGop && (idrPicFlag || (intraPicFlag && closedGop)))
-        {
-            // find latest B frame prior to current I frame
-            // since gop is closed such B frames will be encoded with only L1 ref
-            // since gop is not strict it is possible (and better)
-            // to switch latest B frame to P and encode other B frame before new gop begins
-            DdiTask * latestBframe = 0;
-            for (size_t i = 0; i < m_tasks.size(); i++)
-            {
-                if (m_tasks[i].IsFree() || IsSubmitted(m_tasks[i]))
-                    continue;
-
-                if ((m_tasks[i].GetFrameType() & MFX_FRAMETYPE_B) &&
-                    Less(m_tasks[i].m_frameOrder, toEncode->m_frameOrder) &&
-                    (latestBframe == 0 || Less(latestBframe->m_frameOrder, m_tasks[i].m_frameOrder)))
-                {
-                    latestBframe = &m_tasks[i];
-                }
-            }
-
-            if (latestBframe)
-            {
-                latestBframe->m_type[0] = latestBframe->m_type[1] = MFX_FRAMETYPE_PREF;
-                toEncode = latestBframe;
-            }
-        }
-    }
-
-    if (toEncode && toEncode->GetFrameType() & MFX_FRAMETYPE_B)
-    {
-        for (size_t i = 0; i < m_tasks.size(); i++)
-        {
-            if (m_tasks[i].IsFree() || IsSubmitted(m_tasks[i]))
-                continue;
-
-            if ((m_tasks[i].GetFrameType() & MFX_FRAMETYPE_B) &&
-                m_tasks[i].m_loc.miniGopCount == toEncode->m_loc.miniGopCount &&
-                m_tasks[i].m_loc.encodingOrder < toEncode->m_loc.encodingOrder)
-            {
-                toEncode = &m_tasks[i];
-            }
-        }
-    }
-
-    return toEncode;
-}
-
-namespace HwUtils
-{
-    struct FindInDpbByExtFrameTag
-    {
-        FindInDpbByExtFrameTag(
-            std::vector<Reconstruct> const & recons,
-            mfxU32                           extFrameTag)
-        : m_recons(recons)
-        , m_extFrameTag(extFrameTag)
-        {
-        }
-
-        bool operator ()(DpbFrame const & dpbFrame) const
-        {
-            return m_recons[dpbFrame.m_frameIdx].m_extFrameTag == m_extFrameTag;
-        }
-
-        std::vector<Reconstruct> const & m_recons;
-        mfxU32                           m_extFrameTag;
-    };
-
-    struct FindInDpbByFrameOrder
-    {
-        FindInDpbByFrameOrder(
-            std::vector<Reconstruct> const & recons,
-            mfxU32                           frameOrder)
-            : m_recons(recons)
-            , m_frameOrder(frameOrder)
-        {
-        }
-
-        bool operator ()(DpbFrame const & dpbFrame) const
-        {
-            return m_recons[dpbFrame.m_frameIdx].m_frameOrder == m_frameOrder;
-        }
-
-        std::vector<Reconstruct> const & m_recons;
-        mfxU32                           m_frameOrder;
-    };
-
-    struct OrderByFrameNumWrap
-    {
-        OrderByFrameNumWrap(
-            std::vector<Reconstruct> const & recons)
-        : m_recons(recons)
-        {
-        }
-
-        bool operator ()(DpbFrame const & lhs, DpbFrame const & rhs) const
-        {
-            if (!lhs.m_longterm && !rhs.m_longterm)
-                if (lhs.m_refBase == rhs.m_refBase)
-                    return m_recons[lhs.m_frameIdx].m_frameNumWrap < m_recons[rhs.m_frameIdx].m_frameNumWrap;
-                else
-                    return lhs.m_refBase > rhs.m_refBase;
-            else if (!lhs.m_longterm && rhs.m_longterm)
-                return true;
-            else if (lhs.m_longterm && !rhs.m_longterm)
-                return false;
-            else // both long term
-                return m_recons[lhs.m_frameIdx].m_longTermPicNum[0] < m_recons[rhs.m_frameIdx].m_longTermPicNum[0];
-        }
-
-        std::vector<Reconstruct> const & m_recons;
-    };
-
-    struct OrderByFrameNumWrapKeyRef
-    {
-        OrderByFrameNumWrapKeyRef(
-            std::vector<Reconstruct> const & recons)
-            : m_recons(recons)
-        {
-        }
-
-        bool operator ()(DpbFrame const & lhs, DpbFrame const & rhs) const
-        {
-            if (!lhs.m_longterm && !rhs.m_longterm)
-            {
-                if (lhs.m_refBase == rhs.m_refBase)
-                {
-                    if (lhs.m_keyRef != rhs.m_keyRef)
-                        return (lhs.m_keyRef < rhs.m_keyRef);
-                    else
-                        return (m_recons[lhs.m_frameIdx].m_frameNumWrap < m_recons[rhs.m_frameIdx].m_frameNumWrap);
-                }
-                else
-                    return lhs.m_refBase > rhs.m_refBase;
-            }
-            else if (!lhs.m_longterm && rhs.m_longterm)
-                return true;
-            else if (lhs.m_longterm && !rhs.m_longterm)
-                return false;
-            else // both long term
-                return m_recons[lhs.m_frameIdx].m_longTermPicNum[0] < m_recons[rhs.m_frameIdx].m_longTermPicNum[0];
-        }
-
-        std::vector<Reconstruct> const & m_recons;
-    };
-    struct OrderByDisplayOrder
-    {
-        OrderByDisplayOrder(
-            std::vector<Reconstruct> const & recons)
-        : m_recons(recons)
-        {
-        }
-
-        bool operator ()(DpbFrame const & lhs, DpbFrame const & rhs) const
-        {
-            return m_recons[lhs.m_frameIdx].m_frameOrder < m_recons[rhs.m_frameIdx].m_frameOrder;
-        }
-
-        std::vector<Reconstruct> const & m_recons;
-    };
-
-    struct OrderByDisplayOrderKeyRef
-    {
-        OrderByDisplayOrderKeyRef(
-            std::vector<Reconstruct> const & recons)
-            : m_recons(recons)
-        {
-        }
-
-        bool operator ()(DpbFrame const & lhs, DpbFrame const & rhs) const
-        {
-            if (lhs.m_keyRef != rhs.m_keyRef)
-                return (lhs.m_keyRef < rhs.m_keyRef);
-            return m_recons[lhs.m_frameIdx].m_frameOrder < m_recons[rhs.m_frameIdx].m_frameOrder;
-        }
-
-        std::vector<Reconstruct> const & m_recons;
-    };
-};
-
-void UpdateMaxLongTermFrameIdxPlus1(ArrayU8x8 & arr, mfxU8 curTidx, mfxU8 val)
-{
-    std::fill(arr.Begin() + curTidx, arr.End(), val);
-}
-
-void TaskManager::UpdateDpb(
-    DdiTask       & task,
-    mfxU32          fieldId,
-    ArrayDpbFrame & dpbPostEncoding)
-{
-    // declare shorter names
-    ArrayDpbFrame const &  initDpb  = task.m_dpb[fieldId];
-    ArrayDpbFrame &        currDpb  = dpbPostEncoding;
-    ArrayU8x8 &            maxLtIdx = currDpb.m_maxLongTermFrameIdxPlus1;
-    mfxU32                 type     = task.m_type[fieldId];
-    DecRefPicMarkingInfo & marking  = task.m_decRefPicMrk[fieldId];
-
-    // marking commands will be applied to dpbPostEncoding
-    // initial dpb stay unchanged
-    currDpb = initDpb;
-
-    if ((type & MFX_FRAMETYPE_REF) == 0)
-        return; // non-reference frames doesn't change dpb
-    mfxExtAVCRefListCtrl const * ext_ctrl = GetExtBuffer(task.m_ctrl);
-    mfxExtAVCRefListCtrl const * ctrl = (task.m_internalListCtrlPresent && (task.m_internalListCtrlHasPriority || !ext_ctrl))
-        ? &task.m_internalListCtrl
-        : ext_ctrl;
-
-    bool useInternalFrameOrder = false;
-    if (ctrl && ctrl == &task.m_internalListCtrl) useInternalFrameOrder = true;
-
-    if (type & MFX_FRAMETYPE_IDR)
-    {
-        bool currFrameIsLongTerm = false;
-
-        currDpb.Resize(0);
-        UpdateMaxLongTermFrameIdxPlus1(maxLtIdx, 0, 0);
-
-        marking.long_term_reference_flag = 0;
-
-        if (ctrl)
-        {
-            for (mfxU32 i = 0; i < 16 && ctrl->LongTermRefList[i].FrameOrder != 0xffffffff; i++)
-            {
-                if (ctrl->LongTermRefList[i].FrameOrder == (useInternalFrameOrder ? task.m_frameOrder : task.m_extFrameTag))
-                {
-                    marking.long_term_reference_flag = 1;
-                    currFrameIsLongTerm = true;
-                    task.m_longTermFrameIdx = 0;
-                    break;
-                }
-            }
-        }
-
-        DpbFrame newDpbFrame;
-        newDpbFrame.m_frameIdx = mfxU8(task.m_idxRecon);
-        newDpbFrame.m_poc      = task.GetPoc();
-        newDpbFrame.m_viewIdx  = mfxU16(task.m_viewIdx);
-        newDpbFrame.m_longterm = currFrameIsLongTerm;
-        newDpbFrame.m_keyRef = task.m_keyReference;
-        currDpb.PushBack(newDpbFrame);
-        if (task.m_storeRefBasePicFlag)
-        {
-            newDpbFrame.m_refBase = 1;
-            currDpb.PushBack(newDpbFrame);
-        }
-        UpdateMaxLongTermFrameIdxPlus1(maxLtIdx, 0, marking.long_term_reference_flag);
-    }
-    else
-    {
-        mfxU32 ffid = task.GetFirstField();
-
-        bool currFrameIsAddedToDpb = (fieldId != ffid) && (task.m_type[ffid] & MFX_FRAMETYPE_REF);
-
-        // collect used long-term frame indices
-        ArrayU8x16 usedLtIdx;
-        usedLtIdx.Resize(16, 0);
-        for (mfxU32 i = 0; i < initDpb.Size(); i++)
-            if (initDpb[i].m_longterm)
-                usedLtIdx[m_recons[initDpb[i].m_frameIdx].m_longTermFrameIdx] = 1;
-
-        // check longterm list
-        // when frameOrder is sent first time corresponding 'short-term' reference is marked 'long-term'
-        // when frameOrder is sent second time corresponding 'long-term' reference is marked 'unused'
-        if (ctrl)
-        {
-            // adaptive marking is supported only for progressive encoding
-            assert(task.GetPicStructForEncode() == MFX_PICSTRUCT_PROGRESSIVE);
-
-            for (mfxU32 i = 0; i < 16 && ctrl->RejectedRefList[i].FrameOrder != static_cast<mfxU32>(MFX_FRAMEORDER_UNKNOWN); i++)
-            {
-                DpbFrame * ref = currDpb.End();
-
-                if (!useInternalFrameOrder)
-                {
-                    ref = std::find_if(
-                        currDpb.Begin(),
-                        currDpb.End(),
-                        HwUtils::FindInDpbByExtFrameTag(m_recons, ctrl->RejectedRefList[i].FrameOrder));
-                }
-                else
-                {
-                    ref = std::find_if(
-                        currDpb.Begin(),
-                        currDpb.End(),
-                        HwUtils::FindInDpbByFrameOrder(m_recons, ctrl->RejectedRefList[i].FrameOrder));
-                }
-
-                if (ref != currDpb.End())
-                {
-                    if (ref->m_longterm)
-                    {
-                        marking.PushBack(MMCO_LT_TO_UNUSED, m_recons[ref->m_frameIdx].m_longTermPicNum[0]);
-                        usedLtIdx[m_recons[ref->m_frameIdx].m_longTermFrameIdx] = 0;
-                    }
-                    else
-                    {
-                        Reconstruct const & recon = m_recons[ref->m_frameIdx];
-                        marking.PushBack(MMCO_ST_TO_UNUSED, task.m_picNum[fieldId] - recon.m_picNum[0] - 1);
-                    }
-
-                    currDpb.Erase(ref);
-                }
-            }
-
-            for (mfxU32 i = 0; i < 16 && ctrl->LongTermRefList[i].FrameOrder != static_cast<mfxU32>(MFX_FRAMEORDER_UNKNOWN); i++)
-            {
-                DpbFrame * dpbFrame = currDpb.End();
-                if (!useInternalFrameOrder)
-                {
-                    dpbFrame = std::find_if(
-                        currDpb.Begin(),
-                        currDpb.End(),
-                        HwUtils::FindInDpbByExtFrameTag(m_recons, ctrl->LongTermRefList[i].FrameOrder));
-                }
-                else
-                {
-                    dpbFrame = std::find_if(
-                        currDpb.Begin(),
-                        currDpb.End(),
-                        HwUtils::FindInDpbByFrameOrder(m_recons, ctrl->LongTermRefList[i].FrameOrder));
-                }
-
-                if (dpbFrame != currDpb.End() && dpbFrame->m_longterm == 0)
-                {
-                    Reconstruct & ref = m_recons[dpbFrame->m_frameIdx];
-
-                    // find free long-term frame index
-                    mfxU8 longTermIdx = mfxU8(std::find(usedLtIdx.Begin(), usedLtIdx.End(), 0) - usedLtIdx.Begin());
-                    assert(longTermIdx != usedLtIdx.Size());
-                    if (longTermIdx == usedLtIdx.Size())
-                        break;
-
-                    if (longTermIdx >= maxLtIdx[task.m_tidx])
-                    {
-                        // need to update MaxLongTermFrameIdx
-                        assert(longTermIdx < m_video.mfx.NumRefFrame);
-                        marking.PushBack(MMCO_SET_MAX_LT_IDX, longTermIdx + 1);
-                        UpdateMaxLongTermFrameIdxPlus1(maxLtIdx, task.m_tidx, longTermIdx + 1);
-                    }
-
-                    marking.PushBack(MMCO_ST_TO_LT, task.m_picNum[fieldId] - ref.m_picNum[0] - 1, longTermIdx);
-                    usedLtIdx[longTermIdx] = 1;
-                    ref.m_longTermFrameIdx = longTermIdx;
-
-                    dpbFrame->m_longterm = 1;
-                }
-                else if (ctrl->LongTermRefList[i].FrameOrder == (useInternalFrameOrder ? task.m_frameOrder : task.m_extFrameTag))
-                {
-                    // frame is not in dpb, but it is a current frame
-                    // mark it as 'long-term'
-
-                    // first make free space in dpb if it is full
-                    if (currDpb.Size() == m_video.mfx.NumRefFrame)
-                    {
-                        DpbFrame * toRemove = std::min_element(currDpb.Begin(), currDpb.End(), HwUtils::OrderByFrameNumWrap(m_recons));
-
-                        assert(toRemove != currDpb.End());
-                        if (toRemove == currDpb.End())
-                            break;
-
-                        if (toRemove->m_longterm == 1)
-                        {
-                            // no short-term reference in dpb
-                            // remove oldest long-term
-                            toRemove = std::min_element(
-                                currDpb.Begin(),
-                                currDpb.End(),
-                                HwUtils::OrderByDisplayOrder(m_recons));
-                            assert(toRemove->m_longterm == 1); // must be longterm ref
-
-                            Reconstruct const & ref = m_recons[toRemove->m_frameIdx];
-                            marking.PushBack(MMCO_LT_TO_UNUSED, ref.m_longTermPicNum[0]);
-                            usedLtIdx[ref.m_longTermFrameIdx] = 0;
-                        }
-                        else
-                        {
-                            Reconstruct const & ref = m_recons[toRemove->m_frameIdx];
-                            marking.PushBack(MMCO_ST_TO_UNUSED, task.m_picNum[fieldId] - ref.m_picNum[0] - 1);
-                        }
-
-                        currDpb.Erase(toRemove);
-                    }
-
-                    // find free long-term frame index
-                    mfxU8 longTermIdx = mfxU8(std::find(usedLtIdx.Begin(), usedLtIdx.End(), 0) - usedLtIdx.Begin());
-                    assert(longTermIdx != usedLtIdx.Size());
-                    if (longTermIdx == usedLtIdx.Size())
-                        break;
-
-                    if (longTermIdx >= maxLtIdx[task.m_tidx])
-                    {
-                        // need to update MaxLongTermFrameIdx
-                        assert(longTermIdx < m_video.mfx.NumRefFrame);
-                        marking.PushBack(MMCO_SET_MAX_LT_IDX, longTermIdx + 1);
-                        UpdateMaxLongTermFrameIdxPlus1(maxLtIdx, task.m_tidx, longTermIdx + 1);
-                    }
-
-                    marking.PushBack(MMCO_CURR_TO_LT, longTermIdx);
-                    usedLtIdx[longTermIdx] = 1;
-                    task.m_longTermFrameIdx = longTermIdx;
-
-                    DpbFrame newDpbFrame;
-                    newDpbFrame.m_frameIdx = mfxU8(task.m_idxRecon);
-                    newDpbFrame.m_poc      = task.GetPoc();
-                    newDpbFrame.m_viewIdx  = mfxU16(task.m_viewIdx);
-                    newDpbFrame.m_longterm = true;
-                    newDpbFrame.m_keyRef = task.m_keyReference;
-                    currDpb.PushBack(newDpbFrame);
-                    assert(currDpb.Size() <= m_video.mfx.NumRefFrame);
-
-                    currFrameIsAddedToDpb = true;
-                }
-            }
-        }
-
-        // if first field was a reference then entire frame is already in dpb
-        if (!currFrameIsAddedToDpb)
-        {
-            for (mfxU32 refBase = 0; refBase <= task.m_storeRefBasePicFlag; refBase++)
-            {
-                if (currDpb.Size() == m_video.mfx.NumRefFrame)
-                {
-                    DpbFrame * toRemove = std::min_element(currDpb.Begin(), currDpb.End(), HwUtils::OrderByFrameNumWrap(m_recons));
-                    assert(toRemove != currDpb.End());
-                    if (toRemove == currDpb.End())
-                        return;
-
-                    if (toRemove->m_longterm == 1)
-                    {
-                        // no short-term reference in dpb
-                        // remove oldest long-term
-                        toRemove = std::min_element(
-                            currDpb.Begin(),
-                            currDpb.End(),
-                            HwUtils::OrderByDisplayOrder(m_recons));
-                        assert(toRemove->m_longterm == 1); // must be longterm ref
-
-                        Reconstruct const & ref = m_recons[toRemove->m_frameIdx];
-                        marking.PushBack(MMCO_LT_TO_UNUSED, ref.m_longTermPicNum[0]);
-                        usedLtIdx[ref.m_longTermFrameIdx] = 0;
-                    }
-                    else if (marking.mmco.Size() > 0)
-                    {
-                        // already have mmco commands, sliding window will not be invoked
-                        // remove oldest short-term manually
-                        Reconstruct const & ref = m_recons[toRemove->m_frameIdx];
-                        marking.PushBack(MMCO_ST_TO_UNUSED, task.m_picNum[fieldId] - ref.m_picNum[0] - 1);
-                    }
-
-                    currDpb.Erase(toRemove);
-                }
-
-                DpbFrame newDpbFrame;
-                newDpbFrame.m_frameIdx = mfxU8(task.m_idxRecon);
-                newDpbFrame.m_poc      = task.GetPoc();
-                newDpbFrame.m_viewIdx  = mfxU16(task.m_viewIdx);
-                newDpbFrame.m_longterm = 0;
-                newDpbFrame.m_refBase  = (mfxU8)refBase;
-                newDpbFrame.m_keyRef = task.m_keyReference;
-                currDpb.PushBack(newDpbFrame);
-                assert(currDpb.Size() <= m_video.mfx.NumRefFrame);
-            }
-        }
-    }
-}
-
-namespace
-{
-    void DecideOnRefPicFlag(MfxVideoParam const & video, DdiTask & task)
-    {
-        mfxU32 numLayers = video.calcParam.numTemporalLayer;
-        if (numLayers > 1)
-        {
-            Pair<mfxU8> & ft = task.m_type;
-
-            mfxU32 lastLayerScale =
-                video.calcParam.scale[numLayers - 1] /
-                video.calcParam.scale[numLayers - 2];
-
-            if (((ft[0] | ft[1]) & MFX_FRAMETYPE_REF) &&    // one of fields is ref pic
-                numLayers > 1 &&                            // more than one temporal layer
-                lastLayerScale == 2 &&                      // highest layer is dyadic
-                (task.m_tidx + 1U) == numLayers)               // this is the highest layer
-            {
-                ft[0] &= ~MFX_FRAMETYPE_REF;
-                ft[1] &= ~MFX_FRAMETYPE_REF;
-            }
-        }
-    }
-
-    Reconstruct const * FindOldestRef(
-        std::vector<Reconstruct> const & recons,
-        ArrayDpbFrame const &            dpb,
-        mfxU32                           tidx)
-    {
-        Reconstruct const * oldest = 0;
-
-        DpbFrame const * i = dpb.Begin();
-        DpbFrame const * e = dpb.End();
-
-        for (; i != e; ++i)
-            if (recons[i->m_frameIdx].m_tidx == tidx)
-                oldest = &recons[i->m_frameIdx];
-
-        for (; i != e; ++i)
-            if (recons[i->m_frameIdx].m_tidx == tidx &&
-                Less(recons[i->m_frameIdx].m_frameOrder, oldest->m_frameOrder))
-                oldest = &recons[i->m_frameIdx];
-
-        return oldest;
-    }
-
-    mfxU32 CountRefs(
-        std::vector<Reconstruct> const & recons,
-        ArrayDpbFrame const &            dpb,
-        mfxU32                           tidx)
-    {
-        mfxU32 counter = 0;
-
-        DpbFrame const * i = dpb.Begin();
-        DpbFrame const * e = dpb.End();
-        for (; i != e; ++i)
-            if (recons[i->m_frameIdx].m_tidx == tidx)
-                counter++;
-        return counter;
-    }
-
-    void CreateAdditionalDpbCommands(
-        MfxVideoParam const &            video,
-        std::vector<Reconstruct> const & recons,
-        DdiTask &                        task)
-    {
-        if (video.calcParam.numTemporalLayer == 0)
-            return;
-
-        task.m_internalListCtrlPresent = false;
-        task.m_internalListCtrlHasPriority = true;
-        task.m_internalListCtrlRefModLTR = false;
-        InitExtBufHeader(task.m_internalListCtrl);
-
-        mfxU32 numLayers  = video.calcParam.numTemporalLayer;
-        mfxU32 refPicFlag = !!((task.m_type[0] | task.m_type[1]) & MFX_FRAMETYPE_REF);
-
-        if (refPicFlag &&                                   // only ref frames occupy slot in dpb
-            video.calcParam.tempScalabilityMode == 0 &&     // no long term refs in tempScalabilityMode
-            numLayers > 1 && (task.m_tidx + 1U) != numLayers)  // no dpb commands for last-not-based temporal laeyr
-        {
-            // find oldest ref frame from the same temporal layer
-            Reconstruct const * toRemove = FindOldestRef(recons, task.m_dpb[0], task.m_tidx);
-
-            if (toRemove == 0 && task.m_dpb[0].Size() == video.mfx.NumRefFrame)
-            {
-                // no ref frame from same layer but need to free dpb slot
-                // look for oldest frame from the highest layer
-                toRemove = FindOldestRef(recons, task.m_dpb[0], numLayers - 1);
-                assert(toRemove != 0);
-            }
-
-            if (video.mfx.GopRefDist > 1 &&                     // B frames present
-                task.m_tidx == 0 &&                             // base layer
-                CountRefs(recons, task.m_dpb[0], 0) < 2 &&      // 0 or 1 refs from base layer
-                task.m_dpb[0].Size() < video.mfx.NumRefFrame)   // dpb is not full yet
-            {
-                // this is to keep 2 references from base layer for B frames at next layer
-                toRemove = 0;
-            }
-
-            if (toRemove)
-            {
-                task.m_internalListCtrl.RejectedRefList[0].FrameOrder = toRemove->m_frameOrder;
-                task.m_internalListCtrl.RejectedRefList[0].PicStruct  = MFX_PICSTRUCT_PROGRESSIVE;
-            }
-
-            task.m_internalListCtrl.LongTermRefList[0].FrameOrder = task.m_frameOrder;
-            task.m_internalListCtrl.LongTermRefList[0].PicStruct  = MFX_PICSTRUCT_PROGRESSIVE;
-            task.m_internalListCtrlPresent = true;
-        }
-    }
-};
-
-mfxStatus TaskManager::AssignTask(
-    mfxEncodeCtrl *    ctrl,
-    mfxFrameSurface1 * surface,
-    mfxBitstream *     bs,
-    DdiTask *&         newTask,
-    mfxU16             requiredFrameType)
-{
-    UMC::AutomaticUMCMutex guard(m_mutex);
-
-    if (m_pushed != 0)
-    {
-        // unexpected error happened while encoding previous task
-        // need to revert state of TaskManager
-        if (m_pushed->m_idxRecon != NO_INDEX)
-            SetReconstructFree(m_recons[m_pushed->m_idxRecon]);
-
-        m_pushed->m_bs = 0;
-        m_pushed->SetFree(true);
-    }
-
-    DdiTask * toEncode = 0;
-    if (m_video.mfx.EncodedOrder == 0)
-    {
-        if (surface != 0)
-        {
-            PairU8 frameType(requiredFrameType & 0xff, requiredFrameType >> 8);
-            if(requiredFrameType == MFX_FRAMETYPE_UNKNOWN)
-            {
-                frameType = m_frameTypeGen.Get();
-
-                if (ctrl)
-                {
-                    if ((ctrl->FrameType & MFX_FRAMETYPE_IPB) == MFX_FRAMETYPE_I)
-                    {
-                        frameType = MakePair(MFX_FRAMETYPE_IREFIDR,
-                            (ctrl->FrameType & MFX_FRAMETYPE_xI) ? MFX_FRAMETYPE_xIREF : MFX_FRAMETYPE_xPREF);
-                    }
-                    else if (mfxExtVppAuxData * extVpp = GetExtBuffer(*ctrl))
-                    {
-                        if (extVpp->SceneChangeRate > 90)
-                            frameType = MakePair(MFX_FRAMETYPE_IREFIDR, MFX_FRAMETYPE_xPREF);
-                    }
-                }
-            }
-
-            if ((m_pushed = PushNewTask(surface, ctrl, frameType, m_frameOrder)) == 0)
-            {
-                return MFX_WRN_DEVICE_BUSY;
-            }
-        }
-
-        // find oldest frame to encode
-        toEncode = FindFrameToEncode();
-
-        if (toEncode == 0 && surface == 0)
-        {
-            // it is possible that all buffered frames are B frames
-            // so that none of them has L1 reference
-            if (m_video.mfx.GopOptFlag & MFX_GOP_STRICT)
-                toEncode = SelectNextBFrameFromTail(); // find first B frame from buffer and encode it w/o future refs
-            else
-            {
-                SwitchLastB2P();
-                toEncode = FindFrameToEncode();
-            }
-        }
-
-        if (toEncode == 0)
-        {
-            if (surface != 0)
-            {
-                // change state here, but it is ok
-                // because when there is no task to be confirmed
-                m_frameTypeGen.Next();
-                m_frameOrder++;
-                m_core->IncreaseReference(&surface->Data);
-                m_pushed = 0;
-            }
-
-            return MFX_ERR_MORE_DATA; // nothing to encode
-        }
-    }else
-    {
-        assert(surface);
-        assert(ctrl);
-        assert(ctrl->FrameType & MFX_FRAMETYPE_IPB);
-
-        PairU8 frameType = MakePair(ctrl->FrameType & 0xff, ctrl->FrameType >> 8);
-        if ((frameType[1] & MFX_FRAMETYPE_xIPB) == 0)
-            frameType = ExtendFrameType(ctrl->FrameType);
-
-        if ((m_pushed = PushNewTask(surface, ctrl, frameType, surface->Data.FrameOrder)) == 0)
-            return MFX_WRN_DEVICE_BUSY;
-
-        // no reordering in EncodedOrder
-        toEncode = m_pushed;
-    }
-
-    mfxU32 ffid      = toEncode->GetFirstField();
-    mfxU32 picStruct = toEncode->GetPicStructForEncode();
-
-    toEncode->m_pushed        = m_pushed;
-    toEncode->m_idrPicId      = m_idrPicId;
-    toEncode->m_frameNum      = m_frameNum;
-    toEncode->m_frameOrderIdr = (toEncode->m_type[ffid] & MFX_FRAMETYPE_IDR) ? toEncode->m_frameOrder : m_frameOrderIdr;
-    toEncode->m_frameOrderI   = (toEncode->m_type[ffid] & MFX_FRAMETYPE_I)   ? toEncode->m_frameOrder : m_frameOrderI;
-
-    toEncode->m_addRepackSize[ffid] = toEncode->m_addRepackSize[!ffid] = 0; // zero compensative padding size
-
-    toEncode->m_picNum.top = toEncode->m_picNum.bot = (picStruct == MFX_PICSTRUCT_PROGRESSIVE)
-        ? m_frameNum
-        : m_frameNum * 2 + 1;
-
-    toEncode->m_storeRefBasePicFlag = 0;
-
-    mfxU8 frameType = toEncode->GetFrameType();
-    assert(frameType);
-
-    if (frameType & MFX_FRAMETYPE_IDR)
-        toEncode->m_frameNum = 0;
-
-    toEncode->m_dpbOutputDelay    = 2 * (toEncode->m_frameOrder + m_numReorderFrames - m_cpbRemoval);
-    toEncode->m_cpbRemoval[ ffid] = 2 * (m_cpbRemoval - m_cpbRemovalBufferingPeriod);
-    toEncode->m_cpbRemoval[!ffid] = (toEncode->m_type[ffid] & MFX_FRAMETYPE_IDR)
-        ? 1
-        : toEncode->m_cpbRemoval[ffid] + 1;
-
-    toEncode->m_bs = bs;
-
-    if (m_bitstreams.size() > 0)
-    {
-        std::vector<Surface>::iterator it = std::find_if(
-            m_bitstreams.begin(),
-            m_bitstreams.end(),
-            std::mem_fun_ref(&Surface::IsFree));
-        if (it == m_bitstreams.end())
-            return MFX_WRN_DEVICE_BUSY;
-
-        toEncode->m_idxBs[0] = mfxU32(it - m_bitstreams.begin());
-
-        if (picStruct != MFX_PICSTRUCT_PROGRESSIVE)
-        {
-            std::vector<Surface>::iterator it2 = std::find_if(
-                it + 1,
-                m_bitstreams.end(),
-                std::mem_fun_ref(&Surface::IsFree));
-            if (it2 == m_bitstreams.end())
-                return MFX_WRN_DEVICE_BUSY;
-
-            toEncode->m_idxBs[1] = mfxU32(it2 - m_bitstreams.begin());
-        }
-    }
-
-    if (m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
-    {
-        toEncode->m_idx = FindFreeSurface(m_raws);
-        MFX_CHECK(toEncode->m_idx != NO_INDEX, MFX_WRN_DEVICE_BUSY);
-    }
-
-    toEncode->m_idxRecon = FindFreeSurface(m_recons);
-    MFX_CHECK(toEncode->m_idxRecon != NO_INDEX, MFX_WRN_DEVICE_BUSY);
-
-    toEncode->m_idxReconOffset = CalcNumSurfRecon(m_video) * m_viewIdx;
-    toEncode->m_idxBsOffset    = CalcNumSurfBitstream(m_video) * m_viewIdx;
-
-    mfxExtAvcTemporalLayers const * extTemp = GetExtBuffer(m_video);
-    toEncode->m_tidx = CalcTemporalLayerIndex(m_video, toEncode->m_frameOrder - toEncode->m_frameOrderIdr);
-    toEncode->m_tid  = m_video.calcParam.tid[toEncode->m_tidx];
-    toEncode->m_pid  = toEncode->m_tidx + extTemp->BaseLayerPID;
-
-    toEncode->m_decRefPicMrkRep[ffid] = m_decRefPicMrkRep;
-    toEncode->m_dpb[ffid]             = m_dpb;
-    BuildRefPicLists(*toEncode, ffid);
-    ModifyRefPicLists(*toEncode, ffid);
-
-    DecideOnRefPicFlag(m_video, *toEncode); // check for temporal layers
-    CreateAdditionalDpbCommands(m_video, m_recons, *toEncode); // for svc temporal layers
-
-    mfxExtCodingOption2 const * extOpt2 = GetExtBuffer(m_video);
-    if (toEncode->m_ctrl.SkipFrame != 0)
-    {
-        toEncode->m_ctrl.SkipFrame = (extOpt2->SkipFrame) ? 1 : 0;
-
-        if (toEncode->SkipFlag() != 0)
-        {
-            toEncode->m_type.top &= ~MFX_FRAMETYPE_REF;
-            toEncode->m_type.bot &= ~MFX_FRAMETYPE_REF;
-        }
-    }
-
-    mfxExtCodingOptionDDI const * extDdi = GetExtBuffer(m_video);
-    toEncode->m_subMbPartitionAllowed[0] = CheckSubMbPartition(extDdi, toEncode->m_type[0]);
-    toEncode->m_subMbPartitionAllowed[1] = CheckSubMbPartition(extDdi, toEncode->m_type[1]);
-
-
-    mfxExtCodingOption const * extOpt = GetExtBuffer(m_video);
-    toEncode->m_insertSps[ ffid] = (toEncode->m_type[ffid] & MFX_FRAMETYPE_I) ? 1 : 0;
-    toEncode->m_insertSps[!ffid] = 0;
-    toEncode->m_insertAud[ ffid] = IsOn(extOpt->AUDelimiter);
-    toEncode->m_insertAud[!ffid] = IsOn(extOpt->AUDelimiter);
-
-    mfxExtCodingOption3 const * extOpt3 = GetExtBuffer(m_video);
-    toEncode->m_numMbPerSlice = extOpt2->NumMbPerSlice;
-    toEncode->m_numSlice[ffid] = (toEncode->m_type[ffid] & MFX_FRAMETYPE_I) ? extOpt3->NumSliceI :
-        (toEncode->m_type[ffid] & MFX_FRAMETYPE_P) ? extOpt3->NumSliceP : extOpt3->NumSliceB;
-    toEncode->m_numSlice[!ffid] = (toEncode->m_type[!ffid] & MFX_FRAMETYPE_I) ? extOpt3->NumSliceI :
-        (toEncode->m_type[!ffid] & MFX_FRAMETYPE_P) ? extOpt3->NumSliceP : extOpt3->NumSliceB;
-
-    if (m_video.calcParam.tempScalabilityMode)
-    {
-        toEncode->m_insertPps[ ffid] = toEncode->m_insertSps[ ffid];
-        toEncode->m_insertPps[!ffid] = toEncode->m_insertSps[!ffid];
-
-        mfxU32 idrFlag = !!(toEncode->m_type[ ffid] & MFX_FRAMETYPE_IDR);
-        mfxU32 refFlag = !!(toEncode->m_type[ ffid] & MFX_FRAMETYPE_REF);
-        toEncode->m_nalRefIdc[ ffid] = idrFlag ? 3 : (refFlag ? 2 : 0);
-
-        idrFlag = !!(toEncode->m_type[!ffid] & MFX_FRAMETYPE_IDR);
-        refFlag = !!(toEncode->m_type[!ffid] & MFX_FRAMETYPE_REF);
-        toEncode->m_nalRefIdc[!ffid] = idrFlag ? 3 : (refFlag ? 2 : 0);
-    }
-    else
-    {
-        toEncode->m_insertPps[ ffid] = toEncode->m_insertSps[ ffid] || IsOn(extOpt2->RepeatPPS);
-        toEncode->m_insertPps[!ffid] = toEncode->m_insertSps[!ffid] || IsOn(extOpt2->RepeatPPS);
-        toEncode->m_nalRefIdc[ ffid] = !!(toEncode->m_type[ ffid] & MFX_FRAMETYPE_REF);
-        toEncode->m_nalRefIdc[!ffid] = !!(toEncode->m_type[!ffid] & MFX_FRAMETYPE_REF);
-
-    }
-
-    toEncode->m_cqpValue[0] = GetQpValue(*toEncode, m_video, toEncode->m_type[0]);
-    toEncode->m_cqpValue[1] = GetQpValue(*toEncode, m_video, toEncode->m_type[1]);
-
-    mfxExtMVCSeqDesc * extMvc = GetExtBuffer(m_video);
-    toEncode->m_statusReportNumber[0] = 2 * (m_cpbRemoval * extMvc->NumView + m_viewIdx);
-    toEncode->m_statusReportNumber[1] = 2 * (m_cpbRemoval * extMvc->NumView + m_viewIdx) + 1;
-
-    toEncode->m_viewIdx = m_viewIdx;
-
-    if (picStruct == MFX_PICSTRUCT_PROGRESSIVE)
-    {
-        UpdateDpb(*toEncode, ffid, toEncode->m_dpbPostEncoding);
-
-        m_recons[toEncode->m_idxRecon] = *toEncode;
-        m_recons[toEncode->m_idxRecon].m_reference[ffid] = (toEncode->m_type[ ffid] & MFX_FRAMETYPE_REF) != 0;
-        m_recons[toEncode->m_idxRecon].SetFree(true); // recon surface will be marked used in ConfirmTask()
-    }
-    else
-    {
-        toEncode->m_decRefPicMrkRep[!ffid].presentFlag =
-            (toEncode->m_type[ffid] & MFX_FRAMETYPE_IDR) ||
-            (toEncode->m_decRefPicMrk[ffid].mmco.Size() > 0);
-
-        toEncode->m_decRefPicMrkRep[!ffid].original_idr_flag          = (toEncode->m_type[ffid] & MFX_FRAMETYPE_IDR) ? 1 : 0;
-        toEncode->m_decRefPicMrkRep[!ffid].original_frame_num         = (toEncode->m_frameNum);
-        toEncode->m_decRefPicMrkRep[!ffid].original_field_pic_flag    = (picStruct == MFX_PICSTRUCT_PROGRESSIVE) ? 0 : 1;
-        toEncode->m_decRefPicMrkRep[!ffid].original_bottom_field_flag = (ffid == BFIELD) ? 1 : 0;
-        toEncode->m_decRefPicMrkRep[!ffid].dec_ref_pic_marking        = toEncode->m_decRefPicMrk[ffid];
-
-        UpdateDpb(*toEncode, ffid, toEncode->m_dpb[!ffid]);
-        m_recons[toEncode->m_idxRecon] = *toEncode;
-        m_recons[toEncode->m_idxRecon].m_reference[ ffid] = (toEncode->m_type[ ffid] & MFX_FRAMETYPE_REF) != 0;
-
-        BuildRefPicLists(*toEncode, !ffid);
-        ModifyRefPicLists(*toEncode, !ffid);
-
-        UpdateDpb(*toEncode, !ffid, toEncode->m_dpbPostEncoding);
-        m_recons[toEncode->m_idxRecon].m_reference[!ffid] = (toEncode->m_type[!ffid] & MFX_FRAMETYPE_REF) != 0;
-        m_recons[toEncode->m_idxRecon].SetFree(true); // recon surface will be marked used in ConfirmTask()
-    }
-
-    newTask = toEncode;
-    return MFX_ERR_NONE;
-}
-
-DdiTask* TaskManager::PushNewTask(
-    mfxFrameSurface1 * surface,
-    mfxEncodeCtrl *    ctrl,
-    PairU8             type,
-    mfxU32             frameOrder)
-{
-    assert(surface);
-
-    mfxU32 insertAt = FindFreeSurface(m_tasks);
-    if (insertAt == NO_INDEX)
-        return 0;
-
-    DdiTask task;
-
-    task.m_picStruct = GetPicStruct(m_video, surface->Info.PicStruct);
-
-    mfxU32 ffid = task.GetFirstField();
-
-    task.m_type[ ffid]   = type[0];
-    task.m_type[!ffid]   = type[1];
-    task.m_frameOrder    = frameOrder;
-    task.m_yuv           = surface;
-    task.m_extFrameTag   = surface->Data.FrameOrder; // mark task with external FrameOrder
-
-    if (ctrl)
-        task.m_ctrl = *ctrl;
-
-    if (type[0] & MFX_FRAMETYPE_B)
-    {
-        task.m_loc = m_frameTypeGen.GetBiFrameLocation();
-
-        task.m_type[ ffid] |= task.m_loc.refFrameFlag;
-        task.m_type[!ffid] |= task.m_loc.refFrameFlag;
-    }
-
-    task.SetFree(false);
-    m_tasks[insertAt] = task; // change state
-                              // if task isn't confirmed by ConfirmTask
-                              // it will be popped from list at next AssignTask
-
-    return &m_tasks[insertAt];
-}
-
-namespace
-{
-    mfxU8 * FindByExtFrameTag(
-        mfxU8 *                          begin,
-        mfxU8 *                          end,
-        ArrayDpbFrame const &            dpb,
-        std::vector<Reconstruct> const & recons,
-        mfxU32                           frameTag,
-        mfxU32                           picStruct)
-    {
-        mfxU8 fieldId = picStruct == MFX_PICSTRUCT_FIELD_BFF ? 0x80 : 0;
-
-        for (; begin != end; ++begin)
-        {
-            if (recons[dpb[*begin & 0x7f].m_frameIdx].m_extFrameTag == frameTag)
-            {
-                if (picStruct == MFX_PICSTRUCT_PROGRESSIVE || fieldId == (*begin & 0x80))
-                    break;
-            }
-        }
-
-        return begin;
-    }
-
-    void RotateRight(mfxU8 * begin, mfxU8 * end)
-    {
-        if (begin != end)
-        {
-            mfxU8 mostRight = *--end;
-
-            for (; begin != end; --end)
-                *end = *(end - 1);
-
-            *begin = mostRight;
-        }
-    }
-
-    void RotateLeft(mfxU8 * begin, mfxU8 * end)
-    {
-        if (begin != end)
-        {
-            --end;
-            mfxU8 mostLeft = *begin;
-
-            for (; begin != end; ++begin)
-                *begin = *(begin + 1);
-
-            *end = mostLeft;
-        }
-    }
-
-    void ReorderRefPicList( // PreserveOrderInPreferredRefList
-        ArrayU8x33 &                     refPicList,
-        ArrayDpbFrame const &            dpb,
-        std::vector<Reconstruct> const & recons,
-        mfxExtAVCRefListCtrl const &     ctrl,
-        mfxU32                           numActiveRef,
-        mfxU32                           /*curPicStruct*/)
-    {
-        mfxU8 * begin = refPicList.Begin();
-        mfxU8 * end   = refPicList.End();
-
-        for (mfxU32 i = 0; i < 32 && ctrl.PreferredRefList[i].FrameOrder != 0xffffffff; i++)
-        {
-            mfxU8 * ref = FindByExtFrameTag(
-                begin,
-                end,
-                dpb,
-                recons,
-                ctrl.PreferredRefList[i].FrameOrder,
-                ctrl.PreferredRefList[i].PicStruct);
-
-            if (ref != end)
-            {
-                RotateRight(begin, ref + 1);
-                begin++;
-            }
-        }
-
-        for (mfxU32 i = 0; i < 16 && ctrl.RejectedRefList[i].FrameOrder != 0xffffffff; i++)
-        {
-            mfxU8 * ref = FindByExtFrameTag(
-                begin,
-                end,
-                dpb,
-                recons,
-                ctrl.RejectedRefList[i].FrameOrder,
-                ctrl.RejectedRefList[i].PicStruct);
-
-            if (ref != end)
-            {
-                RotateLeft(ref, end);
-                --end;
-            }
-        }
-
-        refPicList.Resize((mfxU32)(end - refPicList.Begin()));
-        if (numActiveRef > 0 && refPicList.Size() > numActiveRef)
-            refPicList.Resize(numActiveRef);
-    }
-};
-
-void TaskManager::ModifyRefPicLists(
-    DdiTask & task,
-    mfxU32    fieldId) const
-{
-    ArrayDpbFrame const & dpb   = task.m_dpb[fieldId];
-    ArrayU8x33 &          list0 = task.m_list0[fieldId];
-    ArrayU8x33 &          list1 = task.m_list1[fieldId];
-    mfxU32                ps    = task.GetPicStructForEncode();
-    ArrayRefListMod &     mod0  = task.m_refPicList0Mod[fieldId];
-    ArrayRefListMod &     mod1  = task.m_refPicList1Mod[fieldId];
-
-    ArrayU8x33 initList0 = task.m_list0[fieldId];
-    ArrayU8x33 initList1 = task.m_list1[fieldId];
-    mfxI32     curPicNum = task.m_picNum[fieldId];
-
-    if ((m_video.mfx.GopOptFlag & MFX_GOP_CLOSED) || Less(task.m_frameOrderI, task.m_frameOrder))
-    {
-        // remove references to pictures prior to first I frame in decoding order
-        // if gop is closed do it for all frames in gop
-        // if gop is open do it for pictures subsequent to first I frame in display order
-
-        mfxU32 firstIntraFramePoc = 2 * (task.m_frameOrderI - task.m_frameOrderIdr);
-
-        list0.Erase(
-            std::remove_if(list0.Begin(), list0.End(), LogicalAnd(
-                RefPocIsLessThan(m_recons, dpb, firstIntraFramePoc),
-                RefIsShortTerm(m_recons, dpb))),
-            list0.End());
-
-        list1.Erase(
-            std::remove_if(list1.Begin(), list1.End(), LogicalAnd(
-                RefPocIsLessThan(m_recons, dpb, firstIntraFramePoc),
-                RefIsShortTerm(m_recons, dpb))),
-            list1.End());
-    }
-
-    mfxExtCodingOptionDDI const * extDdi = GetExtBuffer(m_video);
-
-    if (mfxExtAVCRefListCtrl * ctrl = (m_video.calcParam.numTemporalLayer == 0) ? GetExtBuffer(task.m_ctrl) : (mfxExtAVCRefListCtrl *)0)
-    {
-        mfxU32 numActiveRefL0 = (task.m_type[fieldId] & MFX_FRAMETYPE_P)
-            ? extDdi->NumActiveRefP
-            : extDdi->NumActiveRefBL0;
-        if (task.m_type[fieldId] & MFX_FRAMETYPE_PB)
-        {
-            numActiveRefL0 = ctrl->NumRefIdxL0Active ? std::min<mfxU32>(ctrl->NumRefIdxL0Active,numActiveRefL0) : numActiveRefL0;
-            ReorderRefPicList(list0, dpb, m_recons, *ctrl, numActiveRefL0, ps);
-        }
-
-        if (task.m_type[fieldId] & MFX_FRAMETYPE_B)
-        {
-            mfxU32 numActiveRefL1 = ctrl->NumRefIdxL1Active ? std::min(ctrl->NumRefIdxL1Active,extDdi->NumActiveRefBL1) : extDdi->NumActiveRefBL1;
-            ReorderRefPicList(list1, dpb, m_recons, *ctrl, numActiveRefL1, ps);
-        }
-    }
-    else
-    {
-        // prepare ref list for P-field of I/P field pair
-        // swap 1st and 2nd entries of L0 ref pic list to use I-field of I/P pair as reference for P-field
-        mfxU32 ffid = task.GetFirstField();
-        if ((task.m_type[ ffid] & MFX_FRAMETYPE_I) &&
-            (task.m_type[!ffid] & MFX_FRAMETYPE_P))
-        {
-            if (ps != MFX_PICSTRUCT_PROGRESSIVE && fieldId != ffid && list0.Size() > 1)
-                std::swap(list0[0], list0[1]);
-        }
-        else if (task.m_type[fieldId] & MFX_FRAMETYPE_B)
-        {
-            mfxU8 save0 = list0[0];
-            mfxU8 save1 = list1[0];
-
-            list0.Erase(
-                std::remove_if(list0.Begin(), list0.End(),
-                    RefPocIsGreaterThan(m_recons, dpb, task.GetPoc(fieldId))),
-                list0.End());
-
-            list1.Erase(
-                std::remove_if(list1.Begin(), list1.End(),
-                    RefPocIsLessThan(m_recons, dpb, task.GetPoc(fieldId))),
-                list1.End());
-
-            // keep at least one ref pic in lists
-            if (list0.Size() == 0)
-                list0.PushBack(save0);
-            if (list1.Size() == 0)
-                list1.PushBack(save1);
-        }
-
-        if (m_video.calcParam.numTemporalLayer > 0)
-        {
-            list0.Erase(
-                std::remove_if(
-                    list0.Begin(),
-                    list0.End(),
-                    RefIsFromHigherTemporalLayer(m_recons, dpb, task.m_tid)),
-                list0.End());
-
-            list1.Erase(
-                std::remove_if(
-                    list1.Begin(),
-                    list1.End(),
-                    RefIsFromHigherTemporalLayer(m_recons, dpb, task.m_tid)),
-                list1.End());
-
-            std::sort(list0.Begin(), list0.End(), RefPocIsGreater(m_recons, dpb));
-            std::sort(list1.Begin(), list1.End(), RefPocIsLess(m_recons, dpb));
-
-            if (m_video.calcParam.tempScalabilityMode)
-            { // cut lists to 1 element for tempScalabilityMode
-                list0.Resize(std::min(list0.Size(), 1u));
-                list1.Resize(std::min(list1.Size(), 1u));
-            }
-        }
-
-        mfxU32 numActiveRefL1 = extDdi->NumActiveRefBL1;
-        mfxU32 numActiveRefL0 = (task.m_type[fieldId] & MFX_FRAMETYPE_P)
-            ? extDdi->NumActiveRefP
-            : extDdi->NumActiveRefBL0;
-
-        if (numActiveRefL0 > 0 && list0.Size() > numActiveRefL0)
-            list0.Resize(numActiveRefL0);
-        if (numActiveRefL1 > 0 && list1.Size() > numActiveRefL1)
-            list1.Resize(numActiveRefL1);
-
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
-        mfxExtSVCSeqDesc const * extSvc = GetExtBuffer(m_video);
-        if (mfxU32 refBaseDist = extSvc->RefBaseDist)
-        {
-            mfxU32 prevKeyPicPoc = ((task.m_frameOrder - 1) / refBaseDist * refBaseDist - task.m_frameOrderIdr) * 2;
-
-            list0.Erase(
-                std::remove_if(list0.Begin(), list0.End(), LogicalAnd(
-                    RefPocIsLessThan(m_recons, dpb, prevKeyPicPoc),
-                    RefIsShortTerm(m_recons, dpb))),
-                list0.End());
-
-            list1.Erase(
-                std::remove_if(list1.Begin(), list1.End(), LogicalAnd(
-                    RefPocIsLessThan(m_recons, dpb, prevKeyPicPoc),
-                    RefIsShortTerm(m_recons, dpb))),
-                list1.End());
-        }
-#endif
-    }
-
-    initList0.Resize(list0.Size());
-    initList1.Resize(list1.Size());
-
-    bool noLongTermInList0 = LongTermInList(m_recons, dpb, initList0);
-    bool noLongTermInList1 = LongTermInList(m_recons, dpb, initList1);
-
-    mod0 = CreateRefListMod(dpb, m_recons, initList0, list0, task.m_viewIdx, curPicNum, noLongTermInList0);
-    mod1 = CreateRefListMod(dpb, m_recons, initList1, list1, task.m_viewIdx, curPicNum, noLongTermInList1);
-}
-
-void TaskManager::ConfirmTask(DdiTask & task)
-{
-    UMC::AutomaticUMCMutex guard(m_mutex);
-
-    mfxU32 ps = task.GetPicStructForEncode();
-
-    if (task.GetFrameType() & MFX_FRAMETYPE_IDR)
-    {
-        m_frameNum = 0;
-        m_idrPicId++;
-
-        // sei message with buffering period will be sent with IDR picture
-        // it will reset cpb/dpb delays
-        m_cpbRemovalBufferingPeriod = m_cpbRemoval;
-    }
-
-    m_cpbRemoval++; // is incremented every frame (unlike frame_num)
-
-    if (task.GetFrameType() & MFX_FRAMETYPE_REF || task.m_nalRefIdc[0])
-    {
-        m_frameNum = (m_frameNum + 1) % m_frameNumMax;
-    }
-
-    if (task.GetFrameType() & MFX_FRAMETYPE_IDR)
-    {
-        m_frameOrderIdr = task.m_frameOrder;
-    }
-
-    if (task.GetFrameType() & MFX_FRAMETYPE_I)
-    {
-        m_frameOrderI = task.m_frameOrder;
-    }
-
-    if (task.m_pushed != 0)
-    {
-        if (task.m_pushed->GetFrameType() == MFX_FRAMETYPE_IREFIDR)
-            m_frameTypeGen.Init(m_video); // idr starts new gop
-
-        m_frameTypeGen.Next();
-        m_frameOrder++;
-        m_core->IncreaseReference(&task.m_pushed->m_yuv->Data);
-    }
-
-    if (m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY && task.m_idx != NO_INDEX)
-    {
-        m_raws[task.m_idx].SetFree(false);
-    }
-
-    if (task.m_idxBs.top != NO_INDEX)
-    {
-        m_bitstreams[task.m_idxBs.top].SetFree(false);
-    }
-
-    if (task.m_idxBs.bot != NO_INDEX)
-    {
-        assert(ps != MFX_PICSTRUCT_PROGRESSIVE);
-        m_bitstreams[task.m_idxBs.bot].SetFree(false);
-    }
-
-    if (task.m_idxRecon != NO_INDEX)
-    {
-        m_recons[task.m_idxRecon].SetFree(false);
-        m_recons[task.m_idxRecon].m_reference[TFIELD] = (task.m_type[TFIELD] & MFX_FRAMETYPE_REF) != 0;
-        m_recons[task.m_idxRecon].m_reference[BFIELD] = (task.m_type[BFIELD] & MFX_FRAMETYPE_REF) != 0;
-    }
-
-    // task already has a dpb with sliding window and adapative dec_ref_pic_marking commands applied
-    // store it for next task
-    m_dpb = task.m_dpbPostEncoding;
-
-    // store dec_ref_pic_marking info of last picture for repetition sei
-    mfxU32 lastField = (ps == MFX_PICSTRUCT_PROGRESSIVE) ? 0 : !task.GetFirstField();
-
-    m_decRefPicMrkRep.presentFlag =
-        (task.m_type[lastField] & MFX_FRAMETYPE_IDR) ||
-        (task.m_decRefPicMrk[lastField].mmco.Size() > 0);
-
-    m_decRefPicMrkRep.original_idr_flag          = (task.m_type[lastField] & MFX_FRAMETYPE_IDR) ? 1 : 0;
-    m_decRefPicMrkRep.original_frame_num         = (task.m_frameNum);
-    m_decRefPicMrkRep.original_field_pic_flag    = (ps == MFX_PICSTRUCT_PROGRESSIVE) ? 0 : 1;
-    m_decRefPicMrkRep.original_bottom_field_flag = (lastField == BFIELD) ? 1 : 0;
-    m_decRefPicMrkRep.dec_ref_pic_marking        = task.m_decRefPicMrk[lastField];
-
-    m_pushed = 0;
-    m_stat.NumCachedFrame++;
-}
-
-
-void TaskManager::CompleteTask(DdiTask & task)
-{
-    UMC::AutomaticUMCMutex guard(m_mutex);
-
-    mfxExtCodingOptionDDI const * optDdi = GetExtBuffer(m_video);
-
-    assert(std::find_if(m_tasks.begin(), m_tasks.end(), FindByFrameOrder(task.m_frameOrder)) != m_tasks.end());
-
-    ArrayDpbFrame const & iniDpb = task.m_dpb[task.GetFirstField()];
-    ArrayDpbFrame const & finDpb = task.m_dpbPostEncoding;
-    for (mfxU32 i = 0; i < iniDpb.Size(); i++)
-    {
-        if (std::find(finDpb.Begin(), finDpb.End(), iniDpb[i]) == finDpb.End())
-        {
-            SetReconstructFree(m_recons[iniDpb[i].m_frameIdx]);
-
-            if (IsOn(optDdi->RefRaw))
-            {
-                if (m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
-                    m_raws[iniDpb[i].m_frameIdx].SetFree(true);
-                else
-                    m_core->DecreaseReference(&m_recons[iniDpb[i].m_frameIdx].m_yuv->Data);
-            }
-        }
-    }
-
-    if (task.m_idxBs[0] != NO_INDEX)
-    {
-        m_bitstreams[task.m_idxBs[0]].SetFree(true);
-    }
-
-    if (task.m_idxBs[1] != NO_INDEX)
-    {
-        assert((task.GetPicStructForEncode() & MFX_PICSTRUCT_PROGRESSIVE) == 0);
-        m_bitstreams[task.m_idxBs[1]].SetFree(true);
-    }
-
-    if (IsOff(optDdi->RefRaw))
-    {
-        m_core->DecreaseReference(&task.m_yuv->Data);
-
-        if (task.m_idx != NO_INDEX && m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
-            m_raws[task.m_idx].SetFree(true);
-    }
-    else
-    {
-        if (m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
-            // when input surface is in system memory
-            // we can release it right after task is completed
-            // even if raw surfaces are used as reference
-            m_core->DecreaseReference(&task.m_yuv->Data);
-
-        if (!m_recons[task.m_idxRecon].m_reference[0] && !m_recons[task.m_idxRecon].m_reference[1])
-        {
-            m_core->DecreaseReference(&task.m_yuv->Data);
-            if (m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
-                m_raws[task.m_idx].SetFree(true);
-        }
-    }
-
-    if (task.m_idxRecon != NO_INDEX)
-    {
-        if (!m_recons[task.m_idxRecon].m_reference[0] && !m_recons[task.m_idxRecon].m_reference[1])
-            SetReconstructFree(m_recons[task.m_idxRecon]);
-    }
-
-    m_stat.NumCachedFrame--;
-    m_stat.NumFrame++;
-    m_stat.NumBit += 8 * (task.m_bsDataLength[0] + task.m_bsDataLength[1]);
-
-    task.m_bs = 0;
-    task.SetFree(true);
-}
-
-mfxU32 TaskManager::CountRunningTasks()
-{
-    UMC::AutomaticUMCMutex guard(m_mutex);
-
-    mfxU32 count = 0;
-    for (size_t i = 0; i < m_bitstreams.size(); i++)
-        if (!m_bitstreams[i].IsFree())
-            ++count;
-
-    return count;
 }
 
 
@@ -2888,6 +1139,22 @@ mfxU32 UmcBrc::GetMinFrameSize()
     return mfxU32(minSize + 7) / 8;
 }
 
+
+namespace
+{
+    mfxF64 const QSTEP[52] = {
+         0.630,  0.707,  0.794,  0.891,  1.000,   1.122,   1.260,   1.414,   1.587,   1.782,   2.000,   2.245,   2.520,
+         2.828,  3.175,  3.564,  4.000,  4.490,   5.040,   5.657,   6.350,   7.127,   8.000,   8.980,  10.079,  11.314,
+        12.699, 14.254, 16.000, 17.959, 20.159,  22.627,  25.398,  28.509,  32.000,  35.919,  40.317,  45.255,  50.797,
+        57.018, 64.000, 71.838, 80.635, 90.510, 101.594, 114.035, 128.000, 143.675, 161.270, 181.019, 203.187, 228.070
+    };
+
+    mfxU8 QStep2QpCeil(mfxF64 qstep) // QSTEP[qp] > qstep
+    {
+        return std::min<mfxU8>(mfxU8(std::lower_bound(QSTEP, QSTEP + 52, qstep) - QSTEP), 51);
+    }
+}
+
 #ifdef _DEBUG
 //#define brcprintf printf
 #else // _DEBUG
@@ -2944,6 +1211,7 @@ namespace MfxHwH264EncodeHW
     }
 }
 using namespace MfxHwH264EncodeHW;
+
 inline void SetMinMaxQP(mfxExtCodingOption2 const &  extOpt2, mfxU8  QPMin[], mfxU8  QPMax[])
 {
     // valid qp range [1, 51], default qp range [8, 51], qp=0 doesn't supported by driver
@@ -3012,13 +1280,47 @@ inline mfxF64 criticalRatio(mfxF64 maxRatio)
     return (maxRatio > 1.0) ? (2.0*maxRatio - 1.0) : maxRatio;
 }
 
+inline
+mfxU32 GetFrameTypeIndex(mfxU32 frameType)
+{
+    if (frameType & MFX_FRAMETYPE_I)
+        return 0;
+    if (frameType & MFX_FRAMETYPE_P)
+        return 1;
+    if (frameType & MFX_FRAMETYPE_B)
+        return 2;
+    return 0;
+}
+
+inline
+mfxU8 SelectQp(mfxF64 erate[52], mfxF64 budget)
+{
+    for (mfxU8 qp = 1; qp < 52; qp++)
+        if (erate[qp] < budget)
+            return (erate[qp - 1] + erate[qp] < 2 * budget) ? qp - 1 : qp;
+    return 51;
+}
+
+inline
+mfxU8 GetNewQP(mfxU32 size, mfxU32 targeSize, mfxU8 curQP)
+{
+    mfxF64 qstep     = QSTEP[std::min<mfxU8>(51, curQP)];
+    mfxF64 qstep_new = qstep * pow((mfxF64)size / targeSize, 0.8);
+    mfxU8  qp_new    = QStep2QpCeil(qstep_new);
+
+    if (qp_new > 0 && qstep_new >(QSTEP[qp_new] + QSTEP[qp_new - 1]) / 2)
+        --qp_new;
+
+    return qp_new;
+}
+
 mfxStatus LookAheadBrc2::Init(MfxVideoParam  & video)
 {
     mfxExtCodingOptionDDI const & extDdi  = GetExtBufferRef(video);
     mfxExtCodingOption2   const & extOpt2 = GetExtBufferRef(video);
     mfxExtCodingOption3   const & extOpt3 = GetExtBufferRef(video);
 
-    sBrcTarget brcTarget = {0, MFX_BRC_ACCURACY_MEDIUM};
+    sBrcTarget brcTarget = {0, MFX_BRC_ACCURACY_MEDIUM}; // will be added in API
     setLAThresholds(m_thresholds, brcTarget.accuracy);
 
     m_lookAhead     = extOpt2.LookAheadDepth - extDdi.LookAheadDependency;
@@ -3076,7 +1378,7 @@ mfxStatus LookAheadBrc2::Init(MfxVideoParam  & video)
 
     m_costCalcPeriod = std::max<mfxU32>(m_lookAhead, m_thresholds.minCostCalcPeriod);
 
-    m_laDataStat.reserve(m_costCalcPeriod - m_lookAhead + 1);
+    m_laDataStat.reserve(m_costCalcPeriod - m_lookAhead +1);
     m_AsyncDepth = video.AsyncDepth > 1 ? 1 : 0;
     m_first = 0;
 
@@ -3093,134 +1395,6 @@ void LookAheadBrc2::Close()
     }
 }
 
-
-mfxStatus VMEBrc::Init(MfxVideoParam  & video)
-{
-    mfxExtCodingOptionDDI const & extDdi  = GetExtBufferRef(video);
-    mfxExtCodingOption2   const & extOpt2 = GetExtBufferRef(video);
-    mfxExtCodingOption3   const & extOpt3 = GetExtBufferRef(video);
-
-
-    m_LaScaleFactor = LaDSenumToFactor(extOpt2.LookAheadDS);
-    m_qpUpdateRange = extDdi.QpUpdateRange;
-    m_strength      = extDdi.StrengthN;
-
-    m_fr = mfxF64(video.mfx.FrameInfo.FrameRateExtN) / video.mfx.FrameInfo.FrameRateExtD;
-
-    m_totNumMb = video.mfx.FrameInfo.Width * video.mfx.FrameInfo.Height / 256;
-    m_initTargetRate = 1000* video.calcParam.targetKbps / m_fr / m_totNumMb;
-    m_targetRateMin = m_initTargetRate;
-    m_targetRateMax = m_initTargetRate;
-    m_laData.resize(0);
-
-    assert(extDdi.RegressionWindow <= m_rateCoeffHistory[0].MAX_WINDOW);
-    for (mfxU32 qp = 0; qp < 52; qp++)
-        m_rateCoeffHistory[qp].Reset(extDdi.RegressionWindow, 100.0, 100.0 * INIT_RATE_COEFF[qp]);
-    m_framesBehind = 0;
-    m_bitsBehind = 0.0;
-    m_curQp = -1;
-    m_curBaseQp = -1;
-    m_skipped = 0;
-    m_lookAhead = 0;
-    SetMinMaxQP(extOpt2, m_QPMin, m_QPMax);
-
-    m_AvgBitrate = 0;
-    if (extOpt3.WinBRCSize)
-    {
-        m_AvgBitrate = new AVGBitrate(extOpt3.WinBRCSize, (mfxU32)(1000.0 * video.calcParam.WinBRCMaxAvgKbps/m_fr),(mfxU32)(1000.0* video.calcParam.targetKbps / m_fr),true);
-    }
-    return MFX_ERR_NONE;
-}
-void VMEBrc::Close()
-{
-
-    if (m_AvgBitrate)
-    {
-       delete m_AvgBitrate;
-       m_AvgBitrate = 0;
-    }
-}
-
-mfxStatus VMEBrc::SetFrameVMEData(const mfxExtLAFrameStatistics *pLaOut, mfxU32 width, mfxU32 height)
-{
-    mfxU32 resNum = 0;
-    mfxU32 numLaFrames = pLaOut->NumFrame;
-    mfxU32 k = height*width >> 7;
-    while(resNum < pLaOut->NumStream)
-    {
-        if (pLaOut->FrameStat[resNum*numLaFrames].Height == height &&
-            pLaOut->FrameStat[resNum*numLaFrames].Width  == width)
-            break;
-        resNum ++;
-    }
-    MFX_CHECK(resNum <  pLaOut->NumStream, MFX_ERR_UNDEFINED_BEHAVIOR);
-    mfxLAFrameInfo * pFrameData = pLaOut->FrameStat + numLaFrames*resNum;
-
-
-    if (m_lookAhead == 0)
-        m_lookAhead = numLaFrames;
-
-    std::list<LaFrameData>::iterator it = m_laData.begin();
-    while (m_laData.size()>0)
-    {
-        it = m_laData.begin();
-        if (!((*it).bNotUsed))
-            break;
-        m_laData.pop_front();
-    }
-
-    // some frames can be stored already
-    // start of stored sequence
-    it = m_laData.begin();
-     while (it != m_laData.end())
-    {
-        if ((*it).encOrder == pFrameData[0].FrameEncodeOrder)
-            break;
-        ++it;
-    }
-    mfxU32 ind  = 0;
-
-    // check stored sequence
-    while ((it != m_laData.end()) && (ind < numLaFrames))
-    {
-        MFX_CHECK((*it).encOrder == pFrameData[ind].FrameEncodeOrder, MFX_ERR_UNDEFINED_BEHAVIOR);
-        ++ind;
-        ++it;
-    }
-    MFX_CHECK(it == m_laData.end(), MFX_ERR_UNDEFINED_BEHAVIOR);
-
-    // store a new data
-    for (; ind < numLaFrames; ind++)
-    {
-        LaFrameData data = {};
-
-        data.encOrder  = pFrameData[ind].FrameEncodeOrder;
-        data.dispOrder = pFrameData[ind].FrameDisplayOrder;
-        data.interCost = pFrameData[ind].InterCost;
-        data.intraCost = pFrameData[ind].IntraCost;
-        data.propCost  = pFrameData[ind].DependencyCost;
-        data.bframe    = (pFrameData[ind].FrameType & MFX_FRAMETYPE_B) != 0;
-
-
-        MFX_CHECK(data.intraCost, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-        for (mfxU32 qp = 0; qp < 52; qp++)
-        {
-            data.estRate[qp] = ((mfxF64)pFrameData[ind].EstimatedRate[qp])/(MFX_QSTEP[qp]*k);
-        }
-        m_laData.push_back(data);
-    }
-
-    return MFX_ERR_NONE;
-}
-
-mfxU8 SelectQp(mfxF64 erate[52], mfxF64 budget)
-{
-    for (mfxU8 qp = 1; qp < 52; qp++)
-        if (erate[qp] < budget)
-            return (erate[qp - 1] + erate[qp] < 2 * budget) ? qp - 1 : qp;
-    return 51;
-}
 
 mfxF64 GetTotalRate(std::vector<LookAheadBrc2::LaFrameData> const & laData, mfxI32 baseQp, size_t size, mfxU32 first)
 {
@@ -3242,32 +1416,6 @@ mfxF64 GetTotalRate(std::vector<LookAheadBrc2::LaFrameData> const & laData,
     return totalRate;
 }
 
-mfxF64 GetTotalRate(std::list<VMEBrc::LaFrameData>::iterator start, std::list<VMEBrc::LaFrameData>::iterator end, mfxI32 baseQp)
-{
-    mfxF64 totalRate = 0.0;
-    std::list<VMEBrc::LaFrameData>::iterator it = start;
-    for (; it!=end; ++it)
-    {
-        totalRate += (*it).estRateTotal[mfx::clamp(baseQp + (*it).deltaQp, 0, 51)];
-    }
-    return totalRate;
-}
-
-mfxF64 GetTotalRate(std::list<VMEBrc::LaFrameData>::iterator start, std::list<VMEBrc::LaFrameData>::iterator end, mfxI32 baseQp, size_t size)
-{
-    mfxF64 totalRate = 0.0;
-    size_t num = 0;
-
-    std::list<VMEBrc::LaFrameData>::iterator it = start;
-    for (; it!=end; ++it)
-    {
-        if ((num ++) >= size)
-            break;
-        totalRate += (*it).estRateTotal[mfx::clamp(baseQp + (*it).deltaQp, 0, 51)];
-    }
-    return totalRate;
-}
-
 mfxU8 SelectQp(std::vector<LookAheadBrc2::LaFrameData> const & laData, mfxF64 budget, size_t size, mfxU32 async)
 {
     mfxF64 prevTotalRate = GetTotalRate(laData, 0, size, async);
@@ -3282,7 +1430,6 @@ mfxU8 SelectQp(std::vector<LookAheadBrc2::LaFrameData> const & laData, mfxF64 bu
     }
     return 51;
 }
-
 mfxU8 SelectQp(std::vector<LookAheadBrc2::LaFrameData> const & laData,
                std::vector<LookAheadBrc2::LaFrameData> const & laDataStat,
                 mfxF64 budget, size_t size, mfxU32 async)
@@ -3292,34 +1439,6 @@ mfxU8 SelectQp(std::vector<LookAheadBrc2::LaFrameData> const & laData,
     for (mfxU8 qp = 1; qp < 52; qp++)
     {
         mfxF64 totalRate = GetTotalRate(laData, laDataStat, qp, size, async);
-        if (totalRate < budget)
-            return (prevTotalRate + totalRate < 2 * budget) ? qp - 1 : qp;
-        prevTotalRate = totalRate;
-    }
-    return 51;
-}
-
-mfxU8 SelectQp(std::list<VMEBrc::LaFrameData>::iterator start, std::list<VMEBrc::LaFrameData>::iterator end, mfxF64 budget, size_t size)
-{
-    mfxF64 prevTotalRate = GetTotalRate(start, end, 0, size);
-    //printf("SelectQp: budget = %f, size = %d, async = %d\n", budget, size, async);
-    for (mfxU8 qp = 1; qp < 52; qp++)
-    {
-        mfxF64 totalRate = GetTotalRate(start, end, qp, size);
-        if (totalRate < budget)
-            return (prevTotalRate + totalRate < 2 * budget) ? qp - 1 : qp;
-        else
-            prevTotalRate = totalRate;
-    }
-    return 51;
-}
-
-mfxU8 SelectQp(std::list<VMEBrc::LaFrameData>::iterator start, std::list<VMEBrc::LaFrameData>::iterator end, mfxF64 budget)
-{
-    mfxF64 prevTotalRate = GetTotalRate(start,end, 0);
-    for (mfxU8 qp = 1; qp < 52; qp++)
-    {
-        mfxF64 totalRate = GetTotalRate(start,end, qp);
         if (totalRate < budget)
             return (prevTotalRate + totalRate < 2 * budget) ? qp - 1 : qp;
         else
@@ -3339,23 +1458,13 @@ mfxU8 GetFrameTypeLetter(mfxU32 frameType)
         return mfxU8('B' + ref);
     return 'x';
 }
-inline mfxU32 GetFrameTypeIndex(mfxU32 frameType)
-{
-    if (frameType & MFX_FRAMETYPE_I)
-        return 0;
-    if (frameType & MFX_FRAMETYPE_P)
-        return 1;
-    if (frameType & MFX_FRAMETYPE_B)
-        return 2;
-    return 0;
-}
 
 void LookAheadBrc2::GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
 {
-    (void)par;
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LookAheadBrc2::GetQp");
     brcprintf("\r%4d: do=%4d type=%c Rt=%7.3f-%7.3f curc=%4d numc=%2d ", m_laData[0].encOrder, m_laData[0].poc/2,
         GetFrameTypeLetter(par.FrameType), m_targetRateMin, m_targetRateMax, m_laData[0].interCost / m_totNumMb, mfxU32(m_laData.size()));
+    (void)par;
 
 
     mfxF64 totalEstRate[52] = { 0.0 };
@@ -3451,16 +1560,19 @@ void LookAheadBrc2::GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
     {
         minQp = SelectQp(m_laData, m_laDataStat, MaxRate * (m_laData.size() + m_laDataStat.size() - m_first), m_laData.size(), m_first);
     }
-    else if ((ratio > m_thresholds.maxAvgRateRatio &&  ratioLocal > 1.00) || (ratioLocal > m_thresholds.maxRateRatioLocal))
+    else if ((ratio > m_thresholds.maxAvgRateRatio &&  ratioLocal > 1.00) ||
+             (ratio > criticalRatio(m_thresholds.maxAvgRateRatio) && ratioLocal > m_thresholds.minRateRatioLocal) ||
+             (ratioLocal > m_thresholds.maxRateRatioLocal))
     {
-        minQp = std::max(minQp, (mfxU8)(baseQP + ((ratioLocal > criticalRatio(m_thresholds.maxAvgRateRatio)) ? 2 : 1)));
+        minQp = std::max(minQp, (mfxU8)(baseQP + ((ratioLocal > criticalRatio(m_thresholds.maxRateRatioLocal)) ? 2 : 1)));
     }
 
     if (MinRate)
     {
         maxQp = SelectQp(m_laData, m_laDataStat, MinRate * (m_laData.size() + m_laDataStat.size() - m_first), m_laData.size(), m_first);
     }
-    else  if ((ratio < m_thresholds.minAvgRateRatio && ratioLocal < 1.00) || (ratioLocal < m_thresholds.minRateRatioLocal))
+    else  if ((ratio < m_thresholds.minAvgRateRatio && ratioLocal < 1.00) ||
+              (ratioLocal < m_thresholds.minRateRatioLocal && ratio < m_thresholds.maxAvgRateRatio))
     {
         maxQp = (mfxU8)(baseQP - 1);
     }
@@ -3469,16 +1581,15 @@ void LookAheadBrc2::GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
         size_t framesForCheck = m_AvgBitrate->GetWindowSize() < (m_laData.size() - m_first) ? m_AvgBitrate->GetWindowSize() : (m_laData.size() - m_first);
         for (mfxU32 i = 1; i < framesForCheck; i++)
         {
-           mfxF64 budget = mfxF64(m_AvgBitrate->GetBudget(i)) / (mfxF64(m_totNumMb));
-           mfxU8  QP = SelectQp(m_laData, budget, i + m_first, m_first);
-           if (minQp < QP)
-           {
-               minQp = QP;
-               maxQp = maxQp > minQp ? maxQp : minQp;
-           }
+            mfxF64 budget = mfxF64(m_AvgBitrate->GetBudget(i)) / (mfxF64(m_totNumMb));
+            mfxU8  QP = SelectQp(m_laData, budget, i + m_first, m_first);
+            if (minQp < QP)
+            {
+                minQp = QP;
+                maxQp = maxQp > minQp ? maxQp : minQp;
+            }
         }
     }
-
     if (m_hrd.get())
     {
        mfxF64 maxFrameSizeInBits =  m_hrd->GetMaxFrameSize(par.FrameType & MFX_FRAMETYPE_IDR);
@@ -3494,7 +1605,8 @@ void LookAheadBrc2::GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
                 maxQp = maxQp > minQp ? maxQp : minQp;
             }
         }
-    }
+     }
+
 
     if (m_curBaseQp < 0)
         m_curBaseQp = minQp; // first frame
@@ -3506,6 +1618,7 @@ void LookAheadBrc2::GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
         m_curBaseQp = mfx::clamp<mfxI32>(maxQp, m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE);
     else
         ; // do not change qp if last qp guarantees target rate interval
+
     mfxU32 ind = GetFrameTypeIndex(par.FrameType);
     m_curQp = mfx::clamp<mfxI32>(m_curBaseQp + m_laData[m_first].deltaQp, m_QPMin[ind], m_QPMax[ind]);
 
@@ -3513,17 +1626,7 @@ void LookAheadBrc2::GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
 
     frameCtrl.QpY = m_curQp;
 }
-mfxU8 GetNewQP(mfxU32 size, mfxU32 targeSize, mfxU8 curQP)
-{
-    mfxF64 qstep     = MFX_QSTEP[std::min<mfxU8>(51, curQP)];
-    mfxF64 qstep_new = qstep * pow((mfxF64)size / targeSize, 0.8);
-    mfxU8  qp_new    = QStep2QpCeil(qstep_new);
 
-    if (qp_new > 0 && qstep_new >(MFX_QSTEP[qp_new] + MFX_QSTEP[qp_new - 1]) / 2)
-        --qp_new;
-
-    return qp_new;
-}
 void LookAheadBrc2::GetQpForRecode(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
 {
     mfxI32 qp = frameCtrl.QpY;
@@ -3567,7 +1670,6 @@ void LookAheadBrc2::SaveStat(mfxU32 frameOrder)
             m_laDataStat.push_back(m_laData[i]);
     }
 }
-
 void LookAheadBrc2::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> const & vmeData)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LookAheadBrc2::PreEnc");
@@ -3612,13 +1714,13 @@ void LookAheadBrc2::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> con
             if (mb.intraMbFlag)
             {
                 for (mfxU32 qp = 0; qp < 52; qp++)
-                    newData.estRate[qp] += LaMultiplier * mb.dist / (MFX_QSTEP[qp] * INTRA_QSTEP_COEFF);
+                    newData.estRate[qp] += LaMultiplier * mb.dist / (QSTEP[qp] * INTRA_QSTEP_COEFF);
             }
             else
             {
                 mfxU32 skipQp = GetSkippedQp(mb);
                 for (mfxU32 qp = 0; qp < skipQp; qp++)
-                    newData.estRate[qp] += LaMultiplier * mb.dist / (MFX_QSTEP[qp]);
+                    newData.estRate[qp] += LaMultiplier * mb.dist / (QSTEP[qp]);
             }
         }
         for (mfxU32 qp = 0; qp < 52; qp++)
@@ -3626,11 +1728,6 @@ void LookAheadBrc2::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> con
         m_laData.push_back(newData);
     }
     assert(m_laData.size() <= m_lookAhead + m_AsyncDepth);
-}
-
-
-void VMEBrc::PreEnc(const BRCFrameParams& /*par*/, std::vector<VmeData *> const & /*vmeData*/)
-{
 }
 
 mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par, mfxU32 /* userDataLength */, mfxU32  maxFrameSize, mfxBRCFrameCtrl &frameCtrl)
@@ -3647,11 +1744,11 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par, mfxU32 /* userDataLength
     m_skipped = (par.NumRecode < 100) ? 0 : 1;  //frame was skipped (panic mode)
                                          //we will skip all frames until next reference]
     if (m_AvgBitrate)
-        maxFS = std::min(maxFS, m_AvgBitrate->GetMaxFrameSize(m_skipped > 0, (par.FrameType & MFX_FRAMETYPE_I) != 0, par.NumRecode));
+        maxFS = std::min(maxFS, m_AvgBitrate->GetMaxFrameSize(m_skipped>0, (par.FrameType & MFX_FRAMETYPE_I)!=0, par.NumRecode));
 
     if ((8 * par.CodedFrameSize + 24) > maxFS)
     {
-        m_maxFrameSizeForRec = maxFS / 8; // for recoding
+        m_maxFrameSizeForRec = maxFS/8; // for recoding
         return 1;
     }
 
@@ -3663,7 +1760,7 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par, mfxU32 /* userDataLength
     m_framesBehind++;
     m_bitsBehind += realRatePerMb;
 
-    mfxF64 rateCalcPeriod = (mfxF64)(std::min(m_rateCalcPeriod, m_framesBehind));
+    mfxF64 rateCalcPeriod = std::min<mfxF64>(m_rateCalcPeriod, m_framesBehind);
     m_currRate = ((rateCalcPeriod - 1.0)*m_currRate + realRatePerMb) / rateCalcPeriod;
 
     mfxF64 oldCoeff = m_rateCoeffHistory[qp].GetCoeff();
@@ -3688,224 +1785,6 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par, mfxU32 /* userDataLength
     return 0;
 }
 
-mfxU32 VMEBrc::Report(const BRCFrameParams& par, mfxU32 /*userDataLength*/, mfxU32  maxFrameSize, mfxBRCFrameCtrl &frameCtrl)
-{
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LookAheadBrc2::Report");
-    mfxF64 realRatePerMb = 8 * par.CodedFrameSize / mfxF64(m_totNumMb);
-
-    mfxU32 maxFS = maxFrameSize ? maxFrameSize*8 : 0xFFFFFFF;
-    mfxI32 qp = mfx::clamp(frameCtrl.QpY, 1, 51);
-
-    if ((m_skipped == 1) && ((par.FrameType & MFX_FRAMETYPE_B)!=0) && par.NumRecode < 100)
-        return 3;  // skip mode for this frame
-
-    m_skipped = (par.NumRecode < 100) ? 0 : 1;  //frame was skipped (panic mode)
-                                                //we will skip all frames until next reference
-    if (m_AvgBitrate)
-        maxFS = std::min(maxFS, m_AvgBitrate->GetMaxFrameSize(m_skipped > 0, (par.FrameType & MFX_FRAMETYPE_I) != 0, par.NumRecode));
-
-    if ((8 * par.CodedFrameSize + 24) > maxFS)
-    {
-        m_maxFrameSize = maxFS/8; // for recoding
-        return 1;
-    }
-
-    if (m_AvgBitrate)
-        m_AvgBitrate->UpdateSlidingWindow(8 * par.CodedFrameSize, par.EncodedOrder, m_skipped>0,(par.FrameType & MFX_FRAMETYPE_I)!=0, par.NumRecode, qp);
-
-    m_framesBehind++;
-    m_bitsBehind += realRatePerMb;
-
-    std::list<LaFrameData>::iterator start = m_laData.begin();
-    for(;start != m_laData.end(); ++start)
-    {
-        if ((*start).dispOrder == par.DisplayOrder)
-            break;
-    }
-    mfxU32 numFrames = 0;
-    for (std::list<LaFrameData>::iterator it = start; it != m_laData.end(); ++it)
-        numFrames++;
-
-    numFrames = std::min(numFrames, m_lookAhead);
-
-    if (start != m_laData.end())
-    {
-
-        mfxF64 framesBeyond = mfxF64(std::max(2u, numFrames - 1) - 1);
-
-        m_targetRateMax = (m_initTargetRate * (m_framesBehind + (m_lookAhead - 1)) - m_bitsBehind) / framesBeyond;
-        m_targetRateMin = (m_initTargetRate * (m_framesBehind + (framesBeyond   )) - m_bitsBehind) / framesBeyond;
-
-        //printf("Target: Max %f, Min %f, framesBeyond %f, m_framesBehind %d, m_bitsBehind %f, m_lookAhead %d, picOrder %d, m_laData[0] %d, delta %d, qp %d \n", m_targetRateMax, m_targetRateMin, framesBeyond, m_framesBehind, m_bitsBehind, m_lookAhead, picOrder, (*start).encOrder, (*start).deltaQp, qp);
-
-        mfxF64 oldCoeff = m_rateCoeffHistory[qp].GetCoeff();
-        mfxF64 y = std::max(0.0, realRatePerMb);
-        mfxF64 x = (*start).estRate[qp];
-        mfxF64 minY = NORM_EST_RATE * INIT_RATE_COEFF[qp] * MIN_RATE_COEFF_CHANGE;
-        mfxF64 maxY = NORM_EST_RATE * INIT_RATE_COEFF[qp] * MAX_RATE_COEFF_CHANGE;
-        y = mfx::clamp(y / x * NORM_EST_RATE, minY, maxY);
-        m_rateCoeffHistory[qp].Add(NORM_EST_RATE, y);
-
-        //static int count = 0;
-        //count++;
-        //if(FILE *dump = fopen("dump.txt", "a"))
-        //{
-        //    fprintf(dump, "%4d %4d %4d %4d %6f\n", count, frameType, dataLength, m_curQp, y);
-        //    fclose(dump);
-        //}
-
-        mfxF64 ratio = m_rateCoeffHistory[qp].GetCoeff() / oldCoeff;
-        mfxI32 signed_qp = qp;
-        for (mfxI32 i = -m_qpUpdateRange; i <= m_qpUpdateRange; i++)
-            if (i != 0 && signed_qp + i >= 0 && signed_qp + i < 52)
-            {
-                mfxF64 r = ((ratio - 1.0) * (1.0 - abs(i)/(m_qpUpdateRange + 1)) + 1.0);
-                m_rateCoeffHistory[signed_qp + i].Add(NORM_EST_RATE,
-                    NORM_EST_RATE * m_rateCoeffHistory[signed_qp + i].GetCoeff() * r);
-            }
-
-        brcprintf("rrate=%6.3f newCoeff=%5.3f\n", realRatePerMb, m_rateCoeffHistory[qp].GetCoeff());
-        (*start).bNotUsed = 1;
-    }
-
-    return 0;
-}
-
-void VMEBrc::GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
-{
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VMEBrc::GetQp");
-
-    mfxF64 totalEstRate[52] = { 0.0 };
-    if (!m_laData.size())
-    {
-        frameCtrl.QpY = 26;
-        return;
-    }
-    std::list<LaFrameData>::iterator start = m_laData.begin();
-    while (start != m_laData.end())
-    {
-        if ((*start).encOrder == par.EncodedOrder)
-            break;
-        ++start;
-    }
-
-    if (start == m_laData.end())
-        return;
-
-    std::list<LaFrameData>::iterator it = start;
-    mfxU32 numberOfFrames = 0;
-    for(it = start;it != m_laData.end(); ++it)
-        numberOfFrames++;
-
-    numberOfFrames = std::min(numberOfFrames, m_lookAhead);
-
-
-    // fill totalEstRate
-    it = start;
-    for(mfxU32 i=0; i < numberOfFrames ; i++)
-    {
-        for (mfxU32 qp = 0; qp < 52; qp++)
-        {
-
-            (*it).estRateTotal[qp] = std::max(MIN_EST_RATE, m_rateCoeffHistory[qp].GetCoeff() * (*it).estRate[qp]);
-            totalEstRate[qp] += (*it).estRateTotal[qp];
-        }
-        ++it;
-    }
-
-    mfxI32 maxDeltaQp = INT_MIN;
-    if (m_lookAhead > 0)
-    {
-        mfxI32 curQp = m_curBaseQp < 0 ? SelectQp(totalEstRate, m_targetRateMin * numberOfFrames) : m_curBaseQp;
-        mfxF64 strength = 0.03 * curQp + .75;
-
-        it = start;
-        for (mfxU32 i=0; i < numberOfFrames ; i++)
-        {
-            mfxU32 intraCost    = (*it).intraCost;
-            mfxU32 interCost    = (*it).interCost;
-            mfxU32 propCost     = (*it).propCost;
-            mfxF64 ratio        = 1.0;//mfxF64(interCost) / intraCost;
-            mfxF64 deltaQp      = log((intraCost + propCost * ratio) / intraCost) / log(2.0);
-            (*it).deltaQp = (interCost >= intraCost * 0.9)
-                ? -mfxI32(deltaQp * 2 * strength + 0.5)
-                : -mfxI32(deltaQp * 1 * strength + 0.5);
-            maxDeltaQp = std::max(maxDeltaQp, it->deltaQp);
-            //printf("%d intra %d inter %d prop %d currQP %d delta %f(%d)\n", (*it).encOrder, intraCost/4, interCost/4, propCost/4, curQp, deltaQp, (*it).deltaQp );
-            ++it;
-        }
-    }
-    else
-    {
-        it = start;
-        for (mfxU32 i=0; i < numberOfFrames ; i++)
-        {
-            mfxU32 intraCost    = (*it).intraCost;
-            mfxU32 interCost    = (*it).interCost;
-            (*it).deltaQp = (interCost >= intraCost * 0.9) ? -5 : (*it).bframe ? 0 : -2;
-
-            maxDeltaQp = std::max(maxDeltaQp, it->deltaQp);
-            ++it;
-        }
-    }
-
-   it = start;
-   for (mfxU32 i=0; i < numberOfFrames ; i++)
-   {
-        (*it).deltaQp -= maxDeltaQp;
-        ++it;
-   }
-
-    mfxU8 minQp = SelectQp(start,m_laData.end(), m_targetRateMax * numberOfFrames);
-    mfxU8 maxQp = SelectQp(start,m_laData.end(), m_targetRateMin * numberOfFrames);
-
-
-    if (m_AvgBitrate)
-    {
-        size_t framesForCheck = m_AvgBitrate->GetWindowSize() < numberOfFrames ? m_AvgBitrate->GetWindowSize() : numberOfFrames;
-        for (mfxU32 i = 1; i < framesForCheck; i ++)
-        {
-           mfxF64 budget = mfxF64(m_AvgBitrate->GetBudget(i))/(mfxF64(m_totNumMb));
-           mfxU8  QP = SelectQp(start,m_laData.end(), budget, i);
-           if (minQp <  QP)
-           {
-               minQp  = QP;
-               maxQp = maxQp > minQp ? maxQp : minQp;
-           }
-        }
-    }
-
-    if (m_curBaseQp < 0)
-        m_curBaseQp = minQp; // first frame
-    else if (m_curBaseQp < minQp)
-        m_curBaseQp = mfx::clamp<mfxI32>(minQp, m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE);
-    else if (m_curQp > maxQp)
-        m_curBaseQp = mfx::clamp<mfxI32>(maxQp, m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE);
-    else
-        ; // do not change qp if last qp guarantees target rate interval
-
-    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
-    m_curQp = mfx::clamp<mfxI32>(m_curBaseQp + (*start).deltaQp, m_QPMin[ind], m_QPMax[ind]);
-
-
-    brcprintf("bqp=%2d qp=%2d dqp=%2d erate=%7.3f ", m_curBaseQp, m_curQp, (*start).deltaQp, (*start).estRateTotal[m_curQp]);
-
-    frameCtrl.QpY = mfxU8(m_curQp);
-}
-void VMEBrc::GetQpForRecode(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
-{
-    mfxI32 qp = frameCtrl.QpY;
-    if (m_maxFrameSize > par.CodedFrameSize)
-    {
-        qp = GetNewQP(par.CodedFrameSize, m_maxFrameSize, (mfxU8)frameCtrl.QpY);
-    }
-    if (qp <= frameCtrl.QpY)
-        qp = frameCtrl.QpY + std::max<mfxI32>(1, par.NumRecode);
-
-    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
-
-    frameCtrl.QpY = mfx::clamp(qp, (mfxI32)m_QPMin[ind], (mfxI32)m_QPMax[ind]);
-}
 mfxStatus LookAheadCrfBrc::Init(MfxVideoParam  & video)
 {
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
@@ -3919,6 +1798,7 @@ mfxStatus LookAheadCrfBrc::Init(MfxVideoParam  & video)
     m_propCost  = 0;
 
     SetMinMaxQP(extOpt2, m_QPMin, m_QPMax);
+
     return MFX_ERR_NONE;
 }
 
@@ -3935,7 +1815,7 @@ void LookAheadCrfBrc::GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtr
     mfxU32 ind = GetFrameTypeIndex(par.FrameType);
     m_curQp = mfx::clamp<mfxI32>(m_crfQuality + deltaQp, m_QPMin[ind], m_QPMax[ind]); // driver doesn't support qp=0
 
-    frameCtrl.QpY = mfxU8(m_curQp);
+    frameCtrl.QpY =  mfxU8(m_curQp);
 }
 void LookAheadCrfBrc::GetQpForRecode(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
 {
@@ -3945,6 +1825,7 @@ void LookAheadCrfBrc::GetQpForRecode(const BRCFrameParams& par, mfxBRCFrameCtrl 
 
     frameCtrl.QpY = mfx::clamp(qp, (mfxI32)m_QPMin[ind], (mfxI32)m_QPMax[ind]);
 }
+
 void LookAheadCrfBrc::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> const & vmeData)
 {
     for (size_t i = 0; i < vmeData.size(); i++)
@@ -3979,7 +1860,7 @@ void Hrd::Setup(MfxVideoParam const & par)
     mfxExtCodingOption & opts = GetExtBufferRef(par);
     if (!IsOn(opts.NalHrdConformance))
     {
-        // hrd control isn't required for BRC methods above
+        // hrd control isn't required
         m_bIsHrdRequired = false;
         return;
     }
@@ -4493,6 +2374,113 @@ void MfxHwH264Encode::PutSeiMessage(
     }
 }
 
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+namespace
+{
+    mfxU32 PutScalableInfoSeiPayload(
+        OutputBitstream &     obs,
+        MfxVideoParam const & par)
+    {
+        mfxU32 initialNumBits = obs.GetNumBits();
+
+        mfxExtSVCSeqDesc const * extSvc = GetExtBuffer(par);
+        mfxU32 numLayers = par.calcParam.numLayersTotal;
+
+        mfxU32 temporal_id_nesting_flag = 0;
+        mfxU32 priority_layer_info_present_flag = 0;
+        mfxU32 priority_id_setting_flag = 0;
+
+        obs.PutBit(temporal_id_nesting_flag);
+        obs.PutBit(priority_layer_info_present_flag);
+        obs.PutBit(priority_id_setting_flag);
+        obs.PutUe(numLayers - 1);
+
+        mfxU32 layer = 0;
+        for (mfxU32 d = 0; d < par.calcParam.numDependencyLayer; d++)
+        {
+            mfxU32 did = par.calcParam.did[d];
+            for (mfxU32 t = 0; t < extSvc->DependencyLayer[did].TemporalNum; t++)
+            {
+                mfxU32 tid = extSvc->DependencyLayer[did].TemporalId[t];
+                for (mfxU32 qid = 0; qid < extSvc->DependencyLayer[did].QualityNum; qid++, layer++)
+                {
+                    mfxU8  priority_id                              = 0;
+                    mfxU8  discardable_flag                         = 0;
+                    mfxU8  sub_pic_layer_flag                       = 0;
+                    mfxU8  sub_region_layer_flag                    = 0;
+                    mfxU8  iroi_division_info_present_flag          = 0;
+                    mfxU8  profile_level_info_present_flag          = 0;
+                    mfxU8  bitrate_info_present_flag                = 0;
+                    mfxU8  frm_rate_info_present_flag               = 0;
+                    mfxU8  frm_size_info_present_flag               = 0;
+                    mfxU8  layer_dependency_info_present_flag       = 0;
+                    mfxU8  parameter_sets_info_present_flag         = 0;
+                    mfxU8  bitstream_restriction_info_present_flag  = 0;
+                    mfxU8  exact_inter_layer_pred_flag              = 0;
+                    mfxU8  layer_conversion_flag                    = 0;
+                    mfxU8  layer_output_flag                        = 0;
+                    mfxU8  layer_dependency_info_src_layer_id_delta = 0;
+                    mfxU8  parameter_sets_info_src_layer_id_delta   = 0;
+
+                    obs.PutUe(layer);
+                    obs.PutBits(priority_id, 6);
+                    obs.PutBit(discardable_flag);
+                    obs.PutBits(did, 3);
+                    obs.PutBits(qid, 4);
+                    obs.PutBits(tid, 3);
+                    obs.PutBit(sub_pic_layer_flag);
+                    obs.PutBit(sub_region_layer_flag);
+                    obs.PutBit(iroi_division_info_present_flag);
+                    obs.PutBit(profile_level_info_present_flag);
+                    obs.PutBit(bitrate_info_present_flag);
+                    obs.PutBit(frm_rate_info_present_flag);
+                    obs.PutBit(frm_size_info_present_flag);
+                    obs.PutBit(layer_dependency_info_present_flag);
+                    obs.PutBit(parameter_sets_info_present_flag);
+                    obs.PutBit(bitstream_restriction_info_present_flag);
+                    obs.PutBit(exact_inter_layer_pred_flag);
+                    obs.PutBit(layer_conversion_flag);
+                    obs.PutBit(layer_output_flag);
+                    if (layer_dependency_info_present_flag)
+                        ;
+                    else
+                        obs.PutUe(layer_dependency_info_src_layer_id_delta);
+                    if (parameter_sets_info_present_flag)
+                        ;
+                    else
+                        obs.PutUe(parameter_sets_info_src_layer_id_delta);
+                }
+            }
+        }
+
+        if (obs.GetNumBits() & 7)
+        {
+            obs.PutBit(1);
+            while (obs.GetNumBits() & 7)
+                obs.PutBit(0);
+        }
+
+        return obs.GetNumBits() - initialNumBits;
+    }
+};
+
+mfxU32 MfxHwH264Encode::PutScalableInfoSeiMessage(
+    OutputBitstream &     obs,
+    MfxVideoParam const & par)
+{
+    OutputBitstream tmp = obs;
+    mfxU32 lengthInBytes = (PutScalableInfoSeiPayload(tmp, par) + 7) / 8;
+
+    mfxU32 initialNumBits = obs.GetNumBits();
+    mfxU8 const header[5] = { 0, 0, 0, 1, NALU_SEI };
+    obs.PutRawBytes(header, header + sizeof(header));
+    PutSeiHeader(obs, SEI_TYPE_SCALABILITY_INFO, lengthInBytes);
+    PutScalableInfoSeiPayload(obs, par);
+    obs.PutTrailingBits();
+
+    return obs.GetNumBits() - initialNumBits;
+}
+#endif // #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
 
 // MVC BD {
 void MfxHwH264Encode::PutSeiMessage(
@@ -4722,6 +2710,7 @@ mfxStatus MfxFrameAllocResponse::AllocCmBuffers(
     m_locked.resize(req.NumFrameMin, 0);
     m_flag.resize(req.NumFrameMin, 0);
     std::fill(m_flag.begin(), m_flag.end(), 0);
+
     for (int i = 0; i < req.NumFrameMin; i++)
         m_mids[i] = CreateBuffer(device, size);
 
@@ -4747,6 +2736,7 @@ mfxStatus MfxFrameAllocResponse::AllocCmSurfaces(
     m_locked.resize(req.NumFrameMin, 0);
     m_flag.resize(req.NumFrameMin, 0);
     std::fill(m_flag.begin(), m_flag.end(), 0);
+
     for (int i = 0; i < req.NumFrameMin; i++)
         m_mids[i] = CreateSurface(device, req.Info.Width, req.Info.Height, req.Info.FourCC);
 
@@ -5009,8 +2999,8 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
         MFX_CHECK_NULL_PTR1(bs->Data);
     }
 
-    if (video.mfx.EncodedOrder == 1 &&
-        video.mfx.RateControlMethod != MFX_RATECONTROL_LA_EXT)
+    if (video.mfx.EncodedOrder == 1
+        )
     {
         MFX_CHECK(surface != 0, MFX_ERR_MORE_DATA);
         MFX_CHECK_NULL_PTR1(ctrl);
@@ -5056,6 +3046,20 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
         }
     }
 
+#if MFX_VERSION >= MFX_VERSION_NEXT
+    if (ctrl)
+    {
+        mfxExtCodingOption3* pCO3 = GetExtBuffer(*ctrl);
+        if (pCO3) {
+            MFX_CHECK(pCO3->DeblockingAlphaTcOffset >= -12 && pCO3->DeblockingAlphaTcOffset <= 12, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_CHECK(pCO3->DeblockingBetaOffset >= -12 && pCO3->DeblockingBetaOffset <= 12, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            if (pCO3->AdaptiveCQM != MFX_CODINGOPTION_UNKNOWN)
+                checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+#endif
+        }
+    }
+#endif
     if (surface != 0)
     {
         // Check Runtime extension buffers if not buffered frames processing
@@ -5064,16 +3068,8 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
             checkSts = CheckRunTimeExtBuffers(video, ctrl, surface, bs, caps, hwType);
             if (checkSts < MFX_ERR_NONE) { return checkSts; }
         }
-        else
-        {
-            // FEI frame control buffer is mandatory for encoding
-            mfxExtFeiParam const & feiParam = GetExtBufferRef(video);
-            // FEI encoding without any extension buffers provided is impossible
-            MFX_CHECK(feiParam.Func != MFX_FEI_FUNCTION_ENCODE, MFX_ERR_UNDEFINED_BEHAVIOR);
-        }
 
-        mfxExtOpaqueSurfaceAlloc & extOpaq = GetExtBufferRef(video);
-        bool opaq = extOpaq.In.Surfaces != 0;
+        bool opaq = false;
 
         MFX_CHECK((surface->Data.Y == 0) == (surface->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(surface->Data.Pitch < 0x8000, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -5190,9 +3186,18 @@ void MfxHwH264Encode::FastCopyBufferSys2Vid(void * dstVid, void const * srcSys, 
     assert(srcSys != 0);
 
     mfxSize roi = { bytes, 1 };
+#if defined(IPP_NONTEMPORAL_STORE)
+    int sts = ippiCopyManaged_8u_C1R((uint8_t *)srcSys, bytes, (uint8_t *)dstVid, bytes, roi, IPP_NONTEMPORAL_STORE);
+    assert(sts == ippStsNoErr);
+    (void)sts;
+#else
     mfxStatus sts = FastCopy::Copy((uint8_t *)dstVid, bytes, (uint8_t *)srcSys, bytes, roi, COPY_SYS_TO_VIDEO);
     assert(sts == MFX_ERR_NONE);
     (void)sts;
+#endif
+
+
+
 }
 
 void CyclicTaskPool::Init(mfxU32 size)
@@ -5695,7 +3700,7 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
         needBufferingPeriod = needPicTimingSei = 0; // in CQP HRD mode application inserts BP and PT SEI itself
 
     mfxU32 needAtLeastOneSei =
-        (task.m_ctrl.NumPayload > secondFieldPicFlag && task.m_ctrl.Payload != nullptr && task.m_ctrl.Payload[secondFieldPicFlag] != nullptr) ||
+        (task.m_ctrl.NumPayload > secondFieldPicFlag && task.m_ctrl.Payload != nullptr && task.m_ctrl.Payload[secondFieldPicFlag] != 0) ||
         (fillerSize > 0)    ||
         needBufferingPeriod ||
         needPicTimingSei    ||
@@ -5740,15 +3745,19 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
 
             if (IsOff(extOpt.SingleSeiNalUnit))
                 writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
+            assert(extPt);
+            if (!extPt)
+                return;
             PutSeiMessage(writer, *extPt, msgPicTiming);
             if (IsOff(extOpt.SingleSeiNalUnit))
                 writer.PutTrailingBits();
         }
     }
+
     // user-defined messages
     if (task.m_ctrl.Payload != nullptr)
     {
-        for (mfxU32 i = secondFieldPicFlag; i < task.m_ctrl.NumPayload; i += 1 + fieldPicFlag)
+        for (mfxU32 i = secondFieldPicFlag; i < task.m_ctrl.NumPayload; i = i + 1 + fieldPicFlag)
         {
             if (task.m_ctrl.Payload[i] != nullptr)
             {
@@ -5814,7 +3823,11 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
 // MVC BD {
 void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
     MfxVideoParam const & video,
+#ifdef AVC_BS
+    DdiTask &       task,
+#else // AVC_BS
     DdiTask const &       task,
+#endif // AVC_BS
     mfxU32                fieldId,
     PreAllocatedVector &  sei)
 {
@@ -5913,7 +3926,7 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
     // user-defined messages
     if (task.m_ctrl.Payload != nullptr)
     {
-        for (mfxU32 i = secondFieldPicFlag; i < task.m_ctrl.NumPayload; i += 1 + fieldPicFlag)
+        for (mfxU32 i = secondFieldPicFlag; i < task.m_ctrl.NumPayload; i = i + 1 + fieldPicFlag)
         {
             if (task.m_ctrl.Payload[i] != nullptr)
             {
@@ -5964,6 +3977,119 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
 
     sei.SetSize(writer.GetNumBits() / 8);
 
+#ifdef AVC_BS
+    // encoding of AVC SEI with size equal to MVC SEI
+    mfxU32 seiSizeMVC = writer.GetNumBits() / 8;
+    mfxU32 seiSizeAVC = 0;
+    mfxU32 needAtLeastOneSei =
+        task.m_ctrl.Payload && task.m_ctrl.NumPayload > 0 ||
+        fillerSize > 0      ||
+        needBufferingPeriod ||
+        needPicTimingSei    ||
+        needMarkingRepetitionSei;
+
+    OutputBitstream writerAVC(&sei[0], sei.Capacity());
+
+    if (needAtLeastOneSei && IsOn(extOpt.SingleSeiNalUnit))
+        writerAVC.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
+
+    if (needBufferingPeriod)
+    {
+        PrepareSeiMessage(
+            task,
+            IsOn(extOpt.VuiNalHrdParameters),
+            IsOn(extOpt.VuiVclHrdParameters),
+            sps_id,
+            msgBufferingPeriod);
+
+        if (IsOff(extOpt.SingleSeiNalUnit))
+            writerAVC.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
+        PutSeiMessage(writerAVC, msgBufferingPeriod);
+        if (IsOff(extOpt.SingleSeiNalUnit))
+            writerAVC.PutTrailingBits();
+    }
+
+    if (needPicTimingSei)
+    {
+        PrepareSeiMessage(
+            task,
+            fieldId,
+            IsOn(extOpt.VuiNalHrdParameters) || IsOn(extOpt.VuiVclHrdParameters),
+            msgPicTiming);
+
+        if (IsOff(extOpt.SingleSeiNalUnit))
+            writerAVC.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
+        assert(extPt);
+        if (!extPt)
+            return;
+        PutSeiMessage(writerAVC, *extPt, msgPicTiming);
+        if (IsOff(extOpt.SingleSeiNalUnit))
+            writerAVC.PutTrailingBits();
+    }
+
+    // user-defined messages
+    if (task.m_ctrl.Payload != nullptr)
+    {
+        for (mfxU32 i = secondFieldPicFlag; i < task.m_ctrl.NumPayload; i = i + 1 + fieldPicFlag)
+        {
+            if (task.m_ctrl.Payload[i] != nullptr)
+            {
+                if (IsOff(extOpt.SingleSeiNalUnit))
+                    writerAVC.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
+                for (mfxU32 b = 0; b < task.m_ctrl.Payload[i]->NumBit / 8; b++)
+                    writerAVC.PutBits(task.m_ctrl.Payload[i]->Data[b], 8);
+                if (IsOff(extOpt.SingleSeiNalUnit))
+                    writerAVC.PutTrailingBits();
+            }
+        }
+    }
+
+    if (needMarkingRepetitionSei)
+    {
+        mfxU8 frameMbsOnlyFlag = (video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) ? 1 : 0;
+
+        mfxExtAvcSeiDecRefPicMrkRep decRefPicMrkRep;
+        PrepareSeiMessage(task, fieldId, frameMbsOnlyFlag, decRefPicMrkRep);
+
+        if (IsOff(extOpt.SingleSeiNalUnit))
+            writerAVC.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
+        PutSeiMessage(writerAVC, decRefPicMrkRep);
+        if (IsOff(extOpt.SingleSeiNalUnit))
+            writerAVC.PutTrailingBits();
+    }
+
+    if (fillerSize > 0)
+    {
+        // how many bytes takes to encode payloadSize depends on size of sei message
+        // need to compensate it
+        fillerSize -= fillerSize / 256;
+        if (IsOff(extOpt.SingleSeiNalUnit))
+            writerAVC.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
+        PutSeiHeader(writerAVC, SEI_TYPE_FILLER_PAYLOAD, fillerSize);
+        writerAVC.PutFillerBytes(0xff, fillerSize);
+        if (IsOff(extOpt.SingleSeiNalUnit))
+            writerAVC.PutTrailingBits();
+    }
+
+    if (needAtLeastOneSei && IsOn(extOpt.SingleSeiNalUnit))
+        writerAVC.PutTrailingBits();
+
+    // add repack compensation to the end of last sei NALu.
+    if (task.m_addRepackSize[fieldId] && needAtLeastOneSei)
+        writerAVC.PutFillerBytes(0xff, task.m_addRepackSize[fieldId]);
+
+    seiSizeAVC = writerAVC.GetNumBits() / 8;
+    mfxI32 seiSizeDiff = seiSizeMVC - seiSizeAVC;
+    assert(seiSizeDiff >= 0);
+    if (seiSizeDiff > 0)
+    {
+        writerAVC.PutFillerBytes(0xff, seiSizeDiff);
+        task.m_addRepackSize[fieldId] += seiSizeDiff;
+    }
+
+    assert(writer.GetNumBits() == writerAVC.GetNumBits());
+    sei.SetSize(writerAVC.GetNumBits() / 8);
+#endif // AVC_BS
 }
 // MVC BD }
 
@@ -6305,11 +4431,13 @@ BrcIface * MfxHwH264Encode::CreateBrc(MfxVideoParam const & video, MFX_ENCODE_CA
     case MFX_RATECONTROL_LA:
     case MFX_RATECONTROL_LA_HRD: return new LookAheadBrc2;
     case MFX_RATECONTROL_LA_ICQ: return new LookAheadCrfBrc;
-    case MFX_RATECONTROL_LA_EXT: return new VMEBrc;
 
+
+#if !defined(MFX_EXT_BRC_DISABLE)
     case MFX_RATECONTROL_CBR:
     case MFX_RATECONTROL_VBR:
         return new H264SWBRC;
+#endif
     default: return new UmcBrc;
     }
 }
@@ -6457,7 +4585,7 @@ mfxStatus MfxHwH264Encode::CorrectSliceInfoForsed(DdiTask & task, mfxU32 widthLa
     if (!freeSlisesMax)
         return MFX_ERR_NONE;
 
-    mfxU32 bigSlices[256] = {};
+    mfxU32 bigSlices[256] = {0};
     mfxU32 numBigSlices = 0;
     SliceStructInfo new_info[256] = {};
 

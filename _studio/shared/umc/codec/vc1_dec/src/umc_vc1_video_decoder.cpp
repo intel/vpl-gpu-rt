@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2004-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,6 +24,7 @@
 
 #include "umc_vc1_video_decoder.h"
 #include "umc_media_data_ex.h"
+#include "umc_vc1_dec_debug.h"
 #include "umc_vc1_dec_seq.h"
 #include "vm_sys_info.h"
 #include "umc_vc1_dec_task_store.h"
@@ -390,10 +391,11 @@ Status VC1VideoDecoder::StartCodesProcessing(uint8_t*   pBStream,
         switch (*pValues)
         {
         case 0x0F010000:
+        {
             bool isFPSChange;
             VC1Context context;
             size_t alignment;
-           umcRes =  UMC_ERR_NOT_ENOUGH_DATA;
+            umcRes =  UMC_ERR_NOT_ENOUGH_DATA;
             context = *m_pContext;
             sts = SequenceLayer(&context);
             VC1_TO_UMC_CHECK_STS(sts);
@@ -428,6 +430,7 @@ Status VC1VideoDecoder::StartCodesProcessing(uint8_t*   pBStream,
                 }
              }
             VC1_TO_UMC_CHECK_STS(sts);
+        }
             break;
         case 0x0A010000:
             umcRes =  UMC_ERR_NOT_ENOUGH_DATA;
@@ -1346,7 +1349,6 @@ bool VC1VideoDecoder::IsLastFrameSkipped()
     }
     else
         return false;
-
 }
 
 FrameMemID  VC1VideoDecoder::GetDisplayIndex(bool isDecodeOrder, bool )

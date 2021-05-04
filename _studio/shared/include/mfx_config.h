@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2016-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,18 +23,28 @@
 
 #include "mfxdefs.h"
 
+
 #ifdef MFX_VA
-    #if defined(LINUX32) || defined(LINUX64)
-        #include <va/va_version.h>
-        #undef  MFX_VA_LINUX
-        #define MFX_VA_LINUX
+    #include <va/va_version.h>
+
+    #undef  UMC_VA_LINUX
+    #define UMC_VA_LINUX
+
+#endif // MFX_VA
+
+#if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN)
+    #if defined(HEVCE_EVALUATION)
+        #define MFX_MAX_ENCODE_FRAMES 1000
+    #endif
+    #if defined(HEVCD_EVALUATION)
+        #define MFX_MAX_DECODE_FRAMES 1000
     #endif
 #endif
 
 #if defined(ANDROID)
-    // we don't support config auto-generation on Android and have hardcoded
-    // definition instead
     #include "mfx_android_defs.h"
+
+    #define SYNCHRONIZATION_BY_VA_SYNC_SURFACE
 #else
     // mfxconfig.h is auto-generated file containing mediasdk per-component
     // enable defines
@@ -42,17 +52,25 @@
 
     #if defined(AS_H264LA_PLUGIN)
         #define MFX_ENABLE_LA_H264_VIDEO_HW
-        #undef MFX_ENABLE_H264_VIDEO_FEI_ENCODE
-    #else
-        #if MFX_VERSION >= 1025
-            #define MFX_ENABLE_MFE
-        #endif
-        #define MFX_ENABLE_VPP
     #endif
-#endif // #if defined(ANDROID)
+#endif
+
+#define MFX_PRIVATE_AVC_ENCODE_CTRL_DISABLE
+
+// closed source fixed-style defines
+#if !defined(ANDROID) && defined(__linux__)
+    #define MFX_ENABLE_MJPEG_ROTATE_VPP
+#endif
+
+
+#define DECODE_DEFAULT_TIMEOUT  60000
 
 // Here follows per-codec feature enable options which as of now we don't
 // want to expose on build system level since they are too detailed.
+#if defined(MFX_ENABLE_MPEG2_VIDEO_DECODE)
+    #define MFX_ENABLE_HW_ONLY_MPEG2_DECODER
+#endif //MFX_ENABLE_MPEG2_VIDEO_DECODE
+
 #if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
     #define MFX_ENABLE_H264_VIDEO_ENCODE_HW
     #if MFX_VERSION >= 1023
@@ -61,13 +79,7 @@
     #if MFX_VERSION >= 1027
         #define MFX_ENABLE_H264_ROUNDING_OFFSET
     #endif
-    #if defined(MFX_ENABLE_H264_VIDEO_FEI_ENCODE)
-        #define MFX_ENABLE_H264_VIDEO_FEI_ENCPAK
-        #define MFX_ENABLE_H264_VIDEO_FEI_PREENC
-        #define MFX_ENABLE_H264_VIDEO_FEI_ENC
-        #define MFX_ENABLE_H264_VIDEO_FEI_PAK
-    #endif
-    #if defined(MFX_ENABLE_MCTF)
+    #if defined(MFX_ENABLE_MCTF) && defined(MFX_ENABLE_KERNELS)
         #define MFX_ENABLE_MCTF_IN_AVC
     #endif
 #endif
@@ -75,40 +87,50 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
     #define MFX_ENABLE_HEVCE_INTERLACE
     #define MFX_ENABLE_HEVCE_ROI
-    #define MFX_ENABLE_HEVCE_HDR_SEI
-    #define MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION
-    #define MFX_ENABLE_HEVCE_FADE_DETECTION
-    //#define MFX_ENABLE_HEVCE_DIRTY_RECT
 #endif
 
-#if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
+
+    #if defined(MFX_ENABLE_MPEG2_VIDEO_DECODE)
+        #define MFX_ENABLE_HW_ONLY_MPEG2_DECODER
+    #endif
+
+    #if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
+        #define MFX_ENABLE_VP9_VIDEO_ENCODE_HW
+    #endif
+
+
+    #define SYNCHRONIZATION_BY_VA_MAP_BUFFER
+    #if !defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
+        #define SYNCHRONIZATION_BY_VA_SYNC_SURFACE
+    #endif
+
+#if defined(MFX_VA) && defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
     #define MFX_ENABLE_VP9_VIDEO_ENCODE_HW
 #endif
 
-#if defined(MFX_ENABLE_VP9_VIDEO_DECODE)
-#define MFX_ENABLE_VP9_VIDEO_DECODE_HW
-#endif
-
-#if defined(MFX_ENABLE_VP8_VIDEO_DECODE)
-#define MFX_ENABLE_VP8_VIDEO_DECODE_HW
-#endif
 
 #if defined(MFX_ENABLE_VPP)
     #define MFX_ENABLE_VPP_COMPOSITION
     #define MFX_ENABLE_VPP_ROTATION
     #define MFX_ENABLE_VPP_VIDEO_SIGNAL
+
+        #define MFX_ENABLE_DENOISE_VIDEO_VPP
+        #define MFX_ENABLE_MJPEG_WEAVE_DI_VPP
+        #define MFX_ENABLE_MJPEG_ROTATE_VPP
+        #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
+        #define MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION
+
     #if MFX_VERSION >= MFX_VERSION_NEXT
         #define MFX_ENABLE_VPP_RUNTIME_HSBC
     #endif
+
+    #undef MFX_ENABLE_VPP_FIELD_WEAVE_SPLIT
+
     //#define MFX_ENABLE_VPP_FRC
 #endif
 
 #if defined(MFX_ENABLE_ASC)
     #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
-#endif
-
-#if (MFX_VERSION >= MFX_VERSION_NEXT) && defined(MFX_ENABLE_MCTF)
-    #define MFX_ENABLE_MCTF_EXT // extended MCTF interface
 #endif
 
 #if MFX_VERSION >= 1028
@@ -120,12 +142,13 @@
     #define MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT
 #endif
 
-#if defined(MFX_VA_LINUX)
-    #if VA_CHECK_VERSION(1,3,0)
-        #define MFX_ENABLE_QVBR
-    #endif
-#endif
+#define MFX_ENABLE_QVBR
 
 #define CMAPIUPDATE
+
+#define UMC_ENABLE_FIO_READER
+#define UMC_ENABLE_VC1_SPLITTER
+
+#define MFX_ENV_CFG_ENABLE
 
 #endif // _MFX_CONFIG_H_

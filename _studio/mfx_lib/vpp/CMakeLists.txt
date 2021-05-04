@@ -1,39 +1,36 @@
-# Copyright (c) 2018 Intel Corporation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 
-set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
+#==============MCTF========================================================
 
-mfx_include_dirs()
+set(sources
+    src/mfx_denoise_vpp.cpp
+    src/mfx_detail_enhancement_vpp.cpp
+    src/mfx_frame_rate_conversion_vpp.cpp
+    src/mfx_procamp_vpp.cpp
+    src/mfx_vpp_factory.cpp
+    src/mfx_vpp_hw.cpp
+    src/mfx_vpp_main.cpp
+    src/mfx_vpp_mvc.cpp
+    src/mfx_vpp_sw_core.cpp
+    src/mfx_vpp_sw_internal.cpp
+    src/mfx_vpp_utils.cpp
+    src/mfx_vpp_jpeg_d3d9.cpp
+    )
 
-include_directories( ${MSDK_LIB_ROOT}/vpp/include )
-include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
-include_directories( ${MSDK_LIB_ROOT}/genx/field_copy/isa )
-include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/isa )
-include_directories( ${MSDK_LIB_ROOT}/genx/mctf/isa )
-include_directories( ${MSDK_LIB_ROOT}/mctf_package/mctf/include )
-include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
+add_library(vpp_hw STATIC ${sources})
 
-set( defs "" )
-set( sources "" )
-set( sources.plus "" )
-file( GLOB_RECURSE srcs "src/*.c" "src/*.cpp" )
-list( APPEND sources ${srcs} )
+target_compile_definitions(vpp_hw PRIVATE MFX_VA)
 
-make_library( vpp hw static )
+target_include_directories(vpp_hw
+  PUBLIC
+    include)
+
+target_link_libraries(vpp_hw
+  PUBLIC
+    mfx_static_lib umc_va_hw cmrt_cross_platform_hw asc mctf_hw
+  PRIVATE
+    mfx_sdl_properties
+    genx
+    ipp
+  )
+
+include(sources_ext.cmake OPTIONAL)

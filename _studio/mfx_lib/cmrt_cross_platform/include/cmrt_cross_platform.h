@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 1985-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@
 
 #include "mfx_common.h"
 
+#if !defined(OSX)
 
 /* Applicable for old and new CMAPI */
 
@@ -48,6 +49,11 @@
 #define CM_INLINE inline __attribute__((always_inline))
 #endif
 #endif
+
+#if defined(__INTEL_COMPILER)
+   #pragma warning(push)
+   #pragma warning(disable:2289)
+ #endif
 
 #if defined(__clang__)
   #pragma clang diagnostic push
@@ -81,6 +87,7 @@ private:
      *
      * Depending on the special object size after adding below "extra_byte",
      * SetKernelArg and SetThreadArg can recognize this object and follow GNU's convention to construct kernel function's stack.
+     * Detail can be found on "https://github.com/intel/cm-compiler#documentation"
      */
     unsigned char extra_byte;
 #endif
@@ -125,6 +132,11 @@ struct ID3D11Texture2D;
 struct ID3D11Device;
 
 //Using CM_DX9 by default
+#if (defined(CM_WIN)) && (!defined(CM_DX11))
+#ifndef CM_DX9
+#define CM_DX9
+#endif
+#endif
 
 #ifdef __cplusplus
 #   define EXTERN_C     extern "C"
@@ -721,12 +733,15 @@ typedef enum _GPU_PLATFORM {
     PLATFORM_INTEL_ICL = 10,  //Icelake
     PLATFORM_INTEL_KBL = 11,  //Kabylake
     PLATFORM_INTEL_GLV = 12,  //Glenview
-    PLATFORM_INTEL_ICLLP = 13, //IcelakeLP
+    PLATFORM_INTEL_ICLLP = 13,  //IcelakeLP
     PLATFORM_INTEL_TGLLP = 15,//TigerLakeLP
     PLATFORM_INTEL_GLK = 16,  //GeminiLake
     PLATFORM_INTEL_CFL = 17,  //CofeeLake
+    PLATFORM_INTEL_EHL = 18, //ElkhartLake
     PLATFORM_INTEL_RKL = 19,  //RocketLake
     PLATFORM_INTEL_DG1 = 20,  //DG1
+    PLATFORM_INTEL_ADL_S = 21,  //AlderLake
+    PLATFORM_INTEL_ADL_P = 23, //AlderLake
 } GPU_PLATFORM;
 
 //Time in seconds before kernel should timeout
@@ -769,8 +784,9 @@ struct CM_QUEUE_CREATE_OPTION
 //**********************************************************************
 // Constants
 //**********************************************************************
-const CM_QUEUE_CREATE_OPTION CM_DEFAULT_QUEUE_CREATE_OPTION = { CM_QUEUE_TYPE_RENDER, false, 0x0, false, 11, CM_QUEUE_SSEU_USAGE_HINT_DEFAULT, 0x0 };
-const CM_QUEUE_CREATE_OPTION CM_VME_QUEUE_CREATE_OPTION = { CM_QUEUE_TYPE_RENDER, false, 0x0, false, 12, CM_QUEUE_SSEU_USAGE_HINT_VME, 0x0 };
+const CM_QUEUE_CREATE_OPTION CM_DEFAULT_QUEUE_CREATE_OPTION = { CM_QUEUE_TYPE_RENDER,  false, 0x0, false, 11, CM_QUEUE_SSEU_USAGE_HINT_DEFAULT, 0x0 };
+const CM_QUEUE_CREATE_OPTION CM_VME_QUEUE_CREATE_OPTION     = { CM_QUEUE_TYPE_RENDER,  false, 0x0, false, 12, CM_QUEUE_SSEU_USAGE_HINT_VME,     0x0 };
+const CM_QUEUE_CREATE_OPTION CM_COMPUTE_QUEUE_CREATE_OPTION = { CM_QUEUE_TYPE_COMPUTE, false, 0x0, false, 0,  CM_QUEUE_SSEU_USAGE_HINT_DEFAULT, 0x0 };
 
 
 typedef struct _CM_SAMPLER_STATE
@@ -1262,6 +1278,15 @@ typedef enum _L3_SUGGEST_CONFIG
     ICLLP_L3_PLANE_8,
     ICLLP_L3_CONFIG_COUNT,
 
+    TGL_L3_PLANE_DEFAULT = 0,
+    TGL_L3_PLANE_1,
+    TGL_L3_PLANE_2,
+    TGL_L3_PLANE_3,
+    TGL_L3_PLANE_4,
+    TGL_L3_PLANE_5,
+    TGL_L3_PLANE_6,
+    TGL_L3_CONFIG_COUNT,  // TGL and TGLLP have the same recommended L3 settings.
+
     BDW_SLM_PLANE_DEFAULT = BDW_L3_PLANE_5,
     SKL_SLM_PLANE_DEFAULT = SKL_L3_PLANE_5
 } L3_SUGGEST_CONFIG;
@@ -1412,6 +1437,7 @@ public:
     CM_RT_API virtual INT SetStaticBuffer(UINT index, const void * pValue) = 0;
     CM_RT_API virtual INT SetSurfaceBTI(SurfaceIndex* pSurface, UINT BTIndex) = 0;
     CM_RT_API virtual INT AssociateThreadSpace(CmThreadSpace* & pTS) = 0;
+    CM_RT_API virtual INT AssociateThreadGroupSpace(CmThreadGroupSpace* & pTGS) = 0;
 };
 
 class CmTask
@@ -1451,11 +1477,17 @@ class CmSurface2D
 {
 public:
     CM_RT_API virtual INT GetIndex(SurfaceIndex*& pIndex) = 0;
+#ifdef CM_WIN
+    CM_RT_API virtual INT GetD3DSurface(CmAbstractSurfaceHandle& pD3DSurface) = 0;
+#endif
     CM_RT_API virtual INT ReadSurface(unsigned char* pSysMem, CmEvent* pEvent, UINT64 sysMemSize = 0xFFFFFFFFFFFFFFFFULL) = 0;
     CM_RT_API virtual INT WriteSurface(const unsigned char* pSysMem, CmEvent* pEvent, UINT64 sysMemSize = 0xFFFFFFFFFFFFFFFFULL) = 0;
     CM_RT_API virtual INT ReadSurfaceStride(unsigned char* pSysMem, CmEvent* pEvent, const UINT stride, UINT64 sysMemSize = 0xFFFFFFFFFFFFFFFFULL) = 0;
     CM_RT_API virtual INT WriteSurfaceStride(const unsigned char* pSysMem, CmEvent* pEvent, const UINT stride, UINT64 sysMemSize = 0xFFFFFFFFFFFFFFFFULL) = 0;
     CM_RT_API virtual INT InitSurface(const DWORD initValue, CmEvent* pEvent) = 0;
+#ifdef CM_WIN
+    CM_RT_API virtual INT QuerySubresourceIndex(UINT& FirstArraySlice, UINT& FirstMipSlice) = 0;
+#endif
 #ifdef CM_LINUX
     CM_RT_API virtual INT GetVaSurfaceID(VASurfaceID  &iVASurface) = 0;
 #endif
@@ -1512,14 +1544,6 @@ public:
 
     CM_RT_API virtual INT EnqueueWithHints(CmTask* pTask, CmEvent* & pEvent, UINT hints = 0) = 0;
     CM_RT_API virtual INT EnqueueVebox(CmVebox* pVebox, CmEvent* & pEvent) = 0;
-
-    CM_RT_API virtual INT EnqueueFast(CmTask *task,
-                              CmEvent *&event,
-                              const CmThreadSpace *threadSpace = nullptr) = 0;
-    CM_RT_API virtual INT DestroyEventFast(CmEvent *&event) = 0;
-    CM_RT_API virtual INT EnqueueWithGroupFast(CmTask *task,
-                                  CmEvent *&event,
-                                  const CmThreadGroupSpace *threadGroupSpace = nullptr) = 0;
 };
 
 class CmDevice;
@@ -1549,7 +1573,198 @@ EXTERN_C CM_RT_API INT CMRT_GetEnqueueTime(CmEvent *pEvent, LARGE_INTEGER* time)
 
 EXTERN_C CM_RT_API const char* GetCmErrorString(int Code);
 
-#if defined(CM_LINUX)
+#if defined(CM_WIN)
+namespace CmDx9
+{
+    class CmDevice
+    {
+    public:
+
+        CM_RT_API virtual INT GetD3DDeviceManager(IDirect3DDeviceManager9* & pDeviceManager) = 0;
+
+        CM_RT_API virtual INT CreateBuffer(UINT size, CmBuffer* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface2D(UINT width, UINT height, CM_SURFACE_FORMAT format, CmSurface2D* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface3D(UINT width, UINT height, UINT depth, CM_SURFACE_FORMAT format, CmSurface3D* & pSurface) = 0;
+
+        CM_RT_API virtual INT CreateSurface2D(IDirect3DSurface9* pD3DSurf, CmSurface2D* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface2D(IDirect3DSurface9** pD3DSurf, const UINT surfaceCount, CmSurface2D**  pSpurface) = 0;
+
+        CM_RT_API virtual INT DestroySurface(CmBuffer* & pSurface) = 0;
+        CM_RT_API virtual INT DestroySurface(CmSurface2D* & pSurface) = 0;
+        CM_RT_API virtual INT DestroySurface(CmSurface3D* & pSurface) = 0;
+
+        CM_RT_API virtual INT CreateQueue(CmQueue* & pQueue) = 0;
+        CM_RT_API virtual INT LoadProgram(void* pCommonISACode, const UINT size, CmProgram*& pProgram, const char* options = NULL) = 0;
+        CM_RT_API virtual INT CreateKernel(CmProgram* pProgram, const char* kernelName, CmKernel* & pKernel, const char* options = NULL) = 0;
+        CM_RT_API virtual INT CreateKernel(CmProgram* pProgram, const char* kernelName, const void * fncPnt, CmKernel* & pKernel, const char* options = NULL) = 0;
+        CM_RT_API virtual INT CreateSampler(const CM_SAMPLER_STATE & sampleState, CmSampler* & pSampler) = 0;
+
+        CM_RT_API virtual INT DestroyKernel(CmKernel*& pKernel) = 0;
+        CM_RT_API virtual INT DestroySampler(CmSampler*& pSampler) = 0;
+        CM_RT_API virtual INT DestroyProgram(CmProgram*& pProgram) = 0;
+        CM_RT_API virtual INT DestroyThreadSpace(CmThreadSpace* & pTS) = 0;
+
+        CM_RT_API virtual INT CreateTask(CmTask *& pTask) = 0;
+        CM_RT_API virtual INT DestroyTask(CmTask*& pTask) = 0;
+
+        CM_RT_API virtual INT GetCaps(CM_DEVICE_CAP_NAME capName, size_t& capValueSize, void* pCapValue) = 0;
+
+        CM_RT_API virtual INT CreateThreadSpace(UINT width, UINT height, CmThreadSpace* & pTS) = 0;
+
+        CM_RT_API virtual INT CreateBufferUP(UINT size, void* pSystMem, CmBufferUP* & pSurface) = 0;
+        CM_RT_API virtual INT DestroyBufferUP(CmBufferUP* & pSurface) = 0;
+
+        CM_RT_API virtual INT GetSurface2DInfo(UINT width, UINT height, CM_SURFACE_FORMAT format, UINT & pitch, UINT & physicalSize) = 0;
+        CM_RT_API virtual INT CreateSurface2DUP(UINT width, UINT height, CM_SURFACE_FORMAT format, void* pSysMem, CmSurface2DUP* & pSurface) = 0;
+        CM_RT_API virtual INT DestroySurface2DUP(CmSurface2DUP* & pSurface) = 0;
+
+        CM_RT_API virtual INT CreateVmeSurfaceG7_5(CmSurface2D* pCurSurface, CmSurface2D** pForwardSurface, CmSurface2D** pBackwardSurface, const UINT surfaceCountForward, const UINT surfaceCountBackward, SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT DestroyVmeSurfaceG7_5(SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT CreateSampler8x8(const CM_SAMPLER_8X8_DESCR  & smplDescr, CmSampler8x8*& psmplrState) = 0;
+        CM_RT_API virtual INT DestroySampler8x8(CmSampler8x8*& pSampler) = 0;
+        CM_RT_API virtual INT CreateSampler8x8Surface(CmSurface2D* p2DSurface, SurfaceIndex* & pDIIndex, CM_SAMPLER8x8_SURFACE surf_type = CM_VA_SURFACE, CM_SURFACE_ADDRESS_CONTROL_MODE = CM_SURFACE_CLAMP) = 0;
+        CM_RT_API virtual INT DestroySampler8x8Surface(SurfaceIndex* & pDIIndex) = 0;
+
+        CM_RT_API virtual INT CreateThreadGroupSpace(UINT thrdSpaceWidth, UINT thrdSpaceHeight, UINT grpSpaceWidth, UINT grpSpaceHeight, CmThreadGroupSpace*& pTGS) = 0;
+        CM_RT_API virtual INT DestroyThreadGroupSpace(CmThreadGroupSpace*& pTGS) = 0;
+        CM_RT_API virtual INT SetL3Config(const L3ConfigRegisterValues *l3_c) = 0;
+        CM_RT_API virtual INT SetSuggestedL3Config(L3_SUGGEST_CONFIG l3_s_c) = 0;
+
+        CM_RT_API virtual INT SetCaps(CM_DEVICE_CAP_NAME capName, size_t capValueSize, void* pCapValue) = 0;
+
+        CM_RT_API virtual INT CreateSamplerSurface2D(CmSurface2D* p2DSurface, SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+        CM_RT_API virtual INT CreateSamplerSurface3D(CmSurface3D* p3DSurface, SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+        CM_RT_API virtual INT DestroySamplerSurface(SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+
+        CM_RT_API virtual INT InitPrintBuffer(size_t printbufsize = 1048576) = 0;
+        CM_RT_API virtual INT FlushPrintBuffer() = 0;
+
+        CM_RT_API virtual INT CreateVebox(CmVebox* & pVebox) = 0; //HSW
+        CM_RT_API virtual INT DestroyVebox(CmVebox* & pVebox) = 0; //HSW
+
+        CM_RT_API virtual INT CreateBufferSVM(UINT size, void* & pSystMem, uint32_t access_flag, CmBufferSVM* & pSurface) = 0;
+        CM_RT_API virtual INT DestroyBufferSVM(CmBufferSVM* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSamplerSurface2DUP(CmSurface2DUP* p2DUPSurface, SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+
+        CM_RT_API virtual INT CloneKernel(CmKernel * &pKernelDest, CmKernel * pKernelSrc) = 0;
+
+        CM_RT_API virtual INT CreateSurface2DAlias(CmSurface2D* p2DSurface, SurfaceIndex* &aliasSurfaceIndex) = 0;
+
+        CM_RT_API virtual INT CreateHevcVmeSurfaceG10(CmSurface2D* pCurSurface, CmSurface2D** pForwardSurface, CmSurface2D** pBackwardSurface, const UINT surfaceCountForward, const UINT surfaceCountBackward, SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT DestroyHevcVmeSurfaceG10(SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT CreateSamplerEx(const CM_SAMPLER_STATE_EX & sampleState, CmSampler* & pSampler) = 0;
+        CM_RT_API virtual INT FlushPrintBufferIntoFile(const char *filename) = 0;
+        CM_RT_API virtual INT CreateThreadGroupSpaceEx(UINT thrdSpaceWidth, UINT thrdSpaceHeight, UINT thrdSpaceDepth, UINT grpSpaceWidth, UINT grpSpaceHeight, UINT grpSpaceDepth, CmThreadGroupSpace*& pTGS) = 0;
+
+        CM_RT_API virtual INT CreateSampler8x8SurfaceEx(CmSurface2D* p2DSurface, SurfaceIndex* & pDIIndex, CM_SAMPLER8x8_SURFACE surf_type = CM_VA_SURFACE, CM_SURFACE_ADDRESS_CONTROL_MODE = CM_SURFACE_CLAMP, CM_FLAG* pFlag = NULL) = 0;
+        CM_RT_API virtual INT CreateSamplerSurface2DEx(CmSurface2D* p2DSurface, SurfaceIndex* & pSamplerSurfaceIndex, CM_FLAG* pFlag = NULL) = 0;
+        CM_RT_API virtual INT CreateBufferAlias(CmBuffer *pBuffer, SurfaceIndex* &pAliasIndex) = 0;
+
+        CM_RT_API virtual INT SetVmeSurfaceStateParam(SurfaceIndex* pVmeIndex, CM_VME_SURFACE_STATE_PARAM *pSSParam) = 0;
+
+        CM_RT_API virtual int32_t GetVISAVersion(uint32_t& majorVersion, uint32_t& minorVersion) = 0;
+        CM_RT_API virtual int32_t CreateQueueEx(CmQueue *&pQueue, CM_QUEUE_CREATE_OPTION QueueCreateOption = CM_DEFAULT_QUEUE_CREATE_OPTION) = 0;
+        //adding new functions in the bottom is a must
+    };
+}
+
+namespace CmDx11
+{
+    class CmDevice
+    {
+    public:
+
+        CM_RT_API virtual INT CreateBuffer(UINT size, CmBuffer* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface2D(UINT width, UINT height, CM_SURFACE_FORMAT format, CmSurface2D* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface3D(UINT width, UINT height, UINT depth, CM_SURFACE_FORMAT format, CmSurface3D* & pSurface) = 0;
+
+        CM_RT_API virtual INT CreateSurface2D(ID3D11Texture2D* pD3DSurf, CmSurface2D* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface2D(ID3D11Texture2D** pD3DSurf, const UINT surfaceCount, CmSurface2D**  pSpurface) = 0;
+
+        CM_RT_API virtual INT DestroySurface(CmBuffer* & pSurface) = 0;
+        CM_RT_API virtual INT DestroySurface(CmSurface2D* & pSurface) = 0;
+        CM_RT_API virtual INT DestroySurface(CmSurface3D* & pSurface) = 0;
+
+        CM_RT_API virtual INT CreateQueue(CmQueue* & pQueue) = 0;
+        CM_RT_API virtual INT LoadProgram(void* pCommonISACode, const UINT size, CmProgram*& pProgram, const char* options = NULL) = 0;
+        CM_RT_API virtual INT CreateKernel(CmProgram* pProgram, const char* kernelName, CmKernel* & pKernel, const char* options = NULL) = 0;
+        CM_RT_API virtual INT CreateKernel(CmProgram* pProgram, const char* kernelName, const void * fncPnt, CmKernel* & pKernel, const char* options = NULL) = 0;
+        CM_RT_API virtual INT CreateSampler(const CM_SAMPLER_STATE & sampleState, CmSampler* & pSampler) = 0;
+
+        CM_RT_API virtual INT DestroyKernel(CmKernel*& pKernel) = 0;
+        CM_RT_API virtual INT DestroySampler(CmSampler*& pSampler) = 0;
+        CM_RT_API virtual INT DestroyProgram(CmProgram*& pProgram) = 0;
+        CM_RT_API virtual INT DestroyThreadSpace(CmThreadSpace* & pTS) = 0;
+
+        CM_RT_API virtual INT CreateTask(CmTask *& pTask) = 0;
+        CM_RT_API virtual INT DestroyTask(CmTask*& pTask) = 0;
+
+        CM_RT_API virtual INT GetCaps(CM_DEVICE_CAP_NAME capName, size_t& capValueSize, void* pCapValue) = 0;
+
+        CM_RT_API virtual INT CreateThreadSpace(UINT width, UINT height, CmThreadSpace* & pTS) = 0;
+
+        CM_RT_API virtual INT CreateBufferUP(UINT size, void* pSystMem, CmBufferUP* & pSurface) = 0;
+        CM_RT_API virtual INT DestroyBufferUP(CmBufferUP* & pSurface) = 0;
+
+        CM_RT_API virtual INT GetSurface2DInfo(UINT width, UINT height, CM_SURFACE_FORMAT format, UINT & pitch, UINT & physicalSize) = 0;
+        CM_RT_API virtual INT CreateSurface2DUP(UINT width, UINT height, CM_SURFACE_FORMAT format, void* pSysMem, CmSurface2DUP* & pSurface) = 0;
+        CM_RT_API virtual INT DestroySurface2DUP(CmSurface2DUP* & pSurface) = 0;
+
+        CM_RT_API virtual INT CreateVmeSurfaceG7_5(CmSurface2D* pCurSurface, CmSurface2D** pForwardSurface, CmSurface2D** pBackwardSurface, const UINT surfaceCountForward, const UINT surfaceCountBackward, SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT DestroyVmeSurfaceG7_5(SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT CreateSampler8x8(const CM_SAMPLER_8X8_DESCR  & smplDescr, CmSampler8x8*& psmplrState) = 0;
+        CM_RT_API virtual INT DestroySampler8x8(CmSampler8x8*& pSampler) = 0;
+        CM_RT_API virtual INT CreateSampler8x8Surface(CmSurface2D* p2DSurface, SurfaceIndex* & pDIIndex, CM_SAMPLER8x8_SURFACE surf_type = CM_VA_SURFACE, CM_SURFACE_ADDRESS_CONTROL_MODE = CM_SURFACE_CLAMP) = 0;
+        CM_RT_API virtual INT DestroySampler8x8Surface(SurfaceIndex* & pDIIndex) = 0;
+
+        CM_RT_API virtual INT CreateThreadGroupSpace(UINT thrdSpaceWidth, UINT thrdSpaceHeight, UINT grpSpaceWidth, UINT grpSpaceHeight, CmThreadGroupSpace*& pTGS) = 0;
+        CM_RT_API virtual INT DestroyThreadGroupSpace(CmThreadGroupSpace*& pTGS) = 0;
+        CM_RT_API virtual INT SetL3Config(const L3ConfigRegisterValues *l3_c) = 0;
+        CM_RT_API virtual INT SetSuggestedL3Config(L3_SUGGEST_CONFIG l3_s_c) = 0;
+
+        CM_RT_API virtual INT SetCaps(CM_DEVICE_CAP_NAME capName, size_t capValueSize, void* pCapValue) = 0;
+
+        CM_RT_API virtual INT GetD3D11Device(ID3D11Device* &pD3D11Device) = 0;
+
+        CM_RT_API virtual INT CreateSamplerSurface2D(CmSurface2D* p2DSurface, SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+        CM_RT_API virtual INT CreateSamplerSurface3D(CmSurface3D* p3DSurface, SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+        CM_RT_API virtual INT DestroySamplerSurface(SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+
+        CM_RT_API virtual INT InitPrintBuffer(size_t printbufsize = 1048576) = 0;
+        CM_RT_API virtual INT FlushPrintBuffer() = 0;
+
+        CM_RT_API virtual INT CreateSurface2DSubresource(ID3D11Texture2D* pD3D11Texture2D, UINT subresourceCount, CmSurface2D** ppSurfaces, UINT& createdSurfaceCount, UINT option = 0) = 0;
+        CM_RT_API virtual INT CreateSurface2DbySubresourceIndex(ID3D11Texture2D* pD3D11Texture2D, UINT FirstArraySlice, UINT FirstMipSlice, CmSurface2D* &pSurface) = 0;
+
+        CM_RT_API virtual INT CreateVebox(CmVebox* & pVebox) = 0; //HSW
+        CM_RT_API virtual INT DestroyVebox(CmVebox* & pVebox) = 0; //HSW
+
+        CM_RT_API virtual INT CreateBufferSVM(UINT size, void* & pSystMem, uint32_t access_flag, CmBufferSVM* & pSurface) = 0;
+        CM_RT_API virtual INT DestroyBufferSVM(CmBufferSVM* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSamplerSurface2DUP(CmSurface2DUP* p2DUPSurface, SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+
+        CM_RT_API virtual INT CloneKernel(CmKernel * &pKernelDest, CmKernel * pKernelSrc) = 0;
+
+        CM_RT_API virtual INT CreateSurface2DAlias(CmSurface2D* p2DSurface, SurfaceIndex* &aliasSurfaceIndex) = 0;
+
+        CM_RT_API virtual INT CreateHevcVmeSurfaceG10(CmSurface2D* pCurSurface, CmSurface2D** pForwardSurface, CmSurface2D** pBackwardSurface, const UINT surfaceCountForward, const UINT surfaceCountBackward, SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT DestroyHevcVmeSurfaceG10(SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT CreateSamplerEx(const CM_SAMPLER_STATE_EX & sampleState, CmSampler* & pSampler) = 0;
+        CM_RT_API virtual INT FlushPrintBufferIntoFile(const char *filename) = 0;
+        CM_RT_API virtual INT CreateThreadGroupSpaceEx(UINT thrdSpaceWidth, UINT thrdSpaceHeight, UINT thrdSpaceDepth, UINT grpSpaceWidth, UINT grpSpaceHeight, UINT grpSpaceDepth, CmThreadGroupSpace*& pTGS) = 0;
+
+        CM_RT_API virtual INT CreateSampler8x8SurfaceEx(CmSurface2D* p2DSurface, SurfaceIndex* & pDIIndex, CM_SAMPLER8x8_SURFACE surf_type = CM_VA_SURFACE, CM_SURFACE_ADDRESS_CONTROL_MODE = CM_SURFACE_CLAMP, CM_FLAG* pFlag = NULL) = 0;
+        CM_RT_API virtual INT CreateSamplerSurface2DEx(CmSurface2D* p2DSurface, SurfaceIndex* & pSamplerSurfaceIndex, CM_FLAG* pFlag = NULL) = 0;
+        CM_RT_API virtual INT CreateBufferAlias(CmBuffer *pBuffer, SurfaceIndex* &pAliasIndex) = 0;
+
+        CM_RT_API virtual INT SetVmeSurfaceStateParam(SurfaceIndex* pVmeIndex, CM_VME_SURFACE_STATE_PARAM *pSSParam) = 0;
+
+        CM_RT_API virtual int32_t GetVISAVersion(uint32_t& majorVersion, uint32_t& minorVersion) = 0;
+        CM_RT_API virtual int32_t CreateQueueEx(CmQueue *&pQueue, CM_QUEUE_CREATE_OPTION QueueCreateOption = CM_DEFAULT_QUEUE_CREATE_OPTION) = 0;
+        //adding new functions in the bottom is a must
+    };
+}
+#elif defined(CM_LINUX)
 namespace CmLinux
 {
     class CmDevice
@@ -1699,12 +1914,21 @@ public:
     CM_RT_API virtual INT FlushPrintBuffer() = 0;
     CM_RT_API virtual INT CreateSurface2DSubresource(AbstractSurfaceHandle pD3D11Texture2D, UINT subresourceCount, CmSurface2D** ppSurfaces, UINT& createdSurfaceCount, UINT option = 0) = 0;
     CM_RT_API virtual INT CreateSurface2DbySubresourceIndex(AbstractSurfaceHandle pD3D11Texture2D, UINT FirstArraySlice, UINT FirstMipSlice, CmSurface2D* &pSurface) = 0;
-    CM_RT_API virtual INT CreateQueueEx(CmQueue *&pQueue, CM_QUEUE_CREATE_OPTION QueueCreateOption = CM_DEFAULT_QUEUE_CREATE_OPTION) = 0;
+    CM_RT_API virtual int32_t CreateQueueEx(CmQueue *&pQueue, CM_QUEUE_CREATE_OPTION QueueCreateOption = CM_DEFAULT_QUEUE_CREATE_OPTION) = 0;
 };
 
+#if defined(CM_WIN)
+INT CreateCmDevice(CmDevice* &pD, UINT& version, IDirect3DDeviceManager9 * pD3DDeviceMgr = NULL, UINT mode = CM_DEVICE_CREATE_OPTION_DEFAULT);
+INT CreateCmDevice(CmDevice* &pD, UINT& version, ID3D11Device * pD3D11Device = NULL, UINT mode = CM_DEVICE_CREATE_OPTION_DEFAULT);
+INT CreateCmDeviceEmu(CmDevice* &pDevice, UINT& version, IDirect3DDeviceManager9 * pD3DDeviceMgr = NULL);
+INT CreateCmDeviceEmu(CmDevice* &pDevice, UINT& version, ID3D11Device * pD3D11Device = NULL);
+INT CreateCmDeviceSim(CmDevice* &pDevice, UINT& version, IDirect3DDeviceManager9 * pD3DDeviceMgr = NULL);
+INT CreateCmDeviceSim(CmDevice* &pDevice, UINT& version, ID3D11Device * pD3D11Device = NULL);
+#else //#if defined(CM_WIN)
 INT CreateCmDevice(CmDevice* &pD, UINT& version, VADisplay va_dpy = NULL, UINT mode = CM_DEVICE_CREATE_OPTION_DEFAULT);
 INT CreateCmDeviceEmu(CmDevice* &pDevice, UINT& version, VADisplay va_dpy = NULL);
 INT CreateCmDeviceSim(CmDevice* &pDevice, UINT& version);
+#endif //#if defined(CM_WIN)
 
 INT DestroyCmDevice(CmDevice* &pDevice);
 INT DestroyCmDeviceEmu(CmDevice* &pDevice);
@@ -1718,8 +1942,10 @@ int CreateKernel(CmDevice * device, CmProgram * program, const char * kernelName
 #pragma warning(pop)
 #endif
 
+#if !defined(CM_WIN)
 #undef LONG
 #undef ULONG
+#endif
 
 #else //if CMAPIUPDATE
 
@@ -2084,6 +2310,7 @@ public:
 };
 
 class CmThreadSpace;
+class CmThreadGroupSpace;
 
 class CmKernel
 {
@@ -2099,6 +2326,7 @@ public:
     CM_RT_API virtual INT SetSurfaceBTI(SurfaceIndex* pSurface, UINT BTIndex) = 0;
 
     CM_RT_API virtual INT AssociateThreadSpace(CmThreadSpace* & pTS) = 0;
+    CM_RT_API virtual INT AssociateThreadGroupSpace(CmThreadGroupSpace* & pTGS) = 0;
 };
 
 class CmTask
@@ -2134,11 +2362,17 @@ class CmSurface2D
 {
 public:
     CM_RT_API virtual INT GetIndex(SurfaceIndex*& pIndex) = 0;
+#ifdef CM_WIN
+    CM_RT_API virtual INT GetD3DSurface(AbstractSurfaceHandle & pD3DSurface) = 0;
+#endif //CM_WIN
     CM_RT_API virtual INT ReadSurface(unsigned char* pSysMem, CmEvent* pEvent, UINT64 sysMemSize = 0xFFFFFFFFFFFFFFFFULL) = 0;
     CM_RT_API virtual INT WriteSurface(const unsigned char* pSysMem, CmEvent* pEvent, UINT64 sysMemSize = 0xFFFFFFFFFFFFFFFFULL) = 0;
     CM_RT_API virtual INT ReadSurfaceStride(unsigned char* pSysMem, CmEvent* pEvent, const UINT stride, UINT64 sysMemSize = 0xFFFFFFFFFFFFFFFFULL) = 0;
     CM_RT_API virtual INT WriteSurfaceStride(const unsigned char* pSysMem, CmEvent* pEvent, const UINT stride, UINT64 sysMemSize = 0xFFFFFFFFFFFFFFFFULL) = 0;
     CM_RT_API virtual INT InitSurface(const DWORD initValue, CmEvent* pEvent) = 0;
+#ifdef CM_WIN
+    CM_RT_API virtual INT QuerySubresourceIndex(UINT& FirstArraySlice, UINT& FirstMipSlice) = 0;
+#endif //CM_WIN
     CM_RT_API virtual INT SetMemoryObjectControl(MEMORY_OBJECT_CONTROL mem_ctrl, MEMORY_TYPE mem_type, UINT  age) = 0;
     CM_RT_API virtual INT SetSurfaceState(UINT iWidth, UINT iHeight, CM_SURFACE_FORMAT Format, CM_BOUNDARY_PIXEL_MODE boundaryMode) = 0;
 #ifdef CM_LINUX
@@ -2176,7 +2410,6 @@ public:
     CM_RT_API virtual INT SelectThreadDependencyPattern(CM_DEPENDENCY_PATTERN pattern) = 0;
 };
 
-class CmThreadGroupSpace;
 class CmVebox_G75;
 
 class CmQueue
@@ -2218,6 +2451,127 @@ public:
     CM_RT_API virtual INT GetIndex(VmeIndex* & pIndex) = 0;
 };
 
+#if defined(CM_WIN)
+namespace CmDx9
+{
+    class CmDevice
+    {
+    public:
+        CM_RT_API virtual INT GetD3DDeviceManager(IDirect3DDeviceManager9* & pDeviceManager) = 0;
+        CM_RT_API virtual INT CreateBuffer(UINT size, CmBuffer* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface2D(UINT width, UINT height, CM_SURFACE_FORMAT format, CmSurface2D* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface3D(UINT width, UINT height, UINT depth, CM_SURFACE_FORMAT format, CmSurface3D* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface2D(IDirect3DSurface9* pD3DSurf, CmSurface2D* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface2D(IDirect3DSurface9** pD3DSurf, const UINT surfaceCount, CmSurface2D**  pSpurface) = 0;
+        CM_RT_API virtual INT DestroySurface(CmBuffer* & pSurface) = 0;
+        CM_RT_API virtual INT DestroySurface(CmSurface2D* & pSurface) = 0;
+        CM_RT_API virtual INT DestroySurface(CmSurface3D* & pSurface) = 0;
+        CM_RT_API virtual INT CreateQueue(CmQueue* & pQueue) = 0;
+        CM_RT_API virtual INT LoadProgram(void* pCommonISACode, const UINT size, CmProgram*& pProgram, const char* options = NULL) = 0;
+        CM_RT_API virtual INT CreateKernel(CmProgram* pProgram, const char* kernelName, CmKernel* & pKernel, const char* options = NULL) = 0;
+        CM_RT_API virtual INT CreateKernel(CmProgram* pProgram, const char* kernelName, const void * fncPnt, CmKernel* & pKernel, const char* options = NULL) = 0;
+        CM_RT_API virtual INT CreateSampler(const CM_SAMPLER_STATE & sampleState, CmSampler* & pSampler) = 0;
+        CM_RT_API virtual INT DestroyKernel(CmKernel*& pKernel) = 0;
+        CM_RT_API virtual INT DestroySampler(CmSampler*& pSampler) = 0;
+        CM_RT_API virtual INT DestroyProgram(CmProgram*& pProgram) = 0;
+        CM_RT_API virtual INT DestroyThreadSpace(CmThreadSpace* & pTS) = 0;
+        CM_RT_API virtual INT CreateTask(CmTask *& pTask) = 0;
+        CM_RT_API virtual INT DestroyTask(CmTask*& pTask) = 0;
+        CM_RT_API virtual INT GetCaps(CM_DEVICE_CAP_NAME capName, size_t& capValueSize, void* pCapValue) = 0;
+        CM_RT_API virtual INT CreateVmeStateG6(const VME_STATE_G6 & vmeState, CmVmeState* & pVmeState) = 0;
+        CM_RT_API virtual INT DestroyVmeStateG6(CmVmeState*& pVmeState) = 0;
+        CM_RT_API virtual INT CreateVmeSurfaceG6(CmSurface2D* pCurSurface, CmSurface2D* pForwardSurface, CmSurface2D* pBackwardSurface, SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT DestroyVmeSurfaceG6(SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT CreateThreadSpace(UINT width, UINT height, CmThreadSpace* & pTS) = 0;
+        CM_RT_API virtual INT CreateBufferUP(UINT size, void* pSystMem, CmBufferUP* & pSurface) = 0;
+        CM_RT_API virtual INT DestroyBufferUP(CmBufferUP* & pSurface) = 0;
+        CM_RT_API virtual INT GetSurface2DInfo(UINT width, UINT height, CM_SURFACE_FORMAT format, UINT & pitch, UINT & physicalSize) = 0;
+        CM_RT_API virtual INT CreateSurface2DUP(UINT width, UINT height, CM_SURFACE_FORMAT format, void* pSysMem, CmSurface2DUP* & pSurface) = 0;
+        CM_RT_API virtual INT DestroySurface2DUP(CmSurface2DUP* & pSurface) = 0;
+        CM_RT_API virtual INT CreateVmeSurfaceG7_5(CmSurface2D* pCurSurface, CmSurface2D** pForwardSurface, CmSurface2D** pBackwardSurface, const UINT surfaceCountForward, const UINT surfaceCountBackward, SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT DestroyVmeSurfaceG7_5(SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT CreateSampler8x8(const CM_SAMPLER_8X8_DESCR  & smplDescr, CmSampler8x8*& psmplrState) = 0;
+        CM_RT_API virtual INT DestroySampler8x8(CmSampler8x8*& pSampler) = 0;
+        CM_RT_API virtual INT CreateSampler8x8Surface(CmSurface2D* p2DSurface, SurfaceIndex* & pDIIndex, CM_SAMPLER8x8_SURFACE surf_type = CM_VA_SURFACE, CM_SURFACE_ADDRESS_CONTROL_MODE = CM_SURFACE_CLAMP) = 0;
+        CM_RT_API virtual INT DestroySampler8x8Surface(SurfaceIndex* & pDIIndex) = 0;
+        CM_RT_API virtual INT CreateThreadGroupSpace(UINT thrdSpaceWidth, UINT thrdSpaceHeight, UINT grpSpaceWidth, UINT grpSpaceHeight, CmThreadGroupSpace*& pTGS) = 0;
+        CM_RT_API virtual INT DestroyThreadGroupSpace(CmThreadGroupSpace*& pTGS) = 0;
+        CM_RT_API virtual INT SetL3Config(L3_CONFIG_REGISTER_VALUES *l3_c) = 0;
+        CM_RT_API virtual INT SetSuggestedL3Config(L3_SUGGEST_CONFIG l3_s_c) = 0;
+        CM_RT_API virtual INT SetCaps(CM_DEVICE_CAP_NAME capName, size_t capValueSize, void* pCapValue) = 0;
+        CM_RT_API virtual INT CreateGroupedVAPlusSurface(CmSurface2D* p2DSurface1, CmSurface2D* p2DSurface2, SurfaceIndex* & pDIIndex, CM_SURFACE_ADDRESS_CONTROL_MODE = CM_SURFACE_CLAMP) = 0;
+        CM_RT_API virtual INT DestroyGroupedVAPlusSurface(SurfaceIndex* & pDIIndex) = 0;
+        CM_RT_API virtual INT CreateSamplerSurface2D(CmSurface2D* p2DSurface, SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+        CM_RT_API virtual INT CreateSamplerSurface3D(CmSurface3D* p3DSurface, SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+        CM_RT_API virtual INT DestroySamplerSurface(SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+        CM_RT_API virtual INT GetRTDllVersion(CM_DLL_FILE_VERSION* pFileVersion) = 0;
+        CM_RT_API virtual INT GetJITDllVersion(CM_DLL_FILE_VERSION* pFileVersion) = 0;
+        CM_RT_API virtual INT InitPrintBuffer(size_t printbufsize = 1048576) = 0;
+        CM_RT_API virtual INT FlushPrintBuffer() = 0;
+    };
+};
+
+namespace CmDx11
+{
+    class CmDevice
+    {
+    public:
+        CM_RT_API virtual INT CreateBuffer(UINT size, CmBuffer* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface2D(UINT width, UINT height, CM_SURFACE_FORMAT format, CmSurface2D* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface3D(UINT width, UINT height, UINT depth, CM_SURFACE_FORMAT format, CmSurface3D* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface2D(ID3D11Texture2D* pD3DSurf, CmSurface2D* & pSurface) = 0;
+        CM_RT_API virtual INT CreateSurface2D(ID3D11Texture2D** pD3DSurf, const UINT surfaceCount, CmSurface2D**  pSpurface) = 0;
+        CM_RT_API virtual INT DestroySurface(CmBuffer* & pSurface) = 0;
+        CM_RT_API virtual INT DestroySurface(CmSurface2D* & pSurface) = 0;
+        CM_RT_API virtual INT DestroySurface(CmSurface3D* & pSurface) = 0;
+        CM_RT_API virtual INT CreateQueue(CmQueue* & pQueue) = 0;
+        CM_RT_API virtual INT LoadProgram(void* pCommonISACode, const UINT size, CmProgram*& pProgram, const char* options = NULL) = 0;
+        CM_RT_API virtual INT CreateKernel(CmProgram* pProgram, const char* kernelName, CmKernel* & pKernel, const char* options = NULL) = 0;
+        CM_RT_API virtual INT CreateKernel(CmProgram* pProgram, const char* kernelName, const void * fncPnt, CmKernel* & pKernel, const char* options = NULL) = 0;
+        CM_RT_API virtual INT CreateSampler(const CM_SAMPLER_STATE & sampleState, CmSampler* & pSampler) = 0;
+        CM_RT_API virtual INT DestroyKernel(CmKernel*& pKernel) = 0;
+        CM_RT_API virtual INT DestroySampler(CmSampler*& pSampler) = 0;
+        CM_RT_API virtual INT DestroyProgram(CmProgram*& pProgram) = 0;
+        CM_RT_API virtual INT DestroyThreadSpace(CmThreadSpace* & pTS) = 0;
+        CM_RT_API virtual INT CreateTask(CmTask *& pTask) = 0;
+        CM_RT_API virtual INT DestroyTask(CmTask*& pTask) = 0;
+        CM_RT_API virtual INT GetCaps(CM_DEVICE_CAP_NAME capName, size_t& capValueSize, void* pCapValue) = 0;
+        CM_RT_API virtual INT CreateVmeStateG6(const VME_STATE_G6 & vmeState, CmVmeState* & pVmeState) = 0;
+        CM_RT_API virtual INT DestroyVmeStateG6(CmVmeState*& pVmeState) = 0;
+        CM_RT_API virtual INT CreateVmeSurfaceG6(CmSurface2D* pCurSurface, CmSurface2D* pForwardSurface, CmSurface2D* pBackwardSurface, SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT DestroyVmeSurfaceG6(SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT CreateThreadSpace(UINT width, UINT height, CmThreadSpace* & pTS) = 0;
+        CM_RT_API virtual INT CreateBufferUP(UINT size, void* pSystMem, CmBufferUP* & pSurface) = 0;
+        CM_RT_API virtual INT DestroyBufferUP(CmBufferUP* & pSurface) = 0;
+        CM_RT_API virtual INT GetSurface2DInfo(UINT width, UINT height, CM_SURFACE_FORMAT format, UINT & pitch, UINT & physicalSize) = 0;
+        CM_RT_API virtual INT CreateSurface2DUP(UINT width, UINT height, CM_SURFACE_FORMAT format, void* pSysMem, CmSurface2DUP* & pSurface) = 0;
+        CM_RT_API virtual INT DestroySurface2DUP(CmSurface2DUP* & pSurface) = 0;
+        CM_RT_API virtual INT CreateVmeSurfaceG7_5(CmSurface2D* pCurSurface, CmSurface2D** pForwardSurface, CmSurface2D** pBackwardSurface, const UINT surfaceCountForward, const UINT surfaceCountBackward, SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT DestroyVmeSurfaceG7_5(SurfaceIndex* & pVmeIndex) = 0;
+        CM_RT_API virtual INT CreateSampler8x8(const CM_SAMPLER_8X8_DESCR  & smplDescr, CmSampler8x8*& psmplrState) = 0;
+        CM_RT_API virtual INT DestroySampler8x8(CmSampler8x8*& pSampler) = 0;
+        CM_RT_API virtual INT CreateSampler8x8Surface(CmSurface2D* p2DSurface, SurfaceIndex* & pDIIndex, CM_SAMPLER8x8_SURFACE surf_type = CM_VA_SURFACE, CM_SURFACE_ADDRESS_CONTROL_MODE = CM_SURFACE_CLAMP) = 0;
+        CM_RT_API virtual INT DestroySampler8x8Surface(SurfaceIndex* & pDIIndex) = 0;
+        CM_RT_API virtual INT CreateThreadGroupSpace(UINT thrdSpaceWidth, UINT thrdSpaceHeight, UINT grpSpaceWidth, UINT grpSpaceHeight, CmThreadGroupSpace*& pTGS) = 0;
+        CM_RT_API virtual INT DestroyThreadGroupSpace(CmThreadGroupSpace*& pTGS) = 0;
+        CM_RT_API virtual INT SetL3Config(L3_CONFIG_REGISTER_VALUES *l3_c) = 0;
+        CM_RT_API virtual INT SetSuggestedL3Config(L3_SUGGEST_CONFIG l3_s_c) = 0;
+        CM_RT_API virtual INT SetCaps(CM_DEVICE_CAP_NAME capName, size_t capValueSize, void* pCapValue) = 0;
+        CM_RT_API virtual INT CreateGroupedVAPlusSurface(CmSurface2D* p2DSurface1, CmSurface2D* p2DSurface2, SurfaceIndex* & pDIIndex, CM_SURFACE_ADDRESS_CONTROL_MODE = CM_SURFACE_CLAMP) = 0;
+        CM_RT_API virtual INT DestroyGroupedVAPlusSurface(SurfaceIndex* & pDIIndex) = 0;
+        CM_RT_API virtual INT GetD3D11Device(ID3D11Device* &pD3D11Device) = 0;
+        CM_RT_API virtual INT CreateSamplerSurface2D(CmSurface2D* p2DSurface, SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+        CM_RT_API virtual INT CreateSamplerSurface3D(CmSurface3D* p3DSurface, SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+        CM_RT_API virtual INT DestroySamplerSurface(SurfaceIndex* & pSamplerSurfaceIndex) = 0;
+        CM_RT_API virtual INT GetRTDllVersion(CM_DLL_FILE_VERSION* pFileVersion) = 0;
+        CM_RT_API virtual INT GetJITDllVersion(CM_DLL_FILE_VERSION* pFileVersion) = 0;
+        CM_RT_API virtual INT InitPrintBuffer(size_t printbufsize = 1048576) = 0;
+        CM_RT_API virtual INT FlushPrintBuffer() = 0;
+        CM_RT_API virtual INT CreateSurface2DSubresource(ID3D11Texture2D* pD3D11Texture2D, UINT subresourceCount, CmSurface2D** ppSurfaces, UINT& createdSurfaceCount, UINT option = 0) = 0;
+        CM_RT_API virtual INT CreateSurface2DbySubresourceIndex(ID3D11Texture2D* pD3D11Texture2D, UINT FirstArraySlice, UINT FirstMipSlice, CmSurface2D* &pSurface) = 0;
+    };
+};
+#else // #if defined(CM_WIN)
 namespace CmLinux
 {
     class CmDevice
@@ -2275,6 +2629,7 @@ namespace CmLinux
         CM_RT_API virtual INT FlushPrintBuffer() = 0;
     };
 };
+#endif // #if defined(CM_WIN)
 
 class CmDevice
 {
@@ -2333,6 +2688,9 @@ public:
     CM_RT_API virtual INT FlushPrintBuffer() = 0;
     CM_RT_API virtual INT CreateSurface2DSubresource(AbstractSurfaceHandle pD3D11Texture2D, UINT subresourceCount, CmSurface2D** ppSurfaces, UINT& createdSurfaceCount, UINT option = 0) = 0;
     CM_RT_API virtual INT CreateSurface2DbySubresourceIndex(AbstractSurfaceHandle pD3D11Texture2D, UINT FirstArraySlice, UINT FirstMipSlice, CmSurface2D* &pSurface) = 0;
+#ifndef CMAPIUPDATE
+    int32_t CreateQueueEx(CmQueue *&pQueue, CM_QUEUE_CREATE_OPTION QueueCreateOption = CM_DEFAULT_QUEUE_CREATE_OPTION) { pQueue = 0;  return 0; }
+#endif
 };
 
 
@@ -2359,9 +2717,18 @@ EXTERN_C CM_RT_API INT CMRT_WaitForEventCallback(CmEvent *pEvent);
 EXTERN_C CM_RT_API INT CMRT_SetEventCallback(CmEvent* pEvent, callback_function function, void* user_data);
 EXTERN_C CM_RT_API INT CMRT_Enqueue(CmQueue* pQueue, CmTask* pTask, CmEvent** pEvent, const CmThreadSpace* pTS = NULL);
 
+#if defined(CM_WIN)
+INT CreateCmDevice(CmDevice* &pD, UINT& version, IDirect3DDeviceManager9 * pD3DDeviceMgr = NULL, UINT mode = CM_DEVICE_CREATE_OPTION_DEFAULT);
+INT CreateCmDevice(CmDevice* &pD, UINT& version, ID3D11Device * pD3D11Device = NULL, UINT mode = CM_DEVICE_CREATE_OPTION_DEFAULT);
+INT CreateCmDeviceEmu(CmDevice* &pDevice, UINT& version, IDirect3DDeviceManager9 * pD3DDeviceMgr = NULL);
+INT CreateCmDeviceEmu(CmDevice* &pDevice, UINT& version, ID3D11Device * pD3D11Device = NULL);
+INT CreateCmDeviceSim(CmDevice* &pDevice, UINT& version, IDirect3DDeviceManager9 * pD3DDeviceMgr = NULL);
+INT CreateCmDeviceSim(CmDevice* &pDevice, UINT& version, ID3D11Device * pD3D11Device = NULL);
+#else //#if defined(CM_WIN)
 INT CreateCmDevice(CmDevice* &pD, UINT& version, VADisplay va_dpy = NULL, UINT mode = CM_DEVICE_CREATE_OPTION_DEFAULT);
 INT CreateCmDeviceEmu(CmDevice* &pDevice, UINT& version, VADisplay va_dpy = NULL);
 INT CreateCmDeviceSim(CmDevice* &pDevice, UINT& version);
+#endif //#if defined(CM_WIN)
 
 INT DestroyCmDevice(CmDevice* &pDevice);
 INT DestroyCmDeviceEmu(CmDevice* &pDevice);
@@ -2375,9 +2742,15 @@ int CreateKernel(CmDevice * device, CmProgram * program, const char * kernelName
 #pragma warning(pop)
 #endif
 
+#if !defined(CM_WIN)
 #undef LONG
 #undef ULONG
+#endif
 
+#endif
+
+#if defined(__INTEL_COMPILER)
+  #pragma warning(pop)
 #endif
 
 #if defined(__clang__)
@@ -2385,5 +2758,7 @@ int CreateKernel(CmDevice * device, CmProgram * program, const char * kernelName
 #elif defined(__GNUC__)
   #pragma GCC diagnostic pop
 #endif
+
+#endif // !defined(OSX)
 
 #endif // __CMRT_CROSS_PLATFORM_H__

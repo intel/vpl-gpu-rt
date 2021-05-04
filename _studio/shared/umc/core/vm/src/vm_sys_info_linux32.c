@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if defined(LINUX32)
 
 #include "vm_sys_info.h"
 #include <unistd.h>
@@ -32,6 +31,3 @@ uint32_t vm_sys_info_get_cpu_num(void)
 #endif
 }
 
-#else
-# pragma warning( disable: 4206 )
-#endif /* LINUX32 */

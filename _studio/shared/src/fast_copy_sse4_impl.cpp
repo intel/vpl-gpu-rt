@@ -21,7 +21,7 @@
 */
 #include "fast_copy_sse4_impl.h"
 
-#if defined(__SSE4_1__) || defined(_WIN32)
+#if defined(__SSE4_1__)
 
 #include <immintrin.h>
 

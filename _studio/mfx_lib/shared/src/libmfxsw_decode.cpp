@@ -28,6 +28,7 @@
 #include <mfx_task.h>
 
 #include <libmfx_core.h>
+#include <functional>
 
 #if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 #include "mfx_vc1_decode.h"
@@ -42,27 +43,23 @@
 #endif
 
 #if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
+#if defined (MFX_VA)
 #include "mfx_mpeg2_decode.h"
+#else
+#include "mfx_mpeg2_decode_internal.h"
+#endif
 #endif
 
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
 #include "mfx_mjpeg_dec_decode.h"
 #endif
 
-#if defined (MFX_ENABLE_VP8_VIDEO_DECODE_HW)
-#include "mfx_vp8_dec_decode_common.h"
-#if defined (MFX_ENABLE_VP8_VIDEO_DECODE_HW)
+#if defined (MFX_ENABLE_VP8_VIDEO_DECODE) && defined (MFX_VA)
 #include "mfx_vp8_dec_decode_hw.h"
-#else
-#include "mfx_vp8_dec_decode.h"
-#endif
 #endif
 
-#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
-#include "mfx_vp9_dec_decode.h"
-#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+#if defined (MFX_ENABLE_VP9_VIDEO_DECODE) && defined (MFX_VA)
 #include "mfx_vp9_dec_decode_hw.h"
-#endif
 #endif
 
 #if defined (MFX_ENABLE_AV1_VIDEO_DECODE)
@@ -72,6 +69,7 @@
 #ifdef MFX_ENABLE_USER_DECODE
 #include "mfx_user_plugin.h"
 #endif
+
 
 template<>
 VideoDECODE* _mfxSession::Create<VideoDECODE>(mfxVideoParam& par)
@@ -114,14 +112,14 @@ VideoDECODE* _mfxSession::Create<VideoDECODE>(mfxVideoParam& par)
         break;
 #endif
 
-#if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
+#if defined (MFX_ENABLE_VP8_VIDEO_DECODE) && defined(MFX_VA)
     case MFX_CODEC_VP8:
         pDECODE = new VideoDECODEVP8_HW(core, &mfxRes);
         break;
-#endif
+#endif // MFX_ENABLE_VP8_VIDEO_DECODE
 
-#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
-     case MFX_CODEC_VP9:
+#if defined(MFX_ENABLE_VP9_VIDEO_DECODE) && defined(MFX_VA)
+    case MFX_CODEC_VP9:
         pDECODE = new VideoDECODEVP9_HW(core, &mfxRes);
         break;
 #endif
@@ -144,6 +142,7 @@ VideoDECODE* _mfxSession::Create<VideoDECODE>(mfxVideoParam& par)
     }
 
     return pDECODE;
+
 }
 
 mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
@@ -163,10 +162,11 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
     }
 #endif
 
-    MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
-    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, in);
-
     mfxStatus mfxRes;
+
+    MFX_AUTO_TRACE("MFXVideoDECODE_Query");
+    ETW_NEW_EVENT(MFX_TRACE_API_DECODE_QUERY_TASK, 0, make_event_data(session, in ? in->mfx.FrameInfo.Width : 0, in ? in->mfx.FrameInfo.Height : 0, in ? in->mfx.CodecId : 0), [&](){ return make_event_data(mfxRes);});
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, in);
 
     try
     {
@@ -211,23 +211,15 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             break;
 #endif
 
-#if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
+#if defined (MFX_ENABLE_VP8_VIDEO_DECODE) && defined(MFX_VA)
         case MFX_CODEC_VP8:
-#if defined (MFX_ENABLE_VP8_VIDEO_DECODE_HW)
             mfxRes = VideoDECODEVP8_HW::Query(session->m_pCORE.get(), in, out);
-#else
-            mfxRes = VideoDECODEVP8::Query(session->m_pCORE.get(), in, out);
-#endif // MFX_VA && MFX_ENABLE_VP8_VIDEO_DECODE_HW
             break;
-#endif
+#endif // MFX_ENABLE_VP8_VIDEO_DECODE
 
-#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+#if defined(MFX_ENABLE_VP9_VIDEO_DECODE) && defined(MFX_VA)
         case MFX_CODEC_VP9:
-#if defined (MFX_ENABLE_VP9_VIDEO_DECODE_HW)
             mfxRes = VideoDECODEVP9_HW::Query(session->m_pCORE.get(), in, out);
-#else
-            mfxRes = VideoDECODEVP9::Query(session->m_pCORE.get(), in, out);
-#endif // MFX_VA && MFX_ENABLE_VP9_VIDEO_DECODE_HW
             break;
 #endif
 
@@ -258,10 +250,12 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
     MFX_CHECK(par, MFX_ERR_NULL_PTR);
     MFX_CHECK(request, MFX_ERR_NULL_PTR);
 
-    MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
+    mfxStatus mfxRes;
+
+    MFX_AUTO_TRACE("MFXVideoDECODE_QueryIOSurf");
+    ETW_NEW_EVENT(MFX_TRACE_API_DECODE_QUERY_IOSURF_TASK, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId), [&](){ return make_event_data(mfxRes);});
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, par);
 
-    mfxStatus mfxRes;
     try
     {
 #ifdef MFX_ENABLE_USER_DECODE
@@ -305,25 +299,17 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             break;
 #endif
 
-#if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
+#if defined (MFX_ENABLE_VP8_VIDEO_DECODE) && defined(MFX_VA)
         case MFX_CODEC_VP8:
-#if defined (MFX_ENABLE_VP8_VIDEO_DECODE_HW)
             mfxRes = VideoDECODEVP8_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
-#else
-            mfxRes = VideoDECODEVP8::QueryIOSurf(session->m_pCORE.get(), par, request);
-#endif // MFX_VA && MFX_ENABLE_VP8_VIDEO_DECODE_HW
             break;
-#endif
+#endif // MFX_ENABLE_VP8_VIDEO_DECODE
 
-#if defined (MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+#if defined (MFX_ENABLE_VP9_VIDEO_DECODE) && defined(MFX_VA)
         case MFX_CODEC_VP9:
-#if defined (MFX_ENABLE_VP9_VIDEO_DECODE_HW)
             mfxRes = VideoDECODEVP9_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
-#else
-            mfxRes = VideoDECODEVP9::QueryIOSurf(session->m_pCORE.get(), par, request);
-#endif // MFX_VA && MFX_ENABLE_VP9_VIDEO_DECODE_HW
             break;
-#endif
+#endif // MFX_ENABLE_VP9_VIDEO_DECODE
 
 #ifdef MFX_ENABLE_AV1_VIDEO_DECODE
         case MFX_CODEC_AV1:
@@ -352,11 +338,13 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
     MFX_CHECK(bs, MFX_ERR_NULL_PTR);
     MFX_CHECK(par, MFX_ERR_NULL_PTR);
 
-    MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
+    mfxStatus mfxRes;
+
+    MFX_AUTO_TRACE("MFXVideoDECODE_DecodeHeader");
+    ETW_NEW_EVENT(MFX_TRACE_API_DECODE_HEADER_TASK, 0, make_event_data(session, bs, bs ? bs->DataLength : 0), [&](){ return make_event_data(mfxRes);});
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, bs);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, par);
 
-    mfxStatus mfxRes;
     try
     {
 #ifdef MFX_ENABLE_USER_DECODE
@@ -402,17 +390,17 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
             break;
 #endif
 
-#if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
+#if defined(MFX_ENABLE_VP8_VIDEO_DECODE) && defined(MFX_VA)
         case MFX_CODEC_VP8:
             mfxRes = VP8DecodeCommon::DecodeHeader(session->m_pCORE.get(), bs, par);
             break;
 #endif
 
-#if defined (MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+#if defined (MFX_ENABLE_VP9_VIDEO_DECODE) && defined(MFX_VA)
         case MFX_CODEC_VP9:
             mfxRes = VideoDECODEVP9_HW::DecodeHeader(session->m_pCORE.get(), bs, par);
             break;
-#endif
+#endif // MFX_ENABLE_VP9_VIDEO_DECODE
 
 #ifdef MFX_ENABLE_AV1_VIDEO_DECODE
         case MFX_CODEC_AV1:
@@ -438,11 +426,13 @@ mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
 {
     mfxStatus mfxRes;
 
-    MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
-    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, par);
-
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(par, MFX_ERR_NULL_PTR);
+
+    MFX_AUTO_TRACE("MFXVideoDECODE_Init");
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, par);
+
+    ETW_NEW_EVENT(MFX_TRACE_API_DECODE_INIT_TASK, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId), [&](){ return make_event_data(mfxRes);});
 
     try
     {
@@ -470,21 +460,23 @@ mfxStatus MFXVideoDECODE_Close(mfxSession session)
 {
     mfxStatus mfxRes = MFX_ERR_NONE;
 
-    MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
-
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pScheduler, MFX_ERR_NOT_INITIALIZED);
 
+    MFX_AUTO_TRACE("MFXVideoDECODE_Close");
+    ETW_NEW_EVENT(MFX_TRACE_API_DECODE_CLOSE_TASK, 0, make_event_data(session), [&](){ return make_event_data(mfxRes);});
+
     try
     {
-        MFX_CHECK(session->m_pDECODE, MFX_ERR_NOT_INITIALIZED);
+        if (!session->m_pDECODE)
+        {
+            return MFX_ERR_NOT_INITIALIZED;
+        }
 
         // wait until all tasks are processed
         session->m_pScheduler->WaitForAllTasksCompletion(session->m_pDECODE.get());
 
         mfxRes = session->m_pDECODE->Close();
-        // delete the codec's instance if not plugin
-        if (!session->m_plgDec)
         {
             session->m_pDECODE.reset(nullptr);
         }
@@ -497,8 +489,6 @@ mfxStatus MFXVideoDECODE_Close(mfxSession session)
     }
 
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
-
-    MFX_CHECK_STS(mfxRes);
     return mfxRes;
 }
 
@@ -506,11 +496,10 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
 {
     mfxStatus mfxRes;
 
-#ifdef MFX_TRACE_ENABLE
-    MFX_AUTO_LTRACE_WITHID(MFX_TRACE_LEVEL_API, "MFX_DecodeFrameAsync");
+    MFX_AUTO_TRACE("DecodeFrameAsync");
+    ETW_NEW_EVENT(MFX_TRACE_API_DECODE_FRAME_ASYNC_TASK, 0, make_event_data(session, surface_work, bs ? bs->DataLength : 0), [&](){ return make_event_data(mfxRes, syncp ? *syncp : nullptr);});
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, bs);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, surface_work);
-#endif
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pScheduler, MFX_ERR_NOT_INITIALIZED);
@@ -546,8 +535,8 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
             task.priority = session->m_priority;
             task.threadingPolicy = session->m_pDECODE->GetThreadingPolicy();
             // fill dependencies
-            task.pSrc[0] = *surface_out;
             task.pDst[0] = *surface_out;
+#if defined(MFX_ENABLE_USER_DECODE)
             // this is wa to remove external task dependency for HEVC SW decode plugin.
             // need only because SW HEVC decode is pseudo
             {
@@ -563,6 +552,7 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
                     }
                 }
             }
+#endif //MFX_ENABLE_USER_DECODE
 
 #ifdef MFX_TRACE_ENABLE
             task.nParentId = MFX_AUTO_TRACE_GETID();
@@ -572,6 +562,12 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
             // register input and call the task
             mfxAddRes = session->m_pScheduler->AddTask(task, &syncPoint);
             MFX_CHECK_STS(mfxAddRes);
+
+            if (syncPoint && *surface_out && (*surface_out)->FrameInterface)
+            {
+                MFX_CHECK_HDL((*surface_out)->FrameInterface->Context);
+                static_cast<mfxFrameSurfaceBaseInterface*>((*surface_out)->FrameInterface->Context)->SetSyncPoint(syncPoint);
+            }
         }
 
         if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
@@ -608,6 +604,130 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
     return mfxRes;
 
 } // mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_dec, mfxFrameSurface1 **surface_disp, mfxSyncPoint *syncp)
+
+
+struct DHandlers {
+    std::function<mfxStatus(VideoCORE&, mfxDecoderDescription::decoder&, mfx::PODArraysHolder&)> QueryImplsDescription;
+};
+typedef std::map<mfxU32, DHandlers> CodecId2Handlers;
+
+mfxStatus QueryImplsDescription(VideoCORE& core, mfxDecoderDescription& caps, mfx::PODArraysHolder& ah)
+{
+    static const CodecId2Handlers codecId2Handlers =
+    {
+    #if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
+        {
+            MFX_CODEC_MPEG2,
+            {
+            // .QueryImplsDescription =
+            [](VideoCORE& core, mfxDecoderDescription::decoder& caps, mfx::PODArraysHolder& ah)
+            {
+                return VideoDECODEMPEG2::QueryImplsDescription(core, caps, ah);
+            }
+            }
+    },
+    #endif
+    #if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
+        {
+            MFX_CODEC_VC1,
+            {
+                // .QueryImplsDescription =
+                [](VideoCORE& core, mfxDecoderDescription::decoder& caps, mfx::PODArraysHolder& ah)
+                {
+                    return MFXVideoDECODEVC1::QueryImplsDescription(core, caps, ah);
+                }
+            }
+        },
+    #endif
+    #if defined (MFX_ENABLE_H264_VIDEO_DECODE)
+        {
+            MFX_CODEC_AVC,
+            {
+                // .QueryImplsDescription =
+                [](VideoCORE& core, mfxDecoderDescription::decoder& caps, mfx::PODArraysHolder& ah)
+                {
+                    return VideoDECODEH264::QueryImplsDescription(core, caps, ah);
+                }
+            }
+        },
+    #endif
+    #if defined (MFX_ENABLE_H265_VIDEO_DECODE)
+        {
+            MFX_CODEC_HEVC,
+            {
+                // .QueryImplsDescription =
+                [](VideoCORE& core, mfxDecoderDescription::decoder& caps, mfx::PODArraysHolder& ah)
+                {
+                    return VideoDECODEH265::QueryImplsDescription(core, caps, ah);
+                }
+            }
+        },
+    #endif
+    #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
+        {
+            MFX_CODEC_JPEG,
+            {
+                // .QueryImplsDescription =
+                [](VideoCORE& core, mfxDecoderDescription::decoder& caps, mfx::PODArraysHolder& ah)
+                {
+                    return VideoDECODEMJPEG::QueryImplsDescription(core, caps, ah);
+                }
+            }
+        },
+    #endif
+    #if defined (MFX_ENABLE_VP8_VIDEO_DECODE) && defined(MFX_VA)
+       {
+           MFX_CODEC_VP8,
+           {
+               // .QueryImplsDescription =
+               [](VideoCORE& core, mfxDecoderDescription::decoder& caps, mfx::PODArraysHolder& ah)
+               {
+                   return VideoDECODEVP8_HW::QueryImplsDescription(core, caps, ah);
+               }
+           }
+       },
+    #endif
+    #if defined (MFX_ENABLE_VP9_VIDEO_DECODE) && defined(MFX_VA)
+       {
+           MFX_CODEC_VP9,
+           {
+               // .QueryImplsDescription =
+               [](VideoCORE& core, mfxDecoderDescription::decoder& caps, mfx::PODArraysHolder& ah)
+               {
+                   return VideoDECODEVP9_HW::QueryImplsDescription(core, caps, ah);
+               }
+           }
+       },
+    #endif
+    #if defined (MFX_ENABLE_AV1_VIDEO_DECODE) && defined(MFX_VA)
+       {
+           MFX_CODEC_AV1,
+           {
+               // .QueryImplsDescription =
+               [](VideoCORE& core, mfxDecoderDescription::decoder& caps, mfx::PODArraysHolder& ah)
+               {
+                   return VideoDECODEAV1::QueryImplsDescription(core, caps, ah);
+               }
+           }
+       },
+    #endif
+    };
+
+    for (auto& c : codecId2Handlers)
+    {
+        if (!c.second.QueryImplsDescription)
+            continue;
+
+        auto& dec = ah.PushBack(caps.Codecs);
+        dec.CodecID = c.first;
+
+        MFX_SAFE_CALL(c.second.QueryImplsDescription(core, dec, ah));
+        ++caps.NumCodecs;
+    }
+
+    return MFX_ERR_NONE;
+}
+
 
 //
 // THE OTHER DECODE FUNCTIONS HAVE IMPLICIT IMPLEMENTATION

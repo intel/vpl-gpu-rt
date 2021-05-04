@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2008-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,11 +23,12 @@
 #if defined(MFX_ENABLE_MPEG2_VIDEO_ENCODE)
 
 #include "assert.h"
-//#include "mfx_mpeg2_enc_ddi_hw.h"
 #include "mfx_enc_common.h"
 #include "mfx_mpeg2_encode_interface.h"
+#include "mfx_mpeg2_enc_common_hw.h"
 
 #include <memory>
+#include <algorithm>
 
 #include "libmfx_core_interface.h"
 #include "libmfx_core_factory.h"
@@ -62,7 +63,6 @@ mfxStatus MfxHwMpeg2Encode::QueryHwCaps(VideoCORE* pCore, ENCODE_CAPS & hwCaps, 
     ddi.reset( CreatePlatformMpeg2Encoder(pCore) );
     if(ddi.get() == NULL)
         return MFX_ERR_NULL_PTR;
-
     mfxStatus sts = ddi->CreateAuxilliaryDevice(codecProfile);
     MFX_CHECK_STS(sts);
     ddi->QueryEncodeCaps(hwCaps);
@@ -75,6 +75,51 @@ mfxStatus MfxHwMpeg2Encode::QueryHwCaps(VideoCORE* pCore, ENCODE_CAPS & hwCaps, 
 //  Execute Buffers
 //-------------------------------------------------------------
 
+#ifdef MFX_UNDOCUMENTED_QUANT_MATRIX
+
+static
+void SetQMParameters(const mfxExtCodingOptionQuantMatrix*  pMatrix,
+                    VAIQMatrixBufferMPEG2 &quantMatrix)
+{
+    memset(&quantMatrix,0, sizeof(quantMatrix));
+
+    bool bNewQmatrix[4] =
+    {
+        pMatrix->bIntraQM && pMatrix->IntraQM[0],
+        pMatrix->bInterQM && pMatrix->InterQM[0],
+        pMatrix->bChromaIntraQM && pMatrix->ChromaIntraQM[0],
+        pMatrix->bChromaInterQM && pMatrix->ChromaInterQM[0]
+    };
+
+    quantMatrix.load_intra_quantiser_matrix = bNewQmatrix[0];
+    quantMatrix.load_non_intra_quantiser_matrix = bNewQmatrix[1];
+    quantMatrix.load_chroma_intra_quantiser_matrix = bNewQmatrix[2];
+    quantMatrix.load_chroma_non_intra_quantiser_matrix = bNewQmatrix[3];
+
+    const mfxU8* pQmatrix[4] = {pMatrix->IntraQM,  pMatrix->InterQM,   pMatrix->ChromaIntraQM, pMatrix->ChromaInterQM};
+    mfxU8 * pDestMatrix[4] =
+    {
+        quantMatrix.intra_quantiser_matrix,
+        quantMatrix.non_intra_quantiser_matrix,
+        quantMatrix.chroma_intra_quantiser_matrix,
+        quantMatrix.chroma_non_intra_quantiser_matrix
+    };
+
+    for (int blk_type = 0; blk_type < 4; blk_type++)
+    {
+        if (bNewQmatrix[blk_type])
+        {
+            for (int i = 0; i < 64; i++)
+            {
+                // note: i-1 would not overflow due to bNewMatrix definition
+                pDestMatrix[blk_type][i] = pQmatrix[blk_type][i] ? pQmatrix[blk_type][i] : pDestMatrix[blk_type][i-1];
+            }
+        }
+    }
+
+}
+
+#endif // MFX_UNDOCUMENTED_QUANT_MATRIX
 
 mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, bool bAllowBRC)
 {
@@ -85,10 +130,13 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
     memset(&m_sps,  0, sizeof(m_sps));
     memset(&m_pps,  0, sizeof(m_pps));
 
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+    m_bTriggerGpuHang = false;
+#endif
     m_bOutOfRangeMV = false;
     m_bErrMBType    = false;
     m_bUseRawFrames = par->bRawFrames;
-    m_fFrameRate = (double) par->mfxVideoParams.mfx.FrameInfo.FrameRateExtN/(double)par->mfxVideoParams.mfx.FrameInfo.FrameRateExtD;
+    m_fFrameRate = (Ipp64f) par->mfxVideoParams.mfx.FrameInfo.FrameRateExtN/(Ipp64f)par->mfxVideoParams.mfx.FrameInfo.FrameRateExtD;
 
     m_FrameRateExtN = par->mfxVideoParams.mfx.FrameInfo.FrameRateExtN;
     m_FrameRateExtD = par->mfxVideoParams.mfx.FrameInfo.FrameRateExtD;
@@ -128,10 +176,6 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
     m_bAddSPS = 1;
 
     m_bAddDisplayExt = par->bAddDisplayExt;
-    if (m_bAddDisplayExt)
-    {
-        m_VideoSignalInfo = par->videoSignalInfo;
-    }
 
     if (funcId == ENCODE_ENC_ID)
     {
@@ -209,6 +253,27 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
         m_sps.AVBRConvergence = par->mfxVideoParams.mfx.Convergence;
     }
 
+    if (m_bAddDisplayExt)
+    {
+        m_vui.video_format = par->videoSignalInfo.VideoFormat;
+        m_vui.colour_description = par->videoSignalInfo.ColourDescriptionPresent;
+        if (par->videoSignalInfo.ColourDescriptionPresent)
+        {
+            m_vui.colour_primaries = par->videoSignalInfo.ColourPrimaries;
+            m_vui.transfer_characteristics = par->videoSignalInfo.TransferCharacteristics;
+            m_vui.matrix_coefficients = par->videoSignalInfo.MatrixCoefficients;
+        }
+        else
+        {
+            m_vui.colour_primaries = 0;
+            m_vui.transfer_characteristics = 0;
+            m_vui.matrix_coefficients = 0;
+        }
+
+        m_vui.display_horizontal_size = m_sps.FrameWidth;
+        m_vui.display_vertical_size = m_sps.FrameHeight;
+    }
+
     if (par->bMbqpMode)
     {
         mfxU32 wMB = (par->mfxVideoParams.mfx.FrameInfo.CropW + 15) / 16;
@@ -250,6 +315,9 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
     InitFramesSet(0, 0, 0, 0, 0);
 
 
+#ifdef MFX_UNDOCUMENTED_QUANT_MATRIX
+    SetQMParameters(&par->sQuantMatrix,m_quantMatrix);
+#endif
 
     m_encrypt.Init(par, funcId);
 
@@ -375,7 +443,7 @@ mfxStatus ExecuteBuffers::InitPictureParameters(mfxFrameParamMPEG2*  pParams, mf
         mfxI32 num = 0;
         mfxI32 fps = 0, pict = 0, sec = 0, minute = 0, hour = 0;
         num = frameNum;
-        fps = (int32_t)(m_fFrameRate + 0.5);
+        fps = (Ipp32s)(m_fFrameRate + 0.5);
         pict = num % fps;
         num = (num - pict) / fps;
         sec = num % 60;
@@ -408,13 +476,14 @@ void ExecuteBuffers::InitFramesSet(mfxMemId curr, bool bExternal, mfxMemId rec, 
 
     m_CurrFrameMemID        = curr;
     m_bExternalCurrFrame    = bExternal;
+    m_bExternalCurrFrameHDL = false;
     m_RecFrameMemID         = rec;
     m_RefFrameMemID[0]      = ref_0;
     m_RefFrameMemID[1]      = ref_1;
 
 }
 
-static int32_t QuantToScaleCode(int32_t quant_value, int32_t q_scale_type)
+static Ipp32s QuantToScaleCode(Ipp32s quant_value, Ipp32s q_scale_type)
 {
     if (q_scale_type == 0)
     {
@@ -447,7 +516,7 @@ mfxStatus ExecuteBuffers::InitSliceParameters(mfxU8 qp, mfxU16 scale_type, mfxU8
     {
         for (mfxU32 i = 0; i < numMB; i++)
         {
-            m_mbqp_data[i] = (uint8_t)QuantToScaleCode(mbqp[i], scale_type);
+            m_mbqp_data[i] = (Ipp8u)QuantToScaleCode(mbqp[i], scale_type);
         }
     }
 
@@ -465,7 +534,6 @@ mfxStatus ExecuteBuffers::InitSliceParameters(mfxU8 qp, mfxU16 scale_type, mfxU8
     return MFX_ERR_NONE;
 
 } // mfxStatus ExecuteBuffers::InitSliceParameters
-
 
 //depreciated functions
 namespace MfxHwMpeg2Encode
@@ -496,7 +564,7 @@ namespace MfxHwMpeg2Encode
         mfxF64    new_fr = (mfxF64)FrameRateExtN/(mfxF64)FrameRateExtD;
         mfxI32    i=0, j=0, besti=0, bestj=0;
         mfxF64    ratio=0.0, bestratio = 1.5;
-        mfxI32    fr1001 = (int32_t)(new_fr*1001+.5);
+        mfxI32    fr1001 = (Ipp32s)(new_fr*1001+.5);
 
         frame_rate_code = 5;
         frame_rate_extension_n = 0;
@@ -504,7 +572,7 @@ namespace MfxHwMpeg2Encode
 
         for(j=0;j<rtsize;j++)
         {
-            int32_t try1001 = (int32_t)(ratetab[j]*1001+.5);
+            Ipp32s try1001 = (Ipp32s)(ratetab[j]*1001+.5);
             if(fr1001 == try1001)
             {
                 frame_rate_code = j+1;

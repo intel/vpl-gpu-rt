@@ -38,6 +38,7 @@ enum eFeatureMode
     , QUERY_IO_SURF = (1 << 2)
     , INIT          = (1 << 3)
     , RUNTIME       = (1 << 4)
+    , QUERY_IMPLS_DESCRIPTION = (1 << 5)
 };
 
 enum eReorderLoc

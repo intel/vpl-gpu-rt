@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2004-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,14 +22,19 @@
 
 #if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 #if defined(__GNUC__)
-    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#if defined(__INTEL_COMPILER)
+#pragma warning (disable:1478)
+#else
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
+#endif
+
+#include "ippcore.h"
 
 #include "umc_vc1_dec_seq.h"
 #include "umc_vc1_common_defs.h"
 #include "umc_vc1_common.h"
 #include "umc_structures.h"
-
 
 using namespace UMC;
 using namespace UMC::VC1Common;
@@ -358,6 +363,31 @@ VC1Status GetNextPicHeader(VC1Context* pContext, bool isExtHeader)
     return vc1Sts;
 }
 
+#ifdef _OWN_FUNCTION
+//range map
+void _own_ippiRangeMap_VC1_8u_C1R(uint8_t* pSrc, int32_t srcStep,
+                                  uint8_t* pDst, int32_t dstStep,
+                                  mfxSize roiSize,
+                                  int32_t rangeMapParam)
+{
+    int32_t i=0;
+    int32_t j=0;
+    int32_t temp;
+
+    for (i = 0; i < roiSize.height; i++)
+    {
+        for (j = 0; j < roiSize.width; j++)
+        {
+            temp = pSrc[i*srcStep+j];
+
+            temp = (temp - 128)*(rangeMapParam+9)+4;
+            temp = temp>>3;
+            temp = temp+128;
+            pDst[i*dstStep+j] = mfx::byte_clamp(temp);
+         }
+    }
+}
+#endif
 
 //frame rate calculation
 void MapFrameRateIntoMfx(uint32_t& ENR, uint32_t& EDR, uint16_t FCode)
@@ -495,10 +525,6 @@ double MapFrameRateIntoUMC(uint32_t ENR,uint32_t EDR, uint32_t& FCode)
     return frate;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 VC1Status MVRangeDecode(VC1Context* pContext)
 {
     VC1PictureLayerHeader* picLayerHeader = pContext->m_picLayerHeader;
@@ -528,7 +554,7 @@ VC1Status MVRangeDecode(VC1Context* pContext)
     {
         picLayerHeader->MVRANGE = 0;
     }
-    
+
     return VC1_OK;
 }
 

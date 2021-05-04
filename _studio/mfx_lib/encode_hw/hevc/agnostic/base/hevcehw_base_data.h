@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,9 @@
 #include "ehw_resources_pool.h"
 #include "ehw_device.h"
 #include <vector>
+#if defined(MFX_ENABLE_LP_LOOKAHEAD) || defined (MFX_ENABLE_ENCTOOLS_LPLA)
+#include "mfx_lp_lookahead.h"
+#endif
 
 namespace HEVCEHW
 {
@@ -490,7 +493,7 @@ namespace Base
         mfxI8  beta_offset_div2 : 4;
         mfxI8  tc_offset_div2   : 4;
 
-        //ScalingListData* sld;
+        ScalingList sld;
 
         mfxU16 log2_parallel_merge_level_minus2;
 
@@ -755,6 +758,16 @@ namespace Base
         , REC_READY = 2
     };
 
+    struct mfxLastKeyFrameInfo {
+        mfxU32              lastIDROrder;
+        mfxU32              lastIPOrder;
+        mfxI32              lastIPoc;
+    };
+
+    struct mfxGopHints {
+        mfxU32              MiniGopSize = 0;
+    };
+
     struct TaskCommonPar
         : DpbFrame
     {
@@ -772,6 +785,10 @@ namespace Base
         Resource            CUQP;
         mfxHDLPair          HDLRaw              = {};
         bool                bCUQPMap            = false;
+#if defined(MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA)
+        mfxLplastatus       LplaStatus          = {};
+#endif
+        mfxGopHints         GopHints            = {};
         bool                bForceSync          = false;
         bool                bSkip               = false;
         bool                bResetBRC           = false;
@@ -779,7 +796,7 @@ namespace Base
         bool                bRecode             = false;
         bool                bForceLongStartCode = false;
         IntraRefreshState   IRState             = {};
-        mfxI32              PrevIPoc            = -1;
+        mfxLastKeyFrameInfo LastKeyFrameInfo    = {};
         mfxI32              PrevRAP             = -1;
         mfxU16              NumRecode           = 0;
         mfxI8               QpY                 = 0;
@@ -900,6 +917,7 @@ namespace Base
         PackedData VPS;
         PackedData SPS;
         PackedData PPS;
+        PackedData CqmPPS;
         PackedData AUD[3];
         PackedData PrefixSEI;
         PackedData SuffixSEI;
@@ -1172,13 +1190,15 @@ namespace Base
             mfxU16 // FrameType
             , const Defaults::Param&
             , mfxU32//DisplayOrder
-            , mfxU32>; //LastIDR
+            , mfxGopHints //adaptive GOP hints
+            , mfxLastKeyFrameInfo>; //LastIDR & LastIP
         TGetFrameType GetFrameType;
 
         using TGetPLayer = CallChain<
             mfxU8 //layer
             , const Defaults::Param&
-            , mfxU32>; //order
+            , mfxU32 //order
+            , mfxGopHints>; //adaptive GOP hints
         TGetPLayer GetPLayer;
         using TGetTId = TGetPLayer;
         TGetTId GetTId;
@@ -1233,9 +1253,10 @@ namespace Base
             , FrameBaseInfo&
             , const mfxFrameSurface1*   //pSurfIn
             , const mfxEncodeCtrl*      //pCtrl
-            , mfxU32                    //prevIDROrder
-            , mfxI32                    //prevIPOC
-            , mfxU32>;                  //frameOrder
+            , mfxLastKeyFrameInfo       //prevIDROrder & prevIPOC & prevIPOrder
+            , mfxU32                    //frameOrder
+            , mfxGopHints>;              //adaptive GOP hints
+
         TGetPreReorderInfo GetPreReorderInfo; // fill all info available at pre-reorder
 
         using TGetFrameNumRefActive = CallChain<
@@ -1344,7 +1365,12 @@ namespace Base
         , FEATURE_QMATRIX
         , FEATURE_UNITS_INFO
         , FEATURE_FEI
+        , FEATURE_LPLA_ANALYSIS
+        , FEATURE_LPLA_ENCODE
         , FEATURE_RECON_INFO
+        , FEATURE_LPLA_STATUS
+        , FEATURE_QUERY_IMPL_DESC
+        , FEATURE_ENCTOOLS
         , NUM_FEATURES
     };
 
@@ -1358,11 +1384,6 @@ namespace Base
         , NUM_STAGES
     };
 
-    struct PriorityParam
-    {
-        mfxU32        m_MaxContextPriority;
-    };
-
     struct Glob
     {
         static const StorageR::TKey _KD = __LINE__ + 1;
@@ -1374,12 +1395,14 @@ namespace Base
         using VPS                 = StorageVar<__LINE__ - _KD, Base::VPS>;
         using SPS                 = StorageVar<__LINE__ - _KD, Base::SPS>;
         using PPS                 = StorageVar<__LINE__ - _KD, Base::PPS>;
+        using CqmPPS              = StorageVar<__LINE__ - _KD, Base::PPS>;
         using SliceInfo           = StorageVar<__LINE__ - _KD, std::vector<Base::SliceInfo>>;
         using AllocRaw            = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocOpq            = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocRec            = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocBS             = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocMBQP           = StorageVar<__LINE__ - _KD, IAllocation>;
+        using AllocWrap           = StorageVar<__LINE__ - _KD, IAllocation>;
         using PackedHeaders       = StorageVar<__LINE__ - _KD, Base::PackedHeaders>;
         using DDI_Resources       = StorageVar<__LINE__ - _KD, std::list<DDIExecParam>>;
         using DDI_SubmitParam     = StorageVar<__LINE__ - _KD, std::list<DDIExecParam>>;
@@ -1395,8 +1418,9 @@ namespace Base
         using PackPpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::PPS&, mfxU8, IBsWriter&)>>;
         using GuidToVa            = StorageVar<__LINE__ - _KD, std::map<::GUID, VAGUID, LessGUID>>;
         using Defaults            = StorageVar<__LINE__ - _KD, Base::Defaults>;
-        using PriorityPar         = StorageVar<__LINE__ - _KD, Base::PriorityParam>;
         static const StorageR::TKey ReservedKey0 = __LINE__ - _KD;
+        static const StorageR::TKey BasePackerKey = __LINE__ - _KD;
+        static const StorageR::TKey TaskManagerKey = __LINE__ - _KD;
         static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;
     };
 

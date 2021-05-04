@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2012-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,7 +28,6 @@
 
 #include "umc_h265_debug.h"
 
-
 //#define ECHO
 //#define ECHO_DEB
 
@@ -42,6 +41,135 @@ namespace UMC_HEVC_DECODER
 H265Slice* FindSliceByCUAddr(H265DecoderFrameInfo * info, int32_t firstCUToProcess);
 TileThreadingInfo * FindTileForProcess(H265DecoderFrameInfo * info, int32_t taskID, bool isDecRec = false);
 
+#if defined ECHO
+const vm_char * GetTaskString(H265Task * task)
+{
+    const vm_char * taskIdStr;
+    switch(task->m_iTaskID)
+    {
+    case TASK_SAO_H265:
+        taskIdStr = VM_STRING("SAO");
+        break;
+    case TASK_DEB_H265:
+        taskIdStr = VM_STRING("deb");
+        break;
+    case TASK_DEC_H265:
+        taskIdStr = VM_STRING("dec");
+        break;
+    case TASK_REC_H265:
+        taskIdStr = VM_STRING("rec");
+        break;
+    case TASK_DEC_REC_H265:
+        taskIdStr = VM_STRING("dec rec");
+        break;
+    case TASK_PROCESS_H265:
+        taskIdStr = VM_STRING("slice");
+        break;
+
+    default:
+        taskIdStr = VM_STRING("unknown task id");
+        break;
+    }
+
+    return taskIdStr;
+}
+
+bool filterPrinting(H265Task * task, H265DecoderFrameInfo* info)
+{
+    if (task->m_pSlice)
+    {
+        if (task->m_pSlice->GetCurrentFrame()->m_UID != 26)
+            return false;
+    }
+    return true;
+}
+
+inline void PrintTask(H265Task * task)
+{
+    H265DecoderFrameInfo* info = task->m_pSlicesInfo;
+    if (!filterPrinting(task, info))
+        return;
+
+    const vm_char * taskIdStr = GetTaskString(task);
+
+#ifndef ECHO_DEB
+    if (task->m_iTaskID == TASK_DEB_H265 || task->m_iTaskID == TASK_SAO_H265)
+        return ;
+#endif
+
+    if (info)
+        DEBUG_PRINT((VM_STRING("(thr - %d) (poc - %d) (uid - %d) %s - % 4d to % 4d\n"), task->m_iThreadNumber, info->m_pFrame->m_PicOrderCnt, info->m_pFrame->m_UID, taskIdStr, task->m_iFirstMB, task->m_iFirstMB + task->m_iMBToProcess));
+    else
+        DEBUG_PRINT((VM_STRING("(thr - %d) %s - % 4d to % 4d\n"), task->m_iThreadNumber, taskIdStr, task->m_iFirstMB, task->m_iFirstMB + task->m_iMBToProcess));
+}
+
+inline void PrintTaskDone(H265Task * task, H265DecoderFrameInfo* info)
+{
+    if (!filterPrinting(task, info))
+        return;
+
+    const vm_char * taskIdStr = GetTaskString(task);
+
+    DEBUG_PRINT((VM_STRING("(thr - %d) (poc - %d) (uid - %d) %s done % 4d to % 4d - error - %d\n"), task->m_iThreadNumber, info->m_pFrame->m_PicOrderCnt, info->m_pFrame->m_UID,
+        taskIdStr, task->m_iFirstMB, task->m_iFirstMB + task->m_iMBToProcess, task->m_bError));
+}
+
+inline void PrintTaskDoneAdditional(H265Task * task, H265DecoderFrameInfo* info)
+{
+    if (!filterPrinting(task, info))
+        return;
+
+    const vm_char * taskIdStr = GetTaskString(task);
+
+    int32_t readyIndex = DEC_PROCESS_ID;
+    switch(task->m_iTaskID)
+    {
+    case TASK_DEC_H265:
+        readyIndex = DEC_PROCESS_ID;
+        break;
+    case TASK_REC_H265:
+        readyIndex = REC_PROCESS_ID;
+        break;
+    case TASK_DEB_H265:
+        readyIndex = DEB_PROCESS_ID;
+        break;
+    case TASK_SAO_H265:
+        readyIndex = SAO_PROCESS_ID;
+        break;
+    }
+
+    if (task->m_pSlicesInfo->m_hasTiles)
+    {
+        DEBUG_PRINT((VM_STRING("(%d) (poc - %d) (uid - %d) %s ready %d\n"), task->m_iThreadNumber, info->m_pFrame->m_PicOrderCnt, info->m_pFrame->m_UID, taskIdStr, task->m_pSlicesInfo->m_curCUToProcess[readyIndex]));
+    }
+    else
+    {
+        if (task->m_iTaskID == TASK_SAO_H265)
+            DEBUG_PRINT((VM_STRING("(%d) (poc - %d) (uid - %d) %s ready %d\n"), task->m_iThreadNumber, info->m_pFrame->m_PicOrderCnt, info->m_pFrame->m_UID, taskIdStr, info->m_curCUToProcess[SAO_PROCESS_ID]));
+        else
+            DEBUG_PRINT((VM_STRING("(%d) (poc - %d) (uid - %d) %s ready %d\n"), task->m_iThreadNumber, info->m_pFrame->m_PicOrderCnt, info->m_pFrame->m_UID, taskIdStr, task->m_pSlice->processInfo.m_curCUToProcess[readyIndex]));
+    }
+}
+
+void PrintInfoStatus(H265DecoderFrameInfo * info)
+{
+    if (!info)
+        return;
+
+    printf("status - %d\n", info->GetStatus());
+    for (uint32_t i = 0; i < info->GetSliceCount(); i++)
+    {
+        printf("slice - %u\n", i);
+        H265Slice * pSlice = info->GetSlice(i);
+        printf("POC - %d, \n", info->m_pFrame->m_PicOrderCnt);
+        printf("cur to dec - %d\n", pSlice->processInfo.m_curCUToProcess[DEC_PROCESS_ID]);
+        printf("cur to rec - %d\n", pSlice->processInfo.m_curCUToProcess[REC_PROCESS_ID]);
+        printf("cur to deb - %d\n", pSlice->processInfo.m_curCUToProcess[DEB_PROCESS_ID]);
+        printf("dec, rec, deb vacant - %d, %d, %d\n", pSlice->processInfo.m_processInProgress[DEC_PROCESS_ID], pSlice->processInfo.m_processInProgress[REC_PROCESS_ID], pSlice->processInfo.m_processInProgress[DEB_PROCESS_ID]);
+        fflush(stdout);
+    }
+}
+#endif
 
 TaskBroker_H265::TaskBroker_H265(TaskSupplier_H265 * pTaskSupplier)
     : m_pTaskSupplier(pTaskSupplier)
@@ -126,6 +254,18 @@ bool TaskBroker_H265::AddFrameToDecoding(H265DecoderFrame * frame)
 
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
+#ifdef VM_DEBUG
+    FrameQueue::iterator iter = m_decodingQueue.begin();
+    FrameQueue::iterator end_iter = m_decodingQueue.end();
+
+    for (; iter != end_iter; ++iter)
+    {
+        if ((*iter) == frame)
+        {
+            VM_ASSERT(false);
+        }
+    }
+#endif
 
     m_decodingQueue.push_back(frame);
     frame->StartDecoding();
@@ -385,10 +525,11 @@ bool TaskBroker_H265::IsFrameCompleted(H265DecoderFrame * pFrame) const
 // Tries to find a new task for asynchronous processing
 bool TaskBroker_H265::GetNextTask(H265Task *pTask)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
-
-
     bool res = GetNextTaskInternal(pTask);
+#ifdef ECHO
+    if (res)
+        PrintTask(pTask);
+#endif // ECHO
 
     return res;
 } // bool TaskBroker_H265::GetNextTask(H265Task *pTask)
@@ -434,7 +575,6 @@ bool TaskBroker_H265::IsExistTasks(H265DecoderFrame * frame)
 
     return Check_Status(slicesInfo->GetStatus());
 }
-
 
 } // namespace UMC_HEVC_DECODER
 #endif // MFX_ENABLE_H265_VIDEO_DECODE

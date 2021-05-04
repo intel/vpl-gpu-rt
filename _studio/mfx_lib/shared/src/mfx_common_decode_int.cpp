@@ -6,10 +6,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,6 +23,8 @@
 
 #include "umc_va_base.h"
 #include "umc_defs.h"
+#include "umc_video_data.h"
+#include "umc_video_decoder.h"
 
 MFXMediaDataAdapter::MFXMediaDataAdapter(mfxBitstream *pBitstream)
 {
@@ -122,10 +124,10 @@ mfxStatus ConvertUMCStatusToMfx(UMC::Status status)
 void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoStreamInfo *umcVideoParams)
 {
     umcVideoParams->clip_info.height = par->mfx.FrameInfo.Height;
-    umcVideoParams->clip_info.width = par->mfx.FrameInfo.Width;
+    umcVideoParams->clip_info.width  = par->mfx.FrameInfo.Width;
 
     umcVideoParams->disp_clip_info.height = umcVideoParams->clip_info.height;
-    umcVideoParams->disp_clip_info.width = umcVideoParams->clip_info.width;
+    umcVideoParams->disp_clip_info.width  = umcVideoParams->clip_info.width;
 
     if(par->mfx.CodecId == MFX_CODEC_JPEG && (MFX_ROTATION_90 == par->mfx.Rotation || MFX_ROTATION_270 == par->mfx.Rotation))
     {
@@ -142,6 +144,7 @@ void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoStreamInfo *umcVi
     if (par->mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_TFF)
         umcVideoParams->interlace_type = UMC::INTERLEAVED_TOP_FIELD_FIRST;
 
+    umcVideoParams->stream_type = UMC::UNDEF_VIDEO;
     switch (par->mfx.CodecId)
     {
         case MFX_CODEC_AVC:   umcVideoParams->stream_type = UMC::H264_VIDEO;  break;
@@ -154,7 +157,7 @@ void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoStreamInfo *umcVi
     }
     umcVideoParams->stream_subtype = UMC::UNDEF_VIDEO_SUBTYPE;
 
-    umcVideoParams->framerate = (par->mfx.FrameInfo.FrameRateExtN && par->mfx.FrameInfo.FrameRateExtD)? (double)par->mfx.FrameInfo.FrameRateExtN / par->mfx.FrameInfo.FrameRateExtD: 0;
+    umcVideoParams->framerate = (par->mfx.FrameInfo.FrameRateExtN && par->mfx.FrameInfo.FrameRateExtD)? (Ipp64f)par->mfx.FrameInfo.FrameRateExtN / par->mfx.FrameInfo.FrameRateExtD: 0;
 
     umcVideoParams->profile = ExtractProfile(par->mfx.CodecProfile);
     umcVideoParams->level = par->mfx.CodecLevel;
@@ -166,18 +169,22 @@ void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoDecoderParams *um
 
     umcVideoParams->numThreads = par->mfx.NumThread;
 
-    switch(par->mfx.TimeStampCalc)
+    // TimeStampCalc is present only in Decoding Options union, not in JPEG Decoding Options union
+    if (par->mfx.CodecId != MFX_CODEC_JPEG)
     {
-    case MFX_TIMESTAMPCALC_TELECINE:
-        umcVideoParams->lFlags |= UMC::FLAG_VDEC_TELECINE_PTS;
-        break;
+        switch(par->mfx.TimeStampCalc)
+        {
+        case MFX_TIMESTAMPCALC_TELECINE:
+            umcVideoParams->lFlags |= UMC::FLAG_VDEC_TELECINE_PTS;
+            break;
 
-    case MFX_TIMESTAMPCALC_UNKNOWN:
-        break;
+        case MFX_TIMESTAMPCALC_UNKNOWN:
+            break;
 
-    default:
-        VM_ASSERT(false);
-        break;
+        default:
+            VM_ASSERT(false);
+            break;
+        }
     }
 }
 
@@ -234,7 +241,6 @@ mfxU32 ConvertUMCColorFormatToFOURCC(UMC::ColorFormat format)
     switch (format)
     {
         case UMC::NV12:    return MFX_FOURCC_NV12;
-        case UMC::AYUV:    return MFX_FOURCC_AYUV;
         case UMC::RGB32:   return MFX_FOURCC_RGB4;
         case UMC::RGB24:   return MFX_FOURCC_RGB3;
         case UMC::YUY2:    return MFX_FOURCC_YUY2;
@@ -250,7 +256,7 @@ mfxU32 ConvertUMCColorFormatToFOURCC(UMC::ColorFormat format)
         case UMC::Y216:    return MFX_FOURCC_Y216;
         case UMC::Y416:    return MFX_FOURCC_Y416;
 #endif
-        case UMC::YUV444A: return MFX_FOURCC_AYUV;
+        case UMC::YUV444A: case UMC::AYUV: return MFX_FOURCC_AYUV;
         case UMC::IMC3:    return MFX_FOURCC_IMC3;
         case UMC::YUV411:  return MFX_FOURCC_YUV411;
         case UMC::YUV444:  return MFX_FOURCC_YUV444;
@@ -288,8 +294,8 @@ void ConvertUMCParamsToMFX(UMC::VideoStreamInfo const* si, mfxVideoParam* par)
     par->mfx.CodecProfile = mfxU16(si->profile);
     par->mfx.CodecLevel   = mfxU16(si->level);
 
-    par->mfx.FrameInfo.Height = mfx::align2_value(si->clip_info.height, 16);
-    par->mfx.FrameInfo.Width  = mfx::align2_value(si->clip_info.width,  16);
+    par->mfx.FrameInfo.Height = mfx::align2_value(mfxU16(si->clip_info.height), 16);
+    par->mfx.FrameInfo.Width  = mfx::align2_value(mfxU16(si->clip_info.width),  16);
 
     par->mfx.FrameInfo.CropX  = par->mfx.FrameInfo.CropY = 0;
     par->mfx.FrameInfo.CropH  = mfxU16(si->disp_clip_info.height);
@@ -367,7 +373,6 @@ mfxU16 FourCcBitDepth(mfxU32 fourCC)
     case MFX_FOURCC_NV16:
     case MFX_FOURCC_YUY2:
     case MFX_FOURCC_AYUV:
-    case MFX_FOURCC_UYVY:
         bitDepth = 8;
         break;
 

@@ -1,22 +1,29 @@
-# Copyright (c) 2017-2020 Intel Corporation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+##******************************************************************************
+##  Copyright(C) 2012-2020 Intel Corporation. All Rights Reserved.
+##
+##  The source code, information  and  material ("Material") contained herein is
+##  owned  by Intel Corporation or its suppliers or licensors, and title to such
+##  Material remains  with Intel Corporation  or its suppliers or licensors. The
+##  Material  contains proprietary information  of  Intel or  its  suppliers and
+##  licensors. The  Material is protected by worldwide copyright laws and treaty
+##  provisions. No  part  of  the  Material  may  be  used,  copied, reproduced,
+##  modified, published, uploaded, posted, transmitted, distributed or disclosed
+##  in any way  without Intel's  prior  express written  permission. No  license
+##  under  any patent, copyright  or  other intellectual property rights  in the
+##  Material  is  granted  to  or  conferred  upon  you,  either  expressly,  by
+##  implication, inducement,  estoppel or  otherwise.  Any  license  under  such
+##  intellectual  property  rights must  be express  and  approved  by  Intel in
+##  writing.
+##
+##  *Third Party trademarks are the property of their respective owners.
+##
+##  Unless otherwise  agreed  by Intel  in writing, you may not remove  or alter
+##  this  notice or  any other notice embedded  in Materials by Intel or Intel's
+##  suppliers or licensors in any way.
+##
+##******************************************************************************
+##  Content: Intel(R) Media SDK projects creation and build
+##******************************************************************************
 
 set_property( GLOBAL PROPERTY USE_FOLDERS ON )
 
@@ -25,9 +32,20 @@ set( CMAKE_INSTALL_RPATH "" )
 set( CMAKE_BUILD_WITH_INSTALL_RPATH TRUE )
 set( CMAKE_SKIP_BUILD_RPATH TRUE )
 
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+
 collect_oses()
 
-if( Linux OR Darwin )
+add_library(mfx_common_properties INTERFACE)
+target_link_libraries(mfx_common_properties
+  INTERFACE ${MFX_API_TARGET}
+)
+
+if( Linux )
   # If user did not override CMAKE_INSTALL_PREFIX, then set the default prefix
   # to /opt/intel/mediasdk instead of cmake's default
   if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
@@ -35,80 +53,96 @@ if( Linux OR Darwin )
   endif()
 
   include( GNUInstallDirs )
-  set( common_flags "${common_flags} -DUNIX")
-  if( Linux )
-    set( common_flags "${common_flags} -D__USE_LARGEFILE64" )
-    set( common_flags "${common_flags} -D_FILE_OFFSET_BITS=64" )
 
-    set( common_flags "${common_flags} -DLINUX" )
-    set( common_flags "${common_flags} -DLINUX32" )
+  target_compile_definitions(mfx_common_properties
+    INTERFACE
+      __USE_LARGEFILE64
+      _FILE_OFFSET_BITS=64
+      LINUX
+      LINUX32
+      $<$<EQUAL:${CMAKE_SIZEOF_VOID_P},8>:LINUX64>
+  )
 
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-      set( common_flags "${common_flags} -DLINUX64" )
-    endif()
-  endif()
+  execute_process(
+    COMMAND echo
+    COMMAND cut -f 1 -d.
+    COMMAND date "+.%-y.%-m.%-d"
+    OUTPUT_VARIABLE cur_date
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
 
-  if( Darwin )
-    set( common_flags "${common_flags} -DOSX" )
-    set( common_flags "${common_flags} -DOSX32" )
+  string( SUBSTRING ${MEDIA_VERSION_STR} 0 1 ver )
 
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-      set( common_flags "${common_flags} -DOSX64" )
-    endif()
-  endif()
+  set( git_commit "" )
+  git_describe( git_commit )
 
-  if (CMAKE_C_COMPILER MATCHES icc)
-    set(no_warnings "-Wno-deprecated -Wno-unknown-pragmas -Wno-unused")
+  target_compile_definitions(mfx_common_properties
+    INTERFACE
+      MSDK_BUILD=\"$ENV{BUILD_NUMBER}\"
+  )
+
+  if (CMAKE_C_COMPILER_ID MATCHES Intel)
+    set(no_warnings "-Wno-deprecated -Wno-unknown-pragmas -Wno-unused -wd2304")
   else()
     set(no_warnings "-Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-unused")
   endif()
- 
-  set(c_warnings "-Wall -Wformat -Wformat-security")
-  set(cxx_warnings "${c_warnings} -Wnon-virtual-dtor")
 
-  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -pipe -fPIC ${c_warnings} ${no_warnings} ${common_flags}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fPIC ${cxx_warnings} ${no_warnings} ${common_flags}")
-  append("-fPIE -pie" CMAKE_EXE_LINKER_FLAGS)
+# set(c_warnings "-Wall -Wformat -Wformat-security")
+# set(cxx_warnings "${c_warnings} -Wnon-virtual-dtor")
 
-  # CACHE + FORCE should be used only here to make sure that this parameters applied globally
-  # End user is responsible to adjust configuration parameters further if needed. Here
-  # we se only minimal parameters which are really required for the proper configuration build.
-  set(CMAKE_C_FLAGS_DEBUG     "${CMAKE_C_FLAGS_DEBUG} -D_DEBUG"   CACHE STRING "" FORCE)
-  set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}"          CACHE STRING "" FORCE)
-  set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG" CACHE STRING "" FORCE)
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}"        CACHE STRING "" FORCE)
+# set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -pipe -fPIC ${c_warnings} ${no_warnings}")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fPIC ${cxx_warnings} ${no_warnings}")
+# append("-fPIE -pie" CMAKE_EXE_LINKER_FLAGS)
 
-  if ( Darwin )
-    if (CMAKE_C_COMPILER MATCHES clang)
-       set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -v -std=c++11 -stdlib=libc++ ${common_flags}")
-    endif()
-  endif()
+  set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
+  set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
+  set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE})
 
-  if (DEFINED CMAKE_FIND_ROOT_PATH)
-#    append("--sysroot=${CMAKE_FIND_ROOT_PATH} " CMAKE_C_FLAGS)
-#    append("--sysroot=${CMAKE_FIND_ROOT_PATH} " CMAKE_CXX_FLAGS)
-    append("--sysroot=${CMAKE_FIND_ROOT_PATH} " LINK_FLAGS)
-  endif (DEFINED CMAKE_FIND_ROOT_PATH)
-
-  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    append("-m64 -g" CMAKE_C_FLAGS)
-    append("-m64 -g" CMAKE_CXX_FLAGS)
-    append("-m64 -g" LINK_FLAGS)
-  else ()
-    append("-m32 -g" CMAKE_C_FLAGS)
-    append("-m32 -g" CMAKE_CXX_FLAGS)
-    append("-m32 -g" LINK_FLAGS)
-  endif()
-
-  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    link_directories(/usr/lib64)
-  else()
-    link_directories(/usr/lib)
-  endif()
 elseif( Windows )
   if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
     set( CMAKE_INSTALL_PREFIX "C:/Program Files/mediasdk/" CACHE PATH "Install Path Prefix" FORCE )
   endif()
+
+#  foreach(var
+#    CMAKE_C_FLAGS CMAKE_CXX_FLAGS
+#    CMAKE_C_FLAGS_RELEASE CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELWITHDEBINFO
+#    CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+#    string(REPLACE "/MD" "/MT" ${var} "${${var}}")
+
+    # See https://gitlab.kitware.com/cmake/cmake/-/issues/19084 - we control exception-enabling flags manualy
+#    string(REPLACE "/EHsc" "" ${var} "${${var}}")
+#  endforeach()
+  set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
+  set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
+  set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE})
+  
+  foreach(config_type ${CMAKE_CONFIGURATION_TYPES})
+    string(TOUPPER ${config_type} config_type_capital)
+    set( CMAKE_LIBRARY_OUTPUT_DIRECTORY_${config_type_capital} ${CMAKE_BIN_DIR}/${config_type})
+    set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${config_type_capital} ${CMAKE_BIN_DIR}/${config_type})
+    set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${config_type_capital} ${CMAKE_LIB_DIR}/${config_type})
+  endforeach()
+
+  target_compile_definitions(mfx_common_properties
+    INTERFACE
+      UNICODE
+      _UNICODE
+      NOMINMAX
+  )
+  target_compile_options(mfx_common_properties
+    INTERFACE
+      $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<BOOL:${MFX_ENABLE_SPECTRE_MITIGATIONS}>>:/Qspectre>
+      $<$<CXX_COMPILER_ID:MSVC>:/EHa>
+      /guard:cf
+      /fp:precise
+      /Zc:wchar_t
+      /Zc:inline
+      /Zc:forScope
+      /Gm-
+      /Zi
+      /GS
+      /Gy
+  )
 endif( )
 
 if( NOT DEFINED MFX_APPS_DIR)
@@ -117,6 +151,9 @@ endif()
 
 set( MFX_SAMPLES_INSTALL_BIN_DIR ${MFX_APPS_DIR}/samples )
 set( MFX_SAMPLES_INSTALL_LIB_DIR ${MFX_APPS_DIR}/samples )
+
+set( MFX_TOOLS_INSTALL_BIN_DIR ${MFX_APPS_DIR}/tools )
+set( MFX_TOOLS_INSTALL_LIB_DIR ${MFX_APPS_DIR}/tools )
 
 if( NOT DEFINED MFX_PLUGINS_DIR )
   set( MFX_PLUGINS_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/mfx )
@@ -160,9 +197,7 @@ function(report_add_target var target)
 endfunction()
 
 # Defined OS name and version and build info and build commit
-if(APPLE)
-  set(MFX_SYSTEM "MAC")
-elseif(UNIX)
+if( Linux )
   execute_process(
     COMMAND lsb_release -i
     OUTPUT_VARIABLE OUTPUT
@@ -175,18 +210,18 @@ elseif(UNIX)
       set(MFX_SYSTEM "${MFX_LINUX_NAME}")
     endif()
   endif()
-elseif(WIN32)
-  set(MFX_SYSTEM "Windows")
-endif()
 
-execute_process(
-  COMMAND getconf GNU_LIBC_VERSION
-  OUTPUT_VARIABLE OUTPUT
-  ERROR_VARIABLE ERROR
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-if(NOT ERROR AND UNIX)
-  set(MFX_GLIBC ${OUTPUT})
+  execute_process(
+    COMMAND getconf GNU_LIBC_VERSION
+    OUTPUT_VARIABLE OUTPUT
+    ERROR_VARIABLE ERROR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  if(NOT ERROR AND Linux)
+    set(MFX_GLIBC ${OUTPUT})
+  endif()
+elseif( Windows )
+  set(MFX_SYSTEM "Windows")
 endif()
 
 if( API_USE_LATEST )
@@ -201,21 +236,97 @@ else()
   set( BUILD_INFO "${CMAKE_SYSTEM} ${CMAKE_SYSTEM_VERSION} | ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
 endif()
 
-if(UNIX AND MFX_GLIBC)
+if(Linux AND MFX_GLIBC)
   set( BUILD_INFO "${BUILD_INFO} | ${MFX_GLIBC}")
 endif()
 
-set( git_dir "${PROJECT_SOURCE_DIR}/.git" )
-if( IS_DIRECTORY ${git_dir} )
-  git_describe( git_commit )
-else()
-  set(git_commit "hashsum unknown")
+git_describe( git_commit )
+
+target_compile_definitions(mfx_common_properties
+  INTERFACE
+    ${API_FLAGS}
+    ${WARNING_FLAGS}
+    MFX_BUILD_INFO=\"${BUILD_INFO}\"
+    MFX_API_VERSION=\"${API_VER_MODIF}\"
+    MFX_GIT_COMMIT=\"${git_commit}\"
+    MEDIA_VERSION_STR=\"${MEDIA_VERSION_STR}\"
+  )
+
+if(NOT CMAKE_SYSTEM_NAME MATCHES Windows)
+  target_compile_options(mfx_common_properties
+    INTERFACE
+      $<$<CXX_COMPILER_ID:Intel>: -static-intel
+        -Wno-deprecated
+        -Wno-unknown-pragmas
+        -Wno-unused
+      >
+      $<$<NOT:$<CXX_COMPILER_ID:Intel>>:
+        -Wno-deprecated-declarations
+        -Wno-unknown-pragmas
+        -Wno-unused
+      >
+  )
 endif()
 
-set( version_flags "${version_flags} -DMFX_BUILD_INFO=\"\\\"${BUILD_INFO}\\\"\"" )
-set( version_flags "${version_flags} -DMFX_API_VERSION=\"\\\"${API_VER_MODIF}\\\"\"" )
-set( version_flags "${version_flags} -DMFX_GIT_COMMIT=\"\\\"${git_commit}\\\"\"" )
-set( version_flags "${version_flags} -DMEDIA_VERSION_STR=\"\\\"${MEDIA_VERSION_STR}\\\"\"" )
 
-set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${version_flags}" )
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${version_flags}" )
+target_compile_definitions(mfx_common_properties
+  INTERFACE
+    $<$<BOOL:${ENABLE_TEXTLOG}>:MFX_TRACE_ENABLE_TEXTLOG>
+    $<$<BOOL:${ENABLE_STAT}>:MFX_TRACE_ENABLE_STAT>
+    SYNCHRONIZATION_BY_VA_SYNC_SURFACE
+  )
+
+target_include_directories(mfx_common_properties
+  INTERFACE
+    ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+add_library(mfx_require_ssse3_properties INTERFACE)
+
+if (CMAKE_C_COMPILER_ID MATCHES Intel)
+  target_compile_options(mfx_require_ssse3_properties
+    INTERFACE
+      $<$<PLATFORM_ID:Windows>: /arch:ssse3>
+      $<$<PLATFORM_ID:Linux>:   -xssse3>
+  )
+else()
+  target_compile_options(mfx_require_ssse3_properties
+    INTERFACE
+      # on Windows MSVC AVX includes SSSE3
+      $<$<PLATFORM_ID:Windows>: /arch:AVX>
+      $<$<PLATFORM_ID:Linux>:   -mssse3>
+  )
+endif()
+
+
+add_library(mfx_require_sse4_properties INTERFACE)
+
+if (CMAKE_C_COMPILER_ID MATCHES Intel)
+  target_compile_options(mfx_require_sse4_properties
+    INTERFACE
+      $<$<PLATFORM_ID:Windows>: /arch:sse4.2>
+      $<$<PLATFORM_ID:Linux>:   -xsse4.2>
+    )
+else()
+  target_compile_options(mfx_require_sse4_properties
+    INTERFACE
+      # on Windows MSVC SSE4.2 supported by default
+      $<$<PLATFORM_ID:Linux>:   -msse4.2>
+    )
+endif()
+
+add_library(mfx_require_avx2_properties INTERFACE)
+
+if (CMAKE_C_COMPILER_ID MATCHES Intel)
+  target_compile_options(mfx_require_avx2_properties
+    INTERFACE
+      $<$<PLATFORM_ID:Windows>: /QxCORE-AVX2>
+      $<$<PLATFORM_ID:Linux>:   -xCORE-AVX2>
+    )
+else()
+  target_compile_options(mfx_require_avx2_properties
+    INTERFACE
+      $<$<PLATFORM_ID:Windows>: /arch:AVX2>
+      $<$<PLATFORM_ID:Linux>:   -mavx2>
+    )
+endif()

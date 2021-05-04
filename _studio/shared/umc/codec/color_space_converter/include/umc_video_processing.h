@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2003-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -45,7 +45,7 @@ class VideoProcessingParams : public BaseCodecParams
 {
   DYNAMIC_CAST_DECL(VideoProcessingParams, BaseCodecParams)
 public:
-  uint32_t    InterpolationMethod; // interpolation method to perform image resampling (see ippi.h)
+  uint32_t      InterpolationMethod; // interpolation method to perform image resampling (see ippi.h)
   DeinterlacingMethod m_DeinterlacingMethod;  // deinterlacing method
   UMC::sRECT   SrcCropArea;         // source crop region (zero region means full frame)
 

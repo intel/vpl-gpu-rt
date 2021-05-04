@@ -1,15 +1,15 @@
-// Copyright (c) 2018-2020 Intel Corporation
-// 
+// Copyright (c) 2016-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,6 +22,8 @@
 #include "mfx_vp9_encode_hw.h"
 #include "mfx_vp9_encode_hw_par.h"
 #include "mfx_vp9_encode_hw_ddi.h"
+
+#include "umc_defs.h"
 #include "fast_copy.h"
 
 namespace MfxHwVP9Encode
@@ -32,7 +34,7 @@ void SetDefaultForLowpower(mfxU16 & lowpower, eMFXHWType platform)
 {
     CheckTriStateOption(lowpower);
 
-    if (lowpower == MFX_CODINGOPTION_UNKNOWN)
+     if (lowpower == MFX_CODINGOPTION_UNKNOWN)
     {
 #if (MFX_VERSION >= 1027)
         if (platform >= MFX_HW_ICL)
@@ -45,9 +47,99 @@ void SetDefaultForLowpower(mfxU16 & lowpower, eMFXHWType platform)
     }
 }
 
+bool CheckFourcc(mfxU32 fourcc, ENCODE_CAPS_VP9 const& caps);
+
+mfxStatus MFXVideoENCODEVP9_HW::QueryImplsDescription(
+    VideoCORE& core
+    , mfxEncoderDescription::encoder& caps
+    , mfx::PODArraysHolder& ah)
+{
+    mfxVideoParam par = {};
+    eMFXHWType platform = core.GetHWType();
+    VP9MfxVideoParam tmp(par, platform);
+    SetDefaultForLowpower(tmp.mfx.LowPower, platform);
+
+    const mfxU32 Profiles[] =
+    {
+        MFX_PROFILE_VP9_0
+        , MFX_PROFILE_VP9_1
+        , MFX_PROFILE_VP9_2
+        , MFX_PROFILE_VP9_3
+    };
+    const mfxU32 FourCC[] =
+    {
+        MFX_FOURCC_NV12
+        , MFX_FOURCC_YV12
+        , MFX_FOURCC_NV16
+        , MFX_FOURCC_YUY2
+        , MFX_FOURCC_RGB565
+        , MFX_FOURCC_RGBP
+        , MFX_FOURCC_RGB4
+        , MFX_FOURCC_P010
+        , MFX_FOURCC_P016
+        , MFX_FOURCC_P210
+        , MFX_FOURCC_BGR4
+        , MFX_FOURCC_A2RGB10
+        , MFX_FOURCC_ARGB16
+        , MFX_FOURCC_ABGR16
+        , MFX_FOURCC_AYUV
+        , MFX_FOURCC_AYUV_RGB4
+        , MFX_FOURCC_UYVY
+        , MFX_FOURCC_Y210
+        , MFX_FOURCC_Y410
+        , MFX_FOURCC_Y216
+        , MFX_FOURCC_Y416
+        , MFX_FOURCC_NV21
+        , MFX_FOURCC_IYUV
+        , MFX_FOURCC_I010
+    };
+
+    caps.CodecID                 = MFX_CODEC_VP9;
+    caps.BiDirectionalPrediction = 0;
+    caps.MaxcodecLevel           = 0;
+
+    for (mfxU32 profile : Profiles)
+    {
+        ENCODE_CAPS_VP9 hwCaps = {};
+        tmp.mfx.CodecProfile = profile;
+        if (MFX_ERR_NONE != QueryCaps(&core, hwCaps, GetGuid(tmp), tmp))
+            continue;
+
+        auto& profileCaps = ah.PushBack(caps.Profiles);
+
+        profileCaps.Profile = profile;
+
+        auto& memCaps = ah.PushBack(profileCaps.MemDesc);
+
+        memCaps.MemHandleType = MFX_RESOURCE_SYSTEM_SURFACE;
+        memCaps.Width         = { 16, hwCaps.MaxPicWidth, 16 };
+        memCaps.Height        = { 16, hwCaps.MaxPicHeight, 16 };
+
+        for (mfxU32 fcc : FourCC)
+        {
+            if (CheckFourcc(fcc, hwCaps))
+            {
+                ah.PushBack(memCaps.ColorFormats) = fcc;
+                ++memCaps.NumColorFormats;
+            }
+        }
+
+        ah.PushBack(profileCaps.MemDesc);
+        profileCaps.MemDesc[1] = profileCaps.MemDesc[0];
+        profileCaps.MemDesc[1].MemHandleType = core.GetVAType() == MFX_HW_VAAPI ? MFX_RESOURCE_VA_SURFACE : MFX_RESOURCE_DX11_TEXTURE;
+        profileCaps.NumMemTypes = 2;
+
+        ++caps.NumProfiles;
+    }
+
+    MFX_CHECK(caps.NumProfiles, MFX_ERR_UNSUPPORTED);
+
+    return MFX_ERR_NONE;
+}
+
 mfxStatus MFXVideoENCODEVP9_HW::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_DEFAULT, "MFXVideoENCODEVP9_HW::Query");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MFXVideoENCODEVP9_HW::Query");
     MFX_CHECK_NULL_PTR1(out);
 
     if (in == 0)
@@ -125,9 +217,12 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par,
     eMFXHWType platform = core->GetHWType();
 
     mfxU32 inPattern = par->IOPattern & MFX_IOPATTERN_IN_MASK;
-    MFX_CHECK(inPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY ||
-        inPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
-        inPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY, MFX_ERR_INVALID_VIDEO_PARAM);
+    auto const supportedMemoryType =
+           inPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
+        || inPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY
+        ;
+
+    MFX_CHECK(supportedMemoryType, MFX_ERR_INVALID_VIDEO_PARAM);
 
     VP9MfxVideoParam toValidate(*par, platform);
 
@@ -151,9 +246,6 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par,
         break;
     case MFX_IOPATTERN_IN_VIDEO_MEMORY:
         request->Type = MFX_MEMTYPE_D3D_EXT;
-        break;
-    case MFX_IOPATTERN_IN_OPAQUE_MEMORY:
-        request->Type = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_OPAQUE_FRAME;
         break;
     default:
         return MFX_ERR_INVALID_VIDEO_PARAM;
@@ -283,6 +375,9 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
 
     m_rawFrames.Init(CalcNumSurfRaw(m_video));
 
+    sts = m_ddi->CreateWrapBuffers((mfxU16)CalcNumSurfRaw(m_video), m_video);
+    MFX_CHECK_STS(sts);
+
     mfxFrameAllocRequest request = {};
     request.Info = m_video.mfx.FrameInfo;
     request.Type = MFX_MEMTYPE_D3D_INT;
@@ -294,23 +389,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
         sts = m_rawLocalFrames.Init(m_pCore, &request, true);
         MFX_CHECK_STS(sts);
     }
-    else if (m_video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-    {
-        mfxExtOpaqueSurfaceAlloc& opaq = GetExtBufferRef(m_video);
-        request.Type = opaq.In.Type;
-        request.NumFrameMin = opaq.In.NumSurface;
-
-        sts = m_opaqFrames.Init(m_pCore, &request, false);
-        MFX_CHECK_STS(sts);
-
-        if (opaq.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)
-        {
-            request.Type = MFX_MEMTYPE_D3D_INT;
-            request.NumFrameMin = opaq.In.NumSurface;
-            sts = m_rawLocalFrames.Init(m_pCore, &request, true);
-            MFX_CHECK_STS(sts);
-        }
-    }
 
     // allocate and register surfaces for reconstructed frames
     request.NumFrameMin = request.NumFrameSuggested = (mfxU16)CalcNumSurfRecon(m_video);
@@ -320,6 +398,12 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
     (void)platform;
     request.Info.FourCC = MFX_FOURCC_NV12;
 #endif
+
+    //For MMCD encoder bind flag is required
+    if (request.Info.FourCC == MFX_FOURCC_NV12)
+    {
+        request.Type |= MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET;
+    }
 
     sts = m_reconFrames.Init(m_pCore, &request, false);
     MFX_CHECK_STS(sts);
@@ -845,7 +929,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mf
             MFX_CHECK_STS(sts);
 
             // get handle to input frame in VIDEO memory (either external or local)
-            sts = GetNativeHandleToRawSurface(*m_pCore, pSurface->Data.MemId, &surfaceHDL.first, m_video);
+            sts = GetNativeHandleToRawSurface(*m_pCore, *pSurface, surfaceHDL, m_video);
             MFX_CHECK_STS(sts);
 
             MFX_CHECK_STS(sts);
@@ -941,8 +1025,11 @@ mfxStatus MFXVideoENCODEVP9_HW::Close()
     sts = m_segmentMaps.Release();
     MFX_CHECK_STS(sts);
 
-    delete[] m_prevSegment.SegmentId;
-    m_prevSegment.SegmentId = nullptr;
+    if (m_prevSegment.SegmentId)
+    {
+        delete[] m_prevSegment.SegmentId;
+        m_prevSegment.SegmentId = 0;
+    }
 
     m_initialized = false;
 
@@ -996,7 +1083,7 @@ inline mfxStatus UpdatePictureHeader(mfxU32 frameLen, mfxU32 frameNum, mfxU8* pP
     if (bufferSize < sizeof(ivf_frame_header))
         return MFX_ERR_MORE_DATA;
 
-    std::copy(std::begin(ivf_frame_header),std::end(ivf_frame_header), reinterpret_cast<mfxU32*>(pPictureHeader));
+    std::copy(std::begin(ivf_frame_header),std::end(ivf_frame_header), reinterpret_cast <mfxU32*> (pPictureHeader));
 
     return MFX_ERR_NONE;
 };
@@ -1111,6 +1198,9 @@ mfxStatus MFXVideoENCODEVP9_HW::UpdateBitstream(
     task.m_pBitsteam->TimeStamp = task.m_timeStamp;
     task.m_pBitsteam->FrameType = mfxU16(task.m_frameParam.frameType == KEY_FRAME ? MFX_FRAMETYPE_I : MFX_FRAMETYPE_P);
     task.m_pBitsteam->PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+
+    if (mfxExtAVCEncodedFrameInfo * encFrameInfo = GetExtBuffer(*(task.m_pBitsteam)))
+        encFrameInfo->FrameOrder = task.m_frameOrder;
 
     return MFX_ERR_NONE;
 }

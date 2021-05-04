@@ -1,15 +1,15 @@
-// Copyright (c) 2018 Intel Corporation
-// 
+// Copyright (c) 2017-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -20,8 +20,6 @@
 
 #include "mfx_reflect.h"
 
-#if defined(MFX_TRACE_ENABLE_REFLECT)
-
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -29,45 +27,30 @@
 #include <cstddef>
 
 #include "mfxstructures.h"
-#include "mfxvp8.h"
-#include "mfxvp9.h"
-#include "mfxplugin.h"
-#include "mfxmvc.h"
-#include "mfxcamera.h"
-#include "mfxfei.h"
-#include "mfxla.h"
-#include "mfxsc.h"
 
-#if (MFX_VERSION >= 1027)
-#include "mfxfeihevc.h"
+#include "mfxvp8.h"
+#include "mfxmvc.h"
+
+#if defined(MFX_ENABLE_USER_ENCTOOLS)
+#include "mfxenctools.h"
 #endif
 
+
+#include "mfxbrc.h"
+#include "mfxdeprecated.h"
+
+#if (MFX_VERSION >= 1025)
 #include "ts_typedef.h"
 
+#include "mfxdeprecated.h"
 #include <memory>
 
 namespace mfx_reflect
 {
-    static AccessibleTypesCollection g_Reflection;
-
-    AccessibleTypesCollection GetReflection()
-    {
-        return g_Reflection;
-    }
-
-    void AccessibleTypesCollection::Initialize()
-    {
-        if (!g_Reflection.m_bIsInitialized)
-        {
-            g_Reflection.DeclareMsdkStructs();
-            g_Reflection.m_bIsInitialized = true;
-        }
-    }
-
     template<class T>
-      struct mfx_ext_buffer_id {
-          enum { id = 0 };
-      };
+    struct mfx_ext_buffer_id {
+        enum { id = 0 };
+    };
 
 #define EXTBUF(STRUCT, ID)                               \
         template<>struct mfx_ext_buffer_id<STRUCT> {     \
@@ -564,4 +547,4 @@ namespace mfx_reflect
     }
 }
 
-#endif // #if defined(MFX_TRACE_ENABLE_REFLECT)
+#endif

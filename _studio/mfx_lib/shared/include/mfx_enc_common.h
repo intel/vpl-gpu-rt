@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2008-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,7 +21,6 @@
 #ifndef _MFX_ENC_COMMON_H_
 #define _MFX_ENC_COMMON_H_
 
-#include "umc_defs.h"
 #include "mfxdefs.h"
 #include "mfxstructures.h"
 #include "umc_structures.h"
@@ -75,18 +74,17 @@ public:
 };
 
 //----MFX data -> UMC data--------------------------------------------
-uint8_t  CalculateMAXBFrames (mfxU8 GopRefDist);
-uint16_t CalculateUMCGOPLength (mfxU16 GOPSize, mfxU8 targetUsage);
+mfxU8  CalculateMAXBFrames (mfxU8 GopRefDist);
+mfxU16 CalculateUMCGOPLength (mfxU16 GOPSize, mfxU8 targetUsage);
 
-bool SetPROParameters (mfxU8 TargetUsages,uint8_t &MESpeed, bool &UseFB, bool &FastFB,
+bool SetPROParameters (mfxU8 TargetUsages,mfxU8 &MESpeed, bool &UseFB, bool &FastFB,
                        bool &bIntensityCompensation, bool &bChangeInterpolationType,
                        bool &bChangeVLCTables,
                        bool &bTrellisQuantization, bool &bUsePadding,
                        bool &bVSTransform, bool &deblocking, mfxU8 &smoothing, bool &fastUVMC);
-bool SetUFParameters(mfxU8 TargetUsages, bool& mixed,uint32_t& twoRef );
+bool SetUFParameters(mfxU8 TargetUsages, bool& mixed,mfxU32& twoRef );
 
-uint32_t CalculateUMCBitrate(mfxU16    TargetKbps);
-
+mfxU32 CalculateUMCBitrate(mfxU16    TargetKbps);
 double CalculateUMCFramerate(mfxU32 FrameRateExtN, mfxU32 FrameRateExtD);
 void CalculateMFXFramerate(double framerate, mfxU32* FrameRateExtN, mfxU32* FrameRateExtD);
 void ConvertFrameRateMPEG2(mfxU32 FrameRateExtD, mfxU32 FrameRateExtN, mfxI32 &frame_rate_code, mfxI32 &frame_rate_extension_n, mfxI32 &frame_rate_extension_d);
@@ -95,6 +93,7 @@ void ConvertFrameRateMPEG2(mfxU32 FrameRateExtD, mfxU32 FrameRateExtN, mfxI32 &f
 mfxStatus CheckFrameRateMPEG2(mfxU32 &FrameRateExtD, mfxU32 &FrameRateExtN);
 mfxStatus CheckAspectRatioMPEG2 (mfxU16 &aspectRatioW, mfxU16 &aspectRatioH, mfxU32 frame_width, mfxU32 frame_heigth, mfxU16 cropW, mfxU16 cropH);
 
+mfxStatus AllocInternalEncBuffer(VideoCORE* pCore, const mfxU16& numFrameMin, const mfxVideoParam& par, mfxFrameAllocResponse& response);
 
 bool IsFrameRateMPEG2Supported(mfxU32 FrameRateExtD, mfxU32 FrameRateExtN);
 bool IsAspectRatioMPEG2Supported (mfxU32 aspectRatioW, mfxU32 aspectRatioH, mfxU32 frame_width, mfxU32 frame_heigth, mfxU32 cropW, mfxU32 cropH);
@@ -140,7 +139,7 @@ inline mfxI32 min4(mfxI32 a, mfxI32 b,mfxI32 c,mfxI32 d)
 UMC::FrameType GetFrameType (mfxU16 FrameOrder, mfxInfoMFX* info);
 
 //----UMC data -> MFX data--------------------------------------------
-mfxU16 CalculateMFXGOPLength (uint16_t GOPSize);
+mfxU16 CalculateMFXGOPLength (mfxU16 GOPSize);
 mfxU8 CalculateGopRefDist(mfxU8 BNum);
 
 inline bool isIntra(mfxU8 FrameType)

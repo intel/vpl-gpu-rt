@@ -1,15 +1,15 @@
-// Copyright (c) 2018-2019 Intel Corporation
-// 
+// Copyright (c) 2016-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,6 +27,7 @@
 #include <vector>
 #include <list>
 #include <memory>
+#include <algorithm>
 #include "mfxstructures.h"
 #include "mfx_enc_common.h"
 #include "assert.h"
@@ -42,37 +43,37 @@ static inline bool operator==(mfxVP9SegmentParam const& l, mfxVP9SegmentParam co
 namespace MfxHwVP9Encode
 {
 
-constexpr auto DPB_SIZE = 8; // DPB size by VP9 spec
-constexpr auto DPB_SIZE_REAL = 3; // DPB size really used by encoder
-constexpr auto MAX_SEGMENTS = 8;
-constexpr auto REF_FRAMES_LOG2 = 3;
-constexpr auto REF_FRAMES = (1 << REF_FRAMES_LOG2);
-constexpr auto MAX_REF_LF_DELTAS = 4;
-constexpr auto MAX_MODE_LF_DELTAS = 2;
-constexpr auto SEG_LVL_MAX = 4;
+#define DPB_SIZE 8 // DPB size by VP9 spec
+#define DPB_SIZE_REAL 3 // DPB size really used by encoder
+#define MAX_SEGMENTS 8
+#define REF_FRAMES_LOG2 3
+#define REF_FRAMES (1 << REF_FRAMES_LOG2)
+#define MAX_REF_LF_DELTAS 4
+#define MAX_MODE_LF_DELTAS 2
+#define SEG_LVL_MAX 4
 
-constexpr auto IVF_SEQ_HEADER_SIZE_BYTES = 32;
-constexpr auto IVF_PIC_HEADER_SIZE_BYTES = 12;
-constexpr auto MAX_IVF_HEADER_SIZE = IVF_SEQ_HEADER_SIZE_BYTES + IVF_PIC_HEADER_SIZE_BYTES;
+#define IVF_SEQ_HEADER_SIZE_BYTES 32
+#define IVF_PIC_HEADER_SIZE_BYTES 12
+#define MAX_IVF_HEADER_SIZE IVF_SEQ_HEADER_SIZE_BYTES + IVF_PIC_HEADER_SIZE_BYTES
 
-constexpr auto MAX_Q_INDEX = 255;
-constexpr auto MAX_ICQ_QUALITY_INDEX = 255;
-constexpr auto MAX_LF_LEVEL = 63;
+#define MAX_Q_INDEX 255
+#define MAX_ICQ_QUALITY_INDEX 255
+#define MAX_LF_LEVEL 63
 
-constexpr auto MAX_ABS_COEFF_TYPE_Q_INDEX_DELTA = 15;
+#define MAX_ABS_COEFF_TYPE_Q_INDEX_DELTA 15
 
-constexpr auto MAX_TASK_ID = 0xffff;
-constexpr auto MAX_NUM_TEMP_LAYERS = 8;
-constexpr auto MAX_NUM_TEMP_LAYERS_SUPPORTED = 4;
+#define MAX_TASK_ID 0xffff
+#define MAX_NUM_TEMP_LAYERS 8
+#define MAX_NUM_TEMP_LAYERS_SUPPORTED 4
 
-constexpr auto MAX_UPSCALE_RATIO = 16;
-constexpr auto MAX_DOWNSCALE_RATIO = 2;
+#define MAX_UPSCALE_RATIO 16
+#define MAX_DOWNSCALE_RATIO 2
 
-constexpr auto MIN_TILE_HEIGHT = 128;
-constexpr auto MIN_TILE_WIDTH = 256;
-constexpr auto MAX_TILE_WIDTH = 4096;
-constexpr auto MAX_NUM_TILE_ROWS = 4;
-constexpr auto MAX_NUM_TILES = 16;
+#define MIN_TILE_HEIGHT 128
+#define MIN_TILE_WIDTH 256
+#define MAX_TILE_WIDTH 4096
+#define MAX_NUM_TILE_ROWS_VP9 4
+#define MAX_NUM_TILES 16
 
 const mfxU16 segmentSkipMask = 0xf0;
 const mfxU16 segmentRefMask = 0x0f;
@@ -89,7 +90,8 @@ static const mfxU16 MFX_IOPATTERN_IN_MASK_SYS_OR_D3D =
     MFX_IOPATTERN_IN_SYSTEM_MEMORY | MFX_IOPATTERN_IN_VIDEO_MEMORY;
 
 static const mfxU16 MFX_IOPATTERN_IN_MASK =
-    MFX_IOPATTERN_IN_MASK_SYS_OR_D3D | MFX_IOPATTERN_IN_OPAQUE_MEMORY;
+      MFX_IOPATTERN_IN_MASK_SYS_OR_D3D
+    ;
 
 static const mfxU16 MFX_MEMTYPE_SYS_OR_D3D =
 MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_SYSTEM_MEMORY;
@@ -223,14 +225,14 @@ enum // identifies memory type at encoder input w/o any details
 
     inline mfxStatus LockSurface(sFrameEx*  pFrame, VideoCORE* pCore)
     {
-        return (pFrame) ? pCore->IncreaseReference(&pFrame->pSurface->Data) : MFX_ERR_NONE;
+        return (pFrame) ? pCore->IncreaseReference(*pFrame->pSurface) : MFX_ERR_NONE;
     }
     inline mfxStatus FreeSurface(sFrameEx* &pFrame, VideoCORE* pCore)
     {
         mfxStatus sts = MFX_ERR_NONE;
         if (pFrame && pFrame->pSurface)
         {
-            sts = pCore->DecreaseReference(&pFrame->pSurface->Data);
+            sts = pCore->DecreaseReference(*pFrame->pSurface);
             pFrame = 0;
         }
         return sts;
@@ -276,12 +278,12 @@ enum // identifies memory type at encoder input w/o any details
 
 #define BIND_EXTBUF_TYPE_TO_ID(TYPE, ID) template<> struct ExtBufTypeToId<TYPE> { enum { id = ID }; }
     BIND_EXTBUF_TYPE_TO_ID (mfxExtVP9Param,  MFX_EXTBUFF_VP9_PARAM);
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtOpaqueSurfaceAlloc,MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
     BIND_EXTBUF_TYPE_TO_ID (mfxExtCodingOption2, MFX_EXTBUFF_CODING_OPTION2);
     BIND_EXTBUF_TYPE_TO_ID (mfxExtCodingOption3, MFX_EXTBUFF_CODING_OPTION3);
     BIND_EXTBUF_TYPE_TO_ID (mfxExtCodingOptionDDI, MFX_EXTBUFF_DDI);
     BIND_EXTBUF_TYPE_TO_ID (mfxExtVP9Segmentation, MFX_EXTBUFF_VP9_SEGMENTATION);
     BIND_EXTBUF_TYPE_TO_ID (mfxExtVP9TemporalLayers, MFX_EXTBUFF_VP9_TEMPORAL_LAYERS);
+    BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCEncodedFrameInfo, MFX_EXTBUFF_ENCODED_FRAME_INFO);
 #undef BIND_EXTBUF_TYPE_TO_ID
 
     template <class T> inline void InitExtBufHeader(T & extBuf)
@@ -501,8 +503,8 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
         FrameLocker(FrameLocker const &);
         FrameLocker & operator =(FrameLocker const &);
 
-        VideoCORE*         m_core;
-        mfxFrameData&      m_data;
+        VideoCORE * m_core;
+        mfxFrameData &     m_data;
         mfxMemId           m_memId;
         mfxU32             m_status;
     };
@@ -513,7 +515,7 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
         mfxU32 targetKbps;
     };
 
-constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaqueSurfaceAlloc, mfxExtCodingOption2, mfxExtCodingOption3, mfxExtCodingOptionDDI, mfxExtVP9Segmentation, mfxExtVP9TemporalLayers
+#define NUM_OF_SUPPORTED_EXT_BUFFERS 8 // mfxExtVP9Param, mfxExtOpaqueSurfaceAlloc, mfxExtCodingOption2, mfxExtCodingOption3, mfxExtCodingOptionDDI, mfxExtVP9Segmentation, mfxExtVP9TemporalLayers, mfxExtAVCEncodedFrameInfo
 
     class VP9MfxVideoParam : public mfxVideoParam
     {
@@ -547,14 +549,14 @@ constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaque
         void Construct(mfxVideoParam const & par);
 
     private:
-        mfxExtBuffer*               m_extParam[NUM_OF_SUPPORTED_EXT_BUFFERS];
+        mfxExtBuffer *              m_extParam[NUM_OF_SUPPORTED_EXT_BUFFERS];
         mfxExtVP9Param              m_extPar;
-        mfxExtOpaqueSurfaceAlloc    m_extOpaque;
         mfxExtCodingOption2         m_extOpt2;
         mfxExtCodingOption3         m_extOpt3;
         mfxExtCodingOptionDDI       m_extOptDDI;
         mfxExtVP9Segmentation       m_extSeg;
         mfxExtVP9TemporalLayers     m_extTempLayers;
+        mfxExtAVCEncodedFrameInfo   m_extFrameInfo;
     };
 
     template <typename T> ActualExtBufferExtractor GetActualExtBufferRef(VP9MfxVideoParam const & basicPar, T const & newPar)
@@ -580,7 +582,7 @@ constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaque
     mfxStatus UpdateDpb(VP9FrameLevelParam &frameParam,
                         sFrameEx *pRecFrame,
                         std::vector<sFrameEx*>&dpb,
-                        VideoCORE *pCore);
+        VideoCORE *pCore);
 
     class ExternalFrames
     {
@@ -622,10 +624,6 @@ constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaque
 
     bool isVideoSurfInput(mfxVideoParam const & video);
 
-    inline bool isOpaq(mfxVideoParam const & video)
-    {
-        return (video.IOPattern & MFX_IOPATTERN_IN_OPAQUE_MEMORY)!=0;
-    }
 
     inline mfxU32 CalcNumTasks(mfxVideoParam const & video)
     {
@@ -674,6 +672,10 @@ constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaque
 
         mfxExtVP9Segmentation const * m_pPrevSegment;
 
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+        GPU_SYNC_EVENT_HANDLE m_GpuEvent;
+#endif
+
         Task ():
               m_pRawFrame(NULL),
               m_pRawLocalFrame(NULL),
@@ -695,6 +697,9 @@ constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaque
               Zero(m_pRecRefFrames);
               Zero(m_frameParam);
               Zero(m_ctrl);
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+              Zero(m_GpuEvent);
+#endif
           }
 
           ~Task() {};
@@ -949,8 +954,8 @@ inline bool IsFeatureEnabled(mfxU16 features, mfxU8 feature)
 
 mfxStatus GetNativeHandleToRawSurface(
     VideoCORE & core,
-    mfxMemId mid,
-    mfxHDL *handle,
+    mfxFrameSurface1& surf,
+    mfxHDLPair& handle,
     VP9MfxVideoParam const & video);
 
 } // MfxHwVP9Encode

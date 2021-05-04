@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2004-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,6 +23,7 @@
 #if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
 #include "umc_vc1_dec_seq.h"
+#include "umc_vc1_dec_debug.h"
 
 static const uint32_t bc_lut_1[] = {2,0,1,3};
 static const uint32_t bc_lut_2[] = {0,1,2,3};
@@ -269,7 +270,6 @@ VC1Status DecodePictureLayer_ProgressivePpicture(VC1Context* pContext)
                 //intensity compensation.
                 VC1_GET_BITS(6, picLayerHeader->LUMSHIFT);
 
-
                 picLayerHeader->MVMODE2 = pContext->m_picLayerHeader->MVMODE;
             }
     }
@@ -372,7 +372,6 @@ VC1Status DecodePictureLayer_ProgressivePpicture(VC1Context* pContext)
     //If TRANSDCTAB = 0 then the low motion huffman table is used.
     //If TRANSDCTAB = 1 then the high motion huffman table is used.
     VC1_GET_BITS(1, picLayerHeader->TRANSDCTAB);       //TRANSDCTAB
-
 
     return vc1Res;
 }

@@ -114,6 +114,11 @@ namespace Base
             , mfxVideoParam& par
             , mfxFrameAllocRequest& request) override;
 
+        virtual mfxStatus QueryImplsDescription(
+            VideoCORE&
+            , mfxEncoderDescription::encoder&
+            , mfx::PODArraysHolder&) override;
+
     protected:
         using TFeatureList = std::list<std::unique_ptr<FeatureBase>>;
         VideoCORE& m_core;

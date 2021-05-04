@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2003-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +20,11 @@
 
 #ifndef __UMC_STRUCTURES_H__
 #define __UMC_STRUCTURES_H__
+
+#ifdef _MSVC_LANG
+#pragma warning(push)
+#pragma warning(disable:26812)
+#endif
 
 #include <vm_types.h>
 #include <vm_debug.h>
@@ -185,7 +190,8 @@ namespace UMC
         AVS_PURE_VIDEO_STREAM   = 0x04000000,
         FLV_STREAM              = 0x08000000,
         IVF_STREAM              = 0x10000000,
-        MJPEG_PURE_VIDEO_STREAM = 0x20000000
+        MJPEG_PURE_VIDEO_STREAM = 0x20000000,
+        WEBM_STREAM             = 0x40000000
     };
 
     enum AudioStreamType
@@ -538,22 +544,22 @@ namespace UMC
         {
         }
 
-        int32_t channels;                                        // (int32_t) number of audio channels
-        int32_t sample_frequency;                                // (int32_t) sample rate in Hz
+        int32_t  channels;                                        // (int32_t) number of audio channels
+        int32_t  sample_frequency;                                // (int32_t) sample rate in Hz
         uint32_t bitrate;                                         // (uint32_t) bitstream in bps
         uint32_t bitPerSample;                                    // (uint32_t) 0 if compressed
 
-        double duration;                                        // (double) duration of the stream
+        double   duration;                                        // (double) duration of the stream
 
-        AudioStreamType stream_type;                            // (AudioStreamType) general type of stream
-        AudioStreamSubType stream_subtype;                      // (AudioStreamSubType) minor type of stream
-        int32_t iProfile;   // profile
-        int32_t iLevel;   // level
+        AudioStreamType    stream_type;                           // (AudioStreamType) general type of stream
+        AudioStreamSubType stream_subtype;                        // (AudioStreamSubType) minor type of stream
+        int32_t iProfile;                                         // profile
+        int32_t iLevel;                                           // level
 
         uint32_t channel_mask;                                    // (uint32_t) channel mask
         uint32_t streamPID;                                       // (uint32_t) unique ID
 
-        bool   is_protected;                                    // audio is encrypted
+        bool   is_protected;                                      // audio is encrypted
         uint32_t header;                                          // (uint32_t) can carry audio header (4-bytes)
 
     } AudioStreamInfo;
@@ -581,17 +587,17 @@ namespace UMC
         ClipInfo            clip_info;                          // (ClipInfo) size of video stream
         ClipInfo            disp_clip_info;
         ColorFormat         color_format;                       // (ColorFormat) color format of uncompressed video
-        uint32_t              bitrate;                            // (uint32_t) bitrate of video
-        int32_t              aspect_ratio_width;                 // (int32_t) pixel aspect ratio
-        int32_t              aspect_ratio_height;                // (int32_t) pixel aspect ratio
+        uint32_t            bitrate;                            // (uint32_t) bitrate of video
+        int32_t             aspect_ratio_width;                 // (int32_t) pixel aspect ratio
+        int32_t             aspect_ratio_height;                // (int32_t) pixel aspect ratio
         double              framerate;                          // (double) frame rate of video
         double              duration;                           // (double) duration of media stream
         InterlaceType       interlace_type;                     // (InterlaceType) interlaced info
         VideoStreamType     stream_type;                        // (VideoStreamType) video stream type
         VideoStreamSubType  stream_subtype;                     // (VideoStreamSubType) video stream type
-        uint32_t              streamPID;                          // (uint32_t) unique ID
-        int32_t              profile;                            // (int32_t) profile
-        int32_t              level;                              // (int32_t) level
+        uint32_t            streamPID;                          // (uint32_t) unique ID
+        int32_t             profile;                            // (int32_t) profile
+        int32_t             level;                              // (int32_t) level
     } VideoStreamInfo;
 
     typedef struct sSystemStreamInfo
@@ -682,7 +688,7 @@ namespace UMC
         ERROR_FRAME_TOP_FIELD_ABSENT        = 0x00000020,
         ERROR_FRAME_BOTTOM_FIELD_ABSENT     = 0x00000040,
         ERROR_FRAME_SHORT_TERM_STUCK        = 0x00000100,  // used to mark ST which potentially can get stuck in DPB due to frame gaps
-        ERROR_FRAME_DEVICE_FAILURE          = 0x80000000   //if this bit is set, this means the error is [UMC::Status] code
+        ERROR_FRAME_DEVICE_FAILURE          = 0x80000000   // if this bit is set, this means the error is [UMC::Status] code
     };
 
     // template to align a pointer
@@ -695,6 +701,19 @@ namespace UMC
                     ~(lAlignValue - 1));
     }
 
+    // template to get minimum value
+    template<class value_t, class min_t> inline
+    value_t get_min(value_t value, min_t another)
+    {
+        return ((value < (value_t) another) ? (value) : (another));
+    }
+
+    // template to get maximum value
+    template<class value_t, class max_t> inline
+    value_t get_max(value_t value, max_t another)
+    {
+        return ((value > (value_t) another) ? (value) : (another));
+    }
 
 #ifndef DISALLOW_COPY_AND_ASSIGN
     #define DISALLOW_COPY_AND_ASSIGN(className) \
@@ -705,5 +724,9 @@ namespace UMC
 } // namespace UMC
 
 #endif /* __cplusplus */
+
+#ifdef _MSVC_LANG
+#pragma warning(pop)
+#endif
 
 #endif /* __UMC_STRUCTURES_H__ */

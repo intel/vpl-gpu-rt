@@ -66,7 +66,7 @@ protected:
     static const GUID DXVA2_Intel_Encode_HEVC_Main422_12;
     static const GUID DXVA2_Intel_Encode_HEVC_Main444_12;
 
-    typedef std::function<void(mfxFrameInfo&)> RecUpd;
+    typedef std::function<void(mfxFrameInfo&, mfxU16&, bool)> RecUpd;
     std::map<mfxU16, RecUpd> mUpdateRecInfo;
 };
 

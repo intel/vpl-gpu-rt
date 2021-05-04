@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2011-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,32 +22,25 @@
 
 #include "mfx_common.h"
 
-#if defined (MFX_ENABLE_VPP) 
+#if defined (MFX_ENABLE_VPP)
 #include "mfx_vpp_interface.h"
 
- 
-#if defined (MFX_VA_LINUX)
+
     #include "mfx_vpp_vaapi.h"
 
-#endif
 
 using namespace MfxHwVideoProcessing;
 
 // platform switcher
-DriverVideoProcessing* MfxHwVideoProcessing::CreateVideoProcessing(VideoCORE* /*core*/)
+DriverVideoProcessing* MfxHwVideoProcessing::CreateVideoProcessing(VideoCORE* core)
 {
     //MFX_CHECK_NULL_PTR1( core );
     //assert( core );
-    
-#if defined (MFX_VA_LINUX)
+    (void)core;
+
 
     return new VAAPIVideoProcessing;
 
-#else
-    
-    return NULL;
-
-#endif
 } // mfxStatus CreateVideoProcessing( VideoCORE* core )
 
 

@@ -42,9 +42,14 @@ namespace Base
 
         ReconInfo(mfxU32 FeatureId)
             : FeatureBase(FeatureId)
-        {}
+        {
+            
+        }
 
     protected:
+        typedef std::function<void(mfxFrameInfo&)> RecUpd;
+        std::map<mfxU16, RecUpd> ModRec[2];
+
         virtual void InitInternal(const FeatureBlocks& blocks, TPushII Push);
         virtual void InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push);
 
@@ -53,9 +58,6 @@ namespace Base
             const mfxVideoParam& par
             , const mfxExtCodingOption3& CO3
             , mfxFrameInfo& rec);
-
-        typedef std::function<void(mfxFrameInfo&)> RecUpd;
-        std::map<mfxU16, RecUpd> ModRec[2];
     };
 
 } //Base

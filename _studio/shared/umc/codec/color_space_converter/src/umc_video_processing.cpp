@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2003-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -51,6 +51,9 @@ VideoProcessing::VideoProcessing()
   pFilter[iDeinterlacing] = new Deinterlacing;
   pFilter[iColorConv0] = new ColorSpaceConversion; // first color conversion
   pFilter[iColorConv] = pFilter[iColorConv0]; // second color conversion
+#if defined (UMC_ENABLE_VPP_RESIZE)
+  pFilter[iResizing] = new VideoResizing;
+#endif
   iD3DProcessing = 0;
 }
 
@@ -266,6 +269,11 @@ Status VideoProcessing::SetParams(BaseCodecParams *params)
   if (pFilter[iDeinterlacing]) {
     ( static_cast<Deinterlacing*>(pFilter[iDeinterlacing])->SetMethod(Param.m_DeinterlacingMethod));
   }
+#if defined (UMC_ENABLE_VPP_RESIZE)
+  if (pFilter[iResizing]) {
+    ( static_cast<VideoResizing*> (pFilter[iResizing])->SetMethod(Param.InterpolationMethod));
+  }
+#endif
   bSrcCropArea = Param.SrcCropArea.left || Param.SrcCropArea.right ||
      Param.SrcCropArea.top || Param.SrcCropArea.bottom;
 

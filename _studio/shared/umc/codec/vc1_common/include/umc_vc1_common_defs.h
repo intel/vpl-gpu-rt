@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2004-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,14 +20,17 @@
 
 #include "umc_defs.h"
 
-#if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
+#if defined (MFX_ENABLE_VC1_VIDEO_DECODE) || defined (UMC_ENABLE_VC1_SPLITTER) || defined (UMC_ENABLE_VC1_VIDEO_ENCODER)
 
 #ifndef __UMC_VC1_COMMON_DEFS_H__
 #define __UMC_VC1_COMMON_DEFS_H__
 
 #include <stdio.h>
+#include "ippi.h"
+#include "ippvc.h"
 #include "umc_vc1_common_macros_defs.h"
 #include "umc_structures.h"
+#include <deque>
 
 #define VC1_ENC_RECODING_MAX_NUM 3
 #define START_CODE_NUMBER 600
@@ -78,7 +81,7 @@ enum
     VC1_I_FRAME = 0,
     VC1_P_FRAME = 1,
     VC1_B_FRAME = 2,
-    VC1_BI_FRAME= 3,
+    VC1_BI_FRAME = 3,
     VC1_SKIPPED_FRAME = 0x4
 };
 #define VC1_IS_SKIPPED(value) ((value & VC1_SKIPPED_FRAME) == VC1_SKIPPED_FRAME)
@@ -119,6 +122,25 @@ enum
     VC1_BLK_INTRA      = 0x30
 };
 
+#define VC1_IS_BLKINTRA(value) (value & 0x30)
+enum
+{
+    VC1_MB_INTRA             = 0x0,
+    VC1_MB_1MV_INTER         = 0x1,
+    VC1_MB_2MV_INTER         = 0x2,
+    VC1_MB_4MV_INTER         = 0x3,
+    VC1_MB_4MV_FIELD_INTER   = 0x4,
+    VC1_MB_DIRECT            = 0x0,
+    VC1_MB_FORWARD           = 0x8,
+    VC1_MB_BACKWARD          = 0x10,
+    VC1_MB_INTERP            = 0x18
+ };
+
+#define VC1_IS_MVFIELD(value)  (((value&7) == VC1_MB_2MV_INTER)||((value&7) == VC1_MB_4MV_FIELD_INTER ))
+#define VC1_GET_MBTYPE(value)  (value&7)
+#define VC1_GET_PREDICT(value) (value&56)
+
+#define VC1MBQUANT 2
 
 #define VC1SLICEINPARAL 512
 #define VC1FRAMEPARALLELPAIR 2
@@ -188,6 +210,100 @@ enum //quantizer deadzone definitions
     VC1_QUANTIZER_NONUNIFORM = 1
 };
 
+enum //prediction directions definitions
+{
+    VC1_ESCAPEMODE3_Conservative    = 0,
+    VC1_ESCAPEMODE3_Efficient       = 1
+};
+//for subBlockPattern (numCoef)
+enum
+{
+    VC1_SBP_0               = 0x8,
+    VC1_SBP_1               = 0x4,
+    VC1_SBP_2               = 0x2,
+    VC1_SBP_3               = 0x1
+};
+
+//interlace frame
+//field/frame transform
+enum
+{
+    VC1_FRAME_TRANSFORM = 0,
+    VC1_FIELD_TRANSFORM = 1,
+    VC1_NO_CBP_TRANSFORM,
+    VC1_NA_TRANSFORM
+};
+
+enum
+{
+    VC1_SBP_8X8_BLK          = 0,
+    VC1_SBP_8X4_BOTTOM_BLK   = 1,
+    VC1_SBP_8X4_TOP_BLK      = 2,
+    VC1_SBP_8X4_BOTH_BLK     = 3,
+    VC1_SBP_4X8_RIGHT_BLK    = 4,
+    VC1_SBP_4X8_LEFT_BLK     = 5,
+    VC1_SBP_4X8_BOTH_BLK     = 6,
+    VC1_SBP_4X4_BLK          = 7,
+
+    VC1_SBP_8X8_MB        = 8,
+    VC1_SBP_8X4_BOTTOM_MB = 9,
+    VC1_SBP_8X4_TOP_MB    = 10,
+    VC1_SBP_8X4_BOTH_MB   = 11,
+    VC1_SBP_4X8_RIGHT_MB  = 12,
+    VC1_SBP_4X8_LEFT_MB   = 13,
+    VC1_SBP_4X8_BOTH_MB   = 14,
+    VC1_SBP_4X4_MB        = 15
+};
+
+//for LeftTopRightPositionFlag
+enum
+{
+    VC1_COMMON_MB       = 0x000,
+    VC1_LEFT_MB         = 0xA00,
+    VC1_TOP_LEFT_MB     = 0xAC0,
+    VC1_TOP_LEFT_RIGHT  = 0xAC5,
+    VC1_LEFT_RIGHT_MB   = 0xA05,
+    VC1_TOP_MB          = 0x0C0,
+    VC1_TOP_RIGHT_MB    = 0x0C5,
+    VC1_RIGHT_MB        = 0x005
+};
+
+#define VC1_IS_NO_LEFT_MB(value)  !(value&0x800)
+#define VC1_IS_NO_TOP_MB(value)   !(value&0x80)
+#define VC1_IS_NO_RIGHT_MB(value) (!(value&0x01))
+
+//only left
+#define VC1_IS_LEFT_MB(value)  (value&0x800)&&(!(value&0x80)) && (!(value&0x1))
+//only top
+#define VC1_IS_TOP_MB(value)(value&0x80)&&(!(value&0x800))&&(!(value&0x1))
+//only right
+#define VC1_IS_RIGHT_MB(value)  (value&0x01)&&(!(value&0x800))&&(!(value&0x80))
+//left and top
+#define VC1_IS_LEFT_TOP_MB(value)    (value&0x800)&&(value&0x80)&&(!(value&0x1))
+#define VC1_IS_TOP_RIGHT_MB(value)   (value&0x80)&&(value&0x1)&&(!(value&0x800))
+
+#define VC1_IS_LEFT_RIGHT_MB(value)  (value&0x800)&&(value&0x1)&&(!(value&0x80))
+
+//for IntraFlag
+enum
+{
+    VC1_All_INTRA        = 0x3F,
+    VC1_BLOCK_0_INTRA    = 0x01,
+    VC1_BLOCK_1_INTRA    = 0x02,
+    VC1_BLOCK_2_INTRA    = 0x04,
+    VC1_BLOCK_3_INTRA    = 0x08,
+    VC1_BLOCK_4_INTRA    = 0x10,
+    VC1_BLOCKS_0_1_INTRA = 0x03,
+    VC1_BLOCKS_2_3_INTRA = 0x0C,
+    VC1_BLOCKS_0_2_INTRA = 0x05,
+    VC1_BLOCKS_1_3_INTRA = 0x0A
+};
+
+//for smoothing
+#define VC1_EDGE_MB(intraflag, value)  ((intraflag&value)==value)
+
+
+#define VC1_IS_INTER_MB(value)  ((value == 0x00)||(value == 0x01)||(value == 0x02)||(value == 0x04)||(value == 0x08))
 
 //for extended differantial MV range flag(inerlace P picture)
 enum
@@ -232,7 +348,6 @@ typedef struct
 
 #define VC1_NEXT_BITS(num_bits, value) VC1NextNBits(pContext->m_bitstream.pBitstream, pContext->m_bitstream.bitOffset, num_bits, value);
 #define VC1_GET_BITS(num_bits, value)  VC1GetNBits(pContext->m_bitstream.pBitstream, pContext->m_bitstream.bitOffset, num_bits, value);
-
 
 typedef struct
 {
@@ -318,6 +433,35 @@ typedef struct
 
 }VC1SequenceLayerHeader;
 
+typedef struct
+{
+    uint8_t  k_x;
+    uint8_t  k_y;
+    uint16_t r_x;
+    uint16_t r_y;
+}VC1MVRange;
+
+typedef struct
+{
+    uint16_t   scaleopp;
+    uint16_t  scalesame1;
+    uint16_t   scalesame2;
+    uint16_t   scalezone1_x;
+    uint16_t   scalezone1_y;
+    uint16_t   zone1offset_x;
+    uint16_t   zone1offset_y;
+}VC1PredictScaleValuesPPic;
+
+typedef struct
+{
+    uint16_t   scalesame;
+    uint16_t   scaleopp1;
+    uint16_t   scaleopp2;
+    uint16_t   scalezone1_x;
+    uint16_t   scalezone1_y;
+    uint16_t   zone1offset_x;
+    uint16_t   zone1offset_y;
+}VC1PredictScaleValuesBPic;
 
 typedef struct
 {
@@ -384,7 +528,6 @@ typedef struct
 // B only. Interlace field
     VC1Bitplane      FORWARDMB;         //variable size B Field forward mode
                                         //MB bit syntax element
-// tables
     uint32_t RNDCTRL;     // 1 rounding control bit
 
     uint32_t TRANSDCTAB;
@@ -421,9 +564,7 @@ typedef struct
     int32_t *BFRACTION;
     int32_t *REFDIST_TABLE;
 
-
 } VC1VLCTables;
-
 
 typedef struct
 {
@@ -456,14 +597,45 @@ struct Frame
     uint32_t      ICFieldMask;
 
     uint16_t      corrupted;
-
 };
 
 #define VC1MAXFRAMENUM 9*VC1FRAMEPARALLELPAIR + 9 // for <= 8 threads. Change if numThreads > 8
 #define VC1NUMREFFRAMES 2 // 2 - reference frames
+
+class VC1FrameStorageProxy
+{
+public:
+
+    void Reset(std::deque<Frame>& frames_storage)
+    {
+        if (frames)
+            frames->clear();
+
+        frames = &frames_storage;
+        frames->clear();
+    }
+
+    void AdjustToIndex(size_t idx)
+    {
+        if (frames && frames->size() <= idx)
+            frames->resize(idx + 1);
+    }
+
+    Frame& operator [] (size_t index)
+    {
+        if (!frames)
+            throw std::exception();
+
+        return (*frames)[index];
+    }
+
+private:
+    std::deque<Frame>* frames;
+};
+
 struct VC1FrameBuffer
 {
-    Frame*        m_pFrames;
+    VC1FrameStorageProxy m_pFrames;
 
     int32_t        m_iPrevIndex;
     int32_t        m_iNextIndex;
@@ -513,7 +685,6 @@ struct VC1Context
     uint32_t*                m_Offsets;
     uint32_t*                m_values;
 
-
     VC1Bitplane            m_pBitplane;
     VC1DeblockInfo         DeblockInfo;
     uint32_t                 RefDist;
@@ -521,7 +692,6 @@ struct VC1Context
 
     // Intensity compensation: lookup tables only for P-frames
     uint8_t          m_bIntensityCompensation;
-
 
     uint32_t                        PrevFCM;
     uint32_t                        NextFCM;

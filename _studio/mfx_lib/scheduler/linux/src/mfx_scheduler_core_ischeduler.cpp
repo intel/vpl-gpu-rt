@@ -525,7 +525,7 @@ mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoi
         --m_freeTasksCount;
         mfxStatus mfxRes;
         MFX_SCHEDULER_TASK *pTask, **ppTemp;
-        mfxTaskHandle handle;
+        mfxTaskHandle handle = {};
         MFX_THREAD_ASSIGNMENT *pAssignment = nullptr;
         mfxU32 occupancyIdx;
         int type;

@@ -42,12 +42,19 @@ namespace Gen12
         , NUM_FEATURES
     };
 
+    struct SCCFlags
+    {
+        mfxU16 IBCEnable     = 1;
+        mfxU16 PaletteEnable = 1;
+    };
+
     struct Glob
         : Base::Glob
     {
         static const StorageR::TKey _KD = __LINE__ + 1 - Base::Glob::NUM_KEYS;
         static const StorageR::TKey ReservedKey12_0 = __LINE__ - _KD;
         static const StorageR::TKey ReservedKey12_1 = __LINE__ - _KD;
+        using  SCCFlags = StorageVar<__LINE__ - _KD, HEVCEHW::Gen12::SCCFlags>;
         static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;
     };
 

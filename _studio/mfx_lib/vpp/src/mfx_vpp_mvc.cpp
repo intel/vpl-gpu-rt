@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2018 Intel Corporation
-// 
+// Copyright (c) 2012-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,6 +25,7 @@
 #include "mfx_enc_common.h"
 #include "mfx_session.h"
 #include "mfxmvc.h"
+#include "mfxsvc.h"
 
 #include "mfx_vpp_utils.h"
 #include "mfx_vpp_mvc.h"
@@ -326,5 +327,46 @@ mfxStatus ImplementationMvc::Close(void)
 
 } // mfxStatus ImplementationMvc::Close( void )
 
+mfxFrameSurface1* ImplementationMvc::GetSurfaceIn()
+{
+    if (!m_bInit)
+    {
+        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
+        return nullptr;
+    }
+    mfxU16 viewId = 0;
+    if (m_bMultiViewMode)
+    {
+        viewId = m_iteratorVPP->first;
+        if (m_VPP.find(viewId) == m_VPP.end())
+        {
+            std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_FOUND);
+            return nullptr;
+        }
+    }
+
+    return m_VPP[viewId]->GetSurfaceIn();
+}
+
+mfxFrameSurface1* ImplementationMvc::GetSurfaceOut()
+{
+    if (!m_bInit)
+    {
+        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
+        return nullptr;
+    }
+    mfxU16 viewId = 0;
+    if (m_bMultiViewMode)
+    {
+        viewId = m_iteratorVPP->first;
+        if (m_VPP.find(viewId) == m_VPP.end())
+        {
+            std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_FOUND);
+            return nullptr;
+        }
+    }
+
+    return m_VPP[viewId]->GetSurfaceOut();
+}
 #endif // MFX_ENABLE_VPP
 /* EOF */

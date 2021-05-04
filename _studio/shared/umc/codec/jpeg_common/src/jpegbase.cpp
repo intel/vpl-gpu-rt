@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2001-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -175,13 +175,30 @@ const vm_char* GetErrorStr(JERRCODE code)
 int get_num_threads(void)
 {
   int maxThreads = 1;
+#ifdef _OPENMP
+#ifdef __INTEL_COMPILER
+  kmp_set_blocktime(0);
+#endif
+#pragma omp parallel shared(maxThreads)
+  {
+#pragma omp master
+    {
+      maxThreads = omp_get_num_threads();
+    }
+  }
+#endif
   return maxThreads;
 } // get_num_threads()
 
 
-void set_num_threads(int /*maxThreads*/)
+void set_num_threads(int maxThreads)
 {
-  return;
+#ifdef _OPENMP
+    omp_set_num_threads(maxThreads);
+#else
+    (void)maxThreads;
+#endif
+    return;
 } // set_num_threads()
 
 

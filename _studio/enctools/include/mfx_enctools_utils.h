@@ -24,7 +24,7 @@
 #include "mfxstructures.h"
 #include "mfx_ext_buffers.h"
 #include "mfxdefs.h"
-#include "mfx_utils_defs.h"
+#include "mfx_enctools_defs.h"
 
 
 namespace EncToolsUtils

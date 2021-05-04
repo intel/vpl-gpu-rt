@@ -1,15 +1,15 @@
-// Copyright (c) 2018-2019 Intel Corporation
-// 
+// Copyright (c) 2016-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -377,7 +377,7 @@ namespace MfxHwVP9Encode
         mfxU8 maxLog2TileCols = 1;
         mfxU8 ones;
 
-        const mfxU16 sb64Cols = (mfx::align2_value(framePar.modeInfoCols, 1 << MI_BLOCK_SIZE_LOG2)) >> MI_BLOCK_SIZE_LOG2;
+        const mfxU16 sb64Cols = mfxU16((mfx::align2_value(framePar.modeInfoCols, 1 << MI_BLOCK_SIZE_LOG2)) >> MI_BLOCK_SIZE_LOG2);
         while ((MAX_TILE_WIDTH_B64 << minLog2TileCols) < sb64Cols)
         {
             minLog2TileCols ++;
@@ -442,13 +442,15 @@ namespace MfxHwVP9Encode
                                              0,
                                              localBuf.pBuffer,
                                              bufferSizeBytes);
-                MFX_CHECK_STS(sts);
+                if (sts != MFX_ERR_NONE)
+                    return 0;
 
                 ivfHeaderSize += IVF_SEQ_HEADER_SIZE_BYTES;
             }
 
             mfxStatus sts = AddPictureHeader(localBuf.pBuffer + ivfHeaderSize, bufferSizeBytes - ivfHeaderSize);
-            MFX_CHECK_STS(sts);
+            if (sts != MFX_ERR_NONE)
+                return 0;
 
             ivfHeaderSize += IVF_PIC_HEADER_SIZE_BYTES;
         }

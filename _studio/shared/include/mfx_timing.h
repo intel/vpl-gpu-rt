@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2008-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -49,6 +49,7 @@ enum
 namespace MFX
 {
 
+#ifndef MFX_TIMING
 
 // empty declaration for normal build
 class AutoTimer
@@ -57,7 +58,7 @@ public:
     static int Init(const void * /*filename*/, int /*level = -1*/) { return 0; }
     static unsigned int CreateUniqTaskId() {return 0;}
 
-    AutoTimer(const char * /*name*/){}
+    AutoTimer(const char * /*name*/) {}
     AutoTimer(const char * /*name*/, const char * /*param*/, int /*parami = 0*/)    {}
     AutoTimer(const char * /*name*/, bool /*bCreateId*/, unsigned int /*child_of*/, unsigned int /*parent_of*/)  {}
     ~AutoTimer() {};
@@ -71,6 +72,42 @@ public:
     void Stop(int /*return_code = MFX_INVALID_STATUS_CODE*/) {};
 };
 
+#else // MFX_TIMING
+
+class AutoTimer
+{
+public:
+    // static method to initialize timing capture
+    static int Init(const void *filename, int level = -1);
+    //returned uniq task ID
+    static unsigned int CreateUniqTaskId();
+
+    AutoTimer(const char *name); // start timer
+    AutoTimer(const char *name, const char *param, int parami = 0); // start timer
+    AutoTimer(const char *name, bool bCreateId, unsigned int child_of, unsigned int parent_of); // start timer
+    ~AutoTimer(); // stop timer
+    AutoTimer(); // default constructor. Aftewards call SetInput/SetOutput/AddParam, then Start
+
+
+    void SetInput(void *handle, int component_index = -1);
+    void SetOutput(void *handle, int component_index = -1);
+    void AddParam(const char *param_name, const char *param_value);
+    void AddParam(const char *param_name, int param_value);
+    void Start(const char *name);
+    void Stop(int return_code = MFX_INVALID_STATUS_CODE);
+    unsigned int ID(){return m_timerid;}
+
+protected:
+    void Reset();
+    void SendNamedEvent(int opcode);
+
+    const char  *m_Name;
+    unsigned int m_timerid;
+    unsigned int m_parentid;
+    unsigned int m_childid;
+};
+
+#endif // MFX_TIMING
 
 } // namespace UMC
 

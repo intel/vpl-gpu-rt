@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2012-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,6 @@
 #include <memory>
 
 #include "mfx_task.h"
-#include "mfxpcp.h"
 
 namespace UMC
 {
@@ -63,6 +62,7 @@ public:
     static mfxStatus QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
     // Decode bitstream header and exctract parameters from it
     static mfxStatus DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVideoParam *par);
+    static mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription::decoder&, mfx::PODArraysHolder&);
 
     VideoDECODEH265(VideoCORE *core, mfxStatus * sts);
     virtual ~VideoDECODEH265(void);
@@ -93,6 +93,7 @@ public:
 
     // Decoder instance threads entry point. Do async tasks here
     mfxStatus RunThread(void * params, mfxU32 threadNumber);
+    virtual mfxFrameSurface1* GetSurface() override;
 
 protected:
     // Actually calculate needed frames number
@@ -115,19 +116,14 @@ protected:
     // Fill up resolution information if new header arrived
     void FillVideoParam(mfxVideoParamWrapper *par, bool full);
 
-    // Fill up frame allocator request data
-    mfxStatus UpdateAllocRequest(mfxVideoParam *par,
-                                mfxFrameAllocRequest *request,
-                                mfxExtOpaqueSurfaceAlloc * &pOpaqAlloc,
-                                bool &mapping);
 
     // Get original Surface corresponding to OpaqueSurface
     mfxFrameSurface1 * GetOriginalSurface(mfxFrameSurface1 *surface);
 
     std::unique_ptr<UMC_HEVC_DECODER::MFXTaskSupplier_H265>  m_pH265VideoDecoder;
-    mfx_UMC_MemAllocator                                     m_MemoryAllocator;
+    mfx_UMC_MemAllocator              m_MemoryAllocator;
 
-    std::unique_ptr<mfx_UMC_FrameAllocator>                  m_FrameAllocator;
+    std::unique_ptr<SurfaceSource>    m_surface_source;
 
     mfxVideoParamWrapper m_vInitPar;
     mfxVideoParamWrapper m_vFirstPar;
@@ -142,9 +138,9 @@ protected:
 
     mfxU16  m_frameOrder;
 
-    mfxFrameAllocResponse m_response;
-    mfxFrameAllocResponse m_response_alien;
-    mfxDecodeStat m_stat;
+    mfxFrameAllocResponse m_response = {};
+    mfxFrameAllocResponse m_response_alien = {};
+    mfxDecodeStat m_stat = {};
     eMFXPlatform m_platform;
 
     UMC::Mutex m_mGuard;

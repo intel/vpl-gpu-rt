@@ -1,15 +1,15 @@
-// Copyright (c) 2019-2020 Intel Corporation
-// 
+// Copyright (c) 2011-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -20,6 +20,7 @@
 
 #include "mfx_common.h"
 
+#if defined(MFX_VA)
 #if defined(MFX_ENABLE_MPEG2_VIDEO_ENCODE)
 
 #ifndef __MFX_MPEG2_ENCODE_INTERFACE__H
@@ -32,10 +33,8 @@
 
 #include "mfx_mpeg2_enc_common_hw.h"
 
-#if defined(MFX_VA_LINUX)
     #include "mfx_h264_encode_struct_vaapi.h"
     #include <va/va_enc_mpeg2.h>
-#endif
 
 
 
@@ -49,9 +48,10 @@ namespace MfxHwMpeg2Encode
             : m_bEncryptionMode (false)
         {
         }
-        void Init(const mfxVideoParamEx_MPEG2* /*par*/, mfxU32 /*funcId*/)
+        void Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId)
         {
             m_bEncryptionMode = false;
+            par;funcId;
 
         }
     };
@@ -60,11 +60,11 @@ namespace MfxHwMpeg2Encode
         ExecuteBuffers()
             : m_caps()
             , m_sps()
+            , m_vui()
             , m_pps()
             , m_pSlice()
             , m_pMBs()
             , m_mbqp_data()
-            , m_VideoSignalInfo()
             , m_SkipFrame()
             , m_quantMatrix()
             , m_pSurface()
@@ -79,9 +79,13 @@ namespace MfxHwMpeg2Encode
             , m_RefFrameMemID()
             , m_CurrFrameMemID()
             , m_bExternalCurrFrame()
+            , m_bExternalCurrFrameHDL()
             , m_bOutOfRangeMV()
             , m_bErrMBType()
             , m_bUseRawFrames()
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+            , m_bTriggerGpuHang()
+#endif
             , m_bDisablePanicMode()
             , m_GOPPictureSize()
             , m_GOPRefDist()
@@ -90,8 +94,10 @@ namespace MfxHwMpeg2Encode
             , m_fFrameRate()
             , m_FrameRateExtN()
             , m_FrameRateExtD()
-        {
-        }
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+            , m_GpuEvent()
+#endif
+        {}
 
         mfxStatus Init (const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, bool bAllowBRC = false);
         mfxStatus Close();
@@ -100,15 +106,14 @@ namespace MfxHwMpeg2Encode
         void      InitFramesSet(mfxMemId curr, bool bExternal, mfxMemId rec, mfxMemId ref_0,mfxMemId ref_1);
         mfxStatus InitSliceParameters(mfxU8 qp, mfxU16 scale_type, mfxU8 * mbqp, mfxU32 numMB);
 
-
         ENCODE_ENC_CTRL_CAPS                    m_caps;
 
         ENCODE_SET_SEQUENCE_PARAMETERS_MPEG2    m_sps;
+        ENCODE_SET_VUI_PARAMETER_MPEG2          m_vui;
         ENCODE_SET_PICTURE_PARAMETERS_MPEG2     m_pps;
         ENCODE_SET_SLICE_HEADER_MPEG2*          m_pSlice;
         ENCODE_ENC_MB_DATA_MPEG2*               m_pMBs;
         mfxU8*                                  m_mbqp_data;
-        mfxExtVideoSignalInfo                   m_VideoSignalInfo;
         mfxU8                                   m_SkipFrame;
 
         VAIQMatrixBufferMPEG2                   m_quantMatrix;
@@ -127,22 +132,28 @@ namespace MfxHwMpeg2Encode
         mfxMemId                                m_RefFrameMemID[2];
         mfxMemId                                m_CurrFrameMemID;
         bool                                    m_bExternalCurrFrame;
+        bool                                    m_bExternalCurrFrameHDL;
         bool                                    m_bOutOfRangeMV;
         bool                                    m_bErrMBType;
         bool                                    m_bUseRawFrames;
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+        bool                                    m_bTriggerGpuHang;
+#endif
         bool                                    m_bDisablePanicMode;
         USHORT                                  m_GOPPictureSize;
         UCHAR                                   m_GOPRefDist;
         UCHAR                                   m_GOPOptFlag;
 
         Encryption                              m_encrypt;
-        double                                  m_fFrameRate;
+        Ipp64f                                  m_fFrameRate;
 
         mfxU32                                  m_FrameRateExtN;
         mfxU32                                  m_FrameRateExtD;
 
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+        GPU_SYNC_EVENT_HANDLE       m_GpuEvent;
+#endif
     };
-
 
     class DriverEncoder
     {
@@ -163,11 +174,14 @@ namespace MfxHwMpeg2Encode
 
         virtual mfxStatus FillMBBufferPointer(ExecuteBuffers* pExecuteBuffers) = 0;
 
-        virtual mfxStatus FillBSBuffer(mfxU32 nFeedback,mfxU32 nBitstream, mfxBitstream* pBitstream, Encryption *pEncrypt) = 0;
+        virtual mfxStatus FillBSBuffer(mfxU32 nFeedback, mfxU32 nBitstream, mfxBitstream* pBitstream, Encryption *pEncrypt) = 0;
 
         virtual mfxStatus SetFrames (ExecuteBuffers* pExecuteBuffers) = 0;
 
         virtual mfxStatus CreateAuxilliaryDevice(mfxU16 codecProfile) = 0;
+
+        virtual mfxStatus CreateWrapBuffers(const mfxU16& /*numFrameMin*/, const mfxVideoParam& /*par*/) { return MFX_ERR_NONE; }
+        virtual mfxStatus UnwrapBuffer(mfxMemId /*bufferId*/) { return MFX_ERR_NONE; }
     };
 
     DriverEncoder* CreatePlatformMpeg2Encoder( VideoCORE* core );
@@ -177,5 +191,6 @@ namespace MfxHwMpeg2Encode
 
 
 #endif //#ifndef __MFX_MPEG2_ENCODE_INTERFACE__H
-#endif //(MFX_ENABLE_MPEG2_VIDEO_ENCODE) || defined(MFX_ENABLE_MPEG2_VIDEO_ENC)
+#endif //(MFX_ENABLE_MPEG2_VIDEO_ENCODE)
+#endif // MFX_VA
 /* EOF */

@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2004-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,7 +31,12 @@
 #include <memory>
 
 #include "umc_vc1_video_decoder.h"
+#ifdef MFX_VA
 #include "umc_vc1_video_decoder_hw.h"
+#endif
+#ifdef ALLOW_SW_VC1_FALLBACK
+#include "umc_vc1_video_decoder_sw.h"
+#endif
 
 #include "mfx_umc_alloc_wrapper.h"
 #include "umc_vc1_spl_frame_constr.h"
@@ -65,6 +70,7 @@ public:
     static mfxStatus Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out);
     static mfxStatus QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
     static mfxStatus DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVideoParam *par);
+    static mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription::decoder&, mfx::PODArraysHolder&);
 
     MFXVideoDECODEVC1(VideoCORE *core, mfxStatus* mfxSts);
     virtual ~MFXVideoDECODEVC1(void);
@@ -97,6 +103,8 @@ public:
                         mfxU32 threadNumber, 
                         mfxU32 taskID);
 
+    virtual mfxFrameSurface1* GetSurface() override;
+
 
 protected:
 
@@ -105,6 +113,10 @@ protected:
     static mfxStatus SetAllocRequestExternal(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
     static void      CalculateFramesNumber(mfxFrameAllocRequest *request, mfxVideoParam *par, bool isBufMode);
 
+#ifdef ALLOW_SW_VC1_FALLBACK
+    // update Frame Descriptors, copy frames to external memory
+    mfxStatus PostProcessFrame(mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_disp);
+#endif
 
     // update Frame Descriptors, copy frames to external memory in case of HW decoder
     mfxStatus PostProcessFrameHW(mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_disp);
@@ -137,12 +149,6 @@ protected:
     void            PrepareMediaIn(void);
     static bool     IsHWSupported(VideoCORE *pCore, mfxVideoParam *par);
 
-    // to correspond Opaque memory type
-    mfxStatus UpdateAllocRequest(mfxVideoParam *par, 
-                                mfxFrameAllocRequest *request, 
-                                mfxExtOpaqueSurfaceAlloc **pOpaqAlloc,
-                                bool &Mapping,
-                                bool &Polar);
 
     // frame buffering 
     mfxStatus           IsDisplayFrameReady(mfxFrameSurface1 **surface_disp);
@@ -160,7 +166,7 @@ protected:
     bool                FrameStartCodePresence();
 
 
-    void SetFrameOrder(mfx_UMC_FrameAllocator* pFrameAlloc, mfxVideoParam* par, bool isLast, VC1TSDescriptor tsd, bool isSamePolar);
+    void SetFrameOrder(SurfaceSource* pFrameAlloc, mfxVideoParam* par, bool isLast, VC1TSDescriptor tsd, bool isSamePolar);
     void FillVideoSignalInfo(mfxExtVideoSignalInfo *pVideoSignal);
 
     static const        mfxU16 disp_queue_size = 2; // looks enough for Linux now and disable on Windows.
@@ -171,9 +177,9 @@ protected:
     UMC::VideoData             m_InternMediaDataOut;
     UMC::MediaData             m_FrameConstrData;
 
-    mfx_UMC_MemAllocator       m_MemoryAllocator;
-    // TBD
-    std::unique_ptr<mfx_UMC_FrameAllocator>    m_pFrameAlloc;
+    mfx_UMC_MemAllocator                   m_MemoryAllocator;
+
+    std::unique_ptr<SurfaceSource>         m_surface_source;
     std::unique_ptr<UMC::VC1VideoDecoder>      m_pVC1VideoDecoder;
 
     UMC::vc1_frame_constructor*     m_frame_constructor;
@@ -204,7 +210,7 @@ protected:
     std::deque<mfxU64>               m_qBSTS;
 
     mfxFrameAllocResponse            m_response;
-    mfxFrameAllocResponse            m_response_op;
+    mfxFrameAllocResponse            m_response_alien;
 
     uint32_t                           m_SHSize;
     mfxU8                            m_pSaveBytes[4];  // 4 bytes enough 
@@ -235,7 +241,6 @@ protected:
     std::vector<uint8_t>                m_RawSeq;
     mfxU64                            m_ext_dur;
 
-    mfxExtOpaqueSurfaceAlloc          m_AlloExtBuffer;
 
     bool                              m_bStsReport;
     mfxU32                            m_NumberOfQueries;

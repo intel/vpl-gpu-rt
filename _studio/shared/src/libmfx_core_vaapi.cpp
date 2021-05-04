@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2007-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,18 +22,19 @@
 
 #include "mfx_common.h"
 
-#if defined (MFX_VA_LINUX)
 
 #include "umc_va_linux.h"
 
 #include "libmfx_core_vaapi.h"
 #include "mfx_utils.h"
 #include "mfx_session.h"
+#include "ippi.h"
 #include "mfx_common_decode_int.h"
 #include "mfx_enc_common.h"
-#include "mfxfei.h"
+
 #include "libmfx_core_hw.h"
-#include "umc_va_fei.h"
+
+#include "umc_va_linux_protected.h"
 
 #include "cm_mem_copy.h"
 
@@ -53,354 +54,6 @@ typedef struct drm_i915_getparam {
 #define DRM_COMMAND_BASE        0x40
 #define DRM_IOWR(nr,type)       _IOWR(DRM_IOCTL_BASE,nr,type)
 #define DRM_IOCTL_I915_GETPARAM DRM_IOWR(DRM_COMMAND_BASE + DRM_I915_GETPARAM, drm_i915_getparam_t)
-
-typedef struct {
-    int          device_id;
-    eMFXHWType   platform;
-    eMFXGTConfig config;
-} mfx_device_item;
-
-// list of legal dev ID for Intel's graphics
- const mfx_device_item listLegalDevIDs[] = {
-    /*IVB*/
-    { 0x0156, MFX_HW_IVB, MFX_GT1 },   /* GT1 mobile */
-    { 0x0166, MFX_HW_IVB, MFX_GT2 },   /* GT2 mobile */
-    { 0x0152, MFX_HW_IVB, MFX_GT1 },   /* GT1 desktop */
-    { 0x0162, MFX_HW_IVB, MFX_GT2 },   /* GT2 desktop */
-    { 0x015a, MFX_HW_IVB, MFX_GT1 },   /* GT1 server */
-    { 0x016a, MFX_HW_IVB, MFX_GT2 },   /* GT2 server */
-    /*HSW*/
-    { 0x0402, MFX_HW_HSW, MFX_GT1 },   /* GT1 desktop */
-    { 0x0412, MFX_HW_HSW, MFX_GT2 },   /* GT2 desktop */
-    { 0x0422, MFX_HW_HSW, MFX_GT2 },   /* GT2 desktop */
-    { 0x041e, MFX_HW_HSW, MFX_GT2 },   /* Core i3-4130 */
-    { 0x040a, MFX_HW_HSW, MFX_GT1 },   /* GT1 server */
-    { 0x041a, MFX_HW_HSW, MFX_GT2 },   /* GT2 server */
-    { 0x042a, MFX_HW_HSW, MFX_GT2 },   /* GT2 server */
-    { 0x0406, MFX_HW_HSW, MFX_GT1 },   /* GT1 mobile */
-    { 0x0416, MFX_HW_HSW, MFX_GT2 },   /* GT2 mobile */
-    { 0x0426, MFX_HW_HSW, MFX_GT2 },   /* GT2 mobile */
-    { 0x0C02, MFX_HW_HSW, MFX_GT1 },   /* SDV GT1 desktop */
-    { 0x0C12, MFX_HW_HSW, MFX_GT2 },   /* SDV GT2 desktop */
-    { 0x0C22, MFX_HW_HSW, MFX_GT2 },   /* SDV GT2 desktop */
-    { 0x0C0A, MFX_HW_HSW, MFX_GT1 },   /* SDV GT1 server */
-    { 0x0C1A, MFX_HW_HSW, MFX_GT2 },   /* SDV GT2 server */
-    { 0x0C2A, MFX_HW_HSW, MFX_GT2 },   /* SDV GT2 server */
-    { 0x0C06, MFX_HW_HSW, MFX_GT1 },   /* SDV GT1 mobile */
-    { 0x0C16, MFX_HW_HSW, MFX_GT2 },   /* SDV GT2 mobile */
-    { 0x0C26, MFX_HW_HSW, MFX_GT2 },   /* SDV GT2 mobile */
-    { 0x0A02, MFX_HW_HSW, MFX_GT1 },   /* ULT GT1 desktop */
-    { 0x0A12, MFX_HW_HSW, MFX_GT2 },   /* ULT GT2 desktop */
-    { 0x0A22, MFX_HW_HSW, MFX_GT2 },   /* ULT GT2 desktop */
-    { 0x0A0A, MFX_HW_HSW, MFX_GT1 },   /* ULT GT1 server */
-    { 0x0A1A, MFX_HW_HSW, MFX_GT2 },   /* ULT GT2 server */
-    { 0x0A2A, MFX_HW_HSW, MFX_GT2 },   /* ULT GT2 server */
-    { 0x0A06, MFX_HW_HSW, MFX_GT1 },   /* ULT GT1 mobile */
-    { 0x0A16, MFX_HW_HSW, MFX_GT2 },   /* ULT GT2 mobile */
-    { 0x0A26, MFX_HW_HSW, MFX_GT2 },   /* ULT GT2 mobile */
-    { 0x0D02, MFX_HW_HSW, MFX_GT1 },   /* CRW GT1 desktop */
-    { 0x0D12, MFX_HW_HSW, MFX_GT2 },   /* CRW GT2 desktop */
-    { 0x0D22, MFX_HW_HSW, MFX_GT2 },   /* CRW GT2 desktop */
-    { 0x0D0A, MFX_HW_HSW, MFX_GT1 },   /* CRW GT1 server */
-    { 0x0D1A, MFX_HW_HSW, MFX_GT2 },   /* CRW GT2 server */
-    { 0x0D2A, MFX_HW_HSW, MFX_GT2 },   /* CRW GT2 server */
-    { 0x0D06, MFX_HW_HSW, MFX_GT1 },   /* CRW GT1 mobile */
-    { 0x0D16, MFX_HW_HSW, MFX_GT2 },   /* CRW GT2 mobile */
-    { 0x0D26, MFX_HW_HSW, MFX_GT2 },   /* CRW GT2 mobile */
-    /* this dev IDs added per HSD 5264859 request  */
-    { 0x040B, MFX_HW_HSW, MFX_GT1 }, /*HASWELL_B_GT1 *//* Reserved */
-    { 0x041B, MFX_HW_HSW, MFX_GT2 }, /*HASWELL_B_GT2*/
-    { 0x042B, MFX_HW_HSW, MFX_GT3 }, /*HASWELL_B_GT3*/
-    { 0x040E, MFX_HW_HSW, MFX_GT1 }, /*HASWELL_E_GT1*//* Reserved */
-    { 0x041E, MFX_HW_HSW, MFX_GT2 }, /*HASWELL_E_GT2*/
-    { 0x042E, MFX_HW_HSW, MFX_GT3 }, /*HASWELL_E_GT3*/
-
-    { 0x0C0B, MFX_HW_HSW, MFX_GT1 }, /*HASWELL_SDV_B_GT1*/ /* Reserved */
-    { 0x0C1B, MFX_HW_HSW, MFX_GT2 }, /*HASWELL_SDV_B_GT2*/
-    { 0x0C2B, MFX_HW_HSW, MFX_GT3 }, /*HASWELL_SDV_B_GT3*/
-    { 0x0C0E, MFX_HW_HSW, MFX_GT1 }, /*HASWELL_SDV_B_GT1*//* Reserved */
-    { 0x0C1E, MFX_HW_HSW, MFX_GT2 }, /*HASWELL_SDV_B_GT2*/
-    { 0x0C2E, MFX_HW_HSW, MFX_GT3 }, /*HASWELL_SDV_B_GT3*/
-
-    { 0x0A0B, MFX_HW_HSW, MFX_GT1 }, /*HASWELL_ULT_B_GT1*/ /* Reserved */
-    { 0x0A1B, MFX_HW_HSW, MFX_GT2 }, /*HASWELL_ULT_B_GT2*/
-    { 0x0A2B, MFX_HW_HSW, MFX_GT3 }, /*HASWELL_ULT_B_GT3*/
-    { 0x0A0E, MFX_HW_HSW, MFX_GT1 }, /*HASWELL_ULT_E_GT1*/ /* Reserved */
-    { 0x0A1E, MFX_HW_HSW, MFX_GT2 }, /*HASWELL_ULT_E_GT2*/
-    { 0x0A2E, MFX_HW_HSW, MFX_GT3 }, /*HASWELL_ULT_E_GT3*/
-
-    { 0x0D0B, MFX_HW_HSW, MFX_GT1 }, /*HASWELL_CRW_B_GT1*/ /* Reserved */
-    { 0x0D1B, MFX_HW_HSW, MFX_GT2 }, /*HASWELL_CRW_B_GT2*/
-    { 0x0D2B, MFX_HW_HSW, MFX_GT3 }, /*HASWELL_CRW_B_GT3*/
-    { 0x0D0E, MFX_HW_HSW, MFX_GT1 }, /*HASWELL_CRW_E_GT1*/ /* Reserved */
-    { 0x0D1E, MFX_HW_HSW, MFX_GT2 }, /*HASWELL_CRW_E_GT2*/
-    { 0x0D2E, MFX_HW_HSW, MFX_GT3 }, /*HASWELL_CRW_E_GT3*/
-
-    /* VLV */
-    { 0x0f30, MFX_HW_VLV, MFX_GT1 },   /* VLV mobile */
-    { 0x0f31, MFX_HW_VLV, MFX_GT1 },   /* VLV mobile */
-    { 0x0f32, MFX_HW_VLV, MFX_GT1 },   /* VLV mobile */
-    { 0x0f33, MFX_HW_VLV, MFX_GT1 },   /* VLV mobile */
-    { 0x0157, MFX_HW_VLV, MFX_GT1 },
-    { 0x0155, MFX_HW_VLV, MFX_GT1 },
-
-    /* BDW */
-    /*GT3: */
-    { 0x162D, MFX_HW_BDW, MFX_GT3 },
-    { 0x162A, MFX_HW_BDW, MFX_GT3 },
-    /*GT2: */
-    { 0x161D, MFX_HW_BDW, MFX_GT2 },
-    { 0x161A, MFX_HW_BDW, MFX_GT2 },
-    /* GT1: */
-    { 0x160D, MFX_HW_BDW, MFX_GT1 },
-    { 0x160A, MFX_HW_BDW, MFX_GT1 },
-    /* BDW-ULT */
-    /* (16x2 - ULT, 16x6 - ULT, 16xB - Iris, 16xE - ULX) */
-    /*GT3: */
-    { 0x162E, MFX_HW_BDW, MFX_GT3 },
-    { 0x162B, MFX_HW_BDW, MFX_GT3 },
-    { 0x1626, MFX_HW_BDW, MFX_GT3 },
-    { 0x1622, MFX_HW_BDW, MFX_GT3 },
-    { 0x1636, MFX_HW_BDW, MFX_GT3 }, /* ULT */
-    { 0x163B, MFX_HW_BDW, MFX_GT3 }, /* Iris */
-    { 0x163E, MFX_HW_BDW, MFX_GT3 }, /* ULX */
-    { 0x1632, MFX_HW_BDW, MFX_GT3 }, /* ULT */
-    { 0x163A, MFX_HW_BDW, MFX_GT3 }, /* Server */
-    { 0x163D, MFX_HW_BDW, MFX_GT3 }, /* Workstation */
-
-    /* GT2: */
-    { 0x161E, MFX_HW_BDW, MFX_GT2 },
-    { 0x161B, MFX_HW_BDW, MFX_GT2 },
-    { 0x1616, MFX_HW_BDW, MFX_GT2 },
-    { 0x1612, MFX_HW_BDW, MFX_GT2 },
-    /* GT1: */
-    { 0x160E, MFX_HW_BDW, MFX_GT1 },
-    { 0x160B, MFX_HW_BDW, MFX_GT1 },
-    { 0x1606, MFX_HW_BDW, MFX_GT1 },
-    { 0x1602, MFX_HW_BDW, MFX_GT1 },
-
-    /* CHT */
-    { 0x22b0, MFX_HW_CHT, MFX_GT1 },
-    { 0x22b1, MFX_HW_CHT, MFX_GT1 },
-    { 0x22b2, MFX_HW_CHT, MFX_GT1 },
-    { 0x22b3, MFX_HW_CHT, MFX_GT1 },
-
-    /* SCL */
-    /* GT1F */
-    { 0x1902, MFX_HW_SCL, MFX_GT1 }, // DT, 2x1F, 510
-    { 0x1906, MFX_HW_SCL, MFX_GT1 }, // U-ULT, 2x1F, 510
-    { 0x190A, MFX_HW_SCL, MFX_GT1 }, // Server, 4x1F
-    { 0x190B, MFX_HW_SCL, MFX_GT1 },
-    { 0x190E, MFX_HW_SCL, MFX_GT1 }, // Y-ULX 2x1F
-    /*GT1.5*/
-    { 0x1913, MFX_HW_SCL, MFX_GT1 }, // U-ULT, 2x1.5
-    { 0x1915, MFX_HW_SCL, MFX_GT1 }, // Y-ULX, 2x1.5
-    { 0x1917, MFX_HW_SCL, MFX_GT1 }, // DT, 2x1.5
-    /* GT2 */
-    { 0x1912, MFX_HW_SCL, MFX_GT2 }, // DT, 2x2, 530
-    { 0x1916, MFX_HW_SCL, MFX_GT2 }, // U-ULD 2x2, 520
-    { 0x191A, MFX_HW_SCL, MFX_GT2 }, // 2x2,4x2, Server
-    { 0x191B, MFX_HW_SCL, MFX_GT2 }, // DT, 2x2, 530
-    { 0x191D, MFX_HW_SCL, MFX_GT2 }, // 4x2, WKS, P530
-    { 0x191E, MFX_HW_SCL, MFX_GT2 }, // Y-ULX, 2x2, P510,515
-    { 0x1921, MFX_HW_SCL, MFX_GT2 }, // U-ULT, 2x2F, 540
-    /* GT3 */
-    { 0x1923, MFX_HW_SCL, MFX_GT3 }, // U-ULT, 2x3, 535
-    { 0x1926, MFX_HW_SCL, MFX_GT3 }, // U-ULT, 2x3, 540 (15W)
-    { 0x1927, MFX_HW_SCL, MFX_GT3 }, // U-ULT, 2x3e, 550 (28W)
-    { 0x192A, MFX_HW_SCL, MFX_GT3 }, // Server, 2x3
-    { 0x192B, MFX_HW_SCL, MFX_GT3 }, // Halo 3e
-    { 0x192D, MFX_HW_SCL, MFX_GT3 },
-    /* GT4e*/
-    { 0x1932, MFX_HW_SCL, MFX_GT4 }, // DT
-    { 0x193A, MFX_HW_SCL, MFX_GT4 }, // SRV
-    { 0x193B, MFX_HW_SCL, MFX_GT4 }, // Halo
-    { 0x193D, MFX_HW_SCL, MFX_GT4 }, // WKS
-
-    /* APL */
-    { 0x0A84, MFX_HW_APL, MFX_GT1 },
-    { 0x0A85, MFX_HW_APL, MFX_GT1 },
-    { 0x0A86, MFX_HW_APL, MFX_GT1 },
-    { 0x0A87, MFX_HW_APL, MFX_GT1 },
-    { 0x1A84, MFX_HW_APL, MFX_GT1 },
-    { 0x1A85, MFX_HW_APL, MFX_GT1 },
-    { 0x5A84, MFX_HW_APL, MFX_GT1 },
-    { 0x5A85, MFX_HW_APL, MFX_GT1 },
-
-    /* KBL */
-    { 0x5902, MFX_HW_KBL, MFX_GT1 }, // DT GT1
-    { 0x5906, MFX_HW_KBL, MFX_GT1 }, // ULT GT1
-    { 0x5908, MFX_HW_KBL, MFX_GT1 }, // HALO GT1F
-    { 0x590A, MFX_HW_KBL, MFX_GT1 }, // SERV GT1
-    { 0x590B, MFX_HW_KBL, MFX_GT1 }, // HALO GT1
-    { 0x590E, MFX_HW_KBL, MFX_GT1 }, // ULX GT1
-    { 0x5912, MFX_HW_KBL, MFX_GT2 }, // DT GT2
-    { 0x5913, MFX_HW_KBL, MFX_GT1 }, // ULT GT1 5
-    { 0x5915, MFX_HW_KBL, MFX_GT1 }, // ULX GT1 5
-    { 0x5916, MFX_HW_KBL, MFX_GT2 }, // ULT GT2
-    { 0x5917, MFX_HW_KBL, MFX_GT2 }, // ULT GT2 R
-    { 0x591A, MFX_HW_KBL, MFX_GT2 }, // SERV GT2
-    { 0x591B, MFX_HW_KBL, MFX_GT2 }, // HALO GT2
-    { 0x591C, MFX_HW_KBL, MFX_GT2 }, // ULX GT2
-    { 0x591D, MFX_HW_KBL, MFX_GT2 }, // WRK GT2
-    { 0x591E, MFX_HW_KBL, MFX_GT2 }, // ULX GT2
-    { 0x5921, MFX_HW_KBL, MFX_GT2 }, // ULT GT2F
-    { 0x5923, MFX_HW_KBL, MFX_GT3 }, // ULT GT3
-    { 0x5926, MFX_HW_KBL, MFX_GT3 }, // ULT GT3 15W
-    { 0x5927, MFX_HW_KBL, MFX_GT3 }, // ULT GT3 28W
-    { 0x592A, MFX_HW_KBL, MFX_GT3 }, // SERV GT3
-    { 0x592B, MFX_HW_KBL, MFX_GT3 }, // HALO GT3
-    { 0x5932, MFX_HW_KBL, MFX_GT4 }, // DT GT4
-    { 0x593A, MFX_HW_KBL, MFX_GT4 }, // SERV GT4
-    { 0x593B, MFX_HW_KBL, MFX_GT4 }, // HALO GT4
-    { 0x593D, MFX_HW_KBL, MFX_GT4 }, // WRK GT4
-    { 0x87C0, MFX_HW_KBL, MFX_GT2 }, // ULX GT2
-
-    /* GLK */
-    { 0x3184, MFX_HW_GLK, MFX_GT1 },
-    { 0x3185, MFX_HW_GLK, MFX_GT1 },
-
-    /* CFL */
-    { 0x3E90, MFX_HW_CFL, MFX_GT1 },
-    { 0x3E91, MFX_HW_CFL, MFX_GT2 },
-    { 0x3E92, MFX_HW_CFL, MFX_GT2 },
-    { 0x3E93, MFX_HW_CFL, MFX_GT1 },
-    { 0x3E94, MFX_HW_CFL, MFX_GT2 },
-    { 0x3E96, MFX_HW_CFL, MFX_GT2 },
-    { 0x3E98, MFX_HW_CFL, MFX_GT2 },
-    { 0x3E99, MFX_HW_CFL, MFX_GT1 },
-    { 0x3E9A, MFX_HW_CFL, MFX_GT2 },
-    { 0x3E9C, MFX_HW_CFL, MFX_GT1 },
-    { 0x3E9B, MFX_HW_CFL, MFX_GT2 },
-    { 0x3EA5, MFX_HW_CFL, MFX_GT3 },
-    { 0x3EA6, MFX_HW_CFL, MFX_GT3 },
-    { 0x3EA7, MFX_HW_CFL, MFX_GT3 },
-    { 0x3EA8, MFX_HW_CFL, MFX_GT3 },
-    { 0x3EA9, MFX_HW_CFL, MFX_GT2 },
-    { 0x87CA, MFX_HW_CFL, MFX_GT2 },
-
-    /* WHL */
-    { 0x3EA0, MFX_HW_CFL, MFX_GT2 },
-    { 0x3EA1, MFX_HW_CFL, MFX_GT1 },
-    { 0x3EA2, MFX_HW_CFL, MFX_GT3 },
-    { 0x3EA3, MFX_HW_CFL, MFX_GT2 },
-    { 0x3EA4, MFX_HW_CFL, MFX_GT1 },
-
-
-    /* CML GT1 */
-    { 0x9b21, MFX_HW_CFL, MFX_GT1 },
-    { 0x9baa, MFX_HW_CFL, MFX_GT1 },
-    { 0x9bab, MFX_HW_CFL, MFX_GT1 },
-    { 0x9bac, MFX_HW_CFL, MFX_GT1 },
-    { 0x9ba0, MFX_HW_CFL, MFX_GT1 },
-    { 0x9ba5, MFX_HW_CFL, MFX_GT1 },
-    { 0x9ba8, MFX_HW_CFL, MFX_GT1 },
-    { 0x9ba4, MFX_HW_CFL, MFX_GT1 },
-    { 0x9ba2, MFX_HW_CFL, MFX_GT1 },
-
-    /* CML GT2 */
-    { 0x9b41, MFX_HW_CFL, MFX_GT2 },
-    { 0x9bca, MFX_HW_CFL, MFX_GT2 },
-    { 0x9bcb, MFX_HW_CFL, MFX_GT2 },
-    { 0x9bcc, MFX_HW_CFL, MFX_GT2 },
-    { 0x9bc0, MFX_HW_CFL, MFX_GT2 },
-    { 0x9bc5, MFX_HW_CFL, MFX_GT2 },
-    { 0x9bc8, MFX_HW_CFL, MFX_GT2 },
-    { 0x9bc4, MFX_HW_CFL, MFX_GT2 },
-    { 0x9bc2, MFX_HW_CFL, MFX_GT2 },
-    { 0x9bc6, MFX_HW_CFL, MFX_GT2 },
-    { 0x9be6, MFX_HW_CFL, MFX_GT2 },
-    { 0x9bf6, MFX_HW_CFL, MFX_GT2 },
-
-
-    /* CNL */
-    { 0x5A51, MFX_HW_CNL, MFX_GT2 },
-    { 0x5A52, MFX_HW_CNL, MFX_GT2 },
-    { 0x5A5A, MFX_HW_CNL, MFX_GT2 },
-    { 0x5A40, MFX_HW_CNL, MFX_GT2 },
-    { 0x5A42, MFX_HW_CNL, MFX_GT2 },
-    { 0x5A4A, MFX_HW_CNL, MFX_GT2 },
-    { 0x5A4C, MFX_HW_CNL, MFX_GT1 },
-    { 0x5A50, MFX_HW_CNL, MFX_GT2 },
-    { 0x5A54, MFX_HW_CNL, MFX_GT1 },
-    { 0x5A59, MFX_HW_CNL, MFX_GT2 },
-    { 0x5A5C, MFX_HW_CNL, MFX_GT1 },
-    { 0x5A41, MFX_HW_CNL, MFX_GT2 },
-    { 0x5A44, MFX_HW_CNL, MFX_GT1 },
-    { 0x5A49, MFX_HW_CNL, MFX_GT2 },
-
-    /* ICL LP */
-    { 0xFF05, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A50, MFX_HW_ICL_LP, MFX_GT2 },
-    { 0x8A51, MFX_HW_ICL_LP, MFX_GT2 },
-    { 0x8A52, MFX_HW_ICL_LP, MFX_GT2 },
-    { 0x8A53, MFX_HW_ICL_LP, MFX_GT2 },
-    { 0x8A54, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A56, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A57, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A58, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A59, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A5A, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A5B, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A5C, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A5D, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A70, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A71, MFX_HW_ICL_LP, MFX_GT1 },  // GT05, but 1 ok in this context
-
-    /* JSL */
-    { 0x4E51, MFX_HW_JSL, MFX_GT2 },
-    { 0x4E55, MFX_HW_JSL, MFX_GT2 },
-    { 0x4E61, MFX_HW_JSL, MFX_GT2 },
-    { 0x4E71, MFX_HW_JSL, MFX_GT2 },
-
-    /* EHL */
-    { 0x4500, MFX_HW_EHL, MFX_GT2 },
-    { 0x4541, MFX_HW_EHL, MFX_GT2 },
-    { 0x4551, MFX_HW_EHL, MFX_GT2 },
-    { 0x4555, MFX_HW_EHL, MFX_GT2 },
-    { 0x4569, MFX_HW_EHL, MFX_GT2 },
-    { 0x4571, MFX_HW_EHL, MFX_GT2 },
-
-    /* TGL */
-    { 0x9A40, MFX_HW_TGL_LP, MFX_GT2 },
-    { 0x9A49, MFX_HW_TGL_LP, MFX_GT2 },
-    { 0x9A59, MFX_HW_TGL_LP, MFX_GT2 },
-    { 0x9A60, MFX_HW_TGL_LP, MFX_GT2 },
-    { 0x9A68, MFX_HW_TGL_LP, MFX_GT2 },
-    { 0x9A70, MFX_HW_TGL_LP, MFX_GT2 },
-    { 0x9A78, MFX_HW_TGL_LP, MFX_GT2 },
-    { 0x9AC0, MFX_HW_TGL_LP, MFX_GT2 },
-    { 0x9AC9, MFX_HW_TGL_LP, MFX_GT2 },
-    { 0x9AD9, MFX_HW_TGL_LP, MFX_GT2 },
-    { 0x9AF8, MFX_HW_TGL_LP, MFX_GT2 },
-
-    /* DG1/SG1 */
-    { 0x4905, MFX_HW_DG1, MFX_GT2 },
-    { 0x4906, MFX_HW_DG1, MFX_GT2 },
-    { 0x4907, MFX_HW_DG1, MFX_GT2 },
-    { 0x4908, MFX_HW_DG1, MFX_GT2 },
-
-    /* RKL */
-    { 0x4C80, MFX_HW_RKL, MFX_GT1 },
-    { 0x4C8A, MFX_HW_RKL, MFX_GT1 },
-    { 0x4C81, MFX_HW_RKL, MFX_GT1 },
-    { 0x4C8B, MFX_HW_RKL, MFX_GT1 },
-    { 0x4C90, MFX_HW_RKL, MFX_GT1 },
-    { 0x4C9A, MFX_HW_RKL, MFX_GT1 },
-
-    /* ADL */
-    { 0x4600, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
-    { 0x4680, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
-    { 0x4681, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
-    { 0x4683, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
-    { 0x4690, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
-    { 0x4691, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
-    { 0x4693, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
-    { 0x4698, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
-    { 0x4699, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
-};
-
-/* END: IOCTLs definitions */
 
 #define TMP_DEBUG
 
@@ -472,7 +125,6 @@ VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(
           , m_bCmCopyAllowed(false)
 #endif
           , m_bHEVCFEIEnabled(false)
-          , m_maxContextPriority(0)
 {
 } // VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(...)
 
@@ -497,7 +149,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::GetHandle(
     MFX_CHECK_NULL_PTR1(handle);
     UMC::AutomaticUMCMutex guard(this->m_guard);
 
-#if defined (MFX_ENABLE_CPLIB)
+#if (defined (MFX_ENABLE_CPLIB)) && !defined (MFX_ADAPTIVE_PLAYBACK_DISABLE)
 #if (MFX_VERSION >= 1030)
     if (MFX_HANDLE_VA_CONTEXT_ID == (mfxU32)type)
     {
@@ -526,7 +178,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
     {
         switch ((mfxU32)type)
         {
-#if defined (MFX_ENABLE_CPLIB)
+#if (defined (MFX_ENABLE_CPLIB)) && !defined (MFX_ADAPTIVE_PLAYBACK_DISABLE)
+#if (MFX_VERSION >= 1030)
         case MFX_HANDLE_VA_CONFIG_ID:
             // if device manager already set
             MFX_CHECK(m_VAConfigHandle == (mfxHDL)VA_INVALID_ID, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -544,6 +197,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
             m_VAContextHandle = hdl;
             m_KeepVAState = true;
             break;
+#endif
 #endif
         case MFX_HANDLE_VA_DISPLAY:
         {
@@ -564,6 +218,19 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
             m_HWType         = devItem.platform;
             m_GTConfig       = devItem.config;
             this->m_deviceId = mfxU16(devItem.device_id);
+
+            const bool disableGpuCopy = false
+                ;
+            if (disableGpuCopy)
+            {
+                mfxStatus mfxRes = this->SetCmCopyStatus(false);
+                if (MFX_ERR_NONE != mfxRes) {
+                    return mfxRes;
+                }
+            }
+
+            // TODO: restore switchers
+            this->m_enabled20Interface = dynamic_cast<VAAPIVideoCORE20*>(this) && (false);
         }
             break;
 
@@ -605,13 +272,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
         mfxStatus sts = MFX_ERR_NONE;
         mfxFrameAllocRequest temp_request = *request;
 
-        // external allocator doesn't know how to allocate opaque surfaces
-        // we can treat opaque as internal
-        if (temp_request.Type & MFX_MEMTYPE_OPAQUE_FRAME)
-        {
-            temp_request.Type -= MFX_MEMTYPE_OPAQUE_FRAME;
-            temp_request.Type |= MFX_MEMTYPE_INTERNAL_FRAME;
-        }
 
         if (!m_bCmCopy && m_bCmCopyAllowed && isNeedCopy && m_Display)
         {
@@ -775,42 +435,14 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVA(
     auto const profile = ChooseProfile(param, GetHWType());
     MFX_CHECK(profile != UMC::UNKNOWN, MFX_ERR_UNSUPPORTED);
 
-    bool init_render_targets =
-#if defined(ANDROID)
-        true;
-#else
-        param->mfx.CodecId != MFX_CODEC_MPEG2 &&
-        param->mfx.CodecId != MFX_CODEC_AVC   &&
-        param->mfx.CodecId != MFX_CODEC_HEVC;
-#endif
-
-    VASurfaceID* RenderTargets = NULL;
-    std::vector<VASurfaceID> rt_pool;
-    if (init_render_targets)
-    {
-        rt_pool.resize(response->NumFrameActual);
-        RenderTargets = &rt_pool[0];
-
-        for (mfxU32 i = 0; i < response->NumFrameActual; i++)
-        {
-            mfxMemId InternalMid = response->mids[i];
-            mfxFrameAllocator* pAlloc = this->GetAllocatorAndMid(InternalMid);
-            VASurfaceID *pSurface = NULL;
-            if (pAlloc)
-                pAlloc->GetHDL(pAlloc->pthis, InternalMid, (mfxHDL*)&pSurface);
-            else
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
-
-            rt_pool[i] = *pSurface;
-        }
-    }
-
-    if(GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK))
+#ifndef MFX_ADAPTIVE_PLAYBACK_DISABLE
+    if (GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK))
         m_KeepVAState = true;
     else
+#endif
         m_KeepVAState = false;
 
-    return CreateVideoAccelerator(param, profile, response->NumFrameActual, RenderTargets, allocator);
+    return CreateVideoAccelerator(param, profile, 0, nullptr, allocator);
 } // mfxStatus VAAPIVideoCORE_T<Base>::CreateVA(...)
 
 template <class Base>
@@ -911,6 +543,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
 
     params.m_protectedVA      = param->Protected;
 
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     /* There are following conditions for post processing via HW fixed function engine:
      * (1): AVC
      * (2): Progressive only
@@ -924,19 +557,12 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
     {
         params.m_needVideoProcessingVA = true;
     }
+#endif
+        m_pVA.reset(new LinuxVideoAccelerator());
 
-    //check 'StreamOut' feature is requested
-    {
-        mfxExtBuffer* ext = GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_FEI_PARAM);
-        if (ext && reinterpret_cast<mfxExtFeiParam*>(ext)->Func == MFX_FEI_FUNCTION_DEC)
-            params.m_CreateFlags |= VA_DECODE_STREAM_OUT_ENABLE;
-    }
-
-    m_pVA.reset((params.m_CreateFlags & VA_DECODE_STREAM_OUT_ENABLE) ? new FEIVideoAccelerator() : new LinuxVideoAccelerator());
     m_pVA->m_Platform   = UMC::VA_LINUX;
     m_pVA->m_Profile    = (VideoAccelerationProfile)profile;
     m_pVA->m_HWPlatform = m_HWType;
-    m_pVA->m_MaxContextPriority = m_maxContextPriority;
 
     Status st = m_pVA->Init(&params);
     MFX_CHECK(st == UMC_OK, MFX_ERR_UNSUPPORTED);
@@ -954,7 +580,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyWrapper(
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIVideoCORE_T<Base>::DoFastCopyWrapper");
     mfxStatus sts;
 
-    mfxHDL srcHandle = {}, dstHandle = {};
+    mfxHDLPair srcHandle = {}, dstHandle = {};
     mfxMemId srcMemId, dstMemId;
 
     mfxFrameSurface1 srcTempSurface, dstTempSurface;
@@ -994,10 +620,10 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyWrapper(
         }
         else if (srcMemType & MFX_MEMTYPE_DXVA2_DECODER_TARGET)
         {
-            sts = this->GetExternalFrameHDL(srcMemId, &srcHandle);
+            sts = this->GetExternalFrameHDL(srcMemId, (mfxHDL *)&srcHandle);
             MFX_CHECK_STS(sts);
 
-            srcTempSurface.Data.MemId = srcHandle;
+            srcTempSurface.Data.MemId = &srcHandle;
         }
     }
     else if (srcMemType & MFX_MEMTYPE_INTERNAL_FRAME)
@@ -1019,10 +645,10 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyWrapper(
         }
         else if (srcMemType & MFX_MEMTYPE_DXVA2_DECODER_TARGET)
         {
-            sts = this->GetFrameHDL(srcMemId, &srcHandle);
+            sts = this->GetFrameHDL(srcMemId, (mfxHDL *)&srcHandle);
             MFX_CHECK_STS(sts);
 
-            srcTempSurface.Data.MemId = srcHandle;
+            srcTempSurface.Data.MemId = &srcHandle;
         }
     }
 
@@ -1045,10 +671,10 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyWrapper(
         }
         else if (dstMemType & MFX_MEMTYPE_DXVA2_DECODER_TARGET)
         {
-            sts = this->GetExternalFrameHDL(dstMemId, &dstHandle);
+            sts = this->GetExternalFrameHDL(dstMemId, (mfxHDL *)&dstHandle);
             MFX_CHECK_STS(sts);
 
-            dstTempSurface.Data.MemId = dstHandle;
+            dstTempSurface.Data.MemId = &dstHandle;
         }
     }
     else if (dstMemType & MFX_MEMTYPE_INTERNAL_FRAME)
@@ -1070,10 +696,10 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyWrapper(
         }
         else if (dstMemType & MFX_MEMTYPE_DXVA2_DECODER_TARGET)
         {
-            sts = this->GetFrameHDL(dstMemId, &dstHandle);
+            sts = this->GetFrameHDL(dstMemId, (mfxHDL *)&dstHandle);
             MFX_CHECK_STS(sts);
 
-            dstTempSurface.Data.MemId = dstHandle;
+            dstTempSurface.Data.MemId = &dstHandle;
         }
     }
 
@@ -1146,7 +772,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    mfxSize roi = {std::min(pSrc->Info.Width, pDst->Info.Width), std::min(pSrc->Info.Height, pDst->Info.Height)};
+    IppiSize roi = {std::min(pSrc->Info.Width, pDst->Info.Width), std::min(pSrc->Info.Height, pDst->Info.Height)};
 
     // check that region of interest is valid
     if (0 == roi.width || 0 == roi.height)
@@ -1167,8 +793,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
         {
             MFX_CHECK(m_Display, MFX_ERR_NOT_INITIALIZED);
 
-            VASurfaceID *va_surf_src = (VASurfaceID*)(pSrc->Data.MemId);
-            VASurfaceID *va_surf_dst = (VASurfaceID*)(pDst->Data.MemId);
+            VASurfaceID *va_surf_src = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
+            VASurfaceID *va_surf_dst = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
             MFX_CHECK(va_surf_src != va_surf_dst, MFX_ERR_UNDEFINED_BEHAVIOR);
 
             VAImage va_img_src = {};
@@ -1202,7 +828,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
             }
             else
             {
-                VASurfaceID *va_surface = (VASurfaceID*)(pSrc->Data.MemId);
+                VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
                 VAImage va_image;
                 VAStatus va_sts;
                 void *pBits = NULL;
@@ -1218,7 +844,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FastCopy_vid2sys");
-                    mfxStatus sts = mfxDefaultAllocatorVAAPI::SetFrameData(va_image, pDst->Info.FourCC, (mfxU8*)pBits, &pSrc->Data);
+                    mfxStatus sts = mfxDefaultAllocatorVAAPI::SetFrameData(va_image, pDst->Info.FourCC, (mfxU8*)pBits, pSrc->Data);
                     MFX_CHECK_STS(sts);
 
                     mfxMemId saveMemId = pSrc->Data.MemId;
@@ -1263,7 +889,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
         else
         {
             VAStatus va_sts = VA_STATUS_SUCCESS;
-            VASurfaceID *va_surface = (VASurfaceID*)(size_t)pDst->Data.MemId;
+            VASurfaceID *va_surface = (VASurfaceID*)((mfxHDLPair *)pDst->Data.MemId)->first;
             VAImage va_image;
             void *pBits = NULL;
 
@@ -1281,7 +907,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FastCopy_sys2vid");
 
-                mfxStatus sts = mfxDefaultAllocatorVAAPI::SetFrameData(va_image, pDst->Info.FourCC, (mfxU8*)pBits, &pDst->Data);
+                mfxStatus sts = mfxDefaultAllocatorVAAPI::SetFrameData(va_image, pDst->Info.FourCC, (mfxU8*)pBits, pDst->Data);
                 MFX_CHECK_STS(sts);
 
                 mfxMemId saveMemId = pDst->Data.MemId;
@@ -1315,9 +941,9 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
 } // mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 
-
-//function checks profile and entrypoint and video resolution support
-//On linux specific function!
+// On linux/android specific function!
+// correct work since libva 1.2 (libva 2.2.1.pre1)
+// function checks profile and entrypoint and video resolution support
 template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
                                          mfxVideoParam *par, bool /* isEncoder */)
@@ -1329,8 +955,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
 
 #if VA_CHECK_VERSION(1, 2, 0)
     VaGuidMapper mapper(guid);
-    VAProfile req_profile         = mapper.profile;
-    VAEntrypoint req_entrypoint   = mapper.entrypoint;
+    VAProfile req_profile         = mapper.m_profile;
+    VAEntrypoint req_entrypoint   = mapper.m_entrypoint;
     mfxI32 va_max_num_entrypoints = vaMaxNumEntrypoints(m_Display);
     mfxI32 va_max_num_profiles    = vaMaxNumProfiles(m_Display);
     MFX_CHECK_COND(va_max_num_entrypoints && va_max_num_profiles);
@@ -1362,12 +988,11 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
     MFX_CHECK(it_entrypoint != va_entrypoints.end(), MFX_ERR_UNSUPPORTED);
 
     VAConfigAttrib attr[] = {{VAConfigAttribMaxPictureWidth,  0},
-                             {VAConfigAttribMaxPictureHeight, 0},
-                             {VAConfigAttribContextPriority,  0}};
+                             {VAConfigAttribMaxPictureHeight, 0}};
 
     //ask driver about support
-    va_sts = vaGetConfigAttributes(m_Display, mapper.profile,
-                                   mapper.entrypoint,
+    va_sts = vaGetConfigAttributes(m_Display, req_profile,
+                                   req_entrypoint,
                                    attr, sizeof(attr)/sizeof(*attr));
 
     MFX_CHECK(va_sts == VA_STATUS_SUCCESS, MFX_ERR_UNSUPPORTED);
@@ -1378,8 +1003,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
     MFX_CHECK_COND(attr[0].value && attr[1].value);
     MFX_CHECK(attr[0].value >= par->mfx.FrameInfo.Width, MFX_ERR_UNSUPPORTED);
     MFX_CHECK(attr[1].value >= par->mfx.FrameInfo.Height, MFX_ERR_UNSUPPORTED);
-    if (attr[2].value != VA_ATTRIB_NOT_SUPPORTED)
-        m_maxContextPriority = attr[2].value;
 
     return MFX_ERR_NONE;
 #else
@@ -1434,24 +1057,6 @@ void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
     {
         return (void*) &this->m_encode_caps;
     }
-#ifdef MFX_ENABLE_MFE
-    if (MFXMFEDDIENCODER_SEARCH_GUID == guid)
-    {
-        if (!m_mfe.get())
-        {
-            m_mfe = reinterpret_cast<MFEVAAPIEncoder*>(this->m_session->m_pOperatorCore->template QueryGUID<ComPtrCore<MFEVAAPIEncoder> >(&VideoCORE::QueryCoreInterface, MFXMFEDDIENCODER_GUID));
-            if (m_mfe.get())
-                m_mfe.get()->AddRef();
-        }
-        return (void*)&m_mfe;
-    }
-
-    if (MFXMFEDDIENCODER_GUID == guid)
-    {
-        return (void*)&m_mfe;
-    }
-#endif
-
     if (MFXICORECM_GUID == guid)
     {
         CmDevice* pCmDevice = nullptr;
@@ -1525,13 +1130,323 @@ void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
     return Base::QueryCoreInterface(guid);
 } // void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
 
-template class VAAPIVideoCORE_T<CommonCORE  >;
-
 bool IsHwMvcEncSupported()
 {
     return false;
 }
 
+VAAPIVideoCORE20::VAAPIVideoCORE20(
+    const mfxU32 adapterNum,
+    const mfxU32 numThreadsAvailable,
+    const mfxSession session)
+    : VAAPIVideoCORE20_base(adapterNum, numThreadsAvailable, session)
+{
+    m_frame_allocator_wrapper.allocator_hw.reset(new FlexibleFrameAllocatorHW_VAAPI(nullptr, m_session));
 
+    m_enabled20Interface = false;
+}
+
+mfxStatus
+VAAPIVideoCORE20::SetHandle(
+    mfxHandleType type,
+    mfxHDL hdl)
+{
+    MFX_SAFE_CALL(VAAPIVideoCORE20_base::SetHandle(type, hdl));
+
+    if (m_enabled20Interface && type == MFX_HANDLE_VA_DISPLAY)
+    {
+        // Pass display to allocator
+        m_frame_allocator_wrapper.SetDevice(m_Display);
+    }
+
+    return MFX_ERR_NONE;
+}
+
+VAAPIVideoCORE20::~VAAPIVideoCORE20()
+{}
+
+mfxStatus VAAPIVideoCORE20::AllocFrames(
+    mfxFrameAllocRequest* request,
+    mfxFrameAllocResponse* response,
+    bool isNeedCopy)
+{
+    if (!m_enabled20Interface)
+        return VAAPIVideoCORE_T<CommonCORE20>::AllocFrames(request, response, isNeedCopy);
+
+    MFX_CHECK_NULL_PTR2(request, response);
+
+    MFX_CHECK(!(request->Type & 0x0004), MFX_ERR_UNSUPPORTED); // 0x0004 means MFX_MEMTYPE_OPAQUE_FRAME
+
+    UMC::AutomaticUMCMutex guard(this->m_guard);
+
+    try
+    {
+        mfxStatus sts = MFX_ERR_NONE;
+
+        if (!m_bCmCopy && m_bCmCopyAllowed && isNeedCopy && m_Display)
+        {
+            m_pCmCopy.reset(new CmCopyWrapper);
+
+            if (!m_pCmCopy->GetCmDevice(m_Display))
+            {
+                m_bCmCopy = false;
+                m_bCmCopyAllowed = false;
+                m_pCmCopy.reset();
+            }
+            else
+            {
+                sts = m_pCmCopy->Initialize(GetHWType());
+                MFX_CHECK_STS(sts);
+                m_bCmCopy = true;
+            }
+        }
+        else if (m_bCmCopy)
+        {
+            if (m_pCmCopy)
+                m_pCmCopy->ReleaseCmSurfaces();
+            else
+                m_bCmCopy = false;
+        }
+
+        sts = m_frame_allocator_wrapper.Alloc(*request, *response, request->Type & (MFX_MEMTYPE_FROM_ENC | MFX_MEMTYPE_FROM_PAK));
+
+#if defined(ANDROID)
+        MFX_CHECK(response->NumFrameActual <= 128, MFX_ERR_UNSUPPORTED);
 #endif
+        return TraceFrames(request, response, sts);
+    }
+    catch (...)
+    {
+        MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
+    }
+} // mfxStatus VAAPIVideoCORE20::AllocFrames(...)
+
+
+mfxStatus VAAPIVideoCORE20::ReallocFrame(mfxFrameSurface1 *surf)
+{
+    if (!m_enabled20Interface)
+        return VAAPIVideoCORE_T<CommonCORE20>::ReallocFrame(surf);
+
+    MFX_CHECK_NULL_PTR1(surf);
+
+    return m_frame_allocator_wrapper.ReallocSurface(surf->Info, surf->Data.MemId);
+}
+
+mfxStatus
+VAAPIVideoCORE20::DoFastCopyWrapper(
+    mfxFrameSurface1* pDst,
+    mfxU16 dstMemType,
+    mfxFrameSurface1* pSrc,
+    mfxU16 srcMemType)
+{
+    if (!m_enabled20Interface)
+        return VAAPIVideoCORE_T<CommonCORE20>::DoFastCopyWrapper(pDst, dstMemType, pSrc, srcMemType);
+
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIVideoCORE20::DoFastCopyWrapper");
+
+    MFX_CHECK_NULL_PTR2(pSrc, pDst);
+
+    // TODO: uncomment underlying checks after additional validation
+    //MFX_CHECK(!pSrc->Data.MemType || MFX_MEMTYPE_BASE(pSrc->Data.MemType) == MFX_MEMTYPE_BASE(srcMemType), MFX_ERR_UNSUPPORTED);
+    //MFX_CHECK(!pDst->Data.MemType || MFX_MEMTYPE_BASE(pDst->Data.MemType) == MFX_MEMTYPE_BASE(dstMemType), MFX_ERR_UNSUPPORTED);
+
+    mfxFrameSurface1 srcTempSurface = *pSrc, dstTempSurface = *pDst;
+    srcTempSurface.Data.MemType = srcMemType;
+    dstTempSurface.Data.MemType = dstMemType;
+
+    mfxFrameSurface1_scoped_lock src_surf_lock(&srcTempSurface, this), dst_surf_lock(&dstTempSurface, this);
+    mfxHDLPair handle_pair_src, handle_pair_dst;
+
+    mfxStatus sts;
+    if (srcTempSurface.Data.MemType & MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET)
+    {
+        clear_frame_data(srcTempSurface.Data);
+        sts = SwitchMemidInSurface(srcTempSurface, handle_pair_src);
+        MFX_CHECK_STS(sts);
+    }
+    else
+    {
+        sts = src_surf_lock.lock(MFX_MAP_READ, SurfaceLockType::LOCK_GENERAL);
+        MFX_CHECK_STS(sts);
+        srcTempSurface.Data.MemId = 0;
+    }
+
+    if (dstTempSurface.Data.MemType & MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET)
+    {
+        clear_frame_data(dstTempSurface.Data);
+        sts = SwitchMemidInSurface(dstTempSurface, handle_pair_dst);
+        MFX_CHECK_STS(sts);
+    }
+    else
+    {
+        sts = dst_surf_lock.lock(MFX_MAP_WRITE, SurfaceLockType::LOCK_GENERAL);
+        MFX_CHECK_STS(sts);
+        dstTempSurface.Data.MemId = 0;
+    }
+
+    sts = DoFastCopyExtended(&dstTempSurface, &srcTempSurface);
+    MFX_CHECK_STS(sts);
+
+    sts = src_surf_lock.unlock();
+    MFX_CHECK_STS(sts);
+
+    return dst_surf_lock.unlock();
+}
+
+mfxStatus
+VAAPIVideoCORE20::DoFastCopyExtended(
+    mfxFrameSurface1* pDst,
+    mfxFrameSurface1* pSrc)
+{
+    if (!m_enabled20Interface)
+        return VAAPIVideoCORE_T<CommonCORE20>::DoFastCopyExtended(pDst, pSrc);
+
+    MFX_CHECK_NULL_PTR2(pDst, pSrc);
+
+    mfxU8 *srcPtr, *dstPtr;
+
+    mfxStatus sts = GetFramePointerChecked(pSrc->Info, pSrc->Data, &srcPtr);
+    MFX_CHECK(MFX_SUCCEEDED(sts), MFX_ERR_UNDEFINED_BEHAVIOR);
+    sts = GetFramePointerChecked(pDst->Info, pDst->Data, &dstPtr);
+    MFX_CHECK(MFX_SUCCEEDED(sts), MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    // check that only memId or pointer are passed
+    // otherwise don't know which type of memory copying is requested
+    MFX_CHECK(!dstPtr || !pDst->Data.MemId, MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_CHECK(!srcPtr || !pSrc->Data.MemId, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    IppiSize roi = { min(pSrc->Info.Width, pDst->Info.Width), min(pSrc->Info.Height, pDst->Info.Height) };
+
+    // check that region of interest is valid
+    MFX_CHECK(roi.width && roi.height, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    bool canUseCMCopy = m_bCmCopy && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+
+    if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
+    {
+        if (canUseCMCopy)
+        {
+            return m_pCmCopy->CopyVideoToVideo(pDst, pSrc);
+        }
+
+        MFX_CHECK(m_Display, MFX_ERR_NOT_INITIALIZED);
+
+        VASurfaceID *va_surf_src = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
+        VASurfaceID *va_surf_dst = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
+        MFX_CHECK(va_surf_src != va_surf_dst, MFX_ERR_UNDEFINED_BEHAVIOR);
+        MFX_CHECK_HDL(va_surf_src);
+        MFX_CHECK_HDL(va_surf_dst);
+
+        SurfaceScopedLock src_lock(m_Display, *va_surf_src);
+        sts = src_lock.DeriveImage();
+        MFX_CHECK_STS(sts);
+
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaPutImage");
+            VAStatus va_sts = vaPutImage(m_Display, *va_surf_dst, src_lock.m_image.image_id,
+                0, 0, roi.width, roi.height,
+                0, 0, roi.width, roi.height);
+            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+        }
+
+        return src_lock.DestroyImage();
+    }
+
+    if (NULL != pSrc->Data.MemId && NULL != dstPtr)
+    {
+        MFX_CHECK(m_Display, MFX_ERR_NOT_INITIALIZED);
+
+        if (canUseCMCopy)
+        {
+            return m_pCmCopy->CopyVideoToSys(pDst, pSrc);
+        }
+
+        VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
+        MFX_CHECK_HDL(va_surface);
+
+        SurfaceScopedLock src_lock(m_Display, *va_surface);
+        sts = src_lock.DeriveImage();
+        MFX_CHECK_STS(sts);
+
+        mfxU8* pBits;
+        sts = src_lock.Map(pBits);
+        MFX_CHECK_STS(sts);
+
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FastCopy_vid2sys");
+            mfxStatus sts = mfxDefaultAllocatorVAAPI::SetFrameData(src_lock.m_image, pDst->Info.FourCC, pBits, pSrc->Data);
+            MFX_CHECK_STS(sts);
+
+            mfxMemId saveMemId = pSrc->Data.MemId;
+            pSrc->Data.MemId = 0;
+
+            sts = CoreDoSWFastCopy(*pDst, *pSrc, COPY_VIDEO_TO_SYS); // sw copy
+            MFX_CHECK_STS(sts);
+
+            pSrc->Data.MemId = saveMemId;
+            MFX_CHECK_STS(sts);
+        }
+
+        sts = src_lock.Unmap();
+        MFX_CHECK_STS(sts);
+
+        return src_lock.DestroyImage();
+    }
+
+    if (NULL != srcPtr && NULL != dstPtr)
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FastCopy_sys2sys");
+        // system memories were passed
+        // use common way to copy frames
+        return CoreDoSWFastCopy(*pDst, *pSrc, COPY_SYS_TO_SYS); // sw copy
+    }
+
+    if (NULL != srcPtr && NULL != pDst->Data.MemId)
+    {
+        if (canUseCMCopy)
+        {
+            return m_pCmCopy->CopySysToVideo(pDst, pSrc);
+        }
+
+        MFX_CHECK(m_Display, MFX_ERR_NOT_INITIALIZED);
+
+        VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
+        MFX_CHECK_HDL(va_surface);
+
+        SurfaceScopedLock dst_lock(m_Display, *va_surface);
+        sts = dst_lock.DeriveImage();
+        MFX_CHECK_STS(sts);
+
+        mfxU8* pBits;
+        sts = dst_lock.Map(pBits);
+        MFX_CHECK_STS(sts);
+
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FastCopy_sys2vid");
+
+            sts = mfxDefaultAllocatorVAAPI::SetFrameData(dst_lock.m_image, pDst->Info.FourCC, (mfxU8*)pBits, pDst->Data);
+            MFX_CHECK_STS(sts);
+
+            mfxMemId saveMemId = pDst->Data.MemId;
+            pDst->Data.MemId = 0;
+
+            sts = CoreDoSWFastCopy(*pDst, *pSrc, COPY_SYS_TO_VIDEO); // sw copy
+            MFX_CHECK_STS(sts);
+
+            pDst->Data.MemId = saveMemId;
+        }
+
+        sts = dst_lock.Unmap();
+        MFX_CHECK_STS(sts);
+
+        return dst_lock.DestroyImage();
+    }
+
+    MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
+} // mfxStatus VAAPIVideoCORE20::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
+
+
+template class VAAPIVideoCORE_T<CommonCORE  >;
+template class VAAPIVideoCORE_T<CommonCORE20>;
+
 /* EOF */

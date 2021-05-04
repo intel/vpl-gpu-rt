@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2020 Intel Corporation
-// 
+// Copyright (c) 2013-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,7 +23,6 @@
 
 #include "mfx_common.h"
 
-#if defined (MFX_VA_LINUX)
 #if defined(MFX_ENABLE_MPEG2_VIDEO_ENCODE)
 
 #include <vector>
@@ -35,6 +34,7 @@
 #include "vaapi_ext_interface.h"
 
 #include "mfx_ext_buffers.h"
+#include "mfxpcp.h"
 
 #include "mfx_mpeg2_enc_common_hw.h"
 #include "mfx_mpeg2_encode_interface.h"
@@ -95,6 +95,7 @@ namespace MfxHwMpeg2Encode
             mfxU32 qp_y;
         };
 
+
         mfxStatus QueryCompBufferInfo(D3DDDIFORMAT type, mfxFrameAllocRequest* pRequest, ExecuteBuffers* pExecuteBuffers);
         mfxStatus CreateCompBuffers  (ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrames);
         mfxStatus CreateBSBuffer      (mfxU32 numRefFrames, ExecuteBuffers* pExecuteBuffers);
@@ -114,7 +115,6 @@ namespace MfxHwMpeg2Encode
         mfxStatus Register (const mfxFrameAllocResponse* pResponse, D3DDDIFORMAT type);
         mfxI32    GetRecFrameIndex (mfxMemId memID);
         mfxI32    GetRawFrameIndex (mfxMemId memIDe, bool bAddFrames);
-        mfxStatus FillPriorityBuffer(mfxPriority&);
 
 
         VideoCORE*                          m_core;
@@ -148,12 +148,13 @@ namespace MfxHwMpeg2Encode
         VABufferID                          m_packedUserDataId;
         VABufferID                          m_mbqpBufferId;
         VABufferID                          m_miscQualityParamId;
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+        VABufferID                          m_triggerGpuHangBufferId;
+#endif
         std::vector<VAEncQpBufferMPEG2>     m_mbqpDataBuffer;
-        VABufferID                          m_priorityBufferId;
-        VAContextParameterUpdateBuffer      m_priorityBuffer;
 
-        mfxU32                              m_MaxContextPriority;
 
+        int                                 m_vbvBufSize;
         mfxU16                              m_initFrameWidth;
         mfxU16                              m_initFrameHeight;
 
@@ -170,13 +171,17 @@ namespace MfxHwMpeg2Encode
         mfxRawFrames                        m_rawFrames;
 
         UMC::Mutex                          m_guard;
+
+#ifdef MPEG2_ENC_HW_PERF
+        vm_time lock_MB_data_time[3];
+        vm_time copy_MB_data_time[3];
+#endif
         ENCODE_CAPS                         m_caps;
     }; // class VAAPIEncoder
 
 
 }; // namespace
 
-#endif // defined(MFX_ENABLE_MPEG2_VIDEO_ENCODE) || defined(MFX_ENABLE_MPEG2_VIDEO_ENC)
-#endif // defined (MFX_VA_LINUX)
+#endif // defined(MFX_ENABLE_MPEG2_VIDEO_ENCODE)
 #endif // __MFX_MPEG2_ENCODE_VAAPI__H
 /* EOF */

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2003-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -83,6 +83,10 @@ Status MJPEGVideoDecoderMFX_HW::Reset(void)
         m_cachedReadyTaskIndex.clear();
         m_cachedCorruptedTaskIndex.clear();
         m_submittedTaskIndex.clear();
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC_JPEGD
+        if (m_va && m_va->IsGPUSyncEventEnable())
+            m_pic_index.clear();
+#endif
     }
 
     return MJPEGVideoDecoderBaseMFX::Reset();
@@ -96,6 +100,10 @@ Status MJPEGVideoDecoderMFX_HW::Close(void)
         m_cachedReadyTaskIndex.clear();
         m_cachedCorruptedTaskIndex.clear();
         m_submittedTaskIndex.clear();
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC_JPEGD
+        if (m_va && m_va->IsGPUSyncEventEnable())
+            m_pic_index.clear();
+#endif
     }
 
     return MJPEGVideoDecoderBaseMFX::Close();
@@ -148,12 +156,35 @@ mfxStatus MJPEGVideoDecoderMFX_HW::CheckStatusReportNumber(uint32_t statusReport
     std::set<mfxU32>::iterator iteratorCorrupted;
 
     AutomaticUMCMutex guard(m_guard);
+
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC_JPEGD
+    if (m_va && m_va->IsGPUSyncEventEnable())
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Dec vaSyncSurface");
+        auto iteratorPicIndex = m_pic_index.find(statusReportFeedbackNumber);
+        if (m_pic_index.end() != iteratorPicIndex)
+        {
+            UMC::Status waitSts = m_va->SyncTask((int32_t)(iteratorPicIndex->second), NULL);
+            if (waitSts != UMC_OK && waitSts != UMC_ERR_TIMEOUT)
+                return MFX_ERR_DEVICE_FAILED;
+            if (waitSts == UMC_OK)
+                m_pic_index.erase(iteratorPicIndex);
+        }
+    }
+#endif
+
     iteratorReady = find(m_cachedReadyTaskIndex.begin(), m_cachedReadyTaskIndex.end(), statusReportFeedbackNumber);
     iteratorSubmitted = find(m_submittedTaskIndex.begin(), m_submittedTaskIndex.end(), statusReportFeedbackNumber);
+
     if (m_cachedReadyTaskIndex.end() == iteratorReady){
         for (mfxU32 i = 0; i < numStructures; i += 1){
             queryStatus[i].bStatus = 3;
         }
+#ifdef UMC_VA_DXVA
+        MFX_CHECK(m_va, MFX_ERR_DEVICE_FAILED);
+        // execute call
+        sts = m_va->ExecuteStatusReportBuffer((void*)queryStatus, sizeof(JPEG_DECODE_QUERY_STATUS) * numStructures);
+#else
         // on Linux ExecuteStatusReportBuffer returns UMC_ERR_UNSUPPORTED so the task pretends as already done
         // mark tasks as not completed to skip them in the next loop
         for (mfxU32 i = 0; i < numStructures; i += 1) {
@@ -166,6 +197,7 @@ mfxStatus MJPEGVideoDecoderMFX_HW::CheckStatusReportNumber(uint32_t statusReport
             queryStatus[0].StatusReportFeedbackNumber = statusReportFeedbackNumber;
         }
 
+#endif
         if(sts != UMC_OK)
         {
             return MFX_ERR_DEVICE_FAILED;
@@ -249,7 +281,7 @@ Status MJPEGVideoDecoderMFX_HW::_DecodeHeader(int32_t* cnt)
 
     if ((m_frameSampling != (int)sampling) || (m_frameDims.width && sizeHaveChanged))
     {
-        m_decBase->Seek(-m_decBase->GetNumDecodedBytes(),UIC_SEEK_CUR);
+        m_decBase->Seek(-m_decBase->GetNumDecodedBytes(), UIC_SEEK_CUR);
         *cnt = 0;
         return UMC_ERR_NOT_ENOUGH_DATA;
     }
@@ -339,36 +371,6 @@ Status MJPEGVideoDecoderMFX_HW::DefaultInitializationHuffmantables()
     return UMC_OK;
 }
 
-Status MJPEGVideoDecoderMFX_HW::PackPriorityParams()
-{
-    Status sts = UMC_OK;
-    mfxPriority priority = m_va->m_ContextPriority;
-    UMCVACompBuffer *GpuPriorityBuf;
-    VAContextParameterUpdateBuffer* GpuPriorityBuf_JpegDecode = (VAContextParameterUpdateBuffer *)m_va->GetCompBuffer(VAContextParameterUpdateBufferType, &GpuPriorityBuf, sizeof(VAContextParameterUpdateBuffer));
-    if (!GpuPriorityBuf_JpegDecode)
-        return UMC_ERR_DEVICE_FAILED;
-
-    memset(GpuPriorityBuf_JpegDecode, 0, sizeof(VAContextParameterUpdateBuffer));
-    GpuPriorityBuf_JpegDecode->flags.bits.context_priority_update = 1;
-    if(priority == MFX_PRIORITY_LOW)
-    {
-        GpuPriorityBuf_JpegDecode->context_priority.bits.priority = 0;
-    }
-    else if (priority == MFX_PRIORITY_HIGH)
-    {
-        GpuPriorityBuf_JpegDecode->context_priority.bits.priority = m_va->m_MaxContextPriority;
-    }
-    else
-    {
-        GpuPriorityBuf_JpegDecode->context_priority.bits.priority = m_va->m_MaxContextPriority/2;
-    }
-
-    GpuPriorityBuf->SetDataSize(sizeof(VAContextParameterUpdateBuffer));
-
-    return sts;
-
-}
-
 Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
 {
 #ifdef UMC_VA
@@ -392,12 +394,16 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
     if (m_statusReportFeedbackCounter >= UINT_MAX)
         m_statusReportFeedbackCounter = 1;
 
-    sts = m_va->BeginFrame(m_frameData.GetFrameMID());
+    sts = m_va->BeginFrame(m_frameData.GetFrameMID(), 0);
     if (sts != UMC_OK)
         return sts;
     {
         AutomaticUMCMutex guard(m_guard);
         m_submittedTaskIndex.insert(m_statusReportFeedbackCounter);
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC_JPEGD
+        if (m_va->IsGPUSyncEventEnable())
+            m_pic_index.insert(std::pair<uint32_t, FrameMemID>(m_statusReportFeedbackCounter, m_frameData.GetFrameMID()));
+#endif
     }
     /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -541,14 +547,17 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
         }
     }
 
-    if(m_va->m_MaxContextPriority)
-    {
-        sts = PackPriorityParams();
-        if (sts != UMC_OK)
-            return sts;
-    }
-
     /////////////////////////////////////////////////////////////////////////////////////////
+#if defined (UMC_VA_DXVA)
+    JPEG_DECODE_IMAGE_LAYOUT imageLayout;
+    sts = m_va->EndFrame(&imageLayout);
+    if (sts != UMC_OK)
+        return sts;
+
+    m_convertInfo.colorFormat = GetChromaType();
+    m_convertInfo.UOffset = imageLayout.ComponentDataOffset[1];
+    m_convertInfo.VOffset = imageLayout.ComponentDataOffset[2];
+#else
     sts = m_va->Execute();
     if (sts != UMC_OK)
         return sts;
@@ -556,10 +565,260 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
     if (sts != UMC_OK)
         return sts;
 #endif
+#endif
     return UMC_OK;
 }
 
 #ifdef UMC_VA
+#ifdef UMC_VA_DXVA
+// Window version
+Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PARAMETER* obtainedScanParams, uint8_t* buffersForUpdate)
+{
+    UMCVACompBuffer* compBuf = 0;
+    uint32_t bitstreamTile = 0;
+    bool shiftDataOffset = false;
+    Status sts = UMC_OK;
+
+    /////////////////////////////////////////////////////////////////////////////////////////
+    if((*buffersForUpdate & 1) != 0)
+    {
+        *buffersForUpdate -= 1;
+
+        JPEG_DECODE_PICTURE_PARAMETERS *picParams = (JPEG_DECODE_PICTURE_PARAMETERS*)m_va->GetCompBuffer(D3DDDIFMT_INTEL_JPEGDECODE_PPSDATA, &compBuf);
+        if(!picParams)
+            return UMC_ERR_DEVICE_FAILED;
+
+        picParams->FrameWidth                = (USHORT)m_decBase->m_jpeg_width;
+        picParams->FrameHeight               = (USHORT)m_decBase->m_jpeg_height;
+        picParams->NumCompInFrame            = (USHORT)m_decBase->m_jpeg_ncomp; // TODO: change for multi-scan images
+        picParams->ChromaType                = (UCHAR)GetChromaType();
+        picParams->TotalScans                = (USHORT)m_decBase->m_num_scans;
+
+        switch(m_rotation)
+        {
+        case 0:
+            picParams->Rotation = 0;
+            break;
+        case 90:
+            picParams->Rotation = 1;
+            break;
+        case 180:
+            picParams->Rotation = 3;
+            break;
+        case 270:
+            picParams->Rotation = 2;
+            break;
+        }
+
+        for (int32_t i = 0; i < m_decBase->m_jpeg_ncomp; i++)
+        {
+            picParams->ComponentIdentifier[i] = (UCHAR)m_decBase->m_ccomp[i].m_id;
+            picParams->QuantTableSelector[i]  = (UCHAR)m_decBase->m_ccomp[i].m_q_selector;
+        }
+
+        picParams->InterleavedData = (picParams->TotalScans == 1) ? 1 : 0;
+        picParams->StatusReportFeedbackNumber = m_statusReportFeedbackCounter;
+        picParams->RenderTargetFormat = m_fourCC;
+
+        compBuf->SetDataSize(sizeof(JPEG_DECODE_PICTURE_PARAMETERS));
+
+        sts = m_va->Execute();
+        if (sts != UMC_OK)
+            return sts;
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////
+    if((*buffersForUpdate & (1 << 1)) != 0)
+    {
+        *buffersForUpdate -= 1 << 1;
+        for (int32_t i = 0; i < MAX_QUANT_TABLES; i++)
+        {
+            if (!m_decBase->m_qntbl[i].m_initialized)
+                continue;
+
+            JPEG_DECODE_QM_TABLE *quantTable = (JPEG_DECODE_QM_TABLE*)m_va->GetCompBuffer(D3DDDIFMT_INTEL_JPEGDECODE_QUANTDATA, &compBuf);
+            if(!quantTable)
+                return UMC_ERR_DEVICE_FAILED;
+
+            quantTable->TableIndex = (UCHAR)m_decBase->m_qntbl[i].m_id;
+            quantTable->Precision  = (UCHAR)m_decBase->m_qntbl[i].m_precision;
+
+            if (m_decBase->m_qntbl[i].m_precision) // should be always zero for 8-bit quantization tables
+            {
+                return UMC_ERR_FAILED;
+            }
+
+            MFX_INTERNAL_CPY(quantTable->Qm, m_decBase->m_qntbl[i].m_raw8u, DCTSIZE2);
+
+            /*uint16_t* invQuantTable = m_dec->m_qntbl[i];
+            for (int32_t k = 0; k < DCTSIZE2; k++)
+            {
+                quantTable->Qm[k] = (UCHAR)invQuantTable[k];
+            }*/
+
+            compBuf->SetDataSize(sizeof(JPEG_DECODE_QM_TABLE));
+
+            sts = m_va->Execute();
+            if (sts != UMC_OK)
+                return sts;
+        }
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////
+    if((*buffersForUpdate & (1 << 2)) != 0)
+    {
+        *buffersForUpdate -= 1 << 2;
+
+        if (DefaultInitializationHuffmantables() != UMC_OK)
+            return UMC_ERR_FAILED;
+
+        for (int32_t i = 0; i < MAX_HUFF_TABLES; i++)
+        {
+            if(m_decBase->m_dctbl[i].IsValid())
+            {
+                JPEG_DECODE_HUFFMAN_TABLE *huffmanTables = (JPEG_DECODE_HUFFMAN_TABLE*)m_va->GetCompBuffer(D3DDDIFMT_INTEL_JPEGDECODE_HUFFTBLDATA, &compBuf);
+                if(!huffmanTables)
+                    return UMC_ERR_DEVICE_FAILED;
+
+                huffmanTables->TableClass = (UCHAR)m_decBase->m_dctbl[i].m_hclass;
+                huffmanTables->TableIndex = (UCHAR)m_decBase->m_dctbl[i].m_id;
+
+                MFX_INTERNAL_CPY(huffmanTables->BITS,    m_decBase->m_dctbl[i].GetBits(),   sizeof(huffmanTables->BITS));
+                MFX_INTERNAL_CPY(huffmanTables->HUFFVAL, m_decBase->m_dctbl[i].GetValues(), sizeof(huffmanTables->HUFFVAL));
+                compBuf->SetDataSize(sizeof(JPEG_DECODE_HUFFMAN_TABLE));
+
+                sts = m_va->Execute();
+                if (sts != UMC_OK)
+                    return sts;
+            }
+
+            if(m_decBase->m_actbl[i].IsValid())
+            {
+                JPEG_DECODE_HUFFMAN_TABLE *huffmanTables = (JPEG_DECODE_HUFFMAN_TABLE*)m_va->GetCompBuffer(D3DDDIFMT_INTEL_JPEGDECODE_HUFFTBLDATA, &compBuf);
+                if(!huffmanTables)
+                    return UMC_ERR_DEVICE_FAILED;
+
+                huffmanTables->TableClass = (UCHAR)m_decBase->m_actbl[i].m_hclass;
+                huffmanTables->TableIndex = (UCHAR)m_decBase->m_actbl[i].m_id;
+
+                MFX_INTERNAL_CPY(huffmanTables->BITS,    m_decBase->m_actbl[i].GetBits(),   sizeof(huffmanTables->BITS));
+                MFX_INTERNAL_CPY(huffmanTables->HUFFVAL, m_decBase->m_actbl[i].GetValues(), sizeof(huffmanTables->HUFFVAL));
+                compBuf->SetDataSize(sizeof(JPEG_DECODE_HUFFMAN_TABLE));
+
+                sts = m_va->Execute();
+                if (sts != UMC_OK)
+                    return sts;
+            }
+        }
+    }
+
+    if((*buffersForUpdate & (1 << 3)) != 0)
+    {
+        *buffersForUpdate -= 1 << 3;
+
+        uint8_t *bistreamData = (uint8_t*)m_va->GetCompBuffer(D3DDDIFMT_BITSTREAMDATA, &compBuf);
+        if(!bistreamData)
+            return UMC_ERR_DEVICE_FAILED;
+
+        if (m_decBase->m_curr_scan->scan_no == m_decBase->m_num_scans-1)
+        {
+            // buffer size is enough
+            if (obtainedScanParams->DataLength <= (uint32_t)compBuf->GetBufferSize())
+            {
+                MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset, obtainedScanParams->DataLength);
+                compBuf->SetDataSize(obtainedScanParams->DataLength);
+                shiftDataOffset = true;
+            }
+            // buffer size is not enough
+            else
+            {
+                MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset, (uint32_t)compBuf->GetBufferSize());
+                compBuf->SetDataSize((uint32_t)compBuf->GetBufferSize());
+                bitstreamTile = obtainedScanParams->DataLength - (uint32_t)compBuf->GetBufferSize();
+                shiftDataOffset = true;
+            }
+        }
+        else
+        {
+            // buffer size is enough to keep all data (headers + 3 scan data)
+            if ((uint32_t)src->GetDataSize() <= (uint32_t)compBuf->GetBufferSize())
+            {
+                MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer(), (int)src->GetDataSize());
+                compBuf->SetDataSize((int32_t)src->GetDataSize());
+            }
+            // buffer size is enough to keep pixel data for one scan
+            else if (obtainedScanParams->DataLength <= (uint32_t)compBuf->GetBufferSize())
+            {
+                MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset, obtainedScanParams->DataLength);
+                compBuf->SetDataSize(obtainedScanParams->DataLength);
+                shiftDataOffset = true;
+
+                *buffersForUpdate |= 1 << 3;
+            }
+            // buffer size is not enough
+            else
+            {
+                MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset, (uint32_t)compBuf->GetBufferSize());
+                compBuf->SetDataSize((uint32_t)compBuf->GetBufferSize());
+                bitstreamTile = obtainedScanParams->DataLength - (uint32_t)compBuf->GetBufferSize();
+                shiftDataOffset = true;
+
+                *buffersForUpdate |= 1 << 3;
+            }
+        }
+
+        sts = m_va->Execute();
+        if (sts != UMC_OK)
+            return sts;
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////
+    if((*buffersForUpdate & (1 << 4)) != 0)
+    {
+        *buffersForUpdate -= 1 << 4;
+
+        JPEG_DECODE_SCAN_PARAMETER *scanParams = (JPEG_DECODE_SCAN_PARAMETER*)m_va->GetCompBuffer(D3DDDIFMT_INTEL_JPEGDECODE_SCANDATA, &compBuf);
+        if(!scanParams)
+            return UMC_ERR_DEVICE_FAILED;
+        memcpy_s(scanParams, sizeof(JPEG_DECODE_SCAN_PARAMETER), obtainedScanParams, sizeof(JPEG_DECODE_SCAN_PARAMETER));
+        if(shiftDataOffset)
+        {
+            scanParams->DataOffset = 0;
+        }
+        compBuf->SetDataSize(sizeof(JPEG_DECODE_SCAN_PARAMETER));
+        sts = m_va->Execute();
+        if (sts != UMC_OK)
+            return sts;
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////
+    while(bitstreamTile != 0)
+    {
+        uint8_t *bistreamData = (uint8_t*)m_va->GetCompBuffer(D3DDDIFMT_BITSTREAMDATA, &compBuf);
+        if(!bistreamData)
+            return UMC_ERR_DEVICE_FAILED;
+
+        if (bitstreamTile <= (uint32_t)compBuf->GetBufferSize())
+        {
+            MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset + obtainedScanParams->DataLength - bitstreamTile, bitstreamTile);
+            compBuf->SetDataSize(bitstreamTile);
+            bitstreamTile = 0;
+        }
+        else
+        {
+            MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset + obtainedScanParams->DataLength - bitstreamTile, compBuf->GetBufferSize());
+            compBuf->SetDataSize(compBuf->GetBufferSize());
+            bitstreamTile = bitstreamTile - compBuf->GetBufferSize();
+        }
+
+        sts = m_va->Execute();
+        if (sts != UMC_OK)
+            return sts;
+    }
+
+    return UMC_OK;
+}
+#else
 // Linux/Android version
 Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PARAMETER* obtainedScanParams, uint8_t* buffersForUpdate)
 {
@@ -742,6 +1001,7 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
 
     return UMC_OK;
 }
+#endif // if UMC_VA_DXVA / else
 #endif // if UMC_VA
 
 uint16_t MJPEGVideoDecoderMFX_HW::GetNumScans(MediaDataEx* in)

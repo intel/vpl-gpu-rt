@@ -64,6 +64,7 @@ mfxSchedulerCore::mfxSchedulerCore(void)
 
     // reset task counters
     m_taskCounter = 0;
+    m_freeTasksCount = 0;
     m_jobCounter = 0;
 
     m_hwEventCounter = 0;

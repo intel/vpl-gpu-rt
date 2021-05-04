@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2008-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -84,35 +84,6 @@ enum { MCTF_BITRATE_MULTIPLIER = 100000 };
 #define MCTFADAPTIVE    21
 #define MCTFADAPTIVEVAL 1050
 #define MCTF_CHROMAOFF  0
-
-#ifndef __MFXDEFS_H__
-typedef char mfxI8;
-typedef char int8_t;
-typedef unsigned char mfxU8;
-typedef unsigned char uint8_t;
-typedef short mfxI16;
-typedef short int16_t;
-typedef unsigned short mfxU16;
-typedef unsigned short uint16_t;
-typedef int mfxI32;
-typedef int int32_t;
-typedef unsigned int mfxU32;
-typedef unsigned int uint32_t;
-typedef __int64 mfxI64;
-typedef __int64 long long;
-typedef unsigned __int64 mfxU64;
-typedef unsigned __int64 unsigned long long;
-typedef double mfx64F;
-typedef double double;
-typedef float mfx32F;
-typedef float float;
-
-typedef struct {
-    mfxI16
-        x,
-        y;
-} mfxI16Pair;
-#endif //__MFXDEFS_H__
 
 typedef struct {
     mfxU16
@@ -254,7 +225,7 @@ struct gpuFrameData
 {
     CmSurface2D
         * frameData,
-        *fOut;
+        * fOut;
     SurfaceIndex
         * fIdx,
         * fIdxOut;
@@ -328,11 +299,11 @@ struct gpuFrameData
 typedef struct _MulSurfIdx
 {
     SurfaceIndex
-        * p_ppIndex,
-        * p_pIndex,
-        * p_curIndex,
-        * p_fIndex,
-        * p_ffIndex;
+        *p_ppIndex,
+        *p_pIndex,
+        *p_curIndex,
+        *p_fIndex,
+        *p_ffIndex;
 } MulSurfIdx;
 
 class CMCRuntimeError : public std::exception
@@ -379,15 +350,13 @@ private:
     typedef mfxI32(CMC::*t_MCTF_LOAD)();
     typedef mfxI32(CMC::*t_MCTF_SPDEN)();
 
-    t_MCTF_ME       pMCTF_ME_func;
-    t_MCTF_MERGE    pMCTF_MERGE_func;
-    t_MCTF_NOA      pMCTF_NOA_func;
-    t_RUN_MCTF      pMCTF_func;
-    t_MCTF_LOAD     pMCTF_LOAD_func;
-    t_MCTF_SPDEN    pMCTF_SpDen_func;
+    t_MCTF_ME pMCTF_ME_func;
+    t_MCTF_MERGE pMCTF_MERGE_func;
+    t_MCTF_NOA pMCTF_NOA_func;
+    t_RUN_MCTF pMCTF_func;
+    t_MCTF_LOAD pMCTF_LOAD_func;
+    t_MCTF_SPDEN pMCTF_SpDen_func;
 
-    eMFXHWType
-        mctf_HWType;
     CmDevice
         * device;
     CmQueue
@@ -395,14 +364,14 @@ private:
     CmTask
         * task;
     CmEvent
-        * e,
-        * copyEv;
+        *e,
+        *copyEv;
     CmThreadSpace
-        * threadSpace,
-        * threadSpace2,
-        * threadSpaceMC,
-        * threadSpaceMC2;
-    size_t 
+        *threadSpace,
+        *threadSpace2,
+        *threadSpaceMC,
+        *threadSpaceMC2;
+    size_t
         hwSize;
     mfxU32
         hwType;
@@ -462,25 +431,25 @@ private:
         * qpel1,
         * qpel2;
     CmSurface2DUP
-        * mv_1,
-        * mv_2,
-        * mv_3,
-        * mv_4,
-        * noiseAnalysisSurf,
-        * distSurf;
+        *mv_1,
+        *mv_2,
+        *mv_3,
+        *mv_4,
+        *noiseAnalysisSurf,
+        *distSurf;
     SurfaceIndex
-        * idxCtrl,
-        * idxSrc,
-        * idxRef1,
-        * idxRef2,
-        * idxRef3,
-        * idxRef4,
-        * idxMv_1,
-        * idxMv_2,
-        * idxMv_3,
-        * idxMv_4,
-        * idxNoiseAnalysis,
-        * idxDist;
+        *idxCtrl,
+        *idxSrc,
+        *idxRef1,
+        *idxRef2,
+        *idxRef3,
+        *idxRef4,
+        *idxMv_1,
+        *idxMv_2,
+        *idxMv_3,
+        *idxMv_4,
+        *idxNoiseAnalysis,
+        *idxDist;
     mfxI32
         argIdx,
         ov_width_bl,
@@ -494,12 +463,12 @@ private:
         tsWidthMC,
         tsHeightMC;
     void
-        * mvSys1,
-        * mvSys2,
-        * mvSys3,
-        * mvSys4,
-        * noiseAnalysisSys,
-        * distSys;
+        *mvSys1,
+        *mvSys2,
+        *mvSys3,
+        *mvSys4,
+        *noiseAnalysisSys,
+        *distSys;
     mfxF64
         bpp;
     mfxU32
@@ -518,21 +487,21 @@ private:
         var_sc;
 
     SurfaceIndex
-        * genxRefs1,
-        * genxRefs2,
-        * genxRefs3,
-        * genxRefs4;
+        *genxRefs1,
+        *genxRefs2,
+        *genxRefs3,
+        *genxRefs4;
 
     //MC elements
     CmProgram
-        * programMc,
-        * programDe;
+        *programMc,
+        *programDe;
     CmKernel
-        * kernelNoise,
-        * kernelMcDen,
-        * kernelMc1r,
-        * kernelMc2r,
-        * kernelMc4r;
+        *kernelNoise,
+        *kernelMcDen,
+        *kernelMc1r,
+        *kernelMc2r,
+        *kernelMc4r;
 
     CmSurface2D
         * mco,
@@ -679,11 +648,6 @@ private:
     );
     mfxU8  SetOverlapOp();
     mfxU8  SetOverlapOp_half();
-    mfxI32 MCTF_Enqueue(
-        CmTask* taskInt,
-        CmEvent* & eInt,
-        const CmThreadSpace* tSInt = 0
-    );    
     mfxI32 MCTF_RUN_TASK_NA(
         CmKernel * kernel,
         bool       reset,
@@ -806,13 +770,13 @@ private:
         mfxU16 start_y
     );
     mfxI32 MCTF_SET_KERNELDe(
-        mfxU16 srcNum,
-        mfxU16 start_x,
-        mfxU16 start_y
+       mfxU16 srcNum,
+       mfxU16 start_x,
+       mfxU16 start_y
     );
     mfxI32 MCTF_SET_KERNELDe(
-        mfxU16 start_x,
-        mfxU16 start_y
+       mfxU16 start_x,
+       mfxU16 start_y
     );
     mfxI32 MCTF_RUN_AMCTF();
     mfxI32 MCTF_RUN_AMCTF(

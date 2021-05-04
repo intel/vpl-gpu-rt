@@ -1,51 +1,69 @@
-# Copyright (c) 2018 Intel Corporation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 
-set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}")
-mfx_include_dirs( )
-include_directories( ${MSDK_LIB_ROOT}/genx/asc/isa )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include )
-include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
 
-set( defs "" )
-set( sources "" )
-set( sources.plus "" )
+add_library(asc_sse4 OBJECT
+    include/asc_sse4_impl.h
+	include/motion_estimation_engine.h
+    src/asc_sse4_impl.cpp
+    src/motion_estimation_engine.cpp
+)
+set_property(TARGET asc_sse4 PROPERTY FOLDER "optimization/asc")
 
-add_library(asc_avx2 OBJECT ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_avx2_impl.cpp)
-target_compile_options(asc_avx2 PRIVATE -mavx2)
-configure_build_variant(asc_avx2 none)
+target_include_directories(asc_sse4 PRIVATE include)
 
-add_library(asc_sse4 OBJECT ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_sse4_impl.cpp)
-target_compile_options(asc_sse4 PRIVATE -msse4.1)
-configure_build_variant(asc_sse4 none)
+target_link_libraries(asc_sse4 PRIVATE 
+	mfx_require_sse4_properties 
+	mfx_static_lib
+	mfx_sdl_properties 
+	cmrt_cross_platform_hw)
+
+#=====================================================================
+
+add_library(asc_avx2 OBJECT
+	include/asc_avx2_impl.h
+	src/asc_avx2_impl.cpp
+	)
+set_property(TARGET asc_avx2 PROPERTY FOLDER "optimization/asc")
+
+target_include_directories(asc_avx2 PRIVATE include)
+
+target_link_libraries(asc_avx2 PRIVATE
+	mfx_require_avx2_properties
+	mfx_static_lib
+	mfx_sdl_properties
+	cmrt_cross_platform_hw)
+
+#=====================================================================
 
 list( APPEND sources
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/asc.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_c_impl.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_common_impl.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/iofunctions.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/motion_estimation_engine.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/tree.cpp
-    $<TARGET_OBJECTS:asc_avx2>
-    $<TARGET_OBJECTS:asc_sse4>
-)
 
-make_library(asc none static )
-set( defs "" )
+	include/asc_c_impl.h
+	include/asc_common_impl.h
+	include/asc_cpu_dispatcher.h
+	include/asc_defs.h
+	include/asc.h
+	include/asc_structures.h
+	include/cpu_detect.h
+	include/iofunctions.h
+	include/me_asc.h
+	include/tree.h
+
+    src/asc.cpp
+    src/asc_c_impl.cpp
+    src/iofunctions.cpp
+    src/tree.cpp
+
+    $<TARGET_OBJECTS:asc_sse4>
+    $<TARGET_OBJECTS:asc_avx2>
+  )
+
+add_library(asc STATIC ${sources})
+
+target_include_directories(asc PUBLIC include)
+
+target_link_libraries(asc
+  PUBLIC
+    mfx_static_lib cmrt_cross_platform_hw
+  PRIVATE
+    mfx_sdl_properties
+    genx
+  )

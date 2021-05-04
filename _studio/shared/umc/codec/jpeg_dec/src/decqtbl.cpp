@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2001-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,13 @@
 #include "umc_structures.h"
 
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
+#if defined(__GNUC__)
+#if defined(__INTEL_COMPILER)
+#pragma warning (disable:1478)
+#else
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#endif
 
 #include "decqtbl.h"
 
@@ -36,7 +43,7 @@ CJPEGDecoderQuantTable::CJPEGDecoderQuantTable(void)
   m_raw16u = UMC::align_pointer<uint16_t *>(m_rbf,CPU_CACHE_LINE);
   memset(m_rbf, 0, sizeof(m_rbf));
 
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK
   m_qnt16u = UMC::align_pointer<uint16_t *>(m_qbf,CPU_CACHE_LINE);
   m_qnt32f = UMC::align_pointer<float *>(m_qbf,CPU_CACHE_LINE);
 
@@ -53,7 +60,7 @@ CJPEGDecoderQuantTable::~CJPEGDecoderQuantTable(void)
   m_initialized = 0;
 
   memset(m_rbf, 0, sizeof(m_rbf));
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK   
   memset(m_qbf, 0, sizeof(m_qbf));
 #endif
   return;
@@ -67,7 +74,7 @@ JERRCODE CJPEGDecoderQuantTable::Init(int id,uint8_t raw[64])
 
   MFX_INTERNAL_CPY(m_raw8u,raw,DCTSIZE2);
 
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK
   int status = mfxiQuantInvTableInit_JPEG_8u16u(m_raw8u,m_qnt16u);
   if(ippStsNoErr != status)
   {
@@ -80,7 +87,7 @@ JERRCODE CJPEGDecoderQuantTable::Init(int id,uint8_t raw[64])
   return JPEG_OK;
 } // CJPEGDecoderQuantTable::Init()
 
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK
 static
 int mfxiQuantInvTableInit_JPEG_16u32f(
   uint16_t* raw,
@@ -108,7 +115,7 @@ JERRCODE CJPEGDecoderQuantTable::Init(int id,uint16_t raw[64])
   m_precision = 1; // 16-bit precision
 
   MFX_INTERNAL_CPY((int16_t*)m_raw16u, (int16_t*)raw, DCTSIZE2*sizeof(int16_t));
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK
   int status = mfxiQuantInvTableInit_JPEG_16u32f(m_raw16u,m_qnt32f);
   if(ippStsNoErr != status)
   {
@@ -122,7 +129,7 @@ JERRCODE CJPEGDecoderQuantTable::Init(int id,uint16_t raw[64])
   return JPEG_OK;
 } // CJPEGDecoderQuantTable::Init()
 
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK
 JERRCODE CJPEGDecoderQuantTable::ConvertToLowPrecision(void)
 {
   int status;
@@ -172,6 +179,6 @@ JERRCODE CJPEGDecoderQuantTable::ConvertToHighPrecision(void)
 
   return JPEG_OK;
 } // CJPEGDecoderQuantTable::ConvertToHighPrecision()
-#endif // MFX_ENABLE_SW_FALLBACK
+#endif
 
 #endif // MFX_ENABLE_MJPEG_VIDEO_DECODE

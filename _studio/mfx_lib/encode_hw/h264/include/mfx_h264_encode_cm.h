@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2009-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,12 @@
 #include "mfx_common.h"
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE_HW
 
+#if !defined(OSX)
 
 #include <vector>
 #include <assert.h>
 
+#define USE_AGOP 0
 
 #include "cmrt_cross_platform.h"
 
@@ -42,6 +44,9 @@ class SurfaceIndex;
 class CmThreadSpace;
 class CmTask;
 
+#if USE_AGOP
+#define USE_DOWN_SAMPLE_KERNELS
+#endif
 
 namespace MfxHwH264Encode
 {
@@ -326,7 +331,34 @@ public:
 
     bool isHistogramSupported() { return m_programHist != 0; }
 
+#if USE_AGOP
+    mfxU32 CalcCostAGOP(
+        DdiTask const & task,
+        mfxI32 prevP,
+        mfxI32 nextP);
 
+    CmEvent*  RunVmeAGOP(
+        mfxU32       qp,
+        CmSurface2D* cur,
+        CmSurface2D* fwd, //0 for I frame
+        CmSurface2D* bwd, //0 for P/I frame
+        mfxU32 biWeight,
+        CmBuffer *  curbe, //store for curbe data
+        CmBufferUP* mb  //result output is here
+    );
+
+    bool QueryVmeAGOP(
+        DdiTask const & task,
+        CmEvent *       e,
+        mfxU32&   cost);
+#endif
+
+#ifdef USE_DOWN_SAMPLE_KERNELS
+    void DownSample2X(CmSurface2D* surfOrig, CmSurface2D* surf2X);
+
+    void DownSample4X(CmSurface2D* surfOrig, CmSurface2D* surf4X);
+    CmEvent* DownSample4XAsync(CmSurface2D* surfOrig, CmSurface2D* surf4X);
+#endif
 
     mfxStatus DestroyEvent( CmEvent*& e ){
         mfxStatus status = MFX_ERR_NONE;
@@ -345,6 +377,9 @@ public:
 
 protected:
     CmKernel * SelectKernelPreMe(mfxU32 frameType);
+#if USE_AGOP
+    CmKernel * SelectKernelPreMeAGOP(mfxU32 frameType);
+#endif
     CmKernel * SelectKernelDownSample(mfxU16 LaScaleFactor);
     mfxVMEUNIIn & SelectCosts(mfxU32 frameType);
 
@@ -375,6 +410,11 @@ protected:
     CmKernel *  m_kernelHistFrame;
     CmKernel *  m_kernelHistFields;
 
+#if USE_AGOP
+    CmKernel *  m_kernelIAGOP;
+    CmKernel *  m_kernelPAGOP;
+    CmKernel *  m_kernelBAGOP;
+#endif
 
     CmBuf       m_nullBuf;
     mfxU32      m_lutMvP[65];
@@ -383,6 +423,10 @@ protected:
     mfxVMEUNIIn m_costsP;
     mfxVMEUNIIn m_costsB;
 
+#ifdef USE_DOWN_SAMPLE_KERNELS
+    CmKernel *  m_kernelDownSample2X;
+    CmKernel *  m_kernelDownSample4X;
+#endif
 
     mfxU16      widthLa;
     mfxU16      heightLa;
@@ -391,4 +435,5 @@ protected:
 
 }
 
+#endif // !defined(OSX)
 #endif // MFX_ENABLE_H264_VIDEO_ENCODE_HW

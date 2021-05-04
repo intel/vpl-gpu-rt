@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2006-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,8 @@
 // SOFTWARE.
 
 #include <umc_va_base.h>
+
+#ifdef UMC_VA_LINUX
 
 #include "umc_defs.h"
 #include "umc_va_linux.h"
@@ -90,16 +92,15 @@ VAEntrypoint umc_to_va_entrypoint(uint32_t umc_entrypoint)
     case UMC::VA_VLD:
     case UMC::VA_VLD | UMC::VA_PROFILE_444:
     case UMC::VA_VLD | UMC::VA_PROFILE_10:
+    case UMC::VA_VLD | UMC::VA_PROFILE_10 | UMC::VA_PROFILE_444:
     case UMC::VA_VLD | UMC::VA_PROFILE_REXT:
-    case UMC::VA_VLD | UMC::VA_PROFILE_444  | UMC::VA_PROFILE_10:
     case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10:
     case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_422:
     case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_444:
     case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10 | UMC::VA_PROFILE_422:
     case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10 | UMC::VA_PROFILE_444:
-#if (MFX_VERSION >= 1031)
-    case UMC::VA_VLD |                        UMC::VA_PROFILE_12:
-    case UMC::VA_VLD |                        UMC::VA_PROFILE_12 | UMC::VA_PROFILE_444:
+    case UMC::VA_VLD | UMC::VA_PROFILE_12:
+    case UMC::VA_VLD | UMC::VA_PROFILE_12 | UMC::VA_PROFILE_444:
     case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_12:
     case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_12 | UMC::VA_PROFILE_422:
     case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_12 | UMC::VA_PROFILE_444:
@@ -107,7 +108,6 @@ VAEntrypoint umc_to_va_entrypoint(uint32_t umc_entrypoint)
     case UMC::VA_VLD | UMC::VA_PROFILE_SCC  | UMC::VA_PROFILE_10:
     case UMC::VA_VLD | UMC::VA_PROFILE_SCC  | UMC::VA_PROFILE_444:
     case UMC::VA_VLD | UMC::VA_PROFILE_SCC  | UMC::VA_PROFILE_444 | UMC::VA_PROFILE_10:
-#endif
         va_entrypoint = VAEntrypointVLD;
         break;
     default:
@@ -146,11 +146,14 @@ VAProfile g_H264Profiles[] =
 VAProfile g_H265Profiles[] =
 {
     VAProfileHEVCMain
+    //VAProfileHEVCMain444,
 };
 
 VAProfile g_H26510BitsProfiles[] =
 {
     VAProfileHEVCMain10
+    //VAProfileHEVCMain422_10,
+    //VAProfileHEVCMain444_10,
 };
 
 VAProfile g_VC1Profiles[] =
@@ -206,28 +209,23 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
     case UMC::VA_H265:
         if (profile < UMC_ARRAY_SIZE(g_H265Profiles)) va_profile = g_H265Profiles[profile];
         break;
-#if (MFX_VERSION >= 1027)
     case UMC::VA_H265| UMC::VA_PROFILE_422 | UMC::VA_PROFILE_REXT:
         if (profile < 1) va_profile = VAProfileHEVCMain422_10;
         break;
     case UMC::VA_H265| UMC::VA_PROFILE_444 | UMC::VA_PROFILE_REXT:
         if (profile < 1) va_profile = VAProfileHEVCMain444;
         break;
-#endif
     case UMC::VA_H265 | UMC::VA_PROFILE_10:
         if (profile < UMC_ARRAY_SIZE(g_H26510BitsProfiles)) va_profile = g_H26510BitsProfiles[profile];
         break;
-#if (MFX_VERSION >= 1027)
     case UMC::VA_H265 | UMC::VA_PROFILE_REXT:
     case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10:
-    case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_422 | UMC::VA_PROFILE_10:
+    case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10 | UMC::VA_PROFILE_422:
         if (profile < 1) va_profile = VAProfileHEVCMain422_10;
         break;
-    case UMC::VA_H265| UMC::VA_PROFILE_444 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10:
+    case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10 | UMC::VA_PROFILE_444:
         if (profile < 1) va_profile = VAProfileHEVCMain444_10;
         break;
-#endif
-#if (MFX_VERSION >= 1031)
     case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_12:
     case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_12 | UMC::VA_PROFILE_422:
         if (profile < 1) va_profile = VAProfileHEVCMain422_12;
@@ -243,12 +241,9 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
         break;
     case UMC::VA_H265 | UMC::VA_PROFILE_SCC | UMC::VA_PROFILE_444:
         if (profile < 1) va_profile = VAProfileHEVCSccMain444;
-        MFX_FALLTHROUGH;
     case UMC::VA_H265 | UMC::VA_PROFILE_SCC | UMC::VA_PROFILE_444 | UMC::VA_PROFILE_10:
         if (profile < 1) va_profile = VAProfileHEVCSccMain444_10;
         break;
-#endif
-
     case UMC::VA_VC1:
         if (profile < UMC_ARRAY_SIZE(g_VC1Profiles)) va_profile = g_VC1Profiles[profile];
         break;
@@ -263,7 +258,6 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
     case UMC::VA_VP9 | UMC::VA_PROFILE_444 | UMC::VA_PROFILE_10:
         if (profile < UMC_ARRAY_SIZE(g_VP910BitsProfiles)) va_profile = g_VP910BitsProfiles[profile];
         break;
-#if (MFX_VERSION >= 1031)
     case UMC::VA_VP9 | UMC::VA_PROFILE_12:
     case UMC::VA_VP9 | UMC::VA_PROFILE_12 | UMC::VA_PROFILE_444:
         if (profile < UMC_ARRAY_SIZE(g_VP910BitsProfiles)) va_profile = g_VP910BitsProfiles[profile];
@@ -275,7 +269,6 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
     case UMC::VA_AV1 | UMC::VA_PROFILE_10:
         if (profile < UMC_ARRAY_SIZE(g_AV110BitsPProfiles)) va_profile = g_AV110BitsPProfiles[profile];
         break;
-#endif
 #endif
     case UMC::VA_JPEG:
         if (profile < UMC_ARRAY_SIZE(g_JPEGProfiles)) va_profile = g_JPEGProfiles[profile];
@@ -328,7 +321,6 @@ LinuxVideoAccelerator::LinuxVideoAccelerator(void)
     m_FrameState = lvaBeforeBegin;
 
     m_pCompBuffers  = NULL;
-    m_NumOfFrameBuffers = 0;
     m_uiCompBuffersNum  = 0;
     m_uiCompBuffersUsed = 0;
 
@@ -383,18 +375,12 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         m_pKeepVAState      = pParams->m_pKeepVAState;
         width               = pParams->m_pVideoStreamInfo->clip_info.width;
         height              = pParams->m_pVideoStreamInfo->clip_info.height;
-        m_NumOfFrameBuffers = pParams->m_iNumberSurfaces;
         m_allocator         = pParams->m_allocator;
         m_FrameState        = lvaBeforeBegin;
 
         if (IS_PROTECTION_ANY(pParams->m_protectedVA))
         {
             m_protectedVA = new ProtectedVA(pParams->m_protectedVA);
-        }
-
-        if (pParams->m_needVideoProcessingVA)
-        {
-            m_videoProcessingVA = new VideoProcessingVA();
         }
 
         // profile or stream type should be set
@@ -405,20 +391,6 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
     }
     if ((UMC_OK == umcRes) && (UNKNOWN == m_Profile))
         umcRes = UMC_ERR_INVALID_PARAMS;
-
-    bool needAllocatedSurfaces =    (((m_Profile & VA_CODEC) != UMC::VA_H264)
-                                  && ((m_Profile & VA_CODEC) != UMC::VA_H265)
-                                  && ((m_Profile & VA_CODEC) != UMC::VA_VP8)
-                                  && ((m_Profile & VA_CODEC) != UMC::VA_VP9)
-                                  && ((m_Profile & VA_CODEC) != UMC::VA_VC1)
-                                  && ((m_Profile & VA_CODEC) != UMC::VA_MPEG2)
-#if defined (MFX_ENABLE_AV1_VIDEO_DECODE)
-                                  && ((m_Profile & VA_CODEC) != UMC::VA_AV1)
-#endif
-#ifndef ANDROID
-                                  && ((m_Profile & VA_CODEC) != UMC::VA_JPEG)
-#endif
-                                    );
 
     SetTraceStrings(m_Profile & VA_CODEC);
 
@@ -535,19 +507,31 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         if (UMC_OK == umcRes)
         {
             va_attributes[1].value = VA_DEC_SLICE_MODE_NORMAL;
-
         }
 
         int32_t attribsNumber = 2;
 
         if (UMC_OK == umcRes && pParams->m_needVideoProcessingVA)
         {
-            // for VAProfileJPEGBaseline current driver doesn't report
-            // VAConfigAttribDecProcessing status correctly
-            if (va_attributes[2].value == VA_DEC_PROCESSING_NONE && va_profile != VAProfileJPEGBaseline)
-                umcRes = UMC_ERR_FAILED;
-            else
+            if (va_attributes[2].value == VA_DEC_PROCESSING)
+            {
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+                m_videoProcessingVA = new VideoProcessingVA();
+#endif
                 attribsNumber++;
+            }
+            // VA_DEC_PROCESSING_NONE returned, but for VAProfileJPEGBaseline
+            // current driver doesn't report VAConfigAttribDecProcessing status correctly:
+            // decoding and CSC to ARGB in SFC mode works despite VA_DEC_PROCESSING_NONE.
+            // Do not create m_videoProcessingVA in this case, because it's not used during jpeg decode.
+            else if (va_profile == VAProfileJPEGBaseline)
+            {
+                attribsNumber++;
+            }
+            else
+            {
+                umcRes = UMC_ERR_FAILED;
+            }
         }
 
 #ifdef MFX_ENABLE_CPLIB
@@ -599,16 +583,8 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateContext");
 
-            if (needAllocatedSurfaces)
-            {
-                VM_ASSERT(pParams->m_surf && "render targets tied to the context shoul not be NULL");
-                va_res = vaCreateContext(m_dpy, *m_pConfigId, width, height, pParams->m_CreateFlags, (VASurfaceID*)pParams->m_surf, m_NumOfFrameBuffers, m_pContext);
-            }
-            else
-            {
-                VM_ASSERT(!pParams->m_surf && "render targets tied to the context shoul be NULL");
-                va_res = vaCreateContext(m_dpy, *m_pConfigId, width, height, pParams->m_CreateFlags, NULL, 0, m_pContext);
-            }
+            VM_ASSERT(!pParams->m_surf && "render targets tied to the context shoul be NULL");
+            va_res = vaCreateContext(m_dpy, *m_pConfigId, width, height, pParams->m_CreateFlags, NULL, 0, m_pContext);
 
             umcRes = va_to_umc_res(va_res);
         }
@@ -658,42 +634,46 @@ Status LinuxVideoAccelerator::Close(void)
     delete m_protectedVA;
     m_protectedVA = nullptr;
 
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     delete m_videoProcessingVA;
     m_videoProcessingVA = 0;
+#endif
 
     m_FrameState = lvaBeforeBegin;
     m_uiCompBuffersNum  = 0;
     m_uiCompBuffersUsed = 0;
+
+    m_associatedIds.clear();
 
     return VideoAccelerator::Close();
 }
 
 Status LinuxVideoAccelerator::BeginFrame(int32_t FrameBufIndex)
 {
-    Status   umcRes = UMC_OK;
-    VAStatus va_res = VA_STATUS_SUCCESS;
+    Status umcRes = UMC_OK;
 
-    if ((UMC_OK == umcRes) && ((FrameBufIndex < 0) || (FrameBufIndex >= m_NumOfFrameBuffers)))
-        umcRes = UMC_ERR_INVALID_PARAMS;
+    MFX_CHECK(FrameBufIndex >= 0, UMC_ERR_INVALID_PARAMS);
 
     VASurfaceID *surface;
     Status sts = m_allocator->GetFrameHandle(FrameBufIndex, &surface);
-    if (sts != UMC_OK)
-        return sts;
+    MFX_CHECK(sts == UMC_OK, sts);
 
-    if (UMC_OK == umcRes)
+    if (lvaBeforeBegin == m_FrameState)
     {
-        if (lvaBeforeBegin == m_FrameState)
         {
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaBeginPicture");
-                MFX_LTRACE_2(MFX_TRACE_LEVEL_EXTCALL, m_sDecodeTraceStart, "%d|%d", *m_pContext, 0);
-                va_res = vaBeginPicture(m_dpy, *m_pContext, *surface);
-            }
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaBeginPicture");
+            MFX_LTRACE_2(MFX_TRACE_LEVEL_EXTCALL, m_sDecodeTraceStart, "%d|%d", *m_pContext, 0);
+            VAStatus va_res = vaBeginPicture(m_dpy, *m_pContext, *surface);
             umcRes = va_to_umc_res(va_res);
-            if (UMC_OK == umcRes) m_FrameState = lvaBeforeEnd;
+        }
+
+        if (UMC_OK == umcRes)
+        {
+            m_FrameState = lvaBeforeEnd;
+            m_associatedIds.insert(*surface);
         }
     }
+
     return umcRes;
 }
 
@@ -871,9 +851,10 @@ LinuxVideoAccelerator::Execute()
     uint32_t         i;
     VACompBuffer*  pCompBuf = NULL;
 
+    std::lock_guard<std::mutex> guard(m_SyncMutex);
+
     if (UMC_OK == umcRes)
     {
-        std::lock_guard<std::mutex> guard(m_SyncMutex);
         for (i = 0; i < m_uiCompBuffersUsed; i++)
         {
             pCompBuf = m_pCompBuffers[i];
@@ -943,7 +924,7 @@ Status LinuxVideoAccelerator::EndFrame(void*)
 }
 
 /* TODO: need to rewrite return value type (possible problems with signed/unsigned) */
-int32_t LinuxVideoAccelerator::GetSurfaceID(int32_t idx)
+int32_t LinuxVideoAccelerator::GetSurfaceID(int32_t idx) const
 {
     VASurfaceID *surface;
     Status sts = UMC_OK;
@@ -969,17 +950,11 @@ uint16_t LinuxVideoAccelerator::GetDecodingError()
     // NOTE: at the moment there is no such support for Android, so no need to execute...
     VAStatus va_sts;
 
-    // TODO: to reduce number of checks we can cache all used render targets
-    // during vaBeginPicture() call. For now check all render targets binded to context
-    for(int cnt = 0; cnt < m_NumOfFrameBuffers; ++cnt)
+    for(VASurfaceID surface : m_associatedIds)
     {
         VASurfaceDecodeMBErrors* pVaDecErr = NULL;
-        VASurfaceID *surface;
-        Status sts = m_allocator->GetFrameHandle(cnt, &surface);
-        if (sts != UMC_OK)
-            return sts;
 
-        va_sts = vaQuerySurfaceError(m_dpy, *surface, VA_STATUS_ERROR_DECODING_ERROR, (void**)&pVaDecErr);
+        va_sts = vaQuerySurfaceError(m_dpy, surface, VA_STATUS_ERROR_DECODING_ERROR, (void**)&pVaDecErr);
 
         if (VA_STATUS_SUCCESS == va_sts)
         {
@@ -1043,7 +1018,7 @@ void LinuxVideoAccelerator::SetTraceStrings(uint32_t umc_codec)
 Status LinuxVideoAccelerator::QueryTaskStatus(int32_t FrameBufIndex, void * status, void * error)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "QueryTaskStatus");
-    if ((FrameBufIndex < 0) || (FrameBufIndex >= m_NumOfFrameBuffers))
+    if (FrameBufIndex < 0)
         return UMC_ERR_INVALID_PARAMS;
 
     VASurfaceID *surface;
@@ -1087,7 +1062,7 @@ Status LinuxVideoAccelerator::QueryTaskStatus(int32_t FrameBufIndex, void * stat
 
 Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorruption)
 {
-    if ((FrameBufIndex < 0) || (FrameBufIndex >= m_NumOfFrameBuffers))
+    if (FrameBufIndex < 0)
         return UMC_ERR_INVALID_PARAMS;
 
     VASurfaceID *surface;
@@ -1115,3 +1090,4 @@ Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorrupti
 
 }; // namespace UMC
 
+#endif // UMC_VA_LINUX

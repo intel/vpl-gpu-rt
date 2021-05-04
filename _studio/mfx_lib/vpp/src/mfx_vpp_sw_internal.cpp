@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2010-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,20 +27,24 @@
 
 #include "mfx_vpp_hw.h"
 
+#if defined (MFX_VA)
+#include "mfxpcp.h"
+#endif
+
 #include "mfx_vpp_sw.h"
 #include "mfx_vpp_utils.h"
 
+#include "umc_defs.h"
+
 // internal filters
 #include "mfx_denoise_vpp.h"
-#include "mfx_color_space_conversion_vpp.h"
-#include "mfx_resize_vpp.h"
-#include "mfx_shift_vpp.h"
-#include "mfx_deinterlace_vpp.h"
-#include "mfx_video_analysis_vpp.h"
 #include "mfx_frame_rate_conversion_vpp.h"
 #include "mfx_procamp_vpp.h"
 #include "mfx_detail_enhancement_vpp.h"
 
+#if defined(MFX_ENABLE_VPP) && defined(MFX_ENABLE_IMAGE_STABILIZATION_VPP)
+#include "mfx_image_stabilization_vpp.h"
+#endif
 
 //-----------------------------------------------------------------------------
 //            independent functions
@@ -68,8 +72,8 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
             case (mfxU32)MFX_EXTBUFF_VPP_LSHIFT_IN:
             case (mfxU32)MFX_EXTBUFF_VPP_LSHIFT_OUT:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPShift::GetInFramesCountExt();
-                outputFramesCount[filterIndex] = MFXVideoVPPShift::GetOutFramesCountExt();
+                inputFramesCount[filterIndex]  = 1;
+                outputFramesCount[filterIndex] = 1;
                 break;
             }
 
@@ -122,8 +126,8 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
 #endif
             case (mfxU32)MFX_EXTBUFF_VPP_RESIZE:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPResize::GetInFramesCountExt();
-                outputFramesCount[filterIndex] = MFXVideoVPPResize::GetOutFramesCountExt();
+                inputFramesCount[filterIndex]  = 1;
+                outputFramesCount[filterIndex] = 1;
                 break;
             }
 
@@ -159,22 +163,22 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
             case (mfxU32)MFX_EXTBUFF_VPP_ITC:
             case (mfxU32)MFX_EXTBUFF_VPP_DI:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPDeinterlace::GetInFramesCountExt();
-                outputFramesCount[filterIndex] = MFXVideoVPPDeinterlace::GetOutFramesCountExt();
+                inputFramesCount[filterIndex]  = 3;
+                outputFramesCount[filterIndex] = 1;
                 break;
             }
 
             case (mfxU32)MFX_EXTBUFF_VPP_DI_30i60p:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPDeinterlace::GetInFramesCountExt();
-                outputFramesCount[filterIndex] = MFXVideoVPPDeinterlace::GetOutFramesCountExt() << 1;
+                inputFramesCount[filterIndex]  = 3;
+                outputFramesCount[filterIndex] = 1 << 1;
                 break;
             }
 
             case (mfxU32)MFX_EXTBUFF_VPP_DI_WEAVE:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPDeinterlace::GetInFramesCountExt() << 1;
-                outputFramesCount[filterIndex] = MFXVideoVPPDeinterlace::GetOutFramesCountExt();
+                inputFramesCount[filterIndex]  = 3 << 1;
+                outputFramesCount[filterIndex] = 1;
                 break;
             }
 
@@ -183,16 +187,16 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
             case (mfxU32)MFX_EXTBUFF_VPP_CSC_OUT_A2RGB10:
             case (mfxU32)MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPColorSpaceConversion::GetInFramesCountExt();
-                outputFramesCount[filterIndex] = MFXVideoVPPColorSpaceConversion::GetOutFramesCountExt();
+                inputFramesCount[filterIndex]  = 1;
+                outputFramesCount[filterIndex] = 1;
                 break;
             }
 
             case (mfxU32)MFX_EXTBUFF_VPP_SCENE_ANALYSIS:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPVideoAnalysis::GetInFramesCountExt();
+                inputFramesCount[filterIndex]  = 1;
 
-                outputFramesCount[filterIndex] = MFXVideoVPPVideoAnalysis::GetOutFramesCountExt();
+                outputFramesCount[filterIndex] = 1;
                 break;
             }
 
@@ -239,7 +243,25 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
                 break;
             }
 
+#if defined(MFX_ENABLE_VPP) && defined(MFX_ENABLE_IMAGE_STABILIZATION_VPP)
+            case (mfxU32)MFX_EXTBUFF_VPP_IMAGE_STABILIZATION:
+            {
+                // fake for SW compatibility
+                inputFramesCount[filterIndex]  = MFXVideoVPPImgStab::GetInFramesCountExt();
+                outputFramesCount[filterIndex] = MFXVideoVPPImgStab::GetOutFramesCountExt();
+                break;
+            }
+#endif
 
+#ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
+            case (mfxU32)MFX_EXTBUFF_VPP_VARIANCE_REPORT:
+            {
+                // fake for SW compatibility
+                inputFramesCount[filterIndex]  = 2;
+                outputFramesCount[filterIndex] = 1;
+                break;
+            }
+#endif
 
             case (mfxU32)MFX_EXTBUFF_VPP_COMPOSITE:
             {
@@ -305,7 +327,6 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
 
     framesCountSuggested[VPP_IN]  = vppMax_16u(inputFramesCount, len);
     framesCountSuggested[VPP_OUT] = vppMax_16u(outputFramesCount, len);
-
 
     // so, SW min frames must be equal MAX(filter0, filter1, ..., filterN-1)
     framesCountMin[VPP_IN]  = framesCountSuggested[VPP_IN];
@@ -378,31 +399,29 @@ mfxStatus ExtendedQuery(VideoCORE * core, mfxU32 filterName, mfxExtBuffer* pHint
     {
         sts = MFXVideoVPPFrameRateConversion::Query( pHint );
     }
+#if defined(MFX_ENABLE_VPP) && defined(MFX_ENABLE_IMAGE_STABILIZATION_VPP)
+    else if( MFX_EXTBUFF_VPP_IMAGE_STABILIZATION == filterName )
+    {
+        if (false == bLinuxAndIVB_HSW_BDW)
+            sts = MFXVideoVPPImgStab::Query( pHint );
+        else
+        {
+            // This filter is not supported in Linux
+            sts = MFX_WRN_FILTER_SKIPPED;
+        }
+    }
+#endif
     else if( MFX_EXTBUFF_VPP_SCENE_ANALYSIS == filterName )
     {
         sts = MFX_ERR_UNSUPPORTED;
     }
     else if( MFX_EXTBUFF_VPP_COMPOSITE == filterName )
     {
-        if ((NULL != core) && (MFX_PLATFORM_SOFTWARE == core->GetPlatformType()))
-        {
-            sts = MFX_ERR_UNSUPPORTED;
-        }
-        else
-        {
-            sts = MFX_ERR_NONE;
-        }
+        sts = MFX_ERR_NONE;
     }
     else if( MFX_EXTBUFF_VPP_FIELD_PROCESSING == filterName )
     {
-        if ((NULL != core) && (MFX_PLATFORM_SOFTWARE == core->GetPlatformType()))
-        {
-            sts = MFX_ERR_UNSUPPORTED;
-        }
-        else
-        {
-            sts = MFX_ERR_NONE;
-        }
+        sts = MFX_ERR_NONE;
     }
     else if (MFX_EXTBUFF_VPP_SCALING == filterName)
     {

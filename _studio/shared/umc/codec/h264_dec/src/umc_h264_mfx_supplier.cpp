@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2003-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,6 @@
 #if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #include <algorithm>
-#include "mfxfei.h"
 
 #include "umc_h264_mfx_supplier.h"
 
@@ -37,6 +36,7 @@
 #include "vm_sys_info.h"
 
 #include "umc_h264_dec_debug.h"
+
 #include "mfxpcp.h"
 
 #include "mfx_enc_common.h"
@@ -56,6 +56,9 @@ void RawHeader::Reset()
 {
     m_id = -1;
     m_buffer.clear();
+#ifdef __APPLE__
+    m_rbspSize = 0;
+#endif
 }
 
 int32_t RawHeader::GetID() const
@@ -79,6 +82,17 @@ void RawHeader::Resize(int32_t id, size_t newSize)
     m_buffer.resize(newSize);
 }
 
+#ifdef __APPLE__
+size_t RawHeader::GetRBSPSize()
+{
+    return m_rbspSize;
+}
+
+void RawHeader::SetRBSPSize(size_t rbspSize)
+{
+    m_rbspSize = rbspSize;
+}
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -346,6 +360,9 @@ Status MFXTaskSupplier::DecodeHeaders(NalUnit *nalUnit)
                     hdr->Resize(id, size + sizeof(start_code_prefix));
                     MFX_INTERNAL_CPY(hdr->GetPointer(), start_code_prefix,  sizeof(start_code_prefix));
                     MFX_INTERNAL_CPY(hdr->GetPointer() + sizeof(start_code_prefix), (uint8_t*)nalUnit->GetDataPointer(), (uint32_t)size);
+#ifdef __APPLE__
+                    hdr->SetRBSPSize(size);
+#endif
                  }
             break;
         }
@@ -462,6 +479,42 @@ void MFXTaskSupplier::AddFakeReferenceFrame(H264Slice * )
 
 } // namespace UMC
 
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+bool IsBaselineConstraints(mfxExtSVCSeqDesc * svcDesc)
+{
+    bool isBaselineConstraints = true;
+    for (uint32_t i = 0; i < sizeof(svcDesc->DependencyLayer)/sizeof(svcDesc->DependencyLayer[0]); i++)
+    {
+        if (svcDesc->DependencyLayer[i].Active)
+        {
+            if ((svcDesc->DependencyLayer[i].ScaledRefLayerOffsets[0] & 0xf) || (svcDesc->DependencyLayer[i].ScaledRefLayerOffsets[1] & 0xf))
+            {
+                isBaselineConstraints = false;
+                break;
+            }
+
+            uint32_t depD = svcDesc->DependencyLayer[i].RefLayerDid;
+            if (depD >= 8)
+                continue;
+
+            if ( ! ((svcDesc->DependencyLayer[i].Width == svcDesc->DependencyLayer[depD].Width &&
+                svcDesc->DependencyLayer[i].Height == svcDesc->DependencyLayer[depD].Height) ||
+
+                (svcDesc->DependencyLayer[i].Width == 2*svcDesc->DependencyLayer[depD].Width &&
+                svcDesc->DependencyLayer[i].Height == 2*svcDesc->DependencyLayer[depD].Height) ||
+
+                (svcDesc->DependencyLayer[i].Width == (2*svcDesc->DependencyLayer[depD].Width)/3 &&
+                svcDesc->DependencyLayer[i].Height == (2*svcDesc->DependencyLayer[depD].Height)/3) ))
+            {
+                isBaselineConstraints = false;
+                break;
+            }
+        }
+    }
+
+    return isBaselineConstraints;
+}
+#endif // #ifdef MFX_ENABLE_SVC_VIDEO_DECODE
 
 bool MFX_Utility::IsNeedPartialAcceleration(mfxVideoParam * par, eMFXHWType )
 {
@@ -516,10 +569,10 @@ eMFXPlatform MFX_Utility::GetPlatform(VideoCORE * core, mfxVideoParam * par)
     case MFX_HW_CNL:
     case MFX_HW_ICL:
     case MFX_HW_ICL_LP:
-#if (MFX_VERSION >= 1031)	
     case MFX_HW_JSL:
     case MFX_HW_EHL:
-#endif
+    case MFX_HW_ADL_S:
+    case MFX_HW_ADL_P:
         name = sDXVA2_ModeH264_VLD_NoFGT;
         break;
     default:
@@ -583,6 +636,9 @@ public:
     virtual UMC::Status ProcessNalUnit(UMC::MediaData * data, mfxBitstream *bs);
     virtual bool IsEnough() const;
 
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+    mfxExtSVCSeqDesc  * GetSVCSeqDesc();
+#endif
 
 protected:
     bool m_isSPSFound;
@@ -599,6 +655,9 @@ protected:
     bool IsAVCEnough() const;
     bool isMVCRequered() const;
 
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+    mfxExtSVCSeqDesc m_svcSeqDesc;
+#endif
     UMC::TaskSupplier * m_supplier;
     UMC::H264Slice * m_lastSlice;
 };
@@ -614,6 +673,9 @@ PosibleMVC::PosibleMVC(UMC::TaskSupplier * supplier)
     , m_supplier(supplier)
     , m_lastSlice(0)
 {
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+    m_svcSeqDesc.RefBaseDist = 0;
+#endif
 }
 
 PosibleMVC::~PosibleMVC()
@@ -622,6 +684,12 @@ PosibleMVC::~PosibleMVC()
         m_lastSlice->DecrementReference();
 }
 
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+mfxExtSVCSeqDesc* PosibleMVC::GetSVCSeqDesc()
+{
+    return &m_svcSeqDesc;
+}
+#endif
 
 bool PosibleMVC::IsEnough() const
 {
@@ -645,6 +713,10 @@ UMC::Status PosibleMVC::DecodeHeader(UMC::MediaData * data, mfxBitstream *bs, mf
 
     m_isMVCBuffer = GetExtendedBuffer(out->ExtParam, out->NumExtParam, MFX_EXTBUFF_MVC_SEQ_DESC) != 0;
 
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+    m_isSVCBuffer = GetExtendedBuffer(out->ExtParam, out->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC) != 0;
+    memset(&m_svcSeqDesc, 0, sizeof(m_svcSeqDesc));
+#endif
 
     if (isMVCRequered())
     {
@@ -928,9 +1000,8 @@ UMC::Status MFX_Utility::DecodeHeader(UMC::TaskSupplier * supplier, UMC::H264Vid
     if (!lpInfo->m_pData->GetDataSize())
         return UMC::UMC_ERR_NOT_ENOUGH_DATA;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
     lpInfo->m_ignore_level_constrain = out->mfx.IgnoreLevelConstrain;
-#endif
+
     umcRes = supplier->PreInit(lpInfo);
     if (umcRes != UMC::UMC_OK)
         return UMC::UMC_ERR_FAILED;
@@ -944,6 +1015,14 @@ UMC::Status MFX_Utility::DecodeHeader(UMC::TaskSupplier * supplier, UMC::H264Vid
     umcRes = supplier->GetInfo(lpInfo);
     if (umcRes == UMC::UMC_OK)
     {
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+        mfxExtSVCSeqDesc *svcSeqDescInput = (mfxExtSVCSeqDesc *)GetExtendedBuffer(out->ExtParam, out->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC);
+        if (svcSeqDescInput)
+        {
+            MFX_INTERNAL_CPY(svcSeqDescInput->DependencyLayer, &headersDecoder.GetSVCSeqDesc()->DependencyLayer, sizeof(headersDecoder.GetSVCSeqDesc()->DependencyLayer));
+            MFX_INTERNAL_CPY(svcSeqDescInput->TemporalScale, &headersDecoder.GetSVCSeqDesc()->TemporalScale, sizeof(headersDecoder.GetSVCSeqDesc()->TemporalScale));
+        }
+#endif
 
         FillVideoParam(supplier, out, false);
     }
@@ -954,9 +1033,75 @@ UMC::Status MFX_Utility::DecodeHeader(UMC::TaskSupplier * supplier, UMC::H264Vid
     return umcRes;
 }
 
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+UMC::Status FillVideoParamSVC(mfxExtSVCSeqDesc *seqDesc, const UMC_H264_DECODER::H264SEIPayLoad * svcPayload)
+{
+    if (!seqDesc || !svcPayload || svcPayload->payLoadType != UMC::SEI_SCALABILITY_INFO || !svcPayload->user_data.size())
+        return UMC::UMC_OK;
+
+    uint32_t currentLayer = 0;
+
+    UMC_H264_DECODER::scalability_layer_info* layers = (UMC_H264_DECODER::scalability_layer_info*)&svcPayload->user_data[0];
+    if (!layers)
+        return UMC::UMC_OK;
+
+    for (uint32_t i = 0; i < svcPayload->SEI_messages.scalability_info.num_layers; i++)
+    {
+        currentLayer = layers[i].dependency_id;
+
+        seqDesc->DependencyLayer[currentLayer].Active = 1;
+
+        if (!seqDesc->DependencyLayer[currentLayer].Width && layers[i].frm_width_in_mbs)
+        {
+            seqDesc->DependencyLayer[currentLayer].Width    = (mfxU16)(layers[i].frm_width_in_mbs * 16);
+            seqDesc->DependencyLayer[currentLayer].Height   = (mfxU16)(layers[i].frm_height_in_mbs * 16);
+        }
+
+        if (layers[i].quality_id + 1 > seqDesc->DependencyLayer[currentLayer].QualityNum)
+        {
+            seqDesc->DependencyLayer[currentLayer].QualityNum = layers[i].quality_id + 1;
+        }
+
+        bool isTempFound = false;
+        for (uint32_t temp = 0; temp < seqDesc->DependencyLayer[currentLayer].TemporalNum; temp++)
+        {
+            if (layers[i].temporal_id == seqDesc->DependencyLayer[currentLayer].TemporalId[temp])
+            {
+                isTempFound = true;
+                break;
+            }
+        }
+
+        if (!isTempFound)
+        {
+            uint32_t tempNum = seqDesc->DependencyLayer[currentLayer].TemporalNum;
+            seqDesc->DependencyLayer[currentLayer].TemporalId[tempNum] = layers[i].temporal_id;
+            seqDesc->DependencyLayer[currentLayer].TemporalNum++;
+        }
+    }
+
+    return UMC::UMC_OK;
+}
+#endif // #ifdef MFX_ENABLE_SVC_VIDEO_DECODE
 
 UMC::Status MFX_Utility::FillVideoParamMVCEx(UMC::TaskSupplier * supplier, ::mfxVideoParam *par)
 {
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+    const UMC_H264_DECODER::H264SeqParamSetSVCExtension * seqSVC = supplier->GetHeaders()->m_SeqParamsSvcExt.GetCurrentHeader();
+
+    if (seqSVC)
+    {
+        const UMC_H264_DECODER::H264SEIPayLoad * svcPayload = supplier->GetHeaders()->m_SEIParams.GetHeader(UMC::SEI_SCALABILITY_INFO);
+        mfxExtSVCSeqDesc *svcSeqDesc = (mfxExtSVCSeqDesc *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC);
+
+        UMC::Status sts = FillVideoParamSVC(svcSeqDesc, svcPayload);
+        if (sts != UMC::UMC_OK)
+            return sts;
+
+        UMC::FillVideoParam(seqSVC, par, true);
+        return UMC::UMC_OK;
+    }
+#endif // #ifdef MFX_ENABLE_SVC_VIDEO_DECODE
 
     const UMC_H264_DECODER::H264SeqParamSetMVCExtension * seqMVC = supplier->GetHeaders()->m_SeqParamsMvcExt.GetCurrentHeader();
     mfxExtMVCSeqDesc * points = (mfxExtMVCSeqDesc*)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_MVC_SEQ_DESC);
@@ -1069,6 +1214,10 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
             (MFX_PROFILE_AVC_HIGH == in->mfx.CodecProfile) ||
             (MFX_PROFILE_AVC_HIGH_422 == in->mfx.CodecProfile) ||
             (MFX_PROFILE_AVC_EXTENDED == in->mfx.CodecProfile) ||
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+            (MFX_PROFILE_AVC_SCALABLE_BASELINE == in->mfx.CodecProfile) ||
+            (MFX_PROFILE_AVC_SCALABLE_HIGH == in->mfx.CodecProfile) ||
+#endif
             (MFX_PROFILE_AVC_MULTIVIEW_HIGH == in->mfx.CodecProfile) ||
             (MFX_PROFILE_AVC_STEREO_HIGH == in->mfx.CodecProfile)
             )
@@ -1085,11 +1234,14 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
                     (codecProfile == MFX_PROFILE_AVC_MULTIVIEW_HIGH))
                 return MFX_ERR_UNSUPPORTED;
 
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+            if (    (codecProfile == MFX_PROFILE_AVC_SCALABLE_BASELINE) ||
+                    (codecProfile == MFX_PROFILE_AVC_SCALABLE_HIGH) )
+                return MFX_ERR_UNSUPPORTED;
+#endif
         }
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
         out->mfx.IgnoreLevelConstrain = in->mfx.IgnoreLevelConstrain;
-#endif
 
         switch (in->mfx.CodecLevel)
         {
@@ -1111,11 +1263,9 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
         case MFX_LEVEL_AVC_5:
         case MFX_LEVEL_AVC_51:
         case MFX_LEVEL_AVC_52:
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
         case MFX_LEVEL_AVC_6:
         case MFX_LEVEL_AVC_61:
         case MFX_LEVEL_AVC_62:
-#endif
             out->mfx.CodecLevel = in->mfx.CodecLevel;
             break;
         default:
@@ -1166,11 +1316,14 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
                 sts = MFX_ERR_UNSUPPORTED;
         }
 
-        if ((in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) || (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) ||
-            (in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY))
+        if (   (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
+            || (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
+            )
         {
             uint32_t mask = in->IOPattern & 0xf0;
-            if (mask == MFX_IOPATTERN_OUT_VIDEO_MEMORY || mask == MFX_IOPATTERN_OUT_SYSTEM_MEMORY || mask == MFX_IOPATTERN_OUT_OPAQUE_MEMORY)
+            if (   mask == MFX_IOPATTERN_OUT_VIDEO_MEMORY
+                || mask == MFX_IOPATTERN_OUT_SYSTEM_MEMORY
+                )
                 out->IOPattern = in->IOPattern;
             else
                 sts = MFX_ERR_UNSUPPORTED;
@@ -1254,6 +1407,7 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
                 out->IOPattern = 0;
                 sts = MFX_ERR_UNSUPPORTED;
             }
+
         }
 
         mfxExtMVCSeqDesc * mvcPointsIn = (mfxExtMVCSeqDesc *)GetExtendedBuffer(in->ExtParam, in->NumExtParam, MFX_EXTBUFF_MVC_SEQ_DESC);
@@ -1339,11 +1493,9 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
                     case MFX_LEVEL_AVC_5:
                     case MFX_LEVEL_AVC_51:
                     case MFX_LEVEL_AVC_52:
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
                     case MFX_LEVEL_AVC_6:
                     case MFX_LEVEL_AVC_61:
                     case MFX_LEVEL_AVC_62:
-#endif
                         mvcPointsOut->OP[i].LevelIdc = mvcPointsIn->OP[i].LevelIdc;
                         break;
                     default:
@@ -1409,18 +1561,104 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
             }
         }
 
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+        mfxExtSVCSeqDesc * svcDescIn = (mfxExtSVCSeqDesc *)GetExtendedBuffer(in->ExtParam, in->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC);
+        mfxExtSVCSeqDesc * svcDescOut = (mfxExtSVCSeqDesc *)GetExtendedBuffer(out->ExtParam, out->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC);
+
+        if (svcDescIn && svcDescOut)
+        {
+            MFX_INTERNAL_CPY(svcDescOut, svcDescIn, sizeof(mfxExtSVCSeqDesc));
+
+            for (uint32_t layer = 0; layer < sizeof(svcDescIn->DependencyLayer)/sizeof(svcDescIn->DependencyLayer[0]); layer++)
+            {
+                CheckDimensions(svcDescIn->DependencyLayer[layer], svcDescOut->DependencyLayer[layer], sts);
+
+                if (svcDescIn->DependencyLayer[layer].TemporalNum > 7)
+                {
+                    svcDescOut->DependencyLayer[layer].TemporalNum = 0;
+                    memset(svcDescOut->DependencyLayer[layer].TemporalId, 0, sizeof(svcDescOut->DependencyLayer[layer].TemporalId));
+                    sts = MFX_ERR_UNSUPPORTED;
+                }
+
+                if (svcDescIn->DependencyLayer[layer].QualityNum > 15)
+                {
+                    svcDescOut->DependencyLayer[layer].QualityNum = 0;
+                    sts = MFX_ERR_UNSUPPORTED;
+                }
+
+                if (svcDescOut->DependencyLayer[layer].TemporalNum)
+                {
+                    typedef std::vector<uint16_t> TemporalIDList;
+                    TemporalIDList vec(svcDescIn->DependencyLayer[layer].TemporalId, svcDescIn->DependencyLayer[layer].TemporalId + svcDescOut->DependencyLayer[layer].TemporalNum);
+
+                    std::sort(vec.begin(), vec.end());
+                    TemporalIDList::iterator end_iter = std::adjacent_find(vec.begin(), vec.end());
+
+                    if (end_iter != vec.end())
+                    {
+                        svcDescOut->DependencyLayer[layer].TemporalNum = 0;
+                        memset(svcDescOut->DependencyLayer[layer].TemporalId, 0, sizeof(svcDescOut->DependencyLayer[layer].TemporalId));
+                        sts = MFX_ERR_UNSUPPORTED;
+                    }
+                }
+            }
+        }
+        else
+        {
+            if (svcDescIn || svcDescOut)
+            {
+                sts = MFX_ERR_UNDEFINED_BEHAVIOR;
+            }
+        }
+
+        mfxExtSvcTargetLayer * svcTargetIn = (mfxExtSvcTargetLayer *)GetExtendedBuffer(in->ExtParam, in->NumExtParam, MFX_EXTBUFF_SVC_TARGET_LAYER);
+        mfxExtSvcTargetLayer * svcTargetOut = (mfxExtSvcTargetLayer *)GetExtendedBuffer(out->ExtParam, out->NumExtParam, MFX_EXTBUFF_SVC_TARGET_LAYER);
+
+        if (svcTargetIn && svcTargetOut)
+        {
+            if (svcTargetIn->TargetDependencyID <= 7)
+            {
+                svcTargetOut->TargetDependencyID = svcTargetIn->TargetDependencyID;
+                if (svcDescOut && !svcDescOut->DependencyLayer[svcTargetOut->TargetDependencyID].Active)
+                {
+                    svcTargetOut->TargetDependencyID = 0;
+                    sts = MFX_ERR_INVALID_VIDEO_PARAM;
+                }
+            }
+            else
+                sts = MFX_ERR_UNSUPPORTED;
+
+            if (svcTargetIn->TargetQualityID <= 15)
+                svcTargetOut->TargetQualityID = svcTargetIn->TargetQualityID;
+            else
+                sts = MFX_ERR_UNSUPPORTED;
+
+            if (svcTargetIn->TargetTemporalID <= 7)
+                svcTargetOut->TargetTemporalID = svcTargetIn->TargetTemporalID;
+            else
+                sts = MFX_ERR_UNSUPPORTED;
+        }
+        else
+        {
+            if (svcTargetIn || svcTargetOut)
+            {
+                sts = MFX_ERR_UNDEFINED_BEHAVIOR;
+            }
+        }
+#endif // #ifdef MFX_ENABLE_SVC_VIDEO_DECODE
 
         if (GetPlatform(core, out) != core->GetPlatformType() && sts == MFX_ERR_NONE)
         {
             VM_ASSERT(GetPlatform(core, out) == MFX_PLATFORM_SOFTWARE);
             sts = MFX_WRN_PARTIAL_ACCELERATION;
         }
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
         /*SFC*/
         mfxExtDecVideoProcessing * videoProcessingTargetIn = (mfxExtDecVideoProcessing *)GetExtendedBuffer(in->ExtParam, in->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
         mfxExtDecVideoProcessing * videoProcessingTargetOut = (mfxExtDecVideoProcessing *)GetExtendedBuffer(out->ExtParam, out->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
         if (videoProcessingTargetIn && videoProcessingTargetOut)
         {
-            if ( (MFX_HW_VAAPI == (core->GetVAType())) &&
+               if (((MFX_HW_VAAPI == core->GetVAType()) || (MFX_HW_D3D11 == core->GetVAType())) &&
                   (MFX_PICSTRUCT_PROGRESSIVE == in->mfx.FrameInfo.PicStruct) &&
                   (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) )
             {
@@ -1449,6 +1687,7 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
                 sts = MFX_ERR_UNSUPPORTED;
             }
         }
+#endif //MFX_DEC_VIDEO_POSTPROCESS_DISABLE
 
     }
     else
@@ -1498,10 +1737,28 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
         {
         }
 
-        mfxExtOpaqueSurfaceAlloc * opaqueOut = (mfxExtOpaqueSurfaceAlloc *)GetExtendedBuffer(out->ExtParam, out->NumExtParam, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
-        if (opaqueOut)
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+        mfxExtSvcTargetLayer * targetLayerOut = (mfxExtSvcTargetLayer *)GetExtendedBuffer(out->ExtParam, out->NumExtParam, MFX_EXTBUFF_SVC_TARGET_LAYER);
+        if (targetLayerOut)
         {
+            targetLayerOut->TargetDependencyID = 1;
+            targetLayerOut->TargetQualityID = 1;
+            targetLayerOut->TargetTemporalID = 1;
         }
+
+        mfxExtSVCSeqDesc * svcDescOut = (mfxExtSVCSeqDesc *)GetExtendedBuffer(out->ExtParam, out->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC);
+        if (svcDescOut)
+        {
+            for (size_t i = 0; i < sizeof(svcDescOut->DependencyLayer)/sizeof(svcDescOut->DependencyLayer[0]); i++)
+            {
+                svcDescOut->DependencyLayer[i].Active = 1;
+                svcDescOut->DependencyLayer[i].Width = 1;
+                svcDescOut->DependencyLayer[i].Height = 1;
+                svcDescOut->DependencyLayer[i].QualityNum = 1;
+                svcDescOut->DependencyLayer[i].TemporalNum = 1;
+            }
+        }
+#endif // #ifdef MFX_ENABLE_SVC_VIDEO_DECODE
 
         out->mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
 
@@ -1544,12 +1801,29 @@ bool MFX_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType type)
     case MFX_PROFILE_AVC_HIGH_422:
     case MFX_PROFILE_AVC_STEREO_HIGH:
     case MFX_PROFILE_AVC_MULTIVIEW_HIGH:
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+    case MFX_PROFILE_AVC_SCALABLE_BASELINE:
+    case MFX_PROFILE_AVC_SCALABLE_HIGH:
+#endif
         break;
     default:
         return false;
     }
 
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+    mfxExtSvcTargetLayer * svcTarget = (mfxExtSvcTargetLayer*)GetExtendedBuffer(in->ExtParam, in->NumExtParam, MFX_EXTBUFF_SVC_TARGET_LAYER);
+    if (svcTarget)
+    {
+        if (svcTarget->TargetDependencyID > 7)
+            return false;
 
+        if (svcTarget->TargetQualityID > 15)
+            return false;
+
+        if (svcTarget->TargetTemporalID > 7)
+            return false;
+    }
+#endif // #ifdef MFX_ENABLE_SVC_VIDEO_DECODE
 
     mfxExtMVCTargetViews * targetViews = (mfxExtMVCTargetViews *)GetExtendedBuffer(in->ExtParam, in->NumExtParam, MFX_EXTBUFF_MVC_TARGET_VIEWS);
     if (targetViews)
@@ -1599,17 +1873,14 @@ bool MFX_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType type)
             return false;
     }
 
-    if (!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && !(in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) && !(in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY))
+    if (   !(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
+        && !(in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
+        )
         return false;
 
     if ((in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
         return false;
 
-    if ((in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
-        return false;
-
-    if ((in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
-        return false;
 
     return true;
 }

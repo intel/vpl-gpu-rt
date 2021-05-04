@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2014-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,9 @@
 
 #include "mfx_common.h"
 
-#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+#if defined(MFX_ENABLE_VP9_VIDEO_DECODE)
 
+#include "mfx_vp9_dec_decode.h"
 #include "mfx_vp9_dec_decode_utils.h"
 #include "mfx_umc_alloc_wrapper.h"
 #include "mfx_task.h"
@@ -34,8 +35,18 @@
 #include "umc_vp9_frame.h"
 #include <list>
 #include <set>
+#include <deque>
 
 namespace UMC_VP9_DECODER { class Packer; }
+
+#ifdef UMC_VA_DXVA
+    class DXVAIndexRemapper {
+    public:
+        virtual UCHAR GetDXVAIndex(UMC::FrameMemID memId) = 0;
+        virtual void UpdateDXVAIndices(const UMC::FrameMemID currFrame, const UMC::FrameMemID refs[], int refsSize) = 0;
+        virtual ~DXVAIndexRemapper() = default;
+    };
+#endif
 
 class FrameStorage;
 
@@ -48,6 +59,7 @@ public:
 
     static mfxStatus Query(VideoCORE *pCore, mfxVideoParam *pIn, mfxVideoParam *pOut);
     static mfxStatus QueryIOSurf(VideoCORE *pCore, mfxVideoParam *pPar, mfxFrameAllocRequest *pRequest);
+    static mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription::decoder&, mfx::PODArraysHolder&);
 
     virtual mfxStatus Init(mfxVideoParam *par);
     virtual mfxStatus Reset(mfxVideoParam *pPar);
@@ -63,6 +75,8 @@ public:
     virtual mfxStatus GetUserData(mfxU8 *pUserData, mfxU32 *pSize, mfxU64 *pTimeStamp);
     virtual mfxStatus GetPayload(mfxU64 *pTimeStamp, mfxPayload *pPayload);
     virtual mfxStatus SetSkipMode(mfxSkipMode mode);
+
+    virtual mfxFrameSurface1* GetSurface() override;
 
 protected:
     void CalculateTimeSteps(mfxFrameSurface1 *);
@@ -93,25 +107,34 @@ private:
     mfxU32                  m_statusReportFeedbackNumber;
 
     UMC::Mutex              m_mGuard;
+    std::deque<UMC::Mutex>  m_mCopyGuard; //For handling repeated frames
 
     bool                    m_adaptiveMode;
     mfxU32                  m_index;
-    std::unique_ptr<mfx_UMC_FrameAllocator> m_FrameAllocator;
+
+    std::unique_ptr<SurfaceSource>  m_surface_source;
+
+#ifdef UMC_VA_DXVA
+    std::unique_ptr<DXVAIndexRemapper> m_dxvaRemapper;
+    UMC_VP9_DECODER::VP9DecoderFrame MemIdToDXVAIndices(UMC_VP9_DECODER::VP9DecoderFrame const & info);
+#endif
 
     std::unique_ptr<UMC_VP9_DECODER::Packer>  m_Packer;
     std::unique_ptr<FrameStorage> m_framesStorage;
 
     mfxFrameAllocRequest     m_request;
     mfxFrameAllocResponse    m_response;
-    mfxExtOpaqueSurfaceAlloc m_OpaqAlloc;
+    mfxFrameAllocResponse    m_response_alien;
     mfxDecodeStat            m_stat;
 
     friend mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void *pp_param, mfxU32 thread_number, mfxU32);
     friend mfxStatus VP9CompleteProc(void *p_state, void *pp_param, mfxStatus);
 
+    mfxStatus ReportDecodeStatus(mfxFrameSurface1* surface_work);
+
     void ResetFrameInfo();
 
-    mfxStatus PrepareInternalSurface(UMC::FrameMemID &mid, mfxFrameInfo &info);
+    mfxStatus PrepareInternalSurface(UMC::FrameMemID &mid);
 
     struct VP9DECODERoutineData
     {
@@ -144,5 +167,5 @@ private:
     mfxI32 m_baseQIndex;
 };
 
+#endif // MFX_ENABLE_VP9_VIDEO_DECODE
 #endif // _MFX_VP9_DECODE_HW_H_
-#endif // MFX_ENABLE_VP9_VIDEO_DECODE && MFX_VA

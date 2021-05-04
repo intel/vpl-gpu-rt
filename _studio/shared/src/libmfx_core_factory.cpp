@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2011-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +22,7 @@
 #include <libmfx_core_factory.h>
 #include <libmfx_core.h>
 
-#if defined(MFX_VA_LINUX)
 #include <libmfx_core_vaapi.h>
-#endif
 
 
 VideoCORE* FactoryCORE::CreateCORE(eMFXVAType va_type,
@@ -33,16 +31,25 @@ VideoCORE* FactoryCORE::CreateCORE(eMFXVAType va_type,
                                    mfxSession session)
 {
     (void)adapterNum;
-    switch(va_type)
+
+    bool create_msdk20_core = mfx::GetEnv("MFX_CORE_INTERNAL_ALLOCATION_API_ENABLE", true);
+    std::ignore = create_msdk20_core;
+
+    switch (va_type)
     {
     case MFX_HW_NO:
+        if (create_msdk20_core)
+            return new CommonCORE20(numThreadsAvailable, session);
+
         return new CommonCORE(numThreadsAvailable, session);
-#if defined(MFX_VA_LINUX)
+
     case MFX_HW_VAAPI:
+        if (create_msdk20_core)
+            return new VAAPIVideoCORE20(adapterNum, numThreadsAvailable, session);
+
         return new VAAPIVideoCORE(adapterNum, numThreadsAvailable, session);
-#endif
     default:
-        return NULL;
+        return nullptr;
     }
 
 } // VideoCORE* FactoryCORE::CreateCORE(eMFXVAType va_type)

@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2020 Intel Corporation
-// 
+// Copyright (c) 2008-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -29,18 +29,16 @@
 #define D3DDDIFORMAT        D3DFORMAT
 #define DXVADDI_VIDEODESC   DXVA2_VideoDesc
 
-#if defined(MFX_VA_LINUX)
     #include "mfx_h264_encode_struct_vaapi.h"
-#endif
 
 #include "mfxstructures.h"
 
 #include <vector>
 #include <list>
 
-
-
-
+#ifdef MPEG2_ENC_HW_PERF
+#include "vm_time.h"
+#endif 
 
 #define ENCODE_ENC_CTRL_CAPS ENCODE_ENC_CTRL_CAPS
 
@@ -72,6 +70,12 @@
         mfxFrameAllocResponse*  pRecFramesResponse_hw;
         mfxFrameAllocResponse*  pRecFramesResponse_sw;
 
+        mfxU16                  encNumFrameMin;
+
+#ifdef MFX_UNDOCUMENTED_QUANT_MATRIX
+        mfxExtCodingOptionQuantMatrix sQuantMatrix;
+#endif
+
         mfxExtVideoSignalInfo   videoSignalInfo;
         bool                    bAddDisplayExt;
         bool                    bMbqpMode;
@@ -93,6 +97,21 @@ namespace MfxHwMpeg2Encode
     typedef std::vector<ExtVASurface> mfxRecFrames;
     typedef std::vector<ExtVASurface> mfxRawFrames;
 
+
+    typedef struct tagENCODE_SET_VUI_PARAMETER_MPEG2
+    {
+        UINT    video_format : 3;
+        UINT : 4;
+        UINT    colour_description : 1;
+        UINT    colour_primaries : 8;
+        UINT    transfer_characteristics : 8;
+        UINT    matrix_coefficients : 8;
+
+        UINT    display_horizontal_size : 14;
+        UINT : 2;
+        UINT    display_vertical_size : 14;
+        UINT : 2;
+    } ENCODE_SET_VUI_PARAMETER_MPEG2;
 
 
     typedef std::vector<ExtVASurface> mfxFeedback;

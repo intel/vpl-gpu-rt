@@ -1,15 +1,15 @@
-// Copyright (c) 2018-2019 Intel Corporation
-// 
+// Copyright (c) 2011-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -20,7 +20,7 @@
 
 #include "mfx_common.h"
 
-#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
+#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW) && defined(MFX_VA)
 
 #ifndef __MFX_H264_ENCODE_INTERFACE__H
 #define __MFX_H264_ENCODE_INTERFACE__H
@@ -32,14 +32,12 @@
 
 #include "mfx_h264_enc_common_hw.h"
 
-// structures will be abstracted (ENCODE_CAPS, D3DDDIFORMAT)
-#if defined(MFX_VA_LINUX)
-    #include "mfx_h264_encode_struct_vaapi.h"
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+#include "mfx_win_event_cache.h"
 #endif
 
-#ifdef MFX_ENABLE_MFE
-#include "mfx_mfe_adapter.h"
-#endif
+// structures will be abstracted (ENCODE_CAPS, D3DDDIFORMAT)
+    #include "mfx_h264_encode_struct_vaapi.h"
 
 namespace MfxHwH264Encode
 {
@@ -142,7 +140,8 @@ namespace MfxHwH264Encode
         virtual
         mfxStatus QueryStatus(
             DdiTask & task,
-            mfxU32    fieldId) = 0;
+            mfxU32    fieldId,
+            bool      useEvent = true) = 0;
 
         virtual
         mfxStatus Destroy() = 0;
@@ -167,12 +166,20 @@ namespace MfxHwH264Encode
         virtual
         mfxStatus SetEncCtrlCaps(
             ENCODE_ENC_CTRL_CAPS const & /*caps*/) { return MFX_ERR_UNSUPPORTED; };
+
+        virtual
+        mfxStatus CreateWrapBuffers(
+            const mfxU16& /*numFrameMin*/,
+            const mfxVideoParam& /*par*/) { return MFX_ERR_NONE; }
+
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
+        std::unique_ptr<EventCache> m_EventCache;
+#endif
     };
 
     DriverEncoder* CreatePlatformH264Encoder( VideoCORE* core ); 
-
-#if defined(MFX_ENABLE_MFE)
-    MFEVAAPIEncoder* CreatePlatformMFEEncoder( VideoCORE* core );
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+    DriverEncoder* CreatePlatformSvcEncoder( VideoCORE* core );
 #endif
 
 }; // namespace

@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,18 +24,19 @@
 #include "hevcehw_disp.h"
 #include "hevcehw_base.h"
 
-#if defined(MFX_VA_LINUX)
-    #include "hevcehw_base_lin.h"
-    #include "hevcehw_g12_lin.h"
-    namespace HEVCEHWDisp
-    {
-        namespace Base { using namespace HEVCEHW::Linux::Base; };
-        // There is no gen9/gen11 separation in code - use Base code-pass for ICL as well
-        namespace Gen11 { using namespace HEVCEHW::Linux::Base; };
-        namespace TGL { using namespace HEVCEHW::Linux::Gen12; };
-        namespace DG1 { using namespace HEVCEHW::Linux::Gen12; };
-    };
-#endif
+#include "hevcehw_base_lin.h"
+namespace HEVCEHWDisp
+{
+    namespace SKL { using namespace HEVCEHW::Linux::Base; };
+    namespace ICL { using namespace HEVCEHW::Linux::Base; };
+};
+
+#include "hevcehw_g12_lin.h"
+namespace HEVCEHWDisp
+{
+    namespace TGL { using namespace HEVCEHW::Linux::Gen12; };
+    namespace DG1 { using namespace HEVCEHW::Linux::Gen12; };
+};
 
 namespace HEVCEHW
 {
@@ -51,8 +52,8 @@ static ImplBase* CreateSpecific(
     if (HW >= MFX_HW_TGL_LP)
         return new HEVCEHWDisp::TGL::MFXVideoENCODEH265_HW(core, status, mode);
     if (HW >= MFX_HW_ICL)
-        return new HEVCEHWDisp::Gen11::MFXVideoENCODEH265_HW(core, status, mode);
-    return new HEVCEHWDisp::Base::MFXVideoENCODEH265_HW(core, status, mode);
+        return new HEVCEHWDisp::ICL::MFXVideoENCODEH265_HW(core, status, mode);
+    return new HEVCEHWDisp::SKL::MFXVideoENCODEH265_HW(core, status, mode);
 }
 
 VideoENCODE* Create(
@@ -69,11 +70,6 @@ VideoENCODE* Create(
     }
 
     auto p = CreateSpecific(hw, core, status, eFeatureMode::INIT);
-
-    if (p && bFEI)
-    {
-        p = p->ApplyMode(IMPL_MODE_FEI);
-    }
 
     return p;
 }
@@ -126,6 +122,25 @@ mfxStatus Query(
     MFX_CHECK(impl, MFX_ERR_UNKNOWN);
 
     return impl->InternalQuery(*core, in, *out);
+}
+
+mfxStatus QueryImplsDescription(
+    VideoCORE& core
+    , mfxEncoderDescription::encoder& caps
+    , mfx::PODArraysHolder& ah)
+{
+    auto hw = core.GetHWType();
+
+    if (hw < MFX_HW_SCL)
+        return MFX_ERR_UNSUPPORTED;
+
+    mfxStatus sts = MFX_ERR_NONE;
+    std::unique_ptr<ImplBase> impl(CreateSpecific(hw, core, sts, eFeatureMode::QUERY_IMPLS_DESCRIPTION));
+
+    MFX_CHECK_STS(sts);
+    MFX_CHECK(impl, MFX_ERR_UNKNOWN);
+
+    return impl->QueryImplsDescription(core, caps, ah);
 }
 
 } //namespace HEVCEHW

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2009-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,9 @@
 
 #include <algorithm>
 
-
 #include "mfx_h264_encode_hw_utils.h"
+#include "mfx_common_int.h"
+#include "ippi.h"
 
 using namespace MfxHwH264Encode;
 
@@ -689,7 +690,7 @@ namespace
         return -1;
     }
 
-    inline mfxU16 GetMaxNumRefActiveBL1(const mfxU32& targetUsage, 
+    inline mfxU16 GetMaxNumRefActiveBL1(const mfxU32& targetUsage,
                                         const bool& isField)
     {
         if (isField)
@@ -718,10 +719,10 @@ void MfxHwH264Encode::ModifyRefPicLists(
 
         bool BEncToolsMode = false;
 #if defined(MFX_ENABLE_ENCTOOLS)
-        mfxExtEncToolsConfig * config = GetExtBuffer(video);
-        BEncToolsMode = ((IsOn(config->AdaptiveRefB) ||
-            IsOn(config->AdaptiveRefP) ||
-            IsOn(config->AdaptiveLTR))  &&
+        mfxExtEncToolsConfig &config = GetExtBufferRef(video);
+        BEncToolsMode = ((IsOn(config.AdaptiveRefB) ||
+            IsOn(config.AdaptiveRefP) ||
+            IsOn(config.AdaptiveLTR))  &&
             task.m_internalListCtrlPresent &&
             (task.GetPicStructForEncode() & MFX_PICSTRUCT_PROGRESSIVE));
 #endif
@@ -1761,7 +1762,7 @@ namespace
                 }
             }
         }
-		return MFX_ERR_NONE;
+        return MFX_ERR_NONE;
     }
 };
 
@@ -2122,7 +2123,7 @@ DdiTaskIter MfxHwH264Encode::FindFrameToWaitEncodeNext(
 
     DdiTaskIter oldest = cur;
 
-    for (; begin != end; ++begin)
+    for (;begin != end; ++begin)
         if (((oldest->m_encOrder > begin->m_encOrder)&&(oldest != cur)) || ( (oldest == cur) && (begin->m_encOrder > cur->m_encOrder)))
             oldest = begin;
     return oldest;
@@ -2196,14 +2197,25 @@ void MfxHwH264Encode::ConfigureTask(
     mfxExtCodingOption2 const *     extOpt2Runtime = GetExtBuffer(task.m_ctrl);
     mfxExtCodingOptionDDI const &   extDdi         = GetExtBufferRef(video);
     mfxExtSpsHeader const &         extSps         = GetExtBufferRef(video);
+#ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
+    mfxExtPpsHeader const &         extPps         = GetExtBufferRef(video);
+#endif
     mfxExtAvcTemporalLayers const & extTemp        = GetExtBufferRef(video);
     mfxExtEncoderROI const &        extRoi         = GetExtBufferRef(video);
     mfxExtEncoderROI const *        extRoiRuntime  = GetExtBuffer(task.m_ctrl);
     mfxExtCodingOption3 const &     extOpt3        = GetExtBufferRef(video);
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    mfxExtCodingOption3 const *     extOpt3Runtime = GetExtBuffer(task.m_ctrl);
+#endif
     mfxExtDirtyRect const *    extDirtyRect        = GetExtBuffer(video);
     mfxExtDirtyRect const *    extDirtyRectRuntime = GetExtBuffer(task.m_ctrl);
     mfxExtMoveRect const *     extMoveRect         = GetExtBuffer(video);
     mfxExtMoveRect const *     extMoveRectRuntime  = GetExtBuffer(task.m_ctrl);
+
+#if defined MFX_ENABLE_GPU_BASED_SYNC
+    mfxExtGameStreaming const &     extGameStreaming        = GetExtBufferRef(video);
+    mfxExtGameStreaming const *     extGameStreamingRuntime = GetExtBuffer(task.m_ctrl);
+#endif
 
     mfxU32 const FRAME_NUM_MAX = 1 << (extSps.log2MaxFrameNumMinus4 + 4);
 
@@ -2323,6 +2335,7 @@ void MfxHwH264Encode::ConfigureTask(
             numRoi = caps.ddi_caps.MaxNumOfROI;
         }
 
+
         if (pRoi->ROIMode != MFX_ROI_MODE_QP_DELTA && pRoi->ROIMode != MFX_ROI_MODE_PRIORITY)
         {
             numRoi = 0;
@@ -2338,12 +2351,10 @@ void MfxHwH264Encode::ConfigureTask(
             if (extRoiRuntime)
             {
                 mfxRoiDesc task_roi = {pRoi->ROI[i].Left,  pRoi->ROI[i].Top,
-                                       pRoi->ROI[i].Right, pRoi->ROI[i].Bottom,
-                                       (mfxI16)((pRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * pRoi->ROI[i].DeltaQP) };
+                                       pRoi->ROI[i].Right, pRoi->ROI[i].Bottom, (mfxI16)((pRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * pRoi->ROI[i].DeltaQP) };
 
                 // check runtime ROI
                 mfxStatus sts = CheckAndFixRoiQueryLike(video, &task_roi, extRoiRuntime->ROIMode);
-
                 if (sts != MFX_ERR_UNSUPPORTED) {
                     task.m_roi[task.m_numRoi] = task_roi;
                     task.m_numRoi++;
@@ -2352,8 +2363,7 @@ void MfxHwH264Encode::ConfigureTask(
             else
             {
                 task.m_roi[task.m_numRoi] = {pRoi->ROI[i].Left,  pRoi->ROI[i].Top,
-                                             pRoi->ROI[i].Right, pRoi->ROI[i].Bottom,
-                                             (mfxI16)((pRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * pRoi->ROI[i].DeltaQP) };
+                                             pRoi->ROI[i].Right, pRoi->ROI[i].Bottom, (mfxI16)((pRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * pRoi->ROI[i].DeltaQP) };
                 task.m_numRoi ++;
             }
         }
@@ -2470,11 +2480,6 @@ void MfxHwH264Encode::ConfigureTask(
             task.m_dpbPostEncoding.Back().m_PIFieldFlag = 1;
     }
 
-#if defined(MFX_ENABLE_MFE)
-    //if previous frame finished later than current submitted(e.g. reordering or async) - use sync-sync time for counting timeout for better performance
-    //otherwise if current frame submitted later than previous finished - use submit->sync time for better performance handling
-    task.m_beginTime = std::max(task.m_beginTime, prevTask.m_endTime);
-#endif
     const mfxExtCodingOption2* extOpt2Cur = (extOpt2Runtime ? extOpt2Runtime : &extOpt2);
 
     if (task.m_type[ffid] & MFX_FRAMETYPE_I)
@@ -2502,29 +2507,19 @@ void MfxHwH264Encode::ConfigureTask(
     mfxU32 fieldMaxCount = video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE ? 1 : 2;
     for (mfxU32 field = 0; field < fieldMaxCount; field++)
     {
-        mfxExtFeiSliceHeader * extFeiSlice = GetExtBuffer(task.m_ctrl, field);
-
-        if (NULL == extFeiSlice)
-        {
-            // take default buffer (from Init) if not provided in runtime
-            extFeiSlice = GetExtBuffer(video, field);
-        }
-
         // Fill deblocking parameters
         mfxU8 disableDeblockingIdc   = (mfxU8)extOpt2Cur->DisableDeblockingIdc;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        const mfxExtCodingOption3* extOpt3Cur = (extOpt3Runtime ? extOpt3Runtime : &extOpt3);
+        mfxI8 sliceAlphaC0OffsetDiv2 = mfxI8(extOpt3Cur->DeblockingAlphaTcOffset * 0.5);
+        mfxI8 sliceBetaOffsetDiv2    = mfxI8(extOpt3Cur->DeblockingBetaOffset * 0.5);
+#else
         mfxI8 sliceAlphaC0OffsetDiv2 = 0;
         mfxI8 sliceBetaOffsetDiv2    = 0;
+#endif
 
         for (mfxU32 i = 0; i < task.m_numSlice[task.m_fid[field]]; i++)
         {
-            if (extFeiSlice && NULL != extFeiSlice->Slice && i < extFeiSlice->NumSlice)
-            {
-                // If only one buffer was passed on init, that value will be propagated for entire frame
-                disableDeblockingIdc   = (mfxU8)extFeiSlice->Slice[i].DisableDeblockingFilterIdc;
-                sliceAlphaC0OffsetDiv2 = (mfxI8)extFeiSlice->Slice[i].SliceAlphaC0OffsetDiv2;
-                sliceBetaOffsetDiv2    = (mfxI8)extFeiSlice->Slice[i].SliceBetaOffsetDiv2;
-            }
-
             // Store per-slice values in task
             task.m_disableDeblockingIdc[task.m_fid[field]].push_back(disableDeblockingIdc);
             task.m_sliceAlphaC0OffsetDiv2[task.m_fid[field]].push_back(sliceAlphaC0OffsetDiv2);
@@ -2536,60 +2531,52 @@ void MfxHwH264Encode::ConfigureTask(
     task.m_collectUnitsInfo = IsOn(extOpt3.EncodedUnitsInfo);
 #endif
 
-    task.m_TCBRCTargetFrameSize = video.calcParam.TCBRCTargetFrameSize;
-}
+#ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
+    // Have to fill default or provided scaling list matrices if SPS or PPS is defined
+    if (extSps.seqScalingMatrixPresentFlag || extPps.picScalingMatrixPresentFlag)
+    {
+        FillTaskScalingList(extSps, extPps, task);
+    }
+#endif
 
+    task.m_TCBRCTargetFrameSize = video.calcParam.TCBRCTargetFrameSize;
+
+#if defined (MFX_ENABLE_GPU_BASED_SYNC)
+    const mfxExtGameStreaming* extGameStreamingCur = (extGameStreamingRuntime != nullptr? extGameStreamingRuntime : &extGameStreaming);
+    task.m_gpuSync = {};
+    task.m_gpuSync.EnableSync = IsOn(extGameStreamingCur->GPUPolling)
+        && (caps.ddi_caps.PollingModeSupport == 1)
+        && (extOpt3.ScenarioInfo == MFX_SCENARIO_REMOTE_GAMING);
+    if (task.m_gpuSync.EnableSync)
+    {
+        task.m_gpuSync.RepeatFrame      = IsOn(extGameStreamingCur->RepeatFrame);
+        task.m_gpuSync.MarkerValue      = extGameStreamingCur->MarkerValue;
+        task.m_gpuSync.MarkerSize       = extGameStreamingCur->MarkerSize;
+        task.m_gpuSync.MarkerOffsetX    = extGameStreamingCur->MarkerOffsetX;
+        task.m_gpuSync.MarkerOffsetY    = extGameStreamingCur->MarkerOffsetY;
+    }
+#endif
+}
 
 mfxStatus MfxHwH264Encode::CopyRawSurfaceToVideoMemory(
     VideoCORE &           core,
     MfxVideoParam const & video,
     DdiTask const &       task)
 {
-    mfxExtOpaqueSurfaceAlloc const & extOpaq = GetExtBufferRef(video);
 
     mfxFrameSurface1 * surface = task.m_yuv;
 
-    if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
-        (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
+    if (    video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
+        )
     {
-        if (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-        {
-            surface = core.GetNativeSurface(task.m_yuv);
-            if (surface == 0)
-                return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
-
-            surface->Info            = task.m_yuv->Info;
-            surface->Data.TimeStamp  = task.m_yuv->Data.TimeStamp;
-            surface->Data.FrameOrder = task.m_yuv->Data.FrameOrder;
-            surface->Data.Corrupted  = task.m_yuv->Data.Corrupted;
-            surface->Data.DataFlag   = task.m_yuv->Data.DataFlag;
-        }
-
-        mfxFrameData d3dSurf = {};
-        mfxFrameData sysSurf = surface->Data;
-
-        //FrameLocker lock1(&core, d3dSurf, task.m_midRaw);
-        FrameLocker lock2(&core, sysSurf, true);
-        d3dSurf.MemId = task.m_midRaw;
-
-        if (sysSurf.Y == 0)
-            return Error(MFX_ERR_LOCK_MEMORY);
 
         mfxStatus sts = MFX_ERR_NONE;
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Copy input (sys->d3d)");
-            sts = CopyFrameDataBothFields(&core, d3dSurf, sysSurf, video.mfx.FrameInfo);
+            sts = CopyFrameDataBothFields(&core, task.m_midRaw, *surface, video.mfx.FrameInfo);
             if (sts != MFX_ERR_NONE)
                 return Error(sts);
         }
-
-        sts = lock2.Unlock();
-        if (sts != MFX_ERR_NONE)
-            return Error(sts);
-
-        //sts = lock1.Unlock();
-        //if (sts != MFX_ERR_NONE)
-        //    return Error(sts);
     }
 
     return MFX_ERR_NONE;
@@ -2660,13 +2647,10 @@ mfxStatus MfxHwH264Encode::CodeAsSkipFrame(     VideoCORE &            core,
         MFX_CHECK(ind < 15, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         DpbFrame& refFrame = task.m_dpb[0][ind];
-        mfxFrameData curr = {};
-        mfxFrameData ref = {};
-        curr.MemId = task.m_midRaw;
-        ref.MemId  = refFrame.m_midRec;
 
-        mfxFrameSurface1 surfSrc = { {0,}, video.mfx.FrameInfo, ref  };
-        mfxFrameSurface1 surfDst = { {0,}, video.mfx.FrameInfo, curr };
+        mfxFrameSurface1 surfSrc = MakeSurface(video.mfx.FrameInfo, refFrame.m_midRec);
+        mfxFrameSurface1 surfDst = MakeSurface(video.mfx.FrameInfo, task.m_midRaw);
+
         if ((poolRec.GetFlag(refFrame.m_frameIdx) & H264_FRAME_FLAG_READY) != 0)
         {
             sts = core.DoFastCopyWrapper(&surfDst, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE, &surfSrc, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE);
@@ -2692,53 +2676,36 @@ mfxStatus MfxHwH264Encode::GetNativeHandleToRawSurface(
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-    mfxExtOpaqueSurfaceAlloc const & extOpaq = GetExtBufferRef(video);
-
     Zero(handle);
     mfxHDL * nativeHandle = &handle.first;
 
     mfxFrameSurface1 * surface = task.m_yuv;
 
-    if (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-    {
-        surface = core.GetNativeSurface(task.m_yuv);
-        if (surface == 0)
-            return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
 
-        surface->Info            = task.m_yuv->Info;
-        surface->Data.TimeStamp  = task.m_yuv->Data.TimeStamp;
-        surface->Data.FrameOrder = task.m_yuv->Data.FrameOrder;
-        surface->Data.Corrupted  = task.m_yuv->Data.Corrupted;
-        surface->Data.DataFlag   = task.m_yuv->Data.DataFlag;
-    }
-
-    if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
-        (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
+    if (    video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
+        )
         sts = core.GetFrameHDL(task.m_midRaw, nativeHandle);
     else if (video.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY)
-        sts = core.GetExternalFrameHDL(surface->Data.MemId, nativeHandle);
-    else if (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY) // opaq with internal video memory
-        sts = core.GetFrameHDL(surface->Data.MemId, nativeHandle);
+        sts = core.GetExternalFrameHDL(*surface, handle);
     else
         return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
 
     return sts;
 }
 
-
 mfxHDL MfxHwH264Encode::ConvertMidToNativeHandle(
     VideoCORE & core,
-    mfxMemId    mid,
+    mfxFrameSurface1& surf,
     bool        external)
 {
-    mfxHDL handle = 0;
+    mfxHDLPair handle = {};
 
     mfxStatus sts = (external)
-        ? core.GetExternalFrameHDL(mid, &handle)
-        : core.GetFrameHDL(mid, &handle);
+        ? core.GetExternalFrameHDL(surf, handle)
+        : core.GetFrameHDL(surf, handle);
     assert(sts == MFX_ERR_NONE);
 
-    return (sts == MFX_ERR_NONE) ? handle : 0;
+    return (sts == MFX_ERR_NONE) ? handle.first : 0;
 }
 
 
@@ -3300,12 +3267,12 @@ AsyncRoutineEmulator::AsyncRoutineEmulator()
     Zero(m_queueFlush);
 }
 
-AsyncRoutineEmulator::AsyncRoutineEmulator(MfxVideoParam const & video, mfxU32  adaptGopDelay)
+AsyncRoutineEmulator::AsyncRoutineEmulator(MfxVideoParam const & video, mfxU32  adaptGopDelay, eMFXHWType platform)
 {
-    Init(video, adaptGopDelay);
+    Init(video, adaptGopDelay, platform);
 }
 
-void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDelay)
+void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDelay, eMFXHWType platform)
 {
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
 
@@ -3317,8 +3284,14 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
         m_stageGreediness[STG_START_SCD] = 1;
         m_stageGreediness[STG_WAIT_SCD] = 1 + adaptGopDelay;
         m_stageGreediness[STG_START_MCTF]   = 1;
-        m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video) ? 2 : 1;
+        m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video, platform) ? 2 : 1;
+#if USE_AGOP
+        m_stageGreediness[STG_START_AGOP]         = 1;
+        m_stageGreediness[STG_WAIT_AGOP]         = (extOpt2.AdaptiveB & MFX_CODINGOPTION_ON) ? 2 : 1;
+        m_stageGreediness[STG_START_LA    ] = 10 + (video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist);
+#else
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
+#endif
         m_stageGreediness[STG_WAIT_LA     ] = 1;
         m_stageGreediness[STG_START_HIST  ] = 1;
         m_stageGreediness[STG_WAIT_HIST   ] = 1;
@@ -3337,8 +3310,14 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
         m_stageGreediness[STG_START_SCD] = 1;
         m_stageGreediness[STG_WAIT_SCD] = 1 + adaptGopDelay;
         m_stageGreediness[STG_START_MCTF]   = 1;
-        m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video) ? 2 : 1;
+        m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video, platform) ? 2 : 1;
+#if USE_AGOP
+        m_stageGreediness[STG_START_AGOP]         = 1;
+        m_stageGreediness[STG_WAIT_AGOP]         = (extOpt2.AdaptiveB & MFX_CODINGOPTION_ON) ? 2 : 1; //wait third frame
+        m_stageGreediness[STG_START_LA    ] = 10 + (video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist);
+#else
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
+#endif
         m_stageGreediness[STG_WAIT_LA     ] = 1 + !!(video.AsyncDepth > 1);
         m_stageGreediness[STG_START_HIST  ] = 1;
         m_stageGreediness[STG_WAIT_HIST   ] = 1;
@@ -3348,11 +3327,27 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
     default:
         m_stageGreediness[STG_ACCEPT_FRAME] = 1;
         m_stageGreediness[STG_START_SCD] = 1;
-        m_stageGreediness[STG_WAIT_SCD] = (IsExtBrcSceneChangeSupported(video) && IsCmNeededForSCD(video) ? 1 + !!(video.AsyncDepth > 1) : 1) + adaptGopDelay;
+        m_stageGreediness[STG_WAIT_SCD] = (IsExtBrcSceneChangeSupported(video, platform) && IsCmNeededForSCD(video) ? 1 + !!(video.AsyncDepth > 1) : 1) + adaptGopDelay;
         m_stageGreediness[STG_START_MCTF]   = 1;
-        m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video) ? 2 : 1;
+        m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video, platform) ? 2 : 1;
+#if USE_AGOP
+        m_stageGreediness[STG_START_AGOP]         = 1;
+        m_stageGreediness[STG_WAIT_AGOP]         = (extOpt2.AdaptiveB & MFX_CODINGOPTION_ON) ? 2 : 1;
+        m_stageGreediness[STG_START_LA    ] = 10 + (video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist);
+#else
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
-        m_stageGreediness[STG_WAIT_LA     ] = 1;
+#endif
+#if defined(MFX_ENABLE_LP_LOOKAHEAD)
+        //right now LPLA only supports CBR and VBR mode
+        if ((video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+            && !adaptGopDelay
+#endif
+            )
+            m_stageGreediness[STG_WAIT_LA] = extOpt2.LookAheadDepth > 0 ? extOpt2.LookAheadDepth : 1;
+        else
+#endif
+        m_stageGreediness[STG_WAIT_LA]      = 1;
         m_stageGreediness[STG_START_HIST  ] = 1;
         m_stageGreediness[STG_WAIT_HIST   ] = 1;
         m_stageGreediness[STG_START_ENCODE] = 1;
@@ -3413,5 +3408,390 @@ mfxU32 AsyncRoutineEmulator::Go(bool hasInput)
     return stages;
 }
 
+#ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
+mfxStatus MfxHwH264Encode::GetDefaultScalingList(mfxU8 *outList, mfxU8 outListSize, mfxU8 index, bool zigzag=false)
+{
+    //Rec. ITU-T H.264, Table 7-3
+    mfxU8 intra_4x4[16] = { 6,13,13,20,20,20,28,28,28,28,32,32,32,37,37,42, };
+    mfxU8 inter_4x4[16] = { 10,14,14,20,20,20,24,24,24,24,27,27,27,30,30,34 };
+    //Rec. ITU-T H.264, Table 7-4
+    mfxU8 intra_8x8[64] = {
+         6, 10, 10, 13, 11, 13, 16, 16, 16, 16, 18, 18, 18, 18, 18, 23,
+        23, 23, 23, 23, 23, 25, 25, 25, 25, 25, 25, 25, 27, 27, 27, 27,
+        27, 27, 27, 27, 29, 29, 29, 29, 29, 29, 29, 31, 31, 31, 31, 31,
+        31, 33, 33, 33, 33, 33, 36, 36, 36, 36, 38, 38, 38, 40, 40, 42
+    };
+    mfxU8 inter_8x8[64] = {
+         9, 13, 13, 15, 13, 15, 17, 17, 17, 17, 19, 19, 19, 19, 19, 21,
+        21, 21, 21, 21, 21, 22, 22, 22, 22, 22, 22, 22, 24, 24, 24, 24,
+        24, 24, 24, 24, 25, 25, 25, 25, 25, 25, 25, 27, 27, 27, 27, 27,
+        27, 28, 28, 28, 28, 28, 30, 30, 30, 30, 32, 32, 32, 33, 33, 35
+    };
+    (void)outListSize;
+
+    //Index according Rec. ITU-T H.264, Table 7-2
+    switch (index)
+    {
+    case 0: //Intra Y
+    case 1: //Intra Cb
+    case 2: //Intra Cr
+    {
+        assert(outListSize >= 16);
+        if (!zigzag)
+            std::copy(std::begin(intra_4x4), std::end(intra_4x4), outList);
+        else
+            MakeZigZag<uint8_t>(intra_4x4, 4, outList, 16);
+        break;
+    }
+    case 3: //Inter Y
+    case 4: //Inter Cb
+    case 5: //Inter Cr
+        assert(outListSize >= 16);
+        if (!zigzag)
+            std::copy(std::begin(inter_4x4), std::end(inter_4x4), outList);
+        else
+            MakeZigZag<uint8_t>(inter_4x4, 4, outList, 16);
+        break;
+    case 6: //Intra Y
+    case 8: //Intra Cb
+    case 10: //Intra Cr
+        assert(outListSize >= 64);
+        if (!zigzag)
+            std::copy(std::begin(intra_8x8), std::end(intra_8x8), outList);
+        else
+            MakeZigZag<uint8_t>(intra_8x8, 8, outList, 64);
+        break;
+    case 7: //Inter Y
+    case 9: //Inter Cb
+    case 11: //Inter Cr
+        assert(outListSize >= 64);
+        if (!zigzag)
+            std::copy(std::begin(inter_8x8), std::end(inter_8x8), outList);
+        else
+            MakeZigZag<uint8_t>(inter_8x8, 8, outList, 64);
+        break;
+    default:
+        return MFX_ERR_NOT_FOUND;
+    }
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus MfxHwH264Encode::FillCustomScalingLists(void *inMatrix, mfxU16 ScenarioInfo, mfxU8 maxtrixIndex)
+{
+    DXVA_Qmatrix_H264 &matrix = *static_cast<DXVA_Qmatrix_H264*>(inMatrix);
+
+    if ((ScenarioInfo != MFX_SCENARIO_GAME_STREAMING) &&
+        (ScenarioInfo != MFX_SCENARIO_REMOTE_GAMING))
+        return MFX_ERR_NOT_FOUND;
+
+    if (maxtrixIndex >= CQM_HINT_USE_CUST_MATRIX1 + CQM_HINT_NUM_CUST_MATRIX)
+        maxtrixIndex = 0;
+
+    mfxU8 intra_4x4[CQM_HINT_NUM_CUST_MATRIX+1][16] =
+    {
+       // matrix 0: single CQM
+        {
+            16, 34, 53, 74,
+            34, 53, 74, 85,
+            53, 74, 85, 98,
+            74, 85, 98, 112
+        },
+        // matrix 1: multiple CQM, weak
+        {
+            21, 21, 21, 24,
+            21, 21, 24, 26,
+            21, 24, 26, 29,
+            24, 26, 29, 32
+        },
+        // matrix 2: multiple CQM, medium
+        {
+            27, 29, 36, 46,
+            29, 36, 46, 52,
+            36, 46, 52, 58,
+            46, 52, 58, 64
+        },
+        // matrix 3: multiple CQM, strong
+        {
+            28, 31, 53, 74,
+            31, 53, 74, 85,
+            53, 74, 85, 98,
+            74, 85, 98, 112
+        },
+        // matrix 4: multiple CQM, extreme
+        {
+            31, 31, 53, 74,
+            31, 53, 74, 85,
+            53, 74, 85, 98,
+            74, 85, 98, 112
+        }
+    };
+
+    mfxU8 inter_4x4[CQM_HINT_NUM_CUST_MATRIX+1][16] =
+    {
+        //matrix 0: single CQM
+        {
+            16, 22, 32, 38,
+            22, 32, 38, 43,
+            32, 38, 43, 48,
+            38, 43, 48, 54
+        },
+        // matrix 1: multiple CQM, weak
+        {
+            21, 21, 21, 24,
+            21, 21, 24, 26,
+            21, 24, 26, 29,
+            24, 26, 29, 32
+        },
+        // matrix 2: multiple CQM, medium
+        {
+            27, 29, 32, 38,
+            29, 32, 38, 43,
+            32, 38, 43, 48,
+            38, 43, 48, 54
+        },
+        // matrix 3: multiple CQM, strong
+        {
+            28, 31, 36, 46,
+            31, 36, 46, 52,
+            36, 46, 52, 58,
+            46, 52, 58, 64
+        },
+        // matrix 4: multiple CQM, extreme
+        {
+            31, 31, 36, 46,
+            31, 36, 46, 52,
+            36, 46, 52, 58,
+            46, 52, 58, 64
+        }
+    };
+
+    mfxU8 intra_8x8[CQM_HINT_NUM_CUST_MATRIX+1][64] =
+    {
+        //matrix 0: single CQM
+        {
+            16, 26, 34, 42, 48, 61, 66, 72,
+            26, 29, 42, 48, 61, 66, 72, 77,
+            34, 42, 48, 61, 66, 72, 77, 82,
+            42, 48, 61, 66, 72, 77, 82, 88,
+            48, 61, 66, 72, 77, 82, 88, 96,
+            61, 66, 72, 77, 82, 88, 96, 101,
+            66, 72, 77, 82, 88, 96, 101, 106,
+            72, 77, 82, 88, 96, 101, 106, 112
+        },
+        // matrix 1: multiple CQM, weak
+        {
+            16, 16, 34, 42, 48, 61, 66, 72,
+            16, 29, 42, 48, 61, 66, 72, 77,
+            34, 42, 48, 61, 66, 72, 77, 82,
+            42, 48, 61, 66, 72, 77, 82, 88,
+            48, 61, 66, 72, 77, 82, 88, 96,
+            61, 66, 72, 77, 82, 88, 96, 101,
+            66, 72, 77, 82, 88, 96, 101, 106,
+            72, 77, 82, 88, 96, 101, 106, 112
+        },
+        // matrix 2: multiple CQM, medium
+        {
+            16, 19, 34, 42, 48, 61, 66, 72,
+            19, 29, 42, 48, 61, 66, 72, 77,
+            34, 42, 48, 61, 66, 72, 77, 82,
+            42, 48, 61, 66, 72, 77, 82, 88,
+            48, 61, 66, 72, 77, 82, 88, 96,
+            61, 66, 72, 77, 82, 88, 96, 101,
+            66, 72, 77, 82, 88, 96, 101, 106,
+            72, 77, 82, 88, 96, 101, 106, 112
+        },
+        // matrix 3: multiple CQM, strong
+        {
+            19, 25, 34, 42, 48, 61, 66, 72,
+            25, 29, 42, 48, 61, 66, 72, 77,
+            34, 42, 48, 61, 66, 72, 77, 82,
+            42, 48, 61, 66, 72, 77, 82, 88,
+            48, 61, 66, 72, 77, 82, 88, 96,
+            61, 66, 72, 77, 82, 88, 96, 101,
+            66, 72, 77, 82, 88, 96, 101, 106,
+            72, 77, 82, 88, 96, 101, 106, 112
+        },
+        // matrix 4: multiple CQM, extreme
+        {
+            22, 22, 34, 42, 48, 61, 66, 72,
+            22, 29, 42, 48, 61, 66, 72, 77,
+            34, 42, 48, 61, 66, 72, 77, 82,
+            42, 48, 61, 66, 72, 77, 82, 88,
+            48, 61, 66, 72, 77, 82, 88, 96,
+            61, 66, 72, 77, 82, 88, 96, 101,
+            66, 72, 77, 82, 88, 96, 101, 106,
+            72, 77, 82, 88, 96, 101, 106, 112
+        }
+    };
+
+    mfxU8 inter_8x8[CQM_HINT_NUM_CUST_MATRIX+1][64] = {
+        //matrix 0: single CQM
+        {
+            16, 23, 26, 30, 33, 37, 39, 42,
+            23, 23, 30, 33, 37, 39, 42, 44,
+            26, 30, 33, 37, 39, 42, 44, 48,
+            30, 33, 37, 39, 42, 44, 48, 49,
+            33, 37, 39, 42, 44, 48, 49, 53,
+            37, 39, 42, 44, 48, 49, 53, 56,
+            39, 42, 44, 48, 49, 53, 56, 58,
+            42, 44, 48, 49, 53, 56, 58, 62
+        },
+        // matrix 1: multiple CQM, weak
+        {
+            16, 16, 26, 30, 33, 37, 39, 42,
+            16, 23, 30, 33, 37, 39, 42, 44,
+            26, 30, 33, 37, 39, 42, 44, 48,
+            30, 33, 37, 39, 42, 44, 48, 49,
+            33, 37, 39, 42, 44, 48, 49, 53,
+            37, 39, 42, 44, 48, 49, 53, 56,
+            39, 42, 44, 48, 49, 53, 56, 58,
+            42, 44, 48, 49, 53, 56, 58, 62
+        },
+        // matrix 2: multiple CQM, medium
+        {
+            16, 16, 26, 30, 33, 37, 39, 42,
+            16, 23, 30, 33, 37, 39, 42, 44,
+            26, 30, 33, 37, 39, 42, 44, 48,
+            30, 33, 37, 39, 42, 44, 48, 49,
+            33, 37, 39, 42, 44, 48, 49, 53,
+            37, 39, 42, 44, 48, 49, 53, 56,
+            39, 42, 44, 48, 49, 53, 56, 58,
+            42, 44, 48, 49, 53, 56, 58, 62
+        },
+        // matrix 3: multiple CQM, strong
+        {
+            19, 22, 26, 30, 33, 37, 39, 42,
+            22, 23, 30, 33, 37, 39, 42, 44,
+            26, 30, 33, 37, 39, 42, 44, 48,
+            30, 33, 37, 39, 42, 44, 48, 49,
+            33, 37, 39, 42, 44, 48, 49, 53,
+            37, 39, 42, 44, 48, 49, 53, 56,
+            39, 42, 44, 48, 49, 53, 56, 58,
+            42, 44, 48, 49, 53, 56, 58, 62
+        },
+        // matrix 4: multiple CQM, extreme
+        {
+            19, 22, 26, 30, 33, 37, 39, 42,
+            22, 23, 30, 33, 37, 39, 42, 44,
+            26, 30, 33, 37, 39, 42, 44, 48,
+            30, 33, 37, 39, 42, 44, 48, 49,
+            33, 37, 39, 42, 44, 48, 49, 53,
+            37, 39, 42, 44, 48, 49, 53, 56,
+            39, 42, 44, 48, 49, 53, 56, 58,
+            42, 44, 48, 49, 53, 56, 58, 62
+        }
+    };
+
+    mfxU8 flat_4x4[16] = {
+        16, 16, 16, 16,
+        16, 16, 16, 16,
+        16, 16, 16, 16,
+        16, 16, 16, 16
+    };
+
+    std::copy(std::begin(intra_4x4[maxtrixIndex]), std::end(intra_4x4[maxtrixIndex]), std::begin(matrix.bScalingLists4x4[0]));
+    std::copy(std::begin(inter_4x4[maxtrixIndex]), std::end(inter_4x4[maxtrixIndex]), std::begin(matrix.bScalingLists4x4[3]));
+    std::copy(std::begin(intra_8x8[maxtrixIndex]), std::end(intra_8x8[maxtrixIndex]), std::begin(matrix.bScalingLists8x8[0]));
+    std::copy(std::begin(inter_8x8[maxtrixIndex]), std::end(inter_8x8[maxtrixIndex]), std::begin(matrix.bScalingLists8x8[1]));
+    if (maxtrixIndex > 2)
+    {
+        std::copy(std::begin(intra_4x4[maxtrixIndex-2]), std::end(intra_4x4[maxtrixIndex-2]), std::begin(matrix.bScalingLists4x4[1]));
+        std::copy(std::begin(intra_4x4[maxtrixIndex-2]), std::end(intra_4x4[maxtrixIndex-2]), std::begin(matrix.bScalingLists4x4[2]));
+        std::copy(std::begin(inter_4x4[maxtrixIndex-2]), std::end(inter_4x4[maxtrixIndex-2]), std::begin(matrix.bScalingLists4x4[4]));
+        std::copy(std::begin(inter_4x4[maxtrixIndex-2]), std::end(inter_4x4[maxtrixIndex-2]), std::begin(matrix.bScalingLists4x4[5]));
+    }
+    else
+    {
+        std::copy(std::begin(flat_4x4), std::end(flat_4x4), std::begin(matrix.bScalingLists4x4[1]));
+        std::copy(std::begin(flat_4x4), std::end(flat_4x4), std::begin(matrix.bScalingLists4x4[2]));
+        std::copy(std::begin(flat_4x4), std::end(flat_4x4), std::begin(matrix.bScalingLists4x4[4]));
+        std::copy(std::begin(flat_4x4), std::end(flat_4x4), std::begin(matrix.bScalingLists4x4[5]));
+    }
+
+    return MFX_ERR_NONE;
+}
+
+void MfxHwH264Encode::FillTaskScalingList(mfxExtSpsHeader const &extSps, mfxExtPpsHeader const &extPps, DdiTask &task)
+{
+    for (mfxU8 i = 0; i < ((extSps.levelIdc != 3) ? 8 : 12); ++i) //levelIdc==3 isn't supported, has to be checked on input
+    {
+        if (i < 6)
+        {
+            if (extSps.seqScalingListPresentFlag[i])
+            {
+                ZigZagToPlane<mfxU8>(extSps.scalingList4x4[i], 4, &task.m_qMatrix.QmatrixAVC.bScalingLists4x4[i], sizeof(task.m_qMatrix.QmatrixAVC.bScalingLists4x4[i]));
+            }
+            else
+            {
+                //Scaling list fall-back rule A, Rec. ITU-T H.264, Table 7-2
+                if (i == 0 || i == 3) //Intra Y or Inter Y
+                {
+                    GetDefaultScalingList(task.m_qMatrix.QmatrixAVC.bScalingLists4x4[i], sizeof(task.m_qMatrix.QmatrixAVC.bScalingLists4x4[i]), i);
+                }
+                else
+                {
+                    std::copy(std::begin(task.m_qMatrix.QmatrixAVC.bScalingLists4x4[i - 1]), std::end(task.m_qMatrix.QmatrixAVC.bScalingLists4x4[i - 1]), std::begin(task.m_qMatrix.QmatrixAVC.bScalingLists4x4[i]));
+                }
+            }
+        }
+        else
+        {
+            if (i == 6 || i == 7) //Intra Y or Inter Y
+            {
+                if (extSps.seqScalingListPresentFlag[i])
+                {
+                    ZigZagToPlane<mfxU8>(extSps.scalingList8x8[i - 6], 8, &task.m_qMatrix.QmatrixAVC.bScalingLists8x8[i - 6], sizeof(task.m_qMatrix.QmatrixAVC.bScalingLists8x8[i - 6]));
+                }
+                else
+                {
+                   //Scaling list fall-back rule A, Rec. ITU-T H.264, Table 7-2
+                    GetDefaultScalingList(task.m_qMatrix.QmatrixAVC.bScalingLists8x8[i - 6], sizeof(task.m_qMatrix.QmatrixAVC.bScalingLists8x8[i - 6]), i);
+                }
+            }
+            else
+            {
+                assert("levelIdc == 3 isn't supported");
+            }
+        }
+    }
+    if (extPps.picScalingMatrixPresentFlag)
+    {
+        for (mfxU8 i = 0; i < 6 + 2 * (!!extPps.transform8x8ModeFlag); ++i)
+        {
+            if (i < 6)
+            {
+                if (extPps.picScalingListPresentFlag[i])
+                {
+                    ZigZagToPlane<mfxU8>(extPps.scalingList4x4[i], 4, task.m_qMatrix.QmatrixAVC.bScalingLists4x4[i], sizeof(task.m_qMatrix.QmatrixAVC.bScalingLists4x4[i]));
+                }
+                else
+                {
+                    //According Scaling list fall-back rule B, Rec. ITU-T H.264, Table 7-2, leave Intra Y and Inter Y as they defined for SPS
+                    if (i != 0 && i != 3) //Intra Cb,Cr or Inter Cb,Cr
+                    {
+                        std::copy(std::begin(task.m_qMatrix.QmatrixAVC.bScalingLists4x4[i - 1]), std::end(task.m_qMatrix.QmatrixAVC.bScalingLists4x4[i - 1]), std::begin(task.m_qMatrix.QmatrixAVC.bScalingLists4x4[i]));
+                    }
+                }
+            }
+            else
+            {
+                if (extPps.picScalingListPresentFlag[i])
+                {
+                    ZigZagToPlane<mfxU8>(extPps.scalingList8x8[i - 6], 8, task.m_qMatrix.QmatrixAVC.bScalingLists8x8[i - 6], sizeof(task.m_qMatrix.QmatrixAVC.bScalingLists8x8[i - 6]));
+                }
+                else
+                {
+                    //According Scaling list fall-back rule B, Rec. ITU-T H.264, Table 7-2, leave Intra Y and Inter Y as they defined for SPS
+                    if (i > 7) //Intra Cb,Cr and Inter Cb,Cr is unsupported
+                    {
+                        assert("Indexes greater than 7 are not supported");
+                    }
+                }
+            }
+        }
+    }
+}
+#endif //MFX_ENABLE_AVC_CUSTOM_QMATRIX
 
 #endif // MFX_ENABLE_H264_VIDEO_ENCODE_HW

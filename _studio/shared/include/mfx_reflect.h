@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -17,13 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
 #pragma once
-
-#include "mfx_config.h"
-#include "mfx_trace.h"
-
-#if defined(MFX_TRACE_ENABLE_REFLECT)
 
 #include <memory>
 #include <string>
@@ -32,6 +26,7 @@
 #include <vector>
 #include <map>
 #include <stdexcept>
+#include "mfx_config.h"
 
 #include <typeindex>
 
@@ -254,8 +249,6 @@ namespace mfx_reflect
                 return AccessorType(p, *pType);
             }
         }
-
-        static void Initialize();
     };
 
     class TypeComparisonResult;
@@ -287,8 +280,4 @@ namespace mfx_reflect
     std::ostream& operator<< (std::ostream& stream, AccessorType data);
 
     template <class T> ReflectedType::SP DeclareTypeT(ReflectedTypesCollection& collection, const std::string typeName);
-
-    mfx_reflect::AccessibleTypesCollection GetReflection();
-} // namespace mfx_reflect
-
-#endif // #if defined(MFX_TRACE_ENABLE_REFLECT)
+}

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2004-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,6 @@
 #include "umc_vc1_dec_skipping.h"
 #include "umc_vc1_dec_exception.h"
 #include "umc_frame_allocator.h"
-
 
 namespace UMC
 {
@@ -172,6 +171,7 @@ namespace UMC
         VC1TaskStore & operator = (const VC1TaskStore &);
 
     public:
+
         virtual bool     Init(uint32_t iConsumerNumber,
                       uint32_t iMaxFramesInParallel,
                       VC1VideoDecoder* pVC1Decoder);
@@ -368,7 +368,6 @@ namespace UMC
 
         bool          m_bIsLastFramesMode;
     };
-
 }
 
 #endif //__umc_umc_vc1_dec_task_store_H__

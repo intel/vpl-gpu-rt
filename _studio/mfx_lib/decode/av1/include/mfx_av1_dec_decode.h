@@ -21,20 +21,18 @@
 #include "mfx_common.h"
 #include "mfx_common_int.h"
 
+#include "mfx_umc_alloc_wrapper.h"
+
 #include "umc_defs.h"
+#include "umc_video_decoder.h"
+#include "mfx_umc_alloc_wrapper.h"
 #include <mutex>
+#include <memory>
 
 #ifndef _MFX_AV1_DEC_DECODE_H_
 #define _MFX_AV1_DEC_DECODE_H_
 
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
-
-class mfx_UMC_FrameAllocator;
-
-namespace UMC
-{
-    class VideoDecoderParams;
-}
 
 namespace UMC_AV1_DECODER
 {
@@ -52,6 +50,7 @@ class VideoDECODEAV1
     {
         mfxFrameSurface1 *surface_work;
         mfxFrameSurface1 *surface_out;
+        UMC::FrameMemID  copyfromframe;
     };
 
 public:
@@ -62,6 +61,7 @@ public:
     static mfxStatus Query(VideoCORE*, mfxVideoParam* in, mfxVideoParam* out);
     static mfxStatus QueryIOSurf(VideoCORE*, mfxVideoParam*, mfxFrameAllocRequest*);
     static mfxStatus DecodeHeader(VideoCORE*, mfxBitstream*, mfxVideoParam*);
+    static mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription::decoder&, mfx::PODArraysHolder&);
 
     virtual mfxStatus Init(mfxVideoParam*) override;
     virtual mfxStatus Reset(mfxVideoParam*) override;
@@ -75,6 +75,8 @@ public:
     virtual mfxStatus GetPayload(mfxU64* time_stamp, mfxPayload*) override;
 
     mfxStatus QueryFrame(mfxThreadTask);
+
+    virtual mfxFrameSurface1* GetSurface() override;
 
 private:
     static mfxStatus FillVideoParam(VideoCORE*, UMC_AV1_DECODER::AV1DecoderParams const*, mfxVideoParam*);
@@ -103,7 +105,7 @@ private:
     eMFXPlatform                                 m_platform;
 
     std::mutex                                   m_guard;
-    std::unique_ptr<mfx_UMC_FrameAllocator>      m_allocator;
+    std::unique_ptr<SurfaceSource>               m_surface_source;
     std::unique_ptr<UMC_AV1_DECODER::AV1Decoder> m_decoder;
 
     bool                                         m_opaque;
@@ -115,9 +117,11 @@ private:
 
     mfxFrameAllocRequest                         m_request;
     mfxFrameAllocResponse                        m_response;
+    mfxFrameAllocResponse                        m_response_alien;
 
     bool                                         m_is_init;
     mfxF64                                       m_in_framerate;
+    bool                                         m_is_cscInUse;
 };
 
 #endif // MFX_ENABLE_AV1_VIDEO_DECODE

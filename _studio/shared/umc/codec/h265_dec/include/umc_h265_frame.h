@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2012-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -29,6 +29,9 @@
 #include "umc_h265_notify.h"
 #include "umc_h265_heap.h"
 
+#ifndef MFX_VA
+#include "umc_h265_frame_coding_data.h"
+#endif
 
 namespace UMC_HEVC_DECODER
 {
@@ -200,7 +203,7 @@ public:
         m_pFutureFrame = pFut;
     }
 
-    bool        isDisplayable()    { return m_isDisplayable != 0; }
+    bool        isDisplayable() const { return m_isDisplayable != 0; }
 
     void        SetisDisplayable(bool isDisplayable)
     {
@@ -217,16 +220,16 @@ public:
     // Check reference frames for error status and flag this frame if error is found
     void UpdateErrorWithRefFrameStatus();
 
-    bool        wasDisplayed()    { return m_wasDisplayed != 0; }
+    bool        wasDisplayed() const { return m_wasDisplayed != 0; }
     void        setWasDisplayed() { m_wasDisplayed = 1; }
 
-    bool        wasOutputted()    { return m_wasOutputted != 0; }
+    bool        wasOutputted() const { return m_wasOutputted != 0; }
     void        setWasOutputted(); // Flag frame after it was output
 
-    bool        isDisposable()    { return (!m_isShortTermRef &&
-                                            !m_isLongTermRef &&
-                                            ((m_wasOutputted != 0 && m_wasDisplayed != 0) || (m_isDisplayable == 0)) &&
-                                            !GetRefCounter()); }
+    bool        isDisposable() const { return (!m_isShortTermRef &&
+                                               !m_isLongTermRef &&
+                                               ((m_wasOutputted != 0 && m_wasDisplayed != 0) || (m_isDisplayable == 0)) &&
+                                               !GetRefCounter()); }
 
     bool isShortTermRef() const
     {
@@ -298,6 +301,46 @@ public:
     }
 
 
+#ifndef MFX_VA
+    // FIXME: make coding data a member, not pointer
+    H265FrameCodingData *m_CodingData;
+
+    H265FrameCodingData* getCD() const {return m_CodingData;}
+
+    // Returns a CTB by its raster address
+    H265CodingUnit* getCU(uint32_t CUaddr) const;
+
+    // Returns number of CTBs in frame
+    uint32_t getNumCUsInFrame() const;
+    // Returns number of minimal partitions in CTB
+    uint32_t getNumPartInCUSize() const;
+    // Returns number of CTBs in frame width
+    uint32_t getFrameWidthInCU() const;
+    // Returns number of CTBs in frame height
+    uint32_t getFrameHeightInCU() const;
+
+    int32_t*  m_cuOffsetY;
+    int32_t*  m_cuOffsetC;
+    int32_t*  m_buOffsetY;
+    int32_t*  m_buOffsetC;
+
+    // Fill frame planes with default values
+    void DefaultFill(bool isChromaOnly, uint8_t defaultValue = 128);
+
+    // Allocate and initialize frame array of CTBs and SAO parameters
+    void allocateCodingData(const H265SeqParamSet* pSeqParamSet, const H265PicParamSet *pPicParamSet);
+    // Free array of CTBs
+    void deallocateCodingData();
+
+    //  Access starting position of original picture for specific coding unit (CU)
+    PlanePtrY GetLumaAddr(int32_t CUAddr) const;
+    //  Access starting position of original picture for specific coding unit (CU)
+    PlanePtrUV GetCbCrAddr(int32_t CUAddr) const;
+    //  Access starting position of original picture for specific coding unit (CU) and partition unit (PU)
+    PlanePtrY GetLumaAddr(int32_t CUAddr, uint32_t AbsZorderIdx) const;
+    //  Access starting position of original picture for specific coding unit (CU) and partition unit (PU)
+    PlanePtrUV GetCbCrAddr(int32_t CUAddr, uint32_t AbsZorderIdx) const;
+#endif
 
     void AddSlice(H265Slice * pSlice);
 

@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2018 Intel Corporation
-// 
+// Copyright (c) 2008-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -57,9 +57,10 @@ class MFXVideoENCODEMJPEG_HW : public VideoENCODE {
 public:
     static mfxStatus Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out);
     static mfxStatus QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
+    static mfxStatus QueryImplsDescription(VideoCORE& core, mfxEncoderDescription::encoder& caps, mfx::PODArraysHolder& ah);
 
     MFXVideoENCODEMJPEG_HW(VideoCORE *core, mfxStatus *sts);
-    virtual ~MFXVideoENCODEMJPEG_HW() {Close();}
+    virtual ~MFXVideoENCODEMJPEG_HW();
     virtual mfxStatus Init(mfxVideoParam *par);
     virtual mfxStatus Reset(mfxVideoParam *par);
     virtual mfxStatus Close(void);
@@ -141,9 +142,10 @@ protected:
 
     mfxExtJPEGQuantTables    m_checkedJpegQT;
     mfxExtJPEGHuffmanTables  m_checkedJpegHT;
-    mfxExtOpaqueSurfaceAlloc m_checkedOpaqAllocReq;
+
+
     mfxExtBuffer*            m_pCheckedExt[3];
 };
 
-#endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE) && defined (MFX_VA)
+#endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
 #endif // __MFX_MJPEG_ENCODE_HW_H__

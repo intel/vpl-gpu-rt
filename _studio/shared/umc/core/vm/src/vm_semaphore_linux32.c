@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if defined(LINUX32)
 
 #include <sys/time.h>
 #include <semaphore.h>
@@ -333,6 +332,3 @@ void vm_semaphore_destroy(vm_semaphore *sem)
         vm_semaphore_set_invalid_internal(sem);
     }
 } /* void vm_semaphore_destroy(vm_semaphore *sem) */
-#else
-# pragma warning( disable: 4206 )
-#endif /* LINUX32 */

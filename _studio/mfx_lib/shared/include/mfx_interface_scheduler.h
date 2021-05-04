@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2009-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -96,7 +96,7 @@ public:
     virtual
     mfxStatus WaitForDependencyResolved(const void *pDependency) = 0;
 
-    // Wait until all tasks of specified owner become complete or unattended
+    // Wait until task(s) of specified owner become complete or unattended
     virtual
     mfxStatus WaitForAllTasksCompletion(const void *pOwner) = 0;
 
@@ -121,6 +121,15 @@ public:
     mfxStatus AdjustPerformance(const mfxSchedulerMessage message) = 0;
 
 
+#if defined(SCHEDULER_DEBUG)
+
+    virtual
+    mfxStatus AddTask(const MFX_TASK &task, void **ppSyncPoint, const char *pFileName, int lineNumber) = 0;
+
+#define AddTask(task, ppSyncPoint) \
+    AddTask(task, ppSyncPoint, __FILE__, __LINE__)
+
+#endif // defined(SCHEDULER_DEBUG)
 };
 
 struct MFX_SCHEDULER_PARAM2: public MFX_SCHEDULER_PARAM
@@ -140,6 +149,12 @@ public:
 
     virtual
     mfxStatus GetTimeout(mfxU32 & maxTimeToRun) = 0;
+
+#if defined (MFX_ENABLE_HW_BLOCKING_TASK_SYNC) || \
+    defined (MFX_ENABLE_HW_BLOCKING_TASK_SYNC_DECODE)
+    virtual
+    void ** GetHwEvent() = 0;
+#endif
 };
 
 #endif // __MFX_INTERFACE_SCHEDULER_H

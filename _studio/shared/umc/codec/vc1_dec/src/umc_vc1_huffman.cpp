@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2004-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -318,6 +318,5 @@ void HuffmanTableFree(int32_t *pDecodeTable)
 {
     free((void*)pDecodeTable);
 }
-
 
 #endif // #if defined (MFX_ENABLE_VC1_VIDEO_DECODE)

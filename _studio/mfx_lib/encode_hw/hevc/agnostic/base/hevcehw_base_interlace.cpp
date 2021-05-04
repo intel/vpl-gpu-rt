@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,9 @@
 #include "hevcehw_base_interlace.h"
 #include "hevcehw_base_packer.h"
 #include "hevcehw_base_legacy.h"
+#include <iterator>
 #include <numeric>
+#include <iterator>
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
@@ -94,15 +96,17 @@ void Interlace::Query1NoCaps(const FeatureBlocks& , TPushQ1 Push)
             [](Defaults::TGetFrameType::TExt prev
                 , const Defaults::Param& par
                 , mfxU32 fo
-                , mfxU32 lastIDR)
+                , mfxGopHints GopHints
+                , mfxLastKeyFrameInfo LastKeyFrameInfo)
         {
             bool   bField       = IsField(par.mvp.mfx.FrameInfo.PicStruct);
-            mfxU32 dFO          = bField * (lastIDR % 2);
+            mfxU32 dFO          = bField * (LastKeyFrameInfo.lastIDROrder % 2);
             mfxU32 nPicInFrame  = bField + 1;
 
-            auto   ft = prev(par, (fo + dFO - lastIDR) / nPicInFrame,  0);
+            mfxLastKeyFrameInfo mLastKeyFrameInfo = { 0, (LastKeyFrameInfo.lastIPOrder + dFO - LastKeyFrameInfo.lastIDROrder) / nPicInFrame, 0 };
+            auto   ft = prev(par, (fo + dFO - LastKeyFrameInfo.lastIDROrder) / nPicInFrame, GopHints, mLastKeyFrameInfo);
 
-            bool   b2ndField    = bField && ((fo + dFO - lastIDR) % 2);
+            bool   b2ndField    = bField && ((fo + dFO - LastKeyFrameInfo.lastIDROrder) % 2);
             bool   bForceP      = b2ndField && IsI(ft);
 
             ft &= ~((MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR) * bForceP);
@@ -123,17 +127,19 @@ void Interlace::Query1NoCaps(const FeatureBlocks& , TPushQ1 Push)
         defaults.GetPLayer.Push(
             [](Defaults::TGetPLayer::TExt prev
                 , const Defaults::Param& par
-                , mfxU32 fo)
+                , mfxU32 fo
+                , mfxGopHints GopHints)
         {
-            return prev(par, fo / (1 + IsField(par.mvp.mfx.FrameInfo.PicStruct)));
+            return prev(par, fo / (1 + IsField(par.mvp.mfx.FrameInfo.PicStruct)), GopHints);
         });
 
         defaults.GetTId.Push(
             [](Defaults::TGetTId::TExt prev
                 , const Defaults::Param& par
-                , mfxU32 fo)
+                , mfxU32 fo
+                , mfxGopHints GopHints)
         {
-            return prev(par, fo / (1 + IsField(par.mvp.mfx.FrameInfo.PicStruct)));
+            return prev(par, fo / (1 + IsField(par.mvp.mfx.FrameInfo.PicStruct)), GopHints);
         });
 
         defaults.GetRPL.Push( [](
@@ -173,8 +179,8 @@ void Interlace::Query1NoCaps(const FeatureBlocks& , TPushQ1 Push)
                 L0.resize(std::min<mfxU16>(maxL0, l0));
                 L1.resize(std::min<mfxU16>(maxL1, l1));
 
-                std::remove_if(RPL[0], RPL[0] + l0, IsNotInL0);
-                std::remove_if(RPL[1], RPL[1] + l1, IsNotInL1);
+                std::ignore = std::remove_if(RPL[0], RPL[0] + l0, IsNotInL0);
+                std::ignore = std::remove_if(RPL[1], RPL[1] + l1, IsNotInL1);
 
                 l0 = mfxU8(L0.size());
                 l1 = mfxU8(L1.size());
@@ -192,11 +198,11 @@ void Interlace::Query1NoCaps(const FeatureBlocks& , TPushQ1 Push)
             , FrameBaseInfo&                    fi
             , const mfxFrameSurface1*           pSurfIn
             , const mfxEncodeCtrl*              pCtrl
-            , mfxU32                            prevIDROrder
-            , mfxI32                            prevIPOC
-            , mfxU32                            frameOrder)
+            , mfxLastKeyFrameInfo               LastKeyFrameInfo
+            , mfxU32                            frameOrder
+            , mfxGopHints                       GopHints)
         {
-            auto sts = prev(par, fi, pSurfIn, pCtrl, prevIDROrder, prevIPOC, frameOrder);
+            auto sts = prev(par, fi, pSurfIn, pCtrl, LastKeyFrameInfo, frameOrder, GopHints);
             MFX_CHECK_STS(sts);
 
             MFX_CHECK(IsField(par.mvp.mfx.FrameInfo.PicStruct), MFX_ERR_NONE);

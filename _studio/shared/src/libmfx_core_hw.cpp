@@ -18,11 +18,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "mfx_common.h"
 #if defined (MFX_VA)
 
 #include "libmfx_core_hw.h"
 #include "mfx_common_decode_int.h"
 #include "mfx_enc_common.h"
+#include "mfxpcp.h"
 #include "mfx_ext_buffers.h"
 
 #include "umc_va_base.h"
@@ -45,7 +47,17 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
         break;
 
     case MFX_CODEC_AVC:
+        {
         profile |= VA_H264;
+
+
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+        if (IsSVCProfile(profile_idc))
+        {
+            profile |= (profile_idc == MFX_PROFILE_AVC_SCALABLE_HIGH) ? VA_PROFILE_SVC_HIGH : VA_PROFILE_SVC_BASELINE;
+        }
+#endif
+        }
         break;
 
     case MFX_CODEC_JPEG:
@@ -94,7 +106,6 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
         break;
 #endif
 
-
     case MFX_CODEC_HEVC:
         profile |= VA_H265;
         switch (param->mfx.FrameInfo.FourCC)
@@ -141,13 +152,20 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
                 profile |= VA_PROFILE_REXT;
 #endif
         }
-
         break;
 
     default:
-        return UMC::UNKNOWN;
+        return 0;
     }
 
+#ifdef MFX_EXTBUFF_FORCE_PRIVATE_DDI_ENABLE
+    {
+        mfxExtBuffer* extbuf =
+             GetExtendedBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_FORCE_PRIVATE_DDI);
+         if (extbuf)
+            profile |= VA_PRIVATE_DDI_MODE;
+    }
+#endif
 
     return profile;
 }

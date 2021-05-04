@@ -1,32 +1,37 @@
-# Copyright (c) 2017 Intel Corporation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 
-mfx_include_dirs()
+add_library(mfx_trace STATIC)
 
-include_directories (
-  ${MSDK_STUDIO_ROOT}/shared/mfx_trace/include
-)
+target_sources(mfx_trace
+  PRIVATE
+    include/mfx_trace_ftrace.h
+    include/mfx_trace_itt.h
+    include/mfx_trace_stat.h
+    include/mfx_trace_textlog.h
+    include/mfx_trace_utils.h
+    include/sys/mfx_trace_utils_linux.h
 
-file( GLOB_RECURSE srcs "${MSDK_STUDIO_ROOT}/shared/mfx_trace/src/*.cpp" )
-list( APPEND sources ${srcs})
+    src/mfx_trace.cpp
+    src/mfx_trace_ftrace.cpp
+    src/mfx_trace_itt.cpp
+    src/mfx_trace_stat.cpp
+    src/mfx_trace_textlog.cpp
+    src/mfx_trace_utils.cpp
+    src/mfx_trace_utils_linux.cpp
+    $<$<NOT:$<BOOL:${BUILD_VPL}>>:src/mfx_reflect.cpp>
+  )
 
-set( defs "" )
-make_library( mfx_trace none static )
-set( defs "" )
+target_include_directories(mfx_trace
+  PUBLIC
+    include
+    ${MFX_API_HOME}/mediasdk_structures
+  )
+
+target_link_libraries(mfx_trace
+  PUBLIC
+    mfx_static_lib
+    vm
+  PRIVATE
+    mfx_sdl_properties
+  )
+
+include(sources_ext.cmake OPTIONAL)

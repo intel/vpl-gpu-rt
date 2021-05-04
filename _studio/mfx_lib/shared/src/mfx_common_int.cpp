@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2009-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,12 +21,14 @@
 #include "mfx_common_int.h"
 #include "mfx_ext_buffers.h"
 #include "mfxpcp.h"
-#include "mfxfei.h"
+
+
 #include "mfx_utils.h"
 
 #include <stdexcept>
 #include <string>
 #include <climits>
+#include <algorithm>
 
 
 mfxExtBuffer* GetExtendedBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id)
@@ -233,7 +235,7 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
             )
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         break;
-#if defined(MFX_ENABLE_AV1_VIDEO_DECODE) || defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
     case MFX_CODEC_AV1:
             if (   info->FourCC != MFX_FOURCC_NV12
                 && info->FourCC != MFX_FOURCC_YV12
@@ -277,7 +279,8 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
         break;
     }
 
-    if (codecId != MFX_CODEC_HEVC && (
+    // HEVC HW supports both kind of shifts, but HEVC SW only Shift == 0
+    if ((codecId != MFX_CODEC_HEVC || !isHW) && (
            info->FourCC == MFX_FOURCC_P010
         || info->FourCC == MFX_FOURCC_P210
 #if (MFX_VERSION >= 1027)
@@ -296,40 +299,6 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
     return MFX_ERR_NONE;
 }
 
-mfxStatus CheckAudioParamCommon(mfxAudioParam *in)
-{
-//    mfxStatus sts;
-
-    switch (in->mfx.CodecId)
-    {
-        case MFX_CODEC_AAC:
-        case MFX_CODEC_MP3:
-            break;
-        default:
-            return MFX_ERR_INVALID_AUDIO_PARAM;
-    }
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus CheckAudioParamDecoders(mfxAudioParam *in)
-{
-    mfxStatus sts = CheckAudioParamCommon(in);
-    if (sts < MFX_ERR_NONE)
-        return sts;
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus CheckAudioParamEncoders(mfxAudioParam *in)
-{
-    mfxStatus sts = CheckAudioParamCommon(in);
-    if (sts < MFX_ERR_NONE)
-        return sts;
-
-    return MFX_ERR_NONE;
-}
-
 
 static mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
 {
@@ -341,6 +310,7 @@ static mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
     if (in->Protected)
     {
         MFX_CHECK(type != MFX_HW_UNKNOWN && IS_PROTECTION_ANY(in->Protected), MFX_ERR_INVALID_VIDEO_PARAM);
+
     }
 
     switch (in->mfx.CodecId)
@@ -352,7 +322,7 @@ static mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
         case MFX_CODEC_JPEG:
         case MFX_CODEC_VP8:
         case MFX_CODEC_VP9:
-#if defined(MFX_ENABLE_AV1_VIDEO_DECODE) || defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
         case MFX_CODEC_AV1:
 #endif
             break;
@@ -387,28 +357,28 @@ static mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
     return MFX_ERR_NONE;
 }
 
-mfxStatus CheckVideoParamDecoders(mfxVideoParam *in, bool IsExternalFrameAllocator, eMFXHWType type)
+mfxStatus CheckVideoParamDecoders(mfxVideoParam *in, bool IsExternalFrameAllocator, eMFXHWType type, bool IsCompatibleForOpaq)
 {
     mfxStatus sts = CheckVideoParamCommon(in, type);
     MFX_CHECK(sts >= MFX_ERR_NONE, sts);
 
-    MFX_CHECK((in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) || (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) || (in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY)
-        , MFX_ERR_INVALID_VIDEO_PARAM);
+    auto const supportedMemoryType =
+           (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
+        || (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
+        ;
+
+    MFX_CHECK(supportedMemoryType, MFX_ERR_INVALID_VIDEO_PARAM);
 
     MFX_CHECK(!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) || !(in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
         , MFX_ERR_INVALID_VIDEO_PARAM);
 
-    if (in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY)
-    {
-        MFX_CHECK(!(in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY), MFX_ERR_INVALID_VIDEO_PARAM);
-        MFX_CHECK(!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY), MFX_ERR_INVALID_VIDEO_PARAM);
-    }
 
-    if (in->mfx.DecodedOrder && in->mfx.CodecId != MFX_CODEC_JPEG && in->mfx.CodecId != MFX_CODEC_AVC && in->mfx.CodecId != MFX_CODEC_HEVC)
-        return MFX_ERR_UNSUPPORTED;
+    MFX_CHECK(!in->mfx.DecodedOrder || in->mfx.CodecId == MFX_CODEC_JPEG
+                                    || in->mfx.CodecId == MFX_CODEC_AVC
+                                    || in->mfx.CodecId == MFX_CODEC_HEVC, MFX_ERR_UNSUPPORTED);
 
-    if (!IsExternalFrameAllocator)
-        MFX_CHECK(!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY), MFX_ERR_INVALID_VIDEO_PARAM);
+    // Ext allocator is not required by MSDK 2.0 to support video memory. Internal allocation of video surfaces is possible
+    std::ignore = IsExternalFrameAllocator;
 
     sts = CheckDecodersExtendedBuffers(in);
     MFX_CHECK(sts >= MFX_ERR_NONE, sts);
@@ -419,33 +389,18 @@ mfxStatus CheckVideoParamDecoders(mfxVideoParam *in, bool IsExternalFrameAllocat
 mfxStatus CheckVideoParamEncoders(mfxVideoParam *in, bool IsExternalFrameAllocator, eMFXHWType type)
 {
     mfxStatus sts = CheckFrameInfoEncoders(&in->mfx.FrameInfo);
-    if (sts < MFX_ERR_NONE)
-        return sts;
+    MFX_CHECK(sts >= MFX_ERR_NONE, sts);
 
     sts = CheckVideoParamCommon(in, type);
-    if (sts < MFX_ERR_NONE)
-        return sts;
+    MFX_CHECK(sts >= MFX_ERR_NONE, sts);
 
-    if (!IsExternalFrameAllocator && (in->IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+    // Ext allocator is not required by MSDK 2.0 to support video memory. Internal allocation of video surfaces is possible
+    std::ignore = IsExternalFrameAllocator;
 
-    if (in->Protected && !(in->IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+    MFX_CHECK(!in->Protected || (in->IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY), MFX_ERR_INVALID_VIDEO_PARAM);
 
     return MFX_ERR_NONE;
 }
-
-mfxStatus CheckAudioFrame(const mfxAudioFrame *aFrame)
-{
-    if (!aFrame || !aFrame->Data)
-        return MFX_ERR_NULL_PTR;
-
-    if (aFrame->DataLength > aFrame->MaxLength)
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
-
-    return MFX_ERR_NONE;
-}
-
 
 mfxStatus CheckBitstream(const mfxBitstream *bs)
 {
@@ -530,28 +485,54 @@ mfxStatus CheckFrameData(const mfxFrameSurface1 *surface)
 mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
 {
     static const mfxU32 g_commonSupportedExtBuffers[]       = {
-                                                               MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION,
+#ifndef MFX_ADAPTIVE_PLAYBACK_DISABLE
                                                                MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK,
+#endif
     };
 
     static const mfxU32 g_decoderSupportedExtBuffersAVC[]   = {
                                                                MFX_EXTBUFF_MVC_SEQ_DESC,
                                                                MFX_EXTBUFF_MVC_TARGET_VIEWS,
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
                                                                MFX_EXTBUFF_DEC_VIDEO_PROCESSING,
-                                                               MFX_EXTBUFF_FEI_PARAM};
+#endif
+                                                              };
 
     static const mfxU32 g_decoderSupportedExtBuffersHEVC[]  = {
-                                                               MFX_EXTBUFF_HEVC_PARAM,
-	                                                         MFX_EXTBUFF_DEC_VIDEO_PROCESSING
+                                                               MFX_EXTBUFF_HEVC_PARAM
+#ifdef MFX_EXTBUFF_FORCE_PRIVATE_DDI_ENABLE
+                                                               , MFX_EXTBUFF_FORCE_PRIVATE_DDI
+#endif
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+                                                               ,MFX_EXTBUFF_DEC_VIDEO_PROCESSING
+#endif
                                                                };
 
-    static const mfxU32 g_decoderSupportedExtBuffersVC1[]   = {MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION,
-                                                               };
+    static const mfxU32 g_decoderSupportedExtBuffersVC1[]   = {
+                                                               0 //Fallback
+                                                         };
 
+    static const mfxU32 g_decoderSupportedExtBuffersVP9[] = {
+#ifndef MFX_ADAPTIVE_PLAYBACK_DISABLE
+                                                              MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK,
+#endif
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+                                                              MFX_EXTBUFF_DEC_VIDEO_PROCESSING,
+#endif
+                                                              0 //Fallback
+                                                        };
 
     static const mfxU32 g_decoderSupportedExtBuffersMJPEG[] = {MFX_EXTBUFF_JPEG_HUFFMAN,
                                                                MFX_EXTBUFF_DEC_VIDEO_PROCESSING,
                                                                MFX_EXTBUFF_JPEG_QT};
+  
+
+    static const mfxU32 g_decoderSupportedExtBuffersAV1[] = {
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+                                                              MFX_EXTBUFF_DEC_VIDEO_PROCESSING,
+#endif
+                                                              0 //Fallback
+    };
 
     const mfxU32 *supported_buffers = 0;
     mfxU32 numberOfSupported = 0;
@@ -576,12 +557,21 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
         supported_buffers = g_decoderSupportedExtBuffersMJPEG;
         numberOfSupported = sizeof(g_decoderSupportedExtBuffersMJPEG) / sizeof(g_decoderSupportedExtBuffersMJPEG[0]);
     }
+    else if (par->mfx.CodecId == MFX_CODEC_VP9)
+    {
+        supported_buffers = g_decoderSupportedExtBuffersVP9;
+        numberOfSupported = sizeof(g_decoderSupportedExtBuffersVP9) / sizeof(g_decoderSupportedExtBuffersVP9[0]);
+    }
+    else if (par->mfx.CodecId == MFX_CODEC_AV1)
+    {
+        supported_buffers = g_decoderSupportedExtBuffersAV1;
+        numberOfSupported = sizeof(g_decoderSupportedExtBuffersAV1) / sizeof(g_decoderSupportedExtBuffersAV1[0]);
+    }
     else
     {
         supported_buffers = g_commonSupportedExtBuffers;
         numberOfSupported = sizeof(g_commonSupportedExtBuffers) / sizeof(g_commonSupportedExtBuffers[0]);
-    }
-
+    } 
     if (!supported_buffers)
         return MFX_ERR_NONE;
 
@@ -598,7 +588,7 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
         bool is_known = false;
         for (mfxU32 j = 0; j < numberOfSupported; ++j)
         {
-            if (par->ExtParam[i]->BufferId == supported_buffers[j])
+            if (supported_buffers[j] && par->ExtParam[i]->BufferId == supported_buffers[j])
             {
                 is_known = true;
                 break;
@@ -824,15 +814,24 @@ void mfxVideoParamWrapper::CopyVideoParam(const mfxVideoParam & par)
     {
         switch(par.ExtParam[i]->BufferId)
         {
+#ifdef MFX_EXTBUFF_FORCE_PRIVATE_DDI_ENABLE
+        case MFX_EXTBUFF_FORCE_PRIVATE_DDI:
+#endif
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
         case MFX_EXTBUFF_DEC_VIDEO_PROCESSING:
+#endif
         case MFX_EXTBUFF_MVC_TARGET_VIEWS:
         case MFX_EXTBUFF_VIDEO_SIGNAL_INFO:
-        case MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION:
+#if defined(MFX_ENABLE_SVC_VIDEO_DECODE)
+        case MFX_EXTBUFF_SVC_SEQ_DESC:
+        case MFX_EXTBUFF_SVC_TARGET_LAYER:
+#endif
+#ifndef MFX_ADAPTIVE_PLAYBACK_DISABLE
         case MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK:
+#endif
         case MFX_EXTBUFF_JPEG_QT:
         case MFX_EXTBUFF_JPEG_HUFFMAN:
         case MFX_EXTBUFF_HEVC_PARAM:
-        case MFX_EXTBUFF_FEI_PARAM:
             {
                 void * in = GetExtendedBufferInternal(par.ExtParam, par.NumExtParam, par.ExtParam[i]->BufferId);
                 m_buffers.AddBuffer(par.ExtParam[i]);
@@ -994,6 +993,11 @@ mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const& data)
     }
 }
 
+mfxU8* GetFramePointer(const mfxFrameSurface1& surf)
+{
+    return GetFramePointer(surf.Info.FourCC, surf.Data);
+}
+
 mfxStatus GetFramePointerChecked(mfxFrameInfo const& info, mfxFrameData const& data, mfxU8** ptr)
 {
     MFX_CHECK(ptr, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -1008,6 +1012,152 @@ mfxStatus GetFramePointerChecked(mfxFrameInfo const& info, mfxFrameData const& d
     mfxU32 const pitch = (data.PitchHigh << 16) | data.PitchLow;
     mfxU32 const min_pitch = GetMinPitch(info.FourCC, info.Width);
 
-    return
-        !min_pitch || pitch < min_pitch ? MFX_ERR_UNDEFINED_BEHAVIOR : MFX_ERR_NONE;
+    MFX_CHECK(min_pitch,          MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_CHECK(pitch >= min_pitch, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    return MFX_ERR_NONE;
+}
+
+mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, const mfxFrameSurface1& surface)
+{
+    mfxFrameSurface1 tmpSrf{};
+    tmpSrf.Info = fi;
+    tmpSrf.Data = surface.Data;
+    tmpSrf.FrameInterface = surface.FrameInterface;
+    tmpSrf.Version = surface.Version;
+
+    return tmpSrf;
+}
+
+mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, mfxMemId mid)
+{
+    mfxFrameSurface1 surface{};
+    surface.Info = fi;
+    surface.Data.MemId = mid;
+
+    return surface;
+}
+
+mfxStatus AddRefSurface(mfxFrameSurface1 & surf, bool allow_legacy_surface)
+{
+    if (allow_legacy_surface && !surf.FrameInterface) { return MFX_ERR_NONE;  }
+
+    MFX_CHECK(surf.FrameInterface && surf.FrameInterface->AddRef, MFX_ERR_UNSUPPORTED);
+
+    return surf.FrameInterface->AddRef(&surf);
+}
+
+mfxStatus ReleaseSurface(mfxFrameSurface1 & surf, bool allow_legacy_surface)
+{
+    if (allow_legacy_surface && !surf.FrameInterface) { return MFX_ERR_NONE; }
+
+    MFX_CHECK(surf.FrameInterface && surf.FrameInterface->Release, MFX_ERR_UNSUPPORTED);
+
+    return surf.FrameInterface->Release(&surf);
+}
+
+mfxU16 BitDepthFromFourcc(mfxU32 fourcc)
+{
+    switch (fourcc)
+    {
+    case MFX_FOURCC_NV12:
+    case MFX_FOURCC_NV16:
+    case MFX_FOURCC_YV12:
+    case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_AYUV:
+    case MFX_FOURCC_UYVY:
+        return 8;
+
+    case MFX_FOURCC_P010:
+    case MFX_FOURCC_P210:
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+    case MFX_FOURCC_Y410:
+#endif
+        return 10;
+
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_P016:
+    case MFX_FOURCC_Y216:
+    case MFX_FOURCC_Y416:
+        return 12;
+#endif
+
+        // RGB formats
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+    case MFX_FOURCC_RGB565:
+#endif
+    case MFX_FOURCC_RGB3:
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+#endif
+    case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_BGR4:
+    case MFX_FOURCC_A2RGB10:
+    case MFX_FOURCC_ARGB16:
+    case MFX_FOURCC_ABGR16:
+    case MFX_FOURCC_AYUV_RGB4:
+    case MFX_FOURCC_R16:
+
+        // Plain data formats
+    case MFX_FOURCC_P8:
+    case MFX_FOURCC_P8_TEXTURE:
+    default:
+        return 0;
+    }
+}
+
+mfxU16 ChromaFormatFromFourcc(mfxU32 fourcc)
+{
+    switch (fourcc)
+    {
+    case MFX_FOURCC_NV12:
+    case MFX_FOURCC_YV12:
+    case MFX_FOURCC_P010:
+    case MFX_FOURCC_P016:
+        return MFX_CHROMAFORMAT_YUV420;
+
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+#endif
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y216:
+#endif
+    case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_UYVY:
+    case MFX_FOURCC_NV16:
+    case MFX_FOURCC_P210:
+        return MFX_CHROMAFORMAT_YUV422H;
+
+    case MFX_FOURCC_AYUV:
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y410:
+#endif
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y416:
+#endif
+        return MFX_CHROMAFORMAT_YUV444;
+
+        // RGB formats
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+    case MFX_FOURCC_RGB565:
+#endif
+    case MFX_FOURCC_RGB3:
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+#endif
+    case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_BGR4:
+    case MFX_FOURCC_A2RGB10:
+    case MFX_FOURCC_ARGB16:
+    case MFX_FOURCC_ABGR16:
+    case MFX_FOURCC_AYUV_RGB4:
+    case MFX_FOURCC_R16:
+
+        // Plain data formats
+    case MFX_FOURCC_P8:
+    case MFX_FOURCC_P8_TEXTURE:
+    default:
+        return 0;
+    }
 }

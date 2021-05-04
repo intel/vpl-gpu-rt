@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2010-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,12 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <algorithm>
+
 #include <mfx_log.h>
 
 #include <umc_mutex.h>
-#include <umc_automatic_mutex.h>
 
-#if defined(LINUX32) || defined(LINUX64)
 #error Overlappped I/O mechanism is not implemented in Unix version.
 #include <unistd.h>
 #include <stdbool.h>
@@ -38,7 +38,6 @@ typedef bool BOOL;
 #define FALSE false;
 #define TRUE true;
 
-#endif
 
 #include <stdio.h>
 
@@ -69,13 +68,9 @@ public:
     // Default constructor
     mfxLogObject(void)
     {
-#if defined(LINUX32) || defined(LINUX64)
         m_file = NULL;
-#endif
 
-#if defined(LINUX32) || defined(LINUX64)
 #       error Overlappped I/O mechanism is not implemented in Unix version.
-#endif
 
         m_pAlloc = 0;
         m_allocSize = 0;
@@ -121,17 +116,13 @@ public:
         Release();
 
         // open the destination file
-#if defined(LINUX32) || defined(LINUX64)
         m_file = fopen(pLogPath, "rw");
         if (NULL == m_file)
         {
             return false;
         }
-#endif
 
-#if defined(LINUX32) || defined(LINUX64)
 #       error Overlappped I/O mechanism is not implemented in Unix version.
-#endif
 
         // create the output buffer
         m_pAlloc = new byte_t [MFX_LOG_DEF_SIZE * MFX_LOG_NUM_PARTS + MFX_LOG_ALIGN_VALUE];
@@ -165,9 +156,7 @@ public:
         }
 
         // render current call number
-#if defined(LINUX32) || defined(LINUX64)
         callNumLen = sprintf(cStr, "[% 8u]", m_callNumber += 1);
-#endif
         AddStringSafe(cStr, callNumLen);
         AddStringSafe(pStr, strLen);
     }
@@ -184,26 +173,20 @@ protected:
         dword_t i;
         DWORD nWritten;
 
-#if defined(LINUX32) || defined(LINUX64)
 #       error Overlappped I/O mechanism is not implemented in Unix version.
-#endif
 
-#if defined(LINUX32) || defined(LINUX64)
         if (NULL != m_file)
         {
             fclose(m_file);
             m_file = NULL;
         }
-#endif
 
         if (m_pAlloc)
         {
             delete [] m_pAlloc;
         }
 
-#if defined(LINUX32) || defined(LINUX64)
 #       error Overlappped I/O mechanism is not implemented in Unix version.
-#endif
 
         m_pAlloc = 0;
         m_allocSize = 0;
@@ -259,11 +242,8 @@ protected:
             return;
         }
 
-#if defined(LINUX32) || defined(LINUX64)
 #       error Overlappped I/O mechanism is not implemented in Unix version.
-#endif
 
-#if defined(LINUX32) || defined(LINUX64)
         // start writing operation
         bRes = fwrite(m_pBuf[m_logIdx],
                       MFX_LOG_DEF_SIZE,
@@ -273,7 +253,6 @@ protected:
         {
             return;
         }
-#endif
 
         // exchange the buffer
         m_logIdx = newLogIdx;
@@ -285,9 +264,7 @@ protected:
     Mutex m_guard;
 
     // Output file
-#if defined(LINUX32) || defined(LINUX64)
     FILE *m_file;
-#endif
 
     // Overlapped I/O are absent on Linux.
     // Unix sockets provides same functionality in the readv() and writev() calls.

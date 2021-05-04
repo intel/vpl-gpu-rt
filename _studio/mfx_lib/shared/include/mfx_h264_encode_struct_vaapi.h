@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2011-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,7 +24,6 @@
 
 #include "mfx_common.h"
 
-#if defined (MFX_VA_LINUX)
 
 #include "mfx_platform_headers.h"
 
@@ -286,9 +285,9 @@ typedef struct tagENCODE_CAPS
 
     union {
         struct {
-            UINT    RoundingOffset          : 1;
-            UINT    SkipFrame               : 1;
-            UINT    MbQpDataSupport         : 1;
+            UINT    RoundingOffset               : 1;
+            UINT    SkipFrame                    : 1;
+            UINT    MbQpDataSupport              : 1;
             UINT    SliceLevelWeightedPred  : 1;
             UINT    LumaWeightedPred        : 1;
             UINT    ChromaWeightedPred      : 1;
@@ -297,19 +296,21 @@ typedef struct tagENCODE_CAPS
             UINT    HMEOffsetSupport        : 1;
             UINT    DirtyRectSupport        : 1;
             UINT    MoveRectSupport         : 1;
-            UINT    FrameSizeToleranceSupport     : 1; // eFrameSizeTolerance_Low (Sliding window) supported
-            UINT    HWCounterAutoIncrementSupport : 2;
-            UINT    MBControlSupport              : 1;
-            UINT    ForceReparationCheckSupport   : 1;
-            UINT    CustomRoundingControl         : 1;
-            UINT    LLCStreamingBufferSupport     : 1;
-            UINT    DDRStreamingBufferSupport     : 1;
-            UINT    LowDelayBRCSupport            : 1; // eFrameSizeTolerance_ExtremelyLow (Low delay) supported
-            UINT    MaxNumDeltaQPMinus1           : 4;
-            UINT    TCBRCSupport                  : 1;
-            UINT    HRDConformanceSupport         : 1;
-            UINT    PollingModeSupport            : 1;
-            UINT                                  : 5;
+            UINT    FrameSizeToleranceSupport    : 1; // eFrameSizeTolerance_Low (Sliding window) supported
+            UINT    HWCounterAutoIncrement       : 2;
+            UINT    MBControlSupport             : 1;
+            UINT    ForceRepartitionCheckSupport : 1;
+            UINT    CustomRoundingControl        : 1;
+            UINT    LLCStreamingBufferSupport    : 1;
+            UINT    DDRStreamingBufferSupport    : 1;
+            UINT    LowDelayBRCSupport           : 1; // eFrameSizeTolerance_ExtremelyLow (Low delay) supported
+            UINT    MaxNumDeltaQPMinus1          : 4;
+            UINT    TCBRCSupport                 : 1;
+            UINT    HRDConformanceSupport        : 1;
+            UINT    PollingModeSupport           : 1;
+            UINT    LookAheadBRCSupport          : 1;
+            UINT    QpAdjustmentSupport           : 1;
+            UINT                                 : 3;
         };
         UINT      CodingLimits2;
     };
@@ -525,31 +526,6 @@ typedef enum tagENCODE_ARGB_COLOR
     eColorSpace_P2020 = 2
 }ENCODE_ARGB_COLOR;
 
-typedef enum tagENCODE_FRAME_SIZE_TOLERANCE
-{
-    eFrameSizeTolerance_Normal = 0,//default
-    eFrameSizeTolerance_Low = 1,//Sliding Window
-    eFrameSizeTolerance_ExtremelyLow = 2//low delay
-}ENCODE_FRAME_SIZE_TOLERANCE;
-
-typedef enum tagENCODE_SCENARIO
-{
-    eScenario_Unknown = 0,
-    eScenario_DisplayRemoting = 1,
-    eScenario_VideoConference = 2,
-    eScenario_Archive = 3,
-    eScenario_LiveStreaming = 4,
-    eScenario_VideoCapture = 5,
-    eScenario_VideoSurveillance = 6
-} ENCODE_SCENARIO;
-
-typedef enum tagENCODE_CONTENT
-{
-    eContent_Unknown = 0,
-    eContent_FullScreenVideo = 1,
-    eContent_NonVideoScreen = 2
-} ENCODE_CONTENT;
-
 typedef struct tagENCODE_SET_SEQUENCE_PARAMETERS_H264
 {
     USHORT  FrameWidth;
@@ -615,12 +591,8 @@ typedef struct tagENCODE_SET_SEQUENCE_PARAMETERS_H264
     };
 
     UINT    UserMaxFrameSize;
-    USHORT  ICQQualityFactor;
-
-    ENCODE_ARGB_COLOR ARGB_input_color;
-    ENCODE_SCENARIO scenario_info;
-    ENCODE_CONTENT  content_info;
-    ENCODE_FRAME_SIZE_TOLERANCE frame_size_tolerance;
+    USHORT  AVBRAccuracy;
+    USHORT  AVBRConvergence;
 
 } ENCODE_SET_SEQUENCE_PARAMETERS_H264;
 
@@ -691,6 +663,22 @@ typedef struct tagENCODE_ROI
     CHAR   PriorityLevelOrDQp; // [-3..3] or [-51..51]
 } ENCODE_ROI;
 
+typedef enum tagENCODE_SCENARIO
+{
+	eScenario_Unknown = 0,
+	eScenario_DisplayRemoting = 1,
+	eScenario_VideoConference = 2,
+	eScenario_Archive = 3,
+	eScenario_LiveStreaming = 4
+} ENCODE_SCENARIO;
+
+typedef enum tagENCODE_CONTENT
+{
+	eContent_Unknown = 0,
+	eContent_FullScreenVideo = 1,
+	eContent_NonVideoScreen = 2
+} ENCODE_CONTENT;
+
 typedef struct tagMOVE_RECT
 {
     USHORT SourcePointX;
@@ -698,6 +686,13 @@ typedef struct tagMOVE_RECT
     ENCODE_RECT DestRect;
 } MOVE_RECT;
 
+
+typedef enum tagENCODE_FRAME_SIZE_TOLERANCE
+{
+    eFrameSizeTolerance_Normal = 0,//default
+    eFrameSizeTolerance_Low = 1,//Sliding Window
+    eFrameSizeTolerance_ExtremelyLow = 2//low delay
+}ENCODE_FRAME_SIZE_TOLERANCE;
 
 typedef struct tagENCODE_SET_PICTURE_PARAMETERS_H264
 {
@@ -735,7 +730,16 @@ typedef struct tagENCODE_SET_PICTURE_PARAMETERS_H264
             UINT        bDisableSubMBPartition                   : 1;
             UINT        bEmulationByteInsertion                  : 1;
             UINT        bEnableRollingIntraRefresh               : 2;
-            UINT        bReserved                                : 21;
+            UINT        bSliceLevelReport                        : 1;
+            UINT        bDisableSubpixel                         : 1;
+            UINT        bDisableRollingIntraRefreshOverlap       : 1;
+            UINT        ForceRepartitionCheck                    : 2;
+            UINT        bDisableFrameSkip                        : 1;
+            UINT        bEnablePollingMode                       : 1;
+            UINT        bRepeatFrame                             : 1;
+            UINT        bEnableQpAdjustment                       : 1;
+            UINT        bLookAheadPhase                          : 1;
+            UINT        bReserved                                : 11;
 
         };
         BOOL    UserFlags;
@@ -991,6 +995,5 @@ enum
     ENCODE_QUERY_STATUS_ID                  = 0x121
 };
 
-#endif /* __MFX_H264_ENCODE_STRUCT_VAAPI__H */
 #endif /* MFX_VA_LINUX */
 /* EOF */

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2012-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,11 @@
 
 #include <list>
 #include "umc_h265_dec_defs.h"
+#ifdef MFX_VA
 #include "umc_h265_bitstream_headers.h"
+#else
+#include "umc_h265_bitstream.h"
+#endif
 #include "umc_h265_heap.h"
 
 namespace UMC_HEVC_DECODER
@@ -150,6 +154,7 @@ public:  // DEBUG !!!! should remove dependence
 
     H265SliceHeader m_SliceHeader;                              // (H265SliceHeader) slice header
 
+#ifdef MFX_VA
     H265HeadersBitstream m_BitStream;                                  // (H265Bitstream) slice bit stream
 
     // Obtain bit stream object
@@ -157,6 +162,12 @@ public:  // DEBUG !!!! should remove dependence
     { return &m_BitStream; }
     H265HeadersBitstream const* GetBitStream() const
     { return &m_BitStream; }
+#else
+    H265Bitstream m_BitStream;                                  // (H265Bitstream) slice bit stream
+
+    // Obtain bit stream object
+    H265Bitstream *GetBitStream(){return &m_BitStream;}
+#endif
 
 protected:
     const H265PicParamSet* m_pPicParamSet;                      // (H265PicParamSet *) pointer to array of picture parameters sets

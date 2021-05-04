@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2020 Intel Corporation
+# Copyright (c) 2020 Intel Corporation
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,72 +32,73 @@ else()
   set( os_arch "${os_arch}_ia32" )
 endif()
 
-if( CMAKE_MFX_HOME )
-  set( MFX_API_HOME ${CMAKE_MFX_HOME} )
-else()
-  set( MFX_API_HOME ${MFX_HOME} )
+set( MFX_API_HOME ${MFX_API_HOME}/vpl)
+
+unset( MFX_INCLUDE CACHE )
+find_path( MFX_INCLUDE
+  NAMES mfxdefs.h
+  PATHS "${MFX_API_HOME}"
+  PATH_SUFFIXES include
+  NO_CMAKE_FIND_ROOT_PATH
+)
+
+include (${CMAKE_ROOT}/Modules/FindPackageHandleStandardArgs.cmake)
+find_package_handle_standard_args(MFX REQUIRED_VARS MFX_INCLUDE)
+
+set( MFX_API_HOME ${MFX_INCLUDE} )
+if (NOT MFX_FOUND)
+  message( FATAL_ERROR "Unknown API = ${API}")
 endif()
 
-find_path( MFX_INCLUDE mfxdefs.h PATHS ${MFX_API_HOME}/include NO_CMAKE_FIND_ROOT_PATH )
+macro( make_api_target target)
 
-if( NOT MFX_INCLUDE MATCHES NOTFOUND )
-  include_directories( ${MFX_API_HOME}/mediasdk_structures )
-  include_directories( ${MFX_INCLUDE} )
-endif()
+  add_library( ${target}-api INTERFACE )
+  target_include_directories(${target}-api
+    INTERFACE
+    ${MFX_API_HOME}
+    ${MFX_API_HOME}/../mediasdk_structures
+    $<$<BOOL:${API_USE_VPL}>:${MFX_API_HOME}/private>
+  )
+  target_compile_definitions(${target}-api
+    INTERFACE $<$<BOOL:${API_USE_VPL}>:MFX_ONEVPL>
+  )
 
-if( NOT MFX_INCLUDE MATCHES NOTFOUND )
-  set( MFX_FOUND TRUE )
-  include_directories( ${MFX_INCLUDE} )
-endif()
+  add_library( ${target}::api ALIAS ${target}-api )
+  set (MFX_API_TARGET ${target}::api)
 
-if( NOT DEFINED MFX_FOUND )
-  message( FATAL_ERROR "Intel(R) Media SDK was not found (required)! Set/check MFX_HOME environment variable!")
-else()
-  message( STATUS "Intel(R) Media SDK was found here ${MFX_HOME}")
-endif()
+endmacro()
+
+function( get_mfx_version mfx_version_major mfx_version_minor )
+  file(STRINGS ${MFX_API_HOME}/mfxdefs.h major REGEX "#define MFX_VERSION_MAJOR" LIMIT_COUNT 1)
+  if(major STREQUAL "") # old style version
+     file(STRINGS ${MFX_API_HOME}/mfxvideo.h major REGEX "#define MFX_VERSION_MAJOR")
+  endif()
+  file(STRINGS ${MFX_API_HOME}/mfxdefs.h minor REGEX "#define MFX_VERSION_MINOR" LIMIT_COUNT 1)
+  if(minor STREQUAL "") # old style version
+     file(STRINGS ${MFX_API_HOME}/mfxvideo.h minor REGEX "#define MFX_VERSION_MINOR")
+  endif()
+  string(REPLACE "#define MFX_VERSION_MAJOR " "" major ${major})
+  string(REPLACE "#define MFX_VERSION_MINOR " "" minor ${minor})
+  set(${mfx_version_major} ${major} PARENT_SCOPE)
+  set(${mfx_version_minor} ${minor} PARENT_SCOPE)
+endfunction()
 
 # Potential source of confusion here. MFX_VERSION should contain API version i.e. 1025 for API 1.25, 
 # Product version stored in MEDIA_VERSION_STR
-if( NOT DEFINED API OR API STREQUAL "master")
-  set( API_FLAGS "")
-  set( API_USE_LATEST FALSE )
-  get_mfx_version(major_vers minor_vers)
-else( )
-  if( API STREQUAL "latest" )
-    # This would enable all latest non-production features     
-    set( API_FLAGS -DMFX_VERSION_USE_LATEST )
-    set( API_USE_LATEST TRUE )
-    get_mfx_version(major_vers minor_vers)
-  else()
-    set( VERSION_REGEX "[0-9]+\\.[0-9]+" )
-
-    # Breaks up a string in the form maj.min into two parts and stores
-    # them in major, minor.  version should be a value, not a
-    # variable, while major and minor should be variables.
-    macro( split_api_version version major minor )
-      if(${version} MATCHES ${VERSION_REGEX})
-        string(REGEX REPLACE "^([0-9]+)\\.[0-9]+" "\\1" ${major} "${version}")
-        string(REGEX REPLACE "^[0-9]+\\.([0-9]+)" "\\1" ${minor} "${version}")
-      else(${version} MATCHES ${VERSION_REGEX})
-        message("macro( split_api_version ${version} ${major} ${minor} ")
-        message(FATAL_ERROR "Problem parsing API version string.")
-      endif(${version} MATCHES ${VERSION_REGEX})
-    endmacro( split_api_version )
-
-    split_api_version(${API} major_vers minor_vers)
-      # Compute a version number
-    math(EXPR version_number "${major_vers} * 1000 + ${minor_vers}" )
-    set(API_FLAGS -DMFX_VERSION=${version_number})
-  endif()  
-endif()
+get_mfx_version(major_vers minor_vers)
 
 set( API_VERSION "${major_vers}.${minor_vers}")
-if (NOT API_FLAGS STREQUAL "")
-    add_definitions(${API_FLAGS})
+set( MFX_VERSION_MAJOR ${major_vers})
+set( MFX_VERSION_MINOR ${minor_vers})
+
+if ( ${API_VERSION} VERSION_GREATER_EQUAL 2.0 )
+  set( API_USE_VPL TRUE )
+  set( API_USE_LATEST TRUE )
+  set( API_FLAGS -DMFX_VERSION_USE_LATEST )
+  make_api_target( onevpl )
+else()
+  set( API_USE_VPL FALSE )
+  make_api_target( mfx )
 endif()
 
 message(STATUS "Enabling API ${major_vers}.${minor_vers} feature set with flags ${API_FLAGS}")
-
-if( Linux )
-  set( MFX_LDFLAGS "-Wl,--default-symver" )
-endif()

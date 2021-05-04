@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2004-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@
 
 #include "umc_defs.h"
 
-#if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
+#if defined (UMC_ENABLE_VC1_SPLITTER) || defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
 #include "umc_vc1_spl_frame_constr.h"
 #include "umc_vc1_spl_tbl.h"
@@ -89,9 +89,11 @@ namespace UMC
         return umcSts;
     }
 
+// turn off the "unreferenced formal parameter" warning
 #ifdef _MSVC_LANG
 #pragma warning(disable : 4100)
 #endif
+
     Status vc1_frame_constructor_rcv::GetData(VC1FrameConstrInfo& Info)
     {
         if ((uint32_t)Info.out->GetBufferSize() < (uint32_t)Info.out->GetDataSize())

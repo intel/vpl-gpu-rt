@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2018 Intel Corporation
-// 
+// Copyright (c) 2010-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,7 +24,7 @@
 #include <mfxvideo++int.h>
 
 
-#if (defined(LINUX32) || defined(LINUX64) )
+    #if defined(MFX_VA)
         /* That's tricky: if LibVA will not be installed on the machine, you should be able
          * to build SW Media SDK and some apps in SW mode. Thus, va.h should not be visible.
          * Since we develop on machines where LibVA is installed, we forget about LibVA-free
@@ -33,14 +33,11 @@
         #include <va/va.h>
         typedef VADisplay                       _mfxPlatformAccelerationService;
         typedef VASurfaceID                     _mfxPlatformVideoSurface;
-#endif // #if (defined(LINUX32) || defined(LINUX64) )
+    #endif // #if defined(MFX_VA)
 
 #ifndef D3DDDIFORMAT
 #define D3DDDIFORMAT        D3DFORMAT
 #endif
-
-static const GUID GUID_NULL =
-{ 0x00000000, 0x0000, 0x0000,{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
 
 typedef int             BOOL;
 typedef char            CHAR;

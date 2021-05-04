@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -308,9 +308,9 @@ public:
 
     CM_INLINE int n_elems() const { return SZ; }
 
-    virtual T get(uint i) const = 0;
-    virtual T& getref(uint i) = 0;
-    virtual void* get_addr(uint i) = 0;
+    virtual T get(uint i) const = 0; 
+    virtual T& getref(uint i) = 0; 
+    virtual void* get_addr(uint i) = 0; 
     virtual void* get_addr_data() = 0;
     virtual void* get_addr_obj() = 0;
     int extract_data(void *buf, uint size = 0xffffffff);
@@ -430,7 +430,7 @@ public:
 
     CM_NOINLINE matrix();
     template <typename T2> CM_NOINLINE matrix(const T2 initArray[]);
-    CM_NOINLINE matrix(const matrix<T, R, C>& src);
+    CM_NOINLINE matrix(const matrix<T, R, C>& src); 
     template <typename T2> CM_NOINLINE matrix(const T2& src);
     template <typename T2, uint R2, uint C2> CM_NOINLINE matrix(const matrix<T2, R2, C2>& src, const uint sat = 0);
     template <typename T2, uint R2, uint C2> CM_NOINLINE matrix(const matrix_ref<T2, R2, C2>& src, const uint sat = 0);
@@ -451,7 +451,7 @@ public:
     }
 
     //operator =
-    CM_NOINLINE matrix<T, R, C>& operator = (const matrix<T, R, C>& src);
+    CM_NOINLINE matrix<T, R, C>& operator = (const matrix<T, R, C>& src); 
     template <typename T2> CM_NOINLINE matrix<T, R, C>& operator = (const T2 src);
     template <typename T2, uint R2, uint C2> CM_NOINLINE matrix<T, R, C>& operator = (const matrix<T2, R2, C2>& src);
     template <typename T2, uint R2, uint C2> CM_NOINLINE matrix<T, R, C>& operator = (const matrix_ref<T2, R2, C2>& src);
@@ -471,6 +471,12 @@ public:
     //1D iselect
     template <typename T2, uint WD> CM_NOINLINE vector<T, WD> iselect(const vector<T2, WD>& index);
     template <typename T2, uint WD> CM_NOINLINE vector<T, WD> iselect(const vector_ref<T2, WD>& index);
+#if _MSC_VER >= 1700
+    template <typename T2, uint WD> CM_NOINLINE vector<T, WD> iselect(const vector<T2, WD>& index, std::true_type);
+    template <typename T2, uint WD> CM_NOINLINE vector<T, WD> iselect(const vector<T2, WD>& index, std::false_type);
+    template <typename T2, uint WD> CM_NOINLINE vector<T, WD> iselect(const vector_ref<T2, WD>& index, std::true_type);
+    template <typename T2, uint WD> CM_NOINLINE vector<T, WD> iselect(const vector_ref<T2, WD>& index, std::false_type);
+#endif
 
     //2D iselect
     template <typename T2, uint WD> CM_NOINLINE vector<T, WD> iselect(const vector<T2, WD>& index_x, const vector<T2, WD>& index_y);
@@ -965,6 +971,7 @@ matrix<T, R, C>::matrix(const matrix_ref<T2, R2, C2>& src, const uint sat)
     static_assert(R*C == R2*C2, "matrices have different dimensions");
 
     vector<T2, SZ> in_src; in_src.assign(src);
+
     for (uint i = 0; i < SZ; i++) {
         SIMDCF_WRAPPER((*this)(i) = CmEmulSys::satur<T>::saturate(in_src(i), sat), SZ, i);
     }
@@ -998,7 +1005,7 @@ template <typename T, uint R, uint C>
 template <typename T2, uint R2, uint C2>
 matrix<T, R, C>& matrix<T, R, C>::operator = (const matrix<T2, R2, C2>& src)
 {
-    static_assert(R*C == R2*C2, "matrices have different dimensions"); \
+    static_assert(R*C == R2*C2, "matrices have different dimensions");
 
     uint sat1 = 0;
     vector<T2, SZ> in_src; in_src.assign(src);
@@ -1013,7 +1020,7 @@ template <typename T, uint R, uint C>
 template <typename T2, uint R2, uint C2>
 matrix<T, R, C>& matrix<T, R, C>::operator = (const matrix_ref<T2, R2, C2>& src)
 {
-    static_assert(R*C == R2*C2, "matrices have different dimensions"); \
+    static_assert(R*C == R2*C2, "matrices have different dimensions");
 
     uint sat1 = 0;
     vector<T2, SZ> in_src; in_src.assign(src);
@@ -1032,7 +1039,7 @@ template <typename T, uint R, uint C> \
 template <typename T2> \
 matrix<T,R,C>& matrix<T,R,C>::operator OP##= (const T2 x) \
 { \
-        static_assert(cmtype<T2>::value, "invalid type");\
+        static_assert(cmtype<T2>::value, "invalid type"); \
         uint sat1 = 0; \
         for (uint i=0; i < SZ; i++) { \
             SIMDCF_WRAPPER(this->getref(i) = CmEmulSys::satur<T>::saturate((*this).get(i) OP x, sat1), SZ, i); \
@@ -1111,6 +1118,7 @@ const vector<T, R2*WD> matrix<T, R, C>::genx_select(OFFSET ioff, OFFSET joff)
     static_assert((!std::is_same<T, double>::value), "genx_select is not supported for matrices with element type of 'double'");
     static_assert(R2 > 0, "invalid dimensions");
     static_assert(WD > 0, "invalid dimensions");
+
     assert(ioff < R);
     assert(joff < C);
 
@@ -1122,6 +1130,93 @@ const vector<T, R2*WD> matrix<T, R, C>::genx_select(OFFSET ioff, OFFSET joff)
 }
 
 //1D iselect for matrix
+#if _MSC_VER >= 1700
+template <typename T, uint R, uint C>
+template <typename T2, uint WD>
+vector<T, WD> matrix<T, R, C>::iselect(const vector<T2, WD>& index)
+{
+    return iselect(index, std::is_integral<T2>());
+}
+
+template <typename T, uint R, uint C>
+template <typename T2, uint WD>
+vector<T, WD> matrix<T, R, C>::iselect(const vector<T2, WD>& index, std::true_type)
+{
+    static_assert(is_inttype<T2>::value, "invalid type");
+    static_assert(WD > 0, "invalid dimensions");
+
+    for (uint i = 0; i < WD; i++) {
+        SIMDCF_WRAPPER(assert(index.get(i) < SZ), WD, i);
+    }
+
+    vector<T, WD> ret(id());
+    for (uint i = 0; i < WD; i++) {
+        SIMDCF_WRAPPER(ret(i) = data[index.get(i)], WD, i);
+    }
+    return ret;
+}
+
+template <typename T, uint R, uint C>
+template <typename T2, uint WD>
+vector<T, WD> matrix<T, R, C>::iselect(const vector<T2, WD>& index, std::false_type)
+{
+    static_assert(is_inttype<T2>::value, "invalid type");
+    static_assert(WD > 0, "invalid dimensions");
+
+    for (uint i = 0; i < WD; i++) {
+        SIMDCF_WRAPPER(assert(index.get(i) < SZ), WD, i);
+    }
+
+    vector<T, WD> ret(id());
+    for (uint i = 0; i < WD; i++) {
+        SIMDCF_WRAPPER(ret(i) = data[0], WD, i);
+    }
+    return ret;
+}
+
+template <typename T, uint R, uint C>
+template <typename T2, uint WD>
+vector<T, WD> matrix<T, R, C>::iselect(const vector_ref<T2, WD>& index)
+{
+    return iselect(index, std::is_integral<T2>());
+}
+
+template <typename T, uint R, uint C>
+template <typename T2, uint WD>
+vector<T, WD> matrix<T, R, C>::iselect(const vector_ref<T2, WD>& index, std::true_type)
+{
+    static_assert(is_inttype<T2>::value, "invalid type");
+    static_assert(WD > 0, "invalid dimensions");
+
+    for (uint i = 0; i < WD; i++) {
+        SIMDCF_WRAPPER(assert(index.get(i) < SZ), WD, i);
+    }
+
+    vector<T, WD> ret(id());
+    for (uint i = 0; i < WD; i++) {
+        SIMDCF_WRAPPER(ret(i) = data[index.get(i)], WD, i);
+    }
+    return ret;
+}
+
+template <typename T, uint R, uint C>
+template <typename T2, uint WD>
+vector<T, WD> matrix<T, R, C>::iselect(const vector_ref<T2, WD>& index, std::false_type)
+{
+    static_assert(is_inttype<T2>::value, "invalid type");
+    static_assert(WD > 0, "invalid dimensions");
+
+    for (uint i = 0; i < WD; i++) {
+        SIMDCF_WRAPPER(assert(index.get(i) < SZ), WD, i);
+    }
+
+    vector<T, WD> ret(id());
+    for (uint i = 0; i < WD; i++) {
+        SIMDCF_WRAPPER(ret(i) = data[0], WD, i);
+    }
+    return ret;
+}
+#else
 template <typename T, uint R, uint C>
 template <typename T2, uint WD>
 vector<T, WD> matrix<T, R, C>::iselect(const vector<T2, WD>& index)
@@ -1157,6 +1252,7 @@ vector<T, WD> matrix<T, R, C>::iselect(const vector_ref<T2, WD>& index)
     }
     return ret;
 }
+#endif
 
 //below are 2D iselect for matrix
 template <typename T, uint R, uint C>

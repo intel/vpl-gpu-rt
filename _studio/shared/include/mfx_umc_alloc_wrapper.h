@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2009-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -30,6 +30,8 @@
 #include "umc_frame_data.h"
 
 #include "mfxvideo++int.h"
+
+#include "libmfx_core.h"
 
 #define MFX_UMC_MAX_ALLOC_SIZE 128
 
@@ -72,9 +74,9 @@ protected:
 };
 
 
-enum  {
+enum mfx_UMC_FrameAllocator_Flags {
     mfx_UMC_ReallocAllowed = 1,
-} mfx_UMC_FrameAllocator_Flags;
+};
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // mfx_UMC_FrameAllocator
@@ -125,7 +127,7 @@ public:
     virtual mfxFrameSurface1*  GetSurface(UMC::FrameMemID index, mfxFrameSurface1 *surface_work, const mfxVideoParam * videoPar);
     virtual mfxStatus          PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam * videoPar, bool isOpaq);
     mfxI32 FindSurface(mfxFrameSurface1 *surf, bool isOpaq);
-    mfxI32 FindFreeSurface();
+    bool   HasFreeSurface();
 
     void SetSfcPostProcessingFlag(bool flagToSet);
 
@@ -213,26 +215,173 @@ protected:
 
     bool       m_isSWDecode;
     mfxU16     m_IOPattern;
+
+private:
+    mfxI32 FindFreeSurface();
 };
 
+class SurfaceSource : public UMC::FrameAllocator
+{
+public:
+    SurfaceSource(VideoCORE* core, const mfxVideoParam & video_param, eMFXPlatform platform, mfxFrameAllocRequest& request, mfxFrameAllocRequest& request_internal, mfxFrameAllocResponse& response, mfxFrameAllocResponse& response_alien, void* opaq_surfaces, bool mapOpaq, bool needVppJPEG = false);
 
+    ~SurfaceSource();
+
+    virtual UMC::Status Close() override;
+
+    virtual UMC::Status Reset() override;
+
+    virtual UMC::Status Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDataInfo * info, uint32_t Flags) override;
+
+    virtual UMC::Status GetFrameHandle(UMC::FrameMemID MID, void * handle) override;
+
+    virtual const UMC::FrameData* Lock(UMC::FrameMemID MID) override;
+
+    virtual UMC::Status Unlock(UMC::FrameMemID MID) override;
+
+    virtual UMC::Status IncreaseReference(UMC::FrameMemID MID) override;
+
+    virtual UMC::Status DecreaseReference(UMC::FrameMemID MID) override;
+
+    // Performs mapping mfxMemId <-> UMC::FrameMimID
+    mfxI32 FindSurface(mfxFrameSurface1 *surf, bool isOpaq);
+
+    // Adding new surface to cache
+    mfxStatus SetCurrentMFXSurface(mfxFrameSurface1 *surf, bool isOpaq);
+
+    mfxFrameSurface1 * GetSurface(UMC::FrameMemID index, mfxFrameSurface1 *surface, const mfxVideoParam * videoPar);
+    mfxFrameSurface1 * GetInternalSurface(UMC::FrameMemID index);
+
+    mfxFrameSurface1 * GetSurface();
+    mfxFrameSurface1 * GetInternalSurface(mfxFrameSurface1 *sfc_surf);
+
+    mfxFrameSurface1 * GetSurfaceByIndex(UMC::FrameMemID index);
+
+    mfxStatus PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam * videoPar, bool isOpaq);
+
+    bool HasFreeSurface();
+
+    void SetFreeSurfaceAllowedFlag(bool flag);
+
+protected:
+    VideoCORE*                                m_core;
+
+    // Decoder works with these surfaces
+    std::shared_ptr<SurfaceCache>             m_surface20_cache_decoder_surfaces;
+    // These surfaces are outputted to user (different with previous pool
+    // in case of IO pattern and decoder impl mismatch or SFC on Linux)
+    std::shared_ptr<SurfaceCache>             m_surface20_cache_output_surfaces;
+
+    bool                                      m_redirect_to_msdk20 = false;
+
+    std::unique_ptr<mfx_UMC_FrameAllocator>   m_umc_allocator_adapter;
+
+    // Parameters required for proper conversion of mfx <-> UMC params
+    std::map<mfxMemId, UMC::FrameMemID>       m_mfx2umc_memid;
+    std::map<UMC::FrameMemID, mfxMemId>       m_umc2mfx_memid;
+
+private:
+
+    void CreateUMCAllocator(const mfxVideoParam & video_param, eMFXPlatform platform, bool needVppJPEG);
+
+    bool CreateCorrespondence(mfxFrameSurface1& surface_work, mfxFrameSurface1& surface_out);
+    void RemoveCorrespondence(mfxFrameSurface1& surface_work);
+
+    void CreateBinding(const mfxFrameSurface1 & surf);
+    void RemoveBinding(const mfxFrameSurface1 & surf);
+    mfxFrameSurface1* GetDecoderSurface(UMC::FrameMemID index);
+
+    UMC::Status CheckForRealloc(const UMC::VideoDataInfo & info, const mfxFrameSurface1& surf, bool realloc_allowed) const;
+
+    void ReleaseCurrentWorkSurface();
+
+    // Parameters required for proper conversion of mfx <-> UMC params
+
+    std::map<UMC::FrameMemID, UMC::FrameData> m_umc2framedata;
+
+    UMC::VideoDataInfo                        m_video_data_info;
+
+    // Case when platform of decoder (SW / HW) and type of output surfaces (SW / HW) mismatch
+    // or if SFC used
+    bool                                      m_allocate_internal          = false;
+    // If m_allocate_internal and SFC is not used we need to copy before output
+    bool                                      m_need_to_copy_before_output = false;
+    // If sys mem with sw fallback then ext alloc can be off so surface cache will be empty
+    bool                                      m_sw_fallback_sys_mem        = false;
+    // Mapping of work surfaces <-> output surfaces (if they differ)
+    std::map<mfxMemId, mfxFrameSurface1*>     m_work_output_surface_map;
+    std::map<mfxMemId, mfxFrameSurface1*>     m_output_work_surface_map;
+    // For surface handling in case of sys mem with sw fallback and no ext allocator
+    std::vector<mfxFrameSurface1*>            m_sw_fallback_surfaces;
+
+    /*
+    Several skip frame surfaces may be related to one work surface.
+    Map new output surface on decoder's surface used for last not skipped frame.
+    */
+    std::map<mfxFrameSurface1*, mfxFrameSurface1*> m_output_work_surface_skip_frames;
+
+    // MSDK 2.0 memory model 2 (GetSurfaceForDecode + DecodeFrameAsync)
+    bool                                      m_memory_model2        = false;
+    mfxFrameSurface1*                         m_current_work_surface = nullptr;
+
+    // Parameters for proper work with mfx_UMC_FrameAllocator (i.e. support of MSDK 1.x path)
+    mfxFrameAllocResponse&                    m_response;
+    mfxFrameAllocResponse&                    m_response_alien;
+};
+
+struct surface_refcount_scoped_lock : public std::unique_ptr<mfxFrameSurface1, void(*)(mfxFrameSurface1* surface)>
+{
+    surface_refcount_scoped_lock(mfxFrameSurface1* surface)
+        : std::unique_ptr<mfxFrameSurface1, void(*)(mfxFrameSurface1* surface)>(
+            surface, [](mfxFrameSurface1* surface)
+    {
+        std::ignore = MFX_STS_TRACE(ReleaseSurface(*surface));
+    })
+    {}
+};
+
+#if defined (MFX_VA)
 class mfx_UMC_FrameAllocator_D3D : public mfx_UMC_FrameAllocator
 {
 public:
     virtual mfxStatus PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam * videoPar, bool isOpaq);
 };
 
-#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
-class VideoVppJpegD3D9;
+#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE) && defined (MFX_VA)
+class VideoVppJpegD3D;
+
+struct JPEG_Info
+{
+    int32_t colorFormat = 0;
+    size_t  UOffset     = 0;
+    size_t  VOffset     = 0;
+};
+
+class SurfaceSourceJPEG : public SurfaceSource
+{
+public:
+    SurfaceSourceJPEG(VideoCORE* core, const mfxVideoParam & video_param, eMFXPlatform platform, mfxFrameAllocRequest& request, mfxFrameAllocRequest& request_internal,
+        mfxFrameAllocResponse& response, mfxFrameAllocResponse& response_alien, void* opaq_surfaces, bool mapOpaq);
+
+    // suppose that Close() calls Reset(), so override only Reset()
+    virtual UMC::Status Reset() override;
+
+    void SetJPEGInfo(JPEG_Info * jpegInfo);
+
+    mfxStatus StartPreparingToOutput(mfxFrameSurface1 *surface_work, UMC::FrameData* in, const mfxVideoParam * par, mfxU16 *taskId, bool isOpaq);
+    mfxStatus CheckPreparingToOutput(mfxFrameSurface1 *surface_work, UMC::FrameData* in, const mfxVideoParam * par, mfxU16 taskId);
+
+private:
+    JPEG_Info  m_jpegInfo;
+
+    std::unique_ptr<VideoVppJpegD3D> m_pCc;
+
+    mfxStatus InitVideoVppJpegD3D(const mfxVideoParam *params);
+    mfxStatus FindSurfaceByMemId(const UMC::FrameData* in, bool isOpaq, const mfxHDLPair &hdlPair, mfxFrameSurface1 &out_surface);
+};
 
 class mfx_UMC_FrameAllocator_D3D_Converter : public mfx_UMC_FrameAllocator_D3D
 {
-    std::unique_ptr<VideoVppJpegD3D9> m_pCc;
-
-    mfxStatus InitVideoVppJpegD3D9(const mfxVideoParam *params);
-    mfxStatus FindSurfaceByMemId(const UMC::FrameData* in, bool isOpaq, const mfxHDLPair &hdlPair,
-                                 // output param
-                                 mfxFrameSurface1 &surface);
 public:
     virtual UMC::Status InitMfx(UMC::FrameAllocatorParams *pParams, 
                                 VideoCORE* mfxCore, 
@@ -240,29 +389,27 @@ public:
                                 const mfxFrameAllocRequest *request, 
                                 mfxFrameAllocResponse *response, 
                                 bool isUseExternalFrames,
-                                bool isSWplatform) override;
+                                bool isSWplatform);
 
     // suppose that Close() calls Reset(), so override only Reset()
     virtual UMC::Status Reset() override;
-
-    typedef struct
-    {
-        int32_t colorFormat;
-        size_t UOffset;
-        size_t VOffset;
-    } JPEG_Info;
 
     void SetJPEGInfo(JPEG_Info * jpegInfo);
 
     mfxStatus StartPreparingToOutput(mfxFrameSurface1 *surface_work, UMC::FrameData* in, const mfxVideoParam * par, mfxU16 *taskId, bool isOpaq);
     mfxStatus CheckPreparingToOutput(mfxFrameSurface1 *surface_work, UMC::FrameData* in, const mfxVideoParam * par, mfxU16 taskId);
 
-protected:
-
-    mfxStatus ConvertToNV12(UMC::FrameMemID index, mfxFrameSurface1 *dst);
+private:
     JPEG_Info  m_jpegInfo;
+    std::unique_ptr<VideoVppJpegD3D> m_pCc;
+
+    mfxStatus InitVideoVppJpegD3D(const mfxVideoParam *params);
+    mfxStatus FindSurfaceByMemId(const UMC::FrameData* in, bool isOpaq, const mfxHDLPair &hdlPair, mfxFrameSurface1 &out_surface);
+
+    friend class SurfaceSourceJPEG;
 };
 
 #endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE) && defined (MFX_VA_WIN)
+#endif // #if defined (MFX_VA)
 
 #endif //_MFX_ALLOC_WRAPPER_H_

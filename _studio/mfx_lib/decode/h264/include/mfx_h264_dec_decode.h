@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2004-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,6 @@
 #include <memory>
 
 #include "mfx_task.h"
-#include "mfxpcp.h"
 
 namespace UMC
 {
@@ -59,6 +58,7 @@ public:
     static mfxStatus Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out);
     static mfxStatus QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
     static mfxStatus DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVideoParam *par);
+    static mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription::decoder&, mfx::PODArraysHolder&);
 
     VideoDECODEH264(VideoCORE *core, mfxStatus * sts);
     virtual ~VideoDECODEH264(void);
@@ -77,8 +77,9 @@ public:
     virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload);
     virtual mfxStatus SetSkipMode(mfxSkipMode mode);
 
-     mfxStatus RunThread(ThreadTaskInfo*, mfxU32 /*threadNumber*/);
+    mfxStatus RunThread(ThreadTaskInfo*, mfxU32 /*threadNumber*/);
 
+    virtual mfxFrameSurface1* GetSurface() override;
 protected:
     static mfxStatus QueryIOSurfInternal(eMFXPlatform platform, eMFXHWType type, mfxVideoParam *par, mfxFrameAllocRequest *request);
 
@@ -99,17 +100,13 @@ protected:
 
     void FillVideoParam(mfxVideoParamWrapper *par, bool full);
 
-    mfxStatus UpdateAllocRequest(mfxVideoParam *par, 
-                                mfxFrameAllocRequest *request,
-                                mfxExtOpaqueSurfaceAlloc * &pOpaqAlloc,
-                                bool &mapping);
 
     mfxFrameSurface1 * GetOriginalSurface(mfxFrameSurface1 *surface);
-
+    mfxFrameSurface1 * GetInternalSurface(mfxFrameSurface1 *surface);
     std::unique_ptr<UMC::MFXTaskSupplier>  m_pH264VideoDecoder;
-    mfx_UMC_MemAllocator            m_MemoryAllocator;
+    mfx_UMC_MemAllocator                   m_MemoryAllocator;
 
-    std::unique_ptr<mfx_UMC_FrameAllocator>    m_FrameAllocator;
+    std::unique_ptr<SurfaceSource>         m_surface_source;
 
     mfxVideoParamWrapper m_vInitPar;
     mfxVideoParamWrapper m_vFirstPar;
@@ -125,7 +122,7 @@ protected:
 
     mfxFrameAllocResponse m_response;
     mfxFrameAllocResponse m_response_alien;
-    mfxDecodeStat m_stat;
+    mfxDecodeStat m_stat = {};
     eMFXPlatform m_platform;
 
     UMC::Mutex m_mGuard;

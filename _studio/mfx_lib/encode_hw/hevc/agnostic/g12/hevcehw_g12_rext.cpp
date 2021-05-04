@@ -57,14 +57,12 @@ void RExt::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 
         auto pRI = make_storable<mfxFrameAllocRequest>(mfxFrameAllocRequest{});
         auto& rec = pRI->Info;
-
         rec = par.mfx.FrameInfo;
-
         auto itUpdateRecInfo = mUpdateRecInfo.find(CO3.TargetChromaFormatPlus1);
         bool bUndef = (itUpdateRecInfo == mUpdateRecInfo.end());
 
         if (!bUndef)
-            mUpdateRecInfo.at(CO3.TargetChromaFormatPlus1)(rec);
+            mUpdateRecInfo.at(CO3.TargetChromaFormatPlus1)(rec, pRI->Type, IsOn(par.mfx.LowPower));
 
         rec.ChromaFormat   = CO3.TargetChromaFormatPlus1 - 1;
         rec.BitDepthLuma   = CO3.TargetBitDepthLuma;
@@ -258,7 +256,7 @@ void RExt::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         , [](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
     {
         auto& fi = out.mfx.FrameInfo;
-        bool bVideoMem = Base::Legacy::IsInVideoMem(out, ExtBuffer::Get(out));
+        bool bVideoMem = Base::Legacy::IsInVideoMem(out);
 
         bool bNeedShift =
             (bVideoMem && !fi.Shift)

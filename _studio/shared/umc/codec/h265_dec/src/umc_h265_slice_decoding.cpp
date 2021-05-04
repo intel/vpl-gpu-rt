@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2012-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -248,7 +248,7 @@ bool H265Slice::DecodeSliceHeader(PocDecoding * pocDecoding)
    }
     catch(...)
     {
-	if (!m_SliceHeader.dependent_slice_segment_flag)
+        if (!m_SliceHeader.dependent_slice_segment_flag)
         {
             if (m_SliceHeader.slice_type != I_SLICE)
                 m_bError = true;
@@ -388,16 +388,13 @@ int H265Slice::getNumRpsCurrTempList() const
 
 void H265Slice::setRefPOCListSliceHeader()
 {
-    int32_t  RefPicPOCSetStCurr0[MAX_NUM_REF_PICS] = {};
-    int32_t  RefPicPOCSetStCurr1[MAX_NUM_REF_PICS] = {};
-    int32_t  RefPicPOCSetLtCurr[MAX_NUM_REF_PICS]  = {};
+    int32_t  RefPicPOCSetStCurr0[MAX_NUM_REF_PICS];
+    int32_t  RefPicPOCSetStCurr1[MAX_NUM_REF_PICS];
+    int32_t  RefPicPOCSetLtCurr[MAX_NUM_REF_PICS];
     uint32_t NumPicStCurr0 = 0;
     uint32_t NumPicStCurr1 = 0;
-    uint32_t NumPicLtCurr  = 0;
-    uint32_t i;
-
-    if (m_SliceHeader.slice_type == I_SLICE)
-        return;
+    uint32_t NumPicLtCurr = 0;
+    uint32_t  i;
 
     for (i = 0; i < getRPS()->getNumberOfNegativePictures(); i++)
     {
@@ -437,6 +434,8 @@ void H265Slice::setRefPOCListSliceHeader()
     if (pps->pps_curr_pic_ref_enabled_flag)
         numPicTotalCurr++;
 
+    int32_t rpsPOCCurrList1[MAX_NUM_REF_PICS + 1];
+
     int32_t cIdx = 0;
     int32_t rIdx = 0;
     for (i = 0; i < NumPicStCurr0; cIdx++, i++)
@@ -454,7 +453,6 @@ void H265Slice::setRefPOCListSliceHeader()
     if (pps->pps_curr_pic_ref_enabled_flag)
         m_SliceHeader.m_RpsPOCCurrList0[cIdx++] = m_SliceHeader.m_poc;
 
-    int32_t rpsPOCCurrList1[MAX_NUM_REF_PICS + 1] = {};
     if (m_SliceHeader.slice_type == B_SLICE)
     {
         cIdx = 0;
@@ -587,12 +585,12 @@ UMC::Status H265Slice::UpdateReferenceList(H265DBPList *pDecoderFrameList, H265D
     UMC::Status ps = UMC::UMC_OK;
 
     if (m_pCurrentFrame == nullptr)
-        return UMC::UMC_ERR_NULL_PTR;
+        return UMC::UMC_ERR_FAILED;
 
     const H265DecoderRefPicList* pH265DecRefPicList0 = m_pCurrentFrame->GetRefPicList(m_iNumber, 0);
     const H265DecoderRefPicList* pH265DecRefPicList1 = m_pCurrentFrame->GetRefPicList(m_iNumber, 1);
     if (pH265DecRefPicList0 == nullptr || pH265DecRefPicList1 == nullptr)
-        return UMC::UMC_ERR_NULL_PTR;
+        return UMC::UMC_ERR_FAILED;
 
     H265DecoderRefPicList::ReferenceInformation* pRefPicList0 = pH265DecRefPicList0->m_refPicList;
     H265DecoderRefPicList::ReferenceInformation* pRefPicList1 = pH265DecRefPicList1->m_refPicList;

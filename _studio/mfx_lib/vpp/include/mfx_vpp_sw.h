@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2010-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -34,7 +34,6 @@
 #include "mfx_vpp_defs.h"
 #include "mfx_vpp_base.h"
 #include "mfx_task.h"
-
 
 /* ******************************************************************** */
 /*                 Core Class of MSDK VPP                               */
@@ -70,6 +69,9 @@ public:
   virtual mfxStatus RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out, mfxExtVppAuxData *aux) = 0;
 
   virtual mfxTaskThreadingPolicy GetThreadingPolicy(void);
+
+  virtual mfxFrameSurface1* GetSurfaceIn() { return nullptr; }
+  virtual mfxFrameSurface1* GetSurfaceOut() { return nullptr; }
 
 protected:
 
@@ -112,9 +114,6 @@ protected:
   // State that keeps Init params. They are changed on Init only
   sErrPrtctState m_InitState;
 
-  // opaque processing
-  bool                  m_bOpaqMode[2];
-  mfxFrameAllocRequest  m_requestOpaq[2];
 
   //
   // HW VPP Support
@@ -139,8 +138,24 @@ public:
     virtual mfxStatus RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out, mfxExtVppAuxData *aux);
 
     mfxStatus PassThrough(mfxFrameInfo* In, mfxFrameInfo* Out, mfxU32 taskIndex);
-};
 
+    virtual mfxFrameSurface1* GetSurfaceIn() override{
+        if (!m_pHWVPP)
+        {
+            std::ignore = MFX_STS_TRACE(MFX_ERR_NULL_PTR);
+            return nullptr;
+        }
+        return m_pHWVPP->GetSurfaceIn();
+    }
+    virtual mfxFrameSurface1* GetSurfaceOut() override{
+        if (!m_pHWVPP)
+        {
+            std::ignore = MFX_STS_TRACE(MFX_ERR_NULL_PTR);
+            return nullptr;
+        }
+        return m_pHWVPP->GetSurfaceOut();
+    }
+};
 
 mfxStatus RunFrameVPPRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber);
 mfxStatus CompleteFrameVPPRoutine(void *pState, void *pParam, mfxStatus taskRes);

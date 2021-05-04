@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,11 +19,12 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
+#if defined MFX_ENABLE_MPEG2_VIDEO_DECODE
 
 #include "umc_mpeg2_defs.h"
 #include "umc_mpeg2_slice.h"
 #include "umc_mpeg2_frame.h"
+#include <iterator>
 
 namespace UMC_MPEG2_DECODER
 {
@@ -129,7 +130,7 @@ namespace UMC_MPEG2_DECODER
             refFrames.remove(ref);
 
             // Find another latest ref frame
-            auto iter = std::max_element(std::begin(refFrames), std::end(refFrames),
+            iter = std::max_element(std::begin(refFrames), std::end(refFrames),
                 [](MPEG2DecoderFrame const* f1, MPEG2DecoderFrame const* f2)
                 {
                     return f1->decOrder < f2->decOrder;
@@ -171,8 +172,8 @@ namespace UMC_MPEG2_DECODER
     }
 
     MPEG2DecoderFrame::MPEG2DecoderFrame()
-        : decOrder(-1)
-        , displayOrder(-1)
+        : decOrder(0xffffffff)
+        , displayOrder(0xffffffff)
         , frameType((FrameType)0)
         , currFieldIndex(-1)
         , pictureStructure(FRM_PICTURE)
@@ -206,6 +207,8 @@ namespace UMC_MPEG2_DECODER
 
     MPEG2DecoderFrame::~MPEG2DecoderFrame()
     {
+        auto fd = GetFrameData();
+        fd->m_locked = false;
     }
 
     void MPEG2DecoderFrame::Reset()
@@ -227,8 +230,8 @@ namespace UMC_MPEG2_DECODER
         ResetRefCounter();
         FreeReferenceFrames();
 
-        decOrder     = -1;
-        displayOrder = -1;
+        decOrder     = 0xffffffff;
+        displayOrder = 0xffffffff;
         frameType    = (FrameType)0;
         isFull       = false;
         isRef        = false;

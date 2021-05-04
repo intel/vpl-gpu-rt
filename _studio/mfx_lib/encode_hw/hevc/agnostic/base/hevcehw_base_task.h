@@ -38,10 +38,13 @@ namespace Base
     {
     public:
 #define DECL_BLOCK_LIST\
+    DECL_BLOCK(SetTMInterface) \
     DECL_BLOCK(Init) \
     DECL_BLOCK(Reset) \
     DECL_BLOCK(NewTask) \
     DECL_BLOCK(PrepareTask) \
+    DECL_BLOCK(LASubmit) \
+    DECL_BLOCK(LAQuery) \
     DECL_BLOCK(ReorderTask) \
     DECL_BLOCK(SubmitTask) \
     DECL_BLOCK(QueryTask) \
@@ -54,6 +57,30 @@ namespace Base
         {
         }
 
+        // Task Manager Interface for extra stages and logic
+        class ExtTMInterface
+            : public Storable
+        {
+        public:
+            ExtTMInterface(MfxEncodeHW::TaskManager& mgr)
+                : Manager(mgr)
+            {}
+
+            using TAsyncStage = CallChain<mfxStatus
+                , StorageW& /*glob*/
+                , StorageW& /*task*/>;
+
+            MfxEncodeHW::TaskManager& Manager;
+            std::map<mfxU16, TAsyncStage> AsyncStages;
+            mfxU16 ResourceExtra = 0;
+
+            using TUpdateTask = CallChain<mfxStatus
+                , StorageW* /*dstTask*/>;
+            TUpdateTask UpdateTask = {};
+        };
+
+        using TMInterface = StorageVar<Base::Glob::TaskManagerKey, ExtTMInterface>;
+
     protected:
         NotNull<const Glob::VideoParam::TRef*> m_pPar;
         NotNull<Glob::Reorder::TRef*> m_pReorder;
@@ -61,6 +88,7 @@ namespace Base
         NotNull<StorageW*> m_pGlob;
         NotNull<StorageRW*> m_pFrameCheckLocal;
 
+        virtual void InitInternal(const FeatureBlocks& blocks, TPushII Push) override;
         virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override;
         virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
         virtual void FrameSubmit(const FeatureBlocks& blocks, TPushFS Push) override;
@@ -98,6 +126,13 @@ namespace Base
             StorageW& task
             , std::function<bool(const mfxStatus&)> stopAt) override;
         virtual mfxStatus RunQueueTaskFree(StorageW& task) override;
+
+        virtual mfxStatus TaskPrepare(StorageW& /*task*/) override;
+        virtual mfxStatus TaskReorder(StorageW& /*task*/) override;
+        virtual mfxStatus TaskSubmit(StorageW& /*task*/) override;
+        virtual mfxStatus TaskQuery(StorageW& /*task*/) override;
+
+        mfxStatus RunExtraStages(mfxU16 beginStageID, mfxU16 endStageID, StorageW& task);
     };
 
 } //Base

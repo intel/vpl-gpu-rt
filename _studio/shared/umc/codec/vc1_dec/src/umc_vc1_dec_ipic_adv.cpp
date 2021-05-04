@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2004-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,6 +23,7 @@
 #if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
 #include "umc_vc1_dec_seq.h"
+#include "umc_vc1_dec_debug.h"
 
 VC1Status DecodePictHeaderParams_ProgressiveIpicture_Adv(VC1Context* pContext)
 {
@@ -31,6 +32,10 @@ VC1Status DecodePictHeaderParams_ProgressiveIpicture_Adv(VC1Context* pContext)
     VC1SequenceLayerHeader* seqLayerHeader = &pContext->m_seqLayerHeader;
 
 
+#ifdef VC1_DEBUG_ON
+    VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,
+                    VC1_BFRAMES,VM_STRING("I frame type  \n"));
+#endif
 
 
     //AC Prediction
@@ -88,7 +93,6 @@ VC1Status DecodePictHeaderParams_ProgressiveIpicture_Adv(VC1Context* pContext)
     //macroblock quantization
     vc1Res = VOPDQuant(pContext);
 
-
     return vc1Res;
 }
 
@@ -99,6 +103,10 @@ VC1Status DecodePictHeaderParams_InterlaceIpicture_Adv(VC1Context* pContext)
     VC1PictureLayerHeader* picLayerHeader = pContext->m_picLayerHeader;
     VC1SequenceLayerHeader* seqLayerHeader = &pContext->m_seqLayerHeader;
 
+#ifdef VC1_DEBUG_ON
+    VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BFRAMES,
+                                            VM_STRING("I frame type  \n"));
+#endif
 
      //field transform flag
     DecodeBitplane(pContext, &picLayerHeader->FIELDTX,
@@ -157,7 +165,6 @@ VC1Status DecodePictHeaderParams_InterlaceIpicture_Adv(VC1Context* pContext)
     //macroblock quantization
     vc1Res = VOPDQuant(pContext);
 
-
     return vc1Res;
 }
 
@@ -169,6 +176,10 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldIpicture_Adv(VC1Context* pContex
 
     uint32_t tempValue;
 
+#ifdef VC1_DEBUG_ON
+    VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BFRAMES,
+                                            VM_STRING("I frame type  \n"));
+#endif
 
     VC1_GET_BITS(5,picLayerHeader->PQINDEX);
     
@@ -260,8 +271,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldIpicture_Adv(VC1Context* pContex
     //macroblock quantization
     vc1Res = VOPDQuant(pContext);
 
-
     return vc1Res;
 }
-
 #endif //MFX_ENABLE_VC1_VIDEO_DECODE

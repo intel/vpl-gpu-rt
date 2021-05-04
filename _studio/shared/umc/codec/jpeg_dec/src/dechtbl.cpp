@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2001-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,7 @@ CJPEGDecoderHuffmanTable::CJPEGDecoderHuffmanTable(void)
 {
   m_id     = 0;
   m_hclass = 0;
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK
   m_table  = 0;
 #endif
   m_bEmpty = 1;
@@ -51,7 +51,7 @@ CJPEGDecoderHuffmanTable::~CJPEGDecoderHuffmanTable(void)
 
 JERRCODE CJPEGDecoderHuffmanTable::Create(void)
 {
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK
   int       size;
   int status;
 
@@ -90,7 +90,7 @@ JERRCODE CJPEGDecoderHuffmanTable::Destroy(void)
   memset(m_bits, 0, sizeof(m_bits));
   memset(m_vals, 0, sizeof(m_vals));
 
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK
   if(0 != m_table)
   {
     free(m_table);
@@ -112,7 +112,7 @@ JERRCODE CJPEGDecoderHuffmanTable::Init(int id,int hclass,uint8_t* bits,uint8_t*
   MFX_INTERNAL_CPY(m_bits,bits,16);
   MFX_INTERNAL_CPY(m_vals,vals,256);
 
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK
   int status = mfxiDecodeHuffmanSpecInit_JPEG_8u(m_bits,m_vals,m_table);
   if(ippStsNoErr != status)
   {
@@ -128,7 +128,7 @@ JERRCODE CJPEGDecoderHuffmanTable::Init(int id,int hclass,uint8_t* bits,uint8_t*
 
 
 
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK
 CJPEGDecoderHuffmanState::CJPEGDecoderHuffmanState(void)
 {
   m_state = 0;
@@ -197,6 +197,6 @@ JERRCODE CJPEGDecoderHuffmanState::Init(void)
 
   return JPEG_OK;
 } // CJPEGDecoderHuffmanState::Init()
-#endif // #ifdef MFX_ENABLE_SW_FALLBACK
+#endif // #ifdef ALLOW_JPEG_SW_FALLBACK
 
 #endif // MFX_ENABLE_MJPEG_VIDEO_DECODE

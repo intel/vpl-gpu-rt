@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2013-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,13 @@
 
 #include "umc_va_base.h"
 
+#ifdef UMC_VA_DXVA
+    #include "umc_vp9_ddi.h"
+#endif
 
+#if defined(UMC_VA_LINUX)
     #include "va/va_dec_vp9.h"
+#endif
 
 namespace UMC
 { class MediaData; }
@@ -59,8 +64,62 @@ protected:
     UMC::VideoAccelerator *m_va;
 };
 
+#ifdef UMC_VA_DXVA
+
+class PackerDXVA
+    : public Packer
+{
+public:
+
+    PackerDXVA(UMC::VideoAccelerator * va);
+
+    void BeginFrame();
+    void EndFrame();
+
+    UMC::Status GetStatusReport(void* pStatusReport, size_t size);
+
+protected:
+
+    uint32_t  m_report_counter;
+};
+
+class PackerIntel
+    : public PackerDXVA
+{
+
+public:
+
+    PackerIntel(UMC::VideoAccelerator * va);
+
+    void PackAU(VP9Bitstream*, VP9DecoderFrame const*);
+
+private:
+
+    void PackPicParams(DXVA_Intel_PicParams_VP9*, VP9DecoderFrame const*);
+    void PackSegmentParams(DXVA_Intel_Segment_VP9*, VP9DecoderFrame const*);
+};
+
+#if defined(NTDDI_WIN10_TH2)
+class PackerMS
+    : public PackerDXVA
+{
+
+public:
+
+    PackerMS(UMC::VideoAccelerator * va);
+
+    void PackAU(VP9Bitstream*, VP9DecoderFrame const*);
+
+private:
+
+    void PackPicParams(DXVA_PicParams_VP9*, VP9DecoderFrame const*);
+};
+#endif
+
+#endif // UMC_VA_DXVA
 
 
+#if defined(UMC_VA_LINUX)
 
 class PackerVA
     : public Packer
@@ -81,9 +140,9 @@ public:
 
     void PackPicParams(VADecPictureParameterBufferVP9*, VP9DecoderFrame const*);
     void PackSliceParams(VASliceParameterBufferVP9*, VP9DecoderFrame const*);
-    void PackPriorityParams();
 };
 
+#endif // UMC_VA_LINUX
 
 } // namespace UMC_HEVC_DECODER
 

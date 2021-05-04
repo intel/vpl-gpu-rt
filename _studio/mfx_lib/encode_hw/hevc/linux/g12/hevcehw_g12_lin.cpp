@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_g12_lin.h"
 #if (MFX_VERSION >= 1031)
@@ -27,13 +27,13 @@
 #endif
 #include "hevcehw_g12_caps_lin.h"
 #include "hevcehw_g12_scc_lin.h"
-#include "hevcehw_g12_sao.h"
 #include "hevcehw_g12_qp_modulation_lin.h"
+#include "hevcehw_g12_sao.h"
 #include "hevcehw_g12_scc.h"
 #include "hevcehw_base_legacy.h"
-#include "hevcehw_base_parser.h"
 #include "hevcehw_base_iddi_packer.h"
 #include "hevcehw_base_iddi.h"
+#include "hevcehw_base_parser.h"
 #include "hevcehw_base_recon_info_lin.h"
 
 namespace HEVCEHW
@@ -83,11 +83,11 @@ void MFXVideoENCODEH265_HW::InternalInitFeatures(
             qnc
             , { HEVCEHW::Base::FEATURE_LEGACY, HEVCEHW::Base::Legacy::BLK_SetLowPowerDefault }
             , { FEATURE_CAPS, Caps::BLK_SetDefaultsCallChain });
-        FeatureBlocks::Reorder(
+        Reorder(
             qnc
             , { HEVCEHW::Base::FEATURE_LEGACY, HEVCEHW::Base::Legacy::BLK_SetLowPowerDefault }
             , { FEATURE_SCC, SCC::BLK_SetLowPowerDefault });
-        FeatureBlocks::Reorder(
+        Reorder(
             qnc
             , { HEVCEHW::Base::FEATURE_PARSER, HEVCEHW::Base::Parser::BLK_LoadSPSPPS }
             , { FEATURE_SCC, SCC::BLK_LoadSPSPPS });
@@ -113,11 +113,11 @@ void MFXVideoENCODEH265_HW::InternalInitFeatures(
     if (mode & INIT)
     {
         auto& iint = BQ<BQ_InitInternal>::Get(*this);
-        FeatureBlocks::Reorder(
+        Reorder(
             iint
             , { HEVCEHW::Base::FEATURE_LEGACY, HEVCEHW::Base::Legacy::BLK_SetSPS }
             , { FEATURE_SCC, SCC::BLK_SetSPSExt });
-        FeatureBlocks::Reorder(
+        Reorder(
             iint
             , { HEVCEHW::Base::FEATURE_LEGACY, HEVCEHW::Base::Legacy::BLK_SetPPS }
             , { FEATURE_SCC, SCC::BLK_SetPPSExt });
@@ -137,7 +137,7 @@ mfxStatus MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)
     MFX_CHECK_STS(sts);
 
     auto& st = BQ<BQ_SubmitTask>::Get(*this);
-    FeatureBlocks::Reorder(
+    Reorder(
         st
         , { HEVCEHW::Base::FEATURE_DDI, HEVCEHW::Base::IDDI::BLK_SubmitTask }
         , { FEATURE_SCC, SCC::BLK_PatchDDITask });

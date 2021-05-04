@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2020 Intel Corporation
-// 
+// Copyright (c) 2008-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,6 +21,7 @@
 #include "mfx_common.h"
 
 #if defined (MFX_ENABLE_VPP)
+#if defined (MFX_VA)
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
 
 #include <algorithm>
@@ -64,6 +65,15 @@ static void MemSetZero4mfxExecuteParams (mfxExecuteParams *pMfxExecuteParams )
     pMfxExecuteParams->statusReportID = 0;
     pMfxExecuteParams->bFieldWeaving = false;
     pMfxExecuteParams->iFieldProcessingMode = 0;
+#ifndef MFX_CAMERA_FEATURE_DISABLE
+    pMfxExecuteParams->bCameraPipeEnabled = false;
+    pMfxExecuteParams->bCameraBlackLevelCorrection =false;
+    pMfxExecuteParams->bCameraGammaCorrection = false;
+    pMfxExecuteParams->bCameraHotPixelRemoval = false;
+    pMfxExecuteParams->bCameraWhiteBalaceCorrection = false;
+    pMfxExecuteParams->bCCM = false;
+    pMfxExecuteParams->bCameraLensCorrection = false;
+#endif // #ifndef MFX_CAMERA_FEATURE_DISABLE
     pMfxExecuteParams->rotation = 0;
     pMfxExecuteParams->scalingMode = MFX_SCALING_MODE_DEFAULT;
     pMfxExecuteParams->bEOS = false;
@@ -86,7 +96,7 @@ enum
 
 };
 
-VideoVppJpegD3D9::VideoVppJpegD3D9(VideoCORE *core, bool isD3DToSys, bool isOpaq)
+VideoVppJpegD3D::VideoVppJpegD3D(VideoCORE *core, bool isD3DToSys, bool isOpaq)
     : m_surfaces()
     , m_guard()
     , AssocIdx()
@@ -98,20 +108,22 @@ VideoVppJpegD3D9::VideoVppJpegD3D9(VideoCORE *core, bool isD3DToSys, bool isOpaq
     m_isOpaq = isOpaq;
 
     m_taskId = 1;
+#ifdef MFX_ENABLE_MJPEG_ROTATE_VPP
     m_rotation = 0;
+#endif
 
     memset(&m_response, 0, sizeof(mfxFrameAllocResponse));
 
-} // VideoVppJpegD3D9::VideoVppJpegD3D9(VideoCORE *core)
+} // VideoVppJpegD3D::VideoVppJpegD3D(VideoCORE *core)
 
 
-VideoVppJpegD3D9::~VideoVppJpegD3D9()
+VideoVppJpegD3D::~VideoVppJpegD3D()
 {
     Close();
 
-} // VideoVppJpegD3D9::~VideoVppJpegD3D9()
+} // VideoVppJpegD3D::~VideoVppJpegD3D()
 
-mfxStatus VideoVppJpegD3D9::Init(const mfxVideoParam *par)
+mfxStatus VideoVppJpegD3D::Init(const mfxVideoParam *par)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -154,6 +166,7 @@ mfxStatus VideoVppJpegD3D9::Init(const mfxVideoParam *par)
     mfxVppCaps caps;
     caps = m_ddi.GetCaps();
 
+#ifdef MFX_ENABLE_MJPEG_ROTATE_VPP
     if (caps.uRotation) {
         switch(par->mfx.Rotation)
         {
@@ -174,6 +187,7 @@ mfxStatus VideoVppJpegD3D9::Init(const mfxVideoParam *par)
         if(MFX_ROTATION_0 != par->mfx.Rotation)
             return MFX_ERR_UNSUPPORTED;
     }
+#endif
 
     if(par->vpp.In.Width > caps.uMaxWidth || par->vpp.In.Height > caps.uMaxHeight ||
        par->vpp.Out.Width > caps.uMaxWidth || par->vpp.Out.Height > caps.uMaxHeight)
@@ -189,9 +203,9 @@ mfxStatus VideoVppJpegD3D9::Init(const mfxVideoParam *par)
 
     return sts;
 
-} // mfxStatus VideoVppJpegD3D9::Init(void)
+} // mfxStatus VideoVppJpegD3D::Init(void)
 
-mfxStatus VideoVppJpegD3D9::Close()
+mfxStatus VideoVppJpegD3D::Close()
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -214,9 +228,9 @@ mfxStatus VideoVppJpegD3D9::Close()
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VideoVppJpegD3D9::Close()
+} // mfxStatus VideoVppJpegD3D::Close()
 
-mfxStatus VideoVppJpegD3D9::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface, 
+mfxStatus VideoVppJpegD3D::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface, 
                                                   mfxFrameSurface1 *pOutputSurface, 
                                                   mfxU16* taskId)
 {
@@ -246,7 +260,7 @@ mfxStatus VideoVppJpegD3D9::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfac
             return MFX_ERR_MEMORY_ALLOC;
         }
         m_pCore->IncreasePureReference(m_surfaces[index].Data.Locked);
-        MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index].Data.MemId, (mfxHDL *)&hdl));
+        MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index], hdl));
 
         {
             UMC::AutomaticUMCMutex guard(m_guard);
@@ -257,11 +271,11 @@ mfxStatus VideoVppJpegD3D9::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfac
     {
        if(m_isOpaq)
        {
-            MFX_SAFE_CALL(m_pCore->GetFrameHDL(pOutputSurface->Data.MemId, (mfxHDL *)&hdl));
+            MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pOutputSurface, hdl));
        }
        else
        {
-            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(pOutputSurface->Data.MemId, (mfxHDL *)&hdl));
+            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*pOutputSurface, hdl));
        }
     }
 
@@ -271,7 +285,7 @@ mfxStatus VideoVppJpegD3D9::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfac
     sts = (m_ddi)->Register(&out, 1, TRUE);
     MFX_CHECK_STS(sts);
 
-    MFX_SAFE_CALL(m_pCore->GetFrameHDL(pInputSurface->Data.MemId, (mfxHDL *)&hdl));
+    MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pInputSurface, hdl));
     in = hdl;
 
     // register input surface
@@ -293,7 +307,9 @@ mfxStatus VideoVppJpegD3D9::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfac
 
     m_executeParams.refCount = 1;
     m_executeParams.pRefSurfaces = &m_pExecuteSurface;
+#ifdef MFX_ENABLE_MJPEG_ROTATE_VPP
     m_executeParams.rotation = m_rotation;
+#endif
     m_executeParams.statusReportID = m_taskId;
     *taskId = m_taskId;
     m_taskId += 1;
@@ -303,9 +319,9 @@ mfxStatus VideoVppJpegD3D9::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfac
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VideoVppJpegD3D9::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfxFrameSurface1 *pOutputSurface, mfxU16* taskId)
+} // mfxStatus VideoVppJpegD3D::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfxFrameSurface1 *pOutputSurface, mfxU16* taskId)
 
-mfxStatus VideoVppJpegD3D9::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, 
+mfxStatus VideoVppJpegD3D::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, 
                                                   mfxFrameSurface1 *pInputSurfaceBottom, 
                                                   mfxFrameSurface1 *pOutputSurface, 
                                                   mfxU16* taskId)
@@ -340,7 +356,7 @@ mfxStatus VideoVppJpegD3D9::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfac
             return MFX_ERR_MEMORY_ALLOC;
         }
         m_pCore->IncreasePureReference(m_surfaces[index].Data.Locked);
-        MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index].Data.MemId, (mfxHDL *)&hdl));
+        MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index], hdl));
 
         {
             UMC::AutomaticUMCMutex guard(m_guard);
@@ -351,11 +367,11 @@ mfxStatus VideoVppJpegD3D9::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfac
     {
        if(m_isOpaq)
        {
-            MFX_SAFE_CALL(m_pCore->GetFrameHDL(pOutputSurface->Data.MemId, (mfxHDL *)&hdl));
+            MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pOutputSurface, hdl));
        }
        else
        {
-            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(pOutputSurface->Data.MemId, (mfxHDL *)&hdl));
+            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*pOutputSurface, hdl));
        }
     }
 
@@ -365,9 +381,9 @@ mfxStatus VideoVppJpegD3D9::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfac
     sts = (m_ddi)->Register(&out, 1, TRUE);
     MFX_CHECK_STS(sts);
 
-    MFX_SAFE_CALL(m_pCore->GetFrameHDL(pInputSurfaceTop->Data.MemId, (mfxHDL *)&hdl));
+    MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pInputSurfaceTop, hdl));
     inTop = hdl;
-    MFX_SAFE_CALL(m_pCore->GetFrameHDL(pInputSurfaceBottom->Data.MemId, (mfxHDL *)&hdl));
+    MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pInputSurfaceBottom, hdl));
     inBottom = hdl;
 
     // register input surfaces
@@ -409,9 +425,9 @@ mfxStatus VideoVppJpegD3D9::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfac
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VideoVppJpegD3D9::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, mfxFrameSurface1 *pInputSurfaceBottom, mfxFrameSurface1 *pOutputSurface, mfxU16* taskId)
+} // mfxStatus VideoVppJpegD3D::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, mfxFrameSurface1 *pInputSurfaceBottom, mfxFrameSurface1 *pOutputSurface, mfxU16* taskId)
 
-mfxStatus VideoVppJpegD3D9::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfxFrameSurface1 *pOutputSurface)
+mfxStatus VideoVppJpegD3D::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfxFrameSurface1 *pOutputSurface)
 {
     mfxStatus sts = MFX_ERR_NONE;
     
@@ -432,22 +448,22 @@ mfxStatus VideoVppJpegD3D9::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface,
             AssocIdx.erase(it);
         }
         
-        MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index].Data.MemId, (mfxHDL *)&hdl));
+        MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index], hdl));
     }
     else
     {
        if(m_isOpaq)
        {
-            MFX_SAFE_CALL(m_pCore->GetFrameHDL(pOutputSurface->Data.MemId, (mfxHDL *)&hdl));
+            MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pOutputSurface, hdl));
        }
        else
        {
-            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(pOutputSurface->Data.MemId, (mfxHDL *)&hdl));
+            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*pOutputSurface, hdl));
        }
     }
     out = hdl;
     
-    MFX_SAFE_CALL(m_pCore->GetFrameHDL(pInputSurface->Data.MemId, (mfxHDL *)&hdl));
+    MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pInputSurface, hdl));
     in = hdl;
 
     if (m_isD3DToSys)
@@ -475,9 +491,9 @@ mfxStatus VideoVppJpegD3D9::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface,
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VideoVppJpegD3D9::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfxFrameSurface1 *pOutputSurface)
+} // mfxStatus VideoVppJpegD3D::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfxFrameSurface1 *pOutputSurface)
 
-mfxStatus VideoVppJpegD3D9::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, 
+mfxStatus VideoVppJpegD3D::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, 
                                                 mfxFrameSurface1 *pInputSurfaceBottom, 
                                                 mfxFrameSurface1 *pOutputSurface)
 {
@@ -499,24 +515,24 @@ mfxStatus VideoVppJpegD3D9::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceT
             AssocIdx.erase(it);
         }
         
-        MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index].Data.MemId, (mfxHDL *)&hdl));
+        MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index], hdl));
     }
     else
     {
        if(m_isOpaq)
        {
-            MFX_SAFE_CALL(m_pCore->GetFrameHDL(pOutputSurface->Data.MemId, (mfxHDL *)&hdl));
+            MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pOutputSurface, hdl));
        }
        else
        {
-            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(pOutputSurface->Data.MemId, (mfxHDL *)&hdl));
+            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*pOutputSurface, hdl));
        }
     }
     out = hdl;
 
-    MFX_SAFE_CALL(m_pCore->GetFrameHDL(pInputSurfaceTop->Data.MemId, (mfxHDL *)&hdl));
+    MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pInputSurfaceTop, hdl));
     inTop = hdl;
-    MFX_SAFE_CALL(m_pCore->GetFrameHDL(pInputSurfaceBottom->Data.MemId, (mfxHDL *)&hdl));
+    MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pInputSurfaceBottom, hdl));
     inBottom = hdl;
 
     if (m_isD3DToSys)
@@ -546,18 +562,22 @@ mfxStatus VideoVppJpegD3D9::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceT
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VideoVppJpegD3D9::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, mfxFrameSurface1 *pInputSurfaceBottom, mfxFrameSurface1 *pOutputSurface)
+} // mfxStatus VideoVppJpegD3D::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, mfxFrameSurface1 *pInputSurfaceBottom, mfxFrameSurface1 *pOutputSurface)
 
-mfxStatus VideoVppJpegD3D9::QueryTaskRoutine(mfxU16 taskId)
+mfxStatus VideoVppJpegD3D::QueryTaskRoutine(mfxU16 taskId)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-    sts = (m_ddi)->QueryTaskStatus(taskId);
+    SynchronizedTask task={};
+    task.taskIndex = taskId;
+
+    sts = (m_ddi)->QueryTaskStatus(&task);
 
     return sts;
 
-} // mfxStatus VideoVppJpegD3D9::QueryTask(mfxU16 taskId)
+} // mfxStatus VideoVppJpegD3D::QueryTask(mfxU16 taskId)
 
 #endif // MFX_ENABLE_MJPEG_VIDEO_DECODE
+#endif // MFX_VA
 #endif // MFX_ENABLE_VPP
 /* EOF */

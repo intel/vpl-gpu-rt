@@ -25,6 +25,7 @@
 #include "umc_mpeg2_decoder.h"
 #include "umc_mpeg2_utils.h"
 #include "umc_mpeg2_slice.h"
+#include <iterator>
 
 namespace UMC_MPEG2_DECODER
 {
@@ -200,8 +201,8 @@ namespace UMC_MPEG2_DECODER
 
                 // move point to the sequence header
                 size_t headerSize = (it->end - it->begin);
-                bs.DataOffset = (uint8_t*)in.GetDataPointer() - (uint8_t*)in.GetBufferPointer() - headerSize;
-                bs.DataLength = in.GetDataSize() + headerSize;
+                bs.DataOffset = (mfxU32)((uint8_t*)in.GetDataPointer() - (uint8_t*)in.GetBufferPointer() - headerSize);
+                bs.DataLength = (mfxU32)(in.GetDataSize() + headerSize);
 
                 seq.reset(new MPEG2SequenceHeader);
                 seqExt.reset();
@@ -210,7 +211,7 @@ namespace UMC_MPEG2_DECODER
                 try
                 {
                     uint8_t * begin = it->begin + prefix_size + 1;
-                    bitStream.Reset(begin, it->end - begin);
+                    bitStream.Reset(begin, (uint32_t)(it->end - begin));
                     bitStream.GetSequenceHeader(*seq.get());
                 }
                 // On corrupted data reset headers
@@ -238,7 +239,7 @@ namespace UMC_MPEG2_DECODER
                     try
                     {
                         uint8_t * begin = it->begin + prefix_size + 1;
-                        bitStream.Reset(begin, it->end - begin);
+                        bitStream.Reset(begin, (uint32_t)(it->end - begin));
                         bitStream.Seek(4); // skip extension type
                         bitStream.GetSequenceExtension(*seqExt.get());
                     }
@@ -261,7 +262,7 @@ namespace UMC_MPEG2_DECODER
                     try
                     {
                         uint8_t * begin = it->begin + prefix_size + 1;
-                        bitStream.Reset(begin, it->end - begin);
+                        bitStream.Reset(begin, (uint32_t)(it->end - begin));
                         bitStream.Seek(4); // skip extension type
                         bitStream.GetSequenceDisplayExtension(*dispExt.get());
                     }
@@ -298,7 +299,7 @@ namespace UMC_MPEG2_DECODER
                     if (mfxSeq->SPSBufSize < rawHdr.GetSize())
                         return MFX_ERR_NOT_ENOUGH_BUFFER;
 
-                    mfxSeq->SPSBufSize = rawHdr.GetSize();
+                    mfxSeq->SPSBufSize = (mfxU16)(rawHdr.GetSize());
                     std::copy(rawHdr.GetPointer(), rawHdr.GetPointer() + mfxSeq->SPSBufSize, mfxSeq->SPSBuffer);
                 }
                 else
@@ -310,8 +311,8 @@ namespace UMC_MPEG2_DECODER
         }
 
         // If didn't find headers consume all bs data
-        bs.DataOffset = (uint8_t*)in.GetDataPointer() - (uint8_t*)in.GetBufferPointer();
-        bs.DataLength = in.GetDataSize();
+        bs.DataOffset = (mfxU32)((uint8_t*)in.GetDataPointer() - (uint8_t*)in.GetBufferPointer());
+        bs.DataLength = (mfxU32)in.GetDataSize();
 
         // Request more data
         return UMC::UMC_ERR_NOT_ENOUGH_DATA;
@@ -349,7 +350,7 @@ namespace UMC_MPEG2_DECODER
                     if (sts == UMC::UMC_NTF_NEW_RESOLUTION && source)
                     {
                         // Move to the position of sequence header start
-                        source->MoveDataPointer(- (unit.end - unit.begin));
+                        source->MoveDataPointer((int32_t)- (unit.end - unit.begin));
                     }
 
                     return sts;
@@ -499,9 +500,13 @@ namespace UMC_MPEG2_DECODER
             }
         }
 
+
+        // Frame time stamp
+        m_currFrame->dFrameTime = slice->source.GetTime();
+
         const auto picExt = *m_currHeaders.picExtHdr;
         uint32_t fieldIndex = m_currFrame->GetNumberByParity(picExt.picture_structure == BOTTOM_FLD_PICTURE);
-        MPEG2DecoderFrameInfo & info = *m_currFrame->GetAU(fieldIndex);
+        MPEG2DecoderFrameInfo & info = *m_currFrame->GetAU((uint8_t)fieldIndex);
 
         // Add the slice to the picture
         info.AddSlice(slice);
@@ -520,7 +525,7 @@ namespace UMC_MPEG2_DECODER
     {
         auto seqHdr    = std::make_shared<MPEG2SequenceHeader>();
         auto seqExtHdr = std::make_shared<MPEG2SequenceExtension>();
-        MPEG2HeadersBitstream bitStream(data.begin + prefix_size + 1, data.end - data.begin - prefix_size - 1); // "+ prefix_size + 1" is to skip start code and type
+        MPEG2HeadersBitstream bitStream(data.begin + prefix_size + 1, (uint32_t)(data.end - data.begin - prefix_size - 1)); // "+ prefix_size + 1" is to skip start code and type
 
         try
         {
@@ -529,7 +534,7 @@ namespace UMC_MPEG2_DECODER
             uint8_t* seqExtBegin = RawHeaderIterator::FindStartCode(data.begin + prefix_size + bitStream.BytesDecoded(), data.end);
             MFX_CHECK(seqExtBegin, UMC::UMC_ERR_INVALID_STREAM);
 
-            bitStream.Reset(seqExtBegin + prefix_size, data.end - seqExtBegin);
+            bitStream.Reset(seqExtBegin + prefix_size, (uint32_t)(data.end - seqExtBegin));
             bitStream.Seek(8 + 4); // skip data and extension types
             bitStream.GetSequenceExtension(*seqExtHdr.get());
 
@@ -573,7 +578,7 @@ namespace UMC_MPEG2_DECODER
     {
         auto picHdr    = std::make_shared<MPEG2PictureHeader>();
         auto picExtHdr = std::make_shared<MPEG2PictureCodingExtension>();
-        MPEG2HeadersBitstream bitStream(data.begin + prefix_size + 1, data.end - data.begin - prefix_size - 1); // "+ prefix_size + 1" is to skip start code and type
+        MPEG2HeadersBitstream bitStream(data.begin + prefix_size + 1, (uint32_t)(data.end - data.begin - prefix_size - 1)); // "+ prefix_size + 1" is to skip start code and type
 
         try
         {
@@ -582,7 +587,7 @@ namespace UMC_MPEG2_DECODER
             uint8_t* picExtBegin = RawHeaderIterator::FindStartCode(data.begin + prefix_size + bitStream.BytesDecoded(), data.end); // Find begining of extension
             MFX_CHECK(picExtBegin, UMC::UMC_ERR_INVALID_STREAM);
 
-            bitStream.Reset(picExtBegin + prefix_size, data.end - picExtBegin);
+            bitStream.Reset(picExtBegin + prefix_size, (uint32_t)(data.end - picExtBegin));
             bitStream.Seek(8 + 4); // skip data and extension types
             bitStream.GetPictureExtensionHeader(*picExtHdr.get()); // decode extension
 
@@ -607,7 +612,7 @@ namespace UMC_MPEG2_DECODER
     UMC::Status MPEG2Decoder::DecodeGroupHeader(const RawUnit & data)
     {
         auto group = std::make_shared<MPEG2GroupOfPictures>();
-        MPEG2HeadersBitstream bitStream(data.begin + prefix_size + 1, data.end - data.begin - prefix_size - 1); // "+ prefix_size + 1" is to skip start code and type
+        MPEG2HeadersBitstream bitStream(data.begin + prefix_size + 1, (uint32_t)(data.end - data.begin - prefix_size - 1)); // "+ prefix_size + 1" is to skip start code and type
 
         try
         {
@@ -627,7 +632,7 @@ namespace UMC_MPEG2_DECODER
     // Decode display and matrix extensions
     UMC::Status MPEG2Decoder::DecodeExtension(const RawUnit & data)
     {
-        MPEG2HeadersBitstream bitStream(data.begin + prefix_size + 1, data.end - data.begin - prefix_size - 1); // "+ prefix_size + 1" is to skip start code and types
+        MPEG2HeadersBitstream bitStream(data.begin + prefix_size + 1, (uint32_t)(data.end - data.begin - prefix_size - 1)); // "+ prefix_size + 1" is to skip start code and types
 
         try
         {
@@ -720,15 +725,13 @@ namespace UMC_MPEG2_DECODER
     }
 
     // Initialize just allocated frame with parameters
-    void InitFreeFrame(MPEG2DecoderFrame& frame, const MPEG2Slice& slice, const UMC::sVideoStreamInfo& info)
+    void InitFreeFrame(MPEG2DecoderFrame& frame,
+                       const MPEG2SequenceHeader& seq, const MPEG2SequenceExtension& seqExt,
+                       const MPEG2PictureHeader& pic, const MPEG2PictureCodingExtension& picExt,
+                       const UMC::sVideoStreamInfo& info)
     {
-        auto seq    = slice.GetSeqHeader();
-        auto seqExt = slice.GetSeqExtHeader();
-        auto pic    = slice.GetPicHeader();
-        auto picExt = slice.GetPicExtHeader();
 
-        frame.frameType  = (FrameType)pic.picture_coding_type;
-        frame.dFrameTime = slice.source.GetTime();
+        frame.frameType = (FrameType)pic.picture_coding_type;
         frame.isProgressiveSequence = seqExt.progressive_sequence;
         frame.isProgressiveFrame    = picExt.progressive_frame;
 
@@ -802,7 +805,12 @@ namespace UMC_MPEG2_DECODER
         if (!frame)
             return nullptr;
 
-        InitFreeFrame(*frame, *slice, m_params.info);
+        const auto seq    = slice->GetSeqHeader();
+        const auto seqExt = slice->GetSeqExtHeader();
+        const auto pic    = slice->GetPicHeader();
+        const auto picExt = slice->GetPicExtHeader();
+
+        InitFreeFrame(*frame, seq, seqExt, pic, picExt, m_params.info);
 
         frame->group = m_currHeaders.group;
 
@@ -821,8 +829,8 @@ namespace UMC_MPEG2_DECODER
             if (last)
             {
                 // Here we're building display order in case of reordered frames:
-                frame->displayOrder = last->displayOrder; // 1. Output B frames sooner than their decoded order
-                last->displayOrder  = frame->decOrder;    // 2. Delay displaying I/P frames accordingly
+                frame->displayOrder = last->displayOrder;   // 1. Output B frames sooner than their decoded order
+                last->displayOrder  = frame->decOrder;      // 2. Delay displaying I/P frames accordingly
             }
         }
         else
@@ -850,7 +858,7 @@ namespace UMC_MPEG2_DECODER
         const auto newPicExtHdr = *m_currHeaders.picExtHdr.get();
 
         // this is a workaround (and actually not by spec) to handle invalid streams where an II or IP pair has different temporal_reference
-        if (m_currFrame->frameType != MPEG2_I_PICTURE || m_currFrame->currFieldIndex != 0)
+        if (m_currFrame->frameType != MPEG2_I_PICTURE  || m_currFrame->currFieldIndex != 0)
         {
             if (picHdr.temporal_reference != newPicHdr.temporal_reference)  // 6.3.9
                 return false;
@@ -1118,7 +1126,7 @@ namespace UMC_MPEG2_DECODER
 
     uint8_t MPEG2Decoder::GetNumCachedFrames() const
     {
-        return std::count_if(m_dpb.begin(), m_dpb.end(),
+        return (uint8_t)std::count_if(m_dpb.begin(), m_dpb.end(),
                                     [](MPEG2DecoderFrame const * f) { return (f->DecodingStarted() && !f->IsOutputted()); }
                             );
     }

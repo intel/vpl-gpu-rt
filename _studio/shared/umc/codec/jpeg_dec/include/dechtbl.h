@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2001-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,16 +23,21 @@
 
 #include "umc_defs.h"
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
-#if defined(MFX_ENABLE_SW_FALLBACK)
 #include "ippj.h"
-#endif
 #include "jpegbase.h"
 
+#if defined(MFX_ENABLE_JPEG_SW_FALLBACK)
+  #define ALLOW_JPEG_SW_FALLBACK
+
+  #if defined(MSDK_USE_EXTERNAL_IPP)
+    #include "ipp2mfx.h"
+  #endif
+#endif
 
 class CJPEGDecoderHuffmanTable
 {
 private:
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK
   IppiDecodeHuffmanSpec* m_table;
 #endif
 
@@ -62,7 +67,7 @@ public:
   bool     IsValid(void)                { return m_bValid; }
   void     SetInvalid(void)             { m_bValid = 0; return; }
 
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK
   operator IppiDecodeHuffmanSpec*(void) { return m_table; }
 #endif
 
@@ -71,7 +76,7 @@ public:
 };
 
 
-#ifdef MFX_ENABLE_SW_FALLBACK
+#ifdef ALLOW_JPEG_SW_FALLBACK
 class CJPEGDecoderHuffmanState
 {
 private:
@@ -93,7 +98,7 @@ public:
 
   operator IppiDecodeHuffmanState*(void) { return m_state; }
 };
-#endif // MFX_ENABLE_SW_FALLBACK
+#endif
 
 #endif // MFX_ENABLE_MJPEG_VIDEO_DECODE
 #endif // __DECHTBL_H__

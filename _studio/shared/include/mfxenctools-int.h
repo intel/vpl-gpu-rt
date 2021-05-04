@@ -1,6 +1,6 @@
 /******************************************************************************* *\
 
-Copyright (C) 2019-2020 Intel Corporation.  All rights reserved.
+Copyright (C) 2019-2021 Intel Corporation.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -34,15 +34,13 @@ File Name: mfxenctools-int.h
 #include "mfxvideo++.h"
 #include "mfxbrc.h"
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#include "mfxenctools.h"
+#else
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
-
-/* Extended Buffer Ids */
-enum {
-    MFX_EXTBUFF_ENCTOOLS_CONFIG = MFX_MAKEFOURCC('E', 'T', 'C', 'F'),
-};
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef union {
@@ -56,6 +54,10 @@ MFX_PACK_END()
 
 #define MFX_STRUCT_VERSION(MAJOR, MINOR) (256*(MAJOR) + (MINOR))
 
+/* Extended Buffer Ids */
+enum {
+    MFX_EXTBUFF_ENCTOOLS_CONFIG = MFX_MAKEFOURCC('E', 'T', 'C', 'F'),
+};
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
     typedef struct
@@ -79,6 +81,17 @@ MFX_PACK_END()
 
 #define MFX_ENCTOOLS_CONFIG_VERSION MFX_STRUCT_VERSION(1, 0)
 
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
+#endif /*(MFX_VERSION >= MFX_VERSION_NEXT)*/
+
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
 
 
 /* Extended Buffer Ids */
@@ -98,8 +111,6 @@ enum {
     MFX_EXTBUFF_ENCTOOLS_BRC_STATUS = MFX_MAKEFOURCC('E', 'B', 'S', 'T'),
     MFX_EXTBUFF_ENCTOOLS_HINT_MATRIX = MFX_MAKEFOURCC('E', 'H', 'Q', 'M')
 };
-
-#define MFX_ENCTOOLS_CONFIG_VERSION MFX_STRUCT_VERSION(1, 0)
 
 enum
 {
@@ -243,7 +254,10 @@ enum
 {
     MFX_QUANT_MATRIX_DEFAULT = 0,
     MFX_QUANT_MATRIX_FLAT,
-    MFX_QUANT_MATRIX_HIGH_FREQUENCY_STRONG
+    MFX_QUANT_MATRIX_WEAK,
+    MFX_QUANT_MATRIX_MEDIUM,
+    MFX_QUANT_MATRIX_STRONG,
+    MFX_QUANT_MATRIX_EXTREME
 };
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
@@ -258,6 +272,8 @@ MFX_PACK_END()
 #define MFX_ENCTOOLS_HINT_QUANTMATRIX_VERSION MFX_STRUCT_VERSION(1, 0)
 
 #define MFX_QP_UNDEFINED 0x1111
+
+#define MAX_QP_MODULATION 5
 
 enum
 {
@@ -388,7 +404,7 @@ MFX_PACK_END()
 MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer      Header;
-    mfxStructVersion  Version;           /* what about to return version of EncTools containing commit_id – return through GetVersion? */
+    mfxStructVersion  Version;           /* what about to return version of EncTools containing commit_id â€“ return through GetVersion? */
     mfxU16            reserved[3];       /* to align with Version */
     mfxU32            reserved2[14];
     mfxHDL            Context;
@@ -410,11 +426,11 @@ MFX_PACK_END()
 mfxEncTools*  MFX_CDECL MFXVideoENCODE_CreateEncTools();
 void  MFX_CDECL MFXVideoENCODE_DestroyEncTools(mfxEncTools *et);
 
-
-
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
-
 #endif
+
+
+
 

@@ -42,7 +42,6 @@
 
 #include "umc_h264_au_splitter.h"
 
-
 namespace UMC
 {
 class TaskBroker;
@@ -514,8 +513,7 @@ public:
 
     Status GetInfo(VideoDecoderParams *lpInfo);
 
-    virtual Status AddSource(MediaData * pSource);
-
+    virtual Status AddSource(MediaData *pSource);
 
 #if (MFX_VERSION >= 1025)
     Status ProcessNalUnit(NalUnit *nalUnit, mfxExtDecodeErrorReport *pDecodeErrorReport);
@@ -537,7 +535,7 @@ public:
 
     virtual H264DecoderFrame *GetFrameToDisplayInternal(bool force);
 
-    Status GetUserData(MediaData * pUD);
+    Status GetUserData(MediaData *pUD);
 
     H264DBPList *GetDPBList(uint32_t viewId, int32_t dIdRev)
     {
@@ -725,16 +723,14 @@ inline int32_t CalculateDPBSize(uint8_t & level_idc, int32_t width, int32_t heig
         case H264VideoDecoderParams::H264_LEVEL_52:
             MaxDPBMbs = 184320;
             break;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
         case H264VideoDecoderParams::H264_LEVEL_6:
         case H264VideoDecoderParams::H264_LEVEL_61:
         case H264VideoDecoderParams::H264_LEVEL_62:
             MaxDPBMbs = 696320;
             break;
-#endif
         default:
-            // Relax resolution constraints up to 4K when
-            // level_idc reaches 5.1+.  That is,
+            // We don't support level greater than 5.2 but
+            // relax resolution constrains up to 4K, hence
             // use value 696320 which is from level 6+ for
             // the calculation of the DPB size when level_idc
             // reaches 5.1+ but dpbSize is still less
@@ -793,20 +789,14 @@ inline int32_t CalculateDPBSize(uint8_t & level_idc, int32_t width, int32_t heig
         // can be used to calculate the DPB size.
         case H264VideoDecoderParams::H264_LEVEL_51:
         case H264VideoDecoderParams::H264_LEVEL_52:
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
             level_idc = H264VideoDecoderParams::H264_LEVEL_6;
-#else
-            level_idc = INTERNAL_MAX_LEVEL;
-#endif
             break;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
         case H264VideoDecoderParams::H264_LEVEL_6:
         case H264VideoDecoderParams::H264_LEVEL_61:
         case H264VideoDecoderParams::H264_LEVEL_62:
             level_idc = INTERNAL_MAX_LEVEL;
             break;
-#endif
 
         default:
             throw h264_exception(UMC_ERR_FAILED);
@@ -819,7 +809,6 @@ inline int32_t CalculateDPBSize(uint8_t & level_idc, int32_t width, int32_t heig
 
     return dpbSize;
 }
-
 
 inline H264DBPList *GetDPB(ViewList &views, int32_t viewId, int32_t dIdRev = 0)
 {
@@ -840,9 +829,9 @@ inline H264DBPList *GetDPB(ViewList &views, int32_t viewId, int32_t dIdRev = 0)
 inline uint32_t GetVOIdx(const UMC_H264_DECODER::H264SeqParamSetMVCExtension *pSeqParamSetMvc, uint32_t viewId)
 {
     auto it = std::find_if(pSeqParamSetMvc->viewInfo.begin(), pSeqParamSetMvc->viewInfo.end(),
-                           [viewId](const UMC_H264_DECODER::H264ViewRefInfo & item){ return item.view_id == viewId; });
+        [viewId](const UMC_H264_DECODER::H264ViewRefInfo & item) { return item.view_id == viewId; });
 
-    return (pSeqParamSetMvc->viewInfo.end() != it) ? (it - pSeqParamSetMvc->viewInfo.begin()) : 0;
+    return (pSeqParamSetMvc->viewInfo.end() != it) ? (uint32_t)(it - pSeqParamSetMvc->viewInfo.begin()) : 0;
 
 } // uint32_t GetVOIdx(const H264SeqParamSetMVCExtension *pSeqParamSetMvc, uint32_t viewId)
 

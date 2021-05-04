@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2016-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,14 +20,16 @@
 
 #include "mfx_common.h"
 
-#include "mfxvp9.h"
 #include "mfx_enc_common.h"
 #include "mfx_vp9_encode_hw_par.h"
 #include "mfx_vp9_encode_hw_utils.h"
-#include <math.h>
-#include <memory.h>
 #include "mfx_common_int.h"
 #include "mfx_ext_buffers.h"
+
+#include "umc_defs.h"
+
+#include <math.h>
+#include <memory.h>
 
 namespace MfxHwVP9Encode
 {
@@ -35,7 +37,6 @@ namespace MfxHwVP9Encode
 bool IsExtBufferSupportedInInit(mfxU32 id)
 {
     return id == MFX_EXTBUFF_VP9_PARAM
-        || id == MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION
         || id == MFX_EXTBUFF_CODING_OPTION2
         || id == MFX_EXTBUFF_CODING_OPTION3
         || id == MFX_EXTBUFF_DDI // RefreshFrameContext is used by driver
@@ -170,17 +171,6 @@ inline void SetOrCopy(mfxExtVP9Param *pDst, mfxExtVP9Param const *pSrc = 0, bool
     SET_OR_COPY_PAR_DONT_INHERIT(FrameHeight);
 
     SET_OR_COPY_PAR(WriteIVFHeaders);
-
-    /*
-    for (mfxU8 i = 0; i < MAX_REF_LF_DELTAS; i++)
-    {
-        SET_OR_COPY_PAR(LoopFilterRefDelta[i]);
-    }
-    for (mfxU8 i = 0; i < MAX_MODE_LF_DELTAS; i++)
-    {
-        SET_OR_COPY_PAR(LoopFilterModeDelta[i]);
-    }
-    */
 
     SET_OR_COPY_PAR(QIndexDeltaLumaDC);
     SET_OR_COPY_PAR(QIndexDeltaChromaAC);
@@ -736,8 +726,11 @@ mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, 
         unsupported = true;
     }
 
-    // currently only 64x64 block size for segmentation map supported (HW limitation)
-    if (seg.SegmentIdBlockSize && seg.SegmentIdBlockSize != MFX_VP9_SEGMENT_ID_BLOCK_SIZE_64x64)
+    // currently only 64x64 block size for segmentation map is supported (HW limitation) for platform < DG2
+    // for DG2+: 32x32 and 64x64 blocks
+    if (seg.SegmentIdBlockSize &&
+        seg.SegmentIdBlockSize != MFX_VP9_SEGMENT_ID_BLOCK_SIZE_64x64
+        )
     {
         seg.SegmentIdBlockSize = 0;
         unsupported = true;
@@ -996,10 +989,10 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
     // clean out non-configurable params but do not return any errors on that (ignore mode)
     /*mfxStatus err = */CleanOutNonconfigurableParameters(par);
 
-    if (par.IOPattern &&
-        par.IOPattern != MFX_IOPATTERN_IN_VIDEO_MEMORY &&
-        par.IOPattern != MFX_IOPATTERN_IN_SYSTEM_MEMORY &&
-        par.IOPattern != MFX_IOPATTERN_IN_OPAQUE_MEMORY)
+    if (   par.IOPattern
+        && par.IOPattern != MFX_IOPATTERN_IN_VIDEO_MEMORY
+        && par.IOPattern != MFX_IOPATTERN_IN_SYSTEM_MEMORY
+        )
     {
         par.IOPattern = 0;
         unsupported = true;
@@ -1034,6 +1027,7 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         fi.Height = 0;
         unsupported = true;
     }
+
     //VP9 doesn't support CropX, CropY due to absence of syntax in bitstream header
     if ((fi.Width  && (fi.CropW > fi.Width))  ||
         (fi.Height && (fi.CropH > fi.Height)) ||
@@ -1340,7 +1334,7 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         // For targetUsage 1: MaxNum_Reference is 3
         // For targetUsage 4: MaxNum_Reference is 2
         // For targetUsage 7: MaxNum_Reference is 1
-        int RefActiveP = 3;
+        mfxU16 RefActiveP = 3;
         if (par.mfx.TargetUsage)
         {
             if (par.mfx.TargetUsage == MFX_TARGETUSAGE_BALANCED)
@@ -1481,14 +1475,6 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         changed = true;
     }
 
-    mfxExtOpaqueSurfaceAlloc& opaq = GetExtBufferRef(par);
-    if (par.IOPattern &&
-        par.IOPattern != MFX_IOPATTERN_IN_OPAQUE_MEMORY
-        && opaq.In.NumSurface)
-    {
-        opaq.In.NumSurface = 0;
-        changed = true;
-    }
 
     mfxU16 width = extPar.FrameWidth ? extPar.FrameWidth : fi.Width;
     mfxU16 height = extPar.FrameHeight ? extPar.FrameHeight : fi.Height;
@@ -1517,7 +1503,7 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
     if (rows && height)
     {
         mfxU16 heightInTiles = static_cast<mfxU16>(CeilDiv(height, MIN_TILE_HEIGHT));
-        mfxU16 maxPossibleRows = std::min<mfxU16>(heightInTiles, MAX_NUM_TILE_ROWS);
+        mfxU16 maxPossibleRows = std::min<mfxU16>(heightInTiles, MAX_NUM_TILE_ROWS_VP9);
         if (rows > maxPossibleRows)
         {
             rows = maxPossibleRows;
@@ -1572,12 +1558,15 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         unsupported = true;
     }
 
-    // known limitation: temporal scalability and tiles don't work together
+    // KNOWN FEATURES LIMITATIONS:
+
+    // temporal scalability and tiles don't work together
     if (par.m_numLayers > 1 && (rows > 1 || cols > 1))
     {
         rows = cols = 1;
         unsupported = true;
     }
+
 #endif // MFX_VERSION >= 1029
 
     return GetCheckStatus(changed, unsupported);
@@ -1828,17 +1817,7 @@ mfxStatus CheckParametersAndSetDefaults(
     {
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
-    // (5) opaque memory allocation
-    if (par.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-    {
-        mfxExtOpaqueSurfaceAlloc &opaq = GetExtBufferRef(par);
-        if (opaq.In.NumSurface == 0 ||
-            opaq.In.Surfaces == 0 ||
-            (opaq.In.Type & MFX_MEMTYPE_SYS_OR_D3D) == 0)
-        {
-            return MFX_ERR_INVALID_VIDEO_PARAM;
-        }
-    }
+
 
     // (6) Mandatory segmentation parameters
     mfxExtVP9Segmentation const & seg = GetExtBufferRef(par);
@@ -1905,21 +1884,20 @@ mfxStatus CheckSurface(
     mfxU32 initHeight,
     ENCODE_CAPS_VP9 const &caps)
 {
-    mfxExtOpaqueSurfaceAlloc const & extOpaq = GetExtBufferRef(video);
-    bool isOpaq = video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && extOpaq.In.NumSurface > 0;
+    bool isOpaq = false;
 
     // check that surface contains valid data
     MFX_CHECK(CheckFourcc(surface.Info.FourCC, caps), MFX_ERR_INVALID_VIDEO_PARAM);
 
     if (video.m_inMemType == INPUT_SYSTEM_MEMORY)
     {
-        MFX_CHECK(!LumaIsNull(&surface), MFX_ERR_NULL_PTR);
+        MFX_CHECK(!LumaIsNull(&surface) || surface.Data.MemId, MFX_ERR_NULL_PTR);
 #if (MFX_VERSION >= 1027)
         if (surface.Info.FourCC != MFX_FOURCC_Y410)
 #endif
         {
-            MFX_CHECK(surface.Data.U != 0, MFX_ERR_NULL_PTR);
-            MFX_CHECK(surface.Data.V != 0, MFX_ERR_NULL_PTR);
+            MFX_CHECK(surface.Data.U != 0 || (surface.Data.MemId && LumaIsNull(&surface)), MFX_ERR_NULL_PTR);
+            MFX_CHECK(surface.Data.V != 0 || (surface.Data.MemId && LumaIsNull(&surface)), MFX_ERR_NULL_PTR);
         }
     }
     else if (isOpaq == false)
@@ -2001,7 +1979,7 @@ mfxStatus CheckAndFixCtrl(
             sts = CheckSegmentationParam(*seg, extPar.FrameWidth, extPar.FrameHeight, caps, video, &ctrl);
             if (sts == MFX_ERR_UNSUPPORTED ||
                 (true == AnyMandatorySegMapParam(*seg) && false == AllMandatorySegMapParams(*seg)) ||
-                IsOn(opt2.MBBRC))
+                IsOn(opt2.MBBRC) )
             {
                 // provided segmentation parameters are invalid or lack mandatory information.
                 // Ext buffer will be ignored. Report to application about it with warning.

@@ -21,7 +21,7 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_VA_LINUX)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_base.h"
 #include "hevcehw_base_data.h"
@@ -41,7 +41,7 @@ namespace Base
             : HEVCEHW::Base::ReconInfo(FeatureId)
         {
             ModRec[0] =
-            { // 8b
+            {
                 {
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
                     , [](mfxFrameInfo& rec)
@@ -58,7 +58,7 @@ namespace Base
                 }
             };
             ModRec[1] =
-            { // 10b
+            {
                 {
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
                     , [](mfxFrameInfo& rec)

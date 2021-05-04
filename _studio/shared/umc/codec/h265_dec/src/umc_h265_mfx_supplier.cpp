@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2012-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -306,7 +306,7 @@ UMC::Status MFXTaskSupplier_H265::DecodeHeaders(UMC::MediaDataEx *nalUnit)
 
                         if (isSPS && currSPS != nullptr)
                             currSPS->m_changed = changed;
-                        else if (currPPS != nullptr)
+                        else if(currPPS != nullptr)
                             currPPS->m_changed = changed;
                     }
                     hdr->Resize(id, size + prefix_size);

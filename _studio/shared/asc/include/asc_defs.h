@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +20,7 @@
 #ifndef __ASC_DEFS__
 #define __ASC_DEFS__
 
+#define ASCTUNEDATA       0
 
 #undef  NULL
 #define NULL              0
@@ -59,7 +60,7 @@
 
 #if defined(ASC_DEBUG)
     #define ASC_PRINTF(...)     printf(__VA_ARGS__)
-    #define ASC_FPRINTF(...)	fprintf(__VA_ARGS__)
+    #define ASC_FPRINTF(...)    fprintf(__VA_ARGS__)
     #define ASC_FFLUSH(x)       fflush(x)
 #else
     #define ASC_PRINTF(...)

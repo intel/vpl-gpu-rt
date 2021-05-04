@@ -1,23 +1,19 @@
-set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
-
-mfx_include_dirs( )
-
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/aenc/include )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/shared/include)
-
 set(sources
-    ${CMAKE_CURRENT_SOURCE_DIR}/enctools.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_enctools_brc.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_enctools_common.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_enctools_aenc.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_enctools_utils.cpp
-    )
-set( sources.plus "" )
-
-set( defs "${API_FLAGS} ${WARNING_FLAGS}" )
-make_library(enctools hw static )
-set( defs "" )
+    enctools.cpp
+    src/mfx_enctools_brc.cpp
+    src/mfx_enctools_common.cpp
+    src/mfx_enctools_aenc.cpp
+    src/mfx_enctools_utils.cpp
+    src/mfx_enctools_lpla.cpp
+    src/mfx_enctools_allocator.cpp
+    include/mfx_enctools.h
+    include/mfx_enctools_aenc.h
+    include/mfx_enctools_brc.h
+    include/mfx_enctools_defs.h
+    include/mfx_enctools_lpla.h
+    include/mfx_enctools_utils.h
+    include/mfx_enctools_allocator.h
+  )
 
 if (MFX_ENABLE_AENC)
   find_library( AENC_LIBRARY libaenc.a PATHS ${CMAKE_HOME_DIRECTORY}/contrib/aenc/ )
@@ -33,6 +29,25 @@ if (MFX_ENABLE_AENC)
   endif()
 endif()
 
-if (MFX_ENABLE_AENC)
-  target_link_libraries(enctools_hw aenc)
-endif()
+add_library(enctools_hw STATIC ${sources})
+
+target_compile_definitions(enctools_hw
+  PRIVATE 
+    $<$<BOOL:${MFX_ENABLE_AENC}>:MFX_ENABLE_AENC>
+  )
+
+target_include_directories(enctools_hw
+  PUBLIC
+    include
+    aenc/include
+  )
+target_link_libraries(enctools_hw
+  PUBLIC 
+    mfx_static_lib
+    vm
+  PRIVATE
+    mfx_sdl_properties    
+    $<$<BOOL:${MFX_ENABLE_AENC}>:aenc> 
+  )
+
+include(sources_ext.cmake OPTIONAL)

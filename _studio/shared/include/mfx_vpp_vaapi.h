@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2011-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,6 @@
 #include "mfx_common.h"
 
 #if defined (MFX_ENABLE_VPP)
-#if defined (MFX_VA_LINUX)
 
 #ifndef __MFX_VPP_VAAPI
 #define __MFX_VPP_VAAPI
@@ -56,13 +55,13 @@ namespace MfxHwVideoProcessing
                                    mfxU32 num,
                                    BOOL bRegister);
 
-        virtual mfxStatus QueryTaskStatus(mfxU32 taskIndex);
+        virtual mfxStatus QueryTaskStatus(SynchronizedTask* pSyncTask);
 
         virtual mfxStatus QueryCapabilities( mfxVppCaps& caps );
 
         virtual mfxStatus QueryVariance(
-            mfxU32 /* frameIndex */,
-            std::vector<mfxU32> & /*variance*/) { return MFX_ERR_UNSUPPORTED; }
+            mfxU32 frameIndex,
+            std::vector<mfxU32> &variance);
 
         virtual BOOL IsRunning() { return m_bRunning; }
 
@@ -135,7 +134,6 @@ namespace MfxHwVideoProcessing
         VABufferID m_deintFilterID;
         VABufferID m_procampFilterID;
         VABufferID m_frcFilterID;
-        VABufferID m_gpuPriorityID;
         mfxU32     m_deintFrameCount;
         VASurfaceID m_refForFRC[5];
 
@@ -146,8 +144,6 @@ namespace MfxHwVideoProcessing
         std::vector<VABufferID> m_pipelineParamID;
 
         std::set<mfxU32> m_cachedReadyTaskIndex;
-
-        mfxU32 m_MaxContextPriority;
 
         typedef struct
         {
@@ -171,7 +167,6 @@ namespace MfxHwVideoProcessing
 }; // namespace
 
 #endif //__MFX_VPP_VAAPI
-#endif // MFX_VA_LINUX
 #endif // MFX_ENABLE_VPP
 
 /* EOF */

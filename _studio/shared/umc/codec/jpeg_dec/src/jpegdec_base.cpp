@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2001-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -20,10 +20,20 @@
 
 #include "umc_defs.h"
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
+#if defined(__GNUC__)
+#if defined(__INTEL_COMPILER)
+#pragma warning (disable:1478)
+#else
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#endif
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
+#include "ippi.h"
+#include "ippj.h"
 #include "jpegbase.h"
 #include "jpegdec_base.h"
 
@@ -158,9 +168,9 @@ JERRCODE CJPEGDecoderBase::Clean(void)
 
 JERRCODE CJPEGDecoderBase::SetSource(const uint8_t* pBuf, size_t buflen)
 {
-  JERRCODE jerr = m_stream_in.Open(pBuf, buflen);
-  if(JPEG_OK != jerr)
-    return jerr;
+    JERRCODE jerr = m_stream_in.Open(pBuf, buflen);
+    if (JPEG_OK != jerr)
+        return jerr;
 
   jerr = m_BitStreamIn.Attach(&m_stream_in);
   if(JPEG_OK != jerr)
@@ -171,7 +181,7 @@ JERRCODE CJPEGDecoderBase::SetSource(const uint8_t* pBuf, size_t buflen)
 
 JERRCODE CJPEGDecoderBase::Seek(long offset, int origin)
 {
-  return m_stream_in.Seek(offset, origin);
+    return m_stream_in.Seek(offset, origin);
 }// CJPEGDecoderBase::Seek
 
 JERRCODE CJPEGDecoderBase::DetectSampling(void)
@@ -1217,6 +1227,10 @@ comp_id_match:
 
 JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
 {
+#ifdef __TIMING__
+  unsigned long long   c0;
+  unsigned long long   c1;
+#endif
   JERRCODE jerr = JPEG_OK;
 
   m_marker = JM_NONE;

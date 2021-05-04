@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2003-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -628,7 +628,6 @@ Status DecReferencePictureMarking::UpdateRefPicMarking(ViewItem &view, H264Decod
     // set MVC 'inter view flag'
     pFrame->SetInterViewRef(0 != sliceHeader->nal_ext.mvc.inter_view_flag, field_index);
 
-    // corruption recovery
     if (pFrame->m_bIFlag)
     {
         for (H264DecoderFrame *pCurr = view.GetDPBList(0)->head(); pCurr; pCurr = pCurr->future())
@@ -1215,7 +1214,7 @@ void MVC_Extension::ChooseLevelIdc(const H264SeqParamSetMVCExtension * extension
             for (const auto & targetView : m_viewIDsList)
             {
                 auto it = std::find_if(operationPoint.applicable_op_target_view_id.begin(), operationPoint.applicable_op_target_view_id.end(),
-                                       [targetView](const uint16_t & item){ return item == targetView; });
+                    [targetView](const uint16_t & item) { return item == targetView; });
 
                 if (it == operationPoint.applicable_op_target_view_id.end())
                 {
@@ -2958,7 +2957,8 @@ H264DecoderFrame *TaskSupplier::GetAnyFrameToDisplay(bool force)
 #ifdef ENABLE_MAX_NUM_REORDER_FRAMES_OUTPUT
                 || countNumDisplayable > view.maxNumReorderFrames
 #endif
-                || force)
+                || force
+            )
             {
                 H264DecoderFrame *pTmp = view.GetDPBList(0)->findOldestDisplayable(view.maxDecFrameBuffering);
 

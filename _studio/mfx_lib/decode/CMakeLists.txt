@@ -1,54 +1,33 @@
-# Copyright (c) 2017-2018 Intel Corporation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+list(APPEND vdirs
+  h264 h265 mjpeg mpeg2/hw mpeg2/sw vc1 vp8 vp9 av1
+  )
+list(APPEND cdirs
+  h265_dec h264_dec mpeg2_dec vp9_dec av1_dec vc1_dec jpeg_dec vc1_common color_space_converter jpeg_common
+  )
 
-set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
+set(include_dirs "")
 
-mfx_include_dirs( )
+foreach(dir ${vdirs})
+  list(APPEND include_dirs ${dir}/include)
+endforeach()
 
-set(UMC_CODECS ${CMAKE_CURRENT_SOURCE_DIR}/../../shared/umc/codec/)
+list(APPEND include_dirs ${MSDK_LIB_ROOT}/vpp/include )
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/h264/include )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/h265/include )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mjpeg/include )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mpeg2/include )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/vc1/include )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/vp8/include )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/vp9/include )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/av1/include )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../vpp/include )
+foreach(dir ${cdirs})
+  list(APPEND include_dirs ${MSDK_UMC_ROOT}/codec/${dir}/include)
+endforeach( )
 
-include_directories( ${UMC_CODECS}/h265_dec/include )
-include_directories( ${UMC_CODECS}/h264_dec/include )
-include_directories( ${UMC_CODECS}/mpeg2_dec/include )
-include_directories( ${UMC_CODECS}/vp9_dec/include )
-include_directories( ${UMC_CODECS}/vc1_dec/include )
-include_directories( ${UMC_CODECS}/av1_dec/include )
-include_directories( ${UMC_CODECS}/jpeg_dec/include )
-include_directories( ${UMC_CODECS}/vc1_common/include )
-include_directories( ${UMC_CODECS}/color_space_converter/include )
-include_directories( ${UMC_CODECS}/jpeg_common/include )
+list(APPEND include_dirs ${MSDK_UMC_ROOT}/io/umc_va/include)
+
+set(UMC_CODECS ${MSDK_UMC_ROOT}/codec)
 
 set(sources "")
 
 list(APPEND sources
-    ${CMAKE_CURRENT_SOURCE_DIR}/h264/src/mfx_h264_dec_decode.cpp
+
+    h264/include/mfx_h264_dec_decode.h
+
+    h264/src/mfx_h264_dec_decode.cpp
     ${UMC_CODECS}/h264_dec/src/umc_h264_au_splitter.cpp
     ${UMC_CODECS}/h264_dec/src/umc_h264_dec_bitstream_headers.cpp
     ${UMC_CODECS}/h264_dec/src/umc_h264_dec_debug.cpp
@@ -69,7 +48,9 @@ list(APPEND sources
     )
 
 list(APPEND sources
-    ${CMAKE_CURRENT_SOURCE_DIR}/h265/src/mfx_h265_dec_decode.cpp
+    h265/include/mfx_h265_dec_decode.h
+
+    h265/src/mfx_h265_dec_decode.cpp
     ${UMC_CODECS}/h265_dec/src/umc_h265_au_splitter.cpp
     ${UMC_CODECS}/h265_dec/src/umc_h265_bitstream_headers.cpp
     ${UMC_CODECS}/h265_dec/src/umc_h265_debug.cpp
@@ -88,12 +69,15 @@ list(APPEND sources
     ${UMC_CODECS}/h265_dec/src/umc_h265_task_supplier.cpp
     ${UMC_CODECS}/h265_dec/src/umc_h265_va_packer.cpp
     ${UMC_CODECS}/h265_dec/src/umc_h265_va_packer_vaapi.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_va_packer_ms.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_va_packer_intel.cpp
     ${UMC_CODECS}/h265_dec/src/umc_h265_va_supplier.cpp
     ${UMC_CODECS}/h265_dec/src/umc_h265_yuv.cpp
     ${UMC_CODECS}/h265_dec/src/umc_h265_mfx_utils.cpp
     )
 list(APPEND sources
-    ${CMAKE_CURRENT_SOURCE_DIR}/mjpeg/src/mfx_mjpeg_dec_decode.cpp
+    mjpeg/include/mfx_mjpeg_dec_decode.h
+    mjpeg/src/mfx_mjpeg_dec_decode.cpp
     ${UMC_CODECS}/jpeg_common/src/bitstreamin.cpp
     ${UMC_CODECS}/jpeg_common/src/bitstreamout.cpp
     ${UMC_CODECS}/jpeg_common/src/colorcomp.cpp
@@ -104,15 +88,14 @@ list(APPEND sources
     ${UMC_CODECS}/jpeg_dec/src/decqtbl.cpp
     ${UMC_CODECS}/jpeg_dec/src/jpegdec.cpp
     ${UMC_CODECS}/jpeg_dec/src/jpegdec_base.cpp
-    ${UMC_CODECS}/jpeg_dec/src/mfx_mjpeg_task.cpp
     ${UMC_CODECS}/jpeg_dec/src/umc_jpeg_frame_constructor.cpp
-    ${UMC_CODECS}/jpeg_dec/src/umc_mjpeg_mfx_decode.cpp
     ${UMC_CODECS}/jpeg_dec/src/umc_mjpeg_mfx_decode_base.cpp
     ${UMC_CODECS}/jpeg_dec/src/umc_mjpeg_mfx_decode_hw.cpp
     )
 
 list(APPEND sources
-    ${CMAKE_CURRENT_SOURCE_DIR}/mpeg2/src/mfx_mpeg2_decode.cpp
+    mpeg2/hw/include/mfx_mpeg2_decode.h
+    mpeg2/hw/src/mfx_mpeg2_decode.cpp
     ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_bitstream.cpp
     ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_decoder.cpp
     ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_decoder_va.cpp
@@ -121,7 +104,8 @@ list(APPEND sources
     ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_splitter.cpp
     ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_utils.cpp
     ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_va_packer.cpp
-    )
+  )
+
 
 list(APPEND sources
     ${CMAKE_CURRENT_SOURCE_DIR}/vc1/src/mfx_vc1_decode.cpp
@@ -152,10 +136,13 @@ list(APPEND sources
 
 list(APPEND sources
     ${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_common.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_hw.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_hw_vaapi.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_tables.cpp
     )
+
+list(APPEND sources_hw
+    ${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_hw.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_hw_vaapi.cpp
+)
 
 list(APPEND sources
     ${CMAKE_CURRENT_SOURCE_DIR}/vp9/src/mfx_vp9_dec_decode.cpp
@@ -166,20 +153,20 @@ list(APPEND sources
     ${UMC_CODECS}/vp9_dec/src/umc_vp9_va_packer.cpp
     )
 
-if( MFX_ENABLE_SW_FALLBACK )
-    list(APPEND sources
-        ${UMC_CODECS}/color_space_converter/src/umc_video_processing.cpp
-        ${UMC_CODECS}/color_space_converter/src/umc_color_space_conversion.cpp
-        ${UMC_CODECS}/color_space_converter/src/umc_deinterlacing.cpp
-        )
-endif()
-
-set( sources.plus "" )
-
-set( defs "${API_FLAGS} ${WARNING_FLAGS}" )
+list(APPEND sources
+    ${UMC_CODECS}/color_space_converter/include/umc_color_space_conversion.h
+    ${UMC_CODECS}/color_space_converter/include/umc_data_pointers_copy.h
+    ${UMC_CODECS}/color_space_converter/include/umc_deinterlacing.h
+    ${UMC_CODECS}/color_space_converter/include/umc_video_processing.h
+    ${UMC_CODECS}/color_space_converter/include/umc_video_resizing.h
+    ${UMC_CODECS}/color_space_converter/src/umc_video_processing.cpp
+    ${UMC_CODECS}/color_space_converter/src/umc_video_resizing.cpp
+    ${UMC_CODECS}/color_space_converter/src/umc_color_space_conversion.cpp
+    ${UMC_CODECS}/color_space_converter/src/umc_deinterlacing.cpp
+    )
 
 list(APPEND sources
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/src/mfx_av1_dec_decode.cpp
+    av1/src/mfx_av1_dec_decode.cpp
     ${UMC_CODECS}/av1_dec/src/umc_av1_bitstream.cpp
     ${UMC_CODECS}/av1_dec/src/umc_av1_decoder.cpp
     ${UMC_CODECS}/av1_dec/src/umc_av1_decoder_va.cpp
@@ -188,6 +175,21 @@ list(APPEND sources
     ${UMC_CODECS}/av1_dec/src/umc_av1_va_packer_vaapi.cpp
     )
 
-make_library( decode hw static )
-set( defs "" )
+add_library(decode_hw STATIC ${sources} ${sources_hw})
+target_compile_definitions(decode_hw
+  PRIVATE
+    MFX_VA
+    UMC_AV1_DECODER_REV=8500
+  )
+target_include_directories(decode_hw PUBLIC ${include_dirs})
 
+target_link_libraries(decode_hw
+  PUBLIC
+    mfx_static_lib
+    umc_va_hw
+  PRIVATE
+    mfx_sdl_properties
+    ipp
+  )
+
+include(sources_ext.cmake OPTIONAL)

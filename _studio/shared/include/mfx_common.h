@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2008-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,7 +23,7 @@
 
 #include "mfxvideo.h"
 #include "mfxvideo++int.h"
-#include "umc_defs.h"
+#include "ippdefs.h"
 #include "mfx_utils.h"
 #include <stdio.h>
 #include <string.h>
@@ -32,6 +32,7 @@
 #include <stdexcept> /* for std exceptions on Linux/Android */
 
 #include "mfx_config.h"
+#include "mfx_functions.h"
 
     #include <stddef.h>
 
@@ -39,5 +40,33 @@
 
 #define MFX_AUTO_ASYNC_DEPTH_VALUE  5
 #define MFX_MAX_ASYNC_DEPTH_VALUE   15
+
+#if defined(MFX_ENABLE_HW_BLOCKING_TASK_SYNC)
+typedef struct _GPU_SYNC_EVENT_HANDLE
+{
+    uint8_t         m_gpuComponentId;   //GPU_COMPONENT_ID
+    HANDLE          gpuSyncEvent;
+} GPU_SYNC_EVENT_HANDLE, *PGPU_SYNC_EVENT_HANDLE;
+
+struct SynchronizedTask
+{
+    GPU_SYNC_EVENT_HANDLE m_GpuEvent;
+    SynchronizedTask() : m_GpuEvent(), taskIndex(0) {}
+
+    mfxU32 taskIndex;
+};
+#else
+struct SynchronizedTask
+{ 
+    SynchronizedTask():taskIndex(0) {}
+    mfxU32 taskIndex;
+};
+#endif
+
+inline bool IsPreSiPlatform(eMFXHWType type)
+{
+    return
+        false;
+}
 
 #endif //_MFX_COMMON_H_

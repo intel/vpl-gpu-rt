@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2008-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,14 +23,20 @@
 #include <mfx_session.h>
 #include <mfx_tools.h>
 #include <mfx_common.h>
+
+#if defined (MFX_ENABLE_USER_VPP)
 #include <mfx_user_plugin.h>
+#endif
 
 // sheduling and threading stuff
 #include <mfx_task.h>
 
+#include <libmfx_allocator.h>
+
 #ifdef MFX_ENABLE_VPP
 // VPP include files here
 #include "mfx_vpp_main.h"       // this VideoVPP class builds VPP pipeline and run the VPP pipeline
+#include "mfx_vpp_hw.h"
 #endif
 
 template<>
@@ -51,15 +57,20 @@ VideoVPP* _mfxSession::Create<VideoVPP>(mfxVideoParam& /*par*/)
 #endif // MFX_ENABLE_VPP
 
     return pVPP;
+
 }
 
 mfxStatus MFXVideoVPP_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
 {
-    MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, in);
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(out, MFX_ERR_NULL_PTR);
+
+    mfxStatus mfxRes = MFX_ERR_UNSUPPORTED;
+
+    MFX_AUTO_TRACE("MFXVideoVPP_Query");
+    ETW_NEW_EVENT(MFX_TRACE_API_VPP_QUERY_TASK, 0, make_event_data(session, in ? in->mfx.FrameInfo.Width : 0, in ? in->mfx.FrameInfo.Height : 0, in ? in->mfx.CodecId : 0, out->mfx.FrameInfo.Width, out->mfx.FrameInfo.Height, out->mfx.CodecId), [&](){ return make_event_data(mfxRes);});
 
     if ((0 != in) && (MFX_HW_VAAPI == session->m_pCORE->GetVAType()))
     {
@@ -71,7 +82,6 @@ mfxStatus MFXVideoVPP_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam
         }
     }
 
-    mfxStatus mfxRes = MFX_ERR_UNSUPPORTED;
     try
     {
 #ifdef MFX_ENABLE_USER_VPP
@@ -104,7 +114,6 @@ mfxStatus MFXVideoVPP_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam
 
 mfxStatus MFXVideoVPP_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
-    MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, par);
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
@@ -112,6 +121,10 @@ mfxStatus MFXVideoVPP_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFra
     MFX_CHECK(request, MFX_ERR_NULL_PTR);
 
     mfxStatus mfxRes = MFX_ERR_UNSUPPORTED;
+
+    MFX_AUTO_TRACE("MFXVideoVPP_QueryIOSurf");
+    ETW_NEW_EVENT(MFX_TRACE_API_VPP_QUERY_IOSURF_TASK, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId), [&](){ return make_event_data(mfxRes);});
+
     try
     {
 #ifdef MFX_ENABLE_USER_VPP
@@ -146,28 +159,42 @@ mfxStatus MFXVideoVPP_Init(mfxSession session, mfxVideoParam *par)
 {
     mfxStatus mfxRes = MFX_ERR_UNSUPPORTED;
 
-    MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, par);
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(par, MFX_ERR_NULL_PTR);
 
+    MFX_AUTO_TRACE("MFXVideoVPP_Init");
+    ETW_NEW_EVENT(MFX_TRACE_API_VPP_INIT_TASK, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId), [&](){ return make_event_data(mfxRes);});
+
     try
     {
-        // check existence of component
-        if (!session->m_pVPP)
+#ifdef MFX_ENABLE_USER_VPP
+        if (session->m_plgVPP)
         {
+            mfxRes = session->m_plgVPP->Init(par);
+        }
+        else
+        {
+#endif
+
+#ifdef MFX_ENABLE_VPP
+            // close the existing video processor,
+            // if it is initialized.
+            if (session->m_pVPP.get())
+            {
+                MFXVideoVPP_Close(session);
+            }
+
+
             // create a new instance
             session->m_pVPP.reset(session->Create<VideoVPP>(*par));
-#ifdef MFX_ENABLE_VPP
             MFX_CHECK(session->m_pVPP.get(), MFX_ERR_INVALID_VIDEO_PARAM);
-#else
-            MFX_CHECK(session->m_pVPP.get(), MFX_ERR_UNSUPPORTED);
-#endif
+            mfxRes = session->m_pVPP->Init(par);
+#endif // MFX_ENABLE_VPP
+#ifdef MFX_ENABLE_USER_VPP
         }
-
-        // create a new instance
-        mfxRes = session->m_pVPP->Init(par);
+#endif
     }
     // handle error(s)
     catch(...)
@@ -184,10 +211,11 @@ mfxStatus MFXVideoVPP_Close(mfxSession session)
 {
     mfxStatus mfxRes;
 
-    MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
+    MFX_AUTO_TRACE("MFXVideoVPP_Close");
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pScheduler, MFX_ERR_NOT_INITIALIZED);
+    ETW_NEW_EVENT(MFX_TRACE_API_VPP_CLOSE_TASK, 0, make_event_data(session), [&](){ return make_event_data(mfxRes);});
 
     try
     {
@@ -200,8 +228,6 @@ mfxStatus MFXVideoVPP_Close(mfxSession session)
         session->m_pScheduler->WaitForAllTasksCompletion(session->m_pVPP.get());
 
         mfxRes = session->m_pVPP->Close();
-        // delete the codec's instance if not plugin
-        if (!session->m_plgVPP)
         {
             session->m_pVPP.reset(nullptr);
         }
@@ -219,12 +245,17 @@ mfxStatus MFXVideoVPP_Close(mfxSession session)
 
 static
 mfxStatus MFXVideoVPPLegacyRoutine(void *pState, void *pParam,
-                                   mfxU32 threadNumber, mfxU32 /* callNumber */)
+                                   mfxU32 threadNumber, mfxU32 callNumber)
 {
-    MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
+    (void)callNumber;
+
+    mfxStatus mfxRes;
+
+    MFX_AUTO_TRACE("MFXVideoVPPLegacyRoutine");
+    ETW_NEW_EVENT(MFX_TRACE_API_VPP_LEGACY_ROUTINE_TASK, 0, make_event_data(threadNumber, callNumber), [&](){ return make_event_data(mfxRes);});
+
     VideoVPP *pVPP = (VideoVPP *) pState;
     MFX_THREAD_TASK_PARAMETERS *pTaskParam = (MFX_THREAD_TASK_PARAMETERS *) pParam;
-    mfxStatus mfxRes;
 
     // check error(s)
     if ((NULL == pState) ||
@@ -248,13 +279,14 @@ enum
     MFX_NUM_ENTRY_POINTS = 2
 };
 
-mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp)
+mfxStatus MFXVideoVPP_RunFrameVPPAsync_impl(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp)
 {
     mfxStatus mfxRes;
 
-    MFX_AUTO_LTRACE_WITHID(MFX_TRACE_LEVEL_API, "MFX_RunFrameVPPAsync");
+    MFX_AUTO_TRACE("MFXVideoVPP_RunFrameVPPAsync");
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, aux);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, in);
+    ETW_NEW_EVENT(MFX_TRACE_API_VPP_RUN_FRAME_VPP_ASYNC_TASK, 0, make_event_data(session, in, out), [&](){ return make_event_data(mfxRes, syncp ? *syncp : nullptr);});
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pVPP.get(), MFX_ERR_NOT_INITIALIZED);
@@ -275,7 +307,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
           if (task.entryPoint.pRoutine)
           {
               mfxStatus mfxAddRes;
-
+  
               task.pOwner = session->m_plgVPP.get();
               task.priority = session->m_priority;
               task.threadingPolicy = session->m_plgVPP->GetThreadingPolicy();
@@ -284,18 +316,25 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
               task.pDst[0] = out;
               if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
                 task.pDst[0] = NULL;
-
+  
               #ifdef MFX_TRACE_ENABLE
               task.nParentId = MFX_AUTO_TRACE_GETID();
               task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP;
               #endif
-
+  
               // register input and call the task
               mfxAddRes = session->m_pScheduler->AddTask(task, &syncPoint);
               if (MFX_ERR_NONE != mfxAddRes)
               {
                   return mfxAddRes;
               }
+
+              if (syncPoint && out && out->FrameInterface)
+              {
+                  MFX_CHECK_HDL(out->FrameInterface->Context);
+                  static_cast<mfxFrameSurfaceBaseInterface*>(out->FrameInterface->Context)->SetSyncPoint(syncPoint);
+              }
+
               *syncp = syncPoint;
           }
       }
@@ -340,7 +379,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
                 // fill dependencies
                 task.pSrc[0] = in;
                 task.pDst[0] = out;
-
+                
                 if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
                     task.pDst[0] = NULL;
 
@@ -366,7 +405,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
                 task.pDst[0] = out;
                 if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
                     task.pDst[0] = NULL;
-
+                
 
 #ifdef MFX_TRACE_ENABLE
                 task.nParentId = MFX_AUTO_TRACE_GETID();
@@ -387,7 +426,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
                 // fill dependencies
                 task.pSrc[0] = in;
                 task.pDst[0] = entryPoints[0].pParam;
-
+               
 
 #ifdef MFX_TRACE_ENABLE
                 task.nParentId = MFX_AUTO_TRACE_GETID();
@@ -401,7 +440,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
                 task.entryPoint = entryPoints[1];
                 task.priority = session->m_priority;
                 task.threadingPolicy = session->m_pVPP->GetThreadingPolicy();
-
+                
                 // fill dependencies
                 task.pSrc[0] = entryPoints[0].pParam;
                 task.pDst[0] = out;
@@ -424,6 +463,12 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
             {
                 mfxRes = MFX_ERR_MORE_DATA;
                 syncPoint = NULL;
+            }
+
+            if (syncPoint && out && out->FrameInterface)
+            {
+                MFX_CHECK_HDL(out->FrameInterface->Context);
+                static_cast<mfxFrameSurfaceBaseInterface*>(out->FrameInterface->Context)->SetSyncPoint(syncPoint);
             }
         }
 
@@ -450,6 +495,12 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
 
 } // mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp)
 
+// This separation is required for avoiding possible linkage conflict with function loaded from dispatcher
+mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp)
+{
+    return MFXVideoVPP_RunFrameVPPAsync_impl(session, in, out, aux, syncp);
+}
+
 mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, mfxSyncPoint *syncp)
 {
 #if !defined(MFX_ENABLE_USER_VPP)
@@ -460,8 +511,10 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *i
 
     mfxStatus mfxRes;
 
-    MFX_AUTO_LTRACE_WITHID(MFX_TRACE_LEVEL_API, "MFX_RunFrameVPPAsyncEx");
-    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, in);
+    MFX_AUTO_TRACE("MFXVideoVPP_RunFrameVPPAsyncEx");
+    ETW_NEW_EVENT(MFX_TRACE_API_VPP_RUN_FRAME_VPP_ASYNC_EX_TASK, 0, make_event_data(session, in, surface_work), [&](){ return make_event_data(mfxRes, syncp ? *syncp : nullptr);});
+
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, in)
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pVPP.get(), MFX_ERR_NOT_INITIALIZED);
@@ -482,7 +535,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *i
           if (task.entryPoint.pRoutine)
           {
               mfxStatus mfxAddRes;
-
+  
               task.pOwner = session->m_plgVPP.get();
               task.priority = session->m_priority;
               task.threadingPolicy = session->m_plgVPP->GetThreadingPolicy();
@@ -491,18 +544,25 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *i
               task.pDst[0] = surface_work;
               if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
                 task.pDst[0] = NULL;
-
+  
               #ifdef MFX_TRACE_ENABLE
               task.nParentId = MFX_AUTO_TRACE_GETID();
               task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP;
               #endif
-
+  
               // register input and call the task
               mfxAddRes = session->m_pScheduler->AddTask(task, &syncPoint);
               if (MFX_ERR_NONE != mfxAddRes)
               {
                   return mfxAddRes;
               }
+
+              if (syncPoint && (*surface_out) && (*surface_out)->FrameInterface)
+              {
+                  MFX_CHECK_HDL((*surface_out)->FrameInterface->Context);
+                  static_cast<mfxFrameSurfaceBaseInterface*>((*surface_out)->FrameInterface->Context)->SetSyncPoint(syncPoint);
+              }
+
               *syncp = syncPoint;
           }
       }
@@ -533,6 +593,19 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *i
 
 } // mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, mfxThreadTask *task);
 
+mfxStatus MFXVideoVPP_ProcessFrameAsync(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 **out)
+{
+    MFX_CHECK_NULL_PTR1(out);
+
+    MFX_CHECK_HDL(session);
+    MFX_CHECK(session->m_pVPP.get(), MFX_ERR_NOT_INITIALIZED);
+
+    *out = session->m_pVPP->GetSurfaceOut();
+    MFX_CHECK(*out, MFX_ERR_MEMORY_ALLOC);
+
+    mfxSyncPoint syncPoint;
+    return MFXVideoVPP_RunFrameVPPAsync_impl(session, in, *out, nullptr, &syncPoint);
+}
 //
 // THE OTHER VPP FUNCTIONS HAVE IMPLICIT IMPLEMENTATION
 //
@@ -541,3 +614,8 @@ FUNCTION_RESET_IMPL(VPP, Reset, (mfxSession session, mfxVideoParam *par), (par))
 
 FUNCTION_IMPL(VPP, GetVideoParam, (mfxSession session, mfxVideoParam *par), (par))
 FUNCTION_IMPL(VPP, GetVPPStat, (mfxSession session, mfxVPPStat *stat), (stat))
+
+mfxStatus QueryImplsDescription(VideoCORE& core, mfxVPPDescription& caps, mfx::PODArraysHolder& arrayHolder)
+{
+    return MfxHwVideoProcessing::VideoVPPHW::QueryImplsDescription(&core, caps, arrayHolder);
+}

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,11 +18,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#pragma once
+
+#include "umc_va_base.h"
+
+#ifdef UMC_VA_LINUX
+
 #ifndef __UMC_VA_LINUX_PROTECTED_H_
 #define __UMC_VA_LINUX_PROTECTED_H_
 
 #include "mfxpcp.h"
 #include "mfx_utils.h"
+#include "vaapi_ext_interface.h"
 
 namespace UMC
 {
@@ -30,6 +37,7 @@ namespace UMC
 class ProtectedVA
 {
 public:
+
     ProtectedVA(mfxU16 p = 0);
     virtual ~ProtectedVA()
     {
@@ -37,15 +45,19 @@ public:
 
     virtual mfxU16 GetProtected() const;
 
+
     void SetBitstream(mfxBitstream *bs);
     mfxBitstream * GetBitstream();
+
 
 protected:
     mfxU16 m_protected;
     mfxBitstream m_bs;
+
 };
 
 }
 
 #endif // __UMC_VA_LINUX_PROTECTED_H_
 
+#endif // UMC_VA_LINUX

@@ -52,11 +52,13 @@ struct DDIExecParam
 
 struct DDIFeedback
 {
-    using TGet    = MfxFeatureBlocks::CallChain<const void*, mfxU32>;
-    using TUpdate = MfxFeatureBlocks::CallChain<mfxStatus, mfxU32>;
+    using TGet         = MfxFeatureBlocks::CallChain<const void*, mfxU32>;
+    using TCheckStatus = MfxFeatureBlocks::CallChain<bool, mfxU32>;
+    using TUpdate      = MfxFeatureBlocks::CallChain<mfxStatus, mfxU32>;
 
     std::list<DDIExecParam> ExecParam;
     TGet                    Get;
+    TCheckStatus            CheckStatus;
     TUpdate                 Update;
     TUpdate                 Remove;
     bool                    bNotReady = false;

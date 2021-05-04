@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2007-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -92,10 +92,6 @@ mfxStatus MFXDisjoinSession(mfxSession session)
         session->m_pScheduler->WaitForAllTasksCompletion(session->m_pENCODE.get());
         session->m_pScheduler->WaitForAllTasksCompletion(session->m_pDECODE.get());
         session->m_pScheduler->WaitForAllTasksCompletion(session->m_pVPP.get());
-        session->m_pScheduler->WaitForAllTasksCompletion(session->m_pENC.get());
-        session->m_pScheduler->WaitForAllTasksCompletion(session->m_pPAK.get());
-        session->m_pScheduler->WaitForAllTasksCompletion(session->m_plgGen.get());
-
         // remove child core from parent core operator
         session->m_pOperatorCore->RemoveCore(session->m_pCORE.get());
 
@@ -120,8 +116,11 @@ mfxStatus MFXDisjoinSession(mfxSession session)
     }
 }
 
-mfxStatus MFXCloneSession(mfxSession /* session */, mfxSession * /* clone */)
+mfxStatus MFXCloneSession(mfxSession session, mfxSession *clone)
 {
+    (void)session;
+    (void)clone;
+
     // this function is implemented at the dispatcher's level.
     // there is nothing to do inside the llibrary.
     return MFX_ERR_UNSUPPORTED;
@@ -190,6 +189,7 @@ mfxStatus MFXGetPriority(mfxSession session, mfxPriority *priority)
     return MFX_ERR_NONE;
 }
 
+
 mfxStatus MFXInternalPseudoJoinSession(mfxSession session, mfxSession child_session)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXInternalPseudoJoinSession");
@@ -237,9 +237,6 @@ mfxStatus MFXInternalPseudoDisjoinSession(mfxSession session)
         session->m_pScheduler->WaitForAllTasksCompletion(session->m_pENCODE.get());
         session->m_pScheduler->WaitForAllTasksCompletion(session->m_pDECODE.get());
         session->m_pScheduler->WaitForAllTasksCompletion(session->m_pVPP.get());
-        session->m_pScheduler->WaitForAllTasksCompletion(session->m_pENC.get());
-        session->m_pScheduler->WaitForAllTasksCompletion(session->m_pPAK.get());
-        session->m_pScheduler->WaitForAllTasksCompletion(session->m_plgGen.get());
 
         // create new self core operator
         // restore original operator core.

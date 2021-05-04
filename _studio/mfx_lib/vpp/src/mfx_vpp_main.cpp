@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2008-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -32,13 +32,11 @@
 
 #include "mfx_vpp_mvc.h"
 
-
 using namespace MfxVideoProcessing;
 
 /* ******************************************************************** */
 /*                 Main (High Level) Class of MSDK VPP                  */
 /* ******************************************************************** */
-
 
 mfxStatus VideoVPPMain::Query(VideoCORE* core, mfxVideoParam *in, mfxVideoParam *out)
 {
@@ -48,16 +46,13 @@ mfxStatus VideoVPPMain::Query(VideoCORE* core, mfxVideoParam *in, mfxVideoParam 
 
 mfxStatus VideoVPPMain::QueryIOSurf(VideoCORE* core, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
-
     return ImplementationMvc::QueryIOSurf(core, par, request);
-
 } // mfxStatus VideoVPPMain::QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest *request, const mfxU32 adapterNum)
 
 
 VideoVPPMain::VideoVPPMain(VideoCORE *core, mfxStatus* sts )
 : m_core( core )
 {
-    m_bOpaqMode[VPP_IN] = m_bOpaqMode[VPP_OUT] = false;
 
     *sts   = MFX_ERR_NONE;
 
@@ -81,8 +76,7 @@ mfxStatus VideoVPPMain::Init(mfxVideoParam *par)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    std::unique_ptr<VideoVPP> impl(
-              (VideoVPP*) new ImplementationMvc(m_core));
+    std::unique_ptr<VideoVPP> impl((VideoVPP*) new ImplementationMvc(m_core));
 
     mfxStatus mfxSts = impl->Init(par);
     MFX_CHECK(
@@ -107,45 +101,7 @@ mfxStatus VideoVPPMain::Init(mfxVideoParam *par)
 
     internalSts = mfxSts;
 
-    // opaque configuration    
-    mfxSts = CheckOpaqMode( par, m_bOpaqMode );
-    MFX_CHECK_STS( mfxSts );
 
-    if( m_bOpaqMode[VPP_IN] || m_bOpaqMode[VPP_OUT] )
-    {
-        mfxExtOpaqueSurfaceAlloc *pOpaqAlloc = (mfxExtOpaqueSurfaceAlloc *)GetExtendedBufferInternal(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
-
-        mfxFrameAllocRequest  requestOpaq;
-
-        if( m_bOpaqMode[VPP_IN] )
-        {
-            requestOpaq.Info = par->vpp.In;
-            requestOpaq.NumFrameMin = requestOpaq.NumFrameSuggested = (mfxU16)pOpaqAlloc->In.NumSurface;
-            requestOpaq.Type = (mfxU16)(pOpaqAlloc->In.Type|MFX_MEMTYPE_FROM_VPPIN);
-
-            mfxSts = m_core->AllocFrames(&(requestOpaq),
-                                         &(m_responseOpaq[VPP_IN]),
-                                         pOpaqAlloc->In.Surfaces,
-                                         pOpaqAlloc->In.NumSurface);
-            MFX_CHECK_STS( mfxSts );
-        }
-
-        if( m_bOpaqMode[VPP_OUT] )
-        {
-            requestOpaq.Info = par->vpp.Out;
-            requestOpaq.NumFrameMin = requestOpaq.NumFrameSuggested = (mfxU16)pOpaqAlloc->Out.NumSurface;
-            requestOpaq.Type = (mfxU16)(pOpaqAlloc->Out.Type|MFX_MEMTYPE_FROM_VPPOUT);
-
-            mfxSts = m_core->AllocFrames(&(requestOpaq),
-                                         &(m_responseOpaq[VPP_OUT]),
-                                         pOpaqAlloc->Out.Surfaces,
-                                         pOpaqAlloc->Out.NumSurface);
-
-            MFX_CHECK_STS( mfxSts );
-
-        }
-    }
-    
     m_impl = std::move(impl);
 
     return (MFX_ERR_NONE == mfxSts) ? internalSts : mfxSts;
@@ -163,19 +119,6 @@ mfxStatus VideoVPPMain::Close( void )
     m_impl->Close();
     m_impl.reset();
 
-    /* opaque processing */
-    if( m_bOpaqMode[VPP_IN] )
-    {
-        m_core->FreeFrames( &(m_responseOpaq[VPP_IN]) );
-        m_responseOpaq[VPP_IN].NumFrameActual  = 0;
-    }
-    if( m_bOpaqMode[VPP_OUT] )
-    {
-        m_core->FreeFrames( &(m_responseOpaq[VPP_OUT]) );
-        m_responseOpaq[VPP_OUT].NumFrameActual = 0;
-    }
-
-    m_bOpaqMode[VPP_IN] = m_bOpaqMode[VPP_OUT] = false;
 
     return MFX_ERR_NONE;
 
@@ -201,17 +144,6 @@ mfxStatus VideoVPPMain::VppFrameCheck(mfxFrameSurface1 *in,
         return MFX_ERR_NOT_INITIALIZED;
     }
 
-    if (in && m_bOpaqMode[VPP_IN])
-    {
-        if (in->Data.Y || in->Data.U || in->Data.V || in->Data.A || in->Data.MemId)
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
-    }
-
-    if (out && m_bOpaqMode[VPP_OUT])
-    {
-        if (out->Data.Y || out->Data.U || out->Data.V || out->Data.A || out->Data.MemId)
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
-    }
 
     mfxFrameSurface1* pInputNative  =  GetNativeSurface(in, VPP_IN);
     mfxFrameSurface1* pOutputNative =  GetNativeSurface(out, VPP_OUT);
@@ -222,23 +154,8 @@ mfxStatus VideoVPPMain::VppFrameCheck(mfxFrameSurface1 *in,
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-
     mfxStatus mfxSts = m_impl->VppFrameCheck( pInputNative, pOutputNative, aux, pEntryPoint, numEntryPoints );
 
-
-    // Check() updated out:frameInfo & out:Data. so we need sync in case of output opaq surface
-    if( m_bOpaqMode[VPP_OUT] && pOutputNative )
-    {
-        if( (MFX_ERR_NONE == mfxSts) ||
-            (MFX_ERR_MORE_DATA == mfxSts) ||
-            ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxSts) ||
-            (MFX_ERR_MORE_SURFACE == mfxSts) )
-        {
-            out->Data.FrameOrder = pOutputNative->Data.FrameOrder;
-            out->Data.TimeStamp  = pOutputNative->Data.TimeStamp;
-            out->Info = pOutputNative->Info;
-        }
-    }
 
     return mfxSts;
 
@@ -259,6 +176,26 @@ mfxStatus VideoVPPMain::RunFrameVPP(mfxFrameSurface1 *in, mfxFrameSurface1 *out,
     return mfxSts;
 
 } // mfxStatus VideoVPPMain::RunFrameVPP(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux)
+
+mfxFrameSurface1* VideoVPPMain::GetSurfaceIn()
+{
+    if (!m_impl)
+    {
+        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
+        return nullptr;
+    }
+    return m_impl->GetSurfaceIn();
+}
+
+mfxFrameSurface1* VideoVPPMain::GetSurfaceOut()
+{
+    if (!m_impl)
+    {
+        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
+        return nullptr;
+    }
+    return m_impl->GetSurfaceOut();
+}
 
 #endif // MFX_ENABLE_VPP
 /* EOF */

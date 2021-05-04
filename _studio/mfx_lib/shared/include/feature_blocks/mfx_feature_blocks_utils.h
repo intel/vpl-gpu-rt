@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -265,12 +265,14 @@ mfxStatus RunBlocks(TPred stopAtSts, TQ& queue, TArgs&&... args)
             , queue.begin(), queue.end(), RunBlock
         );
     }
-    catch (std::exception& ex)
+    catch (const std::exception & ex)
     {
         sts = MFX_ERR_UNKNOWN;
 #if defined(_DEBUG)
-        printf("HEVCEHW Exception: %s\n", ex.what());
+        printf("EHW Exception: %s\n", ex.what());
         fflush(stdout);
+#else
+        std::ignore = ex;
 #endif
     }
 

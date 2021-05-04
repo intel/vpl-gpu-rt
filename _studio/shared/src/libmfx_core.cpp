@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2007-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +20,8 @@
 
 #include <assert.h>
 
+#include "mfxpcp.h"
+
 #include <mfx_scheduler_core.h>
 #include <libmfx_core_interface.h>
 #include "mfx_session.h"
@@ -28,6 +30,8 @@
 
 #include "mfx_common_int.h"
 #include "vm_interlocked.h"
+
+#include "ippi.h"
 
 #include "mfx_umc_alloc_wrapper.h"
 
@@ -67,6 +71,39 @@ mfxStatus MFXVideoCORE_QueryPlatform(mfxSession session, mfxPlatform* platform)
     }
 }
 
+
+mfxStatus MFXMemory_GetSurfaceForDecode(mfxSession session, mfxFrameSurface1** output_surf)
+{
+    MFX_CHECK_NULL_PTR1(output_surf);
+    MFX_CHECK_HDL(session);
+    MFX_CHECK(session->m_pCORE.get(), MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(session->m_pDECODE,     MFX_ERR_NOT_INITIALIZED);
+
+    *output_surf = session->m_pDECODE->GetSurface();
+
+    return *output_surf ? MFX_ERR_NONE : MFX_ERR_MEMORY_ALLOC;
+}
+
+#define FUNCTION_GET_SURFACE_IMPL_VPP(FUNCTION_NAME, TYPE)                                                                             \
+mfxStatus FUNCTION_NAME##TYPE (mfxSession session, mfxFrameSurface1** output_surf)                                                     \
+{                                                                                                                                      \
+    MFX_CHECK_NULL_PTR1(output_surf);                                                                                                  \
+    MFX_CHECK_HDL(session);                                                                                                            \
+    MFX_CHECK(session->m_pCORE.get(), MFX_ERR_NOT_INITIALIZED);                                                                        \
+    MFX_CHECK(session->m_pVPP,        MFX_ERR_NOT_INITIALIZED);                                                                        \
+                                                                                                                                       \
+    *output_surf = session->m_pVPP->GetSurface##TYPE();                                                                                \
+                                                                                                                                       \
+    return *output_surf ? MFX_ERR_NONE : MFX_ERR_MEMORY_ALLOC;                                                                         \
+}
+
+FUNCTION_GET_SURFACE_IMPL_VPP(MFXMemory_GetSurfaceForVPP, In)
+FUNCTION_GET_SURFACE_IMPL_VPP(MFXMemory_GetSurfaceForVPP, Out)
+
+#undef FUNCTION_GET_SURFACE_IMPL_VPP
+
+// no HEVC FEI, always false
+bool CommonCORE::s_bHEVCFEIEnabled = false;
 
 mfxStatus CommonCORE::API_1_19_Adapter::QueryPlatform(mfxPlatform* platform)
 {
@@ -146,6 +183,9 @@ mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
 mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
                                   mfxFrameAllocResponse *response, bool )
 {
+#ifdef MFX_DEBUG_TOOLS
+    MFX::AutoTimer timer("CommonCORE::AllocFrames");
+#endif
     UMC::AutomaticUMCMutex guard(m_guard);
     mfxStatus sts = MFX_ERR_NONE;
     try
@@ -153,13 +193,6 @@ mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
         MFX_CHECK_NULL_PTR2(request, response);
         mfxFrameAllocRequest temp_request = *request;
 
-        // external allocator doesn't know how to allocate opaque surfaces
-        // we can treat opaque as internal
-        if (temp_request.Type & MFX_MEMTYPE_OPAQUE_FRAME)
-        {
-            temp_request.Type -= MFX_MEMTYPE_OPAQUE_FRAME;
-            temp_request.Type |= MFX_MEMTYPE_INTERNAL_FRAME;
-        }
 
         // external allocator
         if (m_bSetExtFrameAlloc && !(request->Type & MFX_MEMTYPE_INTERNAL_FRAME))
@@ -229,8 +262,11 @@ mfxStatus CommonCORE::DefaultAllocFrames(mfxFrameAllocRequest *request, mfxFrame
 }
 mfxStatus CommonCORE::LockFrame(mfxMemId mid, mfxFrameData *ptr)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::LockFrame");
     UMC::AutomaticUMCMutex guard(m_guard);
-
+#ifdef MFX_DEBUG_TOOLS
+    MFX::AutoTimer timer("CommonCORE::LockFrame");
+#endif
     try
     {
         MFX_CHECK_HDL(mid);
@@ -238,6 +274,7 @@ mfxStatus CommonCORE::LockFrame(mfxMemId mid, mfxFrameData *ptr)
         mfxFrameAllocator* pAlloc = GetAllocatorAndMid(mid);
         if (!pAlloc)
             return MFX_ERR_INVALID_HANDLE;
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::LockFrame->Allocator");
         return (*pAlloc->Lock)(pAlloc->pthis, mid, ptr);
     }
     catch(...)
@@ -248,6 +285,8 @@ mfxStatus CommonCORE::LockFrame(mfxMemId mid, mfxFrameData *ptr)
 mfxStatus CommonCORE::GetFrameHDL(mfxMemId mid, mfxHDL* handle, bool ExtendedSearch)
 {
     mfxStatus sts;
+
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::GetFrameHDL");
     try
     {
         MFX_CHECK_HDL(mid);
@@ -260,7 +299,8 @@ mfxStatus CommonCORE::GetFrameHDL(mfxMemId mid, mfxHDL* handle, bool ExtendedSea
             // we couldn't define behavior if external allocator did not set
             if (ExtendedSearch)// try to find in another cores
             {
-                sts = m_session->m_pOperatorCore->DoFrameOperation(&VideoCORE::GetFrameHDL, mid, handle);
+                using TFPtr = mfxStatus (VideoCORE::*)(mfxMemId, mfxHDL*, bool);
+                sts = m_session->m_pOperatorCore->DoFrameOperation<TFPtr>(&VideoCORE::GetFrameHDL, mid, handle);
                 if (MFX_ERR_NONE == sts)
                     return sts;
             }
@@ -277,6 +317,7 @@ mfxStatus CommonCORE::GetFrameHDL(mfxMemId mid, mfxHDL* handle, bool ExtendedSea
 }
 mfxStatus CommonCORE::UnlockFrame(mfxMemId mid, mfxFrameData *ptr)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::UnlockFrame");
     UMC::AutomaticUMCMutex guard(m_guard);
 
     try
@@ -285,8 +326,10 @@ mfxStatus CommonCORE::UnlockFrame(mfxMemId mid, mfxFrameData *ptr)
         mfxFrameAllocator* pAlloc = GetAllocatorAndMid(mid);
         if (!pAlloc)
             return MFX_ERR_INVALID_HANDLE;
-
-        return (*pAlloc->Unlock)(pAlloc->pthis, mid, ptr);
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::UnlockFrame->Allocator");
+            return (*pAlloc->Unlock)(pAlloc->pthis, mid, ptr);
+        }
     }
     catch(...)
     {
@@ -445,7 +488,10 @@ mfxStatus CommonCORE::InternalFreeFrames(mfxFrameAllocResponse *response)
 mfxStatus  CommonCORE::LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool ExtendedSearch)
 {
     mfxStatus sts;
-
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::LockExternalFrame");
+#ifdef MFX_DEBUG_TOOLS
+    MFX::AutoTimer timer("CommonCORE::LockExternalFrame");
+#endif
     try
     {
         {
@@ -454,6 +500,7 @@ mfxStatus  CommonCORE::LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool E
             // if exist opaque surface - take a look in them (internal surfaces)
             if (m_OpqTbl.size())
             {
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "LockFrame");
                 sts = LockFrame(mid, ptr);
                 if (MFX_ERR_NONE == sts)
                     return sts;
@@ -462,6 +509,7 @@ mfxStatus  CommonCORE::LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool E
 
             if (m_bSetExtFrameAlloc)
             {
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "pAlloc->Lock");
                 mfxFrameAllocator* pAlloc = &m_FrameAllocator.frameAllocator;
                 return (*pAlloc->Lock)(pAlloc->pthis, mid, ptr);
             }
@@ -470,7 +518,8 @@ mfxStatus  CommonCORE::LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool E
         // try to find in another cores
         if (ExtendedSearch)// try to find in another cores
         {
-            sts = m_session->m_pOperatorCore->DoFrameOperation(&VideoCORE::LockExternalFrame, mid, ptr);
+            using TFPtr = mfxStatus(VideoCORE::*)(mfxMemId, mfxFrameData*, bool);
+            sts = m_session->m_pOperatorCore->DoFrameOperation<TFPtr>(&VideoCORE::LockExternalFrame, mid, ptr);
             if (MFX_ERR_NONE == sts)
                 return sts;
         }
@@ -484,6 +533,7 @@ mfxStatus  CommonCORE::LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool E
 mfxStatus  CommonCORE::GetExternalFrameHDL(mfxMemId mid, mfxHDL *handle, bool ExtendedSearch)
 {
     mfxStatus sts;
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::GetExternalFrameHDL");
     try
     {
         MFX_CHECK_NULL_PTR1(handle);
@@ -497,7 +547,8 @@ mfxStatus  CommonCORE::GetExternalFrameHDL(mfxMemId mid, mfxHDL *handle, bool Ex
         // we couldn't define behavior if external allocator did not set
         if (ExtendedSearch)// try to find in another cores
         {
-            sts = m_session->m_pOperatorCore->DoFrameOperation(&VideoCORE::GetExternalFrameHDL, mid, handle);
+            using TFPtr = mfxStatus(VideoCORE::*)(mfxMemId, mfxHDL*, bool);
+            sts = m_session->m_pOperatorCore->DoFrameOperation<TFPtr>(&VideoCORE::GetExternalFrameHDL, mid, handle);
             if (MFX_ERR_NONE == sts)
                 return sts;
         }
@@ -511,12 +562,14 @@ mfxStatus  CommonCORE::GetExternalFrameHDL(mfxMemId mid, mfxHDL *handle, bool Ex
 mfxStatus  CommonCORE::UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool ExtendedSearch)
 {
     mfxStatus sts;
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::UnlockExternalFrame");
     if(!ptr)
         return MFX_ERR_NULL_PTR;
     try
     {
         {
             UMC::AutomaticUMCMutex guard(m_guard);
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "UnlockFrame");
             // if exist opaque surface - take a look in them (internal surfaces)
             if (m_OpqTbl.size())
             {
@@ -534,7 +587,8 @@ mfxStatus  CommonCORE::UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool
         // we couldn't define behavior if external allocator did not set
         if (ExtendedSearch)// try to find in another cores
         {
-            sts = m_session->m_pOperatorCore->DoFrameOperation(&VideoCORE::UnlockExternalFrame, mid, ptr);
+            using TFPtr = mfxStatus(VideoCORE::*)(mfxMemId, mfxFrameData*, bool);
+            sts = m_session->m_pOperatorCore->DoFrameOperation<TFPtr>(&VideoCORE::UnlockExternalFrame, mid, ptr);
             if (MFX_ERR_NONE == sts)
                 return sts;
         }
@@ -563,9 +617,11 @@ mfxFrameSurface1* CommonCORE::GetNativeSurface(mfxFrameSurface1 *pOpqSurface, bo
 {
     if (0 == pOpqSurface)
         return 0;
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::GetNativeSurface");
 
     {
         UMC::AutomaticUMCMutex guard(m_guard);
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "GetNativeSurface");
         OpqTbl::iterator oqp_it;
         oqp_it = m_OpqTbl.find(pOpqSurface);
         if (m_OpqTbl.end() != oqp_it)
@@ -583,8 +639,10 @@ mfxFrameSurface1* CommonCORE::GetOpaqSurface(mfxMemId mid, bool ExtendedSearch)
     if (0 == mid)
         return 0;
 
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::GetOpaqSurface");
     {
         UMC::AutomaticUMCMutex guard(m_guard);
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "GetOpaqSurface");
         OpqTbl_MemId::iterator opq_it = m_OpqTbl_MemId.find(mid);
         if (m_OpqTbl_MemId.end() != opq_it) {
             return opq_it->second;
@@ -690,12 +748,10 @@ mfxStatus CommonCORE::GetHandle(mfxHandleType type, mfxHDL *handle)
     switch (type)
     {
 
-#if defined(LINUX32) || defined(LINUX64) || defined(MFX_VA_LINUX)
     case MFX_HANDLE_VA_DISPLAY:
         MFX_CHECK(m_hdl, MFX_ERR_NOT_FOUND);
         *handle = m_hdl;
         break;
-#endif
     default:
         MFX_RETURN(MFX_ERR_NOT_FOUND);
     }
@@ -707,7 +763,21 @@ mfxStatus CommonCORE::SetHandle(mfxHandleType type, mfxHDL hdl)
 {
     MFX_CHECK_HDL(hdl);
 
+#ifdef MFX_DEBUG_TOOLS
+    UMC::AutomaticUMCMutex guard(m_guard);
+
+    switch ((mfxU32)type)
+    {
+    case MFX_HANDLE_TIMING_LOG:
+        return (MFX::AutoTimer::Init((TCHAR*)hdl, 1) ? MFX_ERR_INVALID_HANDLE : MFX_ERR_NONE);
+    case MFX_HANDLE_TIMING_SUMMARY:
+        return (MFX::AutoTimer::Init((TCHAR*)hdl, 2) ? MFX_ERR_INVALID_HANDLE : MFX_ERR_NONE);
+    case MFX_HANDLE_TIMING_TAL:
+        return (MFX::AutoTimer::Init((TCHAR*)hdl, 3) ? MFX_ERR_INVALID_HANDLE : MFX_ERR_NONE);
+    }
+#else
     ignore = type;
+#endif
 
     MFX_RETURN(MFX_ERR_INVALID_HANDLE);
 }// mfxStatus CommonCORE::SetHandle(mfxHandleType type, mfxHDL handle)
@@ -716,7 +786,7 @@ static inline mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id)
 {
     mfxPlatform platform = {};
 
-    #if (MFX_VERSION >= 1031)
+#if (MFX_VERSION >= 1031)
     platform.MediaAdapterType = MFX_MEDIA_INTEGRATED;
 #endif
 
@@ -732,16 +802,11 @@ static inline mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id)
     case MFX_HW_SCL    : platform.CodeName = MFX_PLATFORM_SKYLAKE;       break;
     case MFX_HW_APL    : platform.CodeName = MFX_PLATFORM_APOLLOLAKE;    break;
     case MFX_HW_KBL    : platform.CodeName = MFX_PLATFORM_KABYLAKE;      break;
-#if (MFX_VERSION >= 1025)
     case MFX_HW_GLK    : platform.CodeName = MFX_PLATFORM_GEMINILAKE;    break;
     case MFX_HW_CFL    : platform.CodeName = MFX_PLATFORM_COFFEELAKE;    break;
     case MFX_HW_CNL    : platform.CodeName = MFX_PLATFORM_CANNONLAKE;    break;
-#endif
-#if (MFX_VERSION >= 1027)
     case MFX_HW_ICL    :
     case MFX_HW_ICL_LP : platform.CodeName = MFX_PLATFORM_ICELAKE;       break;
-#endif
-#if (MFX_VERSION >= 1031)
     case MFX_HW_EHL    : platform.CodeName = MFX_PLATFORM_ELKHARTLAKE;   break;
     case MFX_HW_JSL    : platform.CodeName = MFX_PLATFORM_JASPERLAKE;    break;
     case MFX_HW_RKL    :
@@ -750,12 +815,9 @@ static inline mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id)
                          platform.MediaAdapterType = MFX_MEDIA_DISCRETE;
                          platform.CodeName = MFX_PLATFORM_TIGERLAKE;     break;
     case MFX_HW_ADL_S  : platform.CodeName = MFX_PLATFORM_ALDERLAKE_S;   break;
-
-#endif
+    case MFX_HW_ADL_P  : platform.CodeName = MFX_PLATFORM_ALDERLAKE_P;   break;
     default:
-#if (MFX_VERSION >= 1031)
                          platform.MediaAdapterType = MFX_MEDIA_UNKNOWN;
-#endif
                          platform.CodeName = MFX_PLATFORM_UNKNOWN;       break;
     }
 
@@ -849,7 +911,6 @@ mfxStatus CommonCORE::SetFrameAllocator(mfxFrameAllocator *allocator)
     {
         m_FrameAllocator.frameAllocator = *allocator;
         m_bSetExtFrameAlloc = true;
-        m_session->m_coreInt.FrameAllocator = *allocator;
         return MFX_ERR_NONE;
     }
     else
@@ -907,7 +968,8 @@ mfxStatus CommonCORE::IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch)
         if (ExtendedSearch)
         {
             // makes sense to remove ans tay only error return
-            if (MFX_ERR_NONE != m_session->m_pOperatorCore->DoCoreOperation(&VideoCORE::IncreaseReference, ptr))
+            using TFPtr = mfxStatus(VideoCORE::*)(mfxFrameData*, bool);
+            if (MFX_ERR_NONE != m_session->m_pOperatorCore->DoCoreOperation<TFPtr>(&VideoCORE::IncreaseReference, ptr))
                 return IncreasePureReference(ptr->Locked);
             else
                 return MFX_ERR_NONE;
@@ -947,7 +1009,8 @@ mfxStatus CommonCORE::DecreaseReference(mfxFrameData *ptr, bool ExtendedSearch)
         if (ExtendedSearch)
         {
             // makes sence to remove ans tay only error return
-            if (MFX_ERR_NONE != m_session->m_pOperatorCore->DoCoreOperation(&VideoCORE::DecreaseReference, ptr))
+            using TFPtr = mfxStatus(VideoCORE::*)(mfxFrameData*, bool);
+            if (MFX_ERR_NONE != m_session->m_pOperatorCore->DoCoreOperation<TFPtr>(&VideoCORE::DecreaseReference, ptr))
                 return DecreasePureReference(ptr->Locked);
             else
                 return MFX_ERR_NONE;
@@ -1128,7 +1191,7 @@ mfxStatus CommonCORE::DoFastCopy(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
 
     MFX_CHECK_NULL_PTR2(src, dst);
 
-    mfxSize roi = { min(src->Info.Width, dst->Info.Width), min(src->Info.Height, dst->Info.Height) };
+    IppiSize roi = { min(src->Info.Width, dst->Info.Width), min(src->Info.Height, dst->Info.Height) };
     MFX_CHECK(roi.width && roi.height, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     if(!m_pFastCopy)
@@ -1201,7 +1264,7 @@ mfxStatus CommonCORE::DoFastCopy(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
 
 mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src, int copyFlag)
 {
-    mfxSize roi = { min(src.Info.Width, dst.Info.Width), min(src.Info.Height, dst.Info.Height) };
+    IppiSize roi = { min(src.Info.Width, dst.Info.Width), min(src.Info.Height, dst.Info.Height) };
 
     // check that region of interest is valid
     MFX_CHECK(roi.width && roi.height, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -1295,26 +1358,10 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
         MFX_CHECK_NULL_PTR1(src.Data.Y);
 
         //we use 8u copy, so we need to increase ROI to handle 16 bit samples
-#if defined(_WIN32) || defined(_WIN64)
-        if (src.Info.Shift != dst.Info.Shift)
-        {
-            roi.width *= 2; // CopyAndShift operates with 2-byte words
-            mfxU8 lshift = 0;
-            mfxU8 rshift = 0;
-            if (src.Info.Shift != 0)
-                rshift = (mfxU8)(16 - dst.Info.BitDepthLuma);
-            else
-                lshift = (mfxU8)(16 - dst.Info.BitDepthLuma);
-
-            return FastCopy::CopyAndShift((mfxU16*)(dst.Data.Y), dstPitch, (mfxU16 *)src.Data.Y, srcPitch, roi, lshift, rshift, copyFlag);
-        }
-        else
-#endif
         {
             roi.width *= 4;
             return FastCopy::Copy(dst.Data.Y, dstPitch, src.Data.Y, srcPitch, roi, copyFlag);
         }
-
 
     case MFX_FOURCC_Y410:
     {
@@ -1334,21 +1381,6 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
         MFX_CHECK_NULL_PTR1(src.Data.U16);
 
         //we use 8u copy, so we need to increase ROI to handle 16 bit samples
-#if defined(_WIN32) || defined(_WIN64)
-        if (src.Info.Shift != dst.Info.Shift)
-        {
-            roi.width *= 4; // CopyAndShift operates with 2-byte words
-            mfxU8 lshift = 0;
-            mfxU8 rshift = 0;
-            if (src.Info.Shift != 0)
-                rshift = (mfxU8)(16 - dst.Info.BitDepthLuma);
-            else
-                lshift = (mfxU8)(16 - dst.Info.BitDepthLuma);
-
-            return FastCopy::CopyAndShift(dst.Data.U16, dstPitch, src.Data.U16, srcPitch, roi, lshift, rshift, copyFlag);
-        }
-        else
-#endif
         {
             roi.width *= 8;
             return FastCopy::Copy((mfxU8*)dst.Data.U16, dstPitch, (mfxU8*)src.Data.U16, srcPitch, roi, copyFlag);
@@ -1563,9 +1595,42 @@ mfxStatus CommonCORE::CopyFrame(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
     }
 }
 
+#ifdef MFX_DEBUG_TOOLS
+#define REG_ROOT                    HKEY_CURRENT_USER
+#define REG_PATH_MEDIASDK           TEXT("Software\\Intel\\MediaSDK")
+#define REG_KEY_TIMING_LOG          TEXT("TimingLog")
+#define REG_KEY_TIMING_PER_FRAME    TEXT("TimingPerFrame")
+#endif
 
 mfxStatus CommonCORE::CheckTimingLog()
 {
+#ifdef MFX_DEBUG_TOOLS
+    HKEY hKey;
+    TCHAR timing_filename[MAX_PATH] = TEXT("");
+    DWORD dwPerFrameStatistic = 0;
+    DWORD type1, type2;
+    DWORD size1 = sizeof(timing_filename);
+    DWORD size2 = sizeof(DWORD);
+
+    if (ERROR_SUCCESS != RegOpenKeyEx(REG_ROOT, REG_PATH_MEDIASDK, 0, KEY_QUERY_VALUE, &hKey))
+    {
+        // not enough permissions
+        return MFX_ERR_UNDEFINED_BEHAVIOR;
+    }
+
+    // read "TimingPerFrame" key
+    RegQueryValueEx(hKey, REG_KEY_TIMING_PER_FRAME, nullptr, &type2, (LPBYTE)&dwPerFrameStatistic, &size2);
+
+    if (ERROR_SUCCESS == RegQueryValueEx(hKey, REG_KEY_TIMING_LOG, nullptr, &type1, (LPBYTE)timing_filename, &size1))
+    {
+        if (REG_SZ == type1)
+        {
+            MFX::AutoTimer::Init(timing_filename, dwPerFrameStatistic);
+        }
+    }
+
+    RegCloseKey(hKey);
+#endif
 
     return MFX_ERR_NONE;
 }
@@ -1582,35 +1647,7 @@ bool CommonCORE::CheckOpaqueRequest(mfxFrameAllocRequest *request,
     if (request->NumFrameMin != NumOpaqueSurface)
         return false;
 
-    if (!(request->Type  & MFX_MEMTYPE_OPAQUE_FRAME))
-        return false;
-
-    if (m_OpqTbl.size())
-    {
-        OpqTbl::iterator oqp_it;
-        bool isOpaqAllocated = false;
-        mfxU32 i = 0;
-        // each opaq surface has correspondence in already allocated OR
-        // no one opaq surface sholud already allocated
-        for (;i < request->NumFrameMin;i++)
-        {
-            oqp_it = m_OpqTbl.find(pOpaqueSurface[i]);
-            if (oqp_it != m_OpqTbl.end())
-            {
-                isOpaqAllocated = true;
-            }
-            else if (isOpaqAllocated)
-                return false;
-        }
-    }
-    if (ExtendedSearch)// try to find in another cores
-    {
-        bool sts = m_session->m_pOperatorCore->CheckOpaqRequest(request, pOpaqueSurface, NumOpaqueSurface);
-        return sts;
-    }
-
-    return true;
-
+    return false;
 }
 
 bool CommonCORE::IsOpaqSurfacesAlreadyMapped(mfxFrameSurface1 **pOpaqueSurface,
@@ -1714,9 +1751,13 @@ void* CommonCORE::QueryCoreInterface(const MFX_GUID &guid)
         return &m_FrameAllocator.frameAllocator;
 
     if (MFXICORE_API_1_19_GUID == guid)
-    {
         return &m_API_1_19;
-    }
+
+    if (MFXIFEIEnabled_GUID == guid)
+        return const_cast<bool*>(&s_bHEVCFEIEnabled);
+
+    if (MFXICORE_API_2_0_GUID == guid)
+        return &m_enabled20Interface;
 
     return nullptr;
 }
@@ -1754,3 +1795,391 @@ mfxFrameAllocResponse *CommonCORE::GetPluginAllocResponse(mfxFrameAllocResponse&
     return NULL;
 
 }
+
+
+mfxStatus CommonCORE20::AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool)
+{
+    if (!m_enabled20Interface)
+        return CommonCORE::AllocFrames(request, response);
+
+    MFX_CHECK_NULL_PTR2(request, response);
+
+#ifdef MFX_DEBUG_TOOLS
+    MFX::AutoTimer timer("CommonCORE20::AllocFrames");
+#endif
+
+    // Do not lock mutex here, allocator designed to be thread-safe
+    mfxStatus sts = m_frame_allocator_wrapper.Alloc(*request, *response);
+
+#ifdef MFX_DEBUG_TOOLS
+    if (MFX_ERR_NONE == sts)
+    {
+        char descr[] = "?";
+        if (request->Type & MFX_MEMTYPE_DXVA2_DECODER_TARGET) descr[0] = 'V';
+        if (request->Type & MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET) descr[0] = 'P';
+        if (request->Type & MFX_MEMTYPE_SYSTEM_MEMORY) descr[0] = 'S';
+        timer.AddParam(descr, response->NumFrameActual);
+    }
+#endif
+    MFX_LTRACE_I(MFX_TRACE_LEVEL_PARAMS, sts);
+    return sts;
+}
+
+mfxStatus CommonCORE20::LockFrame(mfxMemId mid, mfxFrameData *ptr)
+{
+    if (!m_enabled20Interface)
+        return CommonCORE::LockFrame(mid, ptr);
+
+    MFX_CHECK_NULL_PTR1(ptr);
+
+    return m_frame_allocator_wrapper.Lock(mid, ptr);
+}
+
+mfxStatus CommonCORE20::GetFrameHDL(mfxMemId mid, mfxHDL* handle, bool ExtendedSearch)
+{
+    if (!m_enabled20Interface)
+        return CommonCORE::GetFrameHDL(mid, handle, ExtendedSearch);
+
+    MFX_CHECK_HDL(handle);
+
+    return m_frame_allocator_wrapper.GetHDL(mid, *handle);
+}
+
+mfxStatus CommonCORE20::UnlockFrame(mfxMemId mid, mfxFrameData *ptr)
+{
+    if (!m_enabled20Interface)
+        return CommonCORE::UnlockFrame(mid, ptr);
+
+    return m_frame_allocator_wrapper.Unlock(mid, ptr);
+}
+
+mfxStatus CommonCORE20::FreeFrames(mfxFrameAllocResponse *response, bool ExtendedSearch)
+{
+    if (!m_enabled20Interface)
+        return CommonCORE::FreeFrames(response, ExtendedSearch);
+
+    MFX_CHECK_NULL_PTR1(response);
+
+    return m_frame_allocator_wrapper.Free(*response);
+}
+
+mfxStatus CommonCORE20::LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool ExtendedSearch)
+{
+    if (!m_enabled20Interface)
+        return CommonCORE::LockExternalFrame(mid, ptr, ExtendedSearch);
+
+    return LockFrame(mid, ptr);
+}
+
+mfxStatus CommonCORE20::GetExternalFrameHDL(mfxMemId mid, mfxHDL *handle, bool ExtendedSearch)
+{
+    if (!m_enabled20Interface)
+        return CommonCORE::GetExternalFrameHDL(mid, handle, ExtendedSearch);
+
+    return GetFrameHDL(mid, handle);
+}
+
+mfxStatus CommonCORE20::UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool ExtendedSearch)
+{
+    if (!m_enabled20Interface)
+        return CommonCORE::UnlockExternalFrame(mid, ptr, ExtendedSearch);
+
+    return UnlockFrame(mid, ptr);
+}
+
+CommonCORE20::CommonCORE20(const mfxU32 numThreadsAvailable, const mfxSession session)
+    : deprecate_from_base<CommonCORE>(numThreadsAvailable, session)
+{
+    m_frame_allocator_wrapper.allocator_sw.reset(new FlexibleFrameAllocatorSW(nullptr, m_session));
+
+    m_enabled20Interface = true;
+}
+
+mfxStatus CommonCORE20::SetFrameAllocator(mfxFrameAllocator *allocator)
+{
+    // Unconditional call to set it to both cores because on Linux SetAllocator
+    // may precede SetHandle for device
+    // i.e. we won't know which feature set will be used at this point
+
+    MFX_SAFE_CALL(CommonCORE::SetFrameAllocator(allocator));
+
+    if (!allocator)
+        return MFX_ERR_NONE;
+
+    UMC::AutomaticUMCMutex guard(m_guard);
+
+    MFX_CHECK(!m_frame_allocator_wrapper.IsExtAllocatorSet(), MFX_ERR_UNDEFINED_BEHAVIOR);
+    m_frame_allocator_wrapper.SetFrameAllocator(*allocator);
+
+    return MFX_ERR_NONE;
+}
+
+bool CommonCORE20::IsExternalFrameAllocator() const
+{
+    if (!m_enabled20Interface)
+        return CommonCORE::IsExternalFrameAllocator();
+
+    return m_frame_allocator_wrapper.IsExtAllocatorSet();
+}
+
+pair<mfxStatus, bool> CommonCORE20::Lock(mfxFrameSurface1& surf, mfxU32 flags)
+{
+    if (!m_enabled20Interface) return { MFX_STS_TRACE(MFX_ERR_UNSUPPORTED), false };
+
+    // Priority 1: If pointers were already set - do nothing
+    if (GetFramePointer(surf.Info.FourCC, surf.Data))
+        return { MFX_ERR_NONE, false };
+
+    // Priority 2: If mfxFrameSurfaceInterface is provided, use it
+    if (surf.FrameInterface && surf.FrameInterface->Map)
+        return { surf.FrameInterface->Map(&surf, flags), true };
+
+    // Priority 3: type set to external / not set, lock as external
+    if (!surf.Data.MemType || (surf.Data.MemType & MFX_MEMTYPE_EXTERNAL_FRAME))
+        return { LockExternalFrame(surf.Data.MemId, &surf.Data), true };
+
+    // Priority 4: Remaining case - internal frame (MFX_MEMTYPE_INTERNAL_FRAME)
+    return { LockFrame(surf.Data.MemId, &surf.Data), true };
+}
+
+pair<mfxStatus, bool> CommonCORE20::LockInternal(mfxFrameSurface1& surf, mfxU32 flags)
+{
+    if (!m_enabled20Interface) return { MFX_STS_TRACE(MFX_ERR_UNSUPPORTED), false };
+
+    // Priority 1: If pointers were already set - do nothing
+    if (GetFramePointer(surf.Info.FourCC, surf.Data))
+        return { MFX_ERR_NONE, false };
+
+    // Priority 2: If mfxFrameSurfaceInterface is provided, use it
+    if (surf.FrameInterface && surf.FrameInterface->Map)
+        return { surf.FrameInterface->Map(&surf, flags), true };
+
+    // Priority 3: SKIPPED type set to external / not set, lock as external
+
+    // Priority 4: Remaining case - internal frame (MFX_MEMTYPE_INTERNAL_FRAME)
+    return { LockFrame(surf.Data.MemId, &surf.Data), true };
+}
+
+pair<mfxStatus, bool> CommonCORE20::LockExternal(mfxFrameSurface1& surf, mfxU32 flags)
+{
+    if (!m_enabled20Interface) return { MFX_STS_TRACE(MFX_ERR_UNSUPPORTED), false};
+
+    // Priority 1: If pointers were already set - do nothing
+    if (GetFramePointer(surf.Info.FourCC, surf.Data))
+        return { MFX_ERR_NONE, false };
+
+    // Priority 2: If mfxFrameSurfaceInterface is provided, use it
+    if (surf.FrameInterface && surf.FrameInterface->Map)
+        return { surf.FrameInterface->Map(&surf, flags), true };
+
+    // Priority 3: type set to external / not set, lock as external
+    return { LockExternalFrame(surf.Data.MemId, &surf.Data), true };
+
+    // Priority 4: SKIPPED - Remaining case - internal frame (MFX_MEMTYPE_INTERNAL_FRAME)
+}
+
+mfxStatus CommonCORE20::Unlock(mfxFrameSurface1& surf)
+{
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
+    // Priority 1: If mfxFrameSurfaceInterface is provided, use it
+    if (surf.FrameInterface && surf.FrameInterface->Unmap)
+        return surf.FrameInterface->Unmap(&surf);
+
+    // Priority 2: type set to external / not set, unlock as external
+    if (!surf.Data.MemType || (surf.Data.MemType & MFX_MEMTYPE_EXTERNAL_FRAME))
+        return UnlockExternalFrame(surf.Data.MemId, &surf.Data);
+
+    // Priority 3: Remaining case - internal frame (MFX_MEMTYPE_INTERNAL_FRAME)
+    return UnlockFrame(surf.Data.MemId, &surf.Data);
+}
+
+mfxStatus CommonCORE20::UnlockExternal(mfxFrameSurface1& surf)
+{
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
+    // Priority 1: If mfxFrameSurfaceInterface is provided, use it
+    if (surf.FrameInterface && surf.FrameInterface->Unmap)
+        return surf.FrameInterface->Unmap(&surf);
+
+    // Priority 2: type set to external / not set, unlock as external
+    return UnlockExternalFrame(surf.Data.MemId, &surf.Data);
+
+    // Priority 3: SKIPPED - Remaining case - internal frame (MFX_MEMTYPE_INTERNAL_FRAME)
+}
+
+mfxStatus CommonCORE20::UnlockInternal(mfxFrameSurface1& surf)
+{
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
+    // Priority 1: If mfxFrameSurfaceInterface is provided, use it
+    if (surf.FrameInterface && surf.FrameInterface->Unmap)
+        return surf.FrameInterface->Unmap(&surf);
+
+    // Priority 2: SKIPPED type set to external / not set, unlock as external
+
+    // Priority 3: Remaining case - internal frame (MFX_MEMTYPE_INTERNAL_FRAME)
+    return UnlockFrame(surf.Data.MemId, &surf.Data);
+}
+
+mfxStatus CommonCORE20::SwitchMemidInSurface(mfxFrameSurface1 & surf, mfxHDLPair& handle_pair)
+{
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
+    if (surf.Data.MemType & MFX_MEMTYPE_INTERNAL_FRAME)
+    {
+        MFX_SAFE_CALL(VideoCORE::GetFrameHDL(surf, handle_pair));
+    }
+    else
+    {
+        MFX_SAFE_CALL(VideoCORE::GetExternalFrameHDL(surf, handle_pair));
+    }
+
+    surf.Data.MemId = &handle_pair;
+
+    return MFX_ERR_NONE;
+}
+
+
+mfxStatus CommonCORE20::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType)
+{
+    if (!m_enabled20Interface)
+        return CommonCORE::DoFastCopyWrapper(pDst,dstMemType, pSrc, srcMemType);
+
+    MFX_CHECK_NULL_PTR2(pSrc, pDst);
+
+    // TODO: uncomment underlying checks after additional validation
+    //MFX_CHECK(!pSrc->Data.MemType || MFX_MEMTYPE_BASE(pSrc->Data.MemType) == MFX_MEMTYPE_BASE(srcMemType), MFX_ERR_UNSUPPORTED);
+    //MFX_CHECK(!pDst->Data.MemType || MFX_MEMTYPE_BASE(pDst->Data.MemType) == MFX_MEMTYPE_BASE(dstMemType), MFX_ERR_UNSUPPORTED);
+
+    mfxFrameSurface1 srcTempSurface = *pSrc, dstTempSurface = *pDst;
+
+    srcTempSurface.Data.MemType = srcMemType;
+    dstTempSurface.Data.MemType = dstMemType;
+
+    mfxFrameSurface1_scoped_lock src_surf_lock(&srcTempSurface, this);
+    mfxStatus sts = src_surf_lock.lock(MFX_MAP_READ, SurfaceLockType::LOCK_GENERAL);
+    MFX_CHECK_STS(sts);
+    srcTempSurface.Data.MemId = 0;
+
+    mfxFrameSurface1_scoped_lock dst_surf_lock(&dstTempSurface, this);
+    sts = dst_surf_lock.lock(MFX_MAP_WRITE, SurfaceLockType::LOCK_GENERAL);
+    MFX_CHECK_STS(sts);
+    dstTempSurface.Data.MemId = 0;
+
+    sts = DoFastCopyExtended(&dstTempSurface, &srcTempSurface);
+    MFX_CHECK_STS(sts);
+
+    sts = src_surf_lock.unlock();
+    MFX_CHECK_STS(sts);
+
+    return dst_surf_lock.unlock();
+}
+
+mfxStatus CommonCORE20::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
+{
+    if (!m_enabled20Interface)
+        return CommonCORE::DoFastCopyExtended(pDst, pSrc);
+
+    UMC::AutomaticUMCMutex guard(m_guard);
+
+    mfxStatus sts = CheckFrameData(pSrc);
+    MFX_CHECK_STS(sts);
+
+    sts = CheckFrameData(pDst);
+    MFX_CHECK_STS(sts);
+
+    // Check that only memId or pointer are passed
+    // otherwise don't know which type of memory copying is requested
+    MFX_CHECK((!!GetFramePointer(*pDst) != !!pDst->Data.MemId) && (!!GetFramePointer(*pSrc) != !!pSrc->Data.MemId), MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    // Check that it is not VIDEO_TO_VIDEO case
+    MFX_CHECK(!pDst->Data.MemId || !pSrc->Data.MemId, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    int copyFlag = COPY_SYS_TO_SYS;
+
+    if (pSrc->Data.MemId)
+    {
+        copyFlag = COPY_VIDEO_TO_SYS;
+    }
+
+    if (pDst->Data.MemId)
+    {
+        copyFlag = COPY_SYS_TO_VIDEO;
+    }
+
+    // system memories were passed
+    // use common way to copy frames
+    return CoreDoSWFastCopy(*pDst, *pSrc, copyFlag);
+}
+
+mfxStatus CommonCORE20::DeriveMemoryType(const mfxFrameSurface1& surf, mfxU16& derived_memtype)
+{
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
+    // Priority 1. If pointers set - treat as SYSTEM | EXTERNAL and pass further
+    if (!LumaIsNull(&surf))
+    {
+        derived_memtype = MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_EXTERNAL_FRAME;
+        return MFX_ERR_NONE;
+    }
+
+    // Priority 2. If memId set - treat as VIDEO | (EXTERNAL or INTERNAL) and pass further
+    if (surf.Data.MemId)
+    {
+        mfxHDLPair handle_pair = {};
+        derived_memtype = MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET;
+
+        mfxStatus sts = GetExternalFrameHDL(surf.Data.MemId, (mfxHDL *)&handle_pair);
+
+        if (MFX_ERR_UNDEFINED_BEHAVIOR == sts)
+            derived_memtype |= MFX_MEMTYPE_INTERNAL_FRAME;
+        else
+            derived_memtype |= MFX_MEMTYPE_EXTERNAL_FRAME;
+
+        return MFX_ERR_NONE;
+    }
+
+    MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
+}
+
+mfxStatus CommonCORE20::CopyFrame(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
+{
+    if (!m_enabled20Interface)
+        return CommonCORE::CopyFrame(dst, src);
+
+    MFX_CHECK_NULL_PTR2(dst, src);
+
+    mfxU16 srcMemType, dstMemType;
+
+    mfxStatus sts = DeriveMemoryType(*src, srcMemType);
+    MFX_CHECK_STS(sts);
+
+    sts = DeriveMemoryType(*dst, dstMemType);
+    MFX_CHECK_STS(sts);
+
+    return DoFastCopyWrapper(dst, dstMemType, src, srcMemType);
+}
+
+void* CommonCORE20::QueryCoreInterface(const MFX_GUID &guid)
+{
+    if (m_enabled20Interface)
+    {
+        if (MFXIEXTERNALLOC_GUID == guid)
+            return m_frame_allocator_wrapper.GetExtAllocator();
+
+        if (MFXAllocatorWrapper_GUID == guid)
+            return &m_frame_allocator_wrapper;
+    }
+
+    return CommonCORE::QueryCoreInterface(guid);
+}
+
+mfxStatus CommonCORE20::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* & surf)
+{
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
+    return m_frame_allocator_wrapper.CreateSurface(type, info, surf);
+}
+
+

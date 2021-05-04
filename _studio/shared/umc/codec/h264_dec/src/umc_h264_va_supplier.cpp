@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2003-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -39,9 +39,9 @@
 #include "mfx_ext_buffers.h"
 #include "umc_h264_notify.h"
 
-#include "mfxfei.h"
-
+#ifdef UMC_VA_LINUX
 #include "umc_va_linux_protected.h"
+#endif
 
 namespace UMC
 {
@@ -129,12 +129,12 @@ Status VATaskSupplier::Init(VideoDecoderParams *pInit)
     H264VideoDecoderParams *initH264 = DynamicCast<H264VideoDecoderParams> (pInit);
     m_DPBSizeEx = m_iThreadNum + (initH264 ? initH264->m_bufferedFrames : 0);
 
-    if (m_va &&
-        m_va->GetProtectedVA() &&
-        IS_PROTECTION_CENC(m_va->GetProtectedVA()->GetProtected()))
+#if defined (UMC_VA)
+    if (m_va && m_va->GetProtectedVA() && IS_PROTECTION_CENC(m_va->GetProtectedVA()->GetProtected()))
     {
         m_DPBSizeEx += 2;
     }
+#endif
 
     m_sei_messages = new SEI_Storer();
     m_sei_messages->Init();
@@ -358,20 +358,20 @@ Status VATaskSupplier::AllocateFrameData(H264DecoderFrame * pFrame)
     FrameData frmData;
     frmData.Init(&info, frmMID, m_pFrameAllocator);
 
-    mfx_UMC_FrameAllocator* mfx_alloc = 
-        DynamicCast<mfx_UMC_FrameAllocator>(m_pFrameAllocator);
-    if (mfx_alloc)
+    auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
+    if (frame_source)
     {
-        mfxFrameSurface1* surface = 
-            mfx_alloc->GetSurfaceByIndex(frmMID);
+        mfxFrameSurface1* surface = frame_source->GetSurfaceByIndex(frmMID);
         if (!surface)
             throw h264_exception(UMC_ERR_ALLOC);
 
-        mfxExtBuffer* extbuf = 
-            GetExtendedBuffer(surface->Data.ExtParam, surface->Data.NumExtParam, MFX_EXTBUFF_FEI_DEC_STREAM_OUT);
+        mfxExtBuffer* extbuf = nullptr;
+
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+        extbuf = GetExtendedBuffer(surface->Data.ExtParam, surface->Data.NumExtParam, MFX_EXTBUFF_GPU_HANG);
         if (extbuf)
             frmData.SetAuxInfo(extbuf, extbuf->BufferSz, extbuf->BufferId);
-
+#endif
     }
 
     pFrame->allocate(&frmData, &info);

@@ -30,12 +30,7 @@
 #include "umc_av1_frame.h"
 
 //#define AV1D_LOGGING
-#if defined(AV1D_LOGGING) && (defined(WIN32) || defined(WIN64))
-#define AV1D_LOG(string, ...) do { printf("(AV1D log) %s ",__FUNCTION__); printf(string, ##__VA_ARGS__); printf("\n"); fflush(0); } \
-                              while (0)
-#else
 #define AV1D_LOG(string, ...)
-#endif
 
 using UMC_VP9_DECODER::AlignPowerOfTwo;
 
@@ -446,7 +441,6 @@ namespace UMC_AV1_DECODER
 
         AV1D_LOG("[-]: %d", (uint32_t)bs.BitsDecoded());
     }
-
 
     inline
     void av1_read_frame_reference_mode(AV1Bitstream& bs, FrameHeader& fh, DPBType const&)
@@ -1381,6 +1375,13 @@ namespace UMC_AV1_DECODER
         av1_color_config(*this, sh.color_config, sh.seq_profile);
 
         sh.film_grain_param_present = GetBit();
+
+        int bitBeforeAlignment = 8 - m_bitOffset % 8;
+        int trailing = GetBits(bitBeforeAlignment);
+        if (trailing != (1 << (bitBeforeAlignment - 1))) {
+            VM_ASSERT("Invalid trailing!");
+            throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
+        }
 
         AV1D_LOG("[-]: %d", (uint32_t)BitsDecoded());
     }

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2012-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,9 +20,8 @@
 
 #include "mfx_common.h"
 
-#if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
+#if defined(MFX_ENABLE_VP8_VIDEO_DECODE)
 
-#include "mfx_session.h"
 #include "mfx_common_decode_int.h"
 #include "mfx_vp8_dec_decode_hw.h"
 #include "mfx_enc_common.h"
@@ -147,8 +146,9 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
                  picParams->loop_filter_level[i] = m_frame_info.segmentFeatureData[VP8_ALT_LOOP_FILTER][i];
              else
              {
-                 int32_t filter_level = m_frame_info.loopFilterLevel + m_frame_info.segmentFeatureData[VP8_ALT_LOOP_FILTER][i];
-                 picParams->loop_filter_level[i] = mfx::clamp(filter_level, 0, 63);
+                 picParams->loop_filter_level[i] = m_frame_info.loopFilterLevel + m_frame_info.segmentFeatureData[VP8_ALT_LOOP_FILTER][i];
+                 picParams->loop_filter_level[i] = (picParams->loop_filter_level[i] >= 0) ?
+                     ((picParams->loop_filter_level[i] <= 63) ? picParams->loop_filter_level[i] : 63) : 0;
              }
          }
      }
@@ -343,4 +343,4 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
 } // Status VP8VideoDecoderHardware::PackHeaders(MediaData* src)
 
 
-#endif
+#endif //MFX_ENABLE_VP8_VIDEO_DECODE

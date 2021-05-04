@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2009-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@
 
 #include "mfx_common.h"
 
-#if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
 
 #include "mfx_mjpeg_encode_hw_utils.h"
 #include "libmfx_core_factory.h"
@@ -30,7 +30,7 @@
 
 #include "mfx_mjpeg_encode_vaapi.h"
 #include "libmfx_core_interface.h"
-#include "mfx_session.h"
+
 #include "mfx_mjpeg_encode_hw_utils.h"
 #include "libmfx_core_vaapi.h"
 #include "fast_copy.h"
@@ -49,9 +49,6 @@ VAAPIEncoder::VAAPIEncoder()
  , m_htBufferId(VA_INVALID_ID)
  , m_scanBufferId(VA_INVALID_ID)
  , m_ppsBufferId(VA_INVALID_ID)
- , m_priorityBufferId(VA_INVALID_ID)
- , m_priorityBuffer()
- , m_MaxContextPriority(0)
 {
 }
 
@@ -64,17 +61,23 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     VideoCORE * core,
     mfxU32      width,
     mfxU32      height,
-    bool        isTemporal)
+    bool        /*isTemporal*/)
 {
-    (void)isTemporal;
-
     m_core = core;
-    VAAPIVideoCORE * hwcore = dynamic_cast<VAAPIVideoCORE *>(m_core);
-    MFX_CHECK_WITH_ASSERT(hwcore != 0, MFX_ERR_DEVICE_FAILED);
-    if(hwcore)
+
+    VAAPIVideoCORE* hwCore_10 = dynamic_cast<VAAPIVideoCORE*>(m_core);
+    if (hwCore_10)
     {
-        mfxStatus mfxSts = hwcore->GetVAService(&m_vaDisplay);
-        MFX_CHECK_STS(mfxSts);
+        // Legacy MSDK 1.x case
+        MFX_SAFE_CALL(hwCore_10->GetVAService(&m_vaDisplay));
+    }
+    else
+    {
+        // MSDK 2.0 case
+        VAAPIVideoCORE20* hwCore_20 = dynamic_cast<VAAPIVideoCORE20*>(m_core);
+        MFX_CHECK_WITH_ASSERT(hwCore_20, MFX_ERR_DEVICE_FAILED);
+
+        MFX_SAFE_CALL(hwCore_20->GetVAService(&m_vaDisplay));
     }
 
     MFX_CHECK(m_vaDisplay, MFX_ERR_DEVICE_FAILED);
@@ -102,63 +105,10 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
             break;
         }
     }
-    if( !bEncodeEnable )
-    {
-        return MFX_ERR_DEVICE_FAILED;
-    }
+    MFX_CHECK(bEncodeEnable, MFX_ERR_DEVICE_FAILED);
+
     m_width  = width;
     m_height = height;
-
-    // set caps
-    memset(&m_caps, 0, sizeof(m_caps));
-    m_caps.Baseline         = 1;
-    m_caps.Sequential       = 1;
-    m_caps.Huffman          = 1;
-
-    m_caps.NonInterleaved   = 0;
-    m_caps.Interleaved      = 1;
-
-    m_caps.SampleBitDepth   = 8;
-
-    VAConfigAttrib attrib;
-
-    attrib.type = VAConfigAttribEncJPEG;
-    vaSts = vaGetConfigAttributes(m_vaDisplay,
-                          VAProfileJPEGBaseline,
-                          VAEntrypointEncPicture,
-                          &attrib, 1);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-    VAConfigAttribValEncJPEG encAttribVal;
-    encAttribVal.value = attrib.value;
-    m_caps.MaxNumComponent = encAttribVal.bits.max_num_components;
-    m_caps.MaxNumScan = encAttribVal.bits.max_num_scans;
-    m_caps.MaxNumHuffTable = encAttribVal.bits.max_num_huffman_tables;
-    m_caps.MaxNumQuantTable = encAttribVal.bits.max_num_quantization_tables;
-
-    attrib.type = VAConfigAttribMaxPictureWidth;
-    vaSts = vaGetConfigAttributes(m_vaDisplay,
-                          VAProfileJPEGBaseline,
-                          VAEntrypointEncPicture,
-                          &attrib, 1);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-    m_caps.MaxPicWidth      = attrib.value;
-
-    attrib.type = VAConfigAttribMaxPictureHeight;
-    vaSts = vaGetConfigAttributes(m_vaDisplay,
-                          VAProfileJPEGBaseline,
-                          VAEntrypointEncPicture,
-                          &attrib, 1);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-    m_caps.MaxPicHeight     = attrib.value;
-
-    attrib.type = VAConfigAttribContextPriority;
-    vaSts = vaGetConfigAttributes(m_vaDisplay,
-                          VAProfileJPEGBaseline,
-                          VAEntrypointEncPicture,
-                          &attrib, 1);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-    if(attrib.value != VA_ATTRIB_NOT_SUPPORTED)
-        m_MaxContextPriority = attrib.value;
 
     return MFX_ERR_NONE;
 }
@@ -250,7 +200,57 @@ mfxStatus VAAPIEncoder::QueryEncodeCaps(JpegEncCaps & caps)
 {
     MFX_CHECK_NULL_PTR1(m_core);
 
-    caps = m_caps;
+    VAAPIVideoCORE* hwCore_10 = dynamic_cast<VAAPIVideoCORE*>(m_core);
+    if (hwCore_10)
+    {
+        // Legacy MSDK 1.x case
+        MFX_SAFE_CALL(hwCore_10->GetVAService(&m_vaDisplay));
+    }
+    else
+    {
+        // MSDK 2.0 case
+        VAAPIVideoCORE20* hwCore_20 = dynamic_cast<VAAPIVideoCORE20*>(m_core);
+        MFX_CHECK_WITH_ASSERT(hwCore_20, MFX_ERR_DEVICE_FAILED);
+
+        MFX_SAFE_CALL(hwCore_20->GetVAService(&m_vaDisplay));
+    }
+
+    memset(&caps, 0, sizeof(caps));
+    caps.Baseline         = 1;
+    caps.Sequential       = 1;
+    caps.Huffman          = 1;
+
+    caps.NonInterleaved   = 0;
+    caps.Interleaved      = 1;
+
+    caps.SampleBitDepth   = 8;
+    caps.MaxNumComponent  = 3;
+    caps.MaxNumScan       = 1;
+    caps.MaxNumHuffTable  = 2;
+    caps.MaxNumQuantTable = 2;
+
+    VAStatus vaSts;
+
+    // Configuration
+    VAConfigAttrib attrib;
+
+    attrib.type = VAConfigAttribMaxPictureWidth;
+    vaSts = vaGetConfigAttributes(m_vaDisplay,
+                          VAProfileJPEGBaseline,
+                          VAEntrypointEncPicture,
+                          &attrib, 1);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    caps.MaxPicWidth      = attrib.value;
+
+    attrib.type = VAConfigAttribMaxPictureHeight;
+    vaSts = vaGetConfigAttributes(m_vaDisplay,
+                          VAProfileJPEGBaseline,
+                          VAEntrypointEncPicture,
+                          &attrib, 1);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    caps.MaxPicHeight     = attrib.value;
 
     return MFX_ERR_NONE;
 }
@@ -265,7 +265,7 @@ mfxStatus VAAPIEncoder::RegisterBitstreamBuffer(mfxFrameAllocResponse& response)
         // we should register allocated HW bitstreams and recon surfaces
         MFX_CHECK( response.mids, MFX_ERR_NULL_PTR );
 
-        ExtVASurface extSurf = {VA_INVALID_ID, 0, 0, 0};
+        ExtVASurface extSurf = { VA_INVALID_ID, 0, 0, 0 };
         VASurfaceID *pSurface = NULL;
 
         for (mfxU32 i = 0; i < response.NumFrameActual; i++)
@@ -278,39 +278,6 @@ mfxStatus VAAPIEncoder::RegisterBitstreamBuffer(mfxFrameAllocResponse& response)
             pQueue->push_back( extSurf );
         }
     }
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus VAAPIEncoder::FillPriorityBuffer(mfxPriority& priority)
-{
-    VAStatus vaSts;
-    memset(&m_priorityBuffer, 0, sizeof(VAContextParameterUpdateBuffer));
-    m_priorityBuffer.flags.bits.context_priority_update = 1; 
-
-    if(priority == MFX_PRIORITY_LOW)
-    {
-        m_priorityBuffer.context_priority.bits.priority = 0;
-    }
-    else if (priority == MFX_PRIORITY_HIGH)
-    {
-        m_priorityBuffer.context_priority.bits.priority = m_MaxContextPriority;
-    }
-    else
-    {
-        m_priorityBuffer.context_priority.bits.priority = m_MaxContextPriority/2;
-    }
-    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_priorityBufferId);
-    MFX_CHECK_STS(sts);
-
-    vaSts = vaCreateBuffer(m_vaDisplay,
-        m_vaContextEncode,
-        VAContextParameterUpdateBufferType,
-        sizeof(m_priorityBuffer),
-        1,
-        &m_priorityBuffer,
-        &m_priorityBufferId);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     return MFX_ERR_NONE;
 }
@@ -366,14 +333,6 @@ mfxStatus VAAPIEncoder::Execute(DdiTask &task, mfxHDL surface)
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
-    //Gpu priortiy
-    if(m_MaxContextPriority)
-    {
-        mfxPriority contextPriority = m_core->GetSession()->m_priority;
-        mfxStatus mfxSts = FillPriorityBuffer(contextPriority);
-        MFX_CHECK(mfxSts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
-    }
-
     vaSts = vaRenderPicture(m_vaDisplay, m_vaContextEncode, (VABufferID *)&m_ppsBufferId, 1);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
@@ -401,18 +360,12 @@ mfxStatus VAAPIEncoder::Execute(DdiTask &task, mfxHDL surface)
     vaSts = vaRenderPicture(m_vaDisplay, m_vaContextEncode, (VABufferID *)&m_scanBufferId, 1);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    if(m_MaxContextPriority)
-    {
-        vaSts = vaRenderPicture(m_vaDisplay, m_vaContextEncode, (VABufferID *)&m_priorityBufferId, 1);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-    }
-
     vaSts = vaEndPicture(m_vaDisplay, m_vaContextEncode);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
-        ExtVASurface currentFeedback = {VA_INVALID_ID, 0, 0, 0};
+        ExtVASurface currentFeedback = { VA_INVALID_ID, 0, 0, 0 };
         currentFeedback.number  = task.m_statusReportNumber;
         currentFeedback.surface = *(VASurfaceID*)surface;
         currentFeedback.idxBs   = task.m_idxBS;
@@ -466,21 +419,37 @@ mfxStatus VAAPIEncoder::QueryStatus(DdiTask & task)
     {
         VASurfaceStatus surfSts = VASurfaceSkipped;
 
-
-        m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
-        guard.Unlock();
-
         {
-            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Enc vaSyncSurface");
-            vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
-            // it could happen that decoding error will not be returned after decoder sync
-            // and will be returned at subsequent encoder sync instead
-            // just ignore VA_STATUS_ERROR_DECODING_ERROR in encoder
-            if (vaSts == VA_STATUS_ERROR_DECODING_ERROR)
-                vaSts = VA_STATUS_SUCCESS;
+#if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
+
+            m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
+            guard.Unlock();
+
+            {
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Enc vaSyncSurface");
+                vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
+                // it could happen that decoding error will not be returned after decoder sync
+                // and will be returned at subsequent encoder sync instead
+                // just ignore VA_STATUS_ERROR_DECODING_ERROR in encoder
+                if (vaSts == VA_STATUS_ERROR_DECODING_ERROR)
+                    vaSts = VA_STATUS_SUCCESS;
+                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+            }
+            surfSts = VASurfaceReady;
+
+#else
+
+            vaSts = vaQuerySurfaceStatus(m_vaDisplay, waitSurface, &surfSts);
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+            if (VASurfaceReady == surfSts)
+            {
+                m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
+                guard.Unlock();
+            }
+
+#endif
         }
-        surfSts = VASurfaceReady;
 
         switch (surfSts)
         {
@@ -565,12 +534,6 @@ mfxStatus VAAPIEncoder::DestroyBuffers()
 
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_ppsBufferId);
     std::ignore = MFX_STS_TRACE(sts);
-
-    if(m_MaxContextPriority)
-    {
-        sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_priorityBufferId);
-        std::ignore = MFX_STS_TRACE(sts);
-    }
 
     for (size_t index = 0; index < m_appBufferIds.size(); index++)
     {

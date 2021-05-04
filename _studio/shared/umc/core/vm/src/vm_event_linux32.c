@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if defined(LINUX32)
 
 #include <sys/time.h>
 #include <string.h>
@@ -367,6 +366,3 @@ void vm_event_destroy(vm_event *event)
         vm_event_set_invalid_internal(event);
     }
 } /* void vm_event_destroy(vm_event *event) */
-#else
-# pragma warning( disable: 4206 )
-#endif /* LINUX32 */

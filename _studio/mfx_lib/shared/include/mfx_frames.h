@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2020 Intel Corporation
-// 
+// Copyright (c) 2010-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,6 +25,7 @@
 #include <mutex>
 #include "mfxdefs.h"
 #include "mfx_common_int.h"
+#include "vm_event.h"
 
 #define NUM_TASKS 256
 
@@ -35,15 +36,19 @@
       mfxEncodeInternalParams   m_inputInternalParams;
       mfxFrameSurface1          *m_pInput_surface;
       mfxBitstream              *m_pBs;
+      vm_event                  m_new_frame_event;
 
       sExtTask1()
           : m_inputInternalParams()
       {
           m_pInput_surface = 0;
           m_pBs = 0;
+          vm_event_set_invalid(&m_new_frame_event);
+          vm_event_init(&m_new_frame_event,0,0);
       }
       virtual ~sExtTask1()
       {
+        vm_event_destroy(&m_new_frame_event);
       }
     };
 
@@ -98,6 +103,9 @@
                 }
                 pTask->m_pInput_surface = input_surface;
                 pTask->m_pBs = bs;
+#if defined (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
+                vm_event_signal (&pTask->m_new_frame_event);
+#endif
                 *pOutTask = pTask;
                 m_numTasks ++;
                 return MFX_ERR_NONE;
@@ -106,8 +114,9 @@
         }
         mfxStatus CheckTask (sExtTask1 *pInputTask)
         {
-            mfxStatus sts = MFX_ERR_MORE_DATA;
             std::lock_guard<std::mutex> guard(m_mGuard);
+            mfxStatus sts = MFX_ERR_MORE_DATA;
+
             if (m_numTasks > 0)
             {
                 /* task for current frame or task for the same frame */
@@ -182,6 +191,9 @@
                 pTask->m_pBs = bs;
                 pTask->m_nInternalTask = 0;
 
+#if defined (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
+                vm_event_signal (&pTask->m_new_frame_event);
+#endif
                 *pOutTask = pTask;
                 m_numTasks ++;
                 return MFX_ERR_NONE;
@@ -191,8 +203,9 @@
 
         mfxStatus CheckTaskForSubmit(sExtTask2 *pInputTask)
         {
-            mfxStatus sts = MFX_ERR_MORE_DATA;
             std::lock_guard<std::mutex> guard(m_mGuard);
+            mfxStatus sts = MFX_ERR_MORE_DATA;
+            
             if (m_numTasks >= m_numSubmittedTasks)
             {
                 if (pInputTask == m_pTasks + ((m_currTask + m_numSubmittedTasks - 1)% m_maxTasks))
@@ -232,7 +245,7 @@
     private:
 
         sExtTask2* m_pTasks;
-        std::mutex      m_mGuard;
+        std::mutex        m_mGuard;
 
         mfxU32          m_maxTasks;
         mfxU32          m_numTasks;

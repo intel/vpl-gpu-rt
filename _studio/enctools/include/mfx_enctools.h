@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,12 @@
 
 #include "mfxcommon.h"
 #include "mfxenctools-int.h"
-#include "mfx_utils_defs.h"
+#include "mfx_enctools_defs.h"
 #include "mfx_enctools_brc.h"
 #include "mfx_enctools_aenc.h"
+#include "mfx_enctools_lpla.h"
 #include "mfx_enctools_utils.h"
+#include "mfx_enctools_allocator.h"
 
 #include <vector>
 #include <memory>
@@ -47,11 +49,16 @@ private:
 
     BRC_EncTool  m_brc;
     AEnc_EncTool m_scd;
+#if defined (MFX_ENABLE_ENCTOOLS_LPLA)
+    LPLA_EncTool m_lpLookAhead;
+#endif
     mfxExtEncToolsConfig m_config;
     mfxEncToolsCtrl  m_ctrl;
     mfxHDL m_device;
     mfxU32 m_deviceType;
     mfxFrameAllocator *m_pAllocator;
+    MFXFrameAllocator *m_pETAllocator;
+    mfxAllocatorParams *m_pmfxAllocatorParams;
     MFXVideoSession m_mfxSession;
 
     std::unique_ptr<MFXVideoVPP> m_pmfxVPP;
@@ -66,7 +73,8 @@ public:
         m_bInit(false),
         m_config(),
         m_device(0),
-        m_pAllocator(0),
+        m_pAllocator(nullptr),
+        m_pETAllocator(nullptr),
         m_mfxVppParams(),
         m_VppResponse()
     {}

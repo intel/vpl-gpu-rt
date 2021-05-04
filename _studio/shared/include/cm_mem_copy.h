@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2011-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,19 +23,16 @@
 
 #include "mfxdefs.h"
 #include "mfxstructures.h"
-#ifdef MFX_ENABLE_KERNELS
-#include "genx_copy_kernel_gen8_isa.h"
-#include "genx_copy_kernel_gen9_isa.h"
-#include "genx_copy_kernel_gen11_isa.h"
-#include "genx_copy_kernel_gen11lp_isa.h"
-#include "genx_copy_kernel_gen12lp_isa.h"
-#endif
+#include "ippi.h"
+
+#if !defined(OSX)
 
 #ifdef _MSVC_LANG
 #pragma warning(disable: 4505)
 #pragma warning(disable: 4100)
 #pragma warning(disable: 4201)
 #endif
+
 
 #include "umc_mutex.h"
 
@@ -92,7 +89,7 @@ public:
     CmDevice* GetCmDevice(D3DAbstract *pD3D)
     {
         cmStatus cmSts = CM_SUCCESS;
-        mfxU32 version;
+        mfxU32 version = 0;
 
         if (m_pCmDevice)
             return m_pCmDevice;
@@ -109,7 +106,6 @@ public:
         return m_pCmDevice;
     };
 
-#if defined(MFX_VA_LINUX)
     CmDevice* GetCmDevice(VADisplay dpy)
     {
         cmStatus cmSts = CM_SUCCESS;
@@ -128,7 +124,6 @@ public:
         }
         return m_pCmDevice;
     };
-#endif
 
     // initialize available functionality
     mfxStatus Initialize(eMFXHWType hwtype = MFX_HW_UNKNOWN);
@@ -138,7 +133,7 @@ public:
     mfxStatus Release(void);
 
     // check input parameters
-    mfxStatus IsCmCopySupported(mfxFrameSurface1 *pSurface, mfxSize roi);
+    mfxStatus IsCmCopySupported(mfxFrameSurface1 *pSurface, IppiSize roi);
 
     static bool CanUseCmCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
     static bool CheckSurfaceContinuouslyAllocated(const mfxFrameSurface1 &surf);
@@ -151,21 +146,21 @@ public:
     mfxStatus CopySysToVideo(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
     mfxStatus CopyVideoToSys(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
 
-    mfxStatus CopyVideoToSystemMemoryAPI(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, mfxMemId src, mfxU32 srcPitch, mfxSize roi);
-    mfxStatus CopyVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, mfxMemId src, mfxU32 srcPitch, mfxSize roi, mfxU32 format);
+    mfxStatus CopyVideoToSystemMemoryAPI(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, mfxHDLPair src, mfxU32 srcPitch, IppiSize roi);
+    mfxStatus CopyVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, mfxHDLPair src, mfxU32 srcPitch, IppiSize roi, mfxU32 format);
 
-    mfxStatus CopySystemToVideoMemoryAPI(mfxMemId dst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi);
-    mfxStatus CopySystemToVideoMemory(mfxMemId dst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format);
-    mfxStatus CopyVideoToVideoMemoryAPI(mfxMemId dst, mfxMemId src, mfxSize roi);
+    mfxStatus CopySystemToVideoMemoryAPI(mfxHDLPair dst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, IppiSize roi);
+    mfxStatus CopySystemToVideoMemory(mfxHDLPair dst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, IppiSize roi, mfxU32 format);
+    mfxStatus CopyVideoToVideoMemoryAPI(mfxHDLPair dst, mfxHDLPair src, IppiSize roi);
 
-    mfxStatus CopySwapVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, mfxMemId src, mfxU32 srcPitch, mfxSize roi, mfxU32 format);
-    mfxStatus CopySwapSystemToVideoMemory(mfxMemId dst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format);
-    mfxStatus CopyShiftSystemToVideoMemory(mfxMemId dst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 bitshift, mfxU32 format);
-    mfxStatus CopyShiftVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, mfxMemId src, mfxU32 srcPitch, mfxSize roi, mfxU32 bitshift, mfxU32 format);
-    mfxStatus CopyMirrorVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, mfxMemId src, mfxU32 srcPitch, mfxSize roi, mfxU32 format);
-    mfxStatus CopyMirrorSystemToVideoMemory(mfxMemId dst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format);
-    mfxStatus CopySwapVideoToVideoMemory(mfxMemId dst, mfxMemId src, mfxSize roi, mfxU32 format);
-    mfxStatus CopyMirrorVideoToVideoMemory(mfxMemId dst, mfxMemId src, mfxSize roi, mfxU32 format);
+    mfxStatus CopySwapVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, mfxHDLPair src, mfxU32 srcPitch, IppiSize roi, mfxU32 format);
+    mfxStatus CopySwapSystemToVideoMemory(mfxHDLPair dst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, IppiSize roi, mfxU32 format);
+    mfxStatus CopyShiftSystemToVideoMemory(mfxHDLPair dst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, IppiSize roi, mfxU32 bitshift, mfxU32 format);
+    mfxStatus CopyShiftVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, mfxHDLPair src, mfxU32 srcPitch, IppiSize roi, mfxU32 bitshift, mfxU32 format);
+    mfxStatus CopyMirrorVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, mfxHDLPair src, mfxU32 srcPitch, IppiSize roi, mfxU32 format);
+    mfxStatus CopyMirrorSystemToVideoMemory(mfxHDLPair dst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, IppiSize roi, mfxU32 format);
+    mfxStatus CopySwapVideoToVideoMemory(mfxHDLPair dst, mfxHDLPair src, IppiSize roi, mfxU32 format);
+    mfxStatus CopyMirrorVideoToVideoMemory(mfxHDLPair dst, mfxHDLPair src, IppiSize roi, mfxU32 format);
 
     mfxStatus ReleaseCmSurfaces(void);
     mfxStatus EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
@@ -333,7 +328,7 @@ protected:
     std::vector<CmBufferUP*>  m_buffersInCreationOrder;
     UMC::Mutex m_guard;
 
-    CmSurface2D * CreateCmSurface2D(const mfxHDLPair & hdl, mfxU32 width, mfxU32 height, bool isSecondMode,
+    CmSurface2D * CreateCmSurface2D(mfxHDLPair surfaceIdPair, mfxU32 width, mfxU32 height, bool isSecondMode,
                                     std::map<mfxHDLPair, CmSurface2D *> & tableCmRelations,
                                     std::map<CmSurface2D *, SurfaceIndex *> & tableCmIndex);
 
@@ -343,5 +338,6 @@ protected:
 
 };
 
+#endif // !defined(MFX_VA_OSX)
 
 #endif // __CM_MEM_COPY_H__

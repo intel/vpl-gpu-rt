@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2003-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -50,11 +50,18 @@ public:
 
     void Resize(int32_t id, size_t newSize);
 
+#ifdef __APPLE__
+    size_t  GetRBSPSize();
+    void  SetRBSPSize(size_t rbspSize);
+#endif 
 
 protected:
     typedef std::vector<uint8_t> BufferType;
     BufferType  m_buffer;
     int32_t      m_id;
+#ifdef __APPLE__
+    size_t      m_rbspSize;
+#endif
 };
 
 class RawHeaders
@@ -127,6 +134,12 @@ inline bool isMVCProfile(mfxU32 profile)
     return (profile == MFX_PROFILE_AVC_MULTIVIEW_HIGH || profile == MFX_PROFILE_AVC_STEREO_HIGH);
 }
 
+#if defined(MFX_ENABLE_SVC_VIDEO_DECODE)
+inline bool isSVCProfile(mfxU32 profile)
+{
+    return (profile == MFX_PROFILE_AVC_SCALABLE_BASELINE || profile == MFX_PROFILE_AVC_SCALABLE_HIGH);
+}
+#endif
 
 } // namespace UMC
 

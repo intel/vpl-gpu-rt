@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2020 Intel Corporation
+# Copyright (c) 2017-2021 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,16 +18,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-cmake_minimum_required( VERSION 3.6 )
+cmake_minimum_required( VERSION 3.14 )
 
-cmake_policy(SET CMP0048 NEW) # version handled by project()
+cmake_policy(SET CMP0048 NEW)   # version handled by project()
+cmake_policy(SET CMP0092 NEW)   # we handle warning level programmaticaly
 
 
 # Througout this project MFX_VERSION refers to uAPI version and MEDIA_VERSION refers to product version
-set(MEDIA_VERSION 21.1.2) # auto-update
+set(MEDIA_VERSION 21.1.3) # auto-update
 set(MEDIA_VERSION_STR "${MEDIA_VERSION}${MEDIA_VERSION_EXTRA}" CACHE STRING "" FORCE)
 
-project(mfx1
+if(CMAKE_SYSTEM_NAME MATCHES WindowsStore)
+  if(NOT VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION)
+    set(VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION $ENV{MINIDDK_VERSION})
+  endif()
+endif()
+
+project(mfxgen1
   VERSION ${MEDIA_VERSION}
   LANGUAGES CXX C ASM)
 
@@ -43,127 +50,56 @@ endif()
 
 set( BUILDER_ROOT "${CMAKE_HOME_DIRECTORY}/builder" )
 
-if( NOT DEFINED CMAKE_MFX_HOME )
-  set( CMAKE_MFX_HOME "${CMAKE_HOME_DIRECTORY}/api" )
+if(DEFINED API)
+  message(STATUS "Ignoring specified API: $API in favor or version in mfxdefs.h")
+  set( API "" )
+  set( MFX_API_HOME "${MFX_HOME}/api")
 endif()
 
 if(NOT DEFINED ENV{MFX_HOME} )
-  set( MFX_HOME ${CMAKE_HOME_DIRECTORY} )
+  set( MFX_HOME "${CMAKE_HOME_DIRECTORY}" )
+  set( MFX_API_HOME "${CMAKE_HOME_DIRECTORY}/api" )
 else()
   set( MFX_HOME $ENV{MFX_HOME} )
+  set( MFX_API_HOME "${MFX_HOME}/api")
 endif()
 
-option( ENABLE_OPENCL "Build targets dependent on OpenCL?" ON )
+include( ${BUILDER_ROOT}/FindMFX.cmake )
 
-# -DENABLE_ALL will enable all the dependencies and features unless user did not
-# explicitly switched some of them OFF, i.e. configuring in the following way
-# is possible:
-#   cmake -DENABLE_ALL=ON -DENABLE_TEXTLOG=OFF
-# and it will configure all targets except samples.
-#
-# TODO: As of now ENABLE_ALL is not fully implemented, it will not affect all
-#   of the ENABLE_* options. Those options it don't affect are placed above
-#   ENABLE_ALL definition and require some rework and/or pending CI adoption.
-#
-option( ENABLE_ALL "Enable all dependencies and features?" OFF )
-
-if( CMAKE_SYSTEM_NAME MATCHES Linux )
-  option( ENABLE_X11_DRI3 "Build X11 DRI3 versions of the targets?" ${ENABLE_ALL} )
-  option( ENABLE_WAYLAND "Build WAYLAND versions of the targets?" ${ENABLE_ALL} )
-endif()
-
-option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" ${ENABLE_ALL} )
-
-option( ENABLE_TEXTLOG "Enable textlog tracing?" "${ENABLE_ALL}")
-option( ENABLE_STAT "Enable stat tracing?" "${ENABLE_ALL}")
-
-# -DBUILD_ALL will enable all the build targets unless user did not explicitly
-# switched some targets OFF, i.e. configuring in the following way is possible:
-#   cmake -DBUILD_ALL=ON -DBUILD_SAMPLES=OFF
-# and it will configure all targets except samples.
-option( BUILD_ALL "Build all the targets?" OFF )
-
-option( BUILD_RUNTIME "Build mediasdk runtime (library, plugins, etc.)?" ON )
-option( BUILD_DISPATCHER "Build dispatcher?" ON )
-cmake_dependent_option(BUILD_SAMPLES "Build samples?" ON "BUILD_DISPATCHER" OFF )
-cmake_dependent_option(BUILD_TUTORIALS "Build tutorials?" ON "BUILD_DISPATCHER" OFF )
-# Tools depend on samples (sample_common) and can't be built without it. The
-# following BUILD_TOOLS option declaration assures that.
-cmake_dependent_option(BUILD_TOOLS "Build tools?" "${BUILD_ALL}" "BUILD_SAMPLES" OFF)
-option(BUILD_TESTS "Build tests?" "${BUILD_ALL}")
-option(USE_SYSTEM_GTEST "Use system installed gtest?" OFF)
-
+include( ${BUILDER_ROOT}/FindInternals.cmake )
 include( ${BUILDER_ROOT}/FindOpenCL.cmake )
 include( ${BUILDER_ROOT}/FindFunctions.cmake )
-include( ${BUILDER_ROOT}/FindMFX.cmake )
+include( ${BUILDER_ROOT}/BuildOptions.cmake )
 include( ${BUILDER_ROOT}/FindGlobals.cmake )
-include( ${BUILDER_ROOT}/FindPackages.cmake )
-include( ${BUILDER_ROOT}/FindInternals.cmake )
 include( ${BUILDER_ROOT}/FindITT.cmake )
-include( ${BUILDER_ROOT}/ConfTargets.cmake )
-
-if (BUILD_TESTS)
-  if (NOT USE_SYSTEM_GTEST)
-    # Our intent is to use gtest for building, we do not want to install it.
-    # To achieve that we need to force set INSTALL_GTEST=OFF otherwise
-    # according to cmake rules it will be overwritten by option() default
-    # which might be ON.
-    set(INSTALL_GTEST OFF CACHE BOOL "Do _not_ install gtest" FORCE)
-
-    add_subdirectory(${CMAKE_HOME_DIRECTORY}/contrib/googletest)
-
-    # For some Linux distro versions there is an unused-result warning
-    # generated inside the Gtest code at a call to fwrite. Since Gtest sets -Werror
-    # internally the only way to make it compile without modifying its source is to disable the
-    # unused-result warnings for Gtest/Gmock only.
-    target_compile_options (gtest PRIVATE "-Wno-unused-result")
-    target_compile_options (gmock PRIVATE "-Wno-unused-result")
-    target_compile_options (gtest_main PRIVATE "-Wno-unused-result")
-    target_compile_options (gmock_main PRIVATE "-Wno-unused-result")
-  endif()
-
-  enable_testing()
-endif()
-
-# should prepend others to define target mfx
-if (BUILD_DISPATCHER)
-  add_subdirectory(api/mfx_dispatch/linux)
-endif()
+include( ${BUILDER_ROOT}/FindPackages.cmake )
 
 if (BUILD_TOOLS)
-  add_subdirectory(${CMAKE_HOME_DIRECTORY}/tools)
-endif()
-
-if (BUILD_SAMPLES)
-  add_subdirectory(${CMAKE_HOME_DIRECTORY}/samples)
-endif()
-
-if (BUILD_TUTORIALS)
-  add_subdirectory(${CMAKE_HOME_DIRECTORY}/tutorials)
+#  add_subdirectory(${CMAKE_HOME_DIRECTORY}/tools)
 endif()
 
 if (BUILD_RUNTIME)
-  if (MFX_ENABLE_SW_FALLBACK)
-    add_subdirectory(${CMAKE_HOME_DIRECTORY}/contrib/ipp)
-  endif()
+  add_subdirectory(${CMAKE_HOME_DIRECTORY}/contrib/ipp)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/_studio)
 endif()
 
 if (BUILD_TESTS)
-  add_subdirectory(tests)
+#  add_subdirectory(tests)
 endif()
 
-create_plugins_cfg(${CMAKE_BINARY_DIR})
+if (ENABLE_ITT)
+  target_link_libraries(mfx_common_properties INTERFACE itt)
+endif()
 
 message("")
-message("********************** Media SDK Configuration Summary **********************")
-message("MediaSDK:")
+message("********************** oneVPL GPU Runtime Configuration Summary **********************")
+message("oneVPL:")
 message("  API (request to use this version)       : ${API}")
 message("  API_VERSION                             : ${API_VERSION}")
 message("  API_FLAGS                               : ${API_FLAGS}")
 message("  MFX_CONFIG_FILE                         : ${MFX_CONFIG_FILE}")
 message("  See detailed per-component mediasdk configuration in the auto-generated file:")
-message("    ${CMAKE_CURRENT_BINARY_DIR}/mfxconfig.h")
+message("    ${MSDK_CMAKE_BINARY_ROOT}/mfxconfig.h")
 message("Cmake:")
 message("  CMAKE_VERSION                           : ${CMAKE_VERSION}")
 message("  CMAKE_GENERATOR                         : ${CMAKE_GENERATOR}")
@@ -200,21 +136,15 @@ message("  CMAKE_INSTALL_FULL_INCLUDEDIR           : ${CMAKE_INSTALL_FULL_INCLUD
 message("  CMAKE_INSTALL_FULL_LIBDIR               : ${CMAKE_INSTALL_FULL_LIBDIR}")
 message("  CMAKE_INSTALL_FULL_DATADIR              : ${CMAKE_INSTALL_FULL_DATADIR}")
 message("Enable:")
-message("  ENABLE_OPENCL                           : ${ENABLE_OPENCL}")
-if( CMAKE_SYSTEM_NAME MATCHES Linux )
-  message("  ENABLE_X11                              : ${ENABLE_X11}")
-  message("  ENABLE_X11_DRI3                         : ${ENABLE_X11_DRI3}")
-  message("  ENABLE_WAYLAND                          : ${ENABLE_WAYLAND}")
-endif()
 message("  ENABLE_ITT                              : ${ENABLE_ITT}")
 message("  ENABLE_TEXTLOG                          : ${ENABLE_TEXTLOG}")
 message("  ENABLE_STAT                             : ${ENABLE_STAT}")
 message("Build:")
 message("  BUILD_RUNTIME                           : ${BUILD_RUNTIME}")
-message("  BUILD_DISPATCHER                        : ${BUILD_DISPATCHER}")
-message("  BUILD_SAMPLES                           : ${BUILD_SAMPLES}")
-message("  BUILD_TUTORIALS                         : ${BUILD_TUTORIALS}")
 message("  BUILD_TESTS                             : ${BUILD_TESTS}")
+message("  BUILD_MOCK_TESTS                        : ${BUILD_MOCK_TESTS}")
 message("  BUILD_TOOLS                             : ${BUILD_TOOLS}")
 message("  BUILD_KERNELS                           : ${BUILD_KERNELS}")
 message("*****************************************************************************")
+
+include(sources_ext.cmake OPTIONAL)

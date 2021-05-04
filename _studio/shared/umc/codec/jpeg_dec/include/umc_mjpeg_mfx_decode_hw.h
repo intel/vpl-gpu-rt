@@ -1,15 +1,15 @@
-// Copyright (c) 2020 Intel Corporation
-// 
+// Copyright (c) 2003-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,11 +31,13 @@
 #include "umc_mjpeg_mfx_decode_base.h"
 #include <set>
 
-
+#if defined(UMC_VA_LINUX)
  #include <va/va_dec_jpeg.h>
+#endif
 
 namespace UMC
 {
+#if defined(UMC_VA_LINUX)
 typedef struct tagJPEG_DECODE_SCAN_PARAMETER
 {
     uint16_t        NumComponents;
@@ -57,6 +59,7 @@ typedef struct tagJPEG_DECODE_QUERY_STATUS
     uint8_t         reserved8bits;
     uint16_t        reserved16bits;
 } JPEG_DECODE_QUERY_STATUS;
+#endif
 
 class MJPEGVideoDecoderMFX_HW : public MJPEGVideoDecoderBaseMFX
 {
@@ -103,7 +106,6 @@ protected:
 
 
     Status PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PARAMETER* obtainedScanParams, uint8_t* buffersForUpdate);
-    Status PackPriorityParams();
 
     Status GetFrameHW(MediaDataEx* in);
     Status DefaultInitializationHuffmantables();
@@ -120,6 +122,9 @@ protected:
     std::set<mfxU32> m_cachedReadyTaskIndex;
     std::set<mfxU32> m_cachedCorruptedTaskIndex;
     VideoAccelerator *      m_va;
+#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC_JPEGD
+    std::map<uint32_t, FrameMemID> m_pic_index;
+#endif
 };
 
 } // end namespace UMC

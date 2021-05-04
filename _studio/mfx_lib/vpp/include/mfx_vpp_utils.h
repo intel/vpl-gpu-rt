@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2010-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -144,9 +144,6 @@ mfxStatus CheckExtParam(VideoCORE * core, mfxExtBuffer** ppExtParam, mfxU16 coun
 mfxStatus CheckTransferMatrix( mfxU16 transferMatrix );
 mfxGamutMode GetGamutMode( mfxU16 srcTransferMatrix, mfxU16 dstTransferMatrix );
 
-// Opaque processing
-mfxStatus CheckOpaqMode( mfxVideoParam* par, bool bOpaqMode[2] );
-mfxStatus GetOpaqRequest( mfxVideoParam* par, bool bOpaqMode[2], mfxFrameAllocRequest requestOpaq[2] );
 
 //
 mfxStatus CheckIOPattern_AndSetIOMemTypes(mfxU16 IOPattern, mfxU16* pInMemType, mfxU16* pOutMemType, bool bSWLib = true );
@@ -184,7 +181,6 @@ mfxStatus GetCrossList(
 void SignalPlatformCapabilities(
     const mfxVideoParam & param,
     const std::vector<mfxU32> & supportedList);
-
 
 bool IsFrcInterpolationEnable(
     const mfxVideoParam & param,

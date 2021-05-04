@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2011-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,6 +21,7 @@
 #include "mfx_common.h"
 
 #if defined (MFX_ENABLE_VPP)
+#if defined (MFX_VA)
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
 
 #ifndef __MFX_VPP_JPEG_D3D9_H
@@ -32,12 +33,12 @@
 
 #include <map>
 
-class VideoVppJpegD3D9 
+class VideoVppJpegD3D
 {
 public:
 
-    VideoVppJpegD3D9(VideoCORE *core, bool isD3DToSys, bool isOpaq);
-    virtual ~VideoVppJpegD3D9(void);
+    VideoVppJpegD3D(VideoCORE *core, bool isD3DToSys, bool isOpaq);
+    virtual ~VideoVppJpegD3D(void);
 
     mfxStatus Init(const mfxVideoParam *par);
     mfxStatus Close(void);
@@ -55,7 +56,9 @@ protected:
     bool   m_isD3DToSys;
     bool   m_isOpaq;
     mfxU16 m_taskId;
+#ifdef MFX_ENABLE_MJPEG_ROTATE_VPP
     mfxI32 m_rotation;
+#endif
     std::vector<mfxFrameSurface1>  m_surfaces;
     mfxFrameAllocResponse m_response;
     UMC::Mutex m_guard;
@@ -70,4 +73,5 @@ protected:
 #endif // __MFX_VPP_JPEG_D3D9_H
 
 #endif // MFX_ENABLE_MJPEG_VIDEO_DECODE
+#endif // MFX_VA
 #endif // MFX_ENABLE_VPP

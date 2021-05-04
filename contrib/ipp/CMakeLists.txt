@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2017-2021 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,98 +18,138 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-set( MFX_ROOT "${CMAKE_HOME_DIRECTORY}/_studio/shared" )
+add_library(ipp_sse4 OBJECT)
 
-include_directories (
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${MFX_ROOT}/include
-  ${MFX_ROOT}/umc/core/umc/include
-)
-
-set( SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src" )
-# Optimized for processors with Intel SSE4.2
-
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-  set( ipp_defs "-D_Y8 -D_ARCH_EM64T" )
-else ()
-  set( ipp_defs "-D_P8 -D_ARCH_IA32" )
-endif()
-set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ipp_defs}" )
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ipp_defs}" )
-
-### ipp_sse4
-set( sources "" )
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-  file( GLOB_RECURSE asm_srcs "${SRC_DIR}/asm_intel64/*.s" )
-  list( APPEND sources
-    ${SRC_DIR}/pccyuvms.c
-    ${SRC_DIR}/pjdecdct0w7cn.c
-    ${SRC_DIR}/pjdechuffp.c
-    ${SRC_DIR}/pjencccps.c
-    ${SRC_DIR}/pjenchuffls.c
-    ${SRC_DIR}/psmul.c
-    ${SRC_DIR}/owncpufeatures.c
-    ${SRC_DIR}/pccyuvmsw7.c
-    ${SRC_DIR}/pjdecdct1.c
-    ${SRC_DIR}/pjdecpred.c
-    ${SRC_DIR}/pjencccpsy8.c
-    ${SRC_DIR}/pjenchuffp.c
-    ${SRC_DIR}/psmulm6a6w7cn.c
-    ${SRC_DIR}/ippcachesize.c
-    ${SRC_DIR}/piconvert02ca.c
-    ${SRC_DIR}/pjdecdct1w7cn.c
-    ${SRC_DIR}/pjdecqnt.c
-    ${SRC_DIR}/pjenccctbl.c
-    ${SRC_DIR}/pjencqnt.c
-    ${SRC_DIR}/pjzigzag.c
-    ${SRC_DIR}/psshift.c
-    ${SRC_DIR}/piconvertca.c
-    ${SRC_DIR}/pjdecdct32f.c
-    ${SRC_DIR}/pjdecss0.c
-    ${SRC_DIR}/pjencss0.c
-    ${SRC_DIR}/ippmalloc.c
-    ${SRC_DIR}/picopyca.c
-    ${SRC_DIR}/pjdecdct32fw7cn.c
-    ${SRC_DIR}/pjencdct32f.c
-    ${SRC_DIR}/pjencss.c
-    ${SRC_DIR}/pvcdeinterlacevideoplane.c
-    ${SRC_DIR}/picopycpp8y8cn.c
-    ${SRC_DIR}/pjdecdctcn.c
-    ${SRC_DIR}/pjenccc0.c
-    ${SRC_DIR}/pjencdct32fw7cn.c
-    ${SRC_DIR}/pccjoin422pxca.c
-    ${SRC_DIR}/pilogic.c
-    ${SRC_DIR}/pjdechuff.c
-    ${SRC_DIR}/pjenccc1.c
-    ${SRC_DIR}/pjencdct.c
-    ${SRC_DIR}/pjhufftbl.c
-    ${SRC_DIR}/pscopyca.c
-    ${SRC_DIR}/pccycbcr44deint.c
-    ${SRC_DIR}/pizigzag.c
-    ${SRC_DIR}/pjenccc.c
-    ${SRC_DIR}/pjenchuff.c
-    ${SRC_DIR}/pccycbcr44deintw7cn.c
-    ${SRC_DIR}/pjdecdct0.c
-    ${SRC_DIR}/pjdechuffls.c
-    ${SRC_DIR}/psdiv.c
-    ${SRC_DIR}/pvcvc1rangemap.c
-    ${asm_srcs}
+target_compile_definitions(ipp_sse4
+  PRIVATE
+    $<IF:$<EQUAL:${CMAKE_SIZEOF_VOID_P},8>,_Y8,_P8>
+    $<IF:$<EQUAL:${CMAKE_SIZEOF_VOID_P},8>,_ARCH_EM64T,_ARCH_IA32>
   )
-else()
-  #file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/asm_ia32/*.s" )
-endif()
 
-add_library(ipp_sse4 OBJECT ${sources})
-target_compile_options(ipp_sse4 PRIVATE -msse4.2)
-configure_build_variant(ipp_sse4 none)
+target_include_directories(ipp_sse4 PRIVATE include)
 
-### ipp
-set( sources "" )
-list( APPEND sources
-  ${SRC_DIR}/ippinit.c
+target_link_libraries(ipp_sse4 PRIVATE mfx_common_properties mfx_require_sse4_properties)
+
+target_sources(ipp_sse4
+  PRIVATE
+    src/dispatcher.h
+    src/ippcachesize.c
+    src/ippmalloc.c
+    src/ippver.h
+    src/ippversion.h
+    src/ippverstr.gen
+    src/owncc.h
+    src/owncore.h
+    src/owncpufeatures.c
+    src/owni.h
+    src/ownj.h
+    src/owns.h
+    src/ownvc.h
+    src/pccjoin422pxca.c
+    src/pccycbcr44deint.c
+    src/pccycbcr44deintw7cn.c
+    src/pccyuvms.c
+    src/pccyuvmsw7.c
+    src/piconvert02ca.c
+    src/piconvertca.c
+    src/picopyca.c
+    src/picopycpp8y8cn.c
+    src/pilogic.c
+    src/pizigzag.c
+    src/pjdecdct0.c
+    src/pjdecdct0w7cn.c
+    src/pjdecdct1.c
+    src/pjdecdct1w7cn.c
+    src/pjdecdct32f.c
+    src/pjdecdct32fw7cn.c
+    src/pjdecdctcn.c
+    src/pjdechuff.c
+    src/pjdechuff.h
+    src/pjdechuffls.c
+    src/pjdechuffp.c
+    src/pjdecpred.c
+    src/pjdecqnt.c
+    src/pjdecss0.c
+    src/pjdecss.h
+    src/pjenccc0.c
+    src/pjenccc1.c
+    src/pjenccc.c
+    src/pjenccc.h
+    src/pjencccps.c
+    src/pjencccpsy8.c
+    src/pjenccctbl.c
+    src/pjenccctbl.h
+    src/pjencdct32f.c
+    src/pjencdct32fw7cn.c
+    src/pjencdct.c
+    src/pjenchuff.c
+    src/pjenchuff.h
+    src/pjenchuffls.c
+    src/pjenchuffp.c
+    src/pjencqnt.c
+    src/pjencss0.c
+    src/pjencss.c
+    src/pjencss.h
+    src/pjhufftbl.c
+    src/pjhufftbl.h
+    src/pjname.h
+    src/pjquant.h
+    src/pjver.h
+    src/pjzigzag.c
+    src/pjzigzag.h
+    src/precomp.h
+    src/ps_anarith.h
+    src/pscopyca.c
+    src/pscopy.h
+    src/psdiv.c
+    src/psmul.c
+    src/psmulm6a6w7cn.c
+    src/psshift.c
+    src/pvccommonfunctions.h
+    src/pvcdeinterlacevideoplane.c
+    src/pvcmacro.h
+    src/pvcown.h
+    src/pvcvc1functions.h
+    src/pvcvc1rangemap.c
+
+    src/asm_intel64/pcccopym7as.s
+    src/asm_intel64/piconvert01m7as.s
+    src/asm_intel64/piconvert02m7as.s
+    src/asm_intel64/picopyu8as.s
+    src/asm_intel64/pidct8844im7as.s
+    src/asm_intel64/pidct88fm7as.s
+    src/asm_intel64/pidct88i_3_m7as.s
+    src/asm_intel64/pidct88im7as.s
+    src/asm_intel64/pilogic16um7as.s
+    src/asm_intel64/pjarithm7as.s
+    src/asm_intel64/pjdechuffpm7as.s
+    src/asm_intel64/pjdechuffsu8as.s
+    src/asm_intel64/pjdechuffu8as.s
+    src/asm_intel64/pjdecpredm7as.s
+    src/asm_intel64/pjdecqntm7as.s
+    src/asm_intel64/pjdecssu8as.s
+    src/asm_intel64/pjenchuffm7as.s
+    src/asm_intel64/pjenchuffpm7as.s
+    src/asm_intel64/pjencssm7as.s
+    src/asm_intel64/pscopyu8as.s
+    src/asm_intel64/pscpudef32eas.s
+    src/asm_intel64/pscpuinfo32eas.s
+    src/asm_intel64/psdivu8as.s
+    src/asm_intel64/pssetm7as.s
+    src/asm_intel64/psshiftm7as.s
+    src/asm_intel64/pszerom7as.s
+    src/asm_intel64/pvcvc1rangemapm7as.s
+  )
+
+enable_language(C ASM)
+set( CMAKE_ASM_SOURCE_FILE_EXTENSIONS s )
+
+## ipp
+add_library(ipp STATIC 
+  src/ippinit.c
   $<TARGET_OBJECTS:ipp_sse4>
 )
 
-enable_language( C ASM )
-set( CMAKE_ASM_SOURCE_FILE_EXTENSIONS s )
-make_library( ipp none static )
+target_include_directories(ipp PUBLIC include)
+
+target_link_libraries(ipp PRIVATE mfx_common_properties)

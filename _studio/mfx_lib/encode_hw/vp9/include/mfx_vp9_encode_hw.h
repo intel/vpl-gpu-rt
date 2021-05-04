@@ -1,15 +1,15 @@
-// Copyright (c) 2018 Intel Corporation
-// 
+// Copyright (c) 2016-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -39,7 +39,6 @@ public:
     MFXVideoENCODEVP9_HW(VideoCORE *core, mfxStatus *status)
         : m_bStartIVFSequence(false)
         , m_maxBsSize(0)
-        , m_pCore(core)
         , m_initialized(false)
         , m_frameArrivalOrder(0)
         , m_drainState(false)
@@ -57,6 +56,9 @@ public:
 
         Zero(m_prevFrameParam);
 
+        if (core)
+            m_pCore = core;
+
         if (status)
             *status = MFX_ERR_NONE;
     }
@@ -68,6 +70,7 @@ public:
     static mfxStatus QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
 
     static mfxStatus Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out);
+    static mfxStatus QueryImplsDescription(VideoCORE& core, mfxEncoderDescription::encoder& caps, mfx::PODArraysHolder& ah);
 
     virtual mfxStatus Init(mfxVideoParam *par);
 

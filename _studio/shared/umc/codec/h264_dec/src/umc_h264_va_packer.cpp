@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2003-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,15 +28,15 @@
 #include "mfx_cenc.h"
 #endif
 
+#ifdef UMC_VA_LINUX
 #include "umc_va_linux.h"
 #include "umc_va_linux_protected.h"
 #include "umc_va_video_processing.h"
-#include "umc_va_fei.h"
 
 #include "mfx_common_int.h"
 #include "mfx_ext_buffers.h"
+#endif
 
-#include "mfxfei.h"
 #include "mfx_trace.h"
 
 namespace UMC
@@ -71,20 +71,34 @@ Status Packer::QueryTaskStatus(int32_t index, void * status, void * error)
     return m_va->QueryTaskStatus(index, status, error);
 }
 
-Status Packer::QueryStreamOut(H264DecoderFrame* /*pFrame*/)
+Status Packer::QueryStreamOut(H264DecoderFrame* pFrame)
 {
+    (void)pFrame;
+
     return UMC_OK;
 }
 
 Packer * Packer::CreatePacker(VideoAccelerator * va, TaskSupplier* supplier)
 {
+    (void)va;
+    (void)supplier;
+
     Packer * packer = 0;
+#if defined(UMC_VA_DXVA)
+#ifdef MFX_ENABLE_CPLIB
+    if (va->GetProtectedVA() && IS_PROTECTION_CENC(va->GetProtectedVA()->GetProtected()))
+        throw h264_exception(UMC_ERR_UNSUPPORTED);
+    else
+#endif
+        packer = new PackerDXVA2(va, supplier);
+#elif defined (UMC_VA_LINUX)
 #ifdef MFX_ENABLE_CPLIB
     if (va->GetProtectedVA() && IS_PROTECTION_CENC(va->GetProtectedVA()->GetProtected()))
         packer = new PackerVA_CENC(va, supplier);
     else
-#endif
+#endif // MFX_ENABLE_CPLIB
         packer = new PackerVA(va, supplier);
+#endif // UMC_VA_LINUX
 
     return packer;
 }
@@ -97,11 +111,13 @@ Packer * Packer::CreatePacker(VideoAccelerator * va, TaskSupplier* supplier)
 PackerVA::PackerVA(VideoAccelerator * va, TaskSupplier * supplier)
     : Packer(va, supplier)
 {
-    m_enableStreamOut = !!DynamicCast<FEIVideoAccelerator>(va);
 }
 
-Status PackerVA::GetStatusReport(void * /*pStatusReport*/, size_t /*size*/)
+Status PackerVA::GetStatusReport(void * pStatusReport, size_t size)
 {
+    (void)pStatusReport;
+    (void)size;
+
     return UMC_OK;
 }
 
@@ -368,32 +384,6 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
     picParamBuf->SetDataSize(sizeof(VAPictureParameterBufferH264));
 }
 
-void PackerVA::PackPriorityParams()
-{
-    mfxPriority priority = m_va->m_ContextPriority;
-    UMCVACompBuffer *GpuPriorityBuf;
-    VAContextParameterUpdateBuffer* GpuPriorityBuf_H264Decode = (VAContextParameterUpdateBuffer *)m_va->GetCompBuffer(VAContextParameterUpdateBufferType, &GpuPriorityBuf, sizeof(VAContextParameterUpdateBuffer));
-    if (!GpuPriorityBuf_H264Decode)
-        throw h264_exception(UMC_ERR_FAILED);
-
-    memset(GpuPriorityBuf_H264Decode, 0, sizeof(VAContextParameterUpdateBuffer));
-
-    GpuPriorityBuf_H264Decode->flags.bits.context_priority_update = 1;
-    if(priority == MFX_PRIORITY_LOW)
-    {
-        GpuPriorityBuf_H264Decode->context_priority.bits.priority = 0;
-    }
-    else if (priority == MFX_PRIORITY_HIGH)
-    {
-        GpuPriorityBuf_H264Decode->context_priority.bits.priority = m_va->m_MaxContextPriority;
-    }
-    else
-    {
-        GpuPriorityBuf_H264Decode->context_priority.bits.priority = m_va->m_MaxContextPriority/2;
-    }
-
-    GpuPriorityBuf->SetDataSize(sizeof(VAContextParameterUpdateBuffer));
-}
 
 //returns both NAL unit size (in bytes) and bit offset from start to actual slice data
 inline
@@ -477,6 +467,8 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
 {
     int32_t partial_data = CHOPPING_NONE;
     H264DecoderFrame *pCurrentFrame = pSlice->GetCurrentFrame();
+    if (pCurrentFrame == nullptr)
+        throw h264_exception(UMC_ERR_FAILED);
     const UMC_H264_DECODER::H264SliceHeader *pSliceHeader = pSlice->GetSliceHeader();
 
     VAPictureParameterBufferH264* pPicParams_H264 = (VAPictureParameterBufferH264*)m_va->GetCompBuffer(VAPictureParameterBufferType);
@@ -659,14 +651,11 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
 
     int32_t realSliceNum = pSlice->GetSliceNum();
 
-    if (pCurrentFrame == nullptr)
-        throw h264_exception(UMC_ERR_NULL_PTR);
-
     const H264DecoderRefPicList* pH264DecRefPicList0 = pCurrentFrame->GetRefPicList(realSliceNum, 0);
     const H264DecoderRefPicList* pH264DecRefPicList1 = pCurrentFrame->GetRefPicList(realSliceNum, 1);
 
     if (pH264DecRefPicList0 == nullptr || pH264DecRefPicList1 == nullptr)
-        throw h264_exception(UMC_ERR_NULL_PTR);
+        throw h264_exception(UMC_ERR_FAILED);
 
     H264DecoderFrame **pRefPicList0 = pH264DecRefPicList0->m_RefPicList;
     H264DecoderFrame **pRefPicList1 = pH264DecRefPicList1->m_RefPicList;
@@ -715,6 +704,7 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
     return partial_data;
 }
 
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
 void PackerVA::PackProcessingInfo(H264DecoderFrameInfo * sliceInfo)
 {
     VideoProcessingVA *vpVA = m_va->GetVideoProcessingVA();
@@ -732,6 +722,7 @@ void PackerVA::PackProcessingInfo(H264DecoderFrameInfo * sliceInfo)
     pipelineBuf->surface = m_va->GetSurfaceID(sliceInfo->m_pFrame->m_index); // should filled in packer
     pipelineBuf->additional_outputs = (VASurfaceID*)vpVA->GetCurrentOutputSurface();
 }
+#endif // #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
 
 void PackerVA::PackQmatrix(const UMC_H264_DECODER::H264ScalingPicParams * scaling)
 {
@@ -760,32 +751,33 @@ void PackerVA::BeginFrame(H264DecoderFrame* pFrame, int32_t field)
     VM_ASSERT(fd);
 
     FrameData::FrameAuxInfo* aux;
-
-    if (!m_enableStreamOut)
-        return;
-
-    aux = fd->GetAuxInfo(MFX_EXTBUFF_FEI_DEC_STREAM_OUT);
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+    aux = fd->GetAuxInfo(MFX_EXTBUFF_GPU_HANG);
     if (aux)
     {
-        VM_ASSERT(aux->type == MFX_EXTBUFF_FEI_DEC_STREAM_OUT);
+        VM_ASSERT(aux->type == MFX_EXTBUFF_GPU_HANG);
 
-        mfxExtFeiDecStreamOut* so =
-            reinterpret_cast<mfxExtFeiDecStreamOut*>(aux->ptr);
-        if (!so)
+        mfxExtIntGPUHang* ht = reinterpret_cast<mfxExtIntGPUHang*>(aux->ptr);
+        VM_ASSERT(ht && "Buffer pointer should be valid here");
+        if (!ht)
             throw h264_exception(UMC_ERR_FAILED);
 
-        uint32_t size = so->NumMBAlloc * sizeof(mfxFeiDecStreamOutMBCtrl);
-        if (pFrame->GetAU(field)->IsField())
-            size /= 2;
+        //clear trigger to ensure GPU hang fired only once for this frame
+        fd->ClearAuxInfo(aux->type);
 
-        VAStreamOutBuffer* buffer = NULL;
-        m_va->GetCompBuffer(VADecodeStreamoutBufferType, reinterpret_cast<UMCVACompBuffer**>(&buffer), size, pFrame->m_index);
+        UMCVACompBuffer* buffer = NULL;
+        m_va->GetCompBuffer(VATriggerCodecHangBufferType, &buffer, sizeof(unsigned int));
         if (buffer)
         {
-            buffer->BindToField(field);
-            buffer->RemapRefs(so->RemapRefIdx == MFX_CODINGOPTION_ON);
+            unsigned int* trigger =
+                reinterpret_cast<unsigned int*>(buffer->GetPtr());
+            if (!trigger)
+                throw h264_exception(UMC_ERR_FAILED);
+
+            *trigger = 1;
         }
     }
+#endif // defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
 }
 
 void PackerVA::EndFrame()
@@ -817,8 +809,6 @@ void PackerVA::PackAU(const H264DecoderFrame *pFrame, int32_t isTop)
 
         CreateSliceParamBuffer(sliceInfo);
         CreateSliceDataBuffer(sliceInfo);
-        if(m_va->m_MaxContextPriority)
-            PackPriorityParams();
 
         uint32_t n = 0, count = 0;
         for (; n < count_all; ++n)
@@ -844,8 +834,10 @@ void PackerVA::PackAU(const H264DecoderFrame *pFrame, int32_t isTop)
 
         sliceParamBuf->SetNumOfItem(count);
 
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
         if (m_va->GetVideoProcessingVA())
             PackProcessingInfo(sliceInfo);
+#endif
 
         Status sts = m_va->Execute();
         if (sts != UMC_OK)
@@ -856,71 +848,6 @@ void PackerVA::PackAU(const H264DecoderFrame *pFrame, int32_t isTop)
 Status PackerVA::QueryStreamOut(H264DecoderFrame* pFrame)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "PackerVA::QueryStreamOut");
-    if (!m_enableStreamOut)
-        return UMC_OK;
-
-    VM_ASSERT(dynamic_cast<FEIVideoAccelerator*>(m_va) &&
-              "VA should be [FEIVideoAccelerator] if [streamout] is enabled");
-
-    if (!pFrame)
-        return UMC_ERR_FAILED;
-
-    FrameData const* fd = pFrame->GetFrameData();
-    VM_ASSERT(fd);
-
-    FrameData::FrameAuxInfo const* aux = fd->GetAuxInfo(MFX_EXTBUFF_FEI_DEC_STREAM_OUT);
-    if (!aux)
-        return UMC_ERR_FAILED;
-
-    VM_ASSERT(aux->type == MFX_EXTBUFF_FEI_DEC_STREAM_OUT);
-
-    mfxExtFeiDecStreamOut* so = reinterpret_cast<mfxExtFeiDecStreamOut*>(aux->ptr);
-
-    if (!so || !so->MB)
-        return UMC_ERR_FAILED;
-
-    VM_ASSERT(pFrame->GetTotalMBs() >= 0);
-    uint32_t const count = pFrame->GetTotalMBs();
-
-    if (so->NumMBAlloc < count)
-        return UMC_ERR_FAILED;
-
-    FEIVideoAccelerator* fei_va =
-        static_cast<FEIVideoAccelerator*>(m_va);
-
-    //top field
-    int32_t const top = pFrame->GetNumberByParity(0);
-    VAStreamOutBuffer* buffer = fei_va->QueryStreamOutBuffer(pFrame->m_index, top);
-    if (!buffer || !buffer->GetPtr())
-        return UMC_ERR_FAILED;
-
-    mfxFeiDecStreamOutMBCtrl* src = reinterpret_cast<mfxFeiDecStreamOutMBCtrl *>(buffer->GetPtr());
-
-    int32_t const offset1 =  count * top;
-    {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "std::copy");
-        std::copy(src, src + count, so->MB + offset1);
-    }
-
-    fei_va->ReleaseBuffer(buffer);
-
-    if (!pFrame->GetAU(top)->IsField())
-        return UMC_OK;
-
-    int32_t const bottom = pFrame->GetNumberByParity(1);
-    buffer = fei_va->QueryStreamOutBuffer(pFrame->m_index, bottom);
-    if (!buffer || !buffer->GetPtr())
-        return UMC_ERR_FAILED;
-
-    src = reinterpret_cast<mfxFeiDecStreamOutMBCtrl *>(buffer->GetPtr());
-
-    int32_t const offset2 =  count * bottom;
-    {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "std::copy");
-        std::copy(src, src + count, so->MB + offset2);
-    }
-    fei_va->ReleaseBuffer(buffer);
-
     return UMC_OK;
 }
 

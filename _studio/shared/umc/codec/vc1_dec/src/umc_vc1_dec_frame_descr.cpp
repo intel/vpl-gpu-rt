@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2004-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,11 +25,11 @@
 #include "umc_vc1_dec_seq.h"
 
 #include "umc_vc1_dec_task_store.h"
+#include "umc_vc1_dec_debug.h"
 #include "umc_vc1_common.h"
 #include "umc_vc1_dec_frame_descr.h"
 #include "umc_vc1_dec_exception.h"
 #include "mfx_trace.h"
-
 
 using namespace UMC;
 using namespace UMC::VC1Exceptions;
@@ -270,7 +270,7 @@ Status VC1FrameDescriptor::SetPictureIndices(uint32_t PTYPE, bool& skip)
 
     if (VC1_IS_SKIPPED(PTYPE))
     {
-        m_pContext->m_frmBuff.m_iCurrIndex = m_pContext->m_frmBuff.m_iNextIndex =  m_pContext->m_frmBuff.m_iDisplayIndex = m_pStore->GetNextIndex();
+        m_pContext->m_frmBuff.m_iCurrIndex = m_pContext->m_frmBuff.m_iNextIndex = m_pContext->m_frmBuff.m_iDisplayIndex = m_pStore->GetNextIndex();
         if (-1 == m_pContext->m_frmBuff.m_iCurrIndex)
             m_pContext->m_frmBuff.m_iCurrIndex = m_pStore->GetPrevIndex();
         if (-1 == m_pContext->m_frmBuff.m_iDisplayIndex)
@@ -282,13 +282,13 @@ Status VC1FrameDescriptor::SetPictureIndices(uint32_t PTYPE, bool& skip)
 
         m_pContext->m_frmBuff.m_iPrevIndex = m_pStore->GetPrevIndex();
         CheckIdx = m_pStore->LockSurface(&m_pContext->m_frmBuff.m_iToSkipCoping, true);
-        m_pContext->m_frmBuff.m_pFrames[m_pContext->m_frmBuff.m_iCurrIndex].corrupted= 0;
-     }
+        m_pContext->m_frmBuff.m_pFrames[m_pContext->m_frmBuff.m_iCurrIndex].corrupted = 0;
+    }
         
     if (-1 == CheckIdx)
         return VC1_FAIL;
 
-    if ((VC1_P_FRAME == PTYPE) || (VC1_IS_SKIPPED(PTYPE)))
+    if ((VC1_P_FRAME == PTYPE) || VC1_IS_SKIPPED(PTYPE))
     {
         if (m_pContext->m_frmBuff.m_iPrevIndex == -1)
             return UMC_ERR_NOT_ENOUGH_DATA;
@@ -301,7 +301,6 @@ Status VC1FrameDescriptor::SetPictureIndices(uint32_t PTYPE, bool& skip)
     }
 
     m_pContext->m_frmBuff.m_pFrames[m_pContext->m_frmBuff.m_iCurrIndex].FCM = m_pContext->m_picLayerHeader->FCM;
-
 
     m_pContext->m_frmBuff.m_pFrames[m_pContext->m_frmBuff.m_iCurrIndex].ICFieldMask = 0;
 
@@ -318,6 +317,5 @@ Status VC1FrameDescriptor::SetPictureIndices(uint32_t PTYPE, bool& skip)
 
     return vc1Sts;
 }
-
 
 #endif

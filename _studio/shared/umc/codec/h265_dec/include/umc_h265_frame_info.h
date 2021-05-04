@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2012-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -32,6 +32,13 @@ namespace UMC_HEVC_DECODER
 {
 class H265DecoderFrame;
 
+#ifndef MFX_VA
+struct TileThreadingInfo
+{
+    CUProcessInfo processInfo;
+    DecodingContext * m_context;
+};
+#endif
 
 // Collection of slices that constitute one decoder frame
 class H265DecoderFrameInfo
@@ -46,12 +53,11 @@ public:
         STATUS_STARTED
     };
 
-    H265DecoderFrameInfo(H265DecoderFrame * pFrame, Heap_Objects * pObjHeap)
+    H265DecoderFrameInfo(H265DecoderFrame * pFrame)
         : m_pFrame(pFrame)
         , m_prepared(0)
         , m_sps(0)
         , m_SliceCount(0)
-        , m_pObjHeap(pObjHeap)
     {
         Reset();
     }
@@ -82,6 +88,7 @@ public:
 
         m_isIntraAU = m_isIntraAU && (sliceHeader.slice_type == I_SLICE);
         m_IsIDR     = sliceHeader.IdrPicFlag != 0;
+        m_frameBeforeIDR = 0;
         m_hasDependentSliceSegments = m_hasDependentSliceSegments || sliceHeader.dependent_slice_segment_flag;
         m_isNeedDeblocking = m_isNeedDeblocking || (!sliceHeader.slice_deblocking_filter_disabled_flag);
         m_isNeedSAO = m_isNeedSAO || (sliceHeader.slice_sao_luma_flag || sliceHeader.slice_sao_chroma_flag);
@@ -196,12 +203,19 @@ public:
     void SetPrevAU(H265DecoderFrameInfo *au) {m_prevAU = au;}
     void SetRefAU(H265DecoderFrameInfo *au) {m_refAU = au;}
 
+#ifndef MFX_VA
+    std::vector<TileThreadingInfo> m_tilesThreadingInfo;
+
+    int32_t m_curCUToProcess[LAST_PROCESS_ID];
+    int32_t m_processInProgress[LAST_PROCESS_ID];
+#endif
 
     bool   m_hasTiles;
 
     H265DecoderFrame * m_pFrame;
     int32_t m_prepared;
     bool m_IsIDR;
+    uint32_t m_frameBeforeIDR;
 
 private:
 
@@ -212,7 +226,6 @@ private:
 
     int32_t m_SliceCount;
 
-    Heap_Objects * m_pObjHeap;
     bool m_isNeedDeblocking;
     bool m_isNeedSAO;
 

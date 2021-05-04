@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2020 Intel Corporation
-// 
+// Copyright (c) 2004-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,6 +24,9 @@
 
 #include "mfx_vc1_dec_common.h"
 #include "umc_vc1_common.h"
+#include "mfxpcp.h"
+
+
 #include "mfx_common_int.h"
 #include "umc_vc1_dec_seq.h"
 
@@ -117,12 +120,14 @@ mfxStatus MFXVC1DecCommon::Query(VideoCORE* core, mfxVideoParam *in, mfxVideoPar
                 break;
             }
 
-            if ((in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) || (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) ||
-                (in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY))
+            if ((in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
+                || (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
+                )
             {
-                uint32_t mask = in->IOPattern & 0xf0;
-                if ((mask == MFX_IOPATTERN_OUT_SYSTEM_MEMORY) || (mask == MFX_IOPATTERN_OUT_VIDEO_MEMORY) ||
-                    (mask == MFX_IOPATTERN_OUT_OPAQUE_MEMORY))
+                Ipp32u mask = in->IOPattern & 0xf0;
+                if ((mask == MFX_IOPATTERN_OUT_VIDEO_MEMORY)
+                    || (mask == MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
+                    )
                     out->IOPattern = in->IOPattern;
                 else
                     sts = MFX_ERR_UNSUPPORTED;
@@ -182,9 +187,9 @@ mfxStatus MFXVC1DecCommon::Query(VideoCORE* core, mfxVideoParam *in, mfxVideoPar
         if (in->mfx.NumThread)
             out->mfx.NumThread = in->mfx.NumThread;
 
-        if ((in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) ||
-            (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) ||
-            (in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY))
+        if ((in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
+            || (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
+            )
             out->IOPattern = in->IOPattern;
         else if (MFX_PLATFORM_SOFTWARE == core->GetPlatformType())
             out->IOPattern = MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
@@ -622,7 +627,7 @@ mfxStatus MFXVC1DecCommon::ParseSeqHeader(mfxBitstream *bs,
         {
             MapFrameRateIntoMfx(par->mfx.FrameInfo.FrameRateExtN,
                                 par->mfx.FrameInfo.FrameRateExtD,
-                                (uint16_t)frCode);
+                                (Ipp16u)frCode);
             //frCode = MFX_FRAMERATE_24;
         }
 
@@ -802,11 +807,11 @@ mfxStatus MFXVC1DecCommon::PrepareSeqHeader(mfxBitstream *bs_in, mfxBitstream *b
                 {
                     //end of SH
                     readPos = readPos - 2;
-                    uint8_t* ptr = readPos - 1;
+                    Ipp8u* ptr = readPos - 1;
                     //trim zero bytes
                     while ( (*ptr==0) && (ptr > readBuf) )
                         ptr--;
-                    size = (uint32_t)(ptr - readBuf - readDataSize +1);
+                    size = (Ipp32u)(ptr - readBuf - readDataSize +1);
                     if(size + bs_out->DataOffset > bs_out->MaxLength)
                         return MFX_ERR_NOT_ENOUGH_BUFFER;
 
@@ -825,7 +830,7 @@ mfxStatus MFXVC1DecCommon::PrepareSeqHeader(mfxBitstream *bs_in, mfxBitstream *b
             {
                 if (isFindFirstSC)
                 {
-                    size = (uint32_t)(readPos - readBuf - readDataSize);
+                    size = (Ipp32u)(readPos - readBuf - readDataSize);
 
                     if(size + bs_out->DataOffset > bs_out->MaxLength)
                         return MFX_ERR_NOT_ENOUGH_BUFFER;
@@ -856,11 +861,11 @@ mfxStatus MFXVC1DecCommon::PrepareSeqHeader(mfxBitstream *bs_in, mfxBitstream *b
                 {
                     //end of SH
                     readPos = readPos - 2;
-                    uint8_t* ptr = readPos - 1;
+                    Ipp8u* ptr = readPos - 1;
                     //trim zero bytes
                     while ( (*ptr==0) && (ptr > readBuf) )
                         ptr--;
-                    size = (uint32_t)(ptr - readBuf - readDataSize +1);
+                    size = (Ipp32u)(ptr - readBuf - readDataSize +1);
                     if(size + bs_out->DataOffset > bs_out->MaxLength)
                         return MFX_ERR_NOT_ENOUGH_BUFFER;
 

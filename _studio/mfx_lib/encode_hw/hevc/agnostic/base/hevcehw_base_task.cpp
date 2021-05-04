@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,12 +28,12 @@ using namespace HEVCEHW::Base;
 
 mfxU32 TaskManager::GetNumTask() const
 {
-    return m_pPar->AsyncDepth + m_pReorder->BufferSize + (m_pPar->AsyncDepth > 1);
+    return m_pPar->AsyncDepth + m_pReorder->BufferSize + (m_pPar->AsyncDepth > 1) + TMInterface::Get(*m_pGlob).ResourceExtra;
 }
 
 mfxU16 TaskManager::GetBufferSize() const
 {
-    return !m_pPar->mfx.EncodedOrder * (m_pReorder->BufferSize + (m_pPar->AsyncDepth > 1));
+    return !m_pPar->mfx.EncodedOrder * (m_pReorder->BufferSize + (m_pPar->AsyncDepth > 1) + TMInterface::Get(*m_pGlob).ResourceExtra);
 }
 
 mfxU16 TaskManager::GetMaxParallelSubmits() const
@@ -182,6 +182,16 @@ mfxStatus TaskManager::RunQueueTaskFree(StorageW& task)
         , task);
 }
 
+void TaskManager::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
+{
+    auto SetInterface = [this](StorageRW& strg, StorageRW&)
+    {
+        TMInterface::GetOrConstruct(strg, ExtTMInterface(*this));
+        return MFX_ERR_NONE;
+    };
+    Push(BLK_SetTMInterface, SetInterface);
+}
+
 void TaskManager::InitAlloc(const FeatureBlocks& blocks, TPushIA Push)
 {
     Push(BLK_Init
@@ -210,6 +220,47 @@ void TaskManager::FrameSubmit(const FeatureBlocks& /*blocks*/, TPushFS Push)
         m_pFrameCheckLocal = &local;
         return TaskNew(pCtrl, pSurf, bs);
     });
+}
+
+mfxStatus TaskManager::RunExtraStages(mfxU16 beginStageID, mfxU16 endStageID, StorageW& task)
+{
+    auto& stages = TMInterface::Get(*m_pGlob).AsyncStages;
+    auto itStage = stages.find(beginStageID);
+    auto itEnd   = stages.find(endStageID);
+
+    MFX_CHECK(itStage != stages.end(), MFX_ERR_NONE);
+
+    for (; itStage != itEnd; ++itStage)
+    {
+        MFX_SAFE_CALL(itStage->second(*m_pGlob, task));
+    }
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus TaskManager::TaskPrepare(StorageW& task)
+{
+    MFX_SAFE_CALL(RunExtraStages(NextStage(S_NEW), Stage(S_PREPARE), task));
+    return MfxEncodeHW::TaskManager::TaskPrepare(task);
+}
+
+mfxStatus TaskManager::TaskReorder(StorageW& task)
+{
+    MFX_SAFE_CALL(RunExtraStages(NextStage(S_PREPARE), Stage(S_REORDER), task));
+    return MfxEncodeHW::TaskManager::TaskReorder(task);
+}
+
+mfxStatus TaskManager::TaskSubmit(StorageW& task)
+{
+    MFX_SAFE_CALL(RunExtraStages(NextStage(S_REORDER), Stage(S_SUBMIT), task));
+    if (TMInterface::Get(*m_pGlob).UpdateTask) TMInterface::Get(*m_pGlob).UpdateTask(GetTask(Stage(S_SUBMIT)));
+    return MfxEncodeHW::TaskManager::TaskSubmit(task);
+}
+
+mfxStatus TaskManager::TaskQuery(StorageW& task)
+{
+    MFX_SAFE_CALL(RunExtraStages(NextStage(S_SUBMIT), Stage(S_QUERY), task));
+    return MfxEncodeHW::TaskManager::TaskQuery(task);
 }
 
 void TaskManager::AsyncRoutine(const FeatureBlocks& /*blocks*/, TPushAR Push)

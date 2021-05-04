@@ -170,4 +170,4 @@ mfxU32 ResPool::Locked(mfxU32 idx) const
     return (idx < m_locked.size()) ? m_locked[idx] : 1;
 }
 
-} //namespace MfxEHW
+} //namespace MfxEncodeHW

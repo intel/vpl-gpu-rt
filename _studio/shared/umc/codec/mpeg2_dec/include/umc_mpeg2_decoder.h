@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
 
 #include "umc_defs.h"
 
-#if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
+#if defined MFX_ENABLE_MPEG2_VIDEO_DECODE
 
 #include <mutex>
 #include <memory>
@@ -176,8 +176,6 @@ namespace UMC_MPEG2_DECODER
 
         Payload_Storage * GetPayloadStorage() const { return m_messages.get();}
 
-        MPEG2DecoderParams* GetMpeg2DecoderParams() {return &m_params;}
-
     protected:
 
         virtual void SetDPBSize(uint32_t);
@@ -191,6 +189,7 @@ namespace UMC_MPEG2_DECODER
         virtual bool OnNewPicture(); // returns true on full frame
         virtual void EliminateSliceErrors(MPEG2DecoderFrame& frame, uint8_t fieldIndex);
         virtual UMC::Status CompletePicture(MPEG2DecoderFrame& frame, uint8_t fieldIndex);
+
         bool IsFieldOfCurrentFrame() const;
 
         // DPB update

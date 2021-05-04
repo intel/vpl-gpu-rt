@@ -1,41 +1,21 @@
-# Copyright (c) 2018 Intel Corporation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+if( MFX_ENABLE_KERNELS )
 
-if( ${MFX_ENABLE_MCTF} )
-    set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
+  set(sources
+    mctf/include/mctf_common.h
+    mctf/src/mctf_common.cpp
+    )
 
-    mfx_include_dirs( )
+  add_library(mctf_hw STATIC ${sources})
 
-    include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mctf/include )
-    include_directories( ${MSDK_LIB_ROOT}/genx/mctf/isa )
-    include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
+  target_include_directories(mctf_hw PUBLIC mctf/include)
 
-    include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
-    include_directories( ${MSDK_STUDIO_ROOT}/shared/include )
+  target_compile_definitions(mctf_hw PRIVATE MFX_VA)
 
-    set( sources "" )
-    set( sources.plus "" )
+  target_link_libraries(mctf_hw
+    PUBLIC 
+      mfx_static_lib umc_va_hw cmrt_cross_platform_hw asc
+    PRIVATE
+      mfx_sdl_properties
+      genx)
 
-    file( GLOB_RECURSE srcs "${CMAKE_CURRENT_SOURCE_DIR}/mctf/src/*.cpp")
-    list( APPEND sources ${srcs})
-
-    make_library( mctf hw static )
-    set( defs "" )
 endif()

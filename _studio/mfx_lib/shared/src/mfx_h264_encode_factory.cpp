@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2011-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,53 +22,37 @@
 
 #include "mfx_common.h"
 
-#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
+#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW) && defined (MFX_VA)
 
 #include "mfx_h264_encode_interface.h"
-#ifdef MFX_ENABLE_MFE
-#include "libmfx_core_interface.h"
-#endif
-#if defined (MFX_VA_LINUX)
     #include "mfx_h264_encode_vaapi.h"
 
-#endif
 
 
 using namespace MfxHwH264Encode;
 // platform switcher
 
 // tmp solution
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+DriverEncoder* MfxHwH264Encode::CreatePlatformSvcEncoder( VideoCORE * core )
+{
+    assert( core );
+
+    return 0;
+}
+#endif
 
 DriverEncoder* MfxHwH264Encode::CreatePlatformH264Encoder( VideoCORE* core )
 {
     //MFX_CHECK_NULL_PTR1( core );
     assert( core );
-    (void)core;
 
-#if defined (MFX_VA_LINUX)
+    (void)core;
 
     return new VAAPIEncoder;//( core );
 
-#endif
 
 } // DriverEncoder* MfxHwH264Encode::CreatePlatformH264Encoder( VideoCORE* core )
-
-#if defined(MFX_ENABLE_MFE) && !defined(AS_H264LA_PLUGIN)
-MFEVAAPIEncoder* MfxHwH264Encode::CreatePlatformMFEEncoder(VideoCORE* core)
-{
-    assert( core );
-
-    // needs to search, thus use special GUID
-    ComPtrCore<MFEVAAPIEncoder> *pVideoEncoder = QueryCoreInterface<ComPtrCore<MFEVAAPIEncoder> >(core, MFXMFEDDIENCODER_SEARCH_GUID);
-    if (!pVideoEncoder) return NULL;
-    if (!pVideoEncoder->get())
-        *pVideoEncoder = new MFEVAAPIEncoder;
-
-    return pVideoEncoder->get();
-
-} // MFEVAAPIEncoder* MfxHwH264Encode::CreatePlatformMFEEncoder( VideoCORE* core )
-#endif
-
 
 #endif // #if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
 /* EOF */

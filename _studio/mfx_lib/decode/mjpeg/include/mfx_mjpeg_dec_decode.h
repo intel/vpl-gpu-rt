@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2004-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,16 +26,12 @@
 #ifndef _MFX_MJPEG_DEC_DECODE_H_
 #define _MFX_MJPEG_DEC_DECODE_H_
 
-
 #include "mfx_common_int.h"
 #include "umc_video_decoder.h"
 #include "mfx_umc_alloc_wrapper.h"
 
 #include <mutex>
-#include <queue>
-
 #include "mfx_task.h"
-
 
 #include "mfx_vpp_jpeg_d3d9.h"
 
@@ -50,7 +46,7 @@ namespace UMC
 class VideoDECODEMJPEGBase
 {
 public:
-    std::unique_ptr<mfx_UMC_FrameAllocator>    m_FrameAllocator;
+    std::unique_ptr<SurfaceSource>         m_surface_source;
 
     UMC::VideoDecoderParams umcVideoParams;
 
@@ -130,44 +126,13 @@ protected:
     UMC::VideoAccelerator * m_va;
 };
 
-#ifdef MFX_ENABLE_SW_FALLBACK
-// Forward declaration of used classes
-class CJpegTask;
-
-class VideoDECODEMJPEGBase_SW : public VideoDECODEMJPEGBase
-{
-public:
-    VideoDECODEMJPEGBase_SW();
-
-    mfxStatus Init(mfxVideoParam *decPar, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, mfxFrameAllocRequest *request_internal, bool isUseExternalFrames, VideoCORE *core) override;
-    mfxStatus Reset(mfxVideoParam *par) override;
-    mfxStatus Close(void) override;
-
-    mfxStatus GetVideoParam(mfxVideoParam *par) override;
-    mfxStatus RunThread(void *pParam, mfxU32 threadNumber, mfxU32 callNumber) override;
-    mfxStatus CompleteTask(void *pParam, mfxStatus taskRes) override;
-    mfxStatus CheckTaskAvailability(mfxU32 maxTaskNumber) override;
-    mfxStatus ReserveUMCDecoder(UMC::MJPEGVideoDecoderBaseMFX* &pMJPEGVideoDecoder, mfxFrameSurface1 *surf, bool isOpaq) override;
-    void ReleaseReservedTask() override;
-    mfxStatus AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic) override;
-    mfxStatus AllocateFrameData(UMC::FrameData *&data) override;
-    mfxStatus FillEntryPoint(MFX_ENTRY_POINT *pEntryPoint, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out) override;
-
-protected:
-    CJpegTask *pLastTask;
-    // Free tasks queue (if SW is used)
-    std::queue<std::unique_ptr<CJpegTask>> m_freeTasks;
-    // Count of created tasks (if SW is used)
-    mfxU16  m_tasksCount;
-};
-#endif
-
 class VideoDECODEMJPEG : public VideoDECODE
 {
 public:
     static mfxStatus Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out);
     static mfxStatus QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
     static mfxStatus DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVideoParam *par);
+    static mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription::decoder&, mfx::PODArraysHolder&);
 
     VideoDECODEMJPEG(VideoCORE *core, mfxStatus * sts);
     virtual ~VideoDECODEMJPEG(void);
@@ -186,22 +151,18 @@ public:
     virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload);
     virtual mfxStatus SetSkipMode(mfxSkipMode mode);
 
+    virtual mfxFrameSurface1* GetSurface() override;
+
 protected:
     static mfxStatus QueryIOSurfInternal(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
 
     bool IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * oldPar);
 
 
-    mfxStatus UpdateAllocRequest(mfxVideoParam *par, 
-                                mfxFrameAllocRequest *request,
-                                mfxExtOpaqueSurfaceAlloc * &pOpaqAlloc,
-                                bool &mapping);
-
     mfxFrameSurface1 * GetOriginalSurface(mfxFrameSurface1 *surface);
 
     // Frames collecting unit
     std::unique_ptr<UMC::JpegFrameConstructor> m_frameConstructor;
-
 
     mfxVideoParamWrapper m_vFirstPar;
     mfxVideoParamWrapper m_vPar;

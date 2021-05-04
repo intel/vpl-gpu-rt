@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2014-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,12 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "mfx_common.h"
-
-#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
-
 #ifndef _MFX_VP9_DECODE_UTILS_H_
 #define _MFX_VP9_DECODE_UTILS_H_
+
+#include "mfx_common.h"
+
+#if defined(MFX_ENABLE_VP9_VIDEO_DECODE)
 
 #include <assert.h>
 #include "umc_vp9_dec_defs.h"
@@ -46,5 +46,5 @@ namespace MfxVP9Decode
 
 }; // namespace MfxVP9Decode
 
+#endif // MFX_ENABLE_VP9_VIDEO_DECODE
 #endif // _MFX_VP9_DECODE_UTILS_H_
-#endif // MFX_ENABLE_VP9_VIDEO_DECODE || MFX_ENABLE_VP9_VIDEO_DECODE_HW

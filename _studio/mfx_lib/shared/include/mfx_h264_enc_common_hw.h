@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2008-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,37 +21,37 @@
 #ifndef __MFX_H264_ENC_COMMON_HW_H__
 #define __MFX_H264_ENC_COMMON_HW_H__
 
-#if defined(AS_H264LA_PLUGIN) && defined(MFX_ENABLE_ENCTOOLS)
-#undef MFX_ENABLE_ENCTOOLS
-#endif
-
 #include "mfx_common.h"
-#include "mfxla.h"
+
 
 #if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
 
 #include <vector>
 #include <assert.h>
 #include <memory>
+
 #include "mfx_ext_buffers.h"
-#include "mfxfei.h"
+
 #ifdef MFX_ENABLE_ENCTOOLS
 #include "mfxenctools-int.h"
 #else
 #include "mfxbrc.h"
 #endif
+
 #include "mfx_h264_encode_struct_vaapi.h"
 
-#if defined(MFX_VA_LINUX)
 #include <va/va.h>
 #include <va/va_enc_h264.h>
-#endif
+
+
 #include "mfxmvc.h"
 
 #include "umc_defs.h"
+#include "ipps.h"
 
 #define ENABLE_APQ_LQ
 
+#define LOWPOWERENCODE_AVC
 
 #define D3DFMT_NV12 (D3DFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))
 #define D3DDDIFMT_NV12 (D3DDDIFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))
@@ -73,6 +73,9 @@ namespace MfxHwH264Encode
     class  InputBitstream;
     class  OutputBitstream;
     struct mfxExtSpsHeader;
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+    struct mfxExtSpsSvcHeader;
+#endif
     struct mfxExtPpsHeader;
 
     const mfxU16 CROP_UNIT_X[] = { 1, 2, 2, 1 };
@@ -98,6 +101,9 @@ namespace MfxHwH264Encode
 
     // internally used buffers
     static const mfxU32 MFX_EXTBUFF_SPS_HEADER     = MFX_MAKEFOURCC(0xff, 'S', 'P', 'S');
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+    static const mfxU32 MFX_EXTBUFF_SPS_SVC_HEADER = MFX_MAKEFOURCC(0xff, 'S', 'V', 'C');
+#endif
     static const mfxU32 MFX_EXTBUFF_PPS_HEADER     = MFX_MAKEFOURCC(0xff, 'P', 'P', 'S');
 
     static const mfxU16 MFX_FRAMETYPE_IPB     = MFX_FRAMETYPE_I | MFX_FRAMETYPE_P | MFX_FRAMETYPE_B;
@@ -110,11 +116,11 @@ namespace MfxHwH264Encode
     static const mfxU16 MFX_FRAMETYPE_xIREF   = MFX_FRAMETYPE_xI | MFX_FRAMETYPE_xREF;
     static const mfxU16 MFX_FRAMETYPE_KEYPIC  = 0x0020;
 
-    static const mfxU16 MFX_IOPATTERN_IN_MASK_SYS_OR_D3D =
+    static const mfxU16 MFX_IOPATTERN_IN_MASK_SYS_OR_D3D = 
         MFX_IOPATTERN_IN_SYSTEM_MEMORY | MFX_IOPATTERN_IN_VIDEO_MEMORY;
 
-    static const mfxU16 MFX_IOPATTERN_IN_MASK =
-        MFX_IOPATTERN_IN_MASK_SYS_OR_D3D | MFX_IOPATTERN_IN_OPAQUE_MEMORY;
+    static const mfxU16 MFX_IOPATTERN_IN_MASK = MFX_IOPATTERN_IN_MASK_SYS_OR_D3D
+        ;
 
     // masks for VideoParam.mfx.CodecProfile
     static const mfxU16 MASK_PROFILE_IDC          = (0xff);
@@ -167,7 +173,6 @@ namespace MfxHwH264Encode
     BIND_EXTBUF_TYPE_TO_ID (mfxExtCodingOptionSPSPPS,   MFX_EXTBUFF_CODING_OPTION_SPSPPS     );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtCodingOptionDDI,      MFX_EXTBUFF_DDI                      );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtVideoSignalInfo,      MFX_EXTBUFF_VIDEO_SIGNAL_INFO        );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtOpaqueSurfaceAlloc,   MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMVCSeqDesc,           MFX_EXTBUFF_MVC_SEQ_DESC             );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMVCTargetViews,       MFX_EXTBUFF_MVC_TARGET_VIEWS         );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtPictureTimingSEI,     MFX_EXTBUFF_PICTURE_TIMING_SEI       );
@@ -179,13 +184,16 @@ namespace MfxHwH264Encode
 #endif
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAvcTemporalLayers,    MFX_EXTBUFF_AVC_TEMPORAL_LAYERS      );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtVppAuxData,           MFX_EXTBUFF_VPP_AUXDATA              );
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+    BIND_EXTBUF_TYPE_TO_ID (mfxExtSpsSvcHeader,         MFX_EXTBUFF_SPS_SVC_HEADER           );
+    BIND_EXTBUF_TYPE_TO_ID (mfxExtSVCSeqDesc,           MFX_EXTBUFF_SVC_SEQ_DESC             );
+    BIND_EXTBUF_TYPE_TO_ID (mfxExtSVCRateControl,       MFX_EXTBUFF_SVC_RATE_CONTROL         );
+#endif
     BIND_EXTBUF_TYPE_TO_ID (mfxExtCodingOption2,        MFX_EXTBUFF_CODING_OPTION2           );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCEncodedFrameInfo,  MFX_EXTBUFF_ENCODED_FRAME_INFO       );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtEncoderResetOption,   MFX_EXTBUFF_ENCODER_RESET_OPTION     );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtEncoderCapability,    MFX_EXTBUFF_ENCODER_CAPABILITY       );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtEncoderROI,           MFX_EXTBUFF_ENCODER_ROI              );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtLAFrameStatistics,    MFX_EXTBUFF_LOOKAHEAD_STAT           );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiParam,             MFX_EXTBUFF_FEI_PARAM                );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCRefLists,          MFX_EXTBUFF_AVC_REFLISTS             );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtCodingOption3,        MFX_EXTBUFF_CODING_OPTION3           );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMBQP,                 MFX_EXTBUFF_MBQP                     );
@@ -194,35 +202,27 @@ namespace MfxHwH264Encode
 #endif
     BIND_EXTBUF_TYPE_TO_ID (mfxExtChromaLocInfo,        MFX_EXTBUFF_CHROMA_LOC_INFO          );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMBDisableSkipMap,     MFX_EXTBUFF_MB_DISABLE_SKIP_MAP      );
+#if !defined(MFX_PRIVATE_AVC_ENCODE_CTRL_DISABLE)
+    BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCEncodeCtrl,        MFX_EXTBUFF_AVC_ENCODE_CTRL          );
+#endif
     BIND_EXTBUF_TYPE_TO_ID (mfxExtPredWeightTable,      MFX_EXTBUFF_PRED_WEIGHT_TABLE        );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtDirtyRect,            MFX_EXTBUFF_DIRTY_RECTANGLES         );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMoveRect,             MFX_EXTBUFF_MOVING_RECTANGLES        );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiCodingOption,      MFX_EXTBUFF_FEI_CODING_OPTION        );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiEncMV,             MFX_EXTBUFF_FEI_ENC_MV               );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiEncMBStat,         MFX_EXTBUFF_FEI_ENC_MB_STAT          );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiPakMBCtrl,         MFX_EXTBUFF_FEI_PAK_CTRL             );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiEncFrameCtrl,      MFX_EXTBUFF_FEI_ENC_CTRL             );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiEncMVPredictors,   MFX_EXTBUFF_FEI_ENC_MV_PRED          );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiEncMBCtrl,         MFX_EXTBUFF_FEI_ENC_MB               );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiEncQP,             MFX_EXTBUFF_FEI_ENC_QP               );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiSPS,               MFX_EXTBUFF_FEI_SPS                  );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiPPS,               MFX_EXTBUFF_FEI_PPS                  );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiSliceHeader,       MFX_EXTBUFF_FEI_SLICE                );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiPreEncMV,          MFX_EXTBUFF_FEI_PREENC_MV            );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiPreEncMBStat,      MFX_EXTBUFF_FEI_PREENC_MB            );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiPreEncCtrl,        MFX_EXTBUFF_FEI_PREENC_CTRL          );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiPreEncMVPredictors,MFX_EXTBUFF_FEI_PREENC_MV_PRED       );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiRepackCtrl,        MFX_EXTBUFF_FEI_REPACK_CTRL          );
-#if (MFX_VERSION >= 1025)
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiRepackStat,        MFX_EXTBUFF_FEI_REPACK_STAT          );
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+    BIND_EXTBUF_TYPE_TO_ID (mfxExtIntGPUHang,           MFX_EXTBUFF_GPU_HANG                 );
 #endif
 #if defined (__MFXBRC_H__)
     BIND_EXTBUF_TYPE_TO_ID (mfxExtBRC,        MFX_EXTBUFF_BRC          );
 #endif
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    BIND_EXTBUF_TYPE_TO_ID(mfxExtAVCScalingMatrix,      MFX_EXTBUFF_AVC_SCALING_MATRIX       );
+#endif
 
-#ifdef MFX_ENABLE_MFE
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtMultiFrameControl,     MFX_EXTBUFF_MULTI_FRAME_CONTROL     );
-    BIND_EXTBUF_TYPE_TO_ID (mfxExtMultiFrameParam,       MFX_EXTBUFF_MULTI_FRAME_PARAM       );
+#if defined (MFX_ENABLE_GPU_BASED_SYNC)
+    BIND_EXTBUF_TYPE_TO_ID(mfxExtGameStreaming,          MFX_EXTBUFF_GAME_STREAMING          );
+#endif
+#if defined (MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
+    BIND_EXTBUF_TYPE_TO_ID(mfxExtPartialBitstreamParam,  MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM );
 #endif
 #if defined (MFX_ENABLE_ENCTOOLS)
     BIND_EXTBUF_TYPE_TO_ID(mfxEncTools, MFX_EXTBUFF_ENCTOOLS);
@@ -280,7 +280,7 @@ namespace MfxHwH264Encode
             extBuf.LongTermRefList[i].FrameOrder = mfxU32(MFX_FRAMEORDER_UNKNOWN);
     }
 #if defined(MFX_ENABLE_ENCTOOLS)
-    template <> inline void InitExtBufHeader<mfxExtEncToolsConfig>(mfxExtEncToolsConfig & extBuf)
+    inline void InitExtBufHeader(mfxExtEncToolsConfig & extBuf, mfxU16 defaultValue)
     {
         Zero(extBuf);
         extBuf.Header.BufferId = ExtBufTypeToId<mfxExtEncToolsConfig>::id;
@@ -296,12 +296,14 @@ namespace MfxHwH264Encode
             extBuf.AdaptivePyramidQuantB =
             extBuf.AdaptiveQuantMatrices =
             extBuf.BRCBufferHints =
-            extBuf.BRC = MFX_CODINGOPTION_OFF;
+            extBuf.BRC = defaultValue;
     }
 #endif
     template <class T> struct GetPointedType {};
     template <class T> struct GetPointedType<T *> { typedef T Type; };
     template <class T> struct GetPointedType<T const *> { typedef T Type; };
+
+
 
     struct HrdParameters
     {
@@ -427,6 +429,7 @@ namespace MfxHwH264Encode
         return lhs == rhs;
     }
 
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
     struct mfxExtSpsSvcHeader
     {
         mfxExtBuffer Header;
@@ -445,6 +448,7 @@ namespace MfxHwH264Encode
         mfxU8   adaptiveTcoeffLevelPredictionFlag;
         mfxU8   sliceHeaderRestrictionFlag;
     };
+#endif
 
 
     union SliceGroupInfo
@@ -564,6 +568,17 @@ namespace MfxHwH264Encode
 
         void ApplyDefaultsToMvcSeqDesc();
 
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        std::vector<mfxExtPpsHeader>& GetCqmPps()
+        {
+            return m_extCqmPps;
+        }
+
+        const std::vector<mfxExtPpsHeader>& GetCqmPps() const
+        {
+            return m_extCqmPps;
+        }
+#endif
 
     protected:
         void Construct(mfxVideoParam const & par);
@@ -574,7 +589,7 @@ namespace MfxHwH264Encode
 #if defined(MFX_ENABLE_ENCTOOLS)
         mfxExtBuffer *              m_extParam[40];
 #else
-        mfxExtBuffer *              m_extParam[32];
+        mfxExtBuffer *              m_extParam[35];
 #endif
         // external, documented
         mfxExtCodingOption          m_extOpt;
@@ -582,13 +597,18 @@ namespace MfxHwH264Encode
         mfxExtCodingOption3         m_extOpt3;
         mfxExtCodingOptionSPSPPS    m_extOptSpsPps;
         mfxExtVideoSignalInfo       m_extVideoSignal;
-        mfxExtOpaqueSurfaceAlloc    m_extOpaque;
+
+
         mfxExtMVCSeqDesc            m_extMvcSeqDescr;
         mfxExtPictureTimingSEI      m_extPicTiming;
         mfxExtAvcTemporalLayers     m_extTempLayers;
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+        mfxExtSVCSeqDesc            m_extSvcSeqDescr;
+        mfxExtSVCRateControl        m_extSvcRateCtrl;
+#endif
         mfxExtEncoderResetOption    m_extEncResetOpt;
         mfxExtEncoderROI            m_extEncRoi;
-        mfxExtFeiParam              m_extFeiParam;
+
         mfxExtChromaLocInfo         m_extChromaLoc;
         mfxExtPredWeightTable       m_extPwt;
         mfxExtDirtyRect             m_extDirtyRect;
@@ -597,11 +617,6 @@ namespace MfxHwH264Encode
         mfxExtCodingOptionDDI       m_extOptDdi;
         mfxExtSpsHeader             m_extSps;
         mfxExtPpsHeader             m_extPps;
-
-        mfxExtFeiCodingOption       m_extFeiOpt;
-        mfxExtFeiSliceHeader        m_extFeiSlice[2];
-        mfxExtFeiSPS                m_extFeiSPS;
-        mfxExtFeiPPS                m_extFeiPPS;
 
 #if defined(__MFXBRC_H__)
         mfxExtBRC                   m_extBRC;
@@ -612,10 +627,24 @@ namespace MfxHwH264Encode
         mfxEncToolsCtrlExtDevice        m_extDevice;
         mfxEncToolsCtrlExtAllocator     m_extAllocator;
 #endif
-#if defined (MFX_ENABLE_MFE)
-        mfxExtMultiFrameParam    m_MfeParam;
-        mfxExtMultiFrameControl  m_MfeControl;
+
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        mfxExtAVCScalingMatrix      m_extQM;
 #endif
+#if defined(MFX_ENABLE_GPU_BASED_SYNC)
+        mfxExtGameStreaming         m_extGameStreaming;
+#endif
+#if defined(MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA)
+        mfxExtLplaParam            m_extLowpowerLA;
+#endif
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        std::vector<mfxExtPpsHeader>  m_extCqmPps;
+#endif
+
+#if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
+        mfxExtPartialBitstreamParam m_po;
+#endif
+
         std::vector<mfxMVCViewDependency> m_storageView;
         std::vector<mfxMVCOperationPoint> m_storageOp;
         std::vector<mfxU16>               m_storageViewId;
@@ -667,6 +696,9 @@ namespace MfxHwH264Encode
 
     bool   isSWBRC (MfxVideoParam const & par);
     bool   isAdaptiveQP(MfxVideoParam const & par);
+
+    bool   isAdaptiveCQMSupported(mfxU16 scenarioInfo, eMFXHWType platform, bool isLowPowerOn);
+
     mfxU16 GetMaxNumSlices(MfxVideoParam const & par);
 
     mfxU16 GetNumSurfInput(MfxVideoParam const & video);
@@ -697,16 +729,19 @@ namespace MfxHwH264Encode
     bool IsLookAheadSupported(
         MfxVideoParam const & video,
         eMFXHWType            platform);
-    bool IsMctfSupported(
-        MfxVideoParam const & video);
 
-    mfxU32 GetPPyrSize(
+    bool IsMctfSupported(
+        MfxVideoParam const & video,
+        eMFXHWType            platform);
+
+   mfxU32 GetPPyrSize(
         MfxVideoParam const & video,
         mfxU32 miniGopSize,
         bool   bEncToolsLA);
 
     bool IsExtBrcSceneChangeSupported(
-        MfxVideoParam const & video);
+        MfxVideoParam const & video,
+        eMFXHWType            platform);
 
     bool IsCmNeededForSCD(
         MfxVideoParam const & video);
@@ -765,6 +800,10 @@ namespace MfxHwH264Encode
     mfxStatus CheckExtBufferId(
         mfxVideoParam const & par);
 
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+    mfxU32 GetLastDid(
+        mfxExtSVCSeqDesc const & extSvc);
+#endif
 
     mfxStatus CheckWidthAndHeight(
         MfxVideoParam const & par);
@@ -802,9 +841,6 @@ namespace MfxHwH264Encode
         eMFXGTConfig            config = MFX_GT_UNKNOWN,
         bool                    bInit = false);
 
-    mfxStatus CheckVideoParamFEI(
-        MfxVideoParam &     par);
-
     mfxStatus CheckVideoParamQueryLike(
         MfxVideoParam &         par,
         MFX_ENCODE_CAPS const & hwCaps,
@@ -837,12 +873,12 @@ namespace MfxHwH264Encode
         mfxU16                     numPayload);
 
     mfxStatus CheckRunTimeExtBuffers(
-        MfxVideoParam const & video,
-        mfxEncodeCtrl *       ctrl,
-        mfxFrameSurface1 *    surface,
-        mfxBitstream *        bs,
+        MfxVideoParam const &     video,
+        mfxEncodeCtrl *           ctrl,
+        mfxFrameSurface1 *        surface,
+        mfxBitstream *            bs,
         MFX_ENCODE_CAPS const &   caps,
-        eMFXHWType            platform = MFX_HW_UNKNOWN);
+        eMFXHWType                platform = MFX_HW_UNKNOWN);
 
     mfxStatus CheckFEIRunTimeExtBuffersContent(
         MfxVideoParam const & video,
@@ -860,16 +896,25 @@ namespace MfxHwH264Encode
         mfxU32                     payloadLayout);
 
     mfxStatus CopyFrameDataBothFields(
-        VideoCORE *          core,
-        mfxFrameData const & dst,
-        mfxFrameData const & src,
-        mfxFrameInfo const & info);
+        VideoCORE *               core,
+        mfxMemId                  dstMid,
+        const mfxFrameSurface1&   srcSurf,
+        mfxFrameInfo const&       info);
+
 
     mfxExtBuffer * GetExtBuffer(
         mfxExtBuffer ** extBuf,
         mfxU32          numExtBuf,
         mfxU32          id,
         mfxU32          offset = 0);
+
+#if defined(MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA)
+    bool IsLpLookaheadSupported(
+        mfxU16 scenario,
+        mfxU16 lookaheadDepth,
+        mfxU16 rateContrlMethod);
+#endif
+
     struct mfxExtBufferProxy;
     struct mfxExtBufferRefProxy;
     template <typename T> mfxExtBufferProxy GetExtBuffer(const T & par, mfxU32 fieldId = 0);
@@ -886,6 +931,7 @@ namespace MfxHwH264Encode
                 m_numExtParam,
                 ExtBufTypeToId<typename GetPointedType<T>::Type>::id,
                 m_fieldId);
+
             return reinterpret_cast<T>(p);
         }
 
@@ -899,7 +945,7 @@ namespace MfxHwH264Encode
         }
 
     protected:
-        mfxExtBufferProxy(mfxExtBuffer ** extParam, mfxU32 numExtParam,  mfxU32 fieldId = 0)
+        mfxExtBufferProxy(mfxExtBuffer ** extParam, mfxU32 numExtParam, mfxU32 fieldId = 0)
             : m_extParam(extParam)
             , m_numExtParam(numExtParam)
             , m_fieldId(fieldId)
@@ -940,18 +986,19 @@ namespace MfxHwH264Encode
         }
 
     protected:
-        mfxExtBufferRefProxy(mfxExtBuffer ** extParam, mfxU32 numExtParam,  mfxU32 fieldId = 0)
+        mfxExtBufferRefProxy(mfxExtBuffer ** extParam, mfxU32 numExtParam, mfxU32 fieldId = 0)
             : m_extParam(extParam)
             , m_numExtParam(numExtParam)
             , m_fieldId(fieldId)
         {
         }
-
     private:
         mfxExtBuffer ** m_extParam;
         mfxU32          m_numExtParam;
         mfxU32          m_fieldId;
     };
+
+
 
     inline bool IsFieldCodingPossible(MfxVideoParam const & par)
     {
@@ -1054,19 +1101,19 @@ namespace MfxHwH264Encode
     // auto-lock for frames
     struct FrameLocker
     {
-        FrameLocker(VideoCORE * core, mfxFrameData & data, bool external = false)
+        FrameLocker(VideoCORE * core, mfxFrameData & data, bool external = false, bool lock = true)
             : m_core(core)
             , m_data(data)
             , m_memId(data.MemId)
-            , m_status(Lock(external))
+            , m_status(lock ? Lock(external) : LOCK_NO)
         {
         }
 
-        FrameLocker(VideoCORE * core, mfxFrameData & data, mfxMemId memId, bool external = false)
+        FrameLocker(VideoCORE * core, mfxFrameData & data, mfxMemId memId, bool external = false, bool lock = true)
             : m_core(core)
             , m_data(data)
             , m_memId(memId)
-            , m_status(Lock(external))
+            , m_status(lock ? Lock(external) : LOCK_NO)
         {
         }
 
@@ -1398,6 +1445,9 @@ namespace MfxHwH264Encode
 
     bool IsMvcProfile(mfxU32 profile);
 
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+    bool IsSvcProfile(mfxU32 profile);
+#endif
 
     inline mfxStatus Error(mfxStatus sts)
     {
@@ -1440,12 +1490,23 @@ namespace MfxHwH264Encode
             DdiTask const & task,
             mfxU32          fieldId);
 
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+        ENCODE_PACKEDHEADER_DATA const & GetScalabilitySei() const { return m_packedScalabilitySei; }
+#endif
 
         ENCODE_PACKEDHEADER_DATA const & GetAud() const { return m_packedAud; }
 
         std::vector<ENCODE_PACKEDHEADER_DATA> const & GetSps() const { return m_packedSps; }
 
-        std::vector<ENCODE_PACKEDHEADER_DATA> const & GetPps() const { return m_packedPps; }
+
+        std::vector<ENCODE_PACKEDHEADER_DATA> const & GetPps(bool cqmPps = false ) const {
+            (void)cqmPps;
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+            if (cqmPps)
+                return m_packedCqmPps;
+#endif
+            return  m_packedPps;
+        }
 
         std::vector<ENCODE_PACKEDHEADER_DATA> const & GetSlices() const { return m_packedSlices; }
 
@@ -1456,6 +1517,10 @@ namespace MfxHwH264Encode
 
 #ifndef MFX_AVC_ENCODING_UNIT_DISABLE
         void GetHeadersInfo(std::vector<mfxEncodedUnitInfo> &HeadersMap, DdiTask const& task, mfxU32 fid);
+#endif
+
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        mfxU32 GetPackedCqmPpsNum() { return (mfxU32)m_packedCqmPps.size(); }
 #endif
 
     private:
@@ -1475,6 +1540,9 @@ namespace MfxHwH264Encode
 
         // for header packing
         std::vector<mfxExtSpsHeader>    m_sps;
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+        std::vector<mfxExtSpsSvcHeader> m_subset;
+#endif
         std::vector<mfxExtPpsHeader>    m_pps;
         MFX_ENCODE_CAPS                 m_hwCaps;
         mfxU8                           m_spsIdx[8][16];            // for lookup by did & qid
@@ -1491,6 +1559,9 @@ namespace MfxHwH264Encode
         bool                            m_isLowPower;
 
         ENCODE_PACKEDHEADER_DATA                m_packedAud;
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+        ENCODE_PACKEDHEADER_DATA                m_packedScalabilitySei;
+#endif
         std::vector<ENCODE_PACKEDHEADER_DATA>   m_packedSps;
         std::vector<ENCODE_PACKEDHEADER_DATA>   m_packedPps;
         std::vector<ENCODE_PACKEDHEADER_DATA>   m_packedSlices;
@@ -1499,6 +1570,11 @@ namespace MfxHwH264Encode
 
         static const mfxU32 SPSPPS_BUFFER_SIZE = 1024;
         static const mfxU32 SLICE_BUFFER_SIZE  = 2048;
+
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        std::vector<mfxExtPpsHeader>            m_cqmPps;
+        std::vector<ENCODE_PACKEDHEADER_DATA>   m_packedCqmPps;
+#endif
     };
 
     inline mfxU16 LaDSenumToFactor(const mfxU16& LookAheadDS)
@@ -1517,6 +1593,14 @@ namespace MfxHwH264Encode
             assert(0);
             return LookAheadDS;
         }
+    }
+
+    // Function checks if scenario is a target for memory footprint optimization
+    inline bool IsMemoryConstrainedScenario(mfxU16 ScenarioInfo)
+    {
+        return
+            MFX_SCENARIO_VIDEO_CONFERENCE == ScenarioInfo ||
+            MFX_SCENARIO_DISPLAY_REMOTING == ScenarioInfo;
     }
 };
 

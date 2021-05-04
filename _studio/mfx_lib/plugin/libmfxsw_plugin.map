@@ -1,6 +1,0 @@
-LIBMFXSW_PLUGIN {
-  global:
-    CreatePlugin;
-  local:
-    *;
-};

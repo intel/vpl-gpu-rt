@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -39,3 +39,4 @@ DEF_BLOCK_Q(QueryTask, QT, mfxStatus, StorageW&, StorageW&)
 DEF_BLOCK_Q(FreeTask, FT, mfxStatus, StorageW&, StorageW&)
 DEF_BLOCK_Q(Close, CLS, void, StorageW&)
 DEF_BLOCK_Q(GetVideoParam, GVP, void, mfxVideoParam&, StorageR&)
+DEF_BLOCK_Q(QueryImplsDescription, QID, mfxStatus, VideoCORE&, mfxEncoderDescription::encoder&, mfx::PODArraysHolder&, StorageRW&)

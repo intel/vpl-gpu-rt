@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2013-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,14 +23,18 @@
 
 #include "umc_h265_va_packer.h"
 #include "umc_va_base.h"
+#include "umc_h265_tables.h"
+#include "umc_h265_frame_info.h"
 
 #ifdef UMC_VA
 #include "umc_h265_task_supplier.h"
 #endif
 
-#include "umc_h265_tables.h"
+#ifdef UMC_VA_LINUX
+#include "umc_h265_va_packer_vaapi.h"
 #include "umc_va_linux_protected.h"
 #include "mfx_ext_buffers.h"
+#endif
 
 using namespace UMC;
 
@@ -77,21 +81,42 @@ namespace UMC_HEVC_DECODER
         g_sigLastScanCG32x32
     };
 
-extern Packer * CreatePackerVAAPI(VideoAccelerator*);
-#if defined(MFX_ENABLE_CPLIB)
+#ifdef UMC_VA_DXVA
+    extern Packer * CreatePackerMS(VideoAccelerator*);
+    extern Packer * CreatePackerIntel(VideoAccelerator*);
+#endif
+
+#if defined (UMC_VA_LINUX)
+    extern Packer * CreatePackerVAAPI(VideoAccelerator*);
+  #if defined(MFX_ENABLE_CPLIB)
     extern Packer * CreatePackerCENC(VideoAccelerator*);
+  #endif
 #endif
 
 Packer * Packer::CreatePacker(VideoAccelerator * va)
 {
+    (void)va;
     Packer * packer = 0;
 
 #ifdef MFX_ENABLE_CPLIB
+  #ifdef UMC_VA_DXVA
+    if (va->GetProtectedVA() && IS_PROTECTION_CENC(va->GetProtectedVA()->GetProtected()))
+        throw h265_exception(UMC_ERR_UNSUPPORTED);
+    else
+  #elif defined (UMC_VA_LINUX)
     if (va->GetProtectedVA() && IS_PROTECTION_CENC(va->GetProtectedVA()->GetProtected()))
         packer = CreatePackerCENC(va);
     else
+  #endif
 #endif
+#ifdef UMC_VA_DXVA
+    if (va->IsIntelCustomGUID())
+        packer = CreatePackerIntel(va);
+    else
+        packer = CreatePackerMS(va);
+#elif defined(UMC_VA_LINUX)
     packer = CreatePackerVAAPI(va);
+#endif
 
     return packer;
 }

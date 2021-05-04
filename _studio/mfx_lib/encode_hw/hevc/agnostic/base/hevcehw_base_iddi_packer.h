@@ -32,7 +32,7 @@ namespace Base
 {
 
 class IDDIPacker
-    : public virtual FeatureBase
+    : public FeatureBase
 {
 public:
 #define DECL_BLOCK_LIST\
@@ -45,7 +45,9 @@ public:
 #define DECL_FEATURE_NAME "Base_IDDIPacker"
 #include "hevcehw_decl_blocks.h"
 
-    IDDIPacker(mfxU32 /*FeatureId*/) {}
+    IDDIPacker(mfxU32 FeatureId)
+        : FeatureBase(FeatureId)
+    {}
 
 protected:
     virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override = 0;

@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2003-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,9 +21,9 @@
 #ifndef __VM_STRINGS_H__
 #define __VM_STRINGS_H__
 
-#include "umc_defs.h"
+#include <stdint.h>
+#include "ippdefs.h"
 
-#if defined(LINUX32)
 
 # include <stdio.h>
 # include <stdlib.h>
@@ -44,7 +44,6 @@ typedef char vm_char;
 #define vm_string_vsprintf  vsprintf
 #define vm_string_vsnprintf vsnprintf
 
-
 #if !defined(ANDROID)
 
 #define vm_string_strcat    strcat
@@ -60,6 +59,7 @@ typedef char vm_char;
 #define vm_string_strnicmp  strncmp
 #define vm_string_strrchr   strrchr
 
+
 #else // ANDROID
 
 #define vm_string_strcat    strcat
@@ -74,6 +74,7 @@ typedef char vm_char;
 #define vm_string_stricmp   strcasecmp
 #define vm_string_strnicmp  strncasecmp
 #define vm_string_strrchr   strrchr
+
 
 #endif // ANDROID
 
@@ -119,7 +120,6 @@ void vm_string_splitpath(const vm_char *path, char *drive, char *dir, char *fnam
 }
 #endif /* __cplusplus */
 
-#endif /* WINDOWS */
 
 #define __VM_STRING(str) VM_STRING(str)
 

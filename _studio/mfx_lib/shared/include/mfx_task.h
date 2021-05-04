@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2010-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,7 +21,6 @@
 #ifndef __MFX_TASK_H
 #define __MFX_TASK_H
 
-#include <mfxplugin.h>
 #include <mfx_thread_task.h>
 #include <mfx_task_threading_policy.h>
 
@@ -47,6 +46,7 @@ enum
 };
 
 #define MFX_TASK_NEED_CONTINUE MFX_TASK_WORKING
+#define MFX_TASK_PAUSE (mfxStatus)100000
 
 enum
 {
@@ -77,8 +77,7 @@ threadNumber - number of the current additional thread. It can be any number
     not exceeding the maximum required threads for given task. */
 typedef mfxStatus (*mfxTaskRoutine) (void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber);
 typedef mfxStatus (*mfxTaskCompleteProc) (void *pState, void *pParam, mfxStatus taskRes);
-typedef mfxStatus (*mfxGetSubTaskProc) (void *pState, void *pParam, void **ppSubTask);
-typedef mfxStatus (*mfxCompleteSubTaskProc) (void *pState, void *pParam, void *pSubTask, mfxStatus taskRes);
+typedef mfxStatus (*mfxOutputPostProc) (void *pState, void *pParam);
 
 typedef
 struct MFX_ENTRY_POINT
@@ -93,10 +92,10 @@ struct MFX_ENTRY_POINT
     // pointer to the task completing procedure
     mfxTaskCompleteProc pCompleteProc;
 
-    // pointer to get a sub-task from the component (NON-OBLIGATORY)
-    mfxGetSubTaskProc pGetSubTaskProc;
-    // sub-task is complete. Update the status of it (NON-OBLIGATORY)
-    mfxCompleteSubTaskProc pCompleteSubTaskProc;
+    // pointer to function that makes required bitstream modifications if any in SyncOperation
+    mfxOutputPostProc pOutputPostProc;
+    // reserved for future use
+    void* reserved;
 
     // number of simultaneously allowed threads for the task
     mfxU32 requiredNumThreads;

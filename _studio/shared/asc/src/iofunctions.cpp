@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,16 +23,20 @@
 
 using namespace ns_asc;
 
-void TimeStart(ASCTime* /*timer*/) {
+void TimeStart(ASCTime* timer) {
+    (void)timer;
 }
 
-void TimeStart(ASCTime* /*timer*/, int /*index*/) {
+void TimeStart(ASCTime* timer, int index) {
+    (void)timer;
+    (void)index;
 }
 
-void TimeStop(ASCTime* /*timer*/) {
+void TimeStop(ASCTime* timer) {
+    (void)timer;
 }
 
-mfxF64 CatchTime(ASCTime* timer, const char* message)
+mfxF64 CatchTime(ASCTime *timer, const char* message)
 {
     (void)message;
 
@@ -43,21 +47,30 @@ mfxF64 CatchTime(ASCTime* timer, const char* message)
     return timeval;
 }
 
-mfxF64 CatchTime(ASCTime* /*timer*/, int /*index*/, const char* /*message*/) {
+mfxF64 CatchTime(ASCTime *timer, int index, const char* message) {
+    (void)message;
+    (void)timer;
+    (void)index;
+
     return 0.0;
 }
 
-mfxF64 CatchTime(ASCTime* /*timer*/, int /*indexInit*/, int /*indexEnd*/, const char* /*message*/) {
+mfxF64 CatchTime(ASCTime *timer, int indexInit, int indexEnd, const char* message) {
+    (void)message;
+    (void)timer;
+    (void)indexInit;
+    (void)indexEnd;
+
     return 0.0;
 }
 
 
 
-void imageInit(ASCYUV* buffer) {
+void imageInit(ASCYUV *buffer) {
     memset(buffer, 0, sizeof(ASCYUV));
 }
 
-void nullifier(ASCimageData* Buffer) {
+void nullifier(ASCimageData *Buffer) {
     imageInit(&Buffer->Image);
     memset(&Buffer->pInteger, 0, sizeof(ASCMVector));
     memset(&Buffer->Cs, 0, sizeof(Buffer->Cs));
@@ -68,11 +81,11 @@ void nullifier(ASCimageData* Buffer) {
     Buffer->RsVal = 0;
 }
 
-void ImDetails_Init(ASCImDetails* Rdata) {
+void ImDetails_Init(ASCImDetails *Rdata) {
     memset(Rdata, 0, sizeof(ASCImDetails));
 }
 
-mfxStatus ASCTSCstat_Init(ASCTSCstat** logic) {
+mfxStatus ASCTSCstat_Init(ASCTSCstat **logic) {
     for(int i = 0; i < TSCSTATBUFFER; i++)
     {
         try

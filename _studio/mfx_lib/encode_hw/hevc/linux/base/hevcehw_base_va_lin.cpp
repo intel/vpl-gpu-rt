@@ -21,7 +21,7 @@
 #include "mfx_common.h"
 #include "hevcehw_base_va_lin.h"
 
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_base_legacy.h"
 
@@ -175,9 +175,6 @@ void DDI_VA::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         mfxStatus sts;
 
         m_callVa = Glob::DDI_Execute::Get(strg);
-
-        //Set max priority
-        Glob::PriorityPar::GetOrConstruct(strg) = m_priorityPar;
 
         std::vector<VAConfigAttrib> attrib(2);
 
@@ -340,7 +337,6 @@ mfxStatus DDI_VA::QueryCaps()
         , VAConfigAttribEncTileSupport
         , VAConfigAttribEncDirtyRect
         , VAConfigAttribMaxFrameSize
-        , VAConfigAttribContextPriority
     };
     std::vector<VAConfigAttrib> attrs;
     auto AV = [&](VAConfigAttribType t) { return attrs[idx_map[t]].value; };
@@ -379,6 +375,7 @@ mfxStatus DDI_VA::QueryCaps()
     m_caps.BitDepth8Only = !(AV(VAConfigAttribRTFormat) & (VA_RT_FORMAT_YUV420_10 | VA_RT_FORMAT_YUV420_12));
     m_caps.YUV422ReconSupport = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV422);
     m_caps.YUV444ReconSupport = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV444);
+    m_caps.RGBEncodingSupport = !!(AV(VAConfigAttribRTFormat) & (VA_RT_FORMAT_RGB32 | VA_RT_FORMAT_RGB32_10)); // argb4 or a2rgb10
 
     MFX_CHECK(AV(VAConfigAttribMaxPictureWidth) != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
     MFX_CHECK(AV(VAConfigAttribMaxPictureHeight) != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
@@ -410,6 +407,7 @@ mfxStatus DDI_VA::QueryCaps()
         m_caps.ROIDeltaQPSupport            = roi.bits.roi_rc_qp_delta_support;
     }
 
+
     if (AV(VAConfigAttribEncDirtyRect) != VA_ATTRIB_NOT_SUPPORTED &&
         AV(VAConfigAttribEncDirtyRect) != 0)
     {
@@ -417,18 +415,8 @@ mfxStatus DDI_VA::QueryCaps()
         m_caps.MaxNumOfDirtyRect = mfxU16(AV(VAConfigAttribEncDirtyRect));
     }
 
-
     m_caps.TileSupport = (AV(VAConfigAttribEncTileSupport) == 1);
     m_caps.UserMaxFrameSizeSupport = !!(AV(VAConfigAttribMaxFrameSize));
-
-    if (AV(VAConfigAttribContextPriority) != VA_ATTRIB_NOT_SUPPORTED)
-    {
-        m_priorityPar.m_MaxContextPriority = AV(VAConfigAttribContextPriority);
-    }
-    else
-    {
-        m_priorityPar.m_MaxContextPriority = 0;
-    }
 
     if (AV(VAConfigAttribEncSliceStructure)!=VA_ATTRIB_NOT_SUPPORTED)
     {
@@ -453,7 +441,6 @@ uint32_t DDI_VA::ConvertRateControlMFX2VAAPI(mfxU16 rateControl, bool bSWBRC)
     static const std::map<mfxU16, uint32_t> RCMFX2VAAPI =
     {
         { mfxU16(MFX_RATECONTROL_CQP)   , uint32_t(VA_RC_CQP) },
-        { mfxU16(MFX_RATECONTROL_LA_EXT), uint32_t(VA_RC_CQP) },
         { mfxU16(MFX_RATECONTROL_CBR)   , uint32_t(VA_RC_CBR | VA_RC_MB) },
         { mfxU16(MFX_RATECONTROL_VBR)   , uint32_t(VA_RC_VBR | VA_RC_MB) },
         { mfxU16(MFX_RATECONTROL_ICQ)   , uint32_t(VA_RC_ICQ) },

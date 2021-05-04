@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2004-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "umc_vc1_dec_seq.h"
+#include "umc_vc1_dec_debug.h"
 #include "umc_vc1_huffman.h"
 
 //4.10    Bitplane Coding
@@ -355,16 +356,28 @@ void DecodeBitplane(VC1Context* pContext, VC1Bitplane* pBitplane, int32_t width,
                 );
     VM_ASSERT(ret == 0);
 
+#ifdef VC1_DEBUG_ON
+    VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BITBLANES,
+                                                VM_STRING("Bitplane bits: "));
+#endif
     //The DATABITS field shown in the syntax diagram of Figure 28 is an entropy
     //coded stream of symbols that is based on the coding mode. The seven coding
     //modes are described in the following sections.
     switch(pBitplane->m_imode)
     {
     case VC1_BITPLANE_RAW_MODE:
+#ifdef VC1_DEBUG_ON
+        VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BITBLANES,
+                                                        VM_STRING("Raw mode\n"));
+#endif
         //nothing to do
 
         break;
     case VC1_BITPLANE_NORM2_MODE:
+#ifdef VC1_DEBUG_ON
+        VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BITBLANES,
+                                                        VM_STRING("Norm2 mode\n"));
+#endif
         //4.10.3.3    Normal-2 mode
         //If rowMB x colMB is odd, the first symbol is encoded raw.  Subsequent
         //symbols are encoded pairwise, in natural scan order.  The binary VLC
@@ -384,6 +397,10 @@ void DecodeBitplane(VC1Context* pContext, VC1Bitplane* pBitplane, int32_t width,
 
         break;
     case VC1_BITPLANE_DIFF2_MODE:
+#ifdef VC1_DEBUG_ON
+        VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BITBLANES,
+                                                        VM_STRING("Diff2 mode\n"));
+#endif
 
         //decode differentional bits
         Norm2ModeDecode(pContext, pBitplane, width, height,pContext->m_seqLayerHeader.MaxWidthMB);
@@ -392,6 +409,10 @@ void DecodeBitplane(VC1Context* pContext, VC1Bitplane* pBitplane, int32_t width,
 
         break;
     case VC1_BITPLANE_NORM6_MODE:
+#ifdef VC1_DEBUG_ON
+        VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BITBLANES,
+                                                        VM_STRING("Norm6 mode\n"));
+#endif
         //In the Norm-6 and Diff-6 modes, the bitplane is encoded in groups of
         //six pixels.  These pixels are grouped into either 2x3 or 3x2 tiles.
         //The bitplane is tiled maximally using a set of rules, and the remaining
@@ -406,6 +427,10 @@ void DecodeBitplane(VC1Context* pContext, VC1Bitplane* pBitplane, int32_t width,
         }
         break;
     case VC1_BITPLANE_DIFF6_MODE:
+#ifdef VC1_DEBUG_ON
+        VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BITBLANES,
+                                                        VM_STRING("Diff6 mode\n"));
+#endif
 
         //decode differentional bits
         Norm6ModeDecode(pContext, pBitplane, width, height,pContext->m_seqLayerHeader.MaxWidthMB);
@@ -414,6 +439,10 @@ void DecodeBitplane(VC1Context* pContext, VC1Bitplane* pBitplane, int32_t width,
 
         break;
     case VC1_BITPLANE_ROWSKIP_MODE:
+#ifdef VC1_DEBUG_ON
+        VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BITBLANES,
+                                                        VM_STRING("Rowskip mode\n"));
+#endif
         //In the row-skip coding mode, all-zero rows are skipped with one bit overhead.
         //The syntax is as shown in Figure 79.
         //If the entire row is zero, a zero bit is sent as the ROWSKIP symbol,
@@ -444,6 +473,10 @@ void DecodeBitplane(VC1Context* pContext, VC1Bitplane* pBitplane, int32_t width,
 
         break;
     case VC1_BITPLANE_COLSKIP_MODE:
+#ifdef VC1_DEBUG_ON
+        VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BITBLANES,
+                                                    VM_STRING("Collskip mode\n"));
+#endif
         //Column-skip is the transpose of row-skip.  Columns are scanned from the
         //left to the right of the frame.
         for(i = 0; i < width; i++)
@@ -470,6 +503,10 @@ void DecodeBitplane(VC1Context* pContext, VC1Bitplane* pBitplane, int32_t width,
         break;
 
     }
+#ifdef VC1_DEBUG_ON
+    if (VC1_DEBUG&VC1_BITBLANES)
+        VM_Debug::GetInstance(VC1DebugRoutine).print_bitplane(pBitplane, pContext->m_seqLayerHeader.MaxWidthMB, heightMB);
+#endif
 }
 
 #endif //MFX_ENABLE_VC1_VIDEO_DECODE

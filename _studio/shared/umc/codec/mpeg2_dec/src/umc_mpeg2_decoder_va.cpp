@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,11 @@
 
 namespace UMC_MPEG2_DECODER
 {
+    enum
+    {
+        NUMBER_OF_STATUS = 512,
+    };
+
     MPEG2DecoderVA::MPEG2DecoderVA()
         : m_va(nullptr)
     {}
@@ -89,10 +94,10 @@ namespace UMC_MPEG2_DECODER
             // form frame queue in decoded order
             std::for_each(m_dpb.begin(), m_dpb.end(),
                 [&decode_queue, &frame](MPEG2DecoderFrame * f)
-                {
-                    if (InProgress(*f) && f->decOrder <= frame.decOrder) // skip frames beyong the current frame (in dec order)
-                        decode_queue.push_back(f);
-                }
+            {
+                if (InProgress(*f) && f->decOrder <= frame.decOrder) // skip frames beyong the current frame (in dec order)
+                    decode_queue.push_back(f);
+            }
             );
         }
 
@@ -117,13 +122,13 @@ namespace UMC_MPEG2_DECODER
             {
                 switch (surfCorruption)
                 {
-                    case MFX_CORRUPTION_MAJOR:
-                        frm->AddError(UMC::ERROR_FRAME_MAJOR);
-                        break;
+                case MFX_CORRUPTION_MAJOR:
+                    frm->AddError(UMC::ERROR_FRAME_MAJOR);
+                    break;
 
-                    case MFX_CORRUPTION_MINOR:
-                        frm->AddError(UMC::ERROR_FRAME_MINOR);
-                        break;
+                case MFX_CORRUPTION_MINOR:
+                    frm->AddError(UMC::ERROR_FRAME_MINOR);
+                    break;
                 }
             }
         }

@@ -29,6 +29,8 @@
 
 #define __UMC_AV1_VA_PACKER_H
 
+#ifdef UMC_VA_LINUX
+
 namespace UMC
 {
     class MediaData;
@@ -58,10 +60,11 @@ namespace UMC_AV1_DECODER
     private:
         void PackPicParams(VADecPictureParameterBufferAV1&, AV1DecoderFrame const&);
         void PackTileControlParams(VASliceParameterBufferAV1&, TileLocation const&);
-        void PackPriorityParams();
     };
 
 } // namespace UMC_AV1_DECODER
+
+#endif //UMC_VA_LINUX
 
 #endif /* __UMC_AV1_VA_PACKER_H */
 #endif // MFX_ENABLE_AV1_VIDEO_DECODE

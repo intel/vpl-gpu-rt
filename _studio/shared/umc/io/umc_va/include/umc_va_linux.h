@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2006-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,8 +23,10 @@
 
 #include "umc_va_base.h"
 
+#ifdef UMC_VA_LINUX
 
 #include <mutex>
+#include <set>
 
 namespace UMC
 {
@@ -105,28 +107,35 @@ public:
     virtual ~LinuxVideoAccelerator(void);
 
     // VideoAccelerator methods
-    virtual Status Init         (VideoAcceleratorParams* pInfo);
-    virtual Status Close        (void);
-    virtual Status BeginFrame   (int32_t FrameBufIndex);
+    Status Init         (VideoAcceleratorParams* pInfo) override;
+    Status Close        () override;
+
+    Status BeginFrame   (int32_t FrameBufIndex) override;
     // gets buffer from cache if it exists or HW otherwise, buffers will be released in EndFrame
-    virtual void* GetCompBuffer(int32_t buffer_type, UMCVACompBuffer **buf, int32_t size, int32_t index);
-    virtual Status Execute      (void);
-    virtual Status EndFrame     (void*);
-    virtual int32_t GetSurfaceID (int32_t idx);
-
-    // NOT implemented functions:
-    virtual Status ReleaseBuffer(int32_t /*type*/)
+    void* GetCompBuffer(int32_t buffer_type, UMCVACompBuffer **buf, int32_t size, int32_t index) override;
+    Status Execute      (void) override;
+    Status ExecuteExtensionBuffer(void*) override
+    { return UMC_ERR_UNSUPPORTED; }
+    Status ExecuteStatusReportBuffer(void*, int32_t /*size*/) override
+    { return UMC_ERR_UNSUPPORTED; }
+    Status SyncTask(int32_t index, void * error = NULL) override;
+    Status QueryTaskStatus(int32_t index, void * status, void * error) override;
+    Status ReleaseBuffer(int32_t /*type*/) override
     { return UMC_OK; };
+    Status EndFrame     (void*) override;
 
-    virtual Status ExecuteExtensionBuffer(void* /*x*/) { return UMC_ERR_UNSUPPORTED;}
-    virtual Status ExecuteStatusReportBuffer(void* /*x*/, int32_t /*y*/)  { return UMC_ERR_UNSUPPORTED;}
-    virtual Status SyncTask(int32_t index, void * error = NULL);
-    virtual Status QueryTaskStatus(int32_t index, void * status, void * error);
-    virtual bool IsIntelCustomGUID() const { return false;}
-    virtual GUID GetDecoderGuid(){return m_guidDecoder;};
-    virtual void GetVideoDecoder(void** /*handle*/) {};
+    bool IsIntelCustomGUID() const override
+    { return false; }
+    int32_t GetSurfaceID (int32_t idx) const override;
+
+    void GetVideoDecoder(void** /*handle*/) override
+    {};
+
+    Status ExecuteExtension(int, ExtensionData const&) override
+    { return UMC_ERR_UNSUPPORTED; }
 
 protected:
+
     // VideoAcceleratorExt methods
     virtual Status AllocCompBuffers(void);
     virtual VACompBuffer* GetCompBufferHW(int32_t type, int32_t size, int32_t index = -1);
@@ -137,13 +146,13 @@ protected:
     void SetTraceStrings(uint32_t umc_codec);
 
 protected:
+
     VADisplay     m_dpy;
     VAConfigID*   m_pConfigId;
     VAContextID*  m_pContext;
     bool*         m_pKeepVAState;
     lvaFrameState m_FrameState;
 
-    int32_t   m_NumOfFrameBuffers;
     uint32_t   m_uiCompBuffersNum;
     uint32_t   m_uiCompBuffersUsed;
     std::mutex m_SyncMutex;
@@ -153,6 +162,8 @@ protected:
     const char * m_sDecodeTraceEnd;
 
     GUID m_guidDecoder;
+private:
+    std::set<VASurfaceID> m_associatedIds;
 };
 
 }; // namespace UMC
@@ -167,5 +178,6 @@ extern "C" {
 }
 #endif // __cplusplus
 
+#endif // #ifdef UMC_VA_LINUX
 
 #endif // #ifndef __UMC_VA_LINUX_H__

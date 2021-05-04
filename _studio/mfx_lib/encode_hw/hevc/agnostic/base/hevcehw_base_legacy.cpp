@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,16 +21,21 @@
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
+#include "mfx_common_int.h"
+
 #include "hevcehw_base_legacy.h"
 #include "hevcehw_base_data.h"
 #include "hevcehw_base_constraints.h"
 #include "hevcehw_base_parser.h"
 #include "fast_copy.h"
+#include "mfx_common_int.h"
 #include <algorithm>
 #include <exception>
+#include <iterator>
 #include <numeric>
 #include <set>
 #include <cmath>
+#include <iterator>
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
@@ -111,18 +116,6 @@ void Legacy::SetSupported(ParamSupport& blocks)
         auto& buf_dst = *(mfxExtHEVCTiles*)pDst;
         MFX_COPY_FIELD(NumTileRows);
         MFX_COPY_FIELD(NumTileColumns);
-    });
-    blocks.m_ebCopySupported[MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION].emplace_back(
-        [](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
-    {
-        const auto& buf_src = *(const mfxExtOpaqueSurfaceAlloc*)pSrc;
-        auto& buf_dst = *(mfxExtOpaqueSurfaceAlloc*)pDst;
-        MFX_COPY_FIELD(In.Surfaces);
-        MFX_COPY_FIELD(In.Type);
-        MFX_COPY_FIELD(In.NumSurface);
-        MFX_COPY_FIELD(Out.Surfaces);
-        MFX_COPY_FIELD(Out.Type);
-        MFX_COPY_FIELD(Out.NumSurface);
     });
     blocks.m_ebCopySupported[MFX_EXTBUFF_AVC_REFLISTS].emplace_back(
         [](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
@@ -275,17 +268,6 @@ void Legacy::SetSupported(ParamSupport& blocks)
         auto& buf_dst = *(mfxExtVideoSignalInfo*)pDst;
         buf_dst = buf_src;
     });
-    blocks.m_ebCopySupported[MFX_EXTBUFF_LOOKAHEAD_STAT].emplace_back(
-        [](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
-    {
-        const auto& buf_src = *(const mfxExtLAFrameStatistics*)pSrc;
-        auto& buf_dst = *(mfxExtLAFrameStatistics*)pDst;
-        MFX_COPY_FIELD(NumAlloc);
-        MFX_COPY_FIELD(NumStream);
-        MFX_COPY_FIELD(NumFrame);
-        MFX_COPY_FIELD(FrameStat);
-        MFX_COPY_FIELD(OutSurface);
-    });
     blocks.m_ebCopySupported[MFX_EXTBUFF_MBQP].emplace_back(
         [](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
     {
@@ -319,6 +301,7 @@ void Legacy::SetInherited(ParamInheritance& par)
 
         INHERIT_OPT(AsyncDepth);
         //INHERIT_OPT(mfx.BRCParamMultiplier);
+        INHERIT_OPT(mfx.LowPower);
         INHERIT_OPT(mfx.CodecId);
         INHERIT_OPT(mfx.CodecProfile);
         INHERIT_OPT(mfx.CodecLevel);
@@ -499,6 +482,7 @@ void Legacy::SetInherited(ParamInheritance& par)
         INHERIT_OPT(WinBRCMaxAvgKbps);
         INHERIT_OPT(WinBRCSize);
         INHERIT_OPT(EnableMBQP);
+        INHERIT_OPT(ScenarioInfo);
 
         mfxU16 RC = parInit.mfx.RateControlMethod
             * (parInit.mfx.RateControlMethod == parReset.mfx.RateControlMethod);
@@ -634,7 +618,7 @@ void Legacy::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
         Defaults::Param defPar(out, fakeCaps, core.GetHWType(), defaults);
         fakeCaps.MaxEncodedBitDepth = (defPar.hw >= MFX_HW_KBL);
         fakeCaps.YUV422ReconSupport = (defPar.hw >= MFX_HW_ICL) && !IsOn(out.mfx.LowPower);
-        fakeCaps.YUV444ReconSupport = (defPar.hw >= MFX_HW_ICL) && IsOn(out.mfx.LowPower);
+        fakeCaps.YUV444ReconSupport = (defPar.hw >= MFX_HW_ICL);
 
         MFX_CHECK(defaults.GetGUID(defPar, *pGUID), MFX_ERR_NONE);
         strg.Insert(Glob::GUID::Key, std::move(pGUID));
@@ -760,7 +744,7 @@ void Legacy::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     Push(BLK_CheckShift
         , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
     {
-        return CheckShift(out, ExtBuffer::Get(out));
+        return CheckShift(out);
     });
 
     Push(BLK_CheckFrameRate
@@ -844,7 +828,6 @@ void Legacy::QueryIOSurf(const FeatureBlocks& blocks, TPushQIS Push)
         bool check_result = Check<mfxU16
             , MFX_IOPATTERN_IN_VIDEO_MEMORY
             , MFX_IOPATTERN_IN_SYSTEM_MEMORY
-            , MFX_IOPATTERN_IN_OPAQUE_MEMORY
             >
             (par.IOPattern);
 
@@ -895,12 +878,11 @@ void Legacy::QueryIOSurf(const FeatureBlocks& blocks, TPushQIS Push)
 
         bool bSYS = par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY;
         bool bVID = par.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY;
-        bool bOPQ = par.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY;
 
         req.Type =
             bSYS * (MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_EXTERNAL_FRAME)
             + bVID * (MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_EXTERNAL_FRAME)
-            + bOPQ * (MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_OPAQUE_FRAME);
+            ;
         MFX_CHECK(req.Type, MFX_ERR_INVALID_VIDEO_PARAM);
 
         req.NumFrameMin = GetMaxRaw(par);
@@ -1171,22 +1153,6 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             sts = AllocRaw(rawInfo.NumFrameMin);
             MFX_CHECK_STS(sts);
         }
-        else if (par.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-        {
-            const mfxExtOpaqueSurfaceAlloc& osa = ExtBuffer::Get(par);
-            std::unique_ptr<IAllocation> pAllocOpq(Tmp::MakeAlloc::Get(local)(Glob::VideoCore::Get(strg)));
-
-            sts = pAllocOpq->AllocOpaque(par.mfx.FrameInfo, osa.In.Type, osa.In.Surfaces, osa.In.NumSurface);
-            MFX_CHECK_STS(sts);
-
-            strg.Insert(Glob::AllocOpq::Key, std::move(pAllocOpq));
-
-            if (osa.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)
-            {
-                sts = AllocRaw(osa.In.NumSurface);
-                MFX_CHECK_STS(sts);
-            }
-        }
 
         bool bSkipFramesMode = (
             (IsSWBRC(par, &CO2)
@@ -1407,7 +1373,8 @@ void Legacy::Reset(const FeatureBlocks& blocks, TPushR Push)
         if (bTlActive)
         {
             // calculate temporal layer for next frame
-            tempLayerIdx = defOld.base.GetTId(defOld, m_frameOrder + 1);
+            mfxGopHints GopHints = {};
+            tempLayerIdx = defOld.base.GetTId(defOld, m_frameOrder + 1, GopHints);
             changeTScalLayers = numTlOld != numTlNew;
         }
 
@@ -1509,7 +1476,6 @@ void Legacy::FrameSubmit(const FeatureBlocks& /*blocks*/, TPushFS Push)
         MFX_CHECK(LumaIsNull(pSurf) == (pSurf->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(pSurf->Info.Width >= par.mfx.FrameInfo.Width, MFX_ERR_INVALID_VIDEO_PARAM);
         MFX_CHECK(pSurf->Info.Height >= par.mfx.FrameInfo.Height, MFX_ERR_INVALID_VIDEO_PARAM);
-        
         return MFX_ERR_NONE;
     });
 
@@ -1556,7 +1522,7 @@ void Legacy::AllocTask(const FeatureBlocks& /*blocks*/, TPushAT Push)
 void Legacy::InitTask(const FeatureBlocks& /*blocks*/, TPushIT Push)
 {
     Push(BLK_InitTask
-        , [](
+        , [this](
             mfxEncodeCtrl* pCtrl
             , mfxFrameSurface1* pSurf
             , mfxBitstream* pBs
@@ -1575,25 +1541,14 @@ void Legacy::InitTask(const FeatureBlocks& /*blocks*/, TPushIT Push)
         MFX_CHECK(pSurf, MFX_ERR_NONE);
 
         tpar.pSurfIn = pSurf;
+        tpar.DisplayOrder = ++m_frameOrderTmp;
 
         if (pCtrl)
             tpar.ctrl = *pCtrl;
 
-        if (par.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-        {
-            tpar.pSurfReal = core.GetNativeSurface(tpar.pSurfIn);
-            MFX_CHECK(tpar.pSurfReal, MFX_ERR_UNDEFINED_BEHAVIOR);
+        tpar.pSurfReal = tpar.pSurfIn;
 
-            tpar.pSurfReal->Info             = tpar.pSurfIn->Info;
-            tpar.pSurfReal->Data.TimeStamp   = tpar.pSurfIn->Data.TimeStamp;
-            tpar.pSurfReal->Data.FrameOrder  = tpar.pSurfIn->Data.FrameOrder;
-            tpar.pSurfReal->Data.Corrupted   = tpar.pSurfIn->Data.Corrupted;
-            tpar.pSurfReal->Data.DataFlag    = tpar.pSurfIn->Data.DataFlag;
-        }
-        else
-            tpar.pSurfReal = tpar.pSurfIn;
-
-        core.IncreaseReference(&tpar.pSurfIn->Data);
+        core.IncreaseReference(*tpar.pSurfIn);
 
         return MFX_ERR_NONE;
     });
@@ -1611,9 +1566,8 @@ void Legacy::PreReorderTask(const FeatureBlocks& /*blocks*/, TPushPreRT Push)
         auto  dflts = GetRTDefaults(global);
 
         m_frameOrder = dflts.base.GetFrameOrder(dflts, s_task, m_frameOrder);
-
         auto sts = dflts.base.GetPreReorderInfo(
-            dflts, task, task.pSurfIn, &task.ctrl, m_lastIDR, m_prevTask.PrevIPoc, m_frameOrder);
+            dflts, task, task.pSurfIn, &task.ctrl, { LastKeyFrameInfo.lastIDROrder, LastKeyFrameInfo.lastIPOrder, m_prevTask.LastKeyFrameInfo.lastIPoc}, m_frameOrder, task.GopHints);
         MFX_CHECK_STS(sts);
 
         if (par.mfx.EncodedOrder)
@@ -1627,10 +1581,11 @@ void Legacy::PreReorderTask(const FeatureBlocks& /*blocks*/, TPushPreRT Push)
             MFX_CHECK(isValid(m_prevTask.DPB.After[0]) || IsIdr(task.FrameType), MFX_ERR_UNDEFINED_BEHAVIOR);
         }
         task.DisplayOrder = m_frameOrder;
-        task.PrevIPoc     = m_prevTask.PrevIPoc;
-        
-        SetIf(m_lastIDR, IsIdr(task.FrameType), m_frameOrder);
-        SetIf(task.PrevIPoc, IsI(task.FrameType), task.POC);
+        task.LastKeyFrameInfo = m_prevTask.LastKeyFrameInfo;
+
+        SetIf(LastKeyFrameInfo.lastIDROrder, IsIdr(task.FrameType), m_frameOrder);
+        SetIf(task.LastKeyFrameInfo.lastIPoc, IsI(task.FrameType), task.POC);
+        SetIf(LastKeyFrameInfo.lastIPOrder, IsI(task.FrameType) || IsP(task.FrameType), m_frameOrder);
 
         return MFX_ERR_NONE;
     });
@@ -1761,22 +1716,26 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
     {
         auto& core = Glob::VideoCore::Get(global);
         auto& par = Glob::VideoParam::Get(global);
-        const mfxExtOpaqueSurfaceAlloc& opaq = ExtBuffer::Get(par);
         auto& task = Task::Common::Get(s_task);
 
         bool bInternalFrame =
             par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
-            || (par.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY
-                && (opaq.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY))
             || task.bSkip;
 
-        MFX_CHECK(!bInternalFrame, core.GetFrameHDL(task.Raw.Mid, &task.HDLRaw.first));
+        mfxFrameSurface1* surface = task.pSurfReal;
+        bool bIntAlloc = surface && (surface->Data.MemType & MFX_MEMTYPE_INTERNAL_FRAME);
 
+        // Video memory internal allocation
+        MFX_CHECK(!(bIntAlloc && par.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY),
+            core.GetFrameHDL(*task.pSurfReal, task.HDLRaw));
+
+        // System memory
+        MFX_CHECK(!(bInternalFrame || bIntAlloc), core.GetFrameHDL(task.Raw.Mid, &task.HDLRaw.first));
+
+        // Video memory external allocation
         MFX_CHECK(par.IOPattern != MFX_IOPATTERN_IN_VIDEO_MEMORY
-            , core.GetExternalFrameHDL(task.pSurfReal->Data.MemId, &task.HDLRaw.first));
+            , core.GetExternalFrameHDL(*task.pSurfReal, task.HDLRaw));
 
-        MFX_CHECK(par.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY
-            , MFX_ERR_UNDEFINED_BEHAVIOR);
 
         return core.GetFrameHDL(task.pSurfReal->Data.MemId, &task.HDLRaw.first);
     });
@@ -1787,20 +1746,17 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             , StorageW& s_task)->mfxStatus
     {
         auto& par = Glob::VideoParam::Get(global);
-        const mfxExtOpaqueSurfaceAlloc& opaq = ExtBuffer::Get(par);
         auto& task = Task::Common::Get(s_task);
         auto dflts = GetRTDefaults(global);
 
-        MFX_CHECK(
-            !(task.bSkip
-            || par.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY
-            || (    par.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY
-                 && !(opaq.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
-            , MFX_ERR_NONE);
+        bool videoMemory =
+            par.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY
+            ;
 
-        mfxFrameSurface1 surfSrc = { {}, par.mfx.FrameInfo, task.pSurfReal->Data };
-        mfxFrameSurface1 surfDst = { {}, par.mfx.FrameInfo, {} };
-        surfDst.Data.MemId = task.Raw.Mid;
+        MFX_CHECK(!(task.bSkip || videoMemory), MFX_ERR_NONE);
+
+        mfxFrameSurface1 surfSrc = MakeSurface(par.mfx.FrameInfo, *task.pSurfReal);
+        mfxFrameSurface1 surfDst = MakeSurface(par.mfx.FrameInfo, task.Raw.Mid);
 
         surfDst.Info.Shift =
             surfDst.Info.FourCC == MFX_FOURCC_P010
@@ -1989,7 +1945,7 @@ void Legacy::FreeTask(const FeatureBlocks& /*blocks*/, TPushFT Push)
             && !ReleaseResource(Glob::AllocRaw::Get(global), task.Raw)
             , "task.Raw resource is invalid");
 
-        SetIf(task.pSurfIn, task.pSurfIn && !core.DecreaseReference(&task.pSurfIn->Data), nullptr);
+        SetIf(task.pSurfIn, task.pSurfIn && !core.DecreaseReference(*task.pSurfIn), nullptr);
         ThrowAssert(!!task.pSurfIn, "failed in core.DecreaseReference");
 
         auto& atrRec = Glob::AllocRec::Get(global);
@@ -2214,7 +2170,8 @@ static void SetTaskQpY(
 
     if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
-        task.QpY &= 0xff * (par.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT);
+        task.QpY = 0;
+
         return;
     }
 
@@ -2312,7 +2269,6 @@ void Legacy::ConfigureTask(
         task.IRState = GetIntraRefreshState(
             par, task.ctrl, m_baseLayerOrder++, dflts.caps.IntraRefreshBlockUnitSize);
     }
-
     if (IsTCBRC(par, dflts.caps.TCBRCSupport) && task.TCBRCTargetFrameSize == 0)
     {
         ThrowAssert(par.mfx.FrameInfo.FrameRateExtD == 0, "FrameRateExtD = 0");
@@ -2333,7 +2289,7 @@ void Legacy::ConfigureTask(
     task.FrameType &= ~(MFX_FRAMETYPE_P * task.isLDB);
     task.FrameType |= (MFX_FRAMETYPE_B * task.isLDB);
 
-    task.PrevIPoc = m_prevTask.PrevIPoc;
+    task.LastKeyFrameInfo = m_prevTask.LastKeyFrameInfo;
     task.PrevRAP = m_prevTask.PrevRAP;
     task.EncodedOrder = m_prevTask.EncodedOrder + 1;
 
@@ -2368,7 +2324,7 @@ void Legacy::ConfigureTask(
 
     if (isRef)
     {
-        task.PrevIPoc = isI * task.POC + !isI * task.PrevIPoc;
+        task.LastKeyFrameInfo.lastIPoc = isI * task.POC + !isI * task.LastKeyFrameInfo.lastIPoc;
 
         UpdateDPB(dflts, task, task.DPB.After, pExtListCtrl);
 
@@ -2550,7 +2506,6 @@ mfxU32 Legacy::GetMinBsSize(
     , const mfxExtCodingOption3& CO3)
 {
     mfxU32 size = HEVCParam.PicHeightInLumaSamples * HEVCParam.PicWidthInLumaSamples;
-    
     SetDefault(size, par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height);
 
     bool b10bit = (CO3.TargetBitDepthLuma == 10);
@@ -3055,7 +3010,7 @@ void Legacy::SetSTRPS(
     bool      bTL        = dflts.base.GetNumTemporalLayers(dflts) > 1;
     mfxI32    nGops      = par.mfx.IdrInterval + !par.mfx.IdrInterval * 4;
     mfxI32    stDist     = std::min<mfxI32>(par.mfx.GopPicSize * nGops, 128);
-    mfxI32    lastIPoc   = 0;
+    mfxLastKeyFrameInfo m_LastKeyFrameInfo = {};
     bool      bDone      = false;
     mfxI32    i          = 0;
 
@@ -3072,8 +3027,10 @@ void Legacy::SetSTRPS(
     {
         {
             FrameBaseInfo fi;
-            auto sts = dflts.base.GetPreReorderInfo(dflts, fi, nullptr, nullptr, 0, lastIPoc, mfxU32(i));
+            mfxGopHints GopHints = {};
+            auto sts = dflts.base.GetPreReorderInfo(dflts, fi, nullptr, nullptr, m_LastKeyFrameInfo, mfxU32(i), GopHints);
             ThrowIf(!!sts, "failed at GetPreReorderInfo");
+            SetIf(m_LastKeyFrameInfo.lastIPOrder, !IsB(fi.FrameType), i);
 
             frames.push_back(StorageRW());
             frames.back().Insert(Task::Common::Key, new FrameBaseInfo(fi));
@@ -3148,7 +3105,7 @@ void Legacy::SetSTRPS(
                 ++pCurSet->WeightInGop;
             }
 
-            SetIf(lastIPoc, bI, cur->POC);
+            SetIf(m_LastKeyFrameInfo.lastIPoc, bI, cur->POC);
 
             DpbFrame tmp;
             (FrameBaseInfo&)tmp = *cur;
@@ -3200,12 +3157,10 @@ void Legacy::SetSTRPS(
     i = 0;
     std::for_each(pSetsBegin, pSetsEnd
         , [&](STRPS& sf) { OptimizeSTRPS(sets, nSet, sf, mfxU8(i++)); });
-    
     auto ritLastRps = std::find_if(MakeRIter(pSetsEnd), MakeRIter(pSetsBegin), IsRpsOptimal);
     // Also makes sense to try cut nSet to 2^n. Shorter idx code can overweight
 
     sps.num_short_term_ref_pic_sets = mfxU8(std::distance(ritLastRps, MakeRIter(pSetsBegin)));
-    
     std::copy_n(pSetsBegin, sps.num_short_term_ref_pic_sets, sps.strps);
 }
 
@@ -3370,7 +3325,7 @@ void SetDefaultBRC(
         || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR
         || par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR
         || par.mfx.RateControlMethod == MFX_RATECONTROL_VCM
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT);
+        );
     bool bSetICQ  = (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ);
     bool bSetQVBR = (par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR && pCO3);
 
@@ -3478,7 +3433,7 @@ void Legacy::SetDefaults(
     };
     auto GetDefaultLevel = [&]()
     {
-        mfxU16 nCol, nRow;
+        mfxU16 nCol = 0, nRow = 0;
         std::tie(nCol, nRow) = defPar.base.GetNumTiles(defPar);
 
         return GetMinLevel(
@@ -3937,21 +3892,19 @@ mfxStatus Legacy::CheckFrameRate(mfxVideoParam & par)
     return MFX_ERR_NONE;
 }
 
-bool Legacy::IsInVideoMem(const mfxVideoParam & par, const mfxExtOpaqueSurfaceAlloc* pOSA)
+bool Legacy::IsInVideoMem(const mfxVideoParam & par)
 {
     if (par.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY)
         return true;
 
-    if (par.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-        return (!pOSA || (pOSA->In.Type & (MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET | MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET)));
 
     return false;
 }
 
-mfxStatus Legacy::CheckShift(mfxVideoParam & par, mfxExtOpaqueSurfaceAlloc* pOSA)
+mfxStatus Legacy::CheckShift(mfxVideoParam & par)
 {
     auto& fi = par.mfx.FrameInfo;
-    bool bVideoMem = IsInVideoMem(par, pOSA);
+    bool bVideoMem = IsInVideoMem(par);
 
     if (bVideoMem && !fi.Shift)
     {
@@ -3990,7 +3943,7 @@ bool Legacy::IsSWBRC(mfxVideoParam const & par, const mfxExtCodingOption2* pCO2)
         (      pCO2 && IsOn(pCO2->ExtBRC)
             && (   par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
                 || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR))
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT;
+        ;
 }
 
 bool CheckBufferSizeInKB(
@@ -4018,7 +3971,7 @@ bool CheckBufferSizeInKB(
     }
     else if (!bCqpOrIcq)
     {
-        mfxU32 frN, frD;
+        mfxU32 frN = 0, frD = 0;
 
         std::tie(frN, frD) = defPar.base.GetFrameRate(defPar);
         mfxU32 avgFS = mfxU32(std::ceil((mfxF64)TargetKbps(par.mfx) * frD / frN / 8));
@@ -4060,15 +4013,17 @@ mfxStatus Legacy::CheckBRC(
         changed++;
     }
 
-    MFX_CHECK(!CheckOrZero<mfxU16>(par.mfx.RateControlMethod
+    bool supportedRateControl = !CheckOrZero<mfxU16>(par.mfx.RateControlMethod
         , 0
         , !!defPar.caps.msdk.CBRSupport * MFX_RATECONTROL_CBR
         , !!defPar.caps.msdk.VBRSupport * MFX_RATECONTROL_VBR
         , !!defPar.caps.msdk.CQPSupport * MFX_RATECONTROL_CQP
-        , MFX_RATECONTROL_LA_EXT
         , !!defPar.caps.msdk.ICQSupport * MFX_RATECONTROL_ICQ
         , !!defPar.caps.VCMBitRateControl * MFX_RATECONTROL_VCM
-        , !!defPar.caps.QVBRBRCSupport * MFX_RATECONTROL_QVBR), MFX_ERR_UNSUPPORTED);
+        , !!defPar.caps.QVBRBRCSupport * MFX_RATECONTROL_QVBR
+    );
+
+    MFX_CHECK(supportedRateControl, MFX_ERR_UNSUPPORTED);
 
     MFX_CHECK(par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ
         || !CheckMaxOrZero(par.mfx.ICQQuality, 51), MFX_ERR_UNSUPPORTED);
@@ -4096,7 +4051,6 @@ mfxStatus Legacy::CheckBRC(
     }
 
     changed += par.mfx.BufferSizeInKB && CheckBufferSizeInKB(par, defPar, bd);
-    
     if (pCO3)
     {
         MFX_CHECK(par.mfx.RateControlMethod != MFX_RATECONTROL_QVBR
@@ -4201,7 +4155,6 @@ mfxStatus Legacy::CheckIOPattern(mfxVideoParam & par)
     bool check_result = Check<mfxU16
                             , MFX_IOPATTERN_IN_VIDEO_MEMORY
                             , MFX_IOPATTERN_IN_SYSTEM_MEMORY
-                            , MFX_IOPATTERN_IN_OPAQUE_MEMORY
                             , 0>
                             (par.IOPattern);
 
@@ -4273,7 +4226,7 @@ mfxStatus Legacy::CheckTiles(
     {
         mfxU32 minTileWidth  = MIN_TILE_WIDTH_IN_SAMPLES;
         mfxU32 minTileHeight = MIN_TILE_HEIGHT_IN_SAMPLES;
-        
+
         // min 2x2 lcu is supported on VDEnc
         // TODO: replace indirect NumScalablePipesMinus1 by platform
         SetIf(minTileHeight, defPar.caps.NumScalablePipesMinus1 > 0 && IsOn(par.mfx.LowPower), 128);
@@ -4748,7 +4701,8 @@ mfxStatus Legacy::GetSliceHeader(
 
     bool bSetQPd =
         par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT;
+        ;
+
     s.slice_qp_delta     = mfxI8((task.QpY - (pps.init_qp_minus26 + 26)) * bSetQPd);
     s.slice_cb_qp_offset = 0;
     s.slice_cr_qp_offset = 0;

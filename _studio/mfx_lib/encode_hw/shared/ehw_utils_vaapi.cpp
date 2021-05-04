@@ -20,7 +20,6 @@
 
 #include "mfx_common.h"
 
-#if defined(MFX_VA_LINUX)
 #include "ehw_utils_vaapi.h"
 #include "ehw_device_vaapi.h"
 
@@ -183,4 +182,3 @@ DDIExecParam VAAPIParPacker::PackVaBuffer(VABufferType type, void* pData, mfxU32
 
 } //namespace MfxEncodeHW
 
-#endif //defined(MFX_VA_LINUX)

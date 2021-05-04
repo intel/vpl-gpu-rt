@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2008-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -30,7 +30,6 @@
 #include "mfx_mpeg2_encode_full_hw.h"
 #include "mfx_mpeg2_encode_utils_hw.h"
 
-
 class MFXVideoENCODEMPEG2_HW : public VideoENCODE {
 protected:
 
@@ -42,6 +41,10 @@ public:
     static mfxStatus QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request)
     {
         return MPEG2EncoderHW::ControllerBase::QueryIOSurf(core,par,request);
+    }
+    static mfxStatus QueryImplsDescription(VideoCORE& core, mfxEncoderDescription::encoder& caps, mfx::PODArraysHolder& ah)
+    {
+        return MPEG2EncoderHW::ControllerBase::QueryImplsDescription(core, caps, ah);
     }
     MFXVideoENCODEMPEG2_HW(VideoCORE *core, mfxStatus *sts)
     {

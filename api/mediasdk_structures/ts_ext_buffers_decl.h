@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2018-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,6 @@ EXTBUF(mfxExtVPPProcAmp                  , MFX_EXTBUFF_VPP_PROCAMP              
 EXTBUF(mfxExtVPPDetail                   , MFX_EXTBUFF_VPP_DETAIL                      )
 EXTBUF(mfxExtVideoSignalInfo             , MFX_EXTBUFF_VIDEO_SIGNAL_INFO               )
 EXTBUF(mfxExtVPPDoUse                    , MFX_EXTBUFF_VPP_DOUSE                       )
-EXTBUF(mfxExtOpaqueSurfaceAlloc          , MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION       )
 EXTBUF(mfxExtAVCRefListCtrl              , MFX_EXTBUFF_AVC_REFLIST_CTRL                )
 EXTBUF(mfxExtVPPFrameRateConversion      , MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION       )
 EXTBUF(mfxExtPictureTimingSEI            , MFX_EXTBUFF_PICTURE_TIMING_SEI              )
@@ -47,112 +46,105 @@ EXTBUF(mfxExtVP8CodingOption             , MFX_EXTBUFF_VP8_CODING_OPTION        
 EXTBUF(mfxExtVPPFieldProcessing          , MFX_EXTBUFF_VPP_FIELD_PROCESSING            )
 EXTBUF(mfxExtContentLightLevelInfo       , MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO        )
 EXTBUF(mfxExtMasteringDisplayColourVolume, MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME )
-EXTBUF(mfxExtMultiFrameParam             , MFX_EXTBUFF_MULTI_FRAME_PARAM               )
-EXTBUF(mfxExtMultiFrameControl           , MFX_EXTBUFF_MULTI_FRAME_CONTROL             )
-EXTBUF(mfxExtColorConversion             , MFX_EXTBUFF_VPP_COLOR_CONVERSION            )
-EXTBUF(mfxExtAVCRefLists                 , MFX_EXTBUFF_AVC_REFLISTS                    )
-EXTBUF(mfxExtCodingOption3               , MFX_EXTBUFF_CODING_OPTION3                  )
-EXTBUF(mfxExtMBQP                        , MFX_EXTBUFF_MBQP                            )
-EXTBUF(mfxExtMBForceIntra                , MFX_EXTBUFF_MB_FORCE_INTRA                  )
-EXTBUF(mfxExtChromaLocInfo               , MFX_EXTBUFF_CHROMA_LOC_INFO                 )
-EXTBUF(mfxExtDecodedFrameInfo            , MFX_EXTBUFF_DECODED_FRAME_INFO              )
-EXTBUF(mfxExtDecodeErrorReport           , MFX_EXTBUFF_DECODE_ERROR_REPORT             )
-EXTBUF(mfxExtVPPRotation                 , MFX_EXTBUFF_VPP_ROTATION                    )
-EXTBUF(mfxExtVPPMirroring                , MFX_EXTBUFF_VPP_MIRRORING                   )
-EXTBUF(mfxExtMVCSeqDesc                  , MFX_EXTBUFF_MVC_SEQ_DESC                    )
-EXTBUF(mfxExtMBDisableSkipMap            , MFX_EXTBUFF_MB_DISABLE_SKIP_MAP             )
-EXTBUF(mfxExtDirtyRect                   , MFX_EXTBUFF_DIRTY_RECTANGLES                )
-EXTBUF(mfxExtMoveRect                    , MFX_EXTBUFF_MOVING_RECTANGLES               )
-EXTBUF(mfxExtHEVCParam                   , MFX_EXTBUFF_HEVC_PARAM                      )
-EXTBUF(mfxExtHEVCTiles                   , MFX_EXTBUFF_HEVC_TILES                      )
-EXTBUF(mfxExtPredWeightTable             , MFX_EXTBUFF_PRED_WEIGHT_TABLE               )
-EXTBUF(mfxExtEncodedUnitsInfo            , MFX_EXTBUFF_ENCODED_UNITS_INFO              )
-#if (MFX_VERSION >= 1026)
 EXTBUF(mfxExtVppMctf                     , MFX_EXTBUFF_VPP_MCTF                        )
-EXTBUF(mfxExtVP9Segmentation             , MFX_EXTBUFF_VP9_SEGMENTATION                )
-EXTBUF(mfxExtVP9TemporalLayers           , MFX_EXTBUFF_VP9_TEMPORAL_LAYERS             )
-EXTBUF(mfxExtVP9Param                    , MFX_EXTBUFF_VP9_PARAM                       )
-#endif
+EXTBUF(mfxExtColorConversion             , MFX_EXTBUFF_VPP_COLOR_CONVERSION            )
+EXTBUF(mfxExtAVCRefLists                 , MFX_EXTBUFF_AVC_REFLISTS               )
+EXTBUF(mfxExtCodingOption3               , MFX_EXTBUFF_CODING_OPTION3             )
+EXTBUF(mfxExtMBQP                        , MFX_EXTBUFF_MBQP                       )
+EXTBUF(mfxExtMBForceIntra                , MFX_EXTBUFF_MB_FORCE_INTRA             )
+EXTBUF(mfxExtChromaLocInfo               , MFX_EXTBUFF_CHROMA_LOC_INFO            )
+EXTBUF(mfxExtDecodedFrameInfo            , MFX_EXTBUFF_DECODED_FRAME_INFO         )
+EXTBUF(mfxExtDecodeErrorReport           , MFX_EXTBUFF_DECODE_ERROR_REPORT        )
+EXTBUF(mfxExtVPPRotation                 , MFX_EXTBUFF_VPP_ROTATION)
+EXTBUF(mfxExtVPPMirroring                , MFX_EXTBUFF_VPP_MIRRORING)
+EXTBUF(mfxExtMVCSeqDesc                  , MFX_EXTBUFF_MVC_SEQ_DESC)
+EXTBUF(mfxExtMBDisableSkipMap            , MFX_EXTBUFF_MB_DISABLE_SKIP_MAP)
+EXTBUF(mfxExtDirtyRect                   , MFX_EXTBUFF_DIRTY_RECTANGLES          )
+EXTBUF(mfxExtMoveRect                    , MFX_EXTBUFF_MOVING_RECTANGLES         )
+EXTBUF(mfxExtVP9Segmentation             , MFX_EXTBUFF_VP9_SEGMENTATION          )
+EXTBUF(mfxExtVP9TemporalLayers           , MFX_EXTBUFF_VP9_TEMPORAL_LAYERS       )
+EXTBUF(mfxExtVP9Param                    , MFX_EXTBUFF_VP9_PARAM                 )
+EXTBUF(mfxExtHEVCParam                   , MFX_EXTBUFF_HEVC_PARAM                )
+EXTBUF(mfxExtHEVCTiles                   , MFX_EXTBUFF_HEVC_TILES                )
+EXTBUF(mfxExtPredWeightTable             , MFX_EXTBUFF_PRED_WEIGHT_TABLE         )
+EXTBUF(mfxExtEncodedUnitsInfo            , MFX_EXTBUFF_ENCODED_UNITS_INFO        )
+EXTBUF(mfxExtPartialBitstreamParam       , MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM   )
 EXTBUF(mfxExtEncoderIPCMArea             , MFX_EXTBUFF_ENCODER_IPCM_AREA               )
 EXTBUF(mfxExtInsertHeaders               , MFX_EXTBUFF_INSERT_HEADERS                  )
 
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
-EXTBUF(mfxExtAVCScalingMatrix            , MFX_EXTBUFF_AVC_SCALING_MATRIX              )
-EXTBUF(mfxExtDPB                         , MFX_EXTBUFF_DPB                             )
+EXTBUF(mfxExtDPB                         , MFX_EXTBUFF_DPB)
 #endif
 #endif //defined(__MFXSTRUCTURES_H__)
 
-#if defined(__MFXFEI_H__)
-EXTBUF(mfxExtFeiParam               , MFX_EXTBUFF_FEI_PARAM                 )
-EXTBUF(mfxExtFeiSPS                 , MFX_EXTBUFF_FEI_SPS                   )
-EXTBUF(mfxExtFeiPPS                 , MFX_EXTBUFF_FEI_PPS                   )
-EXTBUF(mfxExtFeiEncFrameCtrl        , MFX_EXTBUFF_FEI_ENC_CTRL              )
-EXTBUF(mfxExtFeiEncMVPredictors     , MFX_EXTBUFF_FEI_ENC_MV_PRED           )
-EXTBUF(mfxExtFeiEncMBCtrl           , MFX_EXTBUFF_FEI_ENC_MB                )
-EXTBUF(mfxExtFeiEncMV               , MFX_EXTBUFF_FEI_ENC_MV                )
-EXTBUF(mfxExtFeiEncMBStat           , MFX_EXTBUFF_FEI_ENC_MB_STAT           )
-EXTBUF(mfxExtFeiEncQP               , MFX_EXTBUFF_FEI_ENC_QP                )
-EXTBUF(mfxExtFeiPreEncCtrl          , MFX_EXTBUFF_FEI_PREENC_CTRL           )
-EXTBUF(mfxExtFeiPreEncMVPredictors  , MFX_EXTBUFF_FEI_PREENC_MV_PRED        )
-EXTBUF(mfxExtFeiPreEncMV            , MFX_EXTBUFF_FEI_PREENC_MV             )
-EXTBUF(mfxExtFeiPreEncMBStat        , MFX_EXTBUFF_FEI_PREENC_MB             )
-EXTBUF(mfxExtFeiPakMBCtrl           , MFX_EXTBUFF_FEI_PAK_CTRL              )
-EXTBUF(mfxExtFeiSliceHeader         , MFX_EXTBUFF_FEI_SLICE                 )
-EXTBUF(mfxExtFeiRepackCtrl          , MFX_EXTBUFF_FEI_REPACK_CTRL           )
-EXTBUF(mfxExtFeiDecStreamOut        , MFX_EXTBUFF_FEI_DEC_STREAM_OUT        )
-#if (MFX_VERSION >= 1027)
-EXTBUF(mfxExtFeiHevcEncFrameCtrl    , MFX_EXTBUFF_HEVCFEI_ENC_CTRL          )
-EXTBUF(mfxExtFeiHevcEncMVPredictors , MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED       )
-EXTBUF(mfxExtFeiHevcEncQP           , MFX_EXTBUFF_HEVCFEI_ENC_QP            )
-EXTBUF(mfxExtFeiHevcEncCtuCtrl      , MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL      )
-#endif
-#endif //defined(__MFXFEI_H__)
+#if defined(MFX_ENABLE_H264_VIDEO_FEI_ENCODE) && defined(__MFXFEI_H__)
+// FEI
+EXTBUF(mfxExtFeiParam                    , MFX_EXTBUFF_FEI_PARAM                 )
+EXTBUF(mfxExtFeiSPS                      , MFX_EXTBUFF_FEI_SPS                   )
+EXTBUF(mfxExtFeiPPS                      , MFX_EXTBUFF_FEI_PPS                   )
+EXTBUF(mfxExtFeiEncFrameCtrl             , MFX_EXTBUFF_FEI_ENC_CTRL              )
+EXTBUF(mfxExtFeiEncMVPredictors          , MFX_EXTBUFF_FEI_ENC_MV_PRED           )
+EXTBUF(mfxExtFeiEncMBCtrl                , MFX_EXTBUFF_FEI_ENC_MB                )
+EXTBUF(mfxExtFeiEncMV                    , MFX_EXTBUFF_FEI_ENC_MV                )
+EXTBUF(mfxExtFeiEncMBStat                , MFX_EXTBUFF_FEI_ENC_MB_STAT           )
+EXTBUF(mfxExtFeiEncQP                    , MFX_EXTBUFF_FEI_ENC_QP                )
+EXTBUF(mfxExtFeiPreEncCtrl               , MFX_EXTBUFF_FEI_PREENC_CTRL           )
+EXTBUF(mfxExtFeiPreEncMVPredictors       , MFX_EXTBUFF_FEI_PREENC_MV_PRED        )
+EXTBUF(mfxExtFeiPreEncMV                 , MFX_EXTBUFF_FEI_PREENC_MV             )
+EXTBUF(mfxExtFeiPreEncMBStat             , MFX_EXTBUFF_FEI_PREENC_MB             )
+EXTBUF(mfxExtFeiPakMBCtrl                , MFX_EXTBUFF_FEI_PAK_CTRL              )
+EXTBUF(mfxExtFeiSliceHeader              , MFX_EXTBUFF_FEI_SLICE                 )
+EXTBUF(mfxExtFeiRepackCtrl               , MFX_EXTBUFF_FEI_REPACK_CTRL           )
+#endif //MFX_ENABLE_H264_VIDEO_FEI_ENCODE || __MFXFEI_H__
 
-#if defined(__MFXCAMERA_H__)
-EXTBUF(mfxExtCamTotalColorControl   , MFX_EXTBUF_CAM_TOTAL_COLOR_CONTROL     )
-EXTBUF(mfxExtCamCscYuvRgb           , MFX_EXTBUF_CAM_CSC_YUV_RGB             )
-EXTBUF(mfxExtCamGammaCorrection     , MFX_EXTBUF_CAM_GAMMA_CORRECTION        )
-EXTBUF(mfxExtCamWhiteBalance        , MFX_EXTBUF_CAM_WHITE_BALANCE           )
-EXTBUF(mfxExtCamHotPixelRemoval     , MFX_EXTBUF_CAM_HOT_PIXEL_REMOVAL       )
-EXTBUF(mfxExtCamBlackLevelCorrection, MFX_EXTBUF_CAM_BLACK_LEVEL_CORRECTION  )
-EXTBUF(mfxExtCamVignetteCorrection  , MFX_EXTBUF_CAM_VIGNETTE_CORRECTION     )
-EXTBUF(mfxExtCamBayerDenoise        , MFX_EXTBUF_CAM_BAYER_DENOISE           )
-EXTBUF(mfxExtCamColorCorrection3x3  , MFX_EXTBUF_CAM_COLOR_CORRECTION_3X3    )
-EXTBUF(mfxExtCamPadding             , MFX_EXTBUF_CAM_PADDING                 )
-EXTBUF(mfxExtCamPipeControl         , MFX_EXTBUF_CAM_PIPECONTROL             )
-#endif //defined(__MFXCAMERA_H__)
+#if defined (MFX_ENABLE_H264_VIDEO_DECODE_STREAMOUT) && defined(__MFXFEI_H__)
+EXTBUF(mfxExtFeiDecStreamOut             , MFX_EXTBUFF_FEI_DEC_STREAM_OUT        )
+#endif
+
+#if defined(MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE) && defined(__MFXFEIHEVC_H__)
+#if (MFX_VERSION >= 1027)
+EXTBUF(mfxExtFeiHevcEncFrameCtrl         , MFX_EXTBUFF_HEVCFEI_ENC_CTRL          )
+EXTBUF(mfxExtFeiHevcEncMVPredictors      , MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED       )
+EXTBUF(mfxExtFeiHevcEncQP                , MFX_EXTBUFF_HEVCFEI_ENC_QP            )
+EXTBUF(mfxExtFeiHevcEncCtuCtrl           , MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL      )
+#endif
+// end of FEI
+#endif //MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE && __MFXFEIHEVC_H__
 
 #if defined(__MFXCOMMON_H__)
 // Threading API
-EXTBUF(mfxExtThreadsParam           , MFX_EXTBUFF_THREADS_PARAM)
+EXTBUF(mfxExtThreadsParam                , MFX_EXTBUFF_THREADS_PARAM)
 #endif //defined(__MFXCOMMON_H__)
-
-#if defined(__MFXSC_H__)
-//Screen capture
-EXTBUF(mfxExtScreenCaptureParam     , MFX_EXTBUFF_SCREEN_CAPTURE_PARAM      )
-#endif //defined(__MFXSC_H__)
-
-#if defined(__MFXVP9_H__)
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-EXTBUF(mfxExtVP9DecodedFrameInfo    , MFX_EXTBUFF_VP9_DECODED_FRAME_INFO    )
-#endif
-#endif //defined(__MFXVP9_H__)
 
 #if defined(__MFXBRC_H__)
 EXTBUF(mfxExtBRC, MFX_EXTBUFF_BRC)
 #endif // defined(__MFXBRC_H__)
 
-#if defined(__MFXPCP_H__)
-#if (MFX_VERSION >= 1030)
-EXTBUF(mfxExtCencParam              , MFX_EXTBUFF_CENC_PARAM                )
-#endif
-#endif // defined(__MFXPCP_H__)
-
 #if defined(__MFXSCD_H__)
 EXTBUF(mfxExtSCD, MFX_EXTBUFF_SCD)
 #endif // defined(__MFXSCD_H__)
 
+#ifdef __MFXWIDI_H__
+EXTBUF(mfxExtAVCEncoderWiDiUsage         , MFX_EXTBUFF_ENCODER_WIDI_USAGE        )
+#endif //#ifdef
+
 #ifdef __MFXLA_H__
-EXTBUF(mfxExtLAControl                   , MFX_EXTBUFF_LOOKAHEAD_CTRL )
-EXTBUF(mfxExtLAFrameStatistics           , MFX_EXTBUFF_LOOKAHEAD_STAT )
+EXTBUF(mfxExtLAControl                   , MFX_EXTBUFF_LOOKAHEAD_CTRL            )
+EXTBUF(mfxExtLAFrameStatistics           , MFX_EXTBUFF_LOOKAHEAD_STAT            )
 #endif //__MFXLA_H__
+
+#if defined(__MFX_EXT_BUFFERS_H__)
+EXTBUF(mfxExtCodingOptionDDI             , MFX_EXTBUFF_DDI                       )
+#if defined (MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA)
+EXTBUF(mfxExtLplaParam                   , MFX_EXTBUFF_LP_LOOKAHEAD              )
+#endif
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+EXTBUF(mfxExtLpLaStatus                  , MFX_EXTBUFF_LPLA_STATUS               )
+#endif
+
+EXTBUF(mfxExtHyperModeParam               , MFX_EXTBUFF_HYPER_MODE_PARAM    	 )
+
+#if defined(MFX_ENABLE_ENCTOOLS)
+EXTBUF(mfxExtEncToolsConfig              , MFX_EXTBUFF_ENCTOOLS_CONFIG           )
+#endif
+#endif // defined(__MFX_EXT_BUFFERS_H__)

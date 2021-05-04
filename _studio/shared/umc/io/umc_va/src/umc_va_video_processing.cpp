@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2014-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,10 +24,14 @@ namespace UMC
 {
 
 VideoProcessingVA::VideoProcessingVA()
+#ifdef UMC_VA_LINUX
     : m_pipelineParams()
     , m_surf_region()
     , m_output_surf_region()
     , m_currentOutputSurface()
+#else
+    : m_currentOutputSurface()
+#endif
 {
 }
 
@@ -45,9 +49,18 @@ mfxHDL VideoProcessingVA::GetCurrentOutputSurface() const
     return m_currentOutputSurface;
 }
 
-
-Status VideoProcessingVA::Init(mfxVideoParam * /* vpParams */, mfxExtDecVideoProcessing * videoProcessing)
+#ifdef UMC_VA_DXVA
+Status VideoProcessingVA::Init(mfxVideoParam * , mfxExtDecVideoProcessing * )
 {
+    return UMC_ERR_UNSUPPORTED;
+}
+
+#elif defined(UMC_VA_LINUX)
+
+Status VideoProcessingVA::Init(mfxVideoParam * vpParams, mfxExtDecVideoProcessing * videoProcessing)
+{
+    (void)vpParams;
+
     VAProcPipelineParameterBuffer *pipelineBuf = &m_pipelineParams;
 
     pipelineBuf->surface = 0;  // should filled in packer
@@ -101,5 +114,6 @@ Status VideoProcessingVA::Init(mfxVideoParam * /* vpParams */, mfxExtDecVideoPro
     return UMC_OK;
 }
 
+#endif
 
 } // namespace UMC

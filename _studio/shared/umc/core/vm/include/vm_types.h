@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2003-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,13 +21,21 @@
 #ifndef __VM_TYPES_H__
 #define __VM_TYPES_H__
 
+#include <stdint.h>
 
-#if defined(LINUX32)
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+#include <ippdefs.h>
+#include <ippcore.h>
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+
 # include "sys/vm_types_linux32.h"
-#else /* LINUX32 */
-//# include <io.h>
-# include "sys/vm_types_win32.h"
-#endif /* LINUX32 */
 
 /* Define NULL pointer value */
 #ifndef NULL
@@ -47,6 +55,14 @@ extern "C"
 #define VM_ALIGN32_DECL(X) VM_ALIGN_DECL(32,X)
 
 #define _MAX_LEN 256
+
+#if defined(_WIN32_WCE)
+#define VM_CALLCONVENTION __stdcall
+#else
+#define VM_CALLCONVENTION
+#endif
+
+typedef uint32_t(VM_CALLCONVENTION * vm_callback)(void *);
 
 typedef enum e_vm_Status
 {

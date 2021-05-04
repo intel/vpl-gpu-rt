@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if defined(LINUX32)
 
 #include <vm_interlocked.h>
 
@@ -81,6 +80,3 @@ uint32_t vm_interlocked_xchg32(volatile uint32_t *pVariable, uint32_t value)
     return previous_value;
 } /* uint32_t vm_interlocked_xchg32(volatile uint32_t *pVariable, uint32_t value); */
 
-#else
-# pragma warning( disable: 4206 )
-#endif /* #if defined(LINUX32) || defined(__APPLE__) */

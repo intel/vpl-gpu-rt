@@ -1,15 +1,15 @@
-// Copyright (c) 2018-2020 Intel Corporation
-// 
+// Copyright (c) 2008-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -32,23 +32,26 @@
 #include "umc_mutex.h"
 #include "mfx_vpp_interface.h"
 #include "mfx_vpp_defs.h"
+#include "libmfx_core_interface.h"
+#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
+#include "mfx_win_event_cache.h"
+#endif
 
+#if defined(MFX_VA)
  #include "cmrt_cross_platform.h" // Gpucopy stuff
  #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
   #include "asc.h"        // Scene change detection
  #endif
- #include "cm_mem_copy.h"         // Needed for mirroring kernels
- #include "genx_fcopy_gen8_isa.h" // Field copy kernels
- #include "genx_fcopy_gen9_isa.h"
- #include "genx_fcopy_gen11_isa.h"
- #include "genx_fcopy_gen11lp_isa.h"
+ #include "cm_mem_copy.h"           // Needed for mirroring kernels 
  #include "genx_fcopy_gen12lp_isa.h"
+#endif
 
 #ifdef MFX_ENABLE_MCTF
 #include "mctf_common.h"
 #include "cpu_detect.h"
 #include <list>
 #endif
+
 class CmDevice;
 
 namespace MfxHwVideoProcessing
@@ -120,10 +123,9 @@ namespace MfxHwVideoProcessing
             bool isCopyRequired = true);
 
         mfxStatus Alloc(
-            VideoCORE *            core,
-            mfxFrameAllocRequest & req,
-            mfxFrameSurface1 **    opaqSurf,
-            mfxU32                 numOpaqSurf);
+            VideoCORE *            core
+            , mfxFrameAllocRequest & req
+        );
 
         mfxStatus Free( void );
 
@@ -227,15 +229,26 @@ namespace MfxHwVideoProcessing
     };
     //-----------------------------------------------------
 
+    struct SubTask : SynchronizedTask
+    {
+        SubTask()
+        {
+            taskIndex = NO_INDEX;
+        }
+        SubTask(mfxU32 idx)
+        {
+            taskIndex = idx;
+        }
+    };
 
     struct ReleaseResource
     {
         mfxU32 refCount;
         std::vector<ExtSurface> surfaceListForRelease;
-        std::vector<mfxU32> subTasks;
+        std::vector<SubTask> subTasks;
     };
 
-    struct DdiTask : public State
+    struct DdiTask : public SynchronizedTask,State
     {
         DdiTask()
             : bkwdRefCount(0)
@@ -254,7 +267,6 @@ namespace MfxHwVideoProcessing
             , MctfControlActive(false)
             , pOuptutSurface(nullptr)
 #endif
-            , taskIndex(0)
             , frameNumber(0)
             , skipQueryStatus(false)
             , pAuxData(NULL)
@@ -278,7 +290,7 @@ namespace MfxHwVideoProcessing
         bool bAdvGfxEnable;     // VarianceReport, FRC_interpolation
         bool bVariance;
         bool bEOS;
-        bool bRunTimeCopyPassThrough; // based on config.m_bCopyPassThroughEnable and current runtime parameters (input / output surface.Info), if TRUE - VPP must execute task in PassThrough mode
+        bool bRunTimeCopyPassThrough; // based on config.m_bCopyPassThroughEnable and runtime parameters (input / output surface.Info), if TRUE - VPP must execute task in PassThrough mode
 #ifdef MFX_ENABLE_MCTF
         bool bMCTF;
         // per-frame control
@@ -287,8 +299,6 @@ namespace MfxHwVideoProcessing
         mfxFrameSurface1* pOuptutSurface;
 #endif
 
-
-        mfxU32 taskIndex;
         mfxU32 frameNumber;
 
         bool   skipQueryStatus;
@@ -394,8 +404,13 @@ namespace MfxHwVideoProcessing
         mfxStatus CompleteTask(DdiTask *pTask);
         std::vector<State> m_surf[2];
 
-        mfxU32 GetSubTask(DdiTask *pTask);
+        SubTask GetSubTask(DdiTask *pTask);
+#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
+        mfxStatus DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx, EventCache *EventCache);
+#else
         mfxStatus DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx);
+#endif
+
         bool IsMultiBlt();
 
     private:
@@ -633,8 +648,8 @@ namespace MfxHwVideoProcessing
                 m_frcRational[VPP_IN]  = frcRational[VPP_IN];
                 m_frcRational[VPP_OUT] = frcRational[VPP_OUT];
 
-                m_minDeltaTime = std::min(uint64_t(m_frcRational[VPP_IN].FrameRateExtD  * MFX_TIME_STAMP_FREQUENCY) / (mfxU64(2) * m_frcRational[VPP_IN].FrameRateExtN),
-                                          uint64_t(m_frcRational[VPP_OUT].FrameRateExtD * MFX_TIME_STAMP_FREQUENCY) / (mfxU64(2) * m_frcRational[VPP_OUT].FrameRateExtN));
+                m_minDeltaTime = std::min((uint64_t(m_frcRational[VPP_IN].FrameRateExtD)  * MFX_TIME_STAMP_FREQUENCY) / (mfxU64(2) * m_frcRational[VPP_IN].FrameRateExtN),
+                                          (uint64_t(m_frcRational[VPP_OUT].FrameRateExtD) * MFX_TIME_STAMP_FREQUENCY) / (mfxU64(2) * m_frcRational[VPP_OUT].FrameRateExtN));
             }
 
             mfxStatus DoCpuFRC_AndUpdatePTS(
@@ -708,12 +723,13 @@ namespace MfxHwVideoProcessing
 
         mfxStatus CompleteTask(DdiTask* pTask);
 
+        SubTask GetSubTask(DdiTask *pTask);
 #ifdef MFX_ENABLE_MCTF
         mfxU32 GetMCTFSurfacesInQueue() { return m_MCTFSurfacesInQueue; };
         void DecMCTFSurfacesInQueue() { if (m_MCTFSurfacesInQueue) --m_MCTFSurfacesInQueue; };
         void SetMctf(std::shared_ptr<CMC>& mctf) { pMCTF = mctf; }
 #endif
-        mfxU32 GetSubTask(DdiTask *pTask);
+        //mfxU32 GetSubTask(DdiTask *pTask);
         mfxStatus DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx);
 
     private:
@@ -824,6 +840,10 @@ namespace MfxHwVideoProcessing
 
         UMC::Mutex m_mutex;
 
+#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
+        std::unique_ptr<EventCache> m_EventCache;
+#endif
+
 #ifdef MFX_ENABLE_MCTF
         mfxU32  m_MCTFSurfacesInQueue;
 #endif
@@ -868,7 +888,10 @@ namespace MfxHwVideoProcessing
 
         static
         mfxStatus Query(VideoCORE* core,mfxVideoParam *par);
-
+        static
+        mfxStatus QueryImplsDescription(VideoCORE* core, mfxVPPDescription& caps, mfx::PODArraysHolder& arrayHolder);
+        static
+        mfxStatus CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32& formatSupport);
         static
         mfxStatus QueryTaskRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber);
         static
@@ -891,8 +914,11 @@ namespace MfxHwVideoProcessing
 
         static
         IOMode GetIOMode(
-            mfxVideoParam *par,
-            mfxFrameAllocRequest* opaqReq);
+            mfxVideoParam *par
+        );
+
+        mfxFrameSurface1* GetSurfaceIn();
+        mfxFrameSurface1* GetSurfaceOut();
     private:
 
         mfxStatus MergeRuntimeParams(const DdiTask* pTask,  MfxHwVideoProcessing::mfxExecuteParams *execParams);
@@ -904,8 +930,6 @@ namespace MfxHwVideoProcessing
         mfxStatus CopyPassThrough(
             mfxFrameSurface1 *pInputSurface,
             mfxFrameSurface1 *pOutputSurface);
-
-        bool UseCopyPassThrough(const DdiTask *pTask) const;
 
         mfxStatus PreWorkOutSurface(ExtSurface & output);
         mfxStatus PreWorkInputSurface(std::vector<ExtSurface> & surfQueue);
@@ -923,7 +947,7 @@ namespace MfxHwVideoProcessing
         // help-function to get a handle based on MemId
         mfxStatus GetFrameHandle(mfxFrameSurface1* InFrame, mfxHDLPair& handle, bool bInternalAlloc);
         // help-function to get a handle based on MemId
-        mfxStatus GetFrameHandle(mfxMemId MemId, mfxHDLPair& handle, bool bInternalAlloc);
+        mfxStatus GetFrameHandle(mfxFrameSurface1& surf, mfxHDLPair& handle, bool bInternalAlloc);
 
         // creates or extracts CmSurface2D from Hanlde
         mfxStatus CreateCmSurface2D(void *pSrcHDL, CmSurface2D* & pCmSurface2D, SurfaceIndex* &pCmSrcIndex);
@@ -944,6 +968,9 @@ namespace MfxHwVideoProcessing
         std::vector<MfxHwVideoProcessing::mfxDrvSurface> m_executeSurf;
 
         MfxFrameAllocResponse   m_internalVidSurf[2];
+
+        std::unique_ptr<SurfaceCache> m_surfaceIn;
+        std::unique_ptr<SurfaceCache> m_surfaceOut;
 
         VideoCORE *m_pCore;
         UMC::Mutex m_guard;
@@ -986,10 +1013,11 @@ namespace MfxHwVideoProcessing
         // these maps are used to track cm-surfaces for MCTF
         // CmCopyWrapper also has similar maps, but it implements
         // additional functionallity which is not required for MCTF
-        std::map<void *, CmSurface2D *> m_MCTFtableCmRelations2;
+        std::map<mfxHDLPair, CmSurface2D *> m_MCTFtableCmRelations2;
         std::map<CmSurface2D *, SurfaceIndex *> m_MCTFtableCmIndex2;
 #endif
 
+#if defined(MFX_VA) // SW LIB doesn't hace access to CM DEVICE
         CmCopyWrapper *m_pCmCopy;
 
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
@@ -1003,12 +1031,7 @@ namespace MfxHwVideoProcessing
 
         public:
             void SetCmDevice(CmDevice * device) { m_pCmDevice = device; }
-    };
-
-    class VpUnsupportedError : public std::exception
-    {
-    public:
-        VpUnsupportedError() : std::exception() { assert(!"VpUnsupportedError"); }
+#endif
     };
 
 }; // namespace MfxHwVideoProcessing

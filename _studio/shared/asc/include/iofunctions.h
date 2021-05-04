@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,5 @@ void imageInit(ns_asc::ASCYUV *buffer);
 void nullifier(ns_asc::ASCimageData *Buffer);
 void ImDetails_Init(ns_asc::ASCImDetails *Rdata);
 mfxStatus ASCTSCstat_Init(ns_asc::ASCTSCstat **logic);
-
 
 #endif //_IOFUNCTIONS_H_

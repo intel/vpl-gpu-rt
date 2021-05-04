@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2001-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,9 @@
 
 #include "umc_defs.h"
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
+#ifdef _OPENMP
+#include "omp.h"
+#endif
 #include "jpegdec_base.h"
 
 class CBaseStreamInput;
@@ -142,9 +145,24 @@ public:
   int      m_num_threads;
   int      m_sof_find;
 
+#ifdef __TIMING__
+  unsigned long long   m_clk_dct;
+
+  unsigned long long   m_clk_dct1x1;
+  unsigned long long   m_clk_dct2x2;
+  unsigned long long   m_clk_dct4x4;
+  unsigned long long   m_clk_dct8x8;
+
+  unsigned long long   m_clk_ss;
+  unsigned long long   m_clk_cc;
+  unsigned long long   m_clk_diff;
+  unsigned long long   m_clk_huff;
+#endif
 
   IMAGE                       m_dst;
+#ifdef ALLOW_JPEG_SW_FALLBACK
   CJPEGDecoderHuffmanState    m_state;
+#endif
 
 public:
   JERRCODE Init(void);

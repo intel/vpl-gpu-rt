@@ -32,7 +32,6 @@ void AEncUpdatePFrameBits(mfxHDL, mfxU32, mfxU32, mfxU32, mfxU32) {}
 void AEncClose(mfxHDL) {}
 
 #endif
-
 mfxStatus AEnc_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig const & pConfig)
 {
     mfxFrameInfo const *frameInfo = &ctrl.FrameInfo;
@@ -92,7 +91,7 @@ mfxStatus AEnc_EncTool::GetInputFrameInfo(mfxFrameInfo &frameInfo)
     frameInfo.Width = (mfxU16)FrameWidth_aligned;
     frameInfo.Height = (mfxU16)FrameHeight_aligned;
     frameInfo.BitDepthLuma = frameInfo.BitDepthChroma = 8;
-    frameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+    frameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE; //???
     frameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
     return MFX_ERR_NONE;
 }
@@ -140,8 +139,7 @@ mfxStatus AEnc_EncTool::SubmitFrame(mfxFrameSurface1 *surface)
     }
 
     AEncFrame res;
-    sts = AEncProcessFrame(m_aenc, surface->Data.FrameOrder, pS, pitch, &res);
-    if (MFX_ERR_NONE != sts)
+    if (MFX_ERR_NONE != AEncProcessFrame(m_aenc, surface->Data.FrameOrder, pS, pitch, &res))
         return MFX_ERR_MORE_DATA;
     //else
     //    res.print();

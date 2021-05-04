@@ -21,7 +21,6 @@
 #pragma once
 #include "mfx_common.h"
 
-#if defined(MFX_VA_LINUX)
 #include "ehw_device.h"
 #include "va/va.h"
 #include <vector>
@@ -209,4 +208,3 @@ protected:
 };
 
 } //namespace MfxEncodeHW
-#endif //defined(MFX_VA_LINUX)
