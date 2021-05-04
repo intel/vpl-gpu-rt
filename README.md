@@ -1,13 +1,13 @@
 # Intel® oneVPL GPU Runtime
-Intel® oneVPL GPU Runtime provides a plain C API to access hardware-accelerated video decode, encode and filtering on Intel® graphics hardware platforms. GPU Runtime is successor for Intel (Media SDK)[https://github.com/Intel-Media-SDK/MediaSDK]. Implementation written in C++ 14 with parts in C-for-Media (CM).
+Intel® oneVPL GPU Runtime provides a plain C API to access hardware-accelerated video decode, encode and filtering on Intel® graphics hardware platforms. GPU Runtime is successor for Intel [Media SDK](https://github.com/Intel-Media-SDK/MediaSDK). Implementation written in C++ 14 with parts in C-for-Media (CM).
 
 **Supported video encoders**: HEVC, AVC, MPEG-2, JPEG, VP9  
 **Supported video decoders**: HEVC, AVC, VP8, VP9, MPEG-2, VC1, JPEG, AV1  
 **Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate, Composition  
 
 oneVPL GPU Runtime is a part of Intel software stack for graphics:
-* [Linux Graphics Drivers](https://intel.com/linux-graphics-drivers) - General Purpose GPU Drivers for Linux&ast; Operating Systems
-  * Visit [documentation](https://dgpu-docs.intel.com) for instructions on installing, deploying, and updating Intel software to enable general purpose GPU (GPGPU) capabilities for Linux&ast;-based operating system distributions.
+* [Linux Graphics Drivers](https://intel.com/linux-graphics-drivers) - General Purpose GPU Drivers for Linux Operating Systems
+  * Visit [documentation](https://dgpu-docs.intel.com) for instructions on installing, deploying, and updating Intel software to enable general purpose GPU (GPGPU) capabilities for Linux-based operating system distributions.
 
 # Dependencies
 oneVPL GPU Runtime depends on [LibVA](https://github.com/intel/libva/).
