@@ -583,7 +583,9 @@ mfxStatus RWAcessSurface::LockRW(std::unique_lock<std::mutex>& guard, bool write
         }
         else if (!m_read_locks && !nowait)
         {
+            guard.unlock();
             MFX_SAFE_CALL(mfxFrameSurfaceBaseInterface::Synchronize(MFX_INFINITE));
+            guard.lock();
         }
 
         ++m_read_locks;
