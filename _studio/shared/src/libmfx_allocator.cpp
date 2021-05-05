@@ -184,7 +184,6 @@ inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU16 Ty
     case MFX_FOURCC_RGBP:
 #endif
     case MFX_FOURCC_BGRP:
-        MFX_CHECK(Type & (MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_FROM_VPPOUT), MFX_ERR_UNSUPPORTED);
 
         nbytes = Pitch * Height2 + Pitch * Height2 + Pitch * Height2;
         break;
@@ -203,15 +202,11 @@ inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU16 Ty
         nbytes = Pitch * Height2 + Pitch * Height2 + Pitch * Height2 + Pitch * Height2;
         break;
     case MFX_FOURCC_IMC3:
-        MFX_CHECK(Type & (MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_FROM_DECODE), MFX_ERR_UNSUPPORTED);
-
         nbytes = Pitch * Height2 + Pitch * (Height2 >> 1) + Pitch * (Height2 >> 1);
         break;
 
     case MFX_FOURCC_P8:
     case MFX_FOURCC_P8_TEXTURE:
-        MFX_CHECK(Type & MFX_MEMTYPE_FROM_ENCODE, MFX_ERR_UNSUPPORTED);
-
         nbytes = Pitch * Height2;
         break;
 
