@@ -2255,7 +2255,8 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
             }
 
             if (format == MFX_FOURCC_A2RGB10 ||
-                format == MFX_FOURCC_RGBP)
+                format == MFX_FOURCC_RGBP    ||
+                format == MFX_FOURCC_BGRP)
             {
                 formatSupport = MFX_FORMAT_SUPPORT_OUTPUT;
             }
@@ -5564,6 +5565,7 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
 #ifdef MFX_ENABLE_RGBP
         case MFX_FOURCC_RGBP:
 #endif
+        case MFX_FOURCC_BGRP:
             return make_def_back_color_argb(8);
         case MFX_FOURCC_A2RGB10:
             return make_def_back_color_argb(10);

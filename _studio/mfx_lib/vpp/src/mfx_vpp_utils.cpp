@@ -1415,6 +1415,7 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
 #ifdef MFX_ENABLE_RGBP
         case MFX_FOURCC_RGBP:
 #endif
+        case MFX_FOURCC_BGRP:
             if (VPP_IN == request)
                 return MFX_ERR_INVALID_VIDEO_PARAM;
 

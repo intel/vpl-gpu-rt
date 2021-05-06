@@ -1410,6 +1410,7 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
     }
 #ifdef MFX_ENABLE_RGBP
     case MFX_FOURCC_RGBP:
+    case MFX_FOURCC_BGRP:
     {
         mfxU8* ptrSrc = src.Data.B;
         mfxU8* ptrDst = dst.Data.B;
@@ -1425,7 +1426,6 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
         return FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
     }
 #endif
-
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_RGB4:
     case MFX_FOURCC_BGR4:
