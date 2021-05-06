@@ -434,8 +434,22 @@ typedef struct {
 
     /* ADL-P */
     { 0x46A0, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+    { 0x46A1, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+    { 0x46A3, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+    { 0x46A6, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+    { 0x4626, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+
+    { 0x46B0, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+    { 0x46B1, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+    { 0x46B3, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+    { 0x46A8, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+    { 0x4628, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+
     { 0x46C0, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
-    { 0x46E0, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+    { 0x46C1, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+    { 0x46C3, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+    { 0x46AA, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+    { 0x462A, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
 
 };
 
