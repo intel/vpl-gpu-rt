@@ -27,6 +27,12 @@
 #include "mfx_common.h"
 #include "mfx_common_decode_int.h"
 
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
+#include "mfx_mjpeg_task.h"
+#include "umc_mjpeg_mfx_decode.h"
+#include "mfx_thread_task.h"
+#endif
+
 #include "mfx_enc_common.h"
 
 #include "umc_jpeg_frame_constructor.h"
@@ -172,7 +178,11 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
 
     if (MFX_PLATFORM_SOFTWARE == m_platform)
     {
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
+        decoder.reset(new VideoDECODEMJPEGBase_SW);
+#else
         return MFX_ERR_UNSUPPORTED;
+#endif
     }
     else
     {
@@ -2064,5 +2074,241 @@ mfxStatus VideoDECODEMJPEGBase_HW::CompleteTask(void *pParam, mfxStatus )
     delete (ThreadTaskInfo *)pParam;
     return MFX_ERR_NONE;
 }
+
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
+VideoDECODEMJPEGBase_SW::VideoDECODEMJPEGBase_SW()
+{
+    pLastTask = NULL;
+    m_tasksCount = 0;
+}
+
+mfxStatus VideoDECODEMJPEGBase_SW::Init(mfxVideoParam *decPar, mfxFrameAllocRequest *, mfxFrameAllocResponse *, mfxFrameAllocRequest *, bool, VideoCORE *)
+{
+#if !defined(MSDK_USE_EXTERNAL_IPP)
+    auto ippSt = MfxIppInit();
+    MFX_CHECK(ippSt == ippStsNoErr, MFX_ERR_UNSUPPORTED);
+#endif
+
+    ConvertMFXParamsToUMC(decPar, &umcVideoParams);
+    umcVideoParams.numThreads = m_vPar.mfx.NumThread;
+    return MFX_ERR_NONE;
+}
+
+mfxStatus VideoDECODEMJPEGBase_SW::Reset(mfxVideoParam *par)
+{
+    m_tasksCount = 0;
+    pLastTask = nullptr;
+    {
+        std::lock_guard<std::mutex> guard(m_guard);
+        while(!m_freeTasks.empty())
+        {
+            m_freeTasks.pop();
+        }
+    }
+
+    memset(&m_stat, 0, sizeof(mfxDecodeStat));
+    m_vPar = *par;
+
+    UMC::Status umcSts = m_surface_source->Reset();
+    MFX_CHECK(umcSts == UMC::UMC_OK, MFX_ERR_MEMORY_ALLOC);
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus VideoDECODEMJPEGBase_SW::Close()
+{
+    UMC::Status umcSts = m_surface_source->Close();
+
+    m_tasksCount = 0;
+    pLastTask = nullptr;
+    memset(&m_stat, 0, sizeof(mfxDecodeStat));
+
+    // delete free tasks queue
+    {
+        std::lock_guard<std::mutex> guard(m_guard);
+        while (!m_freeTasks.empty())
+        {
+            m_freeTasks.pop();
+        }
+    }
+
+    m_isOpaq = false;
+
+    MFX_CHECK(umcSts == UMC::UMC_OK, ConvertUMCStatusToMfx(umcSts));
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus VideoDECODEMJPEGBase_SW::GetVideoParam(mfxVideoParam *par)
+{
+    mfxExtJPEGQuantTables* jpegQT = (mfxExtJPEGQuantTables*) GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
+    mfxExtJPEGHuffmanTables*  jpegHT = (mfxExtJPEGHuffmanTables*) GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
+
+    if(!jpegQT && !jpegHT)
+        return MFX_ERR_NONE;
+
+    MFX_CHECK(pLastTask, MFX_ERR_UNSUPPORTED);
+
+    return VideoDECODEMJPEGBase::GetVideoParam(par, pLastTask->m_pMJPEGVideoDecoder.get());
+}
+
+mfxStatus VideoDECODEMJPEGBase_SW::ReserveUMCDecoder(UMC::MJPEGVideoDecoderBaseMFX* &pMJPEGVideoDecoder, mfxFrameSurface1 *surf, bool isOpaq)
+{
+    pMJPEGVideoDecoder = 0;
+    MFX_SAFE_CALL(m_surface_source->SetCurrentMFXSurface(surf, isOpaq));
+
+    pMJPEGVideoDecoder = m_freeTasks.front()->m_pMJPEGVideoDecoder.get();
+    //pMJPEGVideoDecoder->Reset();
+    return MFX_ERR_NONE;
+}
+
+void VideoDECODEMJPEGBase_SW::ReleaseReservedTask()
+{
+    if (!m_freeTasks.empty())
+        m_freeTasks.front()->Reset();
+}
+
+mfxStatus VideoDECODEMJPEGBase_SW::AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic)
+{
+    // select the field position. 0 means top, 1 means bottom.
+    mfxU32 fieldPos = m_freeTasks.front()->NumPicCollected();
+
+    if (MFX_PICSTRUCT_FIELD_BFF == m_vPar.mfx.FrameInfo.PicStruct)
+    {
+        // change field order in BFF case
+        fieldPos ^= 1;
+    }
+
+    // add picture to the task
+    MFX_SAFE_CALL(m_freeTasks.front()->AddPicture(pSrcData, fieldPos));
+    numPic = m_freeTasks.front()->NumPicCollected();
+    return MFX_ERR_NONE;
+}
+
+mfxStatus VideoDECODEMJPEGBase_SW::FillEntryPoint(MFX_ENTRY_POINT *pEntryPoint, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out)
+{
+    // remove the ready task from the queue
+    {
+        std::lock_guard<std::mutex> guard(m_guard);
+        pLastTask = m_freeTasks.front().release();
+        m_freeTasks.pop();
+    }
+
+    pLastTask->surface_work = surface_work;
+    pLastTask->surface_out = surface_out;
+
+    pEntryPoint->requiredNumThreads = std::min(pLastTask->m_pMJPEGVideoDecoder->NumDecodersAllocated(),
+                                               pLastTask->NumPiecesCollected());
+    pEntryPoint->pParam = pLastTask;
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus VideoDECODEMJPEGBase_SW::AllocateFrameData(UMC::FrameData *&data)
+{
+    CJpegTask *pTask = m_freeTasks.front().get();
+
+    // prepare the decoder(s)
+    UMC::Status umcRes = pTask->m_pMJPEGVideoDecoder->AllocateFrame();
+    if (UMC::UMC_OK != umcRes)
+    {
+        return ConvertUMCStatusToMfx(umcRes);
+    }
+
+    // save parameters to the task
+    pTask->dst = pTask->m_pMJPEGVideoDecoder.get()->GetDst();
+
+    UMC::FrameData *dst = m_freeTasks.front()->dst;
+    dst->SetTime(m_freeTasks.front()->GetPictureBuffer(0).timeStamp);
+    data = dst;
+    return MFX_ERR_NONE;
+}
+
+mfxStatus VideoDECODEMJPEGBase_SW::CheckTaskAvailability(mfxU32 maxTaskNumber)
+{
+    if (m_freeTasks.empty())
+    {
+        if (m_tasksCount >= maxTaskNumber)
+        {
+            return MFX_WRN_DEVICE_BUSY;
+        }
+
+        std::unique_ptr<CJpegTask> pTask(new CJpegTask());
+        m_tasksCount++;
+
+        // initialize the task
+        MFX_SAFE_CALL(pTask->Initialize(umcVideoParams,
+                                        m_surface_source.get(),
+                                        m_vPar.mfx.Rotation,
+                                        m_vPar.mfx.JPEGChromaFormat,
+                                        m_vPar.mfx.JPEGColorFormat));
+
+        // save the task object into the queue
+        {
+            std::lock_guard<std::mutex> guard(m_guard);
+            m_freeTasks.push(std::move(pTask));
+        }
+    }
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus VideoDECODEMJPEGBase_SW::RunThread(void *pParam, mfxU32 threadNumber, mfxU32 callNumber)
+{
+    CJpegTask *task = (CJpegTask *) pParam;
+    if (!task)
+        return MFX_ERR_NULL_PTR;
+
+    // check the number of call. one call = one piece decoded. all extra call
+    // should go exit.
+    if (callNumber >= task->NumPiecesCollected())
+    {
+        return MFX_TASK_DONE;
+    }
+
+    // do decoding process
+    task->m_pMJPEGVideoDecoder->DecodePicture(*task, threadNumber, callNumber);
+
+    return ((callNumber + 1) == task->NumPiecesCollected()) ? (MFX_TASK_DONE) : (MFX_TASK_WORKING);
+}
+
+mfxStatus VideoDECODEMJPEGBase_SW::CompleteTask(void *pParam, mfxStatus taskRes)
+{
+    CJpegTask &task = *((CJpegTask *) pParam);
+
+    // do color conversion and other useless stuff
+    if (MFX_ERR_NONE == taskRes)
+    {
+        UMC::Status umcRes = UMC::UMC_OK;
+
+        umcRes = task.m_pMJPEGVideoDecoder->PostProcessing(task.GetPictureBuffer(0).timeStamp);
+        if (UMC::UMC_OK != umcRes)
+        {
+            return ConvertUMCStatusToMfx(umcRes);
+        }
+
+        // decoding is ready. prepare to output:
+        mfxStatus mfxSts = m_surface_source->PrepareToOutput(task.surface_out,
+                                                                    task.dst->GetFrameMID(),
+                                                                    &m_vPar,
+                                                                    m_isOpaq);
+        if (mfxSts < MFX_ERR_NONE)
+        {
+            return mfxSts;
+        }
+
+        task.m_pMJPEGVideoDecoder->CloseFrame();
+
+        m_stat.NumFrame++;
+    }
+
+    task.Reset();
+    {
+        std::lock_guard<std::mutex> guard(m_guard);
+        m_freeTasks.emplace(&task);
+    }
+    return MFX_ERR_NONE;
+}
+#endif //ifdef MFX_ENABLE_JPEG_SW_FALLBACK
 
 #endif // MFX_ENABLE_MJPEG_VIDEO_DECODE

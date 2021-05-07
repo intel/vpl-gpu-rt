@@ -88,7 +88,9 @@ list(APPEND sources
     ${UMC_CODECS}/jpeg_dec/src/decqtbl.cpp
     ${UMC_CODECS}/jpeg_dec/src/jpegdec.cpp
     ${UMC_CODECS}/jpeg_dec/src/jpegdec_base.cpp
+    ${UMC_CODECS}/jpeg_dec/src/mfx_mjpeg_task.cpp
     ${UMC_CODECS}/jpeg_dec/src/umc_jpeg_frame_constructor.cpp
+    ${UMC_CODECS}/jpeg_dec/src/umc_mjpeg_mfx_decode.cpp
     ${UMC_CODECS}/jpeg_dec/src/umc_mjpeg_mfx_decode_base.cpp
     ${UMC_CODECS}/jpeg_dec/src/umc_mjpeg_mfx_decode_hw.cpp
     )

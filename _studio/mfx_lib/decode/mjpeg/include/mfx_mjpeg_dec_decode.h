@@ -31,6 +31,11 @@
 #include "mfx_umc_alloc_wrapper.h"
 
 #include <mutex>
+
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
+#include <queue>
+#endif
+
 #include "mfx_task.h"
 
 #include "mfx_vpp_jpeg_d3d9.h"
@@ -125,6 +130,38 @@ protected:
 
     UMC::VideoAccelerator * m_va;
 };
+
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
+// Forward declaration of used classes
+class CJpegTask;
+
+class VideoDECODEMJPEGBase_SW : public VideoDECODEMJPEGBase
+{
+public:
+    VideoDECODEMJPEGBase_SW();
+
+    mfxStatus Init(mfxVideoParam *decPar, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, mfxFrameAllocRequest *request_internal, bool isUseExternalFrames, VideoCORE *core) override;
+    mfxStatus Reset(mfxVideoParam *par) override;
+    mfxStatus Close(void) override;
+
+    mfxStatus GetVideoParam(mfxVideoParam *par) override;
+    mfxStatus RunThread(void *pParam, mfxU32 threadNumber, mfxU32 callNumber) override;
+    mfxStatus CompleteTask(void *pParam, mfxStatus taskRes) override;
+    mfxStatus CheckTaskAvailability(mfxU32 maxTaskNumber) override;
+    mfxStatus ReserveUMCDecoder(UMC::MJPEGVideoDecoderBaseMFX* &pMJPEGVideoDecoder, mfxFrameSurface1 *surf, bool isOpaq) override;
+    void ReleaseReservedTask() override;
+    mfxStatus AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic) override;
+    mfxStatus AllocateFrameData(UMC::FrameData *&data) override;
+    mfxStatus FillEntryPoint(MFX_ENTRY_POINT *pEntryPoint, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out) override;
+
+protected:
+    CJpegTask *pLastTask;
+    // Free tasks queue (if SW is used)
+    std::queue<std::unique_ptr<CJpegTask>> m_freeTasks;
+    // Count of created tasks (if SW is used)
+    mfxU16  m_tasksCount;
+};
+#endif
 
 class VideoDECODEMJPEG : public VideoDECODE
 {

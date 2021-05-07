@@ -1381,7 +1381,12 @@ void SurfaceSource::CreateUMCAllocator(const mfxVideoParam & video_param, eMFXPl
 
     if (MFX_PLATFORM_SOFTWARE == platform)
     {
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
+        MFX_CHECK_WITH_THROW(video_param.mfx.CodecId == MFX_CODEC_JPEG, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
+        m_umc_allocator_adapter.reset(new mfx_UMC_FrameAllocator());
+#else
         MFX_CHECK_WITH_THROW(false, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
+#endif
     }
     else
     {
