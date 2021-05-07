@@ -23,7 +23,7 @@ message( STATUS "Global Configuration of Targets" )
 include(CMakeDependentOption)
 
 option( MFX_ENABLE_KERNELS "Build with advanced media kernels support?" ON )
-option( MFX_ENABLE_JPEG_SW_FALLBACK "Enabled software fallback for JPEG ?" OFF )
+option( MFX_ENABLE_JPEG_SW_FALLBACK "Enabled software fallback for JPEG ?" ON )
 
 
 option( ENABLE_OPENCL "Build targets dependent on OpenCL?" ON )
