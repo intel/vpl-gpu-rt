@@ -1712,6 +1712,7 @@ bool MfxHwH264Encode::IsRunTimeExtBufferIdSupported(MfxVideoParam const & video,
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
         || id == MFX_EXTBUFF_GPU_HANG
 #endif
+        || id == MFX_EXTBUFF_MULTI_FRAME_CONTROL
 #if defined MFX_ENABLE_GPU_BASED_SYNC
         || id == MFX_EXTBUFF_GAME_STREAMING
 #endif
@@ -1781,6 +1782,8 @@ bool MfxHwH264Encode::IsVideoParamExtBufferIdSupported(mfxU32 id)
         || id == MFX_EXTBUFF_PRED_WEIGHT_TABLE
         || id == MFX_EXTBUFF_DIRTY_RECTANGLES
         || id == MFX_EXTBUFF_MOVING_RECTANGLES
+        || id == MFX_EXTBUFF_MULTI_FRAME_PARAM
+        || id == MFX_EXTBUFF_MULTI_FRAME_CONTROL
 #if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
         || id == MFX_EXTBUFF_AVC_SCALING_MATRIX
 #endif
