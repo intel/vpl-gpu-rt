@@ -587,6 +587,9 @@ mfxStatus ImplementationAvc::Query(
                     if (IsRunTimeOnlyExtBuffer(in->ExtParam[i]->BufferId))
                         continue; // it's runtime only ext buffer. Nothing to check or correct, just move on.
 
+                    if (in->ExtParam[i]->BufferId == MFX_EXTBUFF_MULTI_FRAME_PARAM ||
+                        in->ExtParam[i]->BufferId == MFX_EXTBUFF_MULTI_FRAME_CONTROL)
+                        continue; // skip checking MFE buffers
 
                     MFX_CHECK(IsVideoParamExtBufferIdSupported(in->ExtParam[i]->BufferId),
                     MFX_ERR_UNSUPPORTED);
