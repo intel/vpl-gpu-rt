@@ -684,5 +684,11 @@ private:
     std::list<SurfaceHolder> m_cached_surfaces;
 };
 
+inline bool Supports20FeatureSet(VideoCORE& core)
+{
+    bool* core20_interface = reinterpret_cast<bool*>(core.QueryCoreInterface(MFXICORE_API_2_0_GUID));
+
+    return core20_interface && *core20_interface;
+}
 
 #endif

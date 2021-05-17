@@ -33,7 +33,7 @@
 
 
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE) && defined (MFX_VA)
-#include "mfx_vpp_jpeg_d3d9.h"
+#include "mfx_vpp_jpeg_d3d.h"
 #endif
 
 mfx_UMC_MemAllocator::mfx_UMC_MemAllocator():m_pCore(NULL)
