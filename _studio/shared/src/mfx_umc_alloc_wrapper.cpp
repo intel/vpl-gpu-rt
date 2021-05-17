@@ -439,6 +439,32 @@ UMC::Status mfx_UMC_FrameAllocator::GetFrameHandle(UMC::FrameMemID memId, void *
     return UMC::UMC_OK;
 }
 
+static mfxStatus SetSurfaceForSFC(VideoCORE& core, mfxFrameSurface1& surf)
+{
+#if defined(MFX_VA) && !defined MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+    // Set surface for SFC
+    UMC::VideoAccelerator * va = nullptr;
+
+    core.GetVA((mfxHDL*)&va, MFX_MEMTYPE_FROM_DECODE);
+    MFX_CHECK_HDL(va);
+
+    auto video_processing_va = va->GetVideoProcessingVA();
+
+    if (video_processing_va && core.GetVAType() == MFX_HW_VAAPI)
+    {
+        mfxHDLPair surfHDLpair = {};
+        MFX_SAFE_CALL(core.GetExternalFrameHDL(surf, surfHDLpair, false));
+
+        video_processing_va->SetOutputSurface(surfHDLpair.first);
+    }
+#else
+    std::ignore = core;
+    std::ignore = surf;
+#endif
+
+    return MFX_ERR_NONE;
+}
+
 UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDataInfo * info, uint32_t a_flags)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
@@ -512,6 +538,11 @@ UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC:
                 return UMC::UMC_ERR_FAILED;
 
             m_extSurfaces[m_curIndex].isUsed = true;
+
+            if (m_sfcVideoPostProcessing)
+            {
+                SetSurfaceForSFC(*m_pCore, *m_extSurfaces[index].FrameSurface);
+            }
         }
     }
 
@@ -714,40 +745,6 @@ UMC::Status mfx_UMC_FrameAllocator::Free(UMC::FrameMemID mid)
     return UMC::UMC_OK;
 }
 
-static mfxStatus SetSurfaceForSFC(VideoCORE& core, mfxFrameSurface1& surf, bool is_opaq)
-{
-#if defined(MFX_VA) && !defined MFX_DEC_VIDEO_POSTPROCESS_DISABLE
-    // Set surface for SFC
-    UMC::VideoAccelerator * va = nullptr;
-
-    core.GetVA((mfxHDL*)&va, MFX_MEMTYPE_FROM_DECODE);
-    MFX_CHECK_HDL(va);
-
-    auto video_processing_va = va->GetVideoProcessingVA();
-
-    if (video_processing_va && core.GetVAType() == MFX_HW_VAAPI)
-    {
-        mfxHDLPair surfHDLpair = {};
-        if (is_opaq)
-        {
-            MFX_SAFE_CALL(core.GetFrameHDL(surf, surfHDLpair, false));
-        }
-        else
-        {
-            MFX_SAFE_CALL(core.GetExternalFrameHDL(surf, surfHDLpair, false));
-        }
-
-        video_processing_va->SetOutputSurface(surfHDLpair.first);
-    }
-#else
-    std::ignore = core;
-    std::ignore = surf;
-    std::ignore = is_opaq;
-#endif
-
-    return MFX_ERR_NONE;
-}
-
 mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf, bool isOpaq)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
@@ -846,7 +843,7 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf, b
             }
         }
 
-        // Still not found. It may happen if decoder gets 'surf' surface which on app size belongs to
+        // Still not found. It may happen if decoder gets 'surf' surface which on app side belongs to
         // a pool bigger than m_extSurfaces/m_frameDataInternal pools which decoder is aware.
         if (m_curIndex == -1)
         {
@@ -886,7 +883,7 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf, b
         }
     }
 
-    return m_isSWDecode ? MFX_ERR_NONE : SetSurfaceForSFC(*m_pCore, *surf, isOpaq);
+    return MFX_ERR_NONE;
 }
 
 mfxI32 mfx_UMC_FrameAllocator::AddSurface(mfxFrameSurface1 *surface)
@@ -1641,7 +1638,7 @@ UMC::Status SurfaceSource::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDat
                 auto it_wo = m_work_output_surface_map.find(m_current_work_surface->Data.MemId);
                 MFX_CHECK(it_wo != std::end(m_work_output_surface_map), UMC::UMC_ERR_FAILED);
 
-                mfxStatus sts = SetSurfaceForSFC(*m_core, *(it_wo->second), false);
+                mfxStatus sts = SetSurfaceForSFC(*m_core, *(it_wo->second));
                 MFX_CHECK(sts == MFX_ERR_NONE, UMC::UMC_ERR_FAILED);
             }
 
@@ -1687,7 +1684,7 @@ UMC::Status SurfaceSource::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDat
 
             MFX_CHECK(CreateCorrespondence(*surf, *output_surface), UMC::UMC_ERR_FAILED);
 
-            mfxStatus sts = SetSurfaceForSFC(*m_core, *output_surface, false);
+            mfxStatus sts = SetSurfaceForSFC(*m_core, *output_surface);
             MFX_CHECK(sts == MFX_ERR_NONE, UMC::UMC_ERR_FAILED);
 
             output_surf_scoped_lock.release();
