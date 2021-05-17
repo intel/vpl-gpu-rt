@@ -1458,11 +1458,11 @@ mfxStatus VAAPIEncoder::SetFrames (ExecuteBuffers* pExecuteBuffers)
     }
     else if (pExecuteBuffers->m_bExternalCurrFrame)
     {
-        sts = m_core->GetExternalFrameHDL(pExecuteBuffers->m_CurrFrameMemID,(mfxHDL *)&pExecuteBuffers->m_pSurface);
+        sts = m_core->GetExternalFrameHDL(*pExecuteBuffers->m_pSurface, pExecuteBuffers->m_pSurfacePair);
     }
     else
     {
-        sts = m_core->GetFrameHDL(pExecuteBuffers->m_CurrFrameMemID,(mfxHDL *)&pExecuteBuffers->m_pSurface);
+        sts = m_core->GetFrameHDL(*pExecuteBuffers->m_pSurface, pExecuteBuffers->m_pSurfacePair);
     }
     MFX_CHECK_STS(sts);
 

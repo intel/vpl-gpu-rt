@@ -240,6 +240,7 @@ namespace MPEG2EncoderHW
                   (pFrames->m_pRefFrame[1])? pFrames->m_pRefFrame[1]->Data.MemId:0);
               MFX_CHECK_STS(sts);
 
+              m_pExecuteBuffers->m_pSurface = pFrames->m_pInputFrame;
               sts = m_pDdiEncoder->SetFrames(m_pExecuteBuffers);
               MFX_CHECK_STS(sts);
               sts = m_pDdiEncoder->Execute(m_pExecuteBuffers, pUserData,userDataLen);
