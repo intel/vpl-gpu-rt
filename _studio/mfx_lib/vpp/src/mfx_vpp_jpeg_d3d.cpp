@@ -30,7 +30,7 @@
 #include "libmfx_core.h"
 #include "mfx_task.h"
 #include "mfx_vpp_defs.h"
-#include "mfx_vpp_jpeg_d3d9.h"
+#include "mfx_vpp_jpeg_d3d.h"
 
 using namespace MfxHwVideoProcessing;
 
@@ -302,6 +302,7 @@ mfxStatus VideoVppJpegD3D::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface
     
     m_executeParams.targetTimeStamp = m_taskId * CURRENT_TIME_STAMP;
 
+    m_executeParams.targetSurface.memId = pOutputSurface->Data.MemId;
     m_executeParams.targetSurface.hdl = static_cast<mfxHDLPair>(out);
     m_executeParams.targetSurface.frameInfo = pOutputSurface->Info;
 

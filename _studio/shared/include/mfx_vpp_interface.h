@@ -711,6 +711,9 @@ namespace MfxHwVideoProcessing
             const mfxU16& /*numFrameMinOut*/, 
             const mfxVideoParam& /*par*/) { return MFX_ERR_NONE; }
 
+        virtual mfxStatus WrapInputSurface(mfxMemId /*inputMemId*/, mfxHDL* /*inputHDL*/) { return MFX_ERR_NONE; }
+        virtual mfxStatus WrapOutputSurface(mfxMemId /*outputMemId*/, mfxHDL* /*outputHDL*/) { return MFX_ERR_NONE; }
+
         virtual mfxStatus UnwrapBuffers(mfxMemId /*input*/, mfxMemId /*output*/) { return MFX_ERR_NONE; }
 
         virtual mfxStatus QueryVariance(

@@ -2492,8 +2492,8 @@ mfxStatus  VideoVPPHW::Init(
     // async workload mode by default
     m_workloadMode = VPP_ASYNC_WORKLOAD;
 
-    bool* core20_interface = reinterpret_cast<bool*>(m_pCore->QueryCoreInterface(MFXICORE_API_2_0_GUID));
-    if (core20_interface && *core20_interface && !m_pCore->IsExternalFrameAllocator())
+    bool core20_interface = Supports20FeatureSet(*m_pCore);
+    if (core20_interface && !m_pCore->IsExternalFrameAllocator())
     {
         auto pCore20 = dynamic_cast<CommonCORE20*>(m_pCore);
         MFX_CHECK(pCore20, MFX_ERR_UNSUPPORTED);
@@ -2576,10 +2576,13 @@ mfxStatus  VideoVPPHW::Init(
     }
 #endif
 
-    /* We call driver instead of kernel on TGL+ for Linux and d3d11 Windows */
-    bool hwMirrorIsUsed = m_pCore->GetHWType() >= MFX_HW_TGL_LP && (m_pCore->GetVAType() == MFX_HW_D3D11 || m_pCore->GetVAType() == MFX_HW_VAAPI);
+    /* Starting from TGL, there is support for HW mirroring, but only with d3d11.
+       On platforms prior to TGL we use driver kernel for Linux with d3d_to_d3d
+       and msdk kernel for other cases*/
+    bool msdkMirrorIsUsed = (m_pCore->GetHWType() < MFX_HW_TGL_LP && !(m_pCore->GetVAType() == MFX_HW_VAAPI && m_ioMode == D3D_TO_D3D)) ||
+                             m_pCore->GetVAType() == MFX_HW_D3D9;
 
-    if (m_executeParams.mirroring && !hwMirrorIsUsed && !m_pCmCopy)
+    if (m_executeParams.mirroring && msdkMirrorIsUsed && !m_pCmCopy)
     {
         m_pCmCopy = QueryCoreInterface<CmCopyWrapper>(m_pCore, MFXICORECMCOPYWRAPPER_GUID);
         if ( m_pCmCopy )
@@ -2655,15 +2658,7 @@ mfxStatus VideoVPPHW::InitMCTF(const mfxFrameInfo& info, const IntMctfParams& Mc
 
         request.Type = MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET;
         request.Type |= MFX_MEMTYPE_INTERNAL_FRAME;
-/*
-// MCTF buffers are not shared; so its not needed to set SHARED_RESOURCE status
-        if (m_ioMode == IOMode::D3D_TO_SYS || m_ioMode == IOMode::SYS_TO_SYS)
-        {
-#ifdef MFX_VA_WIN
-            request.Type |= MFX_MEMTYPE_SHARED_RESOURCE;
-#endif
-        }
-*/
+
         request.NumFrameMin = request.NumFrameSuggested = (mfxU16)MctfQueueDepth;
         if (0 == request.NumFrameMin)
             return MFX_ERR_INVALID_VIDEO_PARAM;
@@ -4165,6 +4160,13 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
                 imfxFPMode = (imfxFPMode == TFF2FIELD) ? BFF2FIELD : TFF2FIELD;
             }
         }
+
+        sts = (*m_ddi)->WrapInputSurface(m_executeSurf[0].memId, &m_executeSurf[0].hdl.first);
+        MFX_CHECK_STS(sts);
+
+        sts = (*m_ddi)->WrapOutputSurface(m_executeParams.targetSurface.memId, &m_executeParams.targetSurface.hdl.first);
+        MFX_CHECK_STS(sts);
+
         sts = ProcessFieldCopy((mfxHDL)&m_executeSurf[0].hdl, (mfxHDL)&m_executeParams.targetSurface.hdl, imfxFPMode);
         MFX_CHECK_STS(sts);
 
@@ -4175,11 +4177,20 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
                 return MFX_ERR_UNDEFINED_BEHAVIOR;
             }
 
+            sts = (*m_ddi)->WrapInputSurface(m_executeSurf[1].memId, &m_executeSurf[1].hdl.first);
+            MFX_CHECK_STS(sts);
+
             // copy the second field to frame
             imfxFPMode = (imfxFPMode == FIELD2TFF) ? FIELD2BFF : FIELD2TFF;
             sts = ProcessFieldCopy((mfxHDL)&m_executeSurf[1].hdl, (mfxHDL)&m_executeParams.targetSurface.hdl, imfxFPMode);
             MFX_CHECK_STS(sts);
+
+            sts = (*m_ddi)->UnwrapBuffers(m_executeSurf[1].memId, nullptr);
+            MFX_CHECK_STS(sts);
         }
+
+        sts = (*m_ddi)->UnwrapBuffers(m_executeSurf[0].memId, m_executeParams.targetSurface.memId);
+        MFX_CHECK_STS(sts);
 
         m_executeParams.pRefSurfaces = &m_executeSurf[0];
 #ifdef MFX_ENABLE_MCTF
@@ -4225,9 +4236,18 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
         sts = PreWorkInputSurface(surfQueue);
         MFX_CHECK_STS(sts);
 
+        sts = (*m_ddi)->WrapInputSurface(m_executeSurf[0].memId, &m_executeSurf[0].hdl.first);
+        MFX_CHECK_STS(sts);
+
+        sts = (*m_ddi)->WrapOutputSurface(m_executeParams.targetSurface.memId, &m_executeParams.targetSurface.hdl.first);
+        MFX_CHECK_STS(sts);
+
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "HW_VPP: Mirror (d3d->d3d)");
         mfxSize roi = {pTask->output.pSurf->Info.Width, pTask->output.pSurf->Info.Height};
         sts = m_pCmCopy->CopyMirrorVideoToVideoMemory(m_executeParams.targetSurface.hdl, m_executeSurf[0].hdl, roi, MFX_FOURCC_NV12);
+        MFX_CHECK_STS(sts);
+
+        sts = (*m_ddi)->UnwrapBuffers(m_executeSurf[0].memId, m_executeParams.targetSurface.memId);
         MFX_CHECK_STS(sts);
 #ifdef MFX_ENABLE_MCTF
         // this is correct that outputForApp is used:
@@ -4947,15 +4967,36 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         case MFX_EXTBUFF_VPP_MIRRORING:
         {
             mfxExtVPPMirroring* extMir = (mfxExtVPPMirroring*)data;
-            // SW mirroring supports only horizontal mode
             bool isOnlyHorizontalMirroringSupported = true;
+            bool isOnlyVideoMemory = false;
 
+            switch (par->IOPattern)
+            {
+            case MFX_IOPATTERN_IN_VIDEO_MEMORY  | MFX_IOPATTERN_OUT_VIDEO_MEMORY:
+            case MFX_IOPATTERN_IN_VIDEO_MEMORY  | MFX_IOPATTERN_OUT_OPAQUE_MEMORY:
+            case MFX_IOPATTERN_IN_OPAQUE_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY:
+            case MFX_IOPATTERN_IN_OPAQUE_MEMORY | MFX_IOPATTERN_OUT_OPAQUE_MEMORY:
+            {
+                isOnlyVideoMemory = true;
+                break;
+            }
+            default:
+                break;
+            }
+
+            // On Linux with d3d_to_d3d memory type, mirroring performs through driver kernel
+            // There is support for both modes
+            if (isOnlyVideoMemory && core->GetVAType() == MFX_HW_VAAPI)
+                isOnlyHorizontalMirroringSupported = false;
+
+            // Starting from TGL, mirroring performs through driver
+            // Driver supports horizontal and vertical modes
             if (core->GetHWType() >= MFX_HW_TGL_LP && core->GetVAType() != MFX_HW_D3D9)
                 // Starting with TGL, mirroring performs through driver
                 // Driver supports horizontal and vertical modes
                 isOnlyHorizontalMirroringSupported = false;
 
-            // Only SW mirroring has these limitations, HW mirroring supports all SFC formats
+            // Only SW mirroring has these limitations
             if (isOnlyHorizontalMirroringSupported && (par->vpp.In.FourCC != MFX_FOURCC_NV12 || par->vpp.Out.FourCC != MFX_FOURCC_NV12))
                 sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
@@ -4966,23 +5007,14 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             if (extMir->Type < 0 || (extMir->Type==MFX_MIRRORING_VERTICAL && isOnlyHorizontalMirroringSupported))
                 sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
-            switch (par->IOPattern)
-            {
-            case MFX_IOPATTERN_IN_VIDEO_MEMORY  | MFX_IOPATTERN_OUT_VIDEO_MEMORY:
-            {
-                // SW d3d->d3d mirroring does not support resize
-                if (isOnlyHorizontalMirroringSupported && (par->vpp.In.Width != par->vpp.Out.Width || par->vpp.In.Height != par->vpp.Out.Height))
-                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+            // SW d3d->d3d mirroring does not support resize
+            if (isOnlyHorizontalMirroringSupported && isOnlyVideoMemory &&
+               (par->vpp.In.Width != par->vpp.Out.Width || par->vpp.In.Height != par->vpp.Out.Height))
+                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
-                // If pipeline contains resize, SW mirroring and other, VPP skips other filters
-                if (isOnlyHorizontalMirroringSupported && pLen > 2)
-                    sts = GetWorstSts(sts, MFX_WRN_FILTER_SKIPPED);
-
-                break;
-            }
-            default:
-                break;
-            }
+            // If pipeline contains resize, SW mirroring and other, VPP skips other filters
+            if (isOnlyHorizontalMirroringSupported && isOnlyVideoMemory && pLen > 2)
+                sts = GetWorstSts(sts, MFX_WRN_FILTER_SKIPPED);
 
             break;
         }
