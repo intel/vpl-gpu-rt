@@ -1141,7 +1141,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::TaskRoutineSubmitFrame(
         }
         else
         {
-            mfxFrameSurface1 dst;
+            mfxFrameSurface1 dst{};
             mfxU16 src_memtype;
             dstSurf.MemId = enc.m_raw.mids[task.m_idx];
             dst.Info = nativeSurf->Info;
