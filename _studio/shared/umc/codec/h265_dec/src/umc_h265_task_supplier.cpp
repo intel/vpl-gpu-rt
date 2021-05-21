@@ -2084,14 +2084,6 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
                 offsets -= removed_bytes;
                 removed_bytes = 0;
             }
-#ifndef MFX_VA
-            // driver get original bitstream, with start code enulation prevention,
-            // so correct location only for SW case
-            else
-            {
-                pSlice->m_tileByteLocation[tile] -= removed_bytes;
-            }
-#endif
         }
     }
 

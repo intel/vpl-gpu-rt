@@ -23,14 +23,10 @@
 
 #include "mfxdefs.h"
 
+#include <va/va_version.h>
 
-#ifdef MFX_VA
-    #include <va/va_version.h>
-
-    #undef  UMC_VA_LINUX
-    #define UMC_VA_LINUX
-
-#endif // MFX_VA
+#undef  UMC_VA_LINUX
+#define UMC_VA_LINUX
 
 #if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN)
     #if defined(HEVCE_EVALUATION)
@@ -104,7 +100,7 @@
         #define SYNCHRONIZATION_BY_VA_SYNC_SURFACE
     #endif
 
-#if defined(MFX_VA) && defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
+#if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
     #define MFX_ENABLE_VP9_VIDEO_ENCODE_HW
 #endif
 

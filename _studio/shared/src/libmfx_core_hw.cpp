@@ -19,7 +19,6 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
-#if defined (MFX_VA)
 
 #include "libmfx_core_hw.h"
 #include "mfx_common_decode_int.h"
@@ -169,7 +168,4 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
 
     return profile;
 }
-
-
-#endif
 /* EOF */

@@ -20,7 +20,7 @@
 
 #include "mfx_common.h"
 
-#if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE) && defined (MFX_VA)
+#if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
 
 #include "mfx_mjpeg_encode_hw.h"
 #include "mfx_enc_common.h"
@@ -1232,4 +1232,4 @@ mfxStatus MFXVideoENCODEMJPEG_HW::CheckDevice()
         : MFX_ERR_NONE;
 }
 
-#endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE) && defined (MFX_VA)
+#endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)

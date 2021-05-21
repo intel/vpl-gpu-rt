@@ -154,11 +154,6 @@ set( sources
 
 add_library(encode_hw STATIC ${sources})
 
-target_compile_definitions(encode_hw
-  PRIVATE
-    MFX_VA
-  )
-
 target_include_directories(encode_hw
   PUBLIC
     hevc

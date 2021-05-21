@@ -32,13 +32,6 @@ namespace UMC_HEVC_DECODER
 {
 class H265DecoderFrame;
 
-#ifndef MFX_VA
-struct TileThreadingInfo
-{
-    CUProcessInfo processInfo;
-    DecodingContext * m_context;
-};
-#endif
 
 // Collection of slices that constitute one decoder frame
 class H265DecoderFrameInfo
@@ -202,13 +195,6 @@ public:
     void SetNextAU(H265DecoderFrameInfo *au) {m_nextAU = au;}
     void SetPrevAU(H265DecoderFrameInfo *au) {m_prevAU = au;}
     void SetRefAU(H265DecoderFrameInfo *au) {m_refAU = au;}
-
-#ifndef MFX_VA
-    std::vector<TileThreadingInfo> m_tilesThreadingInfo;
-
-    int32_t m_curCUToProcess[LAST_PROCESS_ID];
-    int32_t m_processInProgress[LAST_PROCESS_ID];
-#endif
 
     bool   m_hasTiles;
 

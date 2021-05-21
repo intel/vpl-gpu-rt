@@ -24,16 +24,14 @@
 #include <mfxvideo++int.h>
 
 
-    #if defined(MFX_VA)
-        /* That's tricky: if LibVA will not be installed on the machine, you should be able
-         * to build SW Media SDK and some apps in SW mode. Thus, va.h should not be visible.
-         * Since we develop on machines where LibVA is installed, we forget about LibVA-free
-         * build sometimes. So, that's the reminder why MFX_VA protection was added here.
-         */
-        #include <va/va.h>
-        typedef VADisplay                       _mfxPlatformAccelerationService;
-        typedef VASurfaceID                     _mfxPlatformVideoSurface;
-    #endif // #if defined(MFX_VA)
+/* That's tricky: if LibVA will not be installed on the machine, you should be able
+ * to build SW Media SDK and some apps in SW mode. Thus, va.h should not be visible.
+ * Since we develop on machines where LibVA is installed, we forget about LibVA-free
+ * build sometimes. So, that's the reminder why MFX_VA protection was added here.
+ */
+#include <va/va.h>
+typedef VADisplay                       _mfxPlatformAccelerationService;
+typedef VASurfaceID                     _mfxPlatformVideoSurface;
 
 #ifndef D3DDDIFORMAT
 #define D3DDDIFORMAT        D3DFORMAT

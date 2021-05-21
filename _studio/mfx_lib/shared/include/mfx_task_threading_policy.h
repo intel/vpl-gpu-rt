@@ -56,11 +56,7 @@ enum mfxTaskThreadingPolicy
     // The total number of threads is limited.
     MFX_TASK_THREADING_SHARED = MFX_TASK_SHARED,
 
-#ifdef MFX_VA
     MFX_TASK_THREADING_DEFAULT = MFX_TASK_THREADING_DEDICATED
-#else // !MFX_VA
-    MFX_TASK_THREADING_DEFAULT = MFX_TASK_THREADING_INTRA
-#endif // MFX_VA
 
 } mfxTaskThreadingPolicy;
 
