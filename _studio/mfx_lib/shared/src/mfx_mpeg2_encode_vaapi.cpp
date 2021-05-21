@@ -1345,7 +1345,7 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaBeginPicture");
             vaSts = vaBeginPicture(m_vaDisplay,
                 m_vaContextEncode,
-               *(VASurfaceID*)pExecuteBuffers->m_pSurface);
+               *(VASurfaceID*)pExecuteBuffers->m_pSurfacePair.first);
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         }
         {
@@ -1384,7 +1384,7 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
     {
         UMC::AutomaticUMCMutex guard(m_guard);
         ExtVASurface currentFeedback = {
-            *(VASurfaceID*)pExecuteBuffers->m_pSurface,
+            *(VASurfaceID*)pExecuteBuffers->m_pSurfacePair.first,
             pExecuteBuffers->m_pps.StatusReportFeedbackNumber,
             pExecuteBuffers->m_idxBs
         };
