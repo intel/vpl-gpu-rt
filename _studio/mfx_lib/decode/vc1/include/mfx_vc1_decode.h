@@ -32,9 +32,6 @@
 
 #include "umc_vc1_video_decoder.h"
 #include "umc_vc1_video_decoder_hw.h"
-#ifdef ALLOW_SW_VC1_FALLBACK
-#include "umc_vc1_video_decoder_sw.h"
-#endif
 
 #include "mfx_umc_alloc_wrapper.h"
 #include "umc_vc1_spl_frame_constr.h"
@@ -110,11 +107,6 @@ protected:
     static mfxStatus SetAllocRequestInternal(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
     static mfxStatus SetAllocRequestExternal(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
     static void      CalculateFramesNumber(mfxFrameAllocRequest *request, mfxVideoParam *par, bool isBufMode);
-
-#ifdef ALLOW_SW_VC1_FALLBACK
-    // update Frame Descriptors, copy frames to external memory
-    mfxStatus PostProcessFrame(mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_disp);
-#endif
 
     // update Frame Descriptors, copy frames to external memory in case of HW decoder
     mfxStatus PostProcessFrameHW(mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_disp);
@@ -219,7 +211,6 @@ protected:
     std::vector<mfxFrameSurface1*>   m_DisplayListAsync;
     bool                             m_bTakeBufferedFrame;
     bool                             m_bIsBuffering;
-    bool                             m_isSWPlatform;
     mfxU32                           m_CurrentTask;
     mfxU32                           m_WaitedTask;
 

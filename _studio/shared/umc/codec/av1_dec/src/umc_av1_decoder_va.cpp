@@ -279,13 +279,11 @@ namespace UMC_AV1_DECODER
             }
 #endif
 
-#if UMC_AV1_DECODER_REV <= 8500
             // so far driver doesn't support status reporting for AV1 decoder on Windows
             // TODO: check if status reporting is still not supported
             // workaround by marking frame as decoding_completed and setting wasCompleted to true
             frame.CompleteDecoding();
             wasCompleted = true;
-#endif
 
 #endif
         }

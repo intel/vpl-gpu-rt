@@ -167,8 +167,7 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
     request_internal = request;
 
     if (useInternal)
-        request.Type |= MFX_MEMTYPE_INTERNAL_FRAME
-        ;
+        request.Type |= MFX_MEMTYPE_INTERNAL_FRAME;
     else
         request.Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
 
@@ -264,7 +263,7 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
 }
 
 mfxStatus VideoDECODEMJPEG::QueryImplsDescription(
-    VideoCORE& core,
+    VideoCORE&,
     mfxDecoderDescription::decoder& caps,
     mfx::PODArraysHolder& ah)
 {
@@ -287,7 +286,6 @@ mfxStatus VideoDECODEMJPEG::QueryImplsDescription(
     caps.CodecID = MFX_CODEC_JPEG;
     caps.MaxcodecLevel = MFX_LEVEL_UNKNOWN;
 
-    mfxStatus sts = MFX_ERR_NONE;
     for (mfxU32 profile : SupportedProfiles)
     {
         auto& pfCaps = ah.PushBack(caps.Profiles);
@@ -892,7 +890,21 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
         m_isHeaderFound = false;
         m_isHeaderParsed = false;
 
-        MFX_SAFE_CALL(decoder->AddPicture(pSrcData, numPic));
+        try
+        {
+            MFX_SAFE_CALL(decoder->AddPicture(pSrcData, numPic));
+        }
+        catch(const UMC::eUMC_Status& sts)
+        {
+            if(sts == UMC::UMC_ERR_INVALID_STREAM)
+            {
+                continue;
+            }
+            else
+            {
+                return ConvertUMCStatusToMfx(sts);
+            }
+        }
     // make sure, that we collected BOTH fields
     } while (picToCollect > numPic);
 
@@ -1227,10 +1239,12 @@ mfxStatus MFX_JPEG_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPa
         if (in->AsyncDepth < MFX_MAX_ASYNC_DEPTH_VALUE) // Actually AsyncDepth > 5-7 is for debugging only.
             out->AsyncDepth = in->AsyncDepth;
 
-        if ((in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) || (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
+        if (in->IOPattern)
         {
-            if ( !((in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)) )
+            if ((in->IOPattern == MFX_IOPATTERN_OUT_SYSTEM_MEMORY) || (in->IOPattern == MFX_IOPATTERN_OUT_VIDEO_MEMORY))
                 out->IOPattern = in->IOPattern;
+            else
+                sts = MFX_STS_TRACE(MFX_ERR_UNSUPPORTED);
         }
 
         mfxU32 fourCC = in->mfx.FrameInfo.FourCC;

@@ -1316,17 +1316,14 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
                 sts = MFX_ERR_UNSUPPORTED;
         }
 
-        if (   (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
-            || (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
-            )
+        if (in->IOPattern)
         {
-            uint32_t mask = in->IOPattern & 0xf0;
-            if (   mask == MFX_IOPATTERN_OUT_VIDEO_MEMORY
-                || mask == MFX_IOPATTERN_OUT_SYSTEM_MEMORY
+            if (   in->IOPattern == MFX_IOPATTERN_OUT_VIDEO_MEMORY
+                || in->IOPattern == MFX_IOPATTERN_OUT_SYSTEM_MEMORY
                 )
                 out->IOPattern = in->IOPattern;
             else
-                sts = MFX_ERR_UNSUPPORTED;
+                sts = MFX_STS_TRACE(MFX_ERR_UNSUPPORTED);
         }
 
         if (in->mfx.FrameInfo.FourCC)
