@@ -53,8 +53,6 @@ target_sources(mfx_common_hw
     src/mfx_vpx_dec_common.cpp
   )
 
-target_compile_definitions(mfx_common_hw PRIVATE MFX_VA)
-
 target_include_directories(mfx_common_hw
   PUBLIC
     include

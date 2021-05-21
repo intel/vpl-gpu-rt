@@ -18,8 +18,6 @@ set(sources
 
 add_library(vpp_hw STATIC ${sources})
 
-target_compile_definitions(vpp_hw PRIVATE MFX_VA)
-
 target_include_directories(vpp_hw
   PUBLIC
     include)

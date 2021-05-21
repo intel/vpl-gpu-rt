@@ -25,7 +25,6 @@
 #include "mfx_common.h"
 #include "mfxstructures-int.h"
 
-#if defined (UMC_VA) || defined (MFX_VA) || defined (UMC_VA_DXVA) || defined(UMC_VA_LINUX)
 
 #ifndef UMC_VA
 #   define UMC_VA
@@ -42,7 +41,6 @@
 #       endif
 #   endif
 
-#endif //  defined (MFX_VA) || defined (UMC_VA)
 
 #ifdef  __cplusplus
 #include "umc_structures.h"

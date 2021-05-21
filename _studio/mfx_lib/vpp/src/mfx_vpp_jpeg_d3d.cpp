@@ -21,7 +21,6 @@
 #include "mfx_common.h"
 
 #if defined (MFX_ENABLE_VPP)
-#if defined (MFX_VA)
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
 
 #include <algorithm>
@@ -579,6 +578,5 @@ mfxStatus VideoVppJpegD3D::QueryTaskRoutine(mfxU16 taskId)
 } // mfxStatus VideoVppJpegD3D::QueryTask(mfxU16 taskId)
 
 #endif // MFX_ENABLE_MJPEG_VIDEO_DECODE
-#endif // MFX_VA
 #endif // MFX_ENABLE_VPP
 /* EOF */
