@@ -29,10 +29,6 @@
 #include "umc_h265_notify.h"
 #include "umc_h265_heap.h"
 
-#ifndef MFX_VA
-#include "umc_h265_frame_coding_data.h"
-#endif
-
 namespace UMC_HEVC_DECODER
 {
 class H265Slice;
@@ -299,48 +295,6 @@ public:
     {
         m_ErrorType |= errorType;
     }
-
-
-#ifndef MFX_VA
-    // FIXME: make coding data a member, not pointer
-    H265FrameCodingData *m_CodingData;
-
-    H265FrameCodingData* getCD() const {return m_CodingData;}
-
-    // Returns a CTB by its raster address
-    H265CodingUnit* getCU(uint32_t CUaddr) const;
-
-    // Returns number of CTBs in frame
-    uint32_t getNumCUsInFrame() const;
-    // Returns number of minimal partitions in CTB
-    uint32_t getNumPartInCUSize() const;
-    // Returns number of CTBs in frame width
-    uint32_t getFrameWidthInCU() const;
-    // Returns number of CTBs in frame height
-    uint32_t getFrameHeightInCU() const;
-
-    int32_t*  m_cuOffsetY;
-    int32_t*  m_cuOffsetC;
-    int32_t*  m_buOffsetY;
-    int32_t*  m_buOffsetC;
-
-    // Fill frame planes with default values
-    void DefaultFill(bool isChromaOnly, uint8_t defaultValue = 128);
-
-    // Allocate and initialize frame array of CTBs and SAO parameters
-    void allocateCodingData(const H265SeqParamSet* pSeqParamSet, const H265PicParamSet *pPicParamSet);
-    // Free array of CTBs
-    void deallocateCodingData();
-
-    //  Access starting position of original picture for specific coding unit (CU)
-    PlanePtrY GetLumaAddr(int32_t CUAddr) const;
-    //  Access starting position of original picture for specific coding unit (CU)
-    PlanePtrUV GetCbCrAddr(int32_t CUAddr) const;
-    //  Access starting position of original picture for specific coding unit (CU) and partition unit (PU)
-    PlanePtrY GetLumaAddr(int32_t CUAddr, uint32_t AbsZorderIdx) const;
-    //  Access starting position of original picture for specific coding unit (CU) and partition unit (PU)
-    PlanePtrUV GetCbCrAddr(int32_t CUAddr, uint32_t AbsZorderIdx) const;
-#endif
 
     void AddSlice(H265Slice * pSlice);
 

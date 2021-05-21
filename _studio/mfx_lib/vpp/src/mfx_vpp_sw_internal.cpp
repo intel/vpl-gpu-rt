@@ -27,9 +27,7 @@
 
 #include "mfx_vpp_hw.h"
 
-#if defined (MFX_VA)
 #include "mfxpcp.h"
-#endif
 
 #include "mfx_vpp_sw.h"
 #include "mfx_vpp_utils.h"

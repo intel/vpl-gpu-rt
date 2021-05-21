@@ -27,11 +27,9 @@
 
 #include "mfx_vpp_hw.h"
 
-#if defined (MFX_VA)
 #include "mfxpcp.h"
 
 
-#endif //defined(MFX_VA)
 
 #include "ipps.h"
 #include "ippi.h"

@@ -21,9 +21,6 @@
 #if !defined(__MFX_DXVA2_DEVICE_H)
 #define __MFX_DXVA2_DEVICE_H
 
-#if defined(MFX_VA)
-
-
 #include <mfxdefs.h>
 
 namespace MFX
@@ -148,7 +145,5 @@ private:
 };
 
 } // namespace MFX
-
-#endif // #if defined(MFX_VA)
 
 #endif // __MFX_DXVA2_DEVICE_H

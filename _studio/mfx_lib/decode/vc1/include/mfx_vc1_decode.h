@@ -31,9 +31,7 @@
 #include <memory>
 
 #include "umc_vc1_video_decoder.h"
-#ifdef MFX_VA
 #include "umc_vc1_video_decoder_hw.h"
-#endif
 #ifdef ALLOW_SW_VC1_FALLBACK
 #include "umc_vc1_video_decoder_sw.h"
 #endif

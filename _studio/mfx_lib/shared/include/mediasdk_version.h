@@ -24,11 +24,7 @@
 
 #ifdef __linux__
 
-#ifdef MFX_VA
 #include "va/va.h"
-#else
-#define VA_VERSION_S "VA doesn't link"
-#endif
 
 #ifndef MFX_API_VERSION
 

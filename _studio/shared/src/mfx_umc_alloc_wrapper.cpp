@@ -26,13 +26,13 @@
 #include "mfx_common_int.h"
 #include <functional>
 
-#if defined(MFX_VA) && !defined MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+#if !defined MFX_DEC_VIDEO_POSTPROCESS_DISABLE
 // For setting SFC surface
 #include "umc_va_video_processing.h"
 #endif
 
 
-#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE) && defined (MFX_VA)
+#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
 #include "mfx_vpp_jpeg_d3d.h"
 #endif
 
@@ -441,7 +441,7 @@ UMC::Status mfx_UMC_FrameAllocator::GetFrameHandle(UMC::FrameMemID memId, void *
 
 static mfxStatus SetSurfaceForSFC(VideoCORE& core, mfxFrameSurface1& surf)
 {
-#if defined(MFX_VA) && !defined MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+#if !defined MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     // Set surface for SFC
     UMC::VideoAccelerator * va = nullptr;
 
@@ -2284,7 +2284,6 @@ void SurfaceSource::SetFreeSurfaceAllowedFlag(bool flag)
     }
 }
 
-#if defined (MFX_VA)
 // D3D functionality
 // we should copy to external SW surface
 mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam *,bool isOpaq)
@@ -2332,5 +2331,3 @@ mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surfac
         return sts;
     }
 }
-
-#endif // #if defined (MFX_VA)

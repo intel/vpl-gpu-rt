@@ -20,7 +20,6 @@
 
 #include "mfx_common.h"
 
-#if defined(MFX_VA)
 
 #ifndef __LIBMFX_CORE__HW_H__
 #define __LIBMFX_CORE__HW_H__
@@ -30,5 +29,4 @@ bool IsHwMvcEncSupported();
 
 #endif
 
-#endif
 

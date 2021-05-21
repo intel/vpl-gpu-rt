@@ -37,14 +37,12 @@
 #include "mfx_win_event_cache.h"
 #endif
 
-#if defined(MFX_VA)
- #include "cmrt_cross_platform.h" // Gpucopy stuff
- #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
-  #include "asc.h"        // Scene change detection
- #endif
- #include "cm_mem_copy.h"           // Needed for mirroring kernels 
- #include "genx_fcopy_gen12lp_isa.h"
+#include "cmrt_cross_platform.h" // Gpucopy stuff
+#if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+ #include "asc.h"        // Scene change detection
 #endif
+#include "cm_mem_copy.h"           // Needed for mirroring kernels 
+#include "genx_fcopy_gen12lp_isa.h"
 
 #ifdef MFX_ENABLE_MCTF
 #include "mctf_common.h"
@@ -1017,7 +1015,6 @@ namespace MfxHwVideoProcessing
         std::map<CmSurface2D *, SurfaceIndex *> m_MCTFtableCmIndex2;
 #endif
 
-#if defined(MFX_VA) // SW LIB doesn't hace access to CM DEVICE
         CmCopyWrapper *m_pCmCopy;
 
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
@@ -1031,7 +1028,6 @@ namespace MfxHwVideoProcessing
 
         public:
             void SetCmDevice(CmDevice * device) { m_pCmDevice = device; }
-#endif
     };
 
 }; // namespace MfxHwVideoProcessing
