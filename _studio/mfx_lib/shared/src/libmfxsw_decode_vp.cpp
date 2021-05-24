@@ -624,8 +624,20 @@ mfxStatus MFXVideoDECODE_VPP_Close(mfxSession session)
     return res;
 }
 
-mfxStatus MFXVideoDECODE_VPP_GetChannelParam(mfxSession /*session*/, mfxVideoChannelParam* /*par*/, mfxU32 /*channel_id*/)
+mfxStatus MFXVideoDECODE_VPP_GetChannelParam(mfxSession session, mfxVideoChannelParam* par, mfxU32 channel_id)
 {
+    MFX_CHECK_HDL(session);
+    MFX_CHECK_NULL_PTR1(par);
+    MFX_CHECK(session->m_pDVP, MFX_ERR_NOT_INITIALIZED);
+
+    auto& vpp_params = session->m_pDVP->VppParams;
+    MFX_CHECK(vpp_params.find(channel_id) != vpp_params.end(), MFX_ERR_NOT_FOUND);
+
+    par->VPP         = vpp_params[channel_id].vpp.Out;
+    par->Protected   = vpp_params[channel_id].Protected;
+    par->IOPattern   = vpp_params[channel_id].IOPattern;
+    par->NumExtParam = 0;
+
     return MFX_ERR_NONE;
 }
 
