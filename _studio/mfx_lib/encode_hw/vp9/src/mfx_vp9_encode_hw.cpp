@@ -59,7 +59,7 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryImplsDescription(
     VP9MfxVideoParam tmp(par, platform);
     SetDefaultForLowpower(tmp.mfx.LowPower, platform);
 
-    const mfxU32 Profiles[] =
+    const mfxU16 Profiles[] =
     {
         MFX_PROFILE_VP9_0
         , MFX_PROFILE_VP9_1
@@ -98,7 +98,7 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryImplsDescription(
     caps.BiDirectionalPrediction = 0;
     caps.MaxcodecLevel           = 0;
 
-    for (mfxU32 profile : Profiles)
+    for (mfxU16 profile : Profiles)
     {
         ENCODE_CAPS_VP9 hwCaps = {};
         tmp.mfx.CodecProfile = profile;

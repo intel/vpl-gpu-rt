@@ -373,7 +373,7 @@ mfxStatus CheckVideoParamDecoders(mfxVideoParam *in, bool IsExternalFrameAllocat
     MFX_CHECK(!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) || !(in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
         , MFX_ERR_INVALID_VIDEO_PARAM);
 
-
+    std::ignore = IsCompatibleForOpaq;
     MFX_CHECK(!in->mfx.DecodedOrder || in->mfx.CodecId == MFX_CODEC_JPEG
                                     || in->mfx.CodecId == MFX_CODEC_AVC
                                     || in->mfx.CodecId == MFX_CODEC_HEVC, MFX_ERR_UNSUPPORTED);

@@ -121,6 +121,8 @@ public:
             extBuf = m_buffers.GetBufferById<T>(id);
             if (!extBuf)
                 throw 1;
+            NumExtParam = mfxU16(m_buffers.GetCount());
+            ExtParam    = m_buffers.GetBuffers();
         }
 
         return extBuf;
