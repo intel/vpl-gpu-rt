@@ -339,10 +339,7 @@ Status ColorSpaceConversion::GetFrameInternal(MediaData *input, MediaData *outpu
     }
     break;
   case YUV444:
-    switch (dstFormat) {
-    default:
       return UMC_ERR_NOT_IMPLEMENTED;
-    }
     break;
   case YUY2:
     switch (dstFormat) {

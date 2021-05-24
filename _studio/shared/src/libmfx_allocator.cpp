@@ -152,7 +152,7 @@ mfxStatus mfxDefaultAllocator::FreeBuffer(mfxHDL pthis, mfxMemId mid)
     }
 }
 
-inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU16 Type, mfxU32& nbytes)
+inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU32& nbytes)
 {
     mfxU32 Pitch = mfx::align2_value(Info.Width, 32), Height2 = mfx::align2_value(Info.Height, 32);
 
@@ -261,7 +261,7 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
     }
 
     mfxU32 nbytes;
-    mfxStatus sts = GetNumBytesRequired(request->Info, request->Type, nbytes);
+    mfxStatus sts = GetNumBytesRequired(request->Info, nbytes);
     MFX_CHECK_STS(sts);
 
     // allocate frames in cycle
@@ -618,7 +618,7 @@ mfxFrameSurface1_sw::mfxFrameSurface1_sw(const mfxFrameInfo & info, mfxU16 type,
     MFX_CHECK_WITH_THROW(m_internal_surface.Data.MemType & MFX_MEMTYPE_SYSTEM_MEMORY, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
 
     mfxU32 nbytes;
-    mfxStatus sts = GetNumBytesRequired(info, m_internal_surface.Data.MemType, nbytes);
+    mfxStatus sts = GetNumBytesRequired(info, nbytes);
     MFX_CHECK_WITH_THROW(sts == MFX_ERR_NONE, sts, mfx::mfxStatus_exception(sts));
 
     m_data.reset(new mfxU8[nbytes]);
@@ -672,7 +672,7 @@ mfxStatus mfxFrameSurface1_sw::Realloc(const mfxFrameInfo & info)
     MFX_CHECK(!Locked(), MFX_ERR_LOCK_MEMORY);
 
     mfxU32 nbytes;
-    MFX_SAFE_CALL(GetNumBytesRequired(info, m_internal_surface.Data.MemType, nbytes));
+    MFX_SAFE_CALL(GetNumBytesRequired(info, nbytes));
 
     m_data.reset(new mfxU8[nbytes]);
 

@@ -787,9 +787,10 @@ mfxStatus GetRealSurface(
     Task const &task,
     mfxFrameSurface1 *& pSurface)
 {
-    {
-        pSurface = task.m_pRawFrame->pSurface;
-    }
+    std::ignore = par;
+    std::ignore = pCore;
+
+    pSurface = task.m_pRawFrame->pSurface;
 
     return MFX_ERR_NONE;
 }
