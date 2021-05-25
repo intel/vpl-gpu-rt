@@ -938,7 +938,6 @@ void ReorderPipelineListForSpeed(
     mfxVideoParam* videoParam,
     std::vector<mfxU32> & pipelineList)
 {
-
     // optimization in case of FRC
     if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION ) )
     {
@@ -965,7 +964,6 @@ void ReorderPipelineListForSpeed(
             }
         }
     }
-
 } // void ReorderPipelineListForSpeed(mfxVideoParam* videoParam, std::vector<mfxU32> & pipelineList)
 
 
@@ -1453,7 +1451,6 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
     {
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
-
 
     /* Frame Rate */
     if (0 == info->FrameRateExtN || 0 == info->FrameRateExtD)
