@@ -192,10 +192,12 @@ mfxStatus MFX_VP8_Utility::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVide
         if (p_in->AsyncDepth < MFX_MAX_ASYNC_DEPTH_VALUE)
             p_out->AsyncDepth = p_in->AsyncDepth;
 
-        if ((p_in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) || (p_in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
+        if (p_in->IOPattern)
         {
-            if ( !((p_in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (p_in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)) )
+            if ((p_in->IOPattern == MFX_IOPATTERN_OUT_SYSTEM_MEMORY) || (p_in->IOPattern == MFX_IOPATTERN_OUT_VIDEO_MEMORY))
                 p_out->IOPattern = p_in->IOPattern;
+            else
+                sts = MFX_STS_TRACE(MFX_ERR_UNSUPPORTED);
         }
 
         if (p_in->mfx.FrameInfo.FourCC)
