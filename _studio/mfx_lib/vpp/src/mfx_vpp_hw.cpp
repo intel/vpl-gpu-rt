@@ -6060,7 +6060,6 @@ mfxStatus ConfigureExecuteParams(
                 config.m_surfCount[VPP_OUT] = std::max<mfxU16>(2, config.m_surfCount[VPP_OUT]);
                 executeParams.frcModeOrig = static_cast<mfxU16>(GetMFXFrcMode(videoParam));
 
-
                 inDNRatio = (mfxF64) videoParam.vpp.In.FrameRateExtD / videoParam.vpp.In.FrameRateExtN;
                 outDNRatio = (mfxF64) videoParam.vpp.Out.FrameRateExtD / videoParam.vpp.Out.FrameRateExtN;
 
