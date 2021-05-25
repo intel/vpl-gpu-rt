@@ -485,6 +485,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         case MFX_FOURCC_YUY2:
         case MFX_FOURCC_UYVY:
         case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
 #if defined (MFX_ENABLE_FOURCC_RGB565)
         case MFX_FOURCC_RGB565:
 #endif
@@ -518,6 +519,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         case MFX_FOURCC_YV12:
         case MFX_FOURCC_YUY2:
         case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
         case MFX_FOURCC_A2RGB10:
 #if (MFX_VERSION >= 1027)
         case MFX_FOURCC_AYUV:
