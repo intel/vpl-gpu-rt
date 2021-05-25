@@ -1047,24 +1047,6 @@ mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, mfxMemId mid)
     return surface;
 }
 
-mfxStatus AddRefSurface(mfxFrameSurface1 & surf, bool allow_legacy_surface)
-{
-    if (allow_legacy_surface && !surf.FrameInterface) { return MFX_ERR_NONE;  }
-
-    MFX_CHECK(surf.FrameInterface && surf.FrameInterface->AddRef, MFX_ERR_UNSUPPORTED);
-
-    return surf.FrameInterface->AddRef(&surf);
-}
-
-mfxStatus ReleaseSurface(mfxFrameSurface1 & surf, bool allow_legacy_surface)
-{
-    if (allow_legacy_surface && !surf.FrameInterface) { return MFX_ERR_NONE; }
-
-    MFX_CHECK(surf.FrameInterface && surf.FrameInterface->Release, MFX_ERR_UNSUPPORTED);
-
-    return surf.FrameInterface->Release(&surf);
-}
-
 mfxU16 BitDepthFromFourcc(mfxU32 fourcc)
 {
     switch (fourcc)

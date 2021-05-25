@@ -149,7 +149,7 @@ void VAAPIVideoCORE_T<Base>::Close()
         {
             vaTerminate(m_Display);
             m_Display = nullptr;
-}
+        }
         close(m_intDRM);
         m_intDRM = -1;
     }

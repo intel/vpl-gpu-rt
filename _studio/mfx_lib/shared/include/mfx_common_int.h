@@ -149,7 +149,4 @@ mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, mfxMemId mid);
 mfxU16 BitDepthFromFourcc(mfxU32 fourcc);
 mfxU16 ChromaFormatFromFourcc(mfxU32 fourcc);
 
-mfxStatus AddRefSurface(mfxFrameSurface1 & surf,  bool allow_legacy_surface = false);
-mfxStatus ReleaseSurface(mfxFrameSurface1 & surf, bool allow_legacy_surface = false);
-
 #endif

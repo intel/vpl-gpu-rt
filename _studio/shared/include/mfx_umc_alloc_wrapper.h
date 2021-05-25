@@ -329,17 +329,6 @@ private:
     mfxFrameAllocResponse&                    m_response_alien;
 };
 
-struct surface_refcount_scoped_lock : public std::unique_ptr<mfxFrameSurface1, void(*)(mfxFrameSurface1* surface)>
-{
-    surface_refcount_scoped_lock(mfxFrameSurface1* surface)
-        : std::unique_ptr<mfxFrameSurface1, void(*)(mfxFrameSurface1* surface)>(
-            surface, [](mfxFrameSurface1* surface)
-    {
-        std::ignore = MFX_STS_TRACE(ReleaseSurface(*surface));
-    })
-    {}
-};
-
 class mfx_UMC_FrameAllocator_D3D : public mfx_UMC_FrameAllocator
 {
 public:

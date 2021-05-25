@@ -2280,13 +2280,13 @@ mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surfac
         {
             mfxFrameSurface1 & internalSurf = m_frameDataInternal.GetSurface(index);
             mfxFrameSurface1 surface = MakeSurface(internalSurf.Info, internalSurf.Data.MemId);
-
+            mfxU16 outMemType = static_cast<mfxU16>((m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET) |
+                                                                                 MFX_MEMTYPE_EXTERNAL_FRAME);
             //Performance issue. We need to unlock mutex to let decoding thread run async.
             guard.Unlock();
             sts = m_pCore->DoFastCopyWrapper(surface_work,
-                                             MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY,
+                                             outMemType,
                                              &surface,
-
                                              MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET
                                              );
             guard.Lock();
