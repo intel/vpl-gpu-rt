@@ -300,6 +300,58 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
     return MFX_ERR_NONE;
 }
 
+mfxStatus UpdateCscOutputFormat(mfxVideoParam *par, mfxFrameAllocRequest *request)
+{
+#ifdef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+    (void)par;
+    (void)request;
+#else
+    mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
+    if (videoProcessing && videoProcessing->Out.FourCC != par->mfx.FrameInfo.FourCC)
+    {
+        request->Info.ChromaFormat = videoProcessing->Out.ChromaFormat;
+        request->Info.FourCC = videoProcessing->Out.FourCC;
+
+        switch (videoProcessing->Out.FourCC)
+        {
+            // if is 8 bit, shift value has to be 0
+        case MFX_FOURCC_NV12:
+        case MFX_FOURCC_YUY2:
+        case MFX_FOURCC_AYUV:
+            request->Info.BitDepthLuma = 8;
+            request->Info.Shift = 0;
+            break;
+            // 10 bit
+        case MFX_FOURCC_P010:
+        case MFX_FOURCC_Y210:
+            request->Info.BitDepthLuma = 10;
+            request->Info.Shift = 1;
+            break;
+        case MFX_FOURCC_Y410:
+            request->Info.BitDepthLuma = 10;
+            request->Info.Shift = 0;
+            break;
+            // 12 bit
+        case MFX_FOURCC_P016:
+        case MFX_FOURCC_Y416:
+        case MFX_FOURCC_Y216:
+            request->Info.BitDepthLuma = 12;
+            request->Info.Shift = 1;
+            break;
+        case MFX_FOURCC_RGB4:
+            request->Info.BitDepthLuma = 0;
+            request->Info.Shift = 0;
+            break;
+        default:
+            return MFX_ERR_INVALID_VIDEO_PARAM;
+        }
+
+        request->Info.BitDepthChroma = request->Info.BitDepthLuma;
+    }
+#endif // !MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+
+    return MFX_ERR_NONE;
+}
 
 static mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
 {
