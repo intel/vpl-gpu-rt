@@ -569,7 +569,7 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
 }
 
 mfxStatus VideoDECODEVP9_HW::QueryImplsDescription(
-    VideoCORE& core,
+    VideoCORE&,
     mfxDecoderDescription::decoder& caps,
     mfx::PODArraysHolder& ah)
 {

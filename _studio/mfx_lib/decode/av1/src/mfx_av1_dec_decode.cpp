@@ -46,7 +46,7 @@
 #include "vm_sys_info.h"
 
 #include "umc_h265_va_supplier.h"
-#if defined(MFX_ENABLE_CPLIB)
+#if defined(MFX_ENABLE_CP)
 #include "umc_va_linux_protected.h"
 #endif
 
@@ -155,11 +155,9 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
     MFX_CHECK(!m_decoder, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     m_platform = MFX_VPX_Utility::GetPlatform(m_core, par);
-    eMFXHWType type = MFX_HW_UNKNOWN;
-    if (m_platform == MFX_PLATFORM_HARDWARE)
-    {
-        type = m_core->GetHWType();
-    }
+
+    MFX_CHECK(m_platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
+    eMFXHWType type = m_core->GetHWType();
 
     MFX_CHECK(CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type, m_core->IsCompatibleForOpaq()) >= MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
 

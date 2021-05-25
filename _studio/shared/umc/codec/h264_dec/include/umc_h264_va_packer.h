@@ -125,10 +125,6 @@ protected:
     int32_t PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t chopping, int32_t numSlicesOfPrevField);
 
     void PackQmatrix(const UMC_H264_DECODER::H264ScalingPicParams * scaling);
-
-private:
-
-    bool m_enableStreamOut = false;
 };
 
 #ifdef MFX_ENABLE_CPLIB

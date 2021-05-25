@@ -29,7 +29,6 @@
 #include "umc_av1_utils.h"
 #include "umc_av1_frame.h"
 
-//#define AV1D_LOGGING
 #define AV1D_LOG(string, ...)
 
 using UMC_VP9_DECODER::AlignPowerOfTwo;

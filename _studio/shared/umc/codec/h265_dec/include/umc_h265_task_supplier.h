@@ -291,7 +291,7 @@ public:
     virtual UMC::Status Init(UMC::VideoDecoderParams *pInit);
 
     // create broker and segment decoders
-    virtual void CreateTaskBroker();
+    virtual void CreateTaskBroker() = 0;
 
     // Initialize what is necessary to decode bitstream header before the main part is initialized
     virtual UMC::Status PreInit(UMC::VideoDecoderParams *pInit);

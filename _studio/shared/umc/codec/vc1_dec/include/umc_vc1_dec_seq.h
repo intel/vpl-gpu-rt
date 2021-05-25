@@ -66,7 +66,6 @@ double MapFrameRateIntoUMC(uint32_t ENR,uint32_t EDR, uint32_t& FCode);
 VC1Status DecodePicHeader                             (VC1Context* pContext);
 
 VC1Status DecodePictHeaderParams_InterlaceFieldPicture_Adv (VC1Context* pContext);
-VC1Status DecodeSkippicture                       (VC1Context* pContext);
 
 // Simple/Main
 VC1Status DecodePictureLayer_ProgressiveIpicture            (VC1Context* pContext);
