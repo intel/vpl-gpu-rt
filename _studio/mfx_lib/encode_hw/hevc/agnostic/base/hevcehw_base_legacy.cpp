@@ -2260,7 +2260,7 @@ void Legacy::ConfigureTask(
     task.ctrl.MfxNalUnitType &= 0xffff * IsOn(CO3.EnableNalUnitType);
 
     const mfxExtMBQP *pMBQP = ExtBuffer::Get(task.ctrl);
-    task.bCUQPMap |= (pMBQP && pMBQP->NumQPAlloc > 0);
+    task.bCUQPMap |= (IsOn(CO3.EnableMBQP) && pMBQP && pMBQP->NumQPAlloc > 0);
 
     bool bUpdateIRState = task.TemporalID == 0 && CO2.IntRefType;
     if (bUpdateIRState)
@@ -3682,6 +3682,13 @@ mfxStatus Legacy::CheckIntraRefresh(
             || !pCO3
             || !CheckOrZero<mfxU16>(pCO3->IntRefCycleDist, 0)
             , sts, MFX_ERR_UNSUPPORTED);
+
+        // B-Frames should be disabled for intra refresh
+        if (pCO2->IntRefType && par.mfx.GopRefDist > 1)
+        {
+            pCO2->IntRefType = MFX_REFRESH_NO;
+            ++changed;
+        }
 
         // refresh cycle length shouldn't be greater or equal to GOP size
         bool bInvalidCycle =

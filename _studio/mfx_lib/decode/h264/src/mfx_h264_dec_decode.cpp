@@ -32,7 +32,7 @@
 #include "vm_sys_info.h"
 
 #include "umc_h264_va_supplier.h"
-    #if defined(MFX_ENABLE_CPLIB)
+    #if defined(MFX_ENABLE_CP)
         #include "umc_va_linux_protected.h"
     #endif
 #include "umc_va_video_processing.h"
@@ -231,11 +231,9 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
     m_platform = MFX_Utility::GetPlatform(m_core, par);
 
-    eMFXHWType type = MFX_HW_UNKNOWN;
-    if (m_platform == MFX_PLATFORM_HARDWARE)
-    {
-        type = m_core->GetHWType();
-    }
+    MFX_CHECK(m_platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
+
+    eMFXHWType type = m_core->GetHWType();
 
     mfxStatus mfxSts = CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type, m_core->IsCompatibleForOpaq());
     MFX_CHECK(mfxSts >= MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -269,18 +267,11 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
     mfxU32 asyncDepth = CalculateAsyncDepth(m_platform, par);
     m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par, m_platform);
 
-    if (MFX_PLATFORM_SOFTWARE == m_platform)
-    {
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
-    }
-    else
-    {
-        m_useDelayedDisplay = ENABLE_DELAYED_DISPLAY_MODE != 0 && IsNeedToUseHWBuffering(m_core->GetHWType()) && (asyncDepth != 1);
+    m_useDelayedDisplay = ENABLE_DELAYED_DISPLAY_MODE != 0 && IsNeedToUseHWBuffering(m_core->GetHWType()) && (asyncDepth != 1);
 
-        bool bUseBigSurfaceWA = IsBigSurfacePoolApplicable(type);
+    bool bUseBigSurfaceWA = IsBigSurfacePoolApplicable(type);
 
-        m_pH264VideoDecoder.reset(bUseBigSurfaceWA ? new UMC::VATaskSupplierBigSurfacePool<UMC::VATaskSupplier>() : new UMC::VATaskSupplier()); // HW
-    }
+    m_pH264VideoDecoder.reset(bUseBigSurfaceWA ? new UMC::VATaskSupplierBigSurfacePool<UMC::VATaskSupplier>() : new UMC::VATaskSupplier()); // HW
 
     int32_t useInternal = m_vPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
 
@@ -419,11 +410,7 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
     m_pH264VideoDecoder->SetVideoParams(&m_vFirstPar);
 
-    if (m_platform != m_core->GetPlatformType())
-    {
-        VM_ASSERT(m_platform == MFX_PLATFORM_SOFTWARE);
-        MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION);
-    }
+    MFX_CHECK(m_platform == m_core->GetPlatformType(), MFX_ERR_UNSUPPORTED);
 
     if (isNeedChangeVideoParamWarning)
     {
@@ -603,11 +590,8 @@ mfxStatus VideoDECODEH264::Reset(mfxVideoParam *par)
 
     MFX_CHECK_NULL_PTR1(par);
 
-    eMFXHWType type = MFX_HW_UNKNOWN;
-    if (m_platform == MFX_PLATFORM_HARDWARE)
-    {
-        type = m_core->GetHWType();
-    }
+    MFX_CHECK(m_platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
+    eMFXHWType type = m_core->GetHWType();
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     mfxExtDecVideoProcessing * extVideoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(m_vFirstPar.ExtParam, m_vFirstPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
@@ -656,14 +640,9 @@ mfxStatus VideoDECODEH264::Reset(mfxVideoParam *par)
 
     m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par, m_platform);
 
-
     m_pH264VideoDecoder->SetVideoParams(&m_vFirstPar);
 
-    if (m_platform != m_core->GetPlatformType())
-    {
-        VM_ASSERT(m_platform == MFX_PLATFORM_SOFTWARE);
-        MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION);
-    }
+    MFX_CHECK(m_platform == m_core->GetPlatformType(), MFX_ERR_UNSUPPORTED);
 
     if (isNeedChangeVideoParamWarning)
     {
@@ -936,11 +915,7 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
 
     MFX_CHECK(platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
 
-    eMFXHWType type = MFX_HW_UNKNOWN;
-    if (platform == MFX_PLATFORM_HARDWARE)
-    {
-        type = core->GetHWType();
-    }
+    eMFXHWType type = core->GetHWType();
 
     mfxVideoParam params;
     params = *par;

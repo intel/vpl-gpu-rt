@@ -607,7 +607,8 @@ mfxStatus MFX_CDECL VP8DECODERoutine(void *p_state, void * /*pp_param*/, mfxU32 
         sts = decoder.m_surface_source->PrepareToOutput(data.surface_work, data.memId, &decoder.m_on_init_video_params, false);
     }
 
-    MFX_CHECK(!decoder.m_p_video_accelerator->UnwrapBuffer(data.surface_work->Data.MemId), MFX_ERR_UNDEFINED_BEHAVIOR);
+    if(data.surface_work)
+        MFX_CHECK(!decoder.m_p_video_accelerator->UnwrapBuffer(data.surface_work->Data.MemId), MFX_ERR_UNDEFINED_BEHAVIOR);
 
     UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
 
@@ -1351,20 +1352,11 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameHeader(mfxBitstream *in)
         while (++i < 2);
     }
 
-#if !defined(ANDROID) || (MFX_ANDROID_VERSION >= MFX_P)
     // Header info consumed bits
     m_frame_info.entropyDecSize = m_boolDecoder[VP8_FIRST_PARTITION].pos() * 8 - 3 * 8 - m_boolDecoder[VP8_FIRST_PARTITION].bitcount();
 
     // Subtract completely consumed bytes + current byte. Current is completely consumed if bitcount is 8.
     m_frame_info.firstPartitionSize = first_partition_size - ((m_frame_info.entropyDecSize + 7) >> 3);
-#else
-    // On Android O we use old version of driver and should use special code for 1st partition size computation (for count == 8)
-    // Header info consumed bits
-    m_frame_info.entropyDecSize = m_boolDecoder[VP8_FIRST_PARTITION].pos() * 8 - 16 - m_boolDecoder[VP8_FIRST_PARTITION].bitcount();
-
-    int fix = (m_boolDecoder[VP8_FIRST_PARTITION].bitcount() & 0x7) ? 1 : 0;
-    m_frame_info.firstPartitionSize = m_frame_info.firstPartitionSize - (m_boolDecoder[VP8_FIRST_PARTITION].pos() - 3 + fix);
-#endif
 
     return MFX_ERR_NONE;
 }

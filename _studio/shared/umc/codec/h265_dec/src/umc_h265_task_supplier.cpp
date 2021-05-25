@@ -42,7 +42,6 @@
 #include "umc_frame_data.h"
 #include "umc_h265_debug.h"
 
-
 #include "mfx_common.h" //  for trace routines
 
 namespace UMC_HEVC_DECODER
@@ -716,12 +715,6 @@ UMC::Status TaskSupplier_H265::Init(UMC::VideoDecoderParams *init)
     m_isInitialized = true;
 
     return UMC::UMC_OK;
-}
-
-
-void TaskSupplier_H265::CreateTaskBroker()
-{
-
 }
 
 // Initialize what is necessary to decode bitstream header before the main part is initialized
