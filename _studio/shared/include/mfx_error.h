@@ -60,8 +60,8 @@ namespace mfx
                 MFX_ERR_MORE_BITSTREAM,              "MFX_ERR_MORE_BITSTREAM: expect more bitstream buffers at output",
                 MFX_ERR_GPU_HANG,                    "MFX_ERR_GPU_HANG: device operation failure caused by GPU hang",
                 MFX_ERR_REALLOC_SURFACE,             "MFX_ERR_REALLOC_SURFACE: bigger output surface required",
-                MFX_ERR_RESOURCE_MAPPED,             "MFX_ERR_RESOURCE_MAPPED: write access is already acquired and user requested \
-                                                      another write access, or read access with MFX_MEMORY_NO_WAIT flag",
+                MFX_ERR_RESOURCE_MAPPED,             "MFX_ERR_RESOURCE_MAPPED: write access is already acquired and user requested "\
+                                                     "another write access, or read access with MFX_MEMORY_NO_WAIT flag",
 
                 MFX_WRN_IN_EXECUTION,                "MFX_WRN_IN_EXECUTION: the previous asynchronous operation is in execution",
                 MFX_WRN_DEVICE_BUSY,                 "MFX_WRN_DEVICE_BUSY: the HW acceleration device is busy",
