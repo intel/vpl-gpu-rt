@@ -323,11 +323,6 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
         color_format = UMC::Y416;
         break;
 #endif
-#if defined (MFX_VA_WIN)
-    case DXGI_FORMAT_AYUV:
-        color_format = UMC::RGB32;
-        break;
-#endif
     default:
         return UMC::UMC_ERR_UNSUPPORTED;
     }
@@ -921,7 +916,6 @@ mfxI32 mfx_UMC_FrameAllocator::AddSurface(mfxFrameSurface1 *surface)
 #if (MFX_VERSION >= 1031)
     case MFX_FOURCC_Y216:
 #endif
-
         break;
     default:
         return -1;
@@ -1274,11 +1268,6 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
             break;
         case MFX_FOURCC_Y416:
             color_format = UMC::Y416;
-            break;
-#endif
-#if defined (MFX_VA_WIN)
-        case DXGI_FORMAT_AYUV:
-            color_format = UMC::RGB32;
             break;
 #endif
         default:
@@ -2280,7 +2269,7 @@ mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surfac
         {
             mfxFrameSurface1 & internalSurf = m_frameDataInternal.GetSurface(index);
             mfxFrameSurface1 surface = MakeSurface(internalSurf.Info, internalSurf.Data.MemId);
-            mfxU16 outMemType = static_cast<mfxU16>((m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET) |
+            mfxU16 outMemType = static_cast<mfxU16>((m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET) |
                                                                                  MFX_MEMTYPE_EXTERNAL_FRAME);
             //Performance issue. We need to unlock mutex to let decoding thread run async.
             guard.Unlock();
