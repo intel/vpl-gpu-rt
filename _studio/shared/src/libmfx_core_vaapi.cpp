@@ -285,24 +285,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
             }
 
             this->m_enabled20Interface = false;
-
-            if (dynamic_cast<VAAPIVideoCORE20*>(this))
-            {
-                switch (m_HWType)
-                {
-                case MFX_HW_TGL_LP:
-                case MFX_HW_RKL:
-                case MFX_HW_ADL_S:
-                case MFX_HW_ADL_P:
-                case MFX_HW_DG1:
-                    // These platforms support VPL feature set
-                    this->m_enabled20Interface = true;
-                    break;
-                default:
-                    this->m_enabled20Interface = false;
-                    break;
-                }
-            }
         }
             break;
 
