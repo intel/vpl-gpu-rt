@@ -286,7 +286,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
 
             this->m_enabled20Interface = false;
 
-#if !defined STRIP_EMBARGO
             if (dynamic_cast<VAAPIVideoCORE20*>(this))
             {
                 switch (m_HWType)
@@ -304,7 +303,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
                     break;
                 }
             }
-#endif
         }
             break;
 
