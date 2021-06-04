@@ -63,7 +63,7 @@ void QueryImplDesc::QueryImplsDescription(const FeatureBlocks& blocks, TPushQID 
         };
         struct Config
         {
-            mfxU32 Profile;
+            mfxU16 Profile;
             mfxU32 FourCC;
             mfxU16 BitDepth;
             mfxU16 Shift;

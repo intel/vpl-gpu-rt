@@ -42,6 +42,9 @@
 
 #include "va/va.h"
 #include <va/va_backend.h>
+#include "va/va_drm.h"
+#include <unistd.h>
+#include <fcntl.h>
 
 typedef struct drm_i915_getparam {
     int param;
@@ -139,6 +142,58 @@ void VAAPIVideoCORE_T<Base>::Close()
 {
     m_KeepVAState = false;
     m_pVA.reset();
+
+    if (m_intDRM >= 0)
+    {
+        if (m_Display)
+        {
+            vaTerminate(m_Display);
+            m_Display = nullptr;
+        }
+        close(m_intDRM);
+        m_intDRM = -1;
+    }
+}
+
+template <class Base>
+mfxStatus VAAPIVideoCORE_T<Base>::CheckOrInitDisplay()
+{
+    if (!m_Display)
+    {
+        std::string path  = std::string("/dev/dri/renderD") + std::to_string(128 + m_adapterNum);
+        VADisplay   displ = nullptr;
+
+        int fd = open(path.c_str(), O_RDWR);
+        MFX_CHECK(fd >= 0, MFX_ERR_NOT_INITIALIZED);
+
+        mfx::OnExit closeFD([&displ, fd]
+            {
+                if (displ)
+                    vaTerminate(displ);
+                close(fd);
+            });
+
+        displ = vaGetDisplayDRM(fd);
+        MFX_CHECK(displ, MFX_ERR_NOT_INITIALIZED);
+
+        int vamajor = 0, vaminor = 0;
+        MFX_CHECK(VA_STATUS_SUCCESS == vaInitialize(displ, &vamajor, &vaminor), MFX_ERR_NOT_INITIALIZED);
+
+        MFX_SAFE_CALL(this->SetHandle(MFX_HANDLE_VA_DISPLAY, displ));
+
+        m_intDRM = fd;
+        closeFD = [] {};
+    }
+
+    return MFX_ERR_NONE;
+}
+
+template <class Base>
+eMFXHWType VAAPIVideoCORE_T<Base>::GetHWType()
+{
+    std::ignore = MFX_STS_TRACE(this->CheckOrInitDisplay());
+
+    return m_HWType;
 }
 
 template <class Base>
@@ -229,8 +284,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
                 }
             }
 
-            // TODO: restore switchers
-            this->m_enabled20Interface = dynamic_cast<VAAPIVideoCORE20*>(this) && (false);
+            this->m_enabled20Interface = false;
         }
             break;
 
@@ -387,8 +441,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DefaultAllocFrames(
     if ((request->Type & MFX_MEMTYPE_DXVA2_DECODER_TARGET)||
         (request->Type & MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET)) // SW - TBD !!!!!!!!!!!!!!
     {
-        if (!m_Display)
-            return MFX_ERR_NOT_INITIALIZED;
+        MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
         mfxBaseWideFrameAllocator* pAlloc = this->GetAllocatorByReq(request->Type);
         // VPP, ENC, PAK can request frames for several times
@@ -484,7 +537,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::GetVAService(
     VADisplay*  pVADisplay)
 {
     // check if created already
-    MFX_CHECK(m_Display, MFX_ERR_NOT_INITIALIZED);
+    MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
     if (pVADisplay)
     {
@@ -520,7 +573,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
     UMC::FrameAllocator *allocator)
 {
     MFX_CHECK_NULL_PTR1(param);
-    MFX_CHECK(m_Display, MFX_ERR_NOT_INITIALIZED);
+    MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
     UMC::AutomaticUMCMutex guard(this->m_guard);
 
@@ -791,7 +844,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
         }
         else
         {
-            MFX_CHECK(m_Display, MFX_ERR_NOT_INITIALIZED);
+            MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
             VASurfaceID *va_surf_src = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
             VASurfaceID *va_surf_dst = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
@@ -817,7 +870,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
     }
     else if (nullptr != pSrc->Data.MemId && nullptr != dstPtr)
     {
-        MFX_CHECK(m_Display,MFX_ERR_NOT_INITIALIZED);
+        MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
         // copy data
         {
@@ -893,7 +946,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
             VAImage va_image;
             void *pBits = NULL;
 
-            MFX_CHECK(m_Display, MFX_ERR_NOT_INITIALIZED);
+            MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
             va_sts = vaDeriveImage(m_Display, *va_surface, &va_image);
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
@@ -951,7 +1004,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
     MFX_CHECK(par, MFX_WRN_PARTIAL_ACCELERATION);
     MFX_CHECK(!IsMVCProfile(par->mfx.CodecProfile), MFX_WRN_PARTIAL_ACCELERATION);
 
-    MFX_CHECK(m_Display, MFX_ERR_DEVICE_FAILED);
+    MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
 #if VA_CHECK_VERSION(1, 2, 0)
     VaGuidMapper mapper(guid);
@@ -1329,7 +1382,7 @@ VAAPIVideoCORE20::DoFastCopyExtended(
             return m_pCmCopy->CopyVideoToVideo(pDst, pSrc);
         }
 
-        MFX_CHECK(m_Display, MFX_ERR_NOT_INITIALIZED);
+        MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
         VASurfaceID *va_surf_src = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
         VASurfaceID *va_surf_dst = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
@@ -1354,7 +1407,7 @@ VAAPIVideoCORE20::DoFastCopyExtended(
 
     if (NULL != pSrc->Data.MemId && NULL != dstPtr)
     {
-        MFX_CHECK(m_Display, MFX_ERR_NOT_INITIALIZED);
+        MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
         if (canUseCMCopy)
         {
@@ -1408,7 +1461,7 @@ VAAPIVideoCORE20::DoFastCopyExtended(
             return m_pCmCopy->CopySysToVideo(pDst, pSrc);
         }
 
-        MFX_CHECK(m_Display, MFX_ERR_NOT_INITIALIZED);
+        MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
         VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
         MFX_CHECK_HDL(va_surface);
@@ -1445,6 +1498,15 @@ VAAPIVideoCORE20::DoFastCopyExtended(
     MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 } // mfxStatus VAAPIVideoCORE20::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 
+mfxStatus VAAPIVideoCORE20::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)
+{
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
+    MFX_SAFE_CALL(CheckOrInitDisplay());
+    m_frame_allocator_wrapper.SetDevice(m_Display);
+
+    return m_frame_allocator_wrapper.CreateSurface(type, info, surf);
+}
 
 template class VAAPIVideoCORE_T<CommonCORE  >;
 template class VAAPIVideoCORE_T<CommonCORE20>;

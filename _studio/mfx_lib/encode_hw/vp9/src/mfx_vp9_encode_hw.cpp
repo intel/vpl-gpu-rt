@@ -59,7 +59,7 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryImplsDescription(
     VP9MfxVideoParam tmp(par, platform);
     SetDefaultForLowpower(tmp.mfx.LowPower, platform);
 
-    const mfxU32 Profiles[] =
+    const mfxU16 Profiles[] =
     {
         MFX_PROFILE_VP9_0
         , MFX_PROFILE_VP9_1
@@ -98,7 +98,7 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryImplsDescription(
     caps.BiDirectionalPrediction = 0;
     caps.MaxcodecLevel           = 0;
 
-    for (mfxU32 profile : Profiles)
+    for (mfxU16 profile : Profiles)
     {
         ENCODE_CAPS_VP9 hwCaps = {};
         tmp.mfx.CodecProfile = profile;
@@ -144,7 +144,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Query(VideoCORE *core, mfxVideoParam *in, mfxVid
 
     if (in == 0)
     {
-        return SetSupportedParameters(*out);
+        MFX_RETURN(SetSupportedParameters(*out));
     }
     else
     {
@@ -198,13 +198,13 @@ mfxStatus MFXVideoENCODEVP9_HW::Query(VideoCORE *core, mfxVideoParam *in, mfxVid
                     {
                         // the buffer is present in [in] and absent in [out]
                         // or buffer sizes are different in [in] and [out]
-                        return MFX_ERR_UNDEFINED_BEHAVIOR;
+                        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
                     }
                 }
             }
         }
 
-        return sts;
+        MFX_RETURN(sts);
     }
 }
 
@@ -248,7 +248,7 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par,
         request->Type = MFX_MEMTYPE_D3D_EXT;
         break;
     default:
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     request->NumFrameMin = (mfxU16)CalcNumSurfRaw(toValidate);
@@ -334,7 +334,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
 
     if (m_initialized == true)
     {
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
     MFX_CHECK_NULL_PTR1(par);
@@ -505,7 +505,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
 
     m_videoForParamChange.push_back(m_video);
 
-    return checkSts;
+    MFX_RETURN(checkSts);
 }
 
 mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
@@ -514,7 +514,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
 
     if (m_initialized == false)
     {
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
     }
 
     mfxStatus sts = MFX_ERR_NONE;
@@ -615,7 +615,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
             extParAfter.FrameHeight != extParBefore.FrameHeight) &&
             parAfterReset.m_numLayers > 1)
         {
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
 
 #if (MFX_VERSION >= 1029)
@@ -624,7 +624,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
             extParAfter.FrameHeight != extParBefore.FrameHeight) &&
             (extParAfter.NumTileRows > 1 || extParAfter.NumTileColumns > 1))
         {
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
 
         // Tile switching is unsupported by driver for Gen11+
@@ -632,7 +632,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
             (extParBefore.NumTileColumns > 1 || extParBefore.NumTileRows > 1) &&
             extParAfter.NumTileColumns == 1 && extParAfter.NumTileRows == 1)
         {
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
 #endif
 
@@ -642,7 +642,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
             extParAfter.FrameHeight != extParBefore.FrameHeight) &&
             seg.NumSegments > 1)
         {
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
 
@@ -651,7 +651,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
 
     m_videoForParamChange.push_back(m_video);
 
-    return checkSts;
+    MFX_RETURN(checkSts);
 }
 
 mfxStatus MFXVideoENCODEVP9_HW::RemoveObsoleteParameters()
@@ -685,7 +685,7 @@ mfxStatus MFXVideoENCODEVP9_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameS
 
     if (m_initialized == false || m_videoForParamChange.size() == 0)
     {
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
     }
 
     if (ctrl)
@@ -707,7 +707,7 @@ mfxStatus MFXVideoENCODEVP9_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameS
 
         if (m_drainState == true && surface)
         {
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
         if (surface == 0)
@@ -719,7 +719,7 @@ mfxStatus MFXVideoENCODEVP9_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameS
             {
                 // all the buffered frames are drained. Exit "drain state" and notify application
                 m_drainState = false;
-                return MFX_ERR_MORE_DATA;
+                MFX_RETURN(MFX_ERR_MORE_DATA);
             }
             else
             {
@@ -732,7 +732,7 @@ mfxStatus MFXVideoENCODEVP9_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameS
             if (m_free.size() == 0)
             {
                 // no tasks in the pool
-                return MFX_WRN_DEVICE_BUSY;
+                MFX_RETURN(MFX_WRN_DEVICE_BUSY);
             }
             // check that this input surface isn't used for encoding
             MFX_CHECK(m_accepted.end() == std::find_if(m_accepted.begin(), m_accepted.end(), FindTaskByRawSurface(surface)),
@@ -750,7 +750,7 @@ mfxStatus MFXVideoENCODEVP9_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameS
             ENCODE_CAPS_VP9 caps = {};
             sts = m_ddi->QueryEncodeCaps(caps);
             if (sts != MFX_ERR_NONE)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
+                MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
             checkSts = CheckSurface(m_video, *surface, m_initWidth, m_initHeight, caps);
             MFX_CHECK_STS(checkSts);
@@ -796,7 +796,7 @@ mfxStatus MFXVideoENCODEVP9_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameS
 
     MFX_CHECK_STS(bufferingSts);
 
-    return checkSts;
+    MFX_RETURN(checkSts);
 }
 
 mfxStatus MFXVideoENCODEVP9_HW::ConfigTask(Task &task)
@@ -892,14 +892,14 @@ mfxStatus MFXVideoENCODEVP9_HW::ConfigTask(Task &task)
 
     m_prevFrameParam = task.m_frameParam;
 
-    return sts;
+    MFX_RETURN(sts);
 }
 
 mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mfxU32 /*uid_a*/)
 {
     if (m_initialized == false)
     {
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
     }
 
     mfxFrameSurface1* pSurf = (mfxFrameSurface1*)task;
@@ -969,7 +969,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mf
         sts = m_ddi->QueryStatus(frameToGet);
         if (sts == MFX_WRN_DEVICE_BUSY)
         {
-            return MFX_TASK_BUSY;
+            MFX_RETURN(MFX_TASK_BUSY);
         }
         MFX_CHECK_STS(sts);
 
@@ -998,7 +998,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Close()
 {
     if (m_initialized == false)
     {
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
     }
 
     mfxStatus sts = MFX_ERR_NONE;
@@ -1040,7 +1040,7 @@ mfxStatus MFXVideoENCODEVP9_HW::GetVideoParam(mfxVideoParam *par)
 {
     if (m_initialized == false)
     {
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
     }
 
     MFX_CHECK_NULL_PTR1(par);
@@ -1058,7 +1058,7 @@ mfxStatus MFXVideoENCODEVP9_HW::GetVideoParam(mfxVideoParam *par)
         mfxExtBuffer *pOutBuf = par->ExtParam[i];
         if (pOutBuf == 0)
         {
-            return MFX_ERR_NULL_PTR;
+            MFX_RETURN(MFX_ERR_NULL_PTR);
         }
         mfxExtBuffer *pLocalBuf = GetExtendedBuffer(m_video.ExtParam, m_video.NumExtParam, pOutBuf->BufferId);
         if (pLocalBuf && (pOutBuf->BufferSz == pLocalBuf->BufferSz))
@@ -1070,7 +1070,7 @@ mfxStatus MFXVideoENCODEVP9_HW::GetVideoParam(mfxVideoParam *par)
         else
         {
             assert(!"Encoder doesn't have requested buffer or buffer sizes are different!");
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
         }
     }
 
@@ -1081,7 +1081,7 @@ inline mfxStatus UpdatePictureHeader(mfxU32 frameLen, mfxU32 frameNum, mfxU8* pP
 {
     mfxU32 ivf_frame_header[3] = {frameLen, frameNum << 1, 0x00000000};
     if (bufferSize < sizeof(ivf_frame_header))
-        return MFX_ERR_MORE_DATA;
+        MFX_RETURN(MFX_ERR_MORE_DATA);
 
     std::copy(std::begin(ivf_frame_header),std::end(ivf_frame_header), reinterpret_cast <mfxU32*> (pPictureHeader));
 
@@ -1100,7 +1100,7 @@ mfxStatus MFXVideoENCODEVP9_HW::UpdateBitstream(
     FrameLocker lock(m_pCore, bitstream, task.m_pOutBs->pSurface->Data.MemId);
     if (bitstream.Y == 0)
     {
-        return MFX_ERR_LOCK_MEMORY;
+        MFX_RETURN(MFX_ERR_LOCK_MEMORY);
     }
 
     mfxU32   bsSizeToCopy  = task.m_bsDataLength;
@@ -1123,7 +1123,7 @@ mfxStatus MFXVideoENCODEVP9_HW::UpdateBitstream(
     if (bsSizeToCopy > m_maxBsSize)
     {
         lock.Unlock();
-        return MFX_ERR_DEVICE_FAILED;
+        MFX_RETURN(MFX_ERR_DEVICE_FAILED);
     }
 
     // Copy compressed picture from d3d surface to buffer in system memory

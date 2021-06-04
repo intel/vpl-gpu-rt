@@ -149,7 +149,6 @@ public:  // DEBUG !!!! should remove dependence
     virtual bool DecodeSliceHeader(PocDecoding * pocDecoding);
 
     H265SliceHeader m_SliceHeader;                              // (H265SliceHeader) slice header
-
     H265HeadersBitstream m_BitStream;                                  // (H265Bitstream) slice bit stream
 
     // Obtain bit stream object

@@ -517,7 +517,8 @@ public:
         auto it_mids = std::find_if(std::begin(m_returned_mids), std::end(m_returned_mids),
             [this, response](const std::vector<mfxMemId> & mids)
                 {
-                    return std::equal(response.mids, response.mids + response.NumFrameActual, std::begin(mids),
+                    return mids.size() == response.NumFrameActual
+                    && std::equal(response.mids, response.mids + response.NumFrameActual, std::begin(mids),
                         [this](mfxMemId l, mfxMemId r) { return l == r || l == ALREADY_REMOVED_MID || r == ALREADY_REMOVED_MID; });
                 });
 

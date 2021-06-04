@@ -91,7 +91,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     // check the library version
     if (MakeVersion(par.Version.Major, par.Version.Minor) > MFX_VERSION)
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     // check error(s)
@@ -103,7 +103,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         (MFX_IMPL_HARDWARE3 != impl) &&
         (MFX_IMPL_HARDWARE4 != impl))
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     // if user did not specify MFX_IMPL_VIA_* treat it as MFX_IMPL_VIA_ANY
@@ -114,7 +114,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         (MFX_IMPL_VIA_VAAPI != implInterface) &&
         (MFX_IMPL_VIA_ANY != implInterface))
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     // set the adapter number
@@ -141,7 +141,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     // app. must use MFXInitialize for 2.x features
     if (par.Version.Major > 1)
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     mfxStatus sts = MFXInit_Internal(par, session, implInterface, adapterNum);
@@ -207,7 +207,7 @@ mfxStatus MFXDoWork(mfxSession session)
     // check error(s)
     if (0 == session)
     {
-        return MFX_ERR_INVALID_HANDLE;
+        MFX_RETURN(MFX_ERR_INVALID_HANDLE);
     }
 
     MFXIUnknown * pInt = session->m_pScheduler;
@@ -216,7 +216,7 @@ mfxStatus MFXDoWork(mfxSession session)
 
     if (!newScheduler)
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
     newScheduler->Release();
 
@@ -232,7 +232,7 @@ mfxStatus MFXClose(mfxSession session)
     // check error(s)
     if (0 == session)
     {
-        return MFX_ERR_INVALID_HANDLE;
+        MFX_RETURN(MFX_ERR_INVALID_HANDLE);
     }
 
     try
@@ -259,7 +259,7 @@ mfxStatus MFXClose(mfxSession session)
 
         if (session->IsParentSession())
         {
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
         // deallocate the object
@@ -281,6 +281,13 @@ mfxStatus MFXClose(mfxSession session)
 
 mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* session)
 {
+    mfxStatus mfxRes = MFX_ERR_NONE;
+
+    MFX_TRACE_INIT();
+    ETW_NEW_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK_ETW, 0, make_event_data((mfxU32)param.AccelerationMode, param.VendorImplID),
+        [&](){ return make_event_data(mfxRes, session ? *session : nullptr); }
+    );
+
     mfxInitParam par = {};
 
     par.Implementation = MFX_IMPL_HARDWARE;
@@ -296,7 +303,7 @@ mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* sess
         par.Implementation |= MFX_IMPL_VIA_VAAPI;
         break;
     default:
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     par.Version.Major = MFX_VERSION_MAJOR;
@@ -308,18 +315,36 @@ mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* sess
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
     // VendorImplID is used as adapterNum in current implementation - see MFXQueryImplsDescription
     // app. supposed just to copy VendorImplID from mfxImplDescription (returned by MFXQueryImplsDescription) to mfxInitializationParam
-    return MFXInit_Internal(par, session, par.Implementation, param.VendorImplID);
+    mfxRes = MFXInit_Internal(par, session, par.Implementation, param.VendorImplID);
 #else
-    return MFXInit_Internal(par, session, par.Implementation, 0);
+    mfxRes = MFXInit_Internal(par, session, par.Implementation, 0);
 #endif
+
+    return mfxRes;
 }
 
 namespace mfx
 {
     class ImplDescriptionHolder;
 
+    struct ImplCapsCommon
+    {
+        virtual ~ImplCapsCommon() {};
+        static void Release(mfxHDL hdl)
+        {
+            auto p = (ImplCapsCommon*)((mfxU8*)hdl - sizeof(ImplCapsCommon));
+            delete p;
+        }
+        template<class T>
+        static mfxHDL GetHDL(T& caps)
+        {
+             return mfxHDL((mfxU8*)&caps + sizeof(ImplCapsCommon));
+        }
+    };
+
     class ImplDescription
-        : public mfxImplDescription
+        : public ImplCapsCommon
+        , public mfxImplDescription
         , public PODArraysHolder
     {
     public:
@@ -341,7 +366,7 @@ namespace mfx
         ImplDescription& PushBack()
         {
             m_impls.emplace_back(new ImplDescription(this));
-            m_implsArray.push_back(m_impls.back().get());
+            m_implsArray.push_back(ImplCapsCommon::GetHDL(*m_impls.back()));
             return *m_impls.back();
         }
 
@@ -374,6 +399,57 @@ namespace mfx
         if (m_pHolder)
             m_pHolder->Release();
     }
+
+    class ImplFunctions
+        : public ImplCapsCommon
+        , public mfxImplementedFunctions
+    {
+    public:
+        template<typename T>
+        void PushFuncName(T&& name)
+        {
+            m_funcNames.emplace_back(std::vector<mfxChar>(std::begin(name), std::end(name)));
+        }
+
+        ImplFunctions()
+        {
+#define MFX_API_FUNCTION_IMPL(NAME, RTYPE, ARGS_DECL, ARGS) PushFuncName(#NAME);
+#undef _MFX_FUNCTIONS_H_
+#include "mfx_functions.h"
+
+            m_funcArray.resize(m_funcNames.size(), nullptr);
+            std::transform(m_funcNames.begin(), m_funcNames.end(), m_funcArray.begin()
+                , [](std::vector<mfxChar>& name) {return name.data(); });
+
+            NumFunctions = mfxU16(m_funcArray.size());
+            FunctionsName = m_funcArray.data();
+
+            m_implArray[0] = ImplCapsCommon::GetHDL(*this);
+        }
+
+        mfxHDL* GetArray() { return m_implArray; }
+
+        size_t  GetSize() { return 1; }
+
+        void Remove(const mfxChar* substr, bool bExact = false)
+        {
+            auto it = std::remove_if(m_funcArray.begin(), m_funcArray.end()
+                , [=](mfxChar* str) { return !str || (substr && (str == strstr(str, substr)) && (!bExact || strlen(str) == strlen(substr))); });
+
+            if (it != m_funcArray.end())
+            {
+                m_funcArray.erase(it, m_funcArray.end());
+
+                NumFunctions = mfxU16(m_funcArray.size());
+                FunctionsName = m_funcArray.data();
+            }
+        }
+
+    protected:
+        std::list<std::vector<mfxChar>> m_funcNames;
+        std::vector<mfxChar*>  m_funcArray;
+        mfxHDL m_implArray[1] = {};
+    };
 };
 
 mfxStatus QueryImplsDescription(VideoCORE&, mfxEncoderDescription&, mfx::PODArraysHolder&);
@@ -382,19 +458,53 @@ mfxStatus QueryImplsDescription(VideoCORE&, mfxVPPDescription&, mfx::PODArraysHo
 
 mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfxU32* num_impls)
 {
-    auto IsVplHW = [](eMFXHWType hw) -> bool
-    {
-        return hw >= MFX_HW_TGL_LP;
-    };
+    mfxHDL* impl = nullptr;
+    if (!num_impls)
+        return impl;
 
-    if (!num_impls || format != MFX_IMPLCAPS_IMPLDESCSTRUCTURE)
-        return nullptr;
+    MFX_TRACE_INIT();
+
+    ETW_NEW_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK_ETW, 0, make_event_data((mfxU32)format),
+        [&]() { return make_event_data(*num_impls); }
+    );
+
+    if (format == MFX_IMPLCAPS_IMPLEMENTEDFUNCTIONS)
+    {
+        try
+        {
+            std::unique_ptr<mfx::ImplFunctions> holder(new mfx::ImplFunctions);
+
+            //remove non-VPL functions
+            holder->Remove("MFXInit", true);
+            holder->Remove("MFXInitEx", true);
+            holder->Remove("MFXDoWork", true);
+            holder->Remove("MFXVideoCORE_SetBufferAllocator", true);
+            holder->Remove("MFXVideoVPP_RunFrameVPPAsyncEx", true);
+            holder->Remove("MFXVideoUSER_");
+            holder->Remove("MFXVideoENC_");
+            holder->Remove("MFXVideoPAK_");
+
+            *num_impls = mfxU32(holder->GetSize());
+            return holder.release()->GetArray();
+        }
+        catch (...)
+        {
+            return impl;
+        }
+    }
+
+    if (format != MFX_IMPLCAPS_IMPLDESCSTRUCTURE)
+        return impl;
 
     try
     {
         std::unique_ptr<mfx::ImplDescriptionHolder> holder(new mfx::ImplDescriptionHolder);
         std::set<mfxU32> deviceIds;
 
+        auto IsVplHW = [](eMFXHWType hw) -> bool
+        {
+            return hw >= MFX_HW_TGL_LP;
+        };
         auto QueryImplDesc = [&](VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum) -> bool
         {
             if (   !IsVplHW(core.GetHWType())
@@ -489,20 +599,19 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
         }
 
         if (!holder->GetSize())
-            return nullptr;
+            return impl;
 
         *num_impls = mfxU32(holder->GetSize());
 
         holder->Detach();
+        impl = holder.release()->GetArray();
 
-        return holder.release()->GetArray();
+        return impl;
     }
     catch (...)
     {
-        return nullptr;
+        return impl;
     }
-
-    return nullptr;
 }
 
 mfxStatus MFX_CDECL MFXReleaseImplDescription(mfxHDL hdl)
@@ -511,11 +620,11 @@ mfxStatus MFX_CDECL MFXReleaseImplDescription(mfxHDL hdl)
 
     try
     {
-        delete (mfx::ImplDescription*)hdl;
+        mfx::ImplCapsCommon::Release(hdl);
     }
     catch (...)
     {
-        return MFX_ERR_UNKNOWN;
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 
     return MFX_ERR_NONE;

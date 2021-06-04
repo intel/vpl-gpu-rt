@@ -32,7 +32,7 @@
 #include "vm_sys_info.h"
 
 #include "umc_h265_va_supplier.h"
-    #if defined(MFX_ENABLE_CPLIB)
+    #if defined(MFX_ENABLE_CP)
         #include "umc_va_linux_protected.h"
     #endif
 #include "umc_va_video_processing.h"
@@ -164,11 +164,9 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
 
     m_platform = MFX_Utility::GetPlatform_H265(m_core, par);
 
-    eMFXHWType type = MFX_HW_UNKNOWN;
-    if (m_platform == MFX_PLATFORM_HARDWARE)
-    {
-        type = m_core->GetHWType();
-    }
+    MFX_CHECK(m_platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
+
+    eMFXHWType type = m_core->GetHWType();
 
     MFX_CHECK(CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type, m_core->IsCompatibleForOpaq()) >= MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(MFX_Utility::CheckVideoParam_H265(par, type), MFX_ERR_INVALID_VIDEO_PARAM);
@@ -187,18 +185,11 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
     mfxU32 asyncDepth = CalculateAsyncDepth(m_platform, par);
     m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par, m_platform);
 
-    if (MFX_PLATFORM_SOFTWARE == m_platform)
-    {
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
-    }
-    else
-    {
-        m_useDelayedDisplay = ENABLE_DELAYED_DISPLAY_MODE != 0 && IsNeedToUseHWBuffering(m_core->GetHWType()) && (asyncDepth != 1);
+    m_useDelayedDisplay = ENABLE_DELAYED_DISPLAY_MODE != 0 && IsNeedToUseHWBuffering(m_core->GetHWType()) && (asyncDepth != 1);
 
-        bool useBigSurfacePoolWA = MFX_Utility::IsBugSurfacePoolApplicable(type, par);
+    bool useBigSurfacePoolWA = MFX_Utility::IsBugSurfacePoolApplicable(type, par);
 
-        m_pH265VideoDecoder.reset(useBigSurfacePoolWA ? new VATaskSupplierBigSurfacePool<VATaskSupplier>() : new VATaskSupplier()); // HW
-    }
+    m_pH265VideoDecoder.reset(useBigSurfacePoolWA ? new VATaskSupplierBigSurfacePool<VATaskSupplier>() : new VATaskSupplier()); // HW
 
     int32_t useInternal = m_vPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
 
@@ -267,8 +258,7 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
         return mfxSts;
 
     if (useInternal)
-        request.Type |= MFX_MEMTYPE_INTERNAL_FRAME
-        ;
+        request.Type |= MFX_MEMTYPE_INTERNAL_FRAME;
     else
         request.Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
 
@@ -349,13 +339,7 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
 
     m_pH265VideoDecoder->SetVideoParams(&m_vFirstPar);
 
-    if (m_platform != m_core->GetPlatformType())
-    {
-        VM_ASSERT(m_platform == MFX_PLATFORM_SOFTWARE);
-
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
-
-    }
+    MFX_CHECK(m_platform == m_core->GetPlatformType(), MFX_ERR_UNSUPPORTED);
 
     MFX_CHECK(!isNeedChangeVideoParamWarning, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
@@ -367,7 +351,7 @@ mfxStatus VideoDECODEH265::QueryImplsDescription(
     mfxDecoderDescription::decoder& caps,
     mfx::PODArraysHolder& ah)
 {
-    const mfxU32 SupportedProfiles[] =
+    const mfxU16 SupportedProfiles[] =
     {
         MFX_PROFILE_HEVC_MAIN
         , MFX_PROFILE_HEVC_MAIN10
@@ -402,7 +386,7 @@ mfxStatus VideoDECODEH265::QueryImplsDescription(
     par.mfx.CodecLevel = caps.MaxcodecLevel;
 
     mfxStatus sts = MFX_ERR_NONE;
-    for (mfxU32 profile : SupportedProfiles)
+    for (mfxU16 profile : SupportedProfiles)
     {
         par.mfx.CodecProfile = profile;
         par.mfx.FrameInfo.ChromaFormat = 0;
@@ -423,8 +407,8 @@ mfxStatus VideoDECODEH265::QueryImplsDescription(
 
             for (auto fccChroma : SupportedFourCCChromaFormat)
             {
-                par.mfx.FrameInfo.FourCC = fccChroma[0];
-                par.mfx.FrameInfo.ChromaFormat = fccChroma[1];
+                par.mfx.FrameInfo.FourCC       = fccChroma[0];
+                par.mfx.FrameInfo.ChromaFormat = mfxU16(fccChroma[1]);
 
                 sts = VideoDECODEH265::Query(&core, &par, &par);
                 if (sts != MFX_ERR_NONE) continue;
@@ -451,11 +435,8 @@ mfxStatus VideoDECODEH265::Reset(mfxVideoParam *par)
 
     MFX_CHECK_NULL_PTR1(par);
 
-    eMFXHWType type = MFX_HW_UNKNOWN;
-    if (m_platform == MFX_PLATFORM_HARDWARE)
-    {
-        type = m_core->GetHWType();
-    }
+    MFX_CHECK(m_platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
+    eMFXHWType type = m_core->GetHWType();
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(m_vFirstPar.ExtParam, m_vFirstPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
@@ -505,14 +486,9 @@ mfxStatus VideoDECODEH265::Reset(mfxVideoParam *par)
 
     m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par, m_platform);
 
-
     m_pH265VideoDecoder->SetVideoParams(&m_vFirstPar);
 
-    if (m_platform != m_core->GetPlatformType())
-    {
-        VM_ASSERT(m_platform == MFX_PLATFORM_SOFTWARE);
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
-    }
+    MFX_CHECK(m_platform == m_core->GetPlatformType(), MFX_ERR_UNSUPPORTED);
 
     MFX_CHECK(!isNeedChangeVideoParamWarning, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
@@ -739,11 +715,8 @@ mfxStatus VideoDECODEH265::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
 
     eMFXPlatform platform = MFX_Utility::GetPlatform_H265(core, par);
 
-    eMFXHWType type = MFX_HW_UNKNOWN;
-    if (platform == MFX_PLATFORM_HARDWARE)
-    {
-        type = core->GetHWType();
-    }
+    MFX_CHECK(platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
+    eMFXHWType type = core->GetHWType();
 
     mfxVideoParam params;
     params = *par;
@@ -768,6 +741,9 @@ mfxStatus VideoDECODEH265::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
     mfxStatus sts = QueryIOSurfInternal(platform, type, &params, request);
     MFX_CHECK_STS(sts);
 
+    sts = UpdateCscOutputFormat(&params, request);
+    MFX_CHECK_STS(sts);
+
     if (isInternalManaging)
     {
         request->NumFrameSuggested = request->NumFrameMin = (mfxU16)CalculateAsyncDepth(platform, par);
@@ -782,11 +758,7 @@ mfxStatus VideoDECODEH265::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
         request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
     }
 
-    if (platform != core->GetPlatformType())
-    {
-        VM_ASSERT(platform == MFX_PLATFORM_SOFTWARE);
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
-    }
+    MFX_CHECK(platform == core->GetPlatformType(), MFX_ERR_UNSUPPORTED);
 
     MFX_CHECK(!isNeedChangeVideoParamWarning, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
@@ -1024,8 +996,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 
-    bool* core20_interface = reinterpret_cast<bool*>(m_core->QueryCoreInterface(MFXICORE_API_2_0_GUID));
-    bool allow_null_work_surface = core20_interface && *core20_interface;
+    bool allow_null_work_surface = Supports20FeatureSet(*m_core);
 
     if (allow_null_work_surface)
     {
@@ -1055,7 +1026,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_HEVC, m_platform != MFX_PLATFORM_SOFTWARE);
             MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
 
-            if (surface_work->Data.MemId || surface_work->Data.Y || surface_work->Data.R || surface_work->Data.A || surface_work->Data.UV) // opaq surface
+            if (!IsSurfaceEmpty(*surface_work)) // opaq surface
                 MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
             surface_work = GetOriginalSurface(surface_work);

@@ -46,7 +46,7 @@
 #include "vm_sys_info.h"
 
 #include "umc_h265_va_supplier.h"
-#if defined(MFX_ENABLE_CPLIB)
+#if defined(MFX_ENABLE_CP)
 #include "umc_va_linux_protected.h"
 #endif
 
@@ -155,11 +155,9 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
     MFX_CHECK(!m_decoder, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     m_platform = MFX_VPX_Utility::GetPlatform(m_core, par);
-    eMFXHWType type = MFX_HW_UNKNOWN;
-    if (m_platform == MFX_PLATFORM_HARDWARE)
-    {
-        type = m_core->GetHWType();
-    }
+
+    MFX_CHECK(m_platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
+    eMFXHWType type = m_core->GetHWType();
 
     MFX_CHECK(CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type, m_core->IsCompatibleForOpaq()) >= MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
 
@@ -246,7 +244,7 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
 }
 
 mfxStatus VideoDECODEAV1::QueryImplsDescription(
-    VideoCORE& core,
+    VideoCORE&,
     mfxDecoderDescription::decoder& caps,
     mfx::PODArraysHolder& ah)
 {
@@ -270,7 +268,6 @@ mfxStatus VideoDECODEAV1::QueryImplsDescription(
     caps.CodecID = MFX_CODEC_AV1;
     caps.MaxcodecLevel = MFX_LEVEL_AV1_63;
 
-    mfxStatus sts = MFX_ERR_NONE;
     for (mfxU32 profile : SupportedProfiles)
     {
         auto& pfCaps = ah.PushBack(caps.Profiles);
@@ -873,8 +870,7 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo &info)
 
 mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surface_work, mfxFrameSurface1** surface_out)
 {
-    bool* core20_interface = reinterpret_cast<bool*>(m_core->QueryCoreInterface(MFXICORE_API_2_0_GUID));
-    bool allow_null_work_surface = core20_interface && *core20_interface;
+    bool allow_null_work_surface = Supports20FeatureSet(*m_core);
 
     if (allow_null_work_surface)
     {
@@ -887,21 +883,18 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
 
     if (surface_work)
     {
-        bool workSfsIsClean =
-            !(surface_work->Data.MemId || surface_work->Data.Y
-                || surface_work->Data.UV || surface_work->Data.R
-                || surface_work->Data.A);
+        bool workSfsIsEmpty = IsSurfaceEmpty(*surface_work);
 
         if (m_opaque)
         {
-            MFX_CHECK(workSfsIsClean, MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(workSfsIsEmpty, MFX_ERR_UNDEFINED_BEHAVIOR);
             // work with the native (original) surface
             surface_work = GetOriginalSurface(surface_work);
             MFX_CHECK(surface_work, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
         else
         {
-            MFX_CHECK(!workSfsIsClean, MFX_ERR_LOCK_MEMORY);
+            MFX_CHECK(!workSfsIsEmpty, MFX_ERR_LOCK_MEMORY);
         }
 
         mfxStatus sts = MFX_ERR_NONE;

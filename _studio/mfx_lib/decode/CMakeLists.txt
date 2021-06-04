@@ -178,10 +178,6 @@ list(APPEND sources
     )
 
 add_library(decode_hw STATIC ${sources} ${sources_hw})
-target_compile_definitions(decode_hw
-  PRIVATE
-    UMC_AV1_DECODER_REV=8500
-  )
 target_include_directories(decode_hw PUBLIC ${include_dirs})
 
 target_link_libraries(decode_hw

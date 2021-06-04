@@ -34,6 +34,8 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId = MFX_CODEC_A
 mfxStatus CheckVideoParamEncoders(mfxVideoParam *in, bool IsExternalFrameAllocator, eMFXHWType type);
 mfxStatus CheckVideoParamDecoders(mfxVideoParam *in, bool IsExternalFrameAllocator, eMFXHWType type, bool IsCompatibleForOpaq);
 
+mfxStatus UpdateCscOutputFormat(mfxVideoParam *par, mfxFrameAllocRequest *request);
+
 
 mfxStatus CheckBitstream(const mfxBitstream *bs);
 mfxStatus CheckFrameData(const mfxFrameSurface1 *surface);
@@ -121,6 +123,8 @@ public:
             extBuf = m_buffers.GetBufferById<T>(id);
             if (!extBuf)
                 throw 1;
+            NumExtParam = mfxU16(m_buffers.GetCount());
+            ExtParam    = m_buffers.GetBuffers();
         }
 
         return extBuf;
@@ -140,13 +144,11 @@ private:
 mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const&);
 mfxU8* GetFramePointer(const mfxFrameSurface1& surf);
 mfxStatus GetFramePointerChecked(mfxFrameInfo const& info, mfxFrameData const&, mfxU8**);
+bool IsSurfaceEmpty(const mfxFrameSurface1 & surface);
 
 mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, const mfxFrameSurface1& surface);
 mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, mfxMemId mid);
 mfxU16 BitDepthFromFourcc(mfxU32 fourcc);
 mfxU16 ChromaFormatFromFourcc(mfxU32 fourcc);
-
-mfxStatus AddRefSurface(mfxFrameSurface1 & surf,  bool allow_legacy_surface = false);
-mfxStatus ReleaseSurface(mfxFrameSurface1 & surf, bool allow_legacy_surface = false);
 
 #endif

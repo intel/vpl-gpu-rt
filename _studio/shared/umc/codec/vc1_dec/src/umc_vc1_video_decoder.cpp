@@ -329,7 +329,7 @@ Status VC1VideoDecoder::ContextAllocation(uint32_t mbWidth,uint32_t mbHeight)
                                       return UMC_ERR_ALLOC;
 
         m_pContext = (VC1Context*)(m_pMemoryAllocator->Lock(m_iMemContextID));
-        memset(m_pContext,0,(size_t)ptr);
+        memset(static_cast<void*>(m_pContext),0,(size_t)ptr);
         ptr = (uint8_t*)m_pContext;
 
         ptr += mfx::align2_value(sizeof(VC1Context));
@@ -763,7 +763,7 @@ Status VC1VideoDecoder::Close(void)
     m_frameData = NULL;
     m_pHeap = NULL;
 
-    memset(&m_pInitContext,0,sizeof(VC1Context));
+    memset(static_cast<void*>(&m_pInitContext),0,sizeof(VC1Context));
 
     m_pMemoryAllocator = 0;
 

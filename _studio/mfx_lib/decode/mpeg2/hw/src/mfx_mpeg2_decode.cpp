@@ -271,7 +271,7 @@ mfxStatus VideoDECODEMPEG2::QueryImplsDescription(
     mfxDecoderDescription::decoder& caps,
     mfx::PODArraysHolder& ah)
 {
-    const mfxU32 SupportedProfiles[] =
+    const mfxU16 SupportedProfiles[] =
     {
         MFX_PROFILE_MPEG2_SIMPLE
         , MFX_PROFILE_MPEG2_MAIN
@@ -296,7 +296,7 @@ mfxStatus VideoDECODEMPEG2::QueryImplsDescription(
     par.mfx.CodecLevel = caps.MaxcodecLevel;
 
     mfxStatus sts = MFX_ERR_NONE;
-    for (mfxU32 profile : SupportedProfiles)
+    for (mfxU16 profile : SupportedProfiles)
     {
         par.mfx.CodecProfile = profile;
         // Set FourCC to pass Query check
@@ -660,8 +660,7 @@ mfxStatus VideoDECODEMPEG2::DecodeFrameCheck(mfxBitstream* bs, mfxFrameSurface1*
     }
     else
     {
-        bool* core20_interface = reinterpret_cast<bool*>(m_core->QueryCoreInterface(MFXICORE_API_2_0_GUID));
-        bool allow_null_work_surface = core20_interface && *core20_interface;
+        bool allow_null_work_surface = Supports20FeatureSet(*m_core);
 
         /*
         In case 1.x core and nullptr surface_work we need to return back to user one of surfaces which were previously decoded.

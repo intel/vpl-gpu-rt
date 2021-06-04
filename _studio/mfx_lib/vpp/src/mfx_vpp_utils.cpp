@@ -1823,9 +1823,6 @@ mfxStatus CheckIOPattern_AndSetIOMemTypes(mfxU16 IOPattern, mfxU16* pInMemType, 
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
-
-    mfxU16 nativeMemType = (bSWLib) ? (mfxU16)MFX_MEMTYPE_SYSTEM_MEMORY : (mfxU16)MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET;
-
     if( IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY )
     {
           *pInMemType = MFX_MEMTYPE_FROM_VPPIN|MFX_MEMTYPE_EXTERNAL_FRAME|MFX_MEMTYPE_SYSTEM_MEMORY;

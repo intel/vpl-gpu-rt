@@ -1345,7 +1345,7 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaBeginPicture");
             vaSts = vaBeginPicture(m_vaDisplay,
                 m_vaContextEncode,
-               *(VASurfaceID*)pExecuteBuffers->m_pSurface);
+               *(VASurfaceID*)pExecuteBuffers->m_pSurfacePair.first);
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         }
         {
@@ -1384,7 +1384,7 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
     {
         UMC::AutomaticUMCMutex guard(m_guard);
         ExtVASurface currentFeedback = {
-            *(VASurfaceID*)pExecuteBuffers->m_pSurface,
+            *(VASurfaceID*)pExecuteBuffers->m_pSurfacePair.first,
             pExecuteBuffers->m_pps.StatusReportFeedbackNumber,
             pExecuteBuffers->m_idxBs
         };
@@ -1458,11 +1458,11 @@ mfxStatus VAAPIEncoder::SetFrames (ExecuteBuffers* pExecuteBuffers)
     }
     else if (pExecuteBuffers->m_bExternalCurrFrame)
     {
-        sts = m_core->GetExternalFrameHDL(pExecuteBuffers->m_CurrFrameMemID,(mfxHDL *)&pExecuteBuffers->m_pSurface);
+        sts = m_core->GetExternalFrameHDL(*pExecuteBuffers->m_pSurface, pExecuteBuffers->m_pSurfacePair);
     }
     else
     {
-        sts = m_core->GetFrameHDL(pExecuteBuffers->m_CurrFrameMemID,(mfxHDL *)&pExecuteBuffers->m_pSurface);
+        sts = m_core->GetFrameHDL(*pExecuteBuffers->m_pSurface, pExecuteBuffers->m_pSurfacePair);
     }
     MFX_CHECK_STS(sts);
 

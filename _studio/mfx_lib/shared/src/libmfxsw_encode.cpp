@@ -389,7 +389,7 @@ VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
     mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
     std::unique_ptr<VideoENCODE> pENCODE(ctor(core, par.mfx.CodecProfile, &mfxRes));
     // check error(s)
-    if (MFX_ERR_NONE != mfxRes)
+    if (MFX_ERR_NONE != MFX_STS_TRACE(mfxRes))
     {
         return nullptr;
     }

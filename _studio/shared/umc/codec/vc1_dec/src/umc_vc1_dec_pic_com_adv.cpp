@@ -257,28 +257,25 @@ VC1Status DecodePictureHeader_Adv(VC1Context* pContext)
 }
 
 typedef VC1Status (*DecoderPicHeader)(VC1Context* pContext);
-static const DecoderPicHeader DecoderPicHeader_table[3][5] =
+static const DecoderPicHeader DecoderPicHeader_table[3][4] =
 {
     {
         (DecoderPicHeader)(DecodePictHeaderParams_ProgressiveIpicture_Adv),
         (DecoderPicHeader)(DecodePictHeaderParams_ProgressivePpicture_Adv),
         (DecoderPicHeader)(DecodePictHeaderParams_ProgressiveBpicture_Adv),
-        (DecoderPicHeader)(DecodePictHeaderParams_ProgressiveIpicture_Adv),
-        (DecoderPicHeader)(DecodeSkippicture)
+        (DecoderPicHeader)(DecodePictHeaderParams_ProgressiveIpicture_Adv)
     },
     {
         (DecoderPicHeader)(DecodePictHeaderParams_InterlaceIpicture_Adv),
         (DecoderPicHeader)(DecodePictHeaderParams_InterlacePpicture_Adv),
         (DecoderPicHeader)(DecodePictHeaderParams_InterlaceBpicture_Adv),
-        (DecoderPicHeader)(DecodePictHeaderParams_InterlaceIpicture_Adv),
-        (DecoderPicHeader)(DecodeSkippicture)
+        (DecoderPicHeader)(DecodePictHeaderParams_InterlaceIpicture_Adv)
     },
     {
         (DecoderPicHeader)(DecodeFieldHeaderParams_InterlaceFieldIpicture_Adv),
         (DecoderPicHeader)(DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv),
         (DecoderPicHeader)(DecodeFieldHeaderParams_InterlaceFieldBpicture_Adv),
-        (DecoderPicHeader)(DecodeFieldHeaderParams_InterlaceFieldIpicture_Adv),
-        (DecoderPicHeader)(DecodeSkippicture)
+        (DecoderPicHeader)(DecodeFieldHeaderParams_InterlaceFieldIpicture_Adv)
     }
 };
 
@@ -289,12 +286,6 @@ VC1Status DecodePicHeader(VC1Context* pContext)
    vc1Sts = DecoderPicHeader_table[pContext->m_picLayerHeader->FCM][pContext->m_picLayerHeader->PTYPE](pContext);
 
    return vc1Sts;
-}
-
-VC1Status DecodeSkippicture(VC1Context* pContext)
-{
-    (void)pContext;
-    return VC1_OK;
 }
 
 VC1Status DecodePictHeaderParams_InterlaceFieldPicture_Adv (VC1Context* pContext)

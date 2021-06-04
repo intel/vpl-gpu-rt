@@ -152,7 +152,7 @@ mfxStatus mfxDefaultAllocator::FreeBuffer(mfxHDL pthis, mfxMemId mid)
     }
 }
 
-inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU16 Type, mfxU32& nbytes)
+inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU32& nbytes)
 {
     mfxU32 Pitch = mfx::align2_value(Info.Width, 32), Height2 = mfx::align2_value(Info.Height, 32);
 
@@ -160,38 +160,37 @@ inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU16 Ty
     switch (Info.FourCC)
     {
     case MFX_FOURCC_YV12:
-        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2 >> 1) + (Pitch >> 1)*(Height2 >> 1);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * (Height2 >> 1) + (Pitch >> 1) * (Height2 >> 1);
         break;
     case MFX_FOURCC_NV12:
-        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2 >> 1) + (Pitch >> 1)*(Height2 >> 1);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * (Height2 >> 1) + (Pitch >> 1) * (Height2 >> 1);
         break;
     case MFX_FOURCC_P010:
 #if (MFX_VERSION >= 1031)
     case MFX_FOURCC_P016:
 #endif
         Pitch  = mfx::align2_value(Info.Width * 2, 32);
-        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2 >> 1) + (Pitch >> 1)*(Height2 >> 1);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * (Height2 >> 1) + (Pitch >> 1) * (Height2 >> 1);
         break;
     case MFX_FOURCC_P210:
         Pitch  = mfx::align2_value(Info.Width * 2, 32);
-        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2)+(Pitch >> 1)*(Height2);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * Height2 + (Pitch >> 1) * Height2;
         break;
     case MFX_FOURCC_YUY2:
-        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2)+(Pitch >> 1)*(Height2);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * Height2 + (Pitch >> 1) * Height2;
         break;
     case MFX_FOURCC_RGB3:
 #ifdef MFX_ENABLE_RGBP
     case MFX_FOURCC_RGBP:
 #endif
     case MFX_FOURCC_BGRP:
-        MFX_CHECK(Type & (MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_FROM_VPPOUT), MFX_ERR_UNSUPPORTED);
 
         nbytes = Pitch * Height2 + Pitch * Height2 + Pitch * Height2;
         break;
 
 #if defined (MFX_ENABLE_FOURCC_RGB565)
     case MFX_FOURCC_RGB565:
-        nbytes = 2 * Pitch*Height2;
+        nbytes = 2 * Pitch * Height2;
         break;
 #endif // MFX_ENABLE_FOURCC_RGB565
     case MFX_FOURCC_BGR4:
@@ -203,15 +202,11 @@ inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU16 Ty
         nbytes = Pitch * Height2 + Pitch * Height2 + Pitch * Height2 + Pitch * Height2;
         break;
     case MFX_FOURCC_IMC3:
-        MFX_CHECK(Type & (MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_FROM_DECODE), MFX_ERR_UNSUPPORTED);
-
-        nbytes = Pitch * Height2 + (Pitch)*(Height2 >> 1) + (Pitch)*(Height2 >> 1);
+        nbytes = Pitch * Height2 + Pitch * (Height2 >> 1) + Pitch * (Height2 >> 1);
         break;
 
     case MFX_FOURCC_P8:
     case MFX_FOURCC_P8_TEXTURE:
-        MFX_CHECK(Type & MFX_MEMTYPE_FROM_ENCODE, MFX_ERR_UNSUPPORTED);
-
         nbytes = Pitch * Height2;
         break;
 
@@ -221,7 +216,7 @@ inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU16 Ty
     case MFX_FOURCC_Y216:
 #endif
         Pitch  = mfx::align2_value(Info.Width * 2, 32);
-        nbytes = Pitch * Height2 + (Pitch >> 1)*(Height2)+(Pitch >> 1)*(Height2);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * Height2 + (Pitch >> 1) * Height2;
         break;
 
     case MFX_FOURCC_Y410:
@@ -266,7 +261,7 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
     }
 
     mfxU32 nbytes;
-    mfxStatus sts = GetNumBytesRequired(request->Info, request->Type, nbytes);
+    mfxStatus sts = GetNumBytesRequired(request->Info, nbytes);
     MFX_CHECK_STS(sts);
 
     // allocate frames in cycle
@@ -588,7 +583,9 @@ mfxStatus RWAcessSurface::LockRW(std::unique_lock<std::mutex>& guard, bool write
         }
         else if (!m_read_locks && !nowait)
         {
+            guard.unlock();
             MFX_SAFE_CALL(mfxFrameSurfaceBaseInterface::Synchronize(MFX_INFINITE));
+            guard.lock();
         }
 
         ++m_read_locks;
@@ -621,7 +618,7 @@ mfxFrameSurface1_sw::mfxFrameSurface1_sw(const mfxFrameInfo & info, mfxU16 type,
     MFX_CHECK_WITH_THROW(m_internal_surface.Data.MemType & MFX_MEMTYPE_SYSTEM_MEMORY, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
 
     mfxU32 nbytes;
-    mfxStatus sts = GetNumBytesRequired(info, m_internal_surface.Data.MemType, nbytes);
+    mfxStatus sts = GetNumBytesRequired(info, nbytes);
     MFX_CHECK_WITH_THROW(sts == MFX_ERR_NONE, sts, mfx::mfxStatus_exception(sts));
 
     m_data.reset(new mfxU8[nbytes]);
@@ -675,7 +672,7 @@ mfxStatus mfxFrameSurface1_sw::Realloc(const mfxFrameInfo & info)
     MFX_CHECK(!Locked(), MFX_ERR_LOCK_MEMORY);
 
     mfxU32 nbytes;
-    MFX_SAFE_CALL(GetNumBytesRequired(info, m_internal_surface.Data.MemType, nbytes));
+    MFX_SAFE_CALL(GetNumBytesRequired(info, nbytes));
 
     m_data.reset(new mfxU8[nbytes]);
 

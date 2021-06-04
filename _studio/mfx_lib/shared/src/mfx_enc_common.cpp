@@ -489,7 +489,7 @@ mfxStatus AllocInternalEncBuffer(VideoCORE* pCore, const mfxU16& numFrameMin, co
 
     mfxFrameAllocRequest request = {};
     request.Info = par.mfx.FrameInfo;
-    request.Type = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_SHARED_RESOURCE;
+    request.Type = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_INTERNAL_FRAME;
     request.NumFrameMin = request.NumFrameSuggested = numFrameMin;
 
     mfxStatus sts = pCore->AllocFrames(&request, &response);
@@ -566,6 +566,7 @@ mfxStatus InputSurfaces::Reset(mfxVideoParam *par, mfxU16 NumFrameMin)
     MFX_INTERNAL_CPY(&m_Info,&par->mfx.FrameInfo,sizeof(mfxFrameInfo));
 
     {
+        std::ignore = NumFrameMin;
         bool bSysMemFrames = (par->IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY) != 0;
         MFX_CHECK(bSysMemFrames == m_bSysMemFrames || !m_bInitialized, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
         m_bSysMemFrames = bSysMemFrames;

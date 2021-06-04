@@ -24,6 +24,7 @@
 #include "mfx_common.h"
 #include "libmfx_core.h"
 #include "mfx_common_int.h"
+#include "mfx_common_decode_int.h"
 #include <functional>
 
 #if !defined MFX_DEC_VIDEO_POSTPROCESS_DISABLE
@@ -273,23 +274,7 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
     m_pCore = mfxCore;
     m_IsUseExternalFrames = isUseExternalFrames;
 
-    Ipp32s bit_depth;
-    if (params->mfx.FrameInfo.FourCC == MFX_FOURCC_P010 ||
-        params->mfx.FrameInfo.FourCC == MFX_FOURCC_P210
-#if (MFX_VERSION >= 1027)
-        || params->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
-        || params->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410
-#endif
-        )
-        bit_depth = 10;
-#if (MFX_VERSION >= 1031)
-    else if (params->mfx.FrameInfo.FourCC == MFX_FOURCC_P016 ||
-             params->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216 ||
-             params->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416)
-        bit_depth = 12;
-#endif
-    else
-        bit_depth = 8;
+    mfxU32 bit_depth              = BitDepthFromFourcc(params->mfx.FrameInfo.FourCC);
 
     UMC::ColorFormat color_format;
 
@@ -931,7 +916,6 @@ mfxI32 mfx_UMC_FrameAllocator::AddSurface(mfxFrameSurface1 *surface)
 #if (MFX_VERSION >= 1031)
     case MFX_FOURCC_Y216:
 #endif
-
         break;
     default:
         return -1;
@@ -1174,9 +1158,9 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
     // Since DECODE uses internal allocation at init step (when we can't actually understand whether user will use
     // MSDK 2.0 interface or not) we are forcing 1.x interface in case if ext allocator set
 
-    bool* core20_interface = reinterpret_cast<bool*>(m_core->QueryCoreInterface(MFXICORE_API_2_0_GUID));
+    bool core20_interface = Supports20FeatureSet(*m_core);
 
-    m_redirect_to_msdk20 = core20_interface && *core20_interface && !m_core->IsExternalFrameAllocator();
+    m_redirect_to_msdk20 = core20_interface && !m_core->IsExternalFrameAllocator();
 
     if (m_redirect_to_msdk20)
     {
@@ -1237,28 +1221,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
             m_surface20_cache_output_surfaces.reset(new SurfaceCache(*msdk20_core, needVppJPEG ? request_type : output_type, needVppJPEG ? request_info : output_info));
         }
 
-        mfxU32 bit_depth;
-
-        switch (video_param.mfx.FrameInfo.FourCC)
-        {
-        case MFX_FOURCC_P010:
-        case MFX_FOURCC_P210:
-#if (MFX_VERSION >= 1027)
-        case MFX_FOURCC_Y210:
-        case MFX_FOURCC_Y410:
-#endif
-            bit_depth = 10;
-            break;
-
-#if (MFX_VERSION >= 1031)
-        case MFX_FOURCC_P016:
-        case MFX_FOURCC_Y216:
-        case MFX_FOURCC_Y416:
-            bit_depth = 12;
-#endif
-        default:
-            bit_depth = 8;
-        }
+        mfxU32 bit_depth              = BitDepthFromFourcc(video_param.mfx.FrameInfo.FourCC);
 
         UMC::ColorFormat color_format;
 
@@ -2306,13 +2269,13 @@ mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surfac
         {
             mfxFrameSurface1 & internalSurf = m_frameDataInternal.GetSurface(index);
             mfxFrameSurface1 surface = MakeSurface(internalSurf.Info, internalSurf.Data.MemId);
-
+            mfxU16 outMemType = static_cast<mfxU16>((m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET) |
+                                                                                 MFX_MEMTYPE_EXTERNAL_FRAME);
             //Performance issue. We need to unlock mutex to let decoding thread run async.
             guard.Unlock();
             sts = m_pCore->DoFastCopyWrapper(surface_work,
-                                             MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY,
+                                             outMemType,
                                              &surface,
-
                                              MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET
                                              );
             guard.Lock();
