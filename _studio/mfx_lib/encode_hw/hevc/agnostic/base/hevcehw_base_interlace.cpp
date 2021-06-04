@@ -555,7 +555,39 @@ void Interlace::SubmitTask(const FeatureBlocks& , TPushST Push)
 
         return MFX_ERR_NONE;
     });
+
+    Push(BLK_SkipFrame
+        , [this](StorageW& global, StorageW& s_task) -> mfxStatus
+    {
+        auto& task = Task::Common::Get(s_task);
+        auto& allocRec = Glob::AllocRec::Get(global);
+
+        //skip second field when the first one is skipped
+        bool b2ndFieldSkip =
+            !task.bSkip
+            && task.b2ndField
+            && !!(allocRec.GetFlag(task.DPB.Active[task.RefPicList[0][0]].Rec.Idx) & REC_SKIPPED);
+
+        task.bSkip |= b2ndFieldSkip;
+        m_b2ndFieldRecode = b2ndFieldSkip && !(!!(allocRec.GetFlag(task.DPB.Active[task.RefPicList[0][0]].Rec.Idx) & REC_READY));
+
+        return MFX_ERR_NONE;
+    });
 }
 
+void Interlace::QueryTask(const FeatureBlocks&, TPushQT Push)
+{
+    Push(BLK_QueryTask
+        , [this](StorageW& /*global*/, StorageW& s_task) -> mfxStatus
+    {
+        MFX_CHECK(m_b2ndFieldRecode, MFX_ERR_NONE);
+
+        m_b2ndFieldRecode = false;
+        auto& task = Task::Common::Get(s_task);
+        task.bRecode = true;
+
+        return MFX_ERR_NONE;
+    });
+}
 
 #endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)
