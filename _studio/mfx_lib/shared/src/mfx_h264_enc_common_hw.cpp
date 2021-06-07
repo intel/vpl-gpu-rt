@@ -2436,8 +2436,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (IsOn(extOpt3->FadeDetection)
             )
         {
-            changed = true;
-            extOpt3->FadeDetection = MFX_CODINGOPTION_OFF;
+            unsupported = true;
+            extOpt3->FadeDetection = 0;
         }
     }
 
