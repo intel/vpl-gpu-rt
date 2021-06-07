@@ -630,7 +630,7 @@ public:
     }
 
 private:
-    std::deque<Frame>* frames = nullptr;
+    std::deque<Frame>* frames;
 };
 
 struct VC1FrameBuffer
