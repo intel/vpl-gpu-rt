@@ -23,7 +23,7 @@
 
 #include "mfx_common.h"
 
-#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
+#if defined (MFX_ENABLE_H264_VIDEO_ENCODE)
 
 #include "umc_mutex.h"
 
@@ -296,10 +296,8 @@ namespace MfxHwH264Encode
         std::vector<mfxU8>             m_mb_noskip_buffer;
     };
 
-    //extend encoder to FEI interface
-
 }; // namespace
 
-#endif // MFX_ENABLE_H264_VIDEO_ENCODE && (MFX_VA_LINUX)
+#endif // MFX_ENABLE_H264_VIDEO_ENCODE
 #endif // __MFX_H264_ENCODE_VAAPI__H
 /* EOF */

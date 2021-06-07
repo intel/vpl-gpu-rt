@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
-#ifdef MFX_ENABLE_H264_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_H264_VIDEO_ENCODE
 #include <algorithm>
 #include <numeric>
 #include <cmath>
@@ -192,19 +192,19 @@ mfxStatus MFXHWVideoENCODEH264::Init(mfxVideoParam * par)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     if (GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC))
         if (par->mfx.CodecProfile == 0)
             par->mfx.CodecProfile = MFX_PROFILE_AVC_SCALABLE_BASELINE;
 #endif
 
     std::unique_ptr<VideoENCODE> impl(
-#ifdef MFX_ENABLE_MVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_MVC_VIDEO_ENCODE
         IsMvcProfile(par->mfx.CodecProfile)
 
         ? (VideoENCODE *) new ImplementationMvc(m_core) :
 #endif
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
             IsSvcProfile(par->mfx.CodecProfile)
                 ? (VideoENCODE *) new ImplementationSvc(m_core) :
 #endif
@@ -294,7 +294,7 @@ mfxStatus MFXHWVideoENCODEH264::Query(
     void *          state)
 {
 
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     // FIXME: remove when mfx_transcoder start sending correct Profile
     if (in && in->mfx.CodecProfile == 0)
         if (GetExtBuffer(in->ExtParam, in->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC))
@@ -311,12 +311,12 @@ mfxStatus MFXHWVideoENCODEH264::Query(
     if (in == 0)
         return ImplementationAvc::Query(core, in, out);
 
-#ifdef MFX_ENABLE_MVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_MVC_VIDEO_ENCODE
     if (IsMvcProfile(in->mfx.CodecProfile))
         return ImplementationMvc::Query(core, in, out);
 #endif
 
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     if (IsSvcProfile(in->mfx.CodecProfile))
         return ImplementationSvc::Query(core, in, out);
 #endif
@@ -342,7 +342,7 @@ mfxStatus MFXHWVideoENCODEH264::QueryIOSurf(
     mfxVideoParam *        par,
     mfxFrameAllocRequest * request)
 {
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     if (GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC))
         if (par->mfx.CodecProfile == 0)
             par->mfx.CodecProfile = MFX_PROFILE_AVC_SCALABLE_BASELINE;
@@ -354,7 +354,7 @@ mfxStatus MFXHWVideoENCODEH264::QueryIOSurf(
     if (IsMvcProfile(par->mfx.CodecProfile) && !IsHwMvcEncSupported())
         return MFX_WRN_PARTIAL_ACCELERATION;
 
-#ifdef MFX_ENABLE_MVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_MVC_VIDEO_ENCODE
     if (IsMvcProfile(par->mfx.CodecProfile))
         return ImplementationMvc::QueryIOSurf(core, par, request);
 #endif
@@ -4306,7 +4306,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
                 PrepareSeiMessageBuffer(m_video, *task, fieldId, m_sei);
 
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
                 bool needSvcPrefix = IsSvcProfile(m_video.mfx.CodecProfile) || (m_video.calcParam.numTemporalLayer > 0);
 #else
                 bool needSvcPrefix = (m_video.calcParam.numTemporalLayer > 0);
@@ -5442,4 +5442,4 @@ void ImplementationAvc::addPartialOutputOffset(DdiTask & task, mfxU64 offset, bo
 #endif
 
 
-#endif // MFX_ENABLE_H264_VIDEO_ENCODE_HW
+#endif // MFX_ENABLE_H264_VIDEO_ENCODE

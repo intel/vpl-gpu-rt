@@ -1313,11 +1313,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
             m_umc_allocator_adapter->SetExternalFramesResponse(&m_response);
         }
 
-#if defined(__APPLE__)
-        UMC::Status umcSts = m_umc_allocator_adapter->InitMfx(0, m_core, &video_param, &request, &m_response, !useInternal, true);
-#else
         UMC::Status umcSts = m_umc_allocator_adapter->InitMfx(0, m_core, &video_param, &request, &m_response, !useInternal, platform == MFX_PLATFORM_SOFTWARE);
-#endif
         MFX_CHECK_WITH_THROW(umcSts == UMC::UMC_OK, MFX_ERR_MEMORY_ALLOC, mfx::mfxStatus_exception(MFX_ERR_MEMORY_ALLOC));
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE

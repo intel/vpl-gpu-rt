@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2020 Intel Corporation
+// Copyright (c) 2008-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -36,10 +36,6 @@
 
 #if defined (MFX_ENABLE_H264_VIDEO_ENCODE)
 #include "mfx_h264_encode_hw.h"
-
-#if defined(MFX_ENABLE_H264_FEI_ENCPAK)
-#include "mfxfei.h"
-#endif
 #endif //MFX_ENABLE_H264_VIDEO_ENCODE
 
 #if defined (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
@@ -54,19 +50,16 @@
 #include "../../encode_hw/hevc/hevcehw_disp.h"
 #endif
 
-#if defined (MFX_ENABLE_VP9_VIDEO_ENCODE_HW) && !defined (AS_VP9E_PLUGIN)
+#if defined (MFX_ENABLE_VP9_VIDEO_ENCODE)
 #include "mfx_vp9_encode_hw.h"
 #endif
 
 #include "libmfx_core.h"
-#include <libmfx_core_interface.h> // for MFXIFEIEnabled_GUID
-
-
 
 struct CodecKey {
     const mfxU32 codecId;
 
-    CodecKey(mfxU32 codecId, bool fei) : codecId(codecId) {}
+    CodecKey(mfxU32 codecId) : codecId(codecId) {}
 
     enum {
         // special value for codecId to denote plugin, it must be
@@ -75,7 +68,6 @@ struct CodecKey {
     };
 
     // Exact ordering rule is unsignificant as far as it provides strict weak ordering.
-    // Compare for fei after codecId because fei values are mostly same.
     friend bool operator<(CodecKey l, CodecKey r)
     {
         return l.codecId < r.codecId;
@@ -100,47 +92,12 @@ typedef std::map<CodecKey, EHandlers> CodecId2Handlers;
 
 static const CodecId2Handlers codecId2Handlers =
 {
-#ifdef MFX_ENABLE_USER_ENCODE
+#if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
     {
         {
-            CodecKey::MFX_CODEC_DUMMY_FOR_PLUGIN,
-            // .fei =
-            false
+            MFX_CODEC_AVC
         },
         {
-            // .primary =
-            {
-                // .ctor =
-                nullptr,
-                // .query =
-                [](mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
-                {
-                    assert(session->m_plgEnc);
-                    return session->m_plgEnc->Query(session->m_pCORE.get(), in, out);
-                },
-                // .queryIOSurf =
-                [](mfxSession session, mfxVideoParam *par, mfxFrameAllocRequest *request)
-                {
-                    assert(session->m_plgEnc);
-                    return session->m_plgEnc->QueryIOSurf(session->m_pCORE.get(), par, request, 0);
-                }
-            },
-            // .fallback =
-            {
-            }
-        }
-    },
-#endif
-
-#if defined(MFX_ENABLE_H264_VIDEO_ENCODE) && ! defined(AS_H264LA_PLUGIN)
-    {
-        {
-            MFX_CODEC_AVC,
-            // .fei =
-            false
-        },
-        {
-#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
             // .primary =
             {
                 // .ctor =
@@ -171,46 +128,6 @@ static const CodecId2Handlers codecId2Handlers =
             // .fallback =
             {
             }
-#else // MFX_ENABLE_H264_VIDEO_ENCODE_HW
-            // .primary =
-            {
-                // .ctor =
-                [](VideoCORE* core, mfxU16 codecProfile, mfxStatus *mfxRes)
-                -> VideoENCODE*
-                {
-                    (void)codecProfile;
-#ifdef MFX_ENABLE_MVC_VIDEO_ENCODE
-                    if(codecProfile == MFX_PROFILE_AVC_MULTIVIEW_HIGH || codecProfile == MFX_PROFILE_AVC_STEREO_HIGH)
-                        return new MFXVideoENCODEMVC(core, mfxRes);
-#endif // MFX_ENABLE_MVC_VIDEO_ENCODE
-                    return new MFXVideoENCODEH264(core, mfxRes);
-                },
-                // .query =
-                [](mfxSession /*session*/, mfxVideoParam *in, mfxVideoParam *out)
-                {
-                    mfxStatus mfxRes;
-  #ifdef MFX_ENABLE_MVC_VIDEO_ENCODE
-                    if(in && (in->mfx.CodecProfile == MFX_PROFILE_AVC_MULTIVIEW_HIGH || in->mfx.CodecProfile == MFX_PROFILE_AVC_STEREO_HIGH))
-                        mfxRes = MFXVideoENCODEMVC::Query(in, out);
-                    else
-  #endif
-                        mfxRes = MFXVideoENCODEH264::Query(in, out);
-                    return mfxRes;
-                },
-                // .queryIOSurf =
-                [](mfxSession /*session*/, mfxVideoParam *par, mfxFrameAllocRequest *request)
-                {
-                    mfxStatus mfxRes;
-#ifdef MFX_ENABLE_MVC_VIDEO_ENCODE
-                    if (par->mfx.CodecProfile == MFX_PROFILE_AVC_MULTIVIEW_HIGH || par->mfx.CodecProfile == MFX_PROFILE_AVC_STEREO_HIGH)
-                        mfxRes = MFXVideoENCODEMVC::QueryIOSurf(par, request);
-                    else
-#endif // MFX_ENABLE_MVC_VIDEO_ENCODE
-                        mfxRes = MFXVideoENCODEH264::QueryIOSurf(par, request);
-                    return mfxRes;
-                }
-            }
-#endif // MFX_ENABLE_H264_VIDEO_ENCODE_HW
         }
     },
 #endif // MFX_ENABLE_H264_VIDEO_ENCODE
@@ -218,9 +135,7 @@ static const CodecId2Handlers codecId2Handlers =
 #ifdef MFX_ENABLE_MPEG2_VIDEO_ENCODE
     {
         {
-            MFX_CODEC_MPEG2,
-            // .fei =
-            false
+            MFX_CODEC_MPEG2
         },
         {
             // .primary =
@@ -257,9 +172,7 @@ static const CodecId2Handlers codecId2Handlers =
 #if defined(MFX_ENABLE_MJPEG_VIDEO_ENCODE)
     {
         {
-            MFX_CODEC_JPEG,
-            // .fei =
-            false
+            MFX_CODEC_JPEG
         },
         {
             // .primary =
@@ -285,6 +198,9 @@ static const CodecId2Handlers codecId2Handlers =
                 {
                     return MFXVideoENCODEMJPEG_HW::QueryImplsDescription(core, caps, ah);
                 }
+            },
+            // .fallback =
+            {
             }
         }
     },
@@ -293,9 +209,7 @@ static const CodecId2Handlers codecId2Handlers =
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
     {
         {
-            MFX_CODEC_HEVC,
-            // .fei =
-            false
+            MFX_CODEC_HEVC
         },
         {
             // .primary =
@@ -325,12 +239,10 @@ static const CodecId2Handlers codecId2Handlers =
     },
 #endif // MFX_ENABLE_H265_VIDEO_ENCODE
 
-#if defined(MFX_ENABLE_VP9_VIDEO_ENCODE_HW)
+#if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
     {
         {
-            MFX_CODEC_VP9,
-            // .fei =
-            false
+            MFX_CODEC_VP9
         },
         {
             // .primary =
@@ -362,7 +274,7 @@ static const CodecId2Handlers codecId2Handlers =
             }
         }
     },
-#endif // MFX_ENABLE_VP9_VIDEO_ENCODE_HW
+#endif // MFX_ENABLE_VP9_VIDEO_ENCODE
 
 }; // codecId2Handlers
 
@@ -373,7 +285,7 @@ VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
     mfxU32 CodecId = par.mfx.CodecId;
 
     // create a codec instance
-    auto handler = codecId2Handlers.find(CodecKey(CodecId, false));
+    auto handler = codecId2Handlers.find(CodecKey(CodecId));
     if (handler == codecId2Handlers.end())
     {
         return nullptr;
@@ -423,17 +335,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
     {
         CodecId2Handlers::const_iterator handler;
 
-#if defined(MFX_ENABLE_USER_ENCODE)
-        if (session->m_plgEnc.get())
-        {
-            handler = codecId2Handlers.find(CodecKey(CodecKey::MFX_CODEC_DUMMY_FOR_PLUGIN, /*fei=*/false));
-            assert(handler != codecId2Handlers.end());
-        }
-        // if plugin is not supported, or wrong parameters passed we should not look into library
-        else
-#endif //!MFX_ENABLE_USER_ENCODE
-
-        handler = codecId2Handlers.find(CodecKey(out->mfx.CodecId, false));
+        handler = codecId2Handlers.find(CodecKey(out->mfx.CodecId));
 
         mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_UNSUPPORTED
             : (handler->second.primary.query)(session, in, out);
@@ -465,7 +367,6 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
     }
 
 #if (MFX_VERSION >= 1025)
-#if !defined(AS_HEVCE_PLUGIN)
     if (mfxRes == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM || mfxRes == MFX_ERR_INCOMPATIBLE_VIDEO_PARAM)
     {
         try
@@ -486,7 +387,6 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, "Unknown exception was caught while comparing In and Out VideoParams.");
         }
     }
-#endif
 #endif
 
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, out);
@@ -511,17 +411,7 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
     {
         CodecId2Handlers::const_iterator handler;
 
-#if defined(MFX_ENABLE_USER_ENCODE)
-        if (session->m_plgEnc.get())
-        {
-            handler = codecId2Handlers.find(CodecKey(CodecKey::MFX_CODEC_DUMMY_FOR_PLUGIN, /*fei=*/false));
-            assert(handler != codecId2Handlers.end());
-        }
-        // if plugin is not supported, or wrong parameters passed we should not look into library
-        else
-#endif //MFX_ENABLE_USER_ENCODE
-
-        handler = codecId2Handlers.find(CodecKey(par->mfx.CodecId, false));
+        handler = codecId2Handlers.find(CodecKey(par->mfx.CodecId));
 
         mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_INVALID_VIDEO_PARAM
             : (handler->second.primary.queryIOSurf)(session, par, request);

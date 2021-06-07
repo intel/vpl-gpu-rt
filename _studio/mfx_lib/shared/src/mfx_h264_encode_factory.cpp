@@ -22,7 +22,7 @@
 
 #include "mfx_common.h"
 
-#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
+#if defined (MFX_ENABLE_H264_VIDEO_ENCODE)
 
 #include "mfx_h264_encode_interface.h"
     #include "mfx_h264_encode_vaapi.h"
@@ -33,7 +33,7 @@ using namespace MfxHwH264Encode;
 // platform switcher
 
 // tmp solution
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
 DriverEncoder* MfxHwH264Encode::CreatePlatformSvcEncoder( VideoCORE * core )
 {
     assert( core );
@@ -54,5 +54,5 @@ DriverEncoder* MfxHwH264Encode::CreatePlatformH264Encoder( VideoCORE* core )
 
 } // DriverEncoder* MfxHwH264Encode::CreatePlatformH264Encoder( VideoCORE* core )
 
-#endif // #if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
+#endif // #if defined (MFX_ENABLE_H264_VIDEO_ENCODE)
 /* EOF */
