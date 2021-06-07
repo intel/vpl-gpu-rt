@@ -77,9 +77,6 @@ const mfxU32 g_TABLE_DO_USE [] =
 #if (MFX_VERSION >= 1025)
     MFX_EXTBUFF_VPP_COLOR_CONVERSION,
 #endif
-#ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
-    MFX_EXTBUFF_VPP_VARIANCE_REPORT,
-#endif
     MFX_EXTBUFF_VPP_DEINTERLACING,
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
@@ -637,14 +634,6 @@ void ShowPipeline( std::vector<mfxU32> pipelineList )
             }
 #endif
 
-#ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
-            case (mfxU32)MFX_EXTBUFF_VPP_VARIANCE_REPORT:
-            {
-                fprintf(stderr, "VARIANCE_REP \n");
-                break;
-            }
-#endif
-
             case (mfxU32)MFX_EXTBUFF_VPP_COMPOSITE:
             {
                 fprintf(stderr, "COMPOSITE \n");
@@ -824,15 +813,6 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
         index++;
     }
 
-#ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
-    /* [VarianceRep] FILTER */
-    if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_VARIANCE_REPORT ) )
-    {
-        newList[index] = MFX_EXTBUFF_VPP_VARIANCE_REPORT;
-        index++;
-    }
-#endif
-
     if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION ) )
     {
         newList[index] = MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION;
@@ -938,7 +918,6 @@ void ReorderPipelineListForSpeed(
     mfxVideoParam* videoParam,
     std::vector<mfxU32> & pipelineList)
 {
-
     // optimization in case of FRC
     if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION ) )
     {
@@ -965,7 +944,6 @@ void ReorderPipelineListForSpeed(
             }
         }
     }
-
 } // void ReorderPipelineListForSpeed(mfxVideoParam* videoParam, std::vector<mfxU32> & pipelineList)
 
 
@@ -1453,7 +1431,6 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
     {
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
-
 
     /* Frame Rate */
     if (0 == info->FrameRateExtN || 0 == info->FrameRateExtD)
@@ -2238,7 +2215,6 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
     {
         list.push_back(MFX_EXTBUFF_VPP_IMAGE_STABILIZATION);
     }
-
 
     if(caps.uRotation)
     {

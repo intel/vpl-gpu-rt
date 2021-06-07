@@ -75,7 +75,7 @@ int main(int argc, char** argv)
         rewind(f);
         buf = (unsigned char*)malloc(size);
         result = fread(buf,1,size,f);
-        fclose(f);   
+        fclose(f);
     }
 
     if( buf )
@@ -113,7 +113,7 @@ int main(int argc, char** argv)
             fprintf(f,"#include \"%s_isa.h\"\n\n", bufname);
             fprintf(f,"const unsigned char %s[%lu] = {\n",bufname, size);
             for(i=0; i<size; i++)
-            {                
+            {
                 fprintf(f,"0x%02x", buf[i]);
                 if(i != size-1) fprintf(f,",");
                 if(i == (width-1)){

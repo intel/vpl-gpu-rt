@@ -254,16 +254,6 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
             }
 #endif
 
-#ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
-            case (mfxU32)MFX_EXTBUFF_VPP_VARIANCE_REPORT:
-            {
-                // fake for SW compatibility
-                inputFramesCount[filterIndex]  = 2;
-                outputFramesCount[filterIndex] = 1;
-                break;
-            }
-#endif
-
             case (mfxU32)MFX_EXTBUFF_VPP_COMPOSITE:
             {
                 for (mfxU32 i = 0; i < pParam->NumExtParam; i++)
