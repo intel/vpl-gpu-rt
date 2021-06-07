@@ -127,7 +127,6 @@ VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(
           , m_bCmCopy(false)
           , m_bCmCopyAllowed(false)
 #endif
-          , m_bHEVCFEIEnabled(false)
 {
 } // VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(...)
 
@@ -1173,11 +1172,6 @@ void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
     if (MFXIHWMBPROCRATE_GUID == guid)
     {
         return (void*) &this->m_encode_mbprocrate;
-    }
-
-    if (MFXIFEIEnabled_GUID == guid)
-    {
-        return &m_bHEVCFEIEnabled;
     }
 
     return Base::QueryCoreInterface(guid);

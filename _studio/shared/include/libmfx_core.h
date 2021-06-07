@@ -276,9 +276,6 @@ protected:
 
     API_1_19_Adapter                           m_API_1_19;
 
-    // no HEVC FEI, always false
-    static bool                                s_bHEVCFEIEnabled;
-
     mfxU16                                     m_deviceId;
 
     bool                                       m_enabled20Interface = false;
