@@ -540,6 +540,7 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
         bool m_segBufPassed;
 
         bool m_tempLayersBufPassed;
+        bool m_webRTCMode;
         mfxU16 m_numLayers;
 
         void CalculateInternalParams();
