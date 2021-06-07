@@ -81,18 +81,18 @@ mfxStatus MFX_CDECL MFXVideoENC_Init(mfxSession session, mfxVideoParam *par);
 mfxStatus MFX_CDECL MFXVideoENC_Reset(mfxSession session, mfxVideoParam *par);
 mfxStatus MFX_CDECL MFXVideoENC_Close(mfxSession session);
 
-typedef struct _mfxENCInput{} mfxENCInput;
-typedef struct _mfxENCOutput{} mfxENCOutput;
+typedef struct _mfxENCInput{ mfxU8 reserved; } mfxENCInput;
+typedef struct _mfxENCOutput{ mfxU8 reserved; } mfxENCOutput;
 mfxStatus MFX_CDECL MFXVideoENC_ProcessFrameAsync(mfxSession session, mfxENCInput *in, mfxENCOutput *out, mfxSyncPoint *syncp);
 
 mfxStatus MFX_CDECL MFXVideoENC_GetVideoParam(mfxSession session, mfxVideoParam *par);
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {} mfxPAKInput;
+typedef struct { mfxU8 reserved; } mfxPAKInput;
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {} mfxPAKOutput;
+typedef struct { mfxU8 reserved; } mfxPAKOutput;
 MFX_PACK_END()
 
 mfxStatus MFX_CDECL MFXVideoPAK_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out);
