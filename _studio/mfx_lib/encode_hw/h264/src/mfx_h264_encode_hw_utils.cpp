@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
-#ifdef MFX_ENABLE_H264_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_H264_VIDEO_ENCODE
 
 #include <functional>
 #include <algorithm>
@@ -69,7 +69,7 @@ namespace MfxHwH264Encode
             mfxExtMVCSeqDesc & extMvc = GetExtBufferRef(par);
             numFrameMin = mfxU16(std::min(0xffffu, numFrameMin * extMvc.NumView));
         }
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
         if (IsSvcProfile(par.mfx.CodecProfile))//SVC
         {
             if (par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
@@ -2374,7 +2374,7 @@ void MfxHwH264Encode::PutSeiMessage(
     }
 }
 
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
 namespace
 {
     mfxU32 PutScalableInfoSeiPayload(
@@ -2480,7 +2480,7 @@ mfxU32 MfxHwH264Encode::PutScalableInfoSeiMessage(
 
     return obs.GetNumBits() - initialNumBits;
 }
-#endif // #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#endif // #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
 
 // MVC BD {
 void MfxHwH264Encode::PutSeiMessage(
@@ -4840,4 +4840,4 @@ void CabacPackerSimple::TerminateEncode()
     m_BinCountsInNALunits ++;
 }
 
-#endif // MFX_ENABLE_H264_VIDEO_ENCODE_HW
+#endif // MFX_ENABLE_H264_VIDEO_ENCODE

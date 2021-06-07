@@ -56,9 +56,6 @@ void RawHeader::Reset()
 {
     m_id = -1;
     m_buffer.clear();
-#ifdef __APPLE__
-    m_rbspSize = 0;
-#endif
 }
 
 int32_t RawHeader::GetID() const
@@ -81,18 +78,6 @@ void RawHeader::Resize(int32_t id, size_t newSize)
     m_id = id;
     m_buffer.resize(newSize);
 }
-
-#ifdef __APPLE__
-size_t RawHeader::GetRBSPSize()
-{
-    return m_rbspSize;
-}
-
-void RawHeader::SetRBSPSize(size_t rbspSize)
-{
-    m_rbspSize = rbspSize;
-}
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
