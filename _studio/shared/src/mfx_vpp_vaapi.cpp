@@ -411,29 +411,33 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
                 case VAProcFilterColorBalance:
                     caps.uProcampFilter = 1;
                     break;
-               default:
+                case VAProcFilter3DLUT:
+                    caps.u3DLut = 1;
+                    break;
+                default:
                     break;
             }
         }
     }
 
-    mfxU32 num_3dlut_caps = 0;
-    vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
-                                       m_vaContextVPP,
-                                       VAProcFilter3DLUT,
-                                       m_3dlutCaps,
-                                       &num_3dlut_caps);
-    MFX_CHECK(((VA_STATUS_SUCCESS == vaSts) || (VA_STATUS_ERROR_MAX_NUM_EXCEEDED == vaSts)), MFX_ERR_DEVICE_FAILED);
-    if (num_3dlut_caps != 0)
-    {
-        m_3dlutCaps = (VAProcFilterCap3DLUT*)malloc(sizeof(VAProcFilterCap3DLUT) * num_3dlut_caps);
-        memset(m_3dlutCaps, 0, sizeof(VAProcFilterCap3DLUT) * num_3dlut_caps);
+    if(caps.u3DLut == 1){
+        mfxU32 num_3dlut_caps = 0;
         vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
-                                m_vaContextVPP,
-                                VAProcFilter3DLUT,
-                                m_3dlutCaps, &num_3dlut_caps);
-        MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-        caps.u3DLut = 1;
+                                           m_vaContextVPP,
+                                           VAProcFilter3DLUT,
+                                           m_3dlutCaps,
+                                           &num_3dlut_caps);
+        MFX_CHECK(((VA_STATUS_SUCCESS == vaSts) || (VA_STATUS_ERROR_MAX_NUM_EXCEEDED == vaSts)), MFX_ERR_DEVICE_FAILED);
+        if (num_3dlut_caps != 0)
+        {
+            m_3dlutCaps = (VAProcFilterCap3DLUT*)malloc(sizeof(VAProcFilterCap3DLUT) * num_3dlut_caps);
+            memset(m_3dlutCaps, 0, sizeof(VAProcFilterCap3DLUT) * num_3dlut_caps);
+            vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
+                                    m_vaContextVPP,
+                                    VAProcFilter3DLUT,
+                                    m_3dlutCaps, &num_3dlut_caps);
+            MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        }
     }
 
     memset(&m_pipelineCaps,  0, sizeof(VAProcPipelineCaps));
@@ -485,6 +489,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         case MFX_FOURCC_YUY2:
         case MFX_FOURCC_UYVY:
         case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
 #if defined (MFX_ENABLE_FOURCC_RGB565)
         case MFX_FOURCC_RGB565:
 #endif
@@ -518,6 +523,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         case MFX_FOURCC_YV12:
         case MFX_FOURCC_YUY2:
         case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
         case MFX_FOURCC_A2RGB10:
 #if (MFX_VERSION >= 1027)
         case MFX_FOURCC_AYUV:

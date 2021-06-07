@@ -70,6 +70,7 @@ namespace MfxHwVideoProcessing
         MFX_FOURCC_YUY2      ,
         MFX_FOURCC_RGB3      ,
         MFX_FOURCC_RGB4      ,
+        MFX_FOURCC_BGR4      ,
 #if defined (MFX_ENABLE_FOURCC_RGB565)
         MFX_FOURCC_RGB565    ,
 #endif
