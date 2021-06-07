@@ -108,7 +108,7 @@ public:
 private:
 
     // Opaq processing
-    mfxFrameSurface1 *GetNativeSurface(mfxFrameSurface1 *surface, mfxU32 type )
+    mfxFrameSurface1 *GetNativeSurface(mfxFrameSurface1 *surface, mfxU32 type)
     {
         return surface;
     }

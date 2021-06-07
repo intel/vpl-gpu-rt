@@ -180,7 +180,7 @@ Status VC1VideoDecoderHW::Close(void)
     m_frameData = NULL;
     m_pHeap = NULL;
 
-    memset(static_cast<void*>(&m_pInitContext),0,sizeof(VC1Context));
+    memset(&m_pInitContext,0,sizeof(VC1Context));
 
     m_pMemoryAllocator = 0;
 

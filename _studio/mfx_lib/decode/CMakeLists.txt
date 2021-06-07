@@ -177,6 +177,10 @@ list(APPEND sources
     ${UMC_CODECS}/av1_dec/src/umc_av1_va_packer_vaapi.cpp
     )
 
+set(IPP_LIBS ipp)
+
+include(sources_ext.cmake OPTIONAL)
+
 add_library(decode_hw STATIC ${sources} ${sources_hw})
 target_include_directories(decode_hw PUBLIC ${include_dirs})
 
@@ -186,7 +190,6 @@ target_link_libraries(decode_hw
     umc_va_hw
   PRIVATE
     mfx_sdl_properties
-    ipp
+    ${IPP_LIBS}
   )
 
-include(sources_ext.cmake OPTIONAL)
