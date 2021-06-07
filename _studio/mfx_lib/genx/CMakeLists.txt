@@ -120,7 +120,7 @@ if(MFX_ENABLE_KERNELS)
 
   set( prefix ${MSDK_GENX_ROOT}/h264_encode/isa )
   list( APPEND sources
-    ${MSDK_GENX_ROOT}/h264_encode/src/genx_hsw_simple_me_proto.cpp
+    ${MSDK_GENX_ROOT}/h264_encode/src/genx_simple_me_proto.cpp
     ${prefix}/genx_simple_me_gen12lp_isa.cpp
     ${prefix}/genx_histogram_gen12lp_isa.cpp
   )
