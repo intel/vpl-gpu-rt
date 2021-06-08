@@ -62,7 +62,7 @@ bool VC1FrameDescriptor::Init(uint32_t         DescriporID,
                                       return false;
 
         m_pContext = (VC1Context*)(m_pMemoryAllocator->Lock(m_iMemContextID));
-        memset(static_cast<void*>(m_pContext),0,size_t(ptr));
+        memset(m_pContext,0,size_t(ptr));
         m_pContext->bp_round_count = -1;
         ptr = (uint8_t*)m_pContext;
 

@@ -18,8 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if !defined(OSX)
-
 #include "assert.h"
 #include "vm_shared_object.h"
 #include "cmrt_cross_platform.h"
@@ -649,6 +647,4 @@ CmEvent *CM_NO_EVENT = ((CmEvent *)(-1));
 #elif defined(__GNUC__)
   #pragma GCC diagnostic pop
 #endif
-
-#endif // !defined(OSX)
 

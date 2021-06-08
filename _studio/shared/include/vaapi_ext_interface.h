@@ -31,7 +31,7 @@
 #define VA_CODED_BUF_STATUS_HW_TEAR_DOWN 0x4000
 
 
-#ifdef MFX_ENABLE_VP8_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_VP8_VIDEO_ENCODE
 /* below is private VAAPI for VP8 Hybrid encoder */
 
 // entry point for ENC + hybrid PAK
@@ -102,6 +102,6 @@ typedef struct _VAEncMiscParameterVP8SegmentMapParams
     // VAEncMacroblockMapBufferType.
     char yac_quantization_index_delta[4];
 } VAEncMiscParameterVP8SegmentMapParams;
-#endif // #ifdef MFX_ENABLE_VP8_VIDEO_ENCODE_HW
+#endif // #ifdef MFX_ENABLE_VP8_VIDEO_ENCODE
 
 #endif // __VAAPI_EXT_INTERFACE_H__

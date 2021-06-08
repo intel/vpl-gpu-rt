@@ -565,7 +565,7 @@ namespace UMC
                     }
                 }
 
-                memset(static_cast<void*>(m_pContext), 0, sizeof(VC1Context));
+                memset(m_pContext, 0, sizeof(VC1Context));
 
 
                 //buf size should be divisible by 4

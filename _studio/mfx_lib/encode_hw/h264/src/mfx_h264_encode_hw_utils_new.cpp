@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
-#ifdef MFX_ENABLE_H264_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_H264_VIDEO_ENCODE
 
 #include <algorithm>
 
@@ -3794,4 +3794,4 @@ void MfxHwH264Encode::FillTaskScalingList(mfxExtSpsHeader const &extSps, mfxExtP
 }
 #endif //MFX_ENABLE_AVC_CUSTOM_QMATRIX
 
-#endif // MFX_ENABLE_H264_VIDEO_ENCODE_HW
+#endif // MFX_ENABLE_H264_VIDEO_ENCODE

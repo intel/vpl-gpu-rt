@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2020 Intel Corporation
+// Copyright (c) 2008-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2530,7 +2530,7 @@ mfxStatus  VideoVPPHW::Init(
             case MFX_HW_EHL:
             case MFX_HW_ICL_LP:
             case MFX_HW_JSL:
-                res = MFX_ERR_UNSUPPORTED;
+                return MFX_ERR_DEVICE_FAILED;
                 break;
             case MFX_HW_TGL_LP:
             case MFX_HW_DG1:
@@ -3113,7 +3113,6 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
     return (bIsFilterSkipped) ? MFX_WRN_FILTER_SKIPPED : MFX_ERR_NONE;
 } // mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
 
-
 mfxStatus VideoVPPHW::Close()
 {
     mfxStatus sts = MFX_ERR_NONE;
@@ -3138,7 +3137,6 @@ mfxStatus VideoVPPHW::Close()
 
     // sync workload mode by default
     m_workloadMode = VPP_SYNC_WORKLOAD;
-
 
 #if defined (MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
     m_SCD.Close();
@@ -5089,14 +5087,6 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
                     //continue; // stop working with ExtParam[i]
                 }
 
-#ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
-                if(MFX_EXTBUFF_VPP_VARIANCE_REPORT == extDoUse->AlgList[algIdx])
-                {
-                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
-                    continue; // stop working with ExtParam[i]
-                }
-#endif
-
                 if(MFX_EXTBUFF_VPP_SCENE_ANALYSIS == extDoUse->AlgList[algIdx])
                 {
                     sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
@@ -6059,7 +6049,6 @@ mfxStatus ConfigureExecuteParams(
                 config.m_surfCount[VPP_IN]  = std::max<mfxU16>(2, config.m_surfCount[VPP_IN]);
                 config.m_surfCount[VPP_OUT] = std::max<mfxU16>(2, config.m_surfCount[VPP_OUT]);
                 executeParams.frcModeOrig = static_cast<mfxU16>(GetMFXFrcMode(videoParam));
-
 
                 inDNRatio = (mfxF64) videoParam.vpp.In.FrameRateExtD / videoParam.vpp.In.FrameRateExtN;
                 outDNRatio = (mfxF64) videoParam.vpp.Out.FrameRateExtD / videoParam.vpp.Out.FrameRateExtN;
