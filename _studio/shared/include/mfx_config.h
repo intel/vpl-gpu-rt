@@ -28,15 +28,6 @@
 #undef  UMC_VA_LINUX
 #define UMC_VA_LINUX
 
-#if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN)
-    #if defined(HEVCE_EVALUATION)
-        #define MFX_MAX_ENCODE_FRAMES 1000
-    #endif
-    #if defined(HEVCD_EVALUATION)
-        #define MFX_MAX_DECODE_FRAMES 1000
-    #endif
-#endif
-
 #if defined(ANDROID)
     #include "mfx_android_defs.h"
 
@@ -46,9 +37,6 @@
     // enable defines
     #include "mfxconfig.h"
 
-    #if defined(AS_H264LA_PLUGIN)
-        #define MFX_ENABLE_LA_H264_VIDEO_HW
-    #endif
 #endif
 
 #define MFX_PRIVATE_AVC_ENCODE_CTRL_DISABLE
@@ -68,7 +56,6 @@
 #endif //MFX_ENABLE_MPEG2_VIDEO_DECODE
 
 #if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
-    #define MFX_ENABLE_H264_VIDEO_ENCODE_HW
     #if MFX_VERSION >= 1023
         #define MFX_ENABLE_H264_REPARTITION_CHECK
     #endif
@@ -90,20 +77,10 @@
         #define MFX_ENABLE_HW_ONLY_MPEG2_DECODER
     #endif
 
-    #if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
-        #define MFX_ENABLE_VP9_VIDEO_ENCODE_HW
-    #endif
-
-
     #define SYNCHRONIZATION_BY_VA_MAP_BUFFER
     #if !defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
         #define SYNCHRONIZATION_BY_VA_SYNC_SURFACE
     #endif
-
-#if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
-    #define MFX_ENABLE_VP9_VIDEO_ENCODE_HW
-#endif
-
 
 #if defined(MFX_ENABLE_VPP)
     #define MFX_ENABLE_VPP_COMPOSITION

@@ -92,7 +92,6 @@ VAAPIVideoProcessing::VAAPIVideoProcessing():
 #endif
 , m_numFilterBufs(0)
 , m_primarySurface4Composition(NULL)
-, m_3dlutCaps(NULL)
 , m_3dlutFilterID(VA_INVALID_ID)
 {
 
@@ -219,12 +218,6 @@ mfxStatus VAAPIVideoProcessing::Close(void)
     memset( (void*)&m_detailCaps, 0, sizeof(m_detailCaps));
     memset( (void*)&m_procampCaps,  0, sizeof(m_procampCaps));
     memset( (void*)&m_deinterlacingCaps, 0, sizeof(m_deinterlacingCaps));
-
-    if (m_3dlutCaps)
-    {
-        free(m_3dlutCaps);
-        m_3dlutCaps = NULL;
-    }
 
     return MFX_ERR_NONE;
 
@@ -425,17 +418,17 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
                                            m_vaContextVPP,
                                            VAProcFilter3DLUT,
-                                           m_3dlutCaps,
+                                           (void*)m_3dlutCaps.data(),
                                            &num_3dlut_caps);
         MFX_CHECK(((VA_STATUS_SUCCESS == vaSts) || (VA_STATUS_ERROR_MAX_NUM_EXCEEDED == vaSts)), MFX_ERR_DEVICE_FAILED);
         if (num_3dlut_caps != 0)
         {
-            m_3dlutCaps = (VAProcFilterCap3DLUT*)malloc(sizeof(VAProcFilterCap3DLUT) * num_3dlut_caps);
-            memset(m_3dlutCaps, 0, sizeof(VAProcFilterCap3DLUT) * num_3dlut_caps);
+            m_3dlutCaps.resize(num_3dlut_caps);
             vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
                                     m_vaContextVPP,
                                     VAProcFilter3DLUT,
-                                    m_3dlutCaps, &num_3dlut_caps);
+                                    (void*)m_3dlutCaps.data(),
+                                    &num_3dlut_caps);
             MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         }
     }

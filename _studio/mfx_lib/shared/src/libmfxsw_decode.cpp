@@ -62,11 +62,6 @@
 #include "mfx_av1_dec_decode.h"
 #endif
 
-#ifdef MFX_ENABLE_USER_DECODE
-#include "mfx_user_plugin.h"
-#endif
-
-
 template<>
 VideoDECODE* _mfxSession::Create<VideoDECODE>(mfxVideoParam& par)
 {
@@ -166,15 +161,6 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 
     try
     {
-#ifdef MFX_ENABLE_USER_DECODE
-        mfxRes = MFX_ERR_UNSUPPORTED;
-        if (session->m_plgDec.get())
-        {
-            mfxRes = session->m_plgDec->Query(session->m_pCORE.get(), in, out);
-        }
-        // unsupported reserved to codecid != requested codecid
-        if (MFX_ERR_UNSUPPORTED == mfxRes)
-#endif
         switch (out->mfx.CodecId)
         {
 #ifdef MFX_ENABLE_VC1_VIDEO_DECODE
@@ -254,15 +240,6 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
 
     try
     {
-#ifdef MFX_ENABLE_USER_DECODE
-        mfxRes = MFX_ERR_UNSUPPORTED;
-        if (session->m_plgDec.get())
-        {
-            mfxRes = session->m_plgDec->QueryIOSurf(session->m_pCORE.get(), par, 0, request);
-        }
-        // unsupported reserved to codecid != requested codecid
-        if (MFX_ERR_UNSUPPORTED == mfxRes)
-#endif
         switch (par->mfx.CodecId)
         {
 #ifdef MFX_ENABLE_VC1_VIDEO_DECODE
@@ -343,17 +320,6 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
 
     try
     {
-#ifdef MFX_ENABLE_USER_DECODE
-        mfxRes = MFX_ERR_UNSUPPORTED;
-        if (session->m_plgDec.get())
-        {
-            mfxRes = session->m_plgDec->DecodeHeader(session->m_pCORE.get(), bs, par);
-        }
-
-        // unsupported reserved to codecid != requested codecid
-        if (MFX_ERR_UNSUPPORTED == mfxRes)
-#endif
-
         switch (par->mfx.CodecId)
         {
 #ifdef MFX_ENABLE_VC1_VIDEO_DECODE
@@ -532,23 +498,6 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
             task.threadingPolicy = session->m_pDECODE->GetThreadingPolicy();
             // fill dependencies
             task.pDst[0] = *surface_out;
-#if defined(MFX_ENABLE_USER_DECODE)
-            // this is wa to remove external task dependency for HEVC SW decode plugin.
-            // need only because SW HEVC decode is pseudo
-            {
-                mfxPlugin plugin;
-                mfxPluginParam par;
-                if (session->m_plgDec.get())
-                {
-                    session->m_plgDec.get()->GetPlugin(plugin);
-                    MFX_CHECK_STS(plugin.GetPluginParam(plugin.pthis, &par));
-                    if (MFX_PLUGINID_HEVCD_SW == par.PluginUID)
-                    {
-                        task.pDst[0] = 0;
-                    }
-                }
-            }
-#endif //MFX_ENABLE_USER_DECODE
 
 #ifdef MFX_TRACE_ENABLE
             task.nParentId = MFX_AUTO_TRACE_GETID();

@@ -567,4 +567,4 @@ mfxStatus VAAPIEncoder::Destroy()
     return MFX_ERR_NONE;
 }
 
-#endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#endif //defined(MFX_ENABLE_MJPEG_VIDEO_ENCODE)

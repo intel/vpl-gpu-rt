@@ -24,8 +24,6 @@
 
 #include "mfx_common.h"
 
-#if !defined(OSX)
-
 /* Applicable for old and new CMAPI */
 
 #define CM_LINUX
@@ -2758,7 +2756,5 @@ int CreateKernel(CmDevice * device, CmProgram * program, const char * kernelName
 #elif defined(__GNUC__)
   #pragma GCC diagnostic pop
 #endif
-
-#endif // !defined(OSX)
 
 #endif // __CMRT_CROSS_PLATFORM_H__

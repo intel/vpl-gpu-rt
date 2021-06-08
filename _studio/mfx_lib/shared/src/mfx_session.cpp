@@ -264,13 +264,6 @@ _mfxVersionedSessionImpl::_mfxVersionedSessionImpl(mfxU32 adapterNum)
 
 _mfxVersionedSessionImpl::~_mfxVersionedSessionImpl(void)
 {
-#if defined(MFX_ENABLE_USER_ENC)
-    if (m_plgPreEnc.get())
-    {
-        m_plgPreEnc->PluginClose();
-    }
-    m_plgPreEnc.reset();
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

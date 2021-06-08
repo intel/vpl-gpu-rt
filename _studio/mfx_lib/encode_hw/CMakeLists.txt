@@ -71,10 +71,6 @@ set( sources
     hevc/agnostic/base/hevcehw_base_constraints.h
     hevc/agnostic/g12/hevcehw_g12_scc.h
 
-    hevc/linux/g12/hevcehw_g12_caps_lin.h
-    hevc/linux/g12/hevcehw_g12_lin.h
-    hevc/linux/g12/hevcehw_g12_rext_lin.h
-    hevc/linux/g12/hevcehw_g12_scc_lin.h
     hevc/linux/base/hevcehw_base_encoded_frame_info_lin.h
     hevc/linux/base/hevcehw_base_interlace_lin.h
     hevc/linux/base/hevcehw_base_lin.h
@@ -84,17 +80,10 @@ set( sources
     hevc/linux/base/hevcehw_base_weighted_prediction_lin.h
     hevc/linux/base/hevcehw_base_max_frame_size_lin.h
     hevc/linux/base/hevcehw_base_dirty_rect_lin.h
-    hevc/linux/base/hevcehw_base_interlace_lin.cpp
-    hevc/linux/base/hevcehw_base_lin.cpp
-    hevc/linux/base/hevcehw_base_roi_lin.cpp
-    hevc/linux/base/hevcehw_base_va_lin.cpp
-    hevc/linux/base/hevcehw_base_va_packer_lin.cpp
-    hevc/linux/base/hevcehw_base_weighted_prediction_lin.cpp
-    hevc/linux/base/hevcehw_base_max_frame_size_lin.cpp
-    hevc/linux/base/hevcehw_base_dirty_rect_lin.cpp
-    hevc/linux/g12/hevcehw_g12_lin.cpp
-    hevc/linux/g12/hevcehw_g12_rext_lin.cpp
-    hevc/linux/g12/hevcehw_g12_qp_modulation_lin.cpp
+    hevc/linux/g12/hevcehw_g12_caps_lin.h
+    hevc/linux/g12/hevcehw_g12_lin.h
+    hevc/linux/g12/hevcehw_g12_rext_lin.h
+    hevc/linux/g12/hevcehw_g12_scc_lin.h
     hevc/linux/g12/hevcehw_g12_qp_modulation_lin.h
 
     hevc/hevcehw_disp.cpp
@@ -123,8 +112,17 @@ set( sources
     hevc/agnostic/g12/hevcehw_g12_rext.cpp
     hevc/agnostic/g12/hevcehw_g12_scc.cpp
 
-    hevc/agnostic/g12/hevcehw_g12_scc_mode.cpp
-    hevc/agnostic/g12/hevcehw_g12_scc_mode.h
+    hevc/linux/base/hevcehw_base_interlace_lin.cpp
+    hevc/linux/base/hevcehw_base_lin.cpp
+    hevc/linux/base/hevcehw_base_roi_lin.cpp
+    hevc/linux/base/hevcehw_base_va_lin.cpp
+    hevc/linux/base/hevcehw_base_va_packer_lin.cpp
+    hevc/linux/base/hevcehw_base_weighted_prediction_lin.cpp
+    hevc/linux/base/hevcehw_base_max_frame_size_lin.cpp
+    hevc/linux/base/hevcehw_base_dirty_rect_lin.cpp
+    hevc/linux/g12/hevcehw_g12_lin.cpp
+    hevc/linux/g12/hevcehw_g12_qp_modulation_lin.cpp
+    hevc/linux/g12/hevcehw_g12_rext_lin.cpp
 
     shared/ehw_resources_pool.h
     shared/ehw_task_manager.h
@@ -172,8 +170,6 @@ target_include_directories(encode_hw
     h264/include
     mjpeg/include
     mpeg2/include
-    mvc/include
-    svc/include
     vp9/include
 
     ${MSDK_UMC_ROOT}/codec/mpeg2_enc/include
@@ -186,7 +182,6 @@ target_link_libraries(encode_hw
   PUBLIC
     mfx_static_lib
     umc_va_hw
-    $<$<BOOL:${MFX_ENABLE_LP_LOOKAHEAD}>:lpla>
     asc
     mctf_hw
     genx
