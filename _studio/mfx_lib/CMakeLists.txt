@@ -17,9 +17,9 @@ set(sources_common
     shared/src/libmfxsw_async.cpp
     shared/src/libmfxsw_decode.cpp
     shared/src/libmfxsw_encode.cpp
+    shared/src/libmfxsw_functions.cpp
     shared/src/libmfxsw_enc.cpp
     shared/src/libmfxsw_pak.cpp
-    shared/src/libmfxsw_functions.cpp
     shared/src/libmfxsw_plugin.cpp
     shared/src/libmfxsw_query.cpp
     shared/src/libmfxsw_session.cpp
