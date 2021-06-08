@@ -20,7 +20,7 @@
 
 #include "mfx_common.h"
 
-#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
+#if defined (MFX_ENABLE_H264_VIDEO_ENCODE)
 
 #ifndef __MFX_H264_ENCODE_INTERFACE__H
 #define __MFX_H264_ENCODE_INTERFACE__H
@@ -178,11 +178,11 @@ namespace MfxHwH264Encode
     };
 
     DriverEncoder* CreatePlatformH264Encoder( VideoCORE* core ); 
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     DriverEncoder* CreatePlatformSvcEncoder( VideoCORE* core );
 #endif
 
 }; // namespace
 
 #endif // __MFX_H264_ENCODE_INTERFACE__H
-#endif // #if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW) && defined(MFX_VA_WIN)
+#endif // #if defined (MFX_ENABLE_H264_VIDEO_ENCODE) && defined(MFX_VA_WIN)

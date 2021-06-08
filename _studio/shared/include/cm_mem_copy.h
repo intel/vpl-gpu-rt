@@ -25,8 +25,6 @@
 #include "mfxstructures.h"
 #include "ippi.h"
 
-#if !defined(OSX)
-
 #ifdef _MSVC_LANG
 #pragma warning(disable: 4505)
 #pragma warning(disable: 4100)
@@ -337,7 +335,5 @@ protected:
                                  std::map<CmBufferUP *,  SurfaceIndex *> & tableSysIndex);
 
 };
-
-#endif // !defined(MFX_VA_OSX)
 
 #endif // __CM_MEM_COPY_H__

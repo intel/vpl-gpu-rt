@@ -909,9 +909,6 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
     MFX_CHECK_NULL_PTR2(par, request);
 
     eMFXPlatform platform = MFX_Utility::GetPlatform(core, par);
-#if defined(__APPLE__)
-    platform = MFX_PLATFORM_SOFTWARE;
-#endif
 
     MFX_CHECK(platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
 
