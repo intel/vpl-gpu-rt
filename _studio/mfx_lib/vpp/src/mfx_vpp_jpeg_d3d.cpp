@@ -442,10 +442,12 @@ mfxStatus VideoVppJpegD3D::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, 
         {
             UMC::AutomaticUMCMutex guard(m_guard);
 
-            std::map<mfxMemId, mfxI32>::iterator it;
-            it = AssocIdx.find(pInputSurface->Data.MemId);
-            index = it->second;
-            AssocIdx.erase(it);
+            auto it = AssocIdx.find(pInputSurface->Data.MemId);
+            if(it != AssocIdx.end())
+            {
+                index = it->second;
+                AssocIdx.erase(it);
+            }
         }
         
         MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index], hdl));
@@ -509,10 +511,12 @@ mfxStatus VideoVppJpegD3D::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTo
         {
             UMC::AutomaticUMCMutex guard(m_guard);
 
-            std::map<mfxMemId, mfxI32>::iterator it;
-            it = AssocIdx.find(pInputSurfaceTop->Data.MemId);
-            index = it->second;
-            AssocIdx.erase(it);
+            auto it = AssocIdx.find(pInputSurfaceTop->Data.MemId);
+            if(it != AssocIdx.end())
+            {
+                index = it->second;
+                AssocIdx.erase(it);
+            }
         }
         
         MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index], hdl));
