@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -257,7 +257,7 @@ void AddVaMiscRC(
         && (CO2.BRefType == MFX_B_REF_PYRAMID);
 #endif //PARALLEL_BRC_support
 
-    rc.ICQ_quality_factor = uint32_t((!IsOn(par.mfx.LowPower)) * (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ) * par.mfx.ICQQuality);
+    rc.ICQ_quality_factor = uint32_t((par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ) * par.mfx.ICQQuality);
     rc.initial_qp = bs_pps.init_qp_minus26 + 26;
 
     //  MBBRC control

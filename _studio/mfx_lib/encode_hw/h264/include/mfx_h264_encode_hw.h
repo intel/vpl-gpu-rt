@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
-#ifdef MFX_ENABLE_H264_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_H264_VIDEO_ENCODE
 
 #include "mfx_h264_enc_common_hw.h"
 #include "mfx_h264_encode_hw_utils.h"
@@ -142,4 +142,4 @@ protected:
 
 
 #endif // _MFX_H264_ENCODE_HW_H_
-#endif // MFX_ENABLE_H264_VIDEO_ENCODE_HW
+#endif // MFX_ENABLE_H264_VIDEO_ENCODE

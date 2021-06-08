@@ -50,18 +50,10 @@ public:
 
     void Resize(int32_t id, size_t newSize);
 
-#ifdef __APPLE__
-    size_t  GetRBSPSize();
-    void  SetRBSPSize(size_t rbspSize);
-#endif 
-
 protected:
     typedef std::vector<uint8_t> BufferType;
     BufferType  m_buffer;
     int32_t      m_id;
-#ifdef __APPLE__
-    size_t      m_rbspSize;
-#endif
 };
 
 class RawHeaders

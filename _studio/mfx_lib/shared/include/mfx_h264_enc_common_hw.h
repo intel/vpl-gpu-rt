@@ -24,7 +24,7 @@
 #include "mfx_common.h"
 
 
-#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
+#if defined (MFX_ENABLE_H264_VIDEO_ENCODE)
 
 #include <vector>
 #include <assert.h>
@@ -73,7 +73,7 @@ namespace MfxHwH264Encode
     class  InputBitstream;
     class  OutputBitstream;
     struct mfxExtSpsHeader;
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     struct mfxExtSpsSvcHeader;
 #endif
     struct mfxExtPpsHeader;
@@ -101,7 +101,7 @@ namespace MfxHwH264Encode
 
     // internally used buffers
     static const mfxU32 MFX_EXTBUFF_SPS_HEADER     = MFX_MAKEFOURCC(0xff, 'S', 'P', 'S');
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     static const mfxU32 MFX_EXTBUFF_SPS_SVC_HEADER = MFX_MAKEFOURCC(0xff, 'S', 'V', 'C');
 #endif
     static const mfxU32 MFX_EXTBUFF_PPS_HEADER     = MFX_MAKEFOURCC(0xff, 'P', 'P', 'S');
@@ -184,7 +184,7 @@ namespace MfxHwH264Encode
 #endif
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAvcTemporalLayers,    MFX_EXTBUFF_AVC_TEMPORAL_LAYERS      );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtVppAuxData,           MFX_EXTBUFF_VPP_AUXDATA              );
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     BIND_EXTBUF_TYPE_TO_ID (mfxExtSpsSvcHeader,         MFX_EXTBUFF_SPS_SVC_HEADER           );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtSVCSeqDesc,           MFX_EXTBUFF_SVC_SEQ_DESC             );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtSVCRateControl,       MFX_EXTBUFF_SVC_RATE_CONTROL         );
@@ -429,7 +429,7 @@ namespace MfxHwH264Encode
         return lhs == rhs;
     }
 
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     struct mfxExtSpsSvcHeader
     {
         mfxExtBuffer Header;
@@ -602,7 +602,7 @@ namespace MfxHwH264Encode
         mfxExtMVCSeqDesc            m_extMvcSeqDescr;
         mfxExtPictureTimingSEI      m_extPicTiming;
         mfxExtAvcTemporalLayers     m_extTempLayers;
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
         mfxExtSVCSeqDesc            m_extSvcSeqDescr;
         mfxExtSVCRateControl        m_extSvcRateCtrl;
 #endif
@@ -800,7 +800,7 @@ namespace MfxHwH264Encode
     mfxStatus CheckExtBufferId(
         mfxVideoParam const & par);
 
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     mfxU32 GetLastDid(
         mfxExtSVCSeqDesc const & extSvc);
 #endif
@@ -1445,7 +1445,7 @@ namespace MfxHwH264Encode
 
     bool IsMvcProfile(mfxU32 profile);
 
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     bool IsSvcProfile(mfxU32 profile);
 #endif
 
@@ -1490,7 +1490,7 @@ namespace MfxHwH264Encode
             DdiTask const & task,
             mfxU32          fieldId);
 
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
         ENCODE_PACKEDHEADER_DATA const & GetScalabilitySei() const { return m_packedScalabilitySei; }
 #endif
 
@@ -1540,7 +1540,7 @@ namespace MfxHwH264Encode
 
         // for header packing
         std::vector<mfxExtSpsHeader>    m_sps;
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
         std::vector<mfxExtSpsSvcHeader> m_subset;
 #endif
         std::vector<mfxExtPpsHeader>    m_pps;
@@ -1559,7 +1559,7 @@ namespace MfxHwH264Encode
         bool                            m_isLowPower;
 
         ENCODE_PACKEDHEADER_DATA                m_packedAud;
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
         ENCODE_PACKEDHEADER_DATA                m_packedScalabilitySei;
 #endif
         std::vector<ENCODE_PACKEDHEADER_DATA>   m_packedSps;

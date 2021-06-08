@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #include "mfx_common.h"
-#ifdef MFX_ENABLE_H264_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_H264_VIDEO_ENCODE
 
 #include <vector>
 #include <list>
@@ -38,14 +38,6 @@
 #include "vm_time.h"
 #include "asc.h"
 #include "libmfx_core_interface.h"
-
-#if defined(AS_H264LA_PLUGIN)
-  #undef MFX_ENABLE_ENCTOOLS
-  #undef MFX_ENABLE_LP_LOOKAHEAD
-  #ifdef MFX_ENABLE_ENCTOOLS_LPLA
-    #undef MFX_ENABLE_ENCTOOLS_LPLA
-  #endif
-#endif
 
 #if defined(MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA)
 #include "mfx_lp_lookahead.h"
@@ -3269,7 +3261,7 @@ private:
         NalUnit slice; // first slice if multi-sliced
     };
 
-#ifdef MFX_ENABLE_MVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_MVC_VIDEO_ENCODE
     class ImplementationMvc : public VideoENCODE
     {
     public:
@@ -3439,7 +3431,7 @@ private:
         mfxI32                      m_bufferSizeModifier; // required to obey HRD conformance after 'dummy' run in ViewOutput mode
 #endif // MVC_ADD_REF
     };
-#endif // #ifdef MFX_ENABLE_MVC_VIDEO_ENCODE_HW
+#endif // #ifdef MFX_ENABLE_MVC_VIDEO_ENCODE
 
     class InputBitstream
     {
@@ -3639,7 +3631,7 @@ private:
         mfxU32                fieldId, // 0 - top/progressive, 1 - bottom
         PreAllocatedVector &  sei);
 
-#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     class SvcTask : public Surface
     {
     public:
@@ -3867,7 +3859,7 @@ private:
         std::vector<mfxU8>                  m_tmpBsBuf;
         std::vector<mfxU8>                  m_scalabilityInfo;
     };
-#endif // #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
+#endif // #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
 
     bool IsInplacePatchNeeded(
         MfxVideoParam const & par,
@@ -4255,4 +4247,4 @@ private:
 }; // namespace MfxHwH264Encode
 
 #endif // _MFX_H264_ENCODE_HW_UTILS_H_
-#endif // MFX_ENABLE_H264_VIDEO_ENCODE_HW
+#endif // MFX_ENABLE_H264_VIDEO_ENCODE
