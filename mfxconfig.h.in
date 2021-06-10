@@ -24,11 +24,6 @@
 #cmakedefine MFX_ENABLE_ASC
 #cmakedefine MFX_ENABLE_CPLIB
 
-#cmakedefine MFX_ENABLE_USER_DECODE
-#cmakedefine MFX_ENABLE_USER_ENCODE
-#cmakedefine MFX_ENABLE_USER_ENC
-#cmakedefine MFX_ENABLE_USER_VPP
-
 #cmakedefine MFX_ENABLE_H264_VIDEO_ENCODE
 #cmakedefine MFX_ENABLE_H264_VIDEO_FEI_ENCODE
 #cmakedefine MFX_ENABLE_H265_VIDEO_ENCODE

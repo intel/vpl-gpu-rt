@@ -80,15 +80,6 @@ endif()
 
 option( MFX_ENABLE_AENC "Enabled AENC extension?" ON)
 
-cmake_dependent_option(
-  MFX_ENABLE_USER_DECODE "Enable H.264 (AVC) FEI?" ON
-  "${MFX_ENABLE_H264_VIDEO_ENCODE};NOT ${API_USE_VPL}" OFF)
-
-option( MFX_ENABLE_USER_DECODE "Enabled user decode plugins?" OFF)
-option( MFX_ENABLE_USER_ENCODE "Enabled user encode plugins?" OFF)
-option( MFX_ENABLE_USER_ENC "Enabled user ENC plugins?" OFF)
-option( MFX_ENABLE_USER_VPP "Enabled user VPP plugins?" OFF)
-
 option( MFX_ENABLE_AV1_VIDEO_DECODE "Enabled AV1 decoder?" ON)
 option( MFX_ENABLE_VP8_VIDEO_DECODE "Enabled VP8 decoder?" ON)
 option( MFX_ENABLE_VP9_VIDEO_DECODE "Enabled VP9 decoder?" ON)
