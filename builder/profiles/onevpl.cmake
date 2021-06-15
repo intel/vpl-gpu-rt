@@ -20,12 +20,6 @@
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-set( MFX_ENABLE_OPAQUE_MEMORY OFF )
-
-set( MFX_ENABLE_H264_VIDEO_DECODE_STREAMOUT OFF )
-set( MFX_ENABLE_H264_VIDEO_FEI_ENCODE OFF )
-set( MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE OFF )
-
 function( make_runtime_name variant name )
   if( CMAKE_SYSTEM_NAME MATCHES Windows)
     set(prefix "lib")

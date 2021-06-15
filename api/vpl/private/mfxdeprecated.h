@@ -40,11 +40,6 @@ MFX_PACK_END()
 
 mfxStatus MFX_CDECL MFXVideoCORE_SetBufferAllocator(mfxSession session, mfxBufferAllocator *allocator);
 
-#if defined(MFX_ENABLE_OPAQUE_MEMORY)
-    //Sanity check
-    #error MFX_ENABLE_OPAQUE_MEMORY should not be defined when 'mfxdeprecated.h' is included
-#endif //MFX_ENABLE_OPAQUE_MEMORY
-
 /* IOPattern */
 enum {
     MFX_IOPATTERN_IN_OPAQUE_MEMORY  = 0x04,

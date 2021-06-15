@@ -92,10 +92,8 @@ option( MFX_ENABLE_MJPEG_VIDEO_ENCODE "Enabled MJPEG encoder?" ON)
 option( MFX_ENABLE_VC1_VIDEO_DECODE "Enabled VC1 decoder?" ON)
 
 option( MFX_ENABLE_H264_VIDEO_ENCODE "Enable H.264 (AVC) encoder?" ON)
-option( MFX_ENABLE_H264_VIDEO_FEI_ENCODE "Enable H.264 (AVC) FEI?" OFF)
 
 option( MFX_ENABLE_H265_VIDEO_ENCODE "Enable H.265 (HEVC) encoder?" ON)
-option( MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE "Enable H.265 (HEVC) FEI?" OFF)
 
 option( MFX_ENABLE_VP9_VIDEO_ENCODE "Enable VP9 encoder?" ON)
 
@@ -111,11 +109,7 @@ cmake_dependent_option(
 
 option( MFX_ENABLE_MVC_VIDEO_ENCODE "Enable MVC encoder?" OFF)
 
-option( MFX_ENABLE_MFE             "Enable MFE?"  OFF )
-option( MFX_ENABLE_OPAQUE_MEMORY   "Enable opaque memory?"  OFF )
 option( MFX_ENABLE_USER_ENCTOOLS   "Enable encoding tools?" OFF )
-
-option( MFX_ENABLE_H264_VIDEO_DECODE_STREAMOUT "Enable H.264 (AVC) Decode Streamout?" OFF)
 
 # Now we will include config file which may overwrite default values of the
 # options and options which user provided in a command line.
