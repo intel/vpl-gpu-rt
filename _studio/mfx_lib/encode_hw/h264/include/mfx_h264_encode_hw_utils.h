@@ -1873,9 +1873,9 @@ static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
 {
     MFX_CHECK_NULL_PTR1(ctrl);
 
-    mfxExtCodingOption *CO = (mfxExtCodingOption *)GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION);
-    mfxExtCodingOption2 *CO2 = (mfxExtCodingOption2 *)GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
-    mfxExtCodingOption3 *CO3 = (mfxExtCodingOption3 *)GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION3);
+    mfxExtCodingOption *CO   = (mfxExtCodingOption *) mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION);
+    mfxExtCodingOption2 *CO2 = (mfxExtCodingOption2 *)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
+    mfxExtCodingOption3 *CO3 = (mfxExtCodingOption3 *)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION3);
     MFX_CHECK_NULL_PTR3(CO, CO2, CO3);
 
 
@@ -1950,8 +1950,8 @@ static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
     }
     if (ctrl->NumExtParam > 1)
     {
-        ctrl->ExtParam[0] = GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_ENCTOOLS_DEVICE);
-        ctrl->ExtParam[1] = GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_ENCTOOLS_ALLOCATOR);
+        ctrl->ExtParam[0] = mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_ENCTOOLS_DEVICE);
+        ctrl->ExtParam[1] = mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_ENCTOOLS_ALLOCATOR);
     }
 
     return MFX_ERR_NONE;
@@ -2133,7 +2133,7 @@ public:
         sts = m_pEncTools->GetActiveConfig(m_pEncTools->Context, &m_EncToolConfig);
         MFX_CHECK_STS(sts);
 
-        mfxExtEncToolsConfig *pConfig = (mfxExtEncToolsConfig *)GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
+        mfxExtEncToolsConfig *pConfig = (mfxExtEncToolsConfig *)mfx::GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
         if (pConfig)
         {
             mfxExtBuffer header = pConfig->Header;
@@ -2435,7 +2435,7 @@ protected:
     {
         mfxExtCodingOption2  &extOpt2 = GetExtBufferRef(video);
         mfxExtCodingOption3  &extOpt3 = GetExtBufferRef(video);
-        mfxExtEncToolsConfig *pConfig = (mfxExtEncToolsConfig *)GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
+        mfxExtEncToolsConfig *pConfig = (mfxExtEncToolsConfig *)mfx::GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
         if (pConfig)
             config = *pConfig;
 
@@ -2519,7 +2519,7 @@ protected:
 
        mfxExtBRC*  extBRC = GetExtBuffer(video);
        mfxU32 numChanges = 0;
-       mfxExtEncToolsConfig *pConfig = (mfxExtEncToolsConfig *)GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
+       mfxExtEncToolsConfig *pConfig = (mfxExtEncToolsConfig *)mfx::GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
 
        if (pConfig)
        {

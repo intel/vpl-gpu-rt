@@ -455,7 +455,7 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
 
             if (pParams->bMbqpMode)
             {
-                const mfxExtMBQP *mbqp = (mfxExtMBQP *)GetExtBuffer(pInternalParams->ExtParam, pInternalParams->NumExtParam, MFX_EXTBUFF_MBQP);
+                const mfxExtMBQP *mbqp = (mfxExtMBQP *)mfx::GetExtBuffer(pInternalParams->ExtParam, pInternalParams->NumExtParam, MFX_EXTBUFF_MBQP);
                 
                 mfxU32 wMB = (pParams->mfxVideoParams.mfx.FrameInfo.CropW + 15) / 16;
                 mfxU32 hMB = (pParams->mfxVideoParams.mfx.FrameInfo.CropH + 15) / 16;

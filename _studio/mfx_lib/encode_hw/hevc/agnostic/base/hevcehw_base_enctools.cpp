@@ -176,7 +176,7 @@ inline void SetDefaultOpt(mfxU16 &opt, bool bCond)
 
 inline mfxEncTools *GetEncTools(mfxVideoParam &video)
 {
-    return (mfxEncTools *)GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCTOOLS);
+    return (mfxEncTools *)mfx::GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCTOOLS);
 }
 
 static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config)

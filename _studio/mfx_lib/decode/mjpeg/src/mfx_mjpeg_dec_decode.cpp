@@ -449,8 +449,8 @@ mfxStatus VideoDECODEMJPEG::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxV
     mfx_UMC_MemAllocator  tempAllocator;
     tempAllocator.InitMem(0, core);
 
-    mfxExtJPEGQuantTables* jpegQT = (mfxExtJPEGQuantTables*) GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
-    mfxExtJPEGHuffmanTables*  jpegHT = (mfxExtJPEGHuffmanTables*) GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
+    mfxExtJPEGQuantTables*    jpegQT = (mfxExtJPEGQuantTables*)   mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
+    mfxExtJPEGHuffmanTables*  jpegHT = (mfxExtJPEGHuffmanTables*) mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
 
     // DecodeHeader
     UMC::MJPEGVideoDecoderBaseMFX decoder;
@@ -1539,8 +1539,8 @@ VideoDECODEMJPEGBase::VideoDECODEMJPEGBase()
 
 mfxStatus VideoDECODEMJPEGBase::GetVideoParam(mfxVideoParam *par, UMC::MJPEGVideoDecoderBaseMFX * mjpegDecoder)
 {
-    mfxExtJPEGQuantTables* jpegQT = (mfxExtJPEGQuantTables*) GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
-    mfxExtJPEGHuffmanTables*  jpegHT = (mfxExtJPEGHuffmanTables*) GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
+    mfxExtJPEGQuantTables*    jpegQT = (mfxExtJPEGQuantTables*)   mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
+    mfxExtJPEGHuffmanTables*  jpegHT = (mfxExtJPEGHuffmanTables*) mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
 
     if(!jpegQT && !jpegHT)
         return MFX_ERR_NONE;
@@ -2154,8 +2154,8 @@ mfxStatus VideoDECODEMJPEGBase_SW::Close()
 
 mfxStatus VideoDECODEMJPEGBase_SW::GetVideoParam(mfxVideoParam *par)
 {
-    mfxExtJPEGQuantTables* jpegQT = (mfxExtJPEGQuantTables*) GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
-    mfxExtJPEGHuffmanTables*  jpegHT = (mfxExtJPEGHuffmanTables*) GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
+    mfxExtJPEGQuantTables*    jpegQT = (mfxExtJPEGQuantTables*)   mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
+    mfxExtJPEGHuffmanTables*  jpegHT = (mfxExtJPEGHuffmanTables*) mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
 
     if(!jpegQT && !jpegHT)
         return MFX_ERR_NONE;

@@ -564,7 +564,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
         m_bStartIVFSequence = false;
     }
 
-    const mfxExtEncoderResetOption * pExtReset = (mfxExtEncoderResetOption*)GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCODER_RESET_OPTION);
+    const mfxExtEncoderResetOption * pExtReset = (mfxExtEncoderResetOption*)mfx::GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCODER_RESET_OPTION);
     if (parBeforeReset.mfx.GopPicSize != parAfterReset.mfx.GopPicSize ||
         (pExtReset && IsOn(pExtReset->StartNewSequence)))
     {

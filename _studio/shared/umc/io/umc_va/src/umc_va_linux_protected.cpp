@@ -25,8 +25,9 @@
 #include "umc_va_linux_protected.h"
 #include "umc_va_linux.h"
 
-using namespace UMC;
+#include "mfx_utils.h"
 
+using namespace UMC;
 
 /////////////////////////////////////////////////
 ProtectedVA::ProtectedVA(mfxU16 p)

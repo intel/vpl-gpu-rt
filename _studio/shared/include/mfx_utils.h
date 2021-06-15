@@ -671,6 +671,23 @@ public:
     mfxStatus sts = MFX_ERR_NONE;
 };
 
+inline mfxExtBuffer* GetExtBuffer(mfxExtBuffer** ExtParam, mfxU32 NumExtParam, mfxU32 BufferId, mfxU32 offset = 0)
+{
+    if (!ExtParam)
+        return nullptr;
+
+    mfxU32 count = 0;
+    for (mfxU32 i = 0; i < NumExtParam; ++i)
+    {
+        if (ExtParam[i] && ExtParam[i]->BufferId == BufferId && count++ == offset)
+        {
+            return ExtParam[i];
+        }
+    }
+
+    return nullptr;
+}
+
 } //namespace mfx
 
 inline mfxStatus CheckAndDestroyVAbuffer(VADisplay display, VABufferID & buffer_id)

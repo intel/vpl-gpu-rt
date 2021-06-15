@@ -253,26 +253,14 @@ mfxU32 TranslateMfxFRCodeMPEG2(mfxFrameInfo *info, mfxU32 *codeN, mfxU32* codeD)
   return 0;
 }
 
-mfxExtBuffer* GetExtBuffer(mfxExtBuffer** ebuffers, mfxU32 nbuffers, mfxU32 BufferId)
-{
-    if (!ebuffers) return 0;
-    for(mfxU32 i=0; i<nbuffers; i++) {
-        if (!ebuffers[i]) continue;
-        if (ebuffers[i]->BufferId == BufferId) {
-            return ebuffers[i];
-        }
-    }
-    return 0;
-}
-
 mfxExtCodingOption* GetExtCodingOptions(mfxExtBuffer** ebuffers, mfxU32 nbuffers)
 {
-    return (mfxExtCodingOption*)GetExtBuffer(ebuffers, nbuffers, MFX_EXTBUFF_CODING_OPTION);
+    return (mfxExtCodingOption*)mfx::GetExtBuffer(ebuffers, nbuffers, MFX_EXTBUFF_CODING_OPTION);
 }
 
 mfxExtVideoSignalInfo* GetExtVideoSignalInfo(mfxExtBuffer** ebuffers, mfxU32 nbuffers)
 {
-    return (mfxExtVideoSignalInfo *)GetExtBuffer(ebuffers, nbuffers, MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
+    return (mfxExtVideoSignalInfo *)mfx::GetExtBuffer(ebuffers, nbuffers, MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
 }
 
 //----------work with marker-----------------------------

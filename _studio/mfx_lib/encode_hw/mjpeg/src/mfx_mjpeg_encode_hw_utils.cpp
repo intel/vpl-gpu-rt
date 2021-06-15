@@ -76,12 +76,12 @@ mfxStatus MfxHwMJpegEncode::CheckExtBufferId(mfxVideoParam const & par)
             return MFX_ERR_INVALID_VIDEO_PARAM;
 
         // check if buffer presents twice in video param
-        if (GetExtBuffer(
+        if (mfx::GetExtBuffer(
             par.ExtParam + i + 1,
             par.NumExtParam - i - 1,
             par.ExtParam[i]->BufferId) != 0)
         {
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
 
@@ -131,8 +131,8 @@ mfxStatus MfxHwMJpegEncode::CheckJpegParam(VideoCORE *core, mfxVideoParam & par,
     if (sts != MFX_ERR_NONE)
         return MFX_WRN_PARTIAL_ACCELERATION;
 
-    mfxExtJPEGQuantTables* qt_in  = (mfxExtJPEGQuantTables*)GetExtBuffer( par.ExtParam, par.NumExtParam, MFX_EXTBUFF_JPEG_QT );
-    mfxExtJPEGHuffmanTables* ht_in  = (mfxExtJPEGHuffmanTables*)GetExtBuffer( par.ExtParam, par.NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
+    mfxExtJPEGQuantTables* qt_in    = (mfxExtJPEGQuantTables*)  mfx::GetExtBuffer( par.ExtParam, par.NumExtParam, MFX_EXTBUFF_JPEG_QT );
+    mfxExtJPEGHuffmanTables* ht_in  = (mfxExtJPEGHuffmanTables*)mfx::GetExtBuffer( par.ExtParam, par.NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
 
     if (qt_in && qt_in->NumTable > hwCaps.MaxNumQuantTable)
         return MFX_WRN_PARTIAL_ACCELERATION;
@@ -173,12 +173,12 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
     mfxExtJPEGHuffmanTables* jpegHT = NULL;
     if (ctrl && ctrl->ExtParam && ctrl->NumExtParam > 0)
     {
-        jpegQT = (mfxExtJPEGQuantTables*)   GetExtBuffer( ctrl->ExtParam, ctrl->NumExtParam, MFX_EXTBUFF_JPEG_QT );
-        jpegHT = (mfxExtJPEGHuffmanTables*) GetExtBuffer( ctrl->ExtParam, ctrl->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
+        jpegQT = (mfxExtJPEGQuantTables*)   mfx::GetExtBuffer( ctrl->ExtParam, ctrl->NumExtParam, MFX_EXTBUFF_JPEG_QT );
+        jpegHT = (mfxExtJPEGHuffmanTables*) mfx::GetExtBuffer( ctrl->ExtParam, ctrl->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
     }
 
-    mfxExtJPEGQuantTables* jpegQTInitial = (mfxExtJPEGQuantTables*) GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
-    mfxExtJPEGHuffmanTables* jpegHTInitial = (mfxExtJPEGHuffmanTables*) GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
+    mfxExtJPEGQuantTables*   jpegQTInitial = (mfxExtJPEGQuantTables*)   mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
+    mfxExtJPEGHuffmanTables* jpegHTInitial = (mfxExtJPEGHuffmanTables*) mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
 
     m_payload_base.length = 0;
     m_payload_list.clear();

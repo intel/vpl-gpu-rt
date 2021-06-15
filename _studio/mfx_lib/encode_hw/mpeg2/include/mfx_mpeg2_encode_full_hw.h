@@ -153,7 +153,7 @@ namespace MPEG2EncoderHW
 
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
              m_pExecuteBuffers->m_bTriggerGpuHang =
-                     !!GetExtBuffer(pIntTask->m_sEncodeInternalParams.ExtParam,
+                     !!mfx::GetExtBuffer(pIntTask->m_sEncodeInternalParams.ExtParam,
                                     pIntTask->m_sEncodeInternalParams.NumExtParam, MFX_EXTBUFF_GPU_HANG);
 #endif
 

@@ -41,6 +41,8 @@
 #include "mfxpcp.h"
 #include "libmfx_core_interface.h"
 
+#include "mfx_utils.h"
+
 inline bool IsNeedToUseHWBuffering(eMFXHWType /*type*/)
 {
     return false;
@@ -52,21 +54,6 @@ inline bool IsBigSurfacePoolApplicable(eMFXHWType type)
 
     (void)(type); //UNREFERENCED_PARAMETER
     return ret;
-}
-inline
-mfxExtBuffer* GetExtBuffer(mfxExtBuffer** ebuffers, mfxU32 nbuffers, mfxU32 BufferId, mfxU32 field)
-{
-    mfxExtBuffer* buffer = GetExtendedBuffer(ebuffers, nbuffers, BufferId);
-    if (!buffer || !field)
-        return buffer;
-
-    mfxU32 const idx = static_cast<mfxU32>(buffer - ebuffers[0]);
-    if (idx >= nbuffers - 1)
-        return 0;
-
-    buffer = GetExtendedBuffer(ebuffers + idx + 1, nbuffers - (idx + 1), BufferId);
-
-    return buffer;
 }
 
 struct ThreadTaskInfo

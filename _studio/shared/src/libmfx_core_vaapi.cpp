@@ -506,7 +506,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVA(
     MFX_CHECK(profile != UMC::UNKNOWN, MFX_ERR_UNSUPPORTED);
 
 #ifndef MFX_ADAPTIVE_PLAYBACK_DISABLE
-    if (GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK))
+    if (mfx::GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK))
         m_KeepVAState = true;
     else
 #endif
@@ -620,7 +620,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
      * (3): Supported on SKL (Core) and APL (Atom) platforms and above
      * (4): Only video memory supported (so, OPAQ memory does not supported!)
      * */
-    if ( (GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING)) &&
+    if ( (mfx::GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING)) &&
          (MFX_PICSTRUCT_PROGRESSIVE == param->mfx.FrameInfo.PicStruct) &&
          (MFX_HW_SCL <= GetHWType()) &&
          (param->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
