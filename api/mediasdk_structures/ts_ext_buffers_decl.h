@@ -77,40 +77,6 @@ EXTBUF(mfxExtDPB                         , MFX_EXTBUFF_DPB)
 #endif
 #endif //defined(__MFXSTRUCTURES_H__)
 
-#if defined(MFX_ENABLE_H264_VIDEO_FEI_ENCODE) && defined(__MFXFEI_H__)
-// FEI
-EXTBUF(mfxExtFeiParam                    , MFX_EXTBUFF_FEI_PARAM                 )
-EXTBUF(mfxExtFeiSPS                      , MFX_EXTBUFF_FEI_SPS                   )
-EXTBUF(mfxExtFeiPPS                      , MFX_EXTBUFF_FEI_PPS                   )
-EXTBUF(mfxExtFeiEncFrameCtrl             , MFX_EXTBUFF_FEI_ENC_CTRL              )
-EXTBUF(mfxExtFeiEncMVPredictors          , MFX_EXTBUFF_FEI_ENC_MV_PRED           )
-EXTBUF(mfxExtFeiEncMBCtrl                , MFX_EXTBUFF_FEI_ENC_MB                )
-EXTBUF(mfxExtFeiEncMV                    , MFX_EXTBUFF_FEI_ENC_MV                )
-EXTBUF(mfxExtFeiEncMBStat                , MFX_EXTBUFF_FEI_ENC_MB_STAT           )
-EXTBUF(mfxExtFeiEncQP                    , MFX_EXTBUFF_FEI_ENC_QP                )
-EXTBUF(mfxExtFeiPreEncCtrl               , MFX_EXTBUFF_FEI_PREENC_CTRL           )
-EXTBUF(mfxExtFeiPreEncMVPredictors       , MFX_EXTBUFF_FEI_PREENC_MV_PRED        )
-EXTBUF(mfxExtFeiPreEncMV                 , MFX_EXTBUFF_FEI_PREENC_MV             )
-EXTBUF(mfxExtFeiPreEncMBStat             , MFX_EXTBUFF_FEI_PREENC_MB             )
-EXTBUF(mfxExtFeiPakMBCtrl                , MFX_EXTBUFF_FEI_PAK_CTRL              )
-EXTBUF(mfxExtFeiSliceHeader              , MFX_EXTBUFF_FEI_SLICE                 )
-EXTBUF(mfxExtFeiRepackCtrl               , MFX_EXTBUFF_FEI_REPACK_CTRL           )
-#endif //MFX_ENABLE_H264_VIDEO_FEI_ENCODE || __MFXFEI_H__
-
-#if defined (MFX_ENABLE_H264_VIDEO_DECODE_STREAMOUT) && defined(__MFXFEI_H__)
-EXTBUF(mfxExtFeiDecStreamOut             , MFX_EXTBUFF_FEI_DEC_STREAM_OUT        )
-#endif
-
-#if defined(MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE) && defined(__MFXFEIHEVC_H__)
-#if (MFX_VERSION >= 1027)
-EXTBUF(mfxExtFeiHevcEncFrameCtrl         , MFX_EXTBUFF_HEVCFEI_ENC_CTRL          )
-EXTBUF(mfxExtFeiHevcEncMVPredictors      , MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED       )
-EXTBUF(mfxExtFeiHevcEncQP                , MFX_EXTBUFF_HEVCFEI_ENC_QP            )
-EXTBUF(mfxExtFeiHevcEncCtuCtrl           , MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL      )
-#endif
-// end of FEI
-#endif //MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE && __MFXFEIHEVC_H__
-
 #if defined(__MFXCOMMON_H__)
 // Threading API
 EXTBUF(mfxExtThreadsParam                , MFX_EXTBUFF_THREADS_PARAM)

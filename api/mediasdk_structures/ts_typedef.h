@@ -20,16 +20,6 @@
 
 #pragma once
 
-// Hotfix for VPL build
-#if 0 && !defined(_MFX_CONFIG_H_)
-#define MFX_ENABLE_OPAQUE_MEMORY
-#define MFX_ENABLE_USER_ENCTOOLS
-#define MFX_ENABLE_H264_VIDEO_FEI_ENCODE
-#define MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
-#define MFX_ENABLE_H264_VIDEO_DECODE_STREAMOUT
-#endif
-// End of Hotfix for VPL build
-
 #define TYPEDEF_MEMBER(base, member, name) \
     struct name : std::decay<decltype(base::member)>::type {};
 
@@ -52,12 +42,4 @@ TYPEDEF_MEMBER(mfxExtDirtyRect,           Rect[0],             mfxExtDirtyRect_E
 TYPEDEF_MEMBER(mfxExtMoveRect,            Rect[0],             mfxExtMoveRect_Entry)
 typedef union { mfxU32 n; char c[4]; } mfx4CC;
 typedef mfxExtAVCRefLists::mfxRefPic mfxExtAVCRefLists_mfxRefPic;
-#if defined (MFX_ENABLE_H264_VIDEO_FEI_ENCODE)
-typedef mfxExtFeiEncMV::mfxExtFeiEncMVMB mfxExtFeiEncMV_MB;
-typedef mfxExtFeiEncMBCtrl::mfxExtFeiEncMBCtrlMB mfxExtFeiEncMBCtrl_MB;
-typedef mfxExtFeiPreEncMVPredictors::mfxExtFeiPreEncMVPredictorsMB mfxExtFeiPreEncMVPredictors_MB;
-typedef mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB mfxExtFeiPreEncMV_MB;
-typedef mfxExtFeiPreEncMBStat::mfxExtFeiPreEncMBStatMB mfxExtFeiPreEncMBStat_MB;
-typedef mfxExtFeiPPS::mfxExtFeiPpsDPB mfxExtFeiPPS_mfxExtFeiPpsDPB;
-#endif //MFX_ENABLE_H264_VIDEO_FEI_ENCODE
 typedef mfxExtEncoderIPCMArea::area mfxExtEncoderIPCMArea_area;
