@@ -94,3 +94,4 @@ target_link_libraries(bitrate_control PUBLIC umc)
 ### UMC codec brc
 
 include(sources_ext.cmake OPTIONAL)
+include(sources_tool_ext.cmake OPTIONAL)

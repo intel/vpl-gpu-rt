@@ -41,20 +41,8 @@
 
 #define MFX_PRIVATE_AVC_ENCODE_CTRL_DISABLE
 
-// closed source fixed-style defines
-#if !defined(ANDROID) && defined(__linux__)
-    #define MFX_ENABLE_MJPEG_ROTATE_VPP
-#endif
-
-
-#define DECODE_DEFAULT_TIMEOUT  60000
-
 // Here follows per-codec feature enable options which as of now we don't
 // want to expose on build system level since they are too detailed.
-#if defined(MFX_ENABLE_MPEG2_VIDEO_DECODE)
-    #define MFX_ENABLE_HW_ONLY_MPEG2_DECODER
-#endif //MFX_ENABLE_MPEG2_VIDEO_DECODE
-
 #if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
     #if MFX_VERSION >= 1023
         #define MFX_ENABLE_H264_REPARTITION_CHECK
@@ -71,11 +59,6 @@
     #define MFX_ENABLE_HEVCE_INTERLACE
     #define MFX_ENABLE_HEVCE_ROI
 #endif
-
-
-    #if defined(MFX_ENABLE_MPEG2_VIDEO_DECODE)
-        #define MFX_ENABLE_HW_ONLY_MPEG2_DECODER
-    #endif
 
     #define SYNCHRONIZATION_BY_VA_MAP_BUFFER
     #if !defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
@@ -129,4 +112,10 @@
 #if defined(MFX_ENABLE_CPLIB)
 #define MFX_ENABLE_CP
 #endif
+
+// Per component configs
+#include "mfx_config_decode.h"
+#include "mfx_config_encode.h"
+#include "mfx_config_vpp.h"
+
 #endif // _MFX_CONFIG_H_
