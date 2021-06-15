@@ -292,10 +292,10 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Query(VideoCORE * core, mfxVideoParam *in, mfx
             isInvalid++;
 
         // Check external buffers
-        mfxExtJPEGQuantTables* qt_in  = (mfxExtJPEGQuantTables*)GetExtBuffer( in->ExtParam, in->NumExtParam, MFX_EXTBUFF_JPEG_QT );
-        mfxExtJPEGQuantTables* qt_out = (mfxExtJPEGQuantTables*)GetExtBuffer( out->ExtParam, out->NumExtParam, MFX_EXTBUFF_JPEG_QT );
-        mfxExtJPEGHuffmanTables* ht_in  = (mfxExtJPEGHuffmanTables*)GetExtBuffer( in->ExtParam, in->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
-        mfxExtJPEGHuffmanTables* ht_out = (mfxExtJPEGHuffmanTables*)GetExtBuffer( out->ExtParam, out->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
+        mfxExtJPEGQuantTables* qt_in    = (mfxExtJPEGQuantTables*)  mfx::GetExtBuffer( in->ExtParam,  in->NumExtParam,  MFX_EXTBUFF_JPEG_QT );
+        mfxExtJPEGQuantTables* qt_out   = (mfxExtJPEGQuantTables*)  mfx::GetExtBuffer( out->ExtParam, out->NumExtParam, MFX_EXTBUFF_JPEG_QT );
+        mfxExtJPEGHuffmanTables* ht_in  = (mfxExtJPEGHuffmanTables*)mfx::GetExtBuffer( in->ExtParam,  in->NumExtParam,  MFX_EXTBUFF_JPEG_HUFFMAN );
+        mfxExtJPEGHuffmanTables* ht_out = (mfxExtJPEGHuffmanTables*)mfx::GetExtBuffer( out->ExtParam, out->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
 
         if ((qt_in == 0) != (qt_out == 0) ||
             (ht_in == 0) != (ht_out == 0))
@@ -579,8 +579,8 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Init(mfxVideoParam *par)
 
     MFX_CHECK( CheckExtBufferId(*par) == MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM );
 
-    mfxExtJPEGQuantTables*    jpegQT       = (mfxExtJPEGQuantTables*)   GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
-    mfxExtJPEGHuffmanTables*  jpegHT       = (mfxExtJPEGHuffmanTables*) GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
+    mfxExtJPEGQuantTables*    jpegQT       = (mfxExtJPEGQuantTables*)   mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
+    mfxExtJPEGHuffmanTables*  jpegHT       = (mfxExtJPEGHuffmanTables*) mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
 
     mfxVideoParam checked;
     mfxU16 ext_counter = 0;
@@ -760,8 +760,8 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Reset(mfxVideoParam *par)
     sts = CheckExtBufferId(*par);
     MFX_CHECK_STS(sts);
 
-    mfxExtJPEGQuantTables*    jpegQT       = (mfxExtJPEGQuantTables*)   GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
-    mfxExtJPEGHuffmanTables*  jpegHT       = (mfxExtJPEGHuffmanTables*) GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
+    mfxExtJPEGQuantTables*    jpegQT       = (mfxExtJPEGQuantTables*)   mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
+    mfxExtJPEGHuffmanTables*  jpegHT       = (mfxExtJPEGHuffmanTables*) mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
 
     mfxVideoParam checked;
     mfxU16 ext_counter = 0;
@@ -950,8 +950,8 @@ mfxStatus MFXVideoENCODEMJPEG_HW::EncodeFrameCheck(
 
     if (ctrl && ctrl->ExtParam && ctrl->NumExtParam > 0)
     {
-        jpegQT = (mfxExtJPEGQuantTables*)   GetExtBuffer( ctrl->ExtParam, ctrl->NumExtParam, MFX_EXTBUFF_JPEG_QT );
-        jpegHT = (mfxExtJPEGHuffmanTables*) GetExtBuffer( ctrl->ExtParam, ctrl->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
+        jpegQT = (mfxExtJPEGQuantTables*)   mfx::GetExtBuffer( ctrl->ExtParam, ctrl->NumExtParam, MFX_EXTBUFF_JPEG_QT );
+        jpegHT = (mfxExtJPEGHuffmanTables*) mfx::GetExtBuffer( ctrl->ExtParam, ctrl->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
     }
 
     // Check new tables if exists
@@ -969,7 +969,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::EncodeFrameCheck(
             return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    mfxExtJPEGQuantTables* jpegQTInitial = (mfxExtJPEGQuantTables*) GetExtBuffer( m_vParam.ExtParam, m_vParam.NumExtParam, MFX_EXTBUFF_JPEG_QT );
+    mfxExtJPEGQuantTables* jpegQTInitial = (mfxExtJPEGQuantTables*) mfx::GetExtBuffer( m_vParam.ExtParam, m_vParam.NumExtParam, MFX_EXTBUFF_JPEG_QT );
     if (!(jpegQTInitial || jpegQT || m_vParam.mfx.Quality))
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;

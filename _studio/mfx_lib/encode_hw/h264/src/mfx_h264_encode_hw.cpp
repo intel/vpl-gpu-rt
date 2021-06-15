@@ -193,7 +193,7 @@ mfxStatus MFXHWVideoENCODEH264::Init(mfxVideoParam * par)
     }
 
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
-    if (GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC))
+    if (mfx::GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC))
         if (par->mfx.CodecProfile == 0)
             par->mfx.CodecProfile = MFX_PROFILE_AVC_SCALABLE_BASELINE;
 #endif
@@ -297,7 +297,7 @@ mfxStatus MFXHWVideoENCODEH264::Query(
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     // FIXME: remove when mfx_transcoder start sending correct Profile
     if (in && in->mfx.CodecProfile == 0)
-        if (GetExtBuffer(in->ExtParam, in->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC))
+        if (mfx::GetExtBuffer(in->ExtParam, in->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC))
             in->mfx.CodecProfile = MFX_PROFILE_AVC_SCALABLE_BASELINE;
 
     if (in && IsSvcProfile(in->mfx.CodecProfile) &&
@@ -343,7 +343,7 @@ mfxStatus MFXHWVideoENCODEH264::QueryIOSurf(
     mfxFrameAllocRequest * request)
 {
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
-    if (GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC))
+    if (mfx::GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC))
         if (par->mfx.CodecProfile == 0)
             par->mfx.CodecProfile = MFX_PROFILE_AVC_SCALABLE_BASELINE;
 
@@ -557,7 +557,7 @@ mfxStatus ImplementationAvc::Query(
         out->mfx = tmp.mfx;
 
         // SetLowPowerDefault may change LowPower to default value
-        // if LowPower was invalid set it to Zero to mimic Query behaviour
+        // if LowPower was invalid set it to Zero to mimic Query behavior
         if (lpSts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
         {
             out->mfx.LowPower = 0;
@@ -595,15 +595,15 @@ mfxStatus ImplementationAvc::Query(
                     MFX_ERR_UNSUPPORTED);
 
                     // buffer present twice in 'in'
-                    MFX_CHECK (MfxHwH264Encode::GetExtBuffer(
+                    MFX_CHECK (mfx::GetExtBuffer(
                         in->ExtParam + i + 1,
                         in->NumExtParam - i - 1,
                         in->ExtParam[i]->BufferId) == 0, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-                    mfxExtBuffer * buf = GetExtBuffer(out->ExtParam, out->NumExtParam, in->ExtParam[i]->BufferId);
+                    mfxExtBuffer * buf = mfx::GetExtBuffer(out->ExtParam, out->NumExtParam, in->ExtParam[i]->BufferId);
                     MFX_CHECK(buf, MFX_ERR_UNDEFINED_BEHAVIOR); // buffer doesn't present in 'out'
 
-                    mfxExtBuffer * corrected = GetExtBuffer(tmp.ExtParam, tmp.NumExtParam, in->ExtParam[i]->BufferId);
+                    mfxExtBuffer * corrected = mfx::GetExtBuffer(tmp.ExtParam, tmp.NumExtParam, in->ExtParam[i]->BufferId);
                     MFX_CHECK_NULL_PTR1(corrected);
 
                     if (buf->BufferId == MFX_EXTBUFF_MVC_SEQ_DESC)
@@ -628,7 +628,7 @@ mfxStatus ImplementationAvc::Query(
 
             for (mfxU32 i = 0; i < out->NumExtParam; i++)
             {
-                if (out->ExtParam[i] && GetExtBuffer(in->ExtParam, in->NumExtParam, out->ExtParam[i]->BufferId) == 0)
+                if (out->ExtParam[i] && mfx::GetExtBuffer(in->ExtParam, in->NumExtParam, out->ExtParam[i]->BufferId) == 0)
                     MFX_RETURN(MFX_ERR_UNSUPPORTED);
             }
         }
@@ -670,7 +670,7 @@ mfxStatus ImplementationAvc::Query(
     else if (4 == queryMode)// Query mode 4: Query should do a single thing - report MB processing rate
     {
         mfxU32 mbPerSec[16] = {0, };
-        // let use dedault values if input resolution is 0x0, 1920x1088 - should cover almost all cases
+        // let use default values if input resolution is 0x0, 1920x1088 - should cover almost all cases
         out->mfx.TargetUsage = in->mfx.TargetUsage == 0 ? 4: in->mfx.TargetUsage;
 
         mfxExtEncoderCapability * extCaps = GetExtBuffer(*out);
@@ -1978,7 +1978,7 @@ mfxStatus ImplementationAvc::GetVideoParam(mfxVideoParam *par)
             buffers_offsets[par->ExtParam[i]->BufferId]++;
 
 
-        if (mfxExtBuffer * buf = GetExtBuffer(m_video.ExtParam, m_video.NumExtParam, par->ExtParam[i]->BufferId, buffers_offsets[par->ExtParam[i]->BufferId]))
+        if (mfxExtBuffer * buf = mfx::GetExtBuffer(m_video.ExtParam, m_video.NumExtParam, par->ExtParam[i]->BufferId, buffers_offsets[par->ExtParam[i]->BufferId]))
         {
             if (par->ExtParam[i]->BufferId == MFX_EXTBUFF_CODING_OPTION_SPSPPS)
             {
@@ -3021,7 +3021,7 @@ mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
 
             if (!(task.m_type[0] & MFX_FRAMETYPE_I) && idist < minPDist && IsOn(extOpt2.AdaptiveB))
             {
-                // inside ref list, B to P but Dont break Pyr Structure
+                // inside ref list, B to P but Don't break Pyr Structure
                 if (!bPyr)
                 {
                     task.m_ctrl.FrameType = (MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF);
@@ -3030,7 +3030,7 @@ mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
             }
             else if (!(task.m_type[0] & MFX_FRAMETYPE_IDR) && idrdist < minIdrDist)
             {
-                // outside ref list, B/P to I but Dont break Pyr Structure
+                // outside ref list, B/P to I but Don't break Pyr Structure
                 if (!bPyr)
                 {
                     task.m_ctrl.FrameType = (MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF);
@@ -3048,7 +3048,7 @@ mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
         {
             if (!(task.m_type[0] & MFX_FRAMETYPE_I))
             {
-                // B to P but Dont break Pyr Structure
+                // B to P but Don't break Pyr Structure
                 if (!bPyr)
                 {
                     task.m_ctrl.FrameType = (MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF);
@@ -5352,7 +5352,7 @@ void ImplementationAvc::setFrameInfo( DdiTask & task, mfxU32    fid )
     if (task.m_collectUnitsInfo
         )
     {
-        encUnitsInfo = (mfxExtEncodedUnitsInfo*)GetExtBuffer(task.m_bs->ExtParam, task.m_bs->NumExtParam, MFX_EXTBUFF_ENCODED_UNITS_INFO);
+        encUnitsInfo = (mfxExtEncodedUnitsInfo*)mfx::GetExtBuffer(task.m_bs->ExtParam, task.m_bs->NumExtParam, MFX_EXTBUFF_ENCODED_UNITS_INFO);
     }
 #endif
 
@@ -5366,7 +5366,7 @@ void ImplementationAvc::setFrameInfo( DdiTask & task, mfxU32    fid )
         // setting of mfxExtAVCEncodedFrameInfo isn't supported for FieldOutput mode at the moment
         if (IsOff(extOpt.FieldOutput))
         {
-            mfxExtAVCEncodedFrameInfo * encFrameInfo = (mfxExtAVCEncodedFrameInfo*)GetExtBuffer(task.m_bs->ExtParam, task.m_bs->NumExtParam, MFX_EXTBUFF_ENCODED_FRAME_INFO);
+            mfxExtAVCEncodedFrameInfo * encFrameInfo = (mfxExtAVCEncodedFrameInfo*)mfx::GetExtBuffer(task.m_bs->ExtParam, task.m_bs->NumExtParam, MFX_EXTBUFF_ENCODED_FRAME_INFO);
             if (encFrameInfo)
             {
                 if (task.m_fieldPicFlag == 0)
