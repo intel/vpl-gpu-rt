@@ -639,7 +639,7 @@ public:
     }
 
 private:
-    std::atomic<size_t>                    m_last_created_mid = 0;
+    std::atomic<size_t>                    m_last_created_mid = { 0 };
     mfxHDL                                 m_device           = nullptr;
 
     mutable std::shared_timed_mutex        m_mutex;
