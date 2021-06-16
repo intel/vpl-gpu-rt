@@ -6855,7 +6855,7 @@ mfxStatus CopyFrameDataBothFields(
     FrameLocker lock2(core, srcSurf->Data, true);
     MFX_CHECK(srcSurf->Data.Y != 0, MFX_ERR_LOCK_MEMORY);
 
-    mfxFrameData dstData = { 0 };
+    mfxFrameData dstData{};
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Surface lock (output frame)");
     FrameLocker lock(core, dstData, dstMid);
     MFX_CHECK(dstData.Y != 0, MFX_ERR_LOCK_MEMORY);

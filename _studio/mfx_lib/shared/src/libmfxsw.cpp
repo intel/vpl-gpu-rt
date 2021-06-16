@@ -516,7 +516,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
             auto& impl = holder->PushBack();
 
             impl.Impl             = MFX_IMPL_TYPE_HARDWARE;
-            impl.ApiVersion       = { MFX_VERSION_MINOR, MFX_VERSION_MAJOR };
+            impl.ApiVersion       = { { MFX_VERSION_MINOR, MFX_VERSION_MAJOR } };
             impl.VendorID         = 0x8086;
             // use adapterNum as VendorImplID, app. supposed just to copy it from mfxImplDescription to mfxInitializationParam
             impl.VendorImplID     = adapterNum;
