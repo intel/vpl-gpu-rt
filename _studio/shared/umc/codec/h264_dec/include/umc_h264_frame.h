@@ -156,7 +156,7 @@ public:
 
     void OnDecodingCompleted();
 
-    virtual void Free();
+    virtual void Free() override;
 
     void SetSkipped(bool isSkipped)
     {

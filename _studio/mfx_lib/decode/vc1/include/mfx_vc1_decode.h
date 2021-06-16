@@ -71,25 +71,25 @@ public:
     virtual ~MFXVideoDECODEVC1(void);
 
 
-    mfxStatus Init(mfxVideoParam *par);
-    virtual mfxStatus Reset(mfxVideoParam *par);
-    virtual mfxStatus Close(void);
-    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void);
+    mfxStatus Init(mfxVideoParam *par) override;
+    virtual mfxStatus Reset(mfxVideoParam *par) override;
+    virtual mfxStatus Close(void) override;
+    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) override;
 
-    virtual mfxStatus GetVideoParam(mfxVideoParam *par);
+    virtual mfxStatus GetVideoParam(mfxVideoParam *par) override;
 
     virtual mfxStatus GetUserData(mfxU8 *ud, mfxU32 *sz, mfxU64 *ts);
 
-    virtual mfxStatus GetDecodeStat(mfxDecodeStat *stat);
+    virtual mfxStatus GetDecodeStat(mfxDecodeStat *stat) override;
 
     virtual mfxStatus DecodeFrameCheck(mfxBitstream *bs,
                                        mfxFrameSurface1 *surface_work,
                                        mfxFrameSurface1 **surface_out,
-                                       MFX_ENTRY_POINT *pEntryPoint);
+                                       MFX_ENTRY_POINT *pEntryPoint) override;
 
     virtual mfxStatus DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_disp);
-    virtual mfxStatus SetSkipMode(mfxSkipMode mode);
-    virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload);
+    virtual mfxStatus SetSkipMode(mfxSkipMode mode) override;
+    virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload) override;
     // to satisfy internal API
     virtual mfxStatus DecodeFrame(mfxBitstream * /*bs*/, mfxFrameSurface1 * /*surface_work*/, mfxFrameSurface1 * /*surface_out*/){ return MFX_ERR_UNSUPPORTED; };
 

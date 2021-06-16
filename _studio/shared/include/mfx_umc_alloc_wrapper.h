@@ -50,24 +50,24 @@ public:
     virtual UMC::Status InitMem(UMC::MemoryAllocatorParams *pParams, VideoCORE* mfxCore);
 
     // Closes object and releases all allocated memory
-    virtual UMC::Status Close();
+    virtual UMC::Status Close() override;
 
     // Allocates or reserves physical memory and return unique ID
     // Sets lock counter to 0
-    virtual UMC::Status Alloc(UMC::MemID *pNewMemID, size_t Size, uint32_t Flags, uint32_t Align = 16);
+    virtual UMC::Status Alloc(UMC::MemID *pNewMemID, size_t Size, uint32_t Flags, uint32_t Align = 16) override;
 
     // Lock() provides pointer from ID. If data is not in memory (swapped)
     // prepares (restores) it. Increases lock counter
-    virtual void *Lock(UMC::MemID MID);
+    virtual void *Lock(UMC::MemID MID) override;
 
     // Unlock() decreases lock counter
-    virtual UMC::Status Unlock(UMC::MemID MID);
+    virtual UMC::Status Unlock(UMC::MemID MID) override;
 
     // Notifies that the data wont be used anymore. Memory can be free
-    virtual UMC::Status Free(UMC::MemID MID);
+    virtual UMC::Status Free(UMC::MemID MID) override;
 
     // Immediately deallocates memory regardless of whether it is in use (locked) or no
-    virtual UMC::Status DeallocateMem(UMC::MemID MID);
+    virtual UMC::Status DeallocateMem(UMC::MemID MID) override;
 
 protected:
     VideoCORE* m_pCore;
@@ -99,28 +99,28 @@ public:
                                 bool isSWplatform);
 
     // Closes object and releases all allocated memory
-    virtual UMC::Status Close();
+    virtual UMC::Status Close() override;
 
     // Allocates or reserves physical memory and returns unique ID
     // Sets lock counter to 0
-    virtual UMC::Status Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDataInfo * info, uint32_t flags);
+    virtual UMC::Status Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDataInfo * info, uint32_t flags) override;
 
-    virtual UMC::Status GetFrameHandle(UMC::FrameMemID memId, void * handle);
+    virtual UMC::Status GetFrameHandle(UMC::FrameMemID memId, void * handle) override;
 
     // Lock() provides pointer from ID. If data is not in memory (swapped)
     // prepares (restores) it. Increases lock counter
-    virtual const UMC::FrameData* Lock(UMC::FrameMemID mid);
+    virtual const UMC::FrameData* Lock(UMC::FrameMemID mid) override;
 
     // Unlock() decreases lock counter
-    virtual UMC::Status Unlock(UMC::FrameMemID mid);
+    virtual UMC::Status Unlock(UMC::FrameMemID mid) override;
 
     // Notifies that the data won't be used anymore. Memory can be freed.
-    virtual UMC::Status IncreaseReference(UMC::FrameMemID mid);
+    virtual UMC::Status IncreaseReference(UMC::FrameMemID mid) override;
 
     // Notifies that the data won't be used anymore. Memory can be freed.
-    virtual UMC::Status DecreaseReference(UMC::FrameMemID mid);
+    virtual UMC::Status DecreaseReference(UMC::FrameMemID mid) override;
 
-    virtual UMC::Status Reset();
+    virtual UMC::Status Reset() override;
 
     virtual mfxStatus SetCurrentMFXSurface(mfxFrameSurface1 *srf, bool isOpaq);
 
@@ -377,7 +377,7 @@ public:
                                 const mfxFrameAllocRequest *request, 
                                 mfxFrameAllocResponse *response, 
                                 bool isUseExternalFrames,
-                                bool isSWplatform);
+                                bool isSWplatform) override;
 
     // suppose that Close() calls Reset(), so override only Reset()
     virtual UMC::Status Reset() override;

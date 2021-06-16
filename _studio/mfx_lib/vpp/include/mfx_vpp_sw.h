@@ -126,16 +126,16 @@ class VideoVPP_HW : public VideoVPPBase
 public:
     VideoVPP_HW(VideoCORE *core, mfxStatus* sts);
 
-    virtual mfxStatus InternalInit(mfxVideoParam *par);
-    virtual mfxStatus Close(void);
-    virtual mfxStatus Reset(mfxVideoParam *par);
+    virtual mfxStatus InternalInit(mfxVideoParam *par) override;
+    virtual mfxStatus Close(void) override;
+    virtual mfxStatus Reset(mfxVideoParam *par) override;
 
-    virtual mfxStatus GetVideoParam(mfxVideoParam *par);
+    virtual mfxStatus GetVideoParam(mfxVideoParam *par) override;
 
     virtual mfxStatus VppFrameCheck(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux,
-                                    MFX_ENTRY_POINT pEntryPoints[], mfxU32 &numEntryPoints);
+                                    MFX_ENTRY_POINT pEntryPoints[], mfxU32 &numEntryPoints) override;
 
-    virtual mfxStatus RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out, mfxExtVppAuxData *aux);
+    virtual mfxStatus RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out, mfxExtVppAuxData *aux) override;
 
     mfxStatus PassThrough(mfxFrameInfo* In, mfxFrameInfo* Out, mfxU32 taskIndex);
 

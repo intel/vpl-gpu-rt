@@ -172,7 +172,7 @@ namespace MfxHwH264Encode
         virtual
         mfxStatus Destroy() override;
 
-        void ForceCodingFunction (mfxU16 /*codingFunction*/)
+        void ForceCodingFunction (mfxU16 /*codingFunction*/) override
         {
             // no need in it on Linux
         }
