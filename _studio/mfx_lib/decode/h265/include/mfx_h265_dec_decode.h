@@ -68,28 +68,28 @@ public:
     virtual ~VideoDECODEH265(void);
 
     // Initialize decoder instance
-    mfxStatus Init(mfxVideoParam *par);
+    mfxStatus Init(mfxVideoParam *par) override;
     // Reset decoder with new parameters
-    virtual mfxStatus Reset(mfxVideoParam *par);
+    virtual mfxStatus Reset(mfxVideoParam *par) override;
     // Free decoder resources
-    virtual mfxStatus Close(void);
+    virtual mfxStatus Close(void) override;
     // Returns decoder threading mode
-    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void);
+    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) override;
 
     // MediaSDK DECODE_GetVideoParam API function
-    virtual mfxStatus GetVideoParam(mfxVideoParam *par);
+    virtual mfxStatus GetVideoParam(mfxVideoParam *par) override;
     // MediaSDK DECODE_GetDecodeStat API function
-    virtual mfxStatus GetDecodeStat(mfxDecodeStat *stat);
+    virtual mfxStatus GetDecodeStat(mfxDecodeStat *stat) override;
     // Initialize threads callbacks
-    virtual mfxStatus DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, MFX_ENTRY_POINT *pEntryPoint);
+    virtual mfxStatus DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, MFX_ENTRY_POINT *pEntryPoint) override;
     // Wait until a frame is ready to be output and set necessary surface flags
     virtual mfxStatus DecodeFrame(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out);
     // Returns closed caption data
     virtual mfxStatus GetUserData(mfxU8 *ud, mfxU32 *sz, mfxU64 *ts);
     // Returns stored SEI messages
-    virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload);
+    virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload) override;
     // MediaSDK DECODE_SetSkipMode API function
-    virtual mfxStatus SetSkipMode(mfxSkipMode mode);
+    virtual mfxStatus SetSkipMode(mfxSkipMode mode) override;
 
     // Decoder instance threads entry point. Do async tasks here
     mfxStatus RunThread(void * params, mfxU32 threadNumber);

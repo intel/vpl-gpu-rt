@@ -128,7 +128,7 @@ public:
 
     // Allocate buffer for video data and initialize it.
     virtual
-    Status Alloc(size_t requredSize = 0);
+    Status Alloc(size_t requredSize = 0) override;
 
     // Reset all plane pointers, release memory if allocated by Alloc
     virtual
@@ -136,12 +136,12 @@ public:
 
     // Release video data and all internal memory. Inherited.
     virtual
-    Status Close(void);
+    Status Close(void) override;
 
     // Set buffer pointer, assign all pointers. Inherited.
     // VideoData parameters must have been prepared
     virtual
-    Status SetBufferPointer(uint8_t *pbBuffer, size_t nSize);
+    Status SetBufferPointer(uint8_t *pbBuffer, size_t nSize) override;
 
     // Set common Alignment
     Status SetAlignment(int32_t iAlignment);

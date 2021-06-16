@@ -56,14 +56,14 @@ typedef const char *(*pDynamicCastFunction)(void);
     /* declare function to obtain string with class name */ \
     static const char *__GetClassName(void) {return #class_name;} \
     /* strong casting - compare function adresses of classes */ \
-    virtual bool TryStrongCasting(pDynamicCastFunction pCandidateFunction) const \
+    virtual bool TryStrongCasting(pDynamicCastFunction pCandidateFunction) const override \
     { \
         if (pCandidateFunction == &class_name::__GetClassName) \
             return true; \
         return parent_class::TryStrongCasting(pCandidateFunction); \
     } \
     /* weak casting - compare names of classes */ \
-    virtual bool TryWeakCasting(pDynamicCastFunction pCandidateFunction) const \
+    virtual bool TryWeakCasting(pDynamicCastFunction pCandidateFunction) const override \
     { \
         if (0 == strcmp(#class_name, pCandidateFunction())) \
             return true; \

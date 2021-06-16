@@ -66,7 +66,7 @@ public:
 
     // BaseCodec methods
     // Get codec working (initialization) parameter(s)
-    virtual Status GetInfo(BaseCodecParams *info);
+    virtual Status GetInfo(BaseCodecParams *info) override;
     // Set new working parameter(s)
     virtual Status SetParams(BaseCodecParams *params);
 

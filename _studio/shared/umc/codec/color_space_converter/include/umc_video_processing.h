@@ -69,7 +69,7 @@ class VideoDataExt : public VideoData
 {
   DYNAMIC_CAST_DECL(VideoDataExt, VideoData)
 public:
-  Status Crop(UMC::sRECT SrcCropArea);
+  Status Crop(UMC::sRECT SrcCropArea) override;
   Status Convert_YV12_To_YUV420();
 };
 
@@ -84,17 +84,17 @@ public:
   VideoProcessing();
   virtual ~VideoProcessing();
 
-  virtual Status Init(BaseCodecParams *init);
+  virtual Status Init(BaseCodecParams *init) override;
 
   virtual Status AddFilter(BaseCodec *filter, int atEnd);
 
-  virtual Status GetFrame(MediaData *input, MediaData *output);
+  virtual Status GetFrame(MediaData *input, MediaData *output) override;
 
-  virtual Status GetInfo(BaseCodecParams *info);
+  virtual Status GetInfo(BaseCodecParams *info) override;
 
-  virtual Status Close(void);
+  virtual Status Close(void) override;
 
-  virtual Status Reset(void);
+  virtual Status Reset(void) override;
 
   virtual Status SetParams(BaseCodecParams *params);
 

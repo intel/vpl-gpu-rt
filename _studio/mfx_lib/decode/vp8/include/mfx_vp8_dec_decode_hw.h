@@ -177,21 +177,21 @@ public:
     static mfxStatus QueryIOSurf(VideoCORE *pCore, mfxVideoParam *pPar, mfxFrameAllocRequest *pRequest);
     static mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription::decoder&, mfx::PODArraysHolder&);
 
-    virtual mfxStatus Init(mfxVideoParam *pPar);
-    virtual mfxStatus Reset(mfxVideoParam *pPar);
-    virtual mfxStatus Close();
+    virtual mfxStatus Init(mfxVideoParam *pPar) override;
+    virtual mfxStatus Reset(mfxVideoParam *pPar) override;
+    virtual mfxStatus Close() override;
 
-    virtual mfxTaskThreadingPolicy GetThreadingPolicy();
-    virtual mfxStatus GetVideoParam(mfxVideoParam *pPar);
-    virtual mfxStatus GetDecodeStat(mfxDecodeStat *pStat);
+    virtual mfxTaskThreadingPolicy GetThreadingPolicy() override;
+    virtual mfxStatus GetVideoParam(mfxVideoParam *pPar) override;
+    virtual mfxStatus GetDecodeStat(mfxDecodeStat *pStat) override;
 
     virtual mfxStatus DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out);
-    virtual mfxStatus DecodeFrameCheck(mfxBitstream *pBs, mfxFrameSurface1 *pSurfaceWork, mfxFrameSurface1 **ppSurfaceOut, MFX_ENTRY_POINT *pEntryPoint);
+    virtual mfxStatus DecodeFrameCheck(mfxBitstream *pBs, mfxFrameSurface1 *pSurfaceWork, mfxFrameSurface1 **ppSurfaceOut, MFX_ENTRY_POINT *pEntryPoint) override;
     virtual mfxStatus DecodeFrame(mfxBitstream *pBs, mfxFrameSurface1 *pSurfaceWork, mfxFrameSurface1 *pSurfaceOut);
 
     virtual mfxStatus GetUserData(mfxU8 *pUserData, mfxU32 *pSize, mfxU64 *pTimeStamp);
-    virtual mfxStatus GetPayload(mfxU64 *pTimeStamp, mfxPayload *pPayload);
-    virtual mfxStatus SetSkipMode(mfxSkipMode mode);
+    virtual mfxStatus GetPayload(mfxU64 *pTimeStamp, mfxPayload *pPayload) override;
+    virtual mfxStatus SetSkipMode(mfxSkipMode mode) override;
 
     virtual mfxFrameSurface1* GetSurface() override;
 

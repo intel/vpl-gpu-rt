@@ -31,19 +31,19 @@ class ColorSpaceConversion : public BaseCodec
   DYNAMIC_CAST_DECL(ColorSpaceConversion, BaseCodec)
 public:
   // Initialize codec with specified parameter(s)
-  virtual Status Init(BaseCodecParams *) { return UMC_OK; };
+  virtual Status Init(BaseCodecParams *) override { return UMC_OK; };
 
   // Convert next frame
-  virtual Status GetFrame(MediaData *in, MediaData *out);
+  virtual Status GetFrame(MediaData *in, MediaData *out) override;
 
   // Get codec working (initialization) parameter(s)
-  virtual Status GetInfo(BaseCodecParams *) { return UMC_OK; };
+  virtual Status GetInfo(BaseCodecParams *) override { return UMC_OK; };
 
   // Close all codec resources
-  virtual Status Close(void) { return UMC_OK; };
+  virtual Status Close(void) override { return UMC_OK; };
 
   // Set codec to initial state
-  virtual Status Reset(void) { return UMC_OK; };
+  virtual Status Reset(void) override { return UMC_OK; };
 
 private:
   Status GetFrameInternal(MediaData *in, MediaData *out);

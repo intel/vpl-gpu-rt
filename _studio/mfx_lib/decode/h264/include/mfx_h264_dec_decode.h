@@ -63,19 +63,19 @@ public:
     VideoDECODEH264(VideoCORE *core, mfxStatus * sts);
     virtual ~VideoDECODEH264(void);
 
-    mfxStatus Init(mfxVideoParam *par);
-    virtual mfxStatus Reset(mfxVideoParam *par);
-    virtual mfxStatus Close(void);
-    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void);
+    mfxStatus Init(mfxVideoParam *par) override;
+    virtual mfxStatus Reset(mfxVideoParam *par) override;
+    virtual mfxStatus Close(void) override;
+    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) override;
 
-    virtual mfxStatus GetVideoParam(mfxVideoParam *par);
-    virtual mfxStatus GetDecodeStat(mfxDecodeStat *stat);
+    virtual mfxStatus GetVideoParam(mfxVideoParam *par) override;
+    virtual mfxStatus GetDecodeStat(mfxDecodeStat *stat) override;
 
-    virtual mfxStatus DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, MFX_ENTRY_POINT *pEntryPoint);
+    virtual mfxStatus DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, MFX_ENTRY_POINT *pEntryPoint) override;
     virtual mfxStatus DecodeFrame(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out);
     virtual mfxStatus GetUserData(mfxU8 *ud, mfxU32 *sz, mfxU64 *ts);
-    virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload);
-    virtual mfxStatus SetSkipMode(mfxSkipMode mode);
+    virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload) override;
+    virtual mfxStatus SetSkipMode(mfxSkipMode mode) override;
 
     mfxStatus RunThread(ThreadTaskInfo*, mfxU32 /*threadNumber*/);
 
@@ -102,7 +102,7 @@ protected:
 
 
     mfxFrameSurface1 * GetOriginalSurface(mfxFrameSurface1 *surface);
-    mfxFrameSurface1 * GetInternalSurface(mfxFrameSurface1 *surface);
+    mfxFrameSurface1 * GetInternalSurface(mfxFrameSurface1 *surface) override;
     std::unique_ptr<UMC::MFXTaskSupplier>  m_pH264VideoDecoder;
     mfx_UMC_MemAllocator                   m_MemoryAllocator;
 
