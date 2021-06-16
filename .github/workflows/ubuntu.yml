@@ -2,13 +2,14 @@ name: ubuntu-20.04
 
 on: [ push, pull_request ]
 
-env:
-  CFLAGS: -O2 -Wformat -Wformat-security -Wall -Werror -D_FORTIFY_SOURCE=2 -fstack-protector-strong
+#env:
+#  CFLAGS: -O2 -Wformat -Wformat-security -Wall -Werror -D_FORTIFY_SOURCE=2 -fstack-protector-strong
 
 jobs:
   clang12:
     runs-on: ubuntu-20.04
     env:
+      CFLAGS: -O2 -Wformat -Wformat-security -Wall -Werror -Wno-overloaded-virtual -D_FORTIFY_SOURCE=2 -fstack-protector-strong
       CC: /usr/bin/clang-12
       CXX: /usr/bin/clang++-12
       ASM: /usr/bin/clang-12
@@ -71,6 +72,7 @@ jobs:
   gcc10:
     runs-on: ubuntu-20.04
     env:
+      CFLAGS: -O2 -Wformat -Wformat-security -Wall -Werror -D_FORTIFY_SOURCE=2 -fstack-protector-strong
       CC: /usr/bin/gcc-10
       CXX: /usr/bin/g++-10
       ASM: /usr/bin/gcc-10
