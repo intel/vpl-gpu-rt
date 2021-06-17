@@ -345,9 +345,6 @@ Status MFXTaskSupplier::DecodeHeaders(NalUnit *nalUnit)
                     hdr->Resize(id, size + sizeof(start_code_prefix));
                     MFX_INTERNAL_CPY(hdr->GetPointer(), start_code_prefix,  sizeof(start_code_prefix));
                     MFX_INTERNAL_CPY(hdr->GetPointer() + sizeof(start_code_prefix), (uint8_t*)nalUnit->GetDataPointer(), (uint32_t)size);
-#ifdef __APPLE__
-                    hdr->SetRBSPSize(size);
-#endif
                  }
             break;
         }
@@ -1659,7 +1656,7 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
                      (videoProcessingTargetIn->Out.CropY <= videoProcessingTargetIn->Out.CropH) &&
                      (videoProcessingTargetIn->Out.CropH <= videoProcessingTargetIn->Out.Height) &&
                      ((videoProcessingTargetIn->Out.CropY + videoProcessingTargetIn->Out.CropH )
-                                                         <= videoProcessingTargetIn->Out.Width) ))
+                                                         <= videoProcessingTargetIn->Out.Height) ))
                     sts = MFX_ERR_UNSUPPORTED;
                 if (MFX_ERR_UNSUPPORTED != sts)
                     *videoProcessingTargetOut = *videoProcessingTargetIn;

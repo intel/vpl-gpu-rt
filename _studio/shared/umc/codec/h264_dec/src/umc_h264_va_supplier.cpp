@@ -331,8 +331,6 @@ void VATaskSupplier::InitFrameCounter(H264DecoderFrame * pFrame, const H264Slice
 
 Status VATaskSupplier::AddSource(MediaData * pSource)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VATaskSupplier::AddSource");
-
     if (!pSource)
         return MFXTaskSupplier::AddSource(pSource);
 
