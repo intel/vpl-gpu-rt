@@ -17,9 +17,9 @@ set(sources_common
     shared/src/libmfxsw_async.cpp
     shared/src/libmfxsw_decode.cpp
     shared/src/libmfxsw_encode.cpp
+    shared/src/libmfxsw_functions.cpp
     shared/src/libmfxsw_enc.cpp
     shared/src/libmfxsw_pak.cpp
-    shared/src/libmfxsw_functions.cpp
     shared/src/libmfxsw_plugin.cpp
     shared/src/libmfxsw_query.cpp
     shared/src/libmfxsw_session.cpp
@@ -34,7 +34,6 @@ set(sources_common
     shared/include/mfx_utils_extbuf.h
     ${CMAKE_BINARY_DIR}/mfxconfig.h  # Cmake-generated configuration derived from BuildOptions
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_config.h
-
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_common.h
 
     ${MSDK_STUDIO_ROOT}/shared/include/cm_mem_copy.h
@@ -52,8 +51,6 @@ set(sources_common
     ${MSDK_STUDIO_ROOT}/shared/include/mfxstructurespro.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfxvideo++int.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_cenc.h
-    ${MSDK_STUDIO_ROOT}/shared/include/mfx_common.h
-    ${MSDK_STUDIO_ROOT}/shared/include/mfx_config.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_ext_buffers.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_reflect.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_timing.h
@@ -70,7 +67,6 @@ set(sources_common
     ${MSDK_STUDIO_ROOT}/shared/src/mfx_umc_alloc_wrapper.cpp
     ${MSDK_STUDIO_ROOT}/shared/src/mfx_umc_mjpeg_vpp.cpp
     ${MSDK_STUDIO_ROOT}/shared/src/mfx_static_assert_structs.cpp
-
     $<TARGET_OBJECTS:fast_copy_sse4>
   )
 
@@ -85,6 +81,7 @@ set(sources_hw
     ${MSDK_STUDIO_ROOT}/shared/src/mfx_vpp_vaapi.cpp
     ${MSDK_STUDIO_ROOT}/shared/src/mfx_vpp_helper.cpp
     ${MSDK_STUDIO_ROOT}/shared/src/libmfx_allocator_vaapi.cpp
+    
     ${MSDK_STUDIO_ROOT}/shared/src/libmfx_core_hw.cpp
     ${MSDK_STUDIO_ROOT}/shared/src/libmfx_core_vaapi.cpp
   )
@@ -131,13 +128,6 @@ foreach( variant ${VARIANTS} )
     Threads::Threads
     ${CMAKE_DL_LIBS}
   )
-
-  if (variant MATCHES hw)
-    target_compile_definitions(${mfxlibname}
-      PRIVATE
-        MFX_VA
-    )
-  endif()
 
   target_include_directories(${mfxlibname}
     PRIVATE

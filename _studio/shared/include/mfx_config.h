@@ -39,31 +39,12 @@
 
 #endif
 
-#define MFX_PRIVATE_AVC_ENCODE_CTRL_DISABLE
-
 // Here follows per-codec feature enable options which as of now we don't
 // want to expose on build system level since they are too detailed.
-#if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
-    #if MFX_VERSION >= 1023
-        #define MFX_ENABLE_H264_REPARTITION_CHECK
-    #endif
-    #if MFX_VERSION >= 1027
-        #define MFX_ENABLE_H264_ROUNDING_OFFSET
-    #endif
-    #if defined(MFX_ENABLE_MCTF) && defined(MFX_ENABLE_KERNELS)
-        #define MFX_ENABLE_MCTF_IN_AVC
-    #endif
+#define SYNCHRONIZATION_BY_VA_MAP_BUFFER
+#if !defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
+    #define SYNCHRONIZATION_BY_VA_SYNC_SURFACE
 #endif
-
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
-    #define MFX_ENABLE_HEVCE_INTERLACE
-    #define MFX_ENABLE_HEVCE_ROI
-#endif
-
-    #define SYNCHRONIZATION_BY_VA_MAP_BUFFER
-    #if !defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
-        #define SYNCHRONIZATION_BY_VA_SYNC_SURFACE
-    #endif
 
 #if defined(MFX_ENABLE_VPP)
     #define MFX_ENABLE_VPP_COMPOSITION
@@ -87,16 +68,8 @@
     #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
 #endif
 
-#if MFX_VERSION >= 1028
-    #define MFX_ENABLE_RGBP
-    #define MFX_ENABLE_FOURCC_RGB565
-#endif
-
-#if MFX_VERSION >= 1031
-    #define MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT
-#endif
-
-#define MFX_ENABLE_QVBR
+#define MFX_ENABLE_RGBP
+#define MFX_ENABLE_FOURCC_RGB565
 
 #define CMAPIUPDATE
 
