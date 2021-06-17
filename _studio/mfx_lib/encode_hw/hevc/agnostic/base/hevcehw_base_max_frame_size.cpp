@@ -66,7 +66,7 @@ void MaxFrameSize::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         auto& MaxFrameSize = pCO2->MaxFrameSize;
 
         mfxU32 changed = 0;
-        bool   bSupported = (Legacy::IsSWBRC(par, pCO2) || caps.UserMaxFrameSizeSupport)
+        bool   bSupported = (Legacy::IsSWBRC(par) || caps.UserMaxFrameSizeSupport)
             && !Check(par.mfx.RateControlMethod, mfxU16(MFX_RATECONTROL_VBR), mfxU16(MFX_RATECONTROL_QVBR));
 
         mfxU32 MinValid = 0;

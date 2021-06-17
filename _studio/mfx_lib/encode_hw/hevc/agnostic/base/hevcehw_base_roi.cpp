@@ -29,7 +29,7 @@ using namespace HEVCEHW::Base;
 
 static bool ROIViaMBQP(const ENCODE_CAPS_HEVC caps, const mfxVideoParam par)
 {
-    return (!caps.MaxNumOfROI || !caps.ROIDeltaQPSupport) && Legacy::IsSWBRC(par, ExtBuffer::Get(par));
+    return (!caps.MaxNumOfROI || !caps.ROIDeltaQPSupport) && Legacy::IsSWBRC(par);
 }
 
 static mfxStatus CheckAndFixRect(
@@ -69,7 +69,7 @@ mfxStatus ROI::CheckAndFixROI(
     mfxStatus sts = MFX_ERR_NONE, rsts = MFX_ERR_NONE;
     mfxU32 changed = 0, invalid = 0;
 
-    bool bSWBRC = Legacy::IsSWBRC(par, ExtBuffer::Get(par));
+    bool bSWBRC = Legacy::IsSWBRC(par);
     bool bROIViaMBQP = ROIViaMBQP(caps, par);
     bool bForcedQPMode = par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || bSWBRC;
 

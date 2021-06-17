@@ -72,6 +72,7 @@ mfxStatus LPLA_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig 
     MFX_CHECK_STS(sts);
 
     m_curDispOrder = -1;
+    m_config = config;
     m_bInit = true;
     return sts;
 }
@@ -345,7 +346,7 @@ mfxStatus LPLA_EncTool::Query(mfxU32 dispOrder, mfxEncToolsHintQuantMatrix *pCqm
         m_curDispOrder = (mfxI32)dispOrder;
         m_encodeHints.pop_front();
     }
-   
+
     switch (m_curEncodeHints.CqmHint)
     {
     case CQM_HINT_USE_CUST_MATRIX1:

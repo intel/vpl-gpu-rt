@@ -26,7 +26,6 @@
 #include "hevcehw_base_enctools.h"
 #include "hevcehw_base_task.h"
 
-
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
 
@@ -154,14 +153,14 @@ inline mfxU32 GetNumTempLayers(mfxVideoParam &video)
 inline bool CheckEncToolsCondition(mfxVideoParam &video)
 {
     return ((video.mfx.FrameInfo.PicStruct == 0
-        || video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) 
+        || video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE)
         && GetNumTempLayers(video) <= 1);
 }
 
 inline bool  CheckSWEncCondition(mfxVideoParam &video)
 {
     return (
-        CheckEncToolsCondition(video) 
+        CheckEncToolsCondition(video)
         && (video.mfx.GopRefDist == 0
             || video.mfx.GopRefDist == 1
             || video.mfx.GopRefDist == 2
@@ -207,7 +206,7 @@ static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config)
     {
         if (CheckSWEncCondition(video))
         {
-            mfxExtCodingOptionDDI extDdi = ExtBuffer::Get(video);
+            mfxExtCodingOptionDDI *extDdi = ExtBuffer::Get(video);
 
             bool bGopStrict = (video.mfx.GopOptFlag & MFX_GOP_STRICT);
             bool bAdaptiveI = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveI)) && (!bGopStrict);
@@ -218,7 +217,7 @@ static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config)
             SetDefaultOpt(config.AdaptivePyramidQuantP, bAdaptiveI);
             SetDefaultOpt(config.AdaptivePyramidQuantB, bAdaptiveI);
 
-            bool bAdaptRef = (extDdi.NumActiveRefP !=1) && bAdaptiveI;
+            bool bAdaptRef = (extDdi && (extDdi->NumActiveRefP !=1)) && bAdaptiveI;
 
             SetDefaultOpt(config.AdaptiveRefP, bAdaptRef);
             SetDefaultOpt(config.AdaptiveRefB, bAdaptRef);
@@ -236,6 +235,7 @@ static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config)
 
        SetDefaultOpt(config.BRCBufferHints, bLA);
        SetDefaultOpt(config.AdaptivePyramidQuantP, bLA);
+       SetDefaultOpt(config.AdaptivePyramidQuantB, bLA);
        SetDefaultOpt(config.AdaptiveQuantMatrices, bLA);
        SetDefaultOpt(config.AdaptiveI, bLA);
        SetDefaultOpt(config.AdaptiveB, bLA);
@@ -263,7 +263,7 @@ static mfxU32 CorrectVideoParams(mfxVideoParam &video, mfxExtEncToolsConfig& sup
     mfxU32 changed = 0;
 
 #ifdef MFX_ENABLE_ENCTOOLS_LPLA
-    if (pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING && video.mfx.GopRefDist > 4) {
+    if (pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING && video.mfx.GopRefDist > 4) {
         changed++;
         video.mfx.GopRefDist = 4;
     }
@@ -287,22 +287,22 @@ static mfxU32 CorrectVideoParams(mfxVideoParam &video, mfxExtEncToolsConfig& sup
         changed += CheckFlag(pConfig->AdaptiveQuantMatrices, bIsEncToolsEnabled);
         changed += CheckFlag(pConfig->BRC, bIsEncToolsEnabled);
 
-        changed += CheckFlag(pConfig->AdaptiveI, supportedConfig.AdaptiveI);
-        changed += CheckFlag(pConfig->AdaptiveB, supportedConfig.AdaptiveB);
-        changed += CheckFlag(pConfig->AdaptivePyramidQuantB, supportedConfig.AdaptivePyramidQuantB);
-        changed += CheckFlag(pConfig->AdaptivePyramidQuantP, supportedConfig.AdaptivePyramidQuantP);
-        changed += CheckFlag(pConfig->AdaptiveRefP, supportedConfig.AdaptiveRefP);
-        changed += CheckFlag(pConfig->AdaptiveRefB, supportedConfig.AdaptiveRefB);
-        changed += CheckFlag(pConfig->AdaptiveLTR, supportedConfig.AdaptiveLTR);
-        changed += CheckFlag(pConfig->SceneChange, supportedConfig.SceneChange);
-        changed += CheckFlag(pConfig->BRCBufferHints, supportedConfig.BRCBufferHints);
-        changed += CheckFlag(pConfig->AdaptiveQuantMatrices, supportedConfig.AdaptiveQuantMatrices);
-        changed += CheckFlag(pConfig->BRC, supportedConfig.BRC);
+        changed += CheckFlag(pConfig->AdaptiveI, IsOn(supportedConfig.AdaptiveI));
+        changed += CheckFlag(pConfig->AdaptiveB, IsOn(supportedConfig.AdaptiveB));
+        changed += CheckFlag(pConfig->AdaptivePyramidQuantB, IsOn(supportedConfig.AdaptivePyramidQuantB));
+        changed += CheckFlag(pConfig->AdaptivePyramidQuantP, IsOn(supportedConfig.AdaptivePyramidQuantP));
+        changed += CheckFlag(pConfig->AdaptiveRefP, IsOn(supportedConfig.AdaptiveRefP));
+        changed += CheckFlag(pConfig->AdaptiveRefB, IsOn(supportedConfig.AdaptiveRefB));
+        changed += CheckFlag(pConfig->AdaptiveLTR, IsOn(supportedConfig.AdaptiveLTR));
+        changed += CheckFlag(pConfig->SceneChange, IsOn(supportedConfig.SceneChange));
+        changed += CheckFlag(pConfig->BRCBufferHints, IsOn(supportedConfig.BRCBufferHints));
+        changed += CheckFlag(pConfig->AdaptiveQuantMatrices, IsOn(supportedConfig.AdaptiveQuantMatrices));
+        changed += CheckFlag(pConfig->BRC, IsOn(supportedConfig.BRC));
     }
     if (pExtOpt2)
     {
-        changed += CheckFlag(pExtOpt2->AdaptiveI, supportedConfig.AdaptiveI);
-        changed += CheckFlag(pExtOpt2->AdaptiveB, supportedConfig.AdaptiveB);
+        changed += CheckFlag(pExtOpt2->AdaptiveI, IsOn(supportedConfig.AdaptiveI));
+        changed += CheckFlag(pExtOpt2->AdaptiveB, IsOn(supportedConfig.AdaptiveB));
         changed += CheckFlag(pExtOpt2->ExtBRC, !bIsEncToolsEnabled);
     }
 
@@ -543,7 +543,12 @@ inline void InitEncToolsCtrlExtAllocator(mfxEncToolsCtrlExtAllocator & extAlloca
 
 inline mfxHandleType GetHandleType(eMFXVAType vaType)
 {
-    return vaType ? MFX_HANDLE_D3D11_DEVICE : (MFX_HW_D3D9 == vaType ? MFX_HANDLE_DIRECT3D_DEVICE_MANAGER9 : MFX_HANDLE_VA_DISPLAY);
+    switch (vaType)
+    {
+    case MFX_HW_D3D9:  return MFX_HANDLE_D3D9_DEVICE_MANAGER;
+    case MFX_HW_VAAPI: return MFX_HANDLE_VA_DISPLAY;
+    }
+    return MFX_HANDLE_D3D11_DEVICE;
 }
 
 void HevcEncTools::QueryIOSurf(const FeatureBlocks&, TPushQIS Push)
@@ -584,7 +589,7 @@ mfxStatus HevcEncTools::SubmitPreEncTask(StorageW&  /*global*/, StorageW& s_task
         extFrameData.Header.BufferSz = sizeof(extFrameData);
         extFrameData.Surface = task.pSurfIn;
         extParams.push_back((mfxExtBuffer *)&extFrameData);
-        task_par.ExtParam = &extParams[0];
+        task_par.ExtParam = extParams.data();
     }
     task_par.DisplayOrder = task.DisplayOrder;
     task_par.NumExtParam = (mfxU16)extParams.size();
@@ -596,6 +601,54 @@ mfxStatus HevcEncTools::SubmitPreEncTask(StorageW&  /*global*/, StorageW& s_task
 
 constexpr mfxU32 ENCTOOLS_QUERY_TIMEOUT = 5000;
 
+mfxStatus HevcEncTools::BRCGetCtrl(StorageW&  , StorageW& s_task,
+    mfxEncToolsBRCQuantControl &extQuantCtrl , mfxEncToolsBRCHRDPos  &extHRDPos )
+{
+    MFX_CHECK(IsOn (m_EncToolConfig.BRC) && m_pEncTools && m_pEncTools->Submit, MFX_ERR_NONE);
+
+    mfxEncToolsTaskParam task_par = {};
+    auto&      task = Task::Common::Get(s_task);
+    std::vector<mfxExtBuffer*> extParams;
+    mfxEncToolsBRCFrameParams  extFrameData = {};
+    task_par.DisplayOrder = task.DisplayOrder;
+
+    {
+        // input params
+        extFrameData.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_FRAME_PARAM;
+        extFrameData.Header.BufferSz = sizeof(extFrameData);
+        extFrameData.EncodeOrder = task.EncodedOrder;
+        extFrameData.FrameType = task.FrameType;
+
+        extParams.push_back((mfxExtBuffer *)&extFrameData);
+        task_par.ExtParam = extParams.data();
+        task_par.NumExtParam = (mfxU16)extParams.size();
+
+        auto sts = m_pEncTools->Submit(m_pEncTools->Context, &task_par);
+        MFX_CHECK_STS(sts);
+    }
+    {
+        extParams.clear();
+
+        // output params
+        extQuantCtrl = {};
+        extQuantCtrl.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_QUANT_CONTROL;
+        extQuantCtrl.Header.BufferSz = sizeof(extQuantCtrl);
+        extParams.push_back((mfxExtBuffer *)&extQuantCtrl);
+
+        extHRDPos = {};
+        extHRDPos.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_HRD_POS;
+        extHRDPos.Header.BufferSz = sizeof(extHRDPos);
+        extParams.push_back((mfxExtBuffer *)&extHRDPos);
+
+        task_par.NumExtParam = (mfxU16)extParams.size();
+        task_par.ExtParam = extParams.data();
+
+        auto sts = m_pEncTools->Query(m_pEncTools->Context, &task_par, ENCTOOLS_QUERY_TIMEOUT);
+        MFX_CHECK_STS(sts);
+    }
+    return MFX_ERR_NONE;
+ }
+
 mfxStatus HevcEncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
 {
     MFX_CHECK(m_pEncTools && m_pEncTools->Query, MFX_ERR_NONE);
@@ -605,26 +658,33 @@ mfxStatus HevcEncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
     mfxEncToolsTaskParam task_par = {};
     std::vector<mfxExtBuffer*> extParams;
 
+    mfxEncToolsHintPreEncodeGOP preEncodeGOP = {};
+    mfxEncToolsBRCBufferHint bufHint = {};
+    mfxEncToolsHintQuantMatrix cqmHint = {};
+
     MFX_CHECK(task.DisplayOrder!= (mfxU32)(-1), MFX_ERR_NONE);
     task_par.DisplayOrder = task.DisplayOrder;
-    task_par.NumExtParam = (mfxU16)extParams.size();
+    task_par.NumExtParam = 0;
 
-    mfxEncToolsHintPreEncodeGOP preEncodeGOP = {};
-    preEncodeGOP.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_GOP;
-    preEncodeGOP.Header.BufferSz = sizeof(preEncodeGOP);
-    extParams.push_back((mfxExtBuffer *)&preEncodeGOP);
+    if (IsOn(m_EncToolConfig.AdaptiveI) ||
+        IsOn(m_EncToolConfig.AdaptiveB) ||
+        IsOn(m_EncToolConfig.AdaptivePyramidQuantP) ||
+        IsOn(m_EncToolConfig.AdaptivePyramidQuantB))
+    {
+        preEncodeGOP.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_GOP;
+        preEncodeGOP.Header.BufferSz = sizeof(preEncodeGOP);
+        extParams.push_back((mfxExtBuffer *)&preEncodeGOP);
+    }
 
 #if defined MFX_ENABLE_ENCTOOLS_LPLA
-    mfxEncToolsHintQuantMatrix cqmHint = {};
-    cqmHint.MatrixType = CQM_HINT_USE_FLAT_MATRIX;
     if (IsOn(m_EncToolConfig.AdaptiveQuantMatrices))
     {
+        cqmHint.MatrixType = CQM_HINT_USE_FLAT_MATRIX;
         cqmHint.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_MATRIX;
         cqmHint.Header.BufferSz = sizeof(cqmHint);
         extParams.push_back((mfxExtBuffer *)&cqmHint);
     }
 
-    mfxEncToolsBRCBufferHint bufHint = {};
     if (IsOn(m_EncToolConfig.BRCBufferHints))
     {
         bufHint.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_BUFFER_HINT;
@@ -632,8 +692,10 @@ mfxStatus HevcEncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
         extParams.push_back((mfxExtBuffer *)&bufHint);
     }
 #endif
-    task_par.ExtParam = &extParams[0];
+
+    task_par.ExtParam = extParams.data();
     task_par.NumExtParam = (mfxU16)extParams.size();
+    MFX_CHECK(task_par.NumExtParam, MFX_ERR_NONE);
 
     auto sts = m_pEncTools->Query(m_pEncTools->Context, &task_par, ENCTOOLS_QUERY_TIMEOUT);
     task.GopHints.MiniGopSize = preEncodeGOP.MiniGopSize;
@@ -641,7 +703,7 @@ mfxStatus HevcEncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
     mfxLplastatus laStatus = {};
     laStatus.QpModulation = (mfxU8)preEncodeGOP.QPModulation;
     laStatus.MiniGopSize = (mfxU8)preEncodeGOP.MiniGopSize;
-    
+
     switch (cqmHint.MatrixType)
     {
     case MFX_QUANT_MATRIX_WEAK:
@@ -669,6 +731,47 @@ mfxStatus HevcEncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
     MFX_CHECK_STS(sts);
 
     return sts;
+}
+
+mfxStatus HevcEncTools::BRCUpdate(StorageW&  , StorageW& s_task, mfxEncToolsBRCStatus & brcStatus)
+{
+    MFX_CHECK(IsOn(m_EncToolConfig.BRC) && m_pEncTools && m_pEncTools->Query, MFX_ERR_NONE);
+
+    auto& task = Task::Common::Get(s_task);
+    mfxEncToolsTaskParam task_par = {};
+    std::vector<mfxExtBuffer*> extParams;
+
+    MFX_CHECK(task.DisplayOrder != (mfxU32)(-1), MFX_ERR_NONE);
+    task_par.DisplayOrder = task.DisplayOrder;
+
+    {
+        mfxEncToolsBRCEncodeResult extEncRes;
+        extEncRes.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_ENCODE_RESULT;
+        extEncRes.Header.BufferSz = sizeof(extEncRes);
+        extEncRes.CodedFrameSize = task.BsDataLength;
+        extEncRes.QpY = (mfxU16)task.QpY;
+        extEncRes.NumRecodesDone = task.NumRecode;
+
+        extParams.push_back((mfxExtBuffer *)&extEncRes);
+        task_par.NumExtParam = (mfxU16)extParams.size();
+        task_par.ExtParam = extParams.data();
+        auto sts = m_pEncTools->Submit(m_pEncTools->Context, &task_par);
+        MFX_CHECK_STS(sts);
+    }
+    {
+        extParams.clear();
+        brcStatus = {};
+        brcStatus.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_STATUS;
+        brcStatus.Header.BufferSz = sizeof(brcStatus);
+
+        extParams.push_back((mfxExtBuffer *)&brcStatus);
+        task_par.NumExtParam = (mfxU16)extParams.size();
+        task_par.ExtParam = extParams.data();
+        auto sts = m_pEncTools->Query(m_pEncTools->Context, &task_par, ENCTOOLS_QUERY_TIMEOUT);
+        MFX_CHECK_STS(sts)
+    }
+
+    return MFX_ERR_NONE;
 }
 
 void HevcEncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
@@ -746,7 +849,6 @@ void HevcEncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
             S_ET_SUBMIT = tm.AddStage(tm.S_NEW);
             S_ET_QUERY = tm.AddStage(S_ET_SUBMIT);
 
-
             m_pEncTools = encTools;
         }
 
@@ -792,16 +894,13 @@ void HevcEncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
             , StorageW& s_task) -> mfxStatus
         {
             std::unique_lock<std::mutex> closeGuard(tm.m_closeMtx);
-
-            //auto& taskMgrIface = TaskManager::TMInterface::Get(global);
-            //auto& tm = taskMgrIface.Manager;
             bool       bFlush = !tm.IsInputTask(s_task);
 
-
             // Delay For LookAhead Depth
-            MFX_CHECK(tm.m_stages.at(tm.Stage(S_ET_QUERY)).size() >= m_maxDelay  || bFlush,MFX_ERR_NONE);
+            MFX_CHECK(tm.m_stages.at(tm.Stage(S_ET_QUERY)).size() >= std::max(m_maxDelay,1U)  || bFlush,MFX_ERR_NONE);
 
             StorageW* pTask = tm.GetTask(tm.Stage(S_ET_QUERY));
+            MFX_CHECK(pTask, MFX_ERR_NONE);
             auto sts = QueryPreEncTask(global, *pTask);
             MFX_CHECK_STS(sts);
 
@@ -815,7 +914,7 @@ void HevcEncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 
         // Extend Num of tasks and size of buffer.
         taskMgrIface.ResourceExtra += (mfxU16)m_maxDelay;
-//-
+
         return MFX_ERR_NONE;
     });
     Push(BLK_UpdateTask
@@ -835,11 +934,9 @@ void HevcEncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
                 if (LpLaStatus.size() > 0)
                 {
                     dst_task.LplaStatus = *(LpLaStatus.begin());
-                   // printf("copy dst task: %d,  Target %d\n", dst_task.DisplayOrder, dst_task.LplaStatus.TargetFrameSize);
 
                     LpLaStatus.pop_front();
                 }
-                //dst_task.LplaStatus = src_task.LplaStatus;
             }
             return MFX_ERR_NONE;
         };
@@ -847,9 +944,94 @@ void HevcEncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 
         return MFX_ERR_NONE;
     });
-
-
 }
+
+void HevcEncTools::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
+{
+    Push(BLK_GetFrameCtrl
+        , [this](
+            StorageW& global
+            , StorageW& s_task) -> mfxStatus
+    {
+        MFX_CHECK(IsOn(m_EncToolConfig.BRC) && m_pEncTools && m_pEncTools->Submit, MFX_ERR_NONE);
+
+        auto&      par = Glob::VideoParam::Get(global);
+        auto&      task = Task::Common::Get(s_task);
+        auto&      sh = Task::SSH::Get(s_task);
+        auto&      sps = Glob::SPS::Get(global);
+        auto&      pps = Glob::PPS::Get(global);
+        eMFXHWType hw = Glob::VideoCore::Get(global).GetHWType();
+
+        bool bNegativeQpAllowed = !(IsOn(par.mfx.LowPower) || (hw >= MFX_HW_KBL && hw < MFX_HW_CNL));
+
+        mfxI32 minQP = (-6 * sps.bit_depth_luma_minus8) * bNegativeQpAllowed;
+        mfxI32 maxQP = 51;
+
+        mfxEncToolsBRCQuantControl quantCtrl = {};
+        mfxEncToolsBRCHRDPos  HRDPos = {};
+
+        BRCGetCtrl(global, s_task, quantCtrl, HRDPos);
+
+        SetDefault(HRDPos.InitialCpbRemovalDelay, task.initial_cpb_removal_delay);
+        SetDefault(HRDPos.InitialCpbRemovalDelayOffset, task.initial_cpb_removal_offset);
+
+        task.initial_cpb_removal_delay = HRDPos.InitialCpbRemovalDelay;
+        task.initial_cpb_removal_offset = HRDPos.InitialCpbRemovalDelayOffset;
+
+        task.QpY = mfxI8(mfx::clamp((mfxI32)quantCtrl.QpY + (-6 * sps.bit_depth_luma_minus8) * bNegativeQpAllowed, minQP, maxQP));
+        sh.slice_qp_delta = mfxI8(task.QpY - (pps.init_qp_minus26 + 26));
+
+        sh.temporal_mvp_enabled_flag &= !(par.AsyncDepth > 1 && task.NumRecode); // WA
+        return MFX_ERR_NONE;
+    });
+}
+
+void HevcEncTools::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
+{
+    Push(BLK_Update
+        , [this](
+            StorageW& global
+            , StorageW& s_task) -> mfxStatus
+    {
+        MFX_CHECK(IsOn(m_EncToolConfig.BRC) && m_pEncTools && m_pEncTools->Query, MFX_ERR_NONE);
+
+        auto& task = Task::Common::Get(s_task);
+        mfxEncToolsBRCStatus brcSts = {};
+
+        auto sts = BRCUpdate(global, s_task, brcSts);
+        MFX_CHECK_STS(sts);
+        task.bSkip = false;
+
+        switch (brcSts.FrameStatus.BRCStatus)
+        {
+        case MFX_BRC_OK:
+            break;
+        case MFX_BRC_PANIC_SMALL_FRAME:
+            task.MinFrameSize = brcSts.FrameStatus.MinFrameSize;
+            task.NumRecode++;
+            task.BsDataLength = task.MinFrameSize;
+
+            sts = BRCUpdate(global, s_task, brcSts);
+            MFX_CHECK_STS(sts);
+            MFX_CHECK(brcSts.FrameStatus.BRCStatus == MFX_BRC_OK, MFX_ERR_UNDEFINED_BEHAVIOR);
+            break;
+        case MFX_BRC_PANIC_BIG_FRAME:
+            task.bSkip = true;
+        case MFX_BRC_BIG_FRAME:
+        case MFX_BRC_SMALL_FRAME:
+            task.bRecode = true;
+            break;
+        default:
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
+        }
+
+        task.bForceSync |= task.bSkip;
+
+        return MFX_ERR_NONE;
+    });
+}
+
+
 
 void HevcEncTools::Close(const FeatureBlocks& /*blocks*/, TPushCLS Push)
 {

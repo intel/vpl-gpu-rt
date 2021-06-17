@@ -38,6 +38,10 @@ namespace Base
     public:
         mfxStatus SubmitPreEncTask(StorageW&  global, StorageW& s_task);
         mfxStatus QueryPreEncTask(StorageW&  global, StorageW& s_task);
+        mfxStatus BRCGetCtrl(StorageW&  global, StorageW& s_task,
+            mfxEncToolsBRCQuantControl &extQuantCtrl, mfxEncToolsBRCHRDPos  &extHRDPos);
+        mfxStatus BRCUpdate(StorageW&  global, StorageW& s_task,
+            mfxEncToolsBRCStatus &sts);
 
 #define DECL_BLOCK_LIST\
     DECL_BLOCK(Check)\
@@ -48,6 +52,7 @@ namespace Base
     DECL_BLOCK(AddTask)\
     DECL_BLOCK(PreEncSubmit)\
     DECL_BLOCK(PreEncQuery)\
+    DECL_BLOCK(GetFrameCtrl)\
     DECL_BLOCK(UpdateTask)\
     DECL_BLOCK(Update)\
     DECL_BLOCK(Close)\
@@ -66,6 +71,8 @@ namespace Base
         virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
         virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
         virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
+        virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override;
+        virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
 
         virtual void Reset(const FeatureBlocks& blocks, TPushR Push) override;
         virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;

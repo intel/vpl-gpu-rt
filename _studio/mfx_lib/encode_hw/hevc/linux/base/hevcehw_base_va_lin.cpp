@@ -186,7 +186,7 @@ void DDI_VA::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
         MFX_CHECK(attrib[0].value & (VA_RT_FORMAT_YUV420|VA_RT_FORMAT_YUV420_10), MFX_ERR_DEVICE_FAILED);
 
-        uint32_t vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod, Legacy::IsSWBRC(par, ExtBuffer::Get(par)));
+        uint32_t vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod, Legacy::IsSWBRC(par));
 
         MFX_CHECK((attrib[1].value & vaRCType), MFX_ERR_DEVICE_FAILED);
 

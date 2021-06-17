@@ -567,7 +567,7 @@ void Interlace::SubmitTask(const FeatureBlocks& , TPushST Push)
         bool b2ndFieldSkip =
             !task.bSkip
             && task.b2ndField
-            && Legacy::IsSWBRC(par, ExtBuffer::Get(par))
+            && Legacy::IsSWBRC(par)
             && !!(allocRec.GetFlag(task.DPB.Active[task.RefPicList[0][0]].Rec.Idx) & REC_SKIPPED);
 
         task.bSkip |= b2ndFieldSkip;

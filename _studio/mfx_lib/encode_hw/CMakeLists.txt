@@ -164,6 +164,7 @@ target_include_directories(encode_hw
     hevc/linux/base
 
     ${MSDK_LIB_ROOT}/encode_hw/shared
+    ${MSDK_LIB_ROOT}/lpla
 
     ${MSDK_STUDIO_ROOT}/shared/include
 
@@ -178,6 +179,8 @@ target_include_directories(encode_hw
     ${MSDK_UMC_ROOT}/codec/color_space_converter/include
 )
 
+set(ENCTOOLS_LIB $<$<BOOL:${MFX_ENABLE_USER_ENCTOOLS}>:enctools_hw>)
+
 target_link_libraries(encode_hw
   PUBLIC
     mfx_static_lib
@@ -188,6 +191,7 @@ target_link_libraries(encode_hw
   PRIVATE
     mfx_sdl_properties
     bitrate_control
+    ${ENCTOOLS_LIB}
   )
 
 

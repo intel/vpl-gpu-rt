@@ -71,6 +71,7 @@ public:
         m_bitstream  = {};
         m_encParams  = {};
         m_curEncodeHints = {};
+        m_config = {};
     }
 
     virtual ~LPLA_EncTool () { Close(); }
