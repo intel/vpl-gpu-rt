@@ -48,6 +48,9 @@
 #endif
 #include "hevcehw_base_max_frame_size_lin.h"
 #include "hevcehw_base_query_impl_desc.h"
+#ifdef MFX_ENABLE_ENCTOOLS
+#include "hevcehw_base_enctools.h"
+#endif
 #include <algorithm>
 
 using namespace HEVCEHW;
@@ -97,6 +100,9 @@ Linux::Base::MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
 #endif
     m_features.emplace_back(new MaxFrameSize(FEATURE_MAX_FRAME_SIZE));
     m_features.emplace_back(new QueryImplDesc(FEATURE_QUERY_IMPL_DESC));
+#if defined(MFX_ENABLE_ENCTOOLS)
+    m_features.emplace_back(new HevcEncTools(FEATURE_ENCTOOLS));
+#endif
 
     InternalInitFeatures(status, mode);
 

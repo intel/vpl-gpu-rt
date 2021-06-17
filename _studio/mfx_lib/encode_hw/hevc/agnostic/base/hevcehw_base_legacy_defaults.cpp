@@ -195,7 +195,7 @@ public:
             || par.mvp.mfx.NumRefFrame == 1;
         bool bCQP =
             par.mvp.mfx.RateControlMethod == MFX_RATECONTROL_CQP
-            || Legacy::IsSWBRC(par.mvp, ExtBuffer::Get(par.mvp));
+            || Legacy::IsSWBRC(par.mvp);
 
         if (bNoB)
         {
@@ -384,10 +384,9 @@ public:
             return pCO3->PRefType;
 
         static const mfxU16 PRefType[3] = { mfxU16(MFX_P_REF_DEFAULT), mfxU16(MFX_P_REF_SIMPLE), mfxU16(MFX_P_REF_PYRAMID) };
-        const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par.mvp);
         auto GopRefDist = par.base.GetGopRefDist(par);
         mfxI32 idx = GopRefDist == 1;
-        idx += idx && (par.mvp.mfx.RateControlMethod == MFX_RATECONTROL_CQP || Legacy::IsSWBRC(par.mvp, pCO2));
+        idx += idx && (par.mvp.mfx.RateControlMethod == MFX_RATECONTROL_CQP || Legacy::IsSWBRC(par.mvp));
 
         return PRefType[idx];
     }
@@ -689,7 +688,7 @@ public:
             !par.caps.NegativeQPSupport
             || IsOn(par.mvp.mfx.LowPower) // remove when caps.NegativeQPSupport is correctly set in driver
             || par.mvp.mfx.RateControlMethod != MFX_RATECONTROL_CQP;
-        bool bMin10 = IsOn(par.mvp.mfx.LowPower) && !Legacy::IsSWBRC(par.mvp, ExtBuffer::Get(par.mvp)); // 10 is min QP for VDENC
+        bool bMin10 = IsOn(par.mvp.mfx.LowPower) && !Legacy::IsSWBRC(par.mvp); // 10 is min QP for VDENC
 
         return mfxU8(std::max(1, (bMin10 * 10) + (bPositive * (6 * (par.base.GetTargetBitDepthLuma(par) - 8)))));
     }
@@ -884,7 +883,7 @@ public:
 
         bOFF |= !bPassThrough
             && (   par.base.GetRateControlMethod(par) == MFX_RATECONTROL_CQP
-                || Legacy::IsSWBRC(par.mvp, pCO2)
+                || Legacy::IsSWBRC(par.mvp)
                 || IsOn(par.mvp.mfx.LowPower));
 
         return mfxU16(
@@ -2018,7 +2017,7 @@ public:
         const mfxExtHEVCTiles& HEVCTiles = ExtBuffer::Get(par);
         const mfxExtCodingOption2& CO2 = ExtBuffer::Get(par);
         const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
-        bool bSWBRC = Legacy::IsSWBRC(par, &CO2);
+        bool bSWBRC = Legacy::IsSWBRC(par);
         bool bCQP = (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP);
 
         mfxU16 maxRefP   = *std::max_element(CO3.NumRefActiveP, CO3.NumRefActiveP + 8);

@@ -39,6 +39,9 @@
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
 #include "hevcehw_base_weighted_prediction.h"
 #endif
+#if defined(MFX_ENABLE_ENCTOOLS)
+#include "hevcehw_base_enctools.h"
+#endif
 #include <algorithm>
 
 using namespace HEVCEHW;
@@ -181,6 +184,9 @@ mfxStatus MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)
 #endif
         //update slice qp before packing
         Reorder(queue, { FEATURE_PACKER, Packer::BLK_SubmitTask }, { FEATURE_EXT_BRC, ExtBRC::BLK_GetFrameCtrl });
+#ifdef MFX_ENABLE_ENCTOOLS
+        Reorder(queue, { FEATURE_PACKER, Packer::BLK_SubmitTask }, { FEATURE_ENCTOOLS, HevcEncTools::BLK_GetFrameCtrl });
+#endif
         Reorder(queue, { FEATURE_LEGACY, Legacy::BLK_SkipFrame }, { FEATURE_INTERLACE, Interlace::BLK_SkipFrame });
     }
 
@@ -197,6 +203,12 @@ mfxStatus MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)
             , { FEATURE_EXT_BRC, ExtBRC::BLK_Update }
             , { FEATURE_INTERLACE, Interlace::BLK_QueryTask }
         , PLACE_AFTER);
+#ifdef MFX_ENABLE_ENCTOOLS
+        Reorder(queue
+            , { FEATURE_DDI_PACKER, IDDIPacker::BLK_QueryTask }
+            , { FEATURE_ENCTOOLS, HevcEncTools::BLK_Update }
+        , PLACE_AFTER);
+#endif
     }
 
     return wrn;

@@ -1155,7 +1155,7 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         }
 
         bool bSkipFramesMode = (
-            (IsSWBRC(par, &CO2)
+            (IsSWBRC(par)
                 && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR))
             || (CO2.SkipFrame == MFX_SKIPFRAME_INSERT_DUMMY))
             && !strg.Contains(Glob::AllocRaw::Key);
@@ -1185,7 +1185,7 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             | MFX_MEMTYPE_DXVA2_DECODER_TARGET
             | MFX_MEMTYPE_INTERNAL_FRAME));
 
-        mfxU32 minBS = GetMinBsSize(par, ExtBuffer::Get(par), ExtBuffer::Get(par), ExtBuffer::Get(par));
+        mfxU32 minBS = GetMinBsSize(par);
 
         if (mfxU32(req.Info.Width * req.Info.Height) < minBS)
         {
@@ -1645,7 +1645,7 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             !task.bSkip
             && IsB(task.FrameType)
             && !task.isLDB
-            && IsSWBRC(par, ExtBuffer::Get(par));
+            && IsSWBRC(par);
 
         auto& allocRec = Glob::AllocRec::Get(global);
 
@@ -2500,11 +2500,11 @@ Legacy::GetCUQPMapBlockSize(
 }
 
 mfxU32 Legacy::GetMinBsSize(
-    const mfxVideoParam & par
-    , const mfxExtHEVCParam& HEVCParam
-    , const mfxExtCodingOption2& CO2
-    , const mfxExtCodingOption3& CO3)
+    const ExtBuffer::Param<mfxVideoParam>& par)
 {
+    const mfxExtHEVCParam& HEVCParam = ExtBuffer::Get(par);
+    const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
+
     mfxU32 size = HEVCParam.PicHeightInLumaSamples * HEVCParam.PicWidthInLumaSamples;
     SetDefault(size, par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height);
 
@@ -2521,7 +2521,7 @@ mfxU32 Legacy::GetMinBsSize(
 
     bool bUseAvgSize =
         par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
-        && IsSWBRC(par, &CO2)
+        && IsSWBRC(par)
         && par.mfx.FrameInfo.FrameRateExtD != 0;
 
     if (!bUseAvgSize)
@@ -3339,7 +3339,7 @@ void SetDefaultBRC(
         TargetKbps(par.mfx) = defPar.base.GetTargetKbps(defPar);
         SetDefault<mfxU16>(par.mfx.MaxKbps, par.mfx.TargetKbps);
         SetDefault<mfxU16>(par.mfx.InitialDelayInKB
-            , par.mfx.BufferSizeInKB * (2 + (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR && Legacy::IsSWBRC(par, ExtBuffer::Get(par)))) / 4);
+            , par.mfx.BufferSizeInKB * (2 + (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR && Legacy::IsSWBRC(par))) / 4);
     }
 
     if (bSetICQ)
@@ -3357,7 +3357,7 @@ void SetDefaultBRC(
         SetDefault<mfxU16>(pCO3->EnableMBQP
             , Bool2CO(
               !(   par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
-                || Legacy::IsSWBRC(par, pCO2)
+                || Legacy::IsSWBRC(par)
                 || !defPar.caps.MbQpDataSupport)));
 
         bool bSetWinBRC = pCO3->WinBRCSize || pCO3->WinBRCMaxAvgKbps;
@@ -3944,13 +3944,20 @@ mfxStatus Legacy::CheckCrops(
     return MFX_ERR_NONE;
 }
 
-bool Legacy::IsSWBRC(mfxVideoParam const & par, const mfxExtCodingOption2* pCO2)
+bool Legacy::IsSWBRC(const ExtBuffer::Param<mfxVideoParam>& par)
 {
+    const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
+#ifdef MFX_ENABLE_ENCTOOLS
+    const mfxExtEncToolsConfig *pCfg = ExtBuffer::Get(par);
+#endif
     return
-        (      pCO2 && IsOn(pCO2->ExtBRC)
+        (      ((pCO2 && IsOn(pCO2->ExtBRC))
+#ifdef MFX_ENABLE_ENCTOOLS
+            || (pCfg && IsOn(pCfg->BRC))
+#endif
+            )
             && (   par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
-                || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR))
-        ;
+                || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
 }
 
 bool CheckBufferSizeInKB(
@@ -4108,12 +4115,12 @@ mfxStatus Legacy::CheckBRC(
         changed += CheckTriStateOrZero(pCO2->MBBRC);
         changed += (   defPar.caps.MBBRCSupport == 0
                     || par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
-                    || IsSWBRC(par, pCO2))
+                    || IsSWBRC(par))
                 && CheckOrZero<mfxU16, 0, MFX_CODINGOPTION_OFF>(pCO2->MBBRC);
 
         changed += !defPar.caps.SliceByteSizeCtrl && CheckOrZero<mfxU32, 0>(pCO2->MaxSliceSize);
 
-        bool bMinMaxQpAllowed = par.mfx.RateControlMethod != MFX_RATECONTROL_CQP && IsSWBRC(par, pCO2);
+        bool bMinMaxQpAllowed = par.mfx.RateControlMethod != MFX_RATECONTROL_CQP && IsSWBRC(par);
 
         if (bMinMaxQpAllowed)
         {
