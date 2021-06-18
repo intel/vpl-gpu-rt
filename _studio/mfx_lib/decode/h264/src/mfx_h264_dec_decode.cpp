@@ -32,11 +32,10 @@
 #include "vm_sys_info.h"
 
 #include "umc_h264_va_supplier.h"
-    #if defined(MFX_ENABLE_CP)
-        #include "umc_va_linux_protected.h"
-    #endif
+#if defined(MFX_ENABLE_CP)
+#include "umc_va_linux_protected.h"
+#endif
 #include "umc_va_video_processing.h"
-
 
 #include "mfxpcp.h"
 #include "libmfx_core_interface.h"
@@ -945,7 +944,6 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
 
 mfxStatus VideoDECODEH264::QueryIOSurfInternal(eMFXPlatform platform, eMFXHWType type, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VideoDECODEH264::QueryIOSurfInternal");
     request->Info = par->mfx.FrameInfo;
 
     mfxExtMVCSeqDesc * points = (mfxExtMVCSeqDesc *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_MVC_SEQ_DESC);
@@ -1017,8 +1015,6 @@ mfxStatus VideoDECODEH264::GetDecodeStat(mfxDecodeStat *stat)
 
 static mfxStatus AVCDECODERoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "AVCDECODERoutine");
-
     auto decoder = reinterpret_cast<VideoDECODEH264*>(pState);
     MFX_CHECK(decoder, MFX_ERR_UNDEFINED_BEHAVIOR);
 
@@ -1115,6 +1111,8 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs,
                                               mfxFrameSurface1 **surface_out,
                                               MFX_ENTRY_POINT *pEntryPoint)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH264::DecodeFrameCheck");
+
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
     mfxStatus mfxSts = DecodeFrameCheck(bs, surface_work, surface_out);
@@ -1193,7 +1191,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
     sts = MFX_ERR_UNDEFINED_BEHAVIOR;
 
-#if defined(MFX_ENABLE_CPLIB)
+#if defined(MFX_ENABLE_CP)
     if (bs && IS_PROTECTION_ANY(m_vPar.Protected))
     {
         MFX_CHECK(m_va->GetProtectedVA() && (bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME), MFX_ERR_UNDEFINED_BEHAVIOR);

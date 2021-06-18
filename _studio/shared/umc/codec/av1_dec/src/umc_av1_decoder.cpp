@@ -711,7 +711,10 @@ namespace UMC_AV1_DECODER
             }
         }
 
-        Curr = pCurrFrame;
+        // When no available buffer, don't update Curr buffer to avoid update DPB duplicated.
+        if(pCurrFrame!= NULL)
+            Curr = pCurrFrame;
+
         if (fh.show_existing_frame)
         {
             Repeat_show = 1;

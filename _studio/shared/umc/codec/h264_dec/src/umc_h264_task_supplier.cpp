@@ -3136,8 +3136,6 @@ Status TaskSupplier::CompleteDecodedFrames(H264DecoderFrame ** decoded)
 
 Status TaskSupplier::AddSource(MediaData * pSource)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "TaskSupplier::AddSource");
-
     H264DecoderFrame* completed = 0;
     Status umcRes = CompleteDecodedFrames(&completed);
     if (umcRes != UMC_OK)

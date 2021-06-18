@@ -442,7 +442,12 @@ mfxStatus VideoDECODEMJPEG::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxV
 {
     MFX_CHECK_NULL_PTR2(bs, par);
 
-    MFX_SAFE_CALL(CheckBitstream(bs));
+    mfxStatus sts = CheckBitstream(bs);
+    if (sts != MFX_ERR_NONE)
+    {
+        MFX_CHECK_INIT(sts == MFX_ERR_NULL_PTR);
+        MFX_RETURN(MFX_ERR_NULL_PTR);
+    }
 
     MFXMediaDataAdapter in(bs);
 
@@ -462,39 +467,29 @@ mfxStatus VideoDECODEMJPEG::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxV
     umcVideoParams.lpMemoryAllocator = &tempAllocator;
 
     UMC::Status umcRes = decoder.Init(&umcVideoParams);
-    if (umcRes != UMC::UMC_OK)
-    {
-        return ConvertUMCStatusToMfx(umcRes);
-    }
+    MFX_CHECK_INIT(umcRes == UMC::UMC_OK);
 
     umcRes = decoder.DecodeHeader(&in);
 
     in.Save(bs);
 
-    if (umcRes == UMC::UMC_ERR_NOT_ENOUGH_DATA)
-        return MFX_ERR_MORE_DATA;
-
-    if (umcRes != UMC::UMC_OK)
-        return ConvertUMCStatusToMfx(umcRes);
+    MFX_CHECK_INIT(umcRes == UMC::UMC_OK);
 
     mfxVideoParam temp;
 
     umcRes = decoder.FillVideoParam(&temp, false);
-    if (umcRes != UMC::UMC_OK)
-        return ConvertUMCStatusToMfx(umcRes);
+    MFX_CHECK_INIT(umcRes == UMC::UMC_OK);
 
     if(jpegQT)
     {
         umcRes = decoder.FillQuantTableExtBuf(jpegQT);
-        if (umcRes != UMC::UMC_OK)
-            return ConvertUMCStatusToMfx(umcRes);
+        MFX_CHECK_INIT(umcRes == UMC::UMC_OK);
     }
 
     if(jpegHT)
     {
         umcRes = decoder.FillHuffmanTableExtBuf(jpegHT);
-        if (umcRes != UMC::UMC_OK)
-            return ConvertUMCStatusToMfx(umcRes);
+        MFX_CHECK_INIT(umcRes == UMC::UMC_OK);
     }
 
     decoder.Close();
@@ -1108,11 +1103,13 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
         switch (par->mfx.FrameInfo.FourCC)
         {
             case MFX_FOURCC_NV12:
-                if (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr &&
+                if ((par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr &&
                         (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV420  ||
                          par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444  ||
                          par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422H ||
-                         par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422V))
+                         par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422V)) ||
+                        (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB &&
+                        par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444))
                     return false;
                 else
                     return true;

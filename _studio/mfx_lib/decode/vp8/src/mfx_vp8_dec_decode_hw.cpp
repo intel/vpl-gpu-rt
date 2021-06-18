@@ -822,10 +822,15 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
 
         PackHeaders(&m_bs);
 
-        if (m_p_video_accelerator->BeginFrame(memId, 0) == UMC::UMC_OK)
+
         {
-            m_p_video_accelerator->Execute();
-            m_p_video_accelerator->EndFrame();
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VP8 decode DDISubmitTask");
+
+            if (m_p_video_accelerator->BeginFrame(memId, 0) == UMC::UMC_OK)
+            {
+                m_p_video_accelerator->Execute();
+                m_p_video_accelerator->EndFrame();
+            }
         }
 
         if (show_frame)

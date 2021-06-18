@@ -32,9 +32,9 @@
 #include "vm_sys_info.h"
 
 #include "umc_h265_va_supplier.h"
-    #if defined(MFX_ENABLE_CP)
-        #include "umc_va_linux_protected.h"
-    #endif
+#if defined(MFX_ENABLE_CP)
+#include "umc_va_linux_protected.h"
+#endif
 #include "umc_va_video_processing.h"
 
 #include "mfxpcp.h"
@@ -407,7 +407,7 @@ mfxStatus VideoDECODEH265::QueryImplsDescription(
 
             for (auto fccChroma : SupportedFourCCChromaFormat)
             {
-                par.mfx.FrameInfo.FourCC       = fccChroma[0];
+                par.mfx.FrameInfo.FourCC = fccChroma[0];
                 par.mfx.FrameInfo.ChromaFormat = mfxU16(fccChroma[1]);
 
                 sts = VideoDECODEH265::Query(&core, &par, &par);
@@ -1047,7 +1047,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
     sts = MFX_ERR_UNDEFINED_BEHAVIOR;
 
-#if defined(MFX_ENABLE_CPLIB)
+#if defined(MFX_ENABLE_CP)
     if (bs && IS_PROTECTION_ANY(m_vPar.Protected))
     {
         MFX_CHECK(m_va->GetProtectedVA() && (bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME), MFX_ERR_UNDEFINED_BEHAVIOR);
