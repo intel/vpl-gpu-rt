@@ -1323,7 +1323,6 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             break;
     }
 
-#if defined(MFX_ENABLE_VPP_FIELD_WEAVE_SPLIT)
     // If field weaving is perform on driver
     // Kernel don't uses these parameters
     if (pParams->bFieldWeavingExt)
@@ -1368,7 +1367,6 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             }
         }
     }
-#endif // MFX_ENABLE_VPP_FIELD_WEAVE_SPLIT
 
     m_pipelineParam[0].filters      = m_filterBufs;
     m_pipelineParam[0].num_filters  = m_numFilterBufs;
