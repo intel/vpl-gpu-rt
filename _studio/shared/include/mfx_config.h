@@ -80,8 +80,6 @@
         #define MFX_ENABLE_VPP_RUNTIME_HSBC
     #endif
 
-    #undef MFX_ENABLE_VPP_FIELD_WEAVE_SPLIT
-
     //#define MFX_ENABLE_VPP_FRC
 #endif
 
