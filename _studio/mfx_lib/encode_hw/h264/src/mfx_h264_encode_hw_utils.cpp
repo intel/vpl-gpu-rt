@@ -2641,7 +2641,7 @@ mfxStatus MfxFrameAllocResponse::Alloc(
 
         for (int i = 0; i < req.NumFrameMin; i++)
         {
-            mfxStatus sts = core->AllocFrames(&tmp, &m_responseQueue[i],isCopyRequired);
+            mfxStatus sts = core->AllocFrames(&tmp, &m_responseQueue[i]);
             MFX_CHECK_STS(sts);
             m_mids[i] = m_responseQueue[i].mids[0];
         }
@@ -2651,7 +2651,7 @@ mfxStatus MfxFrameAllocResponse::Alloc(
     }
     else
     {
-        mfxStatus sts = core->AllocFrames(&req, this,isCopyRequired);
+        mfxStatus sts = core->AllocFrames(&req, this);
         MFX_CHECK_STS(sts);
     }
 

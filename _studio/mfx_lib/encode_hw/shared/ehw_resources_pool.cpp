@@ -66,12 +66,12 @@ void ResPool::Free()
 
 mfxStatus ResPool::Alloc(
     const mfxFrameAllocRequest& request
-    , bool isCopyRequired)
+    , bool)
 {
     auto req = request;
     req.NumFrameSuggested = req.NumFrameMin;
 
-    mfxStatus sts = m_core.AllocFrames(&req, &m_response, isCopyRequired);
+    mfxStatus sts = m_core.AllocFrames(&req, &m_response);
     MFX_CHECK_STS(sts);
 
     MFX_CHECK(m_response.NumFrameActual >= req.NumFrameMin, MFX_ERR_MEMORY_ALLOC);

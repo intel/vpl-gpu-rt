@@ -269,7 +269,7 @@ mfxStatus MfxLpLookAhead::CreateVpp(const mfxVideoParam& par)
     vppRequest[1].Type |= MFX_MEMTYPE_INTERNAL_FRAME;
     vppRequest[1].Type |= MFX_MEMTYPE_FROM_VPPOUT;
 
-    mfxRes = m_core->AllocFrames(&vppRequest[1], &m_dsResponse, false);
+    mfxRes = m_core->AllocFrames(&vppRequest[1], &m_dsResponse);
     MFX_CHECK_STS(mfxRes);
 
     m_dsSurface.Info         = vppRequest[1].Info;

@@ -65,7 +65,7 @@ public:
     virtual mfxStatus GetFrameHDL(mfxMemId mid, mfxHDL *handle, bool ExtendedSearch = true)               override;
 
     virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request,
-                                   mfxFrameAllocResponse *response, bool isNeedCopy = true)               override;
+                                   mfxFrameAllocResponse *response)                                       override;
 
     virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request,
                                    mfxFrameAllocResponse *response,
@@ -400,7 +400,7 @@ public:
 
     virtual mfxStatus GetFrameHDL(mfxMemId mid, mfxHDL *handle, bool = true)                      override;
 
-    virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool isNeedCopy = true) override;
+    virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response) override;
 
     virtual mfxStatus LockFrame(mfxMemId mid, mfxFrameData *ptr)                                  override;
     virtual mfxStatus UnlockFrame(mfxMemId mid, mfxFrameData *ptr = nullptr)                      override;

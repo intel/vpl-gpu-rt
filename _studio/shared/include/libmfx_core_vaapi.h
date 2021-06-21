@@ -150,7 +150,7 @@ public:
     virtual mfxStatus    GetHandle(mfxHandleType type, mfxHDL *handle)                                                           override;
     virtual mfxStatus    SetHandle(mfxHandleType type, mfxHDL handle)                                                            override;
 
-    virtual mfxStatus    AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool isNeedCopy = true)     override;
+    virtual mfxStatus    AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)                             override;
             mfxStatus    ReallocFrame(mfxFrameSurface1 *surf);
     virtual void         GetVA(mfxHDL* phdl, mfxU16 type)                                                                        override
     {
@@ -252,7 +252,7 @@ public:
 
     virtual mfxStatus SetHandle(mfxHandleType type, mfxHDL handle)                                                                                    override;
 
-    virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool isNeedCopy = true)                             override;
+    virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)                                                     override;
             mfxStatus ReallocFrame(mfxFrameSurface1 *surf);
 
     virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)                                                              override;

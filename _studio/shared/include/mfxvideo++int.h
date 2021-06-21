@@ -165,7 +165,7 @@ public:
     virtual mfxStatus  GetFrameHDL(mfxMemId mid, mfxHDL *handle, bool ExtendedSearch = true) = 0;
 
     virtual mfxStatus  AllocFrames(mfxFrameAllocRequest *request,
-                                   mfxFrameAllocResponse *response, bool isNeedCopy = true) = 0;
+                                   mfxFrameAllocResponse *response) = 0;
 
     virtual mfxStatus  AllocFrames(mfxFrameAllocRequest *request,
                                    mfxFrameAllocResponse *response,

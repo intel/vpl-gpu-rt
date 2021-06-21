@@ -331,8 +331,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::TraceFrames(
 template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
     mfxFrameAllocRequest* request,
-    mfxFrameAllocResponse* response,
-    bool isNeedCopy)
+    mfxFrameAllocResponse* response)
 {
     MFX_CHECK_NULL_PTR2(request, response);
 
@@ -344,7 +343,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
         mfxFrameAllocRequest temp_request = *request;
 
 
-        if (!m_bCmCopy && m_bCmCopyAllowed && isNeedCopy && m_Display)
+        if (!m_bCmCopy && m_bCmCopyAllowed && m_Display)
         {
             m_pCmCopy.reset(new CmCopyWrapper);
 
@@ -1232,11 +1231,10 @@ VAAPIVideoCORE20::~VAAPIVideoCORE20()
 
 mfxStatus VAAPIVideoCORE20::AllocFrames(
     mfxFrameAllocRequest* request,
-    mfxFrameAllocResponse* response,
-    bool isNeedCopy)
+    mfxFrameAllocResponse* response)
 {
     if (!m_enabled20Interface)
-        return VAAPIVideoCORE_T<CommonCORE20>::AllocFrames(request, response, isNeedCopy);
+        return VAAPIVideoCORE_T<CommonCORE20>::AllocFrames(request, response);
 
     MFX_CHECK_NULL_PTR2(request, response);
 
@@ -1248,7 +1246,7 @@ mfxStatus VAAPIVideoCORE20::AllocFrames(
     {
         mfxStatus sts = MFX_ERR_NONE;
 
-        if (!m_bCmCopy && m_bCmCopyAllowed && isNeedCopy && m_Display)
+        if (!m_bCmCopy && m_bCmCopyAllowed && m_Display)
         {
             m_pCmCopy.reset(new CmCopyWrapper);
 

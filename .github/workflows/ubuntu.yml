@@ -9,7 +9,7 @@ jobs:
   clang12:
     runs-on: ubuntu-20.04
     env:
-      CFLAGS: -O2 -Wformat -Wformat-security -Wall -Werror -Wno-overloaded-virtual -D_FORTIFY_SOURCE=2 -fstack-protector-strong
+      CFLAGS: -O2 -Wformat -Wformat-security -Wall -D_FORTIFY_SOURCE=2 -fstack-protector-strong
       CC: /usr/bin/clang-12
       CXX: /usr/bin/clang++-12
       ASM: /usr/bin/clang-12

@@ -178,7 +178,7 @@ mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
 }
 
 mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
-                                  mfxFrameAllocResponse *response, bool )
+                                  mfxFrameAllocResponse *response)
 {
 #ifdef MFX_DEBUG_TOOLS
     MFX::AutoTimer timer("CommonCORE::AllocFrames");
@@ -1791,8 +1791,7 @@ mfxFrameAllocResponse *CommonCORE::GetPluginAllocResponse(mfxFrameAllocResponse&
 
 }
 
-
-mfxStatus CommonCORE20::AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool)
+mfxStatus CommonCORE20::AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
 {
     if (!m_enabled20Interface)
         return CommonCORE::AllocFrames(request, response);
