@@ -97,6 +97,7 @@ mfxStatus ResPool::AllocOpaque(
     , mfxFrameSurface1 **surfaces
     , mfxU16 numSurface)
 {
+#if defined (MFX_ENABLE_OPAQUE_MEMORY)
     mfxFrameAllocRequest req = {};
 
     req.Info = info;
@@ -113,6 +114,14 @@ mfxStatus ResPool::AllocOpaque(
     m_bOpaque                 = true;
 
     return sts;
+#else
+    std::ignore = info;
+    std::ignore = type;
+    std::ignore = surfaces;
+    std::ignore = numSurface;
+
+    return MFX_ERR_UNSUPPORTED;
+#endif
 }
 
 mfxU32 ResPool::Lock(mfxU32 idx)
