@@ -128,6 +128,7 @@ mfxStatus CommonCORE::FreeBuffer(mfxMemId mid)
     return (*m_bufferAllocator.bufferAllocator.Free)(m_bufferAllocator.bufferAllocator.pthis,mid);
 }
 
+#if defined (MFX_ENABLE_OPAQUE_MEMORY)
 mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
                                   mfxFrameAllocResponse *response,
                                   mfxFrameSurface1 **pOpaqueSurface,
@@ -176,6 +177,7 @@ mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
     m_RefCtrTbl.insert(pair<mfxFrameAllocResponse*, mfxU32>(pResp, 1));
     return sts;
 }
+#endif
 
 mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
                                   mfxFrameAllocResponse *response, bool )

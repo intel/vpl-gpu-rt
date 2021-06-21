@@ -167,10 +167,12 @@ public:
     virtual mfxStatus  AllocFrames(mfxFrameAllocRequest *request,
                                    mfxFrameAllocResponse *response, bool isNeedCopy = true) = 0;
 
+#if defined (MFX_ENABLE_OPAQUE_MEMORY)
     virtual mfxStatus  AllocFrames(mfxFrameAllocRequest *request,
                                    mfxFrameAllocResponse *response,
                                    mfxFrameSurface1 **pOpaqueSurface,
                                    mfxU32 NumOpaqueSurface) = 0;
+#endif
 
     virtual mfxStatus  LockFrame(mfxMemId mid, mfxFrameData *ptr) = 0;
     virtual mfxStatus  UnlockFrame(mfxMemId mid, mfxFrameData *ptr=0) = 0;

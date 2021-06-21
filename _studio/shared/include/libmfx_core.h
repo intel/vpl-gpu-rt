@@ -36,9 +36,6 @@
 
 class mfx_UMC_FrameAllocator;
 
-// Virtual table size for CommonCORE should be considered fixed.
-// Otherwise binary compatibility with already released plugins would be broken.
-
 class CommonCORE : public VideoCORE
 {
 public:
@@ -67,10 +64,12 @@ public:
     virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request,
                                    mfxFrameAllocResponse *response, bool isNeedCopy = true)               override;
 
+#if defined (MFX_ENABLE_OPAQUE_MEMORY)
     virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request,
                                    mfxFrameAllocResponse *response,
                                    mfxFrameSurface1 **pOpaqueSurface,
                                    mfxU32 NumOpaqueSurface)                                               override;
+#endif
 
     virtual mfxStatus LockFrame(mfxMemId mid, mfxFrameData *ptr)                                          override;
     virtual mfxStatus UnlockFrame(mfxMemId mid, mfxFrameData *ptr = nullptr)                              override;
@@ -324,6 +323,7 @@ public:
     }
     */
     /* Deprecated functionality : opaq memory */
+#if defined (MFX_ENABLE_OPAQUE_MEMORY)
     virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request,
                                   mfxFrameAllocResponse *response,
                                   mfxFrameSurface1 **pOpaqueSurface,
@@ -331,6 +331,7 @@ public:
     {
         return this->m_enabled20Interface ? MFX_ERR_UNSUPPORTED : CommonCORE::AllocFrames(request, response, pOpaqueSurface, NumOpaqueSurface);
     }
+#endif
 
     virtual mfxFrameSurface1* GetNativeSurface(mfxFrameSurface1 *pOpqSurface, bool ExtendedSearch = true)       override
     {
