@@ -1666,7 +1666,7 @@ mfxStatus VideoDECODEMJPEGBase_HW::GetVideoParam(mfxVideoParam *par)
 
 mfxStatus VideoDECODEMJPEGBase_HW::CheckVPPCaps(VideoCORE * core, mfxVideoParam * par)
 {
-    VideoVppJpegD3D cc(core, false,
+    VideoVppJpeg cc(core, false,
         false
     );
 

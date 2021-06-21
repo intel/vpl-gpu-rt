@@ -29,7 +29,7 @@
 #include "libmfx_core.h"
 #include "mfx_task.h"
 #include "mfx_vpp_defs.h"
-#include "mfx_vpp_jpeg_d3d.h"
+#include "mfx_vpp_jpeg.h"
 
 using namespace MfxHwVideoProcessing;
 
@@ -95,7 +95,7 @@ enum
 
 };
 
-VideoVppJpegD3D::VideoVppJpegD3D(VideoCORE *core, bool isD3DToSys, bool isOpaq)
+VideoVppJpeg::VideoVppJpeg(VideoCORE *core, bool isD3DToSys, bool isOpaq)
     : m_surfaces()
     , m_guard()
     , AssocIdx()
@@ -113,16 +113,16 @@ VideoVppJpegD3D::VideoVppJpegD3D(VideoCORE *core, bool isD3DToSys, bool isOpaq)
 
     memset(&m_response, 0, sizeof(mfxFrameAllocResponse));
 
-} // VideoVppJpegD3D::VideoVppJpegD3D(VideoCORE *core)
+} // VideoVppJpeg::VideoVppJpeg(VideoCORE *core)
 
 
-VideoVppJpegD3D::~VideoVppJpegD3D()
+VideoVppJpeg::~VideoVppJpeg()
 {
     Close();
 
-} // VideoVppJpegD3D::~VideoVppJpegD3D()
+} // VideoVppJpeg::~VideoVppJpeg()
 
-mfxStatus VideoVppJpegD3D::Init(const mfxVideoParam *par)
+mfxStatus VideoVppJpeg::Init(const mfxVideoParam *par)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -202,9 +202,9 @@ mfxStatus VideoVppJpegD3D::Init(const mfxVideoParam *par)
 
     return sts;
 
-} // mfxStatus VideoVppJpegD3D::Init(void)
+} // mfxStatus VideoVppJpeg::Init(void)
 
-mfxStatus VideoVppJpegD3D::Close()
+mfxStatus VideoVppJpeg::Close()
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -227,9 +227,9 @@ mfxStatus VideoVppJpegD3D::Close()
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VideoVppJpegD3D::Close()
+} // mfxStatus VideoVppJpeg::Close()
 
-mfxStatus VideoVppJpegD3D::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface, 
+mfxStatus VideoVppJpeg::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface, 
                                                   mfxFrameSurface1 *pOutputSurface, 
                                                   mfxU16* taskId)
 {
@@ -319,9 +319,9 @@ mfxStatus VideoVppJpegD3D::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VideoVppJpegD3D::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfxFrameSurface1 *pOutputSurface, mfxU16* taskId)
+} // mfxStatus VideoVppJpeg::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfxFrameSurface1 *pOutputSurface, mfxU16* taskId)
 
-mfxStatus VideoVppJpegD3D::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, 
+mfxStatus VideoVppJpeg::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, 
                                                   mfxFrameSurface1 *pInputSurfaceBottom, 
                                                   mfxFrameSurface1 *pOutputSurface, 
                                                   mfxU16* taskId)
@@ -425,9 +425,9 @@ mfxStatus VideoVppJpegD3D::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VideoVppJpegD3D::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, mfxFrameSurface1 *pInputSurfaceBottom, mfxFrameSurface1 *pOutputSurface, mfxU16* taskId)
+} // mfxStatus VideoVppJpeg::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, mfxFrameSurface1 *pInputSurfaceBottom, mfxFrameSurface1 *pOutputSurface, mfxU16* taskId)
 
-mfxStatus VideoVppJpegD3D::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfxFrameSurface1 *pOutputSurface)
+mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfxFrameSurface1 *pOutputSurface)
 {
     mfxStatus sts = MFX_ERR_NONE;
     
@@ -493,9 +493,9 @@ mfxStatus VideoVppJpegD3D::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, 
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VideoVppJpegD3D::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfxFrameSurface1 *pOutputSurface)
+} // mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfxFrameSurface1 *pOutputSurface)
 
-mfxStatus VideoVppJpegD3D::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, 
+mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, 
                                                 mfxFrameSurface1 *pInputSurfaceBottom, 
                                                 mfxFrameSurface1 *pOutputSurface)
 {
@@ -566,9 +566,9 @@ mfxStatus VideoVppJpegD3D::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTo
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VideoVppJpegD3D::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, mfxFrameSurface1 *pInputSurfaceBottom, mfxFrameSurface1 *pOutputSurface)
+} // mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop, mfxFrameSurface1 *pInputSurfaceBottom, mfxFrameSurface1 *pOutputSurface)
 
-mfxStatus VideoVppJpegD3D::QueryTaskRoutine(mfxU16 taskId)
+mfxStatus VideoVppJpeg::QueryTaskRoutine(mfxU16 taskId)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -579,7 +579,7 @@ mfxStatus VideoVppJpegD3D::QueryTaskRoutine(mfxU16 taskId)
 
     return sts;
 
-} // mfxStatus VideoVppJpegD3D::QueryTask(mfxU16 taskId)
+} // mfxStatus VideoVppJpeg::QueryTask(mfxU16 taskId)
 
 #endif // MFX_ENABLE_MJPEG_VIDEO_DECODE
 #endif // MFX_ENABLE_VPP
