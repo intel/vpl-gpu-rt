@@ -406,9 +406,30 @@ static bool FillCUQPDataVA(
     mfxU32 inputH = CeilDiv(HEVCParam.PicHeightInLumaSamples, inBlkSize);
 
     bool bInvalid = !mbqp || !mbqp->QP || (mbqp->NumQPAlloc < inputW * inputH);
-    if (bInvalid)
+    if (bInvalid && !task.etQpMapNZ)
         return false;
 
+    if (bInvalid && task.etQpMapNZ) {
+        mfxU32 iw = 16;
+        mfxU32 ih = 8;
+        mfxU32 ibw = HEVCParam.PicWidthInLumaSamples / iw;
+        mfxU32 ibh = HEVCParam.PicHeightInLumaSamples / ih;
+        mfxU32 mapBw = 64;
+        mfxU32 mapBh = 64;
+        // Fill all LCU blocks
+
+        for (mfxU32 i = 0; i < cuqpMap.m_h_aligned; i++)
+        {
+            for (mfxU32 j = 0; j < cuqpMap.m_pitch; j++)
+            {
+                mfxU32 y = std::min((i * mapBh + mapBh/2) / ibh, ih - 1);
+                mfxU32 x = std::min((j * mapBw + mapBw/2) / ibw, iw - 1);
+
+                cuqpMap.m_buffer[i * cuqpMap.m_pitch + j] = (mfxI8)mfx::clamp((mfxI32)task.QpY + (mfxI32)task.etQpMap[y * iw + x], (mfxI32)0, (mfxI32)51);
+            }
+        }
+        return true;
+    }
     // Fill all LCU blocks: HW hevc averages QP
     for (mfxU32 i = 0; i < cuqpMap.m_h_aligned; i++)
     {

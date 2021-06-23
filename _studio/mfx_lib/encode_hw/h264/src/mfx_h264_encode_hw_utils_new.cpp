@@ -3340,7 +3340,7 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
 #if defined(MFX_ENABLE_LP_LOOKAHEAD)
         //right now LPLA only supports CBR and VBR mode
         if ((video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
-#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+#if defined(MFX_ENABLE_ENCTOOLS)
             && !adaptGopDelay
 #endif
             )

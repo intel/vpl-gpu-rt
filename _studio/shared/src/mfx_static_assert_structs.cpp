@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2020 Intel Corporation
+// Copyright (c) 2014-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1951,6 +1951,9 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsCtrl, MinQPLevel, 540)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsCtrl, MaxQPLevel, 546)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsCtrl, PanicMode, 552)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsCtrl, LaQp, 556)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsCtrl, LaScale, 558)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsCtrl, MBBRC, 562)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsCtrl, NumExtParam, 684)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsCtrl, ExtParam, 688)
 
@@ -2000,12 +2003,18 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCBufferHint, Header, 0)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCBufferHint, Version, 8)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCBufferHint, OptimalFrameSizeInBytes, 16)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCBufferHint, AvgEncodedSizeInBits, 20)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCBufferHint, CurEncodedSizeInBits, 24)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCBufferHint, DistToNextI, 28)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCBufferHint, OutputMode, 30)
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCFrameParams, Header, 0)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCFrameParams, Version, 8)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCFrameParams, FrameType, 16)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCFrameParams, PyramidLayer, 18)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCFrameParams, EncodeOrder, 20)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCFrameParams, SceneChange, 24)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCFrameParams, LongTerm, 26)
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCQuantControl, Header, 0)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCQuantControl, Version, 8)
@@ -2013,6 +2022,8 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCQuantControl, MaxFrameSize, 20)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCQuantControl, DeltaQP, 24)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCQuantControl, NumDeltaQP, 32)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCQuantControl, QpMapNZ, 34)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCQuantControl, QpMap, 36)
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCHRDPos, Header, 0)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncToolsBRCHRDPos, Version, 8)
