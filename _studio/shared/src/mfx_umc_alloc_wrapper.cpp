@@ -34,7 +34,7 @@
 
 
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
-#include "mfx_vpp_jpeg_d3d.h"
+#include "mfx_vpp_jpeg.h"
 #endif
 
 mfx_UMC_MemAllocator::mfx_UMC_MemAllocator():m_pCore(NULL)

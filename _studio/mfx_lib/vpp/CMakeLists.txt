@@ -13,7 +13,7 @@ set(sources
     src/mfx_vpp_sw_core.cpp
     src/mfx_vpp_sw_internal.cpp
     src/mfx_vpp_utils.cpp
-    src/mfx_vpp_jpeg_d3d.cpp
+    src/mfx_vpp_jpeg.cpp
     )
 
 add_library(vpp_hw STATIC ${sources})
