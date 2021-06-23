@@ -49,9 +49,7 @@ private:
 
     BRC_EncTool  m_brc;
     AEnc_EncTool m_scd;
-#if defined (MFX_ENABLE_ENCTOOLS_LPLA)
     LPLA_EncTool m_lpLookAhead;
-#endif
     mfxExtEncToolsConfig m_config;
     mfxEncToolsCtrl  m_ctrl;
     mfxHDL m_device;
@@ -59,12 +57,17 @@ private:
     mfxFrameAllocator *m_pAllocator;
     MFXFrameAllocator *m_pETAllocator;
     mfxAllocatorParams *m_pmfxAllocatorParams;
-    MFXVideoSession m_mfxSession;
+    MFXVideoSession m_mfxSession_LA;
+    MFXVideoSession m_mfxSession_SCD;
 
-    std::unique_ptr<MFXVideoVPP> m_pmfxVPP;
+    std::unique_ptr<MFXVideoVPP> m_pmfxVPP_LA;
+    std::unique_ptr<MFXVideoVPP> m_pmfxVPP_SCD;
     mfxVideoParam m_mfxVppParams;
+    mfxVideoParam m_mfxVppParams_LA;
+    mfxVideoParam m_mfxVppParams_AEnc;
     mfxFrameAllocResponse m_VppResponse;
-    std::vector<mfxFrameSurface1> m_pIntSurfaces; // internal surfaces
+    std::vector<mfxFrameSurface1> m_pIntSurfaces_LA;    // internal surfaces
+    mfxFrameSurface1 m_IntSurfaces_SCD;                 // internal surface for SCD
 
 public:
     EncTools() :
@@ -76,7 +79,10 @@ public:
         m_pAllocator(nullptr),
         m_pETAllocator(nullptr),
         m_mfxVppParams(),
-        m_VppResponse()
+        m_mfxVppParams_LA(),
+        m_mfxVppParams_AEnc(),
+        m_VppResponse(),
+        m_IntSurfaces_SCD()
     {}
 
     virtual ~EncTools() { Close(); }
@@ -94,9 +100,12 @@ public:
 
 protected:
     mfxStatus InitMfxVppParams(mfxEncToolsCtrl const & ctrl);
-    mfxStatus InitVPP(mfxEncToolsCtrl const & ctrl);
+    mfxStatus InitVPP(mfxEncToolsCtrl const& ctrl, MFXVideoSession* pmfxLA_EncSession);
     mfxStatus CloseVPP();
-    mfxStatus VPPDownScaleSurface(mfxFrameSurface1 *pInSurface, mfxFrameSurface1 *pOutSurface);
+
+    mfxStatus InitVPPSession(MFXVideoSession* pmfxSession);
+    mfxStatus VPPSync(MFXVideoSession* pmfxSession, mfxSyncPoint* pSyncp);
+    mfxStatus VPPDownScaleSurface(MFXVideoSession* m_pmfxSession, MFXVideoVPP* pVPP, mfxSyncPoint* pVppSyncp, mfxFrameSurface1* pInSurface, mfxFrameSurface1* pOutSurface, bool doSync);
 };
 
 namespace EncToolsFuncs

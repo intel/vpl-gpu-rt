@@ -123,7 +123,6 @@ namespace Base
         TaskCommonPar m_prevTask;
         mfxU32
             m_frameOrder        = mfxU32(-1)
-            , m_frameOrderTmp   = mfxU32(-1)
             , m_baseLayerOrder  = 0
             , m_forceHeaders    = 0;
         mfxU16
@@ -138,7 +137,6 @@ namespace Base
         void ResetState()
         {
             m_frameOrder     = mfxU32(-1);
-            m_frameOrderTmp  = mfxU32(-1);
             LastKeyFrameInfo = {};
             m_baseLayerOrder = 0;
             Invalidate(m_prevTask);
@@ -234,8 +232,9 @@ namespace Base
             , const PPS& pps
             , Slice & s);
         static mfxU32 GetRawBytes(mfxU16 w, mfxU16 h, mfxU16 ChromaFormat, mfxU16 BitDepth);
-        static bool IsSWBRC(const ExtBuffer::Param<mfxVideoParam>& par);
         static bool IsInVideoMem(const mfxVideoParam & par);
+        static bool IsSWBRC(const ExtBuffer::Param<mfxVideoParam>& par);
+        static bool IsEnctoolsLABRC(const ExtBuffer::Param<mfxVideoParam>& par);
         static bool IsTCBRC(const mfxVideoParam & par, mfxU16 tcbrcSupport);
 
         mfxU16 GetMaxRaw(const mfxVideoParam & par)
@@ -250,6 +249,7 @@ namespace Base
             return par.AsyncDepth + (par.AsyncDepth > 1);
         }
         mfxU32 GetMinBsSize(const ExtBuffer::Param<mfxVideoParam>& par);
+
         std::tuple<mfxStatus, mfxU16, mfxU16> GetCUQPMapBlockSize(
             mfxU16 frameWidth, mfxU16 frameHeight,
             mfxU16 CUQPWidth, mfxU16 CUHeight);

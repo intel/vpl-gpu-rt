@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2020 Intel Corporation
+// Copyright (c) 2009-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2626,6 +2626,12 @@ void ImplementationAvc::OnEncodingQueried(DdiTaskIter task)
     }
 #endif
     mfxU32 numBits = 8 * (task->m_bsDataLength[0] + task->m_bsDataLength[1]);
+
+#if defined(MFX_ENABLE_ENCTOOLS)
+    if (m_enabledEncTools)
+        m_encTools.Discard(task->m_frameOrder);
+#endif
+
     *task = DdiTask();
 
     UMC::AutomaticUMCMutex guard(m_listMutex);
@@ -3474,7 +3480,7 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
         else
             task.m_currGopRefDist = m_video.mfx.GopRefDist;
 
-        if (m_encTools.IsAdaptiveGOP() && !m_encTools.IsAdaptiveLTR() && !m_encTools.IsAdaptiveRef() && !m_encTools.IsAdaptiveQP())
+        if (m_encTools.IsPreEncNeeded())
         {
             task.m_QPdelta = st.QPDelta;
             task.m_bQPDelta = true;
@@ -3482,8 +3488,6 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
 
         if (m_encTools.IsAdaptiveQP())
         {
-            task.m_QPdelta = st.QPDelta;
-            task.m_bQPDelta = true;
             task.m_QPmodulation = st.QPModulation;
 #ifdef ENABLE_APQ_LQ
             if (task.m_currGopRefDist == 8) {
@@ -3494,15 +3498,24 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
                     task.m_ALQOffset = -1;
                 }
             }
+            else if (m_video.mfx.GopRefDist == 8) {
+                if ((task.m_type[0] & MFX_FRAMETYPE_B)) {
+                    task.m_ALQOffset = 2;
+                }
+            }
 #endif
             //printf("%d type %d, m_QPdelta %d m_QPmodulation %d, currGopRefDist %d, ALQOffset %d\n", task.m_frameOrder, st.FrameType, st.QPDelta, st.QPModulation, task.m_currGopRefDist, task.m_ALQOffset);
         }
 
+        if (m_encTools.IsAdaptiveI() || m_encTools.IsAdaptiveLTR()) {
+            mfxEncToolsHintPreEncodeSceneChange schg = {};
+            sts = m_encTools.QueryPreEncSChg(task.m_frameOrder, schg);
+            MFX_CHECK_STS(sts);
+            task.m_SceneChange = schg.SceneChangeFlag;
+        }
+
         if (m_encTools.IsAdaptiveLTR() || m_encTools.IsAdaptiveRef())
         {
-            task.m_QPdelta = st.QPDelta;
-            task.m_bQPDelta = true;
-
             mfxEncToolsHintPreEncodeARefFrames ref = {};
             sts = m_encTools.QueryPreEncARef(task.m_frameOrder, ref);
             MFX_CHECK_STS(sts);
@@ -3536,15 +3549,25 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
 
     }
 
+    if (m_encTools.IsLookAheadBRC())
+    {
+        mfxEncToolsBRCBufferHint bufHint = {};
+        sts = m_encTools.QueryLookAheadStatus(task.m_frameOrder, &bufHint, nullptr, nullptr);
+        MFX_CHECK_STS(sts);
+        task.m_lplastatus.AvgEncodedBits = bufHint.AvgEncodedSizeInBits;
+        task.m_lplastatus.CurEncodedBits = bufHint.CurEncodedSizeInBits;
+        task.m_lplastatus.DistToNextI = bufHint.DistToNextI;
+    }
+
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
     if (m_encTools.IsLookAhead())
     {
         mfxEncToolsBRCBufferHint bufHint = {};
         // if QueryPreEncRes has been called above, no need to Query PreEncodeGOP again
-        mfxEncToolsHintPreEncodeGOP *pGopHint = st.Header.BufferSz > 0 ? nullptr : &st;
+        mfxEncToolsHintPreEncodeGOP *gopHint = (st.Header.BufferSz > 0 ? nullptr : &st);
         mfxEncToolsHintQuantMatrix cqmHint = {};
 
-        sts = m_encTools.QueryLookAheadStatus(task.m_frameOrder, &bufHint, pGopHint, &cqmHint);
+        sts = m_encTools.QueryLookAheadStatus(task.m_frameOrder, &bufHint, gopHint, &cqmHint);
         MFX_CHECK_STS(sts);
 
         switch (cqmHint.MatrixType)
@@ -3569,8 +3592,6 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
         task.m_lplastatus.TargetFrameSize      = bufHint.OptimalFrameSizeInBytes;
         task.m_lplastatus.MiniGopSize          = (mfxU8)st.MiniGopSize;
         task.m_lplastatus.QpModulation         = (mfxU8)st.QPModulation;
-
-        //task.m_targetBufferFullness = laStatus.TargetBufferFullnessInBit;
     }
 #endif
 
@@ -3742,7 +3763,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::STG_BIT_START_SCD");
         DdiTask & task = m_ScDetectionStarted.back();
 #if defined(MFX_ENABLE_ENCTOOLS)
-        if (m_enabledEncTools && (m_encTools.IsPreEncNeeded() || m_encTools.IsLookAhead()))
+        if (m_enabledEncTools && (m_encTools.IsPreEncNeeded() || m_encTools.IsLookAheadBRC() || m_encTools.IsLookAhead()))
         {
             mfxFrameSurface1  tmpSurface = *task.m_yuv;
             mfxStatus sts = m_encTools.SubmitForPreEnc(task.m_frameOrder, &tmpSurface);

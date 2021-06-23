@@ -24,9 +24,13 @@
 #include "hevcehw_base_ext_brc.h"
 #include "mfx_brc_common.h"
 
+#ifdef MFX_ENABLE_ENCTOOLS
+#include "mfxenctools-int.h"
+#include "hevcehw_base_enctools.h"
+#endif
+
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
-
 
 void ExtBRC::SetSupported(ParamSupport& blocks)
 {
@@ -235,7 +239,14 @@ void ExtBRC::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         bool                       bInternalBRC = IsOn(CO2.ExtBRC) && !brc.pthis && !m_brc.pthis;
         bool                       bExternalBRC = IsOn(CO2.ExtBRC) && brc.pthis && !m_brc.pthis;
 
-
+#ifdef MFX_ENABLE_ENCTOOLS
+        mfxExtEncToolsConfig* pConfig = ExtBuffer::Get(par);
+        bool bEncTools = (pConfig) ?
+            IsEncToolsOptOn(*pConfig, CO3.ScenarioInfo == MFX_SCENARIO_GAME_STREAMING) :
+            false;
+        if (bEncTools)
+            bInternalBRC = bExternalBRC = false;
+#endif
         if (bInternalBRC)
         {
             auto sts = HEVCExtBRC::Create(m_brc);

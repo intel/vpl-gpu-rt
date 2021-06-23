@@ -199,16 +199,16 @@ mfxStatus MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)
             , { FEATURE_DDI_PACKER, IDDIPacker::BLK_QueryTask }
             , { FEATURE_EXT_BRC, ExtBRC::BLK_Update }
             , PLACE_AFTER);
-        Reorder(queue
-            , { FEATURE_EXT_BRC, ExtBRC::BLK_Update }
-            , { FEATURE_INTERLACE, Interlace::BLK_QueryTask }
-        , PLACE_AFTER);
 #ifdef MFX_ENABLE_ENCTOOLS
         Reorder(queue
             , { FEATURE_DDI_PACKER, IDDIPacker::BLK_QueryTask }
             , { FEATURE_ENCTOOLS, HevcEncTools::BLK_Update }
         , PLACE_AFTER);
 #endif
+        Reorder(queue
+            , { FEATURE_EXT_BRC, ExtBRC::BLK_Update }
+            , { FEATURE_INTERLACE, Interlace::BLK_QueryTask }
+        , PLACE_AFTER);
     }
 
     return wrn;

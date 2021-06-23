@@ -166,4 +166,121 @@ protected:
     };
 };
 
+#include "va/va.h"
+
+enum LibVABackend
+{
+    MFX_LIBVA_AUTO,
+    MFX_LIBVA_DRM,
+    MFX_LIBVA_DRM_MODESET,
+    MFX_LIBVA_X11,
+    MFX_LIBVA_WAYLAND
+};
+
+namespace MfxLoader
+{
+    class SimpleLoader
+    {
+    public:
+        SimpleLoader(const char* name);
+
+        void* GetFunction(const char* name);
+
+        ~SimpleLoader();
+
+    private:
+        SimpleLoader(SimpleLoader&);
+        void operator=(SimpleLoader&);
+
+        void* so_handle;
+    };
+
+    class VA_Proxy
+    {
+    private:
+        SimpleLoader lib; // should appear first in member list
+
+    public:
+        typedef VAStatus(*vaInitialize_type)(VADisplay, int*, int*);
+        typedef VAStatus(*vaTerminate_type)(VADisplay);
+        typedef VAStatus(*vaCreateSurfaces_type)(VADisplay, unsigned int,
+            unsigned int, unsigned int, VASurfaceID*, unsigned int,
+            VASurfaceAttrib*, unsigned int);
+        typedef VAStatus(*vaDestroySurfaces_type)(VADisplay, VASurfaceID*, int);
+        typedef VAStatus(*vaCreateBuffer_type)(VADisplay, VAContextID,
+            VABufferType, unsigned int, unsigned int, void*, VABufferID*);
+        typedef VAStatus(*vaDestroyBuffer_type)(VADisplay, VABufferID);
+        typedef VAStatus(*vaMapBuffer_type)(VADisplay, VABufferID, void** pbuf);
+        typedef VAStatus(*vaUnmapBuffer_type)(VADisplay, VABufferID);
+        typedef VAStatus(*vaDeriveImage_type)(VADisplay, VASurfaceID, VAImage*);
+        typedef VAStatus(*vaDestroyImage_type)(VADisplay, VAImageID);
+        typedef VAStatus(*vaSyncSurface_type)(VADisplay, VASurfaceID);
+
+        VA_Proxy();
+        ~VA_Proxy();
+
+        const vaInitialize_type      vaInitialize;
+        const vaTerminate_type       vaTerminate;
+        const vaCreateSurfaces_type  vaCreateSurfaces;
+        const vaDestroySurfaces_type vaDestroySurfaces;
+        const vaCreateBuffer_type    vaCreateBuffer;
+        const vaDestroyBuffer_type   vaDestroyBuffer;
+        const vaMapBuffer_type       vaMapBuffer;
+        const vaUnmapBuffer_type     vaUnmapBuffer;
+        const vaDeriveImage_type     vaDeriveImage;
+        const vaDestroyImage_type    vaDestroyImage;
+        const vaSyncSurface_type     vaSyncSurface;
+    };
+} // namespace MfxLoader
+
+
+mfxStatus va_to_mfx_status(VAStatus va_res);
+
+// VAAPI Allocator internal Mem ID
+struct vaapiMemId
+{
+    VASurfaceID* m_surface;
+    VAImage      m_image;
+    // variables for VAAPI Allocator internal color conversion
+    unsigned int m_fourcc;
+    mfxU8* m_sys_buffer;
+    mfxU8* m_va_buffer;
+};
+
+namespace MfxLoader
+{
+    class VA_Proxy;
+}
+
+struct vaapiAllocatorParams : mfxAllocatorParams
+{
+    vaapiAllocatorParams() : m_dpy(), bAdaptivePlayback(false) {};
+    VADisplay m_dpy;
+    bool bAdaptivePlayback;
+};
+
+class vaapiFrameAllocator : public BaseFrameAllocator
+{
+public:
+    vaapiFrameAllocator();
+    virtual ~vaapiFrameAllocator();
+
+    virtual mfxStatus Init(mfxAllocatorParams* pParams);
+    virtual mfxStatus Close();
+
+protected:
+    virtual mfxStatus LockFrame(mfxMemId mid, mfxFrameData* ptr);
+    virtual mfxStatus UnlockFrame(mfxMemId mid, mfxFrameData* ptr);
+    virtual mfxStatus GetFrameHDL(mfxMemId mid, mfxHDL* handle);
+
+    virtual mfxStatus CheckRequestType(mfxFrameAllocRequest* request);
+    virtual mfxStatus ReleaseResponse(mfxFrameAllocResponse* response);
+    virtual mfxStatus AllocImpl(mfxFrameAllocRequest* request, mfxFrameAllocResponse* response);
+
+    VADisplay m_dpy;
+    MfxLoader::VA_Proxy* m_libva;
+    bool      m_bAdaptivePlayback;
+    mfxU32    m_Width;
+    mfxU32    m_Height;
+};
 #endif // __MFX_ENCTOOLS_ALLOCATOR_H__

@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2020 Intel Corporation
+// Copyright (c) 2014-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,9 @@ struct mfxLplastatus
     mfxU8 MiniGopSize = 0;
     mfxU8 QpModulation = 0;
 #endif
+    mfxU32 AvgEncodedBits = 0;
+    mfxU32 CurEncodedBits = 0;
+    mfxU16 DistToNextI = 0;
 };
 
 #if defined (MFX_ENABLE_LP_LOOKAHEAD)

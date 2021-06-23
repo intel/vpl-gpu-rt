@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -67,10 +67,11 @@ mfxStatus AEnc_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig 
         }
     }
 
+    m_aencPar.CodecId = ctrl.CodecId;
     m_aencPar.ColorFormat = MFX_FOURCC_NV12;
     m_aencPar.MaxMiniGopSize = ctrl.MaxGopRefDist;
     m_aencPar.MaxGopSize = m_aencPar.GopPicSize = (ctrl.MaxGopSize!= 0) ? ctrl.MaxGopSize : 65000;
-    m_aencPar.MinGopSize = std::max(4u, m_aencPar.MaxGopSize/16); //to prevent close I frames
+    m_aencPar.MinGopSize = std::max(m_aencPar.MaxMiniGopSize*2, m_aencPar.MaxGopSize/16); // to prevent close I frames
     m_aencPar.StrictIFrame = IsOff(pConfig.AdaptiveI);
     m_aencPar.MaxIDRDist = ctrl.MaxIDRDist;
     m_aencPar.AGOP = !IsOff(pConfig.AdaptiveB);
@@ -201,6 +202,50 @@ mfxStatus AEnc_EncTool::GetSCDecision(mfxU32 displayOrder, mfxEncToolsHintPreEnc
     return sts;
 }
 
+mfxStatus AEnc_EncTool::GetPersistenceMap(mfxU32 displayOrder, mfxEncToolsHintPreEncodeSceneChange *pPreEncSC)
+{
+    MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
+    mfxStatus sts = FindOutFrame(displayOrder);
+    MFX_CHECK_STS(sts);
+    mfxU16 count = 0;
+    if (m_outframes.size() > m_aencPar.MaxMiniGopSize) 
+    {
+        memset(pPreEncSC->PersistenceMap, 0, sizeof(pPreEncSC->PersistenceMap));
+
+        pPreEncSC->PersistenceMapNZ = 0;
+        std::vector<AEncFrame>::iterator startIt = ++m_frameIt;
+        if (startIt != m_outframes.end()) 
+        {
+            for (mfxU32 i = 0; i < MFX_ENCTOOLS_PREENC_MAP_SIZE; i++) 
+            {
+                std::vector<AEncFrame>::iterator frameIt = startIt;
+                do {
+                    if (frameIt->PMap[i]) 
+                    {
+                        if (pPreEncSC->PersistenceMap[i] < UCHAR_MAX) pPreEncSC->PersistenceMap[i] += frameIt->PMap[i];
+                    }
+                    else
+                        break;
+                } while (++frameIt != m_outframes.end());
+                if (pPreEncSC->PersistenceMap[i]) count++;
+            }
+            pPreEncSC->PersistenceMapNZ = count;
+        }
+    }
+    else {
+        pPreEncSC->PersistenceMapNZ =  AEncGetPersistenceMap(m_aenc, displayOrder, pPreEncSC->PersistenceMap);
+    }
+    return MFX_ERR_NONE;
+}
+
+mfxStatus AEnc_EncTool::GetIntraDecision(mfxU32 displayOrder, mfxU16 *frameType)
+{
+    displayOrder;
+    MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
+    *frameType = AEncGetIntraDecision(m_aenc, displayOrder);
+    return MFX_ERR_NONE;
+}
+
 mfxStatus AEnc_EncTool::GetGOPDecision(mfxU32 displayOrder, mfxEncToolsHintPreEncodeGOP *pPreEncGOP)
 {
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
@@ -228,20 +273,25 @@ mfxStatus AEnc_EncTool::GetGOPDecision(mfxU32 displayOrder, mfxEncToolsHintPreEn
     default:
         pPreEncGOP->FrameType = MFX_FRAMETYPE_UNKNOWN;
     }
-   pPreEncGOP->QPDelta = (mfxI16)(*m_frameIt).DeltaQP;
-
-    switch ((mfxI16)(*m_frameIt).ClassAPQ)
-    {
-    case 1:
-        pPreEncGOP->QPModulation = MFX_QP_MODULATION_HIGH;
-        break;
-    case 2:
-        pPreEncGOP->QPModulation = MFX_QP_MODULATION_MEDIUM;
-        break;
-    case 3:
-        pPreEncGOP->QPModulation = MFX_QP_MODULATION_LOW;
-        break;
-    default:
+    pPreEncGOP->QPDelta = (mfxI16)(*m_frameIt).DeltaQP;
+    if (m_aencPar.APQ) {
+        switch ((mfxI16)(*m_frameIt).ClassAPQ)
+        {
+        case 1:
+            pPreEncGOP->QPModulation = MFX_QP_MODULATION_HIGH;
+            break;
+        case 2:
+            pPreEncGOP->QPModulation = MFX_QP_MODULATION_MEDIUM;
+            break;
+        case 3:
+            pPreEncGOP->QPModulation = MFX_QP_MODULATION_LOW;
+            break;
+        default:
+            pPreEncGOP->QPModulation = MFX_QP_MODULATION_MIXED;
+            break;
+        }
+    }
+    else {
         pPreEncGOP->QPModulation = MFX_QP_MODULATION_NOT_DEFINED;
     }
 
