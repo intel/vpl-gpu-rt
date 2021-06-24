@@ -1595,7 +1595,6 @@ UMC::Status TaskSupplier_H265::CompleteDecodedFrames(H265DecoderFrame ** decoded
 // Add a new bitstream data buffer to decoding
 UMC::Status TaskSupplier_H265::AddSource(UMC::MediaData * pSource)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "TaskSupplier_H265::AddSource");
     H265DecoderFrame* completed = 0;
     UMC::Status umcRes = CompleteDecodedFrames(&completed);
     if (umcRes != UMC::UMC_OK)
@@ -2321,9 +2320,6 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
     {
         uint32_t NumShortTermRefs = 0, NumLongTermRefs = 0;
         view.pDPB->countActiveRefs(NumShortTermRefs, NumLongTermRefs);
-
-        if (NumShortTermRefs + NumLongTermRefs == 0)
-            AddFakeReferenceFrame(pSlice);
     }
 
     H265PicParamSet const* pps = pSlice->GetPicParam();
@@ -2339,11 +2335,6 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
 }
 
 // Not implemented
-void TaskSupplier_H265::AddFakeReferenceFrame(H265Slice *)
-{
-// need to add absent ref frame logic
-}
-
 H265DecoderFrame* TaskSupplier_H265::AddSelfReferenceFrame(H265Slice* slice)
 {
     VM_ASSERT(slice);

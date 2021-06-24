@@ -24,7 +24,6 @@
 
 #ifdef MFX_ENABLE_AV1_VIDEO_DECODE
 
-#ifdef UMC_VA_LINUX
 
 #include <algorithm>
 #include "umc_structures.h"
@@ -383,7 +382,6 @@ namespace UMC_AV1_DECODER
 
 } // namespace UMC_AV1_DECODER
 
-#endif //UMC_VA_LINUX
 
 #endif // MFX_ENABLE_AV1_VIDEO_DECODE
 

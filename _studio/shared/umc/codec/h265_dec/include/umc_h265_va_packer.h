@@ -26,13 +26,8 @@
 
 #include "umc_va_base.h"
 
-#ifdef UMC_VA_DXVA
-#include "umc_hevc_ddi.h"
-#endif
 
-#if defined(UMC_VA_LINUX)
 #include <va/va_dec_hevc.h>
-#endif
 
 #include "umc_h265_tables.h"
 

@@ -31,13 +31,10 @@
 #include "umc_mjpeg_mfx_decode_base.h"
 #include <set>
 
-#if defined(UMC_VA_LINUX)
  #include <va/va_dec_jpeg.h>
-#endif
 
 namespace UMC
 {
-#if defined(UMC_VA_LINUX)
 typedef struct tagJPEG_DECODE_SCAN_PARAMETER
 {
     uint16_t        NumComponents;
@@ -59,7 +56,6 @@ typedef struct tagJPEG_DECODE_QUERY_STATUS
     uint8_t         reserved8bits;
     uint16_t        reserved16bits;
 } JPEG_DECODE_QUERY_STATUS;
-#endif
 
 class MJPEGVideoDecoderMFX_HW : public MJPEGVideoDecoderBaseMFX
 {

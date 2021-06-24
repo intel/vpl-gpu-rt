@@ -180,11 +180,6 @@ mfxStatus MJPEGVideoDecoderMFX_HW::CheckStatusReportNumber(uint32_t statusReport
         for (mfxU32 i = 0; i < numStructures; i += 1){
             queryStatus[i].bStatus = 3;
         }
-#ifdef UMC_VA_DXVA
-        MFX_CHECK(m_va, MFX_ERR_DEVICE_FAILED);
-        // execute call
-        sts = m_va->ExecuteStatusReportBuffer((void*)queryStatus, sizeof(JPEG_DECODE_QUERY_STATUS) * numStructures);
-#else
         // on Linux ExecuteStatusReportBuffer returns UMC_ERR_UNSUPPORTED so the task pretends as already done
         // mark tasks as not completed to skip them in the next loop
         for (mfxU32 i = 0; i < numStructures; i += 1) {
@@ -197,7 +192,6 @@ mfxStatus MJPEGVideoDecoderMFX_HW::CheckStatusReportNumber(uint32_t statusReport
             queryStatus[0].StatusReportFeedbackNumber = statusReportFeedbackNumber;
         }
 
-#endif
         if(sts != UMC_OK)
         {
             return MFX_ERR_DEVICE_FAILED;
@@ -550,21 +544,6 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////
-#if defined (UMC_VA_DXVA)
-    JPEG_DECODE_IMAGE_LAYOUT imageLayout;
-    sts = m_va->EndFrame(&imageLayout);
-    if (sts != UMC_OK)
-        return sts;
-    std::pair<ChromaType, Status> chromaTypeRes = GetChromaType();
-    if (chromaTypeRes.second != UMC_OK)
-    {
-        return chromaTypeRes.second;
-    }
-
-    m_convertInfo.colorFormat = chromaTypeRes.first;
-    m_convertInfo.UOffset = imageLayout.ComponentDataOffset[1];
-    m_convertInfo.VOffset = imageLayout.ComponentDataOffset[2];
-#else
     sts = m_va->Execute();
     if (sts != UMC_OK)
         return sts;
@@ -572,265 +551,10 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
     if (sts != UMC_OK)
         return sts;
 #endif
-#endif
     return UMC_OK;
 }
 
 #ifdef UMC_VA
-#ifdef UMC_VA_DXVA
-// Window version
-Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PARAMETER* obtainedScanParams, uint8_t* buffersForUpdate)
-{
-    UMCVACompBuffer* compBuf = 0;
-    uint32_t bitstreamTile = 0;
-    bool shiftDataOffset = false;
-    Status sts = UMC_OK;
-
-    /////////////////////////////////////////////////////////////////////////////////////////
-    if((*buffersForUpdate & 1) != 0)
-    {
-        *buffersForUpdate -= 1;
-
-        JPEG_DECODE_PICTURE_PARAMETERS *picParams = (JPEG_DECODE_PICTURE_PARAMETERS*)m_va->GetCompBuffer(D3DDDIFMT_INTEL_JPEGDECODE_PPSDATA, &compBuf);
-        if(!picParams)
-            return UMC_ERR_DEVICE_FAILED;
-        std::pair<ChromaType, Status> chromaTypeRes = GetChromaType();
-        if (chromaTypeRes.second != UMC_OK)
-        {
-            return chromaTypeRes.second;
-        }
-
-        picParams->FrameWidth                = (USHORT)m_decBase->m_jpeg_width;
-        picParams->FrameHeight               = (USHORT)m_decBase->m_jpeg_height;
-        picParams->NumCompInFrame            = (USHORT)m_decBase->m_jpeg_ncomp; // TODO: change for multi-scan images
-        picParams->ChromaType                = (UCHAR)chromaTypeRes.first;
-        picParams->TotalScans                = (USHORT)m_decBase->m_num_scans;
-
-        switch(m_rotation)
-        {
-        case 0:
-            picParams->Rotation = 0;
-            break;
-        case 90:
-            picParams->Rotation = 1;
-            break;
-        case 180:
-            picParams->Rotation = 3;
-            break;
-        case 270:
-            picParams->Rotation = 2;
-            break;
-        }
-
-        for (int32_t i = 0; i < m_decBase->m_jpeg_ncomp; i++)
-        {
-            picParams->ComponentIdentifier[i] = (UCHAR)m_decBase->m_ccomp[i].m_id;
-            picParams->QuantTableSelector[i]  = (UCHAR)m_decBase->m_ccomp[i].m_q_selector;
-        }
-
-        picParams->InterleavedData = (picParams->TotalScans == 1) ? 1 : 0;
-        picParams->StatusReportFeedbackNumber = m_statusReportFeedbackCounter;
-        picParams->RenderTargetFormat = m_fourCC;
-
-        compBuf->SetDataSize(sizeof(JPEG_DECODE_PICTURE_PARAMETERS));
-
-        sts = m_va->Execute();
-        if (sts != UMC_OK)
-            return sts;
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////
-    if((*buffersForUpdate & (1 << 1)) != 0)
-    {
-        *buffersForUpdate -= 1 << 1;
-        for (int32_t i = 0; i < MAX_QUANT_TABLES; i++)
-        {
-            if (!m_decBase->m_qntbl[i].m_initialized)
-                continue;
-
-            JPEG_DECODE_QM_TABLE *quantTable = (JPEG_DECODE_QM_TABLE*)m_va->GetCompBuffer(D3DDDIFMT_INTEL_JPEGDECODE_QUANTDATA, &compBuf);
-            if(!quantTable)
-                return UMC_ERR_DEVICE_FAILED;
-
-            quantTable->TableIndex = (UCHAR)m_decBase->m_qntbl[i].m_id;
-            quantTable->Precision  = (UCHAR)m_decBase->m_qntbl[i].m_precision;
-
-            if (m_decBase->m_qntbl[i].m_precision) // should be always zero for 8-bit quantization tables
-            {
-                return UMC_ERR_FAILED;
-            }
-
-            MFX_INTERNAL_CPY(quantTable->Qm, m_decBase->m_qntbl[i].m_raw8u, DCTSIZE2);
-
-            /*uint16_t* invQuantTable = m_dec->m_qntbl[i];
-            for (int32_t k = 0; k < DCTSIZE2; k++)
-            {
-                quantTable->Qm[k] = (UCHAR)invQuantTable[k];
-            }*/
-
-            compBuf->SetDataSize(sizeof(JPEG_DECODE_QM_TABLE));
-
-            sts = m_va->Execute();
-            if (sts != UMC_OK)
-                return sts;
-        }
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////
-    if((*buffersForUpdate & (1 << 2)) != 0)
-    {
-        *buffersForUpdate -= 1 << 2;
-
-        if (DefaultInitializationHuffmantables() != UMC_OK)
-            return UMC_ERR_FAILED;
-
-        for (int32_t i = 0; i < MAX_HUFF_TABLES; i++)
-        {
-            if(m_decBase->m_dctbl[i].IsValid())
-            {
-                JPEG_DECODE_HUFFMAN_TABLE *huffmanTables = (JPEG_DECODE_HUFFMAN_TABLE*)m_va->GetCompBuffer(D3DDDIFMT_INTEL_JPEGDECODE_HUFFTBLDATA, &compBuf);
-                if(!huffmanTables)
-                    return UMC_ERR_DEVICE_FAILED;
-
-                huffmanTables->TableClass = (UCHAR)m_decBase->m_dctbl[i].m_hclass;
-                huffmanTables->TableIndex = (UCHAR)m_decBase->m_dctbl[i].m_id;
-
-                MFX_INTERNAL_CPY(huffmanTables->BITS,    m_decBase->m_dctbl[i].GetBits(),   sizeof(huffmanTables->BITS));
-                MFX_INTERNAL_CPY(huffmanTables->HUFFVAL, m_decBase->m_dctbl[i].GetValues(), sizeof(huffmanTables->HUFFVAL));
-                compBuf->SetDataSize(sizeof(JPEG_DECODE_HUFFMAN_TABLE));
-
-                sts = m_va->Execute();
-                if (sts != UMC_OK)
-                    return sts;
-            }
-
-            if(m_decBase->m_actbl[i].IsValid())
-            {
-                JPEG_DECODE_HUFFMAN_TABLE *huffmanTables = (JPEG_DECODE_HUFFMAN_TABLE*)m_va->GetCompBuffer(D3DDDIFMT_INTEL_JPEGDECODE_HUFFTBLDATA, &compBuf);
-                if(!huffmanTables)
-                    return UMC_ERR_DEVICE_FAILED;
-
-                huffmanTables->TableClass = (UCHAR)m_decBase->m_actbl[i].m_hclass;
-                huffmanTables->TableIndex = (UCHAR)m_decBase->m_actbl[i].m_id;
-
-                MFX_INTERNAL_CPY(huffmanTables->BITS,    m_decBase->m_actbl[i].GetBits(),   sizeof(huffmanTables->BITS));
-                MFX_INTERNAL_CPY(huffmanTables->HUFFVAL, m_decBase->m_actbl[i].GetValues(), sizeof(huffmanTables->HUFFVAL));
-                compBuf->SetDataSize(sizeof(JPEG_DECODE_HUFFMAN_TABLE));
-
-                sts = m_va->Execute();
-                if (sts != UMC_OK)
-                    return sts;
-            }
-        }
-    }
-
-    if((*buffersForUpdate & (1 << 3)) != 0)
-    {
-        *buffersForUpdate -= 1 << 3;
-
-        uint8_t *bistreamData = (uint8_t*)m_va->GetCompBuffer(D3DDDIFMT_BITSTREAMDATA, &compBuf);
-        if(!bistreamData)
-            return UMC_ERR_DEVICE_FAILED;
-
-        if (m_decBase->m_curr_scan->scan_no == m_decBase->m_num_scans-1)
-        {
-            // buffer size is enough
-            if (obtainedScanParams->DataLength <= (uint32_t)compBuf->GetBufferSize())
-            {
-                MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset, obtainedScanParams->DataLength);
-                compBuf->SetDataSize(obtainedScanParams->DataLength);
-                shiftDataOffset = true;
-            }
-            // buffer size is not enough
-            else
-            {
-                MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset, (uint32_t)compBuf->GetBufferSize());
-                compBuf->SetDataSize((uint32_t)compBuf->GetBufferSize());
-                bitstreamTile = obtainedScanParams->DataLength - (uint32_t)compBuf->GetBufferSize();
-                shiftDataOffset = true;
-            }
-        }
-        else
-        {
-            // buffer size is enough to keep all data (headers + 3 scan data)
-            if ((uint32_t)src->GetDataSize() <= (uint32_t)compBuf->GetBufferSize())
-            {
-                MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer(), (int)src->GetDataSize());
-                compBuf->SetDataSize((int32_t)src->GetDataSize());
-            }
-            // buffer size is enough to keep pixel data for one scan
-            else if (obtainedScanParams->DataLength <= (uint32_t)compBuf->GetBufferSize())
-            {
-                MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset, obtainedScanParams->DataLength);
-                compBuf->SetDataSize(obtainedScanParams->DataLength);
-                shiftDataOffset = true;
-
-                *buffersForUpdate |= 1 << 3;
-            }
-            // buffer size is not enough
-            else
-            {
-                MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset, (uint32_t)compBuf->GetBufferSize());
-                compBuf->SetDataSize((uint32_t)compBuf->GetBufferSize());
-                bitstreamTile = obtainedScanParams->DataLength - (uint32_t)compBuf->GetBufferSize();
-                shiftDataOffset = true;
-
-                *buffersForUpdate |= 1 << 3;
-            }
-        }
-
-        sts = m_va->Execute();
-        if (sts != UMC_OK)
-            return sts;
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////
-    if((*buffersForUpdate & (1 << 4)) != 0)
-    {
-        *buffersForUpdate -= 1 << 4;
-
-        JPEG_DECODE_SCAN_PARAMETER *scanParams = (JPEG_DECODE_SCAN_PARAMETER*)m_va->GetCompBuffer(D3DDDIFMT_INTEL_JPEGDECODE_SCANDATA, &compBuf);
-        if(!scanParams)
-            return UMC_ERR_DEVICE_FAILED;
-        memcpy_s(scanParams, sizeof(JPEG_DECODE_SCAN_PARAMETER), obtainedScanParams, sizeof(JPEG_DECODE_SCAN_PARAMETER));
-        if(shiftDataOffset)
-        {
-            scanParams->DataOffset = 0;
-        }
-        compBuf->SetDataSize(sizeof(JPEG_DECODE_SCAN_PARAMETER));
-        sts = m_va->Execute();
-        if (sts != UMC_OK)
-            return sts;
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////
-    while(bitstreamTile != 0)
-    {
-        uint8_t *bistreamData = (uint8_t*)m_va->GetCompBuffer(D3DDDIFMT_BITSTREAMDATA, &compBuf);
-        if(!bistreamData)
-            return UMC_ERR_DEVICE_FAILED;
-
-        if (bitstreamTile <= (uint32_t)compBuf->GetBufferSize())
-        {
-            MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset + obtainedScanParams->DataLength - bitstreamTile, bitstreamTile);
-            compBuf->SetDataSize(bitstreamTile);
-            bitstreamTile = 0;
-        }
-        else
-        {
-            MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset + obtainedScanParams->DataLength - bitstreamTile, compBuf->GetBufferSize());
-            compBuf->SetDataSize(compBuf->GetBufferSize());
-            bitstreamTile = bitstreamTile - compBuf->GetBufferSize();
-        }
-
-        sts = m_va->Execute();
-        if (sts != UMC_OK)
-            return sts;
-    }
-
-    return UMC_OK;
-}
-#else
 // Linux/Android version
 Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PARAMETER* obtainedScanParams, uint8_t* buffersForUpdate)
 {
@@ -1013,7 +737,6 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
 
     return UMC_OK;
 }
-#endif // if UMC_VA_DXVA / else
 #endif // if UMC_VA
 
 uint16_t MJPEGVideoDecoderMFX_HW::GetNumScans(MediaDataEx* in)

@@ -30,11 +30,9 @@
 #include "umc_h265_task_supplier.h"
 #endif
 
-#ifdef UMC_VA_LINUX
 #include "umc_h265_va_packer_vaapi.h"
 #include "umc_va_linux_protected.h"
 #include "mfx_ext_buffers.h"
-#endif
 
 using namespace UMC;
 
@@ -81,17 +79,11 @@ namespace UMC_HEVC_DECODER
         g_sigLastScanCG32x32
     };
 
-#ifdef UMC_VA_DXVA
-    extern Packer * CreatePackerMS(VideoAccelerator*);
-    extern Packer * CreatePackerIntel(VideoAccelerator*);
-#endif
 
-#if defined (UMC_VA_LINUX)
     extern Packer * CreatePackerVAAPI(VideoAccelerator*);
   #if defined(MFX_ENABLE_CPLIB)
     extern Packer * CreatePackerCENC(VideoAccelerator*);
   #endif
-#endif
 
 Packer * Packer::CreatePacker(VideoAccelerator * va)
 {

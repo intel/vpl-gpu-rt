@@ -28,14 +28,12 @@
 #include "mfx_cenc.h"
 #endif
 
-#ifdef UMC_VA_LINUX
 #include "umc_va_linux.h"
 #include "umc_va_linux_protected.h"
 #include "umc_va_video_processing.h"
 
 #include "mfx_common_int.h"
 #include "mfx_ext_buffers.h"
-#endif
 
 #include "mfx_trace.h"
 
@@ -1001,7 +999,7 @@ void PackerVA_CENC::PackAU(const H264DecoderFrame *pFrame, int32_t isTop)
         throw h264_exception(sts);
 }
 
-#endif
+#endif // MFX_ENABLE_CPLIB
 
 } // namespace UMC
 

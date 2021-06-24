@@ -1,4 +1,4 @@
-// Copyright (c) 2004-2020 Intel Corporation
+// Copyright (c) 2004-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -570,6 +570,8 @@ mfxStatus VideoDECODEH264::SetTargetViewList(mfxVideoParam *par)
 
 mfxStatus VideoDECODEH264::Reset(mfxVideoParam *par)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH264::Reset");
+
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
@@ -892,6 +894,7 @@ mfxStatus VideoDECODEH264::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVi
 
 mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH264::QueryIOSurf");
     MFX_CHECK_NULL_PTR2(par, request);
 
     eMFXPlatform platform = MFX_Utility::GetPlatform(core, par);

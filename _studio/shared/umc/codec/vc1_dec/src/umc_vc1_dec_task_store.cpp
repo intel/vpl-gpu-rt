@@ -181,25 +181,11 @@ namespace UMC
 
         for (uint32_t counter = 0; counter < m_iNumFramesProcessing; counter++)
         {
-#ifdef UMC_VA_DXVA
-            if (pMainVC1Decoder->m_va)
-            {
-                if (pMainVC1Decoder->m_va->IsIntelCustomGUID())
-                {
-                        Size += mfx::align2_value<uint32_t>(sizeof(VC1FrameDescriptorVA_EagleLake<VC1PackerDXVA_EagleLake>));
-                }
-                else
-                    Size += mfx::align2_value<uint32_t>(sizeof(VC1FrameDescriptorVA<VC1PackerDXVA>));
-            }
-            else
-#endif
-#ifdef UMC_VA_LINUX
                 if (pMainVC1Decoder->m_va)
                 {
                     Size += mfx::align2_value<uint32_t>(sizeof(VC1FrameDescriptorVA_Linux<VC1PackerLVA>));
                 }
                 else
-#endif
                     Size += mfx::align2_value<uint32_t>(sizeof(VC1FrameDescriptor));
         }
 

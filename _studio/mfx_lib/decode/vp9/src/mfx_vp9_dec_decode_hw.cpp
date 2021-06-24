@@ -107,88 +107,6 @@ static void SetFrameType(const VP9DecoderFrame &frameInfo, mfxFrameSurface1 &sur
     }
 }
 
-#ifdef UMC_VA_DXVA
-
-// The class looks for the first free DXVA index.
-// E.g., for the simplest stream it uses only two indices zero and one,
-// decode #0 Intra-frame refs -1 curr frame 0
-// decode #1 refs 0 curr frame 1
-// decode #2 refs 1 curr frame 0
-class FirstFreeIndexRemapper : public DXVAIndexRemapper {
-private:
-    std::map<UMC::FrameMemID, UCHAR> m_idToIndexMap;
-public:
-    UCHAR GetDXVAIndex(UMC::FrameMemID memId) override
-    {
-        return (m_idToIndexMap.find(memId) != m_idToIndexMap.end()) ? m_idToIndexMap[memId] : UCHAR_MAX;
-    }
-
-    void UpdateDXVAIndices(const UMC::FrameMemID currFrame, const UMC::FrameMemID refs[], int refsSize) override
-    {
-        // Use DXVA indices in range [0; refsSize]
-        // refsSize slots for different reference frames [0; refsSize-1]
-        // plus one slot for current frame
-        std::set<UCHAR> freeSlots;
-        for (int i = 0; i <= refsSize; i += 1)
-        {
-            freeSlots.insert((UCHAR)i);
-        }
-
-        std::map<UMC::FrameMemID, UCHAR> newMap;
-        // propagate previously assigned indices to the new state
-        for (mfxU8 idx = 0; idx < refsSize; idx += 1)
-        {
-            UMC::FrameMemID memId = refs[idx];
-            if (memId != (UMC::FrameMemID) - 1)
-            {
-                UCHAR prevIndex = GetDXVAIndex(memId);
-                newMap[memId] = prevIndex;
-                freeSlots.erase(prevIndex);
-            }
-        }
-
-        // assigne the first free index to the current frame
-        newMap[currFrame] = *freeSlots.begin();
-
-        m_idToIndexMap = newMap;
-    }
-};
-
-// Unique remapper stores all used memIds and associated DXVA indices.
-// Such techique has a limitation only 128 buffers can be used
-// because DXVA index has only 7 bit.
-// Such remapper is used on Skylake platform because on Skylake
-// decoder doesn't work properly if the same index was assigned
-// to two different surfaces.
-class UniqueRemapper : public DXVAIndexRemapper {
-private:
-    std::map<UMC::FrameMemID, UCHAR> m_idToIndexMap;
-public:
-    UCHAR GetDXVAIndex(UMC::FrameMemID memId) override
-    {
-        if (m_idToIndexMap.find(memId) == m_idToIndexMap.end())
-        {
-            // Add new surface to the map
-            m_idToIndexMap[memId] = (UCHAR)m_idToIndexMap.size();
-        }
-
-        if (m_idToIndexMap.size() > 128)
-        {
-            return UCHAR_MAX;
-        }
-
-        return m_idToIndexMap[memId];
-    }
-
-    void UpdateDXVAIndices(const UMC::FrameMemID currFrame, const UMC::FrameMemID refs[], int refsSize) override
-    {
-        (void)currFrame;
-        (void)refs;
-        (void)refsSize;
-    }
-};
-
-#endif
 
 mfxStatus VideoDECODEVP9_HW::UpdateRefFrames()
 {
@@ -371,9 +289,6 @@ VideoDECODEVP9_HW::VideoDECODEVP9_HW(VideoCORE *p_core, mfxStatus *sts)
       m_adaptiveMode(false),
       m_index(0),
       m_surface_source(),
-#ifdef UMC_VA_DXVA
-      m_dxvaRemapper(),
-#endif
       m_Packer(),
       m_request(),
       m_response(),
@@ -418,14 +333,6 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
 
     m_platform = m_core->GetPlatformType();
 
-#ifdef UMC_VA_DXVA
-    if (type == MFX_HW_SCL) {
-        m_dxvaRemapper = std::make_unique<UniqueRemapper>();
-    }
-    else {
-        m_dxvaRemapper = std::make_unique<FirstFreeIndexRemapper>();
-    }
-#endif
 
     MFX_CHECK(MFX_ERR_NONE <= CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type, m_core->IsCompatibleForOpaq()), MFX_ERR_INVALID_VIDEO_PARAM);
 
@@ -688,9 +595,6 @@ mfxStatus VideoDECODEVP9_HW::Close()
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 
     ResetFrameInfo();
-#ifdef UMC_VA_DXVA
-    m_dxvaRemapper.reset(nullptr);
-#endif
     m_surface_source->Close();
 
     m_isInit = false;
@@ -1279,6 +1183,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
         if (!m_frameInfo.show_existing_frame)
         {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VP9 decode DDISubmitTask");
             UMC::Status umcSts = m_va->BeginFrame(m_frameInfo.currFrame, 0);
             MFX_CHECK(UMC::UMC_OK == umcSts, MFX_ERR_DEVICE_FAILED);
 
@@ -1719,24 +1624,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
     return MFX_ERR_NONE;
 }
 
-#ifdef UMC_VA_DXVA
-
-VP9DecoderFrame VideoDECODEVP9_HW::MemIdToDXVAIndices(VP9DecoderFrame const & info)
-{
-    VP9DecoderFrame dxvaInfo = info;
-    m_dxvaRemapper->UpdateDXVAIndices(dxvaInfo.currFrame, dxvaInfo.ref_frame_map, NUM_REF_FRAMES);
-
-    if (dxvaInfo.frameType != KEY_FRAME)
-    {
-        for (mfxU8 ref = 0; ref < NUM_REF_FRAMES; ++ref)
-        {
-            dxvaInfo.ref_frame_map[ref] = m_dxvaRemapper->GetDXVAIndex(dxvaInfo.ref_frame_map[ref]);
-        }
-    }
-    dxvaInfo.currFrame = m_dxvaRemapper->GetDXVAIndex(dxvaInfo.currFrame);
-    return dxvaInfo;
-}
-#endif
 
 mfxStatus VideoDECODEVP9_HW::PackHeaders(mfxBitstream *bs, VP9DecoderFrame const & info)
 {
@@ -1754,10 +1641,6 @@ mfxStatus VideoDECODEVP9_HW::PackHeaders(mfxBitstream *bs, VP9DecoderFrame const
     {
         m_Packer->BeginFrame();
         VP9DecoderFrame packerInfo = info;
-#ifdef UMC_VA_DXVA
-        MFX_CHECK(m_dxvaRemapper, MFX_ERR_UNDEFINED_BEHAVIOR);
-        packerInfo = MemIdToDXVAIndices(info);
-#endif
         m_Packer->PackAU(&vp9bs, &packerInfo);
         m_Packer->EndFrame();
     }

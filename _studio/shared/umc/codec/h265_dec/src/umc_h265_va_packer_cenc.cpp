@@ -22,7 +22,6 @@
 #if defined (MFX_ENABLE_H265_VIDEO_DECODE)
 
 #include "umc_va_base.h"
-#if defined (UMC_VA_LINUX)
 #if defined (MFX_ENABLE_CPLIB)
 
 #include "umc_h265_va_packer_vaapi.h"
@@ -211,5 +210,4 @@ namespace UMC_HEVC_DECODER
 } // namespace UMC_HEVC_DECODER
 
 #endif // #if defined (MFX_ENABLE_CPLIB)
-#endif // #if defined (UMC_VA_LINUX)
 #endif // MFX_ENABLE_H265_VIDEO_DECODE
