@@ -26,7 +26,9 @@
 #include "umc_video_encoder.h"
 #include "umc_brc.h"
 
+#define APA_MPEG2_BRC 1
 
+#if APA_MPEG2_BRC
 #include "mfxdefs.h"
 
 #define BRC_MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -38,6 +40,7 @@
 #define N_DEV_THRESHLDS 8
 #define N_VAR_THRESHLDS 7
 
+#endif
 
 namespace UMC
 {
@@ -96,6 +99,7 @@ protected:
 //  Status CalculatePicTargets();
   int32_t ChangeQuant(int32_t quant);
 
+#if APA_MPEG2_BRC
 
   virtual Status PreEncFrameMidRange(FrameType frameType, int32_t recode = 0);
   virtual Status PreEncFrameFallBack(FrameType frameType, int32_t recode = 0);
@@ -116,6 +120,7 @@ protected:
   mfxF64  instant_rate_thresholds[N_INST_RATE_THRESHLDS]; // constant, calculated at init, thresholds for instatnt bitrate
   mfxF64  deviation_thresholds[N_DEV_THRESHLDS]; // constant, calculated at init, buffer fullness/deviation thresholds
 
+#endif
 
 };
 

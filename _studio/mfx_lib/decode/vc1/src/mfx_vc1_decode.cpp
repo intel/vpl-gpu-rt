@@ -509,13 +509,11 @@ mfxStatus MFXVideoDECODEVC1::Close(void)
 
 mfxTaskThreadingPolicy MFXVideoDECODEVC1::GetThreadingPolicy(void)
 {
-#if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
     if (MFX_HW_VAAPI == m_pCore->GetVAType())
     {
         return MFX_TASK_THREADING_INTRA;
     }
     else
-#endif
     {
         return MFX_TASK_THREADING_DEFAULT;
     }
@@ -1896,11 +1894,9 @@ mfxStatus MFXVideoDECODEVC1::DecodeFrameCheck(mfxBitstream *bs,
         pEntryPoint->pRoutine = &VC1DECODERoutine;
         pEntryPoint->pCompleteProc = &VC1CompleteProc;
         pEntryPoint->pState = this;
-#if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
         if (MFX_HW_VAAPI == m_pCore->GetVAType())
             pEntryPoint->requiredNumThreads = 1;
         else
-#endif
             pEntryPoint->requiredNumThreads = m_par.mfx.NumThread;
         pEntryPoint->pParam = pAsyncSurface;
         pEntryPoint->pRoutineName = (char *)"DecodeVC1";
@@ -1946,7 +1942,6 @@ mfxStatus  MFXVideoDECODEVC1::ProcessSkippedFrame()
 
 mfxStatus MFXVideoDECODEVC1::GetStatusReport()
 {
-#if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
     VideoAccelerator *va;
     m_pCore->GetVA((mfxHDL*)&va, MFX_MEMTYPE_FROM_DECODE);
 
@@ -1962,23 +1957,6 @@ mfxStatus MFXVideoDECODEVC1::GetStatusReport()
             return CriticalErrorStatus;
         }
     }
-#else
-    VideoAccelerator *va;
-    m_pCore->GetVA((mfxHDL*)&va, MFX_MEMTYPE_FROM_DECODE);
-
-    Status sts = UMC_OK;
-    VASurfaceStatus surfSts = VASurfaceSkipped;
-
-    UMC::VC1FrameDescriptor *pCurrDescriptor = m_pVC1VideoDecoder->m_pStore->GetFirstDS();
-
-    if (pCurrDescriptor)
-    {
-        VAStatus surfErr = VA_STATUS_SUCCESS;
-        sts = va->QueryTaskStatus(pCurrDescriptor->m_pContext->m_frmBuff.m_iCurrIndex, &surfSts, &surfErr);
-        MFX_CHECK(sts != UMC_ERR_GPU_HANG, MFX_ERR_GPU_HANG);
-        MFX_CHECK(sts == UMC_OK, MFX_ERR_DEVICE_FAILED);
-    }
-#endif //#if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
 
     return MFX_ERR_NONE;
 }

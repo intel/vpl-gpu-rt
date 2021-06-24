@@ -36,13 +36,6 @@
 #include "umc_vc1_dec_task_store.h"
 
 
-#ifdef UMC_VA_DXVA
-enum
-{
-    VC1_MAX_REPORTS = 32
-};
-
-#endif
 
 class MFXVC1VideoDecoderHW;
 
@@ -70,9 +63,6 @@ namespace UMC
 
         void SetVideoHardwareAccelerator            (VideoAccelerator* va);
 
-#ifdef UMC_VA_DXVA
-        virtual Status GetStatusReport(DXVA_Status_VC1 *pStatusReport);
-#endif
 
     protected:
 

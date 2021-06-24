@@ -239,27 +239,6 @@ bool VC1VideoDecoderHW::InitAlloc(VC1Context* pContext, uint32_t )
     return true;
 }
 
-#ifdef UMC_VA_DXVA
-Status VC1VideoDecoderHW::GetStatusReport(DXVA_Status_VC1 *pStatusReport)
-{
-    UMC::Status sts = UMC_OK;
-    {
-        sts = m_va->ExecuteStatusReportBuffer((void*)pStatusReport, sizeof(DXVA_Status_VC1)*VC1_MAX_REPORTS);
-        if (sts != UMC_OK)
-            return UMC_ERR_FAILED;
-
-        for (uint32_t i = 0; i < VC1_MAX_REPORTS; i++)
-        {
-            // status report presents
-            if (pStatusReport[i].StatusReportFeedbackNumber)
-            {
-                return sts;
-            }
-        }
-        return UMC_WRN_INFO_NOT_READY;
-    }
-}
-#endif
 
 void VC1VideoDecoderHW::GetStartCodes_HW(MediaData* in, uint32_t &sShift)
 {
@@ -432,17 +411,7 @@ Status VC1VideoDecoderHW::VC1DecodeFrame(MediaData* in, VideoData* out_data)
 
     if (m_va->m_Profile == VC1_VLD)
     {
-#if defined (UMC_VA_DXVA)
-        if (m_va->IsIntelCustomGUID())
-        {
-                return VC1DecodeFrame_VLD<VC1FrameDescriptorVA_EagleLake<VC1PackerDXVA_EagleLake> >(in, out_data);
-        }
-        else
-            return VC1DecodeFrame_VLD<VC1FrameDescriptorVA<VC1PackerDXVA> >(in, out_data);
-#endif
-#if defined (UMC_VA_LINUX)
         return VC1DecodeFrame_VLD<VC1FrameDescriptorVA_Linux<VC1PackerLVA> >(in, out_data);
-#endif
     }
     return UMC_ERR_FAILED;
 }

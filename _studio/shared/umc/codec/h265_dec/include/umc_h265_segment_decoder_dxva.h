@@ -118,7 +118,7 @@ public:
 
     void StartDecodingFrame(H265DecoderFrame * pFrame)
     {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "DXVASupport::StartDecodingFrame");
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H265 decode DDISubmitTask begin");
         if (!m_va)
             return;
 
@@ -139,7 +139,7 @@ public:
 
     void EndDecodingFrame()
     {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "DXVASupport::EndDecodingFrame");
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H265 decode DDISubmitTask end");
         if (!m_va)
             return;
 

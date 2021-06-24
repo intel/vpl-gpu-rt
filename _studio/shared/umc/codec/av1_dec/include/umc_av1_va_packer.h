@@ -27,9 +27,7 @@
 #include "umc_va_base.h"
 #include "umc_av1_frame.h"
 
-#ifdef UMC_VA_LINUX
 #include <va/va_dec_av1.h>
-#endif //UMC_VA_LINUX
 
 namespace UMC
 { class MediaData; }

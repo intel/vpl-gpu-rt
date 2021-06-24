@@ -36,6 +36,7 @@ static int32_t Val_QScale[2][32] =
 };
 
 
+#if APA_MPEG2_BRC
 
 static int32_t QQuality_AddI[N_QUALITY_LEVELS][N_QP_THRESHLDS+1] = {
     {0,0,0,0,0},
@@ -174,6 +175,7 @@ static double dev_thresh[N_DEV_THRESHLDS] = {
   index = test; \
 }
 
+#endif
 
 MPEG2BRC::MPEG2BRC()
 {
@@ -307,6 +309,7 @@ Status MPEG2BRC::Init(BaseCodecParams *params, int32_t no_full_HW)
   rc_tagsize_field[1] = u_len * rc_weight[1];
   rc_tagsize_field[2] = u_len * rc_weight[2];
 
+#if APA_MPEG2_BRC
   mIsFallBack = 0;
   double orig_frame_size = mParams.info.clip_info.width * mParams.info.clip_info.height *
     (mParams.info.color_format == YUV444 ? 3. : (mParams.info.color_format == YUV422 ? 2. : 1.5))*8;
@@ -342,6 +345,7 @@ Status MPEG2BRC::Init(BaseCodecParams *params, int32_t no_full_HW)
   mQuantMin=1;
   mQuantMax=112;
 
+#endif
 
   for (i = 0; i < 3; i++) { // just in case - will be set in PreEnc for (frameNum == 0)
     prpicture_flags[i] = BRC_FRAME;
@@ -448,6 +452,7 @@ int32_t MPEG2BRC::ChangeQuant(int32_t quant_value)
   return quantiser_scale_value;
 }
 
+#if APA_MPEG2_BRC
 
 Status MPEG2BRC::PreEncFrame(FrameType frameType, int32_t recode, int32_t)
 {
@@ -719,6 +724,83 @@ Status MPEG2BRC::PreEncFrameFallBack(FrameType frameType, int32_t recode)
   return status;
 }
 
+#else
+
+Status MPEG2BRC::PreEncFrame(FrameType frameType, int32_t recode)
+{
+  int32_t q0, q2, sz1;
+  int32_t indx = (frameType == B_PICTURE ? 2 : (frameType == P_PICTURE ? 1 : 0));
+  double target_size;
+  int32_t wanted_size;
+  Status status = UMC_OK;
+
+  // refresh rate deviation with every new I frame
+  if (frameType == I_PICTURE && mRCMode == BRC_CBR && mHRD.frameNum) {
+    double ip_tagsize = rc_tagsize[0];
+    double dev, adev, arc_dev;
+
+    if (BRC_FRAME != (picture_flags & 0x3))
+      ip_tagsize = (rc_tagsize[0] + rc_tagsize[1]) * .5; // every second I-field became P-field
+
+    if (mHRD.bufFullness < 2 * ip_tagsize || (double)mHRD.bufSize -  mHRD.bufFullness < mHRD.maxInputBitsPerFrame ) {
+      dev = mHRD.bufSize / 2 // half of vbv_buffer
+        + ip_tagsize / 2                      // top to center length of I (or IP) frame
+        - mHRD.bufFullness;
+      if (dev * rc_dev < 0) {
+        BRC_CLIP(dev, -mHRD.maxInputBitsPerFrame, ip_tagsize);
+        rc_dev = dev;
+      } else {
+        adev = BRC_ABS(dev);
+        arc_dev = BRC_ABS(rc_dev);
+        if (adev > arc_dev) {
+          BRC_CLIP(dev, -arc_dev - mHRD.maxInputBitsPerFrame, arc_dev + ip_tagsize);
+          rc_dev = dev;
+        }
+      }
+    }
+  }
+
+  if (recode) {
+    if (mFrameType != frameType) { // recoding due to frame type change
+      int32_t prevIndx = (mFrameType == B_PICTURE ? 2 : (frameType == P_PICTURE ? 1 : 0));
+      qscale[prevIndx] = ChangeQuant(prqscale[prevIndx]);
+    }
+    return status;
+  }
+
+  q0 = qscale[indx];   // proposed from post picture
+  q2 = prqscale[indx]; // last used scale
+  sz1 = prsize[indx];  // last coded size
+
+  target_size = rc_tagsize[indx];
+  wanted_size = (int32_t)(target_size - rc_dev / 3 * target_size / rc_tagsize[0]);
+
+  if (sz1 > 2*wanted_size)
+    q2 = q2 * 3 / 2 + 1;
+  else if (sz1 > wanted_size + 100)
+    q2++;
+  else if (2*sz1 < wanted_size)
+    q2 = q2 * 3 / 4;
+  else if (sz1 < wanted_size-100 && q2 > 2)
+    q2--;
+
+  if (rc_dev > 0) {
+    q2 = std::max(q0,q2);
+  } else {
+    q2 = std::min(q0,q2);
+  }
+  // this call is used to accept small changes in value, which are mapped to the same code
+  // changeQuant bothers about changing scale code if value changes
+  q2 = ChangeQuant(q2);
+
+  qscale[indx] = q2;
+
+  return status;
+}
+
+
+
+#endif
 
 
 int32_t MPEG2BRC::GetQP(FrameType frameType, int32_t)
@@ -778,6 +860,7 @@ BRCStatus MPEG2BRC::PostPackFrame(FrameType frameType, int32_t bits_encoded, int
     return Sts;
   }
 
+#if APA_MPEG2_BRC
 
   if (!mIsFallBack) {
     if (qscale[indx] < Q_THRESHOLD1) {
@@ -815,6 +898,7 @@ BRCStatus MPEG2BRC::PostPackFrame(FrameType frameType, int32_t bits_encoded, int
   }
 */
 
+#endif
 /*
   rc_vbv_fullness = rc_vbv_fullness - bits_encoded;
   rc_vbv_fullness += rc_delay; //
@@ -864,7 +948,9 @@ BRCStatus MPEG2BRC::PostPackFrame(FrameType frameType, int32_t bits_encoded, int
   // changeQuant bothers about to change scale code if value changes
   newscale = ChangeQuant(newscale);
 
+#if APA_MPEG2_BRC
   if (mIsFallBack) {
+#endif
     if (frameType == I_PICTURE) {
       if (newscale + 1 > qscale[1])
         qscale[1] = newscale+1;
@@ -889,6 +975,7 @@ BRCStatus MPEG2BRC::PostPackFrame(FrameType frameType, int32_t bits_encoded, int
           qscale[0] = qscale[1];
       }
     }
+#if APA_MPEG2_BRC
   } else {
     if (frameType == P_PICTURE) {
       if (newscale < qscale[0]) {
@@ -904,6 +991,7 @@ BRCStatus MPEG2BRC::PostPackFrame(FrameType frameType, int32_t bits_encoded, int
       }
     }
   }
+#endif
 
 
   qscale[indx] = newscale;

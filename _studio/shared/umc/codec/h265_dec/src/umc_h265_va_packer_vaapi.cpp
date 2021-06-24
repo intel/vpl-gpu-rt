@@ -26,7 +26,6 @@
 
 #include "umc_va_base.h"
 
-#ifdef UMC_VA_LINUX
 
 #include "umc_va_linux.h"
 #include "umc_h265_va_packer_vaapi.h"
@@ -219,7 +218,6 @@ namespace UMC_HEVC_DECODER
     }
 }
 
-#endif //UMC_VA_LINUX
 
 #endif //  UMC_RESTRICTED_CODE_VA
 

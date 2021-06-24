@@ -39,14 +39,6 @@
 
 namespace UMC_VP9_DECODER { class Packer; }
 
-#ifdef UMC_VA_DXVA
-    class DXVAIndexRemapper {
-    public:
-        virtual UCHAR GetDXVAIndex(UMC::FrameMemID memId) = 0;
-        virtual void UpdateDXVAIndices(const UMC::FrameMemID currFrame, const UMC::FrameMemID refs[], int refsSize) = 0;
-        virtual ~DXVAIndexRemapper() = default;
-    };
-#endif
 
 class FrameStorage;
 
@@ -114,10 +106,6 @@ private:
 
     std::unique_ptr<SurfaceSource>  m_surface_source;
 
-#ifdef UMC_VA_DXVA
-    std::unique_ptr<DXVAIndexRemapper> m_dxvaRemapper;
-    UMC_VP9_DECODER::VP9DecoderFrame MemIdToDXVAIndices(UMC_VP9_DECODER::VP9DecoderFrame const & info);
-#endif
 
     std::unique_ptr<UMC_VP9_DECODER::Packer>  m_Packer;
     std::unique_ptr<FrameStorage> m_framesStorage;

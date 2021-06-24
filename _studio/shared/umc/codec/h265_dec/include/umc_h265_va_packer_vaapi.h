@@ -38,7 +38,6 @@ namespace UMC_HEVC_DECODER
         return length/(1 << cbsize);
     }
 
-#if defined(UMC_VA_LINUX)
 
     class PackerVAAPI
         : public Packer
@@ -80,7 +79,6 @@ namespace UMC_HEVC_DECODER
     };
 
 
-#endif // UMC_VA_LINUX
 
     template <>
     struct Type2Buffer<VAPictureParameterBufferHEVC>

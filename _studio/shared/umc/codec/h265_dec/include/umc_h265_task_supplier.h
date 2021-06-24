@@ -405,7 +405,6 @@ protected:
     void DPBUpdate(const H265Slice * slice);
 
     // Not implemented
-    virtual void AddFakeReferenceFrame(H265Slice*);
     virtual H265DecoderFrame* AddSelfReferenceFrame(H265Slice*);
 
     // Find NAL units in new bitstream buffer and process them

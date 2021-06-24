@@ -124,6 +124,8 @@ public:
         if (!m_va)
             return;
 
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H264 decode DDISubmitTask");
+
         Status sts = m_va->BeginFrame(pFrame->GetFrameData()->GetFrameMID(), field);
         if (sts != UMC_OK)
             throw h264_exception(sts);

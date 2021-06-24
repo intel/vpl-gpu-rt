@@ -29,7 +29,6 @@
 
 #define __UMC_AV1_VA_PACKER_H
 
-#ifdef UMC_VA_LINUX
 
 namespace UMC
 {
@@ -64,7 +63,6 @@ namespace UMC_AV1_DECODER
 
 } // namespace UMC_AV1_DECODER
 
-#endif //UMC_VA_LINUX
 
 #endif /* __UMC_AV1_VA_PACKER_H */
 #endif // MFX_ENABLE_AV1_VIDEO_DECODE

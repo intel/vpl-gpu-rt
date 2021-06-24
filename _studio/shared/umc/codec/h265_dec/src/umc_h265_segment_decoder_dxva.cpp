@@ -83,7 +83,6 @@ void H265_DXVA_SegmentDecoder::PackAllHeaders(H265DecoderFrame * pFrame)
 
 UMC::Status H265_DXVA_SegmentDecoder::ProcessSegment(void)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H265_DXVA_SegmentDecoder::ProcessSegment");
     try
     {
         if (!m_pTaskBroker->GetNextTask(0))
@@ -143,7 +142,6 @@ enum
 
 bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H265Task *)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "TaskBrokerSingleThreadDXVA::GetNextTaskInternal");
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
     // check error(s)
@@ -158,9 +156,6 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H265Task *)
         return false;
 
 #if defined(UMC_VA_LINUX)
-#if !defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
-    #error unsupported sync. type
-#else
     UMC::Status sts = UMC::UMC_OK;
     VAStatus surfErr = VA_STATUS_SUCCESS;
     int32_t index;
@@ -205,7 +200,6 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H265Task *)
     }
 
     SwitchCurrentAU();
-#endif
 #elif defined(UMC_VA_DXVA)
     bool wasCompleted = false;
     UMC::Status sts = UMC::UMC_OK;

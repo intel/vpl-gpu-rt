@@ -72,11 +72,7 @@ namespace UMC_AV1_DECODER
         if (firstSubmission)
         {
             // it's first submission for current frame - need to call BeginFrame
-#ifdef UMC_VA_LINUX
             sts = va->BeginFrame(frame.GetMemID(SURFACE_RECON));
-#else
-            sts = va->BeginFrame(frame.GetMemID());
-#endif
             if (sts != UMC::UMC_OK)
                 return sts;
 
@@ -118,25 +114,6 @@ namespace UMC_AV1_DECODER
         return frame.DecodingStarted() && !frame.DecodingCompleted();
     }
 
-#ifndef UMC_VA_LINUX
-    inline void SetError(AV1DecoderFrame& frame, uint8_t status)
-    {
-        switch (status)
-        {
-        case 1:
-            frame.AddError(UMC::ERROR_FRAME_MINOR);
-            break;
-        case 2:
-        case 3:
-        case 4:
-        default:
-            frame.AddError(UMC::ERROR_FRAME_MAJOR);
-            break;
-        }
-    }
-
-    const uint32_t NUMBER_OF_STATUS = 32;
-#endif
 
     bool AV1DecoderVA::QueryFrames()
     {

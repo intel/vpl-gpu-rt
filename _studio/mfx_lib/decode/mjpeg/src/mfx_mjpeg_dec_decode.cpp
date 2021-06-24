@@ -1824,6 +1824,24 @@ void VideoDECODEMJPEGBase_HW::AdjustFourCC(mfxFrameInfo *requestFrameInfo, const
             break;
         }
     }
+
+    else if(info->JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB)
+    {
+        if(info->JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444)
+            if(hwType >= MFX_HW_SCL &&
+                vaType == MFX_HW_VAAPI &&
+                info->Rotation == MFX_ROTATION_0 &&
+                info->InterleavedDec == MFX_SCANTYPE_INTERLEAVED &&
+                requestFrameInfo->CropW >= 128 &&
+                requestFrameInfo->CropH >= 128 &&
+                requestFrameInfo->CropW <= 4096 &&
+                requestFrameInfo->CropH <= 4096 &&
+                !(*needVpp))
+            {
+                requestFrameInfo->FourCC = MFX_FOURCC_RGBP;
+                *needVpp = true;
+            }  
+    }
     return;
 }
 
