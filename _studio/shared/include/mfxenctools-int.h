@@ -34,9 +34,6 @@ File Name: mfxenctools-int.h
 #include "mfxvideo++.h"
 #include "mfxbrc.h"
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-#include "mfxenctools.h"
-#else
 #ifdef __cplusplus
 extern "C"
 {
@@ -84,7 +81,6 @@ MFX_PACK_END()
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
-#endif /*(MFX_VERSION >= MFX_VERSION_NEXT)*/
 
 
 #ifdef __cplusplus

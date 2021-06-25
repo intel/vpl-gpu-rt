@@ -21,34 +21,3 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && (MFX_VERSION >= MFX_VERSION_NEXT)
-
-#include "hevcehw_base.h"
-#include "hevcehw_base_data.h"
-
-namespace HEVCEHW
-{
-    namespace Base
-    {
-        class DPBReport
-            : public FeatureBase
-        {
-        public:
-#define DECL_BLOCK_LIST\
-        DECL_BLOCK(Report)
-#define DECL_FEATURE_NAME "Base_DPBReport"
-#include "hevcehw_decl_blocks.h"
-
-            DPBReport(mfxU32 FeatureId)
-                : FeatureBase(FeatureId)
-            {}
-
-        protected:
-            virtual void SetSupported(ParamSupport& par) override;
-            virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
-        };
-
-    } //Base
-} //namespace HEVCEHW
-
-#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

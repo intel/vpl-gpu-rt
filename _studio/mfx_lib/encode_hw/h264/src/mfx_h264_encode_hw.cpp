@@ -3583,10 +3583,6 @@ void SetupAdaptiveCQM(const MfxVideoParam &par, DdiTask &task, const QpHistory q
 {
 
     task.m_adaptiveCQMHint = CQM_HINT_INVALID;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    const mfxExtCodingOption3 &opt3 = GetExtBufferRef(par);
-    if (IsOn(opt3.AdaptiveCQM))
-#endif
     {
         const mfxExtSpsHeader& extSps = GetExtBufferRef(par);
         const std::vector<mfxExtPpsHeader>& extCqmPps = par.GetCqmPps();

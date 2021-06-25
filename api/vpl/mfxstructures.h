@@ -1458,30 +1458,6 @@ enum {
                                 DPB by a sliding window. */
 };
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-
-/* QuantScaleType */
-enum {
-    MFX_MPEG2_QUANT_SCALE_TYPE_DEFAULT    = 0,
-    MFX_MPEG2_QUANT_SCALE_TYPE_LINEAR     = 1, /* q_scale_type = 0 */
-    MFX_MPEG2_QUANT_SCALE_TYPE_NONLINEAR  = 2  /* q_scale_type = 1 */
-};
-
-/* IntraVLCFormat */
-enum {
-    MFX_MPEG2_INTRA_VLC_FORMAT_DEFAULT    = 0,
-    MFX_MPEG2_INTRA_VLC_FORMAT_B14        = 1, /* use table B.14 */
-    MFX_MPEG2_INTRA_VLC_FORMAT_B15        = 2  /* use table B.15 */
-};
-
-/* ScanType */
-enum {
-    MFX_MPEG2_SCAN_TYPE_DEFAULT   = 0,
-    MFX_MPEG2_SCAN_TYPE_ZIGZAG    = 1, /* alternate_scan = 0 */
-    MFX_MPEG2_SCAN_TYPE_ALTERNATE = 2  /* alternate_scan = 1 */
-};
-
-#endif
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
@@ -1588,12 +1564,7 @@ typedef struct {
        See the CodingOptionValue enumerator for values of this option.
     */
     mfxU16      MotionVectorsOverPicBoundaries;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxU16      Log2MaxMvLengthHorizontal;      /* 0..16 */
-    mfxU16      Log2MaxMvLengthVertical;        /* 0..16 */
-#else
     mfxU16      reserved1[2];
-#endif
 
     mfxU16      ScenarioInfo; /*!< Provides a hint to encoder about the scenario for the encoding session. See the ScenarioInfo enumerator for values of this option. */
     mfxU16      ContentInfo;  /*!< Provides a hint to encoder about the content for the encoding session. See the ContentInfo enumerator for values of this option. */
@@ -1604,12 +1575,7 @@ typedef struct {
        unless application provided mfxExtPredWeightTable for this frame. See the CodingOptionValue enumerator for values of this option.
     */
     mfxU16      FadeDetection;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxI16      DeblockingAlphaTcOffset;  /* -12..12 (slice_alpha_c0_offset_div2 << 1) */
-    mfxI16      DeblockingBetaOffset;     /* -12..12 (slice_beta_offset_div2 << 1) */
-#else
     mfxU16      reserved2[2];
-#endif
     /*!
        Set this flag to OFF to make HEVC encoder use regular P-frames instead of GPB. See the CodingOptionValue enumerator for values of this option.
     */
@@ -1646,11 +1612,7 @@ typedef struct {
     mfxU16      NumRefActiveBL0[8]; /*!< Max number of active references for B-frames in reference picture list 0. Array index is pyramid layer. */
     mfxU16      NumRefActiveBL1[8]; /*!< Max number of active references for B-frames in reference picture list 1. Array index is pyramid layer. */
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxU16      ConstrainedIntraPredFlag;
-#else
     mfxU16      reserved6;
-#endif
     /*!
        For HEVC if this option is turned ON, the transform_skip_enabled_flag will be set to 1 in PPS. OFF specifies that transform_skip_enabled_flag will be set to 0.
     */
@@ -1696,13 +1658,7 @@ typedef struct {
        MFX_CODINGOPTION_ON forces encoder to favor quality and MFX_CODINGOPTION_OFF forces encoder to favor performance.
     */
     mfxU16      RepartitionCheckEnable;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxU16      QuantScaleType;            /* For MPEG2, specifies mapping between quantiser_scale_code and quantiser_scale (see QuantScaleType enum). */
-    mfxU16      IntraVLCFormat;            /* For MPEG2, specifies which table shall be used for coding of DCT coefficients of intra macroblocks (see IntraVLCFormat enum) */
-    mfxU16      ScanType;                  /* For MPEG2, specifies transform coefficients scan pattern (see ScanType enum) */
-#else
     mfxU16      reserved5[3];
-#endif
     mfxU16      EncodedUnitsInfo;          /*!< Set this flag to ON to make encoded units info available in mfxExtEncodedUnitsInfo. */
     /*!
        If this flag is set to ON, the HEVC encoder uses the NAL unit type provided by the application in the mfxEncodeCtrl::MfxNalUnitType field.
@@ -2048,19 +2004,6 @@ enum {
        See the mfxExtAVCRoundingOffset structure for details.
     */
     MFX_EXTBUFF_AVC_ROUNDING_OFFSET             = MFX_MAKEFOURCC('R','N','D','O'),
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    MFX_EXTBUFF_DPB                             = MFX_MAKEFOURCC('E','D','P','B'),
-    MFX_EXTBUFF_TEMPORAL_LAYERS                 = MFX_MAKEFOURCC('T','M','P','L'),
-    MFX_EXTBUFF_AVC_SCALING_MATRIX              = MFX_MAKEFOURCC('A','V','S','M'),
-    MFX_EXTBUFF_MPEG2_QUANT_MATRIX              = MFX_MAKEFOURCC('M','2','Q','M'),
-    MFX_EXTBUFF_TASK_DEPENDENCY                 = MFX_MAKEFOURCC('S','Y','N','C'),
-    MFX_EXTBUFF_AV1_LST_PARAM                   = MFX_MAKEFOURCC('A', '1', 'L', 'S'),
-    MFX_EXTBUFF_AV1_SEGMENTATION                = MFX_MAKEFOURCC('1', 'S', 'E', 'G'),
-    MFX_EXTBUFF_AV1_PARAM                       = MFX_MAKEFOURCC('1', 'P', 'A', 'R'),
-    MFX_EXTBUFF_AV1_AUXDATA                     = MFX_MAKEFOURCC('1', 'A', 'U', 'X'),
-    MFX_EXTBUFF_AV1_REFLIST_CTRL                = MFX_EXTBUFF_AVC_REFLIST_CTRL,
-    MFX_EXTBUFF_AV1_TEMPORAL_LAYERS             = MFX_EXTBUFF_AVC_TEMPORAL_LAYERS,
-#endif
     /*!
        See the mfxExtPartialBitstreamParam structure for details.
     */
@@ -2511,11 +2454,7 @@ typedef struct {
     mfxU32      reserved[3];
     mfxMemId    *mids;          /*!< Pointer to the array of the returned memory IDs. The application allocates or frees this array. */
     mfxU16      NumFrameActual; /*!< Number of frames actually allocated. */
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
     mfxU16      MemType;
-#else
-    mfxU16      reserved2;
-#endif
 } mfxFrameAllocResponse;
 MFX_PACK_END()
 
@@ -3536,24 +3475,6 @@ typedef struct {
 } mfxExtMBDisableSkipMap;
 MFX_PACK_END()
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
-    mfxExtBuffer    Header;
-
-    mfxU16          DPBSize;
-    mfxU16          reserved[11];
-
-    struct {
-        mfxU32      FrameOrder;
-        mfxU16      PicType;
-        mfxU16      LongTermIdx;
-        mfxU16      reserved[4];
-    } DPB[32];
-} mfxExtDPB;
-MFX_PACK_END()
-
-#endif
 
 /*! The GeneralConstraintFlags enumerator uses bit-ORed values to itemize HEVC bitstream indications for specific profiles. Each value
     indicates for format range extensions profiles. */
@@ -3719,28 +3640,6 @@ typedef struct {
 } mfxExtAVCRoundingOffset;
 MFX_PACK_END()
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
-    mfxExtBuffer Header;
-
-    mfxU16       reserved[12];
-
-    struct {
-        mfxU16   Scale;
-        mfxU16   QPI;
-        mfxU16   QPP;
-        mfxU16   QPB;
-        mfxU32   TargetKbps;
-        mfxU32   MaxKbps;
-        mfxU32   BufferSizeInKB;
-        mfxU32   InitialDelayInKB;
-        mfxU16   reserved1[20];
-    } Layer[8];
-} mfxExtTemporalLayers;
-MFX_PACK_END()
-
-#endif
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
@@ -3811,49 +3710,6 @@ typedef struct {
 } mfxExtMoveRect;
 MFX_PACK_END()
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-
-/* ScalingMatrixType */
-enum {
-    MFX_SCALING_MATRIX_SPS = 1,
-    MFX_SCALING_MATRIX_PPS = 2
-};
-
-MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
-    mfxExtBuffer Header;
-
-    mfxU16 Type;
-    mfxU16 reserved[5];
-
-    /* [4x4_Intra_Y,  4x4_Intra_Cb, 4x4_Intra_Cr,
-        4x4_Inter_Y,  4x4_Inter_Cb, 4x4_Inter_Cr,
-        8x8_Intra_Y,  8x8_Inter_Y,  8x8_Intra_Cb,
-        8x8_Inter_Cb, 8x8_Intra_Cr, 8x8_Inter_Cr] */
-    mfxU8  ScalingListPresent[12];
-
-    /* [Intra_Y,  Intra_Cb, Intra_Cr,
-        Inter_Y,  Inter_Cb, Inter_Cr] */
-    mfxU8  ScalingList4x4[6][16];
-
-    /* [Intra_Y,  Inter_Y,  Intra_Cb,
-        Inter_Cb, Intra_Cr, Inter_Cr] */
-    mfxU8  ScalingList8x8[6][64];
-} mfxExtAVCScalingMatrix;
-MFX_PACK_END()
-
-MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
-    mfxExtBuffer Header;
-
-    mfxU16 reserved[28];
-
-    mfxU8  LoadMatrix[4]; // [LumaIntra, LumaInter, ChromaIntra, ChromaInter]
-    mfxU8  Matrix[4][64]; // [LumaIntra, LumaInter, ChromaIntra, ChromaInter]
-} mfxExtMPEG2QuantMatrix;
-MFX_PACK_END()
-
-#endif
 
 /*! The Angle enumerator itemizes valid rotation angles. */
 enum {
@@ -3935,25 +3791,6 @@ typedef struct {
 } mfxExtVPPScaling;
 MFX_PACK_END()
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-
-/* SceneChangeType */
-enum {
-    MFX_SCENE_NO_CHANGE = 0,
-    MFX_SCENE_START     = 1,
-    MFX_SCENE_END       = 2
-};
-
-MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
-    mfxExtBuffer Header;
-
-    mfxU16 Type;
-    mfxU16 reserved[11];
-} mfxExtSceneChange;
-MFX_PACK_END()
-
-#endif
 
 typedef mfxExtAVCRefListCtrl mfxExtHEVCRefListCtrl;
 typedef mfxExtAVCRefLists mfxExtHEVCRefLists;
@@ -4206,13 +4043,7 @@ typedef struct {
                                   sequence header will be zero. It is the responsibility of the application to update the NumFrame field  with the correct value. See the
                                   CodingOptionValue enumerator for values of this option. */
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxI16  LoopFilterRefDelta[4];  /* Contains the adjustment needed for the filter level based on the chosen reference frame. See
-                                       the P9ReferenceFrame enumerator for array IDs. */
-    mfxI16  LoopFilterModeDelta[2]; /* Contains the adjustment needed for the filter level based on the chosen mode. */
-#else // API 1.26
     mfxI16  reserved1[6];
-#endif
     mfxI16  QIndexDeltaLumaDC;   /*!< Specifies an offset for a particular quantization parameter. */
     mfxI16  QIndexDeltaChromaAC; /*!< Specifies an offset for a particular quantization parameter. */
     mfxI16  QIndexDeltaChromaDC; /*!< Specifies an offset for a particular quantization parameter. */
@@ -4300,17 +4131,6 @@ typedef struct {
 MFX_PACK_END()
 
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-/*! The MCTFTemporalMode enumerator itemizes temporal filtering modes. */
-enum {
-    MFX_MCTF_TEMPORAL_MODE_UNKNOWN  = 0,
-    MFX_MCTF_TEMPORAL_MODE_SPATIAL  = 1,
-    MFX_MCTF_TEMPORAL_MODE_1REF     = 2,
-    MFX_MCTF_TEMPORAL_MODE_2REF     = 3,
-    MFX_MCTF_TEMPORAL_MODE_4REF     = 4
-};
-#endif
-
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
    Provides setup for the Motion-Compensated Temporal Filter (MCTF) during the VPP initialization and for control
@@ -4328,25 +4148,7 @@ typedef struct {
                                       If the field value is in the range of 1 to 20 inclusive, MCTF operates in fixed-strength mode with the given strength of MCTF process.
 
                                       At runtime, values of 0 and greater than 20 are ignored. */
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxU16       Overlap;             /* Turn off or turn on overlap during motion estimation/compensation. See the CodingOptionValue enumerator for
-                                         values of this option. */
-    mfxU32       BitsPerPixelx100k;   /* Carries information of a compressed bitstream that is the result of an encoding process following
-                                         MCTF (if any). Actual average number of bits spent per pixel in the compressed bitstream is derived as
-                                         BitsPerPixelx100k divided by 100000.0. The MCTF process may use this information as an additional hint to
-                                         optimize the filtering process for a particular encoding applied afterwards. */
-    mfxU16       Deblocking;          /* Turn the deblocking filter off or on within MCTF process. See the CodingOptionValue enumerator for
-                                         values of this option. */
-    mfxU16       TemporalMode;        /* See the MCTFTemporalMode enumerator for values of this option. These modes are all different in
-                                         terms of quality improvements and performance. In general, 4-reference filtering provides the highest quality
-                                         and 1-reference filtering provides highest speed. The spatial filtering process is different
-                                         as it does not use any processing between frames. Thus spatial filtering provides the smallest memory footprint. */
-    mfxU16       MVPrecision;         /* Determines how precise the motion compensation process is. See the MVPrecision enumerator for values of this option.
-                                         Integer and quarter-pixel are supported. */
-    mfxU16       reserved[21];
-#else
     mfxU16       reserved[27];
-#endif
 } mfxExtVppMctf;
 MFX_PACK_END()
 

@@ -312,13 +312,7 @@ mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* sess
     par.NumExtParam = param.NumExtParam;
     par.ExtParam = param.ExtParam;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    // VendorImplID is used as adapterNum in current implementation - see MFXQueryImplsDescription
-    // app. supposed just to copy VendorImplID from mfxImplDescription (returned by MFXQueryImplsDescription) to mfxInitializationParam
-    mfxRes = MFXInit_Internal(par, session, par.Implementation, param.VendorImplID);
-#else
     mfxRes = MFXInit_Internal(par, session, par.Implementation, 0);
-#endif
 
     return mfxRes;
 }
