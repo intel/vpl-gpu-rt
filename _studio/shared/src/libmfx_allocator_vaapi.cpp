@@ -152,6 +152,16 @@ static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int 
 #if (MFX_VERSION >= 1028)
         case MFX_FOURCC_RGBP:
             format = VA_RT_FORMAT_RGBP;
+            //  Enable this hint as required for creating RGBP surface for JPEG.
+            if ((memType & MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET)
+                    && (memType & MFX_MEMTYPE_FROM_DECODE))
+            {
+                attrib.resize(attrib.size()+1);
+                attrib[1].type            = VASurfaceAttribUsageHint;
+                attrib[1].flags           = VA_SURFACE_ATTRIB_SETTABLE;
+                attrib[1].value.type      = VAGenericValueTypeInteger;
+                attrib[1].value.value.i   = VA_SURFACE_ATTRIB_USAGE_HINT_DECODER;
+            }
             break;
 #endif
         case MFX_FOURCC_BGRP:
