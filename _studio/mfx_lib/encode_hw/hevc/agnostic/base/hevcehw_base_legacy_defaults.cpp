@@ -2043,7 +2043,7 @@ public:
         pps.cu_qp_delta_enabled_flag = !(IsOff(CO3.EnableMBQP) && bCQP) && !bSWBRC;
         pps.cu_qp_delta_enabled_flag |= (IsOn(par.mfx.LowPower) || CO2.MaxSliceSize);
 
-        // according to BSpec only 3 and 0 are supported
+        // Only 3 and 0 are supported
         pps.diff_cu_qp_delta_depth                = (HEVCParam.LCUSize == 64) * 3;
         pps.cb_qp_offset                          = (bSWBRC * -1);
         pps.cr_qp_offset                          = (bSWBRC * -1);
