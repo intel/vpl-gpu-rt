@@ -449,7 +449,6 @@ private:
     mfxU32        m_bufLen;
 
     // Declare private copy constructor to avoid accidental assignment
-    // and klocwork complaining.
     SHParametersEx (const SHParametersEx &);
     SHParametersEx & operator = (const SHParametersEx &);
 };

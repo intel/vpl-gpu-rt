@@ -277,7 +277,6 @@ public:
 
     private:
         // Declare private copy constructor to avoid accidental assignment
-        // and klocwork complaining.
         MFXVideoENCODEMPEG2_HW_DDI(const MFXVideoENCODEMPEG2_HW_DDI &);
         MFXVideoENCODEMPEG2_HW_DDI & operator = (const MFXVideoENCODEMPEG2_HW_DDI &);
     };

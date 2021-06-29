@@ -295,7 +295,7 @@ mfxStatus MFXHWVideoENCODEH264::Query(
 {
 
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
-    // FIXME: remove when mfx_transcoder start sending correct Profile
+    // remove when mfx_transcoder start sending correct Profile
     if (in && in->mfx.CodecProfile == 0)
         if (mfx::GetExtBuffer(in->ExtParam, in->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC))
             in->mfx.CodecProfile = MFX_PROFILE_AVC_SCALABLE_BASELINE;
@@ -1497,8 +1497,8 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     }
     Zero(m_stat);
 
-    // FIXME: for SNB issue with HRD at high bitrates
-    // FIXME: check what to do with WA on Linux (MFX_HW_VAAPI) - currently it is switched off
+    // for SNB issue with HRD at high bitrates
+    // check what to do with WA on Linux (MFX_HW_VAAPI) - currently it is switched off
     m_useWAForHighBitrates = (MFX_HW_VAAPI != m_core->GetVAType()) && !m_enabledSwBrc &&
         m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR &&
         (m_currentPlatform < MFX_HW_HSW || m_currentPlatform == MFX_HW_VLV); // HRD WA for high bitrates isn't required for HSW and beyond

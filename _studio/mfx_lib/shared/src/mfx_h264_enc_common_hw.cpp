@@ -6566,7 +6566,7 @@ void MfxHwH264Encode::SetDefaults(
             }
             else
             {
-                //FIXME: extSps isn't syncronized with m_video after next assignment for ViewOutput mode. Need to Init ExtSps HRD for MVC keeping them syncronized
+                // extSps isn't syncronized with m_video after next assignment for ViewOutput mode. Need to Init ExtSps HRD for MVC keeping them syncronized
                 if (IsMvcProfile(par.mfx.CodecProfile))
                 {
                     extSps->vui.nalHrdParameters.bitRateValueMinus1[0] = GetMaxBitrateValue(par.calcParam.mvcPerViewPar.maxKbps) - 1;
@@ -7793,7 +7793,7 @@ void MfxVideoParam::SyncVideoToCalculableParam()
             if (m_extSvcSeqDescr.DependencyLayer[did - 1].Active)
             {
                 // 'numTemporalLayers' is used as temporal fix for array bound violation (calcParam.tid[], calcParam.scale[])
-                // FIXME: need to implement correct checking for 'TemporalNum' (this param is used before calling CheckVideoParamQueryLike())
+                // need to implement correct checking for 'TemporalNum' (this param is used before calling CheckVideoParamQueryLike())
                 mfxU16 numTemporalLayers = std::min<mfxU16>(m_extSvcSeqDescr.DependencyLayer[did - 1].TemporalNum, 8);
                 for (mfxU32 tidx = 0; tidx < numTemporalLayers; tidx++)
                 {
