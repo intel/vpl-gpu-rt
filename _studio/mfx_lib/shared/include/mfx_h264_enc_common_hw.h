@@ -202,7 +202,7 @@ namespace MfxHwH264Encode
 #endif
     BIND_EXTBUF_TYPE_TO_ID (mfxExtChromaLocInfo,        MFX_EXTBUFF_CHROMA_LOC_INFO          );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMBDisableSkipMap,     MFX_EXTBUFF_MB_DISABLE_SKIP_MAP      );
-#if !defined(MFX_PRIVATE_AVC_ENCODE_CTRL_DISABLE)
+#if defined(MFX_ENABLE_H264_PRIVATE_CTRL)
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCEncodeCtrl,        MFX_EXTBUFF_AVC_ENCODE_CTRL          );
 #endif
     BIND_EXTBUF_TYPE_TO_ID (mfxExtPredWeightTable,      MFX_EXTBUFF_PRED_WEIGHT_TABLE        );

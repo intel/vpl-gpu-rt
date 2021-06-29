@@ -634,7 +634,7 @@ mfxStatus SetQualityParams(
 
         } // if (extOpt3rt)
 
-#ifndef MFX_PRIVATE_AVC_ENCODE_CTRL_DISABLE
+#ifdef MFX_ENABLE_H264_PRIVATE_CTRL
         mfxExtAVCEncodeCtrl const * extPCQC    = GetExtBuffer(pTask->m_ctrl);
         if (extPCQC)
         {
