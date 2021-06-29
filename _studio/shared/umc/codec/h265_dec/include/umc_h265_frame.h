@@ -302,7 +302,7 @@ protected:
     H265DecoderFrameInfo * m_pSlicesInfo;
 
     // Declare memory management tools
-    UMC::MemoryAllocator *m_pMemoryAllocator;   // FIXME: should be removed because it duplicated in base class
+    UMC::MemoryAllocator *m_pMemoryAllocator;   // should be removed because it duplicated in base class
 
     Heap_Objects * m_pObjHeap;
 
