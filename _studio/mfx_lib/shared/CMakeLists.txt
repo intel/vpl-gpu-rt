@@ -11,7 +11,6 @@ target_sources(mfx_common_hw
     include/mfx_ddi_enc_dump.h
     include/mfx_enc_common.h
     include/mfx_frames.h
-    include/mfx_h264_enc_common.h
     include/mfx_h264_enc_common_hw.h
     include/mfx_h264_encode_interface.h
     include/mfx_h264_encode_struct_vaapi.h
