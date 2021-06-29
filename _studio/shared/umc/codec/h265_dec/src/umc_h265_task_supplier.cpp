@@ -609,7 +609,7 @@ void ViewItem_H265::SetDPBSize(H265SeqParamSet *pSps, uint32_t & level_idc)
 
     // calculate the new DPB size value
 
-    // FIXME: should have correct temporal layer
+    // should have correct temporal layer
 
     dpbSize = pSps->sps_max_dec_pic_buffering[pSps->sps_max_sub_layers-1];
 

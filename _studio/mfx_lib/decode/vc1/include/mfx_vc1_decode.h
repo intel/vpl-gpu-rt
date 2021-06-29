@@ -237,7 +237,7 @@ protected:
     
 private:
     // Declare private copy constructor to avoid accidental assignment
-    // and klocwork complaining.
+
     MFXVideoDECODEVC1(const MFXVideoDECODEVC1 &);
     MFXVideoDECODEVC1 & operator = (const MFXVideoDECODEVC1 &);
 };
