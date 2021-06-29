@@ -2444,7 +2444,7 @@ mfxStatus VAAPIEncoder::Execute(
             if ((m_core->GetHWType() >= MFX_HW_HSW) && (m_core->GetHWType() != MFX_HW_VLV))
             {
                 // length of Prefix NAL unit: now it's always 8 bytes for reference picture, and 7 bytes for non-reference picture
-                // FIXME: need to add zero_byte if AU starts from Prefix NAL unit
+                // need to add zero_byte if AU starts from Prefix NAL unit
                 mfxU32 prefix_bytes = (7 + !!task.m_nalRefIdc[fieldId]) * m_headerPacker.isSvcPrefixUsed();
 
                 //Slice headers only

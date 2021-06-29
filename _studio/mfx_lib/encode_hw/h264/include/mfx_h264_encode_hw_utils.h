@@ -3501,7 +3501,7 @@ private:
         std::vector<mfxU8>          m_sysMemBits;
         std::vector<BitstreamDesc>  m_bitsDesc;
         eMFXHWType m_currentPlatform;
-        bool m_useWAForHighBitrates; // FIXME: w/a for SNB/IBV issue with HRD at high bitrates
+        bool m_useWAForHighBitrates; // w/a for SNB/IBV issue with HRD at high bitrates
 // MVC BD {
         std::vector<mfxU16> m_submittedPicStructs[2];
 // MVC BD }
