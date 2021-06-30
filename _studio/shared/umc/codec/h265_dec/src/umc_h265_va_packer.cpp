@@ -81,9 +81,9 @@ namespace UMC_HEVC_DECODER
 
 
     extern Packer * CreatePackerVAAPI(VideoAccelerator*);
-  #if defined(MFX_ENABLE_CPLIB)
+#if defined(MFX_ENABLE_CPLIB)
     extern Packer * CreatePackerCENC(VideoAccelerator*);
-  #endif
+#endif
 
 Packer * Packer::CreatePacker(VideoAccelerator * va)
 {
@@ -91,25 +91,11 @@ Packer * Packer::CreatePacker(VideoAccelerator * va)
     Packer * packer = 0;
 
 #ifdef MFX_ENABLE_CPLIB
-  #ifdef UMC_VA_DXVA
-    if (va->GetProtectedVA() && IS_PROTECTION_CENC(va->GetProtectedVA()->GetProtected()))
-        throw h265_exception(UMC_ERR_UNSUPPORTED);
-    else
-  #elif defined (UMC_VA_LINUX)
     if (va->GetProtectedVA() && IS_PROTECTION_CENC(va->GetProtectedVA()->GetProtected()))
         packer = CreatePackerCENC(va);
     else
-  #endif
 #endif
-#ifdef UMC_VA_DXVA
-    if (va->IsIntelCustomGUID())
-        packer = CreatePackerIntel(va);
-    else
-        packer = CreatePackerMS(va);
-#elif defined(UMC_VA_LINUX)
     packer = CreatePackerVAAPI(va);
-#endif
-
     return packer;
 }
 

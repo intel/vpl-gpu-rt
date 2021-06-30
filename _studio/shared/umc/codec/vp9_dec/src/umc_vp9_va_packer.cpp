@@ -37,16 +37,7 @@ Packer * Packer::CreatePacker(UMC::VideoAccelerator * va)
     (void)va;
     Packer * packer = 0;
 
-#ifdef UMC_VA_DXVA
-    if (va->IsIntelCustomGUID()) // intel profile
-        packer = new PackerIntel(va);
-#if defined(NTDDI_WIN10_TH2)
-    else
-        packer = new PackerMS(va);
-#endif
-#elif defined(UMC_VA_LINUX)
     packer = new PackerVA(va);
-#endif
 
     return packer;
 }
