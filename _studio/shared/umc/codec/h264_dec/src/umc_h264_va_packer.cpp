@@ -966,8 +966,8 @@ void PackerVA_CENC::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice *
     if (!bs)
         throw h264_exception(UMC_ERR_FAILED);
 
-    auto decryptParam = reinterpret_cast<mfxExtCencParam*>(GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_CENC_PARAM));
-    if (!decryptParam)
+    auto cencParam = reinterpret_cast<mfxExtCencParam*>(GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_CENC_PARAM));
+    if (!cencParam)
         throw h264_exception(UMC_ERR_FAILED);
 
     UMCVACompBuffer *pParamBuf;
@@ -975,7 +975,7 @@ void PackerVA_CENC::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice *
     if (!pCENCStatusParams)
         throw h264_exception(UMC_ERR_FAILED);
 
-    pCENCStatusParams->status_report_index_feedback = decryptParam->StatusReportIndex;
+    pCENCStatusParams->status_report_index_feedback = cencParam->StatusReportIndex;
 
     pParamBuf->SetDataSize(sizeof(VACencStatusParameters));
 }

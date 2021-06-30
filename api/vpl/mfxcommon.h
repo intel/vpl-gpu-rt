@@ -97,14 +97,14 @@ typedef enum
 
 } mfxPriority;
 
-typedef struct _mfxEncryptedData mfxEncryptedData;
+typedef struct _mfxProtectedData mfxProtectedData;
 MFX_PACK_BEGIN_STRUCT_W_L_TYPE()
 /*! Defines the buffer that holds compressed video data. */
 typedef struct {
      /*! @internal :unnamed(union) @endinternal */
      union {
         struct {
-            mfxEncryptedData* EncryptedData; /*!< Reserved and must be zero. */
+            mfxProtectedData* ProtectedData; /*!< Reserved and must be zero. */
             mfxExtBuffer **ExtParam;         /*!< Array of extended buffers for additional bitstream configuration. See the ExtendedBufferID enumerator for a complete list of extended buffers. */
             mfxU16  NumExtParam;             /*!< The number of extended buffers attached to this structure. */
             mfxU32  CodecId;                 /*!< Specifies the codec format identifier in the FourCC code. See the CodecFormatFourCC enumerator for details. This optional parameter is required for the simplified decode initialization.  */

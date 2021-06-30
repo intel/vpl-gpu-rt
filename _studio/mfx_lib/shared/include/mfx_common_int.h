@@ -39,7 +39,7 @@ mfxStatus UpdateCscOutputFormat(mfxVideoParam *par, mfxFrameAllocRequest *reques
 
 mfxStatus CheckBitstream(const mfxBitstream *bs);
 mfxStatus CheckFrameData(const mfxFrameSurface1 *surface);
-mfxStatus CheckEncryptedBitstream(const mfxBitstream *bs);
+mfxStatus CheckProtectedBitstream(const mfxBitstream *bs);
 
 mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par);
 

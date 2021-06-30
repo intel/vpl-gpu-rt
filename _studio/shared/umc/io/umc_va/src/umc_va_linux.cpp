@@ -538,12 +538,12 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         if (UMC_OK == umcRes && m_protectedVA && IS_PROTECTION_CENC(m_protectedVA->GetProtected()))
         {
             va_attributes[attribsNumber].type = VAConfigAttribEncryption;
-            if (m_protectedVA->GetProtected() == MFX_PROTECTION_CENC_WV_CLASSIC)
+            if (m_protectedVA->GetProtected() == MFX_PROTECTION_CENC_ANDROID_WV_CLASSIC)
             {
                 if (va_attributes[3].value & VA_ENCRYPTION_TYPE_CENC_CBC)
                     va_attributes[attribsNumber].value = VA_ENCRYPTION_TYPE_CENC_CBC;
             }
-            else if (m_protectedVA->GetProtected() == MFX_PROTECTION_CENC_WV_GOOGLE_DASH)
+            else if (m_protectedVA->GetProtected() == MFX_PROTECTION_CENC_ANDROID_WV_DASH)
             {
                 if (va_attributes[3].value & VA_ENCRYPTION_TYPE_CENC_CTR_LENGTH)
                     va_attributes[attribsNumber].value = VA_ENCRYPTION_TYPE_CENC_CTR_LENGTH;

@@ -34,7 +34,7 @@ STRUCT(mfxStructVersion,
 )
 
 STRUCT(mfxBitstream,
-    FIELD_T(mfxEncryptedData*, EncryptedData  )
+    FIELD_T(mfxProtectedData*, ProtectedData  )
     FIELD_T(mfxExtBuffer **  , ExtParam       )
     FIELD_T(mfxU16           , NumExtParam    )
     FIELD_T(mfxI64           , DecodeTimeStamp)
@@ -1202,7 +1202,7 @@ STRUCT(mfxExtEncodedUnitsInfo,
     FIELD_T(mfxU16, NumUnitsEncoded)
 )
 
-#if defined(__MFXPCP_H__) && !defined(MFX_ONEVPL) || defined(__MFXPAVP_H__)
+#if defined(__MFXPCP_H__) && !defined(MFX_ONEVPL)
 
 #if (MFX_VERSION >= 1030)
 STRUCT(mfxExtCencParam,

@@ -97,7 +97,7 @@ namespace MfxHwH264Encode
     static const mfxU8 SEI_TYPE_MVC_SCALABLE_NESTING           = 37;
 // MVC BD }
 
-    static const mfxU16 MFX_RATECONTROL_WIDI_VBR = 100;
+    static const mfxU16 MFX_RATECONTROL_Wireless_VBR = 100;
 
     // internally used buffers
     static const mfxU32 MFX_EXTBUFF_SPS_HEADER     = MFX_MAKEFOURCC(0xff, 'S', 'P', 'S');

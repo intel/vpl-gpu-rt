@@ -90,10 +90,6 @@ EXTBUF(mfxExtBRC, MFX_EXTBUFF_BRC)
 EXTBUF(mfxExtSCD, MFX_EXTBUFF_SCD)
 #endif // defined(__MFXSCD_H__)
 
-#ifdef __MFXWIDI_H__
-EXTBUF(mfxExtAVCEncoderWiDiUsage         , MFX_EXTBUFF_ENCODER_WIDI_USAGE        )
-#endif //#ifdef
-
 #ifdef __MFXLA_H__
 EXTBUF(mfxExtLAControl                   , MFX_EXTBUFF_LOOKAHEAD_CTRL            )
 EXTBUF(mfxExtLAFrameStatistics           , MFX_EXTBUFF_LOOKAHEAD_STAT            )

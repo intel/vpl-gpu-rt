@@ -559,7 +559,7 @@ namespace UMC
         uint32_t channel_mask;                                    // (uint32_t) channel mask
         uint32_t streamPID;                                       // (uint32_t) unique ID
 
-        bool   is_protected;                                      // audio is encrypted
+        bool   is_protected;                                      // audio is protected
         uint32_t header;                                          // (uint32_t) can carry audio header (4-bytes)
 
     } AudioStreamInfo;

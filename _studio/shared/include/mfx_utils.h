@@ -145,7 +145,7 @@ bool LumaIsNull(const mfxFrameSurface1 * surf)
 
 
 #ifdef MFX_ENABLE_CPLIB
-    #define IS_PROTECTION_CENC(val) (MFX_PROTECTION_CENC_WV_CLASSIC == (val) || MFX_PROTECTION_CENC_WV_GOOGLE_DASH == (val))
+    #define IS_PROTECTION_CENC(val) (MFX_PROTECTION_CENC_ANDROID_WV_CLASSIC == (val) || MFX_PROTECTION_CENC_ANDROID_WV_DASH == (val))
 #else
     #define IS_PROTECTION_CENC(val) (false)
 #endif

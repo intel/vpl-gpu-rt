@@ -434,7 +434,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxStructVersion                   ,Minor                         ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxStructVersion                   ,Major                         ,1    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxStructVersion                   ,Version                       ,0    )
-        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBitstream                       ,EncryptedData                 ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBitstream                       ,ProtectedData                 ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBitstream                       ,ExtParam                      ,8    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBitstream                       ,NumExtParam                   ,16   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBitstream                       ,DecodeTimeStamp               ,24   )
