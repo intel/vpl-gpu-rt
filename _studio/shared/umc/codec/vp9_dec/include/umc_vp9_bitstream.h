@@ -22,7 +22,7 @@
 
 #include "umc_vp9_dec_defs.h"
 
-#if defined(MFX_ENABLE_VP9_VIDEO_DECODE) || defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+#if defined(UMC_ENABLE_VP9_AV1_DECODE)
 
 #ifndef __UMC_VP9_BITSTREAM_H_
 #define __UMC_VP9_BITSTREAM_H_

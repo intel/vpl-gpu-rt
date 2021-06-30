@@ -84,6 +84,14 @@
 #define MFX_ENABLE_CP
 #endif
 
+#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE) || defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
+#define MFX_ENABLE_MJPEG_VIDEO_CODEC
+#endif
+
+#if defined (MFX_ENABLE_VC1_VIDEO_DECODE) || defined (UMC_ENABLE_VC1_SPLITTER) || defined (UMC_ENABLE_VC1_VIDEO_ENCODER)
+#define MFX_ENABLE_VC1_VIDEO_CODEC
+#endif
+
 // Per component configs
 #include "mfx_config_decode.h"
 #include "mfx_config_encode.h"

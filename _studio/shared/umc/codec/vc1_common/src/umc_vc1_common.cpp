@@ -20,7 +20,7 @@
 
 #include "umc_defs.h"
 
-#if defined (MFX_ENABLE_VC1_VIDEO_DECODE) || defined (UMC_ENABLE_VC1_SPLITTER) || defined (UMC_ENABLE_VC1_VIDEO_ENCODER)
+#if defined (MFX_ENABLE_VC1_VIDEO_CODEC)
 #include "umc_vc1_common.h"
 
 namespace UMC
@@ -57,4 +57,4 @@ namespace UMC
 
     }
 }
-#endif //MFX_ENABLE_VC1_VIDEO_DECODE
+#endif //MFX_ENABLE_VC1_VIDEO_CODEC
