@@ -356,7 +356,6 @@ namespace MPEG2EncoderHW
         }
     private:
         // Declare private copy constructor to avoid accidental assignment
-        // and klocwork complaining.
         MPEG2BRC_HW(const MPEG2BRC_HW &);
         MPEG2BRC_HW & operator = (const MPEG2BRC_HW &);
     };

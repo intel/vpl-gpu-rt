@@ -119,7 +119,9 @@ MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct
 {
     mfxStructVersion Version;
-    mfxU16  reserved[3];
+    mfxU8   GopOptFlag;
+    mfxU8   reserved8b;
+    mfxU16  reserved[2];
 
     /* info about codec */
     struct  /* coding info*/
@@ -171,7 +173,13 @@ typedef struct
         mfxU16  MaxQPLevel[3];              /* QP range  limitations */
 
         mfxU32  PanicMode;
-        mfxU16  reserved5[64];
+
+        mfxU16  LaQp;                       /* QP used for LookAhead encode */
+        mfxU16  LaScale;                    /* Downscale Factor for LookAhead encode */
+
+        mfxU16  MBBRC;                      /* Enable Macroblock-CU level QP control (0 == OFF, else ON) */
+
+        mfxU16  reserved5[61];
     };
     mfxU16 NumExtParam;
     mfxExtBuffer** ExtParam;
@@ -232,6 +240,9 @@ MFX_PACK_END()
 
 #define MFX_ENCTOOLS_FRAMETOANALYZE_VERSION MFX_STRUCT_VERSION(1, 0)
 
+#define MFX_ENCTOOLS_PREENC_MAP_WIDTH 16
+#define MFX_ENCTOOLS_PREENC_MAP_SIZE 128
+
 MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer      Header;
@@ -240,6 +251,11 @@ typedef struct {
     mfxU16            SceneChangeFlag;
     mfxU16            RepeatedFrameFlag;
     mfxU32            TemporalComplexity;
+    mfxU16            reserved1;
+    /* Persistence Parameters */
+    /* Persistence of a block = number of frames the blk persists without much change */
+    mfxU16            PersistenceMapNZ; // If !0, Peristence Map has some Non Zero values
+    mfxU8             PersistenceMap[MFX_ENCTOOLS_PREENC_MAP_SIZE];
     mfxU32            reserved2[2];
 } mfxEncToolsHintPreEncodeSceneChange;
 MFX_PACK_END()
@@ -273,10 +289,12 @@ MFX_PACK_END()
 
 enum
 {
-    MFX_QP_MODULATION_NOT_DEFINED = 0,
-    MFX_QP_MODULATION_LOW,
-    MFX_QP_MODULATION_MEDIUM,
-    MFX_QP_MODULATION_HIGH
+    MFX_QP_MODULATION_NOT_DEFINED = 0,  /* QPModulation type for the frame is not defined. */
+    MFX_QP_MODULATION_LOW,              /* Use low pyramid delta QP for this frame. This type of content prefers low delta QP between P/B Layers. */
+    MFX_QP_MODULATION_MEDIUM,           /* Use medium pyramid delta QP for this frame. This type of content prefers medium delta QP between P/B Layers. */
+    MFX_QP_MODULATION_HIGH,             /* Use high pyramid delta QP for this frame. This type of content prefers high delta QP between P/B Layers. */
+    MFX_QP_MODULATION_MIXED,            /* Use pyramid delta QP appropriate for mixed content. */
+    MFX_QP_MODULATION_RESERVED0
 };
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
@@ -317,14 +335,23 @@ MFX_PACK_END()
 
 #define MFX_ENCTOOLS_HINTPREENCODE_AREFFRAMES_VERSION MFX_STRUCT_VERSION(1, 0)
 
+enum
+{
+    MFX_BUFFERHINT_OUTPUT_ENCORDER = 0,
+    MFX_BUFFERHINT_OUTPUT_DISPORDER
+};
+
 MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer      Header;
     mfxStructVersion  Version;
     mfxU16            reserved[3];
     mfxU32            OptimalFrameSizeInBytes;
-/*  mfxU32            OptimalBufferFullness; */ /* Target buffer fullness in bits, currently can be calculated from OptimalFrameSizeInBytes */
-    mfxU32            reserved2[7];
+    mfxU32            AvgEncodedSizeInBits;         /* Average size of encoded Lookahead frames in bits */
+    mfxU32            CurEncodedSizeInBits;         /* Size of encoded Lookahead frame at current frame location in bits */
+    mfxU16            DistToNextI;                  /* Distance to next I Frame in Lookahead frames (0 if not found) */
+    mfxU16            OutputMode;                   /* enum */
+    mfxU32            reserved2[4];
 } mfxEncToolsBRCBufferHint;
 MFX_PACK_END()
 
@@ -338,7 +365,14 @@ typedef struct {
     mfxU16            FrameType;       /* See FrameType enumerator */
     mfxU16            PyramidLayer;    /* B-pyramid or P-pyramid layer frame belongs to */
     mfxU32            EncodeOrder;     /* Frame number in a sequence of reordered frames starting from encoder Init() */
-    mfxU32            reserved1[2];
+    mfxU16            SceneChange;     // Frame is Scene Chg frame
+    mfxU16            LongTerm;        // Frame is long term refrence
+    mfxU16            reserved0;
+    /* Persistence Parameters */
+    /* Persistence of a block = number of frames the blk persists without much change */
+    mfxU16            PersistenceMapNZ; // If !0, Peristence Map has some Non Zero values
+    mfxU8             PersistenceMap[MFX_ENCTOOLS_PREENC_MAP_SIZE];
+    mfxU32            reserved1[1];
 } mfxEncToolsBRCFrameParams;
 MFX_PACK_END()
 
@@ -353,7 +387,9 @@ typedef struct {
     mfxU32            MaxFrameSize;    /* Max frame size in bytes (used for rePak). Optional */
     mfxU8             DeltaQP[8];      /* deltaQP[i] is added to QP value while ith-rePakOptional */
     mfxU16            NumDeltaQP;      /* Max number of rePaks to provide MaxFrameSize (from 0 to 8) */
-    mfxU16            reserved2[3];
+    mfxU16            QpMapNZ;         /* If !0, QP Map has some Non Zero values */
+    mfxI8             QpMap[MFX_ENCTOOLS_PREENC_MAP_SIZE];  /* QP Delta per map block */
+    mfxU16            reserved2[2];
 } mfxEncToolsBRCQuantControl;
 MFX_PACK_END()
 

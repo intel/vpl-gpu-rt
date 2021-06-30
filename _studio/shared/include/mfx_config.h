@@ -81,10 +81,6 @@
 #define MFX_ENABLE_CP
 #endif
 
-#ifdef MFX_ENABLE_USER_ENCTOOLS
-    #define MFX_ENABLE_ENCTOOLS
-#endif
-
 // Per component configs
 #include "mfx_config_decode.h"
 #include "mfx_config_encode.h"

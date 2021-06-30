@@ -1087,9 +1087,9 @@ public:
             && (   ((displayOrder - LastKeyFrameInfo.lastIPOrder) % gopRefDist == 0)
                 || ((fo + 1) % gopPicSize == 0 && (gopOptFlag & MFX_GOP_CLOSED))
                 || (idrPicDist && (fo + 1) % idrPicDist == 0));
-        bool bB = !(bPRef || bIdr || bPRef || bIRef);
+        bool bB = !(bPRef || bIdr || bIRef);
 
-        mfxU16 ft =
+        mfxU16 ft = GopHints.FrameType ? GopHints.FrameType :
             bIdr * (MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF | MFX_FRAMETYPE_IDR)
             + bIRef * (MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF)
             + bPRef * (MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF)
@@ -2043,7 +2043,7 @@ public:
         pps.cu_qp_delta_enabled_flag = !(IsOff(CO3.EnableMBQP) && bCQP) && !bSWBRC;
         pps.cu_qp_delta_enabled_flag |= (IsOn(par.mfx.LowPower) || CO2.MaxSliceSize);
 
-        // according to BSpec only 3 and 0 are supported
+        // Only 3 and 0 are supported
         pps.diff_cu_qp_delta_depth                = (HEVCParam.LCUSize == 64) * 3;
         pps.cb_qp_offset                          = (bSWBRC * -1);
         pps.cr_qp_offset                          = (bSWBRC * -1);

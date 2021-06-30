@@ -101,11 +101,7 @@ typedef struct{
 #if defined(__ICC) || defined(__ECC) || defined( __ICL ) || defined ( __ECL ) || (_MSC_VER >= 1300)
     #define __ALIGN8  __declspec (align(8))
     #define __ALIGN16 __declspec (align(16))
-#if !defined( OSX32 )
     #define __ALIGN32 __declspec (align(32))
-#else
-    #define __ALIGN32 __declspec (align(16))
-#endif
     #define __ALIGN64 __declspec (align(64))
 #else
     #define __ALIGN8

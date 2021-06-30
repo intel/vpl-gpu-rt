@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,8 @@
 #include "aenc.h"
 #include "mfx_enctools_utils.h"
 
-#define ENC_TOOLS_DS_FRAME_WIDTH 256
-#define ENC_TOOLS_DS_FRAME_HEIGHT 128
+#define ENC_TOOLS_DS_FRAME_WIDTH 576
+#define ENC_TOOLS_DS_FRAME_HEIGHT 576
 
 class AEnc_EncTool
 {
@@ -46,7 +46,9 @@ public:
     void Close();
     mfxStatus SubmitFrame(mfxFrameSurface1 *surface);
     mfxStatus ReportEncResult(mfxU32 dispOrder, mfxEncToolsBRCEncodeResult const & pEncRes);
+    mfxStatus GetIntraDecision(mfxU32 displayOrder, mfxU16 *frameType);
     mfxStatus GetSCDecision(mfxU32 displayOrder, mfxEncToolsHintPreEncodeSceneChange *pPreEncSC);
+    mfxStatus GetPersistenceMap(mfxU32 displayOrder, mfxEncToolsHintPreEncodeSceneChange *pPreEncSC);
     mfxStatus GetGOPDecision(mfxU32 displayOrder, mfxEncToolsHintPreEncodeGOP *pPreEncGOP);
     mfxStatus GetARefDecision(mfxU32 displayOrder, mfxEncToolsHintPreEncodeARefFrames *pPreEncARef);
     mfxStatus CompleteFrame(mfxU32 displayOrder);
@@ -62,7 +64,6 @@ protected:
     bool m_bInit;
     mfxU32 FrameWidth_aligned;
     mfxU32 FrameHeight_aligned;
-
 };
 
 #endif

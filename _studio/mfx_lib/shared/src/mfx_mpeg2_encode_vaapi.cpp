@@ -215,7 +215,7 @@ namespace
         sps.sequence_extension.bits.frame_rate_extension_n = winSps.FrameRateExtN;
         sps.sequence_extension.bits.frame_rate_extension_d = winSps.FrameRateExtD;
         sps.sequence_extension.bits.progressive_sequence   = winSps.progressive_sequence;
-        sps.sequence_extension.bits.low_delay              = winSps.low_delay; // FIXME
+        sps.sequence_extension.bits.low_delay              = winSps.low_delay;
         sps.new_gop_header = winPps.bNewGop;
         sps.gop_header.bits.time_code = (1 << 12); // bit12: marker_bit
         if (sps.new_gop_header)
@@ -261,7 +261,7 @@ namespace
         pps.picture_coding_extension.bits.intra_dc_precision         = winPps.intra_dc_precision; /* 8bits */
         pps.picture_coding_extension.bits.picture_structure          = 3; /* frame picture */
         pps.picture_coding_extension.bits.top_field_first            = winPps.InterleavedFieldBFF == 0 ? 1 : 0;
-        pps.picture_coding_extension.bits.frame_pred_frame_dct       = winPps.frame_pred_frame_dct;//1; /* FIXME */
+        pps.picture_coding_extension.bits.frame_pred_frame_dct       = winPps.frame_pred_frame_dct;
         pps.picture_coding_extension.bits.concealment_motion_vectors = winPps.concealment_motion_vectors;
         pps.picture_coding_extension.bits.q_scale_type               = winPps.q_scale_type;
         pps.picture_coding_extension.bits.intra_vlc_format           = winPps.intra_vlc_format;

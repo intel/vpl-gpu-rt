@@ -766,6 +766,20 @@ namespace Base
 
     struct mfxGopHints {
         mfxU32              MiniGopSize = 0;
+        mfxU16              FrameType = 0;
+        mfxU32              QPModulaton = 0;
+        /* Scene Change parameter */
+        mfxU16              SceneChange = 0;
+        /* Maps */
+        mfxU16              PersistenceMapNZ;
+        mfxU8               PersistenceMap[128];
+    };
+
+    struct mfxBRCHints {
+        /* Look ahead parameters */
+        mfxU32              LaAvgEncodedBits = 0;         /* Average size of encoded Lookahead frames in bits */
+        mfxU32              LaCurEncodedBits = 0;         /* Size of encoded Lookahead frame at current frame location in bits */
+        mfxU16              LaDistToNextI = 0;            /* First I Frame in Lookahead frames (0 if not found) */
     };
 
     struct TaskCommonPar
@@ -789,6 +803,9 @@ namespace Base
         mfxLplastatus       LplaStatus          = {};
 #endif
         mfxGopHints         GopHints            = {};
+        mfxBRCHints         BrcHints            = {};
+        mfxU16              etQpMapNZ           = 0;
+        mfxI8               etQpMap[128]        = {};
         bool                bForceSync          = false;
         bool                bSkip               = false;
         bool                bResetBRC           = false;

@@ -1981,7 +1981,7 @@ mfxStatus Packer::Reset(
     pESBegin += ph.PPS.BitLen / 8;
 
     // Pack cqm PPS header for adaptive cqm.
-    if (m_pGlob->Contains(CC::Key) && CC::Get(*m_pGlob).PackCqmHeader(m_pGlob))
+    if (m_pGlob->Contains(CC::Key) && cqmpps.scaling_list_data_present_flag && CC::Get(*m_pGlob).PackCqmHeader(m_pGlob))
     {
         PackPPS(rbsp, cqmpps);
         sts = PackHeader(rbsp, pESBegin, pESEnd, ph.CqmPPS);
