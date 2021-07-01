@@ -1870,7 +1870,7 @@ void Hrd::Setup(MfxVideoParam const & par)
     m_rcMethod = par.mfx.RateControlMethod;
     if (m_rcMethod != MFX_RATECONTROL_CBR &&
         m_rcMethod != MFX_RATECONTROL_VBR &&
-        m_rcMethod != MFX_RATECONTROL_WIDI_VBR)
+        m_rcMethod != MFX_RATECONTROL_WIRELESS_VBR)
         m_rcMethod = MFX_RATECONTROL_VBR;
 
 // MVC BD {

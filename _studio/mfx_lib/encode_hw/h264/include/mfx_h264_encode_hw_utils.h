@@ -1148,7 +1148,7 @@ namespace MfxHwH264Encode
             return m_type[GetFirstField()];
         }
 
-        // 0 - no skip, 1 - normal, 2 - pavp
+        // 0 - no skip, 1 - normal, 2 - pxp
         mfxU8 SkipFlag() const
         {
             if (    m_ctrl.SkipFrame == 0

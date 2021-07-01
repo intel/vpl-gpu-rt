@@ -193,8 +193,8 @@ namespace UMC_HEVC_DECODER
         if (!bs)
             throw h265_exception(UMC_ERR_FAILED);
 
-        auto decryptParam = reinterpret_cast<mfxExtCencParam*>(GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_CENC_PARAM));
-        if (!decryptParam)
+        auto cencParam = reinterpret_cast<mfxExtCencParam*>(GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_CENC_PARAM));
+        if (!cencParam)
             throw h265_exception(UMC_ERR_FAILED);
 
         UMCVACompBuffer *pParamBuf;
@@ -202,7 +202,7 @@ namespace UMC_HEVC_DECODER
         if (!pCENCStatusParams)
             throw h265_exception(UMC_ERR_FAILED);
 
-        pCENCStatusParams->status_report_index_feedback = decryptParam->StatusReportIndex;
+        pCENCStatusParams->status_report_index_feedback = cencParam->StatusReportIndex;
 
         pParamBuf->SetDataSize(sizeof(VACencStatusParameters));
     }

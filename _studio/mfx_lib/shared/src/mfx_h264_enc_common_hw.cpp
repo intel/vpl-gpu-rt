@@ -437,7 +437,7 @@ namespace
         if (
             par.mfx.RateControlMethod == MFX_RATECONTROL_VCM ||
             par.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
-            par.mfx.RateControlMethod == MFX_RATECONTROL_WIDI_VBR ||
+            par.mfx.RateControlMethod == MFX_RATECONTROL_WIRELESS_VBR ||
             par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR ||
             par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD)
         {
@@ -2397,7 +2397,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.RateControlMethod != MFX_RATECONTROL_VBR &&
         par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
         par.mfx.RateControlMethod != MFX_RATECONTROL_AVBR &&
-        par.mfx.RateControlMethod != MFX_RATECONTROL_WIDI_VBR &&
+        par.mfx.RateControlMethod != MFX_RATECONTROL_WIRELESS_VBR &&
         par.mfx.RateControlMethod != MFX_RATECONTROL_VCM &&
         par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ &&
         par.mfx.RateControlMethod != MFX_RATECONTROL_QVBR &&
@@ -3517,7 +3517,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             else if (
                 par.mfx.RateControlMethod == MFX_RATECONTROL_VCM ||
                 par.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
-                par.mfx.RateControlMethod == MFX_RATECONTROL_WIDI_VBR ||
+                par.mfx.RateControlMethod == MFX_RATECONTROL_WIRELESS_VBR ||
                 par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR ||
                 par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD)
             {
@@ -5036,7 +5036,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
         }
         else if (
             par.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
-            par.mfx.RateControlMethod == MFX_RATECONTROL_WIDI_VBR)
+            par.mfx.RateControlMethod == MFX_RATECONTROL_WIRELESS_VBR)
         {
             if (par.calcParam.mvcPerViewPar.maxKbps < par.calcParam.mvcPerViewPar.targetKbps)
             {
@@ -6197,7 +6197,7 @@ void MfxHwH264Encode::SetDefaults(
         if (par.calcParam.maxKbps == 0)
         {
             if (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
-                par.mfx.RateControlMethod == MFX_RATECONTROL_WIDI_VBR ||
+                par.mfx.RateControlMethod == MFX_RATECONTROL_WIRELESS_VBR ||
                 par.mfx.RateControlMethod == MFX_RATECONTROL_VCM ||
                 par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR ||
                 par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD)
@@ -6253,7 +6253,7 @@ void MfxHwH264Encode::SetDefaults(
             if (par.calcParam.mvcPerViewPar.maxKbps == 0)
             {
                 if (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
-                    par.mfx.RateControlMethod == MFX_RATECONTROL_WIDI_VBR ||
+                    par.mfx.RateControlMethod == MFX_RATECONTROL_WIRELESS_VBR ||
                     par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD)
                 {
                     mfxU32 maxBps = par.calcParam.mvcPerViewPar.targetKbps * MAX_BITRATE_RATIO;
