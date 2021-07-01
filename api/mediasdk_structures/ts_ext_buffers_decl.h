@@ -72,9 +72,6 @@ EXTBUF(mfxExtPartialBitstreamParam       , MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM  
 EXTBUF(mfxExtEncoderIPCMArea             , MFX_EXTBUFF_ENCODER_IPCM_AREA               )
 EXTBUF(mfxExtInsertHeaders               , MFX_EXTBUFF_INSERT_HEADERS                  )
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-EXTBUF(mfxExtDPB                         , MFX_EXTBUFF_DPB)
-#endif
 #endif //defined(__MFXSTRUCTURES_H__)
 
 #if defined(__MFXCOMMON_H__)
