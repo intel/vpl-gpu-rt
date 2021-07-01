@@ -22,7 +22,7 @@
 #define __MEMBUFFOUT_H__
 
 #include "umc_defs.h"
-#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE) || defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
+#if defined (MFX_ENABLE_MJPEG_VIDEO_CODEC)
 #include <stdio.h>
 #include "basestream.h"
 #include "basestreamout.h"

@@ -20,7 +20,7 @@
 
 #include "umc_defs.h"
 
-#if defined (MFX_ENABLE_VC1_VIDEO_DECODE) || defined (UMC_ENABLE_VC1_SPLITTER) || defined (UMC_ENABLE_VC1_VIDEO_ENCODER)
+#if defined (MFX_ENABLE_VC1_VIDEO_CODEC)
 
 #include "umc_vc1_common_tables.h"
 #include "umc_vc1_common_defs.h"
@@ -318,4 +318,4 @@ const extern int32_t VC1_BFraction_indexes[8][9] =
 };
 //////////////////////////////////////////
 ///////////////////////////////////////////
-#endif //MFX_ENABLE_VC1_VIDEO_DECODE
+#endif //MFX_ENABLE_VC1_VIDEO_CODEC

@@ -25,7 +25,7 @@
 #include "umc_defs.h"
 #include "mfxstructures.h"
 
-#if defined(MFX_ENABLE_VP9_VIDEO_DECODE) || defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+#if defined(UMC_ENABLE_VP9_AV1_DECODE)
 
 #include "umc_vp9_dec_defs.h"
 

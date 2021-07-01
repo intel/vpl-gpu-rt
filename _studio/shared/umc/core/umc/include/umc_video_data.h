@@ -246,7 +246,7 @@ protected:
 
 private:
   // Declare private copy constructor to avoid accidental assignment
-  // and klocwork complaining.
+
   VideoData(const VideoData &);
 };
 

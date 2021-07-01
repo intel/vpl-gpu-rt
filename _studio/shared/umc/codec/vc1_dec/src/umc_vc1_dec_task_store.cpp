@@ -201,27 +201,9 @@ namespace UMC
         m_pSHeap->s_new(&m_pDescriptorQueue,m_iNumFramesProcessing);
         for (uint32_t i = 0; i < m_iNumFramesProcessing; i++)
         {
-#ifdef UMC_VA_DXVA
-            uint8_t* pBuf;
-            if (va->IsIntelCustomGUID())
-            {
-                {
-                    pBuf = m_pSHeap->s_alloc<VC1FrameDescriptorVA_EagleLake<VC1PackerDXVA_EagleLake>>();
-                    m_pDescriptorQueue[i] = new(pBuf) VC1FrameDescriptorVA_EagleLake<VC1PackerDXVA_EagleLake>(m_pMemoryAllocator,va);
-                }
-            }
-            else
-            {
-                pBuf = m_pSHeap->s_alloc<VC1FrameDescriptorVA<VC1PackerDXVA>>();
-                m_pDescriptorQueue[i] = new(pBuf) VC1FrameDescriptorVA<VC1PackerDXVA>(m_pMemoryAllocator,va);
-            }
-#elif defined(UMC_VA_LINUX)
             uint8_t* pBuf;
             pBuf = m_pSHeap->s_alloc<VC1FrameDescriptorVA_Linux<VC1PackerLVA> >();
             m_pDescriptorQueue[i] = new(pBuf) VC1FrameDescriptorVA_Linux<VC1PackerLVA>(m_pMemoryAllocator,va);
-#else
-            m_pDescriptorQueue[i] = 0;
-#endif
 
             if (!m_pDescriptorQueue[i])
                 return false;
