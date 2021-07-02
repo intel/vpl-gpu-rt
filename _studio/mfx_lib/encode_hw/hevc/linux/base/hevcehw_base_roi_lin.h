@@ -21,7 +21,7 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_ENABLE_HEVCE_ROI)
+#if defined(MFX_ENABLE_HEVCE_ROI)
 
 #include "hevcehw_base_roi.h"
 #include "va/va.h"
@@ -51,4 +51,4 @@ protected:
 } //Linux
 } //namespace HEVCEHW
 
-#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)
+#endif //defined(MFX_ENABLE_HEVCE_ROI)

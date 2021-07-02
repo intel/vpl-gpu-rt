@@ -32,8 +32,8 @@
 
 #include "mfx_mpeg2_enc_common_hw.h"
 
-    #include "mfx_h264_encode_struct_vaapi.h"
-    #include <va/va_enc_mpeg2.h>
+#include "mfx_h264_encode_struct_vaapi.h"
+#include <va/va_enc_mpeg2.h>
 
 
 

@@ -75,52 +75,6 @@ mfxStatus MfxHwMpeg2Encode::QueryHwCaps(VideoCORE* pCore, ENCODE_CAPS & hwCaps, 
 //  Execute Buffers
 //-------------------------------------------------------------
 
-#ifdef MFX_UNDOCUMENTED_QUANT_MATRIX
-
-static
-void SetQMParameters(const mfxExtCodingOptionQuantMatrix*  pMatrix,
-                    VAIQMatrixBufferMPEG2 &quantMatrix)
-{
-    memset(&quantMatrix,0, sizeof(quantMatrix));
-
-    bool bNewQmatrix[4] =
-    {
-        pMatrix->bIntraQM && pMatrix->IntraQM[0],
-        pMatrix->bInterQM && pMatrix->InterQM[0],
-        pMatrix->bChromaIntraQM && pMatrix->ChromaIntraQM[0],
-        pMatrix->bChromaInterQM && pMatrix->ChromaInterQM[0]
-    };
-
-    quantMatrix.load_intra_quantiser_matrix = bNewQmatrix[0];
-    quantMatrix.load_non_intra_quantiser_matrix = bNewQmatrix[1];
-    quantMatrix.load_chroma_intra_quantiser_matrix = bNewQmatrix[2];
-    quantMatrix.load_chroma_non_intra_quantiser_matrix = bNewQmatrix[3];
-
-    const mfxU8* pQmatrix[4] = {pMatrix->IntraQM,  pMatrix->InterQM,   pMatrix->ChromaIntraQM, pMatrix->ChromaInterQM};
-    mfxU8 * pDestMatrix[4] =
-    {
-        quantMatrix.intra_quantiser_matrix,
-        quantMatrix.non_intra_quantiser_matrix,
-        quantMatrix.chroma_intra_quantiser_matrix,
-        quantMatrix.chroma_non_intra_quantiser_matrix
-    };
-
-    for (int blk_type = 0; blk_type < 4; blk_type++)
-    {
-        if (bNewQmatrix[blk_type])
-        {
-            for (int i = 0; i < 64; i++)
-            {
-                // note: i-1 would not overflow due to bNewMatrix definition
-                pDestMatrix[blk_type][i] = pQmatrix[blk_type][i] ? pQmatrix[blk_type][i] : pDestMatrix[blk_type][i-1];
-            }
-        }
-    }
-
-}
-
-#endif // MFX_UNDOCUMENTED_QUANT_MATRIX
-
 mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, bool bAllowBRC)
 {
     DWORD nSlices = par->mfxVideoParams.mfx.NumSlice;
@@ -313,11 +267,6 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
     m_caps.DirectVME             = 0;
 
     InitFramesSet(0, 0, 0, 0, 0);
-
-
-#ifdef MFX_UNDOCUMENTED_QUANT_MATRIX
-    SetQMParameters(&par->sQuantMatrix,m_quantMatrix);
-#endif
 
     m_encrypt.Init(par, funcId);
 

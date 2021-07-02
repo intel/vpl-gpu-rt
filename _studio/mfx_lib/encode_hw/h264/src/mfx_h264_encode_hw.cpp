@@ -757,7 +757,6 @@ mfxStatus ImplementationAvc::QueryIOSurf(
 
     SetDefaults(tmp, hwCaps, true, core->GetHWType(), core->GetVAType(), *pMFXGTConfig);
 
-
     if (tmp.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
     {
         request->Type =
@@ -769,8 +768,6 @@ mfxStatus ImplementationAvc::QueryIOSurf(
     {
         request->Type = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET;
         request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
-
-        //if MDF is in pipeline need to allocate shared resource to avoid performance issues due to decompression when MMCD is enabled
     }
 
     request->NumFrameMin = CalcNumFrameMin(tmp, hwCaps, core->GetHWType());
@@ -975,10 +972,8 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         guid,
         GetFrameWidth(m_video),
         GetFrameHeight(m_video));
-
-    if (sts != MFX_ERR_NONE)
-        return MFX_WRN_PARTIAL_ACCELERATION;
-
+        if (sts != MFX_ERR_NONE)
+            return MFX_WRN_PARTIAL_ACCELERATION;
 
     sts = m_ddi->QueryEncodeCaps(m_caps);
     if (sts != MFX_ERR_NONE)
@@ -1542,7 +1537,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
 #if defined(MFX_ENABLE_LP_LOOKAHEAD)
     // for game streaming scenario, if option enable lowpower lookahead, check encoder's capability
-    if(IsLpLookaheadSupported(extOpt3.ScenarioInfo, extOpt2.LookAheadDepth, m_video.mfx.RateControlMethod)
+    if (IsLpLookaheadSupported(extOpt3.ScenarioInfo, extOpt2.LookAheadDepth, m_video.mfx.RateControlMethod)
 #if defined(MFX_ENABLE_ENCTOOLS)
         && !(m_enabledEncTools)
 #endif
@@ -1642,8 +1637,7 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
 
     auto const LARateControl =
            m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA
-        || m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD
-        ;
+        || m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD;
 
     MFX_CHECK(!(LARateControl && !IsOn(m_video.mfx.LowPower) && extOpt2New.MaxSliceSize == 0),
         MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
@@ -3484,7 +3478,7 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
         if (m_encTools.IsAdaptiveQP())
         {
             task.m_QPmodulation = st.QPModulation;
-#ifdef ENABLE_APQ_LQ
+#ifdef MFX_ENABLE_APQ_LQ
             if (task.m_currGopRefDist == 8) {
                 if ((task.m_type[0] & MFX_FRAMETYPE_B)) {
                     task.m_ALQOffset = 2;
@@ -4244,28 +4238,30 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 mfxU32 wMB = (m_video.mfx.FrameInfo.CropW + 15) / 16;
                 mfxU32 hMB = (m_video.mfx.FrameInfo.CropH + 15) / 16;
                 task->m_isMBQP = task->m_mbqp && task->m_mbqp->QP && task->m_mbqp->NumQPAlloc >= wMB * hMB;
-    #ifdef ENABLE_APQ_LQ
-                    if (!task->m_isMBQP && task->m_ALQOffset != 0) {
-                        task->m_isMBQP = true;
-                        if (task->m_ALQOffset > 0) {
-                            if (task->m_cqpValue[0] > task->m_ALQOffset && task->m_cqpValue[1] > task->m_ALQOffset) {
-                                task->m_cqpValue[0] = (mfxU8)((mfxI32)task->m_cqpValue[0] - task->m_ALQOffset);
-                                task->m_cqpValue[1] = (mfxU8)((mfxI32)task->m_cqpValue[1] - task->m_ALQOffset);
-                            } else {
-                                task->m_ALQOffset = 0;
-                                task->m_isMBQP = false;
-                            }
-                        } else if (task->m_ALQOffset < 0) {
-                            if (task->m_cqpValue[0] > 51 + task->m_ALQOffset || task->m_cqpValue[1] > 51 + task->m_ALQOffset) {
-                                task->m_ALQOffset = 0;
-                                task->m_isMBQP = false;
-                            }
+#ifdef MFX_ENABLE_APQ_LQ
+                if (!task->m_isMBQP && task->m_ALQOffset != 0) {
+                    task->m_isMBQP = true;
+                    if (task->m_ALQOffset > 0) {
+                        if (task->m_cqpValue[0] > task->m_ALQOffset && task->m_cqpValue[1] > task->m_ALQOffset) {
+                            task->m_cqpValue[0] = (mfxU8)((mfxI32)task->m_cqpValue[0] - task->m_ALQOffset);
+                            task->m_cqpValue[1] = (mfxU8)((mfxI32)task->m_cqpValue[1] - task->m_ALQOffset);
+                        }
+                        else {
+                            task->m_ALQOffset = 0;
+                            task->m_isMBQP = false;
                         }
                     }
-                    else {
-                        task->m_ALQOffset = 0;
+                    else if (task->m_ALQOffset < 0) {
+                        if (task->m_cqpValue[0] > 51 + task->m_ALQOffset || task->m_cqpValue[1] > 51 + task->m_ALQOffset) {
+                            task->m_ALQOffset = 0;
+                            task->m_isMBQP = false;
+                        }
                     }
-    #endif
+                }
+                else {
+                    task->m_ALQOffset = 0;
+                }
+#endif
                 if (m_useMBQPSurf && task->m_isMBQP)
                 {
                     task->m_idxMBQP = FindFreeResourceIndex(m_mbqp);
@@ -4616,7 +4612,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 m_listOfPairsForFieldOutputMode.pop_front();
             }
         }
-
     }
 
     if (m_stagesToGo & AsyncRoutineEmulator::STG_BIT_RESTART)
@@ -5452,6 +5447,5 @@ void ImplementationAvc::addPartialOutputOffset(DdiTask & task, mfxU64 offset, bo
     }
 }
 #endif
-
 
 #endif // MFX_ENABLE_H264_VIDEO_ENCODE

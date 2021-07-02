@@ -185,7 +185,6 @@ MFXVideoENCODEMJPEG_HW::~MFXVideoENCODEMJPEG_HW()
     Close();
 }
 
-
 mfxStatus MFXVideoENCODEMJPEG_HW::QueryImplsDescription(
     VideoCORE& core
     , mfxEncoderDescription::encoder& caps

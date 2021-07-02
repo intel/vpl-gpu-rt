@@ -30,7 +30,6 @@ target_sources(mfx_common_hw
     include/mfx_task_threading_policy.h
     include/mfx_thread_task.h
     include/mfx_tools.h
-    include/mfx_user_plugin.h
     include/mfx_vc1_dec_common.h
     include/mfx_vpx_dec_common.h
 

@@ -71,11 +71,6 @@
         mfxFrameAllocResponse*  pRecFramesResponse_sw;
 
         mfxU16                  encNumFrameMin;
-
-#ifdef MFX_UNDOCUMENTED_QUANT_MATRIX
-        mfxExtCodingOptionQuantMatrix sQuantMatrix;
-#endif
-
         mfxExtVideoSignalInfo   videoSignalInfo;
         bool                    bAddDisplayExt;
         bool                    bMbqpMode;

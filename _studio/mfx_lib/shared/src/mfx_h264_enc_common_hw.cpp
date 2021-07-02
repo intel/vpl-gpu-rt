@@ -6149,7 +6149,7 @@ void MfxHwH264Encode::SetDefaults(
     }
 
     if (extOpt3->EnableMBQP == MFX_CODINGOPTION_UNKNOWN) {
-#if defined(ENABLE_APQ_LQ)  && defined(MFX_ENABLE_ENCTOOLS)
+#if defined(MFX_ENABLE_APQ_LQ)  && defined(MFX_ENABLE_ENCTOOLS)
         if ((par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || (!IsOff(extConfig->BRC)))
             && (!IsOff(extConfig->AdaptivePyramidQuantP) || !IsOff(extConfig->AdaptivePyramidQuantB)))
         {

@@ -146,9 +146,6 @@ namespace MPEG2EncoderHW
             MFX_EXTBUFF_CODING_OPTION
             ,MFX_EXTBUFF_CODING_OPTION_SPSPPS
             ,MFX_EXTBUFF_VIDEO_SIGNAL_INFO
-#ifdef MFX_UNDOCUMENTED_QUANT_MATRIX
-            ,MFX_EXTBUFF_QM
-#endif
             ,MFX_EXTBUFF_CODING_OPTION2
             ,MFX_EXTBUFF_CODING_OPTION3
         };
@@ -1131,19 +1128,6 @@ namespace MPEG2EncoderHW
     {
         memset (&m_VideoParamsEx, 0, sizeof(m_VideoParamsEx));
     }
-#ifdef MFX_UNDOCUMENTED_QUANT_MATRIX
-    mfxExtCodingOptionQuantMatrix* GetExtCodingOptionsQuantMaxtrix(mfxExtBuffer** ebuffers,  mfxU32 nbuffers)
-    {
-        for(mfxU32 i=0; i<nbuffers; i++)
-        {
-            if((*ebuffers+i)->BufferId == MFX_EXTBUFF_QM)
-            {
-                return (mfxExtCodingOptionQuantMatrix*)(*ebuffers+i);
-            }
-        }
-        return 0;
-    }
-#endif
     mfxStatus ControllerBase::Reset(mfxVideoParam *par, bool bAllowRawFrames)
     {
         mfxStatus sts = MFX_ERR_NONE;
@@ -1206,14 +1190,6 @@ namespace MPEG2EncoderHW
         {
             m_VideoParamsEx.bAddDisplayExt = false;
         }
-
-#ifdef MFX_UNDOCUMENTED_QUANT_MATRIX
-        mfxExtCodingOptionQuantMatrix* pMatrix = GetExtCodingOptionsQuantMaxtrix(par->ExtParam, par->NumExtParam);
-        if (pMatrix)
-        {
-            m_VideoParamsEx.sQuantMatrix = *pMatrix;
-        }
-#endif
 
         sts = CheckHwCaps(m_pCore, &m_VideoParamsEx.mfxVideoParams, ext);
         if (sts != MFX_ERR_NONE)

@@ -81,4 +81,4 @@ protected:
 } //Linux
 } //namespace HEVCEHW
 
-#endif
+#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

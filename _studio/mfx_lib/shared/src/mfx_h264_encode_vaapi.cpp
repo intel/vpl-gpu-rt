@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2020 Intel Corporation
+// Copyright (c) 2011-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@
 
 #include "mfx_common.h"
 
-#if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
+#if defined (MFX_ENABLE_H264_VIDEO_ENCODE)
 
 #include <va/va.h>
 #include <va/va_enc_h264.h>
@@ -2611,7 +2611,7 @@ mfxStatus VAAPIEncoder::Execute(
 
             configBuffers.push_back(m_mbqpBufferId);
         }
-#ifdef ENABLE_APQ_LQ
+#ifdef MFX_ENABLE_APQ_LQ
         else if (task.m_ALQOffset) {
             Zero(m_mbqp_buffer);
             for (mfxU32 mbRow = 0; mbRow < mbH; mbRow++)

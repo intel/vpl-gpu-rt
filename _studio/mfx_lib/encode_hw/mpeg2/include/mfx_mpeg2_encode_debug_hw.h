@@ -140,5 +140,5 @@ public:
 };
 
 #endif //__MFX_MPEG2_ENCODE_DEBUG_HW_H
-#endif //MFX_ENABLE_MPEG2_VIDEO_PAK
+#endif //MFX_ENABLE_MPEG2_VIDEO_ENCODE
 /* EOF */

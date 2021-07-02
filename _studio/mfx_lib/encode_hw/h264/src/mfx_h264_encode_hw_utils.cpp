@@ -1395,7 +1395,6 @@ void LookAheadBrc2::Close()
     }
 }
 
-
 mfxF64 GetTotalRate(std::vector<LookAheadBrc2::LaFrameData> const & laData, mfxI32 baseQp, size_t size, mfxU32 first)
 {
     mfxF64 totalRate = 0.0;
@@ -3008,8 +3007,7 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
         MFX_CHECK_NULL_PTR1(bs->Data);
     }
 
-    if (video.mfx.EncodedOrder == 1
-        )
+    if (video.mfx.EncodedOrder == 1)
     {
         MFX_CHECK(surface != 0, MFX_ERR_MORE_DATA);
         MFX_CHECK_NULL_PTR1(ctrl);
@@ -4145,6 +4143,7 @@ mfxStatus  MfxHwH264Encode::CopyBitstream(VideoCORE           & core,
                                           mfxU8 *             bsData,
                                           mfxU32              bsSizeAvail)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H264 encode CopyBitstream");
     mfxFrameData bitstream = {};
 
     FrameLocker lock(&core, bitstream, task.m_midBit[fieldId]);
@@ -4423,7 +4422,6 @@ BrcIface * MfxHwH264Encode::CreateBrc(MfxVideoParam const & video, MFX_ENCODE_CA
     case MFX_RATECONTROL_LA:
     case MFX_RATECONTROL_LA_HRD: return new LookAheadBrc2;
     case MFX_RATECONTROL_LA_ICQ: return new LookAheadCrfBrc;
-
 
 #if !defined(MFX_EXT_BRC_DISABLE)
     case MFX_RATECONTROL_CBR:

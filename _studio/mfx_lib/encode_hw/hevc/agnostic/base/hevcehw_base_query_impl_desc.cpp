@@ -197,4 +197,4 @@ void QueryImplDesc::QueryImplsDescription(const FeatureBlocks& blocks, TPushQID 
     Push(BLK_Query, Query);
 }
 
-#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_ONEVPL)
+#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

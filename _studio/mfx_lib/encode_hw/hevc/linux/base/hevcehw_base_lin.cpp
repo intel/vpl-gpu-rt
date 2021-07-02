@@ -44,10 +44,10 @@
 #include "hevcehw_base_roi_lin.h"
 #endif
 #include "hevcehw_base_max_frame_size_lin.h"
-#include "hevcehw_base_query_impl_desc.h"
 #ifdef MFX_ENABLE_ENCTOOLS
 #include "hevcehw_base_enctools.h"
 #endif
+#include "hevcehw_base_query_impl_desc.h"
 #include <algorithm>
 
 using namespace HEVCEHW;

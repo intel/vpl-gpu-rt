@@ -1030,7 +1030,7 @@ namespace MfxHwH264Encode
             , m_nextLayerTask(0)
             , m_repack(0)
             , m_fractionalQP(0)
-#ifdef ENABLE_APQ_LQ
+#ifdef MFX_ENABLE_APQ_LQ
             , m_ALQOffset(0)
 #endif
             , m_midRaw(MID_INVALID)
@@ -1297,7 +1297,7 @@ namespace MfxHwH264Encode
         DdiTask const * m_nextLayerTask; // set to 0 if no nextLayerResolutionChange
         mfxU32  m_repack;
         mfxI32  m_fractionalQP; //if m_fractionalQP > 0 set it value in QM matrices
-#ifdef ENABLE_APQ_LQ
+#ifdef MFX_ENABLE_APQ_LQ
         mfxI32  m_ALQOffset;     // MBQP Offset for Lambda QP adjustment
 #endif
 
