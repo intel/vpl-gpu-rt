@@ -21,7 +21,7 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+#if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
 
 #include "hevcehw_base.h"
 #include "hevcehw_base_data.h"
@@ -57,4 +57,4 @@ namespace Base
 } //Base
 } //namespace HEVCEHW
 
-#endif
+#endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION

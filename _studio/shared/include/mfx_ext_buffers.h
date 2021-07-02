@@ -109,23 +109,6 @@ typedef struct {
 
 } mfxExtCodingOptionDDI;
 
-#ifdef MFX_UNDOCUMENTED_QUANT_MATRIX
-#define MFX_EXTBUFF_QM MFX_MAKEFOURCC('E','X','Q','P')
-
-typedef struct {
-    mfxExtBuffer Header;
-    mfxU16 bIntraQM;
-    mfxU16 bInterQM;
-    mfxU16 bChromaIntraQM;
-    mfxU16 bChromaInterQM;
-    mfxU8 IntraQM[64];
-    mfxU8 InterQM[64];
-    mfxU8 ChromaIntraQM[64];
-    mfxU8 ChromaInterQM[64];
-} mfxExtCodingOptionQuantMatrix;
-#endif // #ifdef MFX_UNDOCUMENTED_QUANT_MATRIX
-
-
 #ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
 #define MFX_EXTBUFF_VPP_VARIANCE_REPORT MFX_MAKEFOURCC('V','R','P','F')
 

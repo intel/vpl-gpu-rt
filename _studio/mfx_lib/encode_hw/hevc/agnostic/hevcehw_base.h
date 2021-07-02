@@ -24,8 +24,6 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "mfxvideo.h"
-
-
 #include "mfxbrc.h"
 #include "mfx_ext_buffers.h"
 

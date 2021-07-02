@@ -51,7 +51,6 @@ DriverEncoder* MfxHwH264Encode::CreatePlatformH264Encoder( VideoCORE* core )
 
     return new VAAPIEncoder;//( core );
 
-
 } // DriverEncoder* MfxHwH264Encode::CreatePlatformH264Encoder( VideoCORE* core )
 
 #endif // #if defined (MFX_ENABLE_H264_VIDEO_ENCODE)

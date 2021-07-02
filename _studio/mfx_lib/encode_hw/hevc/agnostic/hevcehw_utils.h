@@ -236,8 +236,7 @@ inline void UpdateMultiplier(mfxInfoMFX& mfx, mfxU16 MN)
         if (   mfx.RateControlMethod == MFX_RATECONTROL_CBR
             || mfx.RateControlMethod == MFX_RATECONTROL_VBR
             || mfx.RateControlMethod == MFX_RATECONTROL_VCM
-            || mfx.RateControlMethod == MFX_RATECONTROL_QVBR
-            )
+            || mfx.RateControlMethod == MFX_RATECONTROL_QVBR)
         {
             mfx.TargetKbps = (mfxU16)CeilDiv<mfxU32>(mfx.TargetKbps * MO, MN);
             mfx.InitialDelayInKB = (mfxU16)CeilDiv<mfxU32>(mfx.InitialDelayInKB * MO, MN);

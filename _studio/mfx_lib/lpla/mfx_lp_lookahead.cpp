@@ -52,6 +52,12 @@ mfxStatus MfxLpLookAhead::Init(mfxVideoParam* param)
     if (extBufLPLA)
     {
         extBufLPLA->GopRefDist = param->mfx.GopRefDist; // Save GopRefDist of encode pass because it will be overwritten
+        extBufLPLA->codecTypeInEncodePass = param->mfx.CodecId;
+        if (m_bNeedDownscale)
+        {
+            extBufLPLA->LookAheadScaleX = (mfxU8)m_dsRatio;
+            extBufLPLA->LookAheadScaleY = (mfxU8)m_dsRatio;
+        }
     }
 
     // following configuration comes from HW recommendation
@@ -82,7 +88,7 @@ mfxStatus MfxLpLookAhead::Init(mfxVideoParam* param)
 
     //create the bitstream buffer
     memset(&m_bitstream, 0, sizeof(mfxBitstream));
-    mfxU32 bufferSize = param->mfx.FrameInfo.Width * param->mfx.FrameInfo.Height * 3/2;
+    mfxU32 bufferSize = std::max(param->mfx.FrameInfo.Width * param->mfx.FrameInfo.Height * 3 / 2, par.mfx.BufferSizeInKB * 1000);
     m_bitstream.Data = new mfxU8[bufferSize];
     m_bitstream.MaxLength = bufferSize;
 

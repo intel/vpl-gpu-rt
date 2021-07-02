@@ -49,8 +49,6 @@
 #include "umc_defs.h"
 #include "ipps.h"
 
-#define ENABLE_APQ_LQ
-
 #define LOWPOWERENCODE_AVC
 
 #define D3DFMT_NV12 (D3DFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))

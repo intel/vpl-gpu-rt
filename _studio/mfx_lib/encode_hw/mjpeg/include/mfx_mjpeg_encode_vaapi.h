@@ -22,8 +22,7 @@
 #define __MFX_MJPEG_ENCODE_VAAPI_H__
 
 #include "mfx_common.h"
-
-#if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
+#if defined(MFX_ENABLE_MJPEG_VIDEO_ENCODE)
 
 #include <vector>
 #include <assert.h>
@@ -122,3 +121,4 @@ namespace MfxHwMJpegEncode
 
 #endif // defined(MFX_ENABLE_MJPEG_VIDEO_ENCODE)
 #endif // __MFX_MJPEG_ENCODE_VAAPI_H__
+
