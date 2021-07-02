@@ -65,6 +65,7 @@ public:
     virtual mfxStatus DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *pSurfaceWork, mfxFrameSurface1 **ppSurfaceOut, MFX_ENTRY_POINT *pEntryPoint) override;
 
     virtual mfxStatus GetUserData(mfxU8 *pUserData, mfxU32 *pSize, mfxU64 *pTimeStamp);
+
     virtual mfxStatus GetPayload(mfxU64 *pTimeStamp, mfxPayload *pPayload) override;
     virtual mfxStatus SetSkipMode(mfxSkipMode mode) override;
 
@@ -81,12 +82,10 @@ protected:
     mfxStatus DecodeFrameHeader(mfxBitstream *in, UMC_VP9_DECODER::VP9DecoderFrame & info);
     mfxStatus PackHeaders(mfxBitstream *bs, UMC_VP9_DECODER::VP9DecoderFrame const & info);
 
-    mfxFrameSurface1 * GetOriginalSurface(mfxFrameSurface1 *);
     mfxStatus GetOutputSurface(mfxFrameSurface1 **, mfxFrameSurface1 *, UMC::FrameMemID);
 
 private:
     bool                    m_isInit;
-    bool                    m_is_opaque_memory;
     VideoCORE*              m_core;
     eMFXPlatform            m_platform;
 
@@ -110,7 +109,6 @@ private:
     std::unique_ptr<UMC_VP9_DECODER::Packer>  m_Packer;
     std::unique_ptr<FrameStorage> m_framesStorage;
 
-    mfxFrameAllocRequest     m_request;
     mfxFrameAllocResponse    m_response;
     mfxFrameAllocResponse    m_response_alien;
     mfxDecodeStat            m_stat;

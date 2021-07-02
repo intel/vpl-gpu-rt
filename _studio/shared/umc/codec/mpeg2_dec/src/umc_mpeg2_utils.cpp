@@ -383,7 +383,6 @@ namespace UMC_MPEG2_DECODER
         if ((in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
             return false;
 
-
         return true;
     }
 

@@ -82,8 +82,6 @@ protected:
 };
 
 
-
-
 class PackerVA
     : public Packer
 {
@@ -140,6 +138,7 @@ private:
     void PackAU(const H264DecoderFrame*, int32_t isTop) override;
 };
 #endif
+
 
 } // namespace UMC
 

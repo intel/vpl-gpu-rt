@@ -1012,11 +1012,11 @@ bool CheckVideoParam_H265(mfxVideoParam *in, eMFXHWType type)
     if (MFX_CODEC_HEVC != in->mfx.CodecId)
         return false;
 
-    // Add check that width is multiple of minimal CU size
+    // FIXME: Add check that width is multiple of minimal CU size
     if (in->mfx.FrameInfo.Width > 16384 /* || (in->mfx.FrameInfo.Width % in->mfx.FrameInfo.reserved[0]) */)
         return false;
 
-    // Add check that height is multiple of minimal CU size
+    // FIXME: Add check that height is multiple of minimal CU size
     if (in->mfx.FrameInfo.Height > 16384 /* || (in->mfx.FrameInfo.Height % in->mfx.FrameInfo.reserved[0]) */)
         return false;
 
@@ -1104,7 +1104,6 @@ bool CheckVideoParam_H265(mfxVideoParam *in, eMFXHWType type)
 
     if ((in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
         return false;
-
 
     return true;
 }

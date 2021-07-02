@@ -277,7 +277,6 @@ public:
 
 VideoDECODEVP9_HW::VideoDECODEVP9_HW(VideoCORE *p_core, mfxStatus *sts)
     : m_isInit(false),
-      m_is_opaque_memory(false),
       m_core(p_core),
       m_platform(MFX_PLATFORM_HARDWARE),
       m_num_output_frames(0),
@@ -290,7 +289,6 @@ VideoDECODEVP9_HW::VideoDECODEVP9_HW(VideoCORE *p_core, mfxStatus *sts)
       m_index(0),
       m_surface_source(),
       m_Packer(),
-      m_request(),
       m_response(),
       m_stat(),
       m_va(nullptr),
@@ -348,7 +346,6 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
 
     m_vPar = m_vInitPar;
 
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
     /* There are following conditions for post processing via HW fixed function engine:
      * (1): Progressive only for ICL and Before, interlace is supported for ICL following patforms
@@ -398,11 +395,9 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
         }
        MFX_CHECK(is_fourcc_supported,MFX_ERR_UNSUPPORTED);
     }
-#endif
     m_vInitPar.IOPattern = (
            m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
-        | (m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
-        ;
+        | (m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
 
     if (0 == m_vInitPar.mfx.FrameInfo.FrameRateExtN || 0 == m_vInitPar.mfx.FrameInfo.FrameRateExtD)
     {
@@ -419,27 +414,28 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
     }
 
     // allocate memory
-    memset(&m_request, 0, sizeof(m_request));
+    mfxFrameAllocRequest request = {};
     memset(&m_response, 0, sizeof(m_response));
     memset(&m_response_alien, 0, sizeof(m_response_alien));
     memset(&m_firstSizes, 0, sizeof(m_firstSizes));
 
-    sts = MFX_VPX_Utility::QueryIOSurfInternal(&m_vInitPar, &m_request);
+    bool useInternal = (m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ) || IsD3D9Simulation(*m_core);
+
+    sts = MFX_VPX_Utility::QueryIOSurfInternal(&m_vInitPar, &request);
     MFX_CHECK_STS(sts);
 
-    mfxFrameAllocRequest request_internal = m_request;
+    request.Type &= ~(MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_EXTERNAL_FRAME);
+    request.Type |= useInternal ? MFX_MEMTYPE_INTERNAL_FRAME : MFX_MEMTYPE_EXTERNAL_FRAME;
 
-    {
-        m_request.AllocId = par->AllocId;
-    }
+    mfxFrameAllocRequest request_internal = request;
+
+    request.AllocId = par->AllocId;
 
     MFX_CHECK_STS(sts);
 
     try
     {
-        m_surface_source.reset(new SurfaceSource(m_core, *par, m_platform, m_request, request_internal, m_response, m_response_alien, 
-        nullptr,
-        m_is_opaque_memory));
+        m_surface_source.reset(new SurfaceSource(m_core, *par, m_platform, request, request_internal, m_response, m_response_alien));
     }
     catch (const mfx::mfxStatus_exception& ex)
     {
@@ -448,16 +444,15 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
 
     ResetFrameInfo();
 
-    sts = m_core->CreateVA(&m_vInitPar, &m_request, &m_response, m_surface_source.get());
+    sts = m_core->CreateVA(&m_vInitPar, &request, &m_response, m_surface_source.get());
     MFX_CHECK_STS(sts);
 
     m_core->GetVA((mfxHDL*)&m_va, MFX_MEMTYPE_FROM_DECODE);
 
-    bool isUseExternalFrames = (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) || m_is_opaque_memory;
+    bool isUseExternalFrames = (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) || IsD3D9Simulation(*m_core);
     bool reallocFrames = (par->mfx.EnableReallocRequest == MFX_CODINGOPTION_ON);
     m_adaptiveMode = reallocFrames;
 
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     if (videoProcessing)
     {
         MFX_CHECK(MFX_HW_D3D11 == m_core->GetVAType(), MFX_ERR_UNSUPPORTED);
@@ -467,7 +462,6 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
             MFX_CHECK(umcSts == UMC::UMC_OK, MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
-#endif
     m_frameOrder = 0;
     m_statusReportFeedbackNumber = 0;
     m_isInit = true;
@@ -541,7 +535,6 @@ mfxStatus VideoDECODEVP9_HW::Reset(mfxVideoParam *par)
 
     eMFXHWType type = m_core->GetHWType();
 
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(m_vInitPar.ExtParam, m_vInitPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
 
     if (videoProcessing != nullptr)
@@ -552,7 +545,6 @@ mfxStatus VideoDECODEVP9_HW::Reset(mfxVideoParam *par)
             return MFX_ERR_INVALID_VIDEO_PARAM;
         }
     }
-#endif
 
     MFX_CHECK(MFX_ERR_NONE <= CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type, m_core->IsCompatibleForOpaq()), MFX_ERR_INVALID_VIDEO_PARAM);
 
@@ -561,7 +553,6 @@ mfxStatus VideoDECODEVP9_HW::Reset(mfxVideoParam *par)
     MFX_CHECK(CheckHardwareSupport(m_core, par), MFX_ERR_UNSUPPORTED);
 
     MFX_CHECK(IsSameVideoParam(par, &m_vInitPar), MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-
 
     MFX_CHECK(m_platform == m_core->GetPlatformType(), MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
@@ -599,14 +590,12 @@ mfxStatus VideoDECODEVP9_HW::Close()
 
     m_isInit = false;
     m_adaptiveMode = false;
-    m_is_opaque_memory = false;
 
     m_frameOrder = (mfxU16)MFX_FRAMEORDER_UNKNOWN;
     m_statusReportFeedbackNumber = 0;
 
     m_va = NULL;
 
-    memset(&m_request, 0, sizeof(m_request));
     memset(&m_response, 0, sizeof(m_response));
     memset(&m_stat, 0, sizeof(m_stat));
 
@@ -742,8 +731,7 @@ mfxStatus VideoDECODEVP9_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_vid
 
     auto const supportedMemoryType =
            (p_params.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
-        || (p_params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
-        ;
+        || (p_params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
 
     MFX_CHECK(supportedMemoryType, MFX_ERR_INVALID_VIDEO_PARAM);
 
@@ -752,22 +740,21 @@ mfxStatus VideoDECODEVP9_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_vid
         p_params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY),
         MFX_ERR_INVALID_VIDEO_PARAM);
 
+    bool IsD3D9SimWithVideoMem = IsD3D9Simulation(*p_core) && (p_video_param->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY);
 
-    if (p_params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
+    if (p_params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY || IsD3D9SimWithVideoMem)
     {
         p_request->Info = p_params.mfx.FrameInfo;
         p_request->NumFrameMin = 1;
         p_request->NumFrameSuggested = p_request->NumFrameMin + (p_params.AsyncDepth ? p_params.AsyncDepth : MFX_AUTO_ASYNC_DEPTH_VALUE);
-        p_request->Type = MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_FROM_DECODE;
+        p_request->Type = MFX_MEMTYPE_FROM_DECODE;
+        p_request->Type |= IsD3D9SimWithVideoMem ? MFX_MEMTYPE_DXVA2_DECODER_TARGET : MFX_MEMTYPE_SYSTEM_MEMORY;
     }
     else
     {
         sts = MFX_VPX_Utility::QueryIOSurfInternal(p_video_param, p_request);
     }
-
-    {
-        p_request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
-    }
+    p_request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
 
     MFX_CHECK(CheckHardwareSupport(p_core, p_video_param), MFX_ERR_UNSUPPORTED);
 
@@ -791,14 +778,12 @@ mfxStatus VideoDECODEVP9_HW::GetVideoParam(mfxVideoParam *par)
     par->mfx.FrameInfo.FrameRateExtD = m_vInitPar.mfx.FrameInfo.FrameRateExtD;
     par->mfx.FrameInfo.FrameRateExtN = m_vInitPar.mfx.FrameInfo.FrameRateExtN;
 
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
     if (videoProcessing)
     {
         mfxExtDecVideoProcessing * videoProcessingInternal = m_vPar.GetExtendedBuffer<mfxExtDecVideoProcessing>(MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
         *videoProcessing = *videoProcessingInternal;
     }
-#endif
 
     return MFX_ERR_NONE;
 }
@@ -823,7 +808,7 @@ mfxStatus VideoDECODEVP9_HW::GetOutputSurface(mfxFrameSurface1 **surface_out, mf
 
     MFX_CHECK(pNativeSurface, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    *surface_out = m_is_opaque_memory ? m_core->GetOpaqSurface(pNativeSurface->Data.MemId) : pNativeSurface;
+    *surface_out = pNativeSurface;
 
     return MFX_ERR_NONE;
 }
@@ -900,10 +885,10 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
         MFX_CHECK(surfaceSrc, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         bool systemMemory = (decoder.m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) != 0;
-        bool opaqMemory = false;
+
         mfxU16 srcMemType = MFX_MEMTYPE_DXVA2_DECODER_TARGET;
-        srcMemType |= (systemMemory || opaqMemory) ? MFX_MEMTYPE_INTERNAL_FRAME : MFX_MEMTYPE_EXTERNAL_FRAME;
-        mfxU16 dstMemType = opaqMemory ? (mfxU16)MFX_MEMTYPE_INTERNAL_FRAME : (mfxU16)MFX_MEMTYPE_EXTERNAL_FRAME;
+        srcMemType |= systemMemory ? MFX_MEMTYPE_INTERNAL_FRAME : MFX_MEMTYPE_EXTERNAL_FRAME;
+        mfxU16 dstMemType = (mfxU16)MFX_MEMTYPE_EXTERNAL_FRAME;
         dstMemType |= systemMemory ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET;
         mfxStatus sts = MFX_ERR_NONE;
         {
@@ -941,7 +926,7 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
 
     MFX_SAFE_CALL(decoder.ReportDecodeStatus(data.surface_work));
 
-    if ((decoder.m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) && data.showFrame)
+    if (data.showFrame)
     {
         MFX_CHECK(data.surface_work, MFX_ERR_UNDEFINED_BEHAVIOR);
 
@@ -951,12 +936,9 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
         }
 
         UMC::AutomaticUMCMutex guardCopy(decoder.m_mCopyGuard[data.currFrameId]);
-        mfxStatus sts = decoder.m_surface_source->PrepareToOutput(data.surface_work, data.currFrameId, 0, false);
+        mfxStatus sts = decoder.m_surface_source->PrepareToOutput(data.surface_work, data.currFrameId, 0);
         MFX_CHECK_STS(sts);
     }
-
-    if(decoder.m_va && data.surface_work)
-        MFX_CHECK(!decoder.m_va->UnwrapBuffer(data.surface_work->Data.MemId), MFX_ERR_UNDEFINED_BEHAVIOR);
 
     UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
 
@@ -1076,17 +1058,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
     if (surface_work)
     {
-        if (m_is_opaque_memory)
-        {
-            bool opaqueSfsIsEmpty = IsSurfaceEmpty(*surface_work);
-
-            MFX_CHECK(opaqueSfsIsEmpty, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-            // work with the native (original) surface
-            surface_work = GetOriginalSurface(surface_work);
-            MFX_CHECK(surface_work, MFX_ERR_UNDEFINED_BEHAVIOR);
-        }
-
         sts = CheckFrameInfo(m_vPar.mfx.FrameInfo, surface_work->Info);
         MFX_CHECK_STS(sts);
 
@@ -1164,7 +1135,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         m_frameInfo = frameInfo;
         m_index++;
 
-        sts = m_surface_source->SetCurrentMFXSurface(surface_work, m_is_opaque_memory);
+        sts = m_surface_source->SetCurrentMFXSurface(surface_work);
         MFX_CHECK_STS(sts);
 
         if (!m_surface_source->HasFreeSurface())
@@ -1233,7 +1204,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
             (*surface_out)->Info.AspectRatioW = m_vPar.mfx.FrameInfo.AspectRatioW;
             (*surface_out)->Info.AspectRatioH = m_vPar.mfx.FrameInfo.AspectRatioH;
 
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
             mfxExtDecVideoProcessing *videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(m_vInitPar.ExtParam, m_vInitPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
             if (videoProcessing)
             {
@@ -1242,7 +1212,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
                 (*surface_out)->Info.CropX = videoProcessing->Out.CropX;
                 (*surface_out)->Info.CropY = videoProcessing->Out.CropY;
             }
-#endif
 
             m_frameOrder++;
             sts = MFX_ERR_NONE;
@@ -1650,16 +1619,6 @@ mfxStatus VideoDECODEVP9_HW::PackHeaders(mfxBitstream *bs, VP9DecoderFrame const
     }
 
     return MFX_ERR_NONE;
-}
-
-mfxFrameSurface1 * VideoDECODEVP9_HW::GetOriginalSurface(mfxFrameSurface1 *p_surface)
-{
-    if (m_is_opaque_memory)
-    {
-        return m_core->GetNativeSurface(p_surface);
-    }
-
-    return p_surface;
 }
 
 mfxFrameSurface1* VideoDECODEVP9_HW::GetSurface()

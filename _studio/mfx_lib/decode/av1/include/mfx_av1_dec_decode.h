@@ -88,14 +88,6 @@ private:
     AV1DecoderFrame* GetFrameToDisplay();
     mfxStatus FillOutputSurface(mfxFrameSurface1** surface_out, mfxFrameSurface1* surface_work, AV1DecoderFrame*);
 
-    mfxFrameSurface1* GetOriginalSurface(mfxFrameSurface1* surface)
-    {
-        VM_ASSERT(m_core);
-
-        return m_opaque ?
-            m_core->GetNativeSurface(surface) : surface;
-    }
-
     mfxStatus DecodeFrame(mfxFrameSurface1 *surface_out, AV1DecoderFrame* pFrame);
     bool IsNeedChangeVideoParam(mfxVideoParam * newPar, mfxVideoParam * oldPar, eMFXHWType type) const;
 
@@ -108,7 +100,6 @@ private:
     std::unique_ptr<SurfaceSource>               m_surface_source;
     std::unique_ptr<UMC_AV1_DECODER::AV1Decoder> m_decoder;
 
-    bool                                         m_opaque;
     bool                                         m_first_run;
 
     mfxVideoParamWrapper                         m_video_par;

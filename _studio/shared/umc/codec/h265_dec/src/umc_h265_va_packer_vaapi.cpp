@@ -189,10 +189,8 @@ namespace UMC_HEVC_DECODER
 
         for (size_t n = 0; n < count; n++)
             PackSliceParams(fi->GetSlice(int32_t(n)), n, n == count - 1);
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
         if (m_va->GetVideoProcessingVA())
             PackProcessingInfo(fi);
-#endif
         auto s = m_va->Execute();
         if (s != UMC::UMC_OK)
             throw h265_exception(s);

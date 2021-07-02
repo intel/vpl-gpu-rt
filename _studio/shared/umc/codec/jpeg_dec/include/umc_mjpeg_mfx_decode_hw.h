@@ -31,6 +31,7 @@
 #include "umc_mjpeg_mfx_decode_base.h"
 #include <set>
 
+
  #include <va/va_dec_jpeg.h>
 
 namespace UMC

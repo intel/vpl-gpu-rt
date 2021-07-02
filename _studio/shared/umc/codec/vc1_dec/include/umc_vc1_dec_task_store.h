@@ -166,7 +166,7 @@ namespace UMC
 
     private:
         // Declare private copy constructor to avoid accidental assignment
-
+        // and klocwork complaining.
         VC1TaskStore(const VC1TaskStore &);
         VC1TaskStore & operator = (const VC1TaskStore &);
 

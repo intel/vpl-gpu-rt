@@ -82,21 +82,12 @@ Packer * Packer::CreatePacker(VideoAccelerator * va, TaskSupplier* supplier)
     (void)supplier;
 
     Packer * packer = 0;
-#if defined(UMC_VA_DXVA)
-#ifdef MFX_ENABLE_CPLIB
-    if (va->GetProtectedVA() && IS_PROTECTION_CENC(va->GetProtectedVA()->GetProtected()))
-        throw h264_exception(UMC_ERR_UNSUPPORTED);
-    else
-#endif
-        packer = new PackerDXVA2(va, supplier);
-#elif defined (UMC_VA_LINUX)
 #ifdef MFX_ENABLE_CPLIB
     if (va->GetProtectedVA() && IS_PROTECTION_CENC(va->GetProtectedVA()->GetProtected()))
         packer = new PackerVA_CENC(va, supplier);
     else
 #endif // MFX_ENABLE_CPLIB
         packer = new PackerVA(va, supplier);
-#endif // UMC_VA_LINUX
 
     return packer;
 }
@@ -702,7 +693,6 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
     return partial_data;
 }
 
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
 void PackerVA::PackProcessingInfo(H264DecoderFrameInfo * sliceInfo)
 {
     VideoProcessingVA *vpVA = m_va->GetVideoProcessingVA();
@@ -722,7 +712,6 @@ void PackerVA::PackProcessingInfo(H264DecoderFrameInfo * sliceInfo)
     // To keep output aligned, decode downsampling use this fixed combination of chroma sitting type
     pipelineBuf->input_color_properties.chroma_sample_location = VA_CHROMA_SITING_HORIZONTAL_LEFT | VA_CHROMA_SITING_VERTICAL_CENTER;
 }
-#endif // #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
 
 void PackerVA::PackQmatrix(const UMC_H264_DECODER::H264ScalingPicParams * scaling)
 {
@@ -834,10 +823,8 @@ void PackerVA::PackAU(const H264DecoderFrame *pFrame, int32_t isTop)
 
         sliceParamBuf->SetNumOfItem(count);
 
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
         if (m_va->GetVideoProcessingVA())
             PackProcessingInfo(sliceInfo);
-#endif
 
         Status sts = m_va->Execute();
         if (sts != UMC_OK)

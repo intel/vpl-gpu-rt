@@ -58,14 +58,13 @@ public:
     // Free tasks queue guard (if SW is used)
     std::mutex m_guard;
     mfxDecodeStat m_stat;
-    bool    m_isOpaq;
     mfxVideoParamWrapper m_vPar;
 
     VideoDECODEMJPEGBase();
     virtual ~VideoDECODEMJPEGBase(){};
 
     virtual mfxStatus Init(mfxVideoParam *decPar, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, mfxFrameAllocRequest *request_internal, bool isUseExternalFrames, VideoCORE *core) = 0;
-    virtual mfxStatus ReserveUMCDecoder(UMC::MJPEGVideoDecoderBaseMFX* &pMJPEGVideoDecoder, mfxFrameSurface1 *surf, bool isOpaq) = 0;
+    virtual mfxStatus ReserveUMCDecoder(UMC::MJPEGVideoDecoderBaseMFX* &pMJPEGVideoDecoder, mfxFrameSurface1 *surf) = 0;
     virtual mfxStatus CheckTaskAvailability(mfxU32 maxTaskNumber) = 0;
     virtual mfxStatus GetVideoParam(mfxVideoParam *par) = 0;
     virtual mfxStatus RunThread(void *pParam, mfxU32 threadNumber, mfxU32 callNumber) = 0;
@@ -102,7 +101,7 @@ public:
     virtual mfxStatus RunThread(void *pParam, mfxU32 threadNumber, mfxU32 callNumber);
     virtual mfxStatus CompleteTask(void *pParam, mfxStatus taskRes);
     virtual mfxStatus CheckTaskAvailability(mfxU32 maxTaskNumber);
-    virtual mfxStatus ReserveUMCDecoder(UMC::MJPEGVideoDecoderBaseMFX* &pMJPEGVideoDecoder, mfxFrameSurface1 *surf, bool isOpaq);
+    virtual mfxStatus ReserveUMCDecoder(UMC::MJPEGVideoDecoderBaseMFX* &pMJPEGVideoDecoder, mfxFrameSurface1 *surf);
     virtual void ReleaseReservedTask();
     virtual mfxStatus AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic);
     virtual mfxStatus AllocateFrameData(UMC::FrameData *&data);
@@ -113,7 +112,6 @@ public:
     static void AdjustFourCC(mfxFrameInfo *requestFrameInfo, const mfxInfoMFX *info, eMFXHWType hwType, eMFXVAType vaType, bool usePostProc, bool *needVpp);
 
     static mfxStatus CheckVPPCaps(VideoCORE * core, mfxVideoParam * par);
-
 
 
 protected:
@@ -149,7 +147,7 @@ public:
     mfxStatus RunThread(void *pParam, mfxU32 threadNumber, mfxU32 callNumber) override;
     mfxStatus CompleteTask(void *pParam, mfxStatus taskRes) override;
     mfxStatus CheckTaskAvailability(mfxU32 maxTaskNumber) override;
-    mfxStatus ReserveUMCDecoder(UMC::MJPEGVideoDecoderBaseMFX* &pMJPEGVideoDecoder, mfxFrameSurface1 *surf, bool isOpaq) override;
+    mfxStatus ReserveUMCDecoder(UMC::MJPEGVideoDecoderBaseMFX* &pMJPEGVideoDecoder, mfxFrameSurface1 *surf) override;
     void ReleaseReservedTask() override;
     mfxStatus AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic) override;
     mfxStatus AllocateFrameData(UMC::FrameData *&data) override;
@@ -195,9 +193,6 @@ protected:
 
     bool IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * oldPar);
 
-
-    mfxFrameSurface1 * GetOriginalSurface(mfxFrameSurface1 *surface);
-
     // Frames collecting unit
     std::unique_ptr<UMC::JpegFrameConstructor> m_frameConstructor;
 
@@ -207,7 +202,6 @@ protected:
     VideoCORE * m_core;
 
     bool    m_isInit;
-    bool    m_isOpaq;
     bool    m_isHeaderFound;
     bool    m_isHeaderParsed;
 

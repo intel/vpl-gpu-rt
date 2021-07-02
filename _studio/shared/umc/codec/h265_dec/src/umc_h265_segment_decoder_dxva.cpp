@@ -155,7 +155,9 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H265Task *)
     if (!dxva_sd->GetPacker())
         return false;
 
-#if defined(UMC_VA_LINUX)
+#if !defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
+    #error unsupported sync. type
+#else
     UMC::Status sts = UMC::UMC_OK;
     VAStatus surfErr = VA_STATUS_SUCCESS;
     int32_t index;
@@ -200,138 +202,6 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H265Task *)
     }
 
     SwitchCurrentAU();
-#elif defined(UMC_VA_DXVA)
-    bool wasCompleted = false;
-    UMC::Status sts = UMC::UMC_OK;
-
-    for (H265DecoderFrameInfo * au = m_FirstAU; au; au = au->GetNextAU())
-    {
-        if (dxva_sd->GetPacker()->IsGPUSyncEventEnable())
-        {
-            int32_t index = au->m_pFrame->GetFrameMID();
-            m_mGuard.Unlock();
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Dec  DXVA SyncSurface");
-                sts = dxva_sd->GetPacker()->SyncTask(index, NULL);
-            }
-            m_mGuard.Lock();
-        }
-
-        for (uint32_t i = 0; i < m_reports.size(); i++)
-        {
-            if (m_reports[i].m_index == (uint32_t)au->m_pFrame->m_index)
-            {
-                switch (m_reports[i].m_status)
-                {
-                case 1:
-                    au->m_pFrame->SetErrorFlagged(UMC::ERROR_FRAME_MINOR);
-                    break;
-                case 2:
-                    au->m_pFrame->SetErrorFlagged(UMC::ERROR_FRAME_MAJOR);
-                    break;
-                case 3:
-                    au->m_pFrame->SetErrorFlagged(UMC::ERROR_FRAME_MAJOR);
-                    break;
-                case 4:
-                    au->m_pFrame->SetErrorFlagged(UMC::ERROR_FRAME_MAJOR);
-                    break;
-                }
-
-                au->SetStatus(H265DecoderFrameInfo::STATUS_COMPLETED);
-                CompleteFrame(au->m_pFrame);
-                wasCompleted = true;
-
-                m_reports.erase(m_reports.begin() + i);
-                break;
-            }
-        }
-
-        if (!wasCompleted)
-        {
-            DXVA_Status_HEVC pStatusReport[NUMBER_OF_STATUS] = {};
-            dxva_sd->GetPacker()->GetStatusReport(&pStatusReport[0], sizeof(pStatusReport));
-
-            for (uint32_t i = 0; i < NUMBER_OF_STATUS; i++)
-            {
-                if (!pStatusReport[i].StatusReportFeedbackNumber)
-                    continue;
-
-                bool wasFound = false;
-                if (au && pStatusReport[i].CurrPic.Index7Bits == au->m_pFrame->m_index)
-                {
-                    switch (pStatusReport[i].bStatus)
-                    {
-                    case 1:
-                        au->m_pFrame->SetErrorFlagged(UMC::ERROR_FRAME_MINOR);
-                        break;
-                    case 2:
-                        au->m_pFrame->SetErrorFlagged(UMC::ERROR_FRAME_MAJOR);
-                        break;
-                    case 3:
-                        au->m_pFrame->SetErrorFlagged(UMC::ERROR_FRAME_MAJOR);
-                        break;
-                    case 4:
-                        au->m_pFrame->SetErrorFlagged(UMC::ERROR_FRAME_MAJOR);
-                        break;
-                    }
-
-                    au->SetStatus(H265DecoderFrameInfo::STATUS_COMPLETED);
-                    CompleteFrame(au->m_pFrame);
-                    wasFound = true;
-                    wasCompleted = true;
-                }
-
-                if (!wasFound)
-                {
-                    if (std::find(m_reports.begin(), m_reports.end(), ReportItem(pStatusReport[i].CurrPic.Index7Bits, 0/*field*/, 0)) == m_reports.end())
-                    {
-                        m_reports.push_back(ReportItem(pStatusReport[i].CurrPic.Index7Bits, 0/*field*/, pStatusReport[i].bStatus));
-                        wasCompleted = true;
-                    }
-                }
-            }
-        }
-        //check exit from waiting status.
-        if (sts != UMC::UMC_OK && sts != UMC::UMC_ERR_TIMEOUT && dxva_sd->GetPacker()->IsGPUSyncEventEnable())
-        {
-            // SyncTask failed for some reason
-            au->m_pFrame->SetError(UMC::UMC_ERR_DEVICE_FAILED);
-            au->SetStatus(H265DecoderFrameInfo::STATUS_COMPLETED);
-            CompleteFrame(au->m_pFrame);
-        }
-    }
-    SwitchCurrentAU();
-
-    if (!wasCompleted && m_FirstAU)
-    {
-        unsigned long long currentCounter = (unsigned long long) vm_time_get_tick();
-
-        if (m_lastCounter == 0)
-            m_lastCounter = currentCounter;
-
-        unsigned long long diff = (currentCounter - m_lastCounter);
-        if (diff >= m_counterFrequency ||
-            (sts == UMC::UMC_ERR_TIMEOUT && dxva_sd->GetPacker()->IsGPUSyncEventEnable()))
-        {
-            Report::iterator iter = std::find(m_reports.begin(), m_reports.end(), ReportItem(m_FirstAU->m_pFrame->m_index, false, 0));
-            if (iter != m_reports.end())
-            {
-                m_reports.erase(iter);
-            }
-
-            m_FirstAU->m_pFrame->SetErrorFlagged(UMC::ERROR_FRAME_MAJOR);
-            m_FirstAU->SetStatus(H265DecoderFrameInfo::STATUS_COMPLETED);
-            CompleteFrame(m_FirstAU->m_pFrame);
-
-            SwitchCurrentAU();
-            m_lastCounter = 0;
-        }
-    }
-    else
-    {
-        m_lastCounter = 0;
-    }
-
 #endif
 
     return false;

@@ -107,7 +107,6 @@ public:
 #endif
     };
 
-
 private:
 
 #ifdef VC1_DEBUG_ON
