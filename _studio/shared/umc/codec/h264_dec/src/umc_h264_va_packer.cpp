@@ -82,21 +82,12 @@ Packer * Packer::CreatePacker(VideoAccelerator * va, TaskSupplier* supplier)
     (void)supplier;
 
     Packer * packer = 0;
-#if defined(UMC_VA_DXVA)
-#ifdef MFX_ENABLE_CPLIB
-    if (va->GetProtectedVA() && IS_PROTECTION_CENC(va->GetProtectedVA()->GetProtected()))
-        throw h264_exception(UMC_ERR_UNSUPPORTED);
-    else
-#endif
-        packer = new PackerDXVA2(va, supplier);
-#elif defined (UMC_VA_LINUX)
 #ifdef MFX_ENABLE_CPLIB
     if (va->GetProtectedVA() && IS_PROTECTION_CENC(va->GetProtectedVA()->GetProtected()))
         packer = new PackerVA_CENC(va, supplier);
     else
 #endif // MFX_ENABLE_CPLIB
         packer = new PackerVA(va, supplier);
-#endif // UMC_VA_LINUX
 
     return packer;
 }

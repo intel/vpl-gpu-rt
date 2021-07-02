@@ -34,19 +34,6 @@ namespace UMC_HEVC_DECODER
   #define H265_FORCEINLINE __attribute__((always_inline))
   #define H265_NONLINE __attribute__((noinline))
 
-// This better be placed in some general/common header
-#ifdef __INTEL_COMPILER
-# define H265_RESTRICT __restrict
-#elif defined _MSC_VER
-# if _MSC_VER >= 1400
-#  define H265_RESTRICT __restrict
-# else
-#  define H265_RESTRICT
-# endif
-#else
-# define H265_RESTRICT
-#endif
-
 enum
 {
     H265_PROFILE_MAIN   = 1,
