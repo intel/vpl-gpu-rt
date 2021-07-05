@@ -240,8 +240,6 @@ public:
     virtual void* QueryCoreInterface(const MFX_GUID &guid) = 0;
     virtual mfxSession GetSession() = 0;
 
-    virtual void SetWrapper(void* pWrp) = 0;
-
     virtual mfxU16 GetAutoAsyncDepth() = 0;
 
     virtual bool IsCompatibleForOpaq() = 0;

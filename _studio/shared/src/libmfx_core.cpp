@@ -694,7 +694,6 @@ CommonCORE::CommonCORE(const mfxU32 numThreadsAvailable, const mfxSession sessio
     m_bUseExtManager(false),
     m_bIsOpaqMode(false),
     m_CoreId(0),
-    m_pWrp(NULL),
     m_API_1_19(this),
     m_deviceId(0)
 {
@@ -1738,11 +1737,6 @@ void* CommonCORE::QueryCoreInterface(const MFX_GUID &guid)
         return &m_enabled20Interface;
 
     return nullptr;
-}
-
-void CommonCORE::SetWrapper(void* pWrp)
-{
-    m_pWrp = (mfx_UMC_FrameAllocator *)pWrp;
 }
 
 mfxU16 CommonCORE::GetAutoAsyncDepth()
