@@ -24,8 +24,6 @@
 #ifndef UMC_VA_H265_PACKER_G12_COMMON
 #define UMC_VA_H265_PACKER_G12_COMMON
 
-#if (MFX_VERSION >= 1032)
-
 namespace UMC_HEVC_DECODER
 {
     namespace G12
@@ -177,5 +175,4 @@ namespace UMC_HEVC_DECODER
     } //G12
 }
 
-#endif //MFX_VERSION >= MFX_VERSION_NEXT
 #endif //UMC_VA_H265_PACKER_G12

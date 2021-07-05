@@ -36,12 +36,6 @@
 #endif
 #include "vm_strings.h"
 
-#ifdef _DEBUG
-#define ENABLE_TRACING
-#endif
-#undef ENABLE_ERROR_LOGGING
-//#define ENABLE_ERROR_LOGGING
-
 #define DIB_ALIGN (sizeof(int) - 1)
 
 #define DIB_UWIDTH(width,nchannels) \
@@ -55,8 +49,7 @@
 
 
 
-#undef ENABLE_TRACING
-#ifdef ENABLE_TRACING
+#ifdef ENABLE_JPEGD_TRACING
 
 #define TRC(msg) \
   cout << (msg)
@@ -76,7 +69,7 @@
 #endif
 
 
-#ifdef ENABLE_ERROR_LOGGING
+#ifdef ENABLE_JPEGD_ERROR_LOGGING
 
 #define LOG(msg) \
   cout << (msg)
