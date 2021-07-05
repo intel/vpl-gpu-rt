@@ -34,8 +34,6 @@
 #include <memory>
 
 
-class mfx_UMC_FrameAllocator;
-
 class CommonCORE : public VideoCORE
 {
 public:
@@ -147,8 +145,6 @@ public:
     virtual void* QueryCoreInterface(const MFX_GUID &guid) override;
 
     virtual mfxSession GetSession()                        override { return m_session; }
-
-    virtual void SetWrapper(void* pWrp)                    override;
 
     virtual mfxU16 GetAutoAsyncDepth()                     override;
 
@@ -263,8 +259,6 @@ protected:
     bool                                       m_bIsOpaqMode;
 
     mfxU32                                     m_CoreId;
-
-    mfx_UMC_FrameAllocator*                    m_pWrp;
 
     EncodeHWCaps                               m_encode_caps;
     EncodeHWCaps                               m_encode_mbprocrate;

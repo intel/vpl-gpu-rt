@@ -121,8 +121,6 @@ UMC::Status mfx_UMC_FrameAllocator_D3D_Converter::InitMfx(UMC::FrameAllocatorPar
         }
     }
 
-    mfxCore->SetWrapper(this);
-
     return UMC::UMC_OK;
 }
 
