@@ -87,6 +87,7 @@ public:
 
     virtual bool      IsValid() const = 0;
     virtual mfxStatus QueryCaps(void* pCaps, mfxU32 size) = 0;
+    virtual mfxStatus QueryDdiVersion(mfxU32 codecId) = 0;
     virtual mfxStatus QueryCompBufferInfo(mfxU32, mfxFrameInfo&) = 0;
     virtual mfxStatus Init(const std::list<DDIExecParam>*) = 0;
     virtual mfxStatus Execute(const DDIExecParam&) = 0;
