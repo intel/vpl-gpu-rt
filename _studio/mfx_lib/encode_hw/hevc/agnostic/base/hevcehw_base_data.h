@@ -1351,6 +1351,7 @@ namespace Base
         TCheckAndFix CheckWinBRC;
         TCheckAndFix CheckSAO;
         TCheckAndFix CheckNumRefActive;
+        TCheckAndFix CheckSlices;
     };
 
     enum eFeatureId

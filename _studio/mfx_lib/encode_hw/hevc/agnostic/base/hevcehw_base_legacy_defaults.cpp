@@ -2759,6 +2759,53 @@ public:
         return MFX_ERR_NONE;
     }
 
+    static mfxStatus Slices(
+        Defaults::TCheckAndFix::TExt
+        , const Defaults::Param& defPar
+        , mfxVideoParam& par)
+    {
+        mfxU32 changed = 0;
+        mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
+        bool bCheckNMB = pCO2 && pCO2->NumMbPerSlice;
+
+        if (bCheckNMB)
+        {
+            auto   tiles = defPar.base.GetNumTiles(defPar);
+            mfxU16 W = defPar.base.GetCodedPicWidth(defPar);
+            mfxU16 H = defPar.base.GetCodedPicHeight(defPar);
+            mfxU16 LCUSize = defPar.base.GetLCUSize(defPar);
+            mfxU32 nLCU = CeilDiv(W, LCUSize) * CeilDiv(H, LCUSize);
+            mfxU32 nTile = std::get<0>(tiles) * std::get<1>(tiles);
+            mfxU32 maxSlicesPerTile = MAX_SLICES / nTile;
+            mfxU32 maxSlicesTotal = maxSlicesPerTile * nTile;
+            mfxU32 maxNumMbPerSlice = CeilDiv(nLCU, nTile);
+            mfxU32 minNumMbPerSlice = CeilDiv(nLCU, maxSlicesTotal);
+
+            changed += CheckMinOrClip(pCO2->NumMbPerSlice, minNumMbPerSlice);
+            changed += CheckMaxOrClip(pCO2->NumMbPerSlice, maxNumMbPerSlice);
+        }
+
+        std::vector<SliceInfo> slices;
+
+        auto supportedNslices = defPar.base.GetSlices(defPar, slices);
+        if (par.mfx.NumSlice)
+        {
+            changed += CheckRangeOrSetDefault(par.mfx.NumSlice, supportedNslices, supportedNslices, supportedNslices);
+        }
+
+        if (bCheckNMB)
+        {
+            auto itMaxSlice = std::max_element(slices.begin(), slices.end()
+                , [](SliceInfo a, SliceInfo b) { return a.NumLCU < b.NumLCU; });
+
+            if (itMaxSlice != std::end(slices))
+                changed += CheckMinOrClip(pCO2->NumMbPerSlice, itMaxSlice->NumLCU);
+        }
+
+        MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+        return MFX_ERR_NONE;
+    }
+
     static void Push(Defaults& df)
     {
 #define PUSH_DEFAULT(X) df.Check##X.Push(X);
@@ -2776,6 +2823,7 @@ public:
         PUSH_DEFAULT(WinBRC);
         PUSH_DEFAULT(SAO);
         PUSH_DEFAULT(NumRefActive);
+        PUSH_DEFAULT(Slices);
 
 #undef PUSH_DEFAULT
     }
