@@ -183,7 +183,7 @@ void CJPEGDecoder::Reset(void)
 } // CJPEGDecoder::Reset(void)
 
 
-#ifdef ALLOW_JPEG_SW_FALLBACK
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
 
 JERRCODE CJPEGDecoder::Clean(void)
 {
@@ -250,7 +250,7 @@ JERRCODE CJPEGDecoder::Clean(void)
 
   return JPEG_OK;
 } // CJPEGDecoder::Clean()
-#endif // ALLOW_JPEG_SW_FALLBACK
+#endif // MFX_ENABLE_JPEG_SW_FALLBACK
 
 
 JERRCODE CJPEGDecoder::SetDestination(
@@ -380,7 +380,7 @@ JERRCODE CJPEGDecoder::SetDestination(
   return JPEG_OK;
 } // CJPEGDecoder::SetDestination()
 
-#ifdef ALLOW_JPEG_SW_FALLBACK
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
 JERRCODE CJPEGDecoder::ProcessRestart(void)
 {
   JERRCODE  jerr;
@@ -410,7 +410,7 @@ JERRCODE CJPEGDecoder::ProcessRestart(void)
 
   return JPEG_OK;
 } // CJPEGDecoder::ProcessRestart()
-#endif // ALLOW_JPEG_SW_FALLBACK
+#endif // MFX_ENABLE_JPEG_SW_FALLBACK
 
 
 JERRCODE CJPEGDecoder::ParseAPP1(void)
@@ -1301,7 +1301,7 @@ Exit:
   return jerr;
 } // CJPEGDecoder::ParseJPEGBitStream()
 
-#ifdef ALLOW_JPEG_SW_FALLBACK
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
 
 JERRCODE CJPEGDecoder::Init(void)
 {
@@ -1466,7 +1466,7 @@ JERRCODE CJPEGDecoder::Init(void)
 
   return JPEG_OK;
 } // CJPEGDecoder::Init()
-#endif // ALLOW_JPEG_SW_FALLBACK
+#endif // MFX_ENABLE_JPEG_SW_FALLBACK
 
 
 static
@@ -2405,7 +2405,7 @@ JERRCODE CJPEGDecoder::ProcessBuffer(int nMCURow, int thread_id)
 } // JERRCODE CJPEGDecoder::ProcessBuffer()
 
 
-#ifdef ALLOW_JPEG_SW_FALLBACK
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
 JERRCODE CJPEGDecoder::DecodeHuffmanMCURowBL(int16_t* pMCUBuf, uint32_t colMCU, uint32_t maxMCU)
 {
   int       n, k, l;
@@ -3231,7 +3231,7 @@ JERRCODE CJPEGDecoder::ReconstructMCURowEX(int16_t* pMCUBuf,
   return JPEG_OK;
 } // CJPEGDecoder::ReconstructMCURowEX()
 
-#endif // ALLOW_JPEG_SW_FALLBACK
+#endif // MFX_ENABLE_JPEG_SW_FALLBACK
 
 
 JERRCODE CJPEGDecoder::ReconstructMCURowLS(
@@ -3321,7 +3321,7 @@ JERRCODE CJPEGDecoder::ReconstructMCURowLS(
   return JPEG_OK;
 } // CJPEGDecoder::ReconstructMCURowLS()
 
-#ifdef ALLOW_JPEG_SW_FALLBACK
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
 
 JERRCODE CJPEGDecoder::DecodeScanBaseline(void)
 {
@@ -4512,7 +4512,7 @@ JERRCODE CJPEGDecoder::DecodeScanLosslessNI(void)
   return JPEG_OK;
 } // CJPEGDecoder::DecodeScanLosslessNI()
 
-#endif // ALLOW_JPEG_SW_FALLBACK
+#endif // MFX_ENABLE_JPEG_SW_FALLBACK
 
 JERRCODE CJPEGDecoder::ReadHeader(
   int*    width,

@@ -27,7 +27,6 @@
 #include "jpegbase.h"
 
 #if defined(MFX_ENABLE_JPEG_SW_FALLBACK)
-  #define ALLOW_JPEG_SW_FALLBACK
 
   #if defined(MSDK_USE_EXTERNAL_IPP)
     #include "ipp2mfx.h"
@@ -37,7 +36,7 @@
 class CJPEGDecoderHuffmanTable
 {
 private:
-#ifdef ALLOW_JPEG_SW_FALLBACK
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
   IppiDecodeHuffmanSpec* m_table;
 #endif
 
@@ -67,7 +66,7 @@ public:
   bool     IsValid(void)                { return m_bValid; }
   void     SetInvalid(void)             { m_bValid = 0; return; }
 
-#ifdef ALLOW_JPEG_SW_FALLBACK
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
   operator IppiDecodeHuffmanSpec*(void) { return m_table; }
 #endif
 
@@ -76,7 +75,7 @@ public:
 };
 
 
-#ifdef ALLOW_JPEG_SW_FALLBACK
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
 class CJPEGDecoderHuffmanState
 {
 private:
