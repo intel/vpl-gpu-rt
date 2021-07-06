@@ -20,7 +20,6 @@
 
 #include "mfx_common.h"
 #include <algorithm>
-
 #include <mfxdeprecated.h>
 
 const mfxPluginUID NativePlugins[] =
@@ -40,12 +39,12 @@ mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
     return MFX_ERR_UNSUPPORTED; \
 }
 
-FUNCTION_DEPRECATED_IMPL(USER, Unregister,        (mfxSession session, mfxU32 type))
-FUNCTION_DEPRECATED_IMPL(USER, ProcessFrameAsync, (mfxSession session, const mfxHDL *in, mfxU32 in_num, const mfxHDL *out, mfxU32 out_num, mfxSyncPoint *syncp))
-FUNCTION_DEPRECATED_IMPL(USER, GetPlugin,         (mfxSession session, mfxU32 type, mfxPlugin *par))
+FUNCTION_DEPRECATED_IMPL(USER, Unregister,        (mfxSession /*session*/, mfxU32 /*type*/))
+FUNCTION_DEPRECATED_IMPL(USER, ProcessFrameAsync, (mfxSession /*session*/, const mfxHDL */*in*/, mfxU32 /*in_num*/, const mfxHDL */*out*/, mfxU32 /*out_num*/, mfxSyncPoint */*syncp*/))
+FUNCTION_DEPRECATED_IMPL(USER, GetPlugin,         (mfxSession /*session*/, mfxU32 /*type*/, mfxPlugin */*par*/))
 #undef FUNCTION_DEPRECATED_IMPL
 
-mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type,
+mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 /*type*/,
                                 const mfxPlugin *par)
 {
     mfxStatus mfxRes;

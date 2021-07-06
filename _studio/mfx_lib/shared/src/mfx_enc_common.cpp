@@ -540,7 +540,7 @@ bool CorrectProfileLevelMpeg2(mfxU16 &profile, mfxU16 & level, mfxU32 w, mfxU32 
     return (((oldLevel!=0) && (oldLevel!=level)) || ((oldProfile!=0) && (oldProfile!=profile)));
 
 }
-mfxStatus InputSurfaces::Reset(mfxVideoParam *par, mfxU16 NumFrameMin)
+mfxStatus InputSurfaces::Reset(mfxVideoParam *par)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -553,7 +553,6 @@ mfxStatus InputSurfaces::Reset(mfxVideoParam *par, mfxU16 NumFrameMin)
 
     MFX_INTERNAL_CPY(&m_Info,&par->mfx.FrameInfo,sizeof(mfxFrameInfo));
 
-    std::ignore = NumFrameMin;
     bool bSysMemFrames = (par->IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY) != 0;
     MFX_CHECK(bSysMemFrames == m_bSysMemFrames || !m_bInitialized, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     m_bSysMemFrames = bSysMemFrames;

@@ -1591,7 +1591,7 @@ mfxStatus ExtBRC::GetFrameCtrl (mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
                     else if (raca == MIN_RACA && qpMin>3)                           qpMin -= 3; // uncertainty; use re-encoding for best results
                 }
 
-                ltrprintf("Min QpI %d\n", qpMin);
+                ltrprintf("Min QpI %d Schg %d\n", qpMin, ParSceneChange);
             }
         }
         else //if (type == MFX_FRAMETYPE_P)

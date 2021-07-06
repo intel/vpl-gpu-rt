@@ -45,14 +45,14 @@ public:
           m_bInitialized (false)
       {
           memset(&m_request,  0, sizeof(mfxFrameAllocRequest));
-          memset(&m_response, 0, sizeof (mfxFrameAllocResponse));  
+          memset(&m_response, 0, sizeof (mfxFrameAllocResponse));
           memset(&m_Info,0,sizeof(mfxFrameInfo));
       }
      virtual ~InputSurfaces()
      {
-         Close();     
+         Close();
      }
-     mfxStatus Reset(mfxVideoParam *par, mfxU16 numFrameMin);
+     mfxStatus Reset(mfxVideoParam *par);
 
      mfxStatus Close();
 

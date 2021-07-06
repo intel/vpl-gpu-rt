@@ -179,7 +179,7 @@ mfxStatus MFXVideoDECODEVC1::Init(mfxVideoParam *par)
     m_CurrentTask = 0;
     m_WaitedTask = 0;
 
-    MFXSts  = CheckVideoParamDecoders(par, m_pCore->IsExternalFrameAllocator(), m_pCore->GetHWType(), m_pCore->IsCompatibleForOpaq());
+    MFXSts  = CheckVideoParamDecoders(par, m_pCore->GetHWType());
     MFX_CHECK_STS(MFXSts);
     MFXSts = CheckInput(par);
     MFX_CHECK_STS(MFXSts);
@@ -372,7 +372,7 @@ mfxStatus MFXVideoDECODEVC1::Reset(mfxVideoParam *par)
     Status          umcSts = UMC_OK;
 
     // Common parameters
-    MFXSts  = CheckVideoParamDecoders(par, m_pCore->IsExternalFrameAllocator(), m_pCore->GetHWType()/*MFX_HW_UNKNOWN*/, m_pCore->IsCompatibleForOpaq());
+    MFXSts  = CheckVideoParamDecoders(par, m_pCore->GetHWType());
     MFX_CHECK_STS(MFXSts);
 
     MFXSts = CheckInput(par);

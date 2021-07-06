@@ -30,14 +30,6 @@
 
 #include <libmfx_core_vaapi.h>
 
-// static section of the file
-namespace
-{
-
-
-} // namespace
-
-
 #define TRY_GET_SESSION(verMax,verMin) MFXIPtr<MFXISession_##verMax##_##verMin> TryGetSession_##verMax##_##verMin(mfxSession session) \
 { \
     if (session == NULL)\
@@ -55,8 +47,7 @@ TRY_GET_SESSION(2,1)
 //////////////////////////////////////////////////////////////////////////
 
 _mfxSession::_mfxSession(const mfxU32 adapterNum)
-    :
-      m_currentPlatform()
+    : m_currentPlatform()
     , m_adapterNum(adapterNum)
     , m_implInterface()
     , m_pScheduler()
@@ -102,19 +93,16 @@ void _mfxSession::Cleanup(void)
             m_pScheduler->WaitForAllTasksCompletion(m_pVPP.get());
         if (m_pENCODE.get())
             m_pScheduler->WaitForAllTasksCompletion(m_pENCODE.get());
-
     }
-
-    // unregister plugin before closing
 
     // release the components the excplicit way.
     // do not relay on default deallocation order,
     // somebody could change it.
+
     m_pVPP.reset();
     m_pDECODE.reset();
     m_pENCODE.reset();
-
-        m_pDVP.reset();
+    m_pDVP.reset();
 
     // release m_pScheduler and m_pSchedulerAllocated
     ReleaseScheduler();
@@ -276,7 +264,6 @@ void _mfxVersionedSessionImpl::SetAdapterNum(const mfxU32 adapterNum)
     m_adapterNum = adapterNum;
 }
 
-
 //////////////////////////////////////////////////////////////////////////
 // _mfxVersionedSessionImpl::MFXIUnknown members
 //////////////////////////////////////////////////////////////////////////
@@ -396,7 +383,6 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par)
     {
         m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_VAAPI, m_adapterNum, maxNumThreads, this));
     }
-
 
 
     // query the scheduler interface

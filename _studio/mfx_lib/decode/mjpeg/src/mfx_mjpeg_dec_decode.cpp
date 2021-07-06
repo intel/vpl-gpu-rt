@@ -132,7 +132,7 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
         type = m_core->GetHWType();
     }
 
-    if (CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type, m_core->IsCompatibleForOpaq()) < MFX_ERR_NONE)
+    if (CheckVideoParamDecoders(par, type) < MFX_ERR_NONE)
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
     if (!MFX_JPEG_Utility::CheckVideoParam(par, type))
@@ -315,7 +315,7 @@ mfxStatus VideoDECODEMJPEG::Reset(mfxVideoParam *par)
         type = m_core->GetHWType();
     }
 
-    if (CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type, m_core->IsCompatibleForOpaq()) < MFX_ERR_NONE)
+    if (CheckVideoParamDecoders(par, type) < MFX_ERR_NONE)
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
     if (!MFX_JPEG_Utility::CheckVideoParam(par, type))

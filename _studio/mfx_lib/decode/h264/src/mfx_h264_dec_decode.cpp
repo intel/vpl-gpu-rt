@@ -220,7 +220,7 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
     eMFXHWType type = m_core->GetHWType();
 
-    mfxStatus mfxSts = CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type, m_core->IsCompatibleForOpaq());
+    mfxStatus mfxSts = CheckVideoParamDecoders(par, type);
     MFX_CHECK(mfxSts >= MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
 
     bool videoParamIsValid = MFX_Utility::CheckVideoParam(par, type);
@@ -581,7 +581,7 @@ mfxStatus VideoDECODEH264::Reset(mfxVideoParam *par)
 
     eMFXPlatform platform = MFX_Utility::GetPlatform(m_core, par);
 
-    mfxStatus mfxSts = CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type, m_core->IsCompatibleForOpaq());
+    mfxStatus mfxSts = CheckVideoParamDecoders(par, type);
     MFX_CHECK(mfxSts >= MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
 
     bool videoParamIsValid = MFX_Utility::CheckVideoParam(par, type);

@@ -139,7 +139,6 @@ namespace MfxHwMpeg2Encode
         VAEncMiscParameterBuffer           *m_pMiscParamsSeqInfo;
         VAEncMiscParameterBuffer           *m_pMiscParamsSkipFrame;
 
-
         VABufferID                          m_miscParamFpsId;
         VABufferID                          m_miscParamQualityId;
         VABufferID                          m_miscParamSeqInfoId;

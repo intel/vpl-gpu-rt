@@ -3135,7 +3135,7 @@ mfxStatus VAAPIEncoder::Destroy()
     return MFX_ERR_NONE;
 } // mfxStatus VAAPIEncoder::Destroy()
 
-#endif // (MFX_ENABLE_H264_VIDEO_ENCODE)
+#endif // MFX_ENABLE_H264_VIDEO_ENCODE
 /* EOF */
 
 

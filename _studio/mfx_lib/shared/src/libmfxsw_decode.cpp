@@ -439,9 +439,8 @@ mfxStatus MFXVideoDECODE_Close(mfxSession session)
         session->m_pScheduler->WaitForAllTasksCompletion(session->m_pDECODE.get());
 
         mfxRes = session->m_pDECODE->Close();
-        {
-            session->m_pDECODE.reset(nullptr);
-        }
+
+        session->m_pDECODE.reset(nullptr);
     }
     // handle error(s)
     catch(...)
