@@ -2557,8 +2557,7 @@ mfxStatus MfxHwH264Encode::CopyRawSurfaceToVideoMemory(
 
     mfxFrameSurface1 * surface = task.m_yuv;
 
-    if (    video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
-        )
+    if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
     {
 
         mfxStatus sts = MFX_ERR_NONE;
@@ -2673,8 +2672,7 @@ mfxStatus MfxHwH264Encode::GetNativeHandleToRawSurface(
     mfxFrameSurface1 * surface = task.m_yuv;
 
 
-    if (    video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
-        )
+    if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
         sts = core.GetFrameHDL(task.m_midRaw, nativeHandle);
     else if (video.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY)
         sts = core.GetExternalFrameHDL(*surface, handle);

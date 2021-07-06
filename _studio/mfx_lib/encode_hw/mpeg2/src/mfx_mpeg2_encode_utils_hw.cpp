@@ -1793,7 +1793,7 @@ namespace MPEG2EncoderHW
                 pInternalParams->SkipFrame   = 0;
             }
 
-            *reordered_surface = GetOpaqSurface(surface);
+            *reordered_surface = surface;
 
             if (m_InputFrameOrder < m_pWaitingList->GetDelay())
             {

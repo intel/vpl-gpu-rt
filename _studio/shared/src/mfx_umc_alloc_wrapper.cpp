@@ -730,7 +730,7 @@ UMC::Status mfx_UMC_FrameAllocator::Free(UMC::FrameMemID mid)
     return UMC::UMC_OK;
 }
 
-mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf, bool isOpaq)
+mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -778,21 +778,10 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf, b
         bool isFound = false;
         for (mfxI32 i = 0; i < m_externalFramesResponse->NumFrameActual; i++)
         {
-            if (!isOpaq)
+            if (m_pCore->MapIdx(m_externalFramesResponse->mids[i]) == surf->Data.MemId)
             {
-                if (m_pCore->MapIdx(m_externalFramesResponse->mids[i]) == surf->Data.MemId)
-                {
-                    isFound = true;
-                    break;
-                }
-            }
-            else // opaque means that we are working with internal surface as with external
-            {
-                if (m_externalFramesResponse->mids[i] == surf->Data.MemId)
-                {
-                    isFound = true;
-                    break;
-                }
+                isFound = true;
+                break;
             }
         }
 
@@ -846,7 +835,7 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf, b
     }
     else
     {
-        m_curIndex = FindSurface(surf, isOpaq);
+        m_curIndex = FindSurface(surf);
 
         if (m_curIndex != -1)
         {
@@ -929,7 +918,7 @@ mfxI32 mfx_UMC_FrameAllocator::AddSurface(mfxFrameSurface1 *surface)
     return index;
 }
 
-mfxI32 mfx_UMC_FrameAllocator::FindSurface(mfxFrameSurface1 *surf, bool isOpaq)
+mfxI32 mfx_UMC_FrameAllocator::FindSurface(mfxFrameSurface1 *surf)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -944,7 +933,7 @@ mfxI32 mfx_UMC_FrameAllocator::FindSurface(mfxFrameSurface1 *surf, bool isOpaq)
         for (mfxU32 i = 0; i < m_frameDataInternal.GetSize(); i++)
         {
             mfxMemId memId = m_frameDataInternal.GetSurface(i).Data.MemId;
-            sMemId = isOpaq == true ? memId : m_pCore->MapIdx(memId);
+            sMemId = m_pCore->MapIdx(memId);
             if (sMemId == data->MemId)
             {
                 return i;
@@ -1053,12 +1042,12 @@ mfxFrameSurface1 * mfx_UMC_FrameAllocator::GetSurface(UMC::FrameMemID index, mfx
     return surface;
 }
 
-mfxStatus mfx_UMC_FrameAllocator::PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam *, bool isOpaq)
+mfxStatus mfx_UMC_FrameAllocator::PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam *)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
 
     mfxStatus sts;
-    mfxU16 dstMemType = isOpaq?(MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET):(MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
+    mfxU16 dstMemType = (MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
 
     UMC::FrameData* frame = &m_frameDataInternal.GetFrameData(index);
 
@@ -1146,7 +1135,7 @@ mfxStatus mfx_UMC_FrameAllocator::PrepareToOutput(mfxFrameSurface1 *surface_work
     return sts;
 }
 
-SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, eMFXPlatform platform, mfxFrameAllocRequest& request, mfxFrameAllocRequest& request_internal, mfxFrameAllocResponse& response, mfxFrameAllocResponse& response_alien, void* opaq_surfaces, bool mapOpaq, bool needVppJPEG)
+SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, eMFXPlatform platform, mfxFrameAllocRequest& request, mfxFrameAllocRequest& request_internal, mfxFrameAllocResponse& response, mfxFrameAllocResponse& response_alien, bool needVppJPEG)
     : m_core(core)
     , m_response(response)
     , m_response_alien(response_alien)
@@ -1285,12 +1274,10 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
 
         bool useInternal = request.Type & MFX_MEMTYPE_INTERNAL_FRAME;
         mfxStatus mfxSts = MFX_ERR_NONE;
+        if (platform != MFX_PLATFORM_SOFTWARE && !useInternal)
         {
-            if (platform != MFX_PLATFORM_SOFTWARE && !useInternal)
-            {
-                request.AllocId = video_param.AllocId;
-                mfxSts = m_core->AllocFrames(&request, &m_response, false);
-            }
+            request.AllocId = video_param.AllocId;
+            mfxSts = m_core->AllocFrames(&request, &m_response, false);
         }
 
         MFX_CHECK_WITH_THROW(mfxSts >= MFX_ERR_NONE, mfxSts, mfx::mfxStatus_exception(mfxSts));
@@ -1847,7 +1834,7 @@ UMC::Status SurfaceSource::DecreaseReference(UMC::FrameMemID MID)
     }
 }
 
-mfxI32 SurfaceSource::FindSurface(mfxFrameSurface1 *surf, bool isOpaq)
+mfxI32 SurfaceSource::FindSurface(mfxFrameSurface1 *surf)
 {
     if (m_redirect_to_msdk20 != !!m_surface20_cache_decoder_surfaces)
     {
@@ -1885,7 +1872,7 @@ mfxI32 SurfaceSource::FindSurface(mfxFrameSurface1 *surf, bool isOpaq)
     }
     else
     {
-        return m_umc_allocator_adapter->FindSurface(surf, isOpaq);
+        return m_umc_allocator_adapter->FindSurface(surf);
     }
 }
 
@@ -1899,7 +1886,7 @@ mfxFrameSurface1* SurfaceSource::GetInternalSurface(mfxFrameSurface1* sfc_surf) 
     return decSurfIt->second;
 }
 
-mfxStatus SurfaceSource::SetCurrentMFXSurface(mfxFrameSurface1 *surf, bool isOpaq)
+mfxStatus SurfaceSource::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
 {
     MFX_CHECK(m_redirect_to_msdk20 == !!m_surface20_cache_decoder_surfaces, MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK(!m_redirect_to_msdk20 == !!m_umc_allocator_adapter, MFX_ERR_NOT_INITIALIZED);
@@ -1960,7 +1947,7 @@ mfxStatus SurfaceSource::SetCurrentMFXSurface(mfxFrameSurface1 *surf, bool isOpa
     }
     else
     {
-        return m_umc_allocator_adapter->SetCurrentMFXSurface(surf, isOpaq);
+        return m_umc_allocator_adapter->SetCurrentMFXSurface(surf);
     }
 }
 
@@ -2145,7 +2132,7 @@ mfxFrameSurface1 * SurfaceSource::GetSurfaceByIndex(UMC::FrameMemID index)
     }
 }
 
-mfxStatus SurfaceSource::PrepareToOutput(mfxFrameSurface1 *surface_out, UMC::FrameMemID index, const mfxVideoParam * videoPar, bool isOpaq)
+mfxStatus SurfaceSource::PrepareToOutput(mfxFrameSurface1 *surface_out, UMC::FrameMemID index, const mfxVideoParam * videoPar)
 {
     MFX_CHECK(m_redirect_to_msdk20 == !!m_surface20_cache_decoder_surfaces, MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK(!m_redirect_to_msdk20 == !!m_umc_allocator_adapter, MFX_ERR_NOT_INITIALIZED);
@@ -2193,7 +2180,7 @@ mfxStatus SurfaceSource::PrepareToOutput(mfxFrameSurface1 *surface_out, UMC::Fra
     }
     else
     {
-        return m_umc_allocator_adapter->PrepareToOutput(surface_out, index, videoPar, isOpaq);
+        return m_umc_allocator_adapter->PrepareToOutput(surface_out, index, videoPar);
     }
 }
 
@@ -2245,13 +2232,13 @@ void SurfaceSource::SetFreeSurfaceAllowedFlag(bool flag)
 
 // D3D functionality
 // we should copy to external SW surface
-mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam *,bool isOpaq)
+mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam *)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
 
     mfxStatus sts = MFX_ERR_NONE;
     mfxMemId memInternal = m_frameDataInternal.GetSurface(index).Data.MemId;
-    mfxMemId memId = isOpaq?(memInternal):(m_pCore->MapIdx(memInternal));
+    mfxMemId memId = m_pCore->MapIdx(memInternal);
 
     if ((surface_work->Data.MemId)&&
         (surface_work->Data.MemId == memId))

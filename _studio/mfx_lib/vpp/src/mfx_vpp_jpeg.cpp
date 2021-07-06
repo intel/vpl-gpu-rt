@@ -95,7 +95,7 @@ enum
 
 };
 
-VideoVppJpeg::VideoVppJpeg(VideoCORE *core, bool isD3DToSys, bool isOpaq)
+VideoVppJpeg::VideoVppJpeg(VideoCORE *core, bool isD3DToSys)
     : m_surfaces()
     , m_guard()
     , AssocIdx()
@@ -103,8 +103,6 @@ VideoVppJpeg::VideoVppJpeg(VideoCORE *core, bool isD3DToSys, bool isOpaq)
 {
     m_pCore = core;
     m_isD3DToSys = isD3DToSys;
-
-    m_isOpaq = isOpaq;
 
     m_taskId = 1;
 #ifdef MFX_ENABLE_MJPEG_ROTATE_VPP
@@ -268,14 +266,7 @@ mfxStatus VideoVppJpeg::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface,
     }
     else
     {
-       if(m_isOpaq)
-       {
-            MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pOutputSurface, hdl));
-       }
-       else
-       {
-            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*pOutputSurface, hdl));
-       }
+        MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*pOutputSurface, hdl));
     }
 
     out = hdl;
@@ -365,14 +356,7 @@ mfxStatus VideoVppJpeg::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop
     }
     else
     {
-       if(m_isOpaq)
-       {
-            MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pOutputSurface, hdl));
-       }
-       else
-       {
-            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*pOutputSurface, hdl));
-       }
+        MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*pOutputSurface, hdl));
     }
 
     out = hdl;
@@ -454,14 +438,7 @@ mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfx
     }
     else
     {
-       if(m_isOpaq)
-       {
-            MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pOutputSurface, hdl));
-       }
-       else
-       {
-            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*pOutputSurface, hdl));
-       }
+        MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*pOutputSurface, hdl));
     }
     out = hdl;
     
@@ -523,14 +500,7 @@ mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop,
     }
     else
     {
-       if(m_isOpaq)
-       {
-            MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pOutputSurface, hdl));
-       }
-       else
-       {
-            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*pOutputSurface, hdl));
-       }
+        MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*pOutputSurface, hdl));
     }
     out = hdl;
 

@@ -171,7 +171,6 @@ MFXVideoENCODEMJPEG_HW::MFXVideoENCODEMJPEG_HW(VideoCORE *core, mfxStatus *sts)
     m_pCore        = core;
     m_bInitialized = false;
     m_deviceFailed = false;
-    m_isOpaqIn     = false;
     m_counter      = 1;
 
     memset(&m_vFirstParam, 0, sizeof(mfxVideoParam));
@@ -536,12 +535,10 @@ mfxStatus MFXVideoENCODEMJPEG_HW::QueryIOSurf(VideoCORE * core, mfxVideoParam *p
     // check for valid IOPattern
     mfxU16 IOPatternIn = par->IOPattern & (
           MFX_IOPATTERN_IN_VIDEO_MEMORY
-        | MFX_IOPATTERN_IN_SYSTEM_MEMORY
-    );
+        | MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     if (!par->IOPattern || (
            (IOPatternIn != MFX_IOPATTERN_IN_VIDEO_MEMORY)
-        && (IOPatternIn != MFX_IOPATTERN_IN_SYSTEM_MEMORY)
-        ))
+        && (IOPatternIn != MFX_IOPATTERN_IN_SYSTEM_MEMORY)))
     {
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
@@ -808,12 +805,10 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Reset(mfxVideoParam *par)
     // check for valid IOPattern
     mfxU16 IOPatternIn = par->IOPattern & (
           MFX_IOPATTERN_IN_VIDEO_MEMORY
-        | MFX_IOPATTERN_IN_SYSTEM_MEMORY
-    );
+        | MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     if (!par->IOPattern || (
            (IOPatternIn != MFX_IOPATTERN_IN_VIDEO_MEMORY)
-        && (IOPatternIn != MFX_IOPATTERN_IN_SYSTEM_MEMORY)
-        ))
+        && (IOPatternIn != MFX_IOPATTERN_IN_SYSTEM_MEMORY)))
     {
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
@@ -919,19 +914,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::EncodeFrameCheck(
     mfxExtJPEGHuffmanTables* jpegHT = NULL;
     JpegEncCaps              hwCaps = {};
 
-    mfxFrameSurface1 *surface = GetOriginalSurface(inSurface);
-    // input surface is opaque surface
-    if (surface != inSurface)
-    {
-        if (surface == 0)
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
-
-        surface->Info = inSurface->Info;
-        surface->Data.Corrupted = inSurface->Data.Corrupted;
-        surface->Data.DataFlag = inSurface->Data.DataFlag;
-        surface->Data.TimeStamp = inSurface->Data.TimeStamp;
-        surface->Data.FrameOrder = inSurface->Data.FrameOrder;
-    }
+    mfxFrameSurface1 *surface = inSurface;
 
     if (inSurface && !surface)
     {
@@ -1148,7 +1131,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::TaskRoutineSubmitFrame(
             dst.Info.FourCC = MFX_FOURCC_BGR4;
             dst.Data = dstSurf;
             src_memtype = (mfxU16)((nativeSurf->Data.B == 0)?MFX_MEMTYPE_DXVA2_DECODER_TARGET:MFX_MEMTYPE_SYSTEM_MEMORY);
-            src_memtype |= enc.m_isOpaqIn? MFX_MEMTYPE_INTERNAL_FRAME: MFX_MEMTYPE_EXTERNAL_FRAME;
+            src_memtype |= MFX_MEMTYPE_EXTERNAL_FRAME;
             sts = enc.m_pCore->DoFastCopyWrapper(&dst,MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_INTERNAL_FRAME,nativeSurf,
                 src_memtype);
             MFX_CHECK_STS(sts);

@@ -101,10 +101,6 @@ public:
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
-    inline mfxFrameSurface1* GetOriginalSurface(mfxFrameSurface1 *surface)
-    {
-        return m_isOpaqIn ? m_pCore->GetNativeSurface(surface): surface;
-    }
 protected:
     // callbacks to work with scheduler
     static mfxStatus TaskRoutineSubmitFrame(void * state,
@@ -132,7 +128,6 @@ protected:
 
     bool                m_bInitialized;
     bool                m_deviceFailed;
-    bool                m_isOpaqIn;
 
     mfxFrameAllocResponse m_raw;        // raw surface, for input raw is in system memory case
     MfxFrameAllocResponse m_bitstream;  // bitstream surface

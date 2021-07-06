@@ -204,7 +204,6 @@ namespace MPEG2EncoderHW
         mfxStatus CheckFrameType   (mfxEncodeInternalParams *pInternalParams); 
 
         inline bool isHWInput () {return !m_InputSurfaces.isSysMemFrames();}
-        inline bool isOpaq() { return m_InputSurfaces.isOpaq(); }
 
         inline mfxU16 GetInputFrameType() 
         {
@@ -244,11 +243,6 @@ namespace MPEG2EncoderHW
         {
             return m_InputSurfaces.GetOriginalSurface(surface);
         }
-
-        mfxFrameSurface1 *GetOpaqSurface(mfxFrameSurface1 *surface)
-        {
-            return m_InputSurfaces.GetOpaqSurface(surface);
-        } 
 
 
     }; // class ControllerBase

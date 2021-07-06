@@ -633,26 +633,7 @@ mfxFrameSurface1* CommonCORE::GetNativeSurface(mfxFrameSurface1 *pOpqSurface, bo
     return 0;
 
 }
-mfxFrameSurface1* CommonCORE::GetOpaqSurface(mfxMemId mid, bool ExtendedSearch)
-{
-    if (0 == mid)
-        return 0;
 
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::GetOpaqSurface");
-    {
-        UMC::AutomaticUMCMutex guard(m_guard);
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "GetOpaqSurface");
-        OpqTbl_MemId::iterator opq_it = m_OpqTbl_MemId.find(mid);
-        if (m_OpqTbl_MemId.end() != opq_it) {
-            return opq_it->second;
-        }
-    }
-
-    if (ExtendedSearch)
-        return m_session->m_pOperatorCore->GetSurface(&VideoCORE::GetOpaqSurface, mid);
-
-    return 0;
-}
 mfxStatus CommonCORE::FreeMidArray(mfxFrameAllocator* pAlloc, mfxFrameAllocResponse *response)
 {
     UMC::AutomaticUMCMutex guard(m_guard);

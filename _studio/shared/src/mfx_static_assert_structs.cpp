@@ -1136,7 +1136,6 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCoreInterface               ,MapOpaqueSurface                  ,192  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCoreInterface               ,UnmapOpaqueSurface                ,200  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCoreInterface               ,GetRealSurface                    ,208  )
-        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCoreInterface               ,GetOpaqueSurface                  ,216  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCoreInterface               ,CreateAccelerationDevice          ,224  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCoreInterface               ,GetFrameHandle                    ,232  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCoreInterface               ,QueryPlatform                     ,240  )

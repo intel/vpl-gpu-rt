@@ -145,10 +145,6 @@ protected:
     mfxStatus GetStatusReport();
     mfxStatus ProcessSkippedFrame();
 
-
-    // for Opaque processing
-    mfxFrameSurface1 *GetOriginalSurface(mfxFrameSurface1 *surface);
-
     static bool         IsBufferMode(VideoCORE *pCore, mfxVideoParam *par);
 
     bool                IsStatusReportEnable();
@@ -223,7 +219,6 @@ protected:
     mfxU32                           m_SubmitFrame;
     bool                             m_bIsFirstField;
 
-    bool                             m_IsOpaq;
     mfxFrameSurface1                *m_pPrevOutSurface; // to process skipped frames through coping 
 
     std::vector<uint8_t>                m_RawSeq;

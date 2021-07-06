@@ -184,7 +184,6 @@ public:
 
     virtual mfxMemId MapIdx(mfxMemId mid) = 0;
     virtual mfxFrameSurface1* GetNativeSurface(mfxFrameSurface1 *pOpqSurface, bool ExtendedSearch = true) = 0;
-    virtual mfxFrameSurface1* GetOpaqSurface(mfxMemId mid, bool ExtendedSearch = true) = 0;
 
     // Increment Surface lock
     virtual mfxStatus  IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch = true) = 0;

@@ -85,8 +85,6 @@ private:
     // Internal implementation of API QueryIOSurf function
     static mfxStatus QueryIOSurfInternal(eMFXPlatform, mfxVideoParam*, mfxFrameAllocRequest*);
 
-    // Fill up frame allocator request data
-
     // Decoder threads entry point
     static mfxStatus DecodeRoutine(void* state, void* param, mfxU32, mfxU32);
     // Threads complete proc callback
@@ -103,9 +101,6 @@ private:
     UMC_MPEG2_DECODER::MPEG2DecoderFrame* GetFrameToDisplay();
     // Fill mfxFrameSurface1 meta information
     mfxStatus FillOutputSurface(mfxFrameSurface1* surface_work, mfxFrameSurface1** surf_out, UMC_MPEG2_DECODER::MPEG2DecoderFrame* frame) const;
-    // Get real surface from opaque surface
-    mfxFrameSurface1* GetOriginalSurface(mfxFrameSurface1* surface) const
-    { return m_opaque ? m_core->GetNativeSurface(surface) : surface; }
     // Fill up resolution information if new header arrived
     void FillVideoParam(mfxVideoParamWrapper*, bool);
     // Check if new parameters are compatible with new parameters
@@ -120,7 +115,6 @@ private:
     std::unique_ptr<SurfaceSource>                   m_surface_source;
     std::unique_ptr<UMC_MPEG2_DECODER::MPEG2Decoder> m_decoder;
 
-    bool                                             m_opaque;
     bool                                             m_first_run;
     bool                                             m_allow_null_work_surface;
 
