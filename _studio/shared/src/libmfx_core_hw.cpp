@@ -74,22 +74,22 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
         case MFX_FOURCC_P010:
             profile |= VA_PROFILE_10;
             break;
+
         case MFX_FOURCC_AYUV:
             profile |= VA_PROFILE_444;
             break;
-#if (MFX_VERSION >= 1027)
+
         case MFX_FOURCC_Y410:
             profile |= VA_PROFILE_10 | VA_PROFILE_444;
             break;
-#endif
-#if (MFX_VERSION >= 1031)
+
         case MFX_FOURCC_P016:
             profile |= VA_PROFILE_12;
             break;
+
         case MFX_FOURCC_Y416:
             profile |= VA_PROFILE_12 | VA_PROFILE_444;
             break;
-#endif
         }
         break;
 
@@ -118,15 +118,12 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
             case MFX_FOURCC_AYUV:
                 profile |= VA_PROFILE_444;
                 break;
-#if (MFX_VERSION >= 1027)
             case MFX_FOURCC_Y210:
                 profile |= VA_PROFILE_10 | VA_PROFILE_422;
                 break;
             case MFX_FOURCC_Y410:
                 profile |= VA_PROFILE_10 | VA_PROFILE_444;
                 break;
-#endif
-#if (MFX_VERSION >= 1031)
             case MFX_FOURCC_P016:
                 profile |= VA_PROFILE_12;
                 break;
@@ -136,20 +133,15 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
             case MFX_FOURCC_Y416:
                 profile |= VA_PROFILE_12 | VA_PROFILE_444;
                 break;
-#endif
         }
 
         {
             mfxU32 const profile_idc = ExtractProfile(param->mfx.CodecProfile);
-#if (MFX_VERSION >= 1032)
             if (profile_idc == MFX_PROFILE_HEVC_SCC)
                 profile |= VA_PROFILE_SCC;
-#endif
 
-#if (MFX_VERSION >= 1027)
             if (profile_idc == MFX_PROFILE_HEVC_REXT)
                 profile |= VA_PROFILE_REXT;
-#endif
         }
         break;
 

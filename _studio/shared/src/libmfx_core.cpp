@@ -765,9 +765,7 @@ static inline mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id)
 {
     mfxPlatform platform = {};
 
-#if (MFX_VERSION >= 1031)
     platform.MediaAdapterType = MFX_MEDIA_INTEGRATED;
-#endif
 
     switch (type)
     {
@@ -1254,9 +1252,7 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
     switch (dst.Info.FourCC)
     {
     case MFX_FOURCC_P010:
-#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_P016:
-#endif
 
         if (src.Info.Shift != dst.Info.Shift)
         {
@@ -1328,11 +1324,8 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
 
         return FastCopy::Copy(dst.Data.Y, dstPitch, src.Data.Y, srcPitch, roi, copyFlag);
 
-#if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
-#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_Y216:
-#endif
 
         MFX_CHECK_NULL_PTR1(src.Data.Y);
 
@@ -1366,9 +1359,7 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
 
         return FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
     }
-#endif
 
-#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_Y416:
         MFX_CHECK_NULL_PTR1(src.Data.U16);
 
@@ -1390,7 +1381,6 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
             roi.width *= 8;
             return FastCopy::Copy((mfxU8*)dst.Data.U16, dstPitch, (mfxU8*)src.Data.U16, srcPitch, roi, copyFlag);
         }
-#endif
 
 #if defined (MFX_ENABLE_FOURCC_RGB565)
     case MFX_FOURCC_RGB565:

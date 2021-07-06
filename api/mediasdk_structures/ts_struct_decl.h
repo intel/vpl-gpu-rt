@@ -940,7 +940,6 @@ STRUCT(mfxBRCFrameParam,
     FIELD_T(mfxExtBuffer**, ExtParam)
 )
 
-#if (MFX_VERSION >= 1029)
 STRUCT(mfxBRCFrameCtrl,
     FIELD_T(mfxI32        , QpY)
     FIELD_T(mfxU32        , InitialCpbRemovalDelay)
@@ -952,13 +951,6 @@ STRUCT(mfxBRCFrameCtrl,
     FIELD_T(mfxU16        , NumExtParam)
     FIELD_T(mfxExtBuffer**, ExtParam)
 )
-#else
-STRUCT(mfxBRCFrameCtrl,
-    FIELD_T(mfxI32, QpY)
-    FIELD_T(mfxU32, reserved1)
-    FIELD_T(mfxHDL, reserved2)
-)
-#endif
 
 STRUCT(mfxBRCFrameStatus,
     FIELD_T(mfxU32, MinFrameSize)
@@ -984,12 +976,10 @@ STRUCT(mfxExtEncodedUnitsInfo,
 
 #if defined(__MFXPCP_H__) && !defined(MFX_ONEVPL) || defined(__MFXPAVP_H__)
 
-#if (MFX_VERSION >= 1030)
 STRUCT(mfxExtCencParam,
     FIELD_S(mfxExtBuffer, Header)
     FIELD_T(mfxU32      , StatusReportIndex)
 )
-#endif
 
 #endif // defined(__MFXPCP_H__)
 
@@ -1000,13 +990,11 @@ STRUCT(mfxExtSCD,
 )
 #endif // defined(__MFXSCD_H__)
 
-#if (MFX_VERSION >= 1026)
 STRUCT(mfxExtVppMctf,
     FIELD_S(mfxExtBuffer, Header)
     FIELD_T(mfxU16, FilterStrength)
 )
 
-#if (MFX_VERSION >= 1034)
 STRUCT(mfxAV1FilmGrainPoint,
     FIELD_T(mfxU8, Value)
     FIELD_T(mfxU8, Scaling)
@@ -1037,19 +1025,13 @@ STRUCT(mfxExtAV1FilmGrainParam,
     FIELD_T(mfxU8, CrLumaMult)
     FIELD_T(mfxU16, CrOffset)
 )
-#endif
 
-#endif
-
-
-#if (MFX_VERSION >= 1031)
 STRUCT(mfxExtPartialBitstreamParam,
     FIELD_S(mfxExtBuffer, Header)
     FIELD_T(mfxU32, BlockSize)
     FIELD_T(mfxU16, Granularity)
     FIELD_T(mfxU16, reserved)
 )
-#endif
 
 #if defined(MFX_ENABLE_USER_ENCTOOLS)
 STRUCT(mfxExtEncToolsConfig,
