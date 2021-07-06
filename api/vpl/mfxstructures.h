@@ -3791,6 +3791,21 @@ typedef struct {
 } mfxExtVPPScaling;
 MFX_PACK_END()
 
+/* SceneChangeType */
+enum {
+    MFX_SCENE_NO_CHANGE = 0,
+    MFX_SCENE_START     = 1,
+    MFX_SCENE_END       = 2
+};
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+typedef struct {
+    mfxExtBuffer Header;
+
+    mfxU16 Type;
+    mfxU16 reserved[11];
+} mfxExtSceneChange;
+MFX_PACK_END()
 
 typedef mfxExtAVCRefListCtrl mfxExtHEVCRefListCtrl;
 typedef mfxExtAVCRefLists mfxExtHEVCRefLists;
@@ -4130,6 +4145,14 @@ typedef struct {
 } mfxExtEncodedUnitsInfo;
 MFX_PACK_END()
 
+/*! The MCTFTemporalMode enumerator itemizes temporal filtering modes. */
+enum {
+    MFX_MCTF_TEMPORAL_MODE_UNKNOWN  = 0,
+    MFX_MCTF_TEMPORAL_MODE_SPATIAL  = 1,
+    MFX_MCTF_TEMPORAL_MODE_1REF     = 2,
+    MFX_MCTF_TEMPORAL_MODE_2REF     = 3,
+    MFX_MCTF_TEMPORAL_MODE_4REF     = 4
+};
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
@@ -4148,7 +4171,21 @@ typedef struct {
                                       If the field value is in the range of 1 to 20 inclusive, MCTF operates in fixed-strength mode with the given strength of MCTF process.
 
                                       At runtime, values of 0 and greater than 20 are ignored. */
-    mfxU16       reserved[27];
+    mfxU16       Overlap;             /* Turn off or turn on overlap during motion estimation/compensation. See the CodingOptionValue enumerator for
+                                         values of this option. */
+    mfxU32       BitsPerPixelx100k;   /* Carries information of a compressed bitstream that is the result of an encoding process following
+                                         MCTF (if any). Actual average number of bits spent per pixel in the compressed bitstream is derived as
+                                         BitsPerPixelx100k divided by 100000.0. The MCTF process may use this information as an additional hint to
+                                         optimize the filtering process for a particular encoding applied afterwards. */
+    mfxU16       Deblocking;          /* Turn the deblocking filter off or on within MCTF process. See the CodingOptionValue enumerator for
+                                         values of this option. */
+    mfxU16       TemporalMode;        /* See the MCTFTemporalMode enumerator for values of this option. These modes are all different in
+                                         terms of quality improvements and performance. In general, 4-reference filtering provides the highest quality
+                                         and 1-reference filtering provides highest speed. The spatial filtering process is different
+                                         as it does not use any processing between frames. Thus spatial filtering provides the smallest memory footprint. */
+    mfxU16       MVPrecision;         /* Determines how precise the motion compensation process is. See the MVPrecision enumerator for values of this option.
+                                         Integer and quarter-pixel are supported. */
+    mfxU16       reserved[21];
 } mfxExtVppMctf;
 MFX_PACK_END()
 

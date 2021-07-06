@@ -242,6 +242,9 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVPPRotation            ,32   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtEncodedSlicesInfo      ,64   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVPPScaling             ,32   )
+
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtSceneChange            ,32   )
+
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVPPMirroring           ,32   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtMVOverPicBoundaries    ,32   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVPPColorFill           ,32   )
@@ -1035,6 +1038,9 @@
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPScaling                   ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPScaling                   ,ScalingMode                   ,8    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSceneChange                  ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSceneChange                  ,Type                          ,8    )
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPMirroring                 ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPMirroring                 ,Type                          ,8    )
