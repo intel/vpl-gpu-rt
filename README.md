@@ -1,13 +1,45 @@
 # Intel® oneVPL GPU Runtime
-Intel® oneVPL GPU Runtime provides a plain C API to access hardware-accelerated video decode, encode and filtering on Intel® graphics hardware platforms. GPU Runtime is successor for Intel [Media SDK](https://github.com/Intel-Media-SDK/MediaSDK). Implementation written in C++ 14 with parts in C-for-Media (CM).
+
+Intel® oneVPL GPU Runtime is a Runtime implementation of [oneVPL](https://github.com/oneapi-src/oneVPL/)
+API for Intel Gen GPUs. Runtime provides access to hardware-accelerated video decode, encode and filtering.
 
 **Supported video encoders**: HEVC, AVC, MPEG-2, JPEG, VP9  
 **Supported video decoders**: HEVC, AVC, VP8, VP9, MPEG-2, VC1, JPEG, AV1  
 **Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate, Composition  
 
+Implementation is written in C++ 14 with parts in C-for-Media (CM).
+
 oneVPL GPU Runtime is a part of Intel software stack for graphics:
 * [Linux Graphics Drivers](https://intel.com/linux-graphics-drivers) - General Purpose GPU Drivers for Linux Operating Systems
   * Visit [documentation](https://dgpu-docs.intel.com) for instructions on installing, deploying, and updating Intel software to enable general purpose GPU (GPGPU) capabilities for Linux-based operating system distributions.
+
+oneVPL Library and oneVPL GPU Runtime are successors for Intel [Media SDK](https://github.com/Intel-Media-SDK/MediaSDK).
+
+# How to use
+
+This runtime implementation is not self-sufficient. Application should use
+one of the available frontend dispatcher libraries:
+
+* [oneVPL](https://github.com/oneapi-src/oneVPL/)
+* [Media SDK](https://github.com/Intel-Media-SDK/MediaSDK)
+
+We strongly recommend to use [oneVPL](https://github.com/oneapi-src/oneVPL/)
+as a dispatcher frontend (libvpl.so.2). [Media SDK](https://github.com/Intel-Media-SDK/MediaSDK)
+dispatcher (libmfx.so.1) can be used as well, but you will get capabilities limited by those which
+are exposed via Media SDK API and which are actually implemented by oneVPL
+Runtime. Basically, compatibility with Media SDK is provided to support
+Media SDK based applications which did not yet migrate to oneVPL on a new HW
+platforms.
+
+oneVPL Gen Runtime implementation supports the following hardware platforms:
+
+| GPU | Supported |
+| --- | --------- |
+| TGL (Tiger Lake) | ✔ |
+| DG1 (Xe MAX) | ✔ |
+| RKL (Rocket Lake) | ✔ |
+| ADL-S (Alder Lake S) | ✔ |
+| ADL-P (Alder Lake P) | ✔ |
 
 # Dependencies
 oneVPL GPU Runtime depends on [LibVA](https://github.com/intel/libva/).
