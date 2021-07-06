@@ -304,15 +304,12 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
     case MFX_FOURCC_AYUV:
         color_format = UMC::AYUV;
         break;
-#if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
         color_format = UMC::Y210;
         break;
     case MFX_FOURCC_Y410:
         color_format = UMC::Y410;
         break;
-#endif
-#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_P016:
         color_format = UMC::P016;
         break;
@@ -322,7 +319,6 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
     case MFX_FOURCC_Y416:
         color_format = UMC::Y416;
         break;
-#endif
     default:
         return UMC::UMC_ERR_UNSUPPORTED;
     }
@@ -749,15 +745,10 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
 
     if (   surf->Info.FourCC == MFX_FOURCC_P010
         || surf->Info.FourCC == MFX_FOURCC_P210
-#if (MFX_VERSION >= 1027)
         || surf->Info.FourCC == MFX_FOURCC_Y210
-#endif
-#if (MFX_VERSION >= 1031)
         || surf->Info.FourCC == MFX_FOURCC_P016
         || surf->Info.FourCC == MFX_FOURCC_Y216
-        || surf->Info.FourCC == MFX_FOURCC_Y416
-#endif
-        )
+        || surf->Info.FourCC == MFX_FOURCC_Y416)
     {
         if (m_isSWDecode)
         {
@@ -896,13 +887,9 @@ mfxI32 mfx_UMC_FrameAllocator::AddSurface(mfxFrameSurface1 *surface)
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_P010:
     case MFX_FOURCC_P210:
-#if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
     case MFX_FOURCC_Y410:
-#endif
-#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_Y216:
-#endif
         break;
     default:
         return -1;
@@ -1238,15 +1225,12 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         case MFX_FOURCC_AYUV:
             color_format = UMC::AYUV;
             break;
-#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y210:
             color_format = UMC::Y210;
             break;
         case MFX_FOURCC_Y410:
             color_format = UMC::Y410;
             break;
-#endif
-#if (MFX_VERSION >= 1031)
         case MFX_FOURCC_P016:
             color_format = UMC::P016;
             break;
@@ -1256,7 +1240,6 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         case MFX_FOURCC_Y416:
             color_format = UMC::Y416;
             break;
-#endif
         default:
             MFX_CHECK_WITH_THROW(false, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
         }

@@ -847,8 +847,7 @@ mfxStatus Query_H265(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out, eMF
             || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
             || in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016 
             || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216
-            || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416
-            )
+            || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416)
         {
             if (in->mfx.FrameInfo.Shift > 1)
             {
@@ -993,8 +992,7 @@ bool CheckVideoParam_H265(mfxVideoParam *in, eMFXHWType type)
         && in->mfx.FrameInfo.FourCC != MFX_FOURCC_Y410
         && in->mfx.FrameInfo.FourCC != MFX_FOURCC_P016
         && in->mfx.FrameInfo.FourCC != MFX_FOURCC_Y216
-        && in->mfx.FrameInfo.FourCC != MFX_FOURCC_Y416
-        )
+        && in->mfx.FrameInfo.FourCC != MFX_FOURCC_Y416)
         return false;
 
     // both zero or not zero
@@ -1012,10 +1010,10 @@ bool CheckVideoParam_H265(mfxVideoParam *in, eMFXHWType type)
     if (!CheckFourcc(in->mfx.FrameInfo.FourCC, in->mfx.CodecProfile, &in->mfx.FrameInfo))
         return false;
 
-    if (in->mfx.FrameInfo.FourCC == MFX_FOURCC_P010 
+    if (in->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
         || in->mfx.FrameInfo.FourCC == MFX_FOURCC_P210
         || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
-        || in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016 
+        || in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016
         || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216
         || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416)
     {

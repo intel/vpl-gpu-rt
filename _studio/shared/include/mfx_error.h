@@ -72,9 +72,8 @@ namespace mfx
                 MFX_WRN_OUT_OF_RANGE,                "MFX_WRN_OUT_OF_RANGE: the value is out of valid range",
                 MFX_WRN_FILTER_SKIPPED,              "MFX_WRN_FILTER_SKIPPED: one of requested filters has been skipped",
 
-#if MFX_VERSION >= 1031
                 MFX_ERR_NONE_PARTIAL_OUTPUT,         "MFX_ERR_NONE_PARTIAL_OUTPUT: frame is not ready, but bitstream contains partial output",
-#endif
+
                 MFX_TASK_WORKING,                    "MFX_TASK_WORKING: there is some more work to do",
                 MFX_TASK_BUSY,                       "MFX_TASK_BUSY: task is waiting for resources",
                 MFX_ERR_MORE_DATA_SUBMIT_TASK,       "MFX_ERR_MORE_DATA_SUBMIT_TASK: return MFX_ERR_MORE_DATA but submit internal asynchronous task"

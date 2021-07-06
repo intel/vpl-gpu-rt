@@ -3210,7 +3210,6 @@ Status TaskSupplier::ProcessNalUnit(NalUnit *nalUnit, mfxExtDecodeErrorReport * 
 
         if (pDecodeErrorReport && umcRes == UMC_ERR_INVALID_STREAM)
            SetDecodeErrorTypes(nalUnit->GetNalUnitType(), pDecodeErrorReport);
-
         break;
 
     case NAL_UT_SEI:

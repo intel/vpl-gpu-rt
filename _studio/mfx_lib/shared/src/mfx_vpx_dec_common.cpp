@@ -180,8 +180,7 @@ namespace MFX_VPX_Utility
             p_out->mfx.FrameInfo.BitDepthChroma = p_in->mfx.FrameInfo.BitDepthChroma;
             p_out->mfx.FrameInfo.Shift = p_in->mfx.FrameInfo.Shift;
 
-            if ((p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_NV12
-                || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV) &&
+            if ((p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_NV12 || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV) &&
                ((p_in->mfx.FrameInfo.BitDepthLuma   != 0 && p_in->mfx.FrameInfo.BitDepthLuma   != 8) ||
                 (p_in->mfx.FrameInfo.BitDepthChroma != 0 && p_in->mfx.FrameInfo.BitDepthChroma != 8) ||
                     p_in->mfx.FrameInfo.Shift))
@@ -191,8 +190,7 @@ namespace MFX_VPX_Utility
                 p_out->mfx.FrameInfo.Shift = 0;
                 sts = MFX_ERR_UNSUPPORTED;
             }
-            if ((  p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-                || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410) &&
+            if ((p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P010 || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410) &&
                 ((p_in->mfx.FrameInfo.BitDepthLuma != 0 && p_in->mfx.FrameInfo.BitDepthLuma != 10) ||
                  (p_in->mfx.FrameInfo.BitDepthChroma != 0 && p_in->mfx.FrameInfo.BitDepthChroma != 10)))
             {
@@ -201,8 +199,7 @@ namespace MFX_VPX_Utility
                 p_out->mfx.FrameInfo.Shift = 0;
                 sts = MFX_ERR_UNSUPPORTED;
             }
-            if ((  p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016
-                || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416) &&
+            if ((p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016 || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416) &&
                 ((p_in->mfx.FrameInfo.BitDepthLuma != 0 && p_in->mfx.FrameInfo.BitDepthLuma != 12) ||
                  (p_in->mfx.FrameInfo.BitDepthChroma != 0 && p_in->mfx.FrameInfo.BitDepthChroma != 12)))
             {

@@ -109,9 +109,11 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
 
     if (info->Shift)
     {
-        if (   info->FourCC != MFX_FOURCC_P010 && info->FourCC != MFX_FOURCC_P210
+        if (   info->FourCC != MFX_FOURCC_P010 
+            && info->FourCC != MFX_FOURCC_P210
             && info->FourCC != MFX_FOURCC_Y210
-            && info->FourCC != MFX_FOURCC_P016 && info->FourCC != MFX_FOURCC_Y216
+            && info->FourCC != MFX_FOURCC_P016 
+            && info->FourCC != MFX_FOURCC_Y216
             && info->FourCC != MFX_FOURCC_Y416)
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
@@ -205,8 +207,8 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
             && info->FourCC != MFX_FOURCC_Y410
             && info->FourCC != MFX_FOURCC_P016
             && info->FourCC != MFX_FOURCC_Y216
-            && info->FourCC != MFX_FOURCC_Y416
-            )
+            && info->FourCC != MFX_FOURCC_Y416)
+
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         break;
 #if defined(MFX_ENABLE_AV1_VIDEO_CODEC)
@@ -446,7 +448,9 @@ mfxStatus CheckFramePointers(mfxFrameInfo const& info, mfxFrameData const& data)
         case MFX_FOURCC_P210:        MFX_CHECK(data.Y && data.UV, MFX_ERR_UNDEFINED_BEHAVIOR); break;
 
         case MFX_FOURCC_Y216:        MFX_CHECK(data.Y16 && data.U16 && data.V16, MFX_ERR_UNDEFINED_BEHAVIOR); break;
+
         case MFX_FOURCC_Y416:        MFX_CHECK(data.Y16 && data.U16 && data.V16 && data.A , MFX_ERR_UNDEFINED_BEHAVIOR); break;
+
 #if defined (MFX_ENABLE_FOURCC_RGB565)
         case MFX_FOURCC_RGB565:      MFX_CHECK(data.R && data.G && data.B, MFX_ERR_UNDEFINED_BEHAVIOR); break;
 #endif // MFX_ENABLE_FOURCC_RGB565
