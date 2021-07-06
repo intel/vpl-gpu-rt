@@ -30,7 +30,6 @@
 class InputSurfaces
 {
 private:
-    bool                    m_bOpaq;
     bool                    m_bSysMemFrames;
     VideoCORE*              m_pCore;
     mfxFrameAllocRequest    m_request;
@@ -41,7 +40,6 @@ private:
 
 public:
     InputSurfaces(VideoCORE* pCore):
-      m_bOpaq(false),
           m_bSysMemFrames(false),
           m_pCore(pCore),
           m_bInitialized (false)
@@ -57,20 +55,13 @@ public:
      mfxStatus Reset(mfxVideoParam *par, mfxU16 numFrameMin);
 
      mfxStatus Close();
-    
 
-     inline bool isOpaq() {return  m_bOpaq;}
      inline bool isSysMemFrames () {return m_bSysMemFrames;}
 
      inline mfxFrameSurface1 *GetOriginalSurface(mfxFrameSurface1 *surface)
      {
-         return m_bOpaq ? m_pCore->GetNativeSurface(surface) : surface;
+         return surface;
      }
-
-     inline mfxFrameSurface1 *GetOpaqSurface(mfxFrameSurface1 *surface)
-     {
-         return m_bOpaq ? m_pCore->GetOpaqSurface(surface->Data.MemId) : surface;
-     } 
 };
 
 //----MFX data -> UMC data--------------------------------------------

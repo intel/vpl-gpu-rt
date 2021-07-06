@@ -1881,9 +1881,8 @@ mfxStatus  VideoVPPHW::CopyPassThrough(mfxFrameSurface1 *pInputSurface, mfxFrame
 
     if (m_pCore->IsExternalFrameAllocator())
     {
-            srcPattern |= MFX_MEMTYPE_EXTERNAL_FRAME;
-
-            dstPattern |= MFX_MEMTYPE_EXTERNAL_FRAME;
+        srcPattern |= MFX_MEMTYPE_EXTERNAL_FRAME;
+        dstPattern |= MFX_MEMTYPE_EXTERNAL_FRAME;
     }
     else
     {
@@ -2679,12 +2678,10 @@ mfxStatus VideoVPPHW::InitMCTF(const mfxFrameInfo& info, const IntMctfParams& Mc
         m_MctfMids.resize(MctfQueueDepth);
         m_MctfMfxAlocResponse.mids = &(m_MctfMids[0]);
 
-        {
-            if (D3D_TO_SYS == m_ioMode || SYS_TO_SYS == m_ioMode) // [OUT == SYSTEM_MEMORY]
-                sts = m_pCore->AllocFrames(&request, &m_MctfMfxAlocResponse, false);
-            else
-                sts = m_pCore->AllocFrames(&request, &m_MctfMfxAlocResponse, false);
-        }
+        if (D3D_TO_SYS == m_ioMode || SYS_TO_SYS == m_ioMode) // [OUT == SYSTEM_MEMORY]
+            sts = m_pCore->AllocFrames(&request, &m_MctfMfxAlocResponse, false);
+        else
+            sts = m_pCore->AllocFrames(&request, &m_MctfMfxAlocResponse, false);
 
         if (m_MctfMfxAlocResponse.NumFrameActual != request.NumFrameMin)
             sts = MFX_ERR_MEMORY_ALLOC;
@@ -2731,10 +2728,8 @@ mfxStatus VideoVPPHW::GetFrameHandle(mfxFrameSurface1& surf, mfxHDLPair& handle,
     handle.first = handle.second = nullptr;
     if ((IOMode::D3D_TO_D3D == m_ioMode || IOMode::SYS_TO_D3D == m_ioMode) && !bInternalAlloc)
     {
-        {
-            //MFX_SAFE_CALL(m_pCore->GetFrameHDL(surf, handle));
-            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(surf, handle, false));
-        }
+        //MFX_SAFE_CALL(m_pCore->GetFrameHDL(surf, handle));
+        MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(surf, handle, false));
     }
     else
     {
@@ -3558,10 +3553,8 @@ mfxStatus VideoVPPHW::PreWorkInputSurface(std::vector<ExtSurface> & surfQueue)
         }
         else
         {
-            {
-                MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*surfQueue[i].pSurf, hdl));
-                bExternal = true;
-            }
+            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*surfQueue[i].pSurf, hdl));
+            bExternal = true;
             in = hdl;
 
 

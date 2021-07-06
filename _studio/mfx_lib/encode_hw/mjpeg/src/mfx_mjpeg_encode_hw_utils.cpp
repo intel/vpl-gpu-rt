@@ -61,8 +61,7 @@ bool MfxHwMJpegEncode::IsJpegParamExtBufferIdSupported(mfxU32 id)
 {
     return
            id == MFX_EXTBUFF_JPEG_QT
-        || id == MFX_EXTBUFF_JPEG_HUFFMAN
-        ;
+        || id == MFX_EXTBUFF_JPEG_HUFFMAN;
 }
 
 mfxStatus MfxHwMJpegEncode::CheckExtBufferId(mfxVideoParam const & par)

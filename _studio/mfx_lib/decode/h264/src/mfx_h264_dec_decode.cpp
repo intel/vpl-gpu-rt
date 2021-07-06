@@ -186,7 +186,6 @@ VideoDECODEH264::VideoDECODEH264(VideoCORE *core, mfxStatus * sts)
     : VideoDECODE()
     , m_core(core)
     , m_isInit(false)
-    , m_isOpaq(false)
     , m_frameOrder((mfxU16)MFX_FRAMEORDER_UNKNOWN)
     , m_response()
     , m_response_alien()
@@ -319,7 +318,6 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
     memset(&request, 0, sizeof(request));
     memset(&m_response, 0, sizeof(m_response));
     memset(&m_response_alien, 0, sizeof(m_response_alien));
-    m_isOpaq = false;
 
     mfxSts = QueryIOSurfInternal(m_platform, type, &m_vPar, &request);
     MFX_CHECK_STS(mfxSts);
@@ -327,14 +325,9 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
     request.Type |= useInternal ? MFX_MEMTYPE_INTERNAL_FRAME : MFX_MEMTYPE_EXTERNAL_FRAME;
     request_internal = request;
 
-    bool mapOpaq = false;
-    // allocates external surfaces:
-
     try
     {
-        m_surface_source.reset(new SurfaceSource(m_core, *par, m_platform, request, request_internal, m_response, m_response_alien,
-        nullptr,
-        mapOpaq));
+        m_surface_source.reset(new SurfaceSource(m_core, *par, m_platform, request, request_internal, m_response, m_response_alien));
     }
     catch (const mfx::mfxStatus_exception& ex)
     {
@@ -661,7 +654,6 @@ mfxStatus VideoDECODEH264::Close(void)
     m_pH264VideoDecoder->Close();
     m_surface_source->Close();
 
-    m_isOpaq = false;
     m_isInit = false;
     m_isFirstRun = true;
     m_frameOrder = (mfxU16)MFX_FRAMEORDER_UNKNOWN;
@@ -908,8 +900,7 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
     bool isNeedChangeVideoParamWarning = IsNeedChangeVideoParam(&params);
 
     if (   !(par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
-        && !(par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
-        )
+        && !(par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
     if ((par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
@@ -927,9 +918,7 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
         request->Type = MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_FROM_DECODE;
     }
 
-    {
-        request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
-    }
+    request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
 
     if (platform != core->GetPlatformType())
     {
@@ -1065,7 +1054,7 @@ mfxStatus VideoDECODEH264::RunThread(ThreadTaskInfo* info, mfxU32 threadNumber)
         if (info->is_decoding_done)
             return MFX_TASK_DONE;
 
-        mfxI32 index = m_surface_source->FindSurface(info->surface_out, m_isOpaq);
+        mfxI32 index = m_surface_source->FindSurface(info->surface_out);
         pFrame = m_pH264VideoDecoder->FindSurface((UMC::FrameMemID)index);
         MFX_CHECK(pFrame && pFrame->m_UID != -1, MFX_ERR_NOT_FOUND);
 
@@ -1130,7 +1119,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs,
                 return MFX_WRN_DEVICE_BUSY;
         }
 
-        ThreadTaskInfo * info = new ThreadTaskInfo{ GetOriginalSurface(*surface_out) };
+        ThreadTaskInfo * info = new ThreadTaskInfo{ *surface_out };
 
         pEntryPoint->pRoutine           = &AVCDECODERoutine;
         pEntryPoint->pCompleteProc      = &AVCCompleteProc;
@@ -1170,18 +1159,6 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
     if (surface_work)
     {
-        if (m_isOpaq)
-        {
-            sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_AVC);
-            MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
-
-            // opaq surface
-            MFX_CHECK(IsSurfaceEmpty(*surface_work), MFX_ERR_UNDEFINED_BEHAVIOR);
-
-            surface_work = GetOriginalSurface(surface_work);
-            MFX_CHECK(surface_work, MFX_ERR_UNDEFINED_BEHAVIOR);
-        }
-
         sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_AVC);
         MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
 
@@ -1189,7 +1166,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
         MFX_CHECK_STS(sts);
     }
 
-    sts = m_surface_source->SetCurrentMFXSurface(surface_work, m_isOpaq);
+    sts = m_surface_source->SetCurrentMFXSurface(surface_work);
     MFX_CHECK_STS(sts);
 
     sts = MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -1409,8 +1386,6 @@ void VideoDECODEH264::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
     const UMC::FrameData * fd = pFrame->GetFrameData();
 
     *surf_out = m_surface_source->GetSurface(fd->GetFrameMID(), surface_work, &m_vPar);
-    if(m_isOpaq && *surf_out != nullptr)
-       *surf_out = m_core->GetOpaqSurface((*surf_out)->Data.MemId);
 
     VM_ASSERT(*surf_out);
 
@@ -1590,7 +1565,7 @@ mfxStatus VideoDECODEH264::DecodeFrame(mfxFrameSurface1 *surface_out, UMC::H264D
     }
     else
     {
-        index = m_surface_source->FindSurface(surface_out, m_isOpaq);
+        index = m_surface_source->FindSurface(surface_out);
         pFrame = m_pH264VideoDecoder->FindSurface((UMC::FrameMemID)index);
         MFX_CHECK(pFrame, MFX_ERR_NOT_FOUND);
     }
@@ -1627,7 +1602,7 @@ mfxStatus VideoDECODEH264::DecodeFrame(mfxFrameSurface1 *surface_out, UMC::H264D
     if(m_va)
         MFX_CHECK(!m_va->UnwrapBuffer(surface_out->Data.MemId), MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    mfxStatus sts = m_surface_source->PrepareToOutput(surface_out, index, &m_vPar, m_isOpaq);
+    mfxStatus sts = m_surface_source->PrepareToOutput(surface_out, index, &m_vPar);
     MFX_CHECK_STS(sts);
 
     UMC::AutomaticUMCMutex guard(m_mGuard);
@@ -1771,8 +1746,7 @@ bool VideoDECODEH264::IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * o
 {
     auto const mask =
           MFX_IOPATTERN_OUT_SYSTEM_MEMORY
-        | MFX_IOPATTERN_OUT_VIDEO_MEMORY
-        ;
+        | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
 
     if ((newPar->IOPattern & mask) !=
         (oldPar->IOPattern & mask) )
@@ -1886,14 +1860,6 @@ bool VideoDECODEH264::IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * o
 #endif //MFX_DEC_VIDEO_POSTPROCESS_DISABLE
 
     return true;
-}
-
-
-mfxFrameSurface1 *VideoDECODEH264::GetOriginalSurface(mfxFrameSurface1 *surface)
-{
-    if (m_isOpaq)
-        return m_core->GetNativeSurface(surface);
-    return surface;
 }
 
 mfxFrameSurface1 *VideoDECODEH264::GetInternalSurface(mfxFrameSurface1 *surface)

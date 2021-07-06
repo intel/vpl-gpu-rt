@@ -3064,12 +3064,9 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
             if (checkSts < MFX_ERR_NONE) { return checkSts; }
         }
 
-        bool opaq = false;
-
         MFX_CHECK((surface->Data.Y == 0) == (surface->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(surface->Data.Pitch < 0x8000, MFX_ERR_UNDEFINED_BEHAVIOR);
-        MFX_CHECK(surface->Data.Y != 0 || isExternalFrameAllocator || opaq, MFX_ERR_UNDEFINED_BEHAVIOR);
-        MFX_CHECK((surface->Data.Y == 0 && surface->Data.MemId == 0) || !opaq, MFX_ERR_UNDEFINED_BEHAVIOR);
+        MFX_CHECK(surface->Data.Y != 0 || isExternalFrameAllocator, MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(surface->Info.Width >= video.mfx.FrameInfo.Width, MFX_ERR_INVALID_VIDEO_PARAM);
         MFX_CHECK(surface->Info.Height >= video.mfx.FrameInfo.Height, MFX_ERR_INVALID_VIDEO_PARAM);
 

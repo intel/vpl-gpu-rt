@@ -877,8 +877,7 @@ void Legacy::QueryIOSurf(const FeatureBlocks& blocks, TPushQIS Push)
 
         req.Type =
             bSYS * (MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_EXTERNAL_FRAME)
-            + bVID * (MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_EXTERNAL_FRAME)
-            ;
+            + bVID * (MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_EXTERNAL_FRAME);
         MFX_CHECK(req.Type, MFX_ERR_INVALID_VIDEO_PARAM);
 
         req.NumFrameMin = GetMaxRaw(par);
@@ -1748,8 +1747,7 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         auto dflts = GetRTDefaults(global);
 
         bool videoMemory =
-            par.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY
-            ;
+            par.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY;
 
         MFX_CHECK(!(task.bSkip || videoMemory), MFX_ERR_NONE);
 

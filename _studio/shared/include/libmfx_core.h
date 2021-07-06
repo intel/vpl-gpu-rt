@@ -83,8 +83,6 @@ public:
 
     // Get original Surface corresponding to OpaqueSurface
     virtual mfxFrameSurface1* GetNativeSurface(mfxFrameSurface1 *pOpqSurface, bool ExtendedSearch = true) override;
-    // Get OpaqueSurface corresponding to Original
-    virtual mfxFrameSurface1* GetOpaqSurface(mfxMemId mid, bool ExtendedSearch = true)                    override;
 
     // Increment Surface lock caring about opaq
     virtual mfxStatus IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch = true)                    override;
@@ -336,11 +334,6 @@ public:
     virtual mfxFrameSurface1* GetNativeSurface(mfxFrameSurface1 *pOpqSurface, bool ExtendedSearch = true)       override
     {
         return this->m_enabled20Interface ? nullptr : Base::GetNativeSurface(pOpqSurface, ExtendedSearch);
-    }
-
-    virtual mfxFrameSurface1* GetOpaqSurface(mfxMemId mid, bool ExtendedSearch = true)                          override
-    {
-        return this->m_enabled20Interface ? nullptr : Base::GetOpaqSurface(mid, ExtendedSearch);
     }
 
     virtual bool CheckOpaqueRequest(mfxFrameAllocRequest *request,

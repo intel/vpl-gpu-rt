@@ -159,7 +159,6 @@ void SetTimeCode(const MPEG2DecoderFrame* frame, mfxFrameSurface1* surface)
 VideoDECODEMPEG2::VideoDECODEMPEG2(VideoCORE* core, mfxStatus* sts)
     : m_core(core)
     , m_platform(MFX_PLATFORM_SOFTWARE)
-    , m_opaque(false)
     , m_first_run(true)
     , m_allow_null_work_surface(false)
     , m_response()
@@ -220,7 +219,6 @@ mfxStatus VideoDECODEMPEG2::Init(mfxVideoParam* par)
     mfxFrameAllocRequest request_internal{};
     m_response = {};
     m_response_alien = {};
-    m_opaque = false;
 
     // Number of surfaces required
     mfxSts = QueryIOSurfInternal(m_platform, &m_video_par, &request);
@@ -229,15 +227,11 @@ mfxStatus VideoDECODEMPEG2::Init(mfxVideoParam* par)
     request.Type |= internal ? MFX_MEMTYPE_INTERNAL_FRAME : MFX_MEMTYPE_EXTERNAL_FRAME;
     request_internal = request;
 
-    bool mapOpaq = false;
-    // allocates external surfaces:
     m_response_alien = m_response;
 
     try
     {
-        m_surface_source.reset(new SurfaceSource(m_core, *par, m_platform, request, request_internal, m_response, m_response_alien,
-        nullptr,
-        mapOpaq));
+        m_surface_source.reset(new SurfaceSource(m_core, *par, m_platform, request, request_internal, m_response, m_response_alien));
     }
     catch (const mfx::mfxStatus_exception& ex)
     {
@@ -385,7 +379,6 @@ mfxStatus VideoDECODEMPEG2::Close(void)
     m_decoder->Close();
     m_surface_source->Close();
 
-    m_opaque = false;
     m_first_run = true;
 
     m_stat = {};
@@ -398,8 +391,7 @@ bool VideoDECODEMPEG2::IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * 
 {
     auto const mask =
           MFX_IOPATTERN_OUT_SYSTEM_MEMORY
-        | MFX_IOPATTERN_OUT_VIDEO_MEMORY
-        ;
+        | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
 
     if ((newPar->IOPattern & mask) !=
         (oldPar->IOPattern & mask))
@@ -456,8 +448,7 @@ mfxStatus VideoDECODEMPEG2::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfx
     bool isNeedChangeVideoParamWarning = IsNeedChangeVideoParam(&params);
 
     if (   !(par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
-        && !(par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
-        )
+        && !(par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
     if ((par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
@@ -478,9 +469,7 @@ mfxStatus VideoDECODEMPEG2::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfx
     else
         request->Type = MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_DECODE;
 
-    {
-        request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
-    }
+    request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
 
     if (platform != core->GetPlatformType())
     {
@@ -638,20 +627,6 @@ mfxStatus VideoDECODEMPEG2::DecodeFrameCheck(mfxBitstream* bs, mfxFrameSurface1*
     // without surface_work
     if (surface_work != nullptr)
     {
-        if (m_opaque)
-        {
-            sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_MPEG2);
-            MFX_CHECK(MFX_ERR_NONE == sts, MFX_ERR_UNSUPPORTED);
-
-            // opaq surface
-            MFX_CHECK((surface_work->Data.MemId == 0 &&
-                surface_work->Data.Y == nullptr && surface_work->Data.R == nullptr && surface_work->Data.A == nullptr && surface_work->Data.UV == nullptr),
-                MFX_ERR_UNDEFINED_BEHAVIOR);
-
-            surface_work = GetOriginalSurface(surface_work);
-            MFX_CHECK(surface_work, MFX_ERR_UNDEFINED_BEHAVIOR);
-        }
-
         sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_MPEG2);
         MFX_CHECK_STS(sts);
 
@@ -780,9 +755,9 @@ mfxStatus VideoDECODEMPEG2::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surf
     std::unique_ptr<TaskInfo> info(new TaskInfo); // to prevent memory leak
 
     if (surface_work)
-        info->surface_work = GetOriginalSurface(surface_work);
+        info->surface_work = surface_work;
     if (*surface_out)
-        info->surface_out = GetOriginalSurface(*surface_out);
+        info->surface_out = *surface_out;
 
     *task = reinterpret_cast<mfxThreadTask>(info.release());
 
@@ -834,7 +809,7 @@ mfxStatus VideoDECODEMPEG2::DecodeFrame(mfxFrameSurface1 *surface_out, MPEG2Deco
         MFX_CHECK(!va->UnwrapBuffer(surface_out->Data.MemId), MFX_ERR_INVALID_HANDLE);
 
     const auto id = frame->GetFrameData()->GetFrameMID();
-    mfxStatus sts = m_surface_source->PrepareToOutput(surface_out, id, &m_video_par, m_opaque); // Copy to system memory if needed
+    mfxStatus sts = m_surface_source->PrepareToOutput(surface_out, id, &m_video_par); // Copy to system memory if needed
     frame->SetDisplayed();
 
     return sts;
@@ -853,7 +828,7 @@ mfxStatus VideoDECODEMPEG2::QueryFrame(mfxThreadTask task)
     auto surface_out = info->surface_out;
     MFX_CHECK(surface_out, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    const auto id = m_surface_source->FindSurface(surface_out, m_opaque);
+    const auto id = m_surface_source->FindSurface(surface_out);
     auto frame = m_decoder->FindFrameByMemID(id);
     MFX_CHECK(frame, MFX_ERR_UNDEFINED_BEHAVIOR);
 
@@ -884,7 +859,7 @@ mfxStatus VideoDECODEMPEG2::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surf
 
         for (;;)
         {
-            sts = m_surface_source->SetCurrentMFXSurface(surface_work, m_opaque);
+            sts = m_surface_source->SetCurrentMFXSurface(surface_work);
             MFX_CHECK_STS(sts);
 
             UMC::Status umcRes = (m_surface_source->HasFreeSurface() || surface_work == nullptr) ?
@@ -1040,10 +1015,6 @@ mfxStatus VideoDECODEMPEG2::FillOutputSurface(mfxFrameSurface1* surface_work, mf
     const auto fd = frame->GetFrameData();
 
     *surf_out = m_surface_source->GetSurface(fd->GetFrameMID(), surface_work, &m_video_par);
-    MFX_CHECK(*surf_out != nullptr, MFX_ERR_MEMORY_ALLOC);
-
-    if (m_opaque)
-        *surf_out = m_core->GetOpaqSurface((*surf_out)->Data.MemId);
     MFX_CHECK(*surf_out != nullptr, MFX_ERR_MEMORY_ALLOC);
 
     auto surface_out = *surf_out;

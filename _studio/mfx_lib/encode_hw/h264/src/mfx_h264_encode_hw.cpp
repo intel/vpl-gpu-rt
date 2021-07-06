@@ -722,8 +722,7 @@ mfxStatus ImplementationAvc::QueryIOSurf(
     mfxU32 inPattern = par->IOPattern & MFX_IOPATTERN_IN_MASK;
     auto const supportedMemoryType =
            inPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
-        || inPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY
-        ;
+        || inPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY;
 
     MFX_CHECK(supportedMemoryType, MFX_ERR_INVALID_VIDEO_PARAM);
 
@@ -769,7 +768,7 @@ mfxStatus ImplementationAvc::QueryIOSurf(
     else // MFX_IOPATTERN_IN_VIDEO_MEMORY || MFX_IOPATTERN_IN_OPAQUE_MEMORY
     {
         request->Type = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET;
-            request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
+        request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
 
         //if MDF is in pipeline need to allocate shared resource to avoid performance issues due to decompression when MMCD is enabled
     }
@@ -2801,9 +2800,7 @@ mfxStatus ImplementationAvc::SCD_Put_Frame(DdiTask & task)
     mfxHDLPair handle = { nullptr,nullptr };
     if (IsCmNeededForSCD(m_video))
     {
-        {
-            MFX_SAFE_CALL(m_core->GetExternalFrameHDL(*pSurfI, handle, false));
-        }
+        MFX_SAFE_CALL(m_core->GetExternalFrameHDL(*pSurfI, handle, false));
 
         mfxHDLPair cmScdSurf = { nullptr,nullptr };
         task.m_idxScd = FindFreeResourceIndex(m_scd);
@@ -3108,9 +3105,7 @@ mfxStatus ImplementationAvc::CalculateFrameCmplx(DdiTask const &task, mfxU32 &ra
 
     if (IsCmNeededForSCD(m_video))
     {
-        {
-            MFX_SAFE_CALL(m_core->GetExternalFrameHDL(*pSurfI, handle, false));
-        }
+        MFX_SAFE_CALL(m_core->GetExternalFrameHDL(*pSurfI, handle, false));
         MFX_SAFE_CALL(amtScd.calc_RaCa_Surf(handle, raca));
     }
     else

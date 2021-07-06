@@ -1885,8 +1885,6 @@ mfxStatus CheckSurface(
     mfxU32 initHeight,
     ENCODE_CAPS_VP9 const &caps)
 {
-    bool isOpaq = false;
-
     // check that surface contains valid data
     MFX_CHECK(CheckFourcc(surface.Info.FourCC, caps), MFX_ERR_INVALID_VIDEO_PARAM);
 
@@ -1900,10 +1898,6 @@ mfxStatus CheckSurface(
             MFX_CHECK(surface.Data.U != 0 || (surface.Data.MemId && LumaIsNull(&surface)), MFX_ERR_NULL_PTR);
             MFX_CHECK(surface.Data.V != 0 || (surface.Data.MemId && LumaIsNull(&surface)), MFX_ERR_NULL_PTR);
         }
-    }
-    else if (isOpaq == false)
-    {
-        MFX_CHECK(surface.Data.MemId != 0, MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     const mfxExtVP9Param& extPar = GetExtBufferRef(video);

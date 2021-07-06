@@ -36,7 +36,7 @@ class VideoVppJpeg
 {
 public:
 
-    VideoVppJpeg(VideoCORE *core, bool isD3DToSys, bool isOpaq);
+    VideoVppJpeg(VideoCORE *core, bool isD3DToSys);
     virtual ~VideoVppJpeg(void);
 
     mfxStatus Init(const mfxVideoParam *par);
@@ -52,8 +52,7 @@ protected:
 
     VideoCORE *m_pCore;
 
-    bool   m_isD3DToSys; 
-    bool   m_isOpaq;
+    bool   m_isD3DToSys;
     mfxU16 m_taskId;
 #ifdef MFX_ENABLE_MJPEG_ROTATE_VPP
     mfxI32 m_rotation;
