@@ -21,8 +21,8 @@
 //This file is included from [umc_h265_va_packer_vaapi.cpp]
 //DO NOT include it into the project manually
 
-#ifndef UMC_VA_H265_PACKER_G12
-#define UMC_VA_H265_PACKER_G12
+#ifndef _UMC_VA_H265_PACKER_G12_H_
+#define _UMC_VA_H265_PACKER_G12_H_
 
 #include "umc_h265_va_packer_vaapi_g11.hpp"
 #include "umc_h265_va_packer_common_g12.hpp"
@@ -183,4 +183,4 @@ namespace UMC_HEVC_DECODER
 
 }
 
-#endif //UMC_VA_H265_PACKER_G12
+#endif //_UMC_VA_H265_PACKER_G12_H_
