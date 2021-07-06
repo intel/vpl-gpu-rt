@@ -57,10 +57,7 @@ macro( make_api_target target)
     INTERFACE
     ${MFX_API_HOME}
     ${MFX_API_HOME}/../mediasdk_structures
-    $<$<BOOL:${API_USE_VPL}>:${MFX_API_HOME}/private>
-  )
-  target_compile_definitions(${target}-api
-    INTERFACE $<$<BOOL:${API_USE_VPL}>:MFX_ONEVPL>
+    ${MFX_API_HOME}/private
   )
 
   add_library( ${target}::api ALIAS ${target}-api )
@@ -92,12 +89,10 @@ set( MFX_VERSION_MAJOR ${major_vers})
 set( MFX_VERSION_MINOR ${minor_vers})
 
 if ( ${API_VERSION} VERSION_GREATER_EQUAL 2.0 )
-  set( API_USE_VPL TRUE )
   set( API_USE_LATEST TRUE )
   set( API_FLAGS -DMFX_VERSION_USE_LATEST )
   make_api_target( onevpl )
 else()
-  set( API_USE_VPL FALSE )
   make_api_target( mfx )
 endif()
 

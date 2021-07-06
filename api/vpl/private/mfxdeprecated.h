@@ -10,8 +10,6 @@
 #include "mfxcommon.h"
 #include "mfxsession.h"
 
-#if defined(MFX_ONEVPL)
-
 #ifdef __cplusplus
 extern "C"
 {
@@ -152,6 +150,5 @@ enum {
 }
 #endif /* __cplusplus */
 
-#endif //MFX_ONEVPL
 #endif //__MFXDEPRECATED_H__
 
