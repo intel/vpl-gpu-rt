@@ -61,7 +61,6 @@ static void SetFrameType(const uint32_t type, mfxFrameSurface1 &surface)
     }
 }
 
-#define VC1_SKIPPED_DISABLE
 void MFXVideoDECODEVC1::SetFrameOrder(SurfaceSource* pFrameAlloc, mfxVideoParam* par, bool isLast, VC1TSDescriptor tsd, bool isSamePolar)
 {
     mfxFrameSurface1 surface = { };
@@ -1042,7 +1041,7 @@ mfxStatus MFXVideoDECODEVC1::SelfDecodeFrame(mfxFrameSurface1 *surface_work, mfx
             m_qBSTS.pop_front();
             m_qTS.push_back(td);
 
-#ifndef VC1_SKIPPED_DISABLE
+#ifdef VC1_SKIPPED_ENABLE
             // if we faced with skipped frame - let coping it
             if (m_pVC1VideoDecoder->IsLastFrameSkipped() &&
                 m_bIsSamePolar)

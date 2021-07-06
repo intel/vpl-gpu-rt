@@ -25,8 +25,6 @@
 #ifndef __UMC_VC1_DEC_EXCEPTION_H_
 #define __UMC_VC1_DEC_EXCEPTION_H_
 
-#define VC1_VLD_CHECK
-
 namespace UMC
 {
     namespace VC1Exceptions
