@@ -937,14 +937,9 @@ mfxStatus BRC_EncTool::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *pFram
     bool bIdr = (picType ==  MFX_FRAMETYPE_IDR);
     mfxF64 qstep = QP2Qstep(qpY, m_par.quantOffset);
 
-#if (MFX_VERSION >= 1026)
     mfxU16 ParSceneChange = (frameStruct.frameCmplx || frameStruct.LaAvgEncodedSize) ? frameStruct.sceneChange : 0;
     mfxU32 ParFrameCmplx = frameStruct.frameCmplx;
     if (isIntra && !ParFrameCmplx) ParFrameCmplx = frameStruct.LaAvgEncodedSize;
-#else
-    mfxU16 ParSceneChange = 0;
-    mfxU32 ParFrameCmplx = 0;
-#endif
     mfxU16 ParQpModulation = (mfxU16) frameStruct.qpModulation;
     if (ParQpModulation == MFX_QP_MODULATION_NOT_DEFINED 
         && m_par.gopRefDist == 8 && m_par.bPyr 
@@ -1517,15 +1512,9 @@ mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl
         return MFX_ERR_UNDEFINED_BEHAVIOR; // BRC hasn't processed the frame
     BRC_FrameStruct frameStruct = *frameStructItr;
 
-#if (MFX_VERSION >= 1026)
     mfxU16 ParSceneChange = frameStruct.sceneChange;
     mfxU16 ParLongTerm = frameStruct.longTerm;
     mfxU32 ParFrameCmplx = frameStruct.frameCmplx;
-#else
-    mfxU16 ParSceneChange = 0;
-    mfxU16 ParLongTerm = 0;
-    mfxU32 ParFrameCmplx = 0;
-#endif
     mfxU16 ParQpModulation = frameStruct.qpModulation;
     mfxI32 ParQpDeltaP = 0;
     if (ParQpModulation == MFX_QP_MODULATION_NOT_DEFINED 

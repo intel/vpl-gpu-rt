@@ -792,17 +792,11 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
             case UMC::VA_H265 | UMC::VA_PROFILE_10:
                 va_size         = sizeof(VASliceParameterBufferHEVC);
                 va_num_elements = size/sizeof(VASliceParameterBufferHEVC);
-#if (MFX_VERSION >= 1027)
-                if ((m_Profile & VA_PROFILE_REXT)
-#if (MFX_VERSION >= 1032)
-                    || (m_Profile & VA_PROFILE_SCC)
-#endif
-                   )
+                if ((m_Profile & VA_PROFILE_REXT) || (m_Profile & VA_PROFILE_SCC))
                 {
                     va_size         = sizeof(VASliceParameterBufferHEVCExtension);
                     va_num_elements = size/sizeof(VASliceParameterBufferHEVCExtension);
                 }
-#endif
                 break;
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
             case UMC::VA_AV1:

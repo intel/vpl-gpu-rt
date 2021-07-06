@@ -385,16 +385,11 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
                       || videoProcessing->Out.FourCC == MFX_FOURCC_P010
                       || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
                       || videoProcessing->Out.FourCC == MFX_FOURCC_AYUV
-#if (MFX_VERSION >= 1027)
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y410
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y210
-#endif
-#if (MFX_VERSION >= 1031)
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y216
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y416
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_P016
-#endif
-                      );
+                      || videoProcessing->Out.FourCC == MFX_FOURCC_P016);
         }
        MFX_CHECK(is_fourcc_supported,MFX_ERR_UNSUPPORTED);
     }
@@ -1024,18 +1019,12 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo const &currInfo, mfxFrameInfo &info
     {
         case MFX_FOURCC_NV12:
         case MFX_FOURCC_AYUV:
-#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y410:
-#endif
             break;
-#if (MFX_VERSION >= 1031)
         case MFX_FOURCC_P016:
         case MFX_FOURCC_Y416:
-#endif
         case MFX_FOURCC_P010:
-#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y210:
-#endif
             MFX_CHECK(info.Shift == 1, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
             break;
         default:

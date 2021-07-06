@@ -800,8 +800,6 @@ namespace
             }
         }
 
-#if MFX_VERSION >= 1023
-
         if (extOpt3.ScenarioInfo == MFX_SCENARIO_GAME_STREAMING && (extOpt2.MaxFrameSize != 0 ||
                                                                     extOpt3.MaxFrameSizeI != 0 ||
                                                                     extOpt3.MaxFrameSizeP != 0 ))
@@ -833,7 +831,6 @@ namespace
             extOpt3.AdaptiveMaxFrameSize = MFX_CODINGOPTION_UNKNOWN;
             changed = true;
         }
-#endif
         return unsupported ? MFX_ERR_UNSUPPORTED : (changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE);
     }
 
@@ -1337,14 +1334,12 @@ bool MfxHwH264Encode::IsExtBrcSceneChangeSupported(
     eMFXHWType            platform)
 {
     bool extbrcsc = false;
-#if (MFX_VERSION >= 1026)
     // extbrc API change dependency
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
     extbrcsc = (hasSupportVME(platform) &&
         IsOn(extOpt2.ExtBRC) &&
         (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
         && (video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) && !video.mfx.EncodedOrder && extOpt2.LookAheadDepth == 0);
-#endif
     return extbrcsc;
 }
 
@@ -1352,10 +1347,8 @@ bool MfxHwH264Encode::IsCmNeededForSCD(
     MfxVideoParam const & video)
 {
     bool useCm = false;
-#if (MFX_VERSION >= 1026)
     // If frame in Sys memory then Cm is not needed
     useCm = !(video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY);
-#endif
 
     return useCm;
 }
@@ -1390,10 +1383,8 @@ bool MfxHwH264Encode::IsAdaptiveLtrOn(
     MfxVideoParam const & video)
 {
     bool altr = false;
-#if (MFX_VERSION >= 1026)
     mfxExtCodingOption3 const & extOpt3 = GetExtBufferRef(video);
     altr = IsOn(extOpt3.ExtBrcAdaptiveLTR);
-#endif
     return altr;
 }
 
@@ -1673,9 +1664,7 @@ bool MfxHwH264Encode::IsRunTimeOnlyExtBuffer(mfxU32 id)
 #ifdef MFX_ENABLE_H264_PRIVATE_CTRL
         || id == MFX_EXTBUFF_AVC_ENCODE_CTRL
 #endif
-#if MFX_VERSION >= 1023
         || id == MFX_EXTBUFF_MB_FORCE_INTRA
-#endif
         || id == MFX_EXTBUFF_MB_DISABLE_SKIP_MAP
 #ifndef MFX_AVC_ENCODING_UNIT_DISABLE
         || id == MFX_EXTBUFF_ENCODED_UNITS_INFO
@@ -1701,9 +1690,7 @@ bool MfxHwH264Encode::IsRunTimeExtBufferIdSupported(MfxVideoParam const & video,
         || id == MFX_EXTBUFF_MBQP
         || id == MFX_EXTBUFF_MOVING_RECTANGLES
         || id == MFX_EXTBUFF_DIRTY_RECTANGLES
-#if MFX_VERSION >= 1023
         || id == MFX_EXTBUFF_MB_FORCE_INTRA
-#endif
         || id == MFX_EXTBUFF_MB_DISABLE_SKIP_MAP
 #ifdef MFX_ENABLE_H264_PRIVATE_CTRL
         || id == MFX_EXTBUFF_AVC_ENCODE_CTRL
@@ -4132,7 +4119,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
 #endif
 
-#if (MFX_VERSION >= 1026)
     if (!CheckTriStateOption(extOpt3->ExtBrcAdaptiveLTR)) changed = true;
 
 #ifdef MFX_AUTOLTR_FEATURE_DISABLE
@@ -4182,8 +4168,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         }
     }
 #endif //MFX_AUTOLTR_FEATURE_DISABLE
-#endif // (MFX_VERSION >= 1026)
-
 #if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
 #endif
 
@@ -4722,7 +4706,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         changed = true;
     }
 
-#if MFX_VERSION >= 1023
     if (!CheckTriStateOption(extOpt3->EnableMBForceIntra)) changed = true;
 
     #ifdef ENABLE_H264_MBFORCE_INTRA
@@ -4742,7 +4725,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         changed = true;
     }
     #endif
-#endif
 
     if (!CheckTriStateOption(extOpt3->MBDisableSkipMap)) changed = true;
 
@@ -6069,7 +6051,6 @@ void MfxHwH264Encode::SetDefaults(
         extOpt3->RepartitionCheckEnable = MFX_CODINGOPTION_ADAPTIVE;
 #endif // MFX_ENABLE_H264_REPARTITION_CHECK
 
-#if (MFX_VERSION >= 1026)
     if (extOpt3->ExtBrcAdaptiveLTR == MFX_CODINGOPTION_UNKNOWN
 #if defined(MFX_ENABLE_ENCTOOLS)
         && IsOff(extConfig->AdaptiveLTR)
@@ -6112,7 +6093,6 @@ void MfxHwH264Encode::SetDefaults(
         else
             extOpt2->AdaptiveB = MFX_CODINGOPTION_OFF;
     }
-#endif //(MFX_VERSION >= 1026)
 
     CheckVideoParamQueryLike(par, hwCaps, platform, vaType, config);
 
@@ -6163,10 +6143,8 @@ void MfxHwH264Encode::SetDefaults(
     if (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_UNKNOWN)
         extOpt3->MBDisableSkipMap = MFX_CODINGOPTION_OFF;
 
-#if MFX_VERSION >= 1023
     if (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_UNKNOWN)
         extOpt3->EnableMBForceIntra = MFX_CODINGOPTION_OFF;
-#endif
 
     if (par.calcParam.cqpHrdMode == 0)
     {
@@ -6331,12 +6309,10 @@ void MfxHwH264Encode::SetDefaults(
         }
     }
 
-#if MFX_VERSION >= 1023
     if (extOpt3->AdaptiveMaxFrameSize == MFX_CODINGOPTION_UNKNOWN )
         extOpt3->AdaptiveMaxFrameSize = 
             ((platform >= MFX_HW_ICL) && IsOn(par.mfx.LowPower) && hwCaps.AdaptiveMaxFrameSizeSupport)
             ? mfxU16(MFX_CODINGOPTION_ON) : mfxU16(MFX_CODINGOPTION_OFF);
-#endif
 
     par.ApplyDefaultsToMvcSeqDesc();
 

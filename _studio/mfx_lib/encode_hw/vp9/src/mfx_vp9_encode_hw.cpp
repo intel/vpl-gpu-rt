@@ -36,13 +36,9 @@ void SetDefaultForLowpower(mfxU16 & lowpower, eMFXHWType platform)
 
      if (lowpower == MFX_CODINGOPTION_UNKNOWN)
     {
-#if (MFX_VERSION >= 1027)
         if (platform >= MFX_HW_ICL)
             lowpower = MFX_CODINGOPTION_ON;
         else
-#else
-        std::ignore = platform;
-#endif
             lowpower = MFX_CODINGOPTION_OFF;
     }
 }
@@ -260,7 +256,6 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par,
 }
 
 
-#if (MFX_VERSION >= 1027)
 void SetReconInfo(VP9MfxVideoParam const &par, mfxFrameInfo &fi, eMFXHWType const &platform)
 {
     mfxExtCodingOption3 opt3 = GetExtBufferRef(par);
@@ -296,7 +291,6 @@ void SetReconInfo(VP9MfxVideoParam const &par, mfxFrameInfo &fi, eMFXHWType cons
     }
     else if (format == MFX_CHROMAFORMAT_YUV420 && depth == BITDEPTH_10)
     {
-#if (MFX_VERSION >= 1031)
         if (platform >= MFX_HW_TGL_LP)
         {
 #ifdef LINUX
@@ -307,7 +301,6 @@ void SetReconInfo(VP9MfxVideoParam const &par, mfxFrameInfo &fi, eMFXHWType cons
 #endif // LINUX
         }
         else
-#endif
         {
             std::ignore = platform;
             fi.FourCC  = MFX_FOURCC_P010;
@@ -326,7 +319,6 @@ void SetReconInfo(VP9MfxVideoParam const &par, mfxFrameInfo &fi, eMFXHWType cons
     fi.BitDepthLuma = depth;
     fi.BitDepthChroma = depth;
 }
-#endif
 
 mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
 {
@@ -392,12 +384,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
 
     // allocate and register surfaces for reconstructed frames
     request.NumFrameMin = request.NumFrameSuggested = (mfxU16)CalcNumSurfRecon(m_video);
-#if (MFX_VERSION >= 1027)
     SetReconInfo(m_video, request.Info, platform);
-#else
-    (void)platform;
-    request.Info.FourCC = MFX_FOURCC_NV12;
-#endif
 
     //For MMCD encoder bind flag is required
     if (request.Info.FourCC == MFX_FOURCC_NV12)
@@ -429,10 +416,8 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
     mfxU32 max_buffer_size = m_video.mfx.FrameInfo.Width*m_video.mfx.FrameInfo.Height*3;
 
     if (m_video.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-#if (MFX_VERSION >= 1027)
-        || m_video.mfx.FrameInfo.FourCC == MFX_FOURCC_Y410
-#endif
-        ) {
+        || m_video.mfx.FrameInfo.FourCC == MFX_FOURCC_Y410)
+    {
         // doubling the size of the bitstream buffer if 10-bit format is used
         max_buffer_size *= 2;
     }
@@ -618,7 +603,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
 
-#if (MFX_VERSION >= 1029)
         // dynamic scaling and tiles don't work together
         if ((extParAfter.FrameWidth != extParBefore.FrameWidth ||
             extParAfter.FrameHeight != extParBefore.FrameHeight) &&
@@ -634,7 +618,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
         {
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
-#endif
 
         // dynamic scaling and segmentation don't work together
         const mfxExtVP9Segmentation& seg = GetExtBufferRef(parAfterReset);

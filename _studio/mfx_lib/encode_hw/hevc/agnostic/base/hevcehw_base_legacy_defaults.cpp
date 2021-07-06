@@ -1455,11 +1455,7 @@ public:
               && par.mfx.TargetUsage >= 6
               && par.mfx.GopRefDist < 2) ||
              (hw >= MFX_HW_ICL &&
-              (fcc == MFX_FOURCC_AYUV
-#if (MFX_VERSION >= 1027)
-               || fcc == MFX_FOURCC_Y410
-#endif
-                  )));
+              (fcc == MFX_FOURCC_AYUV || fcc == MFX_FOURCC_Y410)));
 
         return mfxU16(
             bOn * MFX_CODINGOPTION_ON

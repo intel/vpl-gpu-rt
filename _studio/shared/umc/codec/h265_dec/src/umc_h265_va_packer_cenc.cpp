@@ -34,11 +34,7 @@
 
 using namespace UMC;
 
-#if (MFX_VERSION >= 1032)
 #define PACKER_VAAPI G12::PackerVAAPI
-#else
-#define PACKER_VAAPI G11::PackerVAAPI
-#endif
 
 namespace UMC_HEVC_DECODER
 {

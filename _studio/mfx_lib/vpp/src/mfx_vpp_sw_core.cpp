@@ -435,9 +435,7 @@ mfxStatus VideoVPPBase::GetVideoParam(mfxVideoParam *par)
                     case MFX_EXTBUFF_VPP_DI_30i60p:
                     case MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO:
                     case MFX_EXTBUFF_VPP_MIRRORING:
-#if (MFX_VERSION >= 1025)
                     case MFX_EXTBUFF_VPP_COLOR_CONVERSION:
-#endif
 
 #ifdef MFX_ENABLE_MCTF
                     case MFX_EXTBUFF_VPP_MCTF:
@@ -876,7 +874,6 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             }
         }
 
-#if (MFX_VERSION >= 1031)
         if (core->GetHWType() <= MFX_HW_ICL_LP)
         {
             if (out->vpp.In.FourCC == MFX_FOURCC_P016 ||
@@ -892,7 +889,6 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
                 }
             }
         }
-#endif
 
         if ( out->vpp.In.FourCC  != MFX_FOURCC_P010 &&
              out->vpp.In.FourCC  != MFX_FOURCC_P210 &&
@@ -914,11 +910,10 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
              out->vpp.Out.FourCC != MFX_FOURCC_YUY2 &&
              out->vpp.Out.FourCC != MFX_FOURCC_UYVY &&
              out->vpp.Out.FourCC != MFX_FOURCC_AYUV &&
-#if (MFX_VERSION >= 1027)
              out->vpp.Out.FourCC != MFX_FOURCC_Y210 &&
              out->vpp.Out.FourCC != MFX_FOURCC_Y410 &&
-#endif
-             out->vpp.Out.FourCC != MFX_FOURCC_RGB4){
+             out->vpp.Out.FourCC != MFX_FOURCC_RGB4)
+        {
             if( out->vpp.In.FourCC )
             {
                 out->vpp.In.FourCC = 0;
@@ -938,15 +933,11 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             out->vpp.In.FourCC != MFX_FOURCC_P010 &&
             out->vpp.In.FourCC != MFX_FOURCC_UYVY &&
             out->vpp.In.FourCC != MFX_FOURCC_P210 &&
-#if (MFX_VERSION >= 1027)
             out->vpp.In.FourCC != MFX_FOURCC_Y210 &&
             out->vpp.In.FourCC != MFX_FOURCC_Y410 &&
-#endif
-#if (MFX_VERSION >= 1031)
             out->vpp.In.FourCC != MFX_FOURCC_P016 &&
             out->vpp.In.FourCC != MFX_FOURCC_Y216 &&
             out->vpp.In.FourCC != MFX_FOURCC_Y416 &&
-#endif
             out->vpp.In.FourCC != MFX_FOURCC_AYUV &&
             // A2RGB10 supported as input in case of passthru copy
             out->vpp.In.FourCC != MFX_FOURCC_A2RGB10 )
@@ -1013,15 +1004,11 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             out->vpp.Out.FourCC != MFX_FOURCC_BGRP &&
             out->vpp.Out.FourCC != MFX_FOURCC_P010 &&
             out->vpp.Out.FourCC != MFX_FOURCC_P210 &&
-#if (MFX_VERSION >= 1027)
             out->vpp.Out.FourCC != MFX_FOURCC_Y210 &&
             out->vpp.Out.FourCC != MFX_FOURCC_Y410 &&
-#endif
-#if (MFX_VERSION >= 1031)
             out->vpp.Out.FourCC != MFX_FOURCC_P016 &&
             out->vpp.Out.FourCC != MFX_FOURCC_Y216 &&
             out->vpp.Out.FourCC != MFX_FOURCC_Y416 &&
-#endif
             out->vpp.Out.FourCC != MFX_FOURCC_AYUV &&
             out->vpp.Out.FourCC != MFX_FOURCC_A2RGB10 )
         {

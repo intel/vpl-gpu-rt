@@ -261,7 +261,6 @@ mfxStatus InitVp9SeqLevelParam(VP9MfxVideoParam const &video, VP9SeqLevelParam &
     param.bitDepth = BITDEPTH_8;
     param.subsamplingX = 1;
     param.subsamplingY = 1;
-#if (MFX_VERSION >= 1027)
     mfxExtCodingOption3 opt3 = GetExtBufferRef(video);
     if (MFX_CHROMAFORMAT_YUV444 == (opt3.TargetChromaFormatPlus1 - 1))
     {
@@ -269,7 +268,6 @@ mfxStatus InitVp9SeqLevelParam(VP9MfxVideoParam const &video, VP9SeqLevelParam &
         param.subsamplingY = 0;
     }
     param.bitDepth = (mfxU8)opt3.TargetBitDepthLuma;
-#endif //MFX_VERSION >= 1027
 
     param.colorSpace = UNKNOWN_COLOR_SPACE;
     param.colorRange = 0; // BT.709-6
@@ -355,7 +353,6 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
         frameParam.modeRefDeltaEnabled = 1;
         frameParam.modeRefDeltaUpdate = 1;
 
-#if (MFX_VERSION >= 1027)
         if (platform >= MFX_HW_ICL)
         {
             // WA: driver writes corrupted uncompressed frame header when mode or ref deltas are written by MSDK
@@ -363,7 +360,6 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
             frameParam.modeRefDeltaEnabled = 0;
             frameParam.modeRefDeltaUpdate = 0;
         }
-#endif //MFX_VERSION >= 1027
     }
 
     mfxExtCodingOptionDDI const & extDdi = GetExtBufferRef(par);
@@ -416,10 +412,8 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
             frameParam.refreshFrameContext = false;
         }
     }
-#if (MFX_VERSION >= 1029)
     frameParam.log2TileRows = static_cast<mfxU8>(CeilLog2(extPar.NumTileRows));
     frameParam.log2TileCols = static_cast<mfxU8>(CeilLog2(extPar.NumTileColumns));
-#endif // (MFX_VERSION >= 1029)
 
     return MFX_ERR_NONE;
 }

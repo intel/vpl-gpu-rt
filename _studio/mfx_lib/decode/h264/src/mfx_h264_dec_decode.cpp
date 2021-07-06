@@ -294,16 +294,11 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
                       || videoProcessing->Out.FourCC == MFX_FOURCC_P010
                       || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
                       || videoProcessing->Out.FourCC == MFX_FOURCC_AYUV
-#if (MFX_VERSION >= 1027)
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y410
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y210
-#endif
-#if (MFX_VERSION >= 1031)
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y216
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y416
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_P016
-#endif
-                      );
+                      || videoProcessing->Out.FourCC == MFX_FOURCC_P016);
         }
         MFX_CHECK(is_fourcc_supported,MFX_ERR_UNSUPPORTED);
         if (m_core->GetVAType() == MFX_HW_VAAPI)
@@ -1211,7 +1206,6 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
         MFXMediaDataAdapter src(bs);
 
-#if (MFX_VERSION >= 1025)
         mfxExtBuffer* extbuf = (bs) ? GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
 
         if (extbuf)
@@ -1219,7 +1213,6 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             ((mfxExtDecodeErrorReport *)extbuf)->ErrorTypes = 0;
             src.SetExtBuffer(extbuf);
         }
-#endif
 
         for (;;)
         {

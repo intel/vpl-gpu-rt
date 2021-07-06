@@ -592,16 +592,10 @@ UMC::Status FillParam(VideoCORE *core, mfxVideoParam *par)
     if (MFX_VPX_Utility::GetPlatform(core, par) != MFX_PLATFORM_SOFTWARE)
     {
         if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-#if (MFX_VERSION >= 1027)
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
-#endif
-#if (MFX_VERSION >= 1330)
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_P016
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216
-            || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416
-#endif
-            )
-
+            || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416)
             par->mfx.FrameInfo.Shift = 1;
     }
 
@@ -691,14 +685,10 @@ mfxStatus VideoDECODEAV1::GetVideoParam(mfxVideoParam *par)
     switch (par->mfx.FrameInfo.FourCC)
     {
     case MFX_FOURCC_P010:
-#if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
-#endif
-#if (MFX_VERSION >= 1330)
     case MFX_FOURCC_P016:
     case MFX_FOURCC_Y216:
     case MFX_FOURCC_Y416:
-#endif
         par->mfx.FrameInfo.Shift = 1;
     default:
         break;
@@ -1138,16 +1128,10 @@ mfxStatus VideoDECODEAV1::FillVideoParam(VideoCORE* core, UMC_AV1_DECODER::AV1De
     if (MFX_VPX_Utility::GetPlatform(core, par) != MFX_PLATFORM_SOFTWARE)
     {
         if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-#if (MFX_VERSION >= 1027)
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
-#endif
-#if (MFX_VERSION >= 1330)
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_P016
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216
-            || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416
-#endif
-            )
-
+            || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416)
             par->mfx.FrameInfo.Shift = 1;
     }
 

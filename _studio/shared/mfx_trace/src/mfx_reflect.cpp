@@ -39,7 +39,6 @@
 #include "mfxbrc.h"
 #include "mfxdeprecated.h"
 
-#if (MFX_VERSION >= 1025)
 #include "ts_typedef.h"
 
 #include "mfxdeprecated.h"
@@ -546,5 +545,3 @@ namespace mfx_reflect
 #include "ts_struct_decl.h"
     }
 }
-
-#endif

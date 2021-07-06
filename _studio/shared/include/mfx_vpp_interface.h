@@ -87,17 +87,13 @@ namespace MfxHwVideoProcessing
         MFX_FOURCC_R16       ,
         MFX_FOURCC_AYUV      ,
         MFX_FOURCC_AYUV_RGB4 ,
-        MFX_FOURCC_UYVY
-#if (MFX_VERSION >= 1027)
-        , MFX_FOURCC_Y210
-        , MFX_FOURCC_Y410
-#endif
-#if (MFX_VERSION >= 1031)
-        , MFX_FOURCC_P016
-        , MFX_FOURCC_Y216
-        , MFX_FOURCC_Y416
-#endif
-        , MFX_FOURCC_BGRP      ,
+        MFX_FOURCC_UYVY      ,
+        MFX_FOURCC_Y210      ,
+        MFX_FOURCC_Y410      ,
+        MFX_FOURCC_P016      ,
+        MFX_FOURCC_Y216      ,
+        MFX_FOURCC_Y416      , 
+        MFX_FOURCC_BGRP      ,
     };
 
     typedef enum mfxFormatSupport {
@@ -468,12 +464,8 @@ namespace MfxHwVideoProcessing
 #endif
                ,rotation(0)
                ,scalingMode(MFX_SCALING_MODE_DEFAULT)
-#if (MFX_VERSION >= 1033)
                ,interpolationMethod(MFX_INTERPOLATION_DEFAULT)
-#endif
-#if (MFX_VERSION >= 1025)
                ,chromaSiting(MFX_CHROMA_SITING_UNKNOWN)
-#endif
                ,bEOS(false)
                ,mirroring(0)
                ,mirroringPosition(0)
@@ -550,9 +542,7 @@ namespace MfxHwVideoProcessing
                     mirroringExt != false ||
                     scene != VPP_NO_SCENE_CHANGE ||
                     bDeinterlace30i60p != false
-#if (MFX_VERSION >= 1025)
                     || chromaSiting != MFX_CHROMA_SITING_UNKNOWN
-#endif
 #ifdef MFX_ENABLE_MCTF
                     || bEnableMctf != false
 #endif
@@ -646,9 +636,7 @@ namespace MfxHwVideoProcessing
         int         rotation;
 
         mfxU16      scalingMode;
-#if (MFX_VERSION >= 1033)
         mfxU16      interpolationMethod;
-#endif
         mfxU16      chromaSiting;
 
         bool        bEOS;

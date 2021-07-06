@@ -153,12 +153,8 @@ static void MemSetZero4mfxExecuteParams (mfxExecuteParams *pMfxExecuteParams )
 #endif
     pMfxExecuteParams->rotation = 0;
     pMfxExecuteParams->scalingMode = MFX_SCALING_MODE_DEFAULT;
-#if (MFX_VERSION >= 1033)
     pMfxExecuteParams->interpolationMethod = MFX_INTERPOLATION_DEFAULT;
-#endif
-#if (MFX_VERSION >= 1025)
     pMfxExecuteParams->chromaSiting = MFX_CHROMA_SITING_UNKNOWN;
-#endif
     pMfxExecuteParams->bEOS = false;
     pMfxExecuteParams->scene = VPP_NO_SCENE_CHANGE;
     pMfxExecuteParams->lut3DInfo = {};
@@ -2108,9 +2104,7 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
             mfxExtVPPScaling *bufSc = reinterpret_cast<mfxExtVPPScaling *>(par->ExtParam[i]);
             MFX_CHECK_NULL_PTR1(bufSc);
             bufSc->ScalingMode = m_executeParams.scalingMode;
-#if (MFX_VERSION >= 1033)
             bufSc->InterpolationMethod = m_executeParams.interpolationMethod;
-#endif
         }
         else if (MFX_EXTBUFF_VPP_3DLUT == bufferId)
         {
@@ -2125,14 +2119,12 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
                 bufSc->VideoBuffer.MemId            = m_executeParams.lut3DInfo.MemId;
             }
         }
-#if (MFX_VERSION >= 1025)
         else if (MFX_EXTBUFF_VPP_COLOR_CONVERSION == bufferId)
         {
             mfxExtColorConversion *bufSc = reinterpret_cast<mfxExtColorConversion *>(par->ExtParam[i]);
             MFX_CHECK_NULL_PTR1(bufSc);
             bufSc->ChromaSiting = m_executeParams.chromaSiting;
         }
-#endif
         else if (MFX_EXTBUFF_VPP_MIRRORING == bufferId)
         {
             mfxExtVPPMirroring *bufMir = reinterpret_cast<mfxExtVPPMirroring *>(par->ExtParam[i]);
@@ -2915,7 +2907,6 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
     if ( fabs(inFrameRateCur / outFrameRateCur - inFrameRate / outFrameRate) > std::numeric_limits<mfxF64>::epsilon() )
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM; // Frame Rate ratio check
 
-#if (MFX_VERSION >= 1027)
     eMFXPlatform platform = m_pCore->GetPlatformType();
     if (platform == MFX_PLATFORM_HARDWARE)
     {
@@ -2927,7 +2918,6 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
             par->vpp.Out.FourCC  == MFX_FOURCC_Y410))
             return MFX_ERR_INVALID_VIDEO_PARAM;
 
-#if (MFX_VERSION >= 1031)
         if (type < MFX_HW_TGL_LP &&
            (par->vpp.In.FourCC   == MFX_FOURCC_P016 ||
             par->vpp.In.FourCC   == MFX_FOURCC_Y216 ||
@@ -2936,9 +2926,7 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
             par->vpp.Out.FourCC  == MFX_FOURCC_Y216 ||
             par->vpp.Out.FourCC  == MFX_FOURCC_Y416))
             return MFX_ERR_INVALID_VIDEO_PARAM;
-#endif
     }
-#endif
 
     if (m_params.vpp.In.FourCC  != par->vpp.In.FourCC ||
         m_params.vpp.Out.FourCC != par->vpp.Out.FourCC)
@@ -5035,13 +5023,9 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             }
 
             if (core->GetHWType() < MFX_HW_ICL && (
-#if (MFX_VERSION >= 1027)
                 (MFX_FOURCC_Y210 == par->vpp.In.FourCC || MFX_FOURCC_Y210 == par->vpp.Out.FourCC) ||
                 (MFX_FOURCC_Y410 == par->vpp.In.FourCC || MFX_FOURCC_Y410 == par->vpp.Out.FourCC) ||
-#endif
-#if (MFX_VERSION >= 1031)
                 (MFX_FOURCC_P016 == par->vpp.In.FourCC || MFX_FOURCC_P016 == par->vpp.Out.FourCC) ||
-#endif
                 (MFX_FOURCC_AYUV == par->vpp.In.FourCC || MFX_FOURCC_AYUV == par->vpp.Out.FourCC) ||
                 (MFX_FOURCC_P010 == par->vpp.In.FourCC || MFX_FOURCC_P010 == par->vpp.Out.FourCC) ))
             {
@@ -5114,13 +5098,9 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             }
 
             if (core->GetHWType() < MFX_HW_CNL && (
-#if (MFX_VERSION >= 1027)
                 (MFX_FOURCC_Y210 == par->vpp.In.FourCC || MFX_FOURCC_Y210 == par->vpp.Out.FourCC) ||
                 (MFX_FOURCC_Y410 == par->vpp.In.FourCC || MFX_FOURCC_Y410 == par->vpp.Out.FourCC) ||
-#endif
-#if (MFX_VERSION >= 1031)
                 (MFX_FOURCC_P016 == par->vpp.In.FourCC || MFX_FOURCC_P016 == par->vpp.Out.FourCC) ||
-#endif
                 (MFX_FOURCC_AYUV == par->vpp.In.FourCC || MFX_FOURCC_AYUV == par->vpp.Out.FourCC) ||
                 (                                         MFX_FOURCC_P010 == par->vpp.Out.FourCC) ))
             {
@@ -5186,11 +5166,8 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
 
     /* 6. BitDepthLuma and BitDepthChroma should be configured for p010 format */
     if (MFX_FOURCC_P010 == par->vpp.In.FourCC
-#if (MFX_VERSION >= 1027)
         || par->vpp.In.FourCC == MFX_FOURCC_Y210
-        || par->vpp.In.FourCC == MFX_FOURCC_Y410
-#endif
-        )
+        || par->vpp.In.FourCC == MFX_FOURCC_Y410)
     {
         if (0 == par->vpp.In.BitDepthLuma)
         {
@@ -5205,11 +5182,8 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
     }
 
     if (MFX_FOURCC_P010 == par->vpp.Out.FourCC
-#if (MFX_VERSION >= 1027)
         || par->vpp.Out.FourCC == MFX_FOURCC_Y210
-        || par->vpp.Out.FourCC == MFX_FOURCC_Y410
-#endif
-        )
+        || par->vpp.Out.FourCC == MFX_FOURCC_Y410)
     {
         if (0 == par->vpp.Out.BitDepthLuma)
         {
@@ -5223,7 +5197,6 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         }
     }
 
-#if (MFX_VERSION >= 1031)
     if (   par->vpp.In.FourCC == MFX_FOURCC_P016
         || par->vpp.In.FourCC == MFX_FOURCC_Y216
         || par->vpp.In.FourCC == MFX_FOURCC_Y416
@@ -5257,7 +5230,6 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             sts = GetWorstSts(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
         }
     }
-#endif
 
     /* 8. Check unsupported filters on RGB */
     if( par->vpp.In.FourCC == MFX_FOURCC_RGB4)
@@ -5534,10 +5506,8 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
                 case MFX_FOURCC_UYVY:
                     return make_back_color_yuv(8, extComp->Y, extComp->U, extComp->V);
                 case MFX_FOURCC_P010:
-#if (MFX_VERSION >= 1027)
                 case MFX_FOURCC_Y210:
                 case MFX_FOURCC_Y410:
-#endif
                 case MFX_FOURCC_P210:
                     return make_back_color_yuv(10, extComp->Y, extComp->U, extComp->V);
                 case MFX_FOURCC_RGB4:
@@ -5545,7 +5515,6 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
                     return make_back_color_argb(8, extComp->R, extComp->G, extComp->B);
                 case MFX_FOURCC_A2RGB10:
                     return make_back_color_argb(10, extComp->R, extComp->G, extComp->B);
-#if (MFX_VERSION >= 1031)
                 case MFX_FOURCC_P016:
                 case MFX_FOURCC_Y216:
                 case MFX_FOURCC_Y416:
@@ -5553,7 +5522,6 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
                     mfxU16 depth = videoParam.vpp.Out.BitDepthLuma ? videoParam.vpp.Out.BitDepthLuma : 12;
                     return make_back_color_yuv(depth, extComp->Y, extComp->U, extComp->V);
                 }
-#endif
                 default:
                     break;
             }
@@ -5570,10 +5538,8 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
         case MFX_FOURCC_UYVY:
             return make_def_back_color_yuv(8);
         case MFX_FOURCC_P010:
-#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y210:
         case MFX_FOURCC_Y410:
-#endif
         case MFX_FOURCC_P210:
             return make_def_back_color_yuv(10);
         case MFX_FOURCC_RGB4:
@@ -5585,12 +5551,10 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
             return make_def_back_color_argb(8);
         case MFX_FOURCC_A2RGB10:
             return make_def_back_color_argb(10);
-#if (MFX_VERSION >= 1031)
         case MFX_FOURCC_P016:
         case MFX_FOURCC_Y216:
         case MFX_FOURCC_Y416:
             return make_def_back_color_yuv(videoParam.vpp.Out.BitDepthLuma ? videoParam.vpp.Out.BitDepthLuma : 12);
-#endif
         default:
             break;
     }
@@ -5840,9 +5804,7 @@ mfxStatus ConfigureExecuteParams(
                         {
                             mfxExtVPPScaling *extScaling = (mfxExtVPPScaling*) videoParam.ExtParam[i];
                             executeParams.scalingMode = extScaling->ScalingMode;
-#if (MFX_VERSION >= 1033)
                             executeParams.interpolationMethod = extScaling->InterpolationMethod;
-#endif
                         }
                     }
                 }
@@ -5887,7 +5849,6 @@ mfxStatus ConfigureExecuteParams(
                 }
                 break;
             }
-#if (MFX_VERSION >= 1025)
             case MFX_EXTBUFF_VPP_COLOR_CONVERSION:
             {
                 if (caps.uChromaSiting )
@@ -5925,7 +5886,6 @@ mfxStatus ConfigureExecuteParams(
 
                 break;
             }
-#endif
             case MFX_EXTBUFF_VPP_MIRRORING:
             {
                 if (caps.uMirroring)
@@ -6479,12 +6439,10 @@ mfxStatus ConfigureExecuteParams(
                 {
                     executeParams.lut3DInfo.Enabled = false;
                 }
-#if (MFX_VERSION >= 1025)
                 else if (MFX_EXTBUFF_VPP_COLOR_CONVERSION == bufferId)
                 {
                     executeParams.chromaSiting = MFX_CHROMA_SITING_UNKNOWN;
                 }
-#endif
                 else if (MFX_EXTBUFF_VPP_MIRRORING == bufferId)
                 {
                     executeParams.mirroring = MFX_MIRRORING_DISABLED;

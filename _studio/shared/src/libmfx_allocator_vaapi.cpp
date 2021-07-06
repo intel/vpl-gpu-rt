@@ -91,20 +91,16 @@ static inline unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_P010;
     case MFX_FOURCC_AYUV:
         return VA_FOURCC_AYUV;
-#if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
         return VA_FOURCC_Y210;
     case MFX_FOURCC_Y410:
         return VA_FOURCC_Y410;
-#endif
-#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_P016:
         return VA_FOURCC_P016;
     case MFX_FOURCC_Y216:
         return VA_FOURCC_Y216;
     case MFX_FOURCC_Y416:
         return VA_FOURCC_Y416;
-#endif
     default:
         VM_ASSERT(!"unsupported fourcc");
         return 0;
@@ -149,7 +145,6 @@ static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int 
         case MFX_FOURCC_A2RGB10:
             format = VA_RT_FORMAT_RGB32_10BPP;
             break;
-#if (MFX_VERSION >= 1028)
         case MFX_FOURCC_RGBP:
             format = VA_RT_FORMAT_RGBP;
             //  Enable this hint as required for creating RGBP surface for JPEG.
@@ -163,7 +158,6 @@ static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int 
                 attrib[1].value.value.i   = VA_SURFACE_ATTRIB_USAGE_HINT_DECODER;
             }
             break;
-#endif
         case MFX_FOURCC_BGRP:
             format = VA_RT_FORMAT_RGBP;
             break;
@@ -207,15 +201,11 @@ static inline bool isFourCCSupported(unsigned int va_fourcc)
 #if defined (MFX_ENABLE_FOURCC_RGB565)
         case VA_FOURCC_RGB565:
 #endif
-#if (MFX_VERSION >= 1027)
         case VA_FOURCC_Y210:
         case VA_FOURCC_Y410:
-#endif
-#if (MFX_VERSION >= 1031)
         case VA_FOURCC_P016:
         case VA_FOURCC_Y216:
         case VA_FOURCC_Y416:
-#endif
             return true;
         default:
             return false;
@@ -555,9 +545,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         break;
 
     case VA_FOURCC_P010:
-#if (MFX_VERSION >= 1031)
     case VA_FOURCC_P016:
-#endif
         frame_data.Y = p_buffer + va_image.offsets[0];
         frame_data.U = p_buffer + va_image.offsets[1];
         frame_data.V = frame_data.U + sizeof(mfxU16);
@@ -570,11 +558,8 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         frame_data.A = frame_data.V + 3;
         break;
 
-#if (MFX_VERSION >= 1027)
     case VA_FOURCC_Y210:
-#if (MFX_VERSION >= 1031)
     case VA_FOURCC_Y216:
-#endif
         frame_data.Y16 = (mfxU16 *) (p_buffer + va_image.offsets[0]);
         frame_data.U16 = frame_data.Y16 + 1;
         frame_data.V16 = frame_data.Y16 + 3;
@@ -584,9 +569,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         frame_data.Y = frame_data.U = frame_data.V = frame_data.A = 0;
         frame_data.Y410 = (mfxY410*)(p_buffer + va_image.offsets[0]);
         break;
-#endif
 
-#if (MFX_VERSION >= 1031)
     case VA_FOURCC_Y416:
         frame_data.U16 = (mfxU16 *) (p_buffer + va_image.offsets[0]);
         frame_data.Y16 = frame_data.U16 + 1;
@@ -594,7 +577,6 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         frame_data.A   = (mfxU8 *)(frame_data.V16 + 1);
         break;
 
-#endif
     case MFX_FOURCC_VP8_SEGMAP:
         frame_data.Y = p_buffer;
         break;

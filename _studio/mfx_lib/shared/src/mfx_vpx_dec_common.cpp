@@ -133,13 +133,9 @@ namespace MFX_VPX_Utility
             case MFX_FOURCC_NV12:
             case MFX_FOURCC_AYUV:
             case MFX_FOURCC_P010:
-#if (MFX_VERSION >= 1027)
             case MFX_FOURCC_Y410:
-#endif
-#if (MFX_VERSION >= 1031)
             case MFX_FOURCC_P016:
             case MFX_FOURCC_Y416:
-#endif
                 p_out->mfx.FrameInfo.FourCC = p_in->mfx.FrameInfo.FourCC;
                 break;
             default:
@@ -165,15 +161,10 @@ namespace MFX_VPX_Utility
                 if ((   p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_NV12 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
                     || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
                     || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P010 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
-#if (MFX_VERSION >= 1027)
                   //|| (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV422)
                     || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
-#endif
-#if (MFX_VERSION >= 1031)
                     || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
-                    || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
-#endif
-                    )
+                    || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444))
                 {
                     p_out->mfx.FrameInfo.FourCC = 0;
                     p_out->mfx.FrameInfo.ChromaFormat = 0;
@@ -187,8 +178,7 @@ namespace MFX_VPX_Utility
             p_out->mfx.FrameInfo.BitDepthChroma = p_in->mfx.FrameInfo.BitDepthChroma;
             p_out->mfx.FrameInfo.Shift = p_in->mfx.FrameInfo.Shift;
 
-            if ((p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_NV12
-                || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV) &&
+            if ((p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_NV12 || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV) &&
                ((p_in->mfx.FrameInfo.BitDepthLuma   != 0 && p_in->mfx.FrameInfo.BitDepthLuma   != 8) ||
                 (p_in->mfx.FrameInfo.BitDepthChroma != 0 && p_in->mfx.FrameInfo.BitDepthChroma != 8) ||
                     p_in->mfx.FrameInfo.Shift))
@@ -198,11 +188,7 @@ namespace MFX_VPX_Utility
                 p_out->mfx.FrameInfo.Shift = 0;
                 sts = MFX_ERR_UNSUPPORTED;
             }
-            if ((  p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-#if (MFX_VERSION >= 1027)
-                || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410
-#endif
-                ) &&
+            if ((p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P010 || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410) &&
                 ((p_in->mfx.FrameInfo.BitDepthLuma != 0 && p_in->mfx.FrameInfo.BitDepthLuma != 10) ||
                  (p_in->mfx.FrameInfo.BitDepthChroma != 0 && p_in->mfx.FrameInfo.BitDepthChroma != 10)))
             {
@@ -211,9 +197,7 @@ namespace MFX_VPX_Utility
                 p_out->mfx.FrameInfo.Shift = 0;
                 sts = MFX_ERR_UNSUPPORTED;
             }
-#if (MFX_VERSION >= 1031)
-            if ((  p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016
-                || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416) &&
+            if ((p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016 || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416) &&
                 ((p_in->mfx.FrameInfo.BitDepthLuma != 0 && p_in->mfx.FrameInfo.BitDepthLuma != 12) ||
                  (p_in->mfx.FrameInfo.BitDepthChroma != 0 && p_in->mfx.FrameInfo.BitDepthChroma != 12)))
             {
@@ -222,7 +206,6 @@ namespace MFX_VPX_Utility
                 p_out->mfx.FrameInfo.Shift = 0;
                 sts = MFX_ERR_UNSUPPORTED;
             }
-#endif
 
             if (!p_in->mfx.FrameInfo.ChromaFormat && !(!p_in->mfx.FrameInfo.FourCC && !p_in->mfx.FrameInfo.ChromaFormat))
                 sts = MFX_ERR_UNSUPPORTED;
@@ -403,14 +386,9 @@ namespace MFX_VPX_Utility
                 if (   p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_NV12
                     && p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_AYUV
                     && p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_P010
-#if (MFX_VERSION >= 1027)
                     && !(p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410 && hwtype >= MFX_HW_ICL)
-#endif
-#if (MFX_VERSION >= 1031)
                     && p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_P016
-                    && p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_Y416
-#endif
-                )
+                    && p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_Y416)
                 return false;
             }
 
@@ -430,14 +408,9 @@ namespace MFX_VPX_Utility
                 if ((p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_NV12 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
                     || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
                     || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P010 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
-#if (MFX_VERSION >= 1027)
                     || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
-#endif
-#if (MFX_VERSION >= 1031)
-                   || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
-                   || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
-#endif
-                    )
+                    || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
+                    || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444))
                     return false;
             }
         }

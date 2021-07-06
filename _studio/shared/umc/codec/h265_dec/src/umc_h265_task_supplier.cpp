@@ -47,7 +47,6 @@
 namespace UMC_HEVC_DECODER
 {
 
-#if (MFX_VERSION >= 1025)
 inline void SetDecodeErrorTypes(NalUnitType nalUnit, mfxExtDecodeErrorReport *pDecodeErrorReport)
 {
     if (!pDecodeErrorReport)
@@ -60,7 +59,6 @@ inline void SetDecodeErrorTypes(NalUnitType nalUnit, mfxExtDecodeErrorReport *pD
         default: break;
     };
 }
-#endif
 
 const uint32_t levelIndexArray[] = {
     H265_LEVEL_1,
@@ -1675,12 +1673,10 @@ UMC::Status TaskSupplier_H265::ProcessNalUnit(UMC::MediaDataEx *nalUnit)
     case NAL_UT_PPS:
         umcRes = DecodeHeaders(nalUnit);
         {
-#if (MFX_VERSION >= 1025)
             UMC::MediaData::AuxInfo* aux = (nalUnit) ? nalUnit->GetAuxInfo(MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
             mfxExtDecodeErrorReport* pDecodeErrorReport = (aux) ? reinterpret_cast<mfxExtDecodeErrorReport*>(aux->ptr) : NULL;
             if (pDecodeErrorReport && umcRes == UMC::UMC_ERR_INVALID_STREAM)
                 SetDecodeErrorTypes(unitType, pDecodeErrorReport);
-#endif
         }
 
         break;
@@ -1724,10 +1720,8 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
 
         UMC::MediaDataEx::_MediaDataEx* pMediaDataEx = nalUnit->GetExData();
 
-#if (MFX_VERSION >= 1025)
         UMC::MediaData::AuxInfo* aux = (pSource) ? pSource->GetAuxInfo(MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
         mfxExtDecodeErrorReport* pDecodeErrorReport = (aux) ? reinterpret_cast<mfxExtDecodeErrorReport*>(aux->ptr) : NULL;
-#endif
 
         for (int32_t i = 0; i < (int32_t)pMediaDataEx->count; i++, pMediaDataEx->index ++)
         {
@@ -1783,10 +1777,8 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
                 case NAL_UT_PPS:
                     {
                         UMC::Status sts = DecodeHeaders(nalUnit);
-#if (MFX_VERSION >= 1025)
                         if (pDecodeErrorReport && sts == UMC::UMC_ERR_INVALID_STREAM)
                             SetDecodeErrorTypes((NalUnitType)pMediaDataEx->values[i], pDecodeErrorReport);
-#endif
                     }
                     break;
 
@@ -1853,10 +1845,8 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
                             moveToSpsOffset = pSource->GetDataSize() + size + 3;
                             continue;
                         }
-#if (MFX_VERSION >= 1025)
                         if (pDecodeErrorReport && umsRes == UMC::UMC_ERR_INVALID_STREAM)
                             SetDecodeErrorTypes(nut, pDecodeErrorReport);
-#endif
 
                         return umsRes;
                     }

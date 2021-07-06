@@ -19,8 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && (MFX_VERSION >= 1031)
-
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 #include "hevcehw_g12_rext.h"
 #include "hevcehw_base_legacy.h"
 

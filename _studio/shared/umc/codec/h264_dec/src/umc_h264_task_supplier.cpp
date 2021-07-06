@@ -44,7 +44,6 @@ using namespace UMC_H264_DECODER;
 namespace UMC
 {
 
-#if (MFX_VERSION >= 1025)
 inline void SetDecodeErrorTypes(NAL_Unit_Type nalUnit, mfxExtDecodeErrorReport *pDecodeErrorReport)
 {
     switch (nalUnit)
@@ -54,7 +53,6 @@ inline void SetDecodeErrorTypes(NAL_Unit_Type nalUnit, mfxExtDecodeErrorReport *
         default: break;
     };
 }
-#endif
 
 /****************************************************************************************************/
 // DPBOutput class routine
@@ -3184,11 +3182,7 @@ Status TaskSupplier::AddSource(MediaData * pSource)
     return umcRes;
 }
 
-#if (MFX_VERSION >= 1025)
 Status TaskSupplier::ProcessNalUnit(NalUnit *nalUnit, mfxExtDecodeErrorReport * pDecodeErrorReport)
-#else
-Status TaskSupplier::ProcessNalUnit(NalUnit *nalUnit)
-#endif
 {
     Status umcRes = UMC_OK;
 
@@ -3214,11 +3208,8 @@ Status TaskSupplier::ProcessNalUnit(NalUnit *nalUnit)
     case NAL_UT_PREFIX:
         umcRes = DecodeHeaders(nalUnit);
 
-#if (MFX_VERSION >= 1025)
         if (pDecodeErrorReport && umcRes == UMC_ERR_INVALID_STREAM)
            SetDecodeErrorTypes(nalUnit->GetNalUnitType(), pDecodeErrorReport);
-#endif
-
         break;
 
     case NAL_UT_SEI:
@@ -3268,10 +3259,8 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
 
     do
     {
-#if (MFX_VERSION >= 1025)
         MediaData::AuxInfo* aux = (pSource) ? pSource->GetAuxInfo(MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
         mfxExtDecodeErrorReport* pDecodeErrorReport = (aux) ? reinterpret_cast<mfxExtDecodeErrorReport*>(aux->ptr) : NULL;
-#endif
 
         NalUnit *nalUnit = m_pNALSplitter->GetNalUnits(pSource);
 
@@ -3337,10 +3326,8 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
                     pSource->MoveDataPointer(- size - 3);
                 }
 
-#if (MFX_VERSION >= 1025)
                 if (pDecodeErrorReport && umsRes == UMC_ERR_INVALID_STREAM)
                     SetDecodeErrorTypes(nalUnit->GetNalUnitType(), pDecodeErrorReport);
-#endif
 
                 return umsRes;
             }
