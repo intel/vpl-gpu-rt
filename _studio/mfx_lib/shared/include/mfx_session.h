@@ -124,6 +124,8 @@ struct _mfxSession
         std::map<mfxU16, mfxExtBuffer*>                     ExtBuffers;
         //channel ID for VDBOX + SFC channel, 0 means VDBOX + SFC is not used
         mfxU16 sfcChannelID;
+        //true means keep only processed outputs
+        bool   skipOriginalOutput;
     };
     std::unique_ptr<DVP>   m_pDVP;
 
