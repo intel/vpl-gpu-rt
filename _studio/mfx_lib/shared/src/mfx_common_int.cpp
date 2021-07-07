@@ -845,6 +845,10 @@ bool mfxVideoParamWrapper::CreateExtendedBuffer(mfxU32 bufferId)
         m_buffers.AddTypedBuffer<mfxExtHEVCParam>(bufferId);
         break;
 
+    case MFX_EXTBUFF_CODING_OPTION:
+        m_buffers.AddTypedBuffer<mfxExtCodingOption>(bufferId);
+        break;
+
     default:
         VM_ASSERT(false);
         return false;
@@ -868,38 +872,6 @@ void mfxVideoParamWrapper::CopyVideoParam(const mfxVideoParam & par)
     {
         switch(par.ExtParam[i]->BufferId)
         {
-#ifdef MFX_EXTBUFF_FORCE_PRIVATE_DDI_ENABLE
-        case MFX_EXTBUFF_FORCE_PRIVATE_DDI:
-#endif
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
-        case MFX_EXTBUFF_DEC_VIDEO_PROCESSING:
-#endif
-        case MFX_EXTBUFF_MVC_TARGET_VIEWS:
-        case MFX_EXTBUFF_VIDEO_SIGNAL_INFO:
-#if defined(MFX_ENABLE_SVC_VIDEO_DECODE)
-        case MFX_EXTBUFF_SVC_SEQ_DESC:
-        case MFX_EXTBUFF_SVC_TARGET_LAYER:
-#endif
-#ifndef MFX_ADAPTIVE_PLAYBACK_DISABLE
-        case MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK:
-#endif
-        case MFX_EXTBUFF_JPEG_QT:
-        case MFX_EXTBUFF_JPEG_HUFFMAN:
-        case MFX_EXTBUFF_HEVC_PARAM:
-            {
-                void * in = GetExtendedBufferInternal(par.ExtParam, par.NumExtParam, par.ExtParam[i]->BufferId);
-                m_buffers.AddBuffer(par.ExtParam[i]);
-                mfxExtBuffer * out = m_buffers.GetBufferById<mfxExtBuffer >(par.ExtParam[i]->BufferId);
-                if (NULL == out)
-                {
-                    VM_ASSERT(false);
-                    throw UMC::UMC_ERR_FAILED;
-                }
-
-                mfxU8 *src = reinterpret_cast<mfxU8*>(in), *dst = reinterpret_cast<mfxU8*>(out);
-                std::copy(src, src + par.ExtParam[i]->BufferSz, dst);
-            }
-            break;
         case MFX_EXTBUFF_MVC_SEQ_DESC:
             {
                 mfxExtMVCSeqDesc * mvcPoints = (mfxExtMVCSeqDesc *)GetExtendedBufferInternal(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_MVC_SEQ_DESC);
@@ -947,10 +919,37 @@ void mfxVideoParamWrapper::CopyVideoParam(const mfxVideoParam & par)
         case MFX_EXTBUFF_CODING_OPTION_SPSPPS:
             break;
 
+#ifdef MFX_EXTBUFF_FORCE_PRIVATE_DDI_ENABLE
+        case MFX_EXTBUFF_FORCE_PRIVATE_DDI:
+#endif
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+        case MFX_EXTBUFF_DEC_VIDEO_PROCESSING:
+#endif
+        case MFX_EXTBUFF_MVC_TARGET_VIEWS:
+        case MFX_EXTBUFF_VIDEO_SIGNAL_INFO:
+#if defined(MFX_ENABLE_SVC_VIDEO_DECODE)
+        case MFX_EXTBUFF_SVC_SEQ_DESC:
+        case MFX_EXTBUFF_SVC_TARGET_LAYER:
+#endif
+#ifndef MFX_ADAPTIVE_PLAYBACK_DISABLE
+        case MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK:
+#endif
+        case MFX_EXTBUFF_JPEG_QT:
+        case MFX_EXTBUFF_JPEG_HUFFMAN:
+        case MFX_EXTBUFF_HEVC_PARAM:
         default:
             {
-                VM_ASSERT(false);
-                throw UMC::UMC_ERR_FAILED;
+                void* in = GetExtendedBufferInternal(par.ExtParam, par.NumExtParam, par.ExtParam[i]->BufferId);
+                m_buffers.AddBuffer(par.ExtParam[i]);
+                mfxExtBuffer* out = m_buffers.GetBufferById<mfxExtBuffer >(par.ExtParam[i]->BufferId);
+                if (NULL == out)
+                {
+                    VM_ASSERT(false);
+                    throw UMC::UMC_ERR_FAILED;
+                }
+
+                mfxU8* src = reinterpret_cast<mfxU8*>(in), * dst = reinterpret_cast<mfxU8*>(out);
+                std::copy(src, src + par.ExtParam[i]->BufferSz, dst);
             }
             break;
         };
