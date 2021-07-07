@@ -37,6 +37,7 @@ namespace UMC
     using namespace VC1Exceptions;
 
 
+
     enum
     {
         VC1_I_I_FRAME   = 0,
@@ -581,7 +582,6 @@ namespace UMC
         CompBuf->SetDataSize(Size+4);
         SwapData((uint8_t*)pSliceData, Size + 4);
     }
-
 
 }
 #endif //MFX_ENABLE_VC1_VIDEO_DECODE

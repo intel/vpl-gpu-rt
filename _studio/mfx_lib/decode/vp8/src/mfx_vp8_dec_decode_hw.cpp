@@ -315,7 +315,6 @@ mfxStatus VideoDECODEVP8_HW::Reset(mfxVideoParam *p_video_param)
     if (!IsSameVideoParam(p_video_param, &m_on_init_video_params))
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
 
-
     // need to sw acceleration
     if (m_platform != m_p_core->GetPlatformType())
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
@@ -422,7 +421,6 @@ mfxStatus VideoDECODEVP8_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_vid
     {
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
-
 
     if(p_params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
     {

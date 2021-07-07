@@ -114,7 +114,6 @@ public:
     static mfxStatus CheckVPPCaps(VideoCORE * core, mfxVideoParam * par);
 
 
-
 protected:
     // Decoder's array
     std::unique_ptr<UMC::MJPEGVideoDecoderMFX_HW> m_pMJPEGVideoDecoder;

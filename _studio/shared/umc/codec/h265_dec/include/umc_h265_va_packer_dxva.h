@@ -28,51 +28,6 @@
 
 #ifndef UMC_RESTRICTED_CODE_VA
 
-#ifdef UMC_VA_DXVA
-
-#include "umc_h265_task_supplier.h"
-
-namespace UMC_HEVC_DECODER
-{
-    inline int
-    LengthInMinCb(int length, int cbsize)
-    {
-        return length/(1 << cbsize);
-    }
-
-    class PackerDXVA2
-        : public Packer
-    {
-
-    public:
-
-        PackerDXVA2(UMC::VideoAccelerator * va);
-
-        virtual UMC::Status GetStatusReport(void * pStatusReport, size_t size);
-        virtual UMC::Status SyncTask(int32_t index, void * error);
-        virtual bool IsGPUSyncEventEnable();
-
-        virtual void BeginFrame(H265DecoderFrame*);
-        virtual void EndFrame();
-
-        void PackAU(H265DecoderFrame const*, TaskSupplier_H265*);
-
-        using Packer::PackQmatrix;
-
-        virtual void PackSubsets(H265DecoderFrame const*);
-
-    protected:
-
-        void PackQmatrix(H265Slice const*);
-
-    protected:
-
-        uint32_t              m_statusReportFeedbackCounter;
-        int                   m_refFrameListCacheSize;
-    };
-}
-
-#endif // UMC_VA_DXVA
 
 #endif // UMC_RESTRICTED_CODE_VA
 

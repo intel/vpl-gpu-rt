@@ -272,7 +272,6 @@ mfxStatus MFX_VP8_Utility::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVide
             sts = MFX_ERR_UNSUPPORTED;
         }
 
-
         if (GetPlatform(p_core, p_out) != p_core->GetPlatformType() && sts == MFX_ERR_NONE)
         {
             VM_ASSERT(GetPlatform(p_core, p_out) == MFX_PLATFORM_SOFTWARE);

@@ -502,11 +502,13 @@ mfxStatus MFXVideoDECODEVC1::Close(void)
 
 mfxTaskThreadingPolicy MFXVideoDECODEVC1::GetThreadingPolicy(void)
 {
+#if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
     if (MFX_HW_VAAPI == m_pCore->GetVAType())
     {
         return MFX_TASK_THREADING_INTRA;
     }
     else
+#endif
     {
         return MFX_TASK_THREADING_DEFAULT;
     }
@@ -1424,7 +1426,6 @@ mfxStatus MFXVideoDECODEVC1::ConvertMfxPlaneToMediaData(mfxFrameSurface1 *surfac
     mfxStatus       MFXSts = MFX_ERR_NONE;
     mfxFrameSurface1 *pNativeSurface = surface;
 
-
     MFXSts = m_surface_source->SetCurrentMFXSurface(pNativeSurface);
     MFX_CHECK_STS(MFXSts);
 
@@ -1448,7 +1449,6 @@ mfxStatus MFXVideoDECODEVC1::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mf
         !(par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) ||
         !(par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY),
         MFX_ERR_INVALID_VIDEO_PARAM);
-
 
     if (!IsHWSupported(core, par))
     {
@@ -1495,7 +1495,6 @@ mfxStatus MFXVideoDECODEVC1::SetAllocRequestInternal(VideoCORE *core, mfxVideoPa
         request->Type = MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_DECODE;
         return MFX_ERR_NONE;
     }
-
 
     return MFX_ERR_NONE;
 }
@@ -1580,7 +1579,6 @@ auto const mask =
     MFX_CHECK(in->AsyncDepth == m_Initpar.AsyncDepth, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     MFX_CHECK(in->Protected == m_Initpar.Protected, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
-
     return MFX_ERR_NONE;
 
 }
@@ -1610,7 +1608,6 @@ bool MFXVideoDECODEVC1::IsHWSupported(VideoCORE *pCore, mfxVideoParam *par)
     }
     return true;
 }
-
 
 void   MFXVideoDECODEVC1::FillMFXDataOutputSurface(mfxFrameSurface1 *surface)
 {
@@ -1876,9 +1873,11 @@ mfxStatus MFXVideoDECODEVC1::DecodeFrameCheck(mfxBitstream *bs,
         pEntryPoint->pRoutine = &VC1DECODERoutine;
         pEntryPoint->pCompleteProc = &VC1CompleteProc;
         pEntryPoint->pState = this;
+#if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
         if (MFX_HW_VAAPI == m_pCore->GetVAType())
             pEntryPoint->requiredNumThreads = 1;
         else
+#endif
             pEntryPoint->requiredNumThreads = m_par.mfx.NumThread;
         pEntryPoint->pParam = pAsyncSurface;
         pEntryPoint->pRoutineName = (char *)"DecodeVC1";
@@ -1924,6 +1923,7 @@ mfxStatus  MFXVideoDECODEVC1::ProcessSkippedFrame()
 
 mfxStatus MFXVideoDECODEVC1::GetStatusReport()
 {
+#if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
     VideoAccelerator *va;
     m_pCore->GetVA((mfxHDL*)&va, MFX_MEMTYPE_FROM_DECODE);
 
@@ -1939,6 +1939,23 @@ mfxStatus MFXVideoDECODEVC1::GetStatusReport()
             return CriticalErrorStatus;
         }
     }
+#else
+    VideoAccelerator *va;
+    m_pCore->GetVA((mfxHDL*)&va, MFX_MEMTYPE_FROM_DECODE);
+
+    Status sts = UMC_OK;
+    VASurfaceStatus surfSts = VASurfaceSkipped;
+
+    UMC::VC1FrameDescriptor *pCurrDescriptor = m_pVC1VideoDecoder->m_pStore->GetFirstDS();
+
+    if (pCurrDescriptor)
+    {
+        VAStatus surfErr = VA_STATUS_SUCCESS;
+        sts = va->QueryTaskStatus(pCurrDescriptor->m_pContext->m_frmBuff.m_iCurrIndex, &surfSts, &surfErr);
+        MFX_CHECK(sts != UMC_ERR_GPU_HANG, MFX_ERR_GPU_HANG);
+        MFX_CHECK(sts == UMC_OK, MFX_ERR_DEVICE_FAILED);
+    }
+#endif //#if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
 
     return MFX_ERR_NONE;
 }

@@ -100,7 +100,6 @@ public:
 
     virtual mfxFrameSurface1* GetSurface() override;
 
-
 protected:
 
     static mfxStatus SetAllocRequestInternal(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);

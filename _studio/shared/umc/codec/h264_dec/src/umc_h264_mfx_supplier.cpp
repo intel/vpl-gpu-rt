@@ -785,10 +785,7 @@ UMC::Status PosibleMVC::DecodeHeader(UMC::MediaData * data, mfxBitstream *bs, mf
 
 UMC::Status PosibleMVC::ProcessNalUnit(UMC::MediaData * data, mfxBitstream * bs)
 {
-
-#if (MFX_VERSION >= 1025)
     mfxExtDecodeErrorReport * pDecodeErrorReport = (mfxExtDecodeErrorReport*)GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT);
-#endif
 
     try
     {
@@ -903,11 +900,7 @@ UMC::Status PosibleMVC::ProcessNalUnit(UMC::MediaData * data, mfxBitstream * bs)
         {
             try
             {
-#if (MFX_VERSION >= 1025)
                 UMC::Status umcRes = m_supplier->ProcessNalUnit(nalUnit, pDecodeErrorReport);
-#else
-                UMC::Status umcRes = m_supplier->ProcessNalUnit(nalUnit);
-#endif
                 if (umcRes < UMC::UMC_OK)
                 {
                     return UMC::UMC_OK;
@@ -1859,7 +1852,6 @@ bool MFX_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType type)
 
     if ((in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
         return false;
-
 
     return true;
 }
