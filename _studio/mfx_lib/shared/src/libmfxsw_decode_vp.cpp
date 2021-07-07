@@ -93,6 +93,7 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
         {
             session->m_pDVP.reset(new _mfxSession::DVP());
             session->m_pDVP->sfcChannelID = 0;
+            session->m_pDVP->skipOriginalOutput = IsOn(decode_par->mfx.SkipOutput);
         }
 
 
@@ -348,7 +349,8 @@ mfxStatus MFXVideoDECODE_VPP_DecodeFrameAsync(mfxSession session, mfxBitstream* 
         }
 
         //output DEC channel
-        if (skipChannels.end() == std::find(skipChannels.begin(), skipChannels.end(), decoderChannelID))
+        if (skipChannels.end() == std::find(skipChannels.begin(), skipChannels.end(), decoderChannelID)
+            && !session->m_pDVP->skipOriginalOutput)
         {
             surfArray->AddSurface(decChannelSurf);
         }
