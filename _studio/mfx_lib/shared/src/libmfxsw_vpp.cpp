@@ -258,9 +258,9 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
         memset(&entryPoints, 0, sizeof(entryPoints));
         mfxRes = session->m_pVPP->VppFrameCheck(in, out, aux, entryPoints, numEntryPoints);
         // source data is OK, go forward
-        if ((MFX_ERR_NONE == mfxRes) ||
-            (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes)) ||
-            (MFX_ERR_MORE_SURFACE == mfxRes) ||
+        if ((MFX_ERR_NONE                     == mfxRes) ||
+            (MFX_ERR_MORE_DATA_SUBMIT_TASK    == mfxRes) ||
+            (MFX_ERR_MORE_SURFACE             == mfxRes) ||
             (MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == mfxRes))
         {
             // prepare the absolete kind of task.
@@ -290,7 +290,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
                 task.pSrc[0] = in;
                 task.pDst[0] = out;
                 
-                if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
+                if (MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes)
                     task.pDst[0] = NULL;
 
 #ifdef MFX_TRACE_ENABLE
@@ -313,7 +313,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
                 // fill dependencies
                 task.pSrc[0] = in;
                 task.pDst[0] = out;
-                if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
+                if (MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes)
                     task.pDst[0] = NULL;
                 
 
@@ -355,7 +355,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
                 task.pSrc[0] = entryPoints[0].pParam;
                 task.pDst[0] = out;
                 task.pDst[1] = aux;
-                if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
+                if (MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes)
                 {
                     task.pDst[0] = NULL;
                     task.pDst[1] = NULL;
@@ -369,7 +369,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
                 MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
             }
 
-            if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
+            if (MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes)
             {
                 mfxRes = MFX_ERR_MORE_DATA;
                 syncPoint = NULL;
