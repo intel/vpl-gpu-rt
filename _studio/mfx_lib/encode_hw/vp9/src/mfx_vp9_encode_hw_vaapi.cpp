@@ -751,9 +751,10 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         attrs[idx_map[VAConfigAttribEncMacroblockInfo]].value)
         m_caps.SegmentFeatureSupport |= 1 << FEAT_QIDX;
 
-    if (attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value != VA_ATTRIB_NOT_SUPPORTED &&
-        attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value)
-        m_caps.SegmentFeatureSupport |= 1 << FEAT_REF;
+    if (attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value != VA_ATTRIB_NOT_SUPPORTED)
+    {
+        m_caps.MaxNum_Reference0 = attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value;
+    }
 
     if (attrs[idx_map[VAConfigAttribEncSkipFrame]].value != VA_ATTRIB_NOT_SUPPORTED &&
         attrs[idx_map[VAConfigAttribEncSkipFrame]].value)

@@ -1326,9 +1326,11 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         // VP9 spec allows to store up to 8 reference frames.
         // this VP9 implementation use maximum 3 of 8 so far.
         // we don't need to allocate more if really only 3 are used.
-        if (par.mfx.NumRefFrame > DPB_SIZE_REAL)
+        mfxU16 maxSupportedNumRef = std::min<mfxU16>(static_cast<mfxU16>(caps.MaxNum_Reference0), DPB_SIZE_REAL);
+
+        if (par.mfx.NumRefFrame > maxSupportedNumRef)
         {
-            par.mfx.NumRefFrame = DPB_SIZE_REAL;
+            par.mfx.NumRefFrame = maxSupportedNumRef;
             changed = true;
         }
 
