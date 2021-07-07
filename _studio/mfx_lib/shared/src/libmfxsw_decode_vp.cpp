@@ -632,12 +632,13 @@ mfxStatus MFXVideoDECODE_VPP_GetChannelParam(mfxSession session, mfxVideoChannel
     MFX_CHECK_NULL_PTR1(par);
     MFX_CHECK(session->m_pDVP, MFX_ERR_NOT_INITIALIZED);
 
+    mfxU16 ChannelId = static_cast<mfxU16>(channel_id);
     auto& vpp_params = session->m_pDVP->VppParams;
-    MFX_CHECK(vpp_params.find(channel_id) != vpp_params.end(), MFX_ERR_NOT_FOUND);
+    MFX_CHECK(vpp_params.find(ChannelId) != vpp_params.end(), MFX_ERR_NOT_FOUND);
 
-    par->VPP         = vpp_params[channel_id].vpp.Out;
-    par->Protected   = vpp_params[channel_id].Protected;
-    par->IOPattern   = vpp_params[channel_id].IOPattern;
+    par->VPP         = vpp_params[ChannelId].vpp.Out;
+    par->Protected   = vpp_params[ChannelId].Protected;
+    par->IOPattern   = vpp_params[ChannelId].IOPattern;
     par->NumExtParam = 0;
 
     return MFX_ERR_NONE;

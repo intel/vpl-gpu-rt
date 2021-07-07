@@ -189,7 +189,7 @@ mfxStatus VideoDECODEMPEG2::Init(mfxVideoParam* par)
     eMFXHWType type = m_platform == MFX_PLATFORM_HARDWARE ? m_core->GetHWType() : MFX_HW_UNKNOWN;
 
     // Checking general init params
-    mfxStatus mfxSts = CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type, m_core->IsCompatibleForOpaq());
+    mfxStatus mfxSts = CheckVideoParamDecoders(par, type);
     MFX_CHECK(mfxSts >= MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
 
     MFX_CHECK(UMC_MPEG2_DECODER::MFX_PROFILE_MPEG1 != par->mfx.CodecProfile, MFX_ERR_UNSUPPORTED);
@@ -335,7 +335,7 @@ mfxStatus VideoDECODEMPEG2::Reset(mfxVideoParam *par)
 
     eMFXHWType type = m_platform == MFX_PLATFORM_HARDWARE ? m_core->GetHWType() : MFX_HW_UNKNOWN;
 
-    mfxStatus mfxSts = CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type, m_core->IsCompatibleForOpaq());
+    mfxStatus mfxSts = CheckVideoParamDecoders(par, type);
     MFX_CHECK(mfxSts >= MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
 
     MFX_CHECK(UMC_MPEG2_DECODER::CheckVideoParam(par), MFX_ERR_INVALID_VIDEO_PARAM);

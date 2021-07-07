@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2020 Intel Corporation
+// Copyright (c) 2008-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -915,7 +915,7 @@ mfxStatus CMC::MCTF_SET_ENV(
     case PLATFORM_INTEL_KBL:
     case PLATFORM_INTEL_CFL:
     case PLATFORM_INTEL_GLK:
-        res = MFX_ERR_UNSUPPORTED;
+        return MFX_ERR_DEVICE_FAILED;
     case PLATFORM_INTEL_TGLLP:
     case PLATFORM_INTEL_RKL:
     case PLATFORM_INTEL_DG1:
@@ -968,7 +968,7 @@ mfxStatus CMC::MCTF_SET_ENV(
     case PLATFORM_INTEL_KBL:
     case PLATFORM_INTEL_CFL:
     case PLATFORM_INTEL_GLK:
-        res = MFX_ERR_UNSUPPORTED;
+        return MFX_ERR_DEVICE_FAILED;
     case PLATFORM_INTEL_TGLLP:
     case PLATFORM_INTEL_RKL:
     case PLATFORM_INTEL_DG1:
@@ -992,7 +992,7 @@ mfxStatus CMC::MCTF_SET_ENV(
     case PLATFORM_INTEL_KBL:
     case PLATFORM_INTEL_CFL:
     case PLATFORM_INTEL_GLK:
-        res = MFX_ERR_UNSUPPORTED;
+        return MFX_ERR_DEVICE_FAILED;
     case PLATFORM_INTEL_TGLLP:
     case PLATFORM_INTEL_RKL:
     case PLATFORM_INTEL_DG1:

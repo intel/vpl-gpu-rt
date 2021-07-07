@@ -81,7 +81,7 @@ mfxStatus MFXVideoVPP_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam
     try
     {
 #ifdef MFX_ENABLE_VPP
-            mfxRes = VideoVPPMain::Query(session->m_pCORE.get(), in, out);
+        mfxRes = VideoVPPMain::Query(session->m_pCORE.get(), in, out);
 #endif // MFX_ENABLE_VPP
     }
     // handle error(s)
@@ -111,7 +111,7 @@ mfxStatus MFXVideoVPP_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFra
     try
     {
 #ifdef MFX_ENABLE_VPP
-            mfxRes = VideoVPPMain::QueryIOSurf(session->m_pCORE.get(), par, request/*, session->m_adapterNum*/);
+        mfxRes = VideoVPPMain::QueryIOSurf(session->m_pCORE.get(), par, request/*, session->m_adapterNum*/);
 #endif // MFX_ENABLE_VPP
     }
     // handle error(s)
@@ -140,18 +140,18 @@ mfxStatus MFXVideoVPP_Init(mfxSession session, mfxVideoParam *par)
     try
     {
 #ifdef MFX_ENABLE_VPP
-            // close the existing video processor,
-            // if it is initialized.
-            if (session->m_pVPP.get())
-            {
-                MFXVideoVPP_Close(session);
-            }
+        // close the existing video processor,
+        // if it is initialized.
+        if (session->m_pVPP.get())
+        {
+            MFXVideoVPP_Close(session);
+        }
 
 
-            // create a new instance
-            session->m_pVPP.reset(session->Create<VideoVPP>(*par));
-            MFX_CHECK(session->m_pVPP.get(), MFX_ERR_INVALID_VIDEO_PARAM);
-            mfxRes = session->m_pVPP->Init(par);
+        // create a new instance
+        session->m_pVPP.reset(session->Create<VideoVPP>(*par));
+        MFX_CHECK(session->m_pVPP.get(), MFX_ERR_INVALID_VIDEO_PARAM);
+        mfxRes = session->m_pVPP->Init(par);
 #endif // MFX_ENABLE_VPP
     }
     // handle error(s)
@@ -186,9 +186,8 @@ mfxStatus MFXVideoVPP_Close(mfxSession session)
         session->m_pScheduler->WaitForAllTasksCompletion(session->m_pVPP.get());
 
         mfxRes = session->m_pVPP->Close();
-        {
-            session->m_pVPP.reset(nullptr);
-        }
+
+        session->m_pVPP.reset(nullptr);
     }
     // handle error(s)
     catch(...)

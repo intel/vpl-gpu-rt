@@ -295,7 +295,6 @@ namespace MFX_VPX_Utility
             {
                 sts = MFX_ERR_UNSUPPORTED;
             }
-
         }
         else
         {
@@ -337,7 +336,6 @@ namespace MFX_VPX_Utility
             {
                 p_out->IOPattern = MFX_IOPATTERN_OUT_VIDEO_MEMORY;
             }
-
         }
 
         return sts;
@@ -368,13 +366,11 @@ namespace MFX_VPX_Utility
             return false;
 
         if (!(p_in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
-            && !(p_in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
-            )
+            && !(p_in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
             return false;
 
         if ((p_in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
-            && (p_in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
-            )
+            && (p_in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
             return false;
 
         if (codecId == MFX_CODEC_VP8)
@@ -434,8 +430,8 @@ namespace MFX_VPX_Utility
                     || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
 #endif
 #if (MFX_VERSION >= 1031)
-                   || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
-                   || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
+                    || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
+                    || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
 #endif
                     )
                     return false;

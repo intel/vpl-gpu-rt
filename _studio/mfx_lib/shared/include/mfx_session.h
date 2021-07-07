@@ -28,7 +28,6 @@
 #include <mfxstructures.h>
 #include <mfxvideo++int.h>
 
-
 #include "mfx_common.h"
 
 // private headers
@@ -104,11 +103,7 @@ struct _mfxSession
 
     std::unique_ptr<VideoENCODE> m_pENCODE;
     std::unique_ptr<VideoDECODE> m_pDECODE;
-
-
     std::unique_ptr<VideoVPP> m_pVPP;
-
-
 
     struct DVP
     {
@@ -128,7 +123,6 @@ struct _mfxSession
         bool   skipOriginalOutput;
     };
     std::unique_ptr<DVP>   m_pDVP;
-
 
     // Current implementation platform ID
     eMFXPlatform m_currentPlatform;
@@ -191,8 +185,6 @@ private:
     // Assignment operator is forbidden
     _mfxSession & operator = (const _mfxSession &);
 };
-
-
 
 // {90567606-C57A-447F-8941-1F14597DA475}
 static const 

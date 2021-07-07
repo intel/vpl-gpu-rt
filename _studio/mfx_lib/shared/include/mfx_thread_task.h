@@ -24,7 +24,6 @@
 #include <mfxvideo.h>
 #include <mfxvideo++int.h>
 
-
 // Declare task's parameters structure
 typedef
 struct MFX_THREAD_TASK_PARAMETERS
