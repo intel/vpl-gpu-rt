@@ -26,6 +26,7 @@
 
 #include "umc_va_base.h"
 
+
     #include "va/va_dec_vp9.h"
 
 namespace UMC
@@ -57,6 +58,8 @@ protected:
 
     UMC::VideoAccelerator *m_va;
 };
+
+
 
 
 class PackerVA

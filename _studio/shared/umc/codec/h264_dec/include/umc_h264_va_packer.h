@@ -82,8 +82,6 @@ protected:
 };
 
 
-
-
 class PackerVA
     : public Packer
 {
@@ -110,7 +108,9 @@ protected:
 
     void FillFrameAsInvalid(VAPictureH264 * pic);
 
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     void PackProcessingInfo(H264DecoderFrameInfo * sliceInfo);
+#endif
 
     enum
     {
@@ -140,6 +140,7 @@ private:
     void PackAU(const H264DecoderFrame*, int32_t isTop) override;
 };
 #endif
+
 
 } // namespace UMC
 

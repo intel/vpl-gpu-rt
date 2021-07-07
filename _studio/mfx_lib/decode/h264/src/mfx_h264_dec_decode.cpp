@@ -293,24 +293,17 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
                       || videoProcessing->Out.FourCC == MFX_FOURCC_P010
                       || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
                       || videoProcessing->Out.FourCC == MFX_FOURCC_AYUV
-#if (MFX_VERSION >= 1027)
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y410
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y210
-#endif
-#if (MFX_VERSION >= 1031)
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y216
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y416
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_P016
-#endif
-                      );
+                      || videoProcessing->Out.FourCC == MFX_FOURCC_P016);
         }
         MFX_CHECK(is_fourcc_supported,MFX_ERR_UNSUPPORTED);
         if (m_core->GetVAType() == MFX_HW_VAAPI)
             useInternal = true;
     }
 #endif
-
-
 
     // allocate memory
     mfxFrameAllocRequest request;
@@ -324,7 +317,6 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
     request.Type |= useInternal ? MFX_MEMTYPE_INTERNAL_FRAME : MFX_MEMTYPE_EXTERNAL_FRAME;
     request_internal = request;
-
     try
     {
         m_surface_source.reset(new SurfaceSource(m_core, *par, m_platform, request, request_internal, m_response, m_response_alien));
@@ -906,7 +898,6 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
     if ((par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
-
     int32_t isInternalManaging = params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
 
     mfxStatus sts = QueryIOSurfInternal(platform, type, &params, request);
@@ -1188,7 +1179,6 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
         MFXMediaDataAdapter src(bs);
 
-#if (MFX_VERSION >= 1025)
         mfxExtBuffer* extbuf = (bs) ? GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
 
         if (extbuf)
@@ -1196,7 +1186,6 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             ((mfxExtDecodeErrorReport *)extbuf)->ErrorTypes = 0;
             src.SetExtBuffer(extbuf);
         }
-#endif
 
         for (;;)
         {
@@ -1823,7 +1812,6 @@ bool VideoDECODEH264::IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * o
 
     if (CalculateRequiredView(newPar) != CalculateRequiredView(oldPar))
         return false;
-
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     mfxExtDecVideoProcessing * newVideoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(newPar->ExtParam, newPar->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);

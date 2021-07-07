@@ -207,14 +207,10 @@ namespace UMC_HEVC_DECODER
         if (va->m_HWPlatform < MFX_HW_ICL)
             return new G9::PackerVAAPI(va);
         else
-#if (MFX_VERSION >= 1032)
         if (va->m_HWPlatform < MFX_HW_TGL_LP)
             return new G11::PackerVAAPI(va);
         else
             return new G12::PackerVAAPI(va);
-#else
-            return new G11::PackerVAAPI(va);
-#endif
     }
 }
 

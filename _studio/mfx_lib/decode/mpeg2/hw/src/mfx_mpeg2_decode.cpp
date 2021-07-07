@@ -214,7 +214,6 @@ mfxStatus VideoDECODEMPEG2::Init(mfxVideoParam* par)
     // Internal or expernal memory
     bool internal = par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
 
-
     mfxFrameAllocRequest request{};
     mfxFrameAllocRequest request_internal{};
     m_response = {};
@@ -421,7 +420,6 @@ bool VideoDECODEMPEG2::IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * 
             return false;
     }
 
-
     return true;
 }
 
@@ -479,7 +477,6 @@ mfxStatus VideoDECODEMPEG2::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfx
 
     return isNeedChangeVideoParamWarning ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
 }
-
 
 // Actually calculate needed frames number
 mfxStatus VideoDECODEMPEG2::QueryIOSurfInternal(eMFXPlatform platform, mfxVideoParam *par, mfxFrameAllocRequest *request)

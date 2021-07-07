@@ -234,6 +234,7 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
         bool skip = (prev && prev->m_pFrame == au->m_pFrame);
 
         uint16_t surfCorruption = 0;
+#if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
         if (!skip)
         {
             m_mGuard.Unlock();
@@ -243,6 +244,9 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
 
             m_mGuard.Lock();
         }
+#else
+        sts = dxva_sd->GetPacker()->QueryTaskStatus(au->m_pFrame, &surfSts, &surfCorruption);
+#endif
         //we should complete frame even we got an error
         //this allows to return the error from [RunDecoding]
         au->SetStatus(H264DecoderFrameInfo::STATUS_COMPLETED);
@@ -255,7 +259,11 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
 
             au->m_pFrame->SetError(sts);
         }
+#if !defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
+        else if (surfSts == VASurfaceReady)
+#else
         else
+#endif
             switch (surfCorruption)
             {
                 case MFX_CORRUPTION_MAJOR:

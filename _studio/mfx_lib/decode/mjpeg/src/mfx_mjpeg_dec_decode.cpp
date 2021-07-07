@@ -161,8 +161,8 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
 
     MFX_SAFE_CALL(QueryIOSurfInternal(m_core, &m_vPar, &request));
 
-
     request_internal = request;
+
 
     if (useInternal)
         request.Type |= MFX_MEMTYPE_INTERNAL_FRAME;
@@ -515,7 +515,6 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfx
 
     if ((par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
         return MFX_ERR_INVALID_VIDEO_PARAM;
-
 
     MFX_SAFE_CALL(QueryIOSurfInternal(core, &params, request));
 
@@ -1009,7 +1008,6 @@ bool VideoDECODEMJPEG::IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * 
         return false;
     }
 
-
     return true;
 }
 
@@ -1474,7 +1472,6 @@ bool MFX_JPEG_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType )
     if ((in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
         return false;
 
-
     return true;
 }
 
@@ -1781,7 +1778,6 @@ void VideoDECODEMJPEGBase_HW::AdjustFourCC(mfxFrameInfo *requestFrameInfo, const
             break;
         }
     }
-
     else if(info->JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB)
     {
         if(info->JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444)

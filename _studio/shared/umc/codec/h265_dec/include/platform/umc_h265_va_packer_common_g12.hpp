@@ -168,6 +168,7 @@ namespace UMC_HEVC_DECODER
                         tileXIdx = 0;
                         tileYIdx++;
                     }
+
                     step = GetEntryPointOffsetStep(slice, tileYIdx);
                 }
             }

@@ -155,6 +155,9 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H265Task *)
     if (!dxva_sd->GetPacker())
         return false;
 
+#if !defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
+    #error unsupported sync. type
+#else
     UMC::Status sts = UMC::UMC_OK;
     VAStatus surfErr = VA_STATUS_SUCCESS;
     int32_t index;
@@ -199,6 +202,7 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H265Task *)
     }
 
     SwitchCurrentAU();
+#endif
 
     return false;
 }

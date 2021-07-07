@@ -125,6 +125,9 @@ Status VC1VideoDecoder::Init(BaseCodecParams *pInit)
     // get allowed thread numbers
     int32_t nAllowedThreadNumber = init->numThreads;
 
+#ifdef VC1_DEBUG_ON
+    VM_Debug::GetInstance(VC1DebugAlloc);
+#endif
 
     m_iThreadDecoderNum = (0 == nAllowedThreadNumber) ? (vm_sys_info_get_cpu_num()) : (nAllowedThreadNumber);
 
@@ -767,6 +770,9 @@ Status VC1VideoDecoder::Close(void)
 
     m_pMemoryAllocator = 0;
 
+#ifdef VC1_DEBUG_ON
+    VM_Debug::GetInstance(VC1DebugRoutine).Release();
+#endif
 
     m_iThreadDecoderNum = 0;
     m_decoderInitFlag = 0;
