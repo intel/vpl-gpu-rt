@@ -947,7 +947,7 @@ namespace MfxHwVideoProcessing
         // help-function to get a handle based on MemId
         mfxStatus GetFrameHandle(mfxFrameSurface1& surf, mfxHDLPair& handle, bool bInternalAlloc);
 
-        // creates or extracts CmSurface2D from Hanlde
+        // creates or extracts CmSurface2D from Handle
         mfxStatus CreateCmSurface2D(void *pSrcHDL, CmSurface2D* & pCmSurface2D, SurfaceIndex* &pCmSrcIndex);
 
         // clear(destroy) all surfaces (if any) stored inside m_tableCmRelations2

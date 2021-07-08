@@ -616,7 +616,7 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
     {
         supported_buffers = g_commonSupportedExtBuffers;
         numberOfSupported = sizeof(g_commonSupportedExtBuffers) / sizeof(g_commonSupportedExtBuffers[0]);
-    } 
+    }
     if (!supported_buffers)
         return MFX_ERR_NONE;
 
@@ -625,10 +625,7 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
 
     for (mfxU32 i = 0; i < par->NumExtParam; i++)
     {
-        if (par->ExtParam[i] == NULL)
-        {
-           return MFX_ERR_NULL_PTR;
-        }
+        MFX_CHECK_NULL_PTR1(par->ExtParam[i]);
 
         bool is_known = false;
         for (mfxU32 j = 0; j < numberOfSupported; ++j)
@@ -649,10 +646,7 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
             }
         }
 
-        if (!is_known)
-        {
-            return MFX_ERR_UNSUPPORTED;
-        }
+        MFX_CHECK(is_known, MFX_ERR_UNSUPPORTED);
     }
 
     return MFX_ERR_NONE;

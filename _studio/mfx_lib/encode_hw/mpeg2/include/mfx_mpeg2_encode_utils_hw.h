@@ -243,8 +243,6 @@ namespace MPEG2EncoderHW
         {
             return m_InputSurfaces.GetOriginalSurface(surface);
         }
-
-
     }; // class ControllerBase
 
 

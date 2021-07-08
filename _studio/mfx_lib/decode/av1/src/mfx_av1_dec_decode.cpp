@@ -417,7 +417,7 @@ mfxStatus VideoDECODEAV1::Reset(mfxVideoParam* par)
             // for now only downscale is supported
             // at least Windows DirectX 11 provides only downscale interface
             // ID3D11VideoContext1->DecoderEnableDownsampling()
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN( MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
 #endif

@@ -2631,6 +2631,7 @@ mfxStatus  VideoVPPHW::Init(
         }
     }
 #endif
+
     return (bIsFilterSkipped) ? MFX_WRN_FILTER_SKIPPED : MFX_ERR_NONE;
 
 } // mfxStatus VideoVPPHW::Init(mfxVideoParam *par, mfxU32 *tabUsedFiltersID, mfxU32 numOfFilters)
@@ -2890,6 +2891,8 @@ mfxStatus VideoVPPHW::QueryIOSurf(
 
 mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
 {
+    MFX_CHECK_NULL_PTR1(par);
+
     /* This is question: Should we free resource here or not?... */
     /* For Dynamic composition we should not to do it !!! */
     if (false == m_executeParams.bComposite)
@@ -4929,11 +4932,10 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
     /* 1. Check ext param */
     for (mfxU32 i = 0; i < par->NumExtParam; i++)
     {
-        mfxU32 id    = par->ExtParam[i]->BufferId;
-        void  *data  = par->ExtParam[i];
+        void *data = par->ExtParam[i];
         MFX_CHECK_NULL_PTR1(data);
 
-        switch(id)
+        switch(par->ExtParam[i]->BufferId)
         {
         case MFX_EXTBUFF_VPP_MIRRORING:
         {
@@ -5055,7 +5057,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         case MFX_EXTBUFF_VPP_DOUSE:
         {
             mfxExtVPPDoUse*   extDoUse  = (mfxExtVPPDoUse*)data;
-            MFX_CHECK_NULL_PTR1(extDoUse);
+
             for( mfxU32 algIdx = 0; algIdx < extDoUse->NumAlg; algIdx++ )
             {
                 if( !CheckDoUseCompatibility( extDoUse->AlgList[algIdx] ) )

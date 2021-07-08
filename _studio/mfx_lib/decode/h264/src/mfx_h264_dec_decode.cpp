@@ -574,7 +574,7 @@ mfxStatus VideoDECODEH264::Reset(mfxVideoParam *par)
         if (extVideoProcessing->Out.Width >= par->mfx.FrameInfo.Width ||
             extVideoProcessing->Out.Height >= par->mfx.FrameInfo.Height)
         {
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
 #endif

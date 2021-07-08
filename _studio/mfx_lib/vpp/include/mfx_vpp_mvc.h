@@ -38,7 +38,7 @@
 
 namespace MfxVideoProcessing
 {
-    class ImplementationMvc : public VideoVPP 
+    class ImplementationMvc : public VideoVPP
     {
     public:
 
@@ -67,14 +67,14 @@ namespace MfxVideoProcessing
             mfxVPPStat *stat);
 
         virtual mfxStatus VppFrameCheck(
-            mfxFrameSurface1 *in, 
-            mfxFrameSurface1 *out, 
+            mfxFrameSurface1 *in,
+            mfxFrameSurface1 *out,
             mfxExtVppAuxData *aux,
-            MFX_ENTRY_POINT pEntryPoint[], 
+            MFX_ENTRY_POINT pEntryPoint[],
             mfxU32 &numEntryPoints);
 
         virtual mfxStatus VppFrameCheck(
-            mfxFrameSurface1 *, 
+            mfxFrameSurface1 *,
             mfxFrameSurface1 *)
         {
             return MFX_ERR_UNSUPPORTED;
@@ -84,8 +84,8 @@ namespace MfxVideoProcessing
 
         // multi threading of SW_VPP functions
         mfxStatus RunVPPTask(
-            mfxFrameSurface1 *in, 
-            mfxFrameSurface1 *out, 
+            mfxFrameSurface1 *in,
+            mfxFrameSurface1 *out,
             FilterVPP::InternalParam *pParam );
 
         mfxStatus ResetTaskCounters();

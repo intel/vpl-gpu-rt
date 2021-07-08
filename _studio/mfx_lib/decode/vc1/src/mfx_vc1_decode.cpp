@@ -371,6 +371,8 @@ mfxStatus MFXVideoDECODEVC1::Reset(mfxVideoParam *par)
     mfxStatus       MFXSts = MFX_ERR_NONE;
     Status          umcSts = UMC_OK;
 
+    MFX_CHECK_NULL_PTR1(par);
+
     // Common parameters
     MFXSts  = CheckVideoParamDecoders(par, m_pCore->GetHWType());
     MFX_CHECK_STS(MFXSts);

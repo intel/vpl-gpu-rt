@@ -538,7 +538,7 @@ mfxStatus VideoDECODEVP9_HW::Reset(mfxVideoParam *par)
         if (videoProcessing->Out.Width >= par->mfx.FrameInfo.Width ||
             videoProcessing->Out.Height >= par->mfx.FrameInfo.Height)
         {
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
 #endif
