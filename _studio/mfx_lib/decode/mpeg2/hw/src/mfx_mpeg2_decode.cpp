@@ -211,7 +211,7 @@ mfxStatus VideoDECODEMPEG2::Init(mfxVideoParam* par)
 
     m_decoder.reset(new UMC_MPEG2_DECODER::MPEG2DecoderVA());
 
-    // Internal or expernal memory
+    // Internal or external memory
     bool internal = par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
 
     mfxFrameAllocRequest request{};

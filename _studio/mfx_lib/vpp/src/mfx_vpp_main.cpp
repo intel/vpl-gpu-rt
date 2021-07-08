@@ -168,7 +168,7 @@ mfxStatus VideoVPPMain::RunFrameVPP(mfxFrameSurface1 *in, mfxFrameSurface1 *out,
     mfxFrameSurface1* pNativeInput  = GetNativeSurface(in,   VPP_IN);
     mfxFrameSurface1* pNativeOutput = GetNativeSurface(out,  VPP_OUT);
 
-    mfxStatus mfxSts = m_impl->RunFrameVPP( 
+    mfxStatus mfxSts = m_impl->RunFrameVPP(
         pNativeInput,
         pNativeOutput,
         aux);

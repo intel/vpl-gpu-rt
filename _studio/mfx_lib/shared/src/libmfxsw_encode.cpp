@@ -511,19 +511,12 @@ mfxStatus MFXVideoENCODE_Close(mfxSession session)
 
     try
     {
-        if (!session->m_pENCODE)
-        {
-            return MFX_ERR_NOT_INITIALIZED;
-        }
-
         // wait until all tasks are processed
-        session->m_pScheduler->WaitForAllTasksCompletion(session->m_pENCODE.get());
+        std::ignore = MFX_STS_TRACE(session->m_pScheduler->WaitForAllTasksCompletion(session->m_pENCODE.get()));
 
         mfxRes = session->m_pENCODE->Close();
 
-        {
-            session->m_pENCODE.reset(nullptr);
-        }
+        session->m_pENCODE.reset(nullptr);
     }
     // handle error(s)
     catch(...)
@@ -579,9 +572,9 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, ctrl);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, surface);
 
-    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK_HDL(session);
     MFX_CHECK(session->m_pENCODE.get(), MFX_ERR_NOT_INITIALIZED);
-    MFX_CHECK(syncp, MFX_ERR_NULL_PTR);
+    MFX_CHECK(syncp,                    MFX_ERR_NULL_PTR);
 
     try
     {

@@ -230,8 +230,8 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
     m_frameConstructor.reset(new UMC::JpegFrameConstructor());
 
     mfxSts = decoder->Init(&decPar, &request, &m_response, &request_internal, !useInternal, m_core);
-    if (mfxSts < MFX_ERR_NONE)
-        return mfxSts;
+
+    MFX_CHECK(mfxSts >= MFX_ERR_NONE, mfxSts);
 
     m_isInit = true;
     m_isHeaderFound = false;
@@ -242,13 +242,10 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
     if (m_platform != m_core->GetPlatformType())
     {
         VM_ASSERT(m_platform == MFX_PLATFORM_SOFTWARE);
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION);
     }
 
-    if (isNeedChangeVideoParamWarning)
-    {
-        return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    }
+    MFX_CHECK(!isNeedChangeVideoParamWarning, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
     return MFX_ERR_NONE;
 }
@@ -304,8 +301,7 @@ mfxStatus VideoDECODEMJPEG::QueryImplsDescription(
 
 mfxStatus VideoDECODEMJPEG::Reset(mfxVideoParam *par)
 {
-    if (!m_isInit)
-        return MFX_ERR_NOT_INITIALIZED;
+    MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR1(par);
 
@@ -316,18 +312,18 @@ mfxStatus VideoDECODEMJPEG::Reset(mfxVideoParam *par)
     }
 
     if (CheckVideoParamDecoders(par, type) < MFX_ERR_NONE)
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
     if (!MFX_JPEG_Utility::CheckVideoParam(par, type))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
     if (!IsSameVideoParam(par, &m_vFirstPar))
-        return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     // need to sw acceleration
     if (m_platform != MFX_JPEG_Utility::GetPlatform(m_core, par))
     {
-        return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     }
 
     MFX_SAFE_CALL(decoder->Reset(par));
@@ -338,7 +334,7 @@ mfxStatus VideoDECODEMJPEG::Reset(mfxVideoParam *par)
 
     if (isNeedChangeVideoParamWarning)
     {
-        return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+        MFX_RETURN(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
     }
 
     m_isHeaderFound = false;
@@ -352,7 +348,7 @@ mfxStatus VideoDECODEMJPEG::Reset(mfxVideoParam *par)
     if (m_platform != m_core->GetPlatformType())
     {
         VM_ASSERT(m_platform == MFX_PLATFORM_SOFTWARE);
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION);
     }
 
     return MFX_ERR_NONE;

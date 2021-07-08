@@ -307,20 +307,20 @@ mfxStatus VideoDECODEVP8_HW::Reset(mfxVideoParam *p_video_param)
     eMFXHWType type = m_p_core->GetHWType();
 
     if (MFX_ERR_NONE > CheckVideoParamDecoders(p_video_param, type))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
     if (MFX_VPX_Utility::CheckVideoParam(p_video_param, MFX_CODEC_VP8) == false)
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
     if (!IsSameVideoParam(p_video_param, &m_on_init_video_params))
-        return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     // need to sw acceleration
     if (m_platform != m_p_core->GetPlatformType())
-        return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     if (m_surface_source->Reset() != UMC::UMC_OK)
-        return MFX_ERR_MEMORY_ALLOC;
+        MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
 
     m_frameOrder = (mfxU16)0;
     memset(&m_stat, 0, sizeof(m_stat));

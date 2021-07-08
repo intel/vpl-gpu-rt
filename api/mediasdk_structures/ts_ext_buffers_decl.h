@@ -105,7 +105,7 @@ EXTBUF(mfxExtLplaParam                   , MFX_EXTBUFF_LP_LOOKAHEAD             
 EXTBUF(mfxExtLpLaStatus                  , MFX_EXTBUFF_LPLA_STATUS               )
 #endif
 
-EXTBUF(mfxExtHyperModeParam               , MFX_EXTBUFF_HYPER_MODE_PARAM    	 )
+EXTBUF(mfxExtHyperModeParam               , MFX_EXTBUFF_HYPER_MODE_PARAM         )
 
 #if defined(MFX_ENABLE_ENCTOOLS)
 EXTBUF(mfxExtEncToolsConfig              , MFX_EXTBUFF_ENCTOOLS_CONFIG           )

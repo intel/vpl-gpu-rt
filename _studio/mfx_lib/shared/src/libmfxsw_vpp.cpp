@@ -147,7 +147,6 @@ mfxStatus MFXVideoVPP_Init(mfxSession session, mfxVideoParam *par)
             MFXVideoVPP_Close(session);
         }
 
-
         // create a new instance
         session->m_pVPP.reset(session->Create<VideoVPP>(*par));
         MFX_CHECK(session->m_pVPP.get(), MFX_ERR_INVALID_VIDEO_PARAM);
@@ -177,10 +176,7 @@ mfxStatus MFXVideoVPP_Close(mfxSession session)
 
     try
     {
-        if (!session->m_pVPP)
-        {
-            return MFX_ERR_NOT_INITIALIZED;
-        }
+        MFX_CHECK(session->m_pVPP, MFX_ERR_NOT_INITIALIZED);
 
         // wait until all tasks are processed
         session->m_pScheduler->WaitForAllTasksCompletion(session->m_pVPP.get());
@@ -245,9 +241,9 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, in);
     ETW_NEW_EVENT(MFX_TRACE_API_VPP_RUN_FRAME_VPP_ASYNC_TASK, 0, make_event_data(session, in, out), [&](){ return make_event_data(mfxRes, syncp ? *syncp : nullptr);});
 
-    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
-    MFX_CHECK(session->m_pVPP.get(), MFX_ERR_NOT_INITIALIZED);
-    MFX_CHECK(syncp, MFX_ERR_NULL_PTR);
+    MFX_CHECK_HDL(session);
+    MFX_CHECK(session->m_pVPP, MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(syncp,           MFX_ERR_NULL_PTR);
 
     try
     {
@@ -263,8 +259,8 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
             (MFX_ERR_MORE_SURFACE             == mfxRes) ||
             (MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == mfxRes))
         {
-            // prepare the absolete kind of task.
-            // it is absolete and must be removed.
+            // prepare the obsolete kind of task.
+            // it is obsolete and must be removed.
             if (NULL == entryPoints[0].pRoutine)
             {
                 MFX_TASK task;

@@ -335,8 +335,6 @@ public:
         inline mfxI32 GetUserDataSize() {return m_dataSize;}
     };
 
- 
-
     class FullEncode: public EncoderBase
     {
     public:

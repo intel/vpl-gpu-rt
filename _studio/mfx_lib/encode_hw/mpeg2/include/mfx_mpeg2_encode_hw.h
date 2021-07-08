@@ -30,9 +30,8 @@
 #include "mfx_mpeg2_encode_full_hw.h"
 #include "mfx_mpeg2_encode_utils_hw.h"
 
-class MFXVideoENCODEMPEG2_HW : public VideoENCODE {
-protected:
-
+class MFXVideoENCODEMPEG2_HW : public VideoENCODE
+{
 public:
     static mfxStatus Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
     {   
@@ -60,7 +59,7 @@ public:
         MPEG2EncoderHW::HW_MODE  mode = MPEG2EncoderHW::UNSUPPORTED;
         if (pEncoder)
         {
-            return MFX_ERR_UNDEFINED_BEHAVIOR;        
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
         }
         sts = MPEG2EncoderHW::CheckHwCaps(m_pCore, par, 0, &Caps);
         MFX_CHECK_STS(sts);
@@ -68,7 +67,7 @@ public:
         mode = MPEG2EncoderHW::GetHwEncodeMode(Caps);
         if (mode == MPEG2EncoderHW::FULL_ENCODE)
         {
-            pEncoder = new MPEG2EncoderHW::FullEncode(m_pCore,&sts);        
+            pEncoder = new MPEG2EncoderHW::FullEncode(m_pCore,&sts);
         }
         else
         {
@@ -86,7 +85,7 @@ public:
     {
         if (!pEncoder)
         {
-            return MFX_ERR_NOT_INITIALIZED;        
+            return MFX_ERR_NOT_INITIALIZED;
         }
         return pEncoder->Reset(par);
     }
@@ -97,17 +96,17 @@ public:
         {
             sts = pEncoder->Close();
             delete pEncoder;
-            pEncoder = 0;        
+            pEncoder = 0;
         }
-        return sts;   
+        return sts;
     }
     virtual mfxStatus GetVideoParam(mfxVideoParam *par)
     {
         if (!pEncoder)
         {
-            return MFX_ERR_NOT_INITIALIZED;        
+            return MFX_ERR_NOT_INITIALIZED;
         }
-        return pEncoder->GetVideoParam(par);    
+        return pEncoder->GetVideoParam(par);
     }
     virtual mfxStatus GetFrameParam(mfxFrameParam *)
     {
@@ -117,43 +116,43 @@ public:
     {
         if (!pEncoder)
         {
-            return MFX_ERR_NOT_INITIALIZED;        
+            return MFX_ERR_NOT_INITIALIZED;
         }
-        return pEncoder->GetEncodeStat(stat);       
+        return pEncoder->GetEncodeStat(stat);
     }
-    virtual mfxStatus EncodeFrameCheck(mfxEncodeCtrl *ctrl, 
-        mfxFrameSurface1 *surface, 
-        mfxBitstream *bs, mfxFrameSurface1 **reordered_surface, 
+    virtual mfxStatus EncodeFrameCheck(mfxEncodeCtrl *ctrl,
+        mfxFrameSurface1 *surface,
+        mfxBitstream *bs, mfxFrameSurface1 **reordered_surface,
         mfxEncodeInternalParams *pInternalParams)
     {
         if (!pEncoder)
         {
-            return MFX_ERR_NOT_INITIALIZED;        
+            return MFX_ERR_NOT_INITIALIZED;
         }
-        return pEncoder->EncodeFrameCheck(ctrl,surface,bs,reordered_surface,pInternalParams);     
+        return pEncoder->EncodeFrameCheck(ctrl,surface,bs,reordered_surface,pInternalParams);
     }
-    virtual mfxStatus EncodeFrame(mfxEncodeCtrl *ctrl, 
-        mfxEncodeInternalParams *pInternalParams, 
-        mfxFrameSurface1 *surface, 
+    virtual mfxStatus EncodeFrame(mfxEncodeCtrl *ctrl,
+        mfxEncodeInternalParams *pInternalParams,
+        mfxFrameSurface1 *surface,
         mfxBitstream *bs)
     {
         if (!pEncoder)
         {
-            return MFX_ERR_NOT_INITIALIZED;        
+            return MFX_ERR_NOT_INITIALIZED;
         }
-        return pEncoder->EncodeFrame(ctrl,pInternalParams,surface,bs);     
+        return pEncoder->EncodeFrame(ctrl,pInternalParams,surface,bs);
     }
 
-    virtual mfxStatus CancelFrame(mfxEncodeCtrl *ctrl, 
-        mfxEncodeInternalParams *pInternalParams, 
-        mfxFrameSurface1 *surface, 
+    virtual mfxStatus CancelFrame(mfxEncodeCtrl *ctrl,
+        mfxEncodeInternalParams *pInternalParams,
+        mfxFrameSurface1 *surface,
         mfxBitstream *bs)
     {
         if (!pEncoder)
         {
-            return MFX_ERR_NOT_INITIALIZED;        
+            return MFX_ERR_NOT_INITIALIZED;
         }
-        return pEncoder->CancelFrame(ctrl,pInternalParams,surface,bs);     
+        return pEncoder->CancelFrame(ctrl,pInternalParams,surface,bs);
     }
     virtual
     mfxStatus EncodeFrameCheck(mfxEncodeCtrl *ctrl,
@@ -166,21 +165,19 @@ public:
     {
         if (!pEncoder)
         {
-            return MFX_ERR_NOT_INITIALIZED;        
+            return MFX_ERR_NOT_INITIALIZED;
         }
-        return pEncoder->EncodeFrameCheck(ctrl,surface,bs,reordered_surface,pInternalParams,pEntryPoints,numEntryPoints); 
+        return pEncoder->EncodeFrameCheck(ctrl,surface,bs,reordered_surface,pInternalParams,pEntryPoints,numEntryPoints);
     }
     virtual
     mfxTaskThreadingPolicy GetThreadingPolicy(void) 
     {
         if (!pEncoder)
         {
-            return MFX_TASK_THREADING_DEFAULT;        
+            return MFX_TASK_THREADING_DEFAULT;
         }
         return pEncoder->GetThreadingPolicy();
     }
-protected:
-
 
 private:
     VideoCORE*                      m_pCore;
