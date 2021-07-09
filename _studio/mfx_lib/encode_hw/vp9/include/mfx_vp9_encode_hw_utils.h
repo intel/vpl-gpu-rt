@@ -90,8 +90,7 @@ static const mfxU16 MFX_IOPATTERN_IN_MASK_SYS_OR_D3D =
     MFX_IOPATTERN_IN_SYSTEM_MEMORY | MFX_IOPATTERN_IN_VIDEO_MEMORY;
 
 static const mfxU16 MFX_IOPATTERN_IN_MASK =
-      MFX_IOPATTERN_IN_MASK_SYS_OR_D3D
-    ;
+      MFX_IOPATTERN_IN_MASK_SYS_OR_D3D;
 
 static const mfxU16 MFX_MEMTYPE_SYS_OR_D3D =
 MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_SYSTEM_MEMORY;
@@ -673,9 +672,6 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
 
         mfxExtVP9Segmentation const * m_pPrevSegment;
 
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-        GPU_SYNC_EVENT_HANDLE m_GpuEvent;
-#endif
 
         Task ():
               m_pRawFrame(NULL),
@@ -698,9 +694,6 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
               Zero(m_pRecRefFrames);
               Zero(m_frameParam);
               Zero(m_ctrl);
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-              Zero(m_GpuEvent);
-#endif
           }
 
           ~Task() {};

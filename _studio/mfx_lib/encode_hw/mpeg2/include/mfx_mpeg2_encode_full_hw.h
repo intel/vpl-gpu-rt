@@ -31,11 +31,7 @@
 #include "mfxvideo++int.h"
 #include "mfx_mpeg2_encode_utils_hw.h"
 
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-
-#else
 #include "mfx_mpeg2_encode_interface.h"
-#endif
 //#define BRC_WA
 #include "libmfx_core.h"
 
@@ -46,11 +42,7 @@ namespace MPEG2EncoderHW
     private:
         VideoCORE*                              m_core;
         MfxHwMpeg2Encode::ExecuteBuffers*       m_pExecuteBuffers;
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-        MfxHwMpeg2Encode::D3DXCommonEncoder*    m_pDdiEncoder;
-#else
         MfxHwMpeg2Encode::DriverEncoder*        m_pDdiEncoder;
-#endif
         bool                                    m_bStage2Ready;
         bool                                    m_bUseInternalMem;
 
@@ -105,12 +97,7 @@ namespace MPEG2EncoderHW
 
               if (!m_pDdiEncoder)
               {
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-                  m_pDdiEncoder = dynamic_cast<MfxHwMpeg2Encode::D3DXCommonEncoder*>(MfxHwMpeg2Encode::CreatePlatformMpeg2Encoder(m_core));
-                  m_pDdiEncoder->InitCommonEnc(m_core);
-#else
                   m_pDdiEncoder = MfxHwMpeg2Encode::CreatePlatformMpeg2Encoder(m_core);
-#endif
                   MFX_CHECK_NULL_PTR1(m_pDdiEncoder);
               }
               else
@@ -164,9 +151,6 @@ namespace MPEG2EncoderHW
              pIntTask->m_FeedbackNumber       = m_pExecuteBuffers->m_pps.StatusReportFeedbackNumber;
              pIntTask->m_BitstreamFrameNumber = (mfxU32)m_pExecuteBuffers->m_idxBs;
 
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-             pIntTask->m_GpuEvent = m_pExecuteBuffers->m_GpuEvent;
-#endif
 
              return sts;
          }
@@ -242,6 +226,8 @@ namespace MPEG2EncoderHW
               m_pExecuteBuffers->m_pSurface = pFrames->m_pInputFrame;
               sts = m_pDdiEncoder->SetFrames(m_pExecuteBuffers);
               MFX_CHECK_STS(sts);
+
+              MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MPEG2 encode DDISubmitTask");
               sts = m_pDdiEncoder->Execute(m_pExecuteBuffers, pUserData,userDataLen);
               MFX_CHECK_STS(sts);
               m_bStage2Ready = true;
@@ -256,11 +242,7 @@ public:
               {
                   return MFX_ERR_NOT_INITIALIZED;
               }
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-              sts = m_pDdiEncoder->FillBSBuffer(pIntTask->m_FeedbackNumber, pIntTask->m_BitstreamFrameNumber, pIntTask->m_pBitstream, &m_pExecuteBuffers->m_encrypt, &pIntTask->m_GpuEvent);
-#else
               sts = m_pDdiEncoder->FillBSBuffer(pIntTask->m_FeedbackNumber, pIntTask->m_BitstreamFrameNumber, pIntTask->m_pBitstream, &m_pExecuteBuffers->m_encrypt);
-#endif
               MFX_CHECK_STS(sts);
 
               return sts;

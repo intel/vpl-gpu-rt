@@ -93,9 +93,6 @@ namespace MfxHwMpeg2Encode
             , m_fFrameRate()
             , m_FrameRateExtN()
             , m_FrameRateExtD()
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-            , m_GpuEvent()
-#endif
         {}
 
         mfxStatus Init (const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, bool bAllowBRC = false);
@@ -149,9 +146,6 @@ namespace MfxHwMpeg2Encode
         mfxU32                                  m_FrameRateExtN;
         mfxU32                                  m_FrameRateExtD;
 
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-        GPU_SYNC_EVENT_HANDLE       m_GpuEvent;
-#endif
     };
 
     class DriverEncoder

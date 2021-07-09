@@ -26,8 +26,6 @@
 #include <vector>
 #include <assert.h>
 
-#define USE_AGOP 0
-
 #include "cmrt_cross_platform.h"
 
 class CmDevice;
@@ -41,10 +39,6 @@ class CmKernel;
 class SurfaceIndex;
 class CmThreadSpace;
 class CmTask;
-
-#if USE_AGOP
-#define USE_DOWN_SAMPLE_KERNELS
-#endif
 
 namespace MfxHwH264Encode
 {

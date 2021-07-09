@@ -153,9 +153,6 @@ namespace MfxHwMJpegEncode
         mfxU32             m_bsDataLength;       // output bitstream length
         bool               m_cleanDdiData;
         ExecuteBuffers   * m_pDdiData;
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-        GPU_SYNC_EVENT_HANDLE     m_GpuEvent;
-#endif
     } DdiTask;
 
     class TaskManager

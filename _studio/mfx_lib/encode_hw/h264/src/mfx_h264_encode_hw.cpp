@@ -37,9 +37,9 @@
 
 #include "mfx_h264_encode_cm.h"
 #include "mfx_h264_encode_cm_defs.h"
-#if defined(MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA)
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
 #include "mfx_lp_lookahead.h"
-#endif //MFX_ENABLE_LP_LOOKAHEAD
+#endif //MFX_ENABLE_ENCTOOLS_LPLA
 #include "vm_time.h"
 
 #if USE_AGOP
@@ -410,9 +410,7 @@ mfxStatus ImplementationAvc::Query(
         out->Protected             = 1;
         out->AsyncDepth            = 1;
         out->mfx.CodecId           = 1;
-#if defined(LOWPOWERENCODE_AVC)
         out->mfx.LowPower          = 1;
-#endif
         out->mfx.CodecLevel        = 1;
         out->mfx.CodecProfile      = 1;
         out->mfx.NumThread         = 0;
@@ -476,9 +474,7 @@ mfxStatus ImplementationAvc::Query(
         if (mfxExtEncoderROI * extRoi = GetExtBuffer(*out))
         {
             extRoi->NumROI          = 1;
-#if MFX_VERSION > 1021
             extRoi->ROIMode         = MFX_ROI_MODE_QP_DELTA;
-#endif // MFX_VERSION > 1021
             extRoi->ROI[0].Left     = 1;
             extRoi->ROI[0].Right    = 1;
             extRoi->ROI[0].Top      = 1;
@@ -704,10 +700,8 @@ mfxStatus ImplementationAvc::Query(
         MfxVideoParam tmp = *in;
         eMFXHWType platform = core->GetHWType();
         (void)SetLowPowerDefault(tmp, platform);
-#if defined(LOWPOWERENCODE_AVC)
         if(IsOn(tmp.mfx.LowPower))
             return QueryGuid(core, DXVA2_INTEL_LOWPOWERENCODE_AVC);
-#endif
         return QueryGuid(core, DXVA2_Intel_Encode_AVC);
     }
 
@@ -1221,9 +1215,6 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 #endif
 
 
-#ifdef ENABLE_H264_MBFORCE_INTRA
-        #error "unimplemented code"
-#endif
     // Allocate surfaces for bitstreams.
     // Need at least one such surface and more for async-mode.
     sts = m_ddi->QueryCompBufferInfo(D3DDDIFMT_INTELENCODE_BITSTREAMDATA, request);
@@ -1505,11 +1496,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         m_sei.Alloc(mfxU32(MAX_SEI_SIZE + MAX_FILLER_SIZE));
     }
 
-#if MFX_VERSION >= 1023
-    #ifndef MFX_ENABLE_H264_REPARTITION_CHECK
         MFX_CHECK(extOpt3.RepartitionCheckEnable == MFX_CODINGOPTION_UNKNOWN, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-    #endif //MFX_ENABLE_H264_REPARTITION_CHECK
-#endif // MFX_VERSION >= 1023
 
 #if USE_AGOP
     m_agopCurrentLen = 0;
@@ -1532,41 +1519,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
     m_videoInit = m_video;
 
-#if defined(MFX_ENABLE_LP_LOOKAHEAD)
-    // for game streaming scenario, if option enable lowpower lookahead, check encoder's capability
-    if (IsLpLookaheadSupported(extOpt3.ScenarioInfo, extOpt2.LookAheadDepth, m_video.mfx.RateControlMethod)
-#if defined(MFX_ENABLE_ENCTOOLS)
-        && !(m_enabledEncTools)
-#endif
-        )
-    {
-        //create and initialize lowpower lookahead module
-        m_lpLookAhead.reset(new MfxLpLookAhead(m_core));
 
-        // create ext buffer to set the lookahead data buffer
-        mfxVideoParam lplaParam = m_video;
-        mfxExtLplaParam extBufLPLA = {};
-        extBufLPLA.Header.BufferId  = MFX_EXTBUFF_LP_LOOKAHEAD;
-        extBufLPLA.Header.BufferSz  = sizeof(extBufLPLA);
-        extBufLPLA.LookAheadDepth   = extOpt2.LookAheadDepth;
-        extBufLPLA.InitialDelayInKB = m_video.mfx.InitialDelayInKB;
-        extBufLPLA.BufferSizeInKB   = m_video.mfx.BufferSizeInKB;
-        extBufLPLA.TargetKbps       = m_video.mfx.TargetKbps;
-
-        mfxExtBuffer *extBuffers[1];
-        extBuffers[0] = (mfxExtBuffer*)&extBufLPLA;
-
-        lplaParam.NumExtParam = 1;
-        lplaParam.ExtParam = (mfxExtBuffer**)&extBuffers[0];
-
-        sts = m_lpLookAhead->Init(&lplaParam);
-        MFX_CHECK_STS(sts);
-    }
-#endif
-
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-    m_qpHistory.Reset();
-#endif
 
     return checkStatus;
 }
@@ -1584,7 +1537,6 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
 
     sts = ReadSpsPpsHeaders(newPar);
     MFX_CHECK_STS(sts);
-
 
     mfxStatus spsppsSts = CopySpsPpsToVideoParam(newPar);
 
@@ -1683,18 +1635,14 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
         IsOn(extOptOld.FieldOutput) || extOptOld.FieldOutput == extOptNew.FieldOutput,
         MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
-#if defined(LOWPOWERENCODE_AVC)
     MFX_CHECK(
         IsOn(m_video.mfx.LowPower) == IsOn(newPar.mfx.LowPower),
         MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-#endif
 
 
-#if MFX_VERSION >= 1023
     // we can use feature only if sufs was allocated on init
     if (IsOn(extOpt3New.EnableMBForceIntra) && m_useMbControlSurfs == false)
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-#endif
 
 
     if (IsOn(extOpt3New.FadeDetection) && !(m_cmCtx.get() && m_cmCtx->isHistogramSupported()))
@@ -1946,9 +1894,6 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
     }
 #endif
 
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-    m_qpHistory.Reset();
-#endif
 
     return checkStatus;
 }
@@ -2027,6 +1972,7 @@ mfxStatus ImplementationAvc::GetVideoParam(mfxVideoParam *par)
         par->mfx.TargetKbps = (mfxU16)std::round(m_video.calcParam.TCBRCTargetFrameSize / 1000.0 * 8.0
                               / std::max<mfxU32>(par->mfx.BRCParamMultiplier, 1)
                               * (mfxF64(par->mfx.FrameInfo.FrameRateExtN) / par->mfx.FrameInfo.FrameRateExtD));
+
 
     return MFX_ERR_NONE;
 }
@@ -2479,19 +2425,6 @@ void ImplementationAvc::OnLookaheadQueried()
         }
     }
 
-#if defined (MFX_ENABLE_LP_LOOKAHEAD)
-    if (m_lpLookAhead)
-    {
-        mfxLplastatus laStatus;
-        task.m_lplastatus = {};
-        mfxStatus sts = m_lpLookAhead->Query(laStatus);
-
-        if (sts == MFX_ERR_NONE)
-        {
-            task.m_lplastatus = laStatus;
-        }
-    }
-#endif
 
     m_histRun.splice(m_histRun.end(), m_lookaheadStarted, m_lookaheadStarted.begin());
 }
@@ -2601,9 +2534,6 @@ void ImplementationAvc::OnEncodingQueried(DdiTaskIter task)
     if (m_useMbControlSurfs && task->m_isMBControl)
         ReleaseResource(m_mbControl, task->m_midMBControl);
 
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-    m_qpHistory.Add(task->m_qpY[0]);
-#endif
 
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
     if (IsMctfSupported(m_video, m_core->GetHWType()) && task->m_midMCTF)
@@ -3585,59 +3515,6 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
 }
 #endif
 
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-void SetupAdaptiveCQM(const MfxVideoParam &par, DdiTask &task, const QpHistory qpHistory)
-{
-
-    task.m_adaptiveCQMHint = CQM_HINT_INVALID;
-    {
-        const mfxExtSpsHeader& extSps = GetExtBufferRef(par);
-        const std::vector<mfxExtPpsHeader>& extCqmPps = par.GetCqmPps();
-        const mfxU32 averageQP = qpHistory.GetAverageQp();
-
-        if (averageQP == 0) // not enough history QP
-        {
-            const mfxU32 MBSIZE = 16;
-            const mfxU32 BITRATE_SCALE = 2000;
-            const mfxU32 numMB = (par.mfx.FrameInfo.Width / MBSIZE) * (par.mfx.FrameInfo.Height / MBSIZE);
-            const mfxU32 normalizedBitrate = mfxU32(mfxU64(BITRATE_SCALE) * par.calcParam.targetKbps
-                * par.mfx.FrameInfo.FrameRateExtD / par.mfx.FrameInfo.FrameRateExtN / numMB);
-
-            const mfxU32 STRONG_QM_BR_THRESHOLD = 25;
-            const mfxU32 MEDIUM_QM_BR_THRESHOLD = 50;
-
-            task.m_adaptiveCQMHint
-                = (normalizedBitrate < STRONG_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX3
-                : (normalizedBitrate < MEDIUM_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX2
-                : CQM_HINT_USE_CUST_MATRIX1;
-        }
-        else
-        {
-            const mfxU32 FLAT_QM_QP_THRESHOLD = 32;
-            const mfxU32 WEAK_QM_QP_THRESHOLD = 38;
-            const mfxU32 MEDIUM_QM_QP_THRESHOLD = 44;
-            const mfxU32 STRONG_QM_QP_THRESHOLD = 50;
-            task.m_adaptiveCQMHint
-                = averageQP < FLAT_QM_QP_THRESHOLD ? CQM_HINT_USE_FLAT_MATRIX
-                : averageQP < WEAK_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX1
-                : averageQP < MEDIUM_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX2
-                : averageQP < STRONG_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX3
-                : CQM_HINT_USE_CUST_MATRIX4;
-        }
-
-        if (IS_CUST_MATRIX(task.m_adaptiveCQMHint))
-        {
-            mfxU32 cqmIndex = task.m_adaptiveCQMHint - 1;
-            if (extSps.seqScalingMatrixPresentFlag || extCqmPps[cqmIndex].picScalingMatrixPresentFlag)
-                FillTaskScalingList(extSps, extCqmPps[cqmIndex], task);
-        }
-#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
-        if (task.m_lplastatus.CqmHint != CQM_HINT_INVALID)
-            task.m_lplastatus.CqmHint = (mfxU8)task.m_adaptiveCQMHint;
-#endif
-    }
-}
-#endif
 
 mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 {
@@ -3659,14 +3536,10 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         m_stagesToGo = m_emulatorForAsyncPart.Go(!m_incoming.empty());
     }
 
-#if USE_AGOP
-#endif
-
     if (m_stagesToGo & AsyncRoutineEmulator::STG_BIT_ACCEPT_FRAME)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::STG_BIT_ACCEPT_FRAME");
         DdiTask & newTask = m_incoming.front();
-
 
 
         if (!m_video.mfx.EncodedOrder)
@@ -3965,14 +3838,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             SubmitLookahead(*task);
         }
 
-#if defined(MFX_ENABLE_LP_LOOKAHEAD)
-        //lowpower lookahead submit
-        if (m_lpLookAhead)
-        {
-            sts = m_lpLookAhead->Submit(task->m_yuv);
-            MFX_CHECK_STS(sts);
-        }
-#endif
         //printf("\rLA_SUBMITTED  do=%4d eo=%4d type=%d\n", task->m_frameOrder, task->m_encOrder, task->m_type[0]); fflush(stdout);
         if (extOpt2.MaxSliceSize && m_lastTask.m_yuv && !m_caps.ddi_caps.SliceLevelRateCtrl)
         {
@@ -4044,7 +3909,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         OnHistogramQueried();
 
         if (
-#if defined(MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA)
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
             (m_video.mfx.RateControlMethod != MFX_RATECONTROL_CBR && m_video.mfx.RateControlMethod != MFX_RATECONTROL_VBR) &&
 #endif
             extDdi.LookAheadDependency > 0 && m_lookaheadFinished.size() >= extDdi.LookAheadDependency)
@@ -4269,31 +4134,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             // In case of progressive frames in PAFF mode need to switch the flag off to prevent m_fieldCounter changes
             task->m_singleFieldMode = false;
 
-#ifdef ENABLE_H264_MBFORCE_INTRA
-            {
-                if (IsOn(extOpt3.EnableMBForceIntra) && m_useMbControlSurfs)
-                {
-                    const mfxExtMBForceIntra *mbct = GetExtBuffer(task->m_ctrl);
-                    mfxU32 wMB = (m_video.mfx.FrameInfo.CropW + 15) / 16;
-                    mfxU32 hMB = (m_video.mfx.FrameInfo.CropH + 15) / 16;
-
-                    task->m_isMBControl = mbct && mbct->Map && mbct->MapSize >= wMB * hMB;
-
-                    if (task->m_isMBControl)
-                    {
-                        task->m_idxMBControl = FindFreeResourceIndex(m_mbControl);
-                        task->m_midMBControl = AcquireResource(m_mbControl, task->m_idxMBControl);
-
-                        mfxFrameData mbsurf = {};
-                        FrameLocker lock(m_core, mbsurf, task->m_midMBControl);
-
-                        MFX_CHECK_WITH_ASSERT(mbsurf.Y, MFX_ERR_LOCK_MEMORY);
-
-#error "unimplemented code"
-                    }
-                }
-            }
-#endif
             if (toSkip)
             {
                 mfxStatus sts = CodeAsSkipFrame(*m_core, m_video, *task, m_rawSkip, m_rec);
@@ -4325,10 +4165,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     task->m_AUStartsFromSlice[f] = 1;
                 else
                     task->m_AUStartsFromSlice[f] = 0;
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-                if (isAdaptiveCQMSupported(extOpt3.ScenarioInfo, m_currentPlatform, IsOn(m_video.mfx.LowPower)))
-                    SetupAdaptiveCQM(m_video, *task, m_qpHistory);
-#endif
                 mfxStatus sts = MFX_ERR_NONE;
 
                 //printf("Execute: %d, type %d, qp %d\n", task->m_frameOrder, task->m_type[0], task->m_cqpValue[0]);
@@ -4866,15 +4702,6 @@ mfxStatus ImplementationAvc::QueryStatus(
             )) != MFX_ERR_NONE)
                 return Error(sts);
     }
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-    else { //free event if any
-        if(task.m_GpuEvent[fid].gpuSyncEvent != INVALID_HANDLE_VALUE) {
-            // Return event to the EventCache
-            m_ddi->m_EventCache->ReturnEvent(task.m_GpuEvent[fid].gpuSyncEvent);
-            task.m_GpuEvent[fid].gpuSyncEvent = INVALID_HANDLE_VALUE;
-        }
-    }
-#endif
 
     return MFX_ERR_NONE;
 }

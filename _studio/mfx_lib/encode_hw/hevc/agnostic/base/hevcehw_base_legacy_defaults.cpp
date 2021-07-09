@@ -1454,11 +1454,8 @@ public:
               && par.mfx.TargetUsage >= 6
               && par.mfx.GopRefDist < 2) ||
              (hw >= MFX_HW_ICL &&
-              (fcc == MFX_FOURCC_AYUV
-#if (MFX_VERSION >= 1027)
-               || fcc == MFX_FOURCC_Y410
-#endif
-                  )));
+              (fcc == MFX_FOURCC_AYUV ||
+                  fcc == MFX_FOURCC_Y410)));
 
         return mfxU16(
             bOn * MFX_CODINGOPTION_ON
@@ -2090,7 +2087,6 @@ public:
         pps.deblocking_filter_control_present_flag  = 1;
         pps.deblocking_filter_disabled_flag         = !!CO2.DisableDeblockingIdc;
         pps.deblocking_filter_override_enabled_flag = 1; // to disable deblocking per frame
-
         pps.scaling_list_data_present_flag              = 0;
         pps.lists_modification_present_flag             = 1;
         pps.log2_parallel_merge_level_minus2            = 0;

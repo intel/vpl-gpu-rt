@@ -630,22 +630,16 @@ void HardcodeCaps(ENCODE_CAPS_VP9& caps, eMFXHWType platform)
     caps.CodingLimitSet = 1;
     caps.Color420Only =  1;
 
-#if (MFX_VERSION >= 1027)
     if (platform >= MFX_HW_ICL)
     {
         caps.Color420Only = 0;
         caps.MaxEncodedBitDepth = 1; //0: 8bit, 1: 8 and 10 bit;
         caps.NumScalablePipesMinus1 = 0;
     }
-#if (MFX_VERSION >= 1031)
     if (platform >= MFX_HW_TGL_LP)
     {
         caps.NumScalablePipesMinus1 = 3;
     }
-#endif
-#else
-    std::ignore = platform;
-#endif //(MFX_VERSION >= 1027)
 
     caps.ForcedSegmentationSupport = 1;
     caps.AutoSegmentationSupport = 1;

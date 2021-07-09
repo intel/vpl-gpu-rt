@@ -335,10 +335,8 @@ namespace MfxHwH264Encode
         {
             if (task.m_ctrl.QP > 0)
             {
-#if defined(LOWPOWERENCODE_AVC)
                 if (IsOn(par.mfx.LowPower) && (task.m_ctrl.QP < 10))
                     return 10;
-#endif
                 // get per frame qp
                 return std::min(mfxU8(task.m_ctrl.QP), mfxU8(maxQP));
             }
@@ -2676,32 +2674,12 @@ mfxStatus MfxFrameAllocResponse::Alloc(
     mfxFrameSurface1 **    opaqSurf,
     mfxU32                 numOpaqSurf)
 {
-#if defined (MFX_ENABLE_OPAQUE_MEMORY)
-    if (m_core || m_cmDevice)
-        return Error(MFX_ERR_MEMORY_ALLOC);
-
-    req.NumFrameSuggested = req.NumFrameMin; // no need in 2 different NumFrames
-
-    mfxStatus sts = core->AllocFrames(&req, this, opaqSurf, numOpaqSurf);
-    MFX_CHECK_STS(sts);
-
-    if (NumFrameActual < req.NumFrameMin)
-        return MFX_ERR_MEMORY_ALLOC;
-
-    m_core = core;
-    m_cmDevice = 0;
-    m_cmDestroy = 0;
-    m_numFrameActualReturnedByAllocFrames = NumFrameActual;
-    NumFrameActual = req.NumFrameMin; // no need in redundant frames
-    return MFX_ERR_NONE;
-#else
     std::ignore = core;
     std::ignore = req;
     std::ignore = opaqSurf;
     std::ignore = numOpaqSurf;
 
     return MFX_ERR_UNSUPPORTED;
-#endif
 }
 
 mfxStatus MfxFrameAllocResponse::AllocCmBuffers(
@@ -3053,6 +3031,12 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
         }
     }
 
+    if (ctrl)
+    {
+        mfxExtCodingOption3* pCO3 = GetExtBuffer(*ctrl);
+        if (pCO3) {
+        }
+    }
     if (surface != 0)
     {
         // Check Runtime extension buffers if not buffered frames processing
@@ -3813,11 +3797,11 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
 // MVC BD {
 void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
     MfxVideoParam const & video,
-#ifdef AVC_BS
+#ifdef MFX_ENABLE_AVC_BS
     DdiTask &       task,
-#else // AVC_BS
+#else // MFX_ENABLE_AVC_BS
     DdiTask const &       task,
-#endif // AVC_BS
+#endif // MFX_ENABLE_AVC_BS
     mfxU32                fieldId,
     PreAllocatedVector &  sei)
 {
@@ -3967,7 +3951,7 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
 
     sei.SetSize(writer.GetNumBits() / 8);
 
-#ifdef AVC_BS
+#ifdef MFX_ENABLE_AVC_BS
     // encoding of AVC SEI with size equal to MVC SEI
     mfxU32 seiSizeMVC = writer.GetNumBits() / 8;
     mfxU32 seiSizeAVC = 0;
@@ -4079,7 +4063,7 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
 
     assert(writer.GetNumBits() == writerAVC.GetNumBits());
     sei.SetSize(writerAVC.GetNumBits() / 8);
-#endif // AVC_BS
+#endif // MFX_ENABLE_AVC_BS
 }
 // MVC BD }
 

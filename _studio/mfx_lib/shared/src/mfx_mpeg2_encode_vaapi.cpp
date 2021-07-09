@@ -1850,5 +1850,5 @@ mfxStatus VAAPIEncoder::FillBSBuffer(mfxU32 nFeedback,mfxU32 nBitstream, mfxBits
     return sts;
 } // mfxStatus VAAPIEncoder::FillBSBuffer(mfxU32 nFeedback,mfxU32 nBitstream, mfxBitstream* pBitstream, Encryption *pEncrypt)
 
-#endif // (MFX_ENABLE_MPEG2_VIDEO_ENCODE) && (MFX_VA_LINUX)
+#endif // (MFX_ENABLE_MPEG2_VIDEO_ENCODE) 
 /* EOF */

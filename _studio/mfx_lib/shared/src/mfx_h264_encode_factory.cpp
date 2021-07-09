@@ -28,7 +28,6 @@
     #include "mfx_h264_encode_vaapi.h"
 
 
-
 using namespace MfxHwH264Encode;
 // platform switcher
 

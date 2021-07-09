@@ -37,13 +37,9 @@ void SetDefaultForLowpower(mfxU16 & lowpower, eMFXHWType platform)
 
      if (lowpower == MFX_CODINGOPTION_UNKNOWN)
     {
-#if (MFX_VERSION >= 1027)
         if (platform >= MFX_HW_ICL)
             lowpower = MFX_CODINGOPTION_ON;
         else
-#else
-        std::ignore = platform;
-#endif
             lowpower = MFX_CODINGOPTION_OFF;
     }
 }

@@ -929,13 +929,9 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
     // Use optimal Pyramid QPs for HEVC 8 GOP Pyramid coding
     if (m_par.gopRefDist == 8 && m_par.bPyr && m_par.codecId == MFX_CODEC_HEVC) ParClassAPQ = 1;
 
-#if (MFX_VERSION >= 1026)
     mfxU16 ParSceneChange = frame_par->SceneChange;
     mfxU32 ParFrameCmplx = frame_par->FrameCmplx;
-#else
-    mfxU16 ParSceneChange = 0;
-    mfxU32 ParFrameCmplx = 0;
-#endif
+
     mfxStatus sts       = MFX_ERR_NONE;
 
     MFX_CHECK_NULL_PTR3(frame_par, frame_ctrl, status);
@@ -1448,15 +1444,9 @@ mfxStatus ExtBRC::GetFrameCtrl (mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
     // Use optimal Pyramid QPs for HEVC 8 GOP Pyramid coding
     if (m_par.gopRefDist == 8 && m_par.bPyr && m_par.codecId == MFX_CODEC_HEVC) ParClassAPQ = 1;
 
-#if (MFX_VERSION >= 1026)
     mfxU16 ParSceneChange = par->SceneChange;
     mfxU16 ParLongTerm = par->LongTerm;
     mfxU32 ParFrameCmplx = par->FrameCmplx;
-#else
-    mfxU16 ParSceneChange = 0;
-    mfxU16 ParLongTerm = 0;
-    mfxU32 ParFrameCmplx = 0;
-#endif
     mfxI32 qp = 0;
     mfxI32 qpMin = 1;
     mfxU16 type = GetFrameType(par->FrameType, par->PyramidLayer, m_par.gopRefDist);

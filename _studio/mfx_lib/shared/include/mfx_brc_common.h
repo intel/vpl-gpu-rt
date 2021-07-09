@@ -31,10 +31,7 @@
 #include <memory>
 #include <algorithm>
 
-#if defined (MFX_ENABLE_H264_VIDEO_ENCODE) || defined (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
-#define UMC_ENABLE_VIDEO_BRC
-#define MFX_ENABLE_VIDEO_BRC_COMMON
-
+#if defined (MFX_ENABLE_VIDEO_BRC_COMMON)
 #include "umc_video_brc.h"
 
 mfxStatus ConvertVideoParam_Brc(const mfxVideoParam *parMFX, UMC::VideoBrcParams *parUMC);

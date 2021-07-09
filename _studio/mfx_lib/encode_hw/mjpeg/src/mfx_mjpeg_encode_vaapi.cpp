@@ -377,7 +377,7 @@ mfxStatus VAAPIEncoder::Execute(DdiTask &task, mfxHDL surface)
 
 mfxStatus VAAPIEncoder::QueryStatus(DdiTask & task)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Enc QueryStatus");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "JPEG encode DDIWaitTaskSync");
     VAStatus vaSts;
     bool isFound = false;
     VASurfaceID waitSurface;
@@ -418,37 +418,30 @@ mfxStatus VAAPIEncoder::QueryStatus(DdiTask & task)
     {
         VASurfaceStatus surfSts = VASurfaceSkipped;
 
-        {
 #if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
 
-            m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
-            guard.Unlock();
+        m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
+        guard.Unlock();
 
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Enc vaSyncSurface");
-                vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
-                // it could happen that decoding error will not be returned after decoder sync
-                // and will be returned at subsequent encoder sync instead
-                // just ignore VA_STATUS_ERROR_DECODING_ERROR in encoder
-                if (vaSts == VA_STATUS_ERROR_DECODING_ERROR)
-                    vaSts = VA_STATUS_SUCCESS;
-                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-            }
-            surfSts = VASurfaceReady;
-
+        vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
+        // it could happen that decoding error will not be returned after decoder sync
+        // and will be returned at subsequent encoder sync instead
+        // just ignore VA_STATUS_ERROR_DECODING_ERROR in encoder
+        if (vaSts == VA_STATUS_ERROR_DECODING_ERROR)
+            vaSts = VA_STATUS_SUCCESS;
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        surfSts = VASurfaceReady;
 #else
 
-            vaSts = vaQuerySurfaceStatus(m_vaDisplay, waitSurface, &surfSts);
-            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        vaSts = vaQuerySurfaceStatus(m_vaDisplay, waitSurface, &surfSts);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-            if (VASurfaceReady == surfSts)
-            {
-                m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
-                guard.Unlock();
-            }
-
-#endif
+        if (VASurfaceReady == surfSts)
+        {
+            m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
+            guard.Unlock();
         }
+#endif
 
         switch (surfSts)
         {
@@ -497,6 +490,7 @@ mfxStatus VAAPIEncoder::UpdateBitstream(
     mfxMemId       MemId,
     DdiTask      & task)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "JPEG encode CopyBitstream");
     mfxU8      * bsData    = task.bs->Data + task.bs->DataOffset + task.bs->DataLength;
     mfxSize     roi       = {(int)task.m_bsDataLength, 1};
     mfxFrameData bitstream = { };

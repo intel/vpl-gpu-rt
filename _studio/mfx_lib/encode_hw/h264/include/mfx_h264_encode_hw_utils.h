@@ -39,11 +39,8 @@
 #include "asc.h"
 #include "libmfx_core_interface.h"
 
-#if defined(MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA) || defined(MFX_ENABLE_ENCTOOLS) 
+#if defined(MFX_ENABLE_ENCTOOLS) 
 #include "mfx_lp_lookahead.h"
-#endif
-#if defined(MFX_ENABLE_LP_LOOKAHEAD)
-class MfxLpLookAhead;
 #endif
 
 #ifdef MFX_ENABLE_MCTF_IN_AVC
@@ -53,8 +50,6 @@ class MfxLpLookAhead;
 
 #ifndef _MFX_H264_ENCODE_HW_UTILS_H_
 #define _MFX_H264_ENCODE_HW_UTILS_H_
-
-
 
 #include <unordered_map>
 #include <queue>
@@ -73,10 +68,8 @@ bool bIntRateControlLA(mfxU16 mode)
 inline constexpr
 bool bRateControlLA(mfxU16 mode)
 {
-    return bIntRateControlLA(mode)
-        ;
+    return bIntRateControlLA(mode);
 }
-
 
 #define MFX_H264ENC_HW_TASK_TIMEOUT 2000
 #define MFX_H264ENC_HW_TASK_TIMEOUT_SIM 600000
@@ -950,17 +943,6 @@ namespace MfxHwH264Encode
     };
 #endif
 
-#ifdef MFX_ENABLE_GPU_BASED_SYNC
-    struct GPUSyncInfo
-    {
-        bool    EnableSync;
-        bool    RepeatFrame;
-        mfxU16  MarkerOffsetX;
-        mfxU16  MarkerOffsetY;
-        mfxU8*  MarkerValue;
-        mfxU32  MarkerSize;
-    };
-#endif
 
     class DdiTask : public Reconstruct
     {
@@ -1011,9 +993,7 @@ namespace MfxHwH264Encode
             , m_numMbPerSlice(0)
             , m_numSlice(0, 0)
             , m_numRoi(0)
-#if MFX_VERSION > 1021
             , m_roiMode(MFX_ROI_MODE_PRIORITY)
-#endif // #if MFX_VERSION > 1021
             , m_numDirtyRect(0)
             , m_numMovingRect(0)
             , m_did(0)
@@ -1073,9 +1053,6 @@ namespace MfxHwH264Encode
             , m_isMBControl(false)
             , m_midMBControl(MID_INVALID)
             , m_idxMBControl(NO_INDEX)
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-            , m_adaptiveCQMHint(CQM_HINT_INVALID)
-#endif
             , m_cmRawForHist(0)
             , m_cmHist(0)
             , m_cmHistSys(0)
@@ -1101,12 +1078,6 @@ namespace MfxHwH264Encode
             , m_wsGpuImage(0)
             , m_wsIdxGpuImage(0)
             , m_Yscd(0)
-#ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
-            , m_qMatrix()
-#endif
-#ifdef MFX_ENABLE_GPU_BASED_SYNC
-            , m_gpuSync()
-#endif
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
             , m_procBO{0,0}
             , m_scanBO{0,0}
@@ -1131,9 +1102,6 @@ namespace MfxHwH264Encode
             m_collectUnitsInfo = false;
             m_headersCache[0].reserve(10);
             m_headersCache[1].reserve(10);
-#endif
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-            Zero(m_GpuEvent);
 #endif
         }
 
@@ -1270,9 +1238,7 @@ namespace MfxHwH264Encode
 
         ArrayRoi        m_roi;
         mfxU16          m_numRoi;
-#if MFX_VERSION > 1021
         mfxU16          m_roiMode;
-#endif // MFX_VERSION > 1021
         ArrayRect       m_dirtyRect;
         mfxU16          m_numDirtyRect;
         ArrayMovingRect m_movingRect;
@@ -1362,11 +1328,8 @@ namespace MfxHwH264Encode
         bool     m_isMBControl;
         mfxMemId m_midMBControl;
         mfxU32   m_idxMBControl;
-#if defined(MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA) || defined(MFX_ENABLE_ENCTOOLS) 
+#if defined(MFX_ENABLE_ENCTOOLS) 
         mfxLplastatus m_lplastatus;
-#endif
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-        mfxU32 m_adaptiveCQMHint;
 #endif
         CmSurface2D *         m_cmRawForHist;
         CmBufferUP *          m_cmHist;     // Histogram data, kernel output
@@ -1380,7 +1343,6 @@ namespace MfxHwH264Encode
 
         mfxU32 m_startTime;
         eMFXHWType m_hwType;  // keep HW type information
-
 
 #ifndef MFX_AVC_ENCODING_UNIT_DISABLE
         bool m_collectUnitsInfo;
@@ -1410,15 +1372,6 @@ namespace MfxHwH264Encode
         BRCFrameParams  m_brcFrameParams;
         mfxBRCFrameCtrl m_brcFrameCtrl;
 
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-        GPU_SYNC_EVENT_HANDLE m_GpuEvent[2]; // events for every field.
-#endif
-#ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
-        ENCODE_SET_PICTURE_QUANT m_qMatrix; //buffer for quantization matrix
-#endif
-#ifdef MFX_ENABLE_GPU_BASED_SYNC
-        GPUSyncInfo     m_gpuSync;
-#endif
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
         mfxU32       m_procBO[2];
         mfxU32       m_scanBO[2];
@@ -1548,7 +1501,6 @@ namespace MfxHwH264Encode
         {
             return m_impl->GetMinFrameSize();
         }
-
 
     private:
         std::unique_ptr<BrcIface> m_impl;
@@ -1698,7 +1650,6 @@ namespace MfxHwH264Encode
         void SaveStat(mfxU32 frameOrder);
     };
 
-
     class LookAheadCrfBrc : public BrcIface
     {
     public:
@@ -1822,7 +1773,6 @@ namespace MfxHwH264Encode
         mfxF32 GetFractionalQp(const BRCFrameParams& /*par*/) { assert(0); return 26.0f; }
 
         virtual void        PreEnc(const BRCFrameParams& /*par*/, std::vector<VmeData *> const & /* vmeData */) {}
-
 
         virtual bool IsVMEBRC()  {return false;}
 
@@ -2589,7 +2539,7 @@ protected:
        mfxExtCodingOption2  &extOpt2 = GetExtBufferRef(video);
        mfxExtCodingOption3  &extOpt3 = GetExtBufferRef(video);
 
-       mfxExtBRC*  extBRC = GetExtBuffer(video);
+       mfxExtBRC *extBRC = GetExtBuffer(video);
        mfxU32 numChanges = 0;
        mfxExtEncToolsConfig *pConfig = (mfxExtEncToolsConfig *)mfx::GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
 
@@ -2639,7 +2589,6 @@ protected:
        CheckFlag(extOpt2.ExtBRC, supportedConfig.BRC, numChanges);
 
        //ExtBRC isn't compatible with EncTools
-
        if (extBRC && (extBRC->pthis || extBRC->Init || extBRC->Close  || extBRC->Update || extBRC->Reset))
        {
            extBRC->pthis = 0;
@@ -2657,6 +2606,7 @@ protected:
 
        return numChanges;
    }
+
    static mfxStatus CreateEncTools(MfxVideoParam &video, mfxEncTools * &encTools, bool &bCreated)
    {
        encTools = GetExtBuffer(video);
@@ -3164,12 +3114,6 @@ private:
         mfxU32      m_maxBsSize;
 
         std::unique_ptr<DriverEncoder>    m_ddi;
-#if defined(MFX_ENABLE_LP_LOOKAHEAD)
-        std::unique_ptr<MfxLpLookAhead> m_lpLookAhead;
-#endif
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-        QpHistory m_qpHistory;
-#endif
         std::vector<mfxU32>     m_recFrameOrder;
 
         mfxU32 m_recNonRef[2];
@@ -3509,9 +3453,9 @@ private:
 // MVC BD }
 
         mfxU32                      m_inputFrameType;
-#ifdef MVC_ADD_REF
+#ifdef MFX_ENABLE_MVC_ADD_REF
         mfxI32                      m_bufferSizeModifier; // required to obey HRD conformance after 'dummy' run in ViewOutput mode
-#endif // MVC_ADD_REF
+#endif // MFX_ENABLE_MVC_ADD_REF
     };
 #endif // #ifdef MFX_ENABLE_MVC_VIDEO_ENCODE
 
@@ -3705,11 +3649,11 @@ private:
 
     void PrepareSeiMessageBufferDepView(
         MfxVideoParam const & video,
-#ifdef AVC_BS
+#ifdef MFX_ENABLE_AVC_BS
         DdiTask &       task,
-#else // AVC_BS
+#else // MFX_ENABLE_AVC_BS
         DdiTask const &       task,
-#endif // AVC_BS
+#endif // MFX_ENABLE_AVC_BS
         mfxU32                fieldId, // 0 - top/progressive, 1 - bottom
         PreAllocatedVector &  sei);
 
@@ -4215,119 +4159,6 @@ private:
         return p;
     }
 
-#ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
-    /// <summary>Function reads array[inSize] to array[outSize][outSize] in ZigZag order.</summary>
-    /// <description>Function reads array[inSize] to array[outSize][outSize] in ZigZag order.
-    /// 1 2 3    1 2 6
-    /// 4 5 6 -> 3 5 7
-    /// 7 8 9    4 8 9
-    /// </description>
-    /// <param name="inPtr">Pointer for the input array, has to be non-NULL</param>
-    /// <param name="inSize">Size of input array, works only with quad arrays. For example, inSize for matrix 4x4 is 16</param>
-    /// <param name="outPtr">Pointer for the output array, has to be non-NULL</param>
-    /// <param name="outSize">Size of output buffer, has to be not less than multiplied dimensions of input matrix. For example, outSize for matrix 4x4 has to be greater than or equal to 4x4</param>
-    template<class T> void MakeZigZag(void const * const inPtr, const size_t inSize, void * const outPtr, const size_t outSize)
-    {
-        T const * const in = static_cast<T const * const>(inPtr);
-        T * const out = static_cast<T * const>(outPtr);
-
-        assert(inPtr != NULL);
-        assert(outPtr != NULL);
-        assert((inSize * inSize) <= outSize);
-        (void)outSize;
-
-        uint64_t y = 0, x = 0;
-        for (uint64_t i = 0, pos = 0, size = inSize * inSize; i < inSize; ++i)
-        {
-            if (y <= x)
-            {
-                y = i;
-                x = 0;
-                for (; x <= i; --y, ++x, ++pos)
-                {
-                    out[y*inSize + x] = in[(pos / inSize)*inSize + pos % inSize];
-                    out[(inSize - y - 1)*inSize + inSize - x - 1] = in[((size - pos - 1) / inSize)*inSize + (size - pos - 1) % inSize];
-                }
-            }
-            else
-            {
-                x = i;
-                y = 0;
-                for (; y <= i; --x, ++y, ++pos)
-                {
-                    out[y*inSize + x] = in[(pos / inSize)*inSize + pos % inSize];
-                    out[(inSize - y - 1)*inSize + inSize - x - 1] = in[((size - pos - 1) / inSize)*inSize + (size - pos - 1) % inSize];
-                }
-            }
-        }
-    }
-
-    /// <summary>Function reads array[inSize][inSize] in ZigZag order to array[outSize].</summary>
-    /// <description>Function reads T array[inSize][inSize] in ZigZag order into T array[outSize].
-    /// 1 2 6    1 2 3
-    /// 3 5 7 -> 4 5 6
-    /// 4 8 9    7 8 9
-    /// </description>
-    /// <param name="inPtr">Pointer for the input array, has to be non-NULL</param>
-    /// <param name="inSize">Size of input array, works only with quad arrays. For example, inSize for matrix 4x4 is 4</param>
-    /// <param name="outPtr">Pointer for the output array, has to be non-NULL</param>
-    /// <param name="outSize">Size of output buffer, has to be not less than inSize*inSize. For example, outSize for matrix 4x4 has to be greater than or equal to 16</param>
-    template<class T> void ZigZagToPlane(void const * const inPtr, const size_t inSize, void * const outPtr, const size_t outSize)
-    {
-        T const * const in = static_cast<T const * const>(inPtr);
-        T * const out = static_cast<T * const>(outPtr);
-
-        assert(inPtr != NULL);
-        assert(outPtr != NULL);
-        assert((inSize * inSize) <= outSize);
-        (void)outSize;
-
-        uint64_t y = 0, x = 0;
-        for (uint64_t i = 0, pos = 0, size = inSize * inSize; i < inSize; ++i)
-        {
-            if (y <= x)
-            {
-                y = i;
-                x = 0;
-                for (; x <= i; --y, ++x, ++pos)
-                {
-                    out[(pos / inSize)*inSize + pos % inSize] = in[y*inSize + x];
-                    out[((size - pos - 1) / inSize)*inSize + (size - pos - 1) % inSize] = in[(inSize - y - 1)*inSize + inSize - x - 1];
-                }
-            }
-            else
-            {
-                x = i;
-                y = 0;
-                for (; y <= i; --x, ++y, ++pos)
-                {
-                    out[(pos / inSize)*inSize + pos % inSize] = in[y*inSize + x];
-                    out[((size - pos - 1) / inSize)*inSize + (size - pos - 1) % inSize] = in[(inSize - y - 1)*inSize + inSize - x - 1];
-                }
-            }
-        }
-    }
-    ///<summary>Function fills custom quantization matrices into inMatrix, writes in ZigZag orde</summary>
-    ///<param name="ScenarioInfo">Fills matrices depends on selected ScenarioInfo (CodingOption3)</param>
-    ///<return>MFX_ERR_NONE if matrices were copied, MFX_ERR_NOT_FOUND if requested ScenarioInfo isn't supported</return>
-    mfxStatus FillCustomScalingLists(void *inMatrix, mfxU16 ScenarioInfo, mfxU8 maxtrixIndex = 0);
-
-    ///<summary>Function fills default values of scaling list</summary>
-    ///<param name="outList">Pointer to the output list</param>
-    ///<param name="outListSize">Size of output list, has to be not less than 16 for indexes 0..5, and not less than 64 for 6..11</param>
-    ///<param name="index">Index of scaling list according Table 7-2 Rec. ITU-T H.264, has to be in range 0..11</param>
-    ///<param name="zigzag">Flag, if set to true, output values will be ordered in zigzag order, default - false</param>
-    ///<return>MFX_ERR_NONE if default values were copied, MFX_ERR_NOT_FOUND if index not in range 0..11</return>
-    mfxStatus GetDefaultScalingList(mfxU8 *outList, mfxU8 outListSize, mfxU8 index, bool zigzag);
-
-    ///<summary>Function fills qMatrix for task based on values provided in extSps and extPps</summary>
-    ///<description>Function expects value of extSps.seqScalingMatrixPresentFlag and value of extPps.picScalingMatrixPresentFlag
-    ///were verified before call. Otherwise default scaling lists will be used, but it won't be expected behavior</description>
-    ///<param name="extSps">SPS header with defined (or not defined) scaling lists</param>
-    ///<param name="extPps">PPS header with defined (or not defined) scaling lists</param>
-    ///<param name="task">DDI task for the filling scaling lists for current frame</param>
-    void FillTaskScalingList(mfxExtSpsHeader const &extSps, mfxExtPpsHeader const &extPps, DdiTask &task);
-#endif
 }; // namespace MfxHwH264Encode
 
 #endif // _MFX_H264_ENCODE_HW_UTILS_H_

@@ -1143,6 +1143,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::TaskRoutineSubmitFrame(
     }
     MFX_CHECK_STS(sts);
 
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "JPEG encode DDISubmitTask");
     if (MFX_HW_D3D11 == enc.m_pCore->GetVAType())
     {
         MFX_CHECK(surfacePair.first != 0, MFX_ERR_UNDEFINED_BEHAVIOR);

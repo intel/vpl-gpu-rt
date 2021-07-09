@@ -22,9 +22,7 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_g12_lin.h"
-#if (MFX_VERSION >= 1031)
 #include "hevcehw_g12_rext_lin.h"
-#endif
 #include "hevcehw_g12_caps_lin.h"
 #include "hevcehw_g12_scc_lin.h"
 #include "hevcehw_g12_qp_modulation_lin.h"
@@ -52,9 +50,7 @@ MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
 {
     TFeatureList newFeatures;
 
-#if (MFX_VERSION >= 1031)
     newFeatures.emplace_back(new RExt(FEATURE_REXT));
-#endif
     newFeatures.emplace_back(new SCC(FEATURE_SCC));
     newFeatures.emplace_back(new Caps(FEATURE_CAPS));
     newFeatures.emplace_back(new SAO(FEATURE_SAO));
@@ -93,12 +89,10 @@ void MFXVideoENCODEH265_HW::InternalInitFeatures(
             , { FEATURE_SCC, SCC::BLK_LoadSPSPPS });
 
         auto& qwc = FeatureBlocks::BQ<FeatureBlocks::BQ_Query1WithCaps>::Get(*this);
-#if (MFX_VERSION >= 1031)
         FeatureBlocks::Reorder(
             qwc
             , { HEVCEHW::Base::FEATURE_DDI_PACKER, HEVCEHW::Base::IDDIPacker::BLK_HardcodeCaps }
             , { FEATURE_REXT, RExt::BLK_HardcodeCaps });
-#endif
         FeatureBlocks::Reorder(
             qwc
             , { HEVCEHW::Base::FEATURE_DDI_PACKER, HEVCEHW::Base::IDDIPacker::BLK_HardcodeCaps }
