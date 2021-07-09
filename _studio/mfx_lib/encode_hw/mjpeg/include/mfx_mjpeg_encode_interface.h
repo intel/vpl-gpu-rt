@@ -32,9 +32,6 @@
 
 #include "mfx_mjpeg_encode_hw_utils.h"
 
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-#include "mfx_win_event_cache.h"
-#endif
 
 namespace MfxHwMJpegEncode
 {
@@ -88,9 +85,6 @@ namespace MfxHwMJpegEncode
                 const mfxU16& /*numFrameMin*/,
                 const mfxVideoParam& /*par*/) { return MFX_ERR_NONE; }
 
-#ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
-        std::unique_ptr<EventCache> m_EventCache;
-#endif
     };
 
     DriverEncoder* CreatePlatformMJpegEncoder( VideoCORE* core );

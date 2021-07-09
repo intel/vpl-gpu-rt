@@ -823,8 +823,7 @@ void Legacy::QueryIOSurf(const FeatureBlocks& blocks, TPushQIS Push)
     {
         bool check_result = Check<mfxU16
             , MFX_IOPATTERN_IN_VIDEO_MEMORY
-            , MFX_IOPATTERN_IN_SYSTEM_MEMORY
-            >
+            , MFX_IOPATTERN_IN_SYSTEM_MEMORY>
             (par.IOPattern);
 
         MFX_CHECK(!check_result, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -3320,8 +3319,7 @@ void SetDefaultBRC(
     bool bSetRCPar = (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
         || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR
         || par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_VCM
-        );
+        || par.mfx.RateControlMethod == MFX_RATECONTROL_VCM);
     bool bSetICQ  = (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ);
     bool bSetQVBR = (par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR && pCO3);
 
@@ -3354,8 +3352,8 @@ void SetDefaultBRC(
             , Bool2CO(
               !(   par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
                 || Legacy::IsSWBRC(par)
-                || !defPar.caps.MbQpDataSupport)                                  // Default OFF
-                || (Legacy::IsEnctoolsLABRC(par) && defPar.caps.MbQpDataSupport)  // Default ON
+                || !defPar.caps.MbQpDataSupport)                                // Default OFF
+              || (Legacy::IsEnctoolsLABRC(par) && defPar.caps.MbQpDataSupport)  // Default ON
             ));
 
         bool bSetWinBRC = pCO3->WinBRCSize || pCO3->WinBRCMaxAvgKbps;
@@ -3607,7 +3605,6 @@ mfxStatus Legacy::CheckESPackParam(mfxVideoParam & par, eMFXHWType hw)
             , mfxU16(MFX_CODINGOPTION_UNKNOWN)
             , mfxU16(MFX_CODINGOPTION_OFF)
             , mfxU16(MFX_CODINGOPTION_ON * !!par.mfx.EncodedOrder));
-
     }
 
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);

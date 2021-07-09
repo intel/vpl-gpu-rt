@@ -48,8 +48,6 @@
 #include "umc_defs.h"
 #include "ipps.h"
 
-#define LOWPOWERENCODE_AVC
-
 #define D3DFMT_NV12 (D3DFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))
 #define D3DDDIFMT_NV12 (D3DDDIFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))
 #define D3DDDIFMT_YU12 (D3DDDIFORMAT)(MFX_MAKEFOURCC('Y', 'U', '1', '2'))
@@ -193,9 +191,7 @@ namespace MfxHwH264Encode
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCRefLists,          MFX_EXTBUFF_AVC_REFLISTS             );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtCodingOption3,        MFX_EXTBUFF_CODING_OPTION3           );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMBQP,                 MFX_EXTBUFF_MBQP                     );
-#if MFX_VERSION >= 1023
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMBForceIntra,         MFX_EXTBUFF_MB_FORCE_INTRA           );
-#endif
     BIND_EXTBUF_TYPE_TO_ID (mfxExtChromaLocInfo,        MFX_EXTBUFF_CHROMA_LOC_INFO          );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMBDisableSkipMap,     MFX_EXTBUFF_MB_DISABLE_SKIP_MAP      );
 #if defined(MFX_ENABLE_H264_PRIVATE_CTRL)
@@ -210,13 +206,7 @@ namespace MfxHwH264Encode
 #if defined (__MFXBRC_H__)
     BIND_EXTBUF_TYPE_TO_ID (mfxExtBRC,        MFX_EXTBUFF_BRC          );
 #endif
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-    BIND_EXTBUF_TYPE_TO_ID(mfxExtAVCScalingMatrix,      MFX_EXTBUFF_AVC_SCALING_MATRIX       );
-#endif
 
-#if defined (MFX_ENABLE_GPU_BASED_SYNC)
-    BIND_EXTBUF_TYPE_TO_ID(mfxExtGameStreaming,          MFX_EXTBUFF_GAME_STREAMING          );
-#endif
 #if defined (MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
     BIND_EXTBUF_TYPE_TO_ID(mfxExtPartialBitstreamParam,  MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM );
 #endif
@@ -564,17 +554,6 @@ namespace MfxHwH264Encode
 
         void ApplyDefaultsToMvcSeqDesc();
 
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-        std::vector<mfxExtPpsHeader>& GetCqmPps()
-        {
-            return m_extCqmPps;
-        }
-
-        const std::vector<mfxExtPpsHeader>& GetCqmPps() const
-        {
-            return m_extCqmPps;
-        }
-#endif
 
     protected:
         void Construct(mfxVideoParam const & par);
@@ -623,17 +602,8 @@ namespace MfxHwH264Encode
         mfxEncToolsCtrlExtAllocator     m_extAllocator;
 #endif
 
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-        mfxExtAVCScalingMatrix      m_extQM;
-#endif
-#if defined(MFX_ENABLE_GPU_BASED_SYNC)
-        mfxExtGameStreaming         m_extGameStreaming;
-#endif
-#if defined(MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA)
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
         mfxExtLplaParam            m_extLowpowerLA;
-#endif
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-        std::vector<mfxExtPpsHeader>  m_extCqmPps;
 #endif
 
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
@@ -1489,10 +1459,6 @@ namespace MfxHwH264Encode
 
         std::vector<ENCODE_PACKEDHEADER_DATA> const & GetPps(bool cqmPps = false ) const {
             (void)cqmPps;
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-            if (cqmPps)
-                return m_packedCqmPps;
-#endif
             return  m_packedPps;
         }
 
@@ -1507,9 +1473,6 @@ namespace MfxHwH264Encode
         void GetHeadersInfo(std::vector<mfxEncodedUnitInfo> &HeadersMap, DdiTask const& task, mfxU32 fid);
 #endif
 
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-        mfxU32 GetPackedCqmPpsNum() { return (mfxU32)m_packedCqmPps.size(); }
-#endif
 
     private:
 
@@ -1559,10 +1522,6 @@ namespace MfxHwH264Encode
         static const mfxU32 SPSPPS_BUFFER_SIZE = 1024;
         static const mfxU32 SLICE_BUFFER_SIZE  = 2048;
 
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-        std::vector<mfxExtPpsHeader>            m_cqmPps;
-        std::vector<ENCODE_PACKEDHEADER_DATA>   m_packedCqmPps;
-#endif
     };
 
     inline mfxU16 LaDSenumToFactor(const mfxU16& LookAheadDS)

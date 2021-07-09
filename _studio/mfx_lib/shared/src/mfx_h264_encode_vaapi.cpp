@@ -582,21 +582,6 @@ mfxStatus SetQualityParams(
 
         quality_param->PanicModeDisable = IsOff(extOpt3->BRCPanicMode);
 
-#ifdef MFX_ENABLE_H264_REPARTITION_CHECK
-        switch (extOpt3->RepartitionCheckEnable)
-        {
-        case MFX_CODINGOPTION_ON:
-            quality_param->ForceRepartitionCheck = 1;
-            break;
-        case MFX_CODINGOPTION_OFF:
-            quality_param->ForceRepartitionCheck = 2;
-            break;
-        case MFX_CODINGOPTION_UNKNOWN:
-        case MFX_CODINGOPTION_ADAPTIVE:
-        default:
-            quality_param->ForceRepartitionCheck = 0;
-        }
-#endif // MFX_ENABLE_H264_REPARTITION_CHECK
 
     }
 
@@ -614,23 +599,6 @@ mfxStatus SetQualityParams(
             if (quality_param->globalMotionBiasAdjustmentEnable && extOpt3rt->MVCostScalingFactor < 4)
                 quality_param->HMEMVCostScalingFactor = extOpt3rt->MVCostScalingFactor;
 
-#ifdef MFX_ENABLE_H264_REPARTITION_CHECK
-            switch (extOpt3rt->RepartitionCheckEnable)
-            {
-            case MFX_CODINGOPTION_ON:
-                quality_param->ForceRepartitionCheck = 1;
-                break;
-            case MFX_CODINGOPTION_OFF:
-                quality_param->ForceRepartitionCheck = 2;
-                break;
-            case MFX_CODINGOPTION_UNKNOWN:
-                // lets stick with option specified on init if not specified per-frame
-                break;
-            case MFX_CODINGOPTION_ADAPTIVE:
-            default:
-                quality_param->ForceRepartitionCheck = 0;
-            }
-#endif // MFX_ENABLE_H264_REPARTITION_CHECK
 
         } // if (extOpt3rt)
 
@@ -831,11 +799,9 @@ static mfxStatus SetROI(
         roi_Param->min_delta_qp = -51;
 
         roi_Param->roi_flags.bits.roi_value_is_qp_delta = 0;
-#if MFX_VERSION > 1021
         if (task.m_roiMode == MFX_ROI_MODE_QP_DELTA) {
             roi_Param->roi_flags.bits.roi_value_is_qp_delta = 1;
         }
-#endif // MFX_VERSION > 1021
     }
 
     {

@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,12 +31,15 @@ namespace HEVCEHWDisp
     namespace ICL { using namespace HEVCEHW::Linux::Base; };
 };
 
+
 #include "hevcehw_g12_lin.h"
 namespace HEVCEHWDisp
 {
     namespace TGL { using namespace HEVCEHW::Linux::Gen12; };
     namespace DG1 { using namespace HEVCEHW::Linux::Gen12; };
 };
+
+
 
 namespace HEVCEHW
 {

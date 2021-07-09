@@ -97,31 +97,12 @@ mfxStatus ResPool::AllocOpaque(
     , mfxFrameSurface1 **surfaces
     , mfxU16 numSurface)
 {
-#if defined (MFX_ENABLE_OPAQUE_MEMORY)
-    mfxFrameAllocRequest req = {};
-
-    req.Info = info;
-    req.NumFrameMin = req.NumFrameSuggested = numSurface;
-    req.Type = type;
-
-    mfxStatus sts = m_core.AllocFrames(&req, &m_response, surfaces, numSurface);
-    MFX_CHECK_STS(sts);
-    MFX_CHECK(m_response.NumFrameActual >= numSurface, MFX_ERR_MEMORY_ALLOC);
-
-    m_info                    = info;
-    m_numFrameActual          = m_response.NumFrameActual;
-    m_response.NumFrameActual = req.NumFrameMin;
-    m_bOpaque                 = true;
-
-    return sts;
-#else
     std::ignore = info;
     std::ignore = type;
     std::ignore = surfaces;
     std::ignore = numSurface;
 
     return MFX_ERR_UNSUPPORTED;
-#endif
 }
 
 mfxU32 ResPool::Lock(mfxU32 idx)

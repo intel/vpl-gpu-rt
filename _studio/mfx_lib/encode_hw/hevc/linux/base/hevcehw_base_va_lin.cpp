@@ -268,6 +268,8 @@ void DDI_VA::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         mfxStatus sts;
         auto& task = Task::Common::Get(s_task);
 
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H265 encode DDISubmitTask");
+
         m_callVa = Glob::DDI_Execute::Get(global);
 
         MFX_CHECK((task.SkipCMD & SKIPCMD_NeedDriverCall), MFX_ERR_NONE);
@@ -308,6 +310,9 @@ void DDI_VA::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         , [this](StorageW& global, StorageW& s_task) -> mfxStatus
     {
         auto& task = Task::Common::Get(s_task);
+
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H265 encode DDIWaitTaskSync");
+        mfxStatus sts = MFX_ERR_NONE;
 
         m_callVa = Glob::DDI_Execute::Get(global);
 
