@@ -35,6 +35,7 @@ target_link_libraries(vm
     ipp
   PRIVATE
     mfx_sdl_properties
+    ${CMAKE_DL_LIBS}
   )
 
 include(sources_ext.cmake OPTIONAL)
