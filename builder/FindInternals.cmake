@@ -96,7 +96,7 @@ target_link_options(mfx_shared_lib
       /PDB:$<TARGET_PDB_FILE_DIR:$<TARGET_PROPERTY:NAME>>/$<TARGET_PROPERTY:NAME>_full.pdb
       /PDBSTRIPPED:$<TARGET_PDB_FILE_DIR:$<TARGET_PROPERTY:NAME>>/$<TARGET_PROPERTY:NAME>.pdb
     >
-    $<$<PLATFORM_ID:Linux>:LINKER:--no-undefined,-z,relro,-z,now,-z,noexecstack,--no-as-needed>
+    $<$<PLATFORM_ID:Linux>:LINKER:--no-undefined,-z,relro,-z,now,-z,noexecstack>
   )
 
 target_link_libraries(mfx_shared_lib
@@ -154,7 +154,7 @@ add_library(mfx_va_properties INTERFACE) # va stands for video acceleration
 
 target_link_options(mfx_va_properties
   INTERFACE
-    $<$<PLATFORM_ID:Linux>:LINKER:--no-undefined,-z,relro,-z,now,-z,noexecstack,--no-as-needed>
+    $<$<PLATFORM_ID:Linux>:LINKER:--no-undefined,-z,relro,-z,now,-z,noexecstack>
   )
 
 target_link_libraries(mfx_va_properties
