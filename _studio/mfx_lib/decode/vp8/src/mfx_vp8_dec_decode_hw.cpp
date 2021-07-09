@@ -452,12 +452,13 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream * /*p_bs*/, mfxFrameS
 mfxStatus VideoDECODEVP8_HW::GetOutputSurface(mfxFrameSurface1 **pp_surface_out, mfxFrameSurface1 *p_surface_work, UMC::FrameMemID index)
 {
     mfxFrameSurface1 *p_native_surface = m_surface_source->GetSurface(index, p_surface_work, &m_video_params);
-    (void)pp_surface_out;
 
     if (!p_native_surface)
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
+
+    *pp_surface_out = p_native_surface;
 
     return MFX_ERR_NONE;
 }
