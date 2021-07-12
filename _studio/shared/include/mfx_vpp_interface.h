@@ -486,13 +486,6 @@ namespace MfxHwVideoProcessing
 #ifdef MFX_ENABLE_MCTF
                , bEnableMctf(false)
                , MctfFilterStrength(0)
-#ifdef MFX_ENABLE_MCTF_EXT
-               , MctfOverlap(MFX_CODINGOPTION_OFF)
-               , MctfBitsPerPixelx100k(12*100000)
-               , MctfDeblocking (MFX_CODINGOPTION_OFF)
-               , MctfTemporalMode(MFX_MCTF_TEMPORAL_MODE_2REF)
-               , MctfMVPrecision(MFX_MVPRECISION_INTEGER)
-#endif
 #endif
                , reset(0)
 #ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
@@ -672,13 +665,6 @@ namespace MfxHwVideoProcessing
 #ifdef MFX_ENABLE_MCTF
         bool         bEnableMctf;
         mfxU16       MctfFilterStrength;
-#ifdef MFX_ENABLE_MCTF_EXT
-        mfxU16       MctfOverlap;
-        mfxU32       MctfBitsPerPixelx100k;
-        mfxU16       MctfDeblocking;
-        mfxU16       MctfTemporalMode;
-        mfxU16       MctfMVPrecision;
-#endif
 #endif
         bool reset;
 #ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC

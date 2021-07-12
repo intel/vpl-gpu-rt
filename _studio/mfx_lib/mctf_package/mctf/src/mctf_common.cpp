@@ -67,13 +67,6 @@ void CMC::QueryDefaultParams(
         Mctfparam;
     QueryDefaultParams(&Mctfparam);
     pBuffer->FilterStrength = Mctfparam.FilterStrength;
-#ifdef MFX_ENABLE_MCTF_EXT
-    pBuffer->BitsPerPixelx100k = Mctfparam.BitsPerPixelx100k;
-    pBuffer->Overlap = Mctfparam.Overlap;
-    pBuffer->Deblocking = Mctfparam.Deblocking;
-    pBuffer->TemporalMode = Mctfparam.TemporalMode;
-    pBuffer->MVPrecision = Mctfparam.subPelPrecision;
-#endif
 };
 
 mfxStatus CMC::CheckAndFixParams(
@@ -88,59 +81,7 @@ mfxStatus CMC::CheckAndFixParams(
         pBuffer->FilterStrength = AUTO_FILTER_STRENGTH;
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }
-#ifdef MFX_ENABLE_MCTF_EXT
-    if (MFX_CODINGOPTION_OFF != pBuffer->Deblocking &&
-        MFX_CODINGOPTION_ON != pBuffer->Deblocking &&
-        MFX_CODINGOPTION_UNKNOWN != pBuffer->Deblocking) {
-        pBuffer->Deblocking = DEFAULT_DEBLOCKING;
-        sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    }else
-        if (MFX_CODINGOPTION_UNKNOWN == pBuffer->Deblocking){
-            pBuffer->Deblocking = DEFAULT_DEBLOCKING;
-            // keep previous status to not override possibe WRN
-        }
-    if (MFX_CODINGOPTION_OFF != pBuffer->Overlap &&
-        MFX_CODINGOPTION_ON != pBuffer->Overlap &&
-        MFX_CODINGOPTION_UNKNOWN != pBuffer->Overlap) {
-        pBuffer->Overlap = DEFAULT_OVERLAP;
-        sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    }else
-        if (MFX_CODINGOPTION_UNKNOWN == pBuffer->Overlap) {
-            pBuffer->Overlap = DEFAULT_OVERLAP;
-            // keep previous status to not override possibe WRN
-        }
 
-    if (MCTF_TEMPORAL_MODE_SPATIAL != pBuffer->TemporalMode &&
-        MCTF_TEMPORAL_MODE_1REF != pBuffer->TemporalMode &&
-        MCTF_TEMPORAL_MODE_2REF != pBuffer->TemporalMode &&
-        MCTF_TEMPORAL_MODE_4REF != pBuffer->TemporalMode &&
-        MCTF_TEMPORAL_MODE_UNKNOWN != pBuffer->TemporalMode) {
-        pBuffer->TemporalMode = DEFAULT_REFS;
-        sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    }else
-        if (MCTF_TEMPORAL_MODE_UNKNOWN == pBuffer->TemporalMode) {
-            pBuffer->TemporalMode = DEFAULT_REFS;
-            // keep previous status to not override possibe WRN
-        }
-
-
-    if (MFX_MVPRECISION_INTEGER != pBuffer->MVPrecision &&
-        MFX_MVPRECISION_QUARTERPEL != pBuffer->MVPrecision &&
-        MFX_MVPRECISION_UNKNOWN != pBuffer->MVPrecision) {
-        pBuffer->MVPrecision = DEFAULT_ME;
-        sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    }else
-        if (MFX_MVPRECISION_UNKNOWN == pBuffer->MVPrecision)
-        {
-            pBuffer->MVPrecision = DEFAULT_ME;
-            // keep previous status to not override possibe WRN
-        }
-
-    if (pBuffer->BitsPerPixelx100k > DEFAULT_BPP) {
-        pBuffer->BitsPerPixelx100k = DEFAULT_BPP;
-        sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    }
-#endif
     return sts;
 }
 
@@ -151,13 +92,6 @@ void CMC::FillParamControl(
 )
 {
     pBuffer->FilterStrength = pSrc->FilterStrength;
-#ifdef MFX_ENABLE_MCTF_EXT
-    pBuffer->Deblocking =pSrc->Deblocking;
-    pBuffer->Overlap = pSrc->Overlap;
-    pBuffer->subPelPrecision = pSrc->MVPrecision;
-    pBuffer->TemporalMode = pSrc->TemporalMode;
-    pBuffer->BitsPerPixelx100k = pSrc->BitsPerPixelx100k;
-#endif
 }
 
 mfxStatus CMC::SetFilterStrenght(
@@ -1060,11 +994,6 @@ mfxStatus CMC::MCTF_CheckRTParams(
     mfxStatus sts = MFX_ERR_NONE;
     if (pMctfControl)
     {
-#ifdef MFX_ENABLE_MCTF_EXT
-    // check BPP for max value. the threshold must be adjusted for higher bit-depths
-        if (pMctfControl->BitsPerPixelx100k > (DEFAULT_BPP))
-            sts = MFX_ERR_INVALID_VIDEO_PARAM;
-#endif
         if (pMctfControl->FilterStrength > 21)
             sts = MFX_ERR_INVALID_VIDEO_PARAM;
     }
@@ -1101,21 +1030,6 @@ mfxStatus CMC::MCTF_UpdateANDApplyRTParams(
         {
             SetFilterStrenght(m_RTParams.FilterStrength);
         }
-#ifdef MFX_ENABLE_MCTF_EXT
-        deblocking_Control = m_RTParams.Deblocking;
-        //deblocking only if ME is used
-        if (MFX_CODINGOPTION_ON == deblocking_Control &&
-            (ONE_REFERENCE == number_of_References ||
-                TWO_REFERENCES == number_of_References ||
-                FOUR_REFERENCES == number_of_References)
-            )
-            pMCTF_SpDen_func = &CMC::MCTF_RUN_Denoise;
-        else
-            pMCTF_SpDen_func = NULL;
-
-        if (MCTF_CONFIGURATION::MCTF_AUT_CA_BA == ConfigMode)
-            MFX_SAFE_CALL (MCTF_UpdateBitrateInfo(m_RTParams.BitsPerPixelx100k));
-#endif
     }
     return MFX_ERR_NONE;
 }

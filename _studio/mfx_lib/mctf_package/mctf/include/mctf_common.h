@@ -23,7 +23,6 @@
 #include <vector>
 #include "mfx_common.h"
 
-#ifndef MFX_ENABLE_MCTF_EXT
 // all internal logic is based on these constants
 // if they are not defined, the logic of all checks,
 // switches & branches gets too complicated (as modes are
@@ -35,15 +34,6 @@ enum {
     MCTF_TEMPORAL_MODE_2REF    = 3,
     MCTF_TEMPORAL_MODE_4REF    = 4
 };
-#else
-enum {
-    MCTF_TEMPORAL_MODE_UNKNOWN = MFX_MCTF_TEMPORAL_MODE_UNKNOWN,
-    MCTF_TEMPORAL_MODE_SPATIAL = MFX_MCTF_TEMPORAL_MODE_SPATIAL,
-    MCTF_TEMPORAL_MODE_1REF = MFX_MCTF_TEMPORAL_MODE_1REF,
-    MCTF_TEMPORAL_MODE_2REF = MFX_MCTF_TEMPORAL_MODE_2REF,
-    MCTF_TEMPORAL_MODE_4REF = MFX_MCTF_TEMPORAL_MODE_4REF
-};
-#endif
 
 // this is an internal structure to represent MCTF controls;
 // is not exposed outside;
