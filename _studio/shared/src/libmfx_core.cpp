@@ -1337,6 +1337,19 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
         MFX_CHECK_NULL_PTR1(src.Data.Y);
 
         //we use 8u copy, so we need to increase ROI to handle 16 bit samples
+        if (src.Info.Shift != dst.Info.Shift)
+        {
+            roi.width *= 2; // CopyAndShift operates with 2-byte words
+            mfxU8 lshift = 0;
+            mfxU8 rshift = 0;
+            if (src.Info.Shift != 0)
+                rshift = (mfxU8)(16 - dst.Info.BitDepthLuma);
+            else
+                lshift = (mfxU8)(16 - dst.Info.BitDepthLuma);
+
+            return FastCopy::CopyAndShift((mfxU16*)(dst.Data.Y), dstPitch, (mfxU16 *)src.Data.Y, srcPitch, roi, lshift, rshift, copyFlag);
+        }
+        else
         {
             roi.width *= 4;
             return FastCopy::Copy(dst.Data.Y, dstPitch, src.Data.Y, srcPitch, roi, copyFlag);
@@ -1360,6 +1373,19 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
         MFX_CHECK_NULL_PTR1(src.Data.U16);
 
         //we use 8u copy, so we need to increase ROI to handle 16 bit samples
+        if (src.Info.Shift != dst.Info.Shift)
+        {
+            roi.width *= 4; // CopyAndShift operates with 2-byte words
+            mfxU8 lshift = 0;
+            mfxU8 rshift = 0;
+            if (src.Info.Shift != 0)
+                rshift = (mfxU8)(16 - dst.Info.BitDepthLuma);
+            else
+                lshift = (mfxU8)(16 - dst.Info.BitDepthLuma);
+
+            return FastCopy::CopyAndShift(dst.Data.U16, dstPitch, src.Data.U16, srcPitch, roi, lshift, rshift, copyFlag);
+        }
+        else
         {
             roi.width *= 8;
             return FastCopy::Copy((mfxU8*)dst.Data.U16, dstPitch, (mfxU8*)src.Data.U16, srcPitch, roi, copyFlag);
