@@ -86,13 +86,6 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
             case (mfxU32)MFX_EXTBUFF_VPP_MCTF:
             {
                 mfxU16 MctfTemporalMode = CMC::DEFAULT_REFS;
-#ifdef MFX_ENABLE_MCTF_EXT
-                mfxExtVppMctf* mctf_ctrl = reinterpret_cast<mfxExtVppMctf *>(GetExtendedBuffer(pParam->ExtParam, pParam->NumExtParam, MFX_EXTBUFF_VPP_MCTF));
-                MctfTemporalMode = mctf_ctrl ? mctf_ctrl->TemporalMode : CMC::DEFAULT_REFS;
-                // should process UNKNOWN mode here or its an error?
-                if (MCTF_TEMPORAL_MODE_UNKNOWN == MctfTemporalMode)
-                    MctfTemporalMode = CMC::DEFAULT_REFS;
-#endif
                 switch (MctfTemporalMode)
                 {
                 case MCTF_TEMPORAL_MODE_SPATIAL:

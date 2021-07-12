@@ -1998,13 +1998,6 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
             mfxExtVppMctf *bufMCTF = reinterpret_cast<mfxExtVppMctf *>(par->ExtParam[i]);
             MFX_CHECK_NULL_PTR1(bufMCTF);
             bufMCTF->FilterStrength = m_executeParams.MctfFilterStrength;
-#ifdef MFX_ENABLE_MCTF_EXT
-            bufMCTF->BitsPerPixelx100k = m_executeParams.MctfBitsPerPixelx100k;
-            bufMCTF->Deblocking = m_executeParams.MctfDeblocking;
-            bufMCTF->Overlap = m_executeParams.MctfOverlap;
-            bufMCTF->MVPrecision = m_executeParams.MctfMVPrecision;
-            bufMCTF->TemporalMode = m_executeParams.MctfTemporalMode;
-#endif
         }
 #endif
         else if (MFX_EXTBUFF_VPP_PROCAMP == bufferId)
@@ -5289,17 +5282,6 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             if (IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_MCTF))
             {
                 bool bHasFrameDelay(true);
-#ifdef MFX_ENABLE_MCTF_EXT
-                // mctf cannot work properly with FRC if 1 or 2 frame-delay mode is enabled
-                // if no MctfBuffer in ExtParam, it means MCTF is enabled via DoUse list
-                mfxExtVppMctf * pMctfBuf = reinterpret_cast<mfxExtVppMctf *>(GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_VPP_MCTF));
-                if (pMctfBuf)
-                {
-                    if (MCTF_TEMPORAL_MODE_SPATIAL == pMctfBuf->TemporalMode ||
-                        MCTF_TEMPORAL_MODE_1REF == pMctfBuf->TemporalMode)
-                        bHasFrameDelay = false;
-                }
-#endif
                 if (bHasFrameDelay)
                     sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
             }
@@ -6349,22 +6331,7 @@ mfxStatus ConfigureExecuteParams(
                         //  if number of min requred frames for MCTF is 2, but async-depth == 1,
                         // should we increase number of input / output surfaces to prevent hangs?
                         executeParams.MctfFilterStrength = extMCTF->FilterStrength;
-                        //switch below must work in case MFX_ENABLE_MCTF_EXT is not defined;
-                        // thus constants w/o MFX_ prefix are used
-#ifdef MFX_ENABLE_MCTF_EXT
-                        executeParams.MctfOverlap = extMCTF->Overlap;
-                        executeParams.MctfBitsPerPixelx100k = extMCTF->BitsPerPixelx100k;
-                        executeParams.MctfDeblocking = extMCTF->Deblocking;
-                        executeParams.MctfTemporalMode = extMCTF->TemporalMode;
-                        executeParams.MctfMVPrecision = extMCTF->MVPrecision;
-
-                        mfxU16 TemporalMode = extMCTF->TemporalMode;
-                        if (MCTF_TEMPORAL_MODE_UNKNOWN == TemporalMode)
-                            TemporalMode = CMC::DEFAULT_REFS;
-                        switch (TemporalMode)
-#else
                         switch (CMC::DEFAULT_REFS)
-#endif
                         {
                         case MCTF_TEMPORAL_MODE_SPATIAL:
                         case MCTF_TEMPORAL_MODE_1REF:
