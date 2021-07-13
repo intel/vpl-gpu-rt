@@ -1246,11 +1246,6 @@ mfxStatus MFXVideoDECODEVC1::PostProcessFrameHW(mfxFrameSurface1 *surface_work, 
     else
         surface_out = surface_disp;
 
-    UMC::VideoAccelerator* va = nullptr;
-    m_pCore->GetVA((mfxHDL*)&va, MFX_MEMTYPE_FROM_DECODE);
-    if (va)
-        MFX_CHECK(!va->UnwrapBuffer(surface_out->Data.MemId), MFX_ERR_INVALID_HANDLE);
-
     memIDdisp = m_qMemID.front();
     m_qMemID.pop_front();
     memID = m_pVC1VideoDecoder->ProcessQueuesForNextFrame(isSkip, Corrupted);
@@ -1494,7 +1489,10 @@ mfxStatus MFXVideoDECODEVC1::SetAllocRequestInternal(VideoCORE *core, mfxVideoPa
     if (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY && !isSWplatform) // no need to real alloc but have to request surface for video acceler
     {
         CalculateFramesNumber(request, par, IsBufferMode(core, par));
-        request->Type = MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_DECODE;
+        bool IsD3D9SimWithVideoMem = IsD3D9Simulation(*core) && (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY);
+
+        request->Type = MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_DECODE;
+        request->Type |= IsD3D9SimWithVideoMem ? MFX_MEMTYPE_INTERNAL_FRAME : MFX_MEMTYPE_EXTERNAL_FRAME;
         return MFX_ERR_NONE;
     }
 
@@ -1527,7 +1525,13 @@ mfxStatus MFXVideoDECODEVC1::SetAllocRequestExternal(VideoCORE *core, mfxVideoPa
     else if (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
     {
         if (!isSWplatform)
-            CalculateFramesNumber(request, par, IsBufferMode(core, par));
+        {
+            bool isD3D9On11VideoMem = IsD3D9Simulation(*core) && (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY);
+            if (isD3D9On11VideoMem)
+                request->NumFrameSuggested = request->NumFrameMin = (par->AsyncDepth > 0) ? 2 * par->AsyncDepth : 2 * MFX_AUTO_ASYNC_DEPTH_VALUE;
+            else
+                 CalculateFramesNumber(request, par, IsBufferMode(core, par));
+        }
         else
             request->NumFrameSuggested = request->NumFrameMin = (par->AsyncDepth > 0)?2*par->AsyncDepth:2*MFX_AUTO_ASYNC_DEPTH_VALUE;
 

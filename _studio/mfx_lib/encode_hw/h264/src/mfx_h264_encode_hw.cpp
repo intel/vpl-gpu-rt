@@ -782,6 +782,7 @@ ImplementationAvc::ImplementationAvc(VideoCORE * core)
 : m_core(core)
 , m_video()
 , m_stat()
+, m_isD3D9SimWithVideoMem(false)
 , m_sliceDivider()
 , m_stagesToGo(0)
 , m_bDeferredFrame(0)
@@ -1112,14 +1113,10 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     m_emulatorForSyncPart.Init(m_video, adaptGopDelay, m_core->GetHWType());
     m_emulatorForAsyncPart = m_emulatorForSyncPart;
 
-
-    sts = m_ddi->CreateWrapBuffers((mfxU16)CalcNumSurfRaw(m_video), m_video);
-    MFX_CHECK_STS(sts);
-
     // Allocate raw surfaces.
     // This is required only in case of system memory at input
-
-    if (m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
+    m_isD3D9SimWithVideoMem = IsD3D9Simulation(*m_core) && (m_video.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY);
+    if (m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY || m_isD3D9SimWithVideoMem)
     {
         request.Type = MFX_MEMTYPE_D3D_INT;
         request.NumFrameMin = mfxU16(CalcNumSurfRaw(m_video));
@@ -2168,13 +2165,13 @@ void ImplementationAvc::SubmitAdaptiveGOP()
     task.m_idx    = FindFreeResourceIndex(m_raw);
     task.m_midRaw = AcquireResource(m_raw, task.m_idx);
 
-    mfxStatus sts = GetNativeHandleToRawSurface(*m_core, m_video, task, task.m_handleRaw);
+    mfxStatus sts = GetNativeHandleToRawSurface(*m_core, m_video, task, task.m_handleRaw, m_isD3D9SimWithVideoMem);
     if (sts != MFX_ERR_NONE){
         Error(sts);
         return ;
     }
 
-    sts = CopyRawSurfaceToVideoMemory(*m_core, m_video, task);
+    sts = CopyRawSurfaceToVideoMemory(*m_core, m_video, task, m_isD3D9SimWithVideoMem);
     if (sts != MFX_ERR_NONE){
         Error(sts);
         return ;
@@ -3866,11 +3863,11 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         task->m_idx    = FindFreeResourceIndex(m_raw);
         task->m_midRaw = AcquireResource(m_raw, task->m_idx);
 
-        mfxStatus sts = GetNativeHandleToRawSurface(*m_core, m_video, *task, task->m_handleRaw);
+        mfxStatus sts = GetNativeHandleToRawSurface(*m_core, m_video, *task, task->m_handleRaw, m_isD3D9SimWithVideoMem);
         if (sts != MFX_ERR_NONE)
             return Error(sts);
 
-        sts = CopyRawSurfaceToVideoMemory(*m_core, m_video, *task);
+        sts = CopyRawSurfaceToVideoMemory(*m_core, m_video, *task, m_isD3D9SimWithVideoMem);
         if (sts != MFX_ERR_NONE)
             return Error(sts);
 #if USE_AGOP

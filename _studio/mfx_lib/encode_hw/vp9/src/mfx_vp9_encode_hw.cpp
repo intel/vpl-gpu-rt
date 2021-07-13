@@ -25,6 +25,7 @@
 
 #include "umc_defs.h"
 #include "fast_copy.h"
+#include "libmfx_core.h"
 
 namespace MfxHwVP9Encode
 {
@@ -219,8 +220,7 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par,
     mfxU32 inPattern = par->IOPattern & MFX_IOPATTERN_IN_MASK;
     auto const supportedMemoryType =
            inPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
-        || inPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY
-        ;
+        || inPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY;
 
     MFX_CHECK(supportedMemoryType, MFX_ERR_INVALID_VIDEO_PARAM);
 
@@ -260,7 +260,6 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par,
 }
 
 
-#if (MFX_VERSION >= 1027)
 void SetReconInfo(VP9MfxVideoParam const &par, mfxFrameInfo &fi, eMFXHWType const &platform)
 {
     mfxExtCodingOption3 opt3 = GetExtBufferRef(par);
@@ -296,7 +295,6 @@ void SetReconInfo(VP9MfxVideoParam const &par, mfxFrameInfo &fi, eMFXHWType cons
     }
     else if (format == MFX_CHROMAFORMAT_YUV420 && depth == BITDEPTH_10)
     {
-#if (MFX_VERSION >= 1031)
         if (platform >= MFX_HW_TGL_LP)
         {
 #ifdef LINUX
@@ -307,7 +305,6 @@ void SetReconInfo(VP9MfxVideoParam const &par, mfxFrameInfo &fi, eMFXHWType cons
 #endif // LINUX
         }
         else
-#endif
         {
             std::ignore = platform;
             fi.FourCC  = MFX_FOURCC_P010;
@@ -326,7 +323,6 @@ void SetReconInfo(VP9MfxVideoParam const &par, mfxFrameInfo &fi, eMFXHWType cons
     fi.BitDepthLuma = depth;
     fi.BitDepthChroma = depth;
 }
-#endif
 
 mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
 {
@@ -375,15 +371,12 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
 
     m_rawFrames.Init(CalcNumSurfRaw(m_video));
 
-    sts = m_ddi->CreateWrapBuffers((mfxU16)CalcNumSurfRaw(m_video), m_video);
-    MFX_CHECK_STS(sts);
-
     mfxFrameAllocRequest request = {};
     request.Info = m_video.mfx.FrameInfo;
     request.Type = MFX_MEMTYPE_D3D_INT;
 
-    // allocate internal surfaces for input raw frames in case of SYSTEM input memory
-    if (m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
+    m_bUseInternalMem = m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY || (IsD3D9Simulation(*m_pCore) && (m_video.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY));
+    if (m_bUseInternalMem)
     {
         request.NumFrameMin = request.NumFrameSuggested = (mfxU16)CalcNumSurfRaw(m_video);
         sts = m_rawLocalFrames.Init(m_pCore, &request, true);
@@ -392,12 +385,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
 
     // allocate and register surfaces for reconstructed frames
     request.NumFrameMin = request.NumFrameSuggested = (mfxU16)CalcNumSurfRecon(m_video);
-#if (MFX_VERSION >= 1027)
     SetReconInfo(m_video, request.Info, platform);
-#else
-    (void)platform;
-    request.Info.FourCC = MFX_FOURCC_NV12;
-#endif
 
     //For MMCD encoder bind flag is required
     if (request.Info.FourCC == MFX_FOURCC_NV12)
@@ -429,10 +417,8 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
     mfxU32 max_buffer_size = m_video.mfx.FrameInfo.Width*m_video.mfx.FrameInfo.Height*3;
 
     if (m_video.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-#if (MFX_VERSION >= 1027)
-        || m_video.mfx.FrameInfo.FourCC == MFX_FOURCC_Y410
-#endif
-        ) {
+        || m_video.mfx.FrameInfo.FourCC == MFX_FOURCC_Y410)
+    {
         // doubling the size of the bitstream buffer if 10-bit format is used
         max_buffer_size *= 2;
     }
@@ -544,12 +530,12 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
     // make sure LowPower not changed - i.e. encoder type the same
     MFX_CHECK(parBeforeReset.mfx.CodecProfile == parAfterReset.mfx.CodecProfile
         && parBeforeReset.AsyncDepth == parAfterReset.AsyncDepth
-        && parBeforeReset.m_inMemType == parAfterReset.m_inMemType
+        && parBeforeReset.IOPattern == parAfterReset.IOPattern
         && m_initWidth >= parAfterReset.mfx.FrameInfo.Width
         && m_initHeight >= parAfterReset.mfx.FrameInfo.Height
         && m_initWidth >= parAfterReset.mfx.FrameInfo.CropW
         && m_initHeight >= parAfterReset.mfx.FrameInfo.CropH
-        && (parAfterReset.m_inMemType == INPUT_VIDEO_MEMORY
+        && (0 == m_rawLocalFrames.Num()
             || m_rawLocalFrames.Num() >= CalcNumSurfRaw(parAfterReset))
         && m_reconFrames.Num() >= CalcNumSurfRecon(parAfterReset)
         && parBeforeReset.mfx.RateControlMethod == parAfterReset.mfx.RateControlMethod
@@ -618,7 +604,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
 
-#if (MFX_VERSION >= 1029)
         // dynamic scaling and tiles don't work together
         if ((extParAfter.FrameWidth != extParBefore.FrameWidth ||
             extParAfter.FrameHeight != extParBefore.FrameHeight) &&
@@ -634,7 +619,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
         {
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
-#endif
 
         // dynamic scaling and segmentation don't work together
         const mfxExtVP9Segmentation& seg = GetExtBufferRef(parAfterReset);
@@ -841,7 +825,7 @@ mfxStatus MFXVideoENCODEVP9_HW::ConfigTask(Task &task)
     task.m_pOutBs = 0;
     task.m_pRawLocalFrame = 0;
 
-    if (curMfxPar.m_inMemType == INPUT_SYSTEM_MEMORY)
+    if (m_bUseInternalMem)
     {
         task.m_pRawLocalFrame = m_rawLocalFrames.GetFreeFrame();
         MFX_CHECK(task.m_pRawLocalFrame != 0, MFX_WRN_DEVICE_BUSY);
@@ -921,7 +905,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mf
             mfxFrameSurface1    *pSurface = 0;
             mfxHDLPair surfaceHDL = {};
 
-            // copy input frame from SYSTEM to VIDEO memory (if required)
             sts = CopyRawSurfaceToVideoMemory(m_pCore, curMfxPar, newFrame);
             MFX_CHECK_STS(sts);
 

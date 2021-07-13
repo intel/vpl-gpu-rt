@@ -2552,18 +2552,20 @@ void MfxHwH264Encode::ConfigureTask(
 mfxStatus MfxHwH264Encode::CopyRawSurfaceToVideoMemory(
     VideoCORE &           core,
     MfxVideoParam const & video,
-    DdiTask const &       task)
+    DdiTask const &       task,
+    bool                  isD3D9SimWithVideoMem)
 {
-
     mfxFrameSurface1 * surface = task.m_yuv;
 
-    if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
-    {
+    mfxU16 inMemType = static_cast<mfxU16>((video.IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET) |
+        MFX_MEMTYPE_EXTERNAL_FRAME);
 
+    if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY || isD3D9SimWithVideoMem)
+    {
         mfxStatus sts = MFX_ERR_NONE;
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Copy input (sys->d3d)");
-            sts = CopyFrameDataBothFields(&core, task.m_midRaw, *surface, video.mfx.FrameInfo);
+            sts = CopyFrameDataBothFields(&core, task.m_midRaw, *surface, video.mfx.FrameInfo, inMemType);
             if (sts != MFX_ERR_NONE)
                 return Error(sts);
         }
@@ -2662,7 +2664,8 @@ mfxStatus MfxHwH264Encode::GetNativeHandleToRawSurface(
     VideoCORE &           core,
     MfxVideoParam const & video,
     DdiTask const &       task,
-    mfxHDLPair &          handle)
+    mfxHDLPair &          handle,
+    bool                  isD3D9SimWithVideoMem)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -2671,8 +2674,7 @@ mfxStatus MfxHwH264Encode::GetNativeHandleToRawSurface(
 
     mfxFrameSurface1 * surface = task.m_yuv;
 
-
-    if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
+    if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY || isD3D9SimWithVideoMem)
         sts = core.GetFrameHDL(task.m_midRaw, nativeHandle);
     else if (video.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY)
         sts = core.GetExternalFrameHDL(*surface, handle);

@@ -676,4 +676,10 @@ inline bool Supports20FeatureSet(VideoCORE& core)
     return core20_interface && *core20_interface;
 }
 
+inline bool IsD3D9Simulation(VideoCORE& core)
+{
+    bool* cored3d9on11_interface = reinterpret_cast<bool*>(core.QueryCoreInterface(MFXI_IS_CORED3D9ON11_GUID));
+    return cored3d9on11_interface && *cored3d9on11_interface;
+}
+
 #endif

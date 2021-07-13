@@ -156,11 +156,6 @@ typedef struct tagENCODE_CAPS_VP9
 
         virtual
         mfxStatus Destroy() = 0;
-
-        virtual
-        mfxStatus CreateWrapBuffers(
-            const mfxU16& /*numFrameMin*/,
-            const mfxVideoParam& /*par*/) { return MFX_ERR_NONE; }
     };
 
 #define VP9_MAX_UNCOMPRESSED_HEADER_SIZE 1000

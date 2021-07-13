@@ -65,6 +65,7 @@ public:
     virtual mfxStatus DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *pSurfaceWork, mfxFrameSurface1 **ppSurfaceOut, MFX_ENTRY_POINT *pEntryPoint) override;
 
     virtual mfxStatus GetUserData(mfxU8 *pUserData, mfxU32 *pSize, mfxU64 *pTimeStamp);
+
     virtual mfxStatus GetPayload(mfxU64 *pTimeStamp, mfxPayload *pPayload) override;
     virtual mfxStatus SetSkipMode(mfxSkipMode mode) override;
 
@@ -108,7 +109,6 @@ private:
     std::unique_ptr<UMC_VP9_DECODER::Packer>  m_Packer;
     std::unique_ptr<FrameStorage> m_framesStorage;
 
-    mfxFrameAllocRequest     m_request;
     mfxFrameAllocResponse    m_response;
     mfxFrameAllocResponse    m_response_alien;
     mfxDecodeStat            m_stat;
