@@ -51,8 +51,6 @@
 #define PADDED_BLOCK_WIDTH                (128)
 #define PADDED_BLOCK_WIDTH_CPU_TO_GPU    (80)
 
-#define MIN(x, y)    (x < y ? x:y)
-
 _GENX_MAIN_  void
 SubSamplePoint_p(SurfaceIndex ibuf, SurfaceIndex obuf, uint in_width, uint in_height, uint out_width, uint out_height)
 {
