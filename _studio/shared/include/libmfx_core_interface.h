@@ -104,6 +104,12 @@ static const MFX_GUID MFXBlockingTaskSyncEnabled_GUID =
 { 0xd1cf0b87, 0x6d92, 0x45e1,{ 0xaa, 0x6d, 0x85, 0xda, 0xeb, 0x15, 0x18, 0x3d } };
 #endif
 
+// {4C849533-839F-4686-9C94-5FBC39008CD9}
+static const
+MFX_GUID MFXI_IS_CORED3D9ON11_GUID =
+{ 0x4c849533, 0x839f, 0x4686, { 0x9c, 0x94, 0x5f, 0xbc, 0x39, 0x0, 0x8c, 0xd9 } };
+
+
 // Try to obtain required interface
 // Declare a template to query an interface
 template <class T> inline

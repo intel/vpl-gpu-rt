@@ -487,12 +487,14 @@ mfxStatus ResMngr::Init(
     Config & config,
     VideoCORE* core)
 {
-    if( config.m_IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY)
+    bool IsD3D9SimWithVideoMemIn = IsD3D9Simulation(*core) && (config.m_IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY);
+    if( config.m_IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY || IsD3D9SimWithVideoMemIn)
     {
         m_surf[VPP_IN].resize( config.m_surfCount[VPP_IN] );
     }
 
-    if( config.m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
+    bool IsD3D9SimWithVideoMemOut = IsD3D9Simulation(*core) && (config.m_IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY);
+    if( config.m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY || IsD3D9SimWithVideoMemOut)
     {
         m_surf[VPP_OUT].resize( config.m_surfCount[VPP_OUT] );
     }
@@ -1915,6 +1917,8 @@ VideoVPPHW::VideoVPPHW(IOMode mode, VideoCORE *core)
 ,m_workloadMode(VPP_SYNC_WORKLOAD)
 ,m_IOPattern(0)
 ,m_ioMode(mode)
+,m_isD3D9SimWithVideoMemIn(false)
+,m_isD3D9SimWithVideoMemOut(false)
 ,m_taskMngr()
 ,m_scene_change(0)
 ,m_frame_num(0)
@@ -2440,16 +2444,16 @@ mfxStatus  VideoVPPHW::Init(
     //-----------------------------------------------------
     // [3] internal frames allocation in case of SW memory requested as input or output
     //-----------------------------------------------------
-    sts = (*m_ddi)->CreateWrapBuffers(m_config.m_surfCount[VPP_IN], m_config.m_surfCount[VPP_OUT], m_params);
-    MFX_CHECK_STS(sts);
 
     mfxFrameAllocRequest request;
     mfxU16 memTypeIn  = MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_INTERNAL_FRAME;
     mfxU16 memTypeOut = MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_INTERNAL_FRAME;
 
-    if (D3D_TO_SYS == m_ioMode || SYS_TO_SYS == m_ioMode) // [OUT == SYSTEM_MEMORY]
+    m_isD3D9SimWithVideoMemOut = IsD3D9Simulation(*m_pCore) && (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY);
+    if (D3D_TO_SYS == m_ioMode || SYS_TO_SYS == m_ioMode || m_isD3D9SimWithVideoMemOut) // [OUT == SYSTEM_MEMORY]
     {
-        memTypeOut          = MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_INTERNAL_FRAME;;
+        memTypeOut          =  MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_INTERNAL_FRAME;
+        memTypeOut         |= m_isD3D9SimWithVideoMemOut ? MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET : MFX_MEMTYPE_SYSTEM_MEMORY;
 
         request.Info        = par->vpp.Out;
         request.Type        = MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_INTERNAL_FRAME;
@@ -2458,14 +2462,16 @@ mfxStatus  VideoVPPHW::Init(
         sts = m_internalVidSurf[VPP_OUT].Alloc(m_pCore, request, par->vpp.Out.FourCC != MFX_FOURCC_YV12);
         MFX_CHECK(MFX_ERR_NONE == sts, MFX_WRN_PARTIAL_ACCELERATION);
 
-        m_config.m_IOPattern |= MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
+        m_config.m_IOPattern |= m_isD3D9SimWithVideoMemOut ? MFX_IOPATTERN_OUT_VIDEO_MEMORY : MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
 
         m_config.m_surfCount[VPP_OUT] = request.NumFrameMin;
     }
 
-    if (SYS_TO_SYS == m_ioMode || SYS_TO_D3D == m_ioMode ) // [IN == SYSTEM_MEMORY]
+    m_isD3D9SimWithVideoMemIn = IsD3D9Simulation(*m_pCore) && (par->IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY);
+    if (SYS_TO_SYS == m_ioMode || SYS_TO_D3D == m_ioMode || m_isD3D9SimWithVideoMemIn) // [IN == SYSTEM_MEMORY]
     {
-        memTypeIn           = MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_INTERNAL_FRAME;
+        memTypeIn           = MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_INTERNAL_FRAME;
+        memTypeIn          |= m_isD3D9SimWithVideoMemIn ? MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET : MFX_MEMTYPE_SYSTEM_MEMORY;
 
         request.Info        = par->vpp.In;
         request.Type        = MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_INTERNAL_FRAME;
@@ -2474,7 +2480,7 @@ mfxStatus  VideoVPPHW::Init(
         sts = m_internalVidSurf[VPP_IN].Alloc(m_pCore, request, par->vpp.In.FourCC != MFX_FOURCC_YV12);
         MFX_CHECK(MFX_ERR_NONE == sts, MFX_WRN_PARTIAL_ACCELERATION);
 
-        m_config.m_IOPattern |= MFX_IOPATTERN_IN_SYSTEM_MEMORY;
+        m_config.m_IOPattern |= m_isD3D9SimWithVideoMemIn ? MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY;
 
         m_config.m_surfCount[VPP_IN] = request.NumFrameMin;
     }
@@ -2720,7 +2726,8 @@ mfxStatus VideoVPPHW::GetFrameHandle(mfxFrameSurface1* InFrame, mfxHDLPair& hand
 mfxStatus VideoVPPHW::GetFrameHandle(mfxFrameSurface1& surf, mfxHDLPair& handle, bool bInternalAlloc)
 {
     handle.first = handle.second = nullptr;
-    if ((IOMode::D3D_TO_D3D == m_ioMode || IOMode::SYS_TO_D3D == m_ioMode) && !bInternalAlloc)
+
+    if ((IOMode::D3D_TO_D3D == m_ioMode || IOMode::SYS_TO_D3D == m_ioMode) && !bInternalAlloc && !m_isD3D9SimWithVideoMemOut)
     {
         //MFX_SAFE_CALL(m_pCore->GetFrameHDL(surf, handle));
         MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(surf, handle, false));
@@ -3012,12 +3019,11 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
     //-----------------------------------------------------
     // [3] internal frames allocation (make sense fo SYSTEM_MEMORY and D3D9ON11 only)
     //-----------------------------------------------------
-    sts = (*m_ddi)->CreateWrapBuffers(m_config.m_surfCount[VPP_IN], m_config.m_surfCount[VPP_OUT], m_params);
-    MFX_CHECK_STS(sts);
 
     mfxFrameAllocRequest request;
 
-    if (D3D_TO_SYS == m_ioMode || SYS_TO_SYS == m_ioMode) // [OUT == SYSTEM_MEMORY]
+    m_isD3D9SimWithVideoMemOut = IsD3D9Simulation(*m_pCore) && (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY);
+    if (D3D_TO_SYS == m_ioMode || SYS_TO_SYS == m_ioMode || m_isD3D9SimWithVideoMemOut) // [OUT == SYSTEM_MEMORY]
     {
         //m_config.m_surfCount[VPP_OUT] = (mfxU16)(m_config.m_surfCount[VPP_OUT] + m_asyncDepth);
 
@@ -3031,12 +3037,13 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
             MFX_CHECK(MFX_ERR_NONE == sts, MFX_WRN_PARTIAL_ACCELERATION);
         }
 
-        m_config.m_IOPattern |= MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
+        m_config.m_IOPattern |= m_isD3D9SimWithVideoMemOut ? MFX_IOPATTERN_OUT_VIDEO_MEMORY : MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
 
         m_config.m_surfCount[VPP_OUT] = request.NumFrameMin;
     }
 
-    if (SYS_TO_SYS == m_ioMode || SYS_TO_D3D == m_ioMode ) // [IN == SYSTEM_MEMORY]
+    m_isD3D9SimWithVideoMemIn = IsD3D9Simulation(*m_pCore) && (par->IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY);
+    if (SYS_TO_SYS == m_ioMode || SYS_TO_D3D == m_ioMode || m_isD3D9SimWithVideoMemIn) // [IN == SYSTEM_MEMORY]
     {
         //m_config.m_surfCount[VPP_IN] = (mfxU16)(m_config.m_surfCount[VPP_IN] + m_asyncDepth);
 
@@ -3050,7 +3057,7 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
             MFX_CHECK(MFX_ERR_NONE == sts, MFX_WRN_PARTIAL_ACCELERATION);
         }
 
-        m_config.m_IOPattern |= MFX_IOPATTERN_IN_SYSTEM_MEMORY;
+        m_config.m_IOPattern |= m_isD3D9SimWithVideoMemIn ? MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY;
 
         m_config.m_surfCount[VPP_IN] = request.NumFrameMin;
     }
@@ -3415,7 +3422,7 @@ mfxStatus VideoVPPHW::PreWorkOutSurface(ExtSurface & output)
     if (!output.pSurf)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
 
-    if (D3D_TO_D3D == m_ioMode || SYS_TO_D3D == m_ioMode)
+    if ((D3D_TO_D3D == m_ioMode || SYS_TO_D3D == m_ioMode) && !m_isD3D9SimWithVideoMemIn)
     {
         if (
             output.bForcedInternalAlloc
@@ -3473,7 +3480,7 @@ mfxStatus VideoVPPHW::PreWorkInputSurface(std::vector<ExtSurface> & surfQueue)
         bool bExternal = true;
         mfxMemId memId = 0;
 
-        if (SYS_TO_D3D == m_ioMode || SYS_TO_SYS == m_ioMode)
+        if (SYS_TO_D3D == m_ioMode || SYS_TO_SYS == m_ioMode || m_isD3D9SimWithVideoMemIn)
         {
             mfxU32 resIdx = surfQueue[i].resIdx;
 
@@ -3481,7 +3488,7 @@ mfxStatus VideoVPPHW::PreWorkInputSurface(std::vector<ExtSurface> & surfQueue)
             {
                 mfxFrameSurface1 inputVidSurf = MakeSurface(surfQueue[i].pSurf->Info, m_internalVidSurf[VPP_IN].mids[resIdx]);
 
-                if (MFX_MIRRORING_HORIZONTAL == m_executeParams.mirroring && MIRROR_INPUT == m_executeParams.mirroringPosition && m_pCmCopy)
+                if (MFX_MIRRORING_HORIZONTAL == m_executeParams.mirroring && MIRROR_INPUT == m_executeParams.mirroringPosition && m_pCmCopy && !m_isD3D9SimWithVideoMemIn)
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "HW_VPP: Mirror (sys->d3d)");
 
@@ -3527,16 +3534,19 @@ mfxStatus VideoVPPHW::PreWorkInputSurface(std::vector<ExtSurface> & surfQueue)
                 }
                 else
                 {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "HW_VPP: Copy output (sys->d3d)");
+                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "HW_VPP: Copy input (sys->d3d)");
 
                     if (MFX_FOURCC_P010 == inputVidSurf.Info.FourCC && 0 == inputVidSurf.Info.Shift)
                         inputVidSurf.Info.Shift = 1; // internal memory`s shift should be configured to 1 to call CopyShift CM kernel
+
+                    mfxU16 inMemType = static_cast<mfxU16>((m_IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET) |
+                        MFX_MEMTYPE_EXTERNAL_FRAME);
 
                     sts = m_pCore->DoFastCopyWrapper(
                         &inputVidSurf,
                         MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET,
                         surfQueue[i].pSurf,
-                        MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY);
+                        inMemType);
                     MFX_CHECK_STS(sts);
                 }
             }
@@ -3549,8 +3559,10 @@ mfxStatus VideoVPPHW::PreWorkInputSurface(std::vector<ExtSurface> & surfQueue)
         }
         else
         {
-            MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*surfQueue[i].pSurf, hdl));
-            bExternal = true;
+            {
+                MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*surfQueue[i].pSurf, hdl));
+                bExternal = true;
+            }
             in = hdl;
 
 
@@ -3589,7 +3601,7 @@ mfxStatus VideoVPPHW::PostWorkOutSurfaceCopy(ExtSurface & output)
 
     // code here to resolve issue in case of sync issue with encoder in case of system memory
     // [3] Copy sys -> vid
-    if(SYS_TO_SYS == m_ioMode || D3D_TO_SYS == m_ioMode)
+    if(SYS_TO_SYS == m_ioMode || D3D_TO_SYS == m_ioMode || m_isD3D9SimWithVideoMemOut)
     {
         // This function is to copy from an internal buffer of system surface to actual memory
         // if bForcedInternalAlloc is true, it says that memid needs to be taken from memid of a the surface
@@ -3600,7 +3612,7 @@ mfxStatus VideoVPPHW::PostWorkOutSurfaceCopy(ExtSurface & output)
 
         mfxFrameSurface1 d3dSurf = MakeSurface(output.pSurf->Info, m_internalVidSurf[VPP_OUT].mids[output.resIdx]);
 
-        if (MFX_MIRRORING_HORIZONTAL == m_executeParams.mirroring && MIRROR_OUTPUT == m_executeParams.mirroringPosition && m_pCmCopy)
+        if (MFX_MIRRORING_HORIZONTAL == m_executeParams.mirroring && MIRROR_OUTPUT == m_executeParams.mirroringPosition && m_pCmCopy && !m_isD3D9SimWithVideoMemOut)
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "HW_VPP: Mirror (d3d->sys)");
 
@@ -3651,9 +3663,12 @@ mfxStatus VideoVPPHW::PostWorkOutSurfaceCopy(ExtSurface & output)
             if (MFX_FOURCC_P010 == d3dSurf.Info.FourCC && 0 == d3dSurf.Info.Shift)
                 d3dSurf.Info.Shift = 1; // internal memory`s shift should be configured to 1 to call CopyShift CM kernel
 
+            mfxU16 outMemType = static_cast<mfxU16>((m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET) |
+                MFX_MEMTYPE_EXTERNAL_FRAME);
+
             sts = m_pCore->DoFastCopyWrapper(
                 output.pSurf,
-                MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY,
+                outMemType,
                 &d3dSurf,
                 MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET
                 );
@@ -3667,7 +3682,8 @@ mfxStatus VideoVPPHW::PostWorkOutSurface(ExtSurface & output)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoVPPHW::PostWorkOutSurface");
     mfxStatus sts = MFX_ERR_NONE;
-    if (SYS_TO_SYS == m_ioMode || D3D_TO_SYS == m_ioMode)
+
+    if (SYS_TO_SYS == m_ioMode || D3D_TO_SYS == m_ioMode || m_isD3D9SimWithVideoMemOut)
     {
 #ifdef MFX_ENABLE_MCTF
         if (!m_pMCTFilter)
@@ -3838,7 +3854,6 @@ mfxStatus VideoVPPHW::MergeRuntimeParams(const DdiTask *pTask, MfxHwVideoProcess
         indx = pTask->bkwdRefCount + 1 + i;
         inputSurfs[indx] = pTask->m_refList[pTask->bkwdRefCount + i].pSurf;
     }
-
 
     mfxExtVPPVideoSignalInfo *vsi;
     for (i = 0; i < numSamples; i++)
@@ -4130,12 +4145,6 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
             }
         }
 
-        sts = (*m_ddi)->WrapInputSurface(m_executeSurf[0].memId, &m_executeSurf[0].hdl.first);
-        MFX_CHECK_STS(sts);
-
-        sts = (*m_ddi)->WrapOutputSurface(m_executeParams.targetSurface.memId, &m_executeParams.targetSurface.hdl.first);
-        MFX_CHECK_STS(sts);
-
         sts = ProcessFieldCopy((mfxHDL)&m_executeSurf[0].hdl, (mfxHDL)&m_executeParams.targetSurface.hdl, imfxFPMode);
         MFX_CHECK_STS(sts);
 
@@ -4146,20 +4155,11 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
                 return MFX_ERR_UNDEFINED_BEHAVIOR;
             }
 
-            sts = (*m_ddi)->WrapInputSurface(m_executeSurf[1].memId, &m_executeSurf[1].hdl.first);
-            MFX_CHECK_STS(sts);
-
             // copy the second field to frame
             imfxFPMode = (imfxFPMode == FIELD2TFF) ? FIELD2BFF : FIELD2TFF;
             sts = ProcessFieldCopy((mfxHDL)&m_executeSurf[1].hdl, (mfxHDL)&m_executeParams.targetSurface.hdl, imfxFPMode);
             MFX_CHECK_STS(sts);
-
-            sts = (*m_ddi)->UnwrapBuffers(m_executeSurf[1].memId, nullptr);
-            MFX_CHECK_STS(sts);
         }
-
-        sts = (*m_ddi)->UnwrapBuffers(m_executeSurf[0].memId, m_executeParams.targetSurface.memId);
-        MFX_CHECK_STS(sts);
 
         m_executeParams.pRefSurfaces = &m_executeSurf[0];
 #ifdef MFX_ENABLE_MCTF
@@ -4204,19 +4204,11 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
         sts = PreWorkInputSurface(surfQueue);
         MFX_CHECK_STS(sts);
 
-        sts = (*m_ddi)->WrapInputSurface(m_executeSurf[0].memId, &m_executeSurf[0].hdl.first);
-        MFX_CHECK_STS(sts);
-
-        sts = (*m_ddi)->WrapOutputSurface(m_executeParams.targetSurface.memId, &m_executeParams.targetSurface.hdl.first);
-        MFX_CHECK_STS(sts);
-
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "HW_VPP: Mirror (d3d->d3d)");
         mfxSize roi = {pTask->output.pSurf->Info.Width, pTask->output.pSurf->Info.Height};
         sts = m_pCmCopy->CopyMirrorVideoToVideoMemory(m_executeParams.targetSurface.hdl, m_executeSurf[0].hdl, roi, MFX_FOURCC_NV12);
         MFX_CHECK_STS(sts);
 
-        sts = (*m_ddi)->UnwrapBuffers(m_executeSurf[0].memId, m_executeParams.targetSurface.memId);
-        MFX_CHECK_STS(sts);
 #ifdef MFX_ENABLE_MCTF
         // this is correct that outputForApp is used:
         // provided that MCTF is not used, and system memory is an output,
@@ -4304,16 +4296,14 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
         {
             if (m_SCD.Query_ASCCmDevice())
             {
-                if (SYS_TO_D3D == m_ioMode || SYS_TO_SYS == m_ioMode)
+                if (SYS_TO_D3D == m_ioMode || SYS_TO_SYS == m_ioMode || m_isD3D9SimWithVideoMemIn)
                 {
                     sts = m_pCore->GetFrameHDL(m_internalVidSurf[VPP_IN].mids[surfQueue[frameIndex].resIdx], reinterpret_cast<mfxHDL*>(&frameHandle));
                     MFX_CHECK_STS(sts);
                 }
                 else
                 {
-                    {
-                        MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*surfQueue[frameIndex].pSurf, frameHandle));
-                    }
+                    MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(*surfQueue[frameIndex].pSurf, frameHandle));
                 }
                 // SCD detects scene change for field to be display.
                 // 30i->30p displays only first of current (frame N = field 2N)
@@ -4671,9 +4661,6 @@ mfxStatus VideoVPPHW::QueryTaskRoutine(void *pState, void *pParam, mfxU32 thread
             }
 
             MFX_CHECK_STS(sts);
-
-            sts = (*pHwVpp->m_ddi)->UnwrapBuffers(pTask->input.pSurf->Data.MemId, pTask->output.pSurf->Data.MemId);
-            MFX_CHECK_STS(sts);
         }
 
         //[2] Variance
@@ -4759,7 +4746,7 @@ mfxStatus VideoVPPHW::SubmitToMctf(void *pState, void *pParam, bool* bMctfReadyT
                 // if an output surface in system memory, MCTF will put results into
                 // an internal buffer associated with system memory that then will be
                // copied to actual surface.
-                if (SYS_TO_SYS == pHwVpp->m_ioMode || D3D_TO_SYS == pHwVpp->m_ioMode)
+                if (SYS_TO_SYS == pHwVpp->m_ioMode || D3D_TO_SYS == pHwVpp->m_ioMode || pHwVpp->m_isD3D9SimWithVideoMemOut)
                 {
                     if (NO_INDEX != pTask->outputForApp.resIdx)
                     {
@@ -4837,7 +4824,7 @@ mfxStatus VideoVPPHW::QueryFromMctf(void *pState, void *pParam, bool bMctfReadyT
         mfxFrameSurface1* pSurf = pTask->outputForApp.pSurf;
 
         bool bForcedInternalAlloc = pTask->outputForApp.bForcedInternalAlloc;
-        if (SYS_TO_SYS == pHwVpp->m_ioMode || D3D_TO_SYS == pHwVpp->m_ioMode)
+        if (SYS_TO_SYS == pHwVpp->m_ioMode || D3D_TO_SYS == pHwVpp->m_ioMode || pHwVpp->m_isD3D9SimWithVideoMemOut)
         {
             //bForcedInternalAlloc = true; // this is true in case of *_TO_SYS ioMode
             // borrowed from  postworkoutput

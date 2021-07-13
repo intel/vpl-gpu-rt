@@ -141,26 +141,6 @@ mfxStatus MfxHwMJpegEncode::CheckJpegParam(VideoCORE *core, mfxVideoParam & par,
     return MFX_ERR_NONE;
 }
 
-mfxStatus MfxHwMJpegEncode::FastCopyFrameBufferSys2Vid(
-    VideoCORE*        core,
-    mfxMemId          vidMemId,
-    mfxFrameSurface1* sysSurf,
-    mfxFrameInfo &    frmInfo
-    )
-{
-    MFX_CHECK_NULL_PTR1(core);
-
-    {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Copy input (sys->vid)");
-        mfxFrameSurface1 surfSrc = MakeSurface(frmInfo, *sysSurf);
-        mfxFrameSurface1 surfDst = MakeSurface(frmInfo, vidMemId);
-
-        MFX_SAFE_CALL(core->DoFastCopyWrapper(&surfDst,MFX_MEMTYPE_INTERNAL_FRAME|MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET, &surfSrc,MFX_MEMTYPE_EXTERNAL_FRAME|MFX_MEMTYPE_SYSTEM_MEMORY));
-    }
-
-    return MFX_ERR_NONE;
-}
-
 mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * ctrl, JpegEncCaps const * hwCaps)
 {
     mfxStatus sts = MFX_ERR_NONE;

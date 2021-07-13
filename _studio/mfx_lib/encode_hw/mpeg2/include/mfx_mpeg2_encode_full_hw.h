@@ -37,6 +37,7 @@
 #include "mfx_mpeg2_encode_interface.h"
 #endif
 //#define BRC_WA
+#include "libmfx_core.h"
 
 namespace MPEG2EncoderHW
 {
@@ -51,7 +52,7 @@ namespace MPEG2EncoderHW
         MfxHwMpeg2Encode::DriverEncoder*        m_pDdiEncoder;
 #endif
         bool                                    m_bStage2Ready;
-        bool                                    m_bHWInput;
+        bool                                    m_bUseInternalMem;
 
     public:
         MFXVideoENCODEMPEG2_HW_DDI(VideoCORE *core, mfxStatus *sts)
@@ -59,7 +60,7 @@ namespace MPEG2EncoderHW
             , m_pExecuteBuffers()
             , m_pDdiEncoder()
             , m_bStage2Ready()
-            , m_bHWInput()
+            , m_bUseInternalMem()
           {
               *sts = MFX_ERR_NONE;
           }
@@ -130,11 +131,9 @@ namespace MPEG2EncoderHW
                   ENCODE_ENC_PAK_ID);
               MFX_CHECK_STS(sts);
 
-              sts = m_pDdiEncoder->CreateWrapBuffers(par->encNumFrameMin, par->mfxVideoParams);
-              MFX_CHECK_STS(sts);
-
               m_bStage2Ready = false;
-              m_bHWInput = (par->mfxVideoParams.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY) != 0;
+              m_bUseInternalMem = (par->mfxVideoParams.IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY) ||
+                   (IsD3D9Simulation(*m_core) && (par->mfxVideoParams.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY));
 
               return sts;
 
@@ -234,7 +233,7 @@ namespace MPEG2EncoderHW
               MFX_CHECK_STS(sts);
 
               m_pExecuteBuffers->InitFramesSet (pFrames->m_pInputFrame->Data.MemId, 
-                  m_bHWInput , 
+                  !m_bUseInternalMem,
                   (pFrames->m_pRecFrame)? pFrames->m_pRecFrame->Data.MemId:0, 
                   (pFrames->m_pRefFrame[0])? pFrames->m_pRefFrame[0]->Data.MemId:0,
                   (pFrames->m_pRefFrame[1])? pFrames->m_pRefFrame[1]->Data.MemId:0);
@@ -262,9 +261,6 @@ public:
 #else
               sts = m_pDdiEncoder->FillBSBuffer(pIntTask->m_FeedbackNumber, pIntTask->m_BitstreamFrameNumber, pIntTask->m_pBitstream, &m_pExecuteBuffers->m_encrypt);
 #endif
-              MFX_CHECK_STS(sts);
-
-              sts = m_pDdiEncoder->UnwrapBuffer(m_pExecuteBuffers->m_CurrFrameMemID);
               MFX_CHECK_STS(sts);
 
               return sts;

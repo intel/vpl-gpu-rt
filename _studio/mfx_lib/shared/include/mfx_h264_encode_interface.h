@@ -166,11 +166,6 @@ namespace MfxHwH264Encode
         mfxStatus SetEncCtrlCaps(
             ENCODE_ENC_CTRL_CAPS const & /*caps*/) { return MFX_ERR_UNSUPPORTED; };
 
-        virtual
-        mfxStatus CreateWrapBuffers(
-            const mfxU16& /*numFrameMin*/,
-            const mfxVideoParam& /*par*/) { return MFX_ERR_NONE; }
-
 #ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC
         std::unique_ptr<EventCache> m_EventCache;
 #endif

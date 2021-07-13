@@ -977,6 +977,9 @@ namespace MfxHwVideoProcessing
         mfxU16 m_IOPattern;
         IOMode m_ioMode;
 
+        bool m_isD3D9SimWithVideoMemIn;
+        bool m_isD3D9SimWithVideoMemOut;
+
         Config        m_config;
         mfxVideoParam m_params;
         TaskManager   m_taskMngr;

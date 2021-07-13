@@ -236,6 +236,8 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
     }
 #endif
 
+    if (IsD3D9Simulation(*m_core))
+        useInternal = true;
 
     // allocate memory
     mfxFrameAllocRequest request = {};
@@ -712,9 +714,12 @@ mfxStatus VideoDECODEH265::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
         par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY),
         MFX_ERR_INVALID_VIDEO_PARAM);
 
-
-    int32_t isInternalManaging = (MFX_PLATFORM_SOFTWARE == platform) ?
+    bool isInternalManaging = (MFX_PLATFORM_SOFTWARE == platform) ?
         (params.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) : (params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
+
+    bool IsD3D9SimWithVideoMem = IsD3D9Simulation(*core) && (params.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY);
+    if (IsD3D9SimWithVideoMem)
+        isInternalManaging = true;
 
     mfxStatus sts = QueryIOSurfInternal(platform, type, &params, request);
     MFX_CHECK_STS(sts);
@@ -726,10 +731,13 @@ mfxStatus VideoDECODEH265::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
     {
         request->NumFrameSuggested = request->NumFrameMin = (mfxU16)CalculateAsyncDepth(platform, par);
 
-        if (MFX_PLATFORM_SOFTWARE == platform)
-            request->Type = MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_DECODE;
-        else
-            request->Type = MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_FROM_DECODE;
+        if (!IsD3D9SimWithVideoMem)
+        {
+            if (MFX_PLATFORM_SOFTWARE == platform)
+                request->Type = MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_DECODE;
+            else
+                request->Type = MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_FROM_DECODE;
+        }
     }
 
     request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
@@ -1352,9 +1360,6 @@ mfxStatus VideoDECODEH265::DecodeFrame(mfxFrameSurface1 *surface_out, H265Decode
         if (error & UMC::ERROR_FRAME_BOTTOM_FIELD_ABSENT)
             surface_out->Data.Corrupted |= MFX_CORRUPTION_ABSENT_BOTTOM_FIELD;
     }
-
-    if(m_va)
-        MFX_CHECK(!m_va->UnwrapBuffer(surface_out->Data.MemId), MFX_ERR_UNDEFINED_BEHAVIOR);
 
     mfxStatus sts = m_surface_source->PrepareToOutput(surface_out, index, &m_vPar);
 

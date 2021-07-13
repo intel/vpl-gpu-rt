@@ -7150,7 +7150,8 @@ mfxStatus MfxHwH264Encode::CopyFrameDataBothFields(
     VideoCORE *               core,
     mfxMemId                  dstMid,
     const mfxFrameSurface1&   srcSurf,
-    mfxFrameInfo const&       info)
+    mfxFrameInfo const&       info,
+    const mfxU16&             inMemType)
 {
     mfxFrameSurface1 sysSurf = MakeSurface(info, srcSurf);
     mfxFrameSurface1 vidSurf = MakeSurface(info, dstMid);
@@ -7159,7 +7160,7 @@ mfxStatus MfxHwH264Encode::CopyFrameDataBothFields(
         &vidSurf,
         MFX_MEMTYPE_INTERNAL_FRAME|MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_FROM_ENCODE,
         &sysSurf,
-        MFX_MEMTYPE_EXTERNAL_FRAME|MFX_MEMTYPE_SYSTEM_MEMORY);
+        inMemType);
     MFX_CHECK_STS(sts);
 
     return sts;

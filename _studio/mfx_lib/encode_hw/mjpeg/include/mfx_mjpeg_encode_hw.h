@@ -138,8 +138,9 @@ protected:
     mfxExtJPEGQuantTables    m_checkedJpegQT;
     mfxExtJPEGHuffmanTables  m_checkedJpegHT;
 
-
     mfxExtBuffer*            m_pCheckedExt[3];
+
+    bool                     m_bUseInternalMem;
 };
 
 #endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)

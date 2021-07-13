@@ -178,9 +178,6 @@ namespace MfxHwMpeg2Encode
         virtual mfxStatus SetFrames (ExecuteBuffers* pExecuteBuffers) = 0;
 
         virtual mfxStatus CreateAuxilliaryDevice(mfxU16 codecProfile) = 0;
-
-        virtual mfxStatus CreateWrapBuffers(const mfxU16& /*numFrameMin*/, const mfxVideoParam& /*par*/) { return MFX_ERR_NONE; }
-        virtual mfxStatus UnwrapBuffer(mfxMemId /*bufferId*/) { return MFX_ERR_NONE; }
     };
 
     DriverEncoder* CreatePlatformMpeg2Encoder( VideoCORE* core );
