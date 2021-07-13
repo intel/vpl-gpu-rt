@@ -19,7 +19,6 @@
 # SOFTWARE.
 
 if(MFX_ENABLE_KERNELS)
-  mfx_include_dirs( )
 
   set( MSDK_GENX_ROOT ${MSDK_LIB_ROOT}/genx )
 
@@ -64,17 +63,6 @@ if(MFX_ENABLE_KERNELS)
         COMMAND ${CMAKE_COMMAND} -E copy ${tgt}_${genx}_isa.cpp ${out_dir})
     endfunction()
   endif()
-
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/asc/isa )
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/copy_kernels/isa )
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/field_copy/isa )
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/h264_encode/isa )
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mctf/isa )
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../cmrt_cross_platform/include )
-
-  set( defs "" )
-  set( sources "" )
-  set( sources.plus "" )
 
   if( MFX_ENABLE_ASC )
     if(BUILD_KERNELS)
