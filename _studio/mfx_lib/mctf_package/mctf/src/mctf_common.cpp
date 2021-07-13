@@ -865,29 +865,36 @@ mfxStatus CMC::MCTF_SET_ENV(
     if (MFX_CODINGOPTION_ON == overlap_Motion)
     {
         res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16_1MV_MRE), kernelMe);
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
         res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16bi_1MV2_MRE), kernelMeB);
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
         res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16bi_1MV2_MRE), kernelMeB2);
-
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
     }
     else
     if (MFX_CODINGOPTION_OFF == overlap_Motion || MFX_CODINGOPTION_UNKNOWN == overlap_Motion)
     {
         res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16_1MV_MRE_8x8), kernelMe);
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+
         if (isNCActive)
         {
             res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16_1ME_2BiRef_MRE_8x8), kernelMeB);
+            MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
             res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16_1ME_2BiRef_MRE_8x8), kernelMeB2);
+            MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
         }
         else
         {
             res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16bi_1MV2_MRE_8x8), kernelMeB);
+            MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
             res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16bi_1MV2_MRE_8x8), kernelMeB2);
+            MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
         }
 
     }
     else
         return MFX_ERR_INVALID_VIDEO_PARAM;
-    MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
     //Motion Compensation
     switch (hwType)
