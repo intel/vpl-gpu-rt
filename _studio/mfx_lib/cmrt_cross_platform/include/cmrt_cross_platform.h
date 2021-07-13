@@ -59,9 +59,11 @@
 
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wunused-private-field"
-#elif defined(__GNUC__)
+#else
+#if defined(__GNUC__)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+#endif
 #endif
 
 class SurfaceIndex
@@ -130,9 +132,11 @@ struct ID3D11Texture2D;
 struct ID3D11Device;
 
 //Using CM_DX9 by default
-#if (defined(CM_WIN)) && (!defined(CM_DX11))
+#if defined(CM_WIN)
+#if !defined(CM_DX11)
 #ifndef CM_DX9
 #define CM_DX9
+#endif
 #endif
 #endif
 
@@ -1743,7 +1747,8 @@ namespace CmDx11
         //adding new functions in the bottom is a must
     };
 }
-#elif defined(CM_LINUX)
+#else
+#if defined(CM_LINUX)
 namespace CmLinux
 {
     class CmDevice
@@ -1838,6 +1843,7 @@ namespace CmLinux
         //adding new functions in the bottom is a must
     };
 }
+#endif
 #endif
 
 typedef void * AbstractSurfaceHandle;
@@ -2734,8 +2740,10 @@ int CreateKernel(CmDevice * device, CmProgram * program, const char * kernelName
 
 #if defined(__clang__)
   #pragma clang diagnostic pop
-#elif defined(__GNUC__)
+#else
+#if defined(__GNUC__)
   #pragma GCC diagnostic pop
+#endif
 #endif
 
 #endif // __CMRT_CROSS_PLATFORM_H__
