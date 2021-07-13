@@ -115,9 +115,11 @@ namespace
 #if defined(__clang__)
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wnon-virtual-dtor"
-#elif defined(__GNUC__)
+#else
+#if defined(__GNUC__)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+#endif
 #endif
 
 enum { DX9 = 1, DX11 = 2, VAAPI = 3 };
@@ -644,7 +646,9 @@ CmEvent *CM_NO_EVENT = ((CmEvent *)(-1));
 
 #if defined(__clang__)
   #pragma clang diagnostic pop
-#elif defined(__GNUC__)
+#else
+#if defined(__GNUC__)
   #pragma GCC diagnostic pop
+#endif
 #endif
 

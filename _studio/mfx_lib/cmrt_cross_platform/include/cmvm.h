@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if !defined(__CM_VM_H__) && !defined(CM_VM_H)
+#if !defined(__CM_VM_H__)
+#if !defined(CM_VM_H)
 #define __CM_VM_H__
 #define CM_VM_H
 
@@ -29,9 +30,11 @@
 #if defined(__clang__)
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wnon-virtual-dtor"
-#elif defined(__GNUC__)
+#else
+#if defined(__GNUC__)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+#endif
 #endif
 
 typedef unsigned int   uint;
@@ -381,8 +384,6 @@ public:
     virtual void* get_addr_data() {
 #ifdef CMRT_EMU
         return this;
-#elif CMRT_SIM
-        return &data[0];
 #else
         return &data[0];
 #endif
@@ -391,8 +392,6 @@ public:
     virtual uint get_size_data() const {
 #ifdef CMRT_EMU
         return sizeof(*this);
-#elif CMRT_SIM
-        return sizeof(data);
 #else
         return sizeof(data);
 #endif
@@ -1335,8 +1334,11 @@ vector<T, WD> matrix<T, R, C>::iselect(const vector_ref<T2, WD>& index_x, const 
 
 #if defined(__clang__)
   #pragma clang diagnostic pop
-#elif defined(__GNUC__)
+#else
+#if defined(__GNUC__)
   #pragma GCC diagnostic pop
 #endif
+#endif
 
+#endif
 #endif
