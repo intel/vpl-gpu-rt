@@ -67,6 +67,10 @@
 #define MFX_ENABLE_VC1_VIDEO_CODEC
 #endif
 
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+#define MFX_ENABLE_AV1_VIDEO_CODEC
+#endif
+
 // Per component configs
 #include "mfx_config_decode.h"
 #include "mfx_config_encode.h"

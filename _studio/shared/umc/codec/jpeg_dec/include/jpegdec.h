@@ -160,7 +160,7 @@ public:
 #endif
 
   IMAGE                       m_dst;
-#ifdef ALLOW_JPEG_SW_FALLBACK
+#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
   CJPEGDecoderHuffmanState    m_state;
 #endif
 
