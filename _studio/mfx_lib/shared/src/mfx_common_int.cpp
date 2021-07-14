@@ -75,17 +75,11 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
     case MFX_FOURCC_NV16:
     case MFX_FOURCC_P210:
     case MFX_FOURCC_AYUV:
-
-#if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
     case MFX_FOURCC_Y410:
-#endif //(MFX_VERSION >= 1027)
-
-#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_P016:
     case MFX_FOURCC_Y216:
     case MFX_FOURCC_Y416:
-#endif
         break;
     default:
         MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
@@ -101,17 +95,11 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
         {
         case MFX_FOURCC_P010:
         case MFX_FOURCC_P210:
-
-#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y210:
         case MFX_FOURCC_Y410:
-#endif
-
-#if (MFX_VERSION >= 1031)
         case MFX_FOURCC_P016:
         case MFX_FOURCC_Y216:
         case MFX_FOURCC_Y416:
-#endif
             break;
 
         default:
@@ -122,14 +110,9 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
     if (info->Shift)
     {
         if (   info->FourCC != MFX_FOURCC_P010 && info->FourCC != MFX_FOURCC_P210
-#if (MFX_VERSION >= 1027)
             && info->FourCC != MFX_FOURCC_Y210
-#endif
-#if (MFX_VERSION >= 1031)
             && info->FourCC != MFX_FOURCC_P016 && info->FourCC != MFX_FOURCC_Y216
-            && info->FourCC != MFX_FOURCC_Y416
-#endif
-            )
+            && info->FourCC != MFX_FOURCC_Y416)
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
@@ -199,14 +182,9 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
         if (info->FourCC != MFX_FOURCC_NV12
             && info->FourCC != MFX_FOURCC_AYUV
             && info->FourCC != MFX_FOURCC_P010
-#if (MFX_VERSION >= 1027)
             && info->FourCC != MFX_FOURCC_Y410
-#endif
-#if (MFX_VERSION >= 1031)
             && info->FourCC != MFX_FOURCC_P016
-            && info->FourCC != MFX_FOURCC_Y416
-#endif
-            )
+            && info->FourCC != MFX_FOURCC_Y416)
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         break;
     case MFX_CODEC_AVC:
@@ -223,19 +201,15 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
             info->FourCC != MFX_FOURCC_NV16 &&
             info->FourCC != MFX_FOURCC_P210 &&
             info->FourCC != MFX_FOURCC_AYUV
-#if (MFX_VERSION >= 1027)
             && info->FourCC != MFX_FOURCC_Y210
             && info->FourCC != MFX_FOURCC_Y410
-#endif
-#if (MFX_VERSION >= 1031)
             && info->FourCC != MFX_FOURCC_P016
             && info->FourCC != MFX_FOURCC_Y216
             && info->FourCC != MFX_FOURCC_Y416
-#endif
             )
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         break;
-#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+#if defined(MFX_ENABLE_AV1_VIDEO_CODEC)
     case MFX_CODEC_AV1:
             if (   info->FourCC != MFX_FOURCC_NV12
                 && info->FourCC != MFX_FOURCC_YV12
@@ -283,15 +257,10 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
     if ((codecId != MFX_CODEC_HEVC || !isHW) && (
            info->FourCC == MFX_FOURCC_P010
         || info->FourCC == MFX_FOURCC_P210
-#if (MFX_VERSION >= 1027)
         || info->FourCC == MFX_FOURCC_Y210
-#endif
-#if (MFX_VERSION >= 1031)
         || info->FourCC == MFX_FOURCC_P016
         || info->FourCC == MFX_FOURCC_Y216
-        || info->FourCC == MFX_FOURCC_Y416
-#endif
-        ))
+        || info->FourCC == MFX_FOURCC_Y416))
     {
         MFX_CHECK(info->Shift == (isHW ? 1 : 0), MFX_ERR_INVALID_VIDEO_PARAM);
     }
@@ -374,7 +343,7 @@ static mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
         case MFX_CODEC_JPEG:
         case MFX_CODEC_VP8:
         case MFX_CODEC_VP9:
-#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+#if defined(MFX_ENABLE_AV1_VIDEO_CODEC)
         case MFX_CODEC_AV1:
 #endif
             break;
@@ -386,15 +355,10 @@ static mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
 
     if (   in->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
         || in->mfx.FrameInfo.FourCC == MFX_FOURCC_P210
-#if (MFX_VERSION >= 1027)
         || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
-#endif
-#if (MFX_VERSION >= 1031)
         || in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016
         || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216
-        || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416
-#endif
-       )
+        || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416)
     {
         if (type == MFX_HW_UNKNOWN)
         {
@@ -467,11 +431,9 @@ mfxStatus CheckFramePointers(mfxFrameInfo const& info, mfxFrameData const& data)
     {
         case MFX_FOURCC_A2RGB10:     MFX_CHECK(data.B, MFX_ERR_UNDEFINED_BEHAVIOR); break;
 
-#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y410:        MFX_CHECK(data.Y410, MFX_ERR_UNDEFINED_BEHAVIOR); break;
 
         case MFX_FOURCC_Y210:        MFX_CHECK(data.Y16 && data.U16 && data.V16, MFX_ERR_UNDEFINED_BEHAVIOR); break;
-#endif
 
         case MFX_FOURCC_P8:
         case MFX_FOURCC_P8_TEXTURE:
@@ -480,15 +442,11 @@ mfxStatus CheckFramePointers(mfxFrameInfo const& info, mfxFrameData const& data)
         case MFX_FOURCC_NV12:
         case MFX_FOURCC_NV16:
         case MFX_FOURCC_P010:
-#if (MFX_VERSION >= 1031)
         case MFX_FOURCC_P016:
-#endif
         case MFX_FOURCC_P210:        MFX_CHECK(data.Y && data.UV, MFX_ERR_UNDEFINED_BEHAVIOR); break;
 
-#if (MFX_VERSION >= 1031)
         case MFX_FOURCC_Y216:        MFX_CHECK(data.Y16 && data.U16 && data.V16, MFX_ERR_UNDEFINED_BEHAVIOR); break;
         case MFX_FOURCC_Y416:        MFX_CHECK(data.Y16 && data.U16 && data.V16 && data.A , MFX_ERR_UNDEFINED_BEHAVIOR); break;
-#endif
 #if defined (MFX_ENABLE_FOURCC_RGB565)
         case MFX_FOURCC_RGB565:      MFX_CHECK(data.R && data.G && data.B, MFX_ERR_UNDEFINED_BEHAVIOR); break;
 #endif // MFX_ENABLE_FOURCC_RGB565
@@ -924,16 +882,16 @@ void mfxVideoParamWrapper::CopyVideoParam(const mfxVideoParam & par)
         case MFX_EXTBUFF_HEVC_PARAM:
         default:
             {
-                void* in = GetExtendedBufferInternal(par.ExtParam, par.NumExtParam, par.ExtParam[i]->BufferId);
+                void * in = GetExtendedBufferInternal(par.ExtParam, par.NumExtParam, par.ExtParam[i]->BufferId);
                 m_buffers.AddBuffer(par.ExtParam[i]);
-                mfxExtBuffer* out = m_buffers.GetBufferById<mfxExtBuffer >(par.ExtParam[i]->BufferId);
+                mfxExtBuffer * out = m_buffers.GetBufferById<mfxExtBuffer >(par.ExtParam[i]->BufferId);
                 if (NULL == out)
                 {
                     VM_ASSERT(false);
                     throw UMC::UMC_ERR_FAILED;
                 }
 
-                mfxU8* src = reinterpret_cast<mfxU8*>(in), * dst = reinterpret_cast<mfxU8*>(out);
+                mfxU8 *src = reinterpret_cast<mfxU8*>(in), *dst = reinterpret_cast<mfxU8*>(out);
                 std::copy(src, src + par.ExtParam[i]->BufferSz, dst);
             }
             break;
@@ -978,20 +936,14 @@ mfxU32 GetMinPitch(mfxU32 fourcc, mfxU16 width)
         case MFX_FOURCC_UYVY:        return width * 2;
 
         case MFX_FOURCC_P010:
-#if (MFX_VERSION >= 1031)
         case MFX_FOURCC_P016:
-#endif
         case MFX_FOURCC_P210:        return width * 2;
 
-#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y210:
         case MFX_FOURCC_Y410:        return width * 4;
-#endif
 
-#if (MFX_VERSION >= 1031)
         case MFX_FOURCC_Y216:        return width * 4;
         case MFX_FOURCC_Y416:        return width * 8;
-#endif
     }
 
     return 0;
@@ -1021,13 +973,9 @@ mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const& data)
 
         case MFX_FOURCC_A2RGB10:     return data.B; break;
 
-#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y410:        return reinterpret_cast<mfxU8*>(data.Y410); break;
-#endif
 
-#if (MFX_VERSION >= 1031)
         case MFX_FOURCC_Y416:        return reinterpret_cast<mfxU8*>(data.U16); break;
-#endif
 
         default:                     return data.Y;
     }
@@ -1097,18 +1045,14 @@ mfxU16 BitDepthFromFourcc(mfxU32 fourcc)
 
     case MFX_FOURCC_P010:
     case MFX_FOURCC_P210:
-#if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
     case MFX_FOURCC_Y410:
-#endif
         return 10;
 
-#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_P016:
     case MFX_FOURCC_Y216:
     case MFX_FOURCC_Y416:
         return 12;
-#endif
 
         // RGB formats
 #if defined (MFX_ENABLE_FOURCC_RGB565)
@@ -1145,12 +1089,8 @@ mfxU16 ChromaFormatFromFourcc(mfxU32 fourcc)
     case MFX_FOURCC_P016:
         return MFX_CHROMAFORMAT_YUV420;
 
-#if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
-#endif
-#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_Y216:
-#endif
     case MFX_FOURCC_YUY2:
     case MFX_FOURCC_UYVY:
     case MFX_FOURCC_NV16:
@@ -1158,12 +1098,8 @@ mfxU16 ChromaFormatFromFourcc(mfxU32 fourcc)
         return MFX_CHROMAFORMAT_YUV422H;
 
     case MFX_FOURCC_AYUV:
-#if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y410:
-#endif
-#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_Y416:
-#endif
         return MFX_CHROMAFORMAT_YUV444;
 
         // RGB formats

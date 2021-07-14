@@ -155,7 +155,7 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 
     mfxStatus mfxRes;
 
-    MFX_AUTO_TRACE("MFXVideoDECODE_Query");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODE_Query");
     ETW_NEW_EVENT(MFX_TRACE_API_DECODE_QUERY_TASK, 0, make_event_data(session, in ? in->mfx.FrameInfo.Width : 0, in ? in->mfx.FrameInfo.Height : 0, in ? in->mfx.CodecId : 0), [&](){ return make_event_data(mfxRes);});
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, in);
 
@@ -234,7 +234,7 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
 
     mfxStatus mfxRes;
 
-    MFX_AUTO_TRACE("MFXVideoDECODE_QueryIOSurf");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODE_QueryIOSurf");
     ETW_NEW_EVENT(MFX_TRACE_API_DECODE_QUERY_IOSURF_TASK, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId), [&](){ return make_event_data(mfxRes);});
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, par);
 
@@ -313,7 +313,7 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
 
     mfxStatus mfxRes;
 
-    MFX_AUTO_TRACE("MFXVideoDECODE_DecodeHeader");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODE_DecodeHeader");
     ETW_NEW_EVENT(MFX_TRACE_API_DECODE_HEADER_TASK, 0, make_event_data(session, bs, bs ? bs->DataLength : 0), [&](){ return make_event_data(mfxRes);});
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, bs);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, par);
@@ -391,7 +391,7 @@ mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(par, MFX_ERR_NULL_PTR);
 
-    MFX_AUTO_TRACE("MFXVideoDECODE_Init");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODE_Init");
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, par);
 
     ETW_NEW_EVENT(MFX_TRACE_API_DECODE_INIT_TASK, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId), [&](){ return make_event_data(mfxRes);});
@@ -425,7 +425,7 @@ mfxStatus MFXVideoDECODE_Close(mfxSession session)
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pScheduler, MFX_ERR_NOT_INITIALIZED);
 
-    MFX_AUTO_TRACE("MFXVideoDECODE_Close");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODE_Close");
     ETW_NEW_EVENT(MFX_TRACE_API_DECODE_CLOSE_TASK, 0, make_event_data(session), [&](){ return make_event_data(mfxRes);});
 
     try
@@ -457,7 +457,7 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
 {
     mfxStatus mfxRes;
 
-    MFX_AUTO_TRACE("DecodeFrameAsync");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODE_DecodeFrameAsync");
     ETW_NEW_EVENT(MFX_TRACE_API_DECODE_FRAME_ASYNC_TASK, 0, make_event_data(session, surface_work, bs ? bs->DataLength : 0), [&](){ return make_event_data(mfxRes, syncp ? *syncp : nullptr);});
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, bs);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, surface_work);
