@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2020 Intel Corporation
+// Copyright (c) 2008-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -52,13 +52,16 @@ mfxStatus MFXVideoVPPDenoise::Query( mfxExtBuffer* pHint )
 
     mfxStatus sts = MFX_ERR_NONE;
 
-    mfxExtVPPDenoise* pParam = (mfxExtVPPDenoise*)pHint;
-
-    if( pParam->DenoiseFactor > PAR_NRF_STRENGTH_MAX )
+    mfxU32 bufferId = pHint->BufferId;
+    if (MFX_EXTBUFF_VPP_DENOISE == bufferId)
     {
-        pParam->DenoiseFactor = PAR_NRF_STRENGTH_MAX;
-
-        sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+        mfxExtVPPDenoise* bufDN = reinterpret_cast<mfxExtVPPDenoise*>(pHint);
+        MFX_CHECK_NULL_PTR1(bufDN);
+        if (bufDN->DenoiseFactor > PAR_NRF_STRENGTH_MAX)
+        {
+            bufDN->DenoiseFactor = PAR_NRF_STRENGTH_MAX;
+            sts = MFX_STS_TRACE(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+        }
     }
 
     return sts;

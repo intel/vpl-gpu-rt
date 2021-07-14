@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2020 Intel Corporation
+// Copyright (c) 2008-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -116,7 +116,6 @@ VideoVPPBase::VideoVPPBase(VideoCORE *core, mfxStatus* sts )
     , m_core(core)
     , m_pHWVPP()
 {
-
     /* common */
     m_bDynamicDeinterlace = false;
     memset(&m_stat, 0, sizeof(mfxVPPStat));
@@ -141,7 +140,6 @@ mfxStatus VideoVPPBase::Close(void)
     m_stat.NumFrame       = 0;
 
     m_bDynamicDeinterlace = false;
-
 
     //m_numUsedFilters      = 0;
     m_pipelineList.resize(0);
@@ -435,9 +433,7 @@ mfxStatus VideoVPPBase::GetVideoParam(mfxVideoParam *par)
                     case MFX_EXTBUFF_VPP_DI_30i60p:
                     case MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO:
                     case MFX_EXTBUFF_VPP_MIRRORING:
-#if (MFX_VERSION >= 1025)
                     case MFX_EXTBUFF_VPP_COLOR_CONVERSION:
-#endif
 
 #ifdef MFX_ENABLE_MCTF
                     case MFX_EXTBUFF_VPP_MCTF:
@@ -876,7 +872,6 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             }
         }
 
-#if (MFX_VERSION >= 1031)
         if (core->GetHWType() <= MFX_HW_ICL_LP)
         {
             if (out->vpp.In.FourCC == MFX_FOURCC_P016 ||
@@ -892,7 +887,6 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
                 }
             }
         }
-#endif
 
         if ( out->vpp.In.FourCC  != MFX_FOURCC_P010 &&
              out->vpp.In.FourCC  != MFX_FOURCC_P210 &&
@@ -914,10 +908,8 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
              out->vpp.Out.FourCC != MFX_FOURCC_YUY2 &&
              out->vpp.Out.FourCC != MFX_FOURCC_UYVY &&
              out->vpp.Out.FourCC != MFX_FOURCC_AYUV &&
-#if (MFX_VERSION >= 1027)
              out->vpp.Out.FourCC != MFX_FOURCC_Y210 &&
              out->vpp.Out.FourCC != MFX_FOURCC_Y410 &&
-#endif
              out->vpp.Out.FourCC != MFX_FOURCC_RGB4){
             if( out->vpp.In.FourCC )
             {
@@ -938,15 +930,11 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             out->vpp.In.FourCC != MFX_FOURCC_P010 &&
             out->vpp.In.FourCC != MFX_FOURCC_UYVY &&
             out->vpp.In.FourCC != MFX_FOURCC_P210 &&
-#if (MFX_VERSION >= 1027)
             out->vpp.In.FourCC != MFX_FOURCC_Y210 &&
             out->vpp.In.FourCC != MFX_FOURCC_Y410 &&
-#endif
-#if (MFX_VERSION >= 1031)
             out->vpp.In.FourCC != MFX_FOURCC_P016 &&
             out->vpp.In.FourCC != MFX_FOURCC_Y216 &&
             out->vpp.In.FourCC != MFX_FOURCC_Y416 &&
-#endif
             out->vpp.In.FourCC != MFX_FOURCC_AYUV &&
             // A2RGB10 supported as input in case of passthru copy
             out->vpp.In.FourCC != MFX_FOURCC_A2RGB10 )
@@ -1013,15 +1001,11 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             out->vpp.Out.FourCC != MFX_FOURCC_BGRP &&
             out->vpp.Out.FourCC != MFX_FOURCC_P010 &&
             out->vpp.Out.FourCC != MFX_FOURCC_P210 &&
-#if (MFX_VERSION >= 1027)
             out->vpp.Out.FourCC != MFX_FOURCC_Y210 &&
             out->vpp.Out.FourCC != MFX_FOURCC_Y410 &&
-#endif
-#if (MFX_VERSION >= 1031)
             out->vpp.Out.FourCC != MFX_FOURCC_P016 &&
             out->vpp.Out.FourCC != MFX_FOURCC_Y216 &&
             out->vpp.Out.FourCC != MFX_FOURCC_Y416 &&
-#endif
             out->vpp.Out.FourCC != MFX_FOURCC_AYUV &&
             out->vpp.Out.FourCC != MFX_FOURCC_A2RGB10 )
         {
@@ -1161,7 +1145,6 @@ mfxStatus VideoVPPBase::Reset(mfxVideoParam *par)
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
     }
     //-----------------------------------------------------
-
 
     bool isCompositionModeInNewParams = IsCompositionMode(par);
     // Enabling/disabling composition via Reset() doesn't work currently.
