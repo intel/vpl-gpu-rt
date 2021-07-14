@@ -26,8 +26,8 @@
 #include "mfx_vpp_interface.h"
 
 
-    #include "mfx_vpp_vaapi.h"
 
+    #include "mfx_vpp_vaapi.h"
 
 using namespace MfxHwVideoProcessing;
 

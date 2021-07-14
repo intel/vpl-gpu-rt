@@ -95,22 +95,20 @@ enum
 
 };
 
-VideoVppJpeg::VideoVppJpeg(VideoCORE *core, bool isD3DToSys)
-    : m_surfaces()
+VideoVppJpeg::VideoVppJpeg(VideoCORE *core, bool useInternalMem)
+    : m_pCore(core)
+    , m_IOPattern()
+    , m_bUseInternalMem(useInternalMem)
+    , m_taskId(1)
+#ifdef MFX_ENABLE_MJPEG_ROTATE_VPP
+    , m_rotation(0)
+#endif
+    , m_surfaces()
     , m_guard()
     , AssocIdx()
     , m_ddi()
 {
-    m_pCore = core;
-    m_isD3DToSys = isD3DToSys;
-
-    m_taskId = 1;
-#ifdef MFX_ENABLE_MJPEG_ROTATE_VPP
-    m_rotation = 0;
-#endif
-
     memset(&m_response, 0, sizeof(mfxFrameAllocResponse));
-
 } // VideoVppJpeg::VideoVppJpeg(VideoCORE *core)
 
 
@@ -124,7 +122,7 @@ mfxStatus VideoVppJpeg::Init(const mfxVideoParam *par)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-    if (m_isD3DToSys)
+    if (m_bUseInternalMem)
     {
         mfxFrameAllocRequest request;
         memset(&request, 0, sizeof(request));
@@ -197,6 +195,7 @@ mfxStatus VideoVppJpeg::Init(const mfxVideoParam *par)
     {
         return MFX_ERR_UNSUPPORTED;
     }
+    m_IOPattern = par->IOPattern;
 
     return sts;
 
@@ -210,7 +209,7 @@ mfxStatus VideoVppJpeg::Close()
 
     m_ddi.Close();
 
-    if(m_isD3DToSys)
+    if(m_bUseInternalMem)
     {
         m_surfaces.clear();
 
@@ -220,7 +219,7 @@ mfxStatus VideoVppJpeg::Close()
             MFX_CHECK_STS(sts);
         }
 
-        m_isD3DToSys = false;
+        m_bUseInternalMem = false;
     }
 
     return MFX_ERR_NONE;
@@ -242,7 +241,7 @@ mfxStatus VideoVppJpeg::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface,
 
     memset(&m_pExecuteSurface, 0, sizeof(MfxHwVideoProcessing::mfxDrvSurface));
 
-    if(m_isD3DToSys)
+    if(m_bUseInternalMem)
     {
         mfxI32 index = -1; 
         for (mfxU32 i = 0; i < m_surfaces.size(); i++)
@@ -332,7 +331,7 @@ mfxStatus VideoVppJpeg::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop
     //memset(&m_executeParams, 0, sizeof(MfxHwVideoProcessing::mfxExecuteParams));
     MemSetZero4mfxExecuteParams(&m_executeParams);
 
-    if(m_isD3DToSys)
+    if(m_bUseInternalMem)
     {
         mfxI32 index = -1; 
         for (mfxU32 i = 0; i < m_surfaces.size(); i++)
@@ -421,7 +420,7 @@ mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfx
     mfxI32 index = -1;
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_PRIVATE, "EndHwJpegProcessing");
 
-    if(m_isD3DToSys)
+    if(m_bUseInternalMem)
     {
         {
             UMC::AutomaticUMCMutex guard(m_guard);
@@ -445,13 +444,13 @@ mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfx
     MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pInputSurface, hdl));
     in = hdl;
 
-    if (m_isD3DToSys)
+    if (m_bUseInternalMem)
     {
-        sts = m_pCore->DoFastCopyWrapper(pOutputSurface, 
-                                         MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY,
-                                         &m_surfaces[index],
-                                         MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET
-                                         );
+        mfxU16 outMemType = static_cast<mfxU16>((m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET) |
+                                                MFX_MEMTYPE_EXTERNAL_FRAME);
+
+        sts = m_pCore->DoFastCopyWrapper(pOutputSurface, outMemType,
+                                         &m_surfaces[index], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
         MFX_CHECK_STS(sts);
     }
     
@@ -463,7 +462,7 @@ mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfx
     sts = (m_ddi)->Register(&in, 1, FALSE);
     MFX_CHECK_STS(sts);
 
-    if(m_isD3DToSys)
+    if(m_bUseInternalMem)
     {
         m_pCore->DecreasePureReference(m_surfaces[index].Data.Locked);
     }
@@ -483,7 +482,7 @@ mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop,
     mfxHDLPair out;
     mfxI32 index = -1;
 
-    if(m_isD3DToSys)
+    if(m_bUseInternalMem)
     {
         {
             UMC::AutomaticUMCMutex guard(m_guard);
@@ -509,10 +508,12 @@ mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop,
     MFX_SAFE_CALL(m_pCore->GetFrameHDL(*pInputSurfaceBottom, hdl));
     inBottom = hdl;
 
-    if (m_isD3DToSys)
+    if (m_bUseInternalMem)
     {
+        mfxU16 outMemType = static_cast<mfxU16>((m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET) |
+                                                MFX_MEMTYPE_EXTERNAL_FRAME);
         sts = m_pCore->DoFastCopyWrapper(pOutputSurface, 
-                                         MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY,
+                                         outMemType,
                                          &m_surfaces[index],
                                          MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET
                                          );
@@ -529,7 +530,7 @@ mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop,
     sts = (m_ddi)->Register(&inBottom, 1, FALSE);
     MFX_CHECK_STS(sts);
 
-    if(m_isD3DToSys)
+    if(m_bUseInternalMem)
     {
         m_pCore->DecreasePureReference(m_surfaces[index].Data.Locked);
     }

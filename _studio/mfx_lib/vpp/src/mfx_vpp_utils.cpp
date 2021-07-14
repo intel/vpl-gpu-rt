@@ -30,7 +30,6 @@
 #include "mfxpcp.h"
 
 
-
 #include "ipps.h"
 #include "ippi.h"
 #include "ippcc.h"
@@ -50,9 +49,7 @@ const mfxU32 g_TABLE_DO_NOT_USE [] =
     MFX_EXTBUFF_VPP_COMPOSITE,
     MFX_EXTBUFF_VPP_ROTATION,
     MFX_EXTBUFF_VPP_SCALING,
-#if (MFX_VERSION >= 1025)
     MFX_EXTBUFF_VPP_COLOR_CONVERSION,
-#endif
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
     MFX_EXTBUFF_VPP_MIRRORING,
@@ -74,9 +71,7 @@ const mfxU32 g_TABLE_DO_USE [] =
     MFX_EXTBUFF_VPP_COMPOSITE,
     MFX_EXTBUFF_VPP_ROTATION,
     MFX_EXTBUFF_VPP_SCALING,
-#if (MFX_VERSION >= 1025)
     MFX_EXTBUFF_VPP_COLOR_CONVERSION,
-#endif
     MFX_EXTBUFF_VPP_DEINTERLACING,
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
@@ -103,9 +98,7 @@ const mfxU32 g_TABLE_CONFIG [] =
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
     MFX_EXTBUFF_VPP_SCALING,
-#if (MFX_VERSION >= 1025)
     MFX_EXTBUFF_VPP_COLOR_CONVERSION,
-#endif
     MFX_EXTBUFF_VPP_MIRRORING,
     MFX_EXTBUFF_VPP_3DLUT
 };
@@ -134,9 +127,7 @@ const mfxU32 g_TABLE_EXT_PARAM [] =
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
     MFX_EXTBUFF_VPP_SCALING,
-#if (MFX_VERSION >= 1025)
     MFX_EXTBUFF_VPP_COLOR_CONVERSION,
-#endif
     MFX_EXTBUFF_VPP_MIRRORING,
     MFX_EXTBUFF_VPP_3DLUT
 };
@@ -655,13 +646,11 @@ void ShowPipeline( std::vector<mfxU32> pipelineList )
                 fprintf(stderr,"MFX_EXTBUFF_VPP_SCALING\n");
                 break;
             }
-#if (MFX_VERSION >= 1025)
             case (mfxU32)MFX_EXTBUFF_VPP_COLOR_CONVERSION:
             {
                 fprintf(stderr,"MFX_EXTBUFF_VPP_COLOR_CONVERSION\n");
                 break;
             }
-#endif
              case (mfxU32)MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO:
             {
                 fprintf(stderr,"MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO\n");
@@ -883,13 +872,11 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
         index++;
     }
 
-#if (MFX_VERSION >= 1025)
     if (IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_COLOR_CONVERSION))
     {
         newList[index] = MFX_EXTBUFF_VPP_COLOR_CONVERSION;
         index++;
     }
-#endif
 
     if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_MIRRORING ) )
     {
@@ -1255,7 +1242,6 @@ mfxStatus GetPipelineList(
         }
     }
 
-#if (MFX_VERSION >= 1025)
     if (IsFilterFound(&configList[0], configCount, MFX_EXTBUFF_VPP_COLOR_CONVERSION) && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_COLOR_CONVERSION))
     {
         if (!IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_COLOR_CONVERSION))
@@ -1263,7 +1249,6 @@ mfxStatus GetPipelineList(
             pipelineList.push_back(MFX_EXTBUFF_VPP_COLOR_CONVERSION);
         }
     }
-#endif
 
     if( IsFilterFound( &configList[0], configCount, MFX_EXTBUFF_VPP_MIRRORING ) && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_MIRRORING) )
     {
@@ -1386,20 +1371,16 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
         case MFX_FOURCC_AYUV:
             MFX_CHECK(platform >= MFX_HW_ICL, MFX_ERR_INVALID_VIDEO_PARAM);
             break;
-#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y210:
         case MFX_FOURCC_Y410:
             MFX_CHECK(platform >= MFX_HW_ICL, MFX_ERR_INVALID_VIDEO_PARAM);
             break;
-#endif
-#if (MFX_VERSION >= 1031)
         case MFX_FOURCC_P016:
         case MFX_FOURCC_Y216:
         case MFX_FOURCC_Y416:
             if (platform < MFX_HW_TGL_LP)
                 return MFX_ERR_INVALID_VIDEO_PARAM;
             break;
-#endif
         case MFX_FOURCC_IMC3:
         case MFX_FOURCC_YUV400:
         case MFX_FOURCC_YUV411:
@@ -1785,7 +1766,6 @@ mfxGamutMode GetGamutMode( mfxU16 srcTransferMatrix, mfxU16 dstTransferMatrix )
 
 } // mfxGamutMode GetGamutMode( mfxU16 srcTransferMatrix, mfxU16 dstTransferMatrix )
 
-
 mfxStatus CheckIOPattern_AndSetIOMemTypes(mfxU16 IOPattern, mfxU16* pInMemType, mfxU16* pOutMemType, bool bSWLib)
 {
     if ((IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY) &&
@@ -1921,7 +1901,6 @@ mfxStatus CheckScalingParam(mfxExtBuffer* pScalingExtBuffer)
     mfxExtVPPScaling* pScalingParams = (mfxExtVPPScaling*)pScalingExtBuffer;
     if (pScalingParams)
     {
-#if (MFX_VERSION >= 1033)
         // Scaling parameter combination includes the below 2 cases
         // (MFX_SCALING_MODE_DEFAULT / MFX_SCALING_MODE_QUALITY) + (MFX_INTERPOLATION_DEFAULT / MFX_INTERPOLATION_ADVANCED)
         // MFX_SCALING_MODE_LOWPOWER + (MFX_INTERPOLATION_DEFAULT / MFX_INTERPOLATION_NEAREST_NEIGHBOR / MFX_INTERPOLATION_BILINEAR / MFX_INTERPOLATION_ADVANCED)
@@ -1940,7 +1919,6 @@ mfxStatus CheckScalingParam(mfxExtBuffer* pScalingExtBuffer)
             sts = MFX_ERR_INVALID_VIDEO_PARAM;
             break;
         }
-#endif
     }
 
     return sts;

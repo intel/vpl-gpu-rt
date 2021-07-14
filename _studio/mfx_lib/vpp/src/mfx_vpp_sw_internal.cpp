@@ -134,12 +134,10 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
                 break;
             }
 
-#if (MFX_VERSION >= 1025)
             case (mfxU32)MFX_EXTBUFF_VPP_COLOR_CONVERSION:
             {
                 break;
             }
-#endif
 
             case (mfxU32)MFX_EXTBUFF_VPP_MIRRORING:
             {
@@ -361,7 +359,8 @@ mfxStatus ExtendedQuery(VideoCORE * core, mfxU32 filterName, mfxExtBuffer* pHint
         bLinuxAndIVB_HSW_BDW = true;
     }
 
-    if( MFX_EXTBUFF_VPP_DENOISE == filterName )
+    if( MFX_EXTBUFF_VPP_DENOISE == filterName 
+        )
     {
         sts = MFXVideoVPPDenoise::Query( pHint );
     }

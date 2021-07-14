@@ -41,7 +41,7 @@
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
  #include "asc.h"        // Scene change detection
 #endif
-#include "cm_mem_copy.h"           // Needed for mirroring kernels 
+#include "cm_mem_copy.h"         // Needed for mirroring kernels
 #include "genx_fcopy_gen12lp_isa.h"
 
 #ifdef MFX_ENABLE_MCTF
@@ -917,6 +917,7 @@ namespace MfxHwVideoProcessing
 
         mfxFrameSurface1* GetSurfaceIn();
         mfxFrameSurface1* GetSurfaceOut();
+
     private:
 
         mfxStatus MergeRuntimeParams(const DdiTask* pTask,  MfxHwVideoProcessing::mfxExecuteParams *execParams);
@@ -1017,7 +1018,6 @@ namespace MfxHwVideoProcessing
         std::map<mfxHDLPair, CmSurface2D *> m_MCTFtableCmRelations2;
         std::map<CmSurface2D *, SurfaceIndex *> m_MCTFtableCmIndex2;
 #endif
-
         CmCopyWrapper *m_pCmCopy;
 
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)

@@ -101,7 +101,6 @@ mfxStatus VideoVPPMain::Init(mfxVideoParam *par)
 
     internalSts = mfxSts;
 
-
     m_impl = std::move(impl);
 
     return (MFX_ERR_NONE == mfxSts) ? internalSts : mfxSts;
@@ -118,7 +117,6 @@ mfxStatus VideoVPPMain::Close( void )
 
     m_impl->Close();
     m_impl.reset();
-
 
     return MFX_ERR_NONE;
 
@@ -144,7 +142,6 @@ mfxStatus VideoVPPMain::VppFrameCheck(mfxFrameSurface1 *in,
         return MFX_ERR_NOT_INITIALIZED;
     }
 
-
     mfxFrameSurface1* pInputNative  =  GetNativeSurface(in, VPP_IN);
     mfxFrameSurface1* pOutputNative =  GetNativeSurface(out, VPP_OUT);
 
@@ -155,7 +152,6 @@ mfxStatus VideoVPPMain::VppFrameCheck(mfxFrameSurface1 *in,
     }
 
     mfxStatus mfxSts = m_impl->VppFrameCheck( pInputNative, pOutputNative, aux, pEntryPoint, numEntryPoints );
-
 
     return mfxSts;
 
