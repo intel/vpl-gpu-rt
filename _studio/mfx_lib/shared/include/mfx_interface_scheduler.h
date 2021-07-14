@@ -149,11 +149,6 @@ public:
 
     virtual
     mfxStatus GetTimeout(mfxU32 & maxTimeToRun) = 0;
-
-#if defined (MFX_ENABLE_GLOBAL_HW_EVENT)
-    virtual
-    void ** GetHwEvent() = 0;
-#endif
 };
 
 #endif // __MFX_INTERFACE_SCHEDULER_H

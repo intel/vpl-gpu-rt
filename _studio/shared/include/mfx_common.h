@@ -41,27 +41,11 @@
 #define MFX_AUTO_ASYNC_DEPTH_VALUE  5
 #define MFX_MAX_ASYNC_DEPTH_VALUE   15
 
-#if defined(MFX_ENABLE_HW_BLOCKING_TASK_SYNC)
-typedef struct _GPU_SYNC_EVENT_HANDLE
-{
-    uint8_t         m_gpuComponentId;   //GPU_COMPONENT_ID
-    HANDLE          gpuSyncEvent;
-} GPU_SYNC_EVENT_HANDLE, *PGPU_SYNC_EVENT_HANDLE;
-
-struct SynchronizedTask
-{
-    GPU_SYNC_EVENT_HANDLE m_GpuEvent;
-    SynchronizedTask() : m_GpuEvent(), taskIndex(0) {}
-
-    mfxU32 taskIndex;
-};
-#else
 struct SynchronizedTask
 { 
     SynchronizedTask():taskIndex(0) {}
     mfxU32 taskIndex;
 };
-#endif
 
 inline bool IsPreSiPlatform(eMFXHWType type)
 {
