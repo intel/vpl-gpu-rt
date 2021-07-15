@@ -2214,12 +2214,10 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
         list.push_back(MFX_EXTBUFF_VPP_3DLUT);
     }
 
-#if (MFX_VERSION >= 1025)
     if (caps.uChromaSiting)
     {
         list.push_back(MFX_EXTBUFF_VPP_COLOR_CONVERSION);
     }
-#endif
 
     if (caps.uAdvancedDI || caps.uSimpleDI)
     {

@@ -187,7 +187,6 @@ mfxStatus VideoVPPBase::Init(mfxVideoParam *par)
     sts = GetPipelineList( par, m_pipelineList, true);
     MFX_CHECK_STS(sts);
 
-
     sts = InternalInit(par);
     if (MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == sts || MFX_WRN_FILTER_SKIPPED == sts)
     {
@@ -1226,6 +1225,7 @@ mfxStatus VideoVPP_HW::InternalInit(mfxVideoParam *par)
     bool isSWFieldProcessing = IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_PROCESSING)
                             || IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_WEAVING)
                             || IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_SPLITTING);
+
 
     pCommonCore = QueryCoreInterface<CommonCORE>(m_core, MFXIVideoCORE_GUID);
     MFX_CHECK(pCommonCore, MFX_ERR_UNDEFINED_BEHAVIOR);

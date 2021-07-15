@@ -488,9 +488,6 @@ namespace MfxHwVideoProcessing
                , MctfFilterStrength(0)
 #endif
                , reset(0)
-#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
-               , m_GpuEvent()
-#endif
             {
                    memset(&targetSurface, 0, sizeof(mfxDrvSurface));
                    dstRects.clear();
@@ -667,9 +664,6 @@ namespace MfxHwVideoProcessing
         mfxU16       MctfFilterStrength;
 #endif
         bool reset;
-#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
-        GPU_SYNC_EVENT_HANDLE m_GpuEvent;
-#endif
         Lut3DInfo    lut3DInfo;
     };
 
