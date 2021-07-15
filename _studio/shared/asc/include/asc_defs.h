@@ -17,6 +17,9 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+#include "mfx_config.h"
+
 #ifndef __ASC_DEFS__
 #define __ASC_DEFS__
 
@@ -76,7 +79,7 @@
 
 
 #if (defined (__GNUC__))
-#if (defined( __x86_64__ ) || defined( __ppc64__ ))
+#if (defined( __x86_64__))
 #define ARCH64
 #else
 #define ARCH32

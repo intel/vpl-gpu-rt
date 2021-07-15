@@ -451,7 +451,7 @@ mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfx
                                          &m_surfaces[index], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
         MFX_CHECK_STS(sts);
     }
-    
+
     // unregister output surface
     sts = (m_ddi)->Register(&out, 1, FALSE);
     MFX_CHECK_STS(sts);
