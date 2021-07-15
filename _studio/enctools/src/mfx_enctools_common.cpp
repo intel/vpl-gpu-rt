@@ -22,6 +22,8 @@
 #include <algorithm>
 #include <math.h>
 
+constexpr mfxU32 ENC_TOOLS_WAIT_INTERVAL = 300000;
+
 mfxExtBuffer* Et_GetExtBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id)
 {
     if (extBuf != 0)
@@ -313,44 +315,44 @@ mfxStatus EncTools::InitVPPSession(MFXVideoSession* pmfxSession)
     return MFX_ERR_NONE;
 }
 
-mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl, MFXVideoSession* pmfxLA_EncSession)
+mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl)
 {
     MFX_CHECK(!m_bVPPInit, MFX_ERR_UNDEFINED_BEHAVIOR);
     MFX_CHECK(m_device && m_pAllocator, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     mfxStatus sts;
 
-    mfxExtVPPScaling vppScalingMode = {};
-    vppScalingMode.Header.BufferId = MFX_EXTBUFF_VPP_SCALING;
-    vppScalingMode.Header.BufferSz = sizeof(vppScalingMode);
-    vppScalingMode.ScalingMode = MFX_SCALING_MODE_LOWPOWER;
-    vppScalingMode.InterpolationMethod = MFX_INTERPOLATION_NEAREST_NEIGHBOR;
-    std::vector<mfxExtBuffer*> extParams;
-    extParams.push_back(&vppScalingMode.Header);
-    m_mfxVppParams.ExtParam = extParams.data();
-    m_mfxVppParams.NumExtParam = (mfxU16)extParams.size();
-
+    //common LA and SCD
     sts = InitMfxVppParams(ctrl);
     MFX_CHECK_STS(sts);
 
-    if (isPreEncLA(m_config, m_ctrl))
+    //LA VPP
+    if (isPreEncLA(m_config, ctrl))
     {
-        sts = InitVPPSession(&m_mfxSession_LA);
-        MFX_CHECK_STS(sts);
+        m_mfxSession_LA = m_lpLookAhead.GetEncSession();
+        MFX_CHECK(m_mfxSession_LA != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-        m_pmfxVPP_LA.reset(new MFXVideoVPP(m_mfxSession_LA));
+        m_pmfxVPP_LA.reset(new MFXVideoVPP(*m_mfxSession_LA));
         MFX_CHECK(m_pmfxVPP_LA, MFX_ERR_MEMORY_ALLOC);
 
-        sts = m_pmfxVPP_LA->Init(&m_mfxVppParams);
+        mfxExtVPPScaling vppScalingMode = {};
+        vppScalingMode.Header.BufferId = MFX_EXTBUFF_VPP_SCALING;
+        vppScalingMode.Header.BufferSz = sizeof(vppScalingMode);
+        vppScalingMode.ScalingMode = MFX_SCALING_MODE_LOWPOWER;
+        vppScalingMode.InterpolationMethod = MFX_INTERPOLATION_NEAREST_NEIGHBOR;
+        std::vector<mfxExtBuffer*> extParams;
+        extParams.push_back(&vppScalingMode.Header);
+        m_mfxVppParams_LA.ExtParam = extParams.data();
+        m_mfxVppParams_LA.NumExtParam = (mfxU16)extParams.size();
+
+        sts = m_pmfxVPP_LA->Init(&m_mfxVppParams_LA);
+        m_mfxVppParams_LA.ExtParam = nullptr;
+        m_mfxVppParams_LA.NumExtParam = 0;
         MFX_CHECK_STS(sts);
 
-        if (pmfxLA_EncSession)
-        {
-            sts = pmfxLA_EncSession->JoinSession(m_mfxSession_LA);
-            MFX_CHECK_STS(sts);
-        }
+        //memory allocation for LA
         mfxFrameAllocRequest VppRequest[2]{};
-        sts = m_pmfxVPP_LA->QueryIOSurf(&m_mfxVppParams, VppRequest);
+        sts = m_pmfxVPP_LA->QueryIOSurf(&m_mfxVppParams_LA, VppRequest);
         MFX_CHECK_STS(sts);
 
         sts = m_pAllocator->Alloc(m_pAllocator->pthis, &(VppRequest[1]), &m_VppResponse);
@@ -360,13 +362,13 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl, MFXVideoSession* pmfxLA
         for (mfxU32 i = 0; i < (mfxU32)m_pIntSurfaces_LA.size(); i++)
         {
             m_pIntSurfaces_LA[i] = {};
-            m_pIntSurfaces_LA[i].Info = m_mfxVppParams.vpp.Out;
+            m_pIntSurfaces_LA[i].Info = m_mfxVppParams_LA.vpp.Out;
             m_pIntSurfaces_LA[i].Data.MemId = m_VppResponse.mids[i];
         }
     }
 
-
-    if (isPreEncSCD(m_config, m_ctrl))
+    //SCD VPP
+    if (isPreEncSCD(m_config, ctrl))
     {
         sts = InitVPPSession(&m_mfxSession_SCD);
         MFX_CHECK_STS(sts);
@@ -377,22 +379,11 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl, MFXVideoSession* pmfxLA
         sts = m_pmfxVPP_SCD->Init(&m_mfxVppParams_AEnc);
         MFX_CHECK_STS(sts);
 
+        //memory allocation for SCD
         m_IntSurfaces_SCD.Info = m_mfxVppParams_AEnc.vpp.Out;
-        
-        if (m_mfxVppParams.mfx.FrameInfo.FourCC == MFX_FOURCC_NV12 || m_mfxVppParams.mfx.FrameInfo.FourCC == MFX_FOURCC_YV12)
-            m_IntSurfaces_SCD.Data.Y = new mfxU8[m_IntSurfaces_SCD.Info.Width * m_IntSurfaces_SCD.Info.Height * 3 / 2];
-        else if (m_mfxVppParams.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4)
-            m_IntSurfaces_SCD.Data.Y = new mfxU8[m_IntSurfaces_SCD.Info.Width * m_IntSurfaces_SCD.Info.Height * 3];
-        else
-            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+        m_IntSurfaces_SCD.Data.Y = new mfxU8[m_IntSurfaces_SCD.Info.Width * m_IntSurfaces_SCD.Info.Height * 3 / 2];
         m_IntSurfaces_SCD.Data.UV = m_IntSurfaces_SCD.Data.Y + m_IntSurfaces_SCD.Info.Width * m_IntSurfaces_SCD.Info.Height;
         m_IntSurfaces_SCD.Data.Pitch = m_IntSurfaces_SCD.Info.Width;
-    }
-    else
-    {
-        m_IntSurfaces_SCD.Data.Y = nullptr;
-        m_IntSurfaces_SCD.Data.UV = nullptr;
-        m_IntSurfaces_SCD.Data.Pitch = 0;
     }
 
     m_bVPPInit = true;
@@ -401,40 +392,36 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl, MFXVideoSession* pmfxLA
 
 mfxStatus EncTools::InitMfxVppParams(mfxEncToolsCtrl const & ctrl)
 {
-    mfxVideoParam m_mfxVppParams_Max;
+    //common for LA and SCD
+    mfxVideoParam mfxVppParams_Common{};
+    mfxVppParams_Common.vpp.In = ctrl.FrameInfo;
+    mfxVppParams_Common.vpp.Out = mfxVppParams_Common.vpp.In;
 
-    m_mfxVppParams.IOPattern = ctrl.IOPattern | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
-    m_mfxVppParams.vpp.In = ctrl.FrameInfo;
-    m_mfxVppParams.vpp.Out = m_mfxVppParams.vpp.In;
+    if (!mfxVppParams_Common.vpp.In.CropW)
+        mfxVppParams_Common.vpp.In.CropW = mfxVppParams_Common.vpp.In.Width;
 
-    if (!m_mfxVppParams.vpp.In.CropW)
-        m_mfxVppParams.vpp.In.CropW = m_mfxVppParams.vpp.In.Width;
-
-    if (!m_mfxVppParams.vpp.In.CropH)
-        m_mfxVppParams.vpp.In.CropH = m_mfxVppParams.vpp.In.Height;
+    if (!mfxVppParams_Common.vpp.In.CropH)
+        mfxVppParams_Common.vpp.In.CropH = mfxVppParams_Common.vpp.In.Height;
 
     mfxPlatform platform;
-    m_mfxSession_LA.QueryPlatform(&platform);
+    m_mfxSession_SCD.QueryPlatform(&platform);
 
     if (platform.CodeName < MFX_PLATFORM_TIGERLAKE)
     {
-        m_mfxVppParams.vpp.In.CropW = m_mfxVppParams.vpp.In.Width = m_mfxVppParams.vpp.In.CropW & ~0x3F;
-        m_mfxVppParams.vpp.In.CropH = m_mfxVppParams.vpp.In.Height = m_mfxVppParams.vpp.In.CropH & ~0x3F;
+        mfxVppParams_Common.vpp.In.CropW = mfxVppParams_Common.vpp.In.Width = mfxVppParams_Common.vpp.In.CropW & ~0x3F;
+        mfxVppParams_Common.vpp.In.CropH = mfxVppParams_Common.vpp.In.Height = mfxVppParams_Common.vpp.In.CropH & ~0x3F;
     }
 
-    m_mfxVppParams_LA   = m_mfxVppParams;
-    m_mfxVppParams_AEnc = m_mfxVppParams;
-    m_mfxVppParams_Max  = m_mfxVppParams;
+    //LA
+    m_mfxVppParams_LA = mfxVppParams_Common;
+    mfxU32 ignore = 0;
+    m_lpLookAhead.GetDownScaleParams(m_mfxVppParams_LA.vpp.Out, ignore);
+    m_mfxVppParams_LA.IOPattern = ctrl.IOPattern | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
 
-    if (isPreEncLA(m_config, ctrl))
+    //SCD
+    if (isPreEncSCD(m_config, ctrl))
     {
-        mfxU32 downscale = 0;
-        m_lpLookAhead.GetDownScaleParams(m_mfxVppParams_LA.vpp.Out, downscale);
-        m_mfxVppParams = m_mfxVppParams_LA;
-    }
-
-    if (isPreEncSCD(m_config, ctrl) && (ctrl.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY))
-    {
+        m_mfxVppParams_AEnc = mfxVppParams_Common;
         mfxFrameInfo frameInfo;
         mfxStatus sts = m_scd.GetInputFrameInfo(frameInfo);
         MFX_CHECK_STS(sts);
@@ -442,17 +429,6 @@ mfxStatus EncTools::InitMfxVppParams(mfxEncToolsCtrl const & ctrl)
         m_mfxVppParams_AEnc.vpp.Out.Height = frameInfo.Height;
         m_mfxVppParams_AEnc.vpp.Out.CropW = m_mfxVppParams_AEnc.vpp.Out.Width;
         m_mfxVppParams_AEnc.vpp.Out.CropH = m_mfxVppParams_AEnc.vpp.Out.Height;
-
-        if (!isPreEncLA(m_config, ctrl))
-            m_mfxVppParams = m_mfxVppParams_AEnc;
-        else
-        {
-            m_mfxVppParams_Max.vpp.Out.Width = std::max(m_mfxVppParams_LA.vpp.Out.Width, m_mfxVppParams_AEnc.vpp.Out.Width);
-            m_mfxVppParams_Max.vpp.Out.Height = std::max(m_mfxVppParams_LA.vpp.Out.Height, m_mfxVppParams_AEnc.vpp.Out.Height);
-            m_mfxVppParams_Max.vpp.Out.CropW = m_mfxVppParams_Max.vpp.Out.Width;
-            m_mfxVppParams_Max.vpp.Out.CropH = m_mfxVppParams_Max.vpp.Out.Height;
-            m_mfxVppParams = m_mfxVppParams_Max;
-        }
         m_mfxVppParams_AEnc.IOPattern = ctrl.IOPattern | MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
     }
     return MFX_ERR_NONE;
@@ -475,12 +451,8 @@ mfxStatus EncTools::CloseVPP()
         m_pmfxVPP_LA->Close();
         m_pmfxVPP_LA.reset();
     }
-    if (m_mfxSession_LA)
-    {
-        m_mfxSession_LA.DisjoinSession();
-        sts = m_mfxSession_LA.Close();
-        MFX_CHECK_STS(sts);
-    }
+    
+    m_mfxSession_LA = nullptr;
 
     if (m_IntSurfaces_SCD.Data.Y)
     {
@@ -514,9 +486,7 @@ mfxStatus EncTools::Init(mfxExtEncToolsConfig const * pConfig, mfxEncToolsCtrl c
 
     m_ctrl = *ctrl;
 
-    bool needVPP = (ctrl->IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY) && (isPreEncSCD(*pConfig, *ctrl) || (isPreEncLA(*pConfig, *ctrl) && ctrl->LaScale));
-    needVPP = needVPP || ((ctrl->IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY) && isPreEncLA(*pConfig, *ctrl));
-
+    bool needVPP = isPreEncSCD(*pConfig, *ctrl) || isPreEncLA(*pConfig, *ctrl);
     if (needVPP)
     {
         mfxEncToolsCtrlExtDevice *extDevice = (mfxEncToolsCtrlExtDevice *)Et_GetExtBuffer(ctrl->ExtParam, ctrl->NumExtParam, MFX_EXTBUFF_ENCTOOLS_DEVICE);
@@ -553,7 +523,6 @@ mfxStatus EncTools::Init(mfxExtEncToolsConfig const * pConfig, mfxEncToolsCtrl c
             MFX_CHECK_STS(sts);
             m_pAllocator = m_pETAllocator;
         }
-
     }
 
     SetToolsStatus(&m_config, false);
@@ -579,10 +548,9 @@ mfxStatus EncTools::Init(mfxExtEncToolsConfig const * pConfig, mfxEncToolsCtrl c
         CopyPreEncLATools(*pConfig, &m_config);
     }
 
-
     if (needVPP)
     {
-        sts = InitVPP(*ctrl, m_lpLookAhead.GetEncSession());
+        sts = InitVPP(*ctrl);
         MFX_CHECK_STS(sts);
     }
 
@@ -646,36 +614,23 @@ mfxStatus EncTools::Reset(mfxExtEncToolsConfig const * config, mfxEncToolsCtrl c
          else
             sts = m_lpLookAhead.Init(*ctrl, *config);
      }
+
     return sts;
 }
 
-#define MSDK_VPP_WAIT_INTERVAL 300000
-
-mfxStatus EncTools::VPPSync(MFXVideoSession* pmfxSession, mfxSyncPoint* pSyncp)
-{
-    mfxStatus sts;
-    MFX_CHECK_NULL_PTR2(pmfxSession, pSyncp);
-
-    sts = pmfxSession->SyncOperation(*pSyncp, MSDK_VPP_WAIT_INTERVAL);
-    MFX_CHECK_STS(sts);
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus EncTools::VPPDownScaleSurface(MFXVideoSession* m_pmfxSession, MFXVideoVPP* pVPP, mfxSyncPoint* pVppSyncp, mfxFrameSurface1* pInSurface, mfxFrameSurface1* pOutSurface, bool doSync)
+mfxStatus EncTools::VPPDownScaleSurface(MFXVideoSession* /*m_pmfxSession*/, MFXVideoVPP* pVPP, mfxSyncPoint* pVppSyncp, mfxFrameSurface1* pInSurface, mfxFrameSurface1* pOutSurface/*, bool doSync*/)
 {
     mfxStatus sts;
     MFX_CHECK_NULL_PTR2(pInSurface, pOutSurface);
 
     sts = pVPP->RunFrameVPPAsync(pInSurface, pOutSurface, NULL, pVppSyncp);
-    MFX_CHECK_STS(sts);
-    if (doSync)
-    {
-        sts = VPPSync(m_pmfxSession, pVppSyncp);
-        MFX_CHECK_STS(sts);
-    }
+    return sts;
+}
 
-    return MFX_ERR_NONE;
+static void IgnoreMoreDataStatus(mfxStatus &sts)
+{
+    if (sts == MFX_ERR_MORE_DATA)
+        sts = MFX_ERR_NONE;
 }
 
 mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
@@ -689,154 +644,118 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
     {
         pFrameData->Surface->Data.FrameOrder = par->DisplayOrder;
 
-        if (m_bVPPInit && (isPreEncSCD(m_config, m_ctrl) || isPreEncLA(m_config, m_ctrl)))
+        if (isPreEncSCD(m_config, m_ctrl) || isPreEncLA(m_config, m_ctrl))
         {
-            if (isPreEncSCD(m_config, m_ctrl) && !isPreEncLA(m_config, m_ctrl)) //SCD only case
-            {
-                mfxSyncPoint vppSyncpSCD;
-                m_IntSurfaces_SCD.Data.FrameOrder = pFrameData->Surface->Data.FrameOrder;
-                if (m_ctrl.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY)
-                {
-                    m_IntSurfaces_SCD.Info.CropW = m_mfxVppParams_AEnc.vpp.Out.CropW;
-                    m_IntSurfaces_SCD.Info.CropH = m_mfxVppParams_AEnc.vpp.Out.CropH;
+            MFX_CHECK(m_bVPPInit, MFX_ERR_NOT_INITIALIZED);
 
-                    sts = VPPDownScaleSurface(&m_mfxSession_SCD, m_pmfxVPP_SCD.get(), &vppSyncpSCD, pFrameData->Surface, &m_IntSurfaces_SCD, true);
-                    MFX_CHECK_STS(sts);
-                    sts = m_scd.SubmitFrame(&m_IntSurfaces_SCD);
-                    if (sts == MFX_ERR_MORE_DATA)
-                        sts = MFX_ERR_NONE;
-                }
-                else
-                {
-                    sts = m_scd.SubmitFrame(pFrameData->Surface);
-                    if (sts == MFX_ERR_MORE_DATA)
-                        sts = MFX_ERR_NONE;
-                }
+            mfxU16 FrameType = 0;
+            mfxSyncPoint vppSyncp_SCD{};
+            mfxSyncPoint vppSyncp_LA{};
+            mfxSyncPoint encSyncp_LA{};
+            
+            //SCD only case
+            if (isPreEncSCD(m_config, m_ctrl) && !isPreEncLA(m_config, m_ctrl))
+            {
+                m_IntSurfaces_SCD.Data.FrameOrder = par->DisplayOrder;
+
+                sts = VPPDownScaleSurface(&m_mfxSession_SCD, m_pmfxVPP_SCD.get(), &vppSyncp_SCD, pFrameData->Surface, &m_IntSurfaces_SCD);
+                MFX_CHECK_STS(sts);
+                sts = m_mfxSession_SCD.SyncOperation(vppSyncp_SCD, ENC_TOOLS_WAIT_INTERVAL);
+                MFX_CHECK_STS(sts);
+
+                sts = m_scd.SubmitFrame(&m_IntSurfaces_SCD);
+                IgnoreMoreDataStatus(sts);
                 return sts;
             }
-            else if (!isPreEncSCD(m_config, m_ctrl) && isPreEncLA(m_config, m_ctrl)) //LA only case
+
+            //LA only case
+            else if (!isPreEncSCD(m_config, m_ctrl) && isPreEncLA(m_config, m_ctrl)) 
             {
-                mfxU16 FrameType = 0;
-                mfxSyncPoint vppSyncpLA;
-                m_pIntSurfaces_LA[0].Data.FrameOrder = pFrameData->Surface->Data.FrameOrder;
+                m_pIntSurfaces_LA[0].Data.FrameOrder = par->DisplayOrder;
 
-                m_pIntSurfaces_LA.data()->Info.CropW = m_mfxVppParams_LA.vpp.Out.CropW;
-                m_pIntSurfaces_LA.data()->Info.CropH = m_mfxVppParams_LA.vpp.Out.CropH;
+                sts = VPPDownScaleSurface(m_mfxSession_LA, m_pmfxVPP_LA.get(), &vppSyncp_LA, pFrameData->Surface, m_pIntSurfaces_LA.data());
+                MFX_CHECK_STS(sts);
 
-                mfxStatus stsla = MFX_ERR_NONE;
-                if (m_ctrl.LaScale)
-                {
-                    stsla = VPPDownScaleSurface(&m_mfxSession_LA, m_pmfxVPP_LA.get(), &vppSyncpLA, pFrameData->Surface, m_pIntSurfaces_LA.data(), true);
-                    MFX_CHECK_STS(stsla);
-                    stsla = m_lpLookAhead.Submit(m_pIntSurfaces_LA.data(), FrameType);
-                }
-                else
-                    stsla = m_lpLookAhead.Submit(pFrameData->Surface, FrameType);
-                MFX_CHECK_STS(stsla);
+                sts = m_lpLookAhead.Submit(m_pIntSurfaces_LA.data(), FrameType, &encSyncp_LA);
+                MFX_CHECK_STS(sts);
+                sts = m_mfxSession_LA->SyncOperation(encSyncp_LA, ENC_TOOLS_WAIT_INTERVAL);
+                MFX_CHECK_STS(sts);
+
+                sts = m_lpLookAhead.SaveEncodedFrameSize(m_pIntSurfaces_LA.data(), 0 /*frame type*/);
+                return sts;
             }
-            else if (isPreEncSCD(m_config, m_ctrl) && isPreEncLA(m_config, m_ctrl)) //SCD and LA case
+
+            //SCD and LA case
+            else if (isPreEncSCD(m_config, m_ctrl) && isPreEncLA(m_config, m_ctrl)) 
             {
-                mfxU16 FrameType = 0;
-                mfxSyncPoint vppSyncpLA, vppSyncpSCD;
+                m_IntSurfaces_SCD.Data.FrameOrder = m_pIntSurfaces_LA[0].Data.FrameOrder = par->DisplayOrder;
 
-                m_pIntSurfaces_LA.data()->Info.CropW = m_mfxVppParams_LA.vpp.Out.CropW;
-                m_pIntSurfaces_LA.data()->Info.CropH = m_mfxVppParams_LA.vpp.Out.CropH;
+                sts = VPPDownScaleSurface(m_mfxSession_LA, m_pmfxVPP_LA.get(), &vppSyncp_LA, pFrameData->Surface, m_pIntSurfaces_LA.data());
+                MFX_CHECK_STS(sts);
+                sts = VPPDownScaleSurface(&m_mfxSession_SCD, m_pmfxVPP_SCD.get(), &vppSyncp_SCD, pFrameData->Surface, &m_IntSurfaces_SCD);
+                MFX_CHECK_STS(sts);
 
-                m_IntSurfaces_SCD.Data.FrameOrder = m_pIntSurfaces_LA[0].Data.FrameOrder = pFrameData->Surface->Data.FrameOrder;
-                if (m_ctrl.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY)
+                //LA depends on SCD
+                if (IsOn(m_config.AdaptiveI))
                 {
-                    m_IntSurfaces_SCD.Info.CropW = m_mfxVppParams_AEnc.vpp.Out.CropW;
-                    m_IntSurfaces_SCD.Info.CropH = m_mfxVppParams_AEnc.vpp.Out.CropH;
-                    //----- Start downscale for LA surface without sync -----//
-                    sts = VPPDownScaleSurface(&m_mfxSession_LA, m_pmfxVPP_LA.get(), &vppSyncpLA, pFrameData->Surface, m_pIntSurfaces_LA.data(), false);
+                    sts = m_mfxSession_SCD.SyncOperation(vppSyncp_SCD, ENC_TOOLS_WAIT_INTERVAL);
                     MFX_CHECK_STS(sts);
-                    //----- Start downscale for SCD surface without sync -----//
-                    sts = VPPDownScaleSurface(&m_mfxSession_SCD, m_pmfxVPP_SCD.get(), &vppSyncpSCD, pFrameData->Surface, &m_IntSurfaces_SCD, false);
+                    sts = m_scd.SubmitFrame(&m_IntSurfaces_SCD);
+                    IgnoreMoreDataStatus(sts);
                     MFX_CHECK_STS(sts);
-                    //----- Sync SCD surface if AdaptiveI is on and submit DS frame to SCD -----//
-                    if (IsOn(m_config.AdaptiveI))
+
+                    m_scd.GetIntraDecision(par->DisplayOrder, &FrameType);
+                    if (FrameType & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR))
                     {
-                        sts = VPPSync(&m_mfxSession_SCD, &vppSyncpSCD);
-                        MFX_CHECK_STS(sts);
-                        sts = m_scd.SubmitFrame(&m_IntSurfaces_SCD);
-                        if (sts == MFX_ERR_MORE_DATA)
-                            sts = MFX_ERR_NONE;
-                        MFX_CHECK_STS(sts);
-                        m_scd.GetIntraDecision(par->DisplayOrder, &FrameType);
-                        if (FrameType & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR))
-                            FrameType = (MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF | MFX_FRAMETYPE_IDR); // convert to IREFIDR for Analysis
-                        //----- Pass SCD data and encode LA surface -----//
-                        sts = m_lpLookAhead.Submit(m_pIntSurfaces_LA.data(), FrameType);
-                        MFX_CHECK_STS(sts);
+                        // convert to IREFIDR for Analysis
+                        FrameType = (MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF | MFX_FRAMETYPE_IDR); 
                     }
-                    else //----- If AdaptiveI is off then LA is independent from SCD -----//
-                    {
-                        mfxSyncPoint vppSyncpEnc;
-                        //----- Start LA Enc process -----//
-                        sts = m_lpLookAhead.EncodeLA(m_pIntSurfaces_LA.data(), FrameType, &vppSyncpEnc);
-                        MFX_CHECK_STS(sts);
-                        //----- Sync SCD surface and submit DS frame to SCD -----//
-                        sts = VPPSync(&m_mfxSession_SCD, &vppSyncpSCD);
-                        MFX_CHECK_STS(sts);
-                        sts = m_scd.SubmitFrame(&m_IntSurfaces_SCD);
-                        if (sts == MFX_ERR_MORE_DATA)
-                            sts = MFX_ERR_NONE;
-                        MFX_CHECK_STS(sts);
-                        //----- Sync LA Enc -----//
-                        sts = VPPSync(m_lpLookAhead.GetEncSession(), &vppSyncpEnc);
-                        MFX_CHECK_STS(sts);
-                        //----- pass SCD data -----//
-                        sts = m_lpLookAhead.StoreLAResults(m_pIntSurfaces_LA.data(), FrameType);
-                        MFX_CHECK_STS(sts);
-                    }
+
+                    sts = m_lpLookAhead.Submit(m_pIntSurfaces_LA.data(), FrameType, &encSyncp_LA);
+                    MFX_CHECK_STS(sts);
+                    sts = m_mfxSession_LA->SyncOperation(encSyncp_LA, ENC_TOOLS_WAIT_INTERVAL);
+                    MFX_CHECK_STS(sts);
+
+                    sts = m_lpLookAhead.SaveEncodedFrameSize(m_pIntSurfaces_LA.data(), FrameType);
+                    return sts;
                 }
+
+                //LA can run in parallel with SCD
                 else
                 {
-                    sts = VPPDownScaleSurface(&m_mfxSession_LA, m_pmfxVPP_LA.get(), &vppSyncpLA, pFrameData->Surface, m_pIntSurfaces_LA.data(), false);
+                    //run LA
+                    sts = m_lpLookAhead.Submit(m_pIntSurfaces_LA.data(), FrameType, &encSyncp_LA);
                     MFX_CHECK_STS(sts);
-                    sts = m_scd.SubmitFrame(pFrameData->Surface);
-                    if (sts == MFX_ERR_MORE_DATA)
-                        sts = MFX_ERR_NONE;
+                        
+                    //run SCD
+                    sts = m_mfxSession_SCD.SyncOperation(vppSyncp_SCD, ENC_TOOLS_WAIT_INTERVAL);
                     MFX_CHECK_STS(sts);
-                    if (IsOn(m_config.AdaptiveI))
+                    sts = m_scd.SubmitFrame(&m_IntSurfaces_SCD);
+                    IgnoreMoreDataStatus(sts);
+                    MFX_CHECK_STS(sts);
+
+                    //save LA results
+                    sts = m_mfxSession_LA->SyncOperation(encSyncp_LA, ENC_TOOLS_WAIT_INTERVAL);
+                    MFX_CHECK_STS(sts);
+
+                    m_scd.GetIntraDecision(par->DisplayOrder, &FrameType);
+                    if (FrameType & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR))
                     {
-                        m_scd.GetIntraDecision(par->DisplayOrder, &FrameType);
-                        if (FrameType & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR))
-                            FrameType = (MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF | MFX_FRAMETYPE_IDR); // convert to IREFIDR for Analysis
+                        // convert to IREFIDR for Analysis
+                        FrameType = (MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF | MFX_FRAMETYPE_IDR);
                     }
-                    sts = m_lpLookAhead.Submit(m_pIntSurfaces_LA.data(), FrameType);
-                    MFX_CHECK_STS(sts);
+
+                    sts = m_lpLookAhead.SaveEncodedFrameSize(m_pIntSurfaces_LA.data(), FrameType);
+                    return sts;
                 }
             }
             else
+            {
                 return MFX_ERR_UNDEFINED_BEHAVIOR;
-        }
-        else
-        {
-            if (isPreEncSCD(m_config, m_ctrl))
-            {
-                sts = m_scd.SubmitFrame(pFrameData->Surface);
-                if (sts == MFX_ERR_MORE_DATA)
-                    sts = MFX_ERR_NONE;
-                MFX_CHECK_STS(sts);
-            }
-            if (isPreEncLA(m_config, m_ctrl))
-            {
-                mfxU16 FrameType = 0;
-                if (isPreEncSCD(m_config, m_ctrl))
-                {
-                    if (IsOn(m_config.AdaptiveI)) {
-                        m_scd.GetIntraDecision(par->DisplayOrder, &FrameType);
-                        if (FrameType & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR))
-                            FrameType = (MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF | MFX_FRAMETYPE_IDR); // convert to IREFIDR for Analysis
-                    }
-                }
-                mfxStatus stsla = m_lpLookAhead.Submit(pFrameData->Surface, FrameType);
-                MFX_CHECK_STS(stsla);
             }
         }
-        return sts;
     }
+
 
     mfxEncToolsBRCEncodeResult  *pEncRes = (mfxEncToolsBRCEncodeResult *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_BRC_ENCODE_RESULT);
     if (pEncRes && isPreEncSCD(m_config, m_ctrl)) {

@@ -96,9 +96,8 @@ public:
     virtual mfxStatus Reset(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig const & pConfig);
     virtual mfxStatus Close();
     virtual MFXVideoSession* GetEncSession();
-    virtual mfxStatus StoreLAResults(mfxFrameSurface1* surface, mfxU16 FrameType);
-    virtual mfxStatus EncodeLA(mfxFrameSurface1* surface, mfxU16 FrameType, mfxSyncPoint *pVppSyncp);
-    virtual mfxStatus Submit(mfxFrameSurface1 * surface, mfxU16 FrameType);
+    virtual mfxStatus SaveEncodedFrameSize(mfxFrameSurface1* surface, mfxU16 FrameType);
+    virtual mfxStatus Submit(mfxFrameSurface1* surface, mfxU16 FrameType, mfxSyncPoint* pEncSyncp);
     virtual mfxStatus Query(mfxU32 dispOrder, mfxEncToolsBRCBufferHint *pBufHint);
 #if defined (MFX_ENABLE_ENCTOOLS_LPLA)
     virtual mfxStatus Query(mfxU32 dispOrder, mfxEncToolsHintQuantMatrix *pCqmHint);
