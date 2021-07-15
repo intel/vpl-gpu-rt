@@ -110,6 +110,7 @@ private:
     // Opaq processing
     mfxFrameSurface1 *GetNativeSurface(mfxFrameSurface1 *surface, mfxU32 type)
     {
+        std::ignore = type;
         return surface;
     }
 

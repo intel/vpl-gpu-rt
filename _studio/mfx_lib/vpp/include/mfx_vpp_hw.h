@@ -33,9 +33,6 @@
 #include "mfx_vpp_interface.h"
 #include "mfx_vpp_defs.h"
 #include "libmfx_core_interface.h"
-#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
-#include "mfx_win_event_cache.h"
-#endif
 
 #include "cmrt_cross_platform.h" // Gpucopy stuff
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
@@ -403,11 +400,8 @@ namespace MfxHwVideoProcessing
         std::vector<State> m_surf[2];
 
         SubTask GetSubTask(DdiTask *pTask);
-#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
-        mfxStatus DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx, EventCache *EventCache);
-#else
+
         mfxStatus DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx);
-#endif
 
         bool IsMultiBlt();
 
@@ -837,10 +831,6 @@ namespace MfxHwVideoProcessing
         ResMngr m_resMngr;
 
         UMC::Mutex m_mutex;
-
-#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
-        std::unique_ptr<EventCache> m_EventCache;
-#endif
 
 #ifdef MFX_ENABLE_MCTF
         mfxU32  m_MCTFSurfacesInQueue;

@@ -327,8 +327,6 @@ mfxStatus VideoVppJpeg::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop
 
     memset(&m_pExecuteSurface[0], 0, sizeof(MfxHwVideoProcessing::mfxDrvSurface));
     memset(&m_pExecuteSurface[1], 0, sizeof(MfxHwVideoProcessing::mfxDrvSurface));
-    /* KW fix */
-    //memset(&m_executeParams, 0, sizeof(MfxHwVideoProcessing::mfxExecuteParams));
     MemSetZero4mfxExecuteParams(&m_executeParams);
 
     if(m_bUseInternalMem)

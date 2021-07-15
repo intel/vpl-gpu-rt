@@ -1123,25 +1123,7 @@ SubTask ResMngr::GetSubTask(DdiTask *pTask)
     else
         return SubTask();
 }
-#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
-mfxStatus ResMngr::DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx, EventCache *EventCache)
-{
-    if (pTask && pTask->pSubResource)
-    {
-        std::vector<SubTask>::iterator sub_it;//find(pTask->pSubResource->subTasks.begin(), pTask->pSubResource->subTasks.end(), subtaskIdx);
-        for (sub_it = pTask->pSubResource->subTasks.begin(); sub_it != pTask->pSubResource->subTasks.end(); sub_it++)
-        {
-            if (sub_it->taskIndex == subtaskIdx)
-            {
-                EventCache->ReturnEvent(sub_it->m_GpuEvent.gpuSyncEvent);
-                pTask->pSubResource->subTasks.erase(sub_it);
-                return MFX_ERR_NONE;
-            }
-        }
-    }
-    return MFX_ERR_NOT_FOUND;
-}
-#else
+
 mfxStatus ResMngr::DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx)
 {
     if (pTask && pTask->pSubResource)
@@ -1158,7 +1140,6 @@ mfxStatus ResMngr::DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx)
     }
     return MFX_ERR_NOT_FOUND;
 }
-#endif
 
 bool ResMngr::IsMultiBlt()
 {
@@ -1214,12 +1195,6 @@ mfxStatus TaskManager::Init(
 
     m_tasks.resize(config.m_surfCount[VPP_OUT]);
 
-#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
-    m_EventCache.reset(new EventCache());
-    m_EventCache->Init(config.m_surfCount[VPP_OUT] * ((config.m_multiBlt) ?
-        config.m_extConfig.customRateData.fwdRefCount + 1 /* count all streams (not only secondary)*/ : 1));
-#endif
-
 #ifdef MFX_ENABLE_MCTF
     m_MCTFSurfacesInQueue = 0;
 #endif
@@ -1231,10 +1206,6 @@ mfxStatus TaskManager::Init(
 
 mfxStatus TaskManager::Close(void)
 {
-#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
-    if(m_EventCache.get())
-        m_EventCache->Close();
-#endif
     m_actualNumber = m_taskIndex = 0;
 
     Clear(m_tasks);
@@ -1512,10 +1483,6 @@ mfxStatus TaskManager::CompleteTask(DdiTask* pTask)
         sts = m_core->DecreaseReference(*pTask->input.pSurf);
     MFX_CHECK_STS(sts);
 
-#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
-    m_EventCache->ReturnEvent(pTask->m_GpuEvent.gpuSyncEvent);
-#endif
-
     FreeTask(pTask);
 
     return MFX_TASK_DONE;
@@ -1686,21 +1653,6 @@ mfxStatus TaskManager::FillTask(
     }
 #endif
 
-#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
-    sts = m_EventCache->GetEvent(pTask->m_GpuEvent.gpuSyncEvent);
-    MFX_CHECK_STS(sts);
-    if (pTask->pSubResource)
-    {
-        std::vector<SubTask>::iterator sub_it;
-        for (sub_it = pTask->pSubResource->subTasks.begin(); sub_it != pTask->pSubResource->subTasks.end(); sub_it++)
-        {
-            sts = m_EventCache->GetEvent(sub_it->m_GpuEvent.gpuSyncEvent);
-            MFX_CHECK_STS(sts);
-        }
-    }
-
-#endif
-
     pTask->SetFree(false);
 
     return MFX_ERR_NONE;
@@ -1827,11 +1779,7 @@ void TaskManager::UpdatePTS_Mode30i60p(
 SubTask TaskManager::GetSubTask(DdiTask *pTask) { return m_resMngr.GetSubTask(pTask); }
 mfxStatus TaskManager::DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx)
 {
-#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
-    return m_resMngr.DeleteSubTask(pTask, subtaskIdx, m_EventCache.get());
-#else
     return m_resMngr.DeleteSubTask(pTask, subtaskIdx);
-#endif
 }
 
 void TaskManager::UpdatePTS_SimpleMode(
@@ -4505,14 +4453,6 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
         mfxU32 NumExecute = execParams.refCount;
         for (mfxU32 execIdx = 0; execIdx < NumExecute; execIdx++)
         {
-#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
-            execParams.m_GpuEvent.gpuSyncEvent = INVALID_HANDLE_VALUE;
-
-            if(execIdx == 0)
-                execParams.m_GpuEvent = pTask->m_GpuEvent;
-            else
-                execParams.m_GpuEvent = pTask->pSubResource->subTasks[execIdx - 1].m_GpuEvent;
-#endif
             execParams.execIdx = execIdx;
             sts = (*m_ddi)->Execute(&execParams);
             if (sts != MFX_ERR_NONE)
@@ -4521,10 +4461,6 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
     }
     else
     {
-#ifdef MFX_ENABLE_VPP_HW_BLOCKING_TASK_SYNC
-        pTask->m_GpuEvent.m_gpuComponentId = GPU_COMPONENT_VP;
-        execParams.m_GpuEvent = pTask->m_GpuEvent;
-#endif
         sts = (*m_ddi)->Execute(&execParams);
     }
 

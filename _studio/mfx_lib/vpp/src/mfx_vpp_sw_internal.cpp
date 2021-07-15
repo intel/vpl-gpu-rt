@@ -81,7 +81,6 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
                 outputFramesCount[filterIndex] = MFXVideoVPPDenoise::GetOutFramesCountExt();
                 break;
             }
-
 #ifdef MFX_ENABLE_MCTF
             case (mfxU32)MFX_EXTBUFF_VPP_MCTF:
             {
@@ -359,7 +358,7 @@ mfxStatus ExtendedQuery(VideoCORE * core, mfxU32 filterName, mfxExtBuffer* pHint
         bLinuxAndIVB_HSW_BDW = true;
     }
 
-    if( MFX_EXTBUFF_VPP_DENOISE == filterName 
+    if( MFX_EXTBUFF_VPP_DENOISE == filterName
         )
     {
         sts = MFXVideoVPPDenoise::Query( pHint );
