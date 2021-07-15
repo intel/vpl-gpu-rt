@@ -5082,10 +5082,21 @@ void MfxHwH264Encode::InheritDefaultValues(
 
     if (IsTCBRC(parReset, hwCaps))
     {
-        // old bitrate is used in TCBRC case
         TCBRCTargetFrameSize = GetAvgFrameSizeInBytes(parReset, false);
         if (extOpt2Reset->MaxFrameSize == 0 && parReset.mfx.MaxKbps != 0)
             extOpt2Reset->MaxFrameSize = GetAvgFrameSizeInBytes(parReset, true);
+
+        // TCBRC Reset is a special case - Below BRC params are used only to calculate TCBRCTargetFrameSize
+        // and after that, they must be restored to parInit params.
+        // This is needed to avoid real heavy BRC reset
+        //
+        // For case, when TCBRCTargetFrameSize will be greater than extOpt2.MaxFrameSize or extOpt3.MaxFrameSizeI
+        // real BRC Reset will be called
+        parReset.mfx.TargetKbps         = parInit.mfx.TargetKbps;
+        parReset.mfx.MaxKbps            = parInit.mfx.MaxKbps;
+        parReset.mfx.InitialDelayInKB   = parInit.mfx.InitialDelayInKB;
+        parReset.mfx.BufferSizeInKB     = parInit.mfx.BufferSizeInKB;
+        parReset.mfx.BRCParamMultiplier = parInit.mfx.BRCParamMultiplier;
     }
 
     InheritOption(parInit.AsyncDepth,             parReset.AsyncDepth);
