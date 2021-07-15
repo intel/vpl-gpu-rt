@@ -21,6 +21,7 @@
 #if !defined(__MFX_LOG_H)
 #define __MFX_LOG_H
 
+#include "mfx_common.h"
 #include <stddef.h>
 
 // Declare the type of handle to logging object

@@ -35,15 +35,7 @@
 #include "mediasdk_version.h"
 #include "libmfx_core_factory.h"
 #include "mfx_interface_scheduler.h"
-
-
-// static section of the file
-namespace
-{
-
-void* g_hModule = NULL; // DLL handle received in DllMain
-
-} // namespace
+#include "libmfx_core_interface.h"
 
 mfxStatus MFXInit(mfxIMPL implParam, mfxVersion *ver, mfxSession *session)
 {
@@ -74,7 +66,6 @@ static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession* session, mfxIMPL
 
 mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 {
-    (void)g_hModule;
     mfxStatus mfxRes;
     int adapterNum = 0;
     mfxIMPL impl = par.Implementation & (MFX_IMPL_VIA_ANY - 1);
@@ -84,9 +75,9 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "ThreadName=MSDK app");
     }
-    MFX_AUTO_TRACE("MFXInitEx");
+
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXInitEx");
     ETW_NEW_EVENT(MFX_TRACE_API_MFX_INIT_EX_TASK, 0, make_event_data((mfxU32) par.Implementation, par.GPUCopy), [&](){ return make_event_data(mfxRes, session ? *session : nullptr);});
-    MFX_LTRACE_1(MFX_TRACE_LEVEL_API, "^ModuleHandle^libmfx=", "%p", g_hModule);
 
     // check the library version
     if (MakeVersion(par.Version.Major, par.Version.Minor) > MFX_VERSION)
@@ -201,7 +192,7 @@ static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession *session, mfxIMPL
 mfxStatus MFXDoWork(mfxSession session)
 {
     mfxStatus res;
-    MFX_AUTO_TRACE("MFXDoWork");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXDoWork");
     ETW_NEW_EVENT(MFX_TRACE_API_DO_WORK_TASK, 0, make_event_data(session), [&](){ return make_event_data(res);});
 
     // check error(s)
@@ -241,7 +232,7 @@ mfxStatus MFXClose(mfxSession session)
         // used after it. special care should be taken with MFX_AUTO_TRACE macro
         // since it inserts class variable on stack which calls to trace library in the
         // destructor.
-        MFX_AUTO_TRACE("MFXClose");
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXClose");
         ETW_NEW_EVENT(MFX_TRACE_API_MFX_CLOSE_TASK, 0, make_event_data(session), [&](){ return make_event_data(mfxRes);});
 
         // parent session can't be closed,
@@ -312,7 +303,9 @@ mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* sess
     par.NumExtParam = param.NumExtParam;
     par.ExtParam = param.ExtParam;
 
-    mfxRes = MFXInit_Internal(par, session, par.Implementation, 0);
+    // VendorImplID is used as adapterNum in current implementation - see MFXQueryImplsDescription
+    // app. supposed just to copy VendorImplID from mfxImplDescription (returned by MFXQueryImplsDescription) to mfxInitializationParam
+    mfxRes = MFXInit_Internal(par, session, par.Implementation, param.VendorImplID);
 
     return mfxRes;
 }
@@ -493,19 +486,14 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
     try
     {
         std::unique_ptr<mfx::ImplDescriptionHolder> holder(new mfx::ImplDescriptionHolder);
-        std::set<mfxU32> deviceIds;
-
         auto IsVplHW = [](eMFXHWType hw) -> bool
         {
             return hw >= MFX_HW_TGL_LP;
         };
         auto QueryImplDesc = [&](VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum) -> bool
         {
-            if (   !IsVplHW(core.GetHWType())
-                || deviceIds.end() != deviceIds.find(deviceId))
+            if (!IsVplHW(core.GetHWType()))
                 return true;
-
-            deviceIds.insert(deviceId);
 
             auto& impl = holder->PushBack();
 
@@ -515,6 +503,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
             // use adapterNum as VendorImplID, app. supposed just to copy it from mfxImplDescription to mfxInitializationParam
             impl.VendorImplID     = adapterNum;
             impl.AccelerationMode = core.GetVAType() == MFX_HW_VAAPI ? MFX_ACCEL_MODE_VIA_VAAPI : MFX_ACCEL_MODE_VIA_D3D11;
+
 
             snprintf(impl.Dev.DeviceID, sizeof(impl.Dev.DeviceID), "%x/%d", deviceId, adapterNum);
             snprintf(impl.ImplName, sizeof(impl.ImplName), "mfx-gen");
@@ -541,10 +530,10 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
                 if (!file)
                     break;
 
-                int res = fscanf(file, "%x", &vendorId);                
+                int nread = fscanf(file, "%x", &vendorId);
                 fclose(file);
 
-                if (res == EOF || vendorId != 0x8086)
+                if (nread != 1 || vendorId != 0x8086)
                     continue;
             }
 
@@ -556,11 +545,11 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
                 if (!file)
                     break;
 
-                int res = fscanf(file, "%x", &deviceId);
+                int nread = fscanf(file, "%x", &deviceId);
                 fclose(file);
 
-                if (res == EOF)
-                    continue;
+                if (nread != 1)
+                    break;
             }
 
             path = std::string("/dev/dri/renderD") + std::to_string(128 + i);
@@ -622,9 +611,4 @@ mfxStatus MFX_CDECL MFXReleaseImplDescription(mfxHDL hdl)
     }
 
     return MFX_ERR_NONE;
-}
-
-void __attribute__ ((constructor)) dll_init(void)
-{
-
 }

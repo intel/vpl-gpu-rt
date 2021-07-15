@@ -18,8 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if !defined(DECL_BLOCK_LIST) || !defined(DECL_FEATURE_NAME)
-    #error "Invalid usage of " __FILE__ ": DECL_BLOCK_LIST and DECL_FEATURE_NAME must be defined"
+#if !defined(DECL_BLOCK_LIST)
+    #error "Invalid usage of " __FILE__ ": DECL_BLOCK_LIST  must be defined"
+#endif
+#if !defined(DECL_FEATURE_NAME)
+    #error "Invalid usage of " __FILE__ ": DECL_FEATURE_NAME must be defined"
 #endif
 
     enum eBlockId

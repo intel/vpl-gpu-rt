@@ -21,7 +21,7 @@
 #include "mfxstructures-int.h"
 
 #define FUNCTION_DEPRECATED_IMPL(component, func_name, formal_param_list) \
-mfxStatus MFXVideo##component##_##func_name formal_param_list \
+mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
 { \
     return MFX_ERR_UNSUPPORTED; \
 }

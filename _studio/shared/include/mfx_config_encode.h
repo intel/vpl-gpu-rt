@@ -31,6 +31,12 @@
     #if defined(MFX_ENABLE_MCTF) && defined(MFX_ENABLE_KERNELS)
         #define MFX_ENABLE_MCTF_IN_AVC
     #endif
+    #if !defined(MFX_ENABLE_VIDEO_BRC_COMMON)
+        #define MFX_ENABLE_VIDEO_BRC_COMMON
+    #endif
+    #if !defined(UMC_ENABLE_VIDEO_BRC)
+        #define UMC_ENABLE_VIDEO_BRC
+    #endif
 #endif
 
 #if defined(MFX_ENABLE_MVC_VIDEO_ENCODE)
@@ -44,14 +50,19 @@
     #define MFX_ENABLE_HEVCE_ROI
 #endif
 
+#if defined (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
+    #if !defined(MFX_ENABLE_VIDEO_BRC_COMMON)
+        #define MFX_ENABLE_VIDEO_BRC_COMMON
+    #endif
+    #if !defined(UMC_ENABLE_VIDEO_BRC)
+        #define UMC_ENABLE_VIDEO_BRC
+    #endif
+#endif
+
 #define MFX_ENABLE_QVBR
 
 #ifdef MFX_ENABLE_USER_ENCTOOLS
     #define MFX_ENABLE_ENCTOOLS
-#endif
-
-#if defined (MFX_ENABLE_H264_VIDEO_ENCODE) || defined (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
-#define MFX_ENABLE_VIDEO_BRC_COMMON
 #endif
 
 #endif // _MFX_CONFIG_ENCODE_H_

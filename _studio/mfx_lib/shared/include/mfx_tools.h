@@ -28,4 +28,10 @@ namespace MFX
     unsigned int CreateUniqId();
 }
 
+inline
+bool IsHWLib(void)
+{
+    return true;
+} // bool IsHWLib(void)
+
 #endif // __MFX_TOOLS_H
