@@ -149,31 +149,5 @@ mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, mfxMemId mid);
 mfxU16 BitDepthFromFourcc(mfxU32 fourcc);
 mfxU16 ChromaFormatFromFourcc(mfxU32 fourcc);
 
-class mfxBitstreamWrapperWithLock : public mfxBitstream
-{
-public:
-
-    mfxBitstreamWrapperWithLock();
-
-    mfxBitstreamWrapperWithLock(mfxU32 n_bytes);
-
-    mfxBitstreamWrapperWithLock(const mfxBitstreamWrapperWithLock& bs_wrapper);
-
-    mfxBitstreamWrapperWithLock& operator=(mfxBitstreamWrapperWithLock const& bs_wrapper);
-
-    mfxBitstreamWrapperWithLock(mfxBitstreamWrapperWithLock&& bs_wrapper) = default;
-
-    mfxBitstreamWrapperWithLock& operator= (mfxBitstreamWrapperWithLock&& bs_wrapper) = default;
-
-    ~mfxBitstreamWrapperWithLock() = default;
-
-    void Extend(mfxU32 n_bytes);
-
-    bool Locked;
-
-private:
-
-    std::vector<mfxU8> m_data;
-};
 
 #endif

@@ -114,7 +114,9 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
                 if (channelPar->ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_SCALING) {
                     switch (reinterpret_cast<mfxExtVPPScaling*>(channelPar->ExtParam[i])->ScalingMode) {
                     case MFX_SCALING_MODE_INTEL_GEN_VDBOX:
+                        {
                             session->m_pDVP->sfcChannelID = sfcChannelID = id;
+                        }
                         break;
                     case MFX_SCALING_MODE_INTEL_GEN_VEBOX:
                         vppScalingModeMap[id] = MFX_SCALING_MODE_LOWPOWER;
