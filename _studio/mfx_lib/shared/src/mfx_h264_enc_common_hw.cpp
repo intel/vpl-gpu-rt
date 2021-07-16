@@ -5077,6 +5077,7 @@ void MfxHwH264Encode::InheritDefaultValues(
     InheritOption(parInit.mfx.BRCParamMultiplier, parReset.mfx.BRCParamMultiplier);
 
     InheritOption(extOpt3Init.ScenarioInfo, extOpt3Reset->ScenarioInfo);
+    InheritOption(extOpt3Init.AdaptiveMaxFrameSize, extOpt3Reset->AdaptiveMaxFrameSize);
     InheritOption(parInit.mfx.LowPower, parReset.mfx.LowPower);
     InheritOption(extOpt2Init.LookAheadDepth, extOpt2Reset->LookAheadDepth);
 
