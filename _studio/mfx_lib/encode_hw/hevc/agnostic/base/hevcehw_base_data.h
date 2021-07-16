@@ -1420,7 +1420,6 @@ namespace Base
         using AllocRec            = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocBS             = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocMBQP           = StorageVar<__LINE__ - _KD, IAllocation>;
-        using AllocWrap           = StorageVar<__LINE__ - _KD, IAllocation>;
         using PackedHeaders       = StorageVar<__LINE__ - _KD, Base::PackedHeaders>;
         using DDI_Resources       = StorageVar<__LINE__ - _KD, std::list<DDIExecParam>>;
         using DDI_SubmitParam     = StorageVar<__LINE__ - _KD, std::list<DDIExecParam>>;

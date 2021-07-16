@@ -70,7 +70,7 @@
         mfxFrameAllocResponse*  pRecFramesResponse_hw;
         mfxFrameAllocResponse*  pRecFramesResponse_sw;
 
-        mfxU16                  encNumFrameMin;
+
         mfxExtVideoSignalInfo   videoSignalInfo;
         bool                    bAddDisplayExt;
         bool                    bMbqpMode;

@@ -141,7 +141,6 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(out, MFX_ERR_NULL_PTR);
 
-#ifndef ANDROID
     if ((0 != in) && (MFX_HW_VAAPI == session->m_pCORE->GetVAType()))
     {
         // protected content not supported on Linux
@@ -151,7 +150,6 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             return MFX_ERR_UNSUPPORTED;
         }
     }
-#endif
 
     mfxStatus mfxRes;
 

@@ -367,6 +367,7 @@ namespace MPEG2EncoderHW
 
         mfxU16                  m_InputType;
         bool                    m_bHWFrames;
+        bool                    m_bUseInternalMem;
 
         mfxFrameSurface1        *m_pRefFrame[2];
         mfxFrameSurface1        *m_pRawFrame[2];
@@ -397,6 +398,7 @@ namespace MPEG2EncoderHW
         {
             m_InputType    = 0;
             m_bHWFrames    = false;
+            m_bUseInternalMem = false;
 
             memset (m_pRefFrame,0,sizeof(mfxFrameSurface1*)*2);
             memset (m_pRawFrame,0,sizeof(mfxFrameSurface1*)*2);

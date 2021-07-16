@@ -2029,11 +2029,10 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
     if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
         checkSts = sts;
 
-
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
     mfxExtCodingOption2 & extOpt2 = GetExtBufferRef(par);
     // for game streaming scenario, if option enable lowpower lookahead, check encoder's capability
-    if(IsLpLookaheadSupported(extOpt3.ScenarioInfo, extOpt2.LookAheadDepth, par.mfx.RateControlMethod))
+    if (IsLpLookaheadSupported(extOpt3.ScenarioInfo, extOpt2.LookAheadDepth, par.mfx.RateControlMethod))
     {
         MFX_CHECK(hwCaps.ddi_caps.LookaheadBRCSupport, MFX_ERR_INVALID_VIDEO_PARAM);
     }
@@ -2242,7 +2241,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                 changed = true;
         }
     }
-
     if (hwCaps.ddi_caps.MaxNum_TemporalLayer != 0 &&
         hwCaps.ddi_caps.MaxNum_TemporalLayer < par.calcParam.numTemporalLayer)
         return Error(MFX_WRN_PARTIAL_ACCELERATION);
@@ -2256,13 +2254,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             changed = true;
             par.mfx.GopRefDist = 1;
         }
-
-        if (par.mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
-        {
-            changed = true;
-            par.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
-        }
-
 
         if (par.mfx.RateControlMethod != 0 &&
             par.mfx.RateControlMethod != MFX_RATECONTROL_CBR &&
@@ -5497,7 +5488,6 @@ void MfxHwH264Encode::SetDefaults(
             if (par.mfx.GopPicSize > 0 && par.mfx.GopPicSize <= par.mfx.GopRefDist)
                 par.mfx.GopRefDist = par.mfx.GopPicSize;
         }
-
     }
     if (  (par.mfx.RateControlMethod == MFX_RATECONTROL_LA
         || par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD)
@@ -6906,16 +6896,13 @@ mfxStatus MfxHwH264Encode::CopyFrameDataBothFields(
     return sts;
 }
 
-
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
 bool MfxHwH264Encode::IsLpLookaheadSupported(mfxU16 scenario, mfxU16 lookaheadDepth, mfxU16 rateContrlMethod)
 {
     if (scenario == MFX_SCENARIO_GAME_STREAMING && lookaheadDepth > 0 &&
         (rateContrlMethod == MFX_RATECONTROL_CBR || rateContrlMethod == MFX_RATECONTROL_VBR))
     {
-#if defined (MFX_ENABLE_LP_LOOKAHEAD)  || defined(MFX_ENABLE_ENCTOOLS_LPLA)
         return true;
-#endif
     }
     return false;
 }
@@ -7726,6 +7713,7 @@ void MfxVideoParam::Construct(mfxVideoParam const & par)
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
     CONSTRUCT_EXT_BUFFER(mfxExtPartialBitstreamParam , m_po);
 #endif
+
 
 #undef CONSTRUCT_EXT_BUFFER
 #undef CONSTRUCT_EXT_BUFFER_EX
@@ -9380,13 +9368,11 @@ mfxU32 HeaderPacker::WriteSlice(
 
     mfxU8 startcode[4] = { 0, 0, 0, 1};
     mfxU8 * pStartCode = startcode;
-#if !defined(ANDROID)
     if (!m_longStartCodes)
     {
         if (task.m_AUStartsFromSlice[fieldId] == false || sliceId > 0)
             pStartCode++;
     }
-#endif
     obs.PutRawBytes(pStartCode, startcode + sizeof startcode);
     obs.PutBit(0);
     obs.PutBits(nalRefIdc, 2);
@@ -9596,14 +9582,10 @@ mfxU32 HeaderPacker::WriteSlice(
     //mfxU32 picHeightInMBs      = (sps.picHeightInMapUnitsMinus1 + 1) * picHeightMultiplier;
 
     mfxU32 sliceHeaderRestrictionFlag = 0;
-#if defined(ANDROID)
-    mfxU8 startcode[4] = { 0, 0, 0, 1 };
-#else
     mfxU8 startcode[3] = { 0, 0, 1 };
 
     if (m_longStartCodes)
         obs.PutFillerBytes(0x00, 1);
-#endif
     obs.PutRawBytes(startcode, startcode + sizeof startcode);
     obs.PutBit(0);
     obs.PutBits(nalRefIdc, 2);

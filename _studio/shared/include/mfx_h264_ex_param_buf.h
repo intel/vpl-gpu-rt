@@ -54,5 +54,4 @@ struct ExtH264ResidCoeffs
     MFX_H264_Coefficient* Coeffs;
 };
 
-
 #endif //_MFX_H264_EX_PARAM_BUF_H_

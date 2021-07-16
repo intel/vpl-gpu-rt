@@ -39,7 +39,7 @@
 #include "asc.h"
 #include "libmfx_core_interface.h"
 
-#if defined(MFX_ENABLE_ENCTOOLS) 
+#if defined(MFX_ENABLE_ENCTOOLS)
 #include "mfx_lp_lookahead.h"
 #endif
 
@@ -1338,7 +1338,7 @@ namespace MfxHwH264Encode
         bool     m_isMBControl;
         mfxMemId m_midMBControl;
         mfxU32   m_idxMBControl;
-#if defined(MFX_ENABLE_ENCTOOLS) 
+#if defined(MFX_ENABLE_ENCTOOLS)
         mfxLplastatus m_lplastatus;
 #endif
         CmSurface2D *         m_cmRawForHist;
@@ -2500,6 +2500,7 @@ protected:
             config.BRCBufferHints = (mfxU16)(IsNotDefined(config.BRCBufferHints) ?
                 (lplaAssistedBRC ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF) : config.BRCBufferHints);
         }
+
 #ifdef MFX_ENABLE_ENCTOOLS_LPLA
         if (extOpt3.ScenarioInfo == MFX_SCENARIO_GAME_STREAMING)
         {
@@ -2931,6 +2932,7 @@ private:
         mfxStatus QueryFromMctf(
             void *pParam
         );
+
 #endif
         ASC       amtScd;
         mfxStatus SCD_Put_Frame(
