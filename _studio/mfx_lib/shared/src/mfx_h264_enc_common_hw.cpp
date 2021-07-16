@@ -6113,6 +6113,16 @@ void MfxHwH264Encode::SetDefaults(
             ((platform >= MFX_HW_ICL) && IsOn(par.mfx.LowPower) && hwCaps.AdaptiveMaxFrameSizeSupport)
             ? mfxU16(MFX_CODINGOPTION_ON) : mfxU16(MFX_CODINGOPTION_OFF);
 
+    if (extOpt3->BRCPanicMode == MFX_CODINGOPTION_UNKNOWN)
+        extOpt3->BRCPanicMode =
+            extOpt->NalHrdConformance == MFX_CODINGOPTION_ON ||
+            bRateControlLA(par.mfx.RateControlMethod) ||
+            par.mfx.RateControlMethod == MFX_RATECONTROL_CQP ||
+            vaType != MFX_HW_VAAPI ||
+            ((extOpt2->MaxFrameSize != 0 || extOpt3->WinBRCSize != 0) &&
+            isSWBRC(par))
+        ? mfxU16(MFX_CODINGOPTION_ON)
+        : mfxU16(MFX_CODINGOPTION_OFF);
 
     par.ApplyDefaultsToMvcSeqDesc();
 
