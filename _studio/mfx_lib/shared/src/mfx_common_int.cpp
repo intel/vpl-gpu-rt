@@ -859,9 +859,6 @@ void mfxVideoParamWrapper::CopyVideoParam(const mfxVideoParam & par)
             }
             break;
 
-        case MFX_EXTBUFF_CODING_OPTION_SPSPPS:
-            break;
-
 #ifdef MFX_EXTBUFF_FORCE_PRIVATE_DDI_ENABLE
         case MFX_EXTBUFF_FORCE_PRIVATE_DDI:
 #endif
