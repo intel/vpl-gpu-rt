@@ -895,7 +895,7 @@ mfxStatus vaapi_surface_wrapper::Unlock()
     return MFX_ERR_NONE;
 }
 
-mfxFrameSurface1_hw_vaapi::mfxFrameSurface1_hw_vaapi(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, mfxHDL, mfxHDL display, mfxU32 context, FrameAllocatorBase& allocator)
+mfxFrameSurface1_hw_vaapi::mfxFrameSurface1_hw_vaapi(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>&, mfxHDL display, mfxU32 context, FrameAllocatorBase& allocator)
     : RWAcessSurface(info, type, mid, allocator)
     , m_VADisplay(reinterpret_cast<VADisplay>(display))
     , m_type(type)

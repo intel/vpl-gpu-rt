@@ -560,7 +560,7 @@ mfxStatus FrameAllocatorBase::Synchronize(mfxSyncPoint sp, mfxU32 timeout)
     mfxStatus sts = MFXVideoCORE_SyncOperation(m_session, sp, timeout);
 
     // We ignore nullptr sts because in this case mfxFrameSurface1 has been already synchronized
-    return MFX_STS_TRACE(sts) != MFX_ERR_NULL_PTR ? sts : MFX_ERR_NONE;
+    MFX_RETURN(sts != MFX_ERR_NULL_PTR ? sts : MFX_ERR_NONE);
 }
 
 mfxStatus RWAcessSurface::LockRW(std::unique_lock<std::mutex>& guard, bool write, bool nowait)
@@ -612,7 +612,7 @@ mfxStatus RWAcessSurface::UnlockRW()
     return MFX_ERR_NONE;
 }
 
-mfxFrameSurface1_sw::mfxFrameSurface1_sw(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, mfxHDL, mfxHDL, mfxU32, FrameAllocatorBase& allocator)
+mfxFrameSurface1_sw::mfxFrameSurface1_sw(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>&, mfxHDL, mfxU32, FrameAllocatorBase& allocator)
     : RWAcessSurface(info, type, mid, allocator)
 {
     MFX_CHECK_WITH_THROW(m_internal_surface.Data.MemType & MFX_MEMTYPE_SYSTEM_MEMORY, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));

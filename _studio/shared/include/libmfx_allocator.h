@@ -99,6 +99,55 @@ inline void clear_frame_data(mfxFrameData& frame_data) noexcept
     frame_data.U = frame_data.V = frame_data.Y = frame_data.A = nullptr;
 }
 
+#if defined (MFX_DEBUG_REFCOUNT)
+
+static class RefcountGlobalRegistry
+{
+public:
+    ~RefcountGlobalRegistry()
+    {
+        for (auto id : m_object_id)
+        {
+            printf("\n\nREFCOUNT ERROR: NOT DELETED OBJECT %p\n\n", id);
+        }
+    }
+
+    void RegisterRefcountObject(void* id)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        if (std::find(std::begin(m_object_id), std::end(m_object_id), id) != std::end(m_object_id))
+        {
+            printf("\n\nREFCOUNT ERROR: CANNOT RE-REGISTER OBJECT %p\n\n", id);
+            return;
+        }
+
+        printf("\n\nREFCOUNT NOTIFY: REGISTER OBJECT %p\n\n", id);
+
+        m_object_id.push_back(id);
+    }
+
+    void UnregisterRefcountObject(void* id)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        auto it = std::find(std::begin(m_object_id), std::end(m_object_id), id);
+        if (it == std::end(m_object_id))
+        {
+            printf("\n\nREFCOUNT ERROR: CANNOT DELETE NON-REGISTERED OBJECT %p\n\n", id);
+            return;
+        }
+
+        printf("\n\nREFCOUNT NOTIFY: UNREGISTER OBJECT %p\n\n", id);
+
+        m_object_id.erase(it);
+    }
+
+private:
+    std::mutex         m_mutex;
+    std::vector<void*> m_object_id;
+} g_global_registry;
+#endif
 
 class FrameAllocatorBase
 {
@@ -113,7 +162,6 @@ public:
     virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* & output_surf) = 0;
     virtual mfxStatus ReallocSurface(const mfxFrameInfo& info, mfxMemId id)                                 = 0;
     virtual void      SetDevice(mfxHDL device)                                                              = 0;
-    virtual void      Remove(mfxMemId mid)                                                                  = 0;
 
     // this is actually a WA, which should be removed after Synchronize will be implemented through dependency manager
     mfxStatus Synchronize(mfxSyncPoint, mfxU32 /*timeout*/);
@@ -136,6 +184,12 @@ public:
     static std::atomic<std::uint32_t> m_allocator_num;
 
 protected:
+
+    // Surface need access to Remove method from destructor, for allocator state update
+    friend class mfxFrameSurfaceBaseInterface;
+
+    virtual void Remove(mfxMemId mid) = 0;
+
     mfxSession                        m_session;
 };
 
@@ -174,7 +228,7 @@ public:
     mfxStatus CreateSurface(mfxU16, const mfxFrameInfo &, mfxFrameSurface1* &) override { return MFX_ERR_UNSUPPORTED; }
     mfxStatus ReallocSurface(const mfxFrameInfo &, mfxMemId )                  override { return MFX_ERR_UNSUPPORTED; }
     void      SetDevice(mfxHDL )                                               override { return; }
-    void      Remove(mfxMemId )                                                override { return; }
+    void      Remove(mfxMemId)                                                 override { return; }
 
     mfxFrameAllocator* GetExtAllocator() { return &allocator; }
 
@@ -396,16 +450,84 @@ private:
     std::map<mfxMemId, FrameAllocatorBase*> m_mid_to_allocator;
 };
 
+class mfxRefCountableBase
+{
+public:
+    mfxRefCountableBase()
+        : m_ref_count(0)
+    {
+#if defined (MFX_DEBUG_REFCOUNT)
+        g_global_registry.RegisterRefcountObject(this);
+#endif
+    }
+
+    virtual ~mfxRefCountableBase()
+    {
+        if (m_ref_count.load(std::memory_order_relaxed) != 0)
+        {
+            std::ignore = MFX_STS_TRACE(MFX_ERR_UNKNOWN);
+        }
+#if defined (MFX_DEBUG_REFCOUNT)
+        g_global_registry.UnregisterRefcountObject(this);
+#endif
+    }
+
+    mfxU32 GetRefCounter() const
+    {
+        return m_ref_count.load(std::memory_order_relaxed);
+    }
+
+    void AddRef()
+    {
+        std::ignore = m_ref_count.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    mfxStatus Release()
+    {
+        MFX_CHECK(m_ref_count.load(std::memory_order_relaxed), MFX_ERR_UNDEFINED_BEHAVIOR);
+
+        // fetch_sub return value immediately preceding
+        if (m_ref_count.fetch_sub(1, std::memory_order_relaxed) - 1 == 0)
+        {
+            // Refcount is zero
+
+            // Update state of parent allocator if set
+            Close();
+
+            // Delete refcounted object, here wrapper is finally destroyed and underlying texture / memory released
+            delete this;
+        }
+
+        return MFX_ERR_NONE;
+    }
+
+protected:
+    virtual void Close() { return; }
+
+private:
+    std::atomic<uint32_t> m_ref_count;
+};
+
 template <class T, class U>
 class FlexibleFrameAllocator : public FrameAllocatorBase
 {
+#define MFX_DETACH_FRAME                                                                         \
+    [](T* surface)                                                                               \
+    {                                                                                            \
+        /* We already removed from allocator's list, no need to update it through destructor */  \
+        surface->DetachParentAllocator();                                                        \
+                                                                                                 \
+        std::ignore = MFX_STS_TRACE(static_cast<mfxRefCountableBase*>(surface)->Release());      \
+    }
+    using pT = std::unique_ptr<T, void(*)(T* surface)>;
+
 public:
     FlexibleFrameAllocator(mfxHDL device = nullptr, mfxSession session = nullptr)
         // ids across different allocators (SW / HW in one core and in different cores (for simplicity)) shouldn't overlap
         : FrameAllocatorBase(session)
         , m_last_created_mid(m_allocator_num << 16)
         , m_device(device)
-        , m_staging_adapter(device)
+        , m_staging_adapter(std::make_shared<U>(device))
     {
         std::ignore = m_allocator_num.fetch_add(1, std::memory_order_relaxed);
     }
@@ -425,12 +547,12 @@ public:
         {
             std::vector<mfxMemId> mids(request.NumFrameSuggested);
 
-            std::list<T> alloc_list;
+            std::list<pT> alloc_list;
             for (mfxU16 i = 0; i < request.NumFrameSuggested; ++i)
             {
                 mids[i] = GenerateMid();
 
-                alloc_list.emplace_back(request.Info, type, mids[i], m_staging_adapter, m_device, request.AllocId, *this);
+                alloc_list.emplace_back(pT(T::Create(request.Info, type, mids[i], m_staging_adapter, m_device, request.AllocId, *this), MFX_DETACH_FRAME));
             }
 
             std::lock_guard<std::shared_timed_mutex> guard(m_mutex);
@@ -464,13 +586,13 @@ public:
         std::shared_lock<std::shared_timed_mutex> guard(m_mutex);
 
         auto it = std::find_if(std::begin(m_allocated_pool), std::end(m_allocated_pool),
-            [mid](const T& surf) { return surf.GetMid() == mid; });
+            [mid](const pT& surf) { return surf->GetMid() == mid; });
 
         MFX_CHECK(it != std::end(m_allocated_pool), MFX_ERR_NOT_FOUND);
 
-        MFX_SAFE_CALL(it->Lock(flags));
+        MFX_SAFE_CALL((*it)->Lock(flags));
 
-        it->CopyPointers(frame_data);
+        (*it)->CopyPointers(frame_data);
 
         return MFX_ERR_NONE;
     }
@@ -482,13 +604,13 @@ public:
         std::shared_lock<std::shared_timed_mutex> guard(m_mutex);
 
         auto it = std::find_if(std::begin(m_allocated_pool), std::end(m_allocated_pool),
-            [mid](const T& surf) { return surf.GetMid() == mid; });
+            [mid](const pT& surf) { return surf->GetMid() == mid; });
 
         MFX_CHECK(it != std::end(m_allocated_pool), MFX_ERR_NOT_FOUND);
 
-        MFX_SAFE_CALL(it->Unlock());
+        MFX_SAFE_CALL((*it)->Unlock());
 
-        it->CopyPointers(frame_data);
+        (*it)->CopyPointers(frame_data);
 
         return MFX_ERR_NONE;
     }
@@ -500,16 +622,16 @@ public:
         std::shared_lock<std::shared_timed_mutex> guard(m_mutex);
 
         auto it = std::find_if(std::begin(m_allocated_pool), std::end(m_allocated_pool),
-            [mid](const T& surf) { return surf.GetMid() == mid; });
+            [mid](const pT& surf) { return surf->GetMid() == mid; });
 
         MFX_CHECK(it != std::end(m_allocated_pool), MFX_ERR_INVALID_HANDLE);
 
-        return it->GetHDL(handle);
+        return (*it)->GetHDL(handle);
     }
 
     mfxStatus Free(mfxFrameAllocResponse& response) override
     {
-        std::list<T> frames_to_erase;
+        std::list<pT> frames_to_erase;
 
         std::lock_guard<std::shared_timed_mutex> guard(m_mutex);
 
@@ -536,7 +658,7 @@ public:
             // This mid was already deleted by calling Release (object is deleted when it's refcounter reaches zero)
             if (mid == ALREADY_REMOVED_MID) continue;
 
-            auto it_alloc = std::find_if(std::begin(m_allocated_pool), std::end(m_allocated_pool), [mid](const T& surf) { return surf.GetMid() == mid; });
+            auto it_alloc = std::find_if(std::begin(m_allocated_pool), std::end(m_allocated_pool), [mid](const pT& surf) { return surf->GetMid() == mid; });
 
             if (it_alloc != std::end(m_allocated_pool))
             {
@@ -559,16 +681,16 @@ public:
 
         try
         {
-            std::list<T> alloc_list;
+            std::list<pT> alloc_list;
 
-            alloc_list.emplace_back(info, T::AdjustType(type), GenerateMid(), m_staging_adapter, m_device, 0u, *this);
+            alloc_list.emplace_back(pT(T::Create(info, T::AdjustType(type), GenerateMid(), m_staging_adapter, m_device, 0u, *this), MFX_DETACH_FRAME));
 
             std::lock_guard<std::shared_timed_mutex> guard(m_mutex);
 
             m_allocated_pool.splice(m_allocated_pool.end(), alloc_list);
 
             // Fill mfxFrameSurface1 object and return to user
-            output_surf = &m_allocated_pool.back().m_exported_surface;
+            output_surf = &(m_allocated_pool.back()->m_exported_surface);
 
             return output_surf->FrameInterface->AddRef(output_surf);
         }
@@ -591,23 +713,31 @@ public:
         std::shared_lock<std::shared_timed_mutex> guard(m_mutex);
 
         auto it = std::find_if(std::begin(m_allocated_pool), std::end(m_allocated_pool),
-            [mid](const T& surf) { return surf.GetMid() == mid; });
+            [mid](const pT& surf) { return surf->GetMid() == mid; });
         MFX_CHECK(it != std::end(m_allocated_pool), MFX_ERR_NOT_FOUND);
 
         // Will not reallocate surface which is locked by someone
-        MFX_CHECK(!it->Locked(),                    MFX_ERR_LOCK_MEMORY);
+        MFX_CHECK(!(*it)->Locked(),                 MFX_ERR_LOCK_MEMORY);
 
-        MFX_CHECK(it->ReallocAllowed(info),         MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK((*it)->ReallocAllowed(info),      MFX_ERR_INVALID_VIDEO_PARAM);
 
-        return it->Realloc(info);
+        return (*it)->Realloc(info);
     }
 
+    void SetDevice(mfxHDL device) override
+    {
+        m_device = device;
+
+        m_staging_adapter->SetDevice(device);
+    }
+
+protected:
     void Remove(mfxMemId mid) override
     {
         std::lock_guard<std::shared_timed_mutex> guard(m_mutex);
 
         auto it = std::find_if(std::begin(m_allocated_pool), std::end(m_allocated_pool),
-            [mid](const T& surf) { return surf.GetMid() == mid; });
+            [mid](const pT& surf) { return surf->GetMid() == mid; });
 
         if (it == std::end(m_allocated_pool))
         {
@@ -615,10 +745,13 @@ public:
             return;
         }
 
+        // Surface is being deleted after decreasing refcount to zero, no need decrease refcount in destructor of holder
+        it->release();
+
         m_allocated_pool.erase(it);
 
         std::ignore = std::find_if(std::begin(m_returned_mids), std::end(m_returned_mids),
-            [this, mid] (std::vector<mfxMemId> & v_mid)
+            [this, mid](std::vector<mfxMemId>& v_mid)
             {
                 auto it = std::find(std::begin(v_mid), std::end(v_mid), mid);
 
@@ -630,14 +763,6 @@ public:
             });
     }
 
-
-    void SetDevice(mfxHDL device) override
-    {
-        m_device = device;
-
-        m_staging_adapter.SetDevice(device);
-    }
-
 private:
     std::atomic<size_t>                    m_last_created_mid = { 0 };
     mfxHDL                                 m_device           = nullptr;
@@ -645,9 +770,9 @@ private:
     mutable std::shared_timed_mutex        m_mutex;
 
     // Do not change order of m_staging_adapter and m_allocated_pool (surfaces destruction has side effect on staging adapter)
-    U                                      m_staging_adapter;
+    std::shared_ptr<U>                     m_staging_adapter;
 
-    std::list<T>                           m_allocated_pool;  // Pool of allocated surfaces
+    std::list<pT>                          m_allocated_pool;  // Pool of allocated surfaces
 
     std::list<std::vector<mfxMemId>>       m_returned_mids;   // Storage of memory for mids returned to MSDK lib
 
@@ -657,51 +782,7 @@ private:
     {
         return mfxMemId(m_last_created_mid.fetch_add(1, std::memory_order_relaxed) + 1);
     }
-};
-
-class mfxRefCountableBase
-{
-public:
-    mfxRefCountableBase()
-        : m_ref_count(0)
-    {}
-
-    virtual ~mfxRefCountableBase()
-    {
-        if (m_ref_count.load(std::memory_order_relaxed) != 0)
-        {
-            std::ignore = MFX_STS_TRACE(MFX_ERR_UNKNOWN);
-        }
-    }
-
-    mfxU32 GetRefCounter() const
-    {
-        return m_ref_count.load(std::memory_order_relaxed);
-    }
-
-    void AddRef()
-    {
-        std::ignore = m_ref_count.fetch_add(1, std::memory_order_relaxed);
-    }
-
-    mfxStatus Release()
-    {
-        MFX_CHECK(m_ref_count.load(std::memory_order_relaxed), MFX_ERR_UNDEFINED_BEHAVIOR);
-
-        // fetch_sub return value immediately preceding
-        if (m_ref_count.fetch_sub(1, std::memory_order_relaxed) - 1 == 0)
-        {
-            Close();
-        }
-
-        return MFX_ERR_NONE;
-    }
-
-protected:
-    virtual void Close() { return; };
-
-private:
-    std::atomic<uint32_t> m_ref_count;
+#undef MFX_DETACH_FRAME
 };
 
 class mfxFrameSurfaceBaseInterface : public mfxRefCountableBase
@@ -709,7 +790,7 @@ class mfxFrameSurfaceBaseInterface : public mfxRefCountableBase
 public:
     mfxFrameSurfaceBaseInterface(mfxMemId mid, FrameAllocatorBase& allocator)
         : mfxRefCountableBase()
-        , m_allocator(allocator)
+        , m_allocator(&allocator)
         , m_mid(mid)
     {}
 
@@ -723,8 +804,8 @@ public:
     // this is actually a WA, which should be removed after Synchronize will be implemented through dependency manager
     mfxStatus Synchronize(mfxU32 timeout)
     {
-        return
-            m_allocator.Synchronize(m_sp, timeout);
+        // If allocator is detached, no need to sychronize surface. It is already synchronized
+        return m_allocator ? m_allocator->Synchronize(m_sp, timeout) : MFX_ERR_NONE;
     }
 
     void SetSyncPoint(mfxSyncPoint Sync)
@@ -732,14 +813,21 @@ public:
         m_sp = Sync;
     }
 
+    void DetachParentAllocator()
+    {
+        m_allocator = nullptr;
+    }
+
 protected:
+
     void Close() override
     {
-        m_allocator.Remove(m_mid);
+        if (m_allocator)
+            m_allocator->Remove(m_mid);
     }
 
 private:
-    FrameAllocatorBase&   m_allocator;
+    FrameAllocatorBase*   m_allocator;
     mfxMemId              m_mid;
     mfxSyncPoint          m_sp        = nullptr;
 };
@@ -924,10 +1012,10 @@ protected:
 class mfxSurfaceArrayImpl : public mfxSurfaceArray, public mfxRefCountableBase
 {
 public:
-    static mfxSurfaceArrayImpl* CreateSurfaceArray()
+    static mfxSurfaceArrayImpl* Create()
     {
         mfxSurfaceArrayImpl* surfArr = new mfxSurfaceArrayImpl();
-        ((mfxSurfaceArray*)surfArr)->AddRef(surfArr);
+        static_cast<mfxRefCountableBase*>(surfArr)->AddRef();
         return surfArr;
     }
 
@@ -980,8 +1068,6 @@ protected:
             if (surface)
                 std::ignore = MFX_STS_TRACE(ReleaseSurface(*surface));
         }
-
-        delete this;
     }
 
 private:
@@ -1025,9 +1111,27 @@ private:
     bool                    m_write_lock = false;
 };
 
+// This stub used for allocators which don't need staging surfaces
+class staging_adapter_stub
+{
+public:
+    staging_adapter_stub(mfxHDL = nullptr)
+    {}
+
+    operator mfxHDL() const { return nullptr; }
+
+    void SetDevice(mfxHDL)
+    {}
+};
+
 struct mfxFrameSurface1_sw : public RWAcessSurface
 {
-    mfxFrameSurface1_sw(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, mfxHDL staging_adapter, mfxHDL device, mfxU32 context, FrameAllocatorBase& allocator);
+    static mfxFrameSurface1_sw* Create(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>& staging_adapter, mfxHDL device, mfxU32 context, FrameAllocatorBase& allocator)
+    {
+        auto surface = new mfxFrameSurface1_sw(info, type, mid, staging_adapter, device, context, allocator);
+        static_cast<mfxRefCountableBase*>(surface)->AddRef();
+        return surface;
+    }
 
     ~mfxFrameSurface1_sw()
     {
@@ -1057,21 +1161,10 @@ struct mfxFrameSurface1_sw : public RWAcessSurface
         return (type & ~MFX_MEMTYPE_EXTERNAL_FRAME) | MFX_MEMTYPE_INTERNAL_FRAME;
     }
 
-private:
+protected:
+    mfxFrameSurface1_sw(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>& staging_adapter, mfxHDL device, mfxU32 context, FrameAllocatorBase& allocator);
+
     std::unique_ptr<mfxU8[]> m_data;
-};
-
-// This stub used for allocators which don't need staging surfaces
-class staging_adapter_stub
-{
-public:
-    staging_adapter_stub(mfxHDL = nullptr)
-    {}
-
-    operator mfxHDL() const { return nullptr; }
-
-    void SetDevice(mfxHDL)
-    {}
 };
 
 using FlexibleFrameAllocatorSW = FlexibleFrameAllocator<mfxFrameSurface1_sw, staging_adapter_stub>;

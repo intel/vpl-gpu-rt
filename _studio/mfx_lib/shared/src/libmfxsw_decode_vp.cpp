@@ -243,7 +243,7 @@ class RAIISurfaceArray
 public:
     RAIISurfaceArray()
     {
-        SurfArray = mfxSurfaceArrayImpl::CreateSurfaceArray();
+        SurfArray = mfxSurfaceArrayImpl::Create();
     };
 
     RAIISurfaceArray(const RAIISurfaceArray&) = delete;

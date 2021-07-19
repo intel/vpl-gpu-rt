@@ -198,7 +198,12 @@ private:
 
 struct mfxFrameSurface1_hw_vaapi : public RWAcessSurface
 {
-    mfxFrameSurface1_hw_vaapi(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, mfxHDL stg_adapter, mfxHDL display, mfxU32 context, FrameAllocatorBase& allocator);
+    static mfxFrameSurface1_hw_vaapi* Create(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>& stg_adapter, mfxHDL display, mfxU32 context, FrameAllocatorBase& allocator)
+    {
+        auto surface = new mfxFrameSurface1_hw_vaapi(info, type, mid, stg_adapter, display, context, allocator);
+        static_cast<mfxRefCountableBase*>(surface)->AddRef();
+        return surface;
+    }
 
     ~mfxFrameSurface1_hw_vaapi()
     {
@@ -221,6 +226,8 @@ struct mfxFrameSurface1_hw_vaapi : public RWAcessSurface
     static mfxU16 AdjustType(mfxU16 type) { return mfxFrameSurface1_sw::AdjustType(type); }
 
 private:
+    mfxFrameSurface1_hw_vaapi(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>& stg_adapter, mfxHDL display, mfxU32 context, FrameAllocatorBase& allocator);
+
     mutable std::shared_timed_mutex         m_hdl_mutex;
 
     VADisplay                               m_VADisplay;
