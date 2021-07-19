@@ -644,7 +644,7 @@ private:
 
             mfxU32 ref_counter = reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->GetRefCounter();
 
-            if (ref_counter > 1)
+            if (ref_counter > 2)
             {
                 // Bypass to original release function
                 return reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->Release();
