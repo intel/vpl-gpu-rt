@@ -2222,14 +2222,19 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.Height > hwCaps.ddi_caps.MaxPicHeight)
         return Error(MFX_WRN_PARTIAL_ACCELERATION);
 
-    if ((par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PART1 )!= MFX_PICSTRUCT_PROGRESSIVE && hwCaps.ddi_caps.NoInterlacedField){
-        if(par.mfx.LowPower == MFX_CODINGOPTION_ON)
-        {
-            par.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
-            changed = true;
+    if ((par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PART1) != MFX_PICSTRUCT_PROGRESSIVE)
+    {
+        if (((par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PART1) == MFX_PICSTRUCT_FIELD_TFF) ||
+            ((par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PART1) == MFX_PICSTRUCT_FIELD_BFF))
+        {   // TFF, BFF
+            MFX_CHECK(!hwCaps.ddi_caps.NoInterlacedField, MFX_ERR_UNSUPPORTED);
         }
         else
-            return Error(MFX_WRN_PARTIAL_ACCELERATION);
+        {   // UNKNOWN or garbage
+            par.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+            if (IsOn(par.mfx.LowPower))
+                changed = true;
+        }
     }
 
     if (hwCaps.ddi_caps.MaxNum_TemporalLayer != 0 &&
