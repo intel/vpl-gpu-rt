@@ -8933,7 +8933,7 @@ namespace
             sps[spsidx].profileIdc                = mfxU8(par.mfx.CodecProfile & MASK_PROFILE_IDC);
             sps[spsidx].seqParameterSetId         = mfxU8(i);
             sps[spsidx].picWidthInMbsMinus1       = mfx::CeilDiv<mfxU16>(extSvc->DependencyLayer[did].Width,  16) - 1;
-            sps[spsidx].picHeightInMapUnitsMinus1 = mfx::CeilDiv<mfxU16>(extSvc->DependencyLayer[did].Height, 16) / heightMul
+            sps[spsidx].picHeightInMapUnitsMinus1 = mfx::CeilDiv<mfxU16>(extSvc->DependencyLayer[did].Height, 16) / heightMul - 1;
 
             InitExtBufHeader(subset[spsidx - 1]);
             subset[spsidx - 1].interLayerDeblockingFilterControlPresentFlag = 1;
