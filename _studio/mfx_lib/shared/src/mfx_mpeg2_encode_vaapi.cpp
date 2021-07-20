@@ -329,10 +329,12 @@ VAAPIEncoder::VAAPIEncoder(VideoCORE* core)
     , m_codedbufISize(0)
     , m_codedbufPBSize(0)
     , m_pMiscParamsFps(0)
+    , m_pMiscParamsBrc(0)
     , m_pMiscParamsQuality(0)
     , m_pMiscParamsSeqInfo(0)
     , m_pMiscParamsSkipFrame(0)
     , m_miscParamFpsId(VA_INVALID_ID)
+    , m_miscParamBrcId(VA_INVALID_ID)
     , m_miscParamQualityId(VA_INVALID_ID)
     , m_miscParamSeqInfoId(VA_INVALID_ID)
     , m_miscParamSkipFrameId(VA_INVALID_ID)
@@ -468,6 +470,10 @@ mfxStatus VAAPIEncoder::Init(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrame
     m_pMiscParamsFps = (VAEncMiscParameterBuffer*)new mfxU8[sizeof(VAEncMiscParameterFrameRate) + sizeof(VAEncMiscParameterBuffer)];
     Zero((VAEncMiscParameterFrameRate &)m_pMiscParamsFps->data);
     m_pMiscParamsFps->type = VAEncMiscParameterTypeFrameRate;
+
+    m_pMiscParamsBrc = (VAEncMiscParameterBuffer*)new mfxU8[sizeof(VAEncMiscParameterRateControl) + sizeof(VAEncMiscParameterBuffer)];
+    Zero((VAEncMiscParameterRateControl &)m_pMiscParamsBrc->data);
+    m_pMiscParamsBrc->type = VAEncMiscParameterTypeRateControl;
 
     m_pMiscParamsQuality = (VAEncMiscParameterBuffer*)new mfxU8[sizeof(VAEncMiscParameterEncQuality) + sizeof(VAEncMiscParameterBuffer)];
     Zero((VAEncMiscParameterEncQuality &)m_pMiscParamsQuality->data);
@@ -937,12 +943,16 @@ mfxStatus VAAPIEncoder::FillSlices(ExecuteBuffers* pExecuteBuffers)
 
 mfxStatus VAAPIEncoder::FillMiscParameterBuffer(ExecuteBuffers* pExecuteBuffers)
 {
-    VAEncMiscParameterFrameRate  & miscFps      = (VAEncMiscParameterFrameRate  &)m_pMiscParamsFps->data;
-    VAEncMiscParameterEncQuality & miscQuality  = (VAEncMiscParameterEncQuality &)m_pMiscParamsQuality->data;
+    VAEncMiscParameterFrameRate   & miscFps     = (VAEncMiscParameterFrameRate   &)m_pMiscParamsFps->data;
+    VAEncMiscParameterRateControl & miscBrc     = (VAEncMiscParameterRateControl &)m_pMiscParamsBrc->data;
+    VAEncMiscParameterEncQuality  & miscQuality = (VAEncMiscParameterEncQuality  &)m_pMiscParamsQuality->data;
 
     VAStatus                      vaSts;
 
     PackMfxFrameRate(pExecuteBuffers->m_FrameRateExtN, pExecuteBuffers->m_FrameRateExtD, miscFps.framerate);
+
+    miscBrc.bits_per_second = pExecuteBuffers->m_sps.MaxBitRate * 1000;
+    miscBrc.target_percentage = pExecuteBuffers->m_sps.MaxBitRate ? uint32_t(pExecuteBuffers->m_sps.bit_rate * 100. / pExecuteBuffers->m_sps.MaxBitRate) : 0;
 
     miscQuality.PanicModeDisable = pExecuteBuffers->m_bDisablePanicMode ? 1 : 0;
 
@@ -957,6 +967,21 @@ mfxStatus VAAPIEncoder::FillMiscParameterBuffer(ExecuteBuffers* pExecuteBuffers)
         m_pMiscParamsFps,
         &m_miscParamFpsId);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamBrcId);
+    MFX_CHECK_STS(sts);
+
+    if (pExecuteBuffers->m_sps.RateControlMethod == MFX_RATECONTROL_VBR)
+    {
+        vaSts = vaCreateBuffer(m_vaDisplay,
+            m_vaContextEncode,
+            VAEncMiscParameterBufferType,
+            sizeof(VAEncMiscParameterRateControl) + sizeof(VAEncMiscParameterBuffer),
+            1,
+            m_pMiscParamsBrc,
+            &m_miscParamBrcId);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    }
 
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamQualityId);
     MFX_CHECK_STS(sts);
@@ -1278,6 +1303,9 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
     if (m_miscParamFpsId != VA_INVALID_ID)
         configBuffers.push_back(m_miscParamFpsId);
 
+    if (m_miscParamBrcId != VA_INVALID_ID)
+        configBuffers.push_back(m_miscParamBrcId);
+
     if (m_miscParamQualityId != VA_INVALID_ID)
         configBuffers.push_back(m_miscParamQualityId);
 
@@ -1495,6 +1523,8 @@ mfxStatus VAAPIEncoder::Close()
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::Close");
     delete [] (mfxU8 *)m_pMiscParamsFps;
     m_pMiscParamsFps = 0;
+    delete [] (mfxU8 *)m_pMiscParamsBrc;
+    m_pMiscParamsBrc = 0;
     delete [] (mfxU8 *)m_pMiscParamsQuality;
     m_pMiscParamsQuality = 0;
     delete [] m_pMiscParamsSeqInfo;
@@ -1518,6 +1548,9 @@ mfxStatus VAAPIEncoder::Close()
     }
 
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamFpsId);
+    std::ignore = MFX_STS_TRACE(sts);
+
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamBrcId);
     std::ignore = MFX_STS_TRACE(sts);
 
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamQualityId);
