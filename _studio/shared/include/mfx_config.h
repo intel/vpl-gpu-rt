@@ -55,10 +55,6 @@
 #define MFX_ENV_CFG_ENABLE
 #endif
 
-#if defined(MFX_ENABLE_CPLIB)
-#define MFX_ENABLE_CP
-#endif
-
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE) || defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
 #define MFX_ENABLE_MJPEG_VIDEO_CODEC
 #endif

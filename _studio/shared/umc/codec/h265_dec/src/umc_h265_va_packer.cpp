@@ -81,20 +81,12 @@ namespace UMC_HEVC_DECODER
 
 
     extern Packer * CreatePackerVAAPI(VideoAccelerator*);
-#if defined(MFX_ENABLE_CPLIB)
-    extern Packer * CreatePackerCENC(VideoAccelerator*);
-#endif
 
 Packer * Packer::CreatePacker(VideoAccelerator * va)
 {
     (void)va;
     Packer * packer = 0;
 
-#ifdef MFX_ENABLE_CPLIB
-    if (va->GetProtectedVA() && IS_PROTECTION_CENC(va->GetProtectedVA()->GetProtected()))
-        packer = CreatePackerCENC(va);
-    else
-#endif
     packer = CreatePackerVAAPI(va);
     return packer;
 }

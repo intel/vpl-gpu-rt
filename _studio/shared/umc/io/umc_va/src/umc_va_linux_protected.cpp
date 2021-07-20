@@ -47,12 +47,6 @@ void ProtectedVA::SetBitstream(mfxBitstream *bs)
     if (!bs)
         return;
 
-    if (IS_PROTECTION_CENC(m_protected))
-    {
-        m_bs = *bs;
-        return;
-    }
-
 }
 
 mfxBitstream * ProtectedVA::GetBitstream()

@@ -50,7 +50,6 @@ set(sources_common
     ${MSDK_STUDIO_ROOT}/shared/include/mfxstructures-int.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfxstructurespro.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfxvideo++int.h
-    ${MSDK_STUDIO_ROOT}/shared/include/mfx_cenc.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_ext_buffers.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_reflect.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_timing.h
