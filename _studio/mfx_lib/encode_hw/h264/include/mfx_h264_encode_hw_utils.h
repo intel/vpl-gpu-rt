@@ -2913,7 +2913,7 @@ private:
     protected:
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
         std::shared_ptr<CMC>
-            amtMctf;
+            m_mctfDenoiser;
 
         mfxStatus SubmitToMctf(
             DdiTask * pTask
