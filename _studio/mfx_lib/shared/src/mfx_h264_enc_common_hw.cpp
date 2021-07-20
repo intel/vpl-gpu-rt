@@ -1412,12 +1412,12 @@ Return value:
 MFX_WRN_INCOMPATIBLE_VIDEO_PARAM - if initial value of par.mfx.LowPower is not equal to MFX_CODINGOPTION_ON, MFX_CODINGOPTION_OFF or MFX_CODINGOPTION_UNKNOWN
 MFX_ERR_NONE - if no errors
 */
-mfxStatus MfxHwH264Encode::SetLowPowerDefault(MfxVideoParam& par, const eMFXHWType& platfrom)
+mfxStatus MfxHwH264Encode::SetLowPowerDefault(MfxVideoParam& par, const eMFXHWType& platform)
 {
     mfxStatus sts = CheckTriStateOption(par.mfx.LowPower) == false ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
-    (void)platfrom; // fix wrn for non Gen11 build
-    if (  (platfrom == MFX_HW_JSL
-        || platfrom == MFX_HW_EHL
+    (void)platform; // fix wrn for non Gen11 build
+    if (  (platform == MFX_HW_JSL
+        || platform == MFX_HW_EHL
        )
         && par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
     {
