@@ -30,10 +30,6 @@
 #include "umc_frame_allocator.h"
 #include "mfxstructures.h"
 
-#if defined(MFX_ENABLE_CPLIB)
-#include "mfx_cenc.h"
-#endif
-
 #define UMC_VA_NUM_OF_COMP_BUFFERS       8
 #define UMC_VA_DECODE_STREAM_OUT_ENABLE  2
 
@@ -533,27 +529,6 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
                 umcRes = UMC_ERR_FAILED;
             }
         }
-
-#ifdef MFX_ENABLE_CPLIB
-        if (UMC_OK == umcRes && m_protectedVA && IS_PROTECTION_CENC(m_protectedVA->GetProtected()))
-        {
-            va_attributes[attribsNumber].type = VAConfigAttribEncryption;
-            if (m_protectedVA->GetProtected() == MFX_PROTECTION_CENC_WV_CLASSIC)
-            {
-                if (va_attributes[3].value & VA_ENCRYPTION_TYPE_CENC_CBC)
-                    va_attributes[attribsNumber].value = VA_ENCRYPTION_TYPE_CENC_CBC;
-            }
-            else if (m_protectedVA->GetProtected() == MFX_PROTECTION_CENC_WV_GOOGLE_DASH)
-            {
-                if (va_attributes[3].value & VA_ENCRYPTION_TYPE_CENC_CTR_LENGTH)
-                    va_attributes[attribsNumber].value = VA_ENCRYPTION_TYPE_CENC_CTR_LENGTH;
-            }
-            else
-                umcRes = UMC_ERR_FAILED;
-
-            attribsNumber++;
-        }
-#endif
 
         if (UMC_OK == umcRes)
         {

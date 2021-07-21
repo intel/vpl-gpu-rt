@@ -127,13 +127,6 @@ Status VATaskSupplier::Init(VideoDecoderParams *pInit)
     H264VideoDecoderParams *initH264 = DynamicCast<H264VideoDecoderParams> (pInit);
     m_DPBSizeEx = m_iThreadNum + (initH264 ? initH264->m_bufferedFrames : 0);
 
-#if defined (UMC_VA)
-    if (m_va && m_va->GetProtectedVA() && IS_PROTECTION_CENC(m_va->GetProtectedVA()->GetProtected()))
-    {
-        m_DPBSizeEx += 2;
-    }
-#endif
-
     m_sei_messages = new SEI_Storer();
     m_sei_messages->Init();
     m_lazyCopier.Reset();
