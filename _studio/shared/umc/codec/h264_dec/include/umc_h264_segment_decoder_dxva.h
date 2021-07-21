@@ -121,12 +121,14 @@ public:
 
     void DecodePicture(H264DecoderFrame * pFrame, int32_t field)
     {
+        Status sts = 0;
         if (!m_va)
             return;
 
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H264 decode DDISubmitTask");
+        PERF_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, 0, make_event_data(this), [&]() { return make_event_data(sts);});
 
-        Status sts = m_va->BeginFrame(pFrame->GetFrameData()->GetFrameMID(), field);
+        sts = m_va->BeginFrame(pFrame->GetFrameData()->GetFrameMID(), field);
         if (sts != UMC_OK)
             throw h264_exception(sts);
 

@@ -118,11 +118,14 @@ public:
 
     void StartDecodingFrame(H265DecoderFrame * pFrame)
     {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H265 decode DDISubmitTask begin");
+        UMC::Status sts = 0;
         if (!m_va)
             return;
 
-        UMC::Status sts = m_va->BeginFrame(pFrame->GetFrameMID(), 0);
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H265 decode DDISubmitTask begin");
+        PERF_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, 0, make_event_data(this), [&]() { return make_event_data(sts);});
+
+        sts = m_va->BeginFrame(pFrame->GetFrameMID(), 0);
         if (sts != UMC::UMC_OK)
             throw h265_exception(sts);
 

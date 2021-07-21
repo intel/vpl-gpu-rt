@@ -66,23 +66,24 @@ static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession* session, mfxIMPL
 
 mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 {
-    mfxStatus mfxRes;
+    mfxStatus mfxRes = MFX_ERR_NONE;
     int adapterNum = 0;
     mfxIMPL impl = par.Implementation & (MFX_IMPL_VIA_ANY - 1);
     mfxIMPL implInterface = par.Implementation & -MFX_IMPL_VIA_ANY;
 
+    MFXTrace_PerfInit();
     MFX_TRACE_INIT();
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "ThreadName=MSDK app");
     }
-
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXInitEx");
-    ETW_NEW_EVENT(MFX_TRACE_API_MFX_INIT_EX_TASK, 0, make_event_data((mfxU32) par.Implementation, par.GPUCopy), [&](){ return make_event_data(mfxRes, session ? *session : nullptr);});
+    PERF_EVENT(MFX_TRACE_API_MFX_INIT_EX_TASK, 0, make_event_data((mfxU32) par.Implementation, par.GPUCopy), [&](){ return make_event_data(mfxRes, session ? *session : nullptr);});
 
     // check the library version
     if (MakeVersion(par.Version.Major, par.Version.Minor) > MFX_VERSION)
     {
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+        mfxRes = MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(mfxRes);
     }
 
     // check error(s)
@@ -94,7 +95,8 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         (MFX_IMPL_HARDWARE3 != impl) &&
         (MFX_IMPL_HARDWARE4 != impl))
     {
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+        mfxRes = MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(mfxRes);
     }
 
     // if user did not specify MFX_IMPL_VIA_* treat it as MFX_IMPL_VIA_ANY
@@ -105,7 +107,8 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         (MFX_IMPL_VIA_VAAPI != implInterface) &&
         (MFX_IMPL_VIA_ANY != implInterface))
     {
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+        mfxRes = MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(mfxRes);
     }
 
     // set the adapter number
@@ -132,19 +135,20 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     // app. must use MFXInitialize for 2.x features
     if (par.Version.Major > 1)
     {
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+        mfxRes = MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(mfxRes);
     }
 
-    mfxStatus sts = MFXInit_Internal(par, session, implInterface, adapterNum);
+    mfxRes = MFXInit_Internal(par, session, implInterface, adapterNum);
 
     // oneVPL should report 1.255 API version when it was initialized through MFXInit / MFXInitEx
-    if (session && *session && sts >= MFX_ERR_NONE)
+    if (session && *session && mfxRes >= MFX_ERR_NONE)
     {
         (*session)->m_versionToReport.Major = 1;
         (*session)->m_versionToReport.Minor = 255;
     }
 
-    return sts;
+    return mfxRes;
 
 } // mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 
@@ -192,8 +196,9 @@ static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession *session, mfxIMPL
 mfxStatus MFXDoWork(mfxSession session)
 {
     mfxStatus res;
+
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXDoWork");
-    ETW_NEW_EVENT(MFX_TRACE_API_DO_WORK_TASK, 0, make_event_data(session), [&](){ return make_event_data(res);});
+    PERF_EVENT(MFX_TRACE_API_DO_WORK_TASK, 0, make_event_data(session), [&](){ return make_event_data(res);});
 
     // check error(s)
     if (0 == session)
@@ -216,9 +221,18 @@ mfxStatus MFXDoWork(mfxSession session)
     return res;
 } // mfxStatus MFXDoWork(mfxSession *session)
 
+struct MFXTrace_PerfCloseOnExit
+{
+    ~MFXTrace_PerfCloseOnExit()
+    {
+        MFXTrace_PerfClose();
+    }
+};
+
 mfxStatus MFXClose(mfxSession session)
 {
     mfxStatus mfxRes = MFX_ERR_NONE;
+    MFXTrace_PerfCloseOnExit MFXTrace_PerfClose;
 
     // check error(s)
     if (0 == session)
@@ -233,7 +247,7 @@ mfxStatus MFXClose(mfxSession session)
         // since it inserts class variable on stack which calls to trace library in the
         // destructor.
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXClose");
-        ETW_NEW_EVENT(MFX_TRACE_API_MFX_CLOSE_TASK, 0, make_event_data(session), [&](){ return make_event_data(mfxRes);});
+        PERF_EVENT(MFX_TRACE_API_MFX_CLOSE_TASK, 0, make_event_data(session), [&](){ return make_event_data(mfxRes);});
 
         // parent session can't be closed,
         // because there is no way to let children know about parent's death.
@@ -275,7 +289,7 @@ mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* sess
     mfxStatus mfxRes = MFX_ERR_NONE;
 
     MFX_TRACE_INIT();
-    ETW_NEW_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK_ETW, 0, make_event_data((mfxU32)param.AccelerationMode, param.VendorImplID),
+    PERF_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK, 0, make_event_data((mfxU32)param.AccelerationMode, param.VendorImplID),
         [&](){ return make_event_data(mfxRes, session ? *session : nullptr); }
     );
 
@@ -451,7 +465,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
     MFX_TRACE_INIT();
 
-    ETW_NEW_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK_ETW, 0, make_event_data((mfxU32)format),
+    PERF_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, 0, make_event_data((mfxU32)format),
         [&]() { return make_event_data(*num_impls); }
     );
 

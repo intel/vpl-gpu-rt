@@ -29,9 +29,8 @@ mfxStatus MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfx
 {
     mfxStatus mfxRes = MFX_ERR_NONE;
 
-
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoCORE_SyncOperation");
-    ETW_NEW_EVENT(MFX_TRACE_API_SYNC_OPERATION_TASK, 0, make_event_data(session, syncp, wait), [&](){ return make_event_data(mfxRes, syncp);});
+    PERF_EVENT(MFX_TRACE_API_SYNC_OPERATION_TASK, 0, make_event_data(session, syncp, wait), [&](){ return make_event_data(mfxRes, syncp);});
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(syncp, MFX_ERR_NULL_PTR);
 

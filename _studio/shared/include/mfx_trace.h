@@ -26,6 +26,7 @@
 #include <functional>
 #include <tuple>
 #include <utility>
+#include <memory>
 #endif
 
 #ifndef MFX_TRACE_DISABLE
@@ -70,7 +71,7 @@ extern "C"
 {
 #endif
 
-// this is driven by ETW
+// this is for perf events
 enum mfxTraceTaskType
 {
     MFX_TRACE_DEFAULT_TASK = 0,
@@ -97,11 +98,15 @@ enum mfxTraceTaskType
     MFX_TRACE_API_DO_WORK_TASK,
     MFX_TRACE_API_SYNC_OPERATION_TASK,
     MFX_TRACE_HOTSPOT_SCHED_WAIT_GLOBAL_EVENT_TASK,
-    MFX_TRACE_HOTSPOT_DDI_EXECUTE_D3DX_TASK,
-    MFX_TRACE_HOTSPOT_DDI_QUERY_D3DX_TASK,
+    MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK,
+    MFX_TRACE_HOTSPOT_DDI_WAIT_TASK_SYNC,
+    MFX_TRACE_HOTSPOT_DDI_QUERY_TASK,
     MFX_TRACE_HOTSPOT_CM_COPY,
-    MFX_TRACE_API_MFXINITIALIZE_TASK_ETW,
-    MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK_ETW,
+    MFX_TRACE_HOTSPOT_COPY_DX11_TO_DX9,
+    MFX_TRACE_HOTSPOT_COPY_DX9_TO_DX11,
+    MFX_TRACE_HOTSPOT_SCHED_ROUTINE,
+    MFX_TRACE_API_MFXINITIALIZE_TASK,
+    MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK,
 };
 
 // list of output modes
@@ -199,6 +204,10 @@ typedef enum
     #define MFX_TRACE_LEVEL         MFX_TRACE_LEVEL_DEFAULT
 #endif
 
+// Perf traces
+mfxTraceU32 MFXTrace_PerfInit();
+mfxTraceU32 MFXTrace_PerfClose();
+
 /*------------------------------------------------------------------------------*/
 
 #ifdef MFX_TRACE_ENABLE
@@ -287,15 +296,16 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
 
 /*------------------------------------------------------------------------------*/
 
-// ETW traces
-
+// Perf traces
+mfxTraceU32 MFXTrace_PerfEvent(uint16_t task, uint8_t opcode, uint8_t level, uint64_t size, void *ptr);
 
 #ifdef __cplusplus
 }
 #endif
 
+#pragma pack(push, 2)
 
-// struct event_data contains arguments we need to trace in ETW
+// struct event_data contains arguments we need to trace in perf events
 // It contains variadic amount of arguments
 template <typename ...>
 struct event_data;
@@ -320,10 +330,81 @@ struct event_data<T, Rest...>
 };
 
 
+#pragma pack(pop)
 
+// Utility function for maintaining correct arguments order in event_data<...>()
+template <typename Tuple, std::size_t... I>
+auto make_event_data(Tuple&& t, std::index_sequence<I...>)
+{
+    return event_data<
+        typename std::tuple_element<sizeof...(I) - I - 1, Tuple>::type...
+    >(std::get<sizeof...(I) - I - 1>(std::forward<Tuple>(t))...);
+}
 
+// Helper function for creating event_data<...>() object
+template <typename ...Args>
+auto make_event_data(Args&&... args)
+{
+    return make_event_data(
+        std::forward_as_tuple(std::forward<Args>(args)...),
+        std::make_index_sequence<sizeof...(args)>{}
+    );
+}
 
-#define ETW_NEW_EVENT(task, level, ...)
+// PerfScopedTrace objects are created using PERF_EVENT macro
+class PerfScopedTrace
+{
+    std::function<void()> at_exit;
+
+public:
+    template <typename Func, typename ...Args>
+    PerfScopedTrace(uint16_t task, uint8_t level, event_data<Args...> data, Func at_exit_func)
+    {
+        using F = typename std::decay<Func>::type;
+        auto f = new F(at_exit_func);
+        // Bind at_exit function to trace values at the end of the function execution
+        at_exit = std::bind(get_thunk<F>(), f, task, level);
+
+        // Send event data on PerfScopedTrace creation
+        write(task, 1, level, data);
+    }
+
+    ~PerfScopedTrace()
+    {
+        at_exit();
+    }
+
+    template <typename T>
+    static void write(uint16_t task, uint8_t  opcode, uint8_t level, T&& data)
+    {
+        MFXTrace_PerfEvent(task, opcode, level, sizeof(data), &data);
+    }
+
+    static void write(uint16_t task, uint8_t  opcode, uint8_t level, event_data<>& /*data*/)
+    {
+        MFXTrace_PerfEvent(task, opcode, level, 0, nullptr);
+    }
+
+    template <typename T>
+    static void thunk(void* f, uint16_t task, uint8_t level)
+    {
+        std::unique_ptr<T> p { static_cast<T*>(f) };
+
+        auto e = (*p)();
+
+        // Send event data at function exit
+        write(task, 2, level, e);
+    }
+
+    template <typename T>
+    static constexpr auto get_thunk() noexcept {
+        return &thunk<T>;
+    }
+};
+
+// This macro is recommended to use instead creating PerfScopedTrace object directly
+#define PERF_EVENT(task, level, data, at_exit_func) \
+    PerfScopedTrace _perf_scoped_trace##__LINE__ (task, level, data, at_exit_func)
 
 
 #ifdef __cplusplus
@@ -363,7 +444,7 @@ extern "C" {
 #define MFX_TRACE_CLOSE()
 #define MFX_TRACE_CLOSE_RES(res)
 #define MFX_LTRACE(_trace_all_params)
-#define ETW_NEW_EVENT(task, level, ...)
+#define PERF_EVENT(task, level, ...)
 #endif
 
 /*------------------------------------------------------------------------------*/
@@ -599,10 +680,22 @@ struct TraceTaskType2TraceLevel<MFX_TRACE_API_SYNC_OPERATION_TASK> : std::integr
 template <>
 struct TraceTaskType2TraceLevel<MFX_TRACE_HOTSPOT_SCHED_WAIT_GLOBAL_EVENT_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_HOTSPOTS> {};
 template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_HOTSPOT_DDI_EXECUTE_D3DX_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_HOTSPOTS> {};
+struct TraceTaskType2TraceLevel<MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_HOTSPOTS> {};
 template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_HOTSPOT_DDI_QUERY_D3DX_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_HOTSPOTS> {};
+struct TraceTaskType2TraceLevel<MFX_TRACE_HOTSPOT_DDI_WAIT_TASK_SYNC> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_HOTSPOTS> {};
+template <>
+struct TraceTaskType2TraceLevel<MFX_TRACE_HOTSPOT_DDI_QUERY_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_HOTSPOTS> {};
 template <>
 struct TraceTaskType2TraceLevel<MFX_TRACE_HOTSPOT_CM_COPY> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_HOTSPOTS> {};
+template <>
+struct TraceTaskType2TraceLevel<MFX_TRACE_HOTSPOT_COPY_DX11_TO_DX9> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_HOTSPOTS> {};
+template <>
+struct TraceTaskType2TraceLevel<MFX_TRACE_HOTSPOT_COPY_DX9_TO_DX11> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_HOTSPOTS> {};
+template <>
+struct TraceTaskType2TraceLevel<MFX_TRACE_HOTSPOT_SCHED_ROUTINE> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_HOTSPOTS> {};
+template <>
+struct TraceTaskType2TraceLevel<MFX_TRACE_API_MFXINITIALIZE_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
+template <>
+struct TraceTaskType2TraceLevel<MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
 
 #endif // #ifndef __MFX_TRACE_H__

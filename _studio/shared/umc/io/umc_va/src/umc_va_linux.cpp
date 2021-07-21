@@ -1037,11 +1037,15 @@ Status LinuxVideoAccelerator::QueryTaskStatus(int32_t FrameBufIndex, void * stat
 
 Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorruption)
 {
+    Status umcRes = 0;
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Decode DDIWaitTaskSync");
+    PERF_EVENT(MFX_TRACE_HOTSPOT_DDI_WAIT_TASK_SYNC, 0, make_event_data(), [&]() { return make_event_data(umcRes);});
+
     if (FrameBufIndex < 0)
         return UMC_ERR_INVALID_PARAMS;
 
     VASurfaceID *surface;
-    Status umcRes = m_allocator->GetFrameHandle(FrameBufIndex, &surface);
+    umcRes = m_allocator->GetFrameHandle(FrameBufIndex, &surface);
     if (umcRes != UMC_OK)
         return umcRes;
 
@@ -1060,7 +1064,8 @@ Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorrupti
         if (surfCorruption) *(uint16_t*)surfCorruption = MFX_CORRUPTION_MAJOR;
         return UMC_OK;
     }
-    return va_to_umc_res(va_sts);
+    umcRes = va_to_umc_res(va_sts);
+    return umcRes;
 }
 
 }; // namespace UMC

@@ -13,6 +13,7 @@ target_sources(mfx_trace
     src/mfx_trace.cpp
     src/mfx_trace_ftrace.cpp
     src/mfx_trace_itt.cpp
+    src/mfx_trace_ir.cpp
     src/mfx_trace_stat.cpp
     src/mfx_trace_textlog.cpp
     src/mfx_trace_utils.cpp
