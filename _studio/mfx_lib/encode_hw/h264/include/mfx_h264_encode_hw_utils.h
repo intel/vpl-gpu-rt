@@ -71,6 +71,16 @@ bool bRateControlLA(mfxU16 mode)
     return bIntRateControlLA(mode);
 }
 
+inline constexpr
+bool hasSupportVME(eMFXHWType platform)
+{
+    return
+        (platform <= MFX_HW_ADL_P
+            && platform != MFX_HW_JSL
+            && platform != MFX_HW_EHL
+            );
+}
+
 #define MFX_H264ENC_HW_TASK_TIMEOUT 2000
 #define MFX_H264ENC_HW_TASK_TIMEOUT_SIM 600000
 
