@@ -1155,8 +1155,18 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     {
         request.Type |= MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET;
     }
+
+    // Recon surface width/height must be align at 16
+    mfxU16 width = request.Info.Width;
+    mfxU16 height = request.Info.Height;
+    request.Info.Width = mfx::align2_value(width, 16);
+    request.Info.Height = mfx::align2_value(height, 16);
+
     sts = m_rec.Alloc(m_core, request, bPanicModeSupport);
     MFX_CHECK_STS(sts);
+
+    request.Info.Width = width;
+    request.Info.Height = height;
 
     sts = m_ddi->Register(m_rec.NumFrameActual ? m_rec : m_raw, D3DDDIFMT_NV12);
     MFX_CHECK_STS(sts);
@@ -1257,7 +1267,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
     m_maxBsSize = request.Info.Width * request.Info.Height;
 
-    m_NumSlices = m_video.mfx.FrameInfo.Height / 16;
+    m_NumSlices = mfx::CeilDiv<mfxU16>(m_video.mfx.FrameInfo.Height, 16);
 
     sts = m_bit.Alloc(m_core, request, false);
     MFX_CHECK_STS(sts);

@@ -1793,8 +1793,8 @@ namespace
         MFX_CHECK(width  > 0, MFX_ERR_INVALID_VIDEO_PARAM);
         MFX_CHECK(height > 0, MFX_ERR_INVALID_VIDEO_PARAM);
 
-        MFX_CHECK((width  & 15) == 0, MFX_ERR_INVALID_VIDEO_PARAM);
-        MFX_CHECK((height & 15) == 0, MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK((width  & 1) == 0, MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK((height & 1) == 0, MFX_ERR_INVALID_VIDEO_PARAM);
 
         // repeat flags are for EncodeFrameAsync
         if (picStruct & MFX_PICSTRUCT_PART2)
@@ -2515,13 +2515,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         }
     }
 
-    if (par.mfx.FrameInfo.Width & 15)
+    if (par.mfx.FrameInfo.Width & 1)
     {
         unsupported = true;
         par.mfx.FrameInfo.Width = 0;
     }
 
-    if (par.mfx.FrameInfo.Height & 15)
+    if (par.mfx.FrameInfo.Height & 1)
     {
         unsupported = true;
         par.mfx.FrameInfo.Height = 0;
@@ -6285,8 +6285,8 @@ void MfxHwH264Encode::SetDefaults(
         extSps->gapsInFrameNumValueAllowedFlag  = par.calcParam.numTemporalLayer > 1
             || par.calcParam.tempScalabilityMode; // for tempScalabilityMode change of temporal structure shouldn't change SPS.
         extSps->frameMbsOnlyFlag                = (fi.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) ? 1 : 0;
-        extSps->picWidthInMbsMinus1             = (fi.Width / 16) - 1;
-        extSps->picHeightInMapUnitsMinus1       = (fi.Height / 16 / (2 - extSps->frameMbsOnlyFlag)) - 1;
+        extSps->picWidthInMbsMinus1             = mfx::CeilDiv<mfxU16>(fi.Width,  16) - 1;
+        extSps->picHeightInMapUnitsMinus1       = mfx::CeilDiv<mfxU16>(fi.Height, 16) / (2 - extSps->frameMbsOnlyFlag) - 1;
         extSps->direct8x8InferenceFlag          = 1;
 
         //Fix cropping for ARGB and YUY2 formats, need to redesign in case real 444 or 422 support in AVC.
@@ -6297,9 +6297,9 @@ void MfxHwH264Encode::SetDefaults(
         mfxU16 cropUnitY = CROP_UNIT_Y[croma_format] * (2 - extSps->frameMbsOnlyFlag);
 
         extSps->frameCropLeftOffset   = (fi.CropX / cropUnitX);
-        extSps->frameCropRightOffset  = (fi.Width - fi.CropW - fi.CropX) / cropUnitX;
+        extSps->frameCropRightOffset  = (mfx::align2_value(fi.Width,  16) - fi.CropW - fi.CropX) / cropUnitX;
         extSps->frameCropTopOffset    = (fi.CropY / cropUnitY);
-        extSps->frameCropBottomOffset = (fi.Height - fi.CropH - fi.CropY) / cropUnitY;
+        extSps->frameCropBottomOffset = (mfx::align2_value(fi.Height, 16) - fi.CropH - fi.CropY) / cropUnitY;
         extSps->frameCroppingFlag     =
             extSps->frameCropLeftOffset || extSps->frameCropRightOffset ||
             extSps->frameCropTopOffset  || extSps->frameCropBottomOffset;
@@ -8904,11 +8904,11 @@ namespace
         if (IsSvcProfile(par.mfx.CodecProfile)) // force SPS id to 0 for SVC profile only. For other profiles should be able to encode custom SPS id
             sps[0].seqParameterSetId         = 0;
 
-        sps[0].picWidthInMbsMinus1       = extSvc->DependencyLayer[firstDid].Width / 16 - 1;
-        sps[0].picHeightInMapUnitsMinus1 = extSvc->DependencyLayer[firstDid].Height / 16 / heightMul - 1;
+        sps[0].picWidthInMbsMinus1       = mfx::CeilDiv<mfxU16>(extSvc->DependencyLayer[firstDid].Width,  16) - 1;
+        sps[0].picHeightInMapUnitsMinus1 = mfx::CeilDiv<mfxU16>(extSvc->DependencyLayer[firstDid].Height, 16) / heightMul - 1;
 #else
-        sps[0].picWidthInMbsMinus1       = par.mfx.FrameInfo.Width / 16 - 1;
-        sps[0].picHeightInMapUnitsMinus1 = par.mfx.FrameInfo.Height / 16 / heightMul - 1;
+        sps[0].picWidthInMbsMinus1       = mfx::CeilDiv<mfxU16>(par.mfx.FrameInfo.Width,  16) - 1;
+        sps[0].picHeightInMapUnitsMinus1 = mfx::CeilDiv<mfxU16>(par.mfx.FrameInfo.Height, 16) / heightMul - 1;
 #endif
 
         if (numViews > 1)
@@ -8945,8 +8945,8 @@ namespace
             sps[spsidx].nalUnitType               = 15;
             sps[spsidx].profileIdc                = mfxU8(par.mfx.CodecProfile & MASK_PROFILE_IDC);
             sps[spsidx].seqParameterSetId         = mfxU8(i);
-            sps[spsidx].picWidthInMbsMinus1       = extSvc->DependencyLayer[did].Width / 16 - 1;
-            sps[spsidx].picHeightInMapUnitsMinus1 = extSvc->DependencyLayer[did].Height / 16 / heightMul - 1;
+            sps[spsidx].picWidthInMbsMinus1       = mfx::CeilDiv<mfxU16>(extSvc->DependencyLayer[did].Width,  16) - 1;
+            sps[spsidx].picHeightInMapUnitsMinus1 = mfx::CeilDiv<mfxU16>(extSvc->DependencyLayer[did].Height, 16) / heightMul - 1;
 
             InitExtBufHeader(subset[spsidx - 1]);
             subset[spsidx - 1].interLayerDeblockingFilterControlPresentFlag = 1;
