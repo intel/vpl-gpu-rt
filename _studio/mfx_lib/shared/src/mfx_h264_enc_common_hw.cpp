@@ -2227,7 +2227,11 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (((par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PART1) == MFX_PICSTRUCT_FIELD_TFF) ||
             ((par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PART1) == MFX_PICSTRUCT_FIELD_BFF))
         {   // TFF, BFF
-            MFX_CHECK(!hwCaps.ddi_caps.NoInterlacedField, MFX_ERR_UNSUPPORTED);
+            if (hwCaps.ddi_caps.NoInterlacedField)
+            {
+                par.mfx.FrameInfo.PicStruct = 0;
+                MFX_RETURN(MFX_ERR_UNSUPPORTED);
+            }
         }
         else
         {   // UNKNOWN or garbage
