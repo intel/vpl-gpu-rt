@@ -52,6 +52,7 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
 {
     std::unique_lock<std::mutex> guard(m_guard);
     mfxTaskHandle previousTaskHandle = {};
+    mfxU64 start, stop;
     const uint32_t threadNum = pContext->threadNum;
 
     {
@@ -63,52 +64,48 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
     // main working cycle for threads
     while (false == m_bQuit)
     {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "thread_proc");
-
-        MFX_CALL_INFO call = {};
-        mfxStatus mfxRes;
-
-        pContext->state = MFX_SCHEDULER_THREAD_CONTEXT::Waiting;
-
-        mfxRes = GetTask(call, previousTaskHandle, threadNum);
-        if (MFX_ERR_NONE == mfxRes)
         {
-            pContext->state = MFX_SCHEDULER_THREAD_CONTEXT::Running;
-            guard.unlock();
+            MFX_CALL_INFO call = {};
+
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "SchedulerRoutine");
+            PERF_EVENT(MFX_TRACE_HOTSPOT_SCHED_ROUTINE, 0,
+                make_event_data(threadNum), [&](){ return make_event_data(call.res);});
+            
+            pContext->state = MFX_SCHEDULER_THREAD_CONTEXT::Waiting;
+
+            if (MFX_ERR_NONE == GetTask(call, previousTaskHandle, threadNum))
             {
-                // perform asynchronous operation
-                call_pRoutine(call);
+                pContext->state = MFX_SCHEDULER_THREAD_CONTEXT::Running;
+                guard.unlock();
+                {
+                    // perform asynchronous operation
+                    call_pRoutine(call);
+                }
+                guard.lock();
+
+                pContext->workTime += call.timeSpend;
+                // save the previous task's handle
+                previousTaskHandle = call.taskHandle;
+
+                // mark the task completed,
+                // set the sync point into the high state if any.
+                MarkTaskCompleted(&call, threadNum);
+                continue;
             }
-            guard.lock();
-
-            pContext->workTime += call.timeSpend;
-            // save the previous task's handle
-            previousTaskHandle = call.taskHandle;
-
-            // mark the task completed,
-            // set the sync point into the high state if any.
-            MarkTaskCompleted(&call, threadNum);
-            //timer1.Stop(0);
         }
-        else
-        {
-            mfxU64 start, stop;
 
+        // mark beginning of sleep period
+        start = GetHighPerformanceCounter();
 
-            // mark beginning of sleep period
-            start = GetHighPerformanceCounter();
+        // there is no any task.
+        // sleep for a while until the event is signaled.
+        Wait(threadNum, guard);
 
-            // there is no any task.
-            // sleep for a while until the event is signaled.
-            Wait(threadNum, guard);
+        // mark end of sleep period
+        stop = GetHighPerformanceCounter();
 
-            // mark end of sleep period
-            stop = GetHighPerformanceCounter();
-
-            // update thread statistic
-            pContext->sleepTime += (stop - start);
-
-        }
+        // update thread statistic
+        pContext->sleepTime += (stop - start);
     }
 }
 

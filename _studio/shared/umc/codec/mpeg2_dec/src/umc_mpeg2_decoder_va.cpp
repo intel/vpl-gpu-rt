@@ -55,8 +55,10 @@ namespace UMC_MPEG2_DECODER
     // Pass picture to driver
     UMC::Status MPEG2DecoderVA::Submit(MPEG2DecoderFrame& frame, uint8_t fieldIndex)
     {
+        UMC::Status sts = 0;
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MPEG2 decode DDISubmitTask");
-        UMC::Status sts = m_va->BeginFrame(frame.GetMemID());
+        PERF_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, 0, make_event_data(this), [&]() { return make_event_data(sts);});
+        sts = m_va->BeginFrame(frame.GetMemID());
         MFX_CHECK(UMC::UMC_OK == sts, sts);
 
         m_packer->PackAU(frame, fieldIndex);

@@ -3241,7 +3241,7 @@ mfxStatus CmCopyWrapper::CopyVideoToSys(mfxFrameSurface1 *pDst, mfxFrameSurface1
     mfxStatus mfxRes = MFX_ERR_NONE;
 
     MFX_AUTO_TRACE("CmCopyWrapper::CopyVideoToSys");
-    ETW_NEW_EVENT(MFX_TRACE_HOTSPOT_CM_COPY, 0, make_event_data(MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_SYSTEM_MEMORY), [&](){ return make_event_data(mfxRes);});
+    PERF_EVENT(MFX_TRACE_HOTSPOT_CM_COPY, 0, make_event_data(MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_SYSTEM_MEMORY), [&](){ return make_event_data(mfxRes);});
 
     IppiSize roi = {std::min(pSrc->Info.Width, pDst->Info.Width), std::min(pSrc->Info.Height, pDst->Info.Height)};
 
@@ -3320,7 +3320,7 @@ mfxStatus CmCopyWrapper::CopySysToVideo(mfxFrameSurface1 *pDst, mfxFrameSurface1
     mfxStatus mfxRes = MFX_ERR_NONE;
 
     MFX_AUTO_TRACE("CmCopyWrapper::CopySysToVideo");
-    ETW_NEW_EVENT(MFX_TRACE_HOTSPOT_CM_COPY, 0, make_event_data(MFX_IOPATTERN_IN_SYSTEM_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY), [&](){ return make_event_data(mfxRes);});
+    PERF_EVENT(MFX_TRACE_HOTSPOT_CM_COPY, 0, make_event_data(MFX_IOPATTERN_IN_SYSTEM_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY), [&](){ return make_event_data(mfxRes);});
 
     IppiSize roi = {std::min(pSrc->Info.Width, pDst->Info.Width), std::min(pSrc->Info.Height, pDst->Info.Height)};
 
