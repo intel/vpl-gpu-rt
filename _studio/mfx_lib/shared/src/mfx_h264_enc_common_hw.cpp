@@ -919,10 +919,13 @@ namespace
         */
     }
 
-    mfxU16 GetDefaultNumRefFrames(mfxU32 targetUsage)
+    mfxU16 GetDefaultNumRefFrames(mfxU32 targetUsage, eMFXHWType platform)
     {
-        mfxU16 const DEFAULT_BY_TU[] = { 0, 3, 3, 3, 2, 1, 1, 1 };
-        return DEFAULT_BY_TU[targetUsage];
+        mfxU16 const DEFAULT_BY_TU[][8] = {
+            { 0, 3, 3, 3, 2, 1, 1, 1 },
+        };
+        (void)platform;
+        return DEFAULT_BY_TU[0][targetUsage];
     }
     mfxU16 GetMaxNumRefActivePL0(mfxU32 targetUsage,
                                         eMFXHWType platform,
@@ -5797,7 +5800,7 @@ void MfxHwH264Encode::SetDefaults(
 #endif
             ) ? 2 : 0;
         mfxU16 const nrfMin             = (par.mfx.GopRefDist > 1 ? 2 : 1) + nrfAdapt;
-        mfxU16 const nrfDefault         = std::max<mfxU16>(nrfMin, GetDefaultNumRefFrames(par.mfx.TargetUsage) + nrfAdapt);
+        mfxU16 const nrfDefault         = std::max<mfxU16>(nrfMin, GetDefaultNumRefFrames(par.mfx.TargetUsage, platform) + nrfAdapt);
         mfxU16 const nrfMaxByCaps       = mfx::clamp<mfxU16>(hwCaps.ddi_caps.MaxNum_Reference, 1, 8) * 2;
         mfxU16 const nrfMaxByLevel      = GetMaxNumRefFrame(par);
         mfxU16 const nrfMinForPyramid   = GetMinNumRefFrameForPyramid(par) + nrfAdapt;
