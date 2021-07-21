@@ -1,10 +1,3 @@
-add_library(fast_copy_sse4 OBJECT
-  ${MSDK_STUDIO_ROOT}/shared/include/fast_copy_sse4_impl.h
-  ${MSDK_STUDIO_ROOT}/shared/src/fast_copy_sse4_impl.cpp
-)
-target_include_directories(fast_copy_sse4 PRIVATE ${MSDK_STUDIO_ROOT}/shared/include)
-target_link_libraries(fast_copy_sse4 PRIVATE bitrate_control mfx_require_sse4_properties)
-
 set(sources_common
     scheduler/linux/src/mfx_scheduler_core.cpp
     scheduler/linux/src/mfx_scheduler_core_ischeduler.cpp
@@ -32,7 +25,7 @@ set(sources_common
     shared/include/feature_blocks/mfx_feature_blocks_init_macros.h
     shared/include/feature_blocks/mfx_feature_blocks_utils.h
     shared/include/mfx_utils_extbuf.h
-    ${CMAKE_BINARY_DIR}/mfxconfig.h  # Cmake-generated configuration derived from BuildOptions
+    ${MSDK_CMAKE_BINARY_ROOT}/mfxconfig.h  # Cmake-generated configuration derived from BuildOptions
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_config.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_common.h
 
@@ -66,7 +59,6 @@ set(sources_common
     ${MSDK_STUDIO_ROOT}/shared/src/mfx_umc_alloc_wrapper.cpp
     ${MSDK_STUDIO_ROOT}/shared/src/mfx_umc_mjpeg_vpp.cpp
     ${MSDK_STUDIO_ROOT}/shared/src/mfx_static_assert_structs.cpp
-    $<TARGET_OBJECTS:fast_copy_sse4>
   )
 
 set(sources_hw
@@ -85,80 +77,107 @@ set(sources_hw
     ${MSDK_STUDIO_ROOT}/shared/src/libmfx_core_vaapi.cpp
   )
 
-get_mfx_version(mfx_version_major mfx_version_minor)
+add_library(mfxcore OBJECT)
 
-set(VARIANTS hw)
+target_sources(mfxcore PRIVATE ${sources_common})
+target_sources(mfxcore PRIVATE ${sources_hw})
 
-foreach( variant ${VARIANTS} )
+set(HW_ONLY_LIBS
+  cmrt_cross_platform_hw
+  asc
+  genx
+  $<$<BOOL:${MFX_ENABLE_USER_ENCTOOLS}>:enctools_hw>
+)
 
-  if( DEFINED MFX_LIBNAME )
-    set( mfxlibname "${MFX_LIBNAME}")
-  else()
-    make_runtime_name( ${variant} mfxlibname )
-  endif()
+set(LIBS
+  bitrate_control
+  decode_hw
+  encode_hw
+  vpp_hw
+  mfx_common_hw
+  mfx_trace
+  ${HW_ONLY_LIBS}
+  $<$<BOOL:${ITT_FOUND}>:itt>
+  Threads::Threads
+  ${CMAKE_DL_LIBS}
+)
 
-  message( DEBUG "Runtime name: ${mfxlibname}")
+target_compile_definitions(mfxcore
+  PUBLIC
+    MFX_VA
+)
 
-  add_library(${mfxlibname} SHARED)
+target_include_directories(mfxcore
+  PUBLIC
+    scheduler/include
+    scheduler/linux/include
+)
 
-  target_sources(${mfxlibname} PRIVATE ${sources_common})
- 
+target_link_libraries(mfxcore
+  PUBLIC
+    ${LIBS}
+  PRIVATE
+    mfx_static_lib
+    mfx_sdl_properties
+)
 
-  if (variant MATCHES hw)
-    target_sources(${mfxlibname} PRIVATE ${sources_hw})
-  endif()
-
-  set(HW_ONLY_LIBS "")
-  if (variant MATCHES hw)
-    set(HW_ONLY_LIBS umc_va_hw cmrt_cross_platform_hw $<$<BOOL:${MFX_ENABLE_USER_ENCTOOLS}>:enctools_hw> asc genx)
-  endif()
-
-  set(LIBS
+add_library(fast_copy_sse4 OBJECT
+  ${MSDK_STUDIO_ROOT}/shared/include/fast_copy_sse4_impl.h
+  ${MSDK_STUDIO_ROOT}/shared/src/fast_copy_sse4_impl.cpp
+)
+target_include_directories(fast_copy_sse4
+  PRIVATE
+    ${MSDK_STUDIO_ROOT}/shared/include
+)
+target_link_libraries(fast_copy_sse4
+  PRIVATE
     bitrate_control
-    ${HW_ONLY_LIBS}
-    decode_${variant}
-    encode_${variant}
-    mfx_common_${variant}
-    vpp_${variant}
-    mfx_trace
+    mfx_require_sse4_properties
+)
+
+if( DEFINED MFX_LIBNAME )
+  set( mfxlibname "${MFX_LIBNAME}")
+else()
+  make_runtime_name( hw mfxlibname )
+endif()
+
+message( DEBUG "Runtime name: ${mfxlibname}")
+
+add_library(${mfxlibname} SHARED)
+
+target_sources(${mfxlibname}
+  PRIVATE
+    $<TARGET_OBJECTS:fast_copy_sse4>
+)
+
+target_link_libraries(${mfxlibname}
+  PRIVATE
+    mfxcore
     mfx_shared_lib
     mfx_sdl_properties
-    ${ITT_LIBRARIES}
-    Threads::Threads
-    ${CMAKE_DL_LIBS}
-  )
+)
 
-  target_include_directories(${mfxlibname}
-    PRIVATE
-      scheduler/include
-      scheduler/linux/include
-    )
+target_link_options(${mfxlibname}
+  PRIVATE
+    $<$<PLATFORM_ID:Linux>:LINKER:--version-script=${MSDK_LIB_ROOT}/libmfx-gen.map>
+)
 
-  target_link_options(${mfxlibname}
-    PRIVATE
-      $<$<PLATFORM_ID:Linux>:LINKER:--version-script=${MSDK_LIB_ROOT}/libmfx-gen.map>
-    )
-    target_link_libraries(${mfxlibname}
-      PRIVATE
-        ${LIBS}
-      )
+get_mfx_version(mfx_version_major mfx_version_minor)
 
-  set(libversion   1.${mfx_version_major}.${mfx_version_minor})
-  set(libsoversion 1.${mfx_version_major})
+set(libversion   1.${mfx_version_major}.${mfx_version_minor})
+set(libsoversion 1.${mfx_version_major})
 
-  set_target_properties(${mfxlibname} PROPERTIES
-     VERSION ${libversion}
-     SOVERSION ${libsoversion}
-  )
+set_target_properties(${mfxlibname} PROPERTIES
+    VERSION ${libversion}
+    SOVERSION ${libsoversion}
+)
 
-  install(TARGETS ${mfxlibname} LIBRARY DESTINATION ${MFX_MODULES_DIR})
+install(TARGETS ${mfxlibname} LIBRARY DESTINATION ${MFX_MODULES_DIR})
 
-  if (CMAKE_SYSTEM_NAME MATCHES Linux)
-    set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${mfxlibname}.pc")
-    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FNAME} @ONLY)
-    install( FILES ${PKG_CONFIG_FNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
-  endif()
-
-endforeach()
+if (CMAKE_SYSTEM_NAME MATCHES Linux)
+set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${mfxlibname}.pc")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FNAME} @ONLY)
+install( FILES ${PKG_CONFIG_FNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
+endif()
 
 include(sources_ext.cmake OPTIONAL)
