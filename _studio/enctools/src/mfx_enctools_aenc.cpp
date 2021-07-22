@@ -39,32 +39,21 @@ mfxStatus AEnc_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig 
     m_aencPar.SrcFrameWidth = frameInfo->Width;
     m_aencPar.SrcFrameHeight = frameInfo->Height;
 
-    if (ctrl.IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY)
+    if (DoDownScaling(*frameInfo))
     {
-        FrameWidth_aligned  = frameInfo->Width;
+        FrameWidth_aligned = ENC_TOOLS_DS_FRAME_WIDTH;
+        FrameHeight_aligned = ENC_TOOLS_DS_FRAME_HEIGHT;
+        m_aencPar.FrameWidth = ENC_TOOLS_DS_FRAME_WIDTH;
+        m_aencPar.FrameHeight = ENC_TOOLS_DS_FRAME_HEIGHT;
+        m_aencPar.Pitch = ENC_TOOLS_DS_FRAME_WIDTH;
+    }
+    else
+    {
+        FrameWidth_aligned = frameInfo->Width;
         FrameHeight_aligned = frameInfo->Height;
         m_aencPar.FrameWidth = frameInfo->CropW ? frameInfo->CropW : frameInfo->Width;
         m_aencPar.FrameHeight = frameInfo->CropH ? frameInfo->CropH : frameInfo->Height;
         m_aencPar.Pitch = frameInfo->Width;
-    }
-    else
-    {
-        if (DoDownScaling(*frameInfo))
-        {
-            FrameWidth_aligned = ENC_TOOLS_DS_FRAME_WIDTH;
-            FrameHeight_aligned = ENC_TOOLS_DS_FRAME_HEIGHT;
-            m_aencPar.FrameWidth = ENC_TOOLS_DS_FRAME_WIDTH;
-            m_aencPar.FrameHeight = ENC_TOOLS_DS_FRAME_HEIGHT;
-            m_aencPar.Pitch = ENC_TOOLS_DS_FRAME_WIDTH;
-        }
-        else
-        {
-            FrameWidth_aligned = frameInfo->Width;
-            FrameHeight_aligned = frameInfo->Height;
-            m_aencPar.FrameWidth = frameInfo->CropW ? frameInfo->CropW : frameInfo->Width;
-            m_aencPar.FrameHeight = frameInfo->CropH ? frameInfo->CropH : frameInfo->Height;
-            m_aencPar.Pitch = frameInfo->Width;
-        }
     }
 
     m_aencPar.CodecId = ctrl.CodecId;

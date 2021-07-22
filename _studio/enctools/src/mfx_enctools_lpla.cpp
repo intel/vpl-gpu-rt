@@ -160,6 +160,7 @@ mfxStatus LPLA_EncTool::InitEncParams(mfxEncToolsCtrl const & ctrl, mfxExtEncToo
     mfxStatus sts = MFX_ERR_NONE;
 
     // following configuration comes from HW recommendation
+    m_encParams.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY;
     m_encParams.AsyncDepth = 1;
     m_encParams.mfx.CodecId = MFX_CODEC_HEVC;
     m_encParams.mfx.LowPower = MFX_CODINGOPTION_ON;
@@ -288,7 +289,7 @@ MFXVideoSession* LPLA_EncTool::GetEncSession()
     return &m_mfxSession;
 }
 
-mfxStatus LPLA_EncTool::EncodeLA(mfxFrameSurface1* surface, mfxU16 FrameType, mfxSyncPoint* pVppSyncp)
+mfxStatus LPLA_EncTool::Submit(mfxFrameSurface1* surface, mfxU16 FrameType, mfxSyncPoint* pEncSyncp)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -296,13 +297,13 @@ mfxStatus LPLA_EncTool::EncodeLA(mfxFrameSurface1* surface, mfxU16 FrameType, mf
     m_bitstream.DataOffset = 0;
     mfxEncodeCtrl ctrl = { 0 };
     ctrl.FrameType = FrameType;
-    sts = m_pmfxENC->EncodeFrameAsync(&ctrl, surface, &m_bitstream, pVppSyncp);
+    sts = m_pmfxENC->EncodeFrameAsync(&ctrl, surface, &m_bitstream, pEncSyncp);
     MFX_CHECK_STS(sts);
 
     return sts;
 }
 
-mfxStatus LPLA_EncTool::StoreLAResults(mfxFrameSurface1* surface, mfxU16 FrameType)
+mfxStatus LPLA_EncTool::SaveEncodedFrameSize(mfxFrameSurface1* surface, mfxU16 FrameType)
 {
     mfxStatus sts = MFX_ERR_NONE;
     
@@ -330,25 +331,6 @@ mfxStatus LPLA_EncTool::StoreLAResults(mfxFrameSurface1* surface, mfxU16 FrameTy
         }
     }
 #endif
-    return sts;
-}
-
-mfxStatus LPLA_EncTool::Submit(mfxFrameSurface1 * surface, mfxU16 FrameType)
-{
-    mfxStatus sts = MFX_ERR_NONE;
-    mfxSyncPoint encSyncp;
-    MFX_CHECK_NULL_PTR1(surface);
-
-    sts = EncodeLA(surface, FrameType, &encSyncp);
-    MFX_CHECK_STS(sts);
-
-    const static mfxU32 msdk_wait_interval = 300000;
-    sts = m_mfxSession.SyncOperation(encSyncp, msdk_wait_interval);
-    MFX_CHECK_STS(sts);
-
-    sts = StoreLAResults(surface, FrameType);
-    MFX_CHECK_STS(sts);
-
     return sts;
 }
 

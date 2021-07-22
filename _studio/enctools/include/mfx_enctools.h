@@ -57,12 +57,11 @@ private:
     mfxFrameAllocator *m_pAllocator;
     MFXFrameAllocator *m_pETAllocator;
     mfxAllocatorParams *m_pmfxAllocatorParams;
-    MFXVideoSession m_mfxSession_LA;
+    MFXVideoSession *m_mfxSession_LA;
     MFXVideoSession m_mfxSession_SCD;
 
     std::unique_ptr<MFXVideoVPP> m_pmfxVPP_LA;
     std::unique_ptr<MFXVideoVPP> m_pmfxVPP_SCD;
-    mfxVideoParam m_mfxVppParams;
     mfxVideoParam m_mfxVppParams_LA;
     mfxVideoParam m_mfxVppParams_AEnc;
     mfxFrameAllocResponse m_VppResponse;
@@ -78,12 +77,14 @@ public:
         m_device(0),
         m_pAllocator(nullptr),
         m_pETAllocator(nullptr),
-        m_mfxVppParams(),
+        m_pmfxAllocatorParams(nullptr),
+        m_mfxSession_LA(nullptr),
         m_mfxVppParams_LA(),
         m_mfxVppParams_AEnc(),
-        m_VppResponse(),
-        m_IntSurfaces_SCD()
-    {}
+        m_VppResponse()
+    {
+        m_IntSurfaces_SCD.Data.Y = nullptr;
+    }
 
     virtual ~EncTools() { Close(); }
 
@@ -100,12 +101,11 @@ public:
 
 protected:
     mfxStatus InitMfxVppParams(mfxEncToolsCtrl const & ctrl);
-    mfxStatus InitVPP(mfxEncToolsCtrl const& ctrl, MFXVideoSession* pmfxLA_EncSession);
+    mfxStatus InitVPP(mfxEncToolsCtrl const & ctrl);
     mfxStatus CloseVPP();
 
     mfxStatus InitVPPSession(MFXVideoSession* pmfxSession);
-    mfxStatus VPPSync(MFXVideoSession* pmfxSession, mfxSyncPoint* pSyncp);
-    mfxStatus VPPDownScaleSurface(MFXVideoSession* m_pmfxSession, MFXVideoVPP* pVPP, mfxSyncPoint* pVppSyncp, mfxFrameSurface1* pInSurface, mfxFrameSurface1* pOutSurface, bool doSync);
+    mfxStatus VPPDownScaleSurface(MFXVideoSession* m_pmfxSession, MFXVideoVPP* pVPP, mfxSyncPoint* pVppSyncp, mfxFrameSurface1* pInSurface, mfxFrameSurface1* pOutSurface);
 };
 
 namespace EncToolsFuncs
