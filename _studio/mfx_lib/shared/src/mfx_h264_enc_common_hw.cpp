@@ -227,13 +227,6 @@ namespace
             ;
     }
 
-    bool hasSupportVME(eMFXHWType platform)
-    {
-        return
-            (platform <= MFX_HW_DG1
-            );
-    }
-
     inline mfxU16 GetMaxSupportedLevel()
     {
         return MFX_LEVEL_AVC_52;
@@ -1408,27 +1401,34 @@ mfxU8 MfxHwH264Encode::DetermineQueryMode(mfxVideoParam * in)
 /*
 Setting default value for LowPower option.
 By default LowPower is OFF (using DualPipe)
-For LKF, JSL/EHL: use LowPower by default i.e. if LowPower is Unknown then LowPower is ON
+For platforms that hasn't VME: use LowPower by default i.e. if LowPower is Unknown then LowPower is ON
 
 Return value:
 MFX_WRN_INCOMPATIBLE_VIDEO_PARAM - if initial value of par.mfx.LowPower is not equal to MFX_CODINGOPTION_ON, MFX_CODINGOPTION_OFF or MFX_CODINGOPTION_UNKNOWN
 MFX_ERR_NONE - if no errors
 */
-mfxStatus MfxHwH264Encode::SetLowPowerDefault(MfxVideoParam& par, const eMFXHWType& platform)
+mfxStatus MfxHwH264Encode::SetLowPowerDefault(MfxVideoParam& par, const eMFXHWType& platform, bool bIsQueryMode)
 {
-    mfxStatus sts = CheckTriStateOption(par.mfx.LowPower) == false ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
-    (void)platform; // fix wrn for non Gen11 build
-    if (  (platform == MFX_HW_JSL
-        || platform == MFX_HW_EHL
-       )
-        && par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
-    {
-        par.mfx.LowPower = MFX_CODINGOPTION_ON;
+    mfxStatus sts = MFX_ERR_NONE;
+
+    if (!hasSupportVME(platform))
+    {   // DualPipe (aka VME) is not available
+        if (!bIsQueryMode || par.mfx.LowPower != MFX_CODINGOPTION_UNKNOWN)
+            par.mfx.LowPower = MFX_CODINGOPTION_ON;
+
         return sts;
     }
 
-    if (par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
+    // Garbage values will be overridden to OFF
+    if (!CheckTriStateOption(par.mfx.LowPower))
+    {
+        sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
         par.mfx.LowPower = MFX_CODINGOPTION_OFF;
+    }
+
+    // On Init UNKNOWN values will be overridden to OFF
+    if (!bIsQueryMode)
+        SetDefaultOff(par.mfx.LowPower);
 
     return sts;
 }
