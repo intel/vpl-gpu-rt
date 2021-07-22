@@ -28,12 +28,12 @@ mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
     return MFX_ERR_UNSUPPORTED; \
 }
 
-FUNCTION_DEPRECATED_IMPL(PAK, QueryIOSurf,       (mfxSession /*session*/, mfxVideoParam */*par*/, mfxFrameAllocRequest */*request*/))
-FUNCTION_DEPRECATED_IMPL(PAK, Init,              (mfxSession /*session*/, mfxVideoParam */*par*/))
+FUNCTION_DEPRECATED_IMPL(PAK, QueryIOSurf,       (mfxSession /*session*/, mfxVideoParam * /*par*/, mfxFrameAllocRequest * /*request*/))
+FUNCTION_DEPRECATED_IMPL(PAK, Init,              (mfxSession /*session*/, mfxVideoParam * /*par*/))
 FUNCTION_DEPRECATED_IMPL(PAK, Close,             (mfxSession /*session*/))
-FUNCTION_DEPRECATED_IMPL(PAK, Reset,             (mfxSession /*session*/, mfxVideoParam */*par*/))
-FUNCTION_DEPRECATED_IMPL(PAK, Query,             (mfxSession /*session*/, mfxVideoParam */*in*/, mfxVideoParam */*out*/))
-FUNCTION_DEPRECATED_IMPL(PAK, GetVideoParam,     (mfxSession /*session*/, mfxVideoParam */*par*/))
-FUNCTION_DEPRECATED_IMPL(PAK, ProcessFrameAsync, (mfxSession /*session*/, mfxPAKInput */*in*/, mfxPAKOutput */*out*/, mfxSyncPoint */*syncp*/))
+FUNCTION_DEPRECATED_IMPL(PAK, Reset,             (mfxSession /*session*/, mfxVideoParam * /*par*/))
+FUNCTION_DEPRECATED_IMPL(PAK, Query,             (mfxSession /*session*/, mfxVideoParam * /*in*/, mfxVideoParam * /*out*/))
+FUNCTION_DEPRECATED_IMPL(PAK, GetVideoParam,     (mfxSession /*session*/, mfxVideoParam * /*par*/))
+FUNCTION_DEPRECATED_IMPL(PAK, ProcessFrameAsync, (mfxSession /*session*/, mfxPAKInput * /*in*/, mfxPAKOutput * /*out*/, mfxSyncPoint * /*syncp*/))
 #undef FUNCTION_DEPRECATED_IMPL
 

@@ -26,11 +26,11 @@ mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
     return MFX_ERR_UNSUPPORTED; \
 }
 
-FUNCTION_DEPRECATED_IMPL(ENC, QueryIOSurf,       (mfxSession /*session*/, mfxVideoParam */*par*/, mfxFrameAllocRequest */*request*/))
-FUNCTION_DEPRECATED_IMPL(ENC, Init,              (mfxSession /*session*/, mfxVideoParam */*par*/))
+FUNCTION_DEPRECATED_IMPL(ENC, QueryIOSurf,       (mfxSession /*session*/, mfxVideoParam * /*par*/, mfxFrameAllocRequest * /*request*/))
+FUNCTION_DEPRECATED_IMPL(ENC, Init,              (mfxSession /*session*/, mfxVideoParam * /*par*/))
 FUNCTION_DEPRECATED_IMPL(ENC, Close,             (mfxSession /*session*/))
-FUNCTION_DEPRECATED_IMPL(ENC, Reset,             (mfxSession /*session*/, mfxVideoParam */*par*/))
-FUNCTION_DEPRECATED_IMPL(ENC, Query,             (mfxSession /*session*/, mfxVideoParam */*in*/, mfxVideoParam */*out*/))
-FUNCTION_DEPRECATED_IMPL(ENC, GetVideoParam,     (mfxSession /*session*/, mfxVideoParam */*par*/))
-FUNCTION_DEPRECATED_IMPL(ENC, ProcessFrameAsync, (mfxSession /*session*/, mfxENCInput */*in*/, mfxENCOutput */*out*/, mfxSyncPoint */*syncp*/))
+FUNCTION_DEPRECATED_IMPL(ENC, Reset,             (mfxSession /*session*/, mfxVideoParam * /*par*/))
+FUNCTION_DEPRECATED_IMPL(ENC, Query,             (mfxSession /*session*/, mfxVideoParam * /*in*/, mfxVideoParam * /*out*/))
+FUNCTION_DEPRECATED_IMPL(ENC, GetVideoParam,     (mfxSession /*session*/, mfxVideoParam * /*par*/))
+FUNCTION_DEPRECATED_IMPL(ENC, ProcessFrameAsync, (mfxSession /*session*/, mfxENCInput * /*in*/, mfxENCOutput * /*out*/, mfxSyncPoint * /*syncp*/))
 #undef FUNCTION_DEPRECATED_IMPL
