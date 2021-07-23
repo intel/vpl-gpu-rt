@@ -4703,6 +4703,9 @@ mfxStatus Legacy::GetSliceHeader(
 
     return MFX_ERR_NONE;
 }
-
+bool Legacy::IsMain10SP(const mfxU16 codecProfile, const mfxExtHEVCParam* pHEVC)
+{
+     return codecProfile == MFX_PROFILE_HEVC_MAIN10 && pHEVC && pHEVC->GeneralConstraintFlags == MFX_HEVC_CONSTR_REXT_ONE_PICTURE_ONLY;
+}
 
 #endif
