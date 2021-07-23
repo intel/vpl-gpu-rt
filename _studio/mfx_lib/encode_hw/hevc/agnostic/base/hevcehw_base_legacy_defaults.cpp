@@ -170,7 +170,9 @@ public:
         {
             return par.mvp.mfx.GopPicSize;
         }
-        if (par.mvp.mfx.CodecProfile == MFX_PROFILE_HEVC_MAINSP)
+        const mfxExtHEVCParam* pHEVC = ExtBuffer::Get(par.mvp);
+        if (par.mvp.mfx.CodecProfile == MFX_PROFILE_HEVC_MAINSP ||
+            Legacy::IsMain10SP(par.mvp.mfx.CodecProfile, pHEVC))
         {
             return 1;
         }
@@ -2448,7 +2450,8 @@ public:
             || (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAINSP)
             || (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN && !(BitDepth != 8 && BitDepth != 0));
 
-        changed += (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAINSP)
+        changed += (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAINSP
+                    || Legacy::IsMain10SP(par.mfx.CodecProfile, pHEVC))
             && CheckOrZero<mfxU16>(par.mfx.GopPicSize, 0, 1);
 
         par.mfx.CodecProfile *= bValid;
