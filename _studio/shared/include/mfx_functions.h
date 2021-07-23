@@ -97,6 +97,13 @@ Since session object differs between RT and dispatcher this can lead to seg. fau
 #define MFXVideoUSER_GetPlugin               APIImpl_MFXVideoUSER_GetPlugin
 #define MFXVideoUSER_ProcessFrameAsync       APIImpl_MFXVideoUSER_ProcessFrameAsync
 
+#define MFXVideoENC_Query                    APIImpl_MFXVideoENC_Query
+#define MFXVideoENC_QueryIOSurf              APIImpl_MFXVideoENC_QueryIOSurf
+#define MFXVideoENC_Init                     APIImpl_MFXVideoENC_Init
+#define MFXVideoENC_Reset                    APIImpl_MFXVideoENC_Reset
+#define MFXVideoENC_Close                    APIImpl_MFXVideoENC_Close
+#define MFXVideoENC_ProcessFrameAsync        APIImpl_MFXVideoENC_ProcessFrameAsync
+
 #define MFXVideoPAK_Query                    APIImpl_MFXVideoPAK_Query
 #define MFXVideoPAK_QueryIOSurf              APIImpl_MFXVideoPAK_QueryIOSurf
 #define MFXVideoPAK_Init                     APIImpl_MFXVideoPAK_Init
@@ -107,6 +114,7 @@ Since session object differs between RT and dispatcher this can lead to seg. fau
 #define MFXInitEx                            APIImpl_MFXInitEx
 #define MFXDoWork                            APIImpl_MFXDoWork
 
+#define MFXVideoENC_GetVideoParam            APIImpl_MFXVideoENC_GetVideoParam
 #define MFXVideoPAK_GetVideoParam            APIImpl_MFXVideoPAK_GetVideoParam
 
 #define MFXMemory_GetSurfaceForEncode        APIImpl_MFXMemory_GetSurfaceForEncode
@@ -187,6 +195,13 @@ MFX_API_FUNCTION_IMPL(MFXVideoUSER_Unregister, mfxStatus, (mfxSession session, m
 MFX_API_FUNCTION_IMPL(MFXVideoUSER_GetPlugin, mfxStatus, (mfxSession session, mfxU32 type, mfxPlugin* par), (session, type, par))
 MFX_API_FUNCTION_IMPL(MFXVideoUSER_ProcessFrameAsync, mfxStatus, (mfxSession session, const mfxHDL* in, mfxU32 in_num, const mfxHDL* out, mfxU32 out_num, mfxSyncPoint* syncp), (session, in, in_num, out, out_num, syncp))
 
+MFX_API_FUNCTION_IMPL(MFXVideoENC_Query, mfxStatus, (mfxSession session, mfxVideoParam* in, mfxVideoParam* out), (session, in, out))
+MFX_API_FUNCTION_IMPL(MFXVideoENC_QueryIOSurf, mfxStatus, (mfxSession session, mfxVideoParam* par, mfxFrameAllocRequest* request), (session, par, request))
+MFX_API_FUNCTION_IMPL(MFXVideoENC_Init, mfxStatus, (mfxSession session, mfxVideoParam* par), (session, par))
+MFX_API_FUNCTION_IMPL(MFXVideoENC_Reset, mfxStatus, (mfxSession session, mfxVideoParam* par), (session, par))
+MFX_API_FUNCTION_IMPL(MFXVideoENC_Close, mfxStatus, (mfxSession session), (session))
+MFX_API_FUNCTION_IMPL(MFXVideoENC_ProcessFrameAsync, mfxStatus, (mfxSession session, mfxENCInput* in, mfxENCOutput* out, mfxSyncPoint* syncp), (session, in, out, syncp))
+
 MFX_API_FUNCTION_IMPL(MFXVideoPAK_Query, mfxStatus, (mfxSession session, mfxVideoParam* in, mfxVideoParam* out), (session, in, out))
 MFX_API_FUNCTION_IMPL(MFXVideoPAK_QueryIOSurf, mfxStatus, (mfxSession session, mfxVideoParam* par, mfxFrameAllocRequest* request), (session, par, request))
 MFX_API_FUNCTION_IMPL(MFXVideoPAK_Init, mfxStatus, (mfxSession session, mfxVideoParam* par), (session, par))
@@ -197,6 +212,7 @@ MFX_API_FUNCTION_IMPL(MFXVideoPAK_ProcessFrameAsync, mfxStatus, (mfxSession sess
 MFX_API_FUNCTION_IMPL(MFXInitEx, mfxStatus, (mfxInitParam par, mfxSession* session), (par, session))
 MFX_API_FUNCTION_IMPL(MFXDoWork, mfxStatus, (mfxSession session), (session))
 
+MFX_API_FUNCTION_IMPL(MFXVideoENC_GetVideoParam, mfxStatus, (mfxSession session, mfxVideoParam* par), (session, par))
 MFX_API_FUNCTION_IMPL(MFXVideoPAK_GetVideoParam, mfxStatus, (mfxSession session, mfxVideoParam* par), (session, par))
 
 MFX_API_FUNCTION_IMPL(MFXVideoVPP_ProcessFrameAsync, mfxStatus, (mfxSession session, mfxFrameSurface1* in, mfxFrameSurface1** out), (session, in, out))
@@ -217,6 +233,5 @@ MFX_API_FUNCTION_IMPL(MFXQueryImplsDescription, mfxHDL*, (mfxImplCapsDeliveryFor
 MFX_API_FUNCTION_IMPL(MFXReleaseImplDescription, mfxStatus, (mfxHDL hdl), (hdl))
 
 #undef MFX_API_FUNCTION_IMPL
-
 
 #endif //_MFX_FUNCTIONS_H_
