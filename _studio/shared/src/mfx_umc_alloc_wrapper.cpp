@@ -1538,7 +1538,6 @@ void SurfaceSource::RemoveCorrespondence(mfxFrameSurface1& surface_work)
     auto it_wo = m_work_output_surface_map.find(surface_work.Data.MemId);
     if (it_wo == std::end(m_work_output_surface_map))
     {
-        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_FOUND);
         return;
     }
 
