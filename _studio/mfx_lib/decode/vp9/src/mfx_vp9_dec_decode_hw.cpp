@@ -446,7 +446,6 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
 
     m_core->GetVA((mfxHDL*)&m_va, MFX_MEMTYPE_FROM_DECODE);
 
-    bool isUseExternalFrames = (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) || IsD3D9Simulation(*m_core);
     bool reallocFrames = (par->mfx.EnableReallocRequest == MFX_CODINGOPTION_ON);
     m_adaptiveMode = reallocFrames;
 
@@ -498,7 +497,6 @@ mfxStatus VideoDECODEVP9_HW::QueryImplsDescription(
     caps.CodecID = MFX_CODEC_VP9;
     caps.MaxcodecLevel = MFX_LEVEL_UNKNOWN;
 
-    mfxStatus sts = MFX_ERR_NONE;
     for (mfxU32 profile : SupportedProfiles)
     {
         auto& pfCaps = ah.PushBack(caps.Profiles);
@@ -893,7 +891,6 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
         srcMemType |= systemMemory ? MFX_MEMTYPE_INTERNAL_FRAME : MFX_MEMTYPE_EXTERNAL_FRAME;
         mfxU16 dstMemType = (mfxU16)MFX_MEMTYPE_EXTERNAL_FRAME;
         dstMemType |= systemMemory ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET;
-        mfxStatus sts = MFX_ERR_NONE;
         {
             if (data.copyFromFrame >= (mfxI32)decoder.m_mCopyGuard.size())
             {

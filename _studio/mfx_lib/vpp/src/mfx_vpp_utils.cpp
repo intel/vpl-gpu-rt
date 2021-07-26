@@ -617,14 +617,6 @@ void ShowPipeline( std::vector<mfxU32> pipelineList )
                 break;
             }
 
-#if defined(MFX_ENABLE_IMAGE_STABILIZATION_VPP)
-            case (mfxU32)MFX_EXTBUFF_VPP_IMAGE_STABILIZATION:
-            {
-                fprintf(stderr, "IMAGE_STAB \n");
-                break;
-            }
-#endif
-
             case (mfxU32)MFX_EXTBUFF_VPP_COMPOSITE:
             {
                 fprintf(stderr, "COMPOSITE \n");
@@ -773,15 +765,6 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
         newList[index] = MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO;
         index++;
     }
-
-    /* [IStab] FILTER */
-#if defined(MFX_ENABLE_IMAGE_STABILIZATION_VPP)
-    if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_IMAGE_STABILIZATION ) )
-    {
-        newList[index] = MFX_EXTBUFF_VPP_IMAGE_STABILIZATION;
-        index++;
-    }
-#endif
 
     // Resize for Best Quality
     if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_RESIZE ) )
@@ -944,9 +927,6 @@ mfxStatus GetPipelineList(
     mfxInfoVPP*   par = NULL;
     mfxFrameInfo* srcFrameInfo = NULL;
     mfxFrameInfo* dstFrameInfo = NULL;
-    mfxU16  srcW = 0, dstW = 0;
-    mfxU16  srcH = 0, dstH = 0;
-    //mfxU32  lenList = 0;
     mfxStatus sts = MFX_ERR_NONE;
 
     MFX_CHECK_NULL_PTR1( videoParam );
@@ -1045,14 +1025,6 @@ mfxStatus GetPipelineList(
     {
         pipelineList.push_back(MFX_EXTBUFF_VPP_LSHIFT_OUT);
     }
-
-    /* [Resize] FILTER */
-    VPP_GET_REAL_WIDTH(  srcFrameInfo, srcW);
-    VPP_GET_REAL_HEIGHT( srcFrameInfo, srcH);
-
-    /* OUT */
-    VPP_GET_REAL_WIDTH( dstFrameInfo, dstW);
-    VPP_GET_REAL_HEIGHT(dstFrameInfo, dstH);
 
     { //resize or cropping
         pipelineList.push_back(MFX_EXTBUFF_VPP_RESIZE);
@@ -1711,12 +1683,6 @@ size_t GetConfigSize( mfxU32 filterId )
         {
             return sizeof(mfxExtVPPFrameRateConversion);
         }
-#if defined(MFX_ENABLE_IMAGE_STABILIZATION_VPP)
-    case MFX_EXTBUFF_VPP_IMAGE_STABILIZATION:
-        {
-            return sizeof(mfxExtVPPImageStab);
-        }
-#endif
     case MFX_EXTBUFF_VPP_DEINTERLACING:
         {
             return sizeof(mfxExtVPPDeinterlacing);

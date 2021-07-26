@@ -44,7 +44,6 @@ class CmDevice;
 
 VideoVPPBase* CreateAndInitVPPImpl(mfxVideoParam *par, VideoCORE *core, mfxStatus *mfxSts)
 {
-    bool bHWInitFailed = false;
     VideoVPPBase * vpp = 0;
     if( MFX_PLATFORM_HARDWARE == core->GetPlatformType())
     {
@@ -69,7 +68,6 @@ VideoVPPBase* CreateAndInitVPPImpl(mfxVideoParam *par, VideoCORE *core, mfxStatu
 
         delete vpp;
         vpp = 0;
-        bHWInitFailed = true;
     }
 
     *mfxSts = MFX_ERR_UNSUPPORTED;

@@ -325,6 +325,7 @@ void vm_semaphore_destroy(vm_semaphore *sem)
     if (0 <= sem->count)
     {
         int res = pthread_cond_destroy(&sem->cond);
+        (void) res;
         assert(!res); // we experienced undefined behavior
         res = pthread_mutex_destroy(&sem->mutex);
         assert(!res); // we experienced undefined behavior

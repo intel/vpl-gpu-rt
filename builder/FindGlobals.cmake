@@ -263,7 +263,6 @@ if(NOT CMAKE_SYSTEM_NAME MATCHES Windows)
       $<$<NOT:$<CXX_COMPILER_ID:Intel>>:
         -Wno-deprecated-declarations
         -Wno-unknown-pragmas
-        -Wno-unused
       >
   )
 endif()

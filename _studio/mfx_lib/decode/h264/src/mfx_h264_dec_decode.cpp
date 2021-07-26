@@ -1179,7 +1179,6 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
         bool force = false;
 
         UMC::Status umcFrameRes = UMC::UMC_OK;
-        UMC::Status umcAddSourceRes = UMC::UMC_OK;
 
         MFXMediaDataAdapter src(bs);
 
@@ -1195,7 +1194,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
         {
             umcRes = m_pH264VideoDecoder->AddSource(bs ? &src : 0);
 
-            umcAddSourceRes = umcFrameRes = umcRes;
+            umcFrameRes = umcRes;
 
             src.Save(bs);
 
@@ -1216,7 +1215,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
                     }
                     else
                     {
-                        umcAddSourceRes = umcFrameRes = umcRes = UMC::UMC_OK;
+                        umcFrameRes = umcRes = UMC::UMC_OK;
                         m_isFirstRun = false;
                     }
                 }
@@ -1226,7 +1225,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
             if (umcRes == UMC::UMC_ERR_INVALID_STREAM)
             {
-                umcAddSourceRes = umcFrameRes = umcRes = UMC::UMC_OK;
+                umcFrameRes = umcRes = UMC::UMC_OK;
             }
 
             if (umcRes == UMC::UMC_ERR_NOT_ENOUGH_BUFFER || umcRes == UMC::UMC_WRN_INFO_NOT_READY || umcRes == UMC::UMC_ERR_NEED_FORCE_OUTPUT)

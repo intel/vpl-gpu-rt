@@ -50,8 +50,8 @@ namespace MfxHwMpeg2Encode
         void Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId)
         {
             m_bEncryptionMode = false;
-            par;funcId;
-
+            (void) par;
+            (void) funcId;
         }
     };
     struct ExecuteBuffers

@@ -345,7 +345,6 @@ VAAPIEncoder::VAAPIEncoder(VideoCORE* core)
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
     , m_triggerGpuHangBufferId(VA_INVALID_ID)
 #endif
-    , m_vbvBufSize(0)
     , m_initFrameWidth(0)
     , m_initFrameHeight(0)
     , m_layout()
@@ -1111,7 +1110,7 @@ mfxStatus VAAPIEncoder::FillMBQPBuffer(
 {
     VAStatus vaSts;
 
-    int i, width_in_mbs, height_in_mbs;
+    int width_in_mbs, height_in_mbs;
 
     //    assert(m_vaPpsBuf.picture_coding_extension.bits.q_scale_type == 0);
 
@@ -1745,7 +1744,9 @@ mfxStatus VAAPIEncoder::FillBSBuffer(mfxU32 nFeedback,mfxU32 nBitstream, mfxBits
     //------------------------------------------
     // (1) mapping feedbackNumber -> surface & bs
     bool isFound = false;
+#if !VA_CHECK_VERSION(1,9,0)
     VASurfaceID waitSurface;
+#endif
     mfxU32 waitIdxBs;
     mfxU32 indxSurf;
     mfxU32 bitstreamSize = 0;
@@ -1758,7 +1759,9 @@ mfxStatus VAAPIEncoder::FillBSBuffer(mfxU32 nFeedback,mfxU32 nBitstream, mfxBits
 
         if (currentFeedback.number == nFeedback)
         {
+#if !VA_CHECK_VERSION(1,9,0)
             waitSurface = currentFeedback.surface;
+#endif
             waitIdxBs   = currentFeedback.idxBs;
             isFound  = true;
 

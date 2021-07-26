@@ -205,10 +205,6 @@ mfxStatus VideoDECODEVP8_HW::Init(mfxVideoParam *p_video_param)
     sts = m_p_core->CreateVA(&m_on_init_video_params, &request, &m_response, m_surface_source.get());
     MFX_CHECK_STS(sts);
 
-    UMC::Status umcSts = UMC::UMC_OK;
-
-    bool isUseExternalFrames = (p_video_param->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY);
-
     m_p_core->GetVA((mfxHDL*)&m_p_video_accelerator, MFX_MEMTYPE_FROM_DECODE);
 
     m_frameOrder = (mfxU16)0;
@@ -244,7 +240,6 @@ mfxStatus VideoDECODEVP8_HW::QueryImplsDescription(
     caps.CodecID = MFX_CODEC_VP8;
     caps.MaxcodecLevel = MFX_LEVEL_UNKNOWN;
 
-    mfxStatus sts = MFX_ERR_NONE;
     for (mfxU32 profile : SupportedProfiles)
     {
         auto& pfCaps = ah.PushBack(caps.Profiles);

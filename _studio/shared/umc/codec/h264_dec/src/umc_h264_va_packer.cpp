@@ -729,11 +729,11 @@ void PackerVA::PackQmatrix(const UMC_H264_DECODER::H264ScalingPicParams * scalin
 
 void PackerVA::BeginFrame(H264DecoderFrame* pFrame, int32_t field)
 {
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
     FrameData* fd = pFrame->GetFrameData();
     VM_ASSERT(fd);
 
     FrameData::FrameAuxInfo* aux;
-#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
     aux = fd->GetAuxInfo(MFX_EXTBUFF_GPU_HANG);
     if (aux)
     {

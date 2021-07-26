@@ -1134,7 +1134,6 @@ namespace UMC
             uint32_t SliceSize = 0;
             uint32_t DataSize = 0;
             uint32_t BitstreamDataSize = 0;
-            uint32_t IntCompField = 0;
 
             // need in case of fields
             uint32_t* pFirstFieldStartCode = this->m_pContext->m_bitstream.pBitstream;
@@ -1194,7 +1193,6 @@ namespace UMC
                 DecodePicHeader(this->m_pContext);
             else
                 Decode_PictureLayer(this->m_pContext);
-            IntCompField = this->m_pContext->m_picLayerHeader->INTCOMFIELD;
             if (this->m_pContext->m_seqLayerHeader.PROFILE == VC1_PROFILE_ADVANCED)
             {
                 PicHeaderSize = (this->m_pPacker.VC1GetPicHeaderSize(p_CurOriginalData + 4,
@@ -1312,7 +1310,6 @@ namespace UMC
                     this->m_pContext->m_picLayerHeader->is_slice = 0;
                     DecodePicHeader(this->m_pContext);
 
-                    //this->m_pContext->this->m_picLayerHeader->INTCOMFIELD = IntCompField;
                     PicHeaderSize = (uint32_t)this->m_pPacker.VC1GetPicHeaderSize(p_CurOriginalData + 4 + *p_CurOriginalOffsets,
                         (uint32_t)((size_t)sizeof(uint32_t)*(this->m_pContext->m_bitstream.pBitstream - pPictHeader)), Flag_03);
 

@@ -79,7 +79,6 @@ mfxStatus MfxVppHelper::Submit(mfxFrameSurface1* input, mfxFrameSurface1* output
 
     mfxFrameSurface1* vppout = output ? output : &m_dsSurface;
 
-    MFX_ENTRY_POINT entryPoint[2] = {};
     mfxU32 numEntryPoints = 2;
 
     mfxRes = m_pVpp->VppFrameCheck(input, vppout, nullptr, m_entryPoint, numEntryPoints);
