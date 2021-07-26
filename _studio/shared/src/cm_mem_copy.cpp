@@ -2395,7 +2395,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
     UINT            threadWidth             = 0;
     UINT            threadHeight            = 0;
     UINT            threadNum               = 0;
-    UINT            width_dword             = 0;
     UINT            width_byte              = 0;
     UINT            copy_width_byte         = 0;
     UINT            copy_height_row         = 0;

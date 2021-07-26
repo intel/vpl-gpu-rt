@@ -1318,7 +1318,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
 
 void SurfaceSource::CreateUMCAllocator(const mfxVideoParam & video_param, eMFXPlatform platform, bool needVppJPEG)
 {
-    needVppJPEG;
+    (void) needVppJPEG;
 
     if (MFX_PLATFORM_SOFTWARE == platform)
     {

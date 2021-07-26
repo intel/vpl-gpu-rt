@@ -53,6 +53,7 @@ static void reset_index(VC1Context* pContext)
 VC1Status SequenceLayer(VC1Context* pContext)
 {
     uint32_t reserved;
+    (void) reserved;
     uint32_t i=0;
     uint32_t tempValue;
 

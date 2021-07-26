@@ -37,6 +37,7 @@ VC1Status DecodePictureLayer_ProgressivePpicture(VC1Context* pContext)
     VC1SequenceLayerHeader* seqLayerHeader = &pContext->m_seqLayerHeader;
 
     uint32_t tempValue;
+    (void) tempValue;
 
     seqLayerHeader->RNDCTRL = 1 - seqLayerHeader->RNDCTRL;
     picLayerHeader->RNDCTRL = seqLayerHeader->RNDCTRL;

@@ -101,7 +101,6 @@ namespace MfxHwMJpegEncode
         VideoCORE       * m_core;
         mfxU32            m_width;
         mfxU32            m_height;
-        JpegEncCaps       m_caps;
         VADisplay         m_vaDisplay;
         VAContextID       m_vaContextEncode;
         VAConfigID        m_vaConfig;

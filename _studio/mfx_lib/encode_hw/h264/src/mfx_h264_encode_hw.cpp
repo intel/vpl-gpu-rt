@@ -485,6 +485,7 @@ mfxStatus ImplementationAvc::Query(
         }
         if (mfxExtEncoderCapability * extCap = GetExtBuffer(*out))
         {
+            (void) extCap;
             MFX_CHECK(MFX_HW_VAAPI != core->GetVAType(), MFX_ERR_UNSUPPORTED);
         }
 

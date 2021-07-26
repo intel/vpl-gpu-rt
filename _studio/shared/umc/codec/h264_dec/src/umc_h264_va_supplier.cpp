@@ -354,9 +354,9 @@ Status VATaskSupplier::AllocateFrameData(H264DecoderFrame * pFrame)
         if (!surface)
             throw h264_exception(UMC_ERR_ALLOC);
 
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
         mfxExtBuffer* extbuf = nullptr;
 
-#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
         extbuf = GetExtendedBuffer(surface->Data.ExtParam, surface->Data.NumExtParam, MFX_EXTBUFF_GPU_HANG);
         if (extbuf)
             frmData.SetAuxInfo(extbuf, extbuf->BufferSz, extbuf->BufferId);

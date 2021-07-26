@@ -155,7 +155,6 @@ namespace MfxHwMpeg2Encode
         std::vector<VAEncQpBufferMPEG2>     m_mbqpDataBuffer;
 
 
-        int                                 m_vbvBufSize;
         mfxU16                              m_initFrameWidth;
         mfxU16                              m_initFrameHeight;
 

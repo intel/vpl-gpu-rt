@@ -131,6 +131,7 @@ namespace UMC
         UMC::Status umcSts = UMC_OK;
 
         uint32_t tempData;
+        (void) tempData;
         uint32_t *  pbs;
         int32_t  bitOffset = 31;
 

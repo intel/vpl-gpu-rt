@@ -349,6 +349,7 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
     VC1SequenceLayerHeader* seqLayerHeader = &pContext->m_seqLayerHeader;
 
     uint32_t tempValue;
+    (void) tempValue;
 
 #ifdef VC1_DEBUG_ON
     VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BFRAMES,

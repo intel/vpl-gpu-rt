@@ -32,6 +32,7 @@ VC1Status DecodePictureHeader (VC1Context* pContext,  bool isExtHeader)
 {
     VC1Status vc1Sts = VC1_OK;
     uint32_t tempValue;
+    (void) tempValue;
     VC1PictureLayerHeader* picLayerHeader = pContext->m_picLayerHeader;
     VC1SequenceLayerHeader* seqLayerHeader = &pContext->m_seqLayerHeader;
     uint32_t SkFrameSize = 10;

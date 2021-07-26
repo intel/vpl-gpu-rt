@@ -345,7 +345,6 @@ VAAPIEncoder::VAAPIEncoder(VideoCORE* core)
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
     , m_triggerGpuHangBufferId(VA_INVALID_ID)
 #endif
-    , m_vbvBufSize(0)
     , m_initFrameWidth(0)
     , m_initFrameHeight(0)
     , m_layout()
@@ -1111,7 +1110,7 @@ mfxStatus VAAPIEncoder::FillMBQPBuffer(
 {
     VAStatus vaSts;
 
-    int i, width_in_mbs, height_in_mbs;
+    int width_in_mbs, height_in_mbs;
 
     //    assert(m_vaPpsBuf.picture_coding_extension.bits.q_scale_type == 0);
 

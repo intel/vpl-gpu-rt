@@ -2201,7 +2201,6 @@ void MfxHwH264Encode::ConfigureTask(
     mfxExtEncoderROI const &        extRoi         = GetExtBufferRef(video);
     mfxExtEncoderROI const *        extRoiRuntime  = GetExtBuffer(task.m_ctrl);
     mfxExtCodingOption3 const &     extOpt3        = GetExtBufferRef(video);
-    mfxExtCodingOption3 const *     extOpt3Runtime = GetExtBuffer(task.m_ctrl);
     mfxExtDirtyRect const *    extDirtyRect        = GetExtBuffer(video);
     mfxExtDirtyRect const *    extDirtyRectRuntime = GetExtBuffer(task.m_ctrl);
     mfxExtMoveRect const *     extMoveRect         = GetExtBuffer(video);
