@@ -5937,15 +5937,6 @@ mfxStatus ConfigureExecuteParams(
                 break;
             }
 
-#if defined(MFX_ENABLE_IMAGE_STABILIZATION_VPP)
-            case MFX_EXTBUFF_VPP_IMAGE_STABILIZATION:
-            {
-                executeParams.bImgStabilizationEnable = false;
-                // no SW Fall Back
-                break;
-            }
-#endif
-
             case MFX_EXTBUFF_VPP_COMPOSITE:
             {
                 mfxU32 StreamCount = 0;

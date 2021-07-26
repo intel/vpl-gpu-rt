@@ -40,10 +40,6 @@
 #include "mfx_procamp_vpp.h"
 #include "mfx_detail_enhancement_vpp.h"
 
-#if defined(MFX_ENABLE_VPP) && defined(MFX_ENABLE_IMAGE_STABILIZATION_VPP)
-#include "mfx_image_stabilization_vpp.h"
-#endif
-
 //-----------------------------------------------------------------------------
 //            independent functions
 //-----------------------------------------------------------------------------
@@ -234,16 +230,6 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
                 break;
             }
 
-#if defined(MFX_ENABLE_VPP) && defined(MFX_ENABLE_IMAGE_STABILIZATION_VPP)
-            case (mfxU32)MFX_EXTBUFF_VPP_IMAGE_STABILIZATION:
-            {
-                // fake for SW compatibility
-                inputFramesCount[filterIndex]  = MFXVideoVPPImgStab::GetInFramesCountExt();
-                outputFramesCount[filterIndex] = MFXVideoVPPImgStab::GetOutFramesCountExt();
-                break;
-            }
-#endif
-
             case (mfxU32)MFX_EXTBUFF_VPP_COMPOSITE:
             {
                 for (mfxU32 i = 0; i < pParam->NumExtParam; i++)
@@ -347,16 +333,6 @@ bool IsCompositionMode(mfxVideoParam* pParam)
 mfxStatus ExtendedQuery(VideoCORE * core, mfxU32 filterName, mfxExtBuffer* pHint)
 {
     mfxStatus sts = MFX_ERR_NONE;
-    /* Lets find out VA type (Linux, Win or Android) and platform type */
-    /* It can be different behaviour for Linux and IVB, Linux and HSW*/
-    bool bLinuxAndIVB_HSW_BDW = false;
-    if ( (NULL != core) &&
-        (core->GetVAType() == MFX_HW_VAAPI) &&
-        ( (core->GetHWType() == MFX_HW_IVB) || (core->GetHWType() == MFX_HW_HSW) ||
-          (core->GetHWType() == MFX_HW_BDW)) )
-    {
-        bLinuxAndIVB_HSW_BDW = true;
-    }
 
     if( MFX_EXTBUFF_VPP_DENOISE == filterName
         )
@@ -381,18 +357,10 @@ mfxStatus ExtendedQuery(VideoCORE * core, mfxU32 filterName, mfxExtBuffer* pHint
     {
         sts = MFXVideoVPPFrameRateConversion::Query( pHint );
     }
-#if defined(MFX_ENABLE_VPP) && defined(MFX_ENABLE_IMAGE_STABILIZATION_VPP)
     else if( MFX_EXTBUFF_VPP_IMAGE_STABILIZATION == filterName )
     {
-        if (false == bLinuxAndIVB_HSW_BDW)
-            sts = MFXVideoVPPImgStab::Query( pHint );
-        else
-        {
-            // This filter is not supported in Linux
-            sts = MFX_WRN_FILTER_SKIPPED;
-        }
+        sts = MFX_WRN_FILTER_SKIPPED;
     }
-#endif
     else if( MFX_EXTBUFF_VPP_SCENE_ANALYSIS == filterName )
     {
         sts = MFX_ERR_UNSUPPORTED;
