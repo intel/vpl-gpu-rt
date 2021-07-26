@@ -33,20 +33,20 @@ typedef const mfxU8 mfxUC8;
 
 #define CHECK_CM_STATUS(_sts, _ret)              \
         if (CM_SUCCESS != _sts)                  \
-        {                                           \
-            return _ret;                        \
+        {                                        \
+            MFX_RETURN(_ret);                    \
         }
 
-#define CHECK_CM_STATUS_RET_NULL(_sts, _ret)              \
-        if (CM_SUCCESS != _sts)                  \
-        {                                           \
-            return NULL;                        \
+#define CHECK_CM_STATUS_RET_NULL(_sts, _ret)     \
+        if (CM_SUCCESS != MFX_STS_TRACE(_sts))   \
+        {                                        \
+            return NULL;                         \
         }
 
-#define CHECK_CM_NULL_PTR(_ptr, _ret)              \
-        if (NULL == _ptr)                  \
-        {                                           \
-            return _ret;                        \
+#define CHECK_CM_NULL_PTR(_ptr, _ret)            \
+        if (NULL == _ptr)                        \
+        {                                        \
+            MFX_RETURN(_ret);                    \
         }
 
 CmCopyWrapper::CmCopyWrapper()
@@ -104,7 +104,7 @@ CmCopyWrapper::~CmCopyWrapper(void)
         if(pGPUCopyTask)  m_pCmDevice->DestroyTask(pGPUCopyTask);\
         if(pCMBufferUP)   m_pCmDevice->DestroyBufferUP(pCMBufferUP);\
         if(pInternalEvent)m_pCmQueue->DestroyEvent(pInternalEvent);\
-        return MFX_ERR_DEVICE_FAILED;\
+        MFX_RETURN(MFX_ERR_DEVICE_FAILED);\
     }
 
 bool CmCopyWrapper::isSinglePlainFormat(mfxU32 format)
