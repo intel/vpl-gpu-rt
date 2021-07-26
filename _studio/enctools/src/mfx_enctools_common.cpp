@@ -403,9 +403,16 @@ mfxStatus EncTools::InitMfxVppParams(mfxEncToolsCtrl const & ctrl)
     if (!mfxVppParams_Common.vpp.In.CropH)
         mfxVppParams_Common.vpp.In.CropH = mfxVppParams_Common.vpp.In.Height;
 
-    mfxPlatform platform;
-    m_mfxSession_SCD.QueryPlatform(&platform);
+    MFXVideoSession* pSession = nullptr;
+    if (isPreEncSCD(m_config, ctrl))
+        pSession = &m_mfxSession_SCD;
+    else if (isPreEncLA(m_config, ctrl))
+        pSession = m_lpLookAhead.GetEncSession();
 
+    MFX_CHECK(pSession != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    mfxPlatform platform;
+    pSession->QueryPlatform(&platform);
     if (platform.CodeName < MFX_PLATFORM_TIGERLAKE)
     {
         mfxVppParams_Common.vpp.In.CropW = mfxVppParams_Common.vpp.In.Width = mfxVppParams_Common.vpp.In.CropW & ~0x3F;
