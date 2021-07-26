@@ -1634,8 +1634,8 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
     if (m_video.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
         MFX_CHECK(
-            m_video.calcParam.initialDelayInKB >= newPar.calcParam.initialDelayInKB &&
-            m_video.calcParam.bufferSizeInKB   >= newPar.calcParam.bufferSizeInKB,
+            m_video.calcParam.initialDelayInKB == newPar.calcParam.initialDelayInKB &&
+            m_video.calcParam.bufferSizeInKB   == newPar.calcParam.bufferSizeInKB,
             MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     }
 
