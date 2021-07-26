@@ -825,7 +825,6 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBCPUtoGPU(   CmSurface2D* pSurface,
     UINT            threadWidth             = 0;
     UINT            threadHeight            = 0;
     UINT            threadNum               = 0;
-    UINT            width_dword             = 0;
     UINT            width_byte              = 0;
     UINT            copy_width_byte         = 0;
     UINT            copy_height_row         = 0;
@@ -917,7 +916,6 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBCPUtoGPU(   CmSurface2D* pSurface,
         CHECK_CM_HR(hr);
 
 
-        width_dword = (UINT)ceil((double)width_byte / 4);
         stride_in_dwords = (UINT)ceil((double)stride_in_bytes / 4);
 
         hr = m_pCmKernel->SetKernelArg( 2, sizeof( UINT ), &stride_in_dwords );
@@ -1005,7 +1003,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyCPUtoGPU(   CmSurface2D* pSurface,
     UINT            threadWidth             = 0;
     UINT            threadHeight            = 0;
     UINT            threadNum               = 0;
-    UINT            width_dword             = 0;
     UINT            width_byte              = 0;
     UINT            copy_width_byte         = 0;
     UINT            copy_height_row         = 0;
@@ -1100,7 +1097,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyCPUtoGPU(   CmSurface2D* pSurface,
         CHECK_CM_HR(hr);
 
 
-        width_dword = (UINT)ceil((double)width_byte / 4);
         stride_in_dwords = (UINT)ceil((double)stride_in_bytes / 4);
 
         hr = m_pCmKernel->SetKernelArg( 2, sizeof( UINT ), &stride_in_dwords );
@@ -1186,7 +1182,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftCPUtoGPU(CmSurface2D* pSurface,
     UINT            threadWidth = 0;
     UINT            threadHeight = 0;
     UINT            threadNum = 0;
-    UINT            width_dword = 0;
     UINT            width_byte = 0;
     UINT            copy_width_byte = 0;
     UINT            copy_height_row = 0;
@@ -1281,7 +1276,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftCPUtoGPU(CmSurface2D* pSurface,
         CHECK_CM_HR(hr);
 
 
-        width_dword = (UINT)ceil((double)width_byte / 4);
         stride_in_dwords = (UINT)ceil((double)stride_in_bytes / 4);
 
         hr = m_pCmKernel->SetKernelArg(2, sizeof(UINT), &stride_in_dwords);
@@ -1547,8 +1541,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12GPUtoCPU(   CmSurface2D* pSurface,
     UINT            slice_copy_height_row   = 0;
     UINT            sliceCopyBufferUPSize   = 0;
     INT             totalBufferUPSize       = 0;
-    UINT            start_x                 = 0;
-    UINT            start_y                 = 0;
 
 
 
@@ -1665,8 +1657,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12GPUtoCPU(   CmSurface2D* pSurface,
         pLinearAddress += sliceCopyBufferUPSize - AddedShiftLeftOffset;
         totalBufferUPSize -= sliceCopyBufferUPSize;
         copy_height_row -= slice_copy_height_row;
-        start_x = 0;
-        start_y += slice_copy_height_row;
         if(totalBufferUPSize > 0)   //Intermediate event, we don't need it
         {
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
@@ -1701,7 +1691,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
 
     INT             hr                      = CM_SUCCESS;
     UINT            stride_in_bytes         = widthStride;
-    UINT            stride_in_dwords        = 0;
     UINT            height_stride_in_rows   = heightStride;
     UINT            AddedShiftLeftOffset    = 0;
     UINT            byte_per_pixel           = (format==MFX_FOURCC_P010
@@ -1729,8 +1718,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
     UINT            slice_copy_height_row   = 0;
     UINT            sliceCopyBufferUPSize   = 0;
     INT             totalBufferUPSize       = 0;
-    UINT            start_x                 = 0;
-    UINT            start_y                 = 0;
 
 
 
@@ -1820,7 +1807,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
         hr = m_pCmKernel->SetKernelArg( 0, sizeof( SurfaceIndex ), pSurf2DIndexCM );
         CHECK_CM_HR(hr);
         width_dword = (UINT)ceil((double)width_byte / 4);
-        stride_in_dwords = (UINT)ceil((double)stride_in_bytes / 4);
 
         hr = m_pCmKernel->SetKernelArg( 2, sizeof( UINT ), &width_dword );
         CHECK_CM_HR(hr);
@@ -1848,8 +1834,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
         pLinearAddress += sliceCopyBufferUPSize - AddedShiftLeftOffset;
         totalBufferUPSize -= sliceCopyBufferUPSize;
         copy_height_row -= slice_copy_height_row;
-        start_x = 0;
-        start_y += slice_copy_height_row;
         if(totalBufferUPSize > 0)   //Intermediate event, we don't need it
         {
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
@@ -1908,8 +1892,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12CPUtoGPU(CmSurface2D* pSurface,
     UINT            slice_copy_height_row   = 0;
     UINT            sliceCopyBufferUPSize   = 0;
     INT             totalBufferUPSize       = 0;
-    UINT            start_x                 = 0;
-    UINT            start_y                 = 0;
 
 
 
@@ -2017,8 +1999,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12CPUtoGPU(CmSurface2D* pSurface,
         pLinearAddress += sliceCopyBufferUPSize - AddedShiftLeftOffset;
         totalBufferUPSize -= sliceCopyBufferUPSize;
         copy_height_row -= slice_copy_height_row;
-        start_x = 0;
-        start_y += slice_copy_height_row;
         if(totalBufferUPSize > 0)   //Intermediate event, we don't need it
         {
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
@@ -2053,7 +2033,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12CPUtoGPU(CmSurface2D* pSurface,
 
     INT             hr                      = CM_SUCCESS;
     UINT            stride_in_bytes         = widthStride;
-    UINT            stride_in_dwords        = 0;
     UINT            height_stride_in_rows   = heightStride;
     UINT            byte_per_pixel          = (format==MFX_FOURCC_P010
 #if (MFX_VERSION >= 1031)
@@ -2081,8 +2060,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12CPUtoGPU(CmSurface2D* pSurface,
     UINT            slice_copy_height_row   = 0;
     UINT            sliceCopyBufferUPSize   = 0;
     INT             totalBufferUPSize       = 0;
-    UINT            start_x                 = 0;
-    UINT            start_y                 = 0;
 
     if ( !pSurface )
     {
@@ -2168,7 +2145,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12CPUtoGPU(CmSurface2D* pSurface,
         hr = m_pCmKernel->SetKernelArg( 1, sizeof( SurfaceIndex ), pSurf2DIndexCM );
         CHECK_CM_HR(hr);
         width_dword = (UINT)ceil((double)width_byte / 4);
-        stride_in_dwords = (UINT)ceil((double)stride_in_bytes / 4);
 
         hr = m_pCmKernel->SetKernelArg( 2, sizeof( UINT ), &width_dword );
         CHECK_CM_HR(hr);
@@ -2196,8 +2172,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12CPUtoGPU(CmSurface2D* pSurface,
         pLinearAddress += sliceCopyBufferUPSize - AddedShiftLeftOffset;
         totalBufferUPSize -= sliceCopyBufferUPSize;
         copy_height_row -= slice_copy_height_row;
-        start_x = 0;
-        start_y += slice_copy_height_row;
         if(totalBufferUPSize > 0)   //Intermediate event, we don't need it
         {
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
@@ -2257,8 +2231,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010GPUtoCPU(   CmSurface2D* pSurface,
     UINT            slice_copy_height_row   = 0;
     UINT            sliceCopyBufferUPSize   = 0;
     INT             totalBufferUPSize       = 0;
-    UINT            start_x                 = 0;
-    UINT            start_y                 = 0;
 
 
 
@@ -2371,8 +2343,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010GPUtoCPU(   CmSurface2D* pSurface,
         pLinearAddress += sliceCopyBufferUPSize - AddedShiftLeftOffset;
         totalBufferUPSize -= sliceCopyBufferUPSize;
         copy_height_row -= slice_copy_height_row;
-        start_x = 0;
-        start_y += slice_copy_height_row;
         if(totalBufferUPSize > 0)   //Intermediate event, we don't need it
         {
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
@@ -2432,8 +2402,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
     UINT            slice_copy_height_row   = 0;
     UINT            sliceCopyBufferUPSize   = 0;
     INT             totalBufferUPSize       = 0;
-    UINT            start_x                 = 0;
-    UINT            start_y                 = 0;
 
 
 
@@ -2514,7 +2482,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
         CHECK_CM_HR(hr);
         m_pCmKernel->SetKernelArg( 1, sizeof( SurfaceIndex ), pSurf2DIndexCM);
         CHECK_CM_HR(hr);
-        width_dword = (UINT)ceil((double)width_byte / 4);
         stride_in_dwords = (UINT)ceil((double)stride_in_bytes / 4);
         hr = m_pCmKernel->SetKernelArg( 2, sizeof( UINT ), &stride_in_dwords );
         CHECK_CM_HR(hr);
@@ -2541,8 +2508,6 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
         pLinearAddress += sliceCopyBufferUPSize - AddedShiftLeftOffset;
         totalBufferUPSize -= sliceCopyBufferUPSize;
         copy_height_row -= slice_copy_height_row;
-        start_x = 0;
-        start_y += slice_copy_height_row;
         if(totalBufferUPSize > 0)   //Intermediate event, we don't need it
         {
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);

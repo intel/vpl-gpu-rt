@@ -297,7 +297,6 @@ mfxStatus CpuFrc::PtsFrc::DoCpuFRC_AndUpdatePTS(
     mfxFrameSurface1 *output,
     mfxStatus *intSts)
 {
-    bool isIncreasedSurface = false;
     std::vector<mfxFrameSurface1 *>::iterator iterator;
 
     mfxU64 inputTimeStamp = input->Data.TimeStamp;
@@ -349,7 +348,6 @@ mfxStatus CpuFrc::PtsFrc::DoCpuFRC_AndUpdatePTS(
 
             if (m_LockedSurfacesList.end() != iterator)
             {
-                isIncreasedSurface = true;
                 m_LockedSurfacesList.erase(m_LockedSurfacesList.begin());
             }
 
@@ -369,7 +367,6 @@ mfxStatus CpuFrc::PtsFrc::DoCpuFRC_AndUpdatePTS(
             }
             else
             {
-                isIncreasedSurface = true;
             }
 
             // calculate timestamp increment
@@ -395,7 +392,6 @@ mfxStatus CpuFrc::PtsFrc::DoCpuFRC_AndUpdatePTS(
 
         if (m_LockedSurfacesList.end() != iterator)
         {
-            isIncreasedSurface = true;
             m_LockedSurfacesList.erase(m_LockedSurfacesList.begin());
         }
 
@@ -3721,6 +3717,7 @@ int RunGpu(
     } else {
         status = MFX_ERR_DEVICE_FAILED;
     }
+    std::ignore = status;
 
     if(e) queue->DestroyEvent(e);
 

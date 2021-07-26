@@ -498,12 +498,6 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfx
 
     eMFXPlatform platform = MFX_JPEG_Utility::GetPlatform(core, par);
 
-    eMFXHWType type = MFX_HW_UNKNOWN;
-    if (platform == MFX_PLATFORM_HARDWARE)
-    {
-        type = core->GetHWType();
-    }
-
     mfxVideoParam params = *par;
     bool isNeedChangeVideoParamWarning = IsNeedChangeVideoParam(&params);
 
@@ -601,12 +595,6 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurfInternal(VideoCORE *core, mfxVideoParam *
     }
     else
     {
-        eMFXHWType type = MFX_HW_UNKNOWN;
-        if (platform == MFX_PLATFORM_HARDWARE)
-        {
-            type = core->GetHWType();
-        }
-
         bool needVpp = false;
         if(par->mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_FIELD_TFF ||
            par->mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_FIELD_BFF)

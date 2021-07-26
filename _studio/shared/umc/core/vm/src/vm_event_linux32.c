@@ -359,6 +359,7 @@ void vm_event_destroy(vm_event *event)
     if (event->state >= 0)
     {
         int res = pthread_cond_destroy(&event->cond);
+        (void) res;
         assert(!res); // we experienced undefined behavior
         res = pthread_mutex_destroy(&event->mutex);
         assert(!res); // we experienced undefined behavior

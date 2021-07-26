@@ -370,7 +370,6 @@ Status VC1VideoDecoder::StartCodesProcessing(uint8_t*   pBStream,
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VC1VideoDecoder::StartCodesProcessing");
     Status umcRes = UMC_OK;
-    uint32_t readSize = 0;
     uint32_t UnitSize;
     VC1Status sts = VC1_OK;
     while ((*pValues != 0x0D010000)&&
@@ -389,20 +388,18 @@ Status VC1VideoDecoder::StartCodesProcessing(uint8_t*   pBStream,
             SwapData(m_dataBuffer, mfx::align2_value(UnitSize));
             m_pContext->m_bitstream.pBitstream = (uint32_t*)m_dataBuffer + 1; //skip start code
         }
-        readSize += UnitSize;
         m_pContext->m_bitstream.bitOffset  = 31;
         switch (*pValues)
         {
         case 0x0F010000:
         {
-            bool isFPSChange;
             VC1Context context;
             size_t alignment;
             umcRes =  UMC_ERR_NOT_ENOUGH_DATA;
             context = *m_pContext;
             sts = SequenceLayer(&context);
             VC1_TO_UMC_CHECK_STS(sts);
-            isFPSChange = GetFPS(&context);
+            GetFPS(&context);
             alignment = (context.m_seqLayerHeader.INTERLACE)?32:16;
 
 
@@ -464,7 +461,6 @@ Status VC1VideoDecoder::StartCodesProcessing(uint8_t*   pBStream,
     if (((0x0D010000) == *pValues) && m_decoderInitFlag)// we have frame to decode
     {
         UnitSize = (uint32_t)(m_pCurrentIn->GetBufferSize() - *pOffsets);
-        readSize += UnitSize;
         m_pContext->m_pBufferStart = ((uint8_t*)m_frameData->GetDataPointer() + *pOffsets); //skip start code
         if (!IsDataPrepare)
         {
@@ -1170,8 +1166,6 @@ Status VC1VideoDecoder::GetStartCodes (uint8_t* pDataPointer,
 
 void VC1VideoDecoder::GetFrameSize(MediaData* in)
 {
-    int32_t frameSize = 0;
-    uint8_t* ptr = m_pContext->m_pBufferStart;
     uint32_t i = 0;
     uint32_t* offset = m_pContext->m_Offsets;
     uint32_t* value = m_pContext->m_values;
@@ -1190,17 +1184,6 @@ void VC1VideoDecoder::GetFrameSize(MediaData* in)
         if(*value != 0x00000000)
         {
             m_pContext->m_FrameSize = offset[i];
-        }
-    }
-    else
-    {
-        if ((*m_pContext->m_bitstream.pBitstream&0xFF) == 0xC5) // sequence header
-            frameSize = 36; // size of seq header for .rcv format
-        else
-        {
-            frameSize  = ((*(ptr))<<24) + ((*(ptr + 1))<<16) + ((*(ptr + 2))<<8) + *(ptr + 3);
-            frameSize &= 0x0fffffff;
-            frameSize += 8;
         }
     }
 }
