@@ -241,6 +241,7 @@ mfxStatus LPLA_EncTool::ConfigureExtBuffs(mfxEncToolsCtrl const & ctrl, mfxExtEn
         m_extBufLPLA.LookAheadScaleX = m_extBufLPLA.LookAheadScaleY = (mfxU8)m_lookAheadScale;
 
         m_extBufLPLA.GopRefDist = ctrl.MaxGopRefDist;
+        m_extBufLPLA.codecTypeInEncodePass = ctrl.CodecId;
 
         if (IsOn(pConfig.AdaptiveI))
         {

@@ -81,10 +81,9 @@ public:
         m_mfxSession_LA(nullptr),
         m_mfxVppParams_LA(),
         m_mfxVppParams_AEnc(),
-        m_VppResponse()
-    {
-        m_IntSurfaces_SCD.Data.Y = nullptr;
-    }
+        m_VppResponse(),
+        m_IntSurfaces_SCD()
+    {}
 
     virtual ~EncTools() { Close(); }
 

@@ -447,7 +447,6 @@ static mfxStatus SetMultiPassFrameSize( DdiTask const & task,
 }
 #endif
 
-#if !defined(ANDROID)
 static mfxStatus SetTrellisQuantization(
     mfxU32       trellis,
     VADisplay    vaDisplay,
@@ -486,7 +485,6 @@ static mfxStatus SetTrellisQuantization(
 
     return MFX_ERR_NONE;
 } // void SetTrellisQuantization(...)
-#endif
 
 static mfxStatus SetRollingIntraRefresh(
     IntraRefreshState const & rirState,
@@ -1486,7 +1484,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         platform = hwCore_20->GetHWType();
     }
 
-    if (MFX_HW_APL == platform || MFX_HW_CFL == platform)
+    if (MFX_HW_APL == platform || MFX_HW_CFL == platform
+        )
         m_caps.ddi_caps.FrameSizeToleranceSupport = 1;
 
     m_width  = width;
@@ -2018,7 +2017,7 @@ mfxStatus VAAPIEncoder::Execute(
     mfxU32          fieldId,
     PreAllocatedVector const & sei)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::Execute");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H264 encode DDISubmitTask");
 
     mfxHDL surface = pair.first;
     VAEncPackedHeaderParameterBuffer packed_header_param_buffer;
@@ -2510,7 +2509,6 @@ mfxStatus VAAPIEncoder::Execute(
     }
 #endif
 
-#if !defined(ANDROID)
 /*
  *  By default (0) - driver will decide.
  *  1 - disable trellis quantization
@@ -2523,7 +2521,6 @@ mfxStatus VAAPIEncoder::Execute(
                                                                      m_vaContextEncode, m_quantizationId), MFX_ERR_DEVICE_FAILED);
         configBuffers.push_back(m_quantizationId);
     }
-#endif
 
  /*
  *   RollingIntraRefresh
@@ -2832,8 +2829,9 @@ mfxStatus VAAPIEncoder::QueryStatus(
     mfxU32    fieldId,
     bool      /*useEvent*/)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::QueryStatus");
     mfxStatus sts = MFX_ERR_NONE;
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H264 encode DDIWaitTaskSync");
+
     bool isFound = false;
     VASurfaceID waitSurface;
     mfxU32 waitIdxBs;

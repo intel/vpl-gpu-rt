@@ -36,6 +36,7 @@
 #include <set>
 #include <cmath>
 #include <iterator>
+#include "libmfx_core.h"
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
@@ -1142,7 +1143,8 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             return MFX_ERR_NONE;
         };
 
-        if (par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
+        bool isD3D9SimWithVideoMem = IsD3D9Simulation(Glob::VideoCore::Get(strg)) && (par.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY);
+        if (par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY || isD3D9SimWithVideoMem)
         {
             sts = AllocRaw(rawInfo.NumFrameMin);
             MFX_CHECK_STS(sts);
@@ -1523,7 +1525,6 @@ void Legacy::InitTask(const FeatureBlocks& /*blocks*/, TPushIT Push)
             , StorageW& global
             , StorageW& task) -> mfxStatus
     {
-        auto& par = Glob::VideoParam::Get(global);
         auto& core = Glob::VideoCore::Get(global);
         auto& tpar = Task::Common::Get(task);
 
@@ -1715,7 +1716,8 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         auto& task = Task::Common::Get(s_task);
 
         bool bInternalFrame =
-            par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
+            par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
+            (IsD3D9Simulation(Glob::VideoCore::Get(global)) && (par.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY))
             || task.bSkip;
 
         mfxFrameSurface1* surface = task.pSurfReal;
@@ -1732,7 +1734,6 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         MFX_CHECK(par.IOPattern != MFX_IOPATTERN_IN_VIDEO_MEMORY
             , core.GetExternalFrameHDL(*task.pSurfReal, task.HDLRaw));
 
-
         return core.GetFrameHDL(task.pSurfReal->Data.MemId, &task.HDLRaw.first);
     });
 
@@ -1746,7 +1747,8 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         auto dflts = GetRTDefaults(global);
 
         bool videoMemory =
-            par.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY;
+            (par.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY
+                && !IsD3D9Simulation(Glob::VideoCore::Get(global)));
 
         MFX_CHECK(!(task.bSkip || videoMemory), MFX_ERR_NONE);
 
@@ -1757,11 +1759,14 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             surfDst.Info.FourCC == MFX_FOURCC_P010
             || surfDst.Info.FourCC == MFX_FOURCC_Y210; // convert to native shift in core.CopyFrame() if required
 
+        mfxU16 inMemType = static_cast<mfxU16>((par.IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET) |
+            MFX_MEMTYPE_EXTERNAL_FRAME);
+
         return  dflts.base.RunFastCopyWrapper(
             surfDst,
             MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE,
             surfSrc,
-            MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY);
+            inMemType);
     });
 
     Push(BLK_FillCUQPSurf
@@ -3849,7 +3854,6 @@ bool Legacy::IsInVideoMem(const mfxVideoParam & par)
     if (par.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY)
         return true;
 
-
     return false;
 }
 
@@ -4680,10 +4684,7 @@ mfxStatus Legacy::GetSliceHeader(
         s.five_minus_max_num_merge_cand = 0;
     }
 
-    bool bSetQPd =
-        par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
-        ;
-
+    bool bSetQPd         = par.mfx.RateControlMethod == MFX_RATECONTROL_CQP;
     s.slice_qp_delta     = mfxI8((task.QpY - (pps.init_qp_minus26 + 26)) * bSetQPd);
     s.slice_cb_qp_offset = 0;
     s.slice_cr_qp_offset = 0;

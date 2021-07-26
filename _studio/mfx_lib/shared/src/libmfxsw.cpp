@@ -522,7 +522,6 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
             snprintf(impl.Dev.DeviceID, sizeof(impl.Dev.DeviceID), "%x/%d", deviceId, adapterNum);
             snprintf(impl.ImplName, sizeof(impl.ImplName), "mfx-gen");
 
-            //TODO:
             impl.License;
             impl.Keywords;
 

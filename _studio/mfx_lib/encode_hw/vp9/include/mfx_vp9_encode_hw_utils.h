@@ -95,13 +95,6 @@ static const mfxU16 MFX_IOPATTERN_IN_MASK =
 static const mfxU16 MFX_MEMTYPE_SYS_OR_D3D =
 MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_SYSTEM_MEMORY;
 
-enum // identifies memory type at encoder input w/o any details
-{
-    INPUT_SYSTEM_MEMORY,
-    INPUT_VIDEO_MEMORY
-};
-
-
     enum eTaskStatus
     {
         TASK_FREE = 0,
@@ -528,7 +521,6 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
         VP9MfxVideoParam & operator = (mfxVideoParam const &);
 
         eMFXHWType m_platform;
-        mfxU16 m_inMemType;
         mfxU32 m_targetKbps;
         mfxU32 m_maxKbps;
         mfxU32 m_bufferSizeInKb;
@@ -621,9 +613,6 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
         }
         inline MfxFrameAllocResponse& GetFrameAllocReponse()  {return m_response;}
     };
-
-    bool isVideoSurfInput(mfxVideoParam const & video);
-
 
     inline mfxU32 CalcNumTasks(mfxVideoParam const & video)
     {

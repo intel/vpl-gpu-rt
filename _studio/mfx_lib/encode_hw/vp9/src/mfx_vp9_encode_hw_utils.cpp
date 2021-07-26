@@ -30,7 +30,6 @@ namespace MfxHwVP9Encode
 
 VP9MfxVideoParam::VP9MfxVideoParam()
     : m_platform(MFX_HW_UNKNOWN)
-    , m_inMemType(INPUT_VIDEO_MEMORY)
     , m_targetKbps(0)
     , m_maxKbps(0)
     , m_bufferSizeInKb(0)
@@ -84,16 +83,6 @@ VP9MfxVideoParam& VP9MfxVideoParam::operator=(mfxVideoParam const & par)
 
 void VP9MfxVideoParam::CalculateInternalParams()
 {
-    if (    IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
-        )
-    {
-        m_inMemType = INPUT_SYSTEM_MEMORY;
-    }
-    else
-    {
-        m_inMemType = INPUT_VIDEO_MEMORY;
-    }
-
     m_targetKbps = m_maxKbps = m_bufferSizeInKb = m_initialDelayInKb = 0;
     mfxU16 mult = std::max<mfxU16>(mfx.BRCParamMultiplier, 1);
 
@@ -186,7 +175,6 @@ void VP9MfxVideoParam::Construct(mfxVideoParam const & par)
     if (mfxExtVP9Param * opts = GetExtBuffer(par))
         m_extPar = *opts;
 
-
     if (mfxExtCodingOption2 * opts = GetExtBuffer(par))
         m_extOpt2 = *opts;
 
@@ -210,13 +198,13 @@ void VP9MfxVideoParam::Construct(mfxVideoParam const & par)
         m_tempLayersBufPassed = true;
     }
 
-    if (mfxExtAVCEncodedFrameInfo * opts = GetExtBuffer(par))
-        m_extFrameInfo = *opts;
-
     m_webRTCMode = false;
     if (m_tempLayersBufPassed && m_extOpt3.ScenarioInfo == MFX_SCENARIO_VIDEO_CONFERENCE)
         m_webRTCMode = true;
-	
+
+    if (mfxExtAVCEncodedFrameInfo * opts = GetExtBuffer(par))
+        m_extFrameInfo = *opts;
+
     m_extParam[0] = &m_extPar.Header;
     m_extParam[1] = &m_extOpt2.Header;
     m_extParam[2] = &m_extOpt3.Header;
@@ -230,15 +218,6 @@ void VP9MfxVideoParam::Construct(mfxVideoParam const & par)
     assert(NumExtParam == NUM_OF_SUPPORTED_EXT_BUFFERS);
 
     CalculateInternalParams();
-}
-
-bool isVideoSurfInput(mfxVideoParam const & video)
-{
-    if (video.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY)
-        return true;
-
-
-    return false;
 }
 
 mfxU32 ModifyLoopFilterLevelQPBased(mfxU32 QP, mfxU32 loopFilterLevel)
@@ -838,21 +817,23 @@ mfxStatus CopyRawSurfaceToVideoMemory(
     VP9MfxVideoParam const &par,
     Task const &task)
 {
-    if (par.m_inMemType == INPUT_SYSTEM_MEMORY)
+    if (task.m_pRawLocalFrame)
     {
-        MFX_CHECK_NULL_PTR1(task.m_pRawLocalFrame);
-        mfxFrameSurface1 *pDd3dSurf = task.m_pRawLocalFrame->pSurface;
-        mfxFrameSurface1 *pSysSurface = 0;
-        mfxStatus sts = GetRealSurface(pCore, par, task, pSysSurface);
+        mfxFrameSurface1 *pInternalSurf = task.m_pRawLocalFrame->pSurface;
+        mfxFrameSurface1 *pExternalSurface = 0;
+        mfxStatus sts = GetRealSurface(pCore, par, task, pExternalSurface);
         MFX_CHECK_STS(sts);
 
-        mfxFrameSurface1 sysSurf = *pSysSurface;
+        mfxFrameSurface1 extSurf = *pExternalSurface;
+
+        mfxU16 inMemType = MFX_MEMTYPE_EXTERNAL_FRAME;
+        inMemType |= par.IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET;
 
         sts = pCore->DoFastCopyWrapper(
-            pDd3dSurf,
-            MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE,
-            &sysSurf,
-            MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY);
+            pInternalSurf,
+            MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_INTERNAL_FRAME,
+            &extSurf,
+            inMemType);
         MFX_CHECK_STS(sts);
     }
 
@@ -869,9 +850,7 @@ mfxStatus GetNativeHandleToRawSurface(
 
     mfxU32 iopattern = video.IOPattern;
 
-
-    if (    iopattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
-        )
+    if (    iopattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
         sts = core.GetFrameHDL(surf, handle);
     else if (iopattern == MFX_IOPATTERN_IN_VIDEO_MEMORY)
         sts = core.GetExternalFrameHDL(surf, handle);

@@ -914,9 +914,13 @@ mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mf
             MFX_CHECK_STS(sts);
             MFX_CHECK(surfaceHDL.first != 0, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-            // submit the frame to the driver
-            sts = m_ddi->Execute(newFrame, surfaceHDL);
-            MFX_CHECK_STS(sts);
+            {
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VP9 encode DDISubmitTask");
+
+                // submit the frame to the driver
+                sts = m_ddi->Execute(newFrame, surfaceHDL);
+                MFX_CHECK_STS(sts);
+            }
 
             IncreaseRef(newFrame.m_pRecFrame);
 
@@ -1072,7 +1076,7 @@ inline mfxStatus UpdatePictureHeader(mfxU32 frameLen, mfxU32 frameNum, mfxU8* pP
 mfxStatus MFXVideoENCODEVP9_HW::UpdateBitstream(
     Task & task)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_DEFAULT, "MFXVideoENCODEVP9_HW::UpdateBitstream");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VP9 encode CopyBitstream");
 
     mfxFrameData bitstream = {};
 

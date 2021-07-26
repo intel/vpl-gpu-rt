@@ -924,6 +924,7 @@ protected:
     }
 };
 
+
 mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "ImplementationAvc::Init");
@@ -1519,7 +1520,6 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     m_videoInit = m_video;
 
 
-
     return checkStatus;
 }
 
@@ -1972,7 +1972,6 @@ mfxStatus ImplementationAvc::GetVideoParam(mfxVideoParam *par)
                               / std::max<mfxU32>(par->mfx.BRCParamMultiplier, 1)
                               * (mfxF64(par->mfx.FrameInfo.FrameRateExtN) / par->mfx.FrameInfo.FrameRateExtD));
 
-
     return MFX_ERR_NONE;
 }
 
@@ -2423,7 +2422,6 @@ void ImplementationAvc::OnLookaheadQueried()
             task.m_cmRaw = NULL;
         }
     }
-
 
     m_histRun.splice(m_histRun.end(), m_lookaheadStarted, m_lookaheadStarted.begin());
 }
@@ -4682,7 +4680,6 @@ mfxStatus ImplementationAvc::QueryStatus(
     mfxU32    fid,
     bool      useEvent)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "ImplementationAvc::QueryStatus");
     if (task.m_bsDataLength[fid] == 0)
     {
         mfxStatus sts = MFX_TASK_BUSY;

@@ -1428,7 +1428,6 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         changed = true;
     }
 
-
     mfxU16 width = extPar.FrameWidth ? extPar.FrameWidth : fi.Width;
     mfxU16 height = extPar.FrameHeight ? extPar.FrameHeight : fi.Height;
 
@@ -1829,7 +1828,7 @@ mfxStatus CheckSurface(
     // check that surface contains valid data
     MFX_CHECK(CheckFourcc(surface.Info.FourCC, caps), MFX_ERR_INVALID_VIDEO_PARAM);
 
-    if (video.m_inMemType == INPUT_SYSTEM_MEMORY)
+    if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
     {
         MFX_CHECK(!LumaIsNull(&surface) || surface.Data.MemId, MFX_ERR_NULL_PTR);
         if (surface.Info.FourCC != MFX_FOURCC_Y410)
