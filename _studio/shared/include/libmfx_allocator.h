@@ -450,6 +450,11 @@ private:
     std::map<mfxMemId, FrameAllocatorBase*> m_mid_to_allocator;
 };
 
+inline mfxU16 AdjustTypeInternal(mfxU16 type)
+{
+    return (type & ~MFX_MEMTYPE_EXTERNAL_FRAME) | MFX_MEMTYPE_INTERNAL_FRAME;
+}
+
 class mfxRefCountableBase
 {
 public:
@@ -541,7 +546,7 @@ public:
 
         MFX_CHECK(!(request.Type & MFX_MEMTYPE_EXTERNAL_FRAME), MFX_ERR_UNSUPPORTED);
 
-        mfxU16 type = T::AdjustType(request.Type);
+        mfxU16 type = AdjustTypeInternal(request.Type);
 
         try
         {
@@ -1158,7 +1163,7 @@ struct mfxFrameSurface1_sw : public RWAcessSurface
 
     static mfxU16 AdjustType(mfxU16 type)
     {
-        return (type & ~MFX_MEMTYPE_EXTERNAL_FRAME) | MFX_MEMTYPE_INTERNAL_FRAME;
+        return AdjustTypeInternal(type);
     }
 
 protected:
