@@ -2717,8 +2717,7 @@ mfxStatus ImplementationAvc::SCD_Put_Frame(DdiTask & task)
 {
     task.m_SceneChange = false;
     mfxFrameSurface1 *pSurfI = nullptr;
-    pSurfI = m_core->GetNativeSurface(task.m_yuv);
-    pSurfI = pSurfI ? pSurfI : task.m_yuv;
+    pSurfI = task.m_yuv;
     mfxHDLPair handle = { nullptr,nullptr };
     if (IsCmNeededForSCD(m_video))
     {
@@ -3018,8 +3017,7 @@ mfxStatus ImplementationAvc::Prd_LTR_Operation(DdiTask & task)
 mfxStatus ImplementationAvc::CalculateFrameCmplx(DdiTask const &task, mfxU32 &raca128)
 {
     mfxFrameSurface1 *pSurfI = nullptr;
-    pSurfI = m_core->GetNativeSurface(task.m_yuv);
-    pSurfI = pSurfI ? pSurfI : task.m_yuv;
+    pSurfI = task.m_yuv;
     mfxHDLPair handle = { nullptr,nullptr };
     mfxF64 raca = 0;
     // Raca = l2 norm of average abs row diff and average abs col diff

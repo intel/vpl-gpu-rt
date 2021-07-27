@@ -2652,9 +2652,7 @@ mfxStatus VideoVPPHW::InitMCTF(const mfxFrameInfo& info, const IntMctfParams& Mc
 
 mfxStatus VideoVPPHW::GetFrameHandle(mfxFrameSurface1* InFrame, mfxHDLPair& handle, bool bInternalAlloc)
 {
-    mfxFrameSurface1 *pSurfI = m_pCore->GetNativeSurface(InFrame);
-    pSurfI = pSurfI ? pSurfI : InFrame;
-    return GetFrameHandle(*pSurfI, handle, bInternalAlloc);
+    return GetFrameHandle(*InFrame, handle, bInternalAlloc);
 }
 
 mfxStatus VideoVPPHW::GetFrameHandle(mfxFrameSurface1& surf, mfxHDLPair& handle, bool bInternalAlloc)

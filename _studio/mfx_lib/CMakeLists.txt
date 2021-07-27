@@ -38,7 +38,6 @@ set(sources_common
     ${MSDK_STUDIO_ROOT}/shared/include/libmfx_core_factory.h
     ${MSDK_STUDIO_ROOT}/shared/include/libmfx_core_interface.h
     ${MSDK_STUDIO_ROOT}/shared/include/libmfx_core_operation.h
-    ${MSDK_STUDIO_ROOT}/shared/include/mfxaudio++int.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfxenctools-int.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfxstructures-int.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfxstructurespro.h

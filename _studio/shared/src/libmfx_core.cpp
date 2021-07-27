@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2020 Intel Corporation
+// Copyright (c) 2007-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -128,57 +128,6 @@ mfxStatus CommonCORE::FreeBuffer(mfxMemId mid)
     return (*m_bufferAllocator.bufferAllocator.Free)(m_bufferAllocator.bufferAllocator.pthis,mid);
 }
 
-#if defined (MFX_ENABLE_OPAQUE_MEMORY)
-mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
-                                  mfxFrameAllocResponse *response,
-                                  mfxFrameSurface1 **pOpaqueSurface,
-                                  mfxU32 NumOpaqueSurface)
-{
-    m_bIsOpaqMode = true;
-
-    mfxStatus sts;
-    if(!request || !response)
-        return MFX_ERR_NULL_PTR;
-    if (!pOpaqueSurface)
-        return MFX_ERR_MEMORY_ALLOC;
-
-    if (0 == NumOpaqueSurface)
-        return MFX_ERR_MEMORY_ALLOC;
-
-    if (!CheckOpaqueRequest(request, pOpaqueSurface, NumOpaqueSurface))
-        return MFX_ERR_MEMORY_ALLOC;
-
-    if (IsOpaqSurfacesAlreadyMapped(pOpaqueSurface, NumOpaqueSurface, response))
-    {
-        return MFX_ERR_NONE;
-    }
-
-    sts = AllocFrames(request, response);
-    MFX_CHECK_STS(sts);
-
-    OpqTbl::iterator opq_it;
-    for (mfxU32 i = 0; i < response->NumFrameActual; i++)
-    {
-        mfxFrameSurface1 surf = {};
-        surf.Info = request->Info;
-        //sts = LockFrame(response->mids[i], &surf.Data);
-        //MFX_CHECK_STS(sts);
-        surf.Data.MemId = response->mids[i];
-        surf.Data.MemType = request->Type;
-        opq_it = m_OpqTbl.insert(std::make_pair(pOpaqueSurface[i], surf)).first;
-
-        // filling helper tables
-        m_OpqTbl_MemId.insert(std::make_pair(opq_it->second.Data.MemId, pOpaqueSurface[i]));
-        m_OpqTbl_FrameData.insert(std::make_pair(&opq_it->second.Data, pOpaqueSurface[i]));
-    }
-    mfxFrameAllocResponse* pResp = new mfxFrameAllocResponse;
-    *pResp = *response;
-
-    m_RefCtrTbl.insert(pair<mfxFrameAllocResponse*, mfxU32>(pResp, 1));
-    return sts;
-}
-#endif
-
 mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
                                   mfxFrameAllocResponse *response, bool )
 {
@@ -191,7 +140,6 @@ mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
     {
         MFX_CHECK_NULL_PTR2(request, response);
         mfxFrameAllocRequest temp_request = *request;
-
 
         // external allocator
         if (m_bSetExtFrameAlloc && !(request->Type & MFX_MEMTYPE_INTERNAL_FRAME))
@@ -335,88 +283,7 @@ mfxStatus CommonCORE::UnlockFrame(mfxMemId mid, mfxFrameData *ptr)
         return MFX_ERR_INVALID_HANDLE;
     }
 }
-mfxStatus CommonCORE::FreeFrames(mfxFrameAllocResponse *response, bool ExtendedSearch)
-{
-    mfxStatus sts = MFX_ERR_NONE;
-    if(!response)
-        return MFX_ERR_NULL_PTR;
-    if (m_RefCtrTbl.size())
-    {
-        {
-            UMC::AutomaticUMCMutex guard(m_guard);
-            RefCtrTbl::iterator ref_it;
-            for (ref_it = m_RefCtrTbl.begin(); ref_it != m_RefCtrTbl.end(); ref_it++)
-            {
-                if (IsEqual(*ref_it->first, *response))
-                {
-                    ref_it->second--;
-                    if (0 == ref_it->second)
-                    {
-                        delete ref_it->first;
-                        m_RefCtrTbl.erase(ref_it);
-                        for (mfxU32 i = 0; i < response->NumFrameActual; i++)
-                        {
-                            OpqTbl_MemId::iterator memIdTbl_it = m_OpqTbl_MemId.find(response->mids[i]);
-                            assert(m_OpqTbl_MemId.end() != memIdTbl_it);
-                            if (m_OpqTbl_MemId.end() != memIdTbl_it)
-                            {
-                                mfxFrameSurface1* surf = memIdTbl_it->second;
-                                OpqTbl::iterator opqTbl_it = m_OpqTbl.find(surf);
-                                assert(m_OpqTbl.end() != opqTbl_it);
-                                if (m_OpqTbl.end() != opqTbl_it)
-                                {
-                                    OpqTbl_FrameData::iterator frameDataTbl_it = m_OpqTbl_FrameData.find(&opqTbl_it->second.Data);
-                                    assert(m_OpqTbl_FrameData.end() != frameDataTbl_it);
-                                    if (m_OpqTbl_FrameData.end() != frameDataTbl_it)
-                                    {
-                                        m_OpqTbl_FrameData.erase(frameDataTbl_it);
-                                    }
-                                    m_OpqTbl.erase(opqTbl_it);
-                                }
-                                m_OpqTbl_MemId.erase(memIdTbl_it);
-                            }
-                        }
-                        return InternalFreeFrames(response);
-                    }
-                    else
-                    {
-                        // clean up resources allocated in IsOpaqSurfacesAlreadyMapped
-                        MemIDMap::iterator it = m_RespMidQ.find(response->mids);
-                        if (m_RespMidQ.end() != it)
-                        {
-                            // Means that FreeFrames call is done from a component
-                            // which operated with already mapped surfaces.
-                            if (response->mids != ref_it->first->mids)
-                            {
-                                delete[] response->mids;
-                                m_RespMidQ.erase(it);
-                            }
-                        }
-                    }
-                    return sts;
-                }
-            }
-        }
-        if (ExtendedSearch)
-        {
-            sts = m_session->m_pOperatorCore->DoCoreOperation(&VideoCORE::FreeFrames, response);
-            if (MFX_ERR_UNDEFINED_BEHAVIOR == sts) // no opaq surfaces found
-                return InternalFreeFrames(response);
-            else
-                return sts;
-        }
-    }
-    else if (ExtendedSearch)
-    {
-        sts = m_session->m_pOperatorCore->DoCoreOperation(&VideoCORE::FreeFrames, response);
-        if (MFX_ERR_UNDEFINED_BEHAVIOR == sts) // no opaq surfaces found
-            return InternalFreeFrames(response);
-        else
-            return sts;
-    }
-    return MFX_ERR_UNDEFINED_BEHAVIOR;
-}
-mfxStatus CommonCORE::InternalFreeFrames(mfxFrameAllocResponse *response)
+mfxStatus CommonCORE::FreeFrames(mfxFrameAllocResponse *response, bool)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
     try
@@ -496,14 +363,6 @@ mfxStatus  CommonCORE::LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool E
         {
             UMC::AutomaticUMCMutex guard(m_guard);
 
-            // if exist opaque surface - take a look in them (internal surfaces)
-            if (m_OpqTbl.size())
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "LockFrame");
-                sts = LockFrame(mid, ptr);
-                if (MFX_ERR_NONE == sts)
-                    return sts;
-            }
             MFX_CHECK_NULL_PTR1(ptr);
 
             if (m_bSetExtFrameAlloc)
@@ -569,13 +428,6 @@ mfxStatus  CommonCORE::UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool
         {
             UMC::AutomaticUMCMutex guard(m_guard);
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "UnlockFrame");
-            // if exist opaque surface - take a look in them (internal surfaces)
-            if (m_OpqTbl.size())
-            {
-                sts = UnlockFrame(mid, ptr);
-                if (MFX_ERR_NONE == sts)
-                    return sts;
-            }
 
             if (m_bSetExtFrameAlloc)
             {
@@ -611,27 +463,6 @@ mfxMemId CommonCORE::MapIdx(mfxMemId mid)
         return 0;
     else
         return ctbl_it->second.InternalMid;
-}
-mfxFrameSurface1* CommonCORE::GetNativeSurface(mfxFrameSurface1 *pOpqSurface, bool ExtendedSearch)
-{
-    if (0 == pOpqSurface)
-        return 0;
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::GetNativeSurface");
-
-    {
-        UMC::AutomaticUMCMutex guard(m_guard);
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "GetNativeSurface");
-        OpqTbl::iterator oqp_it;
-        oqp_it = m_OpqTbl.find(pOpqSurface);
-        if (m_OpqTbl.end() != oqp_it)
-            return &oqp_it->second;
-    }
-
-    if (ExtendedSearch)
-        return m_session->m_pOperatorCore->GetSurface(&VideoCORE::GetNativeSurface, pOpqSurface);
-
-    return 0;
-
 }
 
 mfxStatus CommonCORE::FreeMidArray(mfxFrameAllocator* pAlloc, mfxFrameAllocResponse *response)
@@ -692,7 +523,6 @@ CommonCORE::CommonCORE(const mfxU32 numThreadsAvailable, const mfxSession sessio
     m_bSetExtBufAlloc(false),
     m_bSetExtFrameAlloc(false),
     m_bUseExtManager(false),
-    m_bIsOpaqMode(false),
     m_CoreId(0),
     m_API_1_19(this),
     m_deviceId(0)
@@ -705,18 +535,6 @@ void CommonCORE::Close()
 {
     m_CTbl.clear();
     m_AllocatorQueue.clear();
-    m_OpqTbl_MemId.clear();
-    m_OpqTbl_FrameData.clear();
-    m_OpqTbl.clear();
-    MemIDMap::iterator it;
-    while(m_RespMidQ.size())
-    {
-        // now its NOT a mistake situation
-        // all mids should be freed already except opaque shared surfaces
-        it = m_RespMidQ.begin();
-        delete[] it->first;
-        m_RespMidQ.erase(it);
-    }
 }
 
 mfxStatus CommonCORE::GetHandle(mfxHandleType type, mfxHDL *handle)
@@ -917,83 +735,16 @@ mfxStatus CommonCORE::DecreasePureReference(mfxU16& Locked)
     return MFX_ERR_NONE;
 }// CommonCORE::IncreasePureReference(mfxFrameData *ptr)
 
-mfxStatus CommonCORE::IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch)
+mfxStatus CommonCORE::IncreaseReference(mfxFrameData *ptr, bool)
 {
     MFX_CHECK_NULL_PTR1(ptr);
-    if (ptr->Locked > 65534)
-    {
-        return MFX_ERR_LOCK_MEMORY;
-    }
-    else
-    {
-        {
-            UMC::AutomaticUMCMutex guard(m_guard);
-            // Opaque surface synchronization
-            if (m_bIsOpaqMode)
-            {
-                OpqTbl_FrameData::iterator opq_it = m_OpqTbl_FrameData.find(ptr);
-                if (m_OpqTbl_FrameData.end() != opq_it)
-                {
-                    vm_interlocked_inc16((volatile uint16_t*)&(opq_it->second->Data.Locked));
-                    vm_interlocked_inc16((volatile uint16_t*)&ptr->Locked);
-                    return MFX_ERR_NONE;
-                }
-            }
-        }
-
-        // we don't find in self queue let find in neigb cores
-        if (ExtendedSearch)
-        {
-            // makes sense to remove ans tay only error return
-            using TFPtr = mfxStatus(VideoCORE::*)(mfxFrameData*, bool);
-            if (MFX_ERR_NONE != m_session->m_pOperatorCore->DoCoreOperation<TFPtr>(&VideoCORE::IncreaseReference, ptr))
-                return IncreasePureReference(ptr->Locked);
-            else
-                return MFX_ERR_NONE;
-
-
-        }
-        return MFX_ERR_INVALID_HANDLE;
-    }
+    return IncreasePureReference(ptr->Locked);
 }
 
-mfxStatus CommonCORE::DecreaseReference(mfxFrameData *ptr, bool ExtendedSearch)
+mfxStatus CommonCORE::DecreaseReference(mfxFrameData *ptr, bool)
 {
     MFX_CHECK_NULL_PTR1(ptr);
-    // should be positive
-    if (ptr->Locked < 1)
-    {
-        return MFX_ERR_LOCK_MEMORY;
-    }
-    else
-    {
-        {
-            UMC::AutomaticUMCMutex guard(m_guard);
-            // Opaque surface synchronization
-            if (m_bIsOpaqMode)
-            {
-                OpqTbl_FrameData::iterator opq_it = m_OpqTbl_FrameData.find(ptr);
-                if (m_OpqTbl_FrameData.end() != opq_it)
-                {
-                    vm_interlocked_dec16((volatile uint16_t*)&(opq_it->second->Data.Locked));
-                    vm_interlocked_dec16((volatile uint16_t*)&ptr->Locked);
-                    return MFX_ERR_NONE;
-                }
-            }
-        }
-
-        // we dont find in self queue let find in neigb cores
-        if (ExtendedSearch)
-        {
-            // makes sence to remove ans tay only error return
-            using TFPtr = mfxStatus(VideoCORE::*)(mfxFrameData*, bool);
-            if (MFX_ERR_NONE != m_session->m_pOperatorCore->DoCoreOperation<TFPtr>(&VideoCORE::DecreaseReference, ptr))
-                return DecreasePureReference(ptr->Locked);
-            else
-                return MFX_ERR_NONE;
-        }
-        return MFX_ERR_INVALID_HANDLE;
-    }
+    return DecreasePureReference(ptr->Locked);
 }
 
 void CommonCORE::INeedMoreThreadsInside(const void *pComponent)
@@ -1628,86 +1379,6 @@ mfxStatus CommonCORE::CheckTimingLog()
 #endif
 
     return MFX_ERR_NONE;
-}
-
-
-bool CommonCORE::CheckOpaqueRequest(mfxFrameAllocRequest *request,
-                                    mfxFrameSurface1 **pOpaqueSurface,
-                                    mfxU32 NumOpaqueSurface,
-                                    bool ExtendedSearch)
-{
-    if (!pOpaqueSurface || !request)
-        return false;
-
-    if (request->NumFrameMin != NumOpaqueSurface)
-        return false;
-
-    std::ignore = ExtendedSearch;
-    return false;
-}
-
-bool CommonCORE::IsOpaqSurfacesAlreadyMapped(mfxFrameSurface1 **pOpaqueSurface,
-                                             mfxU32 NumOpaqueSurface,
-                                             mfxFrameAllocResponse *response,
-                                             bool ExtendedSearch)
-{
-    if (!pOpaqueSurface || !response)
-        return false;
-
-    {
-        UMC::AutomaticUMCMutex guard(m_guard);
-
-        mfxU32 i = 0;
-        OpqTbl::iterator oqp_it;
-        oqp_it = m_OpqTbl.find(pOpaqueSurface[i]);
-        // consistent already checked in CheckOpaqueRequest function
-        if (oqp_it != m_OpqTbl.end())
-        {
-            m_pMemId.reset();
-            response->mids = new mfxMemId[NumOpaqueSurface];
-
-            for (; i < NumOpaqueSurface; i++)
-            {
-                oqp_it = m_OpqTbl.find(pOpaqueSurface[i]);
-                if (oqp_it == m_OpqTbl.end())
-                    return false;
-
-                response->mids[i] = oqp_it->second.Data.MemId;
-            }
-
-            response->NumFrameActual = (mfxU16)NumOpaqueSurface;
-
-            RefCtrTbl::iterator ref_it;
-            for (ref_it = m_RefCtrTbl.begin(); ref_it != m_RefCtrTbl.end(); ref_it++)
-            {
-                if (IsEqual(*ref_it->first, *response))
-                {
-                    ref_it->second++;
-
-                    mfxFrameAllocResponse* opaq_response = ref_it->first;
-
-                    MemIDMap::iterator it = m_RespMidQ.find(opaq_response->mids);
-                    if (m_RespMidQ.end() == it)
-                        return false;
-
-                    mfxMemId * native_mids = it->second;
-
-                    m_RespMidQ.insert(pair<mfxMemId*, mfxMemId*>(response->mids, native_mids));
-                    return true;
-                }
-            }
-            return false; // unexpected behavior
-        }
-    }
-
-    if (ExtendedSearch)
-    {
-        bool sts = m_session->m_pOperatorCore->IsOpaqSurfacesAlreadyMapped(pOpaqueSurface, NumOpaqueSurface, response);
-        return sts;
-    }
-
-    return false;
-
 }
 
 // 15 bits - uniq surface Id
