@@ -2647,7 +2647,10 @@ private:
     class DdiTask2ndField
     {
     public:
-        DdiTask2ndField() : m_1stFieldTask(nullptr) {}
+        DdiTask2ndField()
+         : m_1stFieldTask(nullptr)
+         , m_2ndFieldTask()
+        {}
 
         DdiTask * m_1stFieldTask;
         DdiTask   m_2ndFieldTask;
