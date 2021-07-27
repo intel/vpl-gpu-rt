@@ -104,7 +104,6 @@ extern void mfxdct_quant_inv8x8_2x2_ls(
 
   mfxdct_8x8_inv_2x2_16s(buf, buf);
 
-  _mm_setzero_si128();
   _iSA = _mm_load_si128((__m128i*)(iSA + 0));
 
   _iS0 = _mm_load_si128((__m128i*)(buf + 0));
@@ -207,7 +206,6 @@ extern void mfxdct_quant_inv8x8_4x4_ls(
 
   mfxdct_8x8_inv_4x4_16s(buf, buf);
 
-  _mm_setzero_si128();
   _iSA = _mm_load_si128((__m128i*)(iSA + 0));
 
   _iS0 = _mm_load_si128((__m128i*)(buf + 0));
