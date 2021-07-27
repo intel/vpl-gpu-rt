@@ -62,13 +62,6 @@ public:
     virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request,
                                    mfxFrameAllocResponse *response, bool isNeedCopy = true)               override;
 
-#if defined (MFX_ENABLE_OPAQUE_MEMORY)
-    virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request,
-                                   mfxFrameAllocResponse *response,
-                                   mfxFrameSurface1 **pOpaqueSurface,
-                                   mfxU32 NumOpaqueSurface)                                               override;
-#endif
-
     virtual mfxStatus LockFrame(mfxMemId mid, mfxFrameData *ptr)                                          override;
     virtual mfxStatus UnlockFrame(mfxMemId mid, mfxFrameData *ptr = nullptr)                              override;
     virtual mfxStatus FreeFrames(mfxFrameAllocResponse *response, bool ExtendedSearch = true)             override;
@@ -78,9 +71,6 @@ public:
     virtual mfxStatus UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr=0, bool ExtendedSearch = true)  override;
 
     virtual mfxMemId MapIdx(mfxMemId mid)                                                                 override;
-
-    // Get original Surface corresponding to OpaqueSurface
-    virtual mfxFrameSurface1* GetNativeSurface(mfxFrameSurface1 *pOpqSurface, bool ExtendedSearch = true) override;
 
     // Increment Surface lock caring about opaq
     virtual mfxStatus IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch = true)                    override;
@@ -137,8 +127,6 @@ public:
 
     virtual mfxStatus IsGuidSupported(const GUID, mfxVideoParam *, bool)      override { return MFX_ERR_NONE; }
 
-    virtual bool CheckOpaqueRequest(mfxFrameAllocRequest *request, mfxFrameSurface1 **pOpaqueSurface, mfxU32 NumOpaqueSurface, bool ExtendedSearch = true) override;
-
     virtual eMFXVAType GetVAType() const                   override { return MFX_HW_NO; }
 
     virtual bool SetCoreId(mfxU32 Id)                      override;
@@ -147,8 +135,6 @@ public:
     virtual mfxSession GetSession()                        override { return m_session; }
 
     virtual mfxU16 GetAutoAsyncDepth()                     override;
-
-    virtual bool IsCompatibleForOpaq()                     override { return true; }
 
     // keep frame response structure describing plug-in memory surfaces
     void AddPluginAllocResponse(mfxFrameAllocResponse& response);
@@ -183,7 +169,6 @@ protected:
     mfxStatus                  CheckTimingLog();
 
     bool                       GetUniqID(mfxMemId& mId);
-    virtual mfxStatus          InternalFreeFrames(mfxFrameAllocResponse *response);
     bool IsEqual (const mfxFrameAllocResponse &resp1, const mfxFrameAllocResponse &resp2) const
     {
         if (resp1.NumFrameActual != resp2.NumFrameActual)
@@ -197,9 +182,6 @@ protected:
         return true;
     };
 
-    //function checks if surfaces already allocated and mapped and request is consistent. Fill response if surfaces are correct
-    virtual bool IsOpaqSurfacesAlreadyMapped(mfxFrameSurface1 **pOpaqueSurface, mfxU32 NumOpaqueSurface, mfxFrameAllocResponse *response, bool ExtendedSearch = true) override;
-
     typedef struct
     {
         mfxMemId InternalMid;
@@ -212,19 +194,9 @@ protected:
     typedef std::map<mfxMemId, mfxBaseWideFrameAllocator*> AllocQueue;
     typedef std::map<mfxMemId*, mfxMemId*> MemIDMap;
 
-    typedef std::map<mfxFrameSurface1*, mfxFrameSurface1> OpqTbl;
-    typedef std::map<mfxMemId, mfxFrameSurface1*> OpqTbl_MemId;
-    typedef std::map<mfxFrameData*, mfxFrameSurface1*> OpqTbl_FrameData;
-    typedef std::map<mfxFrameAllocResponse*, mfxU32> RefCtrTbl;
-
-
     CorrespTbl       m_CTbl;
     AllocQueue       m_AllocatorQueue;
     MemIDMap         m_RespMidQ;
-    OpqTbl           m_OpqTbl;
-    OpqTbl_MemId     m_OpqTbl_MemId;
-    OpqTbl_FrameData m_OpqTbl_FrameData;
-    RefCtrTbl        m_RefCtrTbl;
 
     // Number of available threads
     const
@@ -255,8 +227,6 @@ protected:
     std::unique_ptr<FastCopy>                  m_pFastCopy;
     bool                                       m_bUseExtManager;
     UMC::Mutex                                 m_guard;
-
-    bool                                       m_bIsOpaqMode;
 
     mfxU32                                     m_CoreId;
 
@@ -314,57 +284,16 @@ public:
         return this->m_enabled20Interface ? MFX_ERR_UNSUPPORTED : Base::FreeBuffer(mid);
     }
     */
-    /* Deprecated functionality : opaq memory */
-#if defined (MFX_ENABLE_OPAQUE_MEMORY)
-    virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request,
-                                  mfxFrameAllocResponse *response,
-                                  mfxFrameSurface1 **pOpaqueSurface,
-                                  mfxU32 NumOpaqueSurface)                                                      override
-    {
-        return this->m_enabled20Interface ? MFX_ERR_UNSUPPORTED : CommonCORE::AllocFrames(request, response, pOpaqueSurface, NumOpaqueSurface);
-    }
-#endif
-
-    virtual mfxFrameSurface1* GetNativeSurface(mfxFrameSurface1 *pOpqSurface, bool ExtendedSearch = true)       override
-    {
-        return this->m_enabled20Interface ? nullptr : Base::GetNativeSurface(pOpqSurface, ExtendedSearch);
-    }
-
-    virtual bool CheckOpaqueRequest(mfxFrameAllocRequest *request,
-                                    mfxFrameSurface1 **pOpaqueSurface,
-                                    mfxU32 NumOpaqueSurface,
-                                    bool ExtendedSearch = true)                                                 override
-    {
-        return this->m_enabled20Interface ? false : Base::CheckOpaqueRequest(request, pOpaqueSurface, NumOpaqueSurface, ExtendedSearch);
-    }
 
     virtual bool SetCoreId(mfxU32 Id)                                                                           override
     {
         return this->m_enabled20Interface ? false : Base::SetCoreId(Id);
     }
 
-    virtual bool IsCompatibleForOpaq()                                                                          override
-    {
-        return this->m_enabled20Interface ? false : Base::IsCompatibleForOpaq();
-    }
-
 protected:
     virtual mfxStatus DefaultAllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)        override
     {
         return this->m_enabled20Interface ? MFX_ERR_UNSUPPORTED : Base::DefaultAllocFrames(request, response);
-    }
-
-    virtual mfxStatus InternalFreeFrames(mfxFrameAllocResponse *response)                                       override
-    {
-        return this->m_enabled20Interface ? MFX_ERR_UNSUPPORTED : Base::InternalFreeFrames(response);
-    }
-
-    virtual bool IsOpaqSurfacesAlreadyMapped(mfxFrameSurface1     **pOpaqueSurface,
-                                             mfxU32                 NumOpaqueSurface,
-                                             mfxFrameAllocResponse *response,
-                                             bool                   ExtendedSearch = true)                      override
-    {
-        return this->m_enabled20Interface ? false : Base::IsOpaqSurfacesAlreadyMapped(pOpaqueSurface, NumOpaqueSurface, response, ExtendedSearch);
     }
 
     deprecate_from_base(const mfxU32 numThreadsAvailable, const mfxSession session = nullptr)

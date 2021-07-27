@@ -167,13 +167,6 @@ public:
     virtual mfxStatus  AllocFrames(mfxFrameAllocRequest *request,
                                    mfxFrameAllocResponse *response, bool isNeedCopy = true) = 0;
 
-#if defined (MFX_ENABLE_OPAQUE_MEMORY)
-    virtual mfxStatus  AllocFrames(mfxFrameAllocRequest *request,
-                                   mfxFrameAllocResponse *response,
-                                   mfxFrameSurface1 **pOpaqueSurface,
-                                   mfxU32 NumOpaqueSurface) = 0;
-#endif
-
     virtual mfxStatus  LockFrame(mfxMemId mid, mfxFrameData *ptr) = 0;
     virtual mfxStatus  UnlockFrame(mfxMemId mid, mfxFrameData *ptr=0) = 0;
     virtual mfxStatus  FreeFrames(mfxFrameAllocResponse *response, bool ExtendedSearch = true) = 0;
@@ -183,7 +176,6 @@ public:
     virtual mfxStatus  UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr=0, bool ExtendedSearch = true) = 0;
 
     virtual mfxMemId MapIdx(mfxMemId mid) = 0;
-    virtual mfxFrameSurface1* GetNativeSurface(mfxFrameSurface1 *pOpqSurface, bool ExtendedSearch = true) = 0;
 
     // Increment Surface lock
     virtual mfxStatus  IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch = true) = 0;
@@ -233,16 +225,11 @@ public:
     mfxStatus CopyFrameEx(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType) = 0;
 
     virtual mfxStatus IsGuidSupported(const GUID guid, mfxVideoParam *par, bool isEncoder = false) = 0;
-    virtual bool CheckOpaqueRequest(mfxFrameAllocRequest *request, mfxFrameSurface1 **pOpaqueSurface, mfxU32 NumOpaqueSurface, bool ExtendedSearch = true) = 0;
-        //function checks if surfaces already allocated and mapped and request is consistent. Fill response if surfaces are correct
-    virtual bool IsOpaqSurfacesAlreadyMapped(mfxFrameSurface1 **pOpaqueSurface, mfxU32 NumOpaqueSurface, mfxFrameAllocResponse *response, bool ExtendedSearch = true) = 0;
 
     virtual void* QueryCoreInterface(const MFX_GUID &guid) = 0;
     virtual mfxSession GetSession() = 0;
 
     virtual mfxU16 GetAutoAsyncDepth() = 0;
-
-    virtual bool IsCompatibleForOpaq() = 0;
 
     mfxStatus GetFrameHDL(mfxFrameSurface1& surf, mfxHDLPair& handle, bool ExtendedSearch = true)
     {

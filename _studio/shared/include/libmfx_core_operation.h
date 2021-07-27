@@ -67,38 +67,6 @@ public:
     }
 
     // functor to run fuction from child cores
-    bool  IsOpaqSurfacesAlreadyMapped(mfxFrameSurface1 **pOpaqueSurface, mfxU32 NumOpaqueSurface, mfxFrameAllocResponse *response)
-    {
-        UMC::AutomaticUMCMutex guard(m_guard);
-        bool sts;
-        std::vector<VideoCORE*>::iterator it = m_Cores.begin();
-
-        for (;it != m_Cores.end();it++)
-        {
-            sts = (*it)->IsOpaqSurfacesAlreadyMapped(pOpaqueSurface, NumOpaqueSurface, response, false);
-            if (sts)
-                return sts;
-        }
-        return false;
-    }
-
-    // functor to run fuction from child cores
-    bool CheckOpaqRequest(mfxFrameAllocRequest *request, mfxFrameSurface1 **pOpaqueSurface, mfxU32 NumOpaqueSurface)
-    {
-        UMC::AutomaticUMCMutex guard(m_guard);
-        bool sts;
-        std::vector<VideoCORE*>::iterator it = m_Cores.begin();
-
-        for (;it != m_Cores.end();it++)
-        {
-            sts = (*it)->CheckOpaqueRequest(request, pOpaqueSurface, NumOpaqueSurface, false);
-            if (!sts)
-                return sts;
-        }
-        return true;
-    }
-
-    // functor to run fuction from child cores
     template <typename func, typename arg, typename arg2>
     mfxStatus DoFrameOperation(func functor, arg par, arg2 out)
     {
