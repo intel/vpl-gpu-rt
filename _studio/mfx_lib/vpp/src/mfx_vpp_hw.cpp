@@ -2179,6 +2179,7 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
         case MFX_EXTBUFF_VPP_COMPOSITE:
         case MFX_EXTBUFF_VPP_COLORFILL:
         case MFX_EXTBUFF_VPP_COLOR_CONVERSION:
+        case MFX_EXTBUFF_VPP_3DLUT:
             if (format == MFX_FOURCC_NV12   ||
                 format == MFX_FOURCC_P010   ||
                 format == MFX_FOURCC_P016   ||
