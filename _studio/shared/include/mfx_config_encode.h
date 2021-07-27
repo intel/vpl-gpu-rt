@@ -26,7 +26,6 @@
 #if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
     #undef MFX_ENABLE_H264_PRIVATE_CTRL
     #define MFX_ENABLE_APQ_LQ
-    #define MFX_ENABLE_H264_REPARTITION_CHECK
     #define MFX_ENABLE_H264_ROUNDING_OFFSET
     #if defined(MFX_ENABLE_MCTF) && defined(MFX_ENABLE_KERNELS)
         #define MFX_ENABLE_MCTF_IN_AVC
@@ -63,6 +62,9 @@
 
 #ifdef MFX_ENABLE_USER_ENCTOOLS
     #define MFX_ENABLE_ENCTOOLS
+    #if defined(MFX_ENABLE_AENC)
+        #define ENABLE_ADAPTIVE_ENCODE
+    #endif
 #endif
 
 #endif // _MFX_CONFIG_ENCODE_H_
