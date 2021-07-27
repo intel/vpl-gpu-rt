@@ -2597,19 +2597,21 @@ public:
             {
                 {
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
-                    , {MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_RGB4, MFX_FOURCC_A2RGB10}
+                    , {MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_RGB4
+                    , MFX_FOURCC_BGR4, MFX_FOURCC_A2RGB10}
                 }
                 ,{
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV422)
                     , {MFX_FOURCC_YUY2, MFX_FOURCC_Y210, MFX_FOURCC_P210
-                    , MFX_FOURCC_AYUV, MFX_FOURCC_Y410
-                    , MFX_FOURCC_RGB4, MFX_FOURCC_A2RGB10}
+                    , MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_RGB4
+                    , MFX_FOURCC_BGR4, MFX_FOURCC_A2RGB10}
                 }
                 ,{
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
                     , {MFX_FOURCC_NV12, MFX_FOURCC_P010, MFX_FOURCC_RGB4
                     , MFX_FOURCC_YUY2, MFX_FOURCC_P210, MFX_FOURCC_Y210
-                    , MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_A2RGB10}
+                    , MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_A2RGB10
+                    , MFX_FOURCC_BGR4}
                 }
             },
             //10
@@ -2839,6 +2841,7 @@ const std::map<mfxU32, std::array<mfxU32, 3>> CheckAndFix::FourCCPar =
     , {mfxU32(MFX_FOURCC_YUY2),     {mfxU32(MFX_CHROMAFORMAT_YUV422), 8,  mfxU32(MFX_HW_ICL) }}
     , {mfxU32(MFX_FOURCC_P010),     {mfxU32(MFX_CHROMAFORMAT_YUV420), 10, mfxU32(MFX_HW_KBL) }}
     , {mfxU32(MFX_FOURCC_NV12),     {mfxU32(MFX_CHROMAFORMAT_YUV420), 8,  mfxU32(MFX_HW_SCL) }}
+    , {mfxU32(MFX_FOURCC_BGR4),     {mfxU32(MFX_CHROMAFORMAT_YUV444), 8,  mfxU32(MFX_HW_TGL_LP) }}
 };
 
 void Legacy::PushDefaults(Defaults& df)
