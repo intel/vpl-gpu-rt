@@ -1358,7 +1358,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
             sts = m_scd.AllocFrames(m_core, request);
             MFX_CHECK_STS(sts);
         }
-        sts = amtScd.Init(m_video.mfx.FrameInfo.CropW, m_video.mfx.FrameInfo.CropH, m_video.mfx.FrameInfo.Width, m_video.mfx.FrameInfo.PicStruct, m_cmDevice);// cmDevice_useGPU);
+        sts = amtScd.Init(m_video.mfx.FrameInfo.CropW, m_video.mfx.FrameInfo.CropH, m_video.mfx.FrameInfo.Width, m_video.mfx.FrameInfo.PicStruct, m_cmDevice);
         MFX_CHECK_STS(sts);
     }
 
