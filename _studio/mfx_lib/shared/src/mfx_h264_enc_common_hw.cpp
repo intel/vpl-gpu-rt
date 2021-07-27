@@ -924,6 +924,7 @@ namespace
         mfxU16 const DEFAULT_BY_TU[] = { 0, 3, 3, 3, 2, 1, 1, 1 };
         return DEFAULT_BY_TU[targetUsage];
     }
+
     mfxU16 GetMaxNumRefActivePL0(mfxU32 targetUsage,
                                         eMFXHWType platform,
                                         bool isLowPower,
