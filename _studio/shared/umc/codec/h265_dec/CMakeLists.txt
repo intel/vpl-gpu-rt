@@ -31,7 +31,6 @@ target_sources(umc_h265_hw
     src/umc_h265_tables.cpp
     src/umc_h265_task_broker.cpp
     src/umc_h265_task_supplier.cpp
-    src/umc_h265_va_packer_cenc.cpp
     src/umc_h265_va_packer.cpp
     src/umc_h265_va_packer_dxva.cpp
     src/umc_h265_va_packer_intel.cpp

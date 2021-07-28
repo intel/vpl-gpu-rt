@@ -263,7 +263,8 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_P016
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216
-            || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416)
+            || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416
+            )
         {
             request.Info.Shift = request_internal.Info.Shift = 1;
         }

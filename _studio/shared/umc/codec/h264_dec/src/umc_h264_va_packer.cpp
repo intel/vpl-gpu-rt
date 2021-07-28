@@ -78,7 +78,7 @@ Packer * Packer::CreatePacker(VideoAccelerator * va, TaskSupplier* supplier)
     (void)supplier;
 
     Packer * packer = 0;
-    packer = new PackerVA(va, supplier);
+        packer = new PackerVA(va, supplier);
 
     return packer;
 }
@@ -832,6 +832,7 @@ Status PackerVA::QueryStreamOut(H264DecoderFrame* pFrame)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "PackerVA::QueryStreamOut");
     return UMC_OK;
 }
+
 
 } // namespace UMC
 

@@ -127,6 +127,7 @@ protected:
     void PackQmatrix(const UMC_H264_DECODER::H264ScalingPicParams * scaling);
 };
 
+
 } // namespace UMC
 
 #endif /* __UMC_H264_VA_PACKER_H */
