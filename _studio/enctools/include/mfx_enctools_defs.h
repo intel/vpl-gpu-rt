@@ -67,7 +67,7 @@ inline bool IsAdapt(mfxU32 opt)
 
 namespace mfx
 {
-    // TODO: switch to std::clamp when C++17 support will be enabled
+    // switch to std::clamp when C++17 support will be enabled
     // Clip value v to range [lo, hi]
     template<class T>
     constexpr const T& clamp(const T& v, const T& lo, const T& hi)
