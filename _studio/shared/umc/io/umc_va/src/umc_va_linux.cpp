@@ -844,7 +844,7 @@ LinuxVideoAccelerator::Execute()
 
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
-                va_sts = vaRenderPicture(m_dpy, *m_pContext, &id, 1); // TODO: send all at once?
+                va_sts = vaRenderPicture(m_dpy, *m_pContext, &id, 1);
                 if (VA_STATUS_SUCCESS == va_res) va_res = va_sts;
             }
         }
@@ -892,7 +892,6 @@ Status LinuxVideoAccelerator::EndFrame(void*)
     return stsRet;
 }
 
-/* TODO: need to rewrite return value type (possible problems with signed/unsigned) */
 int32_t LinuxVideoAccelerator::GetSurfaceID(int32_t idx) const
 {
     VASurfaceID *surface;

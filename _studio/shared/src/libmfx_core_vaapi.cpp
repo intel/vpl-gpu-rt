@@ -1277,7 +1277,7 @@ VAAPIVideoCORE20::DoFastCopyWrapper(
 
     MFX_CHECK_NULL_PTR2(pSrc, pDst);
 
-    // TODO: uncomment underlying checks after additional validation
+    // uncomment underlying checks after additional validation
     //MFX_CHECK(!pSrc->Data.MemType || MFX_MEMTYPE_BASE(pSrc->Data.MemType) == MFX_MEMTYPE_BASE(srcMemType), MFX_ERR_UNSUPPORTED);
     //MFX_CHECK(!pDst->Data.MemType || MFX_MEMTYPE_BASE(pDst->Data.MemType) == MFX_MEMTYPE_BASE(dstMemType), MFX_ERR_UNSUPPORTED);
 

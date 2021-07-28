@@ -147,8 +147,6 @@
         
       
         // Declare private copy constructor to avoid accidental assignment
-        // and klocwork complaining.
-
         clExtTasks1(const clExtTasks1 &);
         clExtTasks1 & operator = (const clExtTasks1 &);
     };
@@ -253,8 +251,6 @@
         mfxU32          m_numSubmittedTasks;
 
         // Declare private copy constructor to avoid accidental assignment
-        // and klocwork complaining.
-
         clExtTasks2(const clExtTasks2 &);
         clExtTasks2 & operator = (const clExtTasks2 &);
     };
@@ -617,7 +613,6 @@
 
     private:
         // Declare private copy constructor to avoid accidental assignment
-        // and klocwork complaining.
         MFXGOP(const MFXGOP &);
         MFXGOP & operator = (const MFXGOP &);
     };
@@ -781,7 +776,6 @@
         mfxU32              m_delay;
 
         // Declare private copy constructor to avoid accidental assignment
-        // and klocwork complaining.
         MFXWaitingList(const MFXWaitingList &);
         MFXWaitingList & operator = (const MFXWaitingList &);
     };

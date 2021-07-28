@@ -282,7 +282,6 @@ public:
     virtual Status UnwrapBuffer(mfxMemId /*bufferId*/) { return MFX_ERR_NONE; };
 
     virtual bool IsIntelCustomGUID() const = 0;
-    /* TODO: is used on Linux only? On Linux there are isues with signed/unsigned return value. */
     virtual int32_t GetSurfaceID(int32_t idx) const { return idx; }
 
     virtual ProtectedVA * GetProtectedVA() {return m_protectedVA;}

@@ -84,7 +84,6 @@ protected:
 
 private:
     // Declare private copy constructor to avoid accidental assignment
-    // and klocwork complaining.
     MemoryAllocator(const MemoryAllocator &);
     MemoryAllocator & operator = (const MemoryAllocator &);
 };

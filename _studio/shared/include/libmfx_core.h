@@ -286,7 +286,7 @@ public:
 
     virtual mfxMemId MapIdx(mfxMemId mid)                      override { return this->m_enabled20Interface ? mid : Base::MapIdx(mid); }
 
-    // TODO: Clean up code from buffer allocator usage and uncomment following items
+    // Clean up code from buffer allocator usage and uncomment following items
     /* Deprecated functionality : buffer allocator */
     /*
     virtual mfxStatus SetBufferAllocator(mfxBufferAllocator * allocator)      override
@@ -417,7 +417,6 @@ public:
 
     virtual void* QueryCoreInterface(const MFX_GUID &guid)                    override;
 
-    // TODO: check if we allowed to break vtable for MSDK2.0
     virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* &surf);
 
 protected:
