@@ -101,7 +101,6 @@ mfxStatus MfxLpLookAhead::Init(mfxVideoParam* param)
 mfxStatus MfxLpLookAhead::Reset(mfxVideoParam* param)
 {
     (void*)param;
-    // TODO: will implement it later
     m_bNeedDownscale = false;
     return MFX_ERR_UNSUPPORTED;
 }
