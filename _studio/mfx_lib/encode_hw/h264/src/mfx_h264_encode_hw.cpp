@@ -228,7 +228,7 @@ mfxStatus MFXHWVideoENCODEH264::QueryImplsDescription(
     MfxVideoParam tmp = mfxVideoParam();
     auto platform = core.GetHWType();
 
-    std::ignore = SetLowPowerDefault(tmp, platform, true);
+    std::ignore = SetLowPowerDefault(tmp, platform);
     MFX_SAFE_CALL(QueryHwCaps(&core, hwCaps, &tmp));
 
     const mfxU32 SupportedProfiles[] =
@@ -503,7 +503,7 @@ mfxStatus ImplementationAvc::Query(
         MFX_ENCODE_CAPS hwCaps = { };
         MfxVideoParam tmp = *in; // deep copy, create all supported extended buffers
 
-        mfxStatus lpSts = SetLowPowerDefault(tmp, platfrom, true);
+        mfxStatus lpSts = SetLowPowerDefault(tmp, platfrom);
         // let's use default values if input resolution is 0x0
         mfxU32 Width  = in->mfx.FrameInfo.Width == 0 ? 1920: in->mfx.FrameInfo.Width;
         mfxU32 Height =  in->mfx.FrameInfo.Height == 0 ? 1088: in->mfx.FrameInfo.Height;
@@ -549,6 +549,9 @@ mfxStatus ImplementationAvc::Query(
             }
         }
 #endif
+        // Query should not modify UNKNOWN options
+        if (in->mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
+            tmp.mfx.LowPower = MFX_CODINGOPTION_UNKNOWN;
 
         out->IOPattern  = tmp.IOPattern;
         out->Protected  = tmp.Protected;
@@ -666,7 +669,7 @@ mfxStatus ImplementationAvc::Query(
         MFX_CHECK(extCaps, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         MfxVideoParam tmp = *in;
-        (void)SetLowPowerDefault(tmp, platfrom, true);
+        (void)SetLowPowerDefault(tmp, platfrom);
 
         // query MB processing rate from driver
         sts = QueryMbProcRate(core, *out, mbPerSec, &tmp);
@@ -691,7 +694,7 @@ mfxStatus ImplementationAvc::Query(
     {
         MfxVideoParam tmp = *in;
         eMFXHWType platform = core->GetHWType();
-        (void)SetLowPowerDefault(tmp, platform, true);
+        (void)SetLowPowerDefault(tmp, platform);
         if(IsOn(tmp.mfx.LowPower))
             return QueryGuid(core, DXVA2_INTEL_LOWPOWERENCODE_AVC);
         return QueryGuid(core, DXVA2_Intel_Encode_AVC);
@@ -715,7 +718,7 @@ mfxStatus ImplementationAvc::QueryIOSurf(
     MFX_ENCODE_CAPS hwCaps = {};
     MfxVideoParam tmp(*par);
     eMFXHWType platfrom = core->GetHWType();
-    mfxStatus lpSts = SetLowPowerDefault(tmp, platfrom, false);
+    mfxStatus lpSts = SetLowPowerDefault(tmp, platfrom);
 
     mfxStatus sts = QueryHwCaps(core, hwCaps, &tmp);
     if (IsOn(par->mfx.LowPower) && sts != MFX_ERR_NONE)
@@ -934,7 +937,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
     m_video = *par;
     eMFXHWType platform = m_core->GetHWType();
-    mfxStatus lpSts = SetLowPowerDefault(m_video, platform, false);
+    mfxStatus lpSts = SetLowPowerDefault(m_video, platform);
 
     sts = ReadSpsPpsHeaders(m_video);
     MFX_CHECK_STS(sts);
