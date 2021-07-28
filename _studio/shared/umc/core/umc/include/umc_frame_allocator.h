@@ -95,7 +95,6 @@ protected:
 
 private:
     // Declare private copy constructor to avoid accidental assignment
-    // and klocwork complaining.
     FrameAllocator(const FrameAllocator &);
     FrameAllocator & operator = (const FrameAllocator &);
 };

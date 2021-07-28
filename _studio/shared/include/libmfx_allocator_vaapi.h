@@ -93,7 +93,7 @@ public:
         return MFX_ERR_NONE;
     }
 
-    // TODO: add map type when vaMapBuffer will support it
+    // add map type when vaMapBuffer will support it
     mfxStatus Map(mfxU8* & ptr/*, MAP_TYPE*/)
     {
         ptr = nullptr;

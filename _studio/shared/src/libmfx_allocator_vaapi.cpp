@@ -947,8 +947,6 @@ std::pair<mfxHDL, mfxResourceType> mfxFrameSurface1_hw_vaapi::GetNativeHandle() 
 {
     std::shared_lock<std::shared_timed_mutex> guard(m_hdl_mutex);
 
-    // TODO: temporary changed returned signature, return back (uncomment subsequent line) since current version violates the spec
-    // return { reinterpret_cast<mfxHDL>(*m_resource_wrapper->GetHandle()), MFX_RESOURCE_VA_SURFACE };
     return { reinterpret_cast<mfxHDL>(m_resource_wrapper->GetHandle()), MFX_RESOURCE_VA_SURFACE };
 }
 

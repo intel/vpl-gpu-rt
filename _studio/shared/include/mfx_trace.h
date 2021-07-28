@@ -150,11 +150,11 @@ typedef enum
 } mfxTraceLevel;
 
 
-// TODO delete the following levels completely
+// delete the following levels completely
 #define MFX_TRACE_LEVEL_SCHED       MFX_TRACE_LEVEL_10
 #define MFX_TRACE_LEVEL_PRIVATE     MFX_TRACE_LEVEL_16
 
-// TODO the following levels should remain only
+// the following levels should remain only
 
 /** API level
  * - Media SDK library entry points exposed in Media SDK official API
@@ -170,7 +170,7 @@ typedef enum
 /** EXTCALL level
  * - Calls to external libaries (DXVA, LibVA, MDF/CM, etc.)
  */
-#define MFX_TRACE_LEVEL_EXTCALL     MFX_TRACE_LEVEL_2 // TODO should be MFX_TRACE_LEVEL_3
+#define MFX_TRACE_LEVEL_EXTCALL     MFX_TRACE_LEVEL_2 // should be MFX_TRACE_LEVEL_3
 
 /** SCHEDULER level
  * - Media SDK internal scheduler functions calls
