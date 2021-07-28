@@ -455,6 +455,38 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
     return mfxRes;
 }
 
+static mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
+{
+    // No internal alloc if Ext Allocator set
+    if (session->m_pCORE->IsExternalFrameAllocator())
+        return MFX_ERR_NONE;
+
+    mfxU16 memory_type = mfxU16(par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ? MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
+
+    auto& pCache = session->m_pENCODE->m_pSurfaceCache;
+
+    if (!pCache)
+    {
+        auto core20 = dynamic_cast<CommonCORE20*>(session->m_pCORE.get());
+        if (!core20)
+            return MFX_ERR_NONE;
+
+        std::unique_ptr<SurfaceCache> scoped_cache_ptr(SurfaceCache::Create(*core20, memory_type, par.mfx.FrameInfo));
+
+        using cache_controller = surface_cache_controller<SurfaceCache>;
+        using TCachePtr = std::remove_reference<decltype(pCache)>::type;
+
+        pCache = TCachePtr(new cache_controller(scoped_cache_ptr.get()), std::default_delete<cache_controller>());
+
+        scoped_cache_ptr.release();
+    }
+
+    // Setup cache limits
+    MFX_SAFE_CALL(pCache->SetupCache(session, par));
+
+    return MFX_ERR_NONE;
+}
+
 mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
 {
     mfxStatus mfxRes;
@@ -493,6 +525,11 @@ mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
             MFX_ERR_NONE <= mfxRes)
         {
             mfxRes = MFX_ERR_INVALID_VIDEO_PARAM;
+        }
+
+        if (mfxRes >= MFX_ERR_NONE)
+        {
+            MFX_SAFE_CALL(SetupCache(session, *par));
         }
     }
     // handle error(s)
@@ -587,6 +624,11 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
 
     try
     {
+        if (surface && session->m_pENCODE->m_pSurfaceCache)
+        {
+            MFX_SAFE_CALL(session->m_pENCODE->m_pSurfaceCache->Update(*surface));
+        }
+
         {
             mfxSyncPoint syncPoint = NULL;
             mfxFrameSurface1* reordered_surface = NULL;
@@ -742,39 +784,17 @@ mfxStatus MFXMemory_GetSurfaceForEncode(mfxSession session, mfxFrameSurface1** o
 {
     MFX_CHECK_NULL_PTR1(output_surf);
     MFX_CHECK_HDL(session);
-    MFX_CHECK(session->m_pCORE.get(), MFX_ERR_NOT_INITIALIZED);
-    MFX_CHECK(session->m_pENCODE,     MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(session->m_pENCODE,                  MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(session->m_pENCODE->m_pSurfaceCache, MFX_ERR_NOT_INITIALIZED);
 
     try
     {
-        auto& pCache = session->m_pENCODE->m_pSurfaceCache;
-
-        if (!pCache)
-        {
-            auto pCore20 = dynamic_cast<CommonCORE20*>(session->m_pCORE.get());
-            MFX_CHECK(pCore20, MFX_ERR_UNSUPPORTED);
-
-            mfxVideoParam        par = {};
-            mfxFrameAllocRequest req = {};
-
-            MFX_SAFE_CALL(session->m_pENCODE->GetVideoParam(&par));
-            MFX_SAFE_CALL(MFXVideoENCODE_QueryIOSurf(session, &par, &req));
-
-            using TCachePtr = std::remove_reference<decltype(pCache)>::type;
-
-            pCache = TCachePtr(new SurfaceCache(*pCore20, req.Type, req.Info), [](SurfaceCache* p) { delete p; });
-        }
-
-        *output_surf = pCache->GetSurface();
+        MFX_RETURN((*session->m_pENCODE->m_pSurfaceCache)->GetSurface(*output_surf));
     }
     catch (...)
     {
         MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
     }
-
-    MFX_CHECK(*output_surf, MFX_ERR_MEMORY_ALLOC);
-
-    return MFX_ERR_NONE;
 }
 
 mfxStatus QueryImplsDescription(VideoCORE& core, mfxEncoderDescription& caps, mfx::PODArraysHolder& ah)

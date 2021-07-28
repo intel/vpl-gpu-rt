@@ -396,7 +396,7 @@ mfxStatus SurfaceSourceJPEG::FindSurfaceByMemId(const UMC::FrameData* in,
         // if memid of in is same as memid of surface_work, StartPreparingToOutput() must not be called
         MFX_CHECK_WITH_ASSERT(!hdlPair.first || hdlPair.first != memId, MFX_ERR_UNSUPPORTED);
 
-        mfxFrameSurface1* pSurf = m_surface20_cache_decoder_surfaces->FindSurface(memId);
+        mfxFrameSurface1* pSurf = (*m_surface20_cache_decoder_surfaces)->FindSurface(memId);
         MFX_CHECK_NULL_PTR1(pSurf);
 
         out_surface = *pSurf;
@@ -508,7 +508,7 @@ mfxStatus SurfaceSourceJPEG::CheckPreparingToOutput(mfxFrameSurface1 *surface_wo
             MFX_CHECK_WITH_ASSERT(midIt != m_umc2mfx_memid.end(), MFX_ERR_NOT_FOUND);
             mfxMemId memId = midIt->second;
 
-            mfxFrameSurface1* pSrc = m_surface20_cache_decoder_surfaces->FindSurface(memId);
+            mfxFrameSurface1* pSrc = (*m_surface20_cache_decoder_surfaces)->FindSurface(memId);
             MFX_CHECK_NULL_PTR1(pSrc);
             //Performance issue. We need to unlock mutex to let decoding thread run async.
             guard.Unlock();
@@ -528,9 +528,9 @@ mfxStatus SurfaceSourceJPEG::CheckPreparingToOutput(mfxFrameSurface1 *surface_wo
             MFX_CHECK_WITH_ASSERT(midItBottom != m_umc2mfx_memid.end(), MFX_ERR_NOT_FOUND);
 
             // find surface
-            mfxFrameSurface1* srcTop = m_surface20_cache_decoder_surfaces->FindSurface(midItTop->second);
+            mfxFrameSurface1* srcTop = (*m_surface20_cache_decoder_surfaces)->FindSurface(midItTop->second);
             MFX_CHECK_NULL_PTR1(srcTop);
-            mfxFrameSurface1* srcBottom = m_surface20_cache_decoder_surfaces->FindSurface(midItBottom->second);
+            mfxFrameSurface1* srcBottom = (*m_surface20_cache_decoder_surfaces)->FindSurface(midItBottom->second);
             MFX_CHECK_NULL_PTR1(srcBottom);
 
             //Performance issue. We need to unlock mutex to let decoding thread run async.

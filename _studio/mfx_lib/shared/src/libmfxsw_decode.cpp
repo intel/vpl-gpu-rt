@@ -516,6 +516,11 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
         {
             mfxRes = MFX_WRN_DEVICE_BUSY;
         }
+        // Self allocation (i.e. memory model 3), GetSurface timeout expired
+        else if (!surface_work && mfxRes == MFX_ERR_MORE_SURFACE)
+        {
+            mfxRes = MFX_WRN_DEVICE_BUSY;
+        }
 
         // return pointer to synchronization point
         if (MFX_ERR_NONE == mfxRes || (mfxRes == MFX_WRN_VIDEO_PARAM_CHANGED && *surface_out != NULL))

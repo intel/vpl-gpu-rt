@@ -76,7 +76,7 @@ public:
 
     mfxStatus QueryFrame(mfxThreadTask);
 
-    virtual mfxFrameSurface1* GetSurface() override;
+    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface) override;
 
 private:
     static mfxStatus FillVideoParam(VideoCORE*, UMC_AV1_DECODER::AV1DecoderParams const*, mfxVideoParam*);

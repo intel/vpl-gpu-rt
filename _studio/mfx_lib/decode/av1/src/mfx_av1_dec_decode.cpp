@@ -1247,15 +1247,11 @@ mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFram
     return MFX_ERR_NONE;
 }
 
-mfxFrameSurface1* VideoDECODEAV1::GetSurface()
+mfxStatus VideoDECODEAV1::GetSurface(mfxFrameSurface1* & surface)
 {
-    if (!m_surface_source)
-    {
-        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
-        return nullptr;
-    }
+    MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface();
+    return m_surface_source->GetSurface(surface);
 }
 
 #endif

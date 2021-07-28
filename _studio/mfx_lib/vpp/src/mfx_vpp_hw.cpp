@@ -2380,15 +2380,10 @@ mfxStatus  VideoVPPHW::Init(
     //-----------------------------------------------------
 
     mfxFrameAllocRequest request;
-    mfxU16 memTypeIn  = MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_INTERNAL_FRAME;
-    mfxU16 memTypeOut = MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_INTERNAL_FRAME;
 
     m_isD3D9SimWithVideoMemOut = IsD3D9Simulation(*m_pCore) && (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY);
     if (D3D_TO_SYS == m_ioMode || SYS_TO_SYS == m_ioMode || m_isD3D9SimWithVideoMemOut) // [OUT == SYSTEM_MEMORY]
     {
-        memTypeOut          =  MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_INTERNAL_FRAME;
-        memTypeOut         |= m_isD3D9SimWithVideoMemOut ? MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET : MFX_MEMTYPE_SYSTEM_MEMORY;
-
         request.Info        = par->vpp.Out;
         request.Type        = MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_INTERNAL_FRAME;
         request.NumFrameMin = request.NumFrameSuggested = m_config.m_surfCount[VPP_OUT] ;
@@ -2404,9 +2399,6 @@ mfxStatus  VideoVPPHW::Init(
     m_isD3D9SimWithVideoMemIn = IsD3D9Simulation(*m_pCore) && (par->IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY);
     if (SYS_TO_SYS == m_ioMode || SYS_TO_D3D == m_ioMode || m_isD3D9SimWithVideoMemIn) // [IN == SYSTEM_MEMORY]
     {
-        memTypeIn           = MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_INTERNAL_FRAME;
-        memTypeIn          |= m_isD3D9SimWithVideoMemIn ? MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET : MFX_MEMTYPE_SYSTEM_MEMORY;
-
         request.Info        = par->vpp.In;
         request.Type        = MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_INTERNAL_FRAME;
         request.NumFrameMin = request.NumFrameSuggested = m_config.m_surfCount[VPP_IN] ;
@@ -2421,16 +2413,6 @@ mfxStatus  VideoVPPHW::Init(
 
     // async workload mode by default
     m_workloadMode = VPP_ASYNC_WORKLOAD;
-
-    bool core20_interface = Supports20FeatureSet(*m_pCore);
-    if (core20_interface && !m_pCore->IsExternalFrameAllocator())
-    {
-        auto pCore20 = dynamic_cast<CommonCORE20*>(m_pCore);
-        MFX_CHECK(pCore20, MFX_ERR_UNSUPPORTED);
-
-        m_surfaceIn.reset(new SurfaceCache(*pCore20, memTypeIn, par->vpp.In));
-        m_surfaceOut.reset(new SurfaceCache(*pCore20, memTypeOut, par->vpp.Out));
-    }
 
     //-----------------------------------------------------
     // [4] resource and task manager
@@ -3122,8 +3104,7 @@ mfxStatus VideoVPPHW::Close()
             m_ddi->Close();
         }
     }
-    m_surfaceIn.reset();
-    m_surfaceOut.reset();
+
     return sts;
 
 } // mfxStatus VideoVPPHW::Close()
@@ -4794,26 +4775,6 @@ mfxStatus VideoVPPHW::QueryFromMctf(void *pState, void *pParam, bool bMctfReadyT
 }
 #endif
 
-mfxFrameSurface1* VideoVPPHW::GetSurfaceIn()
-{
-    if (!m_surfaceIn)
-    {
-        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
-        return nullptr;
-    }
-    return m_surfaceIn->GetSurface();
-}
-
-mfxFrameSurface1* VideoVPPHW::GetSurfaceOut()
-{
-    if (!m_surfaceOut)
-    {
-        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
-        return nullptr;
-    }
-    return m_surfaceOut->GetSurface();
-}
-
 mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, bool bCorrectionEnable)
 {
     MFX_CHECK_NULL_PTR3(par, caps, core);
@@ -4834,6 +4795,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
     MFX_CHECK_STS(internalSts);
 
     /* 1. Check ext param */
+    mfxU32 n_hints_buf = 0, input_hint = 0, output_hint = 0;
     for (mfxU32 i = 0; i < par->NumExtParam; i++)
     {
         void *data = par->ExtParam[i];
@@ -5025,6 +4987,11 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             break;
         } //case MFX_EXTBUFF_VPP_COMPOSITE
         } // switch
+
+        if (output_hint + input_hint != n_hints_buf)
+        {
+            sts = GetWorstSts(sts, MFX_STS_TRACE(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM));
+        }
     }
 
     /* 2. p010 video memory should be shifted */

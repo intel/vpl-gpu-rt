@@ -69,7 +69,7 @@ public:
     virtual mfxStatus GetPayload(mfxU64 *pTimeStamp, mfxPayload *pPayload) override;
     virtual mfxStatus SetSkipMode(mfxSkipMode mode) override;
 
-    virtual mfxFrameSurface1* GetSurface() override;
+    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface) override;
 
 protected:
     void CalculateTimeSteps(mfxFrameSurface1 *);

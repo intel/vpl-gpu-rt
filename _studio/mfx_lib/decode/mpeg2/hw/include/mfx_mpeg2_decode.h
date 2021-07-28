@@ -79,7 +79,7 @@ public:
     // Return scheduler threading policy
     mfxTaskThreadingPolicy GetThreadingPolicy() override;
 
-    virtual mfxFrameSurface1* GetSurface() override;
+    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface) override;
 
 private:
     // Internal implementation of API QueryIOSurf function

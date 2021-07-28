@@ -1619,15 +1619,11 @@ mfxStatus VideoDECODEVP9_HW::PackHeaders(mfxBitstream *bs, VP9DecoderFrame const
     return MFX_ERR_NONE;
 }
 
-mfxFrameSurface1* VideoDECODEVP9_HW::GetSurface()
+mfxStatus VideoDECODEVP9_HW::GetSurface(mfxFrameSurface1* & surface)
 {
-    if (!m_surface_source)
-    {
-        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
-        return nullptr;
-    }
+    MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface();
+    return m_surface_source->GetSurface(surface);
 }
 
 #endif //MFX_ENABLE_VP9_VIDEO_DECODE

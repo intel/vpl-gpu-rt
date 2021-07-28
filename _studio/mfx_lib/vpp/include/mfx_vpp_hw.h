@@ -905,9 +905,6 @@ namespace MfxHwVideoProcessing
             mfxVideoParam *par
         );
 
-        mfxFrameSurface1* GetSurfaceIn();
-        mfxFrameSurface1* GetSurfaceOut();
-
     private:
 
         mfxStatus MergeRuntimeParams(const DdiTask* pTask,  MfxHwVideoProcessing::mfxExecuteParams *execParams);
@@ -957,9 +954,6 @@ namespace MfxHwVideoProcessing
         std::vector<MfxHwVideoProcessing::mfxDrvSurface> m_executeSurf;
 
         MfxFrameAllocResponse   m_internalVidSurf[2];
-
-        std::unique_ptr<SurfaceCache> m_surfaceIn;
-        std::unique_ptr<SurfaceCache> m_surfaceOut;
 
         VideoCORE *m_pCore;
         UMC::Mutex m_guard;

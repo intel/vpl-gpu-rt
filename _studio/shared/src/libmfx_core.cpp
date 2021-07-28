@@ -79,28 +79,8 @@ mfxStatus MFXMemory_GetSurfaceForDecode(mfxSession session, mfxFrameSurface1** o
     MFX_CHECK(session->m_pCORE.get(), MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK(session->m_pDECODE,     MFX_ERR_NOT_INITIALIZED);
 
-    *output_surf = session->m_pDECODE->GetSurface();
-
-    return *output_surf ? MFX_ERR_NONE : MFX_ERR_MEMORY_ALLOC;
+    return session->m_pDECODE->GetSurface(*output_surf);
 }
-
-#define FUNCTION_GET_SURFACE_IMPL_VPP(FUNCTION_NAME, TYPE)                                                                             \
-mfxStatus FUNCTION_NAME##TYPE (mfxSession session, mfxFrameSurface1** output_surf)                                                     \
-{                                                                                                                                      \
-    MFX_CHECK_NULL_PTR1(output_surf);                                                                                                  \
-    MFX_CHECK_HDL(session);                                                                                                            \
-    MFX_CHECK(session->m_pCORE.get(), MFX_ERR_NOT_INITIALIZED);                                                                        \
-    MFX_CHECK(session->m_pVPP,        MFX_ERR_NOT_INITIALIZED);                                                                        \
-                                                                                                                                       \
-    *output_surf = session->m_pVPP->GetSurface##TYPE();                                                                                \
-                                                                                                                                       \
-    return *output_surf ? MFX_ERR_NONE : MFX_ERR_MEMORY_ALLOC;                                                                         \
-}
-
-FUNCTION_GET_SURFACE_IMPL_VPP(MFXMemory_GetSurfaceForVPP, In)
-FUNCTION_GET_SURFACE_IMPL_VPP(MFXMemory_GetSurfaceForVPP, Out)
-
-#undef FUNCTION_GET_SURFACE_IMPL_VPP
 
 mfxStatus CommonCORE::API_1_19_Adapter::QueryPlatform(mfxPlatform* platform)
 {

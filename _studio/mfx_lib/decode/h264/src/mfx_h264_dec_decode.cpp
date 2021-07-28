@@ -468,15 +468,11 @@ mfxStatus VideoDECODEH264::QueryImplsDescription(
     return MFX_ERR_NONE;
 }
 
-mfxFrameSurface1* VideoDECODEH264::GetSurface()
+mfxStatus VideoDECODEH264::GetSurface(mfxFrameSurface1* & surface)
 {
-    if (!m_surface_source)
-    {
-        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
-        return nullptr;
-    }
+    MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface();
+    return m_surface_source->GetSurface(surface);
 }
 
 mfxU16 VideoDECODEH264::GetChangedProfile(mfxVideoParam *par)

@@ -35,6 +35,8 @@
 #include <memory>
 #include <functional>
 
+#include "mfx_utils.h"
+
 #ifdef _MSVC_LANG
 #pragma warning(push)
 #pragma warning(disable:26812)
@@ -460,7 +462,17 @@ public:
     virtual
     mfxStatus CancelFrame(mfxEncodeCtrl *ctrl, mfxEncodeInternalParams *pInternalParams, mfxFrameSurface1 *surface, mfxBitstream *bs) = 0;
 
-    std::unique_ptr<SurfaceCache, std::function<void(SurfaceCache*)>> m_pSurfaceCache;
+    mfxStatus ResetCache(mfxVideoParam* par)
+    {
+        MFX_CHECK_NULL_PTR1(par);
+
+        if (m_pSurfaceCache)
+            MFX_SAFE_CALL(m_pSurfaceCache->ResetCache(*par));
+
+        return MFX_ERR_NONE;
+    }
+
+    std::unique_ptr<surface_cache_controller<SurfaceCache>, std::function<void(surface_cache_controller<SurfaceCache>*)>> m_pSurfaceCache;
 };
 
 class VideoDECODE
@@ -494,8 +506,10 @@ public:
     }
     virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload) = 0;
 
-    virtual mfxFrameSurface1* GetSurface() { return nullptr; }
-    virtual mfxFrameSurface1* GetInternalSurface(mfxFrameSurface1 * /*surface*/) { return nullptr; };
+    virtual mfxStatus         GetSurface(mfxFrameSurface1* & surface) { surface = nullptr; return MFX_ERR_UNSUPPORTED; }
+    virtual mfxFrameSurface1* GetInternalSurface(mfxFrameSurface1 * /*surface*/) { return nullptr; }
+
+    mfxStatus ResetCache(mfxVideoParam*) { return MFX_ERR_NONE; }
 };
 
 class VideoVPP
@@ -550,8 +564,21 @@ public:
     virtual
     mfxStatus RunFrameVPP(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux) = 0;
 
-    virtual mfxFrameSurface1* GetSurfaceIn() { return nullptr; }
-    virtual mfxFrameSurface1* GetSurfaceOut() { return nullptr; }
+    mfxStatus ResetCache(mfxVideoParam* par)
+    {
+        MFX_CHECK_NULL_PTR1(par);
+
+        if (m_pSurfaceCacheIn)
+            MFX_SAFE_CALL(m_pSurfaceCacheIn->ResetCache(*par));
+
+        if (m_pSurfaceCacheOut)
+            MFX_SAFE_CALL(m_pSurfaceCacheOut->ResetCache(*par));
+
+        return MFX_ERR_NONE;
+    }
+
+    std::unique_ptr<surface_cache_controller<SurfaceCache>, std::function<void(surface_cache_controller<SurfaceCache>*)>> m_pSurfaceCacheIn;
+    std::unique_ptr<surface_cache_controller<SurfaceCache>, std::function<void(surface_cache_controller<SurfaceCache>*)>> m_pSurfaceCacheOut;
 };
 
 

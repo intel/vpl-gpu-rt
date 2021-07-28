@@ -79,7 +79,8 @@ public:
 
     mfxStatus RunThread(ThreadTaskInfo*, mfxU32 /*threadNumber*/);
 
-    virtual mfxFrameSurface1* GetSurface() override;
+    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface) override;
+
 protected:
     static mfxStatus QueryIOSurfInternal(eMFXPlatform platform, eMFXHWType type, mfxVideoParam *par, mfxFrameAllocRequest *request);
 
