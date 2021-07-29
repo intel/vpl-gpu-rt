@@ -400,7 +400,6 @@ namespace MfxHwVideoProcessing
         std::vector<State> m_surf[2];
 
         SubTask GetSubTask(DdiTask *pTask);
-
         mfxStatus DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx);
 
         bool IsMultiBlt();
@@ -831,6 +830,7 @@ namespace MfxHwVideoProcessing
         ResMngr m_resMngr;
 
         UMC::Mutex m_mutex;
+
 
 #ifdef MFX_ENABLE_MCTF
         mfxU32  m_MCTFSurfacesInQueue;

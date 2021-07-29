@@ -1119,7 +1119,6 @@ SubTask ResMngr::GetSubTask(DdiTask *pTask)
     else
         return SubTask();
 }
-
 mfxStatus ResMngr::DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx)
 {
     if (pTask && pTask->pSubResource)
@@ -1190,6 +1189,7 @@ mfxStatus TaskManager::Init(
     m_resMngr.Init(config, this->m_core);
 
     m_tasks.resize(config.m_surfCount[VPP_OUT]);
+
 
 #ifdef MFX_ENABLE_MCTF
     m_MCTFSurfacesInQueue = 0;
@@ -1478,6 +1478,7 @@ mfxStatus TaskManager::CompleteTask(DdiTask* pTask)
     if (pTask->input.pSurf)
         sts = m_core->DecreaseReference(*pTask->input.pSurf);
     MFX_CHECK_STS(sts);
+
 
     FreeTask(pTask);
 
