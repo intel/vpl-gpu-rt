@@ -912,7 +912,6 @@ namespace MPEG2EncoderHW
             mfxExtCodingOption2 * extOpt2 = (mfxExtCodingOption2 *)GetExtendedBuffer(out->ExtParam, out->NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
             if (extOpt2 && extOpt2->SkipFrame)
             {
-                // TODO: check hwCaps
                 if (extOpt2->SkipFrame != MFX_SKIPFRAME_INSERT_DUMMY || out->mfx.RateControlMethod != MFX_RATECONTROL_CQP)
                 {
                     extOpt2->SkipFrame = 0;
