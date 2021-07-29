@@ -37,7 +37,7 @@ mfxExtBuffer* Et_GetExtBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id
 
     return 0;
 }
-mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
+mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl, bool bMBQPSupport)
 {
     MFX_CHECK_NULL_PTR1(ctrl);
 
@@ -52,10 +52,12 @@ mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
     ctrl->CodecProfile = par.mfx.CodecProfile;
     ctrl->CodecLevel = par.mfx.CodecLevel;
 
+    ctrl->AsyncDepth = par.AsyncDepth;
+
     ctrl->FrameInfo = par.mfx.FrameInfo;
     ctrl->IOPattern = par.IOPattern;
     ctrl->MaxDelayInFrames = CO2->LookAheadDepth;
-    ctrl->MBBRC = (ctrl->CodecId == MFX_CODEC_HEVC && ctrl->MaxDelayInFrames > par.mfx.GopRefDist && CO3 && IsOn(CO3->EnableMBQP));
+    ctrl->MBBRC = (ctrl->CodecId == MFX_CODEC_HEVC && ctrl->MaxDelayInFrames > par.mfx.GopRefDist && bMBQPSupport);
 
     ctrl->MaxGopSize = par.mfx.GopPicSize;
     ctrl->MaxGopRefDist = par.mfx.GopRefDist;
@@ -321,7 +323,12 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl)
     MFX_CHECK(m_device && m_pAllocator, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     mfxStatus sts;
-
+    // Init sessions
+    if (isPreEncSCD(m_config, ctrl))
+    {
+        sts = InitVPPSession(&m_mfxSession_SCD);
+        MFX_CHECK_STS(sts);
+    }
     //common LA and SCD
     sts = InitMfxVppParams(ctrl);
     MFX_CHECK_STS(sts);
@@ -370,9 +377,6 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl)
     //SCD VPP
     if (isPreEncSCD(m_config, ctrl))
     {
-        sts = InitVPPSession(&m_mfxSession_SCD);
-        MFX_CHECK_STS(sts);
-
         m_pmfxVPP_SCD.reset(new MFXVideoVPP(m_mfxSession_SCD));
         MFX_CHECK(m_pmfxVPP_SCD, MFX_ERR_MEMORY_ALLOC);
 
@@ -420,11 +424,13 @@ mfxStatus EncTools::InitMfxVppParams(mfxEncToolsCtrl const & ctrl)
     }
 
     //LA
-    m_mfxVppParams_LA = mfxVppParams_Common;
-    mfxU32 ignore = 0;
-    m_lpLookAhead.GetDownScaleParams(m_mfxVppParams_LA.vpp.Out, ignore);
-    m_mfxVppParams_LA.IOPattern = ctrl.IOPattern | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
-
+    if (isPreEncLA(m_config, ctrl))
+    {
+        m_mfxVppParams_LA = mfxVppParams_Common;
+        mfxU32 ignore = 0;
+        m_lpLookAhead.GetDownScaleParams(m_mfxVppParams_LA.vpp.Out, ignore);
+        m_mfxVppParams_LA.IOPattern = ctrl.IOPattern | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+    }
     //SCD
     if (isPreEncSCD(m_config, ctrl))
     {

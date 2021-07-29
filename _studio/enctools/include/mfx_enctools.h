@@ -38,7 +38,7 @@
 using namespace EncToolsUtils;
 using namespace EncToolsBRC;
 
-mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl);
+mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl, bool bMBQPSupport=false);
 
 class EncTools
 {

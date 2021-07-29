@@ -1849,6 +1849,8 @@ static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
     ctrl->CodecProfile = par.mfx.CodecProfile;
     ctrl->CodecLevel = par.mfx.CodecLevel;
 
+    ctrl->AsyncDepth = par.AsyncDepth;
+
     ctrl->FrameInfo = par.mfx.FrameInfo;
     ctrl->IOPattern = par.IOPattern;
     ctrl->MaxDelayInFrames = CO2->LookAheadDepth;

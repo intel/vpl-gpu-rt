@@ -121,7 +121,8 @@ typedef struct
     mfxStructVersion Version;
     mfxU8   GopOptFlag;
     mfxU8   reserved8b;
-    mfxU16  reserved[2];
+    mfxU16  AsyncDepth;
+    mfxU16  reserved[1];
 
     /* info about codec */
     struct  /* coding info*/
@@ -388,7 +389,7 @@ typedef struct {
     mfxU8             DeltaQP[8];      /* deltaQP[i] is added to QP value while ith-rePakOptional */
     mfxU16            NumDeltaQP;      /* Max number of rePaks to provide MaxFrameSize (from 0 to 8) */
     mfxU16            QpMapNZ;         /* If !0, QP Map has some Non Zero values */
-    mfxI8             QpMap[MFX_ENCTOOLS_PREENC_MAP_SIZE];  /* QP Delta per map block */
+    mfxExtMBQP*       ExtQpMap;        /* Per Block QP Map for current frame */
     mfxU16            reserved2[2];
 } mfxEncToolsBRCQuantControl;
 MFX_PACK_END()

@@ -1202,10 +1202,11 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
     {
         mfxStatus sts = MFX_ERR_NONE;
         auto& par = Glob::VideoParam::Get(strg);
-        const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
-        auto& core = Glob::VideoCore::Get(strg);
 
-        MFX_CHECK(IsOn(CO3.EnableMBQP) && core.GetVAType() != MFX_HW_VAAPI, MFX_ERR_NONE);
+        auto& core = Glob::VideoCore::Get(strg);
+        auto& caps = Glob::EncodeCaps::Get(strg);
+
+        MFX_CHECK(IsMBQP(par,caps.MbQpDataSupport) && core.GetVAType() != MFX_HW_VAAPI, MFX_ERR_NONE);
 
         MFX_CHECK(local.Contains(Tmp::MBQPAllocInfo::Key), MFX_ERR_UNDEFINED_BEHAVIOR);
         auto& req = Tmp::MBQPAllocInfo::Get(local);
@@ -2260,7 +2261,7 @@ void Legacy::ConfigureTask(
     task.ctrl.MfxNalUnitType &= 0xffff * IsOn(CO3.EnableNalUnitType);
 
     const mfxExtMBQP *pMBQP = ExtBuffer::Get(task.ctrl);
-    task.bCUQPMap |= (IsOn(CO3.EnableMBQP) && pMBQP && pMBQP->NumQPAlloc > 0);
+    task.bCUQPMap |= (IsOn(CO3.EnableMBQP) && pMBQP && pMBQP->NumQPAlloc > 0); // Do not use IsMBQP()
 
     bool bUpdateIRState = task.TemporalID == 0 && CO2.IntRefType;
     if (bUpdateIRState)
@@ -3357,9 +3358,7 @@ void SetDefaultBRC(
             , Bool2CO(
               !(   par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
                 || Legacy::IsSWBRC(par)
-                || !defPar.caps.MbQpDataSupport)                                // Default OFF
-              || (Legacy::IsEnctoolsLABRC(par) && defPar.caps.MbQpDataSupport)  // Default ON
-            ));
+                || !defPar.caps.MbQpDataSupport)));
 
         bool bSetWinBRC = pCO3->WinBRCSize || pCO3->WinBRCMaxAvgKbps;
 
@@ -3900,7 +3899,7 @@ bool Legacy::IsSWBRC(const ExtBuffer::Param<mfxVideoParam>& par)
     const mfxExtEncToolsConfig *pCfg = ExtBuffer::Get(par);
 #endif
     return
-        (      ((pCO2 && IsOn(pCO2->ExtBRC) && pCO2->LookAheadDepth == 0)
+        (      ((pCO2 && IsOn(pCO2->ExtBRC))
 #ifdef MFX_ENABLE_ENCTOOLS
             || (pCfg && IsOn(pCfg->BRC))
 #endif
@@ -3928,6 +3927,16 @@ bool Legacy::IsEnctoolsLABRC(const ExtBuffer::Param<mfxVideoParam>&par)
     )
         return true;
 #endif
+    return false;
+}
+
+bool Legacy::IsMBQP(const ExtBuffer::Param<mfxVideoParam>& par, bool bMBQPSupport)
+{
+    const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
+    if (pCO3 && IsOn(pCO3->EnableMBQP))
+        return true;
+    else if (IsEnctoolsLABRC(par) && bMBQPSupport)
+        return true;
     return false;
 }
 
