@@ -295,7 +295,6 @@ mfxStatus MFXHWVideoENCODEH264::Query(
 {
 
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
-    // remove when mfx_transcoder start sending correct Profile
     if (in && in->mfx.CodecProfile == 0)
         if (mfx::GetExtBuffer(in->ExtParam, in->NumExtParam, MFX_EXTBUFF_SVC_SEQ_DESC))
             in->mfx.CodecProfile = MFX_PROFILE_AVC_SCALABLE_BASELINE;
@@ -1406,7 +1405,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
         request.Info.FourCC = MFX_FOURCC_NV12;
         request.Type        = MFX_MEMTYPE_D3D_INT;
-        request.NumFrameMin = mfxU16(m_video.mfx.NumRefFrame + m_video.AsyncDepth + agopLength); //FTODO
+        request.NumFrameMin = mfxU16(m_video.mfx.NumRefFrame + m_video.AsyncDepth + agopLength);
         request.Info.Width  = widthAGOP;
         request.Info.Height = heightAGOP;
 
@@ -2166,7 +2165,6 @@ void ImplementationAvc::SubmitAdaptiveGOP()
             //cost B
             for(int j=0; j<len; j++)
             {
-                //TODO: Bref
                 //Adding MB data
                 DdiTask* task = gopBuffer[prevP+1+j];
                 int pOff = prevP+1+j-prevP;
@@ -2218,7 +2216,7 @@ bool ImplementationAvc::OnAdaptiveGOPSubmitted()
     {
         //add initial frame type
         mfxU8 frameType = m_adaptiveGOPFinished.front().GetFrameType();
-        m_bestGOPSequence[0][0] = frameType; //TODO: check frametype
+        m_bestGOPSequence[0][0] = frameType;
         m_bestGOPCost[0] = 0; //reset GOP cost for initial frame
         m_agopFinishedLen++;
         m_agopBestIdx = 0;
@@ -2247,7 +2245,6 @@ bool ImplementationAvc::OnAdaptiveGOPSubmitted()
             //cost B
             for(int j=0; j<len; j++)
             {
-                //TODO: Bref
                 DdiTask* task = gopBuffer[prevP+1+j];
                 int pOff = prevP+1+j-prevP;
                 int bOff = nextP-prevP-1-j;
@@ -2280,7 +2277,7 @@ bool ImplementationAvc::OnAdaptiveGOPSubmitted()
         {
             m_bestGOPSequence[idx_out][m_agopFinishedLen-j-1] = MFX_FRAMETYPE_B;
         }
-        m_agopFinishedLen++; //TODO: use size of buffered frames?
+        m_agopFinishedLen++;
         m_agopBestIdx = idx_out;
     }
 

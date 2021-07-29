@@ -218,7 +218,7 @@ Status MPEG2BRC::CheckHRDParams()
       mHRD.bufSize = (uint32_t)16384 * 0x3fffe;
     if(!full_hw)
     //allow initial delay to be different from buffer size
-    mHRD.bufFullness = mHRD.bufSize; // vbv_delay = 0xffff in case of VBR. TODO: check the possibility of VBR with vbv_delay != 0xffff
+    mHRD.bufFullness = mHRD.bufSize; // vbv_delay = 0xffff in case of VBR
   } else { // BRC_CBR
     uint32_t max_buf_size = (uint32_t)(0xfffe * (unsigned long long)mHRD.maxBitrate / 90000); // vbv_delay is coded with 16 bits:
                                                                               //  it is either 0xffff everywhere (VBR) or < 0xffff

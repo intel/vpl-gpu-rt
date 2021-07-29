@@ -2500,13 +2500,13 @@ void MfxHwH264Encode::PutSeiMessage(
 
     if (needBufferingPeriod)
     {
-        dataSizeInBytes += 2; // hardcoded 2 bytes on BP sei_message() header. TODO: calculate real size of header
+        dataSizeInBytes += 2; // hardcoded 2 bytes on BP sei_message() header
         dataSizeInBytes += CalculateSeiSize(msg_bp); // calculate size of BP SEI payload
     }
 
     if (needPicTimingSei)
     {
-        dataSizeInBytes += 2; // hardcoded 2 bytes on PT sei_message() header. TODO: calculate real size of header
+        dataSizeInBytes += 2; // hardcoded 2 bytes on PT sei_message() header
         dataSizeInBytes += CalculateSeiSize(extPt, msg_pt); // calculate size of PT SEI payload
     }
 

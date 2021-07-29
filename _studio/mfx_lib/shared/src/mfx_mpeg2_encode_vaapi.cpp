@@ -1202,7 +1202,6 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
 
     if (pExecuteBuffers->m_bAddSPS)
     {
-        // TODO: fill sps only once
         Zero(m_vaSpsBuf);
         FillSps(pExecuteBuffers, m_vaSpsBuf);
 
@@ -1256,7 +1255,6 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
         }
     }
 
-    // TODO: fill pps only once
     Zero(m_vaPpsBuf);
     FillPps(m_core, pExecuteBuffers, m_vaPpsBuf, pUserData, userDataLen);
 
@@ -1367,7 +1365,6 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Rendering");
         MFX_LTRACE_I(MFX_TRACE_LEVEL_PARAMS, pExecuteBuffers->m_idxMb);
         MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|ENCODE|MPEG2|PACKET_START|", "%d|%d", m_vaContextEncode, 0);
-        //TODO: external frame HDL??
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaBeginPicture");
             vaSts = vaBeginPicture(m_vaDisplay,

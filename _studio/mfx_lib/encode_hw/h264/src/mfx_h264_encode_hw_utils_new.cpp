@@ -773,7 +773,7 @@ void MfxHwH264Encode::ModifyRefPicLists(
         if (advCtrl && isField)
         {
             // check ref list control structure for interlaced case
-            // TODO: in addition WRN should be returned from sync part if passed mfxExtAVCRefLists is incorrect
+            // in addition WRN should be returned from sync part if passed mfxExtAVCRefLists is incorrect
             if (false == CheckMfxExtAVCRefListsForField(*advCtrl))
             {
                 // just ignore incorrect mfxExtAVCRefLists structure
@@ -1825,7 +1825,7 @@ DdiTaskIter MfxHwH264Encode::ReorderFrame(
     {
         if (gopStrict)
         {
-            top = begin; // TODO: reorder remaining B frames for B-pyramid when enabled
+            top = begin;
         }
         else
         {
