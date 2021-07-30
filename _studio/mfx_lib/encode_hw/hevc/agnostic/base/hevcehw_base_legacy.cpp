@@ -2560,7 +2560,7 @@ void Legacy::InitDPB(
     {
         Remove(task.DPB.Active, 0, MAX_DPB_SIZE);
 
-        // TODO: add mode to disable this check
+        // Temporally always check, will add mode to disable this check.
         std::copy_if(
             prevTask.DPB.After
             , prevTask.DPB.After + Size(prevTask.DPB.After)
@@ -2697,7 +2697,7 @@ void Legacy::ConstructRPL(
     const Defaults::Param& dflts
     , const DpbArray & DPB
     , const FrameBaseInfo& cur
-    , mfxU8(&RPL)[2][MAX_DPB_SIZE]
+    , mfxU8(&RefPicList)[2][MAX_DPB_SIZE]
     , mfxU8(&numRefActive)[2]
     , const mfxExtAVCRefLists * pExtLists
     , const mfxExtAVCRefListCtrl * pLCtrl)
@@ -2710,7 +2710,7 @@ void Legacy::ConstructRPL(
             , numRefActive[0]
             , numRefActive[1]
             , *pExtLists
-            , RPL);
+            , RefPicList);
     };
     auto GetRPLFromCtrl = [&]()
     {
@@ -2721,7 +2721,7 @@ void Legacy::ConstructRPL(
             , numRefActive[1]
             , cur
             , *pLCtrl
-            , RPL);
+            , RefPicList);
     };
 
     std::tuple<mfxU8, mfxU8> nRef(mfxU8(0), mfxU8(0));
@@ -2729,13 +2729,13 @@ void Legacy::ConstructRPL(
     SetIf(nRef, !!pExtLists, GetRPLFromExt);
 
     SetIf(nRef, !std::get<0>(nRef)
-        , dflts.base.GetRPL
+        , dflts.base.GetRefPicList
         , dflts
         , DPB
         , numRefActive[0]
         , numRefActive[1]
         , cur
-        , RPL);
+        , RefPicList);
 
     SetIf(nRef, !!pLCtrl, GetRPLFromCtrl);
     ThrowAssert(!std::get<0>(nRef), "L0 is empty");
@@ -2746,7 +2746,7 @@ void Legacy::ConstructRPL(
         , numRefActive[0]
         , numRefActive[1]
         , cur
-        , RPL);
+        , RefPicList);
 
     numRefActive[0] = std::get<0>(nRef);
     numRefActive[1] = std::get<1>(nRef);
@@ -2754,7 +2754,7 @@ void Legacy::ConstructRPL(
 
 void Legacy::ConstructSTRPS(
     const DpbArray & DPB
-    , const mfxU8(&RPL)[2][MAX_DPB_SIZE]
+    , const mfxU8(&RefPicList)[2][MAX_DPB_SIZE]
     , const mfxU8(&numRefActive)[2]
     , mfxI32 poc
     , STRPS& rps)
@@ -2767,7 +2767,7 @@ void Legacy::ConstructSTRPS(
             continue;
 
         rps.pic[nRef].DeltaPocSX = (mfxI16)(DPB[i].POC - poc);
-        rps.pic[nRef].used_by_curr_pic_sx_flag = IsCurrRef(DPB, RPL, numRefActive, DPB[i].POC);
+        rps.pic[nRef].used_by_curr_pic_sx_flag = IsCurrRef(DPB, RefPicList, numRefActive, DPB[i].POC);
 
         rps.num_negative_pics += rps.pic[nRef].DeltaPocSX < 0;
         rps.num_positive_pics += rps.pic[nRef].DeltaPocSX > 0;
@@ -3074,14 +3074,14 @@ void Legacy::SetSTRPS(
             if (!bIDR)
             {
                 mfxU8 nRef[2] = {};
-                mfxU8 rpl[2][MAX_DPB_SIZE];
+                mfxU8 RefPicList[2][MAX_DPB_SIZE];
 
-                std::fill_n(rpl[0], Size(rpl[0]), IDX_INVALID);
-                std::fill_n(rpl[1], Size(rpl[1]), IDX_INVALID);
+                std::fill_n(RefPicList[0], Size(RefPicList[0]), IDX_INVALID);
+                std::fill_n(RefPicList[1], Size(RefPicList[1]), IDX_INVALID);
 
                 auto SetRPL = [&]()
                 {
-                    ConstructRPL(dflts, dpb, *cur, rpl, nRef);
+                    ConstructRPL(dflts, dpb, *cur, RefPicList, nRef);
                     return true;
                 };
 
@@ -3093,10 +3093,10 @@ void Legacy::SetSTRPS(
                     || (bI); //I picture is not using any refs, but saves them in RPS to be used by future pics.
                 // but currently every I is RAP and frames after it won't use refs before it
 
-                ThrowAssert(!bRPL, "failed to construct RPL");
+                ThrowAssert(!bRPL, "failed to construct RefPicList");
 
                 STRPS rps = {};
-                ConstructSTRPS(dpb, rpl, nRef, cur->POC, rps);
+                ConstructSTRPS(dpb, RefPicList, nRef, cur->POC, rps);
 
                 auto pCurSet = std::find_if(pSetsBegin, pSetsEnd
                     , [&](const STRPS& x) { return Equal(x, rps); });
@@ -4213,7 +4213,6 @@ mfxStatus Legacy::CheckTiles(
         mfxU32 minTileHeight = MIN_TILE_HEIGHT_IN_SAMPLES;
 
         // min 2x2 lcu is supported on VDEnc
-        // TODO: replace indirect NumScalablePipesMinus1 by platform
         SetIf(minTileHeight, defPar.caps.NumScalablePipesMinus1 > 0 && IsOn(par.mfx.LowPower), 128);
 
         mfxU16 maxCol = std::max<mfxU16>(1, mfxU16(defPar.base.GetCodedPicWidth(defPar) / minTileWidth));
@@ -4416,14 +4415,14 @@ mfxU16 FrameType2SliceType(mfxU32 ft)
 
 bool isCurrLt(
     DpbArray const & DPB,
-    mfxU8 const (&RPL)[2][MAX_DPB_SIZE],
+    mfxU8 const (&RefPicList)[2][MAX_DPB_SIZE],
     mfxU8 const (&numRefActive)[2],
     mfxI32 poc)
 {
     for (mfxU32 i = 0; i < 2; i++)
         for (mfxU32 j = 0; j < numRefActive[i]; j++)
-            if (poc == DPB[RPL[i][j]].POC)
-                return DPB[RPL[i][j]].isLTR;
+            if (poc == DPB[RefPicList[i][j]].POC)
+                return DPB[RefPicList[i][j]].isLTR;
     return false;
 }
 
@@ -4559,7 +4558,7 @@ void GetSliceHeaderRPLMod(
     , mfxU16 nLTR
     , Slice & s)
 {
-    auto& RPL = task.RefPicList;
+    auto& RefPicList = task.RefPicList;
     auto ModLX = [&](mfxU16 lx, mfxU16 NumRpsCurrTempListX)
     {
         mfxU16 rIdx = 0;
@@ -4576,7 +4575,7 @@ void GetSliceHeaderRPLMod(
         for (rIdx = 0; rIdx < task.NumRefActive[lx]; rIdx++)
         {
             auto pRef = std::find_if(RPLTempX, RPLTempX + NumRpsCurrTempListX
-                , [&](mfxI32 ref) {return DPB[RPL[lx][rIdx]].POC == ref; });
+                , [&](mfxI32 ref) {return DPB[RefPicList[lx][rIdx]].POC == ref; });
             s.list_entry_lx[lx][rIdx] = mfxU8(pRef - RPLTempX);
             s.ref_pic_list_modification_flag_lx[lx] |= (s.list_entry_lx[lx][rIdx] != rIdx);
         }
@@ -4616,14 +4615,14 @@ mfxStatus Legacy::GetSliceHeader(
         mfxI32 STR[2][MAX_DPB_SIZE] = {};         // used short-term references
         mfxI32 LTR[MAX_NUM_LONG_TERM_PICS] = {};  // used long-term references
         const auto& DPB = task.DPB.Active;        // DPB before encoding
-        const auto& RPL = task.RefPicList;        // Ref. Pic. List
+        const auto& RefPicList = task.RefPicList;        // Ref. Pic. List
         auto IsSame     = [&s](const STRPS& x)      { return Equal(x, s.strps); };
         auto IsLTR      = [](const DpbFrame& ref)   { return isValid(ref) && ref.isLTR; };
         auto IsL0Pic    = [](const STRPSPic& pic)   { return pic.used_by_curr_pic_sx_flag && (pic.DeltaPocSX <= 0); };
         auto IsL1Pic    = [](const STRPSPic& pic)   { return pic.used_by_curr_pic_sx_flag && (pic.DeltaPocSX > 0); };
         auto PicToPOC   = [&](const STRPSPic& pic)  { return (task.POC + pic.DeltaPocSX); };
 
-        ConstructSTRPS(DPB, RPL, task.NumRefActive, task.POC, s.strps);
+        ConstructSTRPS(DPB, RefPicList, task.NumRefActive, task.POC, s.strps);
 
         s.pic_order_cnt_lsb = (task.POC & ~(0xFFFFFFFF << (sps.log2_max_pic_order_cnt_lsb_minus4 + 4)));
 

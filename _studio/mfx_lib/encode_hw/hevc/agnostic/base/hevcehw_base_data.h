@@ -685,7 +685,7 @@ namespace Base
     constexpr mfxU8 CODING_TYPE_B1 = 4; //B1, reference to only I, P or regular B frames
     constexpr mfxU8 CODING_TYPE_B2 = 5; //B2, references include B1
 
-    // Min frame params required for Reorder, RPL/DPB management
+    // Min frame params required for Reorder, RefPicList/DPB management
     struct FrameBaseInfo
         : Storable
     {
@@ -1226,7 +1226,7 @@ namespace Base
             , const DpbArray &
             , mfxU16, mfxU16 //maxL0, maxL1
             , const mfxExtAVCRefLists&
-            , mfxU8(&)[2][MAX_DPB_SIZE]>; //out RPL
+            , mfxU8(&)[2][MAX_DPB_SIZE]>; //out RefPicList
         TGetRPLFromExt GetRPLFromExt;
 
         using TGetRPL = CallChain<
@@ -1235,9 +1235,9 @@ namespace Base
             , const DpbArray &
             , mfxU16, mfxU16 //maxL0, maxL1
             , const FrameBaseInfo&
-            , mfxU8(&)[2][MAX_DPB_SIZE]>; //out RPL
-        TGetRPL GetRPL;
-        TGetRPL GetRPLMod; // apply hw/other specific modifications to RPL (final)
+            , mfxU8(&)[2][MAX_DPB_SIZE]>; //out RefPicList
+        TGetRPL GetRefPicList;
+        TGetRPL GetRPLMod; // apply hw/other specific modifications to RefPicList (final)
 
         using TGetRPLFromCtrl = CallChain<
             std::tuple<mfxU8, mfxU8> //nL0, nL1
@@ -1246,7 +1246,7 @@ namespace Base
             , mfxU16, mfxU16 //maxL0, maxL1
             , const FrameBaseInfo&
             , const mfxExtAVCRefListCtrl&
-            , mfxU8(&)[2][MAX_DPB_SIZE]>; //out RPL
+            , mfxU8(&)[2][MAX_DPB_SIZE]>; //out RefPicList
         TGetRPLFromCtrl GetRPLFromCtrl;
 
         using TCmpRef = CallChain<

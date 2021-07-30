@@ -142,27 +142,27 @@ void Interlace::Query1NoCaps(const FeatureBlocks& , TPushQ1 Push)
             return prev(par, fo / (1 + IsField(par.mvp.mfx.FrameInfo.PicStruct)), GopHints);
         });
 
-        defaults.GetRPL.Push( [](
+        defaults.GetRefPicList.Push( [](
             Defaults::TGetRPL::TExt prev
             , const Defaults::Param& par
             , const DpbArray &DPB
             , mfxU16 maxL0
             , mfxU16 maxL1
             , const FrameBaseInfo& cur
-            , mfxU8(&RPL)[2][MAX_DPB_SIZE]) -> std::tuple<mfxU8, mfxU8>
+            , mfxU8(&RefPicList)[2][MAX_DPB_SIZE]) -> std::tuple<mfxU8, mfxU8>
         {
             if (!IsField(par.mvp.mfx.FrameInfo.PicStruct))
-                return prev(par, DPB, maxL0, maxL1, cur, RPL);
+                return prev(par, DPB, maxL0, maxL1, cur, RefPicList);
 
-            auto nRefLX = prev(par, DPB, MAX_DPB_SIZE, MAX_DPB_SIZE, cur, RPL);
+            auto nRefLX = prev(par, DPB, MAX_DPB_SIZE, MAX_DPB_SIZE, cur, RefPicList);
             auto& l0    = std::get<0>(nRefLX);
             auto& l1    = std::get<1>(nRefLX);
 
             bool bValid = l0 <= maxL0 && l1 <= maxL1;
             if (!bValid)
             {
-                std::list<mfxU8> L0(RPL[0], RPL[0] + l0);
-                std::list<mfxU8> L1(RPL[1], RPL[1] + l1);
+                std::list<mfxU8> L0(RefPicList[0], RefPicList[0] + l0);
+                std::list<mfxU8> L1(RefPicList[1], RefPicList[1] + l1);
                 auto CmpRef = [&](mfxU8 a, mfxU8 b)
                 {
                     auto FN = [](const FrameBaseInfo& x) { return (x.POC + !x.b2ndField) / 2; };
@@ -179,14 +179,14 @@ void Interlace::Query1NoCaps(const FeatureBlocks& , TPushQ1 Push)
                 L0.resize(std::min<mfxU16>(maxL0, l0));
                 L1.resize(std::min<mfxU16>(maxL1, l1));
 
-                std::ignore = std::remove_if(RPL[0], RPL[0] + l0, IsNotInL0);
-                std::ignore = std::remove_if(RPL[1], RPL[1] + l1, IsNotInL1);
+                std::ignore = std::remove_if(RefPicList[0], RefPicList[0] + l0, IsNotInL0);
+                std::ignore = std::remove_if(RefPicList[1], RefPicList[1] + l1, IsNotInL1);
 
                 l0 = mfxU8(L0.size());
                 l1 = mfxU8(L1.size());
 
-                std::fill(std::next(RPL[0], l0), std::end(RPL[0]), IDX_INVALID);
-                std::fill(std::next(RPL[1], l1), std::end(RPL[1]), IDX_INVALID);
+                std::fill(std::next(RefPicList[0], l0), std::end(RefPicList[0]), IDX_INVALID);
+                std::fill(std::next(RefPicList[1], l1), std::end(RefPicList[1]), IDX_INVALID);
             }
 
             return nRefLX;

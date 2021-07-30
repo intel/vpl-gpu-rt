@@ -1109,7 +1109,7 @@ public:
         , mfxU16 maxL0
         , mfxU16 maxL1
         , const mfxExtAVCRefLists& extRPL
-        , mfxU8(&RPL)[2][MAX_DPB_SIZE])
+        , mfxU8(&RefPicList)[2][MAX_DPB_SIZE])
     {
         typedef decltype(*extRPL.RefPicList0) TRExtRPL0Entry;
         typedef decltype(*extRPL.RefPicList1) TRExtRPL1Entry;
@@ -1121,7 +1121,7 @@ public:
             , [&](TRExtRPL0Entry ref)
         {
             mfxU8 idx = Legacy::GetDPBIdxByFO(DPB, (mfxI32)ref.FrameOrder);
-            RPL[0][l0] = idx;
+            RefPicList[0][l0] = idx;
             l0 += (idx < MAX_DPB_SIZE) && (l0 < maxL0);
         });
 
@@ -1130,15 +1130,15 @@ public:
             , [&](TRExtRPL1Entry ref)
         {
             mfxU8 idx = Legacy::GetDPBIdxByFO(DPB, (mfxI32)ref.FrameOrder);
-            RPL[1][l1] = idx;
+            RefPicList[1][l1] = idx;
             l1 += (idx < MAX_DPB_SIZE) && (l1 < maxL1);
         });
 
         l0 = std::min(l0, mfxU8(maxL0));
         l1 = std::min(l1, mfxU8(maxL1));
 
-        std::fill(RPL[0] + l0, RPL[0] + Size(RPL[0]), IDX_INVALID);
-        std::fill(RPL[1] + l1, RPL[1] + Size(RPL[1]), IDX_INVALID);
+        std::fill(RefPicList[0] + l0, RefPicList[0] + Size(RefPicList[0]), IDX_INVALID);
+        std::fill(RefPicList[1] + l1, RefPicList[1] + Size(RefPicList[1]), IDX_INVALID);
 
         return std::make_tuple(l0, l1);
     }
@@ -1150,17 +1150,17 @@ public:
         , mfxU16 /*maxL0*/
         , mfxU16 maxL1
         , const FrameBaseInfo& cur
-        , mfxU8(&RPL)[2][MAX_DPB_SIZE])
+        , mfxU8(&RefPicList)[2][MAX_DPB_SIZE])
     {
-        mfxU8 l0 = mfxU8(Size(RPL[0]) - std::count(RPL[0], RPL[0] + Size(RPL[0]), IDX_INVALID));
-        mfxU8 l1 = mfxU8(Size(RPL[1]) - std::count(RPL[1], RPL[1] + Size(RPL[1]), IDX_INVALID));
+        mfxU8 l0 = mfxU8(Size(RefPicList[0]) - std::count(RefPicList[0], RefPicList[0] + Size(RefPicList[0]), IDX_INVALID));
+        mfxU8 l1 = mfxU8(Size(RefPicList[1]) - std::count(RefPicList[1], RefPicList[1] + Size(RefPicList[1]), IDX_INVALID));
         bool isB = IsB(cur.FrameType) && !cur.isLDB;
 
         bool bDefaultL1 = isB && !l1 && l0;
 
         if (bDefaultL1)
         {
-            RPL[1][l1++] = RPL[0][l0 - 1];
+            RefPicList[1][l1++] = RefPicList[0][l0 - 1];
         }
 
         // on VDENC for LDB frames L1 must be completely identical to L0
@@ -1169,7 +1169,7 @@ public:
         //ignore l1 != l0 in pExtLists for LDB (unsupported by HW)
         l1 = l1 * isB + std::min<mfxU8>(l0, maxLdbL1) * !isB;
 
-        std::copy_n(RPL[0], l1 * !isB, RPL[1]);
+        std::copy_n(RefPicList[0], l1 * !isB, RefPicList[1]);
 
         return std::make_tuple(l0, l1);
     }
@@ -1209,14 +1209,14 @@ public:
         return std::min_element(begin, end, POCLess);
     }
 
-    static std::tuple<mfxU8, mfxU8> RPL(
+    static std::tuple<mfxU8, mfxU8> RefPicList(
         Defaults::TGetRPL::TExt
         , const Defaults::Param& par
         , const DpbArray &DPB
         , mfxU16 maxL0
         , mfxU16 maxL1
         , const FrameBaseInfo& cur
-        , mfxU8(&RPL)[2][MAX_DPB_SIZE])
+        , mfxU8(&RefPicList)[2][MAX_DPB_SIZE])
     {
         const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par.mvp);
         bool bLowDelay = (CO3.PRefType == MFX_P_REF_PYRAMID);
@@ -1289,10 +1289,10 @@ public:
         auto POCAscending = [](const DpbFrame* a, const DpbFrame* b) { return a->POC < b->POC; };
         L1.sort(POCAscending);
 
-        std::transform(L0.begin(), L0.end(), RPL[0]
+        std::transform(L0.begin(), L0.end(), RefPicList[0]
             , [&](const DpbFrame* x) { return mfxU8(x - dpbBegin); });
 
-        std::transform(L1.begin(), L1.end(), RPL[1]
+        std::transform(L1.begin(), L1.end(), RefPicList[1]
             , [&](const DpbFrame* x) { return mfxU8(x - dpbBegin); });
 
         return std::make_tuple(l0, l1);
@@ -1306,7 +1306,7 @@ public:
         , mfxU16 maxL1
         , const FrameBaseInfo& cur
         , const mfxExtAVCRefListCtrl& ctrl
-        , mfxU8(&RPL)[2][MAX_DPB_SIZE])
+        , mfxU8(&RefPicList)[2][MAX_DPB_SIZE])
     {
         typedef decltype(*ctrl.RejectedRefList) TRRejected;
         typedef decltype(*ctrl.PreferredRefList) TRPreferred;
@@ -1314,8 +1314,8 @@ public:
         mfxU8 pref[2] = {};
         mfxU8 IdxList[16];
         auto pIdxListEnd = IdxList + Size(IdxList);
-        mfxU8 l0 = mfxU8(Size(RPL[0]) - std::count(RPL[0], RPL[0] + Size(RPL[0]), IDX_INVALID));
-        mfxU8 l1 = mfxU8(Size(RPL[1]) - std::count(RPL[1], RPL[1] + Size(RPL[1]), IDX_INVALID));
+        mfxU8 l0 = mfxU8(Size(RefPicList[0]) - std::count(RefPicList[0], RefPicList[0] + Size(RefPicList[0]), IDX_INVALID));
+        mfxU8 l1 = mfxU8(Size(RefPicList[1]) - std::count(RefPicList[1], RefPicList[1] + Size(RefPicList[1]), IDX_INVALID));
 
         SetIf(maxL0, ctrl.NumRefIdxL0Active, std::min<mfxU16>(ctrl.NumRefIdxL0Active, maxL0));
         SetIf(maxL1, ctrl.NumRefIdxL1Active, std::min<mfxU16>(ctrl.NumRefIdxL1Active, maxL1));
@@ -1326,10 +1326,10 @@ public:
             , IdxList
             , [&](TRRejected x) { return Legacy::GetDPBIdxByFO(DPB, x.FrameOrder); });
 
-        l0 = mfxU8(std::remove_if(RPL[0], RPL[0] + l0, [&](mfxU8 ref) {
-            return std::find(IdxList, pIdxListEnd, ref) != pIdxListEnd; }) - RPL[0]);
-        l1 = mfxU8(std::remove_if(RPL[1], RPL[1] + l1, [&](mfxU8 ref) {
-            return std::find(IdxList, pIdxListEnd, ref) != pIdxListEnd; }) - RPL[1]);
+        l0 = mfxU8(std::remove_if(RefPicList[0], RefPicList[0] + l0, [&](mfxU8 ref) {
+            return std::find(IdxList, pIdxListEnd, ref) != pIdxListEnd; }) - RefPicList[0]);
+        l1 = mfxU8(std::remove_if(RefPicList[1], RefPicList[1] + l1, [&](mfxU8 ref) {
+            return std::find(IdxList, pIdxListEnd, ref) != pIdxListEnd; }) - RefPicList[1]);
 
         std::transform(
             ctrl.PreferredRefList
@@ -1346,8 +1346,8 @@ public:
         std::fill(std::next(tmpRPL[0], MAX_DPB_SIZE), std::end(tmpRPL[0]), IDX_INVALID);
         std::fill(std::next(tmpRPL[1], MAX_DPB_SIZE), std::end(tmpRPL[1]), IDX_INVALID);
 
-        std::copy(std::begin(RPL[0]), std::end(RPL[0]), std::begin(tmpRPL[0]));
-        std::copy(std::begin(RPL[1]), std::end(RPL[1]), std::begin(tmpRPL[1]));
+        std::copy(std::begin(RefPicList[0]), std::end(RefPicList[0]), std::begin(tmpRPL[0]));
+        std::copy(std::begin(RefPicList[1]), std::end(RefPicList[1]), std::begin(tmpRPL[1]));
 
         std::for_each(IdxList, pIdxListEnd
             , [&](mfxU8 ref)
@@ -1362,14 +1362,14 @@ public:
         l0 = std::min<mfxU8>((mfxU8)maxL0, mfxU8(pRplEnd[0] - tmpRPL[0]));
         l1 = std::min<mfxU8>((mfxU8)maxL1, mfxU8(pRplEnd[1] - tmpRPL[1]));
 
-        std::fill(std::next(RPL[0], l0), std::end(RPL[0]), IDX_INVALID);
-        std::fill(std::next(RPL[1], l1), std::end(RPL[1]), IDX_INVALID);
+        std::fill(std::next(RefPicList[0], l0), std::end(RefPicList[0]), IDX_INVALID);
+        std::fill(std::next(RefPicList[1], l1), std::end(RefPicList[1]), IDX_INVALID);
 
-        std::copy_n(tmpRPL[0], l0, RPL[0]);
-        std::copy_n(tmpRPL[1], l1, RPL[1]);
+        std::copy_n(tmpRPL[0], l0, RefPicList[0]);
+        std::copy_n(tmpRPL[1], l1, RefPicList[1]);
 
         bool bDefaultL0 = (l0 == 0);
-        RPL[0][l0 += bDefaultL0] *= !bDefaultL0;
+        RefPicList[0][l0 += bDefaultL0] *= !bDefaultL0;
 
         return std::make_tuple(l0, l1);
     }
@@ -2207,7 +2207,7 @@ public:
         PUSH_DEFAULT(TId);
         PUSH_DEFAULT(HighestTId);
         PUSH_DEFAULT(RPLFromExt);
-        PUSH_DEFAULT(RPL);
+        PUSH_DEFAULT(RefPicList);
         PUSH_DEFAULT(RPLMod);
         PUSH_DEFAULT(RPLFromCtrl);
         PUSH_DEFAULT(PreReorderInfo);

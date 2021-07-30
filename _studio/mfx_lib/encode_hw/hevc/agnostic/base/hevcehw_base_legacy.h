@@ -259,14 +259,14 @@ namespace Base
             const Defaults::Param& dflts
             , const DpbArray & DPB
             , const FrameBaseInfo& cur
-            , mfxU8(&RPL)[2][MAX_DPB_SIZE]
+            , mfxU8(&RefPicList)[2][MAX_DPB_SIZE]
             , mfxU8(&numRefActive)[2]
             , const mfxExtAVCRefLists * pExtLists = nullptr
             , const mfxExtAVCRefListCtrl * pLCtrl = nullptr);
 
         void ConstructSTRPS(
             const DpbArray & DPB
-            , const mfxU8(&RPL)[2][MAX_DPB_SIZE]
+            , const mfxU8(&RefPicList)[2][MAX_DPB_SIZE]
             , const mfxU8 (&numRefActive)[2]
             , mfxI32 poc
             , STRPS& rps);
@@ -284,13 +284,13 @@ namespace Base
 
         static bool IsCurrRef(
             const DpbArray & DPB
-            , const mfxU8 (&RPL)[2][MAX_DPB_SIZE]
+            , const mfxU8 (&RefPicList)[2][MAX_DPB_SIZE]
             , const mfxU8 (&numRefActive)[2]
             , mfxI32 poc)
         {
             for (mfxU32 i = 0; i < 2; i++)
                 for (mfxU32 j = 0; j < numRefActive[i]; j++)
-                    if (poc == DPB[RPL[i][j]].POC)
+                    if (poc == DPB[RefPicList[i][j]].POC)
                         return true;
             return false;
         }

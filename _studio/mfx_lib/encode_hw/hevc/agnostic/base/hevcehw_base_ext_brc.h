@@ -35,7 +35,7 @@ class ExtBRC
     : public FeatureBase
 {
 public:
-    //TODO: to align with legacy code behavior, disable after investigation effect on SWBRC
+    // Temporally to align with legacy code behavior, will disable after investigation effect on SWBRC
     static const bool IGNORE_P_PYRAMID_LEVEL = true; 
 
 #define DECL_BLOCK_LIST\
