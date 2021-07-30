@@ -721,6 +721,11 @@ namespace UMC_MPEG2_DECODER
 
         AllocateFrameData(info, id, *frame);
 
+        if (frame->m_index < 0)
+        {
+            return NULL;
+        }
+
         return frame;
     }
 

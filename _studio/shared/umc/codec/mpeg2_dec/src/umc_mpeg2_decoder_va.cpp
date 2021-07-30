@@ -84,6 +84,15 @@ namespace UMC_MPEG2_DECODER
 
         auto fd2 = frame.GetFrameData();
         fd2->m_locked = true;
+
+        frame.m_index = GetFreeIndex(id);
+    }
+
+    int32_t MPEG2DecoderVA::GetFreeIndex (UMC::FrameMemID id) const
+    {
+        int32_t index = id;
+
+        return index;
     }
 
     // Check for frame completeness and get decoding errors

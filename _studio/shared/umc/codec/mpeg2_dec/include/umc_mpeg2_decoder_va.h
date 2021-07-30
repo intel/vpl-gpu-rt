@@ -46,6 +46,8 @@ namespace UMC_MPEG2_DECODER
     private:
 
         void AllocateFrameData(UMC::VideoDataInfo const&, UMC::FrameMemID, MPEG2DecoderFrame&) override;
+
+        int32_t GetFreeIndex(UMC::FrameMemID) const;
         // Pass picture to driver
         UMC::Status Submit(MPEG2DecoderFrame&, uint8_t) override;
 
