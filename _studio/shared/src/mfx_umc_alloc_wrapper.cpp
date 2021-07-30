@@ -1639,7 +1639,7 @@ UMC::Status SurfaceSource::GetFrameHandle(UMC::FrameMemID MID, void * handle)
 
         auto it = m_umc2mfx_memid.find(MID);
         MFX_CHECK(it != std::end(m_umc2mfx_memid), MFX_ERR_INVALID_HANDLE);
-        return ConvertStatusUmc2Mfx(m_core->GetFrameHDL(it->second, reinterpret_cast<mfxHDL*>(handle), false));
+        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(m_core->GetFrameHDL(it->second, reinterpret_cast<mfxHDL*>(handle), false)));
     }
     else
     {
@@ -1757,7 +1757,7 @@ UMC::Status SurfaceSource::Unlock(UMC::FrameMemID MID)
         auto msdk20_core = dynamic_cast<CommonCORE20*>(m_core);
         MFX_CHECK(msdk20_core, UMC::UMC_ERR_NULL_PTR);
 
-        return ConvertStatusUmc2Mfx(msdk20_core->Unlock(*surf));
+        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(msdk20_core->Unlock(*surf)));
     }
     else
     {
@@ -1777,7 +1777,7 @@ UMC::Status SurfaceSource::IncreaseReference(UMC::FrameMemID MID)
         mfxFrameSurface1* surf = GetDecoderSurface(MID);
         MFX_CHECK(surf, UMC::UMC_ERR_NULL_PTR);
 
-        return ConvertStatusUmc2Mfx(AddRefSurface(*surf));
+        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(AddRefSurface(*surf, true)));
     }
     else
     {
@@ -1806,7 +1806,7 @@ UMC::Status SurfaceSource::DecreaseReference(UMC::FrameMemID MID)
                 RemoveCorrespondence(*surf);
         }
 
-        return ConvertStatusUmc2Mfx(ReleaseSurface(*surf));
+        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(ReleaseSurface(*surf, true)));
     }
     else
     {
@@ -1959,7 +1959,7 @@ mfxFrameSurface1 * SurfaceSource::GetSurface(UMC::FrameMemID index, mfxFrameSurf
         {
             // HW memory
 
-            std::ignore = MFX_STS_TRACE(AddRefSurface(*work_surf));
+            std::ignore = MFX_STS_TRACE(AddRefSurface(*work_surf, true));
 
             return work_surf;
         }
@@ -1976,7 +1976,7 @@ mfxFrameSurface1 * SurfaceSource::GetSurface(UMC::FrameMemID index, mfxFrameSurf
                 return nullptr;
             }
 
-            std::ignore = MFX_STS_TRACE(AddRefSurface(*(it_wo->second)));
+            std::ignore = MFX_STS_TRACE(AddRefSurface(*(it_wo->second), true));
 
             return it_wo->second;
         }
