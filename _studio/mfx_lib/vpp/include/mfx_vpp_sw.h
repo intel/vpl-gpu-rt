@@ -70,9 +70,6 @@ public:
 
   virtual mfxTaskThreadingPolicy GetThreadingPolicy(void);
 
-  virtual mfxFrameSurface1* GetSurfaceIn() { return nullptr; }
-  virtual mfxFrameSurface1* GetSurfaceOut() { return nullptr; }
-
 protected:
 
   typedef struct
@@ -138,23 +135,6 @@ public:
     virtual mfxStatus RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out, mfxExtVppAuxData *aux) override;
 
     mfxStatus PassThrough(mfxFrameInfo* In, mfxFrameInfo* Out, mfxU32 taskIndex);
-
-    virtual mfxFrameSurface1* GetSurfaceIn() override{
-        if (!m_pHWVPP)
-        {
-            std::ignore = MFX_STS_TRACE(MFX_ERR_NULL_PTR);
-            return nullptr;
-        }
-        return m_pHWVPP->GetSurfaceIn();
-    }
-    virtual mfxFrameSurface1* GetSurfaceOut() override{
-        if (!m_pHWVPP)
-        {
-            std::ignore = MFX_STS_TRACE(MFX_ERR_NULL_PTR);
-            return nullptr;
-        }
-        return m_pHWVPP->GetSurfaceOut();
-    }
 };
 
 mfxStatus RunFrameVPPRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber);

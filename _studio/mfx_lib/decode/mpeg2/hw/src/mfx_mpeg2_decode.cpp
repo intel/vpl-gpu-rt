@@ -1082,15 +1082,11 @@ MPEG2DecoderFrame* VideoDECODEMPEG2::GetFrameToDisplay()
     return frame;
 }
 
-mfxFrameSurface1* VideoDECODEMPEG2::GetSurface()
+mfxStatus VideoDECODEMPEG2::GetSurface(mfxFrameSurface1* & surface)
 {
-    if (!m_surface_source)
-    {
-        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
-        return nullptr;
-    }
+    MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface();
+    return m_surface_source->GetSurface(surface);
 }
 
 #endif

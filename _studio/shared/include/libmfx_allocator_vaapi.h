@@ -201,7 +201,7 @@ struct mfxFrameSurface1_hw_vaapi : public RWAcessSurface
     static mfxFrameSurface1_hw_vaapi* Create(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>& stg_adapter, mfxHDL display, mfxU32 context, FrameAllocatorBase& allocator)
     {
         auto surface = new mfxFrameSurface1_hw_vaapi(info, type, mid, stg_adapter, display, context, allocator);
-        static_cast<mfxRefCountableBase*>(surface)->AddRef();
+        surface->AddRef();
         return surface;
     }
 

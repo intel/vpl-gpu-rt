@@ -252,7 +252,7 @@ public:
     mfxFrameSurface1 * GetSurface(UMC::FrameMemID index, mfxFrameSurface1 *surface, const mfxVideoParam * videoPar);
     mfxFrameSurface1 * GetInternalSurface(UMC::FrameMemID index);
 
-    mfxFrameSurface1 * GetSurface();
+    mfxStatus GetSurface(mfxFrameSurface1* & surf);
     mfxFrameSurface1 * GetInternalSurface(mfxFrameSurface1 *sfc_surf);
 
     mfxFrameSurface1 * GetSurfaceByIndex(UMC::FrameMemID index);
@@ -264,21 +264,22 @@ public:
     void SetFreeSurfaceAllowedFlag(bool flag);
 
 protected:
-    VideoCORE*                                m_core;
+    VideoCORE*                                    m_core;
 
     // Decoder works with these surfaces
-    std::shared_ptr<SurfaceCache>             m_surface20_cache_decoder_surfaces;
+    //shared_surface_cache_controller
+    std::shared_ptr<surface_cache_controller<SurfaceCache> > m_surface20_cache_decoder_surfaces;
     // These surfaces are outputted to user (different with previous pool
     // in case of IO pattern and decoder impl mismatch or SFC on Linux)
-    std::shared_ptr<SurfaceCache>             m_surface20_cache_output_surfaces;
+    std::shared_ptr<surface_cache_controller<SurfaceCache> > m_surface20_cache_output_surfaces;
 
-    bool                                      m_redirect_to_msdk20 = false;
+    bool                                          m_redirect_to_msdk20 = false;
 
-    std::unique_ptr<mfx_UMC_FrameAllocator>   m_umc_allocator_adapter;
+    std::unique_ptr<mfx_UMC_FrameAllocator>       m_umc_allocator_adapter;
 
     // Parameters required for proper conversion of mfx <-> UMC params
-    std::map<mfxMemId, UMC::FrameMemID>       m_mfx2umc_memid;
-    std::map<UMC::FrameMemID, mfxMemId>       m_umc2mfx_memid;
+    std::map<mfxMemId, UMC::FrameMemID>           m_mfx2umc_memid;
+    std::map<UMC::FrameMemID, mfxMemId>           m_umc2mfx_memid;
 
 private:
 
@@ -323,6 +324,8 @@ private:
     // MSDK 2.0 memory model 2 (GetSurfaceForDecode + DecodeFrameAsync)
     bool                                      m_memory_model2        = false;
     mfxFrameSurface1*                         m_current_work_surface = nullptr;
+
+    mfx::ResettableTimerMs                    m_timer;
 
     // Parameters for proper work with mfx_UMC_FrameAllocator (i.e. support of MSDK 1.x path)
     mfxFrameAllocResponse&                    m_response;

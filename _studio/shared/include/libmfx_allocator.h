@@ -30,7 +30,6 @@
 #include "vm_interlocked.h"
 
 #include <shared_mutex>
-#include <atomic>
 #include <vector>
 #include <mutex>
 #include <condition_variable>
@@ -457,64 +456,6 @@ inline mfxU16 AdjustTypeInternal(mfxU16 type)
     return (type & ~MFX_MEMTYPE_EXTERNAL_FRAME) | MFX_MEMTYPE_INTERNAL_FRAME;
 }
 
-class mfxRefCountableBase
-{
-public:
-    mfxRefCountableBase()
-        : m_ref_count(0)
-    {
-#if defined (MFX_DEBUG_REFCOUNT)
-        g_global_registry.RegisterRefcountObject(this);
-#endif
-    }
-
-    virtual ~mfxRefCountableBase()
-    {
-        if (m_ref_count.load(std::memory_order_relaxed) != 0)
-        {
-            std::ignore = MFX_STS_TRACE(MFX_ERR_UNKNOWN);
-        }
-#if defined (MFX_DEBUG_REFCOUNT)
-        g_global_registry.UnregisterRefcountObject(this);
-#endif
-    }
-
-    mfxU32 GetRefCounter() const
-    {
-        return m_ref_count.load(std::memory_order_relaxed);
-    }
-
-    void AddRef()
-    {
-        std::ignore = m_ref_count.fetch_add(1, std::memory_order_relaxed);
-    }
-
-    mfxStatus Release()
-    {
-        MFX_CHECK(m_ref_count.load(std::memory_order_relaxed), MFX_ERR_UNDEFINED_BEHAVIOR);
-
-        // fetch_sub return value immediately preceding
-        if (m_ref_count.fetch_sub(1, std::memory_order_relaxed) - 1 == 0)
-        {
-            // Refcount is zero
-
-            // Update state of parent allocator if set
-            Close();
-
-            // Delete refcounted object, here wrapper is finally destroyed and underlying texture / memory released
-            delete this;
-        }
-
-        return MFX_ERR_NONE;
-    }
-
-protected:
-    virtual void Close() { return; }
-
-private:
-    std::atomic<uint32_t> m_ref_count;
-};
-
 template <class T, class U>
 class FlexibleFrameAllocator : public FrameAllocatorBase
 {
@@ -524,8 +465,9 @@ class FlexibleFrameAllocator : public FrameAllocatorBase
         /* We already removed from allocator's list, no need to update it through destructor */  \
         surface->DetachParentAllocator();                                                        \
                                                                                                  \
-        std::ignore = MFX_STS_TRACE(static_cast<mfxRefCountableBase*>(surface)->Release());      \
+        std::ignore = MFX_STS_TRACE(surface->Release());                                         \
     }
+
     using pT = std::unique_ptr<T, void(*)(T* surface)>;
 
 public:
@@ -794,15 +736,16 @@ private:
     {
         return mfxMemId(m_last_created_mid.fetch_add(1, std::memory_order_relaxed) + 1);
     }
+
 #undef MFX_DETACH_FRAME
 };
 
-class mfxFrameSurfaceBaseInterface : public mfxRefCountableBase
+class mfxFrameSurfaceBaseInterface
+    : public mfxRefCountableImpl<mfxFrameSurfaceInterface, mfxFrameSurface1>
 {
 public:
     mfxFrameSurfaceBaseInterface(mfxMemId mid, FrameAllocatorBase& allocator)
-        : mfxRefCountableBase()
-        , m_allocator(&allocator)
+        : m_allocator(&allocator)
         , m_mid(mid)
     {}
 
@@ -839,9 +782,16 @@ protected:
     }
 
 private:
-    FrameAllocatorBase*   m_allocator;
-    mfxMemId              m_mid;
-    mfxSyncPoint          m_sp        = nullptr;
+    FrameAllocatorBase*      m_allocator;
+    mfxMemId                 m_mid;
+    mfxSyncPoint             m_sp          = nullptr;
+};
+
+template <>
+struct mfxRefCountableInstance<mfxFrameSurface1>
+{
+    static mfxRefCountable* Get(mfxFrameSurface1* object)
+    { return reinterpret_cast<mfxFrameSurfaceBaseInterface*>(object->FrameInterface->Context); }
 };
 
 inline void copy_frame_surface_pixel_pointers(mfxFrameData& buf_dst, const mfxFrameData& buf_src)
@@ -854,24 +804,20 @@ inline void copy_frame_surface_pixel_pointers(mfxFrameData& buf_dst, const mfxFr
     MFX_COPY_FIELD(A);
 }
 
-class mfxFrameSurfaceInterfaceImpl : public mfxFrameSurfaceInterface, public mfxFrameSurfaceBaseInterface
+class mfxFrameSurfaceInterfaceImpl : public mfxFrameSurfaceBaseInterface
 {
 public:
     mfxFrameSurfaceInterfaceImpl(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, FrameAllocatorBase& allocator)
-        : mfxFrameSurfaceInterface()
-        , mfxFrameSurfaceBaseInterface(mid, allocator)
+        : mfxFrameSurfaceBaseInterface(mid, allocator)
     {
         // Surface interface level
         Context = static_cast<mfxFrameSurfaceBaseInterface*>(this);
         Version.Version = MFX_FRAMESURFACEINTERFACE_VERSION;
 
-        mfxFrameSurfaceInterface::AddRef          = &mfxFrameSurfaceInterfaceImpl::AddRef_impl;
-        mfxFrameSurfaceInterface::Release         = &mfxFrameSurfaceInterfaceImpl::Release_impl;
         mfxFrameSurfaceInterface::Map             = &mfxFrameSurfaceInterfaceImpl::Map_impl;
         mfxFrameSurfaceInterface::Unmap           = &mfxFrameSurfaceInterfaceImpl::Unmap_impl;
         mfxFrameSurfaceInterface::GetNativeHandle = &mfxFrameSurfaceInterfaceImpl::GetNativeHandle_impl;
         mfxFrameSurfaceInterface::GetDeviceHandle = &mfxFrameSurfaceInterfaceImpl::GetDeviceHandle_impl;
-        mfxFrameSurfaceInterface::GetRefCounter   = &mfxFrameSurfaceInterfaceImpl::GetRefCounter_impl;
         mfxFrameSurfaceInterface::Synchronize     = &mfxFrameSurfaceInterfaceImpl::Synchronize_impl;
 
         // Surface representation
@@ -893,27 +839,6 @@ public:
 
         m_exported_surface = m_internal_surface;
     }
-
-    static mfxStatus AddRef_impl(mfxFrameSurface1* surface)
-    {
-        MFX_CHECK_NULL_PTR1(surface);
-        MFX_CHECK_HDL(surface->FrameInterface);
-        MFX_CHECK_HDL(surface->FrameInterface->Context);
-
-        reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->AddRef();
-
-        return MFX_ERR_NONE;
-    }
-
-    static mfxStatus Release_impl(mfxFrameSurface1* surface)
-    {
-        MFX_CHECK_NULL_PTR1(surface);
-        MFX_CHECK_HDL(surface->FrameInterface);
-        MFX_CHECK_HDL(surface->FrameInterface->Context);
-
-        return reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->Release();
-    }
-
 
     static mfxStatus Map_impl(mfxFrameSurface1* surface, mfxU32 flags)
     {
@@ -968,17 +893,6 @@ public:
         return MFX_ERR_NONE;
     }
 
-    static mfxStatus GetRefCounter_impl(mfxFrameSurface1* surface, mfxU32* counter)
-    {
-        MFX_CHECK_NULL_PTR2(surface, counter);
-        MFX_CHECK_HDL(surface->FrameInterface);
-        MFX_CHECK_HDL(surface->FrameInterface->Context);
-
-        *counter = reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->GetRefCounter();
-
-        return MFX_ERR_NONE;
-    }
-
     static mfxStatus Synchronize_impl(mfxFrameSurface1* surface, mfxU32 timeout)
     {
         MFX_CHECK_NULL_PTR1(surface);
@@ -1021,42 +935,22 @@ protected:
     mutable std::mutex m_mutex;
 };
 
-class mfxSurfaceArrayImpl : public mfxSurfaceArray, public mfxRefCountableBase
+class mfxSurfaceArrayImpl;
+template <>
+struct mfxRefCountableInstance<mfxSurfaceArray>
+{
+    static mfxRefCountable* Get(mfxSurfaceArray* object)
+    { return reinterpret_cast<mfxRefCountable*>(object->Context); }
+};
+
+class mfxSurfaceArrayImpl : public mfxRefCountableImpl<mfxSurfaceArray>
 {
 public:
     static mfxSurfaceArrayImpl* Create()
     {
         mfxSurfaceArrayImpl* surfArr = new mfxSurfaceArrayImpl();
-        static_cast<mfxRefCountableBase*>(surfArr)->AddRef();
+        surfArr->AddRef();
         return surfArr;
-    }
-
-    static mfxStatus AddRef_impl(mfxSurfaceArray* surfArray)
-    {
-        MFX_CHECK_NULL_PTR1(surfArray);
-        MFX_CHECK_HDL(surfArray->Context);
-
-        reinterpret_cast<mfxRefCountableBase*>(surfArray->Context)->AddRef();
-
-        return MFX_ERR_NONE;
-    }
-
-    static mfxStatus Release_impl(mfxSurfaceArray* surfArray)
-    {
-        MFX_CHECK_NULL_PTR1(surfArray);
-        MFX_CHECK_HDL(surfArray->Context);
-
-        return reinterpret_cast<mfxRefCountableBase*>(surfArray->Context)->Release();
-    }
-
-    static mfxStatus GetRefCounter_impl(mfxSurfaceArray* surfArray, mfxU32* counter)
-    {
-        MFX_CHECK_NULL_PTR2(surfArray, counter);
-        MFX_CHECK_HDL(surfArray->Context);
-
-        *counter = reinterpret_cast<mfxRefCountableBase*>(surfArray->Context)->GetRefCounter();
-
-        return MFX_ERR_NONE;
     }
 
     void AddSurface(mfxFrameSurface1* surface)
@@ -1084,15 +978,9 @@ protected:
 
 private:
     mfxSurfaceArrayImpl()
-        : mfxSurfaceArray()
-        , mfxRefCountableBase()
     {
-        Context = static_cast<mfxRefCountableBase*>(this);
+        Context = static_cast<mfxRefCountable*>(this);
         Version.Version = MFX_SURFACEARRAY_VERSION;
-
-        mfxSurfaceArray::AddRef        = &mfxSurfaceArrayImpl::AddRef_impl;
-        mfxSurfaceArray::Release       = &mfxSurfaceArrayImpl::Release_impl;
-        mfxSurfaceArray::GetRefCounter = &mfxSurfaceArrayImpl::GetRefCounter_impl;
     }
 
     std::vector<mfxFrameSurface1*> m_surfaces;
@@ -1141,7 +1029,7 @@ struct mfxFrameSurface1_sw : public RWAcessSurface
     static mfxFrameSurface1_sw* Create(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>& staging_adapter, mfxHDL device, mfxU32 context, FrameAllocatorBase& allocator)
     {
         auto surface = new mfxFrameSurface1_sw(info, type, mid, staging_adapter, device, context, allocator);
-        static_cast<mfxRefCountableBase*>(surface)->AddRef();
+        surface->AddRef();
         return surface;
     }
 

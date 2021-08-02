@@ -102,9 +102,6 @@ public:
 
     mfxStatus ResetTaskCounters();
 
-    virtual mfxFrameSurface1* GetSurfaceIn() override;
-    virtual mfxFrameSurface1* GetSurfaceOut() override;
-
 private:
 
     // Opaq processing

@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <chrono>
 #include <functional>
+#include <atomic>
 
 #if defined (MFX_ENV_CFG_ENABLE) || defined(MFX_TRACE_ENABLE)
 #include <sstream>
@@ -645,12 +646,43 @@ public:
         return Expired(Left());
     }
 
-private:
+protected:
     std::chrono::steady_clock::time_point m_end;
+};
+
+template <class Duration, class Representation>
+class ResettableTimer : public Timer<Duration, Representation>
+{
+public:
+    ResettableTimer(Representation left = Representation{})
+        : Timer<Duration, Representation>(left)
+    {}
+
+    void Reset(Representation left)
+    {
+        this->m_end = std::chrono::steady_clock::now() + Duration(left);
+
+        m_running = true;
+    }
+
+    bool IsRunnig() const
+    {
+        return m_running;
+    }
+
+    void Stop()
+    {
+        m_running = false;
+    }
+
+private:
+    bool m_running = false;
 };
 
 template <typename Representation>
 using TimerMs = Timer<std::chrono::milliseconds, Representation>;
+
+using ResettableTimerMs = ResettableTimer<std::chrono::milliseconds, std::chrono::milliseconds>;
 
 class mfxStatus_exception : public std::exception
 {
@@ -723,6 +755,133 @@ struct surface_refcount_scoped_lock : public std::unique_ptr<mfxFrameSurface1, v
     {}
 };
 
+struct mfxRefCountable
+{
+    virtual mfxU32    GetRefCounter() const = 0;
+    virtual void      AddRef()              = 0;
+    virtual mfxStatus Release()             = 0;
+};
+
+template <typename T>
+struct mfxRefCountableInstance
+{
+    static mfxRefCountable* Get(T* object)
+    { return static_cast<mfxRefCountable*>(object); }
+};
+
+template <typename T, typename U = T>
+class mfxRefCountableImpl
+    : public mfxRefCountable
+    , public T
+{
+public:
+    mfxRefCountableImpl()
+        : T()
+        , m_ref_count(0)
+    {
+#if defined (MFX_DEBUG_REFCOUNT)
+        g_global_registry.RegisterRefcountObject(this);
+#endif
+
+        T::AddRef          = _AddRef;
+        T::Release         = _Release;
+        T::GetRefCounter   = _GetRefCounter;
+    }
+
+    virtual ~mfxRefCountableImpl()
+    {
+        if (m_ref_count.load(std::memory_order_relaxed) != 0)
+        {
+            std::ignore = MFX_STS_TRACE(MFX_ERR_UNKNOWN);
+        }
+#if defined (MFX_DEBUG_REFCOUNT)
+        g_global_registry.UnregisterRefcountObject(this);
+#endif
+    }
+
+    mfxU32 GetRefCounter() const override
+    {
+        return m_ref_count.load(std::memory_order_relaxed);
+    }
+
+    void AddRef() override
+    {
+        std::ignore = m_ref_count.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    mfxStatus Release() override
+    {
+        MFX_CHECK(m_ref_count.load(std::memory_order_relaxed), MFX_ERR_UNDEFINED_BEHAVIOR);
+
+        // fetch_sub return value immediately preceding
+        if (m_ref_count.fetch_sub(1, std::memory_order_relaxed) - 1 == 0)
+        {
+            // Refcount is zero
+
+            // Update state of parent allocator if set
+            Close();
+
+            // Delete refcounted object, here wrapper is finally destroyed and underlying texture / memory released
+            delete this;
+        }
+
+        return MFX_ERR_NONE;
+    }
+
+    static mfxStatus _AddRef(U* object)
+    {
+        MFX_CHECK_NULL_PTR1(object);
+        auto instance = mfxRefCountableInstance<U>::Get(object);
+        MFX_CHECK_HDL(instance);
+
+        instance->AddRef();
+        return MFX_ERR_NONE;
+    }
+
+    static mfxStatus _Release(U* object)
+    {
+        MFX_CHECK_NULL_PTR1(object);
+        auto instance = mfxRefCountableInstance<U>::Get(object);
+        MFX_CHECK_HDL(instance);
+
+        return instance->Release();
+    }
+
+    static mfxStatus _GetRefCounter(U* object, mfxU32* counter)
+    {
+        MFX_CHECK_NULL_PTR1(object);
+        MFX_CHECK_NULL_PTR1(counter);
+
+        auto instance = mfxRefCountableInstance<U>::Get(object);
+        MFX_CHECK_HDL(instance);
+
+        *counter = instance->GetRefCounter();
+        return MFX_ERR_NONE;
+    }
+
+protected:
+
+    virtual void Close() { return; }
+
+private:
+
+    std::atomic<uint32_t> m_ref_count;
+};
+
+// This class calls release at destruction
+template <typename RefCountable>
+struct unique_ptr_refcountable : public std::unique_ptr<RefCountable, void(*)(RefCountable* obj)>
+{
+    explicit unique_ptr_refcountable(RefCountable* refcountable = nullptr)
+        : std::unique_ptr<RefCountable, void(*)(RefCountable* obj)>(
+            refcountable, [](RefCountable* obj)
+            {
+                auto instance = mfxRefCountableInstance<RefCountable>::Get(obj);
+                instance->Release();
+            })
+    {}
+};
+
 #define MFX_EQ_FIELD(Field) l.Field == r.Field
 #define MFX_EQ_ARRAY(Array, Num) std::equal(l.Array, l.Array + Num, r.Array)
 
@@ -738,6 +897,67 @@ static inline bool operator==(mfxPluginUID const& l, mfxPluginUID const& r)
 }
 
 MFX_DECL_OPERATOR_NOT_EQ(mfxPluginUID)
+
+static inline bool operator==(mfxExtBuffer const& l, mfxExtBuffer const& r)
+{
+    return MFX_EQ_FIELD(BufferId) && MFX_EQ_FIELD(BufferSz);
+}
+
+template <typename CacheType>
+struct surface_cache_controller
+{
+    surface_cache_controller(CacheType* cache)
+        : m_cache(cache)
+    {}
+
+    ~surface_cache_controller()
+    {
+        Close();
+    }
+
+    mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
+    {
+        std::ignore = session;
+        std::ignore = par;
+
+        return MFX_ERR_NONE;
+    }
+
+    mfxStatus Update(const mfxFrameSurface1& surf)
+    {
+        std::ignore = surf;
+
+        return MFX_ERR_NONE;
+    }
+
+    mfxStatus ResetCache(const mfxVideoParam& par)
+    {
+        return ResetCache(par.ExtParam, par.NumExtParam);
+    }
+
+    mfxStatus ResetCache(mfxExtBuffer** ExtParam, mfxU16 NumExtParam)
+    {
+        std::ignore = ExtParam;
+        std::ignore = NumExtParam;
+
+        return MFX_ERR_NONE;
+    }
+
+    void Close()
+    {
+    }
+
+    CacheType* operator->()
+    {
+        MFX_CHECK_WITH_THROW(m_cache, MFX_ERR_NOT_INITIALIZED, mfx::mfxStatus_exception(MFX_ERR_NOT_INITIALIZED));
+
+        return m_cache.get();
+    }
+
+private:
+    unique_ptr_refcountable<CacheType>         m_cache;
+
+};
 
 inline bool IsOn(mfxU32 opt)
 {

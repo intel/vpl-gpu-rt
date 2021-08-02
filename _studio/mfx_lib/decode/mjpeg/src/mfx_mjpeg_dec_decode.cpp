@@ -1461,15 +1461,11 @@ bool MFX_JPEG_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType )
     return true;
 }
 
-mfxFrameSurface1* VideoDECODEMJPEG::GetSurface()
+mfxStatus VideoDECODEMJPEG::GetSurface(mfxFrameSurface1* & surface)
 {
-    if (!decoder->m_surface_source)
-    {
-        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
-        return nullptr;
-    }
+    MFX_CHECK(decoder && decoder->m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return decoder->m_surface_source->GetSurface();
+    return decoder->m_surface_source->GetSurface(surface);
 }
 
 VideoDECODEMJPEGBase::VideoDECODEMJPEGBase()

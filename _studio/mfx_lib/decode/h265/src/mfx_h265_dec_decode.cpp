@@ -1592,15 +1592,11 @@ bool VideoDECODEH265::IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * o
     return true;
 }
 
-mfxFrameSurface1* VideoDECODEH265::GetSurface()
+mfxStatus VideoDECODEH265::GetSurface(mfxFrameSurface1* & surface)
 {
-    if (!m_surface_source)
-    {
-        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
-        return nullptr;
-    }
+    MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface();
+    return m_surface_source->GetSurface(surface);
 }
 
 #endif // MFX_ENABLE_H265_VIDEO_DECODE

@@ -1171,8 +1171,12 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
             request = request_internal;
         }
 
-        m_surface20_cache_decoder_surfaces.reset(new SurfaceCache(*msdk20_core, SFC_on_windows ? output_type : request.Type,
+        std::unique_ptr<SurfaceCache> scoped_cache_ptr(SurfaceCache::Create(*msdk20_core, SFC_on_windows ? output_type : request.Type,
             SFC_on_windows ? output_info : request.Info));
+
+        m_surface20_cache_decoder_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get()));
+
+        scoped_cache_ptr.release();
 
         m_sw_fallback_sys_mem = (MFX_PLATFORM_SOFTWARE == platform) && (video_param.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
 
@@ -1192,8 +1196,18 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         }
         else
         {
-            m_surface20_cache_output_surfaces.reset(new SurfaceCache(*msdk20_core, needVppJPEG ? request_type : output_type, needVppJPEG ? request_info : output_info));
+            scoped_cache_ptr.reset(SurfaceCache::Create(*msdk20_core, needVppJPEG ? request_type : output_type, needVppJPEG ? request_info : output_info));
+
+            m_surface20_cache_output_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get()));
+
+            scoped_cache_ptr.release();
         }
+
+        mfxSession session = m_core->GetSession();
+        MFX_CHECK_WITH_THROW(session, MFX_ERR_INVALID_HANDLE, mfx::mfxStatus_exception(MFX_ERR_INVALID_HANDLE));
+
+        mfxStatus sts = m_surface20_cache_output_surfaces->SetupCache(session, video_param);
+        MFX_CHECK_WITH_THROW(sts == MFX_ERR_NONE, sts, mfx::mfxStatus_exception(sts));
 
         mfxU32 bit_depth              = BitDepthFromFourcc(video_param.mfx.FrameInfo.FourCC);
 
@@ -1461,7 +1475,7 @@ mfxFrameSurface1* SurfaceSource::GetDecoderSurface(UMC::FrameMemID index)
         return nullptr;
     }
 
-    mfxFrameSurface1* surf = m_surface20_cache_decoder_surfaces->FindSurface(it->second);
+    mfxFrameSurface1* surf = (*m_surface20_cache_decoder_surfaces)->FindSurface(it->second);
     if (m_sw_fallback_sys_mem)
     {
         if (index >= (UMC::FrameMemID)m_sw_fallback_surfaces.size())
@@ -1550,6 +1564,8 @@ UMC::Status SurfaceSource::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDat
 
         MFX_CHECK(pNewMemID, UMC::UMC_ERR_NULL_PTR);
 
+        mfxStatus sts;
+
         if (m_current_work_surface)
         {
             // MSDK 2.0 memory model 2, returning work surface
@@ -1564,7 +1580,7 @@ UMC::Status SurfaceSource::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDat
                 auto it_wo = m_work_output_surface_map.find(m_current_work_surface->Data.MemId);
                 MFX_CHECK(it_wo != std::end(m_work_output_surface_map), UMC::UMC_ERR_FAILED);
 
-                mfxStatus sts = SetSurfaceForSFC(*m_core, *(it_wo->second));
+                sts = SetSurfaceForSFC(*m_core, *(it_wo->second));
                 MFX_CHECK(sts == MFX_ERR_NONE, UMC::UMC_ERR_FAILED);
             }
 
@@ -1585,8 +1601,33 @@ UMC::Status SurfaceSource::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDat
 
         // MSDK 2.0 memory model 3, allocating and returning new work surface
 
-        mfxFrameSurface1* surf = m_surface20_cache_decoder_surfaces->GetSurface(true);
-        MFX_CHECK(surf, UMC::UMC_ERR_NULL_PTR);
+        using namespace std::chrono;
+
+        auto cache_timeout = (*m_surface20_cache_decoder_surfaces)->GetTimeout();
+
+        // Start timer if first entry to Alloc and timeout option passed on Init
+        if (!m_timer.IsRunnig() && cache_timeout != 0ms)
+        {
+            m_timer.Reset(cache_timeout);
+        }
+
+        // Check if timer already expired
+        if (m_timer.IsRunnig())
+        {
+            if (m_timer.Expired())
+            {
+                *pNewMemID = UMC::FRAME_MID_INVALID;
+                MFX_RETURN(UMC::UMC_ERR_ALLOC);
+            }
+
+            cache_timeout = m_timer.Left();
+        }
+
+        mfxFrameSurface1* surf = nullptr;
+        // If timer wasn't set (i.e. cache hints buffer wasn't attached) cache timeout below would be zero (i.e. no waiting for free surface)
+        sts = (*m_surface20_cache_decoder_surfaces)->GetSurface(surf, cache_timeout, true);
+
+        MFX_CHECK(sts == MFX_ERR_NONE,        UMC::UMC_ERR_ALLOC);
 
         if (m_sw_fallback_sys_mem)
         {
@@ -1602,15 +1643,16 @@ UMC::Status SurfaceSource::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDat
         {
             // SFC on Linux
 
-            mfxFrameSurface1* output_surface = m_surface20_cache_output_surfaces->GetSurface(true);
-            MFX_CHECK(output_surface, UMC::UMC_ERR_NULL_PTR);
+            mfxFrameSurface1* output_surface = nullptr;
+            sts = (*m_surface20_cache_output_surfaces)->GetSurface(output_surface, true);
+            MFX_CHECK(sts == MFX_ERR_NONE,        UMC::UMC_ERR_ALLOC);
 
             // RAII lock to drop refcount in case of error
             surface_refcount_scoped_lock output_surf_scoped_lock(output_surface);
 
             MFX_CHECK(CreateCorrespondence(*surf, *output_surface), UMC::UMC_ERR_FAILED);
 
-            mfxStatus sts = SetSurfaceForSFC(*m_core, *output_surface);
+            sts = SetSurfaceForSFC(*m_core, *output_surface);
             MFX_CHECK(sts == MFX_ERR_NONE, UMC::UMC_ERR_FAILED);
 
             output_surf_scoped_lock.release();
@@ -1875,10 +1917,15 @@ mfxStatus SurfaceSource::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
+        // Stop the timer on new DecodeFrameAsync call
+        m_timer.Stop();
+
         m_memory_model2 = surf != nullptr;
 
         if (!surf)
             return MFX_ERR_NONE;
+
+        MFX_SAFE_CALL(m_surface20_cache_output_surfaces->Update(*surf));
 
         // Memory model 2, non-null work surface passed
 
@@ -1891,7 +1938,8 @@ mfxStatus SurfaceSource::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
         if (m_allocate_internal)
         {
             // Create internal surface
-            mfxFrameSurface1* internal_surf = m_surface20_cache_decoder_surfaces->GetSurface(true);
+            mfxFrameSurface1* internal_surf = nullptr;
+            MFX_SAFE_CALL((*m_surface20_cache_decoder_surfaces)->GetSurface(internal_surf, true));
             MFX_CHECK_NULL_PTR1(internal_surf);
 
             // RAII lock to drop refcount in case of error
@@ -1986,7 +2034,12 @@ mfxFrameSurface1 * SurfaceSource::GetSurface(UMC::FrameMemID index, mfxFrameSurf
         {
             // Model 3: null work_surface passed by user
             // Allocate SW output surface here
-            surface = m_surface20_cache_output_surfaces->GetSurface(true);
+            mfxStatus sts = (*m_surface20_cache_output_surfaces)->GetSurface(surface, true);
+            if (MFX_STS_TRACE(sts) != MFX_ERR_NONE)
+            {
+                return nullptr;
+            }
+
             if (!surface)
             {
                 std::ignore = MFX_STS_TRACE(MFX_ERR_NULL_PTR);
@@ -2068,21 +2121,12 @@ mfxFrameSurface1 * SurfaceSource::GetInternalSurface(UMC::FrameMemID index)
     }
 }
 
-mfxFrameSurface1 * SurfaceSource::GetSurface()
+mfxStatus SurfaceSource::GetSurface(mfxFrameSurface1* & surface)
 {
-    if (!m_redirect_to_msdk20)
-    {
-        std::ignore = MFX_STS_TRACE(MFX_ERR_UNSUPPORTED);
-        return nullptr;
-    }
+    MFX_CHECK(m_redirect_to_msdk20,              MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(m_surface20_cache_output_surfaces, MFX_ERR_NOT_INITIALIZED);
 
-    if (!m_surface20_cache_output_surfaces)
-    {
-        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
-        return nullptr;
-    }
-
-    return m_surface20_cache_output_surfaces->GetSurface();
+    return (*m_surface20_cache_output_surfaces)->GetSurface(surface);
 }
 
 mfxFrameSurface1 * SurfaceSource::GetSurfaceByIndex(UMC::FrameMemID index)

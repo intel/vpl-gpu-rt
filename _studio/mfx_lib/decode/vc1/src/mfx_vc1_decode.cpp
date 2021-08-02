@@ -1982,15 +1982,11 @@ bool MFXVideoDECODEVC1::FrameStartCodePresence()
     return false;
 }
 
-mfxFrameSurface1* MFXVideoDECODEVC1::GetSurface()
+mfxStatus MFXVideoDECODEVC1::GetSurface(mfxFrameSurface1* & surface)
 {
-    if (!m_surface_source)
-    {
-        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
-        return nullptr;
-    }
+    MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface();
+    return m_surface_source->GetSurface(surface);
 }
 
 mfxStatus __CDECL VC1DECODERoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 )

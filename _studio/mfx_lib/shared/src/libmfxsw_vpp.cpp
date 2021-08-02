@@ -125,6 +125,48 @@ mfxStatus MFXVideoVPP_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFra
     return mfxRes;
 }
 
+static mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
+{
+    // No internal alloc if Ext Allocator set
+    if (session->m_pCORE->IsExternalFrameAllocator())
+        return MFX_ERR_NONE;
+
+    auto CacheInitRoutine = [session, &par](bool input_pool)
+    {
+        auto& pCache = input_pool ? session->m_pVPP->m_pSurfaceCacheIn : session->m_pVPP->m_pSurfaceCacheOut;
+
+        if (!pCache)
+        {
+            auto core20 = dynamic_cast<CommonCORE20*>(session->m_pCORE.get());
+            MFX_CHECK_HDL(core20);
+
+            mfxU16 memory_type = input_pool ? mfxU16(par.IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY  ? MFX_MEMTYPE_FROM_VPPIN  | MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_FROM_VPPIN  | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET)
+                                            : mfxU16(par.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ? MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+
+            const mfxFrameInfo& frame_info = input_pool ? par.vpp.In : par.vpp.Out;
+
+            std::unique_ptr<SurfaceCache> scoped_cache_ptr(SurfaceCache::Create(*core20, memory_type, frame_info));
+
+            using cache_controller = surface_cache_controller<SurfaceCache>;
+            using TCachePtr = std::remove_reference<decltype(pCache)>::type;
+
+            pCache = TCachePtr(new cache_controller(scoped_cache_ptr.get()), std::default_delete<cache_controller>());
+
+            scoped_cache_ptr.release();
+        }
+
+        // Setup cache limits
+        MFX_SAFE_CALL(pCache->SetupCache(session, par));
+
+        return MFX_ERR_NONE;
+    };
+
+    MFX_SAFE_CALL(CacheInitRoutine(true));
+    MFX_SAFE_CALL(CacheInitRoutine(false));
+
+    return MFX_ERR_NONE;
+}
+
 mfxStatus MFXVideoVPP_Init(mfxSession session, mfxVideoParam *par)
 {
     mfxStatus mfxRes = MFX_ERR_UNSUPPORTED;
@@ -151,6 +193,11 @@ mfxStatus MFXVideoVPP_Init(mfxSession session, mfxVideoParam *par)
         session->m_pVPP.reset(session->Create<VideoVPP>(*par));
         MFX_CHECK(session->m_pVPP.get(), MFX_ERR_INVALID_VIDEO_PARAM);
         mfxRes = session->m_pVPP->Init(par);
+
+        if (mfxRes >= MFX_ERR_NONE && Supports20FeatureSet(*session->m_pCORE.get()))
+        {
+            MFX_SAFE_CALL(SetupCache(session, *par));
+        }
 #endif // MFX_ENABLE_VPP
     }
     // handle error(s)
@@ -247,6 +294,15 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
 
     try
     {
+        if (in && session->m_pVPP->m_pSurfaceCacheIn)
+        {
+            MFX_SAFE_CALL(session->m_pVPP->m_pSurfaceCacheIn->Update(*in));
+        }
+        if (out && session->m_pVPP->m_pSurfaceCacheOut)
+        {
+            MFX_SAFE_CALL(session->m_pVPP->m_pSurfaceCacheOut->Update(*out));
+        }
+
         mfxSyncPoint syncPoint = NULL;
         MFX_ENTRY_POINT entryPoints[MFX_NUM_ENTRY_POINTS];
         mfxU32 numEntryPoints = MFX_NUM_ENTRY_POINTS;
@@ -437,14 +493,34 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *i
 
 } // mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, mfxThreadTask *task);
 
+#define FUNCTION_GET_SURFACE_IMPL_VPP(FUNCTION_NAME, TYPE)                         \
+mfxStatus FUNCTION_NAME##TYPE (mfxSession session, mfxFrameSurface1** output_surf) \
+{                                                                                  \
+    MFX_CHECK_NULL_PTR1(output_surf);                                              \
+    MFX_CHECK_HDL(session);                                                        \
+    MFX_CHECK(session->m_pCORE.get(),                 MFX_ERR_NOT_INITIALIZED);    \
+    MFX_CHECK(session->m_pVPP,                        MFX_ERR_NOT_INITIALIZED);    \
+    MFX_CHECK(session->m_pVPP->m_pSurfaceCache##TYPE, MFX_ERR_NOT_INITIALIZED);    \
+                                                                                   \
+    return (*session->m_pVPP->m_pSurfaceCache##TYPE )->GetSurface(*output_surf);   \
+}
+
+FUNCTION_GET_SURFACE_IMPL_VPP(MFXMemory_GetSurfaceForVPP, In)
+FUNCTION_GET_SURFACE_IMPL_VPP(MFXMemory_GetSurfaceForVPP, Out)
+
+#undef FUNCTION_GET_SURFACE_IMPL_VPP
+
 mfxStatus MFXVideoVPP_ProcessFrameAsync(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 **out)
 {
     MFX_CHECK_NULL_PTR1(out);
 
     MFX_CHECK_HDL(session);
-    MFX_CHECK(session->m_pVPP.get(), MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(session->m_pVPP,                     MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(session->m_pVPP->m_pSurfaceCacheOut, MFX_ERR_NOT_INITIALIZED);
 
-    surface_refcount_scoped_lock surf_out(session->m_pVPP->GetSurfaceOut());
+    mfxFrameSurface1* surf;
+    MFX_SAFE_CALL((*session->m_pVPP->m_pSurfaceCacheOut)->GetSurface(surf));
+    surface_refcount_scoped_lock surf_out(surf);
     MFX_CHECK(surf_out, MFX_ERR_MEMORY_ALLOC);
 
     mfxSyncPoint syncPoint;

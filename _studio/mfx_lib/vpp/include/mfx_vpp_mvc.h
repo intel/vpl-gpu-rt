@@ -90,9 +90,6 @@ namespace MfxVideoProcessing
 
         mfxStatus ResetTaskCounters();
 
-        virtual mfxFrameSurface1* GetSurfaceIn();
-        virtual mfxFrameSurface1* GetSurfaceOut();
-
     private:
 
         bool       m_bInit;

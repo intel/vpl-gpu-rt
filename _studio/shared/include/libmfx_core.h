@@ -32,6 +32,9 @@
 #include "libmfx_core_interface.h"
 
 #include <memory>
+#include <deque>
+#include <chrono>
+#include <limits>
 
 
 class CommonCORE : public VideoCORE
@@ -448,34 +451,81 @@ private:
     SurfaceLockType    lock_type = SurfaceLockType::LOCK_NONE;
 };
 
+typedef struct SurfaceCacheRefCountable
+{
+    mfxHDL Context;
+    mfxStatus (MFX_CDECL *AddRef)(struct SurfaceCacheRefCountable*);
+    mfxStatus (MFX_CDECL *Release)(struct SurfaceCacheRefCountable*);
+    mfxStatus (MFX_CDECL *GetRefCounter)(struct SurfaceCacheRefCountable*, mfxU32* /*counter*/);
+} SurfaceCacheRefCountable;
+
+class SurfaceCache;
+template <>
+struct mfxRefCountableInstance<SurfaceCacheRefCountable>
+{
+    static mfxRefCountable* Get(SurfaceCacheRefCountable* object)
+    { return reinterpret_cast<mfxRefCountable*>(object); }
+};
+
 class SurfaceCache
+    : public mfxRefCountableImpl<SurfaceCacheRefCountable>
 {
 public:
-    SurfaceCache(CommonCORE20& core, mfxU16 type, const mfxFrameInfo& frame_info)
-        : m_core(core)
-        , m_type((type & ~MFX_MEMTYPE_EXTERNAL_FRAME) | MFX_MEMTYPE_INTERNAL_FRAME)
-        , m_frame_info(frame_info)
-    {}
-    virtual ~SurfaceCache() {}
-
-    virtual mfxFrameSurface1* GetSurface(bool emulate_zero_refcount_base = false)
+    static SurfaceCache* Create(CommonCORE20& core, mfxU16 type, const mfxFrameInfo& frame_info)
     {
-        std::unique_lock<std::shared_timed_mutex> lock(m_mutex);
+        auto cache = new SurfaceCache(core, type, frame_info);
+        cache->AddRef();
 
-        // Export from cache
-        auto it = find_if(std::begin(m_cached_surfaces), std::end(m_cached_surfaces), [](SurfaceHolder& surface) { return !surface.m_exported; });
+        return cache;
+    }
 
-        if (it != std::end(m_cached_surfaces))
+    std::chrono::milliseconds GetTimeout() const
+    {
+        return m_time_to_wait;
+    }
+
+    mfxStatus GetSurface(mfxFrameSurface1*& output_surface, bool emulate_zero_refcount_base = false)
+    {
+        return GetSurface(output_surface, m_time_to_wait, emulate_zero_refcount_base);
+    }
+
+    mfxStatus GetSurface(mfxFrameSurface1* & output_surface, std::chrono::milliseconds current_time_to_wait, bool emulate_zero_refcount_base = false)
+    {
+        /*
+            Note: emulate_zero_refcount_base flag is required for some corner cases in decoders. More precisely
+            it is required to comply with mfx_UMC_FrameAllocator adapter design: It has it's own refcounting
+            logic (We repeat it's AddRef / Release in our "real" refcounting logic of surface), but implementation
+            in mfx_UMC_FrameAllocator assumes that surface refcount started from zero while surface arrive,
+            but that is not true for VPL memory, our new surfaces arrive with refcount equal to 1. So this trick
+            is just allows us to emulate that zero refcount base, and leave mfx_UMC_FrameAllocator code as is.
+        */
+        std::unique_lock<std::mutex> lock(m_mutex);
+
+        // Try to export existing surface from cache first
+
+        output_surface = FreeSurfaceLookup(emulate_zero_refcount_base);
+        if (output_surface)
         {
-            it->m_exported = true;
-            if (emulate_zero_refcount_base)
+            return MFX_ERR_NONE;
+        }
+
+        if (m_cached_surfaces.size() >= m_limit)
+        {
+            using namespace std::chrono;
+            MFX_CHECK(current_time_to_wait != 0ms, MFX_WRN_DEVICE_BUSY);
+
+            // Cannot allocate surface, but we can wait
+            bool wait_succeeded = m_cv_wait_free_surface.wait_for(lock, current_time_to_wait,
+                [&output_surface, emulate_zero_refcount_base, this]()
             {
-                it->FrameInterface->AddRef = &skip_one_addref;
-            }
-#ifndef NDEBUG
-            it->m_was_released = false;
-#endif
-            return &(*it);
+                output_surface = FreeSurfaceLookup(emulate_zero_refcount_base);
+
+                return output_surface != nullptr;
+            });
+
+            MFX_CHECK(wait_succeeded, MFX_WRN_DEVICE_BUSY);
+
+            return MFX_ERR_NONE;
         }
 
         // Get the new one from allocator
@@ -484,13 +534,10 @@ public:
         mfxFrameSurface1* surf = nullptr;
         // Surfaces returned by CreateSurface already have RefCounter == 1
         mfxStatus sts = m_core.CreateSurface(m_type, m_frame_info, surf);
-        if (MFX_STS_TRACE(sts) != MFX_ERR_NONE)
-        {
-            return nullptr;
-        }
+        MFX_CHECK_STS(sts);
 
         lock.lock();
-        m_cached_surfaces.emplace_back(*surf);
+        m_cached_surfaces.emplace_back(*surf, *this);
         m_cached_surfaces.back().m_exported = true;
 
         if (emulate_zero_refcount_base)
@@ -498,19 +545,63 @@ public:
             m_cached_surfaces.back().FrameInterface->AddRef = &skip_one_addref;
         }
 
-        return &m_cached_surfaces.back();
+        output_surface = &m_cached_surfaces.back();
+
+        return MFX_ERR_NONE;
     }
 
     mfxFrameSurface1* FindSurface(const mfxMemId memid)
     {
-        std::shared_lock<std::shared_timed_mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> guard(m_mutex);
 
         auto it = find_if(std::begin(m_cached_surfaces), std::end(m_cached_surfaces), [memid](SurfaceHolder& surface) { return surface.Data.MemId == memid; });
 
         return it != std::end(m_cached_surfaces) ? &(*it) : nullptr;
     }
 
+
+    mfxU32 ReportCurrentSize() const
+    {
+        std::lock_guard<std::mutex> guard(m_mutex);
+        return mfxU32(m_cached_surfaces.size());
+    }
+
+    mfxU32 ReportMaxSize() const
+    {
+        std::lock_guard<std::mutex> guard(m_mutex);
+        return mfxU32(m_limit);
+    }
+
 private:
+
+    SurfaceCache(CommonCORE20& core, mfxU16 type, const mfxFrameInfo& frame_info)
+        : m_core(core)
+        , m_type((type & ~MFX_MEMTYPE_EXTERNAL_FRAME) | MFX_MEMTYPE_INTERNAL_FRAME)
+        , m_frame_info(frame_info)
+    {
+        std::ignore = m_num_to_revoke;
+        std::ignore = m_default_limit;
+    }
+
+    mfxFrameSurface1* FreeSurfaceLookup(bool emulate_zero_refcount_base = false)
+    {
+        // This function is called only from thread safe context, so no mutex acquiring here
+
+        auto it = find_if(std::begin(m_cached_surfaces), std::end(m_cached_surfaces), [](SurfaceHolder& surface) { return !surface.m_exported; });
+
+        if (it == std::end(m_cached_surfaces))
+            return nullptr;
+
+        it->m_exported = true;
+        if (emulate_zero_refcount_base)
+        {
+            it->FrameInterface->AddRef = &skip_one_addref;
+        }
+#ifndef NDEBUG
+        it->m_was_released = false;
+#endif
+        return &(*it);
+    }
 
     static mfxStatus skip_one_addref(mfxFrameSurface1* surface)
     {
@@ -518,7 +609,7 @@ private:
         MFX_CHECK_HDL(surface->FrameInterface);
 
         // Return back original AddRef function
-        surface->FrameInterface->AddRef = &mfxFrameSurfaceInterfaceImpl::AddRef_impl;
+        surface->FrameInterface->AddRef = mfxFrameSurfaceBaseInterface::_AddRef;
 
         return MFX_ERR_NONE;
     }
@@ -531,8 +622,9 @@ private:
         bool m_was_released = false;
 #endif
 
-        SurfaceHolder(mfxFrameSurface1& surf)
+        SurfaceHolder(mfxFrameSurface1& surf, SurfaceCache& cache)
             : mfxFrameSurface1(surf)
+            , m_cache(cache)
             , m_surface_interface(*FrameInterface)
             , original_release(m_surface_interface.Release)
             , m_locked_count(surf.Data.Locked)
@@ -540,6 +632,8 @@ private:
             m_surface_interface.Release = proxy_release;
 
             std::ignore = vm_interlocked_inc16((volatile Ipp16u*)&m_locked_count);
+
+            std::ignore = m_cache;
         }
 
         ~SurfaceHolder()
@@ -552,6 +646,9 @@ private:
         }
 
     private:
+
+        // To decommit surfaces on release
+        SurfaceCache & m_cache;
 
         // Store it to protect against user zeroing this pointer
         mfxFrameSurfaceInterface & m_surface_interface;
@@ -580,6 +677,7 @@ private:
 
             // Return back to pool, don't touch ref counter
             reinterpret_cast<SurfaceHolder*>(surface)->m_exported = false;
+
 #ifndef NDEBUG
             assert(!reinterpret_cast<SurfaceHolder*>(surface)->m_was_released);
             reinterpret_cast<SurfaceHolder*>(surface)->m_was_released = true;
@@ -588,13 +686,22 @@ private:
         }
     };
 
-    std::shared_timed_mutex  m_mutex;
+    mutable std::mutex        m_mutex;
+    std::condition_variable   m_cv_wait_free_surface;
 
-    CommonCORE20&            m_core;
-    mfxU16                   m_type;
-    mfxFrameInfo             m_frame_info;
+    std::chrono::milliseconds m_time_to_wait = std::chrono::milliseconds(0);
 
-    std::list<SurfaceHolder> m_cached_surfaces;
+    CommonCORE20&             m_core;
+    mfxU16                    m_type;
+    mfxFrameInfo              m_frame_info;
+
+    size_t                    m_limit         = std::numeric_limits<size_t>::max();
+    size_t                    m_num_to_revoke = 0;
+
+    const size_t              m_default_limit = 1;
+
+    std::list<SurfaceHolder>  m_cached_surfaces;
+    std::list<mfxU32>         m_requests;
 };
 
 inline bool Supports20FeatureSet(VideoCORE& core)

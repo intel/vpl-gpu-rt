@@ -80,6 +80,9 @@ protected:
 
 class SurfaceCache;
 
+template <class T>
+struct surface_cache_controller;
+
 struct _mfxSession
 {
     // Constructor
@@ -103,26 +106,24 @@ struct _mfxSession
 
     std::unique_ptr<VideoENCODE> m_pENCODE;
     std::unique_ptr<VideoDECODE> m_pDECODE;
-    std::unique_ptr<VideoVPP> m_pVPP;
+    std::unique_ptr<VideoVPP>    m_pVPP;
 
-    struct DVP
+    class DVP_base
     {
+    public:
+        virtual ~DVP_base() {}
+        virtual surface_cache_controller<SurfaceCache>* GetSurfacePool(mfxU16 /*channel_id*/) { return nullptr; }
+        virtual void AssignPool(mfxU16 /*channel_id*/, SurfaceCache* /*cache*/) {}
         //channel ID / VPP config
         std::map<mfxU16, mfxVideoParam>                     VppParams;
         //channel ID / VPP component
         std::map<mfxU16, std::unique_ptr<VideoVPP>>         VPPs;
-        //channel ID / surface pool
-        std::map<mfxU16, std::unique_ptr<SurfaceCache>>     VppPools;
-        //channel ID / ext buffer for VPP HW path selection
-        std::map<mfxU16, mfxExtVPPScaling>                  ScalingModeBuffers;
-        //channel ID / buffer to store pointer to mfxExtVPPScaling, used by VppParams[id].ExtParam
-        std::map<mfxU16, mfxExtBuffer*>                     ExtBuffers;
         //channel ID for VDBOX + SFC channel, 0 means VDBOX + SFC is not used
-        mfxU16 sfcChannelID;
+        mfxU16 sfcChannelID = 0;
         //true means keep only processed outputs
         bool   skipOriginalOutput;
     };
-    std::unique_ptr<DVP>   m_pDVP;
+    std::unique_ptr<DVP_base>   m_pDVP;
 
     // Current implementation platform ID
     eMFXPlatform m_currentPlatform;
@@ -303,8 +304,10 @@ mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
 { \
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE); \
     MFX_CHECK(session->m_p##component.get(), MFX_ERR_NOT_INITIALIZED); \
+                                                                                         \
     try { \
         /* wait until all tasks are processed */ \
+        MFX_SAFE_CALL(session->m_p##component ->ResetCache actual_param_list ); \
         session->m_pScheduler->WaitForAllTasksCompletion(session->m_p##component.get()); \
         /* call the codec's method */ \
         return session->m_p##component->func_name actual_param_list; \
