@@ -4987,6 +4987,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
 
             break;
         } //case MFX_EXTBUFF_VPP_COMPOSITE
+
         } // switch
 
         if (output_hint + input_hint != n_hints_buf)
