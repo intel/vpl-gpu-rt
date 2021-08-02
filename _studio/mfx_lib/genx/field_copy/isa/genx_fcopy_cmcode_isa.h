@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef __genx_fcopy_cmcode__
-#define __genx_fcopy_cmcode__
+#ifndef __GENX_FCOPY_CMCODE_ISA_H__
+#define __GENX_FCOPY_CMCODE_ISA_H__
 extern const unsigned char genx_fcopy_cmcode[13136];
 #endif

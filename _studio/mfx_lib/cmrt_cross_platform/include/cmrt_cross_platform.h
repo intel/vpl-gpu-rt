@@ -131,15 +131,6 @@ struct IDirect3DDeviceManager9;
 struct ID3D11Texture2D;
 struct ID3D11Device;
 
-//Using CM_DX9 by default
-#if defined(CM_WIN)
-#if !defined(CM_DX11)
-#ifndef CM_DX9
-#define CM_DX9
-#endif
-#endif
-#endif
-
 #ifdef __cplusplus
 #   define EXTERN_C     extern "C"
 #else

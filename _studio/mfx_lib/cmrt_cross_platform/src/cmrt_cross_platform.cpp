@@ -651,4 +651,3 @@ CmEvent *CM_NO_EVENT = ((CmEvent *)(-1));
   #pragma GCC diagnostic pop
 #endif
 #endif
-

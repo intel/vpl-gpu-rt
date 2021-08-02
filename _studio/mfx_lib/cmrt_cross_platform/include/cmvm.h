@@ -18,10 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if !defined(__CM_VM_H__)
-#if !defined(CM_VM_H)
+#ifndef __CM_VM_H__
 #define __CM_VM_H__
-#define CM_VM_H
 
 #include <assert.h>
 #include <limits>
@@ -1340,5 +1338,4 @@ vector<T, WD> matrix<T, R, C>::iselect(const vector_ref<T2, WD>& index_x, const 
 #endif
 #endif
 
-#endif
 #endif

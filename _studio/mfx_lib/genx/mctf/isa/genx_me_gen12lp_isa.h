@@ -17,7 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#ifndef __genx_me_gen12lp__
-#define __genx_me_gen12lp__
+#ifndef __GENX_ME_GEN12LP_ISA_H__
+#define __GENX_ME_GEN12LP_ISA_H__
 extern const unsigned char genx_me_gen12lp[37158];
 #endif

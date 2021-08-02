@@ -57,7 +57,7 @@ enum { MCTF_BITRATE_MULTIPLIER = 100000 };
 //#define MCTF_MODEL_FOR_x264_OR_x265
 
 // MCTF models adopts for MSDK following by MCTF
-#define MCTF_MODEL_FOR_MSDK
+//#define MCTF_MODEL_FOR_MSDK
 
 //#define MFX_MCTF_DEBUG_PRINT
 #include <memory>
