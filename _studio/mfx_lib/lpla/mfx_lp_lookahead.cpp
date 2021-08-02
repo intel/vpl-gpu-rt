@@ -19,13 +19,13 @@
 // SOFTWARE.
 
 #include "mfx_lp_lookahead.h"
+
+#if defined (MFX_ENABLE_LP_LOOKAHEAD)
 #include "mfx_feature_blocks_base.h"
 #include "hevcehw_base_data.h"
 #include "hevcehw_disp.h"
 #include "mfx_task.h"
 #include "mfx_vpp_main.h"
-
-#if defined (MFX_ENABLE_LP_LOOKAHEAD)
 
 #ifndef ALIGN16
 #define ALIGN16(value)                     (((value + 15) >> 4) << 4)

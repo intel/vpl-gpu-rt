@@ -1,4 +1,11 @@
-set( sources
+add_library(encode_hw STATIC)
+
+if (MFX_ENABLE_H264_VIDEO_ENCODE)
+  target_include_directories(encode_hw PUBLIC
+    h264/include
+  )
+
+  set(AVC_VIDEO_ENCODE_SRC
     h264/include/mfx_h264_encode_cm.h
     h264/include/mfx_h264_encode_cm_defs.h
     h264/include/mfx_h264_encode_hw.h
@@ -9,38 +16,33 @@ set( sources
     h264/src/mfx_h264_encode_hw_utils.cpp
     h264/src/mfx_h264_encode_hw_utils_new.cpp
 
-    mjpeg/include/mfx_mjpeg_encode_hw.h
-    mjpeg/include/mfx_mjpeg_encode_hw_utils.h
-    mjpeg/include/mfx_mjpeg_encode_interface.h
-    mjpeg/include/mfx_mjpeg_encode_vaapi.h
+    ${MSDK_LIB_ROOT}/shared/include/mfx_h264_enc_common_hw.h
+    ${MSDK_LIB_ROOT}/shared/include/mfx_h264_encode_interface.h
+    ${MSDK_LIB_ROOT}/shared/include/mfx_h264_encode_struct_vaapi.h
+    ${MSDK_LIB_ROOT}/shared/include/mfx_h264_encode_vaapi.h
 
-    mjpeg/src/mfx_mjpeg_encode_factory.cpp
-    mjpeg/src/mfx_mjpeg_encode_hw.cpp
-    mjpeg/src/mfx_mjpeg_encode_hw_utils.cpp
-    mjpeg/src/mfx_mjpeg_encode_vaapi.cpp
+    ${MSDK_LIB_ROOT}/shared/src/mfx_h264_encode_vaapi.cpp
+    ${MSDK_LIB_ROOT}/shared/src/mfx_h264_encode_factory.cpp
 
-    mpeg2/include/mfx_mpeg2_encode_debug_hw.h
-    mpeg2/include/mfx_mpeg2_encode_full_hw.h
-    mpeg2/include/mfx_mpeg2_encode_hw.h
-    mpeg2/include/mfx_mpeg2_encode_utils_hw.h
+    ${MSDK_LIB_ROOT}/shared/src/mfx_ddi_enc_dump.cpp
+  )
 
-    mpeg2/src/mfx_mpeg2_encode_debug_hw.cpp
-    mpeg2/src/mfx_mpeg2_encode_full_hw.cpp
-    mpeg2/src/mfx_mpeg2_encode_hw.cpp
-    mpeg2/src/mfx_mpeg2_encode_utils_hw.cpp
+  source_group("avc" FILES ${AVC_VIDEO_ENCODE_SRC})
+endif()
 
-    vp9/include/mfx_platform_defs.h
-    vp9/include/mfx_vp9_encode_hw.h
-    vp9/include/mfx_vp9_encode_hw_par.h
-    vp9/include/mfx_vp9_encode_hw_utils.h
-    vp9/include/mfx_vp9_encode_hw_vaapi.h
+if (MFX_ENABLE_H265_VIDEO_ENCODE)
+  target_include_directories(encode_hw PUBLIC
+    hevc
+    hevc/agnostic
+    hevc/agnostic/base
+    hevc/agnostic/g12
+    hevc/linux
+    hevc/linux/g9
+    hevc/linux/g12
+    hevc/linux/base
+  )
 
-    vp9/src/mfx_vp9_encode_hw.cpp
-    vp9/src/mfx_vp9_encode_hw_ddi.cpp
-    vp9/src/mfx_vp9_encode_hw_par.cpp
-    vp9/src/mfx_vp9_encode_hw_utils.cpp
-    vp9/src/mfx_vp9_encode_hw_vaapi.cpp
-
+  set(HEVC_VIDEO_ENCODE_SRC
     hevc/hevcehw_disp.h
     hevc/agnostic/hevcehw_base.h
     hevc/agnostic/hevcehw_block_queues.h
@@ -123,58 +125,107 @@ set( sources
     hevc/linux/g12/hevcehw_g12_lin.cpp
     hevc/linux/g12/hevcehw_g12_qp_modulation_lin.cpp
     hevc/linux/g12/hevcehw_g12_rext_lin.cpp
+  )
 
-    shared/ehw_resources_pool.h
-    shared/ehw_task_manager.h
+  source_group("hevc" FILES ${HEVC_VIDEO_ENCODE_SRC})
+endif()
 
-    shared/ehw_resources_pool.cpp
-    shared/ehw_task_manager.cpp
-    shared/ehw_device_vaapi.cpp
-    shared/ehw_utils_vaapi.cpp
+if (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
+  target_include_directories(encode_hw PUBLIC
+    mpeg2/include
+    ${MSDK_UMC_ROOT}/codec/mpeg2_enc/include
+  )
 
-    ${MSDK_LIB_ROOT}/shared/include/mfx_h264_enc_common_hw.h
-    ${MSDK_LIB_ROOT}/shared/include/mfx_h264_encode_interface.h
-    ${MSDK_LIB_ROOT}/shared/include/mfx_h264_encode_struct_vaapi.h
-    ${MSDK_LIB_ROOT}/shared/include/mfx_h264_encode_vaapi.h
+  set(MPEG2_VIDEO_ENCODE_SRC
+    mpeg2/include/mfx_mpeg2_encode_debug_hw.h
+    mpeg2/include/mfx_mpeg2_encode_full_hw.h
+    mpeg2/include/mfx_mpeg2_encode_hw.h
+    mpeg2/include/mfx_mpeg2_encode_utils_hw.h
+
+    mpeg2/src/mfx_mpeg2_encode_debug_hw.cpp
+    mpeg2/src/mfx_mpeg2_encode_full_hw.cpp
+    mpeg2/src/mfx_mpeg2_encode_hw.cpp
+    mpeg2/src/mfx_mpeg2_encode_utils_hw.cpp
+
     ${MSDK_LIB_ROOT}/shared/include/mfx_mpeg2_enc_common.h
     ${MSDK_LIB_ROOT}/shared/include/mfx_mpeg2_enc_common_hw.h
     ${MSDK_LIB_ROOT}/shared/include/mfx_mpeg2_encode_interface.h
     ${MSDK_LIB_ROOT}/shared/include/mfx_mpeg2_encode_vaapi.h
 
-    ${MSDK_LIB_ROOT}/shared/src/mfx_ddi_enc_dump.cpp
-    ${MSDK_LIB_ROOT}/shared/src/mfx_h264_encode_vaapi.cpp
-    ${MSDK_LIB_ROOT}/shared/src/mfx_h264_encode_factory.cpp
     ${MSDK_LIB_ROOT}/shared/src/mfx_mpeg2_enc_common_hw.cpp
     ${MSDK_LIB_ROOT}/shared/src/mfx_mpeg2_encode_factory.cpp
     ${MSDK_LIB_ROOT}/shared/src/mfx_mpeg2_encode_vaapi.cpp
   )
 
+  source_group("mpeg2" FILES ${MPEG2_VIDEO_ENCODE_SRC})
+endif()
 
-add_library(encode_hw STATIC ${sources})
+if (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
+  target_include_directories(encode_hw PUBLIC
+    mjpeg/include
+    ${MSDK_UMC_ROOT}/codec/jpeg_common/include
+  )
+
+  set(MJPEG_VIDEO_ENCODE_SRC
+    mjpeg/include/mfx_mjpeg_encode_hw.h
+    mjpeg/include/mfx_mjpeg_encode_hw_utils.h
+    mjpeg/include/mfx_mjpeg_encode_interface.h
+    mjpeg/include/mfx_mjpeg_encode_vaapi.h
+
+    mjpeg/src/mfx_mjpeg_encode_factory.cpp
+    mjpeg/src/mfx_mjpeg_encode_hw.cpp
+    mjpeg/src/mfx_mjpeg_encode_hw_utils.cpp
+    mjpeg/src/mfx_mjpeg_encode_vaapi.cpp
+  )
+
+  source_group("mjpeg" FILES ${MJPEG_VIDEO_ENCODE_SRC})
+endif()
+
+if (MFX_ENABLE_VP9_VIDEO_ENCODE)
+  target_include_directories(encode_hw PUBLIC
+    vp9/include
+  )
+
+  set(VP9_VIDEO_ENCODE_SRC
+    vp9/include/mfx_platform_defs.h
+    vp9/include/mfx_vp9_encode_hw.h
+    vp9/include/mfx_vp9_encode_hw_par.h
+    vp9/include/mfx_vp9_encode_hw_utils.h
+    vp9/include/mfx_vp9_encode_hw_vaapi.h
+
+    vp9/src/mfx_vp9_encode_hw.cpp
+    vp9/src/mfx_vp9_encode_hw_ddi.cpp
+    vp9/src/mfx_vp9_encode_hw_par.cpp
+    vp9/src/mfx_vp9_encode_hw_utils.cpp
+    vp9/src/mfx_vp9_encode_hw_vaapi.cpp
+  )
+
+  source_group("vp9" FILES ${VP9_VIDEO_ENCODE_SRC})
+endif()
+
+target_sources(encode_hw PRIVATE
+  ${AVC_VIDEO_ENCODE_SRC}
+  ${HEVC_VIDEO_ENCODE_SRC}
+  ${MPEG2_VIDEO_ENCODE_SRC}
+  ${MJPEG_VIDEO_ENCODE_SRC}
+  ${VP9_VIDEO_ENCODE_SRC}
+
+  shared/ehw_resources_pool.h
+  shared/ehw_task_manager.h
+
+  shared/ehw_resources_pool.cpp
+  shared/ehw_task_manager.cpp
+  shared/ehw_device_vaapi.cpp
+  shared/ehw_utils_vaapi.cpp
+)
 
 target_include_directories(encode_hw
   PUBLIC
-    hevc
-    hevc/agnostic
-    hevc/agnostic/base
-    hevc/agnostic/g12
-    hevc/linux
-    hevc/linux/g9
-    hevc/linux/g12
-    hevc/linux/base
-
     ${MSDK_LIB_ROOT}/encode_hw/shared
     ${MSDK_LIB_ROOT}/lpla
 
     ${MSDK_STUDIO_ROOT}/shared/include
 
-    h264/include
-    mjpeg/include
-    mpeg2/include
-    vp9/include
-
-    ${MSDK_UMC_ROOT}/codec/mpeg2_enc/include
-    ${MSDK_UMC_ROOT}/codec/jpeg_common/include
     ${MSDK_UMC_ROOT}/codec/brc/include
     ${MSDK_UMC_ROOT}/codec/color_space_converter/include
 )
