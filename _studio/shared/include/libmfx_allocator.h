@@ -182,6 +182,7 @@ public:
     }
 
     static std::atomic<std::uint32_t> m_allocator_num;
+    virtual void Close() = 0;
 
 protected:
 
@@ -229,6 +230,7 @@ public:
     mfxStatus ReallocSurface(const mfxFrameInfo &, mfxMemId )                  override { return MFX_ERR_UNSUPPORTED; }
     void      SetDevice(mfxHDL )                                               override { return; }
     void      Remove(mfxMemId)                                                 override { return; }
+    void      Close()                                                          override { return; }
 
     mfxFrameAllocator* GetExtAllocator() { return &allocator; }
 
@@ -734,6 +736,11 @@ public:
         m_device = device;
 
         m_staging_adapter->SetDevice(device);
+    }
+
+    void Close() override
+    {
+        m_allocated_pool.clear();
     }
 
 protected:

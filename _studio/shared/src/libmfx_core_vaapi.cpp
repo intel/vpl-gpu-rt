@@ -1194,7 +1194,9 @@ VAAPIVideoCORE20::SetHandle(
 }
 
 VAAPIVideoCORE20::~VAAPIVideoCORE20()
-{}
+{
+    m_frame_allocator_wrapper.allocator_hw->Close();
+}
 
 mfxStatus VAAPIVideoCORE20::AllocFrames(
     mfxFrameAllocRequest* request,
