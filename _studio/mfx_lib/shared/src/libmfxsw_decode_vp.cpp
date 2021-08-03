@@ -137,14 +137,12 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
         if (!session->m_pDVP)
         {
             session->m_pDVP.reset(new DVP_impl());
-            session->m_pDVP->sfcChannelID = 0;
             session->m_pDVP->skipOriginalOutput = IsOn(decode_par->mfx.SkipOutput);
         }
 
 
         //parse VPP params
         mfxU16 sfcChannelID = 0; //zero ID is reserved for DEC channel, it is invalid value for SFC
-        std::map<mfxU16, mfxU16> vppScalingModeMap;
 
         // Need to adjust scaling methods to Intel specific, so need tmp storage to not touch user's buffers
         std::list<std::vector<mfxExtBuffer*>> ext_buffers;
@@ -158,27 +156,27 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
             mfxVideoParam& VppParams = session->m_pDVP->VppParams[id];
 
             //extract and convert scaling modes
-            vppScalingModeMap[id] = MFX_SCALING_MODE_DEFAULT;
-            for (mfxU32 i = 0; i < channelPar->NumExtParam; i++)
+            mfxU16 vppScalingMode = MFX_SCALING_MODE_DEFAULT;
+
+            auto scaling_buffer = reinterpret_cast<mfxExtVPPScaling*>(mfx::GetExtBuffer(channelPar->ExtParam, channelPar->NumExtParam, MFX_EXTBUFF_VPP_SCALING));
+
+            if (scaling_buffer)
             {
-                if (channelPar->ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_SCALING)
+                switch (scaling_buffer->ScalingMode)
                 {
-                    switch (reinterpret_cast<mfxExtVPPScaling*>(channelPar->ExtParam[i])->ScalingMode)
+                case MFX_SCALING_MODE_INTEL_GEN_VDBOX:
                     {
-                    case MFX_SCALING_MODE_INTEL_GEN_VDBOX:
-                        {
-                            session->m_pDVP->sfcChannelID = sfcChannelID = id;
-                        }
-                        break;
-                    case MFX_SCALING_MODE_INTEL_GEN_VEBOX:
-                        vppScalingModeMap[id] = MFX_SCALING_MODE_LOWPOWER;
-                        break;
-                    case MFX_SCALING_MODE_INTEL_GEN_COMPUTE:
-                        vppScalingModeMap[id] = MFX_SCALING_MODE_QUALITY;
-                        break;
-                    default:
-                        assert(0); //MFX_SCALING_MODE_DEFAULT in release
+                        session->m_pDVP->sfcChannelID = sfcChannelID = id;
                     }
+                    break;
+                case MFX_SCALING_MODE_INTEL_GEN_VEBOX:
+                    vppScalingMode = MFX_SCALING_MODE_LOWPOWER;
+                    break;
+                case MFX_SCALING_MODE_INTEL_GEN_COMPUTE:
+                    vppScalingMode = MFX_SCALING_MODE_QUALITY;
+                    break;
+                default:
+                    assert(0); //MFX_SCALING_MODE_DEFAULT in release
                 }
             }
 
@@ -197,7 +195,7 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
             VppParams.NumExtParam = channelPar->NumExtParam;
 
             //add scaling mode buffer
-            if (vppScalingModeMap[id] != MFX_SCALING_MODE_DEFAULT)
+            if (vppScalingMode != MFX_SCALING_MODE_DEFAULT)
             {
                 scaling_buffers.emplace_back();
 
@@ -205,10 +203,18 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
                 vppScalingExtBuf = {};
                 vppScalingExtBuf.Header.BufferId = MFX_EXTBUFF_VPP_SCALING;
                 vppScalingExtBuf.Header.BufferSz = sizeof(mfxExtVPPScaling);
-                vppScalingExtBuf.ScalingMode     = vppScalingModeMap[id];
+                vppScalingExtBuf.ScalingMode     = vppScalingMode;
 
                 ext_buffers.emplace_back(VppParams.ExtParam, VppParams.ExtParam + VppParams.NumExtParam);
-                ext_buffers.back().push_back(&vppScalingExtBuf.Header);
+
+                // Replace original mfxExtVPPScaling in VppParams.ExtParam
+                auto it_vpp_scaling = std::find_if(std::begin(ext_buffers.back()), std::end(ext_buffers.back()),
+                     [](mfxExtBuffer* buf)
+                     {
+                        return buf->BufferId == MFX_EXTBUFF_VPP_SCALING;
+                     });
+
+                *it_vpp_scaling = &vppScalingExtBuf.Header;
 
                 VppParams.ExtParam    = ext_buffers.back().data();
                 VppParams.NumExtParam = mfxU16(ext_buffers.back().size());
