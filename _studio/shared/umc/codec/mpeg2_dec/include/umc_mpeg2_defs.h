@@ -41,7 +41,6 @@ namespace UMC_MPEG2_DECODER
 
     constexpr uint16_t MFX_PROFILE_MPEG1 = 8; // Just a magic value
 
-
     // Table 6-1
     enum MPEG2_UNIT_TYPE
     {

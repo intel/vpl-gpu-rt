@@ -97,7 +97,7 @@ public:
 
 protected:
     // Actually calculate needed frames number
-    static mfxStatus QueryIOSurfInternal(eMFXPlatform platform, eMFXHWType type, mfxVideoParam *par, mfxFrameAllocRequest *request);
+    static mfxStatus QueryIOSurfInternal(eMFXHWType type, mfxVideoParam *par, mfxFrameAllocRequest *request);
 
     // Check if new parameters are compatible with new parameters
     bool IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * oldPar, eMFXHWType type);
@@ -136,7 +136,6 @@ protected:
     mfxFrameAllocResponse m_response = {};
     mfxFrameAllocResponse m_response_alien = {};
     mfxDecodeStat m_stat = {};
-    eMFXPlatform m_platform;
 
     UMC::Mutex m_mGuard;
     UMC::Mutex m_mGuardRunThread;

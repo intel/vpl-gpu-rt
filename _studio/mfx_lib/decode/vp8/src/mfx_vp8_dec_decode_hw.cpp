@@ -79,7 +79,6 @@ static void SetFrameType(const VP8Defs::vp8_FrameInfo &frame_info, mfxFrameSurfa
 VideoDECODEVP8_HW::VideoDECODEVP8_HW(VideoCORE *p_core, mfxStatus *sts)
     : m_is_initialized(false)
     , m_p_core(p_core)
-    , m_platform(MFX_PLATFORM_HARDWARE)
     , m_init_w(0)
     , m_init_h(0)
     , m_in_framerate(0)
@@ -144,7 +143,8 @@ mfxStatus VideoDECODEVP8_HW::Init(mfxVideoParam *p_video_param)
         return MFX_ERR_UNSUPPORTED;
     }
 
-    m_platform = MFX_VP8_Utility::GetPlatform(m_p_core, p_video_param);
+    eMFXPlatform platform = MFX_VP8_Utility::GetPlatform(m_p_core, p_video_param);
+    MFX_CHECK(platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
 
     eMFXHWType type = m_p_core->GetHWType();
 
@@ -195,7 +195,7 @@ mfxStatus VideoDECODEVP8_HW::Init(mfxVideoParam *p_video_param)
 
     try
     {
-        m_surface_source.reset(new SurfaceSource(m_p_core, *p_video_param, m_platform, request, request_internal, m_response, m_response_alien));
+        m_surface_source.reset(new SurfaceSource(m_p_core, *p_video_param, platform, request, request_internal, m_response, m_response_alien));
     }
     catch (const mfx::mfxStatus_exception& ex)
     {
@@ -310,9 +310,9 @@ mfxStatus VideoDECODEVP8_HW::Reset(mfxVideoParam *p_video_param)
     if (!IsSameVideoParam(p_video_param, &m_on_init_video_params))
         MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
-    // need to sw acceleration
-    if (m_platform != m_p_core->GetPlatformType())
-        MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+    // sw acceleration is not supported
+    if (MFX_PLATFORM_SOFTWARE == m_p_core->GetPlatformType())
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
 
     if (m_surface_source->Reset() != UMC::UMC_OK)
         MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
@@ -333,7 +333,7 @@ mfxStatus VideoDECODEVP8_HW::Reset(mfxVideoParam *p_video_param)
 
     if(CheckHardwareSupport(m_p_core, p_video_param) == false)
     {
-        //return MFX_WRN_PARTIAL_ACCELERATION;
+        return MFX_ERR_UNSUPPORTED;
     }
 
     gold_indx = 0;

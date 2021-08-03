@@ -259,8 +259,6 @@ namespace UMC_MPEG2_DECODER
 
         std::shared_ptr<MPEG2GroupOfPictures> group;
 
-        UMC::FrameMemID                   m_index;
-
     private:
 
         std::unique_ptr<UMC::FrameData>   data;

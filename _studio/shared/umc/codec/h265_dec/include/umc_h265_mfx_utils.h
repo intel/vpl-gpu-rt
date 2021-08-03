@@ -44,7 +44,7 @@ namespace MFX_Utility
     // Validate input parameters
     bool CheckVideoParam_H265(mfxVideoParam *in, eMFXHWType type);
 
-    bool IsBugSurfacePoolApplicable(eMFXHWType hwtype, mfxVideoParam * par);
+    bool IsBugSurfacePoolApplicable(mfxVideoParam * par);
 
     // Check HW capabilities
     bool IsNeedPartialAcceleration_H265(mfxVideoParam * par, eMFXHWType type);

@@ -355,40 +355,21 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
      * */
     if (videoProcessing)
     {
-        MFX_CHECK(m_core->GetHWType() >= MFX_HW_SCL &&
-                  (m_vPar.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY),
+        MFX_CHECK((m_vPar.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY),
                   MFX_ERR_UNSUPPORTED);
 
-        //PicStruct support differs, need to check per-platform
-        if (m_core->GetHWType() <= MFX_HW_ICL_LP)
-        {
-           MFX_CHECK(m_vPar.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE, MFX_ERR_UNSUPPORTED);
-        }
         MFX_CHECK(par->mfx.FrameInfo.FourCC == videoProcessing->Out.FourCC, MFX_ERR_UNSUPPORTED);//This is to avoid CSC cases, will remove once CSC is fully tested
-        bool is_fourcc_supported = false;
-        if (m_core->GetHWType() < MFX_HW_TGL_LP)
-        {
-            is_fourcc_supported =
-                      (  videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_P010
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_AYUV);
-        }
-        else
-        {
-            is_fourcc_supported =
-                      (  videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_P010
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_AYUV
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_Y410
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_Y210
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_Y216
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_Y416
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_P016);
-        }
+        bool is_fourcc_supported =
+                  (  videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_P010
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_AYUV
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_Y410
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_Y210
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_Y216
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_Y416
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_P016);
        MFX_CHECK(is_fourcc_supported,MFX_ERR_UNSUPPORTED);
     }
 #endif

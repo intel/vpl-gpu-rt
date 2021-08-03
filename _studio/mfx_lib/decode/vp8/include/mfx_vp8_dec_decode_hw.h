@@ -234,7 +234,6 @@ private:
 
     bool                    m_is_initialized;
     VideoCORE*              m_p_core;
-    eMFXPlatform            m_platform;
 
     mfxVideoParamWrapper    m_on_init_video_params,
                             m_video_params;

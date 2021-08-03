@@ -189,7 +189,6 @@ VideoDECODEH264::VideoDECODEH264(VideoCORE *core, mfxStatus * sts)
     , m_frameOrder((mfxU16)MFX_FRAMEORDER_UNKNOWN)
     , m_response()
     , m_response_alien()
-    , m_platform(MFX_PLATFORM_SOFTWARE)
     , m_useDelayedDisplay(false)
     , m_va(0)
     , m_globalTask(false)
@@ -214,9 +213,9 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
     MFX_CHECK_NULL_PTR1(par);
 
-    m_platform = MFX_Utility::GetPlatform(m_core, par);
+    eMFXPlatform platform = MFX_Utility::GetPlatform(m_core, par);
 
-    MFX_CHECK(m_platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
 
     eMFXHWType type = m_core->GetHWType();
 
@@ -249,8 +248,8 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
     m_vPar.CreateExtendedBuffer(MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
     m_vPar.CreateExtendedBuffer(MFX_EXTBUFF_CODING_OPTION_SPSPPS);
 
-    mfxU32 asyncDepth = CalculateAsyncDepth(m_platform, par);
-    m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par, m_platform);
+    mfxU32 asyncDepth = CalculateAsyncDepth(platform, par);
+    m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par, platform);
 
     m_useDelayedDisplay = ENABLE_DELAYED_DISPLAY_MODE != 0 && IsNeedToUseHWBuffering(m_core->GetHWType()) && (asyncDepth != 1);
 
@@ -269,36 +268,22 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
      * */
     if (videoProcessing)
     {
-         MFX_CHECK(m_core->GetHWType() >= MFX_HW_SCL &&
-            (m_vPar.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY),
+         MFX_CHECK((m_vPar.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY),
             MFX_ERR_UNSUPPORTED);
 
          //PicStruct support differs, need to check per-platform
         MFX_CHECK(par->mfx.FrameInfo.FourCC == videoProcessing->Out.FourCC, MFX_ERR_UNSUPPORTED);//This is to avoid CSC cases, will remove once CSC is fully tested
-        bool is_fourcc_supported = false;
-        if (m_core->GetHWType() < MFX_HW_TGL_LP)
-        {
-            is_fourcc_supported =
-                      (  videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_P010
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_AYUV);
-        }
-        else
-        {
-            is_fourcc_supported =
-                      (  videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_P010
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_AYUV
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_Y410
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_Y210
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_Y216
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_Y416
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_P016);
-        }
+        bool is_fourcc_supported =
+                  (  videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_P010
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_AYUV
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_Y410
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_Y210
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_Y216
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_Y416
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_P016);
         MFX_CHECK(is_fourcc_supported,MFX_ERR_UNSUPPORTED);
         if (m_core->GetVAType() == MFX_HW_VAAPI)
             useInternal = true;
@@ -312,7 +297,7 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
     memset(&m_response, 0, sizeof(m_response));
     memset(&m_response_alien, 0, sizeof(m_response_alien));
 
-    mfxSts = QueryIOSurfInternal(m_platform, type, &m_vPar, &request);
+    mfxSts = QueryIOSurfInternal(type, &m_vPar, &request);
     MFX_CHECK_STS(mfxSts);
 
     bool* isD3D9On11Core = QueryCoreInterface<bool>(m_core, MFXI_IS_CORED3D9ON11_GUID);
@@ -323,7 +308,7 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
     request_internal = request;
     try
     {
-        m_surface_source.reset(new SurfaceSource(m_core, *par, m_platform, request, request_internal, m_response, m_response_alien));
+        m_surface_source.reset(new SurfaceSource(m_core, *par, platform, request, request_internal, m_response, m_response_alien));
     }
     catch (const mfx::mfxStatus_exception& ex)
     {
@@ -385,7 +370,7 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
     m_pH264VideoDecoder->SetVideoParams(&m_vFirstPar);
 
-    MFX_CHECK(m_platform == m_core->GetPlatformType(), MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(platform == m_core->GetPlatformType(), MFX_ERR_UNSUPPORTED);
 
     if (isNeedChangeVideoParamWarning)
     {
@@ -563,7 +548,6 @@ mfxStatus VideoDECODEH264::Reset(mfxVideoParam *par)
 
     MFX_CHECK_NULL_PTR1(par);
 
-    MFX_CHECK(m_platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
     eMFXHWType type = m_core->GetHWType();
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
@@ -580,6 +564,7 @@ mfxStatus VideoDECODEH264::Reset(mfxVideoParam *par)
 #endif
 
     eMFXPlatform platform = MFX_Utility::GetPlatform(m_core, par);
+    MFX_CHECK(platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
 
     mfxStatus mfxSts = CheckVideoParamDecoders(par, type);
     MFX_CHECK(mfxSts >= MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -589,8 +574,6 @@ mfxStatus VideoDECODEH264::Reset(mfxVideoParam *par)
 
     bool videoParamIsSame = IsSameVideoParam(par, &m_vInitPar, type);
     MFX_CHECK(videoParamIsSame, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-
-    MFX_CHECK(m_platform == platform, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     m_pH264VideoDecoder->Reset();
 
@@ -611,11 +594,11 @@ mfxStatus VideoDECODEH264::Reset(mfxVideoParam *par)
     m_vPar.CreateExtendedBuffer(MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
     m_vPar.CreateExtendedBuffer(MFX_EXTBUFF_CODING_OPTION_SPSPPS);
 
-    m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par, m_platform);
+    m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par, platform);
 
     m_pH264VideoDecoder->SetVideoParams(&m_vFirstPar);
 
-    MFX_CHECK(m_platform == m_core->GetPlatformType(), MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(platform == m_core->GetPlatformType(), MFX_ERR_UNSUPPORTED);
 
     if (isNeedChangeVideoParamWarning)
     {
@@ -904,7 +887,7 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
     if (isD3D9On11Core && (*isD3D9On11Core) == true && (params.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
         isInternalManaging = true;
 
-    mfxStatus sts = QueryIOSurfInternal(platform, type, &params, request);
+    mfxStatus sts = QueryIOSurfInternal(type, &params, request);
     MFX_CHECK_STS(sts);
 
     if (isInternalManaging)
@@ -930,7 +913,7 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoDECODEH264::QueryIOSurfInternal(eMFXPlatform platform, eMFXHWType type, mfxVideoParam *par, mfxFrameAllocRequest *request)
+mfxStatus VideoDECODEH264::QueryIOSurfInternal(eMFXHWType type, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
     request->Info = par->mfx.FrameInfo;
 
@@ -942,7 +925,7 @@ mfxStatus VideoDECODEH264::QueryIOSurfInternal(eMFXPlatform platform, eMFXHWType
         level_idc = mfxU8 (std::max(mfxU16(level_idc), points->OP->LevelIdc));
     }
 
-    mfxU32 asyncDepth = CalculateAsyncDepth(platform, par);
+    mfxU32 asyncDepth = CalculateAsyncDepth(MFX_PLATFORM_HARDWARE, par);
     bool useDelayedDisplay = (ENABLE_DELAYED_DISPLAY_MODE != 0) && IsNeedToUseHWBuffering(type) && (asyncDepth != 1);
 
     mfxI32 dpbSize = UMC::CalculateDPBSize(level_idc, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, 0);
@@ -1749,7 +1732,7 @@ bool VideoDECODEH264::IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * o
         return false;
     }
 
-    if (CalculateAsyncDepth(m_platform, newPar) != CalculateAsyncDepth(m_platform, oldPar))
+    if (CalculateAsyncDepth(MFX_PLATFORM_HARDWARE, newPar) != CalculateAsyncDepth(MFX_PLATFORM_HARDWARE, oldPar))
     {
         return false;
     }
@@ -1759,11 +1742,11 @@ bool VideoDECODEH264::IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * o
     mfxFrameAllocRequest requestNew;
     memset(&requestNew, 0, sizeof(requestNew));
 
-    mfxStatus mfxSts = QueryIOSurfInternal(m_platform, type, oldPar, &requestOld);
+    mfxStatus mfxSts = QueryIOSurfInternal(type, oldPar, &requestOld);
     if (mfxSts != MFX_ERR_NONE)
         return false;
 
-    mfxSts = QueryIOSurfInternal(m_platform, type, newPar, &requestNew);
+    mfxSts = QueryIOSurfInternal(type, newPar, &requestNew);
     if (mfxSts != MFX_ERR_NONE)
         return false;
 

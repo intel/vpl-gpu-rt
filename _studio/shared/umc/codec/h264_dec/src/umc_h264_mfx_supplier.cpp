@@ -535,32 +535,7 @@ eMFXPlatform MFX_Utility::GetPlatform(VideoCORE * core, mfxVideoParam * par)
         return MFX_PLATFORM_SOFTWARE;
     }
 
-    GUID name;
-
-    switch (typeHW)
-    {
-    case MFX_HW_HSW_ULT:
-    case MFX_HW_HSW:
-    case MFX_HW_BDW:
-    case MFX_HW_SCL:
-    case MFX_HW_CHT:
-    case MFX_HW_KBL:
-    case MFX_HW_APL:
-    case MFX_HW_GLK:
-    case MFX_HW_CFL:
-    case MFX_HW_CNL:
-    case MFX_HW_ICL:
-    case MFX_HW_ICL_LP:
-    case MFX_HW_JSL:
-    case MFX_HW_EHL:
-    case MFX_HW_ADL_S:
-    case MFX_HW_ADL_P:
-        name = sDXVA2_ModeH264_VLD_NoFGT;
-        break;
-    default:
-        name = sDXVA2_ModeH264_VLD_NoFGT;
-        break;
-    }
+    GUID name = sDXVA2_ModeH264_VLD_NoFGT;
 
     if (MFX_ERR_NONE != core->IsGuidSupported(name, par) &&
         platform != MFX_PLATFORM_SOFTWARE)

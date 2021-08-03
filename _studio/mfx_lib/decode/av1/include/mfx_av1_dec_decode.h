@@ -79,7 +79,7 @@ public:
     virtual mfxStatus GetSurface(mfxFrameSurface1* & surface) override;
 
 private:
-    static mfxStatus FillVideoParam(VideoCORE*, UMC_AV1_DECODER::AV1DecoderParams const*, mfxVideoParam*);
+    static mfxStatus FillVideoParam(UMC_AV1_DECODER::AV1DecoderParams const*, mfxVideoParam*);
     static mfxStatus DecodeRoutine(void* state, void* param, mfxU32, mfxU32);
     static mfxStatus CompleteProc(void*, void* param, mfxStatus);
 
@@ -94,7 +94,6 @@ private:
 private:
 
     VideoCORE*                                   m_core;
-    eMFXPlatform                                 m_platform;
 
     std::mutex                                   m_guard;
     std::unique_ptr<SurfaceSource>               m_surface_source;

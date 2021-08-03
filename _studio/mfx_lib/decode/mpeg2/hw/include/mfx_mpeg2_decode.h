@@ -83,7 +83,7 @@ public:
 
 private:
     // Internal implementation of API QueryIOSurf function
-    static mfxStatus QueryIOSurfInternal(eMFXPlatform, mfxVideoParam*, mfxFrameAllocRequest*);
+    static mfxStatus QueryIOSurfInternal(mfxVideoParam*, mfxFrameAllocRequest*);
 
     // Decoder threads entry point
     static mfxStatus DecodeRoutine(void* state, void* param, mfxU32, mfxU32);
@@ -109,7 +109,6 @@ private:
 private:
 
     VideoCORE*                                       m_core;
-    eMFXPlatform                                     m_platform;
 
     std::mutex                                       m_guard;
     std::unique_ptr<SurfaceSource>                   m_surface_source;

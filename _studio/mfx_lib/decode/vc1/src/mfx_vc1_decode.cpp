@@ -1464,29 +1464,16 @@ mfxStatus MFXVideoDECODEVC1::SetAllocRequestInternal(VideoCORE *core, mfxVideoPa
     request->Info = par->mfx.FrameInfo;
     request->Info.FourCC = MFX_FOURCC_NV12;
 
-    bool isSWplatform = true;
+    MFX_CHECK(MFX_PLATFORM_HARDWARE == core->GetPlatformType() && IsHWSupported(core, par), MFX_ERR_UNSUPPORTED);
 
-    if (MFX_PLATFORM_HARDWARE == core->GetPlatformType() && IsHWSupported(core, par))
-        isSWplatform = false;
-
-    if (par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY && isSWplatform) // all surfaces are external no need to define allocatione request
-        return MFX_ERR_NONE;
-
-    if (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY && isSWplatform) // external D3D surfaces, sw platform
-    {
-        CalculateFramesNumber(request, par, IsBufferMode(core, par));
-        request->Type = MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_FROM_DECODE;
-        return MFX_ERR_NONE;
-    }
-
-    if (par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY && !isSWplatform) // external Sys memory, hw platform
+    if (par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) // external Sys memory, hw platform
     {
         CalculateFramesNumber(request, par, IsBufferMode(core, par));
         request->Type = MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_DECODE;
         return MFX_ERR_NONE;
     }
 
-    if (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY && !isSWplatform) // no need to real alloc but have to request surface for video acceler
+    if (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) // no need to real alloc but have to request surface for video acceler
     {
         CalculateFramesNumber(request, par, IsBufferMode(core, par));
         bool IsD3D9SimWithVideoMem = IsD3D9Simulation(*core) && (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY);
@@ -1508,32 +1495,21 @@ mfxStatus MFXVideoDECODEVC1::SetAllocRequestExternal(VideoCORE *core, mfxVideoPa
     request->Info = par->mfx.FrameInfo;
     request->Info.FourCC = MFX_FOURCC_NV12;
 
-    bool isSWplatform = true;
-
-    if (MFX_PLATFORM_HARDWARE == core->GetPlatformType() && IsHWSupported(core, par))
-        isSWplatform = false;
+    MFX_CHECK(MFX_PLATFORM_HARDWARE == core->GetPlatformType() && IsHWSupported(core, par), MFX_ERR_UNSUPPORTED);
 
     if (par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
     {
-        if (isSWplatform)
-            CalculateFramesNumber(request, par, IsBufferMode(core, par));
-        else
-            request->NumFrameSuggested = request->NumFrameMin = (par->AsyncDepth > 0)?2*par->AsyncDepth:2*MFX_AUTO_ASYNC_DEPTH_VALUE;
+        request->NumFrameSuggested = request->NumFrameMin = (par->AsyncDepth > 0)?2*par->AsyncDepth:2*MFX_AUTO_ASYNC_DEPTH_VALUE;
 
         request->Type = MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_FROM_DECODE;
     }
     else if (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
     {
-        if (!isSWplatform)
-        {
-            bool isD3D9On11VideoMem = IsD3D9Simulation(*core) && (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY);
-            if (isD3D9On11VideoMem)
-                request->NumFrameSuggested = request->NumFrameMin = (par->AsyncDepth > 0) ? 2 * par->AsyncDepth : 2 * MFX_AUTO_ASYNC_DEPTH_VALUE;
-            else
-                 CalculateFramesNumber(request, par, IsBufferMode(core, par));
-        }
+        bool isD3D9On11VideoMem = IsD3D9Simulation(*core) && (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY);
+        if (isD3D9On11VideoMem)
+            request->NumFrameSuggested = request->NumFrameMin = (par->AsyncDepth > 0) ? 2 * par->AsyncDepth : 2 * MFX_AUTO_ASYNC_DEPTH_VALUE;
         else
-            request->NumFrameSuggested = request->NumFrameMin = (par->AsyncDepth > 0)?2*par->AsyncDepth:2*MFX_AUTO_ASYNC_DEPTH_VALUE;
+             CalculateFramesNumber(request, par, IsBufferMode(core, par));
 
         request->Type = MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_DECODE;
     }

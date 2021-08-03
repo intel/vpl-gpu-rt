@@ -82,7 +82,7 @@ public:
     virtual mfxStatus GetSurface(mfxFrameSurface1* & surface) override;
 
 protected:
-    static mfxStatus QueryIOSurfInternal(eMFXPlatform platform, eMFXHWType type, mfxVideoParam *par, mfxFrameAllocRequest *request);
+    static mfxStatus QueryIOSurfInternal(eMFXHWType type, mfxVideoParam *par, mfxFrameAllocRequest *request);
 
     bool IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * oldPar, eMFXHWType type);
 
@@ -122,7 +122,6 @@ protected:
     mfxFrameAllocResponse m_response;
     mfxFrameAllocResponse m_response_alien;
     mfxDecodeStat m_stat = {};
-    eMFXPlatform m_platform;
 
     UMC::Mutex m_mGuard;
     bool m_useDelayedDisplay;

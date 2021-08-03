@@ -44,9 +44,9 @@ inline mfxU32 CalculateAsyncDepth(const mfxVideoParam *par)
 }
 
 // Return a required number of async thread
-inline mfxU32 CalculateNumThread(const mfxVideoParam *par, const eMFXPlatform platform)
+inline mfxU32 CalculateNumThread(const mfxVideoParam *par)
 {
-    mfxU16 numThread = (mfxU16)((MFX_PLATFORM_SOFTWARE == platform) ? std::thread::hardware_concurrency() : 1);
+    mfxU16 numThread = 1;
 
     return (par->AsyncDepth) ? std::min(par->AsyncDepth, numThread) : numThread;
 }
@@ -158,7 +158,6 @@ void SetTimeCode(const MPEG2DecoderFrame* frame, mfxFrameSurface1* surface)
 
 VideoDECODEMPEG2::VideoDECODEMPEG2(VideoCORE* core, mfxStatus* sts)
     : m_core(core)
-    , m_platform(MFX_PLATFORM_SOFTWARE)
     , m_first_run(true)
     , m_allow_null_work_surface(false)
     , m_response()
@@ -184,9 +183,9 @@ mfxStatus VideoDECODEMPEG2::Init(mfxVideoParam* par)
 
     std::lock_guard<std::mutex> guard(m_guard);
 
-    m_platform = UMC_MPEG2_DECODER::GetPlatform_MPEG2(m_core, par);
+    eMFXPlatform platform = UMC_MPEG2_DECODER::GetPlatform_MPEG2(m_core, par);
 
-    eMFXHWType type = m_platform == MFX_PLATFORM_HARDWARE ? m_core->GetHWType() : MFX_HW_UNKNOWN;
+    eMFXHWType type = platform == MFX_PLATFORM_HARDWARE ? m_core->GetHWType() : MFX_HW_UNKNOWN;
 
     // Checking general init params
     mfxStatus mfxSts = CheckVideoParamDecoders(par, type);
@@ -199,7 +198,7 @@ mfxStatus VideoDECODEMPEG2::Init(mfxVideoParam* par)
 
     m_init_video_par = *par;
     m_first_video_par = *par;
-    m_first_video_par.mfx.NumThread = (mfxU16)CalculateNumThread(par, m_platform);
+    m_first_video_par.mfx.NumThread = (mfxU16)CalculateNumThread(par);
 
     bool isNeedChangeVideoParamWarning = IsNeedChangeVideoParam(&m_first_video_par);
 
@@ -207,7 +206,7 @@ mfxStatus VideoDECODEMPEG2::Init(mfxVideoParam* par)
     m_video_par.CreateExtendedBuffer(MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
     m_video_par.CreateExtendedBuffer(MFX_EXTBUFF_CODING_OPTION_SPSPPS);
 
-    MFX_CHECK(m_platform != MFX_PLATFORM_SOFTWARE, MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(platform != MFX_PLATFORM_SOFTWARE, MFX_ERR_UNSUPPORTED);
 
     m_decoder.reset(new UMC_MPEG2_DECODER::MPEG2DecoderVA());
 
@@ -220,7 +219,7 @@ mfxStatus VideoDECODEMPEG2::Init(mfxVideoParam* par)
     m_response_alien = {};
 
     // Number of surfaces required
-    mfxSts = QueryIOSurfInternal(m_platform, &m_video_par, &request);
+    mfxSts = QueryIOSurfInternal(&m_video_par, &request);
     MFX_CHECK_STS(mfxSts);
 
     if (IsD3D9Simulation(*m_core))
@@ -233,7 +232,7 @@ mfxStatus VideoDECODEMPEG2::Init(mfxVideoParam* par)
 
     try
     {
-        m_surface_source.reset(new SurfaceSource(m_core, *par, m_platform, request, request_internal, m_response, m_response_alien));
+        m_surface_source.reset(new SurfaceSource(m_core, *par, platform, request, request_internal, m_response, m_response_alien));
     }
     catch (const mfx::mfxStatus_exception& ex)
     {
@@ -336,7 +335,7 @@ mfxStatus VideoDECODEMPEG2::Reset(mfxVideoParam *par)
 
     std::lock_guard<std::mutex> guard(m_guard);
 
-    eMFXHWType type = m_platform == MFX_PLATFORM_HARDWARE ? m_core->GetHWType() : MFX_HW_UNKNOWN;
+    eMFXHWType type = m_core->GetHWType();
 
     mfxStatus mfxSts = CheckVideoParamDecoders(par, type);
     MFX_CHECK(mfxSts >= MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -346,7 +345,7 @@ mfxStatus VideoDECODEMPEG2::Reset(mfxVideoParam *par)
     MFX_CHECK(IsSameVideoParam(par, &m_init_video_par, type), MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     eMFXPlatform platform = UMC_MPEG2_DECODER::GetPlatform_MPEG2(m_core, par);
-    MFX_CHECK(m_platform == platform, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+    MFX_CHECK(platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
 
     m_decoder->Reset();
 
@@ -362,11 +361,9 @@ mfxStatus VideoDECODEMPEG2::Reset(mfxVideoParam *par)
     m_video_par.CreateExtendedBuffer(MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
     m_video_par.CreateExtendedBuffer(MFX_EXTBUFF_CODING_OPTION_SPSPPS);
 
-    m_video_par.mfx.NumThread = (mfxU16)CalculateNumThread(par, m_platform);
+    m_video_par.mfx.NumThread = (mfxU16)CalculateNumThread(par, MFX_PLATFORM_HARDWARE);
 
     m_decoder->SetVideoParams(m_first_video_par);
-
-    MFX_CHECK(m_platform == m_core->GetPlatformType(), MFX_WRN_PARTIAL_ACCELERATION);
 
     return isNeedChangeVideoParamWarning ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
 }
@@ -406,8 +403,8 @@ bool VideoDECODEMPEG2::IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * 
     mfxFrameAllocRequest requestOld{};
     mfxFrameAllocRequest requestNew{};
 
-    MFX_CHECK(MFX_ERR_NONE == QueryIOSurfInternal(m_platform, oldPar, &requestOld), false);
-    MFX_CHECK(MFX_ERR_NONE == QueryIOSurfInternal(m_platform, newPar, &requestNew), false);
+    MFX_CHECK(MFX_ERR_NONE == QueryIOSurfInternal(oldPar, &requestOld), false);
+    MFX_CHECK(MFX_ERR_NONE == QueryIOSurfInternal(newPar, &requestNew), false);
 
     MFX_CHECK(newPar->mfx.FrameInfo.Height <= oldPar->mfx.FrameInfo.Height, false);
     MFX_CHECK(newPar->mfx.FrameInfo.Width <= oldPar->mfx.FrameInfo.Width, false);
@@ -455,11 +452,10 @@ mfxStatus VideoDECODEMPEG2::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfx
     if ((par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
-    mfxStatus sts = QueryIOSurfInternal(platform, &params, request);
+    mfxStatus sts = QueryIOSurfInternal(&params, request);
     MFX_CHECK_STS(sts);
 
-    bool isInternalManaging = (MFX_PLATFORM_SOFTWARE == platform) ?
-        (params.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) : (params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
+    bool isInternalManaging = (params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
 
     bool IsD3D9SimWithVideoMem = IsD3D9Simulation(*core) && (params.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY);
     if (IsD3D9SimWithVideoMem)
@@ -469,7 +465,7 @@ mfxStatus VideoDECODEMPEG2::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfx
     {
         request->NumFrameSuggested = request->NumFrameMin = (mfxU16)(CalculateAsyncDepth(par) + 1); // "+1" because we release the latest displayed surface in _sync_ part when another surface comes
         if (!IsD3D9SimWithVideoMem)
-            request->Type = (MFX_PLATFORM_SOFTWARE == platform) ? MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_DECODE : MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_FROM_DECODE;
+            request->Type = MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_FROM_DECODE;
     }
 
     request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
@@ -484,7 +480,7 @@ mfxStatus VideoDECODEMPEG2::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfx
 }
 
 // Actually calculate needed frames number
-mfxStatus VideoDECODEMPEG2::QueryIOSurfInternal(eMFXPlatform platform, mfxVideoParam *par, mfxFrameAllocRequest *request)
+mfxStatus VideoDECODEMPEG2::QueryIOSurfInternal(mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VideoDECODEMPEG2::QueryIOSurfInternal");
     request->Info = par->mfx.FrameInfo;
@@ -495,7 +491,7 @@ mfxStatus VideoDECODEMPEG2::QueryIOSurfInternal(eMFXPlatform platform, mfxVideoP
     request->NumFrameMin = numMin;
     request->NumFrameSuggested = request->NumFrameMin;
 
-    request->Type = (MFX_PLATFORM_SOFTWARE == platform) ? (MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_FROM_DECODE) : (MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_DECODE);
+    request->Type = (MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_DECODE);
 
     return MFX_ERR_NONE;
 }

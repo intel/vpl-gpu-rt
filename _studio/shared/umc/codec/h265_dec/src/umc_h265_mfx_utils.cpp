@@ -44,10 +44,6 @@ bool IsNeedPartialAcceleration_H265(mfxVideoParam* par, eMFXHWType type)
     if (!par)
         return false;
 
-    if (type < MFX_HW_ICL &&
-        par->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420 && par->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV400)
-        return true;
-
     if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P210 || par->mfx.FrameInfo.FourCC == MFX_FOURCC_NV16)
         return true;
 
@@ -129,12 +125,10 @@ eMFXPlatform GetPlatform_H265(VideoCORE * core, mfxVideoParam * par)
     return platform;
 }
 
-bool IsBugSurfacePoolApplicable(eMFXHWType hwtype, mfxVideoParam * par)
+bool IsBugSurfacePoolApplicable(mfxVideoParam * par)
 {
     if (par == NULL)
         return false;
-
-    (void)hwtype;
 
     return false;
 }
@@ -143,15 +137,7 @@ inline
 mfxU16 QueryMaxProfile(eMFXHWType type)
 {
     (void)type;
-
-    if (type < MFX_HW_SCL)
-        return MFX_PROFILE_HEVC_MAIN;
-    else if (type < MFX_HW_ICL)
-        return MFX_PROFILE_HEVC_MAIN10;
-    else if (type < MFX_HW_TGL_LP)
-        return MFX_PROFILE_HEVC_REXT;
-    else
-        return MFX_PROFILE_HEVC_SCC;
+    return MFX_PROFILE_HEVC_SCC;
 }
 
 inline
