@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@ void Caps::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     Push(BLK_SetDefaultsCallChain,
         [this](const mfxVideoParam&, mfxVideoParam&, StorageRW& strg) -> mfxStatus
     {
-        auto& defaults = Glob::Defaults::GetOrConstruct(strg);
+        auto& defaults = HEVCEHW::Base::Glob::Defaults::GetOrConstruct(strg);
         auto& bSet = defaults.SetForFeature[GetID()];
         MFX_CHECK(!bSet, MFX_ERR_NONE);
 
@@ -78,7 +78,7 @@ void Caps::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     Push(BLK_HardcodeCaps
         , [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus
     {
-        auto& caps = Glob::EncodeCaps::Get(strg);
+        auto& caps = HEVCEHW::Base::Glob::EncodeCaps::Get(strg);
 
         caps.SliceIPOnly                = IsOn(par.mfx.LowPower) && par.mfx.CodecProfile == MFX_PROFILE_HEVC_SCC;
         caps.msdk.bSingleSliceMultiTile = false;

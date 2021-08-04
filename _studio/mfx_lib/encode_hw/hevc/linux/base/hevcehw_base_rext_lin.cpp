@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,16 +21,15 @@
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
-#include "hevcehw_g12_rext_lin.h"
+#include "hevcehw_base_rext_lin.h"
 #include "va/va.h"
 
 using namespace HEVCEHW;
-using namespace HEVCEHW::Gen12;
-using namespace HEVCEHW::Linux;
+using namespace HEVCEHW::Base;
 
-void Linux::Gen12::RExt::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
+void Linux::Base::RExt::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
 {
-    HEVCEHW::Gen12::RExt::Query1NoCaps(blocks, Push);
+    HEVCEHW::Base::RExt::Query1NoCaps(blocks, Push);
 
     Push(BLK_SetGUID
         , [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus

@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,11 +20,11 @@
 
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
-#include "hevcehw_g12_rext.h"
+#include "hevcehw_base_rext.h"
 #include "hevcehw_base_legacy.h"
 
 using namespace HEVCEHW;
-using namespace HEVCEHW::Gen12;
+using namespace HEVCEHW::Base;
 
 const GUID RExt::DXVA2_Intel_Encode_HEVC_Main12 =
 { 0xd6d6bc4f, 0xd51a, 0x4712,{ 0x97, 0xe8, 0x75, 0x9, 0x17, 0xc8, 0x60, 0xfd } };

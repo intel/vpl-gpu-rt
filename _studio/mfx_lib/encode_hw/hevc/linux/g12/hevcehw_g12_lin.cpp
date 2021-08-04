@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,12 +22,13 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_g12_lin.h"
-#include "hevcehw_g12_rext_lin.h"
+#include "hevcehw_base_rext_lin.h"
 #include "hevcehw_g12_caps_lin.h"
-#include "hevcehw_g12_scc_lin.h"
-#include "hevcehw_g12_qp_modulation_lin.h"
-#include "hevcehw_g12_sao.h"
-#include "hevcehw_g12_scc.h"
+#include "hevcehw_base_scc_lin.h"
+#include "hevcehw_base_qp_modulation_lin.h"
+#include "hevcehw_base_sao.h"
+#include "hevcehw_base_scc.h"
+#include "hevcehw_base_rext.h"
 #include "hevcehw_base_legacy.h"
 #include "hevcehw_base_iddi_packer.h"
 #include "hevcehw_base_iddi.h"
@@ -50,11 +51,11 @@ MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
 {
     TFeatureList newFeatures;
 
-    newFeatures.emplace_back(new RExt(FEATURE_REXT));
-    newFeatures.emplace_back(new SCC(FEATURE_SCC));
-    newFeatures.emplace_back(new Caps(FEATURE_CAPS));
-    newFeatures.emplace_back(new SAO(FEATURE_SAO));
-    newFeatures.emplace_back(new QpModulation(FEATURE_QP_MODULATION));
+    newFeatures.emplace_back(new HEVCEHW::Linux::Base::RExt(HEVCEHW::Base::FEATURE_REXT));
+    newFeatures.emplace_back(new HEVCEHW::Linux::Base::SCC(HEVCEHW::Base::FEATURE_SCC));
+    newFeatures.emplace_back(new HEVCEHW::Linux::Gen12::Caps(HEVCEHW::Linux::Gen12::FEATURE_CAPS));
+    newFeatures.emplace_back(new HEVCEHW::Base::SAO(HEVCEHW::Base::FEATURE_SAO));
+    newFeatures.emplace_back(new HEVCEHW::Linux::Base::QpModulation(HEVCEHW::Base::FEATURE_QP_MODULATION));
 
     InternalInitFeatures(status, mode, newFeatures);
 }
@@ -82,17 +83,17 @@ void MFXVideoENCODEH265_HW::InternalInitFeatures(
         Reorder(
             qnc
             , { HEVCEHW::Base::FEATURE_LEGACY, HEVCEHW::Base::Legacy::BLK_SetLowPowerDefault }
-            , { FEATURE_SCC, SCC::BLK_SetLowPowerDefault });
+            , { HEVCEHW::Base::FEATURE_SCC, HEVCEHW::Linux::Base::SCC::BLK_SetLowPowerDefault });
         Reorder(
             qnc
             , { HEVCEHW::Base::FEATURE_PARSER, HEVCEHW::Base::Parser::BLK_LoadSPSPPS }
-            , { FEATURE_SCC, SCC::BLK_LoadSPSPPS });
+            , { HEVCEHW::Base::FEATURE_SCC, HEVCEHW::Linux::Base::SCC::BLK_LoadSPSPPS });
 
         auto& qwc = FeatureBlocks::BQ<FeatureBlocks::BQ_Query1WithCaps>::Get(*this);
         FeatureBlocks::Reorder(
             qwc
             , { HEVCEHW::Base::FEATURE_DDI_PACKER, HEVCEHW::Base::IDDIPacker::BLK_HardcodeCaps }
-            , { FEATURE_REXT, RExt::BLK_HardcodeCaps });
+            , { HEVCEHW::Base::FEATURE_REXT, HEVCEHW::Linux::Base::RExt::BLK_HardcodeCaps });
         FeatureBlocks::Reorder(
             qwc
             , { HEVCEHW::Base::FEATURE_DDI_PACKER, HEVCEHW::Base::IDDIPacker::BLK_HardcodeCaps }
@@ -100,7 +101,7 @@ void MFXVideoENCODEH265_HW::InternalInitFeatures(
 
         FeatureBlocks::Reorder(
             qwc
-            , { FEATURE_REXT, RExt::BLK_HardcodeCaps }
+            , { HEVCEHW::Base::FEATURE_REXT, HEVCEHW::Linux::Base::RExt::BLK_HardcodeCaps }
             , { HEVCEHW::Base::FEATURE_DDI_PACKER, HEVCEHW::Base::IDDIPacker::BLK_HardcodeCaps });
     }
 
@@ -110,15 +111,15 @@ void MFXVideoENCODEH265_HW::InternalInitFeatures(
         Reorder(
             iint
             , { HEVCEHW::Base::FEATURE_LEGACY, HEVCEHW::Base::Legacy::BLK_SetSPS }
-            , { FEATURE_SCC, SCC::BLK_SetSPSExt });
+            , { HEVCEHW::Base::FEATURE_SCC, HEVCEHW::Linux::Base::SCC::BLK_SetSPSExt });
         Reorder(
             iint
             , { HEVCEHW::Base::FEATURE_LEGACY, HEVCEHW::Base::Legacy::BLK_SetPPS }
-            , { FEATURE_SCC, SCC::BLK_SetPPSExt });
+            , { HEVCEHW::Base::FEATURE_SCC, HEVCEHW::Linux::Base::SCC::SCC::BLK_SetPPSExt });
         Reorder(
             iint
             , { HEVCEHW::Base::FEATURE_RECON_INFO, HEVCEHW::Base::ReconInfo::BLK_SetRecInfo }
-            , { FEATURE_REXT, RExt::BLK_SetRecInfo }
+            , { HEVCEHW::Base::FEATURE_REXT, HEVCEHW::Linux::Base::RExt::BLK_SetRecInfo }
             , PLACE_AFTER);
     }
 
@@ -134,7 +135,7 @@ mfxStatus MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)
     Reorder(
         st
         , { HEVCEHW::Base::FEATURE_DDI, HEVCEHW::Base::IDDI::BLK_SubmitTask }
-        , { FEATURE_SCC, SCC::BLK_PatchDDITask });
+        , { HEVCEHW::Base::FEATURE_SCC, HEVCEHW::Base::SCC::BLK_PatchDDITask });
 
     return MFX_ERR_NONE;
 }

@@ -71,7 +71,11 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/agnostic/base/hevcehw_base_weighted_prediction.h
     hevc/agnostic/base/hevcehw_base_alloc.h
     hevc/agnostic/base/hevcehw_base_constraints.h
-    hevc/agnostic/g12/hevcehw_g12_scc.h
+    hevc/agnostic/base/hevcehw_base_scc.h
+    hevc/agnostic/base/hevcehw_base_sao.h
+    hevc/agnostic/base/hevcehw_base_rext.h
+    hevc/agnostic/g12/hevcehw_g12_caps.h
+    hevc/agnostic/g12/hevcehw_g12_data.h
 
     hevc/linux/base/hevcehw_base_encoded_frame_info_lin.h
     hevc/linux/base/hevcehw_base_interlace_lin.h
@@ -82,11 +86,11 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux/base/hevcehw_base_weighted_prediction_lin.h
     hevc/linux/base/hevcehw_base_max_frame_size_lin.h
     hevc/linux/base/hevcehw_base_dirty_rect_lin.h
+    hevc/linux/base/hevcehw_base_rext_lin.h
+    hevc/linux/base/hevcehw_base_scc_lin.h
+    hevc/linux/base/hevcehw_base_qp_modulation_lin.h
     hevc/linux/g12/hevcehw_g12_caps_lin.h
     hevc/linux/g12/hevcehw_g12_lin.h
-    hevc/linux/g12/hevcehw_g12_rext_lin.h
-    hevc/linux/g12/hevcehw_g12_scc_lin.h
-    hevc/linux/g12/hevcehw_g12_qp_modulation_lin.h
 
     hevc/hevcehw_disp.cpp
     hevc/agnostic/hevcehw_base.cpp
@@ -110,9 +114,9 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/agnostic/base/hevcehw_base_roi.cpp
     hevc/agnostic/base/hevcehw_base_task.cpp
     hevc/agnostic/base/hevcehw_base_weighted_prediction.cpp
+    hevc/agnostic/base/hevcehw_base_rext.cpp
+    hevc/agnostic/base/hevcehw_base_scc.cpp
     hevc/agnostic/g12/hevcehw_g12_caps.cpp
-    hevc/agnostic/g12/hevcehw_g12_rext.cpp
-    hevc/agnostic/g12/hevcehw_g12_scc.cpp
 
     hevc/linux/base/hevcehw_base_interlace_lin.cpp
     hevc/linux/base/hevcehw_base_lin.cpp
@@ -122,9 +126,9 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux/base/hevcehw_base_weighted_prediction_lin.cpp
     hevc/linux/base/hevcehw_base_max_frame_size_lin.cpp
     hevc/linux/base/hevcehw_base_dirty_rect_lin.cpp
+    hevc/linux/base/hevcehw_base_rext_lin.cpp
+    hevc/linux/base/hevcehw_base_qp_modulation_lin.cpp
     hevc/linux/g12/hevcehw_g12_lin.cpp
-    hevc/linux/g12/hevcehw_g12_qp_modulation_lin.cpp
-    hevc/linux/g12/hevcehw_g12_rext_lin.cpp
   )
 
   source_group("hevc" FILES ${HEVC_VIDEO_ENCODE_SRC})

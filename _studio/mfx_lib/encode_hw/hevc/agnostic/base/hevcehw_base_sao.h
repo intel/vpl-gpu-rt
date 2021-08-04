@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,11 +24,11 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_base.h"
-#include "hevcehw_g12_data.h"
+#include "hevcehw_base_data.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
+namespace Base
 {
 class SAO
     : public FeatureBase
@@ -36,7 +36,7 @@ class SAO
 public:
 #define DECL_BLOCK_LIST\
     DECL_BLOCK(SetDefaultsCallChain)
-#define DECL_FEATURE_NAME "G12_SAO"
+#define DECL_FEATURE_NAME "Base_SAO"
 #include "hevcehw_decl_blocks.h"
 
     SAO(mfxU32 FeatureId)
@@ -83,7 +83,7 @@ protected:
     }
 };
 
-} //Gen12
+} //Base
 } //namespace HEVCEHW
 
 #endif

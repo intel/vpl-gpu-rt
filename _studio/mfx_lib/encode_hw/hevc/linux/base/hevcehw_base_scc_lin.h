@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
-#include "hevcehw_g12_scc.h"
+#include "hevcehw_base_scc.h"
 #include "va/va.h"
 #include "hevcehw_base_va_packer_lin.h"
 
@@ -31,19 +31,19 @@ namespace HEVCEHW
 {
 namespace Linux
 {
-namespace Gen12
+namespace Base
 {
 class SCC
-    : public HEVCEHW::Gen12::SCC
+    : public HEVCEHW::Base::SCC
 {
 public:
     SCC(mfxU32 FeatureId)
-        : HEVCEHW::Gen12::SCC(FeatureId)
+        : HEVCEHW::Base::SCC(FeatureId)
     {}
 protected:
     virtual void SetExtraGUIDs(StorageRW& strg) override
     {
-        auto& g2va = HEVCEHW::Gen12::Glob::GuidToVa::GetOrConstruct(strg);
+        auto& g2va = HEVCEHW::Base::Glob::GuidToVa::GetOrConstruct(strg);
         g2va[DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main]       = { VAProfileHEVCSccMain,    VAEntrypointEncSliceLP };
         g2va[DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main10]     = { VAProfileHEVCSccMain10,  VAEntrypointEncSliceLP };
         g2va[DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main444]    = { VAProfileHEVCSccMain444, VAEntrypointEncSliceLP };
@@ -56,7 +56,7 @@ protected:
             , [this](StorageW& global, StorageW& /*s_task*/) -> mfxStatus
         {
             MFX_CHECK(m_bPatchNextDDITask || m_bPatchDDISlices, MFX_ERR_NONE);
-            auto& ddiPar = HEVCEHW::Gen12::Glob::DDI_SubmitParam::Get(global);
+            auto& ddiPar = HEVCEHW::Base::Glob::DDI_SubmitParam::Get(global);
             auto  itPPS  = std::find_if(std::begin(ddiPar), std::end(ddiPar)
                 , [](HEVCEHW::Base::DDIExecParam& ep) { return (ep.Function == VAEncPictureParameterBufferType); });
             MFX_CHECK(itPPS != std::end(ddiPar) && itPPS->In.pData, MFX_ERR_NOT_FOUND);

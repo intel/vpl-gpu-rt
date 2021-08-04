@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2020-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,11 +24,11 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_base.h"
-#include "hevcehw_g12_data.h"
+#include "hevcehw_base_data.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
+namespace Base
 {
 class SCC
     : public FeatureBase
@@ -46,7 +46,7 @@ public:
     DECL_BLOCK(LoadSPSPPS)\
     DECL_BLOCK(PatchSliceHeader)\
     DECL_BLOCK(PatchDDITask)
-#define DECL_FEATURE_NAME "G12_SCC"
+#define DECL_FEATURE_NAME "Base_SCC"
 #include "hevcehw_decl_blocks.h"
 
     SCC(mfxU32 FeatureId)
@@ -88,8 +88,8 @@ public:
         mfxU32 palette_predictor_initializers[3][128];
     };
 
-    using SpsExt = StorageVar<Glob::ReservedKey12_0, SccSpsExt>;
-    using PpsExt = StorageVar<Glob::ReservedKey12_1, SccPpsExt>;
+    using SpsExt = StorageVar<Glob::SccSpsKey, SccSpsExt>;
+    using PpsExt = StorageVar<Glob::SccPpsKey, SccPpsExt>;
 
 protected:
     virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
@@ -111,7 +111,7 @@ protected:
     bool m_bPatchDDISlices   = false;
 };
 
-} //Gen12
+} //Base
 } //namespace HEVCEHW
 
 #endif

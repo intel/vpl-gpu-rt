@@ -594,10 +594,30 @@ public:
         return par.base.GetTargetKbps(par);
     }
 
+    static mfxU32 PreSetBufferSizeInKB(
+        Defaults::TChain<mfxU32>::TExt
+        , const Defaults::Param& par)
+    {
+        auto& mfx = par.mvp.mfx;
+        if (mfx.BufferSizeInKB)
+        {
+            return mfx.BufferSizeInKB * std::max<const mfxU32>(1, mfx.BRCParamMultiplier);
+        }
+
+        return mfxU32(0);
+    }
+
     static mfxU32 BufferSizeInKB(
         Defaults::TChain<mfxU32>::TExt
         , const Defaults::Param& par)
     {
+        mfxU32 preSetBufferSizeInKB = par.base.GetPreSetBufferSizeInKB(par);
+
+        if (preSetBufferSizeInKB)
+        {
+            return preSetBufferSizeInKB;
+        }
+
         auto& mfx = par.mvp.mfx;
 
         if (mfx.BufferSizeInKB)
@@ -2185,6 +2205,7 @@ public:
         PUSH_DEFAULT(TargetChromaFormat);
         PUSH_DEFAULT(TargetKbps);
         PUSH_DEFAULT(MaxKbps);
+        PUSH_DEFAULT(PreSetBufferSizeInKB);
         PUSH_DEFAULT(BufferSizeInKB);
         PUSH_DEFAULT(MaxNumRef);
         PUSH_DEFAULT(RateControlMethod);

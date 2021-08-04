@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,33 +23,42 @@
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
-#include "hevcehw_base.h"
+#include "hevcehw_base_rext.h"
 
 namespace HEVCEHW
 {
 namespace Linux
 {
-namespace Gen12
+namespace Base
 {
-    class QpModulation
-        : public FeatureBase
+class RExt
+    : public HEVCEHW::Base::RExt
+{
+public:
+
+    RExt(mfxU32 FeatureId)
+        : HEVCEHW::Base::RExt(FeatureId)
     {
-    public:
-#define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetCallChains)
-#define DECL_FEATURE_NAME "G12_QpModulation"
-#include "hevcehw_decl_blocks.h"
+        mUpdateRecInfo =
+        {
+            {
+                mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
+                , [](mfxFrameInfo& rec, mfxU16& type, bool /*bVDEnc*/)
+                {
+                    if (rec.BitDepthLuma == 10)
+                        rec.FourCC = MFX_FOURCC_P010;
+                    else
+                        rec.FourCC = MFX_FOURCC_P016;
+                }
+            }
+        };
+    }
 
-        QpModulation(mfxU32 FeatureId)
-            : FeatureBase(FeatureId)
-        {}
-    protected:
+protected:
+    virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
+};
 
-        virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
-    };
-
-} //Gen12
 } //Linux
-} //namespace HEVCEHW
-
+} //Base
+} //HEVCEHW
 #endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

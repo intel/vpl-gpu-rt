@@ -630,6 +630,12 @@ namespace Base
         std::unique_ptr<Storable> m_pthis;
     };
 
+    struct SCCFlags
+    {
+        mfxU16 IBCEnable = 1;
+        mfxU16 PaletteEnable = 1;
+    };
+
     class IBsReader
     {
     public:
@@ -1175,6 +1181,7 @@ namespace Base
         TChain<mfxU32> GetTargetKbps;
         TChain<mfxU32> GetMaxKbps;
         TChain<mfxU32> GetBufferSizeInKB;
+        TChain<mfxU32> GetPreSetBufferSizeInKB;
         TChain<std::tuple<mfxU16, mfxU16>> GetNumTiles; // (NumTileColumns, NumTileRows)
         TChain<std::tuple<mfxU16, mfxU16, mfxU16>> GetMaxNumRef;
         TChain<std::tuple<mfxU32, mfxU32>> GetFrameRate;
@@ -1391,6 +1398,12 @@ namespace Base
         , FEATURE_LPLA_STATUS
         , FEATURE_QUERY_IMPL_DESC
         , FEATURE_ENCTOOLS
+        , FEATURE_REXT
+        , FEATURE_SAO
+        , FEATURE_QP_MODULATION
+        , FEATURE_SCC
+        , FEATURE_SCCMODE
+        , FEATURE_CAPS
         , NUM_FEATURES
     };
 
@@ -1437,9 +1450,12 @@ namespace Base
         using PackPpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::PPS&, mfxU8, IBsWriter&)>>;
         using GuidToVa            = StorageVar<__LINE__ - _KD, std::map<::GUID, VAGUID, LessGUID>>;
         using Defaults            = StorageVar<__LINE__ - _KD, Base::Defaults>;
+        using SCCFlags            = StorageVar<__LINE__ - _KD, Base::SCCFlags>;
         static const StorageR::TKey ReservedKey0 = __LINE__ - _KD;
         static const StorageR::TKey BasePackerKey = __LINE__ - _KD;
         static const StorageR::TKey TaskManagerKey = __LINE__ - _KD;
+        static const StorageR::TKey SccSpsKey = __LINE__ - _KD;
+        static const StorageR::TKey SccPpsKey = __LINE__ - _KD;
         static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;
     };
 

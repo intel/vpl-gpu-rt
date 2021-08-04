@@ -21,11 +21,11 @@
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
-#include "hevcehw_g12_scc.h"
+#include "hevcehw_base_scc.h"
 #include "hevcehw_base_legacy.h"
 
 using namespace HEVCEHW;
-using namespace HEVCEHW::Gen12;
+using namespace HEVCEHW::Base;
 
 const GUID SCC::DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main =
 { 0x2dec00c7, 0x21ee, 0x4bf8,{ 0x8f, 0x0e, 0x77, 0x3f, 0x11, 0xf1, 0x26, 0xa2 } };

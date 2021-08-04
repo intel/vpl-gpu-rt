@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,11 +24,11 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_base.h"
-#include "hevcehw_g12_data.h"
+#include "hevcehw_base_data.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
+namespace Base
 {
 class RExt
     : public FeatureBase
@@ -40,7 +40,7 @@ public:
     DECL_BLOCK(HardcodeCaps)\
     DECL_BLOCK(SetDefaultsCallChain)\
     DECL_BLOCK(CheckShift)
-#define DECL_FEATURE_NAME "G12_RExt"
+#define DECL_FEATURE_NAME "Base_RExt"
 #include "hevcehw_decl_blocks.h"
 
     RExt(mfxU32 FeatureId)
@@ -70,7 +70,7 @@ protected:
     std::map<mfxU16, RecUpd> mUpdateRecInfo;
 };
 
-} //Gen12
+} //Base
 } //namespace HEVCEHW
 
 #endif

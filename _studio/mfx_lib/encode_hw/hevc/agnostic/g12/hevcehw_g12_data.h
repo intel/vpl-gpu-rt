@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,36 +29,11 @@ namespace HEVCEHW
 {
 namespace Gen12
 {
-    using Base::Defaults;
-    using Base::FrameBaseInfo;
-    using Base::Task;
-
     enum eFeatureId
     {
-        FEATURE_REXT = Base::eFeatureId::NUM_FEATURES
-        , FEATURE_CAPS
-        , FEATURE_SAO
-        , FEATURE_QP_MODULATION
+        FEATURE_CAPS = Base::eFeatureId::NUM_FEATURES
         , NUM_FEATURES
     };
-
-    struct SCCFlags
-    {
-        mfxU16 IBCEnable     = 1;
-        mfxU16 PaletteEnable = 1;
-    };
-
-    struct Glob
-        : Base::Glob
-    {
-        static const StorageR::TKey _KD = __LINE__ + 1 - Base::Glob::NUM_KEYS;
-        static const StorageR::TKey ReservedKey12_0 = __LINE__ - _KD;
-        static const StorageR::TKey ReservedKey12_1 = __LINE__ - _KD;
-        using  SCCFlags = StorageVar<__LINE__ - _KD, HEVCEHW::Gen12::SCCFlags>;
-        static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;
-    };
-
-
 } //namespace Gen12
 } //namespace HEVCEHW
 

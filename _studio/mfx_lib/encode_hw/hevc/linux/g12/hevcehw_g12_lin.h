@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,8 +34,7 @@ namespace Gen12
 {
     enum eFeatureId
     {
-        FEATURE_SCC = HEVCEHW::Gen12::eFeatureId::NUM_FEATURES
-        , NUM_FEATURES
+        NUM_FEATURES = HEVCEHW::Gen12::eFeatureId::NUM_FEATURES
     };
 
     class MFXVideoENCODEH265_HW
