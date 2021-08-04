@@ -32,6 +32,8 @@ static inline mfxI32 CpuFeature_SSE41() {
     return((__builtin_cpu_supports("sse4.1")));
 }
 
+#if defined(__AVX2__)
+#endif
 
 static inline mfxI32 CpuFeature_AVX2() {
 #if defined(__AVX2__)

@@ -20,8 +20,8 @@
 
 #include "mfx_config.h"
 
-#ifndef __ASC_DEFS__
-#define __ASC_DEFS__
+#ifndef __ASC_DEFS_H__
+#define __ASC_DEFS_H__
 
 #define ASCTUNEDATA       0
 
@@ -79,11 +79,11 @@
 
 
 #if (defined (__GNUC__))
-#if (defined( __x86_64__))
+#if (defined( __x86_64__ ))
 #define ARCH64
 #else
 #define ARCH32
 #endif
 #endif
 
-#endif //__ASC_DEFS__
+#endif //__ASC_DEFS_H__

@@ -301,7 +301,6 @@ mfxStatus ASC::InitGPUsurf(CmDevice* pCmDevice) {
     case PLATFORM_INTEL_ICL:
     case PLATFORM_INTEL_ICLLP:
         return MFX_ERR_UNSUPPORTED;
-        break;
     case PLATFORM_INTEL_ADL_S:
     case PLATFORM_INTEL_TGLLP:
     case PLATFORM_INTEL_RKL:
