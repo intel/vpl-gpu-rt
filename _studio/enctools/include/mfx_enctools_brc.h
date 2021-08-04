@@ -124,6 +124,8 @@ public:
     // Frame size params
     mfxU16 width;
     mfxU16 height;
+    mfxU16 cropWidth;
+    mfxU16 cropHeight;
     mfxU16 chromaFormat;
     mfxU16 bitDepthLuma;
     mfxU32 mRawFrameSizeInBits;
@@ -184,6 +186,8 @@ public:
         maxFrameSizeInBits(0),
         width(0),
         height(0),
+        cropWidth(0),
+        cropHeight(0),
         chromaFormat(0),
         bitDepthLuma(0),
         mRawFrameSizeInBits(0),
@@ -562,6 +566,10 @@ protected:
     mfxU32     m_SkipCount;
     mfxU32     m_ReEncodeCount;
     std::vector<BRC_FrameStruct> m_FrameStruct;
+
+    std::vector <mfxExtMBQP>     m_MBQP;
+    std::vector <mfxU8>          m_MBQPBuff;
+    std::vector <mfxExtBuffer*>  m_ExtBuff;
 
     mfxI32 GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
     mfxI32 GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;

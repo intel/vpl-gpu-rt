@@ -804,8 +804,10 @@ namespace Base
 #endif
         mfxGopHints         GopHints            = {};
         mfxBRCHints         BrcHints            = {};
+
         mfxU16              etQpMapNZ           = 0;
-        mfxI8               etQpMap[128]        = {};
+        mfxExtMBQP*         etQpMap             = nullptr;
+
         bool                bForceSync          = false;
         bool                bSkip               = false;
         bool                bResetBRC           = false;

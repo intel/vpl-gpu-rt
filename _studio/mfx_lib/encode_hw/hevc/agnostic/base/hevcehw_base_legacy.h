@@ -237,6 +237,7 @@ namespace Base
         static bool IsEnctoolsLABRC(const ExtBuffer::Param<mfxVideoParam>& par);
         static bool IsTCBRC(const mfxVideoParam & par, mfxU16 tcbrcSupport);
         static bool IsMain10SP(const mfxU16 codecProfile, const mfxExtHEVCParam* pHEVC);
+        static bool IsMBQP(const ExtBuffer::Param<mfxVideoParam>& par, bool bMBQPSupport);
 
         mfxU16 GetMaxRaw(const mfxVideoParam & par)
         {

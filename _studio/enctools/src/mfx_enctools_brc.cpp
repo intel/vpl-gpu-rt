@@ -123,6 +123,8 @@ mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool fieldMode)
 
     width  = ctrl.FrameInfo.Width;
     height = ctrl.FrameInfo.Height;
+    cropWidth = ctrl.FrameInfo.CropW ? ctrl.FrameInfo.CropW : width;
+    cropHeight = ctrl.FrameInfo.CropH ? ctrl.FrameInfo.CropH : height;
 
     chromaFormat = ctrl.FrameInfo.ChromaFormat == 0 ?  MFX_CHROMAFORMAT_YUV420 : ctrl.FrameInfo.ChromaFormat ;
     bitDepthLuma = ctrl.FrameInfo.BitDepthLuma == 0 ?  8 : ctrl.FrameInfo.BitDepthLuma;
@@ -865,7 +867,28 @@ mfxStatus BRC_EncTool::Init(mfxEncToolsCtrl const & ctrl)
         m_avg.reset(new AVGBitrate(m_par.WinBRCSize, (mfxU32)(m_par.WinBRCMaxAvgKbps*1000.0 / m_par.frameRate), (mfxU32)m_par.inputBitsPerFrame));
         MFX_CHECK_NULL_PTR1(m_avg.get());
     }
+    if (m_par.mMBBRC)
+    {
+        mfxU32 size = ctrl.AsyncDepth > 1 ? ctrl.AsyncDepth : 1;
+        mfxU16 blSize = 16;
+        mfxU32 wInBlk = (ctrl.FrameInfo.Width + blSize - 1) / blSize;
+        mfxU32 hInBlk = (ctrl.FrameInfo.Height + blSize - 1) / blSize;
 
+        m_MBQPBuff.resize((size_t) size * wInBlk * hInBlk);
+        m_MBQP.resize(size);
+        m_ExtBuff.resize(size);
+
+        for (mfxU32 i = 0; i < size; i++)
+        {
+            m_MBQP[i].Header.BufferId = MFX_EXTBUFF_MBQP;
+            m_MBQP[i].Header.BufferSz = sizeof(mfxExtMBQP);
+            m_MBQP[i].BlockSize = blSize;
+            m_MBQP[i].NumQPAlloc = wInBlk * hInBlk;
+            m_MBQP[i].Mode = MFX_MBQP_MODE_QP_VALUE;
+            m_MBQP[i].QP = &(m_MBQPBuff[(size_t) i * wInBlk * hInBlk]);
+            m_ExtBuff[i] = (mfxExtBuffer*)&(m_MBQP[i]);
+        }
+    }
     m_bInit = true;
     return sts;
 }
@@ -1898,7 +1921,8 @@ mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl
         m_ctx.LastIQpAct = 0;
         m_ctx.LastICmplx = ParFrameCmplx;
         m_ctx.LastLaIBits = frameStruct.LaCurEncodedSize;
-        std::rotate(m_ctx.LastLaPBitsAvg.rbegin(), m_ctx.LastLaPBitsAvg.rbegin() + 1, m_ctx.LastLaPBitsAvg.rend());
+        if(!frameStruct.numRecode)
+            std::rotate(m_ctx.LastLaPBitsAvg.rbegin(), m_ctx.LastLaPBitsAvg.rbegin() + 1, m_ctx.LastLaPBitsAvg.rend());
         if (ParSceneChange || frameStruct.encOrder == 0) 
         {
             m_ctx.LastLaPBitsAvg[0] = 0;
@@ -1918,7 +1942,8 @@ mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl
     }
     else if (frameStruct.LaCurEncodedSize) 
     {
-        std::rotate(m_ctx.LastLaPBitsAvg.rbegin(), m_ctx.LastLaPBitsAvg.rbegin() + 1, m_ctx.LastLaPBitsAvg.rend());
+        if (!frameStruct.numRecode)
+            std::rotate(m_ctx.LastLaPBitsAvg.rbegin(), m_ctx.LastLaPBitsAvg.rbegin() + 1, m_ctx.LastLaPBitsAvg.rend());
         if (m_ctx.LastLaPBitsAvg[1])
         {
             m_ctx.LastLaPBitsAvg[0] = (mfxI32)m_ctx.LastLaPBitsAvg[1] + 
@@ -1951,7 +1976,32 @@ mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl
     }
 
     pFrameQp->QpMapNZ = frameStructItr->QpMapNZ;
-    memcpy(pFrameQp->QpMap, frameStructItr->QpMap, sizeof(pFrameQp->QpMap));
+
+    if (pFrameQp->QpMapNZ) {
+        pFrameQp->ExtQpMap = &m_MBQP[frameStruct.encOrder % m_MBQP.size()];
+        mfxU32 iw = 16;
+        mfxU32 ih = 8;
+        mfxU32 ibw = m_par.cropWidth / iw;
+        mfxU32 ibh = m_par.cropHeight / ih;
+        mfxU32 mapBw = 64;  // 64 to Match current driver behaviour (qp applied to LCUs), use 16 after driver MBQP 16x16 fix
+        mfxU32 mapBh = 64;  // 64 to Match current driver behaviour (qp applied to LCUs), use 16 after driver MBQP 16x16 fix
+        // Fill all 16x16 blocks
+        mfxU16 blSize = 16;
+        mfxU32 wInBlk = (m_par.width + blSize - 1) / blSize;
+        mfxU32 hInBlk = (m_par.height + blSize - 1) / blSize;
+        // Map 16x8 map to Width/blSize x Height/blSize
+        for (mfxU32 i = 0; i < hInBlk; i++)
+        {
+            for (mfxU32 j = 0; j < wInBlk; j++)
+            {
+                // (x,y) is QP lookup location in 16x8 map for pixel center of current block (j,i)
+                mfxU32 y = std::min((i * mapBh + mapBh / 2) / ibh, ih - 1);
+                mfxU32 x = std::min((j * mapBw + mapBw / 2) / ibw, iw - 1);
+
+                pFrameQp->ExtQpMap->QP[i * wInBlk + j] = (mfxI8)mfx::clamp((mfxI32)pFrameQp->QpY + (mfxI32)frameStructItr->QpMap[y * iw + x], (mfxI32)0, (mfxI32)51);
+            }
+        }
+    }
 
     return MFX_ERR_NONE;
 }
