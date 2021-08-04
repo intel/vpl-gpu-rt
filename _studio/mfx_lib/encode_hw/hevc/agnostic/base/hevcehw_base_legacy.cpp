@@ -273,6 +273,8 @@ void Legacy::SetSupported(ParamSupport& blocks)
         MFX_COPY_FIELD(NumQPAlloc);
         MFX_COPY_FIELD(QP);
     });
+
+
 }
 
 bool Legacy::IsTCBRC(const mfxVideoParam& par, mfxU16 tcbrcSupport)
@@ -1202,7 +1204,7 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
     {
         mfxStatus sts = MFX_ERR_NONE;
         auto& par = Glob::VideoParam::Get(strg);
-
+        //const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
         auto& core = Glob::VideoCore::Get(strg);
         auto& caps = Glob::EncodeCaps::Get(strg);
 
@@ -1539,8 +1541,9 @@ void Legacy::InitTask(const FeatureBlocks& /*blocks*/, TPushIT Push)
         tpar.pSurfIn = pSurf;
 
         if (pCtrl)
+        {
             tpar.ctrl = *pCtrl;
-
+        }
         tpar.pSurfReal = tpar.pSurfIn;
 
         core.IncreaseReference(*tpar.pSurfIn);
@@ -2172,7 +2175,6 @@ static void SetTaskQpY(
     if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
         task.QpY = 0;
-
         return;
     }
 
@@ -2503,6 +2505,7 @@ Legacy::GetCUQPMapBlockSize(
 mfxU32 Legacy::GetMinBsSize(
     const ExtBuffer::Param<mfxVideoParam>& par)
 {
+
     const mfxExtHEVCParam& HEVCParam = ExtBuffer::Get(par);
     const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
 

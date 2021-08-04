@@ -1358,7 +1358,8 @@ bool MfxHwH264Encode::IsMctfSupported(
     bool isSupported = false;
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
-    isSupported = (hasSupportVME(platform) &&
+    isSupported = ((
+        hasSupportVME(platform)) &&
         IsOn(extOpt2.ExtBRC) &&
         IsExtBrcSceneChangeSupported(video, platform) &&
         (video.mfx.FrameInfo.Width <= 3840 && video.vpp.In.Height <= 2160) &&
@@ -9377,11 +9378,13 @@ mfxU32 HeaderPacker::WriteSlice(
 
     mfxU8 startcode[4] = { 0, 0, 0, 1};
     mfxU8 * pStartCode = startcode;
+#if !defined(ANDROID)
     if (!m_longStartCodes)
     {
         if (task.m_AUStartsFromSlice[fieldId] == false || sliceId > 0)
             pStartCode++;
     }
+#endif
     obs.PutRawBytes(pStartCode, startcode + sizeof startcode);
     obs.PutBit(0);
     obs.PutBits(nalRefIdc, 2);
@@ -9591,10 +9594,14 @@ mfxU32 HeaderPacker::WriteSlice(
     //mfxU32 picHeightInMBs      = (sps.picHeightInMapUnitsMinus1 + 1) * picHeightMultiplier;
 
     mfxU32 sliceHeaderRestrictionFlag = 0;
+#if defined(ANDROID)
+    mfxU8 startcode[4] = { 0, 0, 0, 1 };
+#else
     mfxU8 startcode[3] = { 0, 0, 1 };
 
     if (m_longStartCodes)
         obs.PutFillerBytes(0x00, 1);
+#endif
     obs.PutRawBytes(startcode, startcode + sizeof startcode);
     obs.PutBit(0);
     obs.PutBits(nalRefIdc, 2);

@@ -16,24 +16,24 @@ set(sources
     include/mfx_enctools_allocator.h
   )
 
-if (MFX_ENABLE_AENC)
-  find_library( AENC_LIBRARY libaenc.a PATHS ${CMAKE_HOME_DIRECTORY}/contrib/aenc/ )
-  if(NOT ${AENC_LIBRARY} MATCHES NOTFOUND)
-    message(STATUS "aenc library was found here ${AENC_LIBRARY}")
+  if (MFX_ENABLE_AENC)
+    find_library( AENC_LIBRARY libaenc.a PATHS ${CMAKE_HOME_DIRECTORY}/contrib/aenc/ )
+    if(NOT ${AENC_LIBRARY} MATCHES NOTFOUND)
+      message(STATUS "aenc library was found here ${AENC_LIBRARY}")
 
-    add_library(aenc STATIC IMPORTED GLOBAL)
-    set_target_properties(aenc PROPERTIES IMPORTED_LOCATION "${CMAKE_HOME_DIRECTORY}/contrib/aenc/libaenc.a")
-    target_include_directories(aenc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-  else()
-    message(STATUS "aenc library was not found (optional)! mfxlib will be built without aenc")
-    set(MFX_ENABLE_AENC OFF)
+      add_library(aenc STATIC IMPORTED GLOBAL)
+      set_target_properties(aenc PROPERTIES IMPORTED_LOCATION "${CMAKE_HOME_DIRECTORY}/contrib/aenc/libaenc.a")
+      target_include_directories(aenc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    else()
+      message(STATUS "aenc library was not found (optional)! mfxlib will be built without aenc")
+      set(MFX_ENABLE_AENC OFF)
+    endif()
   endif()
-endif()
 
 add_library(enctools_hw STATIC ${sources})
 
 target_compile_definitions(enctools_hw
-  PRIVATE 
+  PRIVATE
     $<$<BOOL:${MFX_ENABLE_AENC}>:MFX_ENABLE_AENC>
   )
 
@@ -47,8 +47,8 @@ target_link_libraries(enctools_hw
     mfx_static_lib
     vm
   PRIVATE
-    mfx_sdl_properties    
-    $<$<BOOL:${MFX_ENABLE_AENC}>:aenc> 
+    mfx_sdl_properties
+    $<$<BOOL:${MFX_ENABLE_AENC}>:aenc>
   )
 
 include(sources_ext.cmake OPTIONAL)

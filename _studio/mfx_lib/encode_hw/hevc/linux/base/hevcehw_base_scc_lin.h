@@ -77,7 +77,7 @@ protected:
         });
     }
 };
-} //Gen12
+} //Base
 } //Linux
 } //namespace HEVCEHW
 

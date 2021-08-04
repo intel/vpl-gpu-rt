@@ -149,6 +149,7 @@ public:
 
     virtual
     mfxStatus GetTimeout(mfxU32 & maxTimeToRun) = 0;
+
 };
 
 #endif // __MFX_INTERFACE_SCHEDULER_H

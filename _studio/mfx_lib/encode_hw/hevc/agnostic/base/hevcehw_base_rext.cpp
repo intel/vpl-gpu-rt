@@ -20,6 +20,7 @@
 
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
+
 #include "hevcehw_base_rext.h"
 #include "hevcehw_base_legacy.h"
 

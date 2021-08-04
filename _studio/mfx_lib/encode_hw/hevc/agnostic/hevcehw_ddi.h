@@ -20,6 +20,7 @@
 
 #pragma once
 
+
 namespace HEVCEHW
 {
 typedef struct tagENCODE_CAPS_HEVC

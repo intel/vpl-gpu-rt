@@ -827,6 +827,7 @@ mfxStatus vaapiFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData* ptr)
                 }
                 else return MFX_ERR_LOCK_MEMORY;
                 break;
+#ifndef ANDROID
             case VA_FOURCC_A2R10G10B10:
                 if (mfx_fourcc == MFX_FOURCC_A2RGB10)
                 {
@@ -837,6 +838,7 @@ mfxStatus vaapiFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData* ptr)
                 }
                 else return MFX_ERR_LOCK_MEMORY;
                 break;
+#endif
             case VA_FOURCC_ABGR:
                 if (mfx_fourcc == MFX_FOURCC_BGR4)
                 {
@@ -970,3 +972,4 @@ mfxStatus vaapiFrameAllocator::GetFrameHDL(mfxMemId mid, mfxHDL* handle)
     *handle = vaapi_mid->m_surface; //VASurfaceID* <-> mfxHDL
     return MFX_ERR_NONE;
 }
+

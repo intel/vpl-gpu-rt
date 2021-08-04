@@ -166,6 +166,9 @@ protected:
     };
 };
 
+
+
+
 #include "va/va.h"
 
 enum LibVABackend
@@ -283,4 +286,6 @@ protected:
     mfxU32    m_Width;
     mfxU32    m_Height;
 };
+
+
 #endif // __MFX_ENCTOOLS_ALLOCATOR_H__

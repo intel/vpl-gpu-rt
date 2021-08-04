@@ -26,6 +26,7 @@
 #include "umc_video_data.h"
 #include "umc_video_decoder.h"
 
+
 MFXMediaDataAdapter::MFXMediaDataAdapter(mfxBitstream *pBitstream)
 {
     Load(pBitstream);
@@ -214,11 +215,11 @@ UMC::ColorFormat ConvertFOURCCToUMCColorFormat(mfxU32 fourcc)
         case MFX_FOURCC_IMC3:    return UMC::IMC3;
         case MFX_FOURCC_YUV400:  return UMC::GRAY;
         case MFX_FOURCC_YUV411:  return UMC::YUV411;
+
         case MFX_FOURCC_YUV422H:
-
         case MFX_FOURCC_YUV422V: return UMC::YUY2;
-        case MFX_FOURCC_YUV444:  return UMC::YUV444;
 
+        case MFX_FOURCC_YUV444:  return UMC::YUV444;
         default:
             VM_ASSERT(!"Unknown FOURCC");
             return UMC::NV12;

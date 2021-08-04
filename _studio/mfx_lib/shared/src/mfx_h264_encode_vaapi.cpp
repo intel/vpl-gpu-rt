@@ -447,6 +447,7 @@ static mfxStatus SetMultiPassFrameSize( DdiTask const & task,
 }
 #endif
 
+#if !defined(ANDROID)
 static mfxStatus SetTrellisQuantization(
     mfxU32       trellis,
     VADisplay    vaDisplay,
@@ -485,6 +486,7 @@ static mfxStatus SetTrellisQuantization(
 
     return MFX_ERR_NONE;
 } // void SetTrellisQuantization(...)
+#endif
 
 static mfxStatus SetRollingIntraRefresh(
     IntraRefreshState const & rirState,
@@ -2503,6 +2505,7 @@ mfxStatus VAAPIEncoder::Execute(
     }
 #endif
 
+#if !defined(ANDROID)
 /*
  *  By default (0) - driver will decide.
  *  1 - disable trellis quantization
@@ -2515,6 +2518,7 @@ mfxStatus VAAPIEncoder::Execute(
                                                                      m_vaContextEncode, m_quantizationId), MFX_ERR_DEVICE_FAILED);
         configBuffers.push_back(m_quantizationId);
     }
+#endif
 
  /*
  *   RollingIntraRefresh

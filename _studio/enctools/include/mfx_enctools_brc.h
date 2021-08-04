@@ -397,7 +397,7 @@ struct BRC_Ctx
 
     mfxF64 fAbLong;         // frame aberration (long period)
     mfxF64 fAbShort;        // frame aberration (short period)
-    mfxF64 fAbLA;          // frame aberration (LA period)
+    mfxF64 fAbLA;           // frame aberration (LA period)
     mfxF64 dQuantAb;        // dequant aberration
     mfxF64 totalDeviation;   // deviation from  target bitrate (total)
 

@@ -408,7 +408,7 @@ static bool FillCUQPDataVA(
 
     if (bInvalid && task.etQpMapNZ) {
         mbqp = task.etQpMap;
-        bInvalid = !mbqp || !mbqp->QP || (mbqp->NumQPAlloc < inputW * inputH);
+        bInvalid = !mbqp || !mbqp->QP || (mbqp->NumQPAlloc < inputW* inputH);
     }
     if (bInvalid)
         return false;

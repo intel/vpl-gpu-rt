@@ -133,6 +133,7 @@ static mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
 
     auto CacheInitRoutine = [session, &par](bool input_pool)
     {
+
         auto& pCache = input_pool ? session->m_pVPP->m_pSurfaceCacheIn : session->m_pVPP->m_pSurfaceCacheOut;
 
         if (!pCache)

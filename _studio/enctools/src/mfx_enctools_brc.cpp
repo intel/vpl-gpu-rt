@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2021 Intel Corporation
+// Copyright (c) 2009-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1411,6 +1411,7 @@ mfxStatus BRC_EncTool::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *pFram
             }
         }
         m_ctx.bToRecode = 0;
+
     }
 
     return sts;
@@ -2048,6 +2049,7 @@ mfxStatus BRC_EncTool::SetFrameStruct(mfxU32 dispOrder, mfxEncToolsBRCFrameParam
         (*frameStruct).sceneChange = pFrameStruct.SceneChange;
         (*frameStruct).PersistenceMapNZ = pFrameStruct.PersistenceMapNZ;
         memcpy((*frameStruct).PersistenceMap, pFrameStruct.PersistenceMap, sizeof((*frameStruct).PersistenceMap));
+
     }
     return MFX_ERR_NONE;
 }

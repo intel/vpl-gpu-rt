@@ -101,5 +101,7 @@ namespace Base
 
 } //Base
 } //namespace HEVCEHW
-#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)
+
 #endif //defined(MFX_ENABLE_ENCTOOLS)
+#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)
+

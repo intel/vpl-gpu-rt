@@ -32,6 +32,7 @@
 #include <algorithm>
 
 #if defined (MFX_ENABLE_VIDEO_BRC_COMMON)
+
 #include "umc_video_brc.h"
 
 mfxStatus ConvertVideoParam_Brc(const mfxVideoParam *parMFX, UMC::VideoBrcParams *parUMC);

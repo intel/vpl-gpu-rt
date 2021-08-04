@@ -320,6 +320,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(out, MFX_ERR_NULL_PTR);
 
+#if !defined(ANDROID)
     if ((0 != in) && (MFX_HW_VAAPI == session->m_pCORE->GetVAType()))
     {
         // protected content not supported on Linux
@@ -329,6 +330,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             return MFX_ERR_UNSUPPORTED;
         }
     }
+#endif
 
     mfxStatus mfxRes = MFX_ERR_NONE;
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoENCODE_Query");
@@ -627,7 +629,6 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
         {
             MFX_SAFE_CALL(session->m_pENCODE->m_pSurfaceCache->Update(*surface));
         }
-
         {
             mfxSyncPoint syncPoint = NULL;
             mfxFrameSurface1* reordered_surface = NULL;

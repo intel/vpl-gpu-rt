@@ -399,7 +399,7 @@ mfxStatus ImplementationAvc::Query(
     mfxU8 queryMode = DetermineQueryMode(in);
     MFX_CHECK(queryMode, MFX_ERR_UNDEFINED_BEHAVIOR); // input parameters are contradictory and don't allow to choose Query mode
 
-    eMFXHWType platfrom = core->GetHWType();
+    eMFXHWType platform = core->GetHWType();
 
     if (queryMode == 1) // see MSDK spec for details related to Query mode 1
     {
@@ -410,7 +410,7 @@ mfxStatus ImplementationAvc::Query(
         out->AsyncDepth            = 1;
         out->mfx.CodecId           = 1;
         out->mfx.LowPower          = 1;
-        if (!hasSupportVME(platfrom))
+        if (!hasSupportVME(platform))
             out->mfx.LowPower      = 0;
         out->mfx.CodecLevel        = 1;
         out->mfx.CodecProfile      = 1;
@@ -502,7 +502,7 @@ mfxStatus ImplementationAvc::Query(
         MFX_ENCODE_CAPS hwCaps = { };
         MfxVideoParam tmp = *in; // deep copy, create all supported extended buffers
 
-        mfxStatus lpSts = SetLowPowerDefault(tmp, platfrom);
+        mfxStatus lpSts = SetLowPowerDefault(tmp, platform);
         // let's use default values if input resolution is 0x0
         mfxU32 Width  = in->mfx.FrameInfo.Width == 0 ? 1920: in->mfx.FrameInfo.Width;
         mfxU32 Height =  in->mfx.FrameInfo.Height == 0 ? 1088: in->mfx.FrameInfo.Height;
@@ -524,7 +524,7 @@ mfxStatus ImplementationAvc::Query(
 
         eMFXGTConfig* pMFXGTConfig = QueryCoreInterface<eMFXGTConfig>(core, MFXICORE_GT_CONFIG_GUID);
         MFX_CHECK(pMFXGTConfig != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
-        mfxStatus checkSts = CheckVideoParamQueryLike(tmp, hwCaps, platfrom, core->GetVAType(), *pMFXGTConfig);
+        mfxStatus checkSts = CheckVideoParamQueryLike(tmp, hwCaps, platform, core->GetVAType(), *pMFXGTConfig);
 
         if (checkSts == MFX_WRN_PARTIAL_ACCELERATION)
             MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION)
@@ -668,7 +668,7 @@ mfxStatus ImplementationAvc::Query(
         MFX_CHECK(extCaps, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         MfxVideoParam tmp = *in;
-        (void)SetLowPowerDefault(tmp, platfrom);
+        (void)SetLowPowerDefault(tmp, platform);
 
         // query MB processing rate from driver
         sts = QueryMbProcRate(core, *out, mbPerSec, &tmp);
@@ -692,7 +692,6 @@ mfxStatus ImplementationAvc::Query(
     else if (5 == queryMode)
     {
         MfxVideoParam tmp = *in;
-        eMFXHWType platform = core->GetHWType();
         (void)SetLowPowerDefault(tmp, platform);
         if(IsOn(tmp.mfx.LowPower))
             return QueryGuid(core, DXVA2_INTEL_LOWPOWERENCODE_AVC);
@@ -716,8 +715,8 @@ mfxStatus ImplementationAvc::QueryIOSurf(
 
     MFX_ENCODE_CAPS hwCaps = {};
     MfxVideoParam tmp(*par);
-    eMFXHWType platfrom = core->GetHWType();
-    mfxStatus lpSts = SetLowPowerDefault(tmp, platfrom);
+    eMFXHWType platform = core->GetHWType();
+    mfxStatus lpSts = SetLowPowerDefault(tmp, platform);
 
     mfxStatus sts = QueryHwCaps(core, hwCaps, &tmp);
     if (IsOn(par->mfx.LowPower) && sts != MFX_ERR_NONE)
@@ -736,7 +735,7 @@ mfxStatus ImplementationAvc::QueryIOSurf(
 
     eMFXGTConfig* pMFXGTConfig = QueryCoreInterface<eMFXGTConfig>(core, MFXICORE_GT_CONFIG_GUID);
     MFX_CHECK(pMFXGTConfig != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
-    mfxStatus checkSts = CheckVideoParamQueryLike(tmp, hwCaps, platfrom, core->GetVAType(), *pMFXGTConfig);
+    mfxStatus checkSts = CheckVideoParamQueryLike(tmp, hwCaps, platform, core->GetVAType(), *pMFXGTConfig);
     MFX_CHECK(checkSts != MFX_ERR_UNSUPPORTED, MFX_ERR_UNSUPPORTED);
     if (checkSts == MFX_WRN_PARTIAL_ACCELERATION)
         MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION) // return immediately

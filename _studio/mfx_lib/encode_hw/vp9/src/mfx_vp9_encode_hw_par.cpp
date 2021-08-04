@@ -42,7 +42,8 @@ bool IsExtBufferSupportedInInit(mfxU32 id)
         || id == MFX_EXTBUFF_DDI // RefreshFrameContext is used by driver
         || id == MFX_EXTBUFF_VP9_SEGMENTATION
         || id == MFX_EXTBUFF_VP9_TEMPORAL_LAYERS
-        || id == MFX_EXTBUFF_ENCODER_RESET_OPTION;
+        || id == MFX_EXTBUFF_ENCODER_RESET_OPTION
+        ;
 }
 
 bool IsExtBufferIgnoredInRuntime(mfxU32 id)

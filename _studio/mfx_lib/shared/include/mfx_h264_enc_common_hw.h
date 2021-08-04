@@ -228,6 +228,7 @@ namespace MfxHwH264Encode
 
 #endif
 
+
 #undef BIND_EXTBUF_TYPE_TO_ID
 
     template <class T> inline void InitExtBufHeader(T & extBuf)
@@ -609,6 +610,7 @@ namespace MfxHwH264Encode
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
         mfxExtPartialBitstreamParam m_po;
 #endif
+
 
         std::vector<mfxMVCViewDependency> m_storageView;
         std::vector<mfxMVCOperationPoint> m_storageOp;

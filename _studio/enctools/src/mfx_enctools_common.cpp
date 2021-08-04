@@ -341,7 +341,6 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl)
 
         m_pmfxVPP_LA.reset(new MFXVideoVPP(*m_mfxSession_LA));
         MFX_CHECK(m_pmfxVPP_LA, MFX_ERR_MEMORY_ALLOC);
-
         mfxExtVPPScaling vppScalingMode = {};
         vppScalingMode.Header.BufferId = MFX_EXTBUFF_VPP_SCALING;
         vppScalingMode.Header.BufferSz = sizeof(vppScalingMode);

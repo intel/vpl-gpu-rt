@@ -167,11 +167,11 @@ mfxStatus _mfxSession::Init(mfxIMPL implInterface, mfxVersion *ver)
     {
         m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_NO, 0, maxNumThreads, this));
     }
+
     else
     {
         m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_VAAPI, m_adapterNum, maxNumThreads, this));
     }
-
 
 
     // query the scheduler interface
@@ -383,7 +383,6 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par)
     {
         m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_VAAPI, m_adapterNum, maxNumThreads, this));
     }
-
 
     // query the scheduler interface
     m_pScheduler = ::QueryInterface<MFXIScheduler>(m_pSchedulerAllocated, MFXIScheduler_GUID);

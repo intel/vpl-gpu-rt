@@ -26,6 +26,7 @@
 #include <errno.h>
 #include "mfx_common.h"
 
+
 mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 codecId);
 mfxStatus CheckFrameInfoEncoders(mfxFrameInfo  *info);
 mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId = MFX_CODEC_AVC, bool isHW = false);

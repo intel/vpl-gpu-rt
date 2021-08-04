@@ -97,7 +97,8 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
                 bool valid = std::all_of(channelPar->ExtParam, channelPar->ExtParam + channelPar->NumExtParam,
                     [](mfxExtBuffer* buffer)
                     {
-                        return buffer->BufferId == MFX_EXTBUFF_VPP_SCALING;
+                        return buffer->BufferId == MFX_EXTBUFF_VPP_SCALING
+                            ;
                     });
 
                 MFX_CHECK(valid, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -286,6 +287,7 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
             {
                 session->m_pDVP->VPPs[id].reset(session->Create<VideoVPP>(VppParams));
             }
+
 
             mfxRes = session->m_pDVP->VPPs[id]->Init(&VppParams);
             MFX_CHECK_STS(mfxRes);

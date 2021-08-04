@@ -321,6 +321,7 @@ mfxStatus LPLA_EncTool::SaveEncodedFrameSize(mfxFrameSurface1* surface, mfxU16 F
     {
         if (lplaHints->CqmHint != CQM_HINT_INVALID)
         {
+            //printf("Submit %d: CQM %d Intra %d FrmSize %d MiniGop %d QpModStrength %d \n", surface->Data.FrameOrder, lplaHints->CqmHint, lplaHints->IntraHint, lplaHints->TargetFrameSize, lplaHints->MiniGopSize, lplaHints->QpModulationStrength);
             m_encodeHints.push_back({
                 lplaHints->StatusReportFeedbackNumber,
                 lplaHints->CqmHint,
