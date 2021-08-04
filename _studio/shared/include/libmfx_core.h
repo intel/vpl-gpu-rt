@@ -580,7 +580,6 @@ private:
         , m_frame_info(frame_info)
     {
         std::ignore = m_num_to_revoke;
-        std::ignore = m_default_limit;
     }
 
     mfxFrameSurface1* FreeSurfaceLookup(bool emulate_zero_refcount_base = false)
@@ -697,8 +696,6 @@ private:
 
     size_t                    m_limit         = std::numeric_limits<size_t>::max();
     size_t                    m_num_to_revoke = 0;
-
-    const size_t              m_default_limit = 1;
 
     std::list<SurfaceHolder>  m_cached_surfaces;
     std::list<mfxU32>         m_requests;
