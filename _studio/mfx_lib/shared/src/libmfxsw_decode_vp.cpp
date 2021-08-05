@@ -132,7 +132,7 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
         }
 
         // Only one SFC scaling request allowed
-        MFX_CHECK(num_sfc_scaling < 2, MFX_ERR_INVALID_VIDEO_PARAM);
+        //MFX_CHECK(num_sfc_scaling < 2, MFX_ERR_INVALID_VIDEO_PARAM);
 
         //create  DVP
         if (!session->m_pDVP)
@@ -195,33 +195,35 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
             VppParams.ExtParam    = channelPar->ExtParam;
             VppParams.NumExtParam = channelPar->NumExtParam;
 
-            //add scaling mode buffer
-            if (vppScalingMode != MFX_SCALING_MODE_DEFAULT)
+            if (scaling_buffer)
             {
-                scaling_buffers.emplace_back();
-
-                mfxExtVPPScaling& vppScalingExtBuf = scaling_buffers.back();
-                vppScalingExtBuf = {};
-                vppScalingExtBuf.Header.BufferId = MFX_EXTBUFF_VPP_SCALING;
-                vppScalingExtBuf.Header.BufferSz = sizeof(mfxExtVPPScaling);
-                vppScalingExtBuf.ScalingMode     = vppScalingMode;
-
                 ext_buffers.emplace_back(VppParams.ExtParam, VppParams.ExtParam + VppParams.NumExtParam);
 
-                // Replace original mfxExtVPPScaling in VppParams.ExtParam
-                auto it_vpp_scaling = std::find_if(std::begin(ext_buffers.back()), std::end(ext_buffers.back()),
-                     [](mfxExtBuffer* buf)
-                     {
-                        return buf->BufferId == MFX_EXTBUFF_VPP_SCALING;
-                     });
+                auto it_erase = std::remove_if(std::begin(ext_buffers.back()), std::end(ext_buffers.back()),
+                         [](mfxExtBuffer* buf)
+                         {
+                            return buf->BufferId == MFX_EXTBUFF_VPP_SCALING;
+                         });
+                ext_buffers.back().erase(it_erase, std::end(ext_buffers.back()));
 
-                *it_vpp_scaling = &vppScalingExtBuf.Header;
+                //add scaling mode buffer
+                if (vppScalingMode != MFX_SCALING_MODE_DEFAULT)
+                {
+                    scaling_buffers.emplace_back();
+
+                    mfxExtVPPScaling& vppScalingExtBuf = scaling_buffers.back();
+                    vppScalingExtBuf = {};
+                    vppScalingExtBuf.Header.BufferId = MFX_EXTBUFF_VPP_SCALING;
+                    vppScalingExtBuf.Header.BufferSz = sizeof(mfxExtVPPScaling);
+                    vppScalingExtBuf.ScalingMode     = vppScalingMode;
+
+                    ext_buffers.back().push_back(&vppScalingExtBuf.Header);
+                }
 
                 VppParams.ExtParam    = ext_buffers.back().data();
                 VppParams.NumExtParam = mfxU16(ext_buffers.back().size());
             }
         }
-
 
         //create and init decoder
         MFX_CHECK(decode_par->IOPattern == MFX_IOPATTERN_OUT_VIDEO_MEMORY ||
@@ -287,7 +289,6 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
             {
                 session->m_pDVP->VPPs[id].reset(session->Create<VideoVPP>(VppParams));
             }
-
 
             mfxRes = session->m_pDVP->VPPs[id]->Init(&VppParams);
             MFX_CHECK_STS(mfxRes);
