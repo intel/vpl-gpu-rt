@@ -225,6 +225,7 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
             }
         }
 
+
         //create and init decoder
         MFX_CHECK(decode_par->IOPattern == MFX_IOPATTERN_OUT_VIDEO_MEMORY ||
             decode_par->IOPattern == MFX_IOPATTERN_OUT_SYSTEM_MEMORY, MFX_ERR_UNSUPPORTED);
@@ -289,6 +290,7 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
             {
                 session->m_pDVP->VPPs[id].reset(session->Create<VideoVPP>(VppParams));
             }
+
 
             mfxRes = session->m_pDVP->VPPs[id]->Init(&VppParams);
             MFX_CHECK_STS(mfxRes);
