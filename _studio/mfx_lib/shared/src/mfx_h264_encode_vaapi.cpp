@@ -1486,9 +1486,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         platform = hwCore_20->GetHWType();
     }
 
-    if (MFX_HW_APL == platform || MFX_HW_CFL == platform
-        )
-        m_caps.ddi_caps.FrameSizeToleranceSupport = 1;
+    (void)platform;
 
     m_width  = width;
     m_height = height;
@@ -1601,9 +1599,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     }
     else
     {
-        const eMFXHWType hwtype = m_core->GetHWType();
-        m_caps.ddi_caps.SliceStructure = (hwtype != MFX_HW_VLV && hwtype >= MFX_HW_HSW) ? 4 : 1; // 1 - SliceDividerSnb; 2 - SliceDividerHsw;
-    }                                                                                   // 3 - SliceDividerBluRay; 4 - arbitrary slice size in MBs; the other - SliceDividerOneSlice
+        m_caps.ddi_caps.SliceStructure = 4;// 4 - arbitrary slice size in MBs; the other - SliceDividerOneSlice
+    }
 
     m_caps.ddi_caps.NoInterlacedField = !(AV(VAConfigAttribEncInterlaced) & VA_ENC_INTERLACED_FIELD); // 0 - Interlace is supported, 1 - Interlace is not supported
 
@@ -2402,69 +2399,66 @@ mfxStatus VAAPIEncoder::Execute(
         }
         else
         {
-            if ((m_core->GetHWType() >= MFX_HW_HSW) && (m_core->GetHWType() != MFX_HW_VLV))
+            // length of Prefix NAL unit: now it's always 8 bytes for reference picture, and 7 bytes for non-reference picture
+            // need to add zero_byte if AU starts from Prefix NAL unit
+            mfxU32 prefix_bytes = (7 + !!task.m_nalRefIdc[fieldId]) * m_headerPacker.isSvcPrefixUsed();
+
+            //Slice headers only
+            std::vector<ENCODE_PACKEDHEADER_DATA> const & packedSlices = m_headerPacker.PackSlices(task, fieldId);
+            for (size_t i = 0; i < packedSlices.size(); i++)
             {
-                // length of Prefix NAL unit: now it's always 8 bytes for reference picture, and 7 bytes for non-reference picture
-                // need to add zero_byte if AU starts from Prefix NAL unit
-                mfxU32 prefix_bytes = (7 + !!task.m_nalRefIdc[fieldId]) * m_headerPacker.isSvcPrefixUsed();
+                ENCODE_PACKEDHEADER_DATA const & packedSlice = packedSlices[i];
 
-                //Slice headers only
-                std::vector<ENCODE_PACKEDHEADER_DATA> const & packedSlices = m_headerPacker.PackSlices(task, fieldId);
-                for (size_t i = 0; i < packedSlices.size(); i++)
+                if (prefix_bytes)
                 {
-                    ENCODE_PACKEDHEADER_DATA const & packedSlice = packedSlices[i];
+                    packed_header_param_buffer.type = VAEncPackedHeaderRawData;
+                    packed_header_param_buffer.has_emulation_bytes = 1;
+                    packed_header_param_buffer.bit_length = (prefix_bytes * 8);
 
-                    if (prefix_bytes)
-                    {
-                        packed_header_param_buffer.type = VAEncPackedHeaderRawData;
-                        packed_header_param_buffer.has_emulation_bytes = 1;
-                        packed_header_param_buffer.bit_length = (prefix_bytes * 8);
-
-                        vaSts = vaCreateBuffer(m_vaDisplay,
-                                m_vaContextEncode,
-                                VAEncPackedHeaderParameterBufferType,
-                                sizeof(packed_header_param_buffer),
-                                1,
-                                &packed_header_param_buffer,
-                                &m_packedSvcPrefixHeaderBufferId[i]);
-                        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-                        vaSts = vaCreateBuffer(m_vaDisplay,
-                                            m_vaContextEncode,
-                                            VAEncPackedHeaderDataBufferType,
-                                             prefix_bytes, 1, packedSlice.pData,
-                                            &m_packedSvcPrefixBufferId[i]);
-                        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-                        configBuffers.push_back(m_packedSvcPrefixHeaderBufferId[i]);
-                        configBuffers.push_back(m_packedSvcPrefixBufferId[i]);
-                    }
-
-                    packed_header_param_buffer.type = VAEncPackedHeaderH264_Slice;
-                    packed_header_param_buffer.has_emulation_bytes = 0;
-                    packed_header_param_buffer.bit_length = packedSlice.DataLength - (prefix_bytes * 8); // DataLength is already in bits !
-
-                    // Buffer destroyed in the beginning of the function
                     vaSts = vaCreateBuffer(m_vaDisplay,
                             m_vaContextEncode,
                             VAEncPackedHeaderParameterBufferType,
                             sizeof(packed_header_param_buffer),
                             1,
                             &packed_header_param_buffer,
-                            &m_packedSliceHeaderBufferId[i]);
+                            &m_packedSvcPrefixHeaderBufferId[i]);
                     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-                    // Buffer destroyed in the beginning of the function
                     vaSts = vaCreateBuffer(m_vaDisplay,
                                         m_vaContextEncode,
                                         VAEncPackedHeaderDataBufferType,
-                                        (packedSlice.DataLength + 7) / 8 - prefix_bytes, 1, packedSlice.pData + prefix_bytes,
-                                        &m_packedSliceBufferId[i]);
+                                         prefix_bytes, 1, packedSlice.pData,
+                                        &m_packedSvcPrefixBufferId[i]);
                     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-                    configBuffers.push_back(m_packedSliceHeaderBufferId[i]);
-                    configBuffers.push_back(m_packedSliceBufferId[i]);
+                    configBuffers.push_back(m_packedSvcPrefixHeaderBufferId[i]);
+                    configBuffers.push_back(m_packedSvcPrefixBufferId[i]);
                 }
+
+                packed_header_param_buffer.type = VAEncPackedHeaderH264_Slice;
+                packed_header_param_buffer.has_emulation_bytes = 0;
+                packed_header_param_buffer.bit_length = packedSlice.DataLength - (prefix_bytes * 8); // DataLength is already in bits !
+
+                // Buffer destroyed in the beginning of the function
+                vaSts = vaCreateBuffer(m_vaDisplay,
+                        m_vaContextEncode,
+                        VAEncPackedHeaderParameterBufferType,
+                        sizeof(packed_header_param_buffer),
+                        1,
+                        &packed_header_param_buffer,
+                        &m_packedSliceHeaderBufferId[i]);
+                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+                // Buffer destroyed in the beginning of the function
+                vaSts = vaCreateBuffer(m_vaDisplay,
+                                    m_vaContextEncode,
+                                    VAEncPackedHeaderDataBufferType,
+                                    (packedSlice.DataLength + 7) / 8 - prefix_bytes, 1, packedSlice.pData + prefix_bytes,
+                                    &m_packedSliceBufferId[i]);
+                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+                configBuffers.push_back(m_packedSliceHeaderBufferId[i]);
+                configBuffers.push_back(m_packedSliceBufferId[i]);
             }
         }
     }

@@ -24,14 +24,6 @@
 #include "hevcehw_disp.h"
 #include "hevcehw_base.h"
 
-#include "hevcehw_base_lin.h"
-namespace HEVCEHWDisp
-{
-    namespace SKL { using namespace HEVCEHW::Linux::Base; };
-    namespace ICL { using namespace HEVCEHW::Linux::Base; };
-};
-
-
 #include "hevcehw_g12_lin.h"
 namespace HEVCEHWDisp
 {
@@ -52,21 +44,17 @@ static ImplBase* CreateSpecific(
 {
     if (HW == MFX_HW_DG1)
         return new HEVCEHWDisp::DG1::MFXVideoENCODEH265_HW(core, status, mode);
-    if (HW >= MFX_HW_TGL_LP)
-        return new HEVCEHWDisp::TGL::MFXVideoENCODEH265_HW(core, status, mode);
-    if (HW >= MFX_HW_ICL)
-        return new HEVCEHWDisp::ICL::MFXVideoENCODEH265_HW(core, status, mode);
-    return new HEVCEHWDisp::SKL::MFXVideoENCODEH265_HW(core, status, mode);
+
+    return new HEVCEHWDisp::TGL::MFXVideoENCODEH265_HW(core, status, mode);
 }
 
 VideoENCODE* Create(
     VideoCORE& core
-    , mfxStatus& status
-    , bool /*bFEI*/)
+    , mfxStatus& status)
 {
     auto hw = core.GetHWType();
 
-    if (hw < MFX_HW_SCL)
+    if (hw < MFX_HW_TGL_LP)
     {
         status = MFX_ERR_UNSUPPORTED;
         return nullptr;
@@ -80,14 +68,13 @@ VideoENCODE* Create(
 mfxStatus QueryIOSurf(
     VideoCORE *core
     , mfxVideoParam *par
-    , mfxFrameAllocRequest *request
-    , bool bFEI)
+    , mfxFrameAllocRequest *request)
 {
     MFX_CHECK_NULL_PTR3(core, par, request);
 
     auto hw = core->GetHWType();
 
-    if (hw < MFX_HW_SCL)
+    if (hw < MFX_HW_TGL_LP)
         return MFX_ERR_UNSUPPORTED;
 
     mfxStatus sts = MFX_ERR_NONE;
@@ -96,7 +83,7 @@ mfxStatus QueryIOSurf(
     MFX_CHECK_STS(sts);
     MFX_CHECK(impl, MFX_ERR_UNKNOWN);
 
-    impl.reset(impl.release()->ApplyMode(bFEI * IMPL_MODE_FEI));
+    impl.reset(impl.release()->ApplyMode(IMPL_MODE_DEFAULT));
     MFX_CHECK(impl, MFX_ERR_UNKNOWN);
 
     return impl->InternalQueryIOSurf(*core, *par, *request);
@@ -105,14 +92,13 @@ mfxStatus QueryIOSurf(
 mfxStatus Query(
     VideoCORE *core
     , mfxVideoParam *in
-    , mfxVideoParam *out
-    , bool bFEI)
+    , mfxVideoParam *out)
 {
     MFX_CHECK_NULL_PTR2(core, out);
 
     auto hw = core->GetHWType();
 
-    if (hw < MFX_HW_SCL)
+    if (hw < MFX_HW_TGL_LP)
         return MFX_ERR_UNSUPPORTED;
 
     mfxStatus sts = MFX_ERR_NONE;
@@ -121,7 +107,7 @@ mfxStatus Query(
     MFX_CHECK_STS(sts);
     MFX_CHECK(impl, MFX_ERR_UNKNOWN);
 
-    impl.reset(impl.release()->ApplyMode(bFEI * IMPL_MODE_FEI));
+    impl.reset(impl.release()->ApplyMode(IMPL_MODE_DEFAULT));
     MFX_CHECK(impl, MFX_ERR_UNKNOWN);
 
     return impl->InternalQuery(*core, in, *out);
@@ -134,7 +120,7 @@ mfxStatus QueryImplsDescription(
 {
     auto hw = core.GetHWType();
 
-    if (hw < MFX_HW_SCL)
+    if (hw < MFX_HW_TGL_LP)
         return MFX_ERR_UNSUPPORTED;
 
     mfxStatus sts = MFX_ERR_NONE;

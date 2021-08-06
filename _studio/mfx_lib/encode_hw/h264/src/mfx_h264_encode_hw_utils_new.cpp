@@ -982,42 +982,6 @@ void MfxHwH264Encode::ModifyRefPicLists(
                     std::rotate(++begin, ltr, ltr + 1);
             }
 
-            // as driver have fixed arbitrary reference field polarity support starting BDW, so no need
-            // to WA to adjust the reflist order
-            bool isHwSupportArbiRef = (task.m_hwType >= MFX_HW_BDW);
-
-            if (isField && (isIPFieldPair == false) && (isHwSupportArbiRef == false))
-            {
-                // after modification of ref list L0 it could happen that 1st entry of the list has opposite parity to current field
-                // driver doesn't support this, and MSDK performs WA and places field of same parity to 1st place
-                mfxI8 idxOf1stSameParity = GetIdxOfFirstSameParity(list0, fieldId);
-                if (idxOf1stSameParity > 0)
-                {
-                    std::swap(list0[0], list0[idxOf1stSameParity]);
-                    list0.Resize(1);
-                }
-                else if (idxOf1stSameParity < 0)
-                {
-                    assert(!"No field of same parity for reference");
-                }
-
-                if (task.m_type[fieldId] & MFX_FRAMETYPE_B)
-                {
-                    // after modification of ref list L1 it could happen that 1st entry of the list has opposite parity to current field
-                    // driver doesn't support this, and MSDK performs WA and places field of same parity to 1st place
-                    idxOf1stSameParity = GetIdxOfFirstSameParity(list1, fieldId);
-                    if (idxOf1stSameParity > 0)
-                    {
-                        std::swap(list1[0], list1[idxOf1stSameParity]);
-                        list1.Resize(1);
-                    }
-                    else if (idxOf1stSameParity < 0)
-                    {
-                        assert(!"No field of same parity for reference");
-                    }
-                }
-            }
-
             // cut ref pic lists according to user's limitations
             if (numActiveRefL0 > 0 && list0.Size() > numActiveRefL0)
                 list0.Resize(numActiveRefL0);
@@ -3130,8 +3094,7 @@ void MfxHwH264Encode::CalcPredWeightTable(
 
         if (external)
         {
-            if ((task.m_hwType >= MFX_HW_KBL) &&
-                ((external->LumaLog2WeightDenom && external->LumaLog2WeightDenom != 6) ||
+            if (((external->LumaLog2WeightDenom && external->LumaLog2WeightDenom != 6) ||
                 (external->ChromaLog2WeightDenom && external->ChromaLog2WeightDenom != 6)))
             {
                 task.m_pwt[fid] = *external;

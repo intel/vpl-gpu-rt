@@ -191,21 +191,10 @@ mfxStatus LPLA_EncTool::InitEncParams(mfxEncToolsCtrl const & ctrl, mfxExtEncToo
 
     if (m_lookAheadScale)
     {
-        mfxPlatform platform;
-        m_mfxSession.QueryPlatform(&platform);
-
-        if (platform.CodeName < MFX_PLATFORM_TIGERLAKE)
-        {
-            m_encParams.mfx.FrameInfo.CropW = m_encParams.mfx.FrameInfo.Width = (crW >> m_lookAheadScale) & ~0xF;
-            m_encParams.mfx.FrameInfo.CropH = m_encParams.mfx.FrameInfo.Height = (crH >> m_lookAheadScale) & ~0xF;
-        }
-        else
-        {
-            m_encParams.mfx.FrameInfo.CropW = (crW >> m_lookAheadScale);
-            m_encParams.mfx.FrameInfo.CropH = (crH >> m_lookAheadScale);
-            m_encParams.mfx.FrameInfo.Width = (m_encParams.mfx.FrameInfo.CropW + 15) & ~0xF;
-            m_encParams.mfx.FrameInfo.Height = (m_encParams.mfx.FrameInfo.CropH + 15) & ~0xF;
-        }
+        m_encParams.mfx.FrameInfo.CropW = (crW >> m_lookAheadScale);
+        m_encParams.mfx.FrameInfo.CropH = (crH >> m_lookAheadScale);
+        m_encParams.mfx.FrameInfo.Width = (m_encParams.mfx.FrameInfo.CropW + 15) & ~0xF;
+        m_encParams.mfx.FrameInfo.Height = (m_encParams.mfx.FrameInfo.CropH + 15) & ~0xF;
     }
 
     return sts;

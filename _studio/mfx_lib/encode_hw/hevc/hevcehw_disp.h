@@ -29,20 +29,17 @@ namespace HEVCEHW
 {
     VideoENCODE* Create(
         VideoCORE& core
-        , mfxStatus& status
-        , bool bFEI = false);
+        , mfxStatus& status);
 
     mfxStatus QueryIOSurf(
         VideoCORE *core
         , mfxVideoParam *par
-        , mfxFrameAllocRequest *request
-        , bool bFEI = false);
+        , mfxFrameAllocRequest *request);
 
     mfxStatus Query(
         VideoCORE *core
         , mfxVideoParam *in
-        , mfxVideoParam *out
-        , bool bFEI = false);
+        , mfxVideoParam *out);
 
     mfxStatus QueryImplsDescription(
         VideoCORE& core

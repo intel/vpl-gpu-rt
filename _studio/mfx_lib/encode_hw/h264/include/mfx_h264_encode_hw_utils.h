@@ -75,10 +75,7 @@ inline constexpr
 bool hasSupportVME(eMFXHWType platform)
 {
     return
-           (platform <= MFX_HW_ADL_P
-        &&  platform != MFX_HW_JSL
-        &&  platform != MFX_HW_EHL
-        );
+           (platform <= MFX_HW_ADL_P);
 }
 
 #define MFX_H264ENC_HW_TASK_TIMEOUT 2000
@@ -481,8 +478,7 @@ namespace MfxHwH264Encode
         mfxFrameSurface1 *        surface,
         mfxBitstream *            bs,
         bool                      isExternalFrameAllocator,
-        MFX_ENCODE_CAPS const &   caps,
-        eMFXHWType                hwType = MFX_HW_UNKNOWN);
+        MFX_ENCODE_CAPS const &   caps);
 
     template<typename T> void Clear(std::vector<T> & v)
     {
@@ -3170,7 +3166,6 @@ private:
 
         eMFXHWType  m_currentPlatform;
         eMFXVAType  m_currentVaType;
-        bool        m_useWAForHighBitrates;
         bool        m_isENCPAK;
         bool        m_resetBRC;
 
@@ -3464,7 +3459,6 @@ private:
         std::vector<mfxU8>          m_sysMemBits;
         std::vector<BitstreamDesc>  m_bitsDesc;
         eMFXHWType m_currentPlatform;
-        bool m_useWAForHighBitrates; // w/a for SNB/IBV issue with HRD at high bitrates
 // MVC BD {
         std::vector<mfxU16> m_submittedPicStructs[2];
 // MVC BD }

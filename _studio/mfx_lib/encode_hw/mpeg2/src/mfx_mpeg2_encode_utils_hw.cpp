@@ -1127,7 +1127,7 @@ namespace MPEG2EncoderHW
     {
         memset (&m_VideoParamsEx, 0, sizeof(m_VideoParamsEx));
     }
-    mfxStatus ControllerBase::Reset(mfxVideoParam *par, bool bAllowRawFrames)
+    mfxStatus ControllerBase::Reset(mfxVideoParam *par)
     {
         mfxStatus sts = MFX_ERR_NONE;
 
@@ -1460,9 +1460,7 @@ namespace MPEG2EncoderHW
             MFX_CHECK_STS(sts);
         }
 
-        m_VideoParamsEx.bRawFrames = bAllowRawFrames
-            && (m_pCore->GetHWType() <= MFX_HW_IVB)
-            && (m_VideoParamsEx.mfxVideoParams.mfx.TargetUsage > 5);
+        m_VideoParamsEx.bRawFrames = false;
 
         m_VideoParamsEx.mfxVideoParams.mfx.NumSlice = (mfxU16)((m_VideoParamsEx.mfxVideoParams.mfx.FrameInfo.Height)>>4);
 
@@ -1959,13 +1957,13 @@ namespace MPEG2EncoderHW
             if (m_pBRC == NULL)
             {
                 m_pBRC = new UMC::MPEG2BRC;
-                ret = m_pBRC->Init(&brcParams,m_pCore->GetHWType() < MFX_HW_HSW || m_pCore->GetHWType()==MFX_HW_VLV);
+                ret = m_pBRC->Init(&brcParams, 0);
                 MFX_CHECK_UMC_STS (ret);
             }
             else
             {
                 m_pBRC->Close();
-                ret = m_pBRC->Init(&brcParams, m_pCore->GetHWType() < MFX_HW_HSW || m_pCore->GetHWType()==MFX_HW_VLV);
+                ret = m_pBRC->Init(&brcParams, 0);
                 MFX_CHECK_UMC_STS (ret);
             }
 

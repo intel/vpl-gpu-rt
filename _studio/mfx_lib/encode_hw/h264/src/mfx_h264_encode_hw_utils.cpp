@@ -2952,14 +2952,10 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
     mfxFrameSurface1 *        surface,
     mfxBitstream *            bs,
     bool                      isExternalFrameAllocator,
-    MFX_ENCODE_CAPS const &   caps,
-    eMFXHWType                hwType)
+    MFX_ENCODE_CAPS const &   caps)
 {
     mfxStatus checkSts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR1(bs);
-
-    // arbitrary reference field polarity is supported starting BDW
-    bool isHwSupportArbRef =  (hwType >= MFX_HW_BDW);
 
     if(IsOn(video.mfx.LowPower) && ctrl){
         //LowPower can't encode low QPs
@@ -3012,7 +3008,7 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
             MFX_CHECK(
                 firstFieldType == secondFieldType ||
                 (firstFieldType == MFX_FRAMETYPE_I && secondFieldType == MFX_FRAMETYPE_P) ||
-                (firstFieldType == MFX_FRAMETYPE_P && secondFieldType == MFX_FRAMETYPE_I && isHwSupportArbRef),
+                (firstFieldType == MFX_FRAMETYPE_P && secondFieldType == MFX_FRAMETYPE_I),
                 MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
@@ -3026,7 +3022,7 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
                 type   == (MFX_FRAMETYPE_I)                     ||
                 type   == (MFX_FRAMETYPE_I | MFX_FRAMETYPE_xI)  ||
                 type   == (MFX_FRAMETYPE_I | MFX_FRAMETYPE_xP)  ||
-                ((type == (MFX_FRAMETYPE_P | MFX_FRAMETYPE_xI)) && isHwSupportArbRef),
+                ((type == (MFX_FRAMETYPE_P | MFX_FRAMETYPE_xI))),
                 MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
@@ -3042,7 +3038,7 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
         // Check Runtime extension buffers if not buffered frames processing
         if (ctrl != 0 && ctrl->NumExtParam)
         {
-            checkSts = CheckRunTimeExtBuffers(video, ctrl, surface, bs, caps, hwType);
+            checkSts = CheckRunTimeExtBuffers(video, ctrl, surface, bs, caps);
             if (checkSts < MFX_ERR_NONE) { return checkSts; }
         }
 

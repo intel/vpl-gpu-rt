@@ -110,7 +110,8 @@ public:
         Defaults::TChain<mfxU16>::TExt
         , const Defaults::Param& par)
     {
-        return mfxU16((2 - (par.hw >= MFX_HW_CNL)) * 8);
+        (void)par;
+        return mfxU16(8);
     }
 
     static mfxU16 CodedPicWidth(
@@ -657,10 +658,8 @@ public:
     {
         mfxU16 tu = par.mvp.mfx.TargetUsage;
         CheckRangeOrSetDefault<mfxU16>(tu, 1, 7, 4);
-        bool bBase  = (par.hw < MFX_HW_CNL);
         bool bLP    = IsOn(par.mvp.mfx.LowPower);
-        bool bTU7   = (tu == 7);
-        --tu;
+         --tu;
 
         static const mfxU16 nRefs[2][2][7] =
         {
@@ -674,12 +673,8 @@ public:
             }
         };
 
-        mfxU16 nRefL0 = mfxU16(
-            bBase * (par.caps.MaxNum_Reference0 * !bTU7 + bTU7)
-            + !bBase * nRefs[bLP][0][tu]);
-        mfxU16 nRefL1 = mfxU16(
-            bBase * (par.caps.MaxNum_Reference1 * !bTU7 + bTU7)
-            + !bBase * nRefs[bLP][1][tu]);
+        mfxU16 nRefL0 = mfxU16(nRefs[bLP][0][tu]);
+        mfxU16 nRefL1 = mfxU16(nRefs[bLP][1][tu]);
 
         mfxU16 numRefFrame = par.mvp.mfx.NumRefFrame + !par.mvp.mfx.NumRefFrame * 16;
 
@@ -868,8 +863,8 @@ public:
             (pCO3->TargetChromaFormatPlus1);
 
         bool bLowPower = IsOn(par.mvp.mfx.LowPower);
-        mfxU16 BitDepth = 8 * (par.hw < MFX_HW_KBL || par.base.GetProfile(par) == MFX_PROFILE_HEVC_MAIN);
-        mfxU16 ChromaFormat = MFX_CHROMAFORMAT_YUV420 * (par.hw < MFX_HW_ICL);
+        mfxU16 BitDepth = 8 * (par.base.GetProfile(par) == MFX_PROFILE_HEVC_MAIN);
+        mfxU16 ChromaFormat = 0;
 
         auto mvpCopy = par.mvp;
         mvpCopy.NumExtParam = 0;
@@ -941,8 +936,8 @@ public:
             return pHEVC->LCUSize;
         }
 
-        bool   bForce64   = par.hw >= MFX_HW_CNL && IsOn(par.mvp.mfx.LowPower);
-        bool   bMaxByCaps = par.hw >= MFX_HW_CNL && !IsOn(par.mvp.mfx.LowPower);
+        bool   bForce64   = IsOn(par.mvp.mfx.LowPower);
+        bool   bMaxByCaps = !IsOn(par.mvp.mfx.LowPower);
         bool   bForce32   = !bForce64 && !bMaxByCaps;
         mfxU16 LCUSize    =
             bForce64 * 64
@@ -1467,17 +1462,12 @@ public:
         , const mfxVideoParam& par
         , eMFXHWType hw)
     {
+        (void)hw;
         if (!Check<mfxU16, MFX_CODINGOPTION_ON, MFX_CODINGOPTION_OFF>(par.mfx.LowPower))
             return par.mfx.LowPower;
 
         auto fcc = par.mfx.FrameInfo.FourCC;
-        bool bOn =
-            ((hw == MFX_HW_CNL
-              && par.mfx.TargetUsage >= 6
-              && par.mfx.GopRefDist < 2) ||
-             (hw >= MFX_HW_ICL &&
-              (fcc == MFX_FOURCC_AYUV ||
-                  fcc == MFX_FOURCC_Y410)));
+        bool bOn = fcc == MFX_FOURCC_AYUV || fcc == MFX_FOURCC_Y410;
 
         return mfxU16(
             bOn * MFX_CODINGOPTION_ON
@@ -1713,8 +1703,7 @@ public:
         nSlice = mfx::clamp(nSlice, minSlice, maxSlice);
 
         bool bHardcodeSliceStructureRowSlice =
-            defPar.hw >= MFX_HW_ICL
-            && IsOn(defPar.mvp.mfx.LowPower)
+            IsOn(defPar.mvp.mfx.LowPower)
             && nTile == 1;
 
         SliceStructure =
@@ -1909,7 +1898,6 @@ public:
         const mfxExtCodingOption&   CO        = ExtBuffer::Get(defPar.mvp);
         const mfxExtCodingOption2&  CO2       = ExtBuffer::Get(defPar.mvp);
         const mfxExtCodingOption3&  CO3       = ExtBuffer::Get(defPar.mvp);
-        auto  hw  = defPar.hw;
         auto& mfx = defPar.mvp.mfx;
 
         sps = Base::SPS{};
@@ -1936,9 +1924,8 @@ public:
         sps.max_transform_hierarchy_depth_intra      = 2;
         sps.scaling_list_enabled_flag                = 0;
 
-        bool bHwCNLPlus = (hw >= MFX_HW_CNL);
-        sps.amp_enabled_flag                    = bHwCNLPlus;
-        sps.sample_adaptive_offset_enabled_flag = bHwCNLPlus && !(HEVCParam.SampleAdaptiveOffset & MFX_SAO_DISABLE);
+        sps.amp_enabled_flag                    = true;
+        sps.sample_adaptive_offset_enabled_flag = !(HEVCParam.SampleAdaptiveOffset & MFX_SAO_DISABLE);
         sps.pcm_enabled_flag                    = 0;
         sps.long_term_ref_pics_present_flag     = 1;
         sps.temporal_mvp_enabled_flag           = 1;
@@ -1946,8 +1933,8 @@ public:
 
         // QpModulation support
         bool  isBPyramid = (CO2.BRefType == MFX_B_REF_PYRAMID);
-        sps.low_delay_mode = bHwCNLPlus && (mfx.GopRefDist == 1);
-        sps.hierarchical_flag = bHwCNLPlus && isBPyramid && ((mfx.GopRefDist == 4) || (mfx.GopRefDist == 8));
+        sps.low_delay_mode = (mfx.GopRefDist == 1);
+        sps.hierarchical_flag = isBPyramid && ((mfx.GopRefDist == 4) || (mfx.GopRefDist == 8));
 
         auto&  fi            = mfx.FrameInfo;
         mfxU16 SubWidthC[4]  = {1,2,2,1};
@@ -2030,7 +2017,6 @@ public:
         , Base::PPS& pps)
     {
         auto& par = defPar.mvp;
-        auto  hw = defPar.hw;
         const mfxExtHEVCParam& HEVCParam = ExtBuffer::Get(par);
         const mfxExtHEVCTiles& HEVCTiles = ExtBuffer::Get(par);
         const mfxExtCodingOption2& CO2 = ExtBuffer::Get(par);
@@ -2056,7 +2042,7 @@ public:
         pps.num_ref_idx_l1_default_active_minus1  = (par.mfx.GopRefDist <= 2) ? (maxRefP - 1) : (maxRefBL1 - 1);
         pps.init_qp_minus26                       = 0;
         pps.constrained_intra_pred_flag           = 0;
-        pps.transform_skip_enabled_flag = (hw >= MFX_HW_CNL) && IsOn(CO3.TransformSkip);
+        pps.transform_skip_enabled_flag = IsOn(CO3.TransformSkip);
 
         pps.cu_qp_delta_enabled_flag = !(IsOff(CO3.EnableMBQP) && bCQP) && !bSWBRC;
         pps.cu_qp_delta_enabled_flag |= (IsOn(par.mfx.LowPower) || CO2.MaxSliceSize);
@@ -2104,7 +2090,7 @@ public:
             pps.loop_filter_across_tiles_enabled_flag = 1;
         }
 
-        pps.loop_filter_across_slices_enabled_flag = (hw >= MFX_HW_CNL);
+        pps.loop_filter_across_slices_enabled_flag = true;
 
         pps.deblocking_filter_control_present_flag  = 1;
         pps.deblocking_filter_disabled_flag         = !!CO2.DisableDeblockingIdc;
@@ -2326,14 +2312,14 @@ public:
         , const Defaults::Param& dpar
         , mfxVideoParam& par)
     {
+        (void)dpar;
         mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
 
         MFX_CHECK(pCO3, MFX_ERR_NONE);
 
         mfxU32 changed = 0;
         bool bAllowed =
-            (dpar.hw >= MFX_HW_ICL)
-            && !Check<mfxU16
+            !Check<mfxU16
             , MFX_RATECONTROL_VBR
             , MFX_RATECONTROL_QVBR
             , MFX_RATECONTROL_VCM>
@@ -2448,9 +2434,6 @@ public:
         mfxU32 changed = 0;
         mfxExtHEVCParam* pHEVC = ExtBuffer::Get(par);
 
-        changed += (pHEVC && defPar.hw < MFX_HW_ICL)
-            && CheckOrZero<mfxU64, 0>(pHEVC->GeneralConstraintFlags);
-
         mfxU16 ChromaFormat = defPar.base.GetTargetChromaFormat(defPar) - 1;
         mfxU16 BitDepth     = defPar.base.GetTargetBitDepthLuma(defPar);
         mfxU64 REXTConstr   = 0;
@@ -2461,8 +2444,7 @@ public:
         bool bValid =
             !par.mfx.CodecProfile
             || (par.mfx.CodecProfile == MFX_PROFILE_HEVC_REXT
-                && !((defPar.hw < MFX_HW_ICL)
-                    || ((REXTConstr & MFX_HEVC_CONSTR_REXT_MAX_8BIT) && BitDepth > 8)
+                && !(((REXTConstr & MFX_HEVC_CONSTR_REXT_MAX_8BIT) && BitDepth > 8)
                     || ((REXTConstr & MFX_HEVC_CONSTR_REXT_MAX_10BIT) && BitDepth > 10)
                     || ((REXTConstr & MFX_HEVC_CONSTR_REXT_MAX_12BIT) && BitDepth > 12)
                     || ((REXTConstr & MFX_HEVC_CONSTR_REXT_MAX_420CHROMA) && ChromaFormat > MFX_CHROMAFORMAT_YUV420)
@@ -2482,7 +2464,7 @@ public:
         return MFX_ERR_NONE;
     }
 
-    static const std::map<mfxU32, std::array<mfxU32, 3>> FourCCPar;
+    static const std::map<mfxU32, std::array<mfxU32, 2>> FourCCPar;
 
     static mfxStatus FourCC(
         Defaults::TCheckAndFix::TExt
@@ -2495,7 +2477,6 @@ public:
         bool  bInvalid  = (it == FourCCPar.end());
         bool  bRGB      = (FourCC == MFX_FOURCC_A2RGB10 || FourCC == MFX_FOURCC_RGB4);
 
-        bInvalid = bInvalid || (it->second[2] > mfxU32(dpar.hw));
         bInvalid = bInvalid || (it->second[1] > BdMap[dpar.caps.MaxEncodedBitDepth & 3]);
         bInvalid = bInvalid || (bRGB && !dpar.caps.RGBEncodingSupport);
 
@@ -2706,31 +2687,14 @@ public:
         MFX_CHECK(pHEVC, MFX_ERR_NONE);
 
         mfxU32 changed = 0;
-        mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
         mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
 
-        /* On Gen10 VDEnc, this flag should be set to 0 when SliceSizeControl flag is on.
-        On Gen10/CNL both VDEnc and VME, this flag should be set to 0 for 10-bit encoding.
-        On CNL+, this flag should be set to 0 for max LCU size is 16x16 */
+        /* This flag should be set to 0 for max LCU size is 16x16 */
         bool bSAOSupported =
-            !(     defPar.hw < MFX_HW_CNL
-                || (par.mfx.TargetUsage == MFX_TARGETUSAGE_BEST_SPEED && defPar.hw == MFX_HW_CNL)
-                || (pCO3 && pCO3->WeightedPred == MFX_WEIGHTED_PRED_EXPLICIT)
+            !((pCO3 && pCO3->WeightedPred == MFX_WEIGHTED_PRED_EXPLICIT)
                 || (pCO3 && pCO3->WeightedBiPred == MFX_WEIGHTED_PRED_EXPLICIT)
                 || defPar.base.GetLCUSize(defPar) == 16
-                || (defPar.hw == MFX_HW_CNL
-                    && (   (defPar.base.GetTargetBitDepthLuma(defPar) == 10)
-                        || (IsOn(par.mfx.LowPower) && pCO2 && pCO2->MaxSliceSize)
-                       )
-                   )
             );
-
-        //On Gen10 VDEnc SAO for only Luma/Chroma in CQP mode isn't supported by driver until real customer usage
-        //For TU 1 and TU 4 SAO isn't supported due to HuC restrictions, for TU 7 SAO isn't supported at all
-        bSAOSupported &= !(
-            defPar.hw == MFX_HW_CNL
-            && par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
-            && IsOn(par.mfx.LowPower));
 
         changed += CheckOrZero<mfxU16>
             (pHEVC->SampleAdaptiveOffset
@@ -2761,13 +2725,10 @@ public:
         mfxU16 maxBL0 = std::min<mfxU16>(defPar.caps.MaxNum_Reference0, maxDPB - 1);
         mfxU16 maxBL1 = std::min<mfxU16>(defPar.caps.MaxNum_Reference1, maxDPB - 1);
 
-        if (defPar.hw >= MFX_HW_CNL)
-        {
-            auto maxRefByTu = defPar.base.GetMaxNumRef(defPar);
-            maxP   = std::min<mfxU16>(maxP,   std::get<P>(maxRefByTu));
-            maxBL0 = std::min<mfxU16>(maxBL0, std::get<BL0>(maxRefByTu));
-            maxBL1 = std::min<mfxU16>(maxBL1, std::get<BL1>(maxRefByTu));
-        }
+        auto maxRefByTu = defPar.base.GetMaxNumRef(defPar);
+        maxP   = std::min<mfxU16>(maxP,   std::get<P>(maxRefByTu));
+        maxBL0 = std::min<mfxU16>(maxBL0, std::get<BL0>(maxRefByTu));
+        maxBL1 = std::min<mfxU16>(maxBL1, std::get<BL1>(maxRefByTu));
 
         for (mfxU16 i = 0; i < 8; i++)
         {
@@ -2851,18 +2812,18 @@ public:
 
 };
 
-const std::map<mfxU32, std::array<mfxU32, 3>> CheckAndFix::FourCCPar =
+const std::map<mfxU32, std::array<mfxU32, 2>> CheckAndFix::FourCCPar =
 {
-    {mfxU32(MFX_FOURCC_AYUV),       {mfxU32(MFX_CHROMAFORMAT_YUV444), 8,  mfxU32(MFX_HW_ICL) }}
-    , {mfxU32(MFX_FOURCC_RGB4),     {mfxU32(MFX_CHROMAFORMAT_YUV444), 8,  mfxU32(MFX_HW_SCL) }}
-    , {mfxU32(MFX_FOURCC_A2RGB10),  {mfxU32(MFX_CHROMAFORMAT_YUV444), 10, mfxU32(MFX_HW_ICL) }}
-    , {mfxU32(MFX_FOURCC_Y410),     {mfxU32(MFX_CHROMAFORMAT_YUV444), 10, mfxU32(MFX_HW_ICL) }}
-    , {mfxU32(MFX_FOURCC_P210),     {mfxU32(MFX_CHROMAFORMAT_YUV422), 10, mfxU32(MFX_HW_ICL) }}
-    , {mfxU32(MFX_FOURCC_Y210),     {mfxU32(MFX_CHROMAFORMAT_YUV422), 10, mfxU32(MFX_HW_ICL) }}
-    , {mfxU32(MFX_FOURCC_YUY2),     {mfxU32(MFX_CHROMAFORMAT_YUV422), 8,  mfxU32(MFX_HW_ICL) }}
-    , {mfxU32(MFX_FOURCC_P010),     {mfxU32(MFX_CHROMAFORMAT_YUV420), 10, mfxU32(MFX_HW_KBL) }}
-    , {mfxU32(MFX_FOURCC_NV12),     {mfxU32(MFX_CHROMAFORMAT_YUV420), 8,  mfxU32(MFX_HW_SCL) }}
-    , {mfxU32(MFX_FOURCC_BGR4),     {mfxU32(MFX_CHROMAFORMAT_YUV444), 8,  mfxU32(MFX_HW_TGL_LP) }}
+    {mfxU32(MFX_FOURCC_AYUV),       {mfxU32(MFX_CHROMAFORMAT_YUV444), 8 }}
+    , {mfxU32(MFX_FOURCC_RGB4),     {mfxU32(MFX_CHROMAFORMAT_YUV444), 8 }}
+    , {mfxU32(MFX_FOURCC_A2RGB10),  {mfxU32(MFX_CHROMAFORMAT_YUV444), 10 }}
+    , {mfxU32(MFX_FOURCC_Y410),     {mfxU32(MFX_CHROMAFORMAT_YUV444), 10 }}
+    , {mfxU32(MFX_FOURCC_P210),     {mfxU32(MFX_CHROMAFORMAT_YUV422), 10, }}
+    , {mfxU32(MFX_FOURCC_Y210),     {mfxU32(MFX_CHROMAFORMAT_YUV422), 10, }}
+    , {mfxU32(MFX_FOURCC_YUY2),     {mfxU32(MFX_CHROMAFORMAT_YUV422), 8, }}
+    , {mfxU32(MFX_FOURCC_P010),     {mfxU32(MFX_CHROMAFORMAT_YUV420), 10, }}
+    , {mfxU32(MFX_FOURCC_NV12),     {mfxU32(MFX_CHROMAFORMAT_YUV420), 8, }}
+    , {mfxU32(MFX_FOURCC_BGR4),     {mfxU32(MFX_CHROMAFORMAT_YUV444), 8, }}
 };
 
 void Legacy::PushDefaults(Defaults& df)

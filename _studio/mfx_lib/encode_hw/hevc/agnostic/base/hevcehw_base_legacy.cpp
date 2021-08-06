@@ -615,9 +615,9 @@ void Legacy::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
         auto& defaults = Glob::Defaults::Get(strg);
         EncodeCapsHevc fakeCaps;
         Defaults::Param defPar(out, fakeCaps, core.GetHWType(), defaults);
-        fakeCaps.MaxEncodedBitDepth = (defPar.hw >= MFX_HW_KBL);
-        fakeCaps.YUV422ReconSupport = (defPar.hw >= MFX_HW_ICL) && !IsOn(out.mfx.LowPower);
-        fakeCaps.YUV444ReconSupport = (defPar.hw >= MFX_HW_ICL);
+        fakeCaps.MaxEncodedBitDepth = true;
+        fakeCaps.YUV422ReconSupport = !IsOn(out.mfx.LowPower);
+        fakeCaps.YUV444ReconSupport = true;
 
         MFX_CHECK(defaults.GetGUID(defPar, *pGUID), MFX_ERR_NONE);
         strg.Insert(Glob::GUID::Key, std::move(pGUID));
@@ -2167,7 +2167,6 @@ static void SetTaskQpY(
     , const SPS& sps
     , const Defaults::Param& dflts)
 {
-    const auto& hw = dflts.hw;
     const mfxExtCodingOption2& CO2 = ExtBuffer::Get(par);
     const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
     const mfxU8 maxQP = mfxU8(51 + 6 * (CO3.TargetBitDepthLuma - 8));
@@ -2220,7 +2219,7 @@ static void SetTaskQpY(
     SetIf(task.QpY, !!task.ctrl.QP, (mfxI8)task.ctrl.QP);
 
     task.QpY -= 6 * sps.bit_depth_luma_minus8;
-    task.QpY &= 0xff * !(task.QpY < 0 && (IsOn(par.mfx.LowPower) || (hw >= MFX_HW_KBL && hw <= MFX_HW_CNL)));
+    task.QpY &= 0xff * !(task.QpY < 0 && IsOn(par.mfx.LowPower));
 }
 
 void Legacy::ConfigureTask(
@@ -3170,20 +3169,13 @@ void Legacy::SetSTRPS(
 
 mfxStatus Legacy::CheckSPS(const SPS& sps, const ENCODE_CAPS_HEVC& caps, eMFXHWType hw)
 {
+    (void)hw;
     MFX_CHECK_COND(
            sps.log2_min_luma_coding_block_size_minus3 == 0
         && sps.separate_colour_plane_flag == 0
         && sps.pcm_enabled_flag == 0);
 
-    if (hw >= MFX_HW_CNL)
-    {
-        MFX_CHECK_COND(sps.amp_enabled_flag == 1);
-    }
-    else
-    {
-        MFX_CHECK_COND(sps.amp_enabled_flag == 0);
-        MFX_CHECK_COND(sps.sample_adaptive_offset_enabled_flag == 0);
-    }
+    MFX_CHECK_COND(sps.amp_enabled_flag == 1);
 
     MFX_CHECK_COND(
       !(   (!caps.YUV444ReconSupport && (sps.chroma_format_idc == 3))
@@ -3400,7 +3392,7 @@ void SetDefaultEsOptions(
 
     if (pCO3)
     {
-        SetDefault(pCO3->TransformSkip, mfxU16(MFX_CODINGOPTION_ON * (defPar.hw >= MFX_HW_ICL)));
+        SetDefault(pCO3->TransformSkip, mfxU16(MFX_CODINGOPTION_ON));
         SetDefault(pCO3->TransformSkip, mfxU16(MFX_CODINGOPTION_OFF));
         SetDefault(pCO3->EnableNalUnitType, Bool2CO(!!par.mfx.EncodedOrder));
     }
@@ -3557,6 +3549,7 @@ mfxStatus Legacy::CheckLevelConstraints(
 
 mfxStatus Legacy::CheckESPackParam(mfxVideoParam & par, eMFXHWType hw)
 {
+    (void)hw;
     mfxU32 changed = 0;
     mfxExtCodingOption*     pCO = ExtBuffer::Get(par);
     mfxExtCodingOption2*    pCO2 = ExtBuffer::Get(par);
@@ -3605,7 +3598,7 @@ mfxStatus Legacy::CheckESPackParam(mfxVideoParam & par, eMFXHWType hw)
             pCO3->TransformSkip
             , mfxU16(MFX_CODINGOPTION_UNKNOWN)
             , mfxU16(MFX_CODINGOPTION_OFF)
-            , mfxU16(MFX_CODINGOPTION_ON * (hw >= MFX_HW_CNL)));
+            , mfxU16(MFX_CODINGOPTION_ON));
 
         changed += CheckOrZero<mfxU16>(
             pCO3->EnableNalUnitType
@@ -4232,16 +4225,6 @@ mfxStatus Legacy::CheckTiles(
 
         changed += CheckMaxOrClip(pTile->NumTileColumns, maxCol);
         changed += CheckMaxOrClip(pTile->NumTileRows, maxRow);
-
-        // for ICL VDEnc only 1xN or Nx1 configurations are allowed for single pipe
-        // we ignore "Rows" condition
-        bool bForce1Row =
-            (defPar.hw == MFX_HW_ICL || defPar.hw == MFX_HW_ICL_LP)
-            && IsOn(par.mfx.LowPower)
-            && pTile->NumTileColumns > 1
-            && pTile->NumTileRows > 1;
-
-        changed += bForce1Row && CheckMaxOrClip(pTile->NumTileRows, 1);
     }
 
     MFX_CHECK(!CheckMaxOrClip(pTile->NumTileColumns, MaxTileColumns), MFX_ERR_UNSUPPORTED);

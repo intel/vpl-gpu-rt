@@ -50,8 +50,7 @@ void WeightPred::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         MFX_CHECK(pCO3, MFX_ERR_NONE);
 
         auto&  caps         = Glob::EncodeCaps::Get(global);
-        auto   hw           = Glob::VideoCore::Get(global).GetHWType();
-        bool   bFDSupported = !caps.NoWeightedPred && (hw >= MFX_HW_ICL);
+        bool   bFDSupported = !caps.NoWeightedPred;
         mfxU32 changed      = 0;
 
         changed += CheckOrZero<mfxU16>(

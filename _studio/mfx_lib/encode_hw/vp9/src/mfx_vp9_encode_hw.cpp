@@ -31,16 +31,13 @@ namespace MfxHwVP9Encode
 {
 bool CheckTriStateOption(mfxU16 & opt);
 
-void SetDefaultForLowpower(mfxU16 & lowpower, eMFXHWType platform)
+void SetDefaultForLowpower(mfxU16 & lowpower)
 {
     CheckTriStateOption(lowpower);
 
      if (lowpower == MFX_CODINGOPTION_UNKNOWN)
     {
-        if (platform >= MFX_HW_ICL)
-            lowpower = MFX_CODINGOPTION_ON;
-        else
-            lowpower = MFX_CODINGOPTION_OFF;
+        lowpower = MFX_CODINGOPTION_ON;
     }
 }
 
@@ -54,7 +51,7 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryImplsDescription(
     mfxVideoParam par = {};
     eMFXHWType platform = core.GetHWType();
     VP9MfxVideoParam tmp(par, platform);
-    SetDefaultForLowpower(tmp.mfx.LowPower, platform);
+    SetDefaultForLowpower(tmp.mfx.LowPower);
 
     const mfxU16 Profiles[] =
     {
@@ -222,7 +219,7 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par,
     VP9MfxVideoParam toValidate(*par, platform);
 
     SetDefaultsForProfileAndFrameInfo(toValidate);
-    SetDefaultForLowpower(toValidate.mfx.LowPower, platform);
+    SetDefaultForLowpower(toValidate.mfx.LowPower);
 
     // get HW caps from driver
     ENCODE_CAPS_VP9 caps = {};
@@ -255,7 +252,7 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par,
 }
 
 
-void SetReconInfo(VP9MfxVideoParam const &par, mfxFrameInfo &fi, eMFXHWType const &platform)
+void SetReconInfo(VP9MfxVideoParam const &par, mfxFrameInfo &fi)
 {
     mfxExtCodingOption3 opt3 = GetExtBufferRef(par);
     mfxU16 format = opt3.TargetChromaFormatPlus1 - 1;
@@ -290,20 +287,13 @@ void SetReconInfo(VP9MfxVideoParam const &par, mfxFrameInfo &fi, eMFXHWType cons
     }
     else if (format == MFX_CHROMAFORMAT_YUV420 && depth == BITDEPTH_10)
     {
-        if (platform >= MFX_HW_TGL_LP)
-        {
 #ifdef LINUX
-            fi.FourCC = MFX_FOURCC_P010;
+        fi.FourCC = MFX_FOURCC_P010;
 #else
-            fi.FourCC = MFX_FOURCC_NV12;
-            fi.Width  = mfx::align2_value(fi.Width, 32) * 2;
+        fi.FourCC = MFX_FOURCC_NV12;
+        fi.Width  = mfx::align2_value(fi.Width, 32) * 2;
 #endif // LINUX
-        }
-        else
-        {
-            std::ignore = platform;
-            fi.FourCC  = MFX_FOURCC_P010;
-        }
+
     }
     else if (format == MFX_CHROMAFORMAT_YUV420 && depth == BITDEPTH_8)
     {
@@ -379,7 +369,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
 
     // allocate and register surfaces for reconstructed frames
     request.NumFrameMin = request.NumFrameSuggested = (mfxU16)CalcNumSurfRecon(m_video);
-    SetReconInfo(m_video, request.Info, platform);
+    SetReconInfo(m_video, request.Info);
 
     //For MMCD encoder bind flag is required
     if (request.Info.FourCC == MFX_FOURCC_NV12)
@@ -553,28 +543,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
         m_frameOrderInRefStructure = 0;
         Zero(m_prevFrameParam);
         m_bStartIVFSequence = true;
-        //m_bStartIVFSequence = true;
-        // below commented code is to completely reset encoding pipeline
-        /*
-        // release all the reconstructed frames
-        ReleaseDpbFrames(m_pCore, m_dpb);
-        Zero(m_dpb);
-        // release all the tasks
-        for (std::list<Task>::iterator i = m_accepted.begin(); i != m_accepted.end(); i ++)
-        {
-            sts = FreeTask(m_pCore, *i);
-            MFX_CHECK_STS(sts);
-        }
-        for (std::list<Task>::iterator i = m_submitted.begin(); i != m_submitted.end(); i++)
-        {
-            sts = FreeTask(m_pCore, *i);
-            MFX_CHECK_STS(sts);
-        }
-        //m_accepted.resize(0);
-        //m_submitted.resize(0);
-        //m_free.resize(CalcNumTasks(m_video));
-        m_taskIdForDriver = 0;
-        */
     }
     else
     {
@@ -607,8 +575,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
         }
 
         // Tile switching is unsupported by driver for Gen11+
-        if (platform > MFX_HW_ICL_LP &&
-            (extParBefore.NumTileColumns > 1 || extParBefore.NumTileRows > 1) &&
+        if ((extParBefore.NumTileColumns > 1 || extParBefore.NumTileRows > 1) &&
             extParAfter.NumTileColumns == 1 && extParAfter.NumTileRows == 1)
         {
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);

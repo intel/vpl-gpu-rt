@@ -215,9 +215,8 @@ void SCC::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     Push(BLK_SetLowPowerDefault
         , [](const mfxVideoParam&, mfxVideoParam& par, StorageW& strg) -> mfxStatus
     {
-        bool bLowPower =
-            Glob::VideoCore::Get(strg).GetHWType() >= MFX_HW_TGL_LP
-            && par.mfx.CodecProfile == MFX_PROFILE_HEVC_SCC;
+        (void)strg;
+        bool bLowPower = par.mfx.CodecProfile == MFX_PROFILE_HEVC_SCC;
 
         SetDefault(par.mfx.LowPower, mfxU16(bLowPower * MFX_CODINGOPTION_ON));
 

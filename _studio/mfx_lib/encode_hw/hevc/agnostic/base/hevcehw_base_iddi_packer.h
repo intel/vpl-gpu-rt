@@ -56,16 +56,10 @@ protected:
     virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override = 0;
     virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override = 0;
 
-    void HardcodeCapsCommon(EncodeCapsHevc& caps, eMFXHWType hw, const mfxVideoParam& par)
+    void HardcodeCapsCommon(EncodeCapsHevc& caps, const mfxVideoParam& par)
     {
-        if (hw < MFX_HW_CNL)
-        {   // not set until CNL now
-            caps.LCUSizeSupported = 0b10; // 32x32 lcu is only supported
-            caps.BlockSize        = 0b10; // 32x32
-        }
-
         caps.SliceIPOnly        = IsOn(par.mfx.LowPower);
-        caps.msdk.PSliceSupport = !(IsOn(par.mfx.LowPower) || hw > MFX_HW_ICL_LP);
+        caps.msdk.PSliceSupport = false;
     }
 };
 

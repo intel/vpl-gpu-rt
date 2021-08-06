@@ -37,20 +37,18 @@ void VAPacker::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         , [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus
     {
         auto&       caps     = Glob::EncodeCaps::Get(strg);
-        eMFXHWType platform = Glob::VideoCore::Get(strg).GetHWType();
         auto        vaGUID   = DDI_VA::MapGUID(strg, Glob::GUID::Get(strg));
 
-        HardcodeCapsCommon(caps, platform, par);
+        HardcodeCapsCommon(caps, par);
 
-        bool bBase = (platform < MFX_HW_CNL);
         bool bLP   = (vaGUID.Entrypoint == VAEntrypointEncSliceLP);
 
         caps.LCUSizeSupported |=
-              (32 >> 4) * ( bBase || (!bBase && !bLP))
-            + (64 >> 4) * (!bBase);
+              (32 >> 4) * (!bLP)
+            + (64 >> 4);
 
         caps.BRCReset                   = 1; // no bitrate resolution control
-        caps.BlockSize                  = (platform >= MFX_HW_TGL_LP) ? 1 : 2;
+        caps.BlockSize                  = 1;
         caps.MbQpDataSupport            = 1;
         caps.TUSupport                  = 73;
         caps.ParallelBRC                = bLP ? 0 : 1;

@@ -898,20 +898,6 @@ namespace
         return mfxU8(std::max(log2MaxPoc, 4u) - 4);
     }
 
-    mfxU16 GetDefaultGopRefDist(mfxU32 targetUsage, eMFXHWType platform)
-    {
-        if(platform == MFX_HW_VLV){
-            const mfxU16 DEFAUILT_GOP_REF_DIST[8] = { 3, 3, 2, 2, 1, 1, 1 };
-            assert(targetUsage > 0 && targetUsage < 8);
-            return DEFAUILT_GOP_REF_DIST[targetUsage - 1];
-        }else{
-            return 3;
-        }
-        /*
-
-        */
-    }
-
     mfxU16 GetDefaultNumRefFrames(mfxU32 targetUsage, eMFXHWType platform)
     {
         mfxU16 const DEFAULT_BY_TU[][8] = {
@@ -926,16 +912,10 @@ namespace
                                         bool isLowPower,
                                         const mfxFrameInfo& info)
     {
-        if (platform <= MFX_HW_IVB || platform == MFX_HW_VLV)
-        {
-            return 1;
-        }
 
         constexpr mfxU16 DEFAULT_BY_TU[][8] = {
-            { 0, 8, 6, 4, 3, 2, 1, 1 }, // VME progressive < 4k or interlaced (platform <= MFX_HW_HSW_ULT)
-            { 0, 8, 6, 3, 3, 3, 1, 1 }, // VME progressive < 4k or interlaced (platform > MFX_HW_HSW_ULT)
-            { 0, 4, 4, 4, 3, 2, 1, 1 }, // VME progressive >= 4k (platform <= MFX_HW_HSW_ULT)
-            { 0, 4, 4, 3, 3, 3, 1, 1 }, // VME progressive >= 4k (platform > MFX_HW_HSW_ULT)
+            { 0, 8, 6, 3, 3, 3, 1, 1 }, // VME progressive < 4k or interlaced
+            { 0, 4, 4, 3, 3, 3, 1, 1 }, // VME progressive >= 4k
             { 0, 3, 3, 2, 2, 2, 1, 1 }  // VDEnc
         };
 
@@ -944,16 +924,16 @@ namespace
             if ((info.Width < 3840 && info.Height < 2160) ||
                 (info.PicStruct != MFX_PICSTRUCT_PROGRESSIVE))
             {
-                return DEFAULT_BY_TU[platform > MFX_HW_HSW_ULT ? 1 : 0][targetUsage];
+                return DEFAULT_BY_TU[0][targetUsage];
             }
             else //progressive >= 4K
             {
-                return DEFAULT_BY_TU[platform > MFX_HW_HSW_ULT ? 3 : 2][targetUsage];
+                return DEFAULT_BY_TU[1][targetUsage];
             }
         }
         else
         {
-            return DEFAULT_BY_TU[4][targetUsage];
+            return DEFAULT_BY_TU[2][targetUsage];
         }
     }
 
@@ -966,13 +946,12 @@ namespace
                                         eMFXHWType platform,
                                         bool isLowPower)
     {
-        if ((platform >= MFX_HW_HSW && platform != MFX_HW_VLV) && !isLowPower)
+        if (!isLowPower)
         {
             constexpr mfxU16 DEFAULT_BY_TU[][8] = {
-                { 0, 4, 4, 3, 2, 2, 1, 1 }, // platform <= MFX_HW_HSW_ULT
                 { 0, 4, 4, 2, 2, 2, 1, 1 }
             };
-            return DEFAULT_BY_TU[platform > MFX_HW_HSW_ULT ? 1 : 0][targetUsage];
+            return DEFAULT_BY_TU[0][targetUsage];
         }
         else
         {
@@ -986,12 +965,10 @@ namespace
     }
 
     mfxU16 GetMaxNumRefActiveBL1(mfxU32 targetUsage,
-                                     eMFXHWType platform,
                                      mfxU16 picStruct,
                                      bool isLowPower)
     {
-        if ((platform >= MFX_HW_HSW && platform != MFX_HW_VLV) &&
-            picStruct != MFX_PICSTRUCT_PROGRESSIVE && !isLowPower)
+        if (picStruct != MFX_PICSTRUCT_PROGRESSIVE && !isLowPower)
         {
             constexpr mfxU16 DEFAULT_BY_TU[] = { 0, 2, 2, 2, 2, 2, 1, 1 };
             return DEFAULT_BY_TU[targetUsage];
@@ -1008,10 +985,9 @@ namespace
     }
 
     mfxU16 GetDefaultIntraPredBlockSize(
-        MfxVideoParam const & par,
-        eMFXHWType            platform)
+        MfxVideoParam const & par)
     {
-        mfxU8 minTUForTransform8x8 = (platform <= MFX_HW_IVB || platform == MFX_HW_VLV) ? 4 : 7;
+        mfxU8 minTUForTransform8x8 = 7;
         return (IsAvcBaseProfile(par.mfx.CodecProfile)       ||
             par.mfx.CodecProfile == MFX_PROFILE_AVC_MAIN ||
             par.mfx.TargetUsage > minTUForTransform8x8)
@@ -1299,12 +1275,6 @@ mfxU8 MfxHwH264Encode::GetCabacInitIdc(mfxU32 targetUsage)
     //return CABAC_INIT_IDC_TABLE[targetUsage];
 }
 
-bool MfxHwH264Encode::IsLookAheadSupported(
-    MfxVideoParam const & /*video*/,
-    eMFXHWType            platform)
-{
-    return ((platform >= MFX_HW_HSW) && (platform != MFX_HW_VLV));
-}
 mfxU32 MfxHwH264Encode::GetPPyrSize(MfxVideoParam const & video, mfxU32 miniGopSize, bool bEncToolsLA)
 {
     mfxExtCodingOption3 const & extOpt3 = GetExtBufferRef(video);
@@ -2391,8 +2361,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             par.mfx.RateControlMethod = 0;
         }
 
-        if (IsOn(extOpt3->FadeDetection)
-            )
+        if (IsOn(extOpt3->FadeDetection))
         {
             unsupported = true;
             extOpt3->FadeDetection = 0;
@@ -3349,13 +3318,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         extDdi->CabacInitIdcPlus1 = 0;
     }
 
-    if (bIntRateControlLA(par.mfx.RateControlMethod) &&
-        !IsLookAheadSupported(par, platform))
-    {
-        unsupported = true;
-        par.mfx.RateControlMethod = 0;
-    }
-
     if (extOpt2->LookAheadDS > MFX_LOOKAHEAD_DS_4x) // invalid LookAheadDS
     {
         extOpt2->LookAheadDS = MFX_LOOKAHEAD_DS_UNKNOWN;
@@ -4148,12 +4110,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         extOpt2->IntRefType = 0;
         unsupported = true;
     }
-    if((extOpt2->IntRefType >= 2) &&
-        (platform < MFX_HW_BDW))
-    {
-        extOpt2->IntRefType = 0;
-        unsupported = true;
-    }
 
     if (!hasSupportVME(platform) &&
         (extOpt2->IntRefType > MFX_REFRESH_HORIZONTAL))
@@ -4446,18 +4402,15 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             changed = true;
         }
 
-        if (platform >= MFX_HW_KBL)
+        if (extPwt->LumaLog2WeightDenom && extPwt->LumaLog2WeightDenom != 6)
         {
-            if (extPwt->LumaLog2WeightDenom && extPwt->LumaLog2WeightDenom != 6)
-            {
-                extPwt->LumaLog2WeightDenom = 6;
-                changed = true;
-            }
-            if (extPwt->ChromaLog2WeightDenom && extPwt->ChromaLog2WeightDenom != 6)
-            {
-                extPwt->ChromaLog2WeightDenom = 6;
-                changed = true;
-            }
+            extPwt->LumaLog2WeightDenom = 6;
+            changed = true;
+        }
+        if (extPwt->ChromaLog2WeightDenom && extPwt->ChromaLog2WeightDenom != 6)
+        {
+            extPwt->ChromaLog2WeightDenom = 6;
+            changed = true;
         }
     }
 
@@ -5317,9 +5270,9 @@ bool MfxHwH264Encode::isAdaptiveQP(MfxVideoParam const & video)
     return false;
 }
 
-bool MfxHwH264Encode::isAdaptiveCQMSupported(mfxU16 scenarioInfo, eMFXHWType platform, bool isLowPowerOn)
+bool MfxHwH264Encode::isAdaptiveCQMSupported(mfxU16 scenarioInfo, bool isLowPowerOn)
 {
-    return ((scenarioInfo == MFX_SCENARIO_GAME_STREAMING && platform >= MFX_HW_ICL) || (scenarioInfo == MFX_SCENARIO_REMOTE_GAMING && platform >= MFX_HW_KBL)) && isLowPowerOn;
+    return ((scenarioInfo == MFX_SCENARIO_GAME_STREAMING) || (scenarioInfo == MFX_SCENARIO_REMOTE_GAMING)) && isLowPowerOn;
 }
 
 
@@ -5491,7 +5444,7 @@ void MfxHwH264Encode::SetDefaults(
                                   IsOn(extConfig->AdaptiveI) ||
                                   IsOn(extConfig->AdaptiveB) ||
 #endif
-                                  IsAdaptiveLtrOn(par))? 8 : GetDefaultGopRefDist(par.mfx.TargetUsage, platform);
+                                  IsAdaptiveLtrOn(par))? 8 : 3;
             if (par.mfx.GopPicSize > 0 && par.mfx.GopPicSize <= par.mfx.GopRefDist)
                 par.mfx.GopRefDist = par.mfx.GopPicSize;
         }
@@ -5540,7 +5493,7 @@ void MfxHwH264Encode::SetDefaults(
         if (extDdi->NumActiveRefBL1 == 0)
         {
             {
-                mfxU16 maxNumActiveBL1 = GetMaxNumRefActiveBL1(par.mfx.TargetUsage, platform, par.mfx.FrameInfo.PicStruct, IsOn(par.mfx.LowPower));
+                mfxU16 maxNumActiveBL1 = GetMaxNumRefActiveBL1(par.mfx.TargetUsage, par.mfx.FrameInfo.PicStruct, IsOn(par.mfx.LowPower));
                 extDdi->NumActiveRefBL1 = extOpt3->NumRefActiveBL1[0] ? std::min(maxNumActiveBL1, extOpt3->NumRefActiveBL1[0])
                     : GetDefaultNumRefActiveBL1(par.mfx, platform);
             }
@@ -5560,8 +5513,7 @@ void MfxHwH264Encode::SetDefaults(
         assert(par.mfx.GopRefDist > 0);
         assert(par.mfx.GopPicSize > 0);
 
-        if (platform >= MFX_HW_HSW && platform != MFX_HW_VLV &&
-            IsDyadic(par.calcParam.scale, par.calcParam.numTemporalLayer) &&
+        if (IsDyadic(par.calcParam.scale, par.calcParam.numTemporalLayer) &&
             par.mfx.GopRefDist >= 4 &&
             (!par.mfx.NumRefFrame || par.mfx.NumRefFrame >= GetMinNumRefFrameForPyramid(par)) &&
             (!IsMvcProfile(par.mfx.CodecProfile) || (IsPowerOf2(par.mfx.GopRefDist) && (par.mfx.GopPicSize % par.mfx.GopRefDist) == 0)) &&
@@ -5828,7 +5780,7 @@ void MfxHwH264Encode::SetDefaults(
     }
 
     if (extOpt->IntraPredBlockSize == MFX_BLOCKSIZE_UNKNOWN)
-        extOpt->IntraPredBlockSize = GetDefaultIntraPredBlockSize(par, platform);
+        extOpt->IntraPredBlockSize = GetDefaultIntraPredBlockSize(par);
 
     if (par.mfx.CodecProfile == MFX_PROFILE_UNKNOWN)
     {
@@ -6135,7 +6087,7 @@ void MfxHwH264Encode::SetDefaults(
 
     if (extOpt3->AdaptiveMaxFrameSize == MFX_CODINGOPTION_UNKNOWN )
         extOpt3->AdaptiveMaxFrameSize = 
-            ((platform >= MFX_HW_ICL) && IsOn(par.mfx.LowPower) && hwCaps.AdaptiveMaxFrameSizeSupport)
+            (IsOn(par.mfx.LowPower) && hwCaps.AdaptiveMaxFrameSizeSupport)
             ? mfxU16(MFX_CODINGOPTION_ON) : mfxU16(MFX_CODINGOPTION_OFF);
 
     if (extOpt3->BRCPanicMode == MFX_CODINGOPTION_UNKNOWN)
@@ -6535,8 +6487,7 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
     mfxEncodeCtrl         * ctrl,
     mfxFrameSurface1      * surface,
     mfxBitstream          * bs,
-    MFX_ENCODE_CAPS const & caps,
-    eMFXHWType              platform)
+    MFX_ENCODE_CAPS const & caps)
 {
     MFX_CHECK_NULL_PTR3(ctrl, surface, bs);
     mfxStatus checkSts = MFX_ERR_NONE;
@@ -6797,7 +6748,7 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
 #endif
 
     mfxExtPredWeightTable *extPwt = GetExtBuffer(*ctrl);
-    if (extPwt && (platform >= MFX_HW_KBL))
+    if (extPwt)
     {
         if (extPwt->LumaLog2WeightDenom && (extPwt->LumaLog2WeightDenom != 6))
         {
@@ -9276,9 +9227,8 @@ void WritePredWeightTable(
 
     if (!pPWT)
         pPWT = &task.m_pwt[fieldId];
-    else if ((task.m_hwType >= MFX_HW_KBL) &&
-        ((pPWT->LumaLog2WeightDenom && pPWT->LumaLog2WeightDenom != 6) ||
-        (pPWT->ChromaLog2WeightDenom && pPWT->ChromaLog2WeightDenom != 6)))
+    else if ((pPWT->LumaLog2WeightDenom && pPWT->LumaLog2WeightDenom != 6) ||
+        (pPWT->ChromaLog2WeightDenom && pPWT->ChromaLog2WeightDenom != 6))
         pPWT = &task.m_pwt[fieldId];
 
     mfxU32 nRef[2] = {

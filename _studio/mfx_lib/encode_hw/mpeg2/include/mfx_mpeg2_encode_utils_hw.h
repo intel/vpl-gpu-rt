@@ -179,7 +179,7 @@ namespace MPEG2EncoderHW
             Close();
         }
         mfxStatus Close(void);
-        mfxStatus Reset(mfxVideoParam *par, bool bAllowRawFrames);
+        mfxStatus Reset(mfxVideoParam *par);
         mfxStatus GetVideoParam(mfxVideoParam *par);
         mfxStatus GetFrameParam(mfxFrameParam *par);
         mfxStatus GetEncodeStat(mfxEncodeStat *stat);

@@ -664,7 +664,7 @@ namespace MfxHwH264Encode
     bool   isSWBRC (MfxVideoParam const & par);
     bool   isAdaptiveQP(MfxVideoParam const & par);
 
-    bool   isAdaptiveCQMSupported(mfxU16 scenarioInfo, eMFXHWType platform, bool isLowPowerOn);
+    bool   isAdaptiveCQMSupported(mfxU16 scenarioInfo, bool isLowPowerOn);
 
     mfxU16 GetMaxNumSlices(MfxVideoParam const & par);
 
@@ -692,10 +692,6 @@ namespace MfxHwH264Encode
         mfxU32 scale = SCALE_FROM_DRIVER);
 
     mfxU8 GetCabacInitIdc(mfxU32 targetUsage);
-
-    bool IsLookAheadSupported(
-        MfxVideoParam const & video,
-        eMFXHWType            platform);
 
     bool IsMctfSupported(
         MfxVideoParam const & video,
@@ -844,8 +840,7 @@ namespace MfxHwH264Encode
         mfxEncodeCtrl *           ctrl,
         mfxFrameSurface1 *        surface,
         mfxBitstream *            bs,
-        MFX_ENCODE_CAPS const &   caps,
-        eMFXHWType                platform = MFX_HW_UNKNOWN);
+        MFX_ENCODE_CAPS const &   caps);
 
     mfxStatus CheckFEIRunTimeExtBuffersContent(
         MfxVideoParam const & video,

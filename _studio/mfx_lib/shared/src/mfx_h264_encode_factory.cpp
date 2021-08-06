@@ -29,7 +29,6 @@
 
 
 using namespace MfxHwH264Encode;
-// platform switcher
 
 // tmp solution
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE

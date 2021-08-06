@@ -625,21 +625,16 @@ VAProfile ConvertGuidToVAAPIProfile(const GUID& guid)
 }
 
 // this function is aimed to workaround all CAPS reporting problems in driver
-void HardcodeCaps(ENCODE_CAPS_VP9& caps, eMFXHWType platform)
+void HardcodeCaps(ENCODE_CAPS_VP9& caps)
 {
     caps.CodingLimitSet = 1;
     caps.Color420Only =  1;
 
-    if (platform >= MFX_HW_ICL)
-    {
-        caps.Color420Only = 0;
-        caps.MaxEncodedBitDepth = 1; //0: 8bit, 1: 8 and 10 bit;
-        caps.NumScalablePipesMinus1 = 0;
-    }
-    if (platform >= MFX_HW_TGL_LP)
-    {
-        caps.NumScalablePipesMinus1 = 3;
-    }
+    caps.Color420Only = 0;
+    caps.MaxEncodedBitDepth = 1; //0: 8bit, 1: 8 and 10 bit;
+    caps.NumScalablePipesMinus1 = 0;
+    caps.NumScalablePipesMinus1 = 3;
+
 
     caps.ForcedSegmentationSupport = 1;
     caps.AutoSegmentationSupport = 1;
@@ -768,7 +763,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         m_caps.BRCReset = attrs[idx_map[VAConfigAttribProcessingRate]].value == VA_PROCESSING_RATE_ENCODE;
     }
 
-    HardcodeCaps(m_caps, m_platform);
+    HardcodeCaps(m_caps);
 
     return MFX_ERR_NONE;
 

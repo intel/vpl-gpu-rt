@@ -58,82 +58,6 @@ using namespace MfxHwH264Encode;
 
 namespace MfxHwH264EncodeHW
 {
-    mfxU32 PaddingBytesToWorkAroundHrdIssue(
-        MfxVideoParam const &      video,
-        Hrd                        hrd,
-        std::list<DdiTask> const & submittedTasks,
-        mfxU32                     fieldPicFlag,
-        mfxU32                     secondPicFlag)
-    {
-        mfxExtCodingOption const & extOpt = GetExtBufferRef(video);
-
-        if (video.mfx.RateControlMethod != MFX_RATECONTROL_CBR || IsOff(extOpt.NalHrdConformance))
-            return 0;
-
-        mfxF64 frameRate = mfxF64(video.mfx.FrameInfo.FrameRateExtN) / video.mfx.FrameInfo.FrameRateExtD;
-        mfxU32 avgFrameSize = mfxU32(1000 * video.calcParam.targetKbps / frameRate);
-        if (avgFrameSize <= 128 * 1024 * 8)
-            return 0;
-
-        for (DdiTaskCiter i = submittedTasks.begin(); i != submittedTasks.end(); ++i)
-            hrd.RemoveAccessUnit(0, i->m_fieldPicFlag, false);
-        if (secondPicFlag)
-            hrd.RemoveAccessUnit(0, fieldPicFlag, false);
-        hrd.RemoveAccessUnit(0, fieldPicFlag, false);
-
-        mfxU32 bufsize  = 8000 * video.calcParam.bufferSizeInKB;
-        mfxU32 bitrate  = GetMaxBitrateValue(video.calcParam.maxKbps) << (6 + SCALE_FROM_DRIVER);
-        mfxU32 delay    = hrd.GetInitCpbRemovalDelay();
-        mfxU32 fullness = mfxU32(mfxU64(delay) * bitrate / 90000.0);
-
-        const mfxU32 maxFrameSize = video.mfx.FrameInfo.Width * video.mfx.FrameInfo.Height;
-        if (fullness > bufsize)
-            return std::min((fullness - bufsize + 7) / 8, maxFrameSize);
-
-        return 0;
-    }
-
-    mfxU32 PaddingBytesToWorkAroundHrdIssue(
-        MfxVideoParam const &       video,
-        Hrd                         hrd,
-        std::vector<mfxU16> const & submittedPicStruct,
-        mfxU16                      currentPicStruct)
-    {
-        mfxExtCodingOption const * extOpt = GetExtBuffer(video);
-
-        if (video.mfx.RateControlMethod != MFX_RATECONTROL_CBR || !extOpt ||IsOff(extOpt->NalHrdConformance))
-            return 0;
-
-        mfxF64 frameRate = mfxF64(video.mfx.FrameInfo.FrameRateExtN) / video.mfx.FrameInfo.FrameRateExtD;
-        mfxU32 avgFrameSize = mfxU32(1000 * video.calcParam.targetKbps / frameRate);
-        if (avgFrameSize <= 128 * 1024 * 8)
-            return 0;
-
-        for (size_t i = 0; i < submittedPicStruct.size(); i++)
-        {
-            hrd.RemoveAccessUnit(
-                0,
-                !(submittedPicStruct[i] & MFX_PICSTRUCT_PROGRESSIVE),
-                false);
-        }
-
-        hrd.RemoveAccessUnit(
-            0,
-            !(currentPicStruct & MFX_PICSTRUCT_PROGRESSIVE),
-            false);
-
-        mfxU32 bufsize  = 8000 * video.calcParam.bufferSizeInKB;
-        mfxU32 bitrate  = GetMaxBitrateValue(video.calcParam.maxKbps) << (6 + SCALE_FROM_DRIVER);
-        mfxU32 delay    = hrd.GetInitCpbRemovalDelay();
-        mfxU32 fullness = mfxU32(mfxU64(delay) * bitrate / 90000.0);
-
-        const mfxU32 maxFrameSize = video.mfx.FrameInfo.Width * video.mfx.FrameInfo.Height;
-        if (fullness > bufsize)
-            return std::min((fullness - bufsize + 7) / 8, maxFrameSize);
-
-        return 0;
-    }
-
     mfxU16 GetFrameWidth(MfxVideoParam & par)
     {
         mfxExtCodingOptionSPSPPS & extBits = GetExtBufferRef(par);
@@ -800,7 +724,6 @@ ImplementationAvc::ImplementationAvc(VideoCORE * core)
 , m_useMbControlSurfs(false)
 , m_currentPlatform(MFX_HW_UNKNOWN)
 , m_currentVaType(MFX_HW_NO)
-, m_useWAForHighBitrates(false)
 , m_isENCPAK(false)
 , m_resetBRC(false)
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
@@ -1195,9 +1118,8 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
             needIntermediateBitstreamBuffer ||
             inPlacePatchNeeded;
 
-        if ((!((IsOn(m_video.mfx.LowPower) && (m_video.calcParam.numTemporalLayer > 0))) &&
-            m_caps.ddi_caps.HeaderInsertion == 0 &&
-            (m_currentPlatform != MFX_HW_IVB || m_core->GetVAType() != MFX_HW_VAAPI))
+        if ((!(IsOn(m_video.mfx.LowPower) && (m_video.calcParam.numTemporalLayer > 0)) &&
+            m_caps.ddi_caps.HeaderInsertion == 0)
             || m_video.Protected != 0)
             doPatch = needIntermediateBitstreamBuffer = false;
 
@@ -1480,12 +1402,6 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         m_baseLayerOrderStartIntraRefresh = 0;
     }
     Zero(m_stat);
-
-    // for SNB issue with HRD at high bitrates
-    // check what to do with WA on Linux (MFX_HW_VAAPI) - currently it is switched off
-    m_useWAForHighBitrates = (MFX_HW_VAAPI != m_core->GetVAType()) && !m_enabledSwBrc &&
-        m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR &&
-        (m_currentPlatform < MFX_HW_HSW || m_currentPlatform == MFX_HW_VLV); // HRD WA for high bitrates isn't required for HSW and beyond
 
     // required for slice header patching
     if (isBitstreamUpdateRequired(m_video, m_caps, m_currentPlatform))
@@ -4143,10 +4059,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             {
                 mfxU32 fieldId = task->m_fid[f];
 
-                if (m_useWAForHighBitrates)
-                    task->m_fillerSize[fieldId] = PaddingBytesToWorkAroundHrdIssue(
-                        m_video, m_hrd, m_encoding, task->m_fieldPicFlag, f);
-
                 PrepareSeiMessageBuffer(m_video, *task, fieldId, m_sei);
 
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
@@ -4583,7 +4495,7 @@ mfxStatus ImplementationAvc::EncodeFrameCheckNormalWay(
 
     mfxStatus checkSts = CheckEncodeFrameParam(
         m_video, ctrl, surface, bs,
-        m_core->IsExternalFrameAllocator() || core20_interface, m_caps, m_currentPlatform);
+        m_core->IsExternalFrameAllocator() || core20_interface, m_caps);
     if (checkSts < MFX_ERR_NONE)
         return checkSts;
 

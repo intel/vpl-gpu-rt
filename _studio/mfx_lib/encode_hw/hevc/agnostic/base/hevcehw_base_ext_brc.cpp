@@ -300,9 +300,8 @@ void ExtBRC::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         auto&      sh   = Task::SSH::Get(s_task);
         auto&      sps  = Glob::SPS::Get(global);
         auto&      pps  = Glob::PPS::Get(global);
-        eMFXHWType hw   = Glob::VideoCore::Get(global).GetHWType();
 
-        bool bNegativeQpAllowed = !(IsOn(par.mfx.LowPower) || (hw >= MFX_HW_KBL && hw < MFX_HW_CNL));
+        bool bNegativeQpAllowed = !IsOn(par.mfx.LowPower);
 
         mfxI32 minQP = (-6 * sps.bit_depth_luma_minus8) * bNegativeQpAllowed;
         mfxI32 maxQP = 51;

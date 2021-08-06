@@ -414,14 +414,6 @@ mfxStatus EncTools::InitMfxVppParams(mfxEncToolsCtrl const & ctrl)
 
     MFX_CHECK(pSession != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    mfxPlatform platform;
-    pSession->QueryPlatform(&platform);
-    if (platform.CodeName < MFX_PLATFORM_TIGERLAKE)
-    {
-        mfxVppParams_Common.vpp.In.CropW = mfxVppParams_Common.vpp.In.Width = mfxVppParams_Common.vpp.In.CropW & ~0x3F;
-        mfxVppParams_Common.vpp.In.CropH = mfxVppParams_Common.vpp.In.Height = mfxVppParams_Common.vpp.In.CropH & ~0x3F;
-    }
-
     //LA
     if (isPreEncLA(m_config, ctrl))
     {

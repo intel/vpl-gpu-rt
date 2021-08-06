@@ -162,7 +162,7 @@ mfxStatus FullEncode::Init(mfxVideoParam *par)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     m_pController = new ControllerBase(m_pCore, AVBR_WA);
 
-    sts = m_pController->Reset(par, false);
+    sts = m_pController->Reset(par);
 
     if (sts == MFX_WRN_PARTIAL_ACCELERATION || sts < MFX_ERR_NONE)
     {
@@ -186,7 +186,7 @@ mfxStatus FullEncode::Reset(mfxVideoParam *par)
 
     MFX_CHECK(is_initialized(), MFX_ERR_NOT_INITIALIZED);
 
-    sts = m_pController->Reset(par, false);
+    sts = m_pController->Reset(par);
 
     if (sts == MFX_WRN_PARTIAL_ACCELERATION || sts < MFX_ERR_NONE)
     {
