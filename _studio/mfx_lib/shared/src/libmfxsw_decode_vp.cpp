@@ -60,7 +60,6 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
     {
         //check VPP config
         std::set<mfxU16> ids;
-        mfxU32 num_sfc_scaling = 0;
         for (mfxU32 channelIdx = 0; channelIdx < num_channel_par; channelIdx++)
         {
             mfxVideoChannelParam* channelPar = vpp_par_array[channelIdx];
@@ -108,11 +107,12 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
 
                 if (it != std::end(ext_buf))
                 {
-
                     switch (reinterpret_cast<mfxExtVPPScaling*>(*it)->ScalingMode)
                     {
+                    case MFX_SCALING_MODE_DEFAULT:
+                    case MFX_SCALING_MODE_LOWPOWER:
+                    case MFX_SCALING_MODE_QUALITY:
                     case MFX_SCALING_MODE_INTEL_GEN_VDBOX:
-                        ++num_sfc_scaling;
                     case MFX_SCALING_MODE_INTEL_GEN_VEBOX:
                     case MFX_SCALING_MODE_INTEL_GEN_COMPUTE:
                         break;
@@ -130,9 +130,6 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
                 MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
             }
         }
-
-        // Only one SFC scaling request allowed
-        //MFX_CHECK(num_sfc_scaling < 2, MFX_ERR_INVALID_VIDEO_PARAM);
 
         //create  DVP
         if (!session->m_pDVP)
@@ -159,6 +156,7 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
             //extract and convert scaling modes
             mfxU16 vppScalingMode = MFX_SCALING_MODE_DEFAULT;
 
+            bool remap_buffer = false;
             auto scaling_buffer = reinterpret_cast<mfxExtVPPScaling*>(mfx::GetExtBuffer(channelPar->ExtParam, channelPar->NumExtParam, MFX_EXTBUFF_VPP_SCALING));
 
             if (scaling_buffer)
@@ -171,10 +169,16 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
                     }
                     break;
                 case MFX_SCALING_MODE_INTEL_GEN_VEBOX:
+                    remap_buffer = true;
+                case MFX_SCALING_MODE_LOWPOWER:
                     vppScalingMode = MFX_SCALING_MODE_LOWPOWER;
                     break;
                 case MFX_SCALING_MODE_INTEL_GEN_COMPUTE:
+                    remap_buffer = true;
+                case MFX_SCALING_MODE_QUALITY:
                     vppScalingMode = MFX_SCALING_MODE_QUALITY;
+                    break;
+                case MFX_SCALING_MODE_DEFAULT:
                     break;
                 default:
                     assert(0); //MFX_SCALING_MODE_DEFAULT in release
@@ -195,7 +199,7 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
             VppParams.ExtParam    = channelPar->ExtParam;
             VppParams.NumExtParam = channelPar->NumExtParam;
 
-            if (scaling_buffer)
+            if (remap_buffer)
             {
                 ext_buffers.emplace_back(VppParams.ExtParam, VppParams.ExtParam + VppParams.NumExtParam);
 
