@@ -1305,7 +1305,7 @@ mfxStatus MFX_JPEG_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPa
             if (videoProcessingTargetIn && videoProcessingTargetOut)
             {
                 // limits are from media_driver/agnostic/common/hw/mhw_sfc.h
-                // TODO: get them via API
+                // get them via API
                 const short unsigned MHW_SFC_MIN_HEIGHT        = 128;
                 const short unsigned MHW_SFC_MIN_WIDTH         = 128;
                 const short unsigned MHW_SFC_MAX_HEIGHT        = 4096;

@@ -1823,7 +1823,7 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
             refPicListModification->ref_pic_list_modification_flag_l1 = 0;
         }
 
-        //RPL sanity check
+        // RefPicList sanity check
         {
             ReferencePictureSet const* rps = pSlice->getRPS();
             VM_ASSERT(rps);

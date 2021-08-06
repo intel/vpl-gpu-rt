@@ -310,7 +310,7 @@ void ConvertUMCParamsToMFX(UMC::VideoStreamInfo const* si, mfxVideoParam* par)
             par->mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_UNKNOWN;
     }
 
-    //TODO: si->framerate
+    // si->framerate
     par->mfx.FrameInfo.FrameRateExtN = par->mfx.FrameInfo.FrameRateExtD = 1;
 
     par->mfx.FrameInfo.AspectRatioW =  mfxU16(si->aspect_ratio_width);

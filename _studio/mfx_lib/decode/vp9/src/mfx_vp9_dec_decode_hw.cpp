@@ -298,7 +298,7 @@ VideoDECODEVP9_HW::VideoDECODEVP9_HW(VideoCORE *p_core, mfxStatus *sts)
       m_baseQIndex(0)
 {
     memset(&m_sizesOfRefFrame, 0, sizeof(m_sizesOfRefFrame));
-    memset(&m_frameInfo.ref_frame_map, VP9_INVALID_REF_FRAME, sizeof(m_frameInfo.ref_frame_map)); // TODO: move to another place
+    memset(&m_frameInfo.ref_frame_map, VP9_INVALID_REF_FRAME, sizeof(m_frameInfo.ref_frame_map)); // move to another place
     ResetFrameInfo();
 
     if (sts)
@@ -591,7 +591,7 @@ void VideoDECODEVP9_HW::ResetFrameInfo()
     m_frameInfo.currFrame = -1;
     m_frameInfo.frameCountInBS = 0;
     m_frameInfo.currFrameInBS = 0;
-    memset(&m_frameInfo.ref_frame_map, VP9_INVALID_REF_FRAME, sizeof(m_frameInfo.ref_frame_map)); // TODO: move to another place
+    memset(&m_frameInfo.ref_frame_map, VP9_INVALID_REF_FRAME, sizeof(m_frameInfo.ref_frame_map)); // move to another place
 }
 
 mfxStatus VideoDECODEVP9_HW::DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfxVideoParam* par)

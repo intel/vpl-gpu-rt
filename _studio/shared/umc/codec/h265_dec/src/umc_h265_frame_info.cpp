@@ -128,12 +128,12 @@ void H265DecoderFrameInfo::EliminateErrors()
             if (!sliceHeader->dependent_slice_segment_flag)
                 bIndepSliceMissing = false;
 
-            bool bSpecViolation = sliceHeader->slice_temporal_mvp_enabled_flag !=
+            bool specViolation = sliceHeader->slice_temporal_mvp_enabled_flag !=
                   baseSlice->GetSliceHeader()->slice_temporal_mvp_enabled_flag;
 
             bool bRemoveDependent = bIndepSliceMissing && sliceHeader->dependent_slice_segment_flag;
 
-            if (bSpecViolation || bRemoveDependent)
+            if (specViolation || bRemoveDependent)
             {
                 RemoveSlice(sliceId);
                 sliceId--;

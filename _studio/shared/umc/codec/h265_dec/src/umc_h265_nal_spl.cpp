@@ -287,7 +287,7 @@ private:
     double   m_pts;
 
     // Searches NAL unit start code, places input pointer to it and fills up size paramters
-    // ML: OPT: TODO: Replace with MaxL's fast start code search
+    // ML: OPT: Replace with MaxL's fast start code search
     int32_t FindStartCode(uint8_t * (&pb), size_t & size, int32_t & startCodeSize)
     {
         uint32_t zeroCount = 0;

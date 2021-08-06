@@ -150,7 +150,7 @@ namespace UMC_AV1_DECODER
 
             if (sts < UMC::UMC_OK)
             {
-                // TODO: [Global] Add GPU hang reporting
+                // [Global] Add GPU hang reporting
             }
             else if (sts == UMC::UMC_OK)
             {

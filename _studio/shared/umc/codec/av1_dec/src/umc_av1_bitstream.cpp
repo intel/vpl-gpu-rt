@@ -846,7 +846,7 @@ namespace UMC_AV1_DECODER
         const bool large_scale_tile = 0; // this parameter isn't taken from the bitstream. Looks like decoder gets it from outside (e.g. container or some environment).
         if (large_scale_tile)
         {
-            // TODO: [Rev0.85] add support of large scale tile
+            // [Rev0.85] add support of large scale tile
             AV1D_LOG("[-]: %d", (uint32_t)bs.BitsDecoded());
             return;
         }

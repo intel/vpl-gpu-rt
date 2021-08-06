@@ -98,7 +98,7 @@ namespace UMC_AV1_DECODER
 
                 OBUInfo obuInfo;
                 bs.ReadOBUInfo(obuInfo);
-                VM_ASSERT(CheckOBUType(obuInfo.header.obu_type)); // TODO: [clean up] Need to remove assert once decoder code is stabilized
+                VM_ASSERT(CheckOBUType(obuInfo.header.obu_type)); // [clean up] Need to remove assert once decoder code is stabilized
 
                 if (obuInfo.header.obu_type == OBU_SEQUENCE_HEADER)
                 {
@@ -452,7 +452,7 @@ namespace UMC_AV1_DECODER
                 OBUInfo obuInfo;
                 bs.ReadOBUInfo(obuInfo);
                 const AV1_OBU_TYPE obuType = obuInfo.header.obu_type;
-                VM_ASSERT(CheckOBUType(obuType)); // TODO: [clean up] Need to remove assert once decoder code is stabilized
+                VM_ASSERT(CheckOBUType(obuType)); // [clean up] Need to remove assert once decoder code is stabilized
 
                 if (tmp.GetDataSize() < obuInfo.size) // not enough data left in the buffer to hold full OBU unit
                     break;
@@ -461,7 +461,7 @@ namespace UMC_AV1_DECODER
                 {
                     VM_ASSERT(!"Current frame was interrupted unexpectedly!");
                     throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
-                    // TODO: [robust] add support for cases when series of tile_group_obu() interrupted by other OBU type before end of frame was reached
+                    // [robust] add support for cases when series of tile_group_obu() interrupted by other OBU type before end of frame was reached
                 }
 
                 switch (obuType)
@@ -481,7 +481,7 @@ namespace UMC_AV1_DECODER
                     {
                         // we read only first entry of uncompressed header in the frame
                         // each subsequent copy of uncompressed header (i.e. OBU_REDUNDANT_FRAME_HEADER) must be exact copy of first entry by AV1 spec
-                        // TODO: [robust] maybe need to add check that OBU_REDUNDANT_FRAME_HEADER contains copy of OBU_FRAME_HEADER
+                        // [robust] maybe need to add check that OBU_REDUNDANT_FRAME_HEADER contains copy of OBU_FRAME_HEADER
                         bs.ReadUncompressedHeader(fh, *sequence_header, updated_refs, obuInfo.header, PreFrame_id);
                         gotFrameHeader = true;
                     }

@@ -99,7 +99,7 @@ namespace UMC_HEVC_DECODER
         }
         else
         {
-            // TODO: build default scaling list in target buffer location
+            // build default scaling list in target buffer location
             static bool doInit = true;
             static H265ScalingList sl{};
 

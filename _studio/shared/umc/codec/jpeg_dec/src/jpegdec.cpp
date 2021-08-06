@@ -1315,7 +1315,6 @@ JERRCODE CJPEGDecoder::Init(void)
 
   m_num_threads = get_num_threads();
 
-  // TODO:
   //   need to add support for images with more than 4 components per frame
 
   if(m_dst.precision <= 8)

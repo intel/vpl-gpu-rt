@@ -249,8 +249,8 @@ namespace UMC_HEVC_DECODER
             auto frame = slice->GetCurrentFrame();
             assert(frame);
 
-            auto rpl = frame->GetRefPicList(slice->GetSliceNum(), ListX);
-            if (!rpl)
+            auto refPicList = frame->GetRefPicList(slice->GetSliceNum(), ListX);
+            if (!refPicList)
                 throw h265_exception(UMC::UMC_ERR_FAILED);
 
             size_t const num_active_ref = slice->getNumRefIdx(ListX);
@@ -259,7 +259,7 @@ namespace UMC_HEVC_DECODER
             size_t index = 0;
             for (size_t i = 0; i < num_active_ref; ++i)
             {
-                auto const& frameInfo = rpl->m_refPicList[i];
+                auto const& frameInfo = refPicList->m_refPicList[i];
                 if (!frameInfo.refFrame)
                     break;
                 else
