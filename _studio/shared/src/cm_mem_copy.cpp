@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2017-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +22,6 @@
 
 #include "cm_mem_copy.h"
 #include "cm_gpu_copy_code.h"
-
-#include "genx_copy_kernel_gen12lp_isa.h"
 
 #include "mfx_common_int.h"
 
@@ -221,6 +219,7 @@ SurfaceIndex * CmCopyWrapper::CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize, mfxU32
 
     return pCmDstIndex;
 } // CmBufferUP * CmCopyWrapper::CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize)
+
 mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoCPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
@@ -2522,8 +2521,6 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
     switch (hwtype)
     {
 #ifdef MFX_ENABLE_KERNELS
-    case MFX_HW_BDW:
-    case MFX_HW_CHT:
     case MFX_HW_SCL:
     case MFX_HW_APL:
     case MFX_HW_KBL:
@@ -2534,7 +2531,7 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
     case MFX_HW_ICL_LP:
     case MFX_HW_JSL:
     case MFX_HW_EHL:
-        cmSts = CM_FAILURE;
+        return MFX_ERR_DEVICE_FAILED;
         break;
     case MFX_HW_TGL_LP:
     case MFX_HW_DG1:
@@ -2748,6 +2745,7 @@ mfxStatus CmCopyWrapper::CopySystemToVideoMemory(mfxHDLPair dst, mfxU32 dstPitch
             status = MFX_ERR_DEVICE_FAILED;
         }
     }
+
     return status;
 }
 
@@ -2765,8 +2763,10 @@ mfxStatus CmCopyWrapper::CopySwapSystemToVideoMemory(mfxHDLPair dst, mfxU32 dstP
     pCmSurface2D = CreateCmSurface2D(dst, width, height, false, m_tableCmRelations);
     CHECK_CM_NULL_PTR(pCmSurface2D, MFX_ERR_DEVICE_FAILED);
 
-    return EnqueueCopySwapRBCPUtoGPU( pCmSurface2D, pSrc,roi.width,roi.height, srcPitch, srcUVOffset,format, CM_FASTCOPY_OPTION_BLOCKING, e);
+    mfxStatus sts = EnqueueCopySwapRBCPUtoGPU( pCmSurface2D, pSrc,roi.width,roi.height, srcPitch, srcUVOffset,format, CM_FASTCOPY_OPTION_BLOCKING, e);
+    MFX_CHECK_STS(sts);
 
+    return MFX_ERR_NONE;
 }
 
 mfxStatus CmCopyWrapper::CopyShiftSystemToVideoMemory(mfxHDLPair dst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, IppiSize roi, mfxU32 bitshift, mfxU32 format)
@@ -2777,16 +2777,19 @@ mfxStatus CmCopyWrapper::CopyShiftSystemToVideoMemory(mfxHDLPair dst, mfxU32 dst
     CmEvent* e = CM_NO_EVENT;
     mfxU32 width  = roi.width;
     mfxU32 height = roi.height;
+    mfxStatus sts = MFX_ERR_NONE;
 
      // create or find already associated cm surface 2d
     CmSurface2D *pCmSurface2D = nullptr;
     pCmSurface2D = CreateCmSurface2D(dst, width, height, false, m_tableCmRelations);
     CHECK_CM_NULL_PTR(pCmSurface2D, MFX_ERR_DEVICE_FAILED);
     if (isSinglePlainFormat(format))
-        return EnqueueCopyShiftCPUtoGPU(pCmSurface2D, pSrc, roi.width, roi.height, srcPitch, srcUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, bitshift, e);
+        sts = EnqueueCopyShiftCPUtoGPU(pCmSurface2D, pSrc, roi.width, roi.height, srcPitch, srcUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, bitshift, e);
     else
-        return EnqueueCopyShiftP010CPUtoGPU(pCmSurface2D, pSrc, roi.width, roi.height, srcPitch, srcUVOffset, 0, CM_FASTCOPY_OPTION_BLOCKING, bitshift, e);
+        sts = EnqueueCopyShiftP010CPUtoGPU(pCmSurface2D, pSrc, roi.width, roi.height, srcPitch, srcUVOffset, 0, CM_FASTCOPY_OPTION_BLOCKING, bitshift, e);
+    MFX_CHECK_STS(sts);
 
+    return MFX_ERR_NONE;
 }
 
 mfxStatus CmCopyWrapper::CopyShiftVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, mfxHDLPair src, mfxU32 srcPitch, IppiSize roi, mfxU32 bitshift, mfxU32 format)
@@ -2797,15 +2800,19 @@ mfxStatus CmCopyWrapper::CopyShiftVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPit
     CmEvent* e = CM_NO_EVENT;
     mfxU32 width  = roi.width;
     mfxU32 height = roi.height;
+    mfxStatus sts = MFX_ERR_NONE;
 
     // create or find already associated cm surface 2d
     CmSurface2D *pCmSurface2D = nullptr;
     pCmSurface2D = CreateCmSurface2D(src, width, height, false, m_tableCmRelations);
     CHECK_CM_NULL_PTR(pCmSurface2D, MFX_ERR_DEVICE_FAILED);
     if(isSinglePlainFormat(format))
-        return EnqueueCopyShiftGPUtoCPU(pCmSurface2D, pDst, roi.width, roi.height, dstPitch, dstUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, bitshift, e);
+        sts = EnqueueCopyShiftGPUtoCPU(pCmSurface2D, pDst, roi.width, roi.height, dstPitch, dstUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, bitshift, e);
     else
-        return EnqueueCopyShiftP010GPUtoCPU(pCmSurface2D, pDst, roi.width, roi.height, dstPitch, dstUVOffset, 0, CM_FASTCOPY_OPTION_BLOCKING, bitshift, e);
+        sts = EnqueueCopyShiftP010GPUtoCPU(pCmSurface2D, pDst, roi.width, roi.height, dstPitch, dstUVOffset, 0, CM_FASTCOPY_OPTION_BLOCKING, bitshift, e);
+    MFX_CHECK_STS(sts);
+
+    return MFX_ERR_NONE;
 }
 
 mfxStatus CmCopyWrapper::CopyVideoToSystemMemoryAPI(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, mfxHDLPair src, mfxU32 srcPitch, IppiSize roi)
@@ -2882,6 +2889,7 @@ mfxStatus CmCopyWrapper::CopyVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, m
             status = MFX_ERR_DEVICE_FAILED;
         }
     }
+
     return status;
 }
 
@@ -2899,8 +2907,10 @@ mfxStatus CmCopyWrapper::CopySwapVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitc
 
     pCmSurface2D = CreateCmSurface2D(src, width, height, false, m_tableCmRelations);
     CHECK_CM_NULL_PTR(pCmSurface2D, MFX_ERR_DEVICE_FAILED);
-    return EnqueueCopySwapRBGPUtoCPU(pCmSurface2D, pDst, roi.width, roi.height, dstPitch, dstUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, e);
+    mfxStatus sts = EnqueueCopySwapRBGPUtoCPU(pCmSurface2D, pDst, roi.width, roi.height, dstPitch, dstUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, e);
+    MFX_CHECK_STS(sts);
 
+    return MFX_ERR_NONE;
 }
 
 mfxStatus CmCopyWrapper::CopyMirrorVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, mfxHDLPair src, mfxU32 srcPitch, IppiSize roi, mfxU32 format)
@@ -2917,8 +2927,10 @@ mfxStatus CmCopyWrapper::CopyMirrorVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPi
 
     pCmSurface2D = CreateCmSurface2D(src, width, height, false, m_tableCmRelations);
     CHECK_CM_NULL_PTR(pCmSurface2D, MFX_ERR_DEVICE_FAILED);
-    return EnqueueCopyMirrorNV12GPUtoCPU(pCmSurface2D, pDst, roi.width, roi.height, dstPitch, dstUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, e);
+    mfxStatus sts = EnqueueCopyMirrorNV12GPUtoCPU(pCmSurface2D, pDst, roi.width, roi.height, dstPitch, dstUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, e);
+    MFX_CHECK_STS(sts);
 
+    return MFX_ERR_NONE;
 }
 
 mfxStatus CmCopyWrapper::CopyMirrorSystemToVideoMemory(mfxHDLPair dst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, IppiSize roi, mfxU32 format)
@@ -2935,8 +2947,10 @@ mfxStatus CmCopyWrapper::CopyMirrorSystemToVideoMemory(mfxHDLPair dst, mfxU32 ds
 
     pCmSurface2D = CreateCmSurface2D(dst, width, height, false, m_tableCmRelations);
     CHECK_CM_NULL_PTR(pCmSurface2D, MFX_ERR_DEVICE_FAILED);
-    return EnqueueCopyMirrorNV12CPUtoGPU(pCmSurface2D, pSrc, roi.width, roi.height, srcPitch, srcUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, e);
+    mfxStatus sts = EnqueueCopyMirrorNV12CPUtoGPU(pCmSurface2D, pSrc, roi.width, roi.height, srcPitch, srcUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, e);
+    MFX_CHECK_STS(sts);
 
+    return MFX_ERR_NONE;
 }
 
 mfxStatus CmCopyWrapper::CopyVideoToVideoMemoryAPI(mfxHDLPair dst, mfxHDLPair src, IppiSize roi)
@@ -2978,6 +2992,7 @@ mfxStatus CmCopyWrapper::CopyVideoToVideoMemoryAPI(mfxHDLPair dst, mfxHDLPair sr
         status = MFX_ERR_DEVICE_FAILED;
     }
     m_pCmQueue->DestroyEvent(e);
+
     return status;
 }
 
@@ -2998,7 +3013,10 @@ mfxStatus CmCopyWrapper::CopySwapVideoToVideoMemory(mfxHDLPair dst, mfxHDLPair s
     pSrcCmSurface2D = CreateCmSurface2D(src, width, height, false, m_tableCmRelations);
     CHECK_CM_NULL_PTR(pSrcCmSurface2D, MFX_ERR_DEVICE_FAILED);
 
-    return EnqueueCopySwapRBGPUtoGPU(pSrcCmSurface2D, pDstCmSurface2D, width, height, format, CM_FASTCOPY_OPTION_BLOCKING, e);
+    mfxStatus sts = EnqueueCopySwapRBGPUtoGPU(pSrcCmSurface2D, pDstCmSurface2D, width, height, format, CM_FASTCOPY_OPTION_BLOCKING, e);
+    MFX_CHECK_STS(sts);
+
+    return MFX_ERR_NONE;
 }
 
 mfxStatus CmCopyWrapper::CopyMirrorVideoToVideoMemory(mfxHDLPair dst, mfxHDLPair src, IppiSize roi, mfxU32 format)
@@ -3018,7 +3036,10 @@ mfxStatus CmCopyWrapper::CopyMirrorVideoToVideoMemory(mfxHDLPair dst, mfxHDLPair
     pSrcCmSurface2D = CreateCmSurface2D(src, width, height, false, m_tableCmRelations);
     CHECK_CM_NULL_PTR(pSrcCmSurface2D, MFX_ERR_DEVICE_FAILED);
 
-    return EnqueueCopyMirrorGPUtoGPU(pSrcCmSurface2D, pDstCmSurface2D, width, height, format, CM_FASTCOPY_OPTION_BLOCKING, e);
+    mfxStatus sts = EnqueueCopyMirrorGPUtoGPU(pSrcCmSurface2D, pDstCmSurface2D, width, height, format, CM_FASTCOPY_OPTION_BLOCKING, e);
+    MFX_CHECK_STS(sts);
+
+    return MFX_ERR_NONE;
 }
 
 #define CM_RGB_MAX_GPUCOPY_SURFACE_HEIGHT        4088

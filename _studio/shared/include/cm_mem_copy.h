@@ -24,6 +24,7 @@
 #include "mfxdefs.h"
 #include "mfxstructures.h"
 #include "ippi.h"
+#include "genx_copy_kernel_gen12lp_isa.h"
 
 #ifdef _MSVC_LANG
 #pragma warning(disable: 4505)
@@ -92,6 +93,7 @@ public:
         if (m_pCmDevice)
             return m_pCmDevice;
 
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CreateCmDevice");
         cmSts = ::CreateCmDevice(m_pCmDevice, version, pD3D, CM_DEVICE_CREATE_OPTION_SCRATCH_SPACE_DISABLE);
         if (cmSts != CM_SUCCESS)
             return NULL;
@@ -323,7 +325,6 @@ protected:
     SurfaceIndex * CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize, mfxU32 width, mfxU32 height,
                                  std::map<std::tuple<mfxU8*, mfxU32, mfxU32>, CmBufferUP*>& tableSysRelations,
                                  std::map<CmBufferUP *,  SurfaceIndex *> & tableSysIndex);
-
 };
 
 #endif // __CM_MEM_COPY_H__
