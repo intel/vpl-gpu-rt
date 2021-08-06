@@ -307,19 +307,10 @@ protected:
     SurfaceIndex *m_pCmSrcIndex;
     SurfaceIndex *m_pCmDstIndex;
 
-    std::set<mfxU8 *> m_cachedObjects;
+    std::map<std::tuple<mfxHDLPair, mfxU32, mfxU32>, CmSurface2D *> m_tableCmRelations;
+    std::map<std::tuple<mfxU8 *, mfxU32, mfxU32>, CmBufferUP *> m_tableSysRelations;
 
-    std::map<void *, CmSurface2D *> m_tableCmRelations;
-    std::map<mfxU8 *, CmBufferUP *> m_tableSysRelations;
-
-    std::map<CmSurface2D *, SurfaceIndex *> m_tableCmIndex;
     std::map<CmBufferUP *,  SurfaceIndex *> m_tableSysIndex;
-
-    std::map<mfxHDLPair, CmSurface2D *> m_tableCmRelations2;
-    std::map<mfxU8 *, CmBufferUP *> m_tableSysRelations2;
-
-    std::map<CmSurface2D *, SurfaceIndex *> m_tableCmIndex2;
-    std::map<CmBufferUP *,  SurfaceIndex *> m_tableSysIndex2;
 
     /* It needs to destroy buffers and surfaces in strict order */
     std::vector<CmSurface2D*> m_surfacesInCreationOrder;
@@ -327,11 +318,10 @@ protected:
     UMC::Mutex m_guard;
 
     CmSurface2D * CreateCmSurface2D(mfxHDLPair surfaceIdPair, mfxU32 width, mfxU32 height, bool isSecondMode,
-                                    std::map<mfxHDLPair, CmSurface2D *> & tableCmRelations,
-                                    std::map<CmSurface2D *, SurfaceIndex *> & tableCmIndex);
+                                    std::map<std::tuple<mfxHDLPair, mfxU32, mfxU32>, CmSurface2D*>& tableCmRelations);
 
-    SurfaceIndex  * CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize,
-                                 std::map<mfxU8 *, CmBufferUP *> & tableSysRelations,
+    SurfaceIndex * CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize, mfxU32 width, mfxU32 height,
+                                 std::map<std::tuple<mfxU8*, mfxU32, mfxU32>, CmBufferUP*>& tableSysRelations,
                                  std::map<CmBufferUP *,  SurfaceIndex *> & tableSysIndex);
 
 };
