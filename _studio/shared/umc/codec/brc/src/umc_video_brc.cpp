@@ -138,7 +138,7 @@ Status VideoBrc::CheckCorrectParams_MPEG2(VideoBrcParams *inBrcParams, VideoBrcP
   }
 
   if (brcMode == BRC_VBR)
-    bufFullness = bufSizeBits; // vbv_delay = 0xffff (buffer is initially full) in case of VBR. TODO: check the possibility of VBR with vbv_delay != 0xffff
+    bufFullness = bufSizeBits; // vbv_delay = 0xffff (buffer is initially full) in case of VBR
 
   if (bufFullness <= 0) { // not set
     status = UMC_ERR_INVALID_PARAMS;
