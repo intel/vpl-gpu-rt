@@ -42,7 +42,7 @@ enum {
     MFX_FOURCC_VP8_SEGMAP  = MFX_MAKEFOURCC('V','P','8','S'),
 };
 
-static inline unsigned int ConvertVP8FourccToMfxFourcc(mfxU32 fourcc)
+static inline mfxU32 ConvertVP8FourccToMfxFourcc(mfxU32 fourcc)
 {
     switch (fourcc)
     {
@@ -57,7 +57,7 @@ static inline unsigned int ConvertVP8FourccToMfxFourcc(mfxU32 fourcc)
     }
 }
 
-static inline unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
+static inline mfxU32 ConvertMfxFourccToVAFormat(mfxU32 fourcc)
 {
     switch (fourcc)
     {
@@ -182,7 +182,7 @@ static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int 
     }
 }
 
-static inline bool isFourCCSupported(unsigned int va_fourcc)
+static inline bool isFourCCSupported(mfxU32 va_fourcc)
 {
     switch (va_fourcc)
     {
@@ -218,7 +218,7 @@ static mfxStatus ReallocImpl(VADisplay* va_disp, vaapiMemIdInt *vaapi_mid, mfxFr
     MFX_CHECK_NULL_PTR1(vaapi_mid->m_surface);
 
     // VP8 hybrid driver has weird requirements for allocation of surfaces/buffers for VP8 encoding
-    // to comply with them additional logic is required to support regular and VP8 hybrid allocation pathes
+    // to comply with them additional logic is required to support regular and VP8 hybrid allocation paths
     mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(surf->Info.FourCC);
     unsigned int va_fourcc = ConvertMfxFourccToVAFormat(mfx_fourcc);
 
@@ -284,7 +284,7 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
     *response = {};
 
     // VP8/VP9 driver has weird requirements for allocation of surfaces/buffers for VP8/VP9 encoding
-    // to comply with them additional logic is required to support regular and VP8/VP9 allocation pathes
+    // to comply with them additional logic is required to support regular and VP8/VP9 allocation paths
     mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(request->Info.FourCC);
     unsigned int va_fourcc = ConvertMfxFourccToVAFormat(mfx_fourcc);
     MFX_CHECK(isFourCCSupported(va_fourcc), MFX_ERR_UNSUPPORTED);
@@ -727,8 +727,6 @@ mfxDefaultAllocatorVAAPI::mfxWideHWFrameAllocator::mfxWideHWFrameAllocator(
     frameAllocator.Unlock = &mfxDefaultAllocatorVAAPI::UnlockFrameHW;
     frameAllocator.Free   = &mfxDefaultAllocatorVAAPI::FreeFramesHW;
 }
-
-
 
 vaapi_buffer_wrapper::vaapi_buffer_wrapper(const mfxFrameInfo &info, mfxHDL display, mfxU32 context)
     : vaapi_resource_wrapper(reinterpret_cast<VADisplay>(display))

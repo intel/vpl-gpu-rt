@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2020 Intel Corporation
+// Copyright (c) 2007-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -309,7 +309,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
         mfxStatus sts = MFX_ERR_NONE;
         mfxFrameAllocRequest temp_request = *request;
 
-
         if (!m_bCmCopy && m_bCmCopyAllowed && isNeedCopy && m_Display)
         {
             m_pCmCopy.reset(new CmCopyWrapper);
@@ -584,7 +583,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
      * (1): AVC
      * (2): Progressive only
      * (3): Supported on SKL (Core) and APL (Atom) platforms and above
-     * (4): Only video memory supported (so, OPAQ memory does not supported!)
      * */
     if ( (mfx::GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING)) &&
          (MFX_PICSTRUCT_PROGRESSIVE == param->mfx.FrameInfo.PicStruct) &&

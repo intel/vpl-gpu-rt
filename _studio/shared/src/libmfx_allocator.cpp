@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2019 Intel Corporation
+// Copyright (c) 2007-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -165,7 +165,6 @@ inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU32& n
     case MFX_FOURCC_NV12:
         nbytes = Pitch * Height2 + (Pitch >> 1) * (Height2 >> 1) + (Pitch >> 1) * (Height2 >> 1);
         break;
-
     case MFX_FOURCC_P010:
     case MFX_FOURCC_P016:
         Pitch  = mfx::align2_value(Info.Width * 2, 32);
@@ -183,7 +182,6 @@ inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU32& n
     case MFX_FOURCC_RGBP:
 #endif
     case MFX_FOURCC_BGRP:
-
         nbytes = Pitch * Height2 + Pitch * Height2 + Pitch * Height2;
         break;
 
@@ -350,7 +348,7 @@ static inline mfxStatus SetPointers(mfxFrameData& frame_data, const mfxFrameInfo
         std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 1u);
         frame_data.R = bytes;
         frame_data.G = frame_data.R + frame_data.Pitch*Height2;
-        frame_data.B = frame_data.R + 2 * frame_data.Pitch*Height2;
+        frame_data.B = frame_data.R + 2*frame_data.Pitch*Height2;
         break;
 #endif
     case MFX_FOURCC_BGRP:
@@ -394,7 +392,6 @@ static inline mfxStatus SetPointers(mfxFrameData& frame_data, const mfxFrameInfo
         frame_data.Y = frame_data.V + 2;
         frame_data.A = frame_data.V + 3;
         break;
-
     case MFX_FOURCC_Y210:
     case MFX_FOURCC_Y216:
         std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 4u);
@@ -531,7 +528,6 @@ mfxWideSWFrameAllocator::mfxWideSWFrameAllocator(mfxU16 type):mfxBaseWideFrameAl
     frameAllocator.Unlock = &mfxDefaultAllocator::UnlockFrame;
     frameAllocator.Free = &mfxDefaultAllocator::FreeFrames;
 }
-
 
 std::atomic<uint32_t> FrameAllocatorBase::m_allocator_num(0u);
 

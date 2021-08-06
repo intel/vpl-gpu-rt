@@ -29,7 +29,6 @@
 #include "libmfx_core.h"
 #include "libmfx_allocator_vaapi.h"
 #include "libmfx_core_interface.h"
-
 #include "mfx_platform_headers.h"
 #include "mfx_session.h"
 
@@ -232,8 +231,6 @@ private:
 
     std::unique_ptr<VAAPIAdapter>               m_pAdapter;
     std::unique_ptr<CMEnabledCoreAdapter>       m_pCmAdapter;
-    //required to WA FEI enabling after move it from plugin to library
-    bool                                        m_bHEVCFEIEnabled;
 };
 
 using VAAPIVideoCORE = VAAPIVideoCORE_T<CommonCORE>;

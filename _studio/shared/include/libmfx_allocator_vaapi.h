@@ -65,7 +65,6 @@ namespace mfxDefaultAllocatorVAAPI
 
 } //  namespace mfxDefaultAllocatorVAAPI
 
-
 class SurfaceScopedLock
 {
 public:

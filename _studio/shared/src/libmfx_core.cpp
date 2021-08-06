@@ -71,7 +71,6 @@ mfxStatus MFXVideoCORE_QueryPlatform(mfxSession session, mfxPlatform* platform)
     }
 }
 
-
 mfxStatus MFXMemory_GetSurfaceForDecode(mfxSession session, mfxFrameSurface1** output_surf)
 {
     MFX_CHECK_NULL_PTR1(output_surf);
@@ -607,7 +606,8 @@ mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
 
     MFX_CHECK(m_hdl || MFX_HW_VAAPI != GetVAType(), MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    *platform = MakePlatform(GetHWType(), m_deviceId);
+    auto type = GetHWType();
+    *platform = MakePlatform(type, m_deviceId);
 
     return MFX_ERR_NONE;
 } // mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
@@ -960,6 +960,10 @@ mfxStatus CommonCORE::DoFastCopy(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
         return m_pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
 
     case MFX_FOURCC_P8:
+
+        MFX_CHECK(mfxU32(roi.width) * roi.height <= mfxU32(std::numeric_limits<int>::max()), MFX_ERR_UNDEFINED_BEHAVIOR);
+
+        roi = { roi.width * roi.height, 1 };
 
         return m_pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
 
@@ -1434,7 +1438,6 @@ mfxFrameAllocResponse *CommonCORE::GetPluginAllocResponse(mfxFrameAllocResponse&
     return NULL;
 
 }
-
 
 mfxStatus CommonCORE20::AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool)
 {

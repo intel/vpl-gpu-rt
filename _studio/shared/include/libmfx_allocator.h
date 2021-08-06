@@ -455,7 +455,6 @@ inline mfxU16 AdjustTypeInternal(mfxU16 type)
 {
     return (type & ~MFX_MEMTYPE_EXTERNAL_FRAME) | MFX_MEMTYPE_INTERNAL_FRAME;
 }
-
 template <class T, class U>
 class FlexibleFrameAllocator : public FrameAllocatorBase
 {
