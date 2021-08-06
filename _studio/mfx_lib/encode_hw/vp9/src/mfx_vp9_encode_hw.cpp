@@ -413,7 +413,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
         mfxU32 tmp_width = static_cast<mfxU32>(request.Info.Width);
         mfxU32 tmp_height = CeilDiv(max_buffer_size, static_cast<mfxU32>(request.Info.Width));
 
-        // TODO: maximum supported width and height need to be checked on dependence on a platform and other possible factors
         const mfxU32 max_dx_dimension_size = 16384;
 
         if (tmp_height > max_dx_dimension_size)

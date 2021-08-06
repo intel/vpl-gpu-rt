@@ -328,13 +328,10 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
 
     if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
-        // in BRC mode driver may update LF level and mode/ref LF deltas
-        frameParam.modeRefDeltaEnabled = 1;
-        frameParam.modeRefDeltaUpdate = 1;
-        // WA: driver writes corrupted uncompressed frame header when mode or ref deltas are written by MSDK
-        // TODO: remove this once driver behavior fixed
+        // In BRC mode driver may update LF level and mode/ref LF deltas.
+        // But driver writes corrupted uncompressed frame header when mode or ref deltas are written by MSDK
         frameParam.modeRefDeltaEnabled = 0;
-        frameParam.modeRefDeltaUpdate = 0;
+        frameParam.modeRefDeltaUpdate  = 0;
     }
 
     mfxExtCodingOptionDDI const & extDdi = GetExtBufferRef(par);

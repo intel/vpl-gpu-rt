@@ -152,13 +152,8 @@ namespace MfxHwVP9Encode
         WriteLiteral(buf, framePar.width - 1, 16);
         WriteLiteral(buf, framePar.height - 1, 16);
 
-        const mfxU8 renderFrameSizeDifferent = 0; // TODO: add support
+        const mfxU8 renderFrameSizeDifferent = 0; // is not supported
         WriteBit(buf, renderFrameSizeDifferent);
-        /*if (renderFrameSizeDifferent)
-        {
-            WriteLiteral(buf, framePar.renderWidth - 1, 16);
-            WriteLiteral(buf, framePar.renderHeight - 1, 16);
-        }*/
     }
 
     void WriteQIndexDelta(BitBuffer &buf, mfxI16 qDelta)
@@ -274,7 +269,6 @@ namespace MfxHwVP9Encode
 
                 for (mfxI8 refFrame = LAST_FRAME; refFrame <= ALTREF_FRAME; refFrame ++)
                 {
-                    // TODO: implement correct logic for [found] flag
                     WriteBit(localBuf, found);
                     if (found) break;
                 }
@@ -285,13 +279,9 @@ namespace MfxHwVP9Encode
                     WriteLiteral(localBuf, framePar.height - 1, 16);
                 }
 
-                const mfxU8 renderFrameSizeDifferent = 0; // TODO: add support
+                const mfxU8 renderFrameSizeDifferent = 0; // is not supported
                 WriteBit(localBuf, renderFrameSizeDifferent);
-                /*if (renderFrameSizeDifferent)
-                {
-                    WriteLiteral(localBuf, framePar.renderWidth - 1, 16);
-                    WriteLiteral(localBuf, framePar.renderHeight - 1, 16);
-                }*/
+
 
                 WriteBit(localBuf, framePar.allowHighPrecisionMV);
 

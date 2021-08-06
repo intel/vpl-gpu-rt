@@ -1709,8 +1709,6 @@ mfxStatus SetDefaults(
     SetDefault(extPar.NumTileRows, 1);
 
     // ext buffers
-    // TODO: uncomment when buffer mfxExtVP9CodingOption will be added to API
-    // mfxExtVP9CodingOption &opt = GetExtBufferRef(par);
     mfxExtCodingOptionDDI &opt = GetExtBufferRef(par);
     SetDefault(opt.WriteIVFHeaders, MFX_CODINGOPTION_ON);
 
