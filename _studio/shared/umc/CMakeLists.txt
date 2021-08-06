@@ -40,7 +40,6 @@ target_sources(umc_va_hw
     io/umc_va/include/umc_va_linux.h
     io/umc_va/include/umc_va_linux_protected.h
     io/umc_va/include/umc_va_video_processing.h
-    io/umc_va/src/umc_va.cpp
     io/umc_va/src/umc_va_linux.cpp
     io/umc_va/src/umc_va_linux_protected.cpp
     io/umc_va/src/umc_va_video_processing.cpp
