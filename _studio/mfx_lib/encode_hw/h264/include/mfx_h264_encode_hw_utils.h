@@ -2925,7 +2925,7 @@ private:
     protected:
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
         std::shared_ptr<CMC>
-            m_mctfDenoiser;
+            amtMctf;
 
         mfxStatus SubmitToMctf(
             DdiTask * pTask
@@ -2933,7 +2933,6 @@ private:
         mfxStatus QueryFromMctf(
             void *pParam
         );
-
 #endif
         ASC       amtScd;
         mfxStatus SCD_Put_Frame(

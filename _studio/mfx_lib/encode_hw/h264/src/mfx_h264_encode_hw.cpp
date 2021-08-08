@@ -849,7 +849,6 @@ protected:
     }
 };
 
-
 mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "ImplementationAvc::Init");
@@ -1285,13 +1284,14 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         MFX_CHECK_STS(sts);
     }
 
-#if defined(MFX_ENABLE_MCTF_IN_AVC)
     if (IsMctfSupported(m_video, m_core->GetHWType()))
     {
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
         if (!m_cmDevice)
         {
             m_cmDevice.Reset(TryCreateCmDevicePtr(m_core));
-            MFX_CHECK(m_cmDevice, MFX_ERR_UNSUPPORTED);
+            if (!m_cmDevice)
+                return MFX_ERR_UNSUPPORTED;
         }
 
         request.Info        = m_video.mfx.FrameInfo;
@@ -1301,12 +1301,13 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         sts = m_mctf.Alloc(m_core, request);
         MFX_CHECK_STS(sts);
 
-        m_mctfDenoiser = std::make_shared<CMC>();
+        amtMctf = std::make_shared<CMC>();
+        MFX_CHECK_NULL_PTR1(amtMctf);
 
-        sts = m_mctfDenoiser->MCTF_INIT(m_core, m_cmDevice, m_video.mfx.FrameInfo, NULL, IsCmNeededForSCD(m_video), true, true, true);
+        sts = amtMctf->MCTF_INIT(m_core, m_cmDevice, m_video.mfx.FrameInfo, NULL, IsCmNeededForSCD(m_video), true, true, true);
         MFX_CHECK_STS(sts);
-    }
 #endif
+    }
 #if USE_AGOP
     if (extOpt2->AdaptiveB & MFX_CODINGOPTION_ON)//AGOP
     {
@@ -2547,59 +2548,59 @@ void ImplementationAvc::BrcPreEnc(
 mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoVPPHW::SubmitToMctf");
-    MFX_CHECK_NULL_PTR1(pTask);
 
+    pTask->m_bFrameReady = false;
+    bool isIntraFrame    = pTask->GetFrameType() & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR);
+    bool isPFrame        = pTask->GetFrameType() & MFX_FRAMETYPE_P;
+    bool isAnchorFrame   = isIntraFrame || isPFrame;
+
+    amtMctf->IntBufferUpdate(pTask->m_SceneChange, isIntraFrame, pTask->m_doMCTFIntraFiltering);
+    if (isAnchorFrame || pTask->m_SceneChange)
     {
-        pTask->m_bFrameReady = false;
-        bool isIntraFrame    = pTask->GetFrameType() & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR);
-        bool isPFrame        = pTask->GetFrameType() & MFX_FRAMETYPE_P;
-        bool isAnchorFrame   = isIntraFrame || isPFrame;
-
-        m_mctfDenoiser->IntBufferUpdate(pTask->m_SceneChange, isIntraFrame, pTask->m_doMCTFIntraFiltering);
-        if (isAnchorFrame || pTask->m_SceneChange)
+        pTask->m_idxMCTF = FindFreeResourceIndex(m_mctf);
+        pTask->m_midMCTF = AcquireResource(m_mctf, pTask->m_idxMCTF);
+        if (pTask->m_midMCTF)
         {
-            pTask->m_idxMCTF = FindFreeResourceIndex(m_mctf);
-            pTask->m_midMCTF = AcquireResource(m_mctf, pTask->m_idxMCTF);
-            if (pTask->m_midMCTF)
-            {
-                MFX_SAFE_CALL(m_core->GetFrameHDL(pTask->m_midMCTF, &pTask->m_handleMCTF.first));
-            }
-            else
-                isAnchorFrame = false; //No resource available to generate filtered output, let it pass.
-        }
-        if (IsCmNeededForSCD(m_video))
-        {
-            MFX_SAFE_CALL(m_mctfDenoiser->MCTF_PUT_FRAME(
-                pTask->m_yuv,
-                pTask->m_handleMCTF,
-                &pTask->m_cmMCTF,
-                true,
-                nullptr,
-                isAnchorFrame,
-                pTask->m_doMCTFIntraFiltering));
+            MFX_SAFE_CALL(m_core->GetFrameHDL(pTask->m_midMCTF, &pTask->m_handleMCTF.first));
         }
         else
-        {
-            mfxFrameData pData = pTask->m_yuv->Data;
-            FrameLocker lock2(m_core, pData, true);
-            MFX_CHECK_NULL_PTR1(pData.Y);
-
-            MFX_SAFE_CALL(m_mctfDenoiser->MCTF_PUT_FRAME(
-                pData.Y,
-                pTask->m_handleMCTF,
-                &pTask->m_cmMCTF,
-                false,
-                nullptr,
-                isAnchorFrame,
-                pTask->m_doMCTFIntraFiltering));
-        }
-
-        // --- access to the internal MCTF queue to increase buffer_count: no need to protect by mutex, as 1 writer & 1 reader
-        MFX_SAFE_CALL(m_mctfDenoiser->MCTF_UpdateBufferCount());
-
-        // filtering itself
-        MFX_SAFE_CALL(m_mctfDenoiser->MCTF_DO_FILTERING_IN_AVC());
+            isAnchorFrame = false; //No resource available to generate filtered output, let it pass.
     }
+    if (IsCmNeededForSCD(m_video))
+    {
+        MFX_SAFE_CALL(amtMctf->MCTF_PUT_FRAME(
+            pTask->m_yuv,
+            pTask->m_handleMCTF,
+            &pTask->m_cmMCTF,
+            true,
+            nullptr,
+            isAnchorFrame,
+            pTask->m_doMCTFIntraFiltering));
+    }
+    else
+    {
+        mfxFrameData
+            pData = pTask->m_yuv->Data;
+        FrameLocker
+            lock2(m_core, pData, true);
+        if (pData.Y == 0)
+            return Error(MFX_ERR_LOCK_MEMORY);
+
+        MFX_SAFE_CALL(amtMctf->MCTF_PUT_FRAME(
+            pData.Y,
+            pTask->m_handleMCTF,
+            &pTask->m_cmMCTF,
+            false,
+            nullptr,
+            isAnchorFrame,
+            pTask->m_doMCTFIntraFiltering));
+    }
+
+    // --- access to the internal MCTF queue to increase buffer_count: no need to protect by mutex, as 1 writer & 1 reader
+    MFX_SAFE_CALL(amtMctf->MCTF_UpdateBufferCount());
+
+    // filtering itself
+    MFX_SAFE_CALL(amtMctf->MCTF_DO_FILTERING_IN_AVC());
 
     return MFX_ERR_NONE;
 }
@@ -2609,24 +2610,21 @@ mfxStatus ImplementationAvc::QueryFromMctf(void *pParam)
     MFX_CHECK_NULL_PTR1(pParam);
     DdiTask *pTask = (DdiTask*)pParam;
 
+    pTask->m_bFrameReady = amtMctf->MCTF_ReadyToOutput();
+    //Check if noise analysis determined if filter is not neeeded and free resources and handle
+    if (!amtMctf->MCTF_CHECK_FILTER_USE() && (pTask->m_handleMCTF.first))
     {
-        pTask->m_bFrameReady = m_mctfDenoiser->MCTF_ReadyToOutput();
-        //Check if noise analysis determined if filter is not neeeded and free resources and handle
-        if (!m_mctfDenoiser->MCTF_CHECK_FILTER_USE() && (pTask->m_handleMCTF.first))
-        {
-            ReleaseResource(m_mctf, pTask->m_midMCTF);
-            pTask->m_midMCTF = MID_INVALID;
-            MfxHwH264Encode::Zero(pTask->m_handleMCTF);
-            if (m_cmDevice)
-                m_cmDevice->DestroySurface(pTask->m_cmMCTF);
-        }
-        MFX_SAFE_CALL(m_mctfDenoiser->MCTF_RELEASE_FRAME(IsCmNeededForSCD(m_video)));
+        ReleaseResource(m_mctf, pTask->m_midMCTF);
+        pTask->m_midMCTF = MID_INVALID;
+        MfxHwH264Encode::Zero(pTask->m_handleMCTF);
+        if (m_cmDevice)
+            m_cmDevice->DestroySurface(pTask->m_cmMCTF);
     }
+    MFX_SAFE_CALL(amtMctf->MCTF_RELEASE_FRAME(IsCmNeededForSCD(m_video)));
 
     return MFX_ERR_NONE;
 }
 #endif
-
 using namespace ns_asc;
 mfxStatus ImplementationAvc::SCD_Put_Frame(DdiTask & task)
 {
