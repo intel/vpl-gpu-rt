@@ -854,19 +854,6 @@ void CmContext::Setup(
     switch (core->GetHWType())
     {
 #ifdef MFX_ENABLE_KERNELS
-    case MFX_HW_BDW:
-    case MFX_HW_CHT:
-    case MFX_HW_SCL:
-    case MFX_HW_APL:
-    case MFX_HW_KBL:
-    case MFX_HW_GLK:
-    case MFX_HW_CFL:
-    case MFX_HW_CNL:
-    case MFX_HW_ICL:
-    case MFX_HW_EHL:
-    case MFX_HW_ICL_LP:
-        throw CmRuntimeError();
-        break;
     case MFX_HW_TGL_LP:
     case MFX_HW_DG1:
     case MFX_HW_RKL:
