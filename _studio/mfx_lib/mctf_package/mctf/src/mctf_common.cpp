@@ -712,15 +712,12 @@ mfxStatus CMC::MCTF_SET_ENV(
     hwSize = 4;
     res = device->GetCaps(CAP_GPU_PLATFORM, hwSize, &hwType);
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
-    if (core->GetHWType() >= MFX_HW_ICL)
-        res = device->CreateQueueEx(queue, CM_VME_QUEUE_CREATE_OPTION);
-    else
-        res = device->CreateQueue(queue);
+    res = device->CreateQueueEx(queue, CM_VME_QUEUE_CREATE_OPTION);
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
     task = 0;
     // --- bitrate
-    if (localMctfParam.BitsPerPixelx100k) //todo: to do correctcompare with 0.0 
+    if (localMctfParam.BitsPerPixelx100k) // to do correctcompare with 0.0 
         bitrate_Adaptation = true;
     else 
         bitrate_Adaptation = false;
@@ -836,16 +833,6 @@ mfxStatus CMC::MCTF_SET_ENV(
     switch (hwType)
     {
 #ifdef MFX_ENABLE_KERNELS
-    case PLATFORM_INTEL_BDW:
-    case PLATFORM_INTEL_ICL:
-    case PLATFORM_INTEL_ICLLP:
-    case PLATFORM_INTEL_SKL:
-    case PLATFORM_INTEL_BXT:
-    case PLATFORM_INTEL_CNL:
-    case PLATFORM_INTEL_KBL:
-    case PLATFORM_INTEL_CFL:
-    case PLATFORM_INTEL_GLK:
-        return MFX_ERR_UNSUPPORTED;
     case PLATFORM_INTEL_TGLLP:
     case PLATFORM_INTEL_RKL:
     case PLATFORM_INTEL_DG1:
@@ -896,16 +883,6 @@ mfxStatus CMC::MCTF_SET_ENV(
     switch (hwType)
     {
 #ifdef MFX_ENABLE_KERNELS
-    case PLATFORM_INTEL_BDW:
-    case PLATFORM_INTEL_ICL:
-    case PLATFORM_INTEL_ICLLP:
-    case PLATFORM_INTEL_SKL:
-    case PLATFORM_INTEL_BXT:
-    case PLATFORM_INTEL_CNL:
-    case PLATFORM_INTEL_KBL:
-    case PLATFORM_INTEL_CFL:
-    case PLATFORM_INTEL_GLK:
-        return MFX_ERR_UNSUPPORTED;
     case PLATFORM_INTEL_TGLLP:
     case PLATFORM_INTEL_RKL:
     case PLATFORM_INTEL_DG1:
@@ -920,16 +897,6 @@ mfxStatus CMC::MCTF_SET_ENV(
     switch (hwType)
     {
 #ifdef MFX_ENABLE_KERNELS
-    case PLATFORM_INTEL_BDW:
-    case PLATFORM_INTEL_ICL:
-    case PLATFORM_INTEL_ICLLP:
-    case PLATFORM_INTEL_SKL:
-    case PLATFORM_INTEL_BXT:
-    case PLATFORM_INTEL_CNL:
-    case PLATFORM_INTEL_KBL:
-    case PLATFORM_INTEL_CFL:
-    case PLATFORM_INTEL_GLK:
-        return MFX_ERR_UNSUPPORTED;
     case PLATFORM_INTEL_TGLLP:
     case PLATFORM_INTEL_RKL:
     case PLATFORM_INTEL_DG1:
@@ -1037,7 +1004,7 @@ mfxStatus CMC::MCTF_UpdateANDApplyRTParams(
     return MFX_ERR_NONE;
 }
 
-// todo: what if bitrate is close to 0?
+// what if bitrate is close to 0?
 mfxStatus CMC::MCTF_UpdateBitrateInfo(
     mfxU32 BitsPerPexelx100k
 )
@@ -1045,7 +1012,7 @@ mfxStatus CMC::MCTF_UpdateBitrateInfo(
     if (MCTF_CONFIGURATION::MCTF_NOT_CONFIGURED == ConfigMode ||
         MCTF_CONFIGURATION::MCTF_AUT_CA_BA == ConfigMode )
     {
-        // todo: intially here was a code that uses 12bpp in case 
+        // intially here was a code that uses 12bpp in case 
         // of no bitrate or FPS numerator are passed;
         // what should be now?
         bpp = BitsPerPexelx100k * 1.0 / MCTF_BITRATE_MULTIPLIER;
@@ -3243,7 +3210,7 @@ mfxStatus CMC::MCTF_DO_FILTERING()
         case 1:
         {
             pMCTF_MERGE_func = NULL;
-            //todo: check is it correct that the current frame is 0?
+            // check is it correct that the current frame is 0?
             MCTF_UpdateANDApplyRTParams(0);
             pMCTF_ME_func = &CMC::MCTF_RUN_ME_2REF;
             pMCTF_LOAD_func = &CMC::MCTF_LOAD_2REF;
@@ -3256,7 +3223,7 @@ mfxStatus CMC::MCTF_DO_FILTERING()
         }
         case 2:
         {
-            //todo: check is it correct that the current frame is 1?
+            // check is it correct that the current frame is 1?
             MCTF_UpdateANDApplyRTParams(1);
             res = MCTF_RUN_MCTF_DEN(true);
             RotateBufferA();

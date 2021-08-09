@@ -1675,7 +1675,7 @@ BOOL    VAAPIVideoProcessing::isVideoWall(mfxExecuteParams *pParams)
     if ( layerCount % MAX_STREAMS_PER_TILE != 0 )
     {
         /* Number of streams must be multiple of 8. That's just for simplicity.
-         * TODO: need to handle the case when number is not multiple of 8*/
+         * Need to handle the case when number is not multiple of 8*/
         return result;
     }
 

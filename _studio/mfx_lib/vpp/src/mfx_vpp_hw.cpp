@@ -1024,7 +1024,7 @@ mfxStatus ResMngr::FillTask(
     // output
     {
 #ifdef MFX_ENABLE_MCTF
-        // todo: modify by outputForApp
+        // modify by outputForApp?
         pTask->output.pSurf = pOutSurface;
         pTask->output.timeStamp = pTask->input.timeStamp + m_indxOutTimeStamp * (FRAME_INTERVAL / m_outputIndexCountPerCycle);
 
@@ -2433,20 +2433,6 @@ mfxStatus  VideoVPPHW::Init(
             switch (m_platform)
             {
 #ifdef MFX_ENABLE_KERNELS
-            case MFX_HW_BDW:
-            case MFX_HW_CHT:
-            case MFX_HW_SCL:
-            case MFX_HW_APL:
-            case MFX_HW_KBL:
-            case MFX_HW_GLK:
-            case MFX_HW_CFL:
-            case MFX_HW_CNL:
-            case MFX_HW_ICL:
-            case MFX_HW_EHL:
-            case MFX_HW_ICL_LP:
-            case MFX_HW_JSL:
-                return MFX_ERR_DEVICE_FAILED;
-                break;
             case MFX_HW_TGL_LP:
             case MFX_HW_DG1:
             case MFX_HW_RKL:
@@ -2491,8 +2477,7 @@ mfxStatus  VideoVPPHW::Init(
     /* Starting from TGL, there is support for HW mirroring, but only with d3d11.
        On platforms prior to TGL we use driver kernel for Linux with d3d_to_d3d
        and msdk kernel for other cases*/
-    bool msdkMirrorIsUsed = (m_pCore->GetHWType() < MFX_HW_TGL_LP && !(m_pCore->GetVAType() == MFX_HW_VAAPI && m_ioMode == D3D_TO_D3D)) ||
-                             m_pCore->GetVAType() == MFX_HW_D3D9;
+    bool msdkMirrorIsUsed = m_pCore->GetVAType() == MFX_HW_D3D9;
 
     if (m_executeParams.mirroring && msdkMirrorIsUsed && !m_pCmCopy)
     {
@@ -2735,7 +2720,7 @@ mfxStatus VideoVPPHW::QueryCaps(VideoCORE* core, MfxHwVideoProcessing::mfxVppCap
 #ifdef MFX_ENABLE_MCTF
     eMFXHWType  hwType = core->GetHWType();
     caps.uMCTF = 0;
-    if (hwType >= MFX_HW_BDW
+    if (hwType >= MFX_HW_TGL_LP
         )
         caps.uMCTF = 1;
 #endif
@@ -2826,27 +2811,6 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
 
     if ( fabs(inFrameRateCur / outFrameRateCur - inFrameRate / outFrameRate) > std::numeric_limits<mfxF64>::epsilon() )
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM; // Frame Rate ratio check
-
-    eMFXPlatform platform = m_pCore->GetPlatformType();
-    if (platform == MFX_PLATFORM_HARDWARE)
-    {
-        eMFXHWType type = m_pCore->GetHWType();
-        if (type < MFX_HW_ICL &&
-           (par->vpp.In.FourCC   == MFX_FOURCC_Y210 ||
-            par->vpp.In.FourCC   == MFX_FOURCC_Y410 ||
-            par->vpp.Out.FourCC  == MFX_FOURCC_Y210 ||
-            par->vpp.Out.FourCC  == MFX_FOURCC_Y410))
-            return MFX_ERR_INVALID_VIDEO_PARAM;
-
-        if (type < MFX_HW_TGL_LP &&
-           (par->vpp.In.FourCC   == MFX_FOURCC_P016 ||
-            par->vpp.In.FourCC   == MFX_FOURCC_Y216 ||
-            par->vpp.In.FourCC   == MFX_FOURCC_Y416 ||
-            par->vpp.Out.FourCC  == MFX_FOURCC_P016 ||
-            par->vpp.Out.FourCC  == MFX_FOURCC_Y216 ||
-            par->vpp.Out.FourCC  == MFX_FOURCC_Y416))
-            return MFX_ERR_INVALID_VIDEO_PARAM;
-    }
 
     if (m_params.vpp.In.FourCC  != par->vpp.In.FourCC ||
         m_params.vpp.Out.FourCC != par->vpp.Out.FourCC)
@@ -4104,7 +4068,7 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
     if (MFX_MIRRORING_HORIZONTAL == m_executeParams.mirroring && MIRROR_WO_EXEC == m_executeParams.mirroringPosition && m_pCmCopy)
     {
         /* Temporal solution for mirroring that makes nothing but mirroring
-         * TODO: merge mirroring into pipeline
+         * merge mirroring into pipeline?
          * UPD: d3d->sys, sys->d3d and sys->sys IO Patterns already merged
          */
 
@@ -4385,7 +4349,7 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
         m_executeParams.bFMDEnable = false;
     }
 
-    if (m_executeParams.mirroring && m_pCore->GetHWType() >= MFX_HW_TGL_LP && m_pCore->GetVAType() != MFX_HW_D3D9)
+    if (m_executeParams.mirroring && m_pCore->GetVAType() != MFX_HW_D3D9)
         m_executeParams.mirroringExt = true;
 
     // Need special handling for progressive frame in 30i->60p ADI mode
@@ -4831,7 +4795,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
 
             // Starting from TGL, mirroring performs through driver
             // Driver supports horizontal and vertical modes
-            if (core->GetHWType() >= MFX_HW_TGL_LP && core->GetVAType() != MFX_HW_D3D9)
+            if (core->GetVAType() != MFX_HW_D3D9)
                 // Starting with TGL, mirroring performs through driver
                 // Driver supports horizontal and vertical modes
                 isOnlyHorizontalMirroringSupported = false;
@@ -4892,16 +4856,6 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
                 extDI->Mode != MFX_DEINTERLACING_ADVANCED_NOREF &&
                 extDI->Mode != MFX_DEINTERLACING_BOB &&
                 extDI->Mode != MFX_DEINTERLACING_FIELD_WEAVING)
-            {
-                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
-            }
-
-            if (core->GetHWType() < MFX_HW_ICL && (
-                (MFX_FOURCC_Y210 == par->vpp.In.FourCC || MFX_FOURCC_Y210 == par->vpp.Out.FourCC) ||
-                (MFX_FOURCC_Y410 == par->vpp.In.FourCC || MFX_FOURCC_Y410 == par->vpp.Out.FourCC) ||
-                (MFX_FOURCC_P016 == par->vpp.In.FourCC || MFX_FOURCC_P016 == par->vpp.Out.FourCC) ||
-                (MFX_FOURCC_AYUV == par->vpp.In.FourCC || MFX_FOURCC_AYUV == par->vpp.Out.FourCC) ||
-                (MFX_FOURCC_P010 == par->vpp.In.FourCC || MFX_FOURCC_P010 == par->vpp.Out.FourCC) ))
             {
                 sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
             }
@@ -4969,20 +4923,6 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
                 {
                     sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
                 }
-            }
-
-            if (core->GetHWType() < MFX_HW_CNL && (
-                (MFX_FOURCC_Y210 == par->vpp.In.FourCC || MFX_FOURCC_Y210 == par->vpp.Out.FourCC) ||
-                (MFX_FOURCC_Y410 == par->vpp.In.FourCC || MFX_FOURCC_Y410 == par->vpp.Out.FourCC) ||
-                (MFX_FOURCC_P016 == par->vpp.In.FourCC || MFX_FOURCC_P016 == par->vpp.Out.FourCC) ||
-                (MFX_FOURCC_AYUV == par->vpp.In.FourCC || MFX_FOURCC_AYUV == par->vpp.Out.FourCC) ||
-                (MFX_FOURCC_P010 == par->vpp.Out.FourCC) ))
-            {
-                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
-            }
-            else if (core->GetHWType() <= MFX_HW_BDW && MFX_FOURCC_P010 == par->vpp.In.FourCC)
-            {
-                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
             }
 
             break;

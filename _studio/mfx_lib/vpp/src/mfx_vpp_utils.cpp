@@ -1341,17 +1341,13 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
         case MFX_FOURCC_UYVY:
             break;
         case MFX_FOURCC_AYUV:
-            MFX_CHECK(platform >= MFX_HW_ICL, MFX_ERR_INVALID_VIDEO_PARAM);
             break;
         case MFX_FOURCC_Y210:
         case MFX_FOURCC_Y410:
-            MFX_CHECK(platform >= MFX_HW_ICL, MFX_ERR_INVALID_VIDEO_PARAM);
             break;
         case MFX_FOURCC_P016:
         case MFX_FOURCC_Y216:
         case MFX_FOURCC_Y416:
-            if (platform < MFX_HW_TGL_LP)
-                return MFX_ERR_INVALID_VIDEO_PARAM;
             break;
         case MFX_FOURCC_IMC3:
         case MFX_FOURCC_YUV400:
