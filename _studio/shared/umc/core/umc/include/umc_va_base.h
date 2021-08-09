@@ -25,23 +25,6 @@
 #include "mfx_common.h"
 #include "mfxstructures-int.h"
 
-
-#ifndef UMC_VA
-#   define UMC_VA
-#endif
-
-#   ifndef UMC_VA_LINUX
-#       define UMC_VA_LINUX          // HW acceleration through Linux VA
-#   endif
-#   ifndef SYNCHRONIZATION_BY_VA_SYNC_SURFACE
-#       ifdef ANDROID
-#           define SYNCHRONIZATION_BY_VA_SYNC_SURFACE
-#       else
-#           define SYNCHRONIZATION_BY_VA_SYNC_SURFACE
-#       endif
-#   endif
-
-
 #ifdef  __cplusplus
 #include "umc_structures.h"
 #include "umc_dynamic_cast.h"
@@ -77,8 +60,6 @@
 #include <dxva2api.h>
 #include <dxva.h>
 #endif
-
-#define UMC_VA_AV1_MSFT
 
 namespace UMC
 {

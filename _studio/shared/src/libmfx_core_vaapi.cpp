@@ -58,8 +58,6 @@ typedef struct drm_i915_getparam {
 #define DRM_IOWR(nr,type)       _IOWR(DRM_IOCTL_BASE,nr,type)
 #define DRM_IOCTL_I915_GETPARAM DRM_IOWR(DRM_COMMAND_BASE + DRM_I915_GETPARAM, drm_i915_getparam_t)
 
-#define TMP_DEBUG
-
 using namespace std;
 using namespace UMC;
 

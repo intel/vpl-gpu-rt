@@ -22,8 +22,8 @@
 
 #if defined (MFX_ENABLE_VPP)
 
-#ifndef __MFX_VPP_VAAPI
-#define __MFX_VPP_VAAPI
+#ifndef __MFX_VPP_VAAPI_H__
+#define __MFX_VPP_VAAPI_H__
 
 #include "umc_va_base.h"
 #include "mfx_vpp_interface.h"
@@ -169,7 +169,7 @@ namespace MfxHwVideoProcessing
 
 }; // namespace
 
-#endif //__MFX_VPP_VAAPI
+#endif //__MFX_VPP_VAAPI_H__
 #endif // MFX_ENABLE_VPP
 
 /* EOF */

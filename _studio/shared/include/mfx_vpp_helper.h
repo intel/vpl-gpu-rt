@@ -22,9 +22,6 @@
 
 #ifndef _MFX_VPP_HELPER_H_
 #define _MFX_VPP_HELPER_H_
-#define MFX_ENABLE_VPP_HELPER
-
-#if defined (MFX_ENABLE_VPP_HELPER)
 
 class VideoVPPMain;
 
@@ -66,7 +63,5 @@ protected:
     mfxU16                 m_dstWidth    = 128; // target down scaled size
     mfxU16                 m_dstHeight   = 64;
 };
-
-#endif
 
 #endif // !_MFX_VPP_HELPER_H_

@@ -24,41 +24,6 @@
 #include "mfx_config.h"
 // This file contains defines which switch on/off support of
 // codecs and renderers on application level
-/*
-// Windows
-*/
-
-/*
-// Linux on IA32
-*/
-
-#if !defined(ANDROID)
-
-    // video decoders
-    //#define UMC_ENABLE_VP8_VIDEO_DECODER
-    #define MFX_ENABLE_VP9_VIDEO_DECODE
-
-    // video encoders
-    #define UMC_ENABLE_MVC_VIDEO_ENCODER
-    #define UMC_ENABLE_MPEG2_VIDEO_ENCODER
-    #define UMC_ENABLE_MPEG4_VIDEO_ENCODER
-
-    #define UMC_ENABLE_UMC_SCENE_ANALYZER
-
-#endif // Linux on IA32
-
-/*
-// Android
-*/
-
-#if defined(ANDROID)
-
-    // video encoders
-    #define UMC_ENABLE_MVC_VIDEO_ENCODER
-
-    #define UMC_ENABLE_UMC_SCENE_ANALYZER
-
-#endif // Android
 
 #ifdef __cplusplus
 
@@ -69,12 +34,6 @@ namespace UMC
 
 #endif //__cplusplus
 
-// splitters
-#define UMC_ENABLE_AVI_SPLITTER
-#define UMC_ENABLE_MPEG2_SPLITTER
-#define UMC_ENABLE_MP4_SPLITTER
-#define UMC_ENABLE_VC1_SPLITTER
-#define UMC_ENABLE_H264_SPLITTER
 #include "ipps.h"
 
 #include <stdint.h>

@@ -29,24 +29,9 @@
 #include <memory>
 #endif
 
-#ifndef MFX_TRACE_DISABLE
-// Uncomment one or several lines below to enable tracing
-
-//#define MFX_TRACE_ENABLE_ITT
-//#define MFX_TRACE_ENABLE_TEXTLOG
-//#define MFX_TRACE_ENABLE_STAT
-
-#if defined(MFX_TRACE_ENABLE_ITT) && !defined(MFX_TRACE_ENABLE_FTRACE)
-    // Accompany ITT trace with ftrace. This combination is used by VTune.
-    #define MFX_TRACE_ENABLE_FTRACE
-#endif
-
-#if defined(MFX_TRACE_ENABLE_TEXTLOG) || defined(MFX_TRACE_ENABLE_STAT) || defined(MFX_TRACE_ENABLE_ETW) || defined(MFX_TRACE_ENABLE_ITT) || defined(MFX_TRACE_ENABLE_FTRACE)
-#define MFX_TRACE_ENABLE
-#endif
-#endif // #ifndef MFX_TRACE_DISABLE
-
 #include <stdarg.h>
+
+#include "mfx_config.h"
 
     #define MAX_PATH 260
 
@@ -57,8 +42,11 @@
 
     #define MFX_TRACE_STRING(x) x
 
-    #define DISABLE_WARN_HIDE_PREV_LOCAL_DECLARATION
-    #define ROLLBACK_WARN_HIDE_PREV_LOCAL_DECLARATION
+    #define DISABLE_WARN_HIDE_PREV_LOCAL_DECLARATION \
+        _Pragma("GCC diagnostic push") \
+        _Pragma("GCC diagnostic ignored \"-Wshadow\"")
+    #define ROLLBACK_WARN_HIDE_PREV_LOCAL_DECLARATION \
+        _Pragma("GCC diagnostic pop")
 
 typedef unsigned int mfxTraceU32;
 typedef __UINT64 mfxTraceU64;

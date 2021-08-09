@@ -22,8 +22,6 @@
 #include "mfx_task.h"
 #include "mfx_vpp_main.h"
 
-#if defined (MFX_ENABLE_VPP_HELPER)
-
 MfxVppHelper::MfxVppHelper(VideoCORE* core, mfxStatus* mfxRes) : m_core(core)
 {
     if (m_pVpp)
@@ -143,5 +141,3 @@ mfxFrameSurface1 const& MfxVppHelper::GetOutputSurface() const
 {
     return m_dsSurface;
 }
-
-#endif

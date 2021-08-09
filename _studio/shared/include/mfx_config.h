@@ -48,8 +48,7 @@
 
 #define CMAPIUPDATE
 
-#define UMC_ENABLE_FIO_READER
-#define UMC_ENABLE_VC1_SPLITTER
+#define UMC_VA
 
 #if !defined(NDEBUG)
 #define MFX_ENV_CFG_ENABLE
@@ -66,6 +65,24 @@
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
 #define MFX_ENABLE_AV1_VIDEO_CODEC
 #endif
+
+/*
+* Traces
+*/
+#ifndef MFX_TRACE_DISABLE
+// Uncomment one or several lines below to enable tracing
+
+//#define MFX_TRACE_ENABLE_ITT
+//#define MFX_TRACE_ENABLE_TEXTLOG
+//#define MFX_TRACE_ENABLE_STAT
+#if defined(MFX_TRACE_ENABLE_ITT) && !defined(MFX_TRACE_ENABLE_FTRACE)
+    // Accompany ITT trace with ftrace. This combination is used by VTune.
+    #define MFX_TRACE_ENABLE_FTRACE
+#endif
+#if defined(MFX_TRACE_ENABLE_TEXTLOG) || defined(MFX_TRACE_ENABLE_STAT) || defined(MFX_TRACE_ENABLE_ETW) || defined(MFX_TRACE_ENABLE_ITT) || defined(MFX_TRACE_ENABLE_FTRACE)
+#define MFX_TRACE_ENABLE
+#endif
+#endif // #ifndef MFX_TRACE_DISABLE
 
 // Per component configs
 #include "mfx_config_decode.h"

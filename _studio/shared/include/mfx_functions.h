@@ -35,11 +35,7 @@ Since session object differs between RT and dispatcher this can lead to seg. fau
 #include "mfxplugin.h"
 
 #if !defined(MFX_API_FUNCTION_IMPL)
-#define MFX_DECLARE_API_FUNCTIONS_WRAPPERS
 #define MFX_API_FUNCTION_IMPL(NAME, RTYPE, ARGS_DECL, ARGS) RTYPE APIImpl_##NAME ARGS_DECL;
-#endif
-
-#if defined(MFX_DECLARE_API_FUNCTIONS_WRAPPERS)
 
 #define MFXInit                              APIImpl_MFXInit
 #define MFXClose                             APIImpl_MFXClose
@@ -131,13 +127,6 @@ Since session object differs between RT and dispatcher this can lead to seg. fau
 #define MFXInitialize                        APIImpl_MFXInitialize
 #define MFXQueryImplsDescription             APIImpl_MFXQueryImplsDescription
 #define MFXReleaseImplDescription            APIImpl_MFXReleaseImplDescription
-
-#define MFXMemory_GetSurfaceForVPP           APIImpl_MFXMemory_GetSurfaceForVPP
-#define MFXMemory_GetSurfaceForVPPOut        APIImpl_MFXMemory_GetSurfaceForVPPOut
-#define MFXMemory_GetSurfaceForEncode        APIImpl_MFXMemory_GetSurfaceForEncode
-#define MFXMemory_GetSurfaceForDecode        APIImpl_MFXMemory_GetSurfaceForDecode
-
-#undef MFX_DECLARE_API_FUNCTIONS_WRAPPERS
 
 #endif //defined(MFX_DECLARE_API_FUNCTIONS_WRAPPERS)
 
