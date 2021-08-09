@@ -41,14 +41,7 @@
 #include <chrono>
 #include <functional>
 #include <atomic>
-
-#if defined (MFX_ENV_CFG_ENABLE) || defined(MFX_TRACE_ENABLE)
 #include <sstream>
-#endif
-
-#if defined (MFX_ENV_CFG_ENABLE) || defined(MFX_TRACE_ENABLE)
-#include <sstream>
-#endif
 
 #ifndef MFX_DEBUG_TRACE
 #define MFX_STS_TRACE(sts) sts
