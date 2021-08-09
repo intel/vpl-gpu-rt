@@ -334,7 +334,6 @@ inline int CM_THREAD_JOIN(THREAD_HANDLE *handle_array, int thread_cnt)
 
 /* Surrport for common-used data type */
 #define  _TCHAR char
-#define __cdecl
 #ifndef TRUE
 #define TRUE 1
 #endif
@@ -557,13 +556,13 @@ inline int CM_THREAD_JOIN(THREAD_HANDLE *handle_array, int thread_cnt)
 
 #ifdef CMRT_EMU
 // CM_KERNEL_FUNCTION macro provides wrong kernel name w/ unexplicit template like CM_KERNEL_FUNCTION(kernel<T>)
-#define CM_KERNEL_FUNCTION2(...) #__VA_ARGS__, (void *)(void (__cdecl *) (void))__VA_ARGS__
+#define CM_KERNEL_FUNCTION2(...) #__VA_ARGS__, (void *)(void (*) (void))__VA_ARGS__
 #else
 #define CM_KERNEL_FUNCTION2(...) #__VA_ARGS__
 #endif
 
 #ifdef CMRT_EMU
-#define _NAME(...) #__VA_ARGS__, (void (__cdecl *)(void))__VA_ARGS__
+#define _NAME(...) #__VA_ARGS__, (void (*)(void))__VA_ARGS__
 #else
 #define _NAME(...) #__VA_ARGS__
 #endif
@@ -1127,8 +1126,7 @@ typedef enum _CM_FASTCOPY_OPTION
 #define CM_MAX_THREADSPACE_HEIGHT_SKLUP_FOR_MW 2047
 
 class CmEvent;
-#define CM_CALLBACK __cdecl
-typedef void (CM_CALLBACK *callback_function)(CmEvent*, void *);
+typedef void (*callback_function)(CmEvent*, void *);
 
 extern class CmEvent *CM_NO_EVENT;
 
@@ -2678,9 +2676,6 @@ EXTERN_C CM_RT_API INT CMRT_GetSurfaceDetails(CmEvent* pEvent, UINT kernIndex, U
 EXTERN_C CM_RT_API void CMRT_PrepareGTPinBuffers(void* ptr0, int size0InBytes, void* ptr1, int size1InBytes, void* ptr2, int size2InBytes);
 EXTERN_C CM_RT_API void CMRT_SetGTPinArguments(char* commandLine, void* gtpinInvokeStruct);
 EXTERN_C CM_RT_API void CMRT_EnableGTPinMarkers(void);
-
-#define CM_CALLBACK __cdecl
-typedef void (CM_CALLBACK *callback_function)(CmEvent*, void *);
 
 EXTERN_C CM_RT_API UINT CMRT_GetKernelCount(CmEvent *pEvent);
 EXTERN_C CM_RT_API INT CMRT_GetKernelName(CmEvent *pEvent, UINT index, char** KernelName);

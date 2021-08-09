@@ -56,14 +56,6 @@ extern "C"
 
 #define _MAX_LEN 256
 
-#if defined(_WIN32_WCE)
-#define VM_CALLCONVENTION __stdcall
-#else
-#define VM_CALLCONVENTION
-#endif
-
-typedef uint32_t(VM_CALLCONVENTION * vm_callback)(void *);
-
 typedef enum e_vm_Status
 {
     VM_OK                           = 0,    /* no error */

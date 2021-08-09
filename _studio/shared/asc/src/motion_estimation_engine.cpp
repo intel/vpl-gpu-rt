@@ -219,7 +219,7 @@ void MVpropagationCheck(mfxI32 xLoc, mfxI32 yLoc, ASCImDetails dataIn, ASCMVecto
 
 #define SAD_SEARCH_VSTEP 2  // 1=FS 2=FHS
 
-mfxU16 __cdecl ME_simple(ASCVidRead *videoIn, mfxI32 fPos, ASCImDetails *dataIn, ASCimageData *scale, ASCimageData *scaleRef, bool /*first*/, ASCVidData *limits, t_ME_SAD_8x8_Block_Search ME_SAD_8x8_Block_Search) {
+mfxU16 ME_simple(ASCVidRead *videoIn, mfxI32 fPos, ASCImDetails *dataIn, ASCimageData *scale, ASCimageData *scaleRef, bool /*first*/, ASCVidData *limits, t_ME_SAD_8x8_Block_Search ME_SAD_8x8_Block_Search) {
     ASCMVector
         tMV,
         ttMV,

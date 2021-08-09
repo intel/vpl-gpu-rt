@@ -31,7 +31,7 @@ void MotionRangeDeliveryF(mfxI16 xLoc, mfxI16 yLoc, mfxI16 *limitXleft, mfxI16 *
 bool MVcalcSAD4x4(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, ASCImDetails dataIn, mfxU32 *bestSAD, mfxI32 *distance);
 /* 8x8 Block size Functions */
 bool MVcalcSAD8x8(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, ASCImDetails *dataIn, mfxU32 *bestSAD, mfxI32 *distance);
-mfxU16 __cdecl ME_simple(ASCVidRead *videoIn, mfxI32 fPos, ASCImDetails *dataIn, ASCimageData *scale, ASCimageData *scaleRef, bool first, ASCVidData *limits, t_ME_SAD_8x8_Block_Search ME_SAD_8x8_Block_Search);
+mfxU16 ME_simple(ASCVidRead *videoIn, mfxI32 fPos, ASCImDetails *dataIn, ASCimageData *scale, ASCimageData *scaleRef, bool first, ASCVidData *limits, t_ME_SAD_8x8_Block_Search ME_SAD_8x8_Block_Search);
 /* All Block sizes -general case- */
 bool MVcalcSAD(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, ASCImDetails dataIn, mfxI32 fPos,mfxI32 xLoc, mfxI32 yLoc, mfxU32 *bestSAD, mfxI32 *distance);
 /* ------------------------------ */
