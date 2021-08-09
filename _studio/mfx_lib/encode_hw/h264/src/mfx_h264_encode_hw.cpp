@@ -1415,7 +1415,9 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         m_sei.Alloc(mfxU32(MAX_SEI_SIZE + MAX_FILLER_SIZE));
     }
 
+    #ifndef MFX_ENABLE_H264_REPARTITION_CHECK
         MFX_CHECK(extOpt3.RepartitionCheckEnable == MFX_CODINGOPTION_UNKNOWN, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+    #endif //MFX_ENABLE_H264_REPARTITION_CHECK
 
 #if USE_AGOP
     m_agopCurrentLen = 0;

@@ -2481,6 +2481,27 @@ void MfxHwH264Encode::ConfigureTask(
 #endif
 
 
+#if defined(MFX_ENABLE_H264_REPARTITION_CHECK)
+    {
+        switch (extOpt3.RepartitionCheckEnable)
+        {
+        case MFX_CODINGOPTION_OFF:
+            // Favor Speed
+            task.m_RepartitionCheck = 2; // 2: FORCE_DISABLE (Disable this feature totally for all cases)
+            break;
+        case MFX_CODINGOPTION_ON:
+            // Favor Quality
+            task.m_RepartitionCheck = 1;  //1: FORCE_ENABLE (Enable this feature totally for all cases)
+            break;
+        case MFX_CODINGOPTION_ADAPTIVE:
+            // keep design to driver
+            task.m_RepartitionCheck = 0;
+            break;
+        default:
+            assert(!"Invalid value for RepartitionCheckEnable!");
+        }
+    }
+#endif
     task.m_TCBRCTargetFrameSize = video.calcParam.TCBRCTargetFrameSize;
 
 }

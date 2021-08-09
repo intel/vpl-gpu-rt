@@ -76,6 +76,21 @@ namespace
 
         return true;
     }
+#ifdef MFX_ENABLE_H264_REPARTITION_CHECK
+    bool CheckTriStateOptionWithAdaptive(mfxU16 & opt)
+    {
+        if (opt != MFX_CODINGOPTION_UNKNOWN &&
+            opt != MFX_CODINGOPTION_ON &&
+            opt != MFX_CODINGOPTION_OFF &&
+            opt != MFX_CODINGOPTION_ADAPTIVE)
+        {
+            opt = MFX_CODINGOPTION_UNKNOWN;
+            return false;
+        }
+
+        return true;
+    }
+#endif
 
     bool CheckTriStateOptionForOff(mfxU16 & opt)
     {
@@ -4657,6 +4672,19 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
 #endif
 
+#ifdef MFX_ENABLE_H264_REPARTITION_CHECK
+    if (!CheckTriStateOptionWithAdaptive(extOpt3->RepartitionCheckEnable))
+    {
+        changed = true;
+    }
+    if ((extOpt3->RepartitionCheckEnable != MFX_CODINGOPTION_ADAPTIVE) &&
+        (extOpt3->RepartitionCheckEnable != MFX_CODINGOPTION_UNKNOWN) &&
+        !hwCaps.ddi_caps.ForceRepartitionCheckSupport)
+    {
+        extOpt3->RepartitionCheckEnable = 0;
+        unsupported = true;
+    }
+#endif // MFX_ENABLE_H264_REPARTITION_CHECK
 
 
     return unsupported
@@ -5823,6 +5851,10 @@ void MfxHwH264Encode::SetDefaults(
     SetDefaultOff(extOpt3->GlobalMotionBiasAdjustment);
     SetDefaultOff(extOpt3->LowDelayBRC);
 
+#ifdef MFX_ENABLE_H264_REPARTITION_CHECK
+    if (extOpt3->RepartitionCheckEnable == MFX_CODINGOPTION_UNKNOWN)
+        extOpt3->RepartitionCheckEnable = MFX_CODINGOPTION_ADAPTIVE;
+#endif // MFX_ENABLE_H264_REPARTITION_CHECK
 
     if (extOpt3->ExtBrcAdaptiveLTR == MFX_CODINGOPTION_UNKNOWN
 #if defined(MFX_ENABLE_ENCTOOLS)

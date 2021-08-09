@@ -582,6 +582,21 @@ mfxStatus SetQualityParams(
 
         quality_param->PanicModeDisable = IsOff(extOpt3->BRCPanicMode);
 
+#ifdef MFX_ENABLE_H264_REPARTITION_CHECK
+        switch (extOpt3->RepartitionCheckEnable)
+        {
+        case MFX_CODINGOPTION_ON:
+            quality_param->ForceRepartitionCheck = 1;
+            break;
+        case MFX_CODINGOPTION_OFF:
+            quality_param->ForceRepartitionCheck = 2;
+            break;
+        case MFX_CODINGOPTION_UNKNOWN:
+        case MFX_CODINGOPTION_ADAPTIVE:
+        default:
+            quality_param->ForceRepartitionCheck = 0;
+        }
+#endif // MFX_ENABLE_H264_REPARTITION_CHECK
 
     }
 
@@ -599,6 +614,23 @@ mfxStatus SetQualityParams(
             if (quality_param->globalMotionBiasAdjustmentEnable && extOpt3rt->MVCostScalingFactor < 4)
                 quality_param->HMEMVCostScalingFactor = extOpt3rt->MVCostScalingFactor;
 
+#ifdef MFX_ENABLE_H264_REPARTITION_CHECK
+            switch (extOpt3rt->RepartitionCheckEnable)
+            {
+            case MFX_CODINGOPTION_ON:
+                quality_param->ForceRepartitionCheck = 1;
+                break;
+            case MFX_CODINGOPTION_OFF:
+                quality_param->ForceRepartitionCheck = 2;
+                break;
+            case MFX_CODINGOPTION_UNKNOWN:
+                // lets stick with option specified on init if not specified per-frame
+                break;
+            case MFX_CODINGOPTION_ADAPTIVE:
+            default:
+                quality_param->ForceRepartitionCheck = 0;
+            }
+#endif // MFX_ENABLE_H264_REPARTITION_CHECK
 
         } // if (extOpt3rt)
 
