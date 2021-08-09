@@ -42,43 +42,6 @@
 #pragma warning(disable:26812)
 #endif
 
-#ifndef GUID_TYPE_DEFINED
-
-#include <string>
-#include <functional>
-#include <sstream>
-#include <algorithm>
-
-struct GUID
-{
-    size_t GetHashCode() const
-    {
-        std::stringstream ss;
-        ss << Data1 << Data2 << Data3
-           // Pass Data4 element-wise to allow zeroes in GUID
-           << Data4[0] << Data4[1] << Data4[2] << Data4[3] << Data4[4] << Data4[5] << Data4[6] << Data4[7];
-        return std::hash<std::string>()(ss.str());
-    }
-
-    unsigned long  Data1;
-    unsigned short Data2;
-    unsigned short Data3;
-    unsigned char  Data4[8];
-};
-
-static inline int operator==(const GUID & guidOne, const GUID & guidOther)
-{
-    return
-        guidOne.Data1 == guidOther.Data1 &&
-        guidOne.Data2 == guidOther.Data2 &&
-        guidOne.Data3 == guidOther.Data3 &&
-        std::equal(guidOne.Data4, guidOne.Data4 + sizeof(guidOne.Data4), guidOther.Data4);
-}
-
-
-#define GUID_TYPE_DEFINED
-#endif
-
 #include "va/va.h"
 
 // Helper struct VaGuidMapper is placed _studio/shared/include/libmfx_core_vaapi.h for use linux/android GUIDs

@@ -78,17 +78,6 @@
 #include <dxva.h>
 #endif
 
-
-#ifndef GUID_TYPE_DEFINED
-typedef struct {
-    unsigned long  Data1;
-    unsigned short Data2;
-    unsigned short Data3;
-    unsigned char  Data4[ 8 ];
-} GUID;
-#define GUID_TYPE_DEFINED
-#endif
-
 #define UMC_VA_AV1_MSFT
 
 namespace UMC
