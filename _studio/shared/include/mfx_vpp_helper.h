@@ -43,7 +43,7 @@ public:
 
     virtual mfxStatus Submit(mfxFrameSurface1* input, mfxFrameSurface1* output = nullptr);
 
-    virtual mfxFrameSurface1* GetOutptSurface();
+    virtual mfxFrameSurface1 const& GetOutputSurface() const;
 
 protected:
     mfxStatus CreateVpp(mfxVideoParam* param);

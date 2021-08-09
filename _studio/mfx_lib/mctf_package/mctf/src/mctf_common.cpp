@@ -960,7 +960,7 @@ mfxStatus CMC::MCTF_SET_ENV(
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
     if (!m_externalSCD)
     {
-        sts = pSCD->Init(p_ctrl->CropW, p_ctrl->CropH, p_ctrl->width, MFX_PICSTRUCT_PROGRESSIVE, device);
+        sts = pSCD->Init(p_ctrl->CropW, p_ctrl->CropH, p_ctrl->width, MFX_PICSTRUCT_PROGRESSIVE, device, true);
         MFX_CHECK_STS(sts);
         sts = pSCD->SetGoPSize(Immediate_GoP);
         MFX_CHECK_STS(sts);

@@ -120,16 +120,6 @@ mfxStatus MfxVppHelper::CreateVpp(mfxVideoParam* param)
     m_dsSurface.Data.MemId   = m_dsResponse.mids[0];
     m_dsSurface.Data.MemType = vppRequest[1].Type;
 
-    //m_scalingConfig.Header.BufferId     = MFX_EXTBUFF_VPP_SCALING;
-    //m_scalingConfig.Header.BufferSz     = sizeof(mfxExtVPPScaling);
-    //m_scalingConfig.ScalingMode         = MFX_SCALING_MODE_LOWPOWER;
-    //m_scalingConfig.InterpolationMethod = MFX_INTERPOLATION_NEAREST_NEIGHBOR;
-
-    //m_extBuffer = (mfxExtBuffer*)&m_scalingConfig;
-
-    //vppParams.NumExtParam = 1;
-    //vppParams.ExtParam    = &extBuffer;
-
     mfxRes = m_pVpp->Init(param);
 
     m_core->LockFrame(m_dsSurface.Data.MemId, &m_dsSurface.Data);
@@ -141,17 +131,17 @@ void MfxVppHelper::DestroyVpp()
 {
     m_core->UnlockFrame(m_dsSurface.Data.MemId, &m_dsSurface.Data);
     m_core->FreeFrames(&m_dsResponse, false);
-
     if (m_pVpp)
     {
+
         delete m_pVpp;
         m_pVpp = nullptr;
     }
 }
 
-mfxFrameSurface1* MfxVppHelper::GetOutptSurface()
+mfxFrameSurface1 const& MfxVppHelper::GetOutputSurface() const
 {
-    return &m_dsSurface;
+    return m_dsSurface;
 }
 
 #endif

@@ -37,6 +37,7 @@ mfxStatus CheckVideoParamDecoders(mfxVideoParam *in, eMFXHWType type);
 mfxStatus UpdateCscOutputFormat(mfxVideoParam *par, mfxFrameAllocRequest *request);
 
 mfxStatus CheckBitstream(const mfxBitstream *bs);
+mfxStatus CheckFramePointers(mfxFrameInfo const& info, mfxFrameData const& data);
 mfxStatus CheckFrameData(const mfxFrameSurface1 *surface);
 mfxStatus CheckEncryptedBitstream(const mfxBitstream *bs);
 

@@ -849,6 +849,70 @@ protected:
     }
 };
 
+mfxStatus ImplementationAvc::InitScd(mfxFrameAllocRequest& request)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+    request.Info.FourCC = MFX_FOURCC_P8;
+    request.NumFrameMin = mfxU16(m_video.AsyncDepth);
+    request.Info.Width = amtScd.Get_asc_subsampling_width();
+    request.Info.Height = amtScd.Get_asc_subsampling_height();
+    if (IsCmSupported(m_core->GetHWType()))
+    {
+        if (IsCmNeededForSCD(m_video))
+        {
+            // Use CM if frame is video memory
+            if (!m_cmDevice)
+            {
+                m_cmDevice.Reset(TryCreateCmDevicePtr(m_core));
+                MFX_CHECK(m_cmDevice, MFX_ERR_UNSUPPORTED);
+            }
+            request.Type = MFX_MEMTYPE_D3D_INT;
+            sts = m_scd.AllocCmSurfacesUP(m_cmDevice, request);
+            MFX_CHECK_STS(sts);
+        }
+        else
+        {
+            // No need to use CM if frame is sys memory
+            request.Type = MFX_MEMTYPE_SYS_INT;
+            sts = m_scd.AllocFrames(m_core, request);
+            MFX_CHECK_STS(sts);
+        }
+    }
+    else
+    {
+        m_vppHelperScaling.reset(new MfxVppHelper(m_core, &sts));
+        MFX_CHECK_STS(sts);
+
+        MfxVideoParam vppParams = {};
+        vppParams.AsyncDepth = 1;
+        vppParams.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
+        vppParams.vpp.In = m_video.mfx.FrameInfo;
+        vppParams.vpp.Out = m_video.mfx.FrameInfo;
+        vppParams.vpp.Out.CropX = 0;
+        vppParams.vpp.Out.CropY = 0;
+        vppParams.vpp.Out.CropW = amtScd.Get_asc_subsampling_width();
+        vppParams.vpp.Out.CropH = amtScd.Get_asc_subsampling_height();
+        vppParams.vpp.Out.Width = amtScd.Get_asc_subsampling_width();
+        vppParams.vpp.Out.Height = amtScd.Get_asc_subsampling_height();
+
+        mfxExtVPPScaling       m_scalingConfig = {};
+        m_scalingConfig.Header.BufferId = MFX_EXTBUFF_VPP_SCALING;
+        m_scalingConfig.Header.BufferSz = sizeof(mfxExtVPPScaling);
+        m_scalingConfig.ScalingMode = MFX_SCALING_MODE_LOWPOWER;
+        m_scalingConfig.InterpolationMethod = MFX_INTERPOLATION_NEAREST_NEIGHBOR;
+
+        mfxExtBuffer* extBuffer = &m_scalingConfig.Header;
+        vppParams.NumExtParam = 1;
+        vppParams.ExtParam = &extBuffer;
+        sts = m_vppHelperScaling->Init(&vppParams);
+        MFX_CHECK_STS(sts);
+    }
+    sts = amtScd.Init(m_video.mfx.FrameInfo.CropW, m_video.mfx.FrameInfo.CropH, m_video.mfx.FrameInfo.Width, m_video.mfx.FrameInfo.PicStruct, m_cmDevice, IsCmNeededForSCD(m_video));
+    MFX_CHECK_STS(sts);
+
+    return sts;
+}
+
 mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "ImplementationAvc::Init");
@@ -1251,36 +1315,14 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         MFX_CHECK_STS(sts);
     }
 
-    if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType())
+    if (IsExtBrcSceneChangeSupported(m_video)
 #if defined(MFX_ENABLE_ENCTOOLS)
         && !(m_enabledEncTools)
 #endif
         )
 
     {
-        request.Info.FourCC = MFX_FOURCC_P8;
-        request.NumFrameMin = mfxU16(m_video.AsyncDepth);
-        request.Info.Width = amtScd.Get_asc_subsampling_width();
-        request.Info.Height = amtScd.Get_asc_subsampling_height();
-        if (IsCmNeededForSCD(m_video))
-        {
-            if (!m_cmDevice)
-            {
-                m_cmDevice.Reset(TryCreateCmDevicePtr(m_core));
-                if (!m_cmDevice)
-                    return MFX_ERR_UNSUPPORTED;
-            }
-            request.Type = MFX_MEMTYPE_D3D_INT;
-            sts = m_scd.AllocCmSurfacesUP(m_cmDevice, request);
-            MFX_CHECK_STS(sts);
-        }
-        else
-        {
-            request.Type = MFX_MEMTYPE_SYS_INT;
-            sts = m_scd.AllocFrames(m_core, request);
-            MFX_CHECK_STS(sts);
-        }
-        sts = amtScd.Init(m_video.mfx.FrameInfo.CropW, m_video.mfx.FrameInfo.CropH, m_video.mfx.FrameInfo.Width, m_video.mfx.FrameInfo.PicStruct, m_cmDevice);
+        sts = InitScd(request);
         MFX_CHECK_STS(sts);
     }
 
@@ -2628,7 +2670,7 @@ mfxStatus ImplementationAvc::QueryFromMctf(void *pParam)
 }
 #endif
 using namespace ns_asc;
-mfxStatus ImplementationAvc::SCD_Put_Frame(DdiTask & task)
+mfxStatus ImplementationAvc::SCD_Put_Frame_Cm(DdiTask & task)
 {
     task.m_SceneChange = false;
     mfxFrameSurface1 *pSurfI = nullptr;
@@ -2649,21 +2691,40 @@ mfxStatus ImplementationAvc::SCD_Put_Frame(DdiTask & task)
             task.m_wsSubSamplingEv = nullptr;
         }
         else
-            return MFX_ERR_DEVICE_FAILED;
+            MFX_RETURN(MFX_ERR_DEVICE_FAILED);
         MFX_SAFE_CALL(amtScd.QueueFrameProgressive(handle, task.m_wsIdxGpuImage, &task.m_wsSubSamplingEv, &task.m_wsSubSamplingTask));
     }
     else
     {
         mfxFrameData pData = task.m_yuv->Data;
+        mfxFrameInfo Info  = task.m_yuv->Info;
         FrameLocker lock2(m_core, pData, true);
-        if (pData.Y == 0)
-            return Error(MFX_ERR_LOCK_MEMORY);
+        MFX_SAFE_CALL(CheckFramePointers(Info, pData));
+
         task.m_idxScd = FindFreeResourceIndex(m_scd);
         task.m_Yscd = (mfxU8*)m_scd.GetSysmemBuffer(task.m_idxScd);
         MFX_SAFE_CALL(amtScd.PutFrameProgressive(pData.Y, pData.Pitch));
     }
     return MFX_ERR_NONE;
 }
+
+mfxStatus ImplementationAvc::SCD_Put_Frame_Hw(DdiTask& task)
+{
+    mfxStatus sts;
+    task.m_SceneChange = false;
+    mfxFrameSurface1* pSurfI = nullptr;
+    pSurfI = task.m_yuv;
+    
+    sts = m_vppHelperScaling->Submit(pSurfI);
+    MFX_CHECK_STS(sts);
+
+    const mfxFrameSurface1& outSurf = m_vppHelperScaling->GetOutputSurface();
+    task.m_Yscd = outSurf.Data.Y;
+    MFX_CHECK(task.m_Yscd, Error(MFX_ERR_LOCK_MEMORY));
+
+    return MFX_ERR_NONE;
+}
+
 constexpr mfxU32 MAX_PYR_SIZE = 4;
 inline bool bIsRefValid(mfxU32 frameOrder, mfxU32 distFromIntra, mfxU32 diff)
 {
@@ -2902,11 +2963,15 @@ mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
 using namespace ns_asc;
 mfxStatus ImplementationAvc::Prd_LTR_Operation(DdiTask & task)
 {
-    if (task.m_wsSubSamplingEv)
+    if (task.m_wsSubSamplingEv && IsCmSupported(m_core->GetHWType()))
     {
         MFX_SAFE_CALL(amtScd.ProcessQueuedFrame(&task.m_wsSubSamplingEv, &task.m_wsSubSamplingTask, &task.m_wsGpuImage, &task.m_Yscd));
         m_scd.UpdateResourcePointers(task.m_idxScd, (void *)task.m_Yscd, (void *)task.m_wsGpuImage);
         ReleaseResource(m_scd, (mfxHDL)task.m_wsGpuImage);
+    }
+    else if (!IsCmSupported(m_core->GetHWType()))
+    {
+        amtScd.ProcessQueuedFrame(&task.m_Yscd);
     }
     task.m_frameLtrReassign = 0;
     task.m_LtrOrder = m_LtrOrder;
@@ -2938,7 +3003,7 @@ mfxStatus ImplementationAvc::CalculateFrameCmplx(DdiTask const &task, mfxU32 &ra
     // Raca = l2 norm of average abs row diff and average abs col diff
     raca128 = 0;
 
-    if (IsCmNeededForSCD(m_video))
+    if (IsCmNeededForSCD(m_video) && IsCmSupported(m_core->GetHWType()))
     {
         MFX_SAFE_CALL(m_core->GetExternalFrameHDL(*pSurfI, handle, false));
         MFX_SAFE_CALL(amtScd.calc_RaCa_Surf(handle, raca));
@@ -2949,11 +3014,9 @@ mfxStatus ImplementationAvc::CalculateFrameCmplx(DdiTask const &task, mfxU32 &ra
         mfxFrameInfo Info = task.m_yuv->Info;
 
         FrameLocker lock2(m_core, Data, true);
-        if (Data.Y == 0)
-            return Error(MFX_ERR_LOCK_MEMORY);
-        mfxI32 w, h, pitch;
-        mfxU8 *ptr;
-
+        MFX_SAFE_CALL(CheckFramePointers(Info, Data));
+            
+        mfxI32 w, h;
         if (Info.CropH > 0 && Info.CropW > 0)
         {
             w = Info.CropW;
@@ -2965,8 +3028,8 @@ mfxStatus ImplementationAvc::CalculateFrameCmplx(DdiTask const &task, mfxU32 &ra
             h = Info.Height;
         }
 
-        pitch = Data.Pitch;
-        ptr = Data.Y + Info.CropX + Info.CropY * pitch;
+        mfxI32 pitch = Data.Pitch;
+        mfxU8* ptr = Data.Y + Info.CropX + Info.CropY * pitch;
 
         if (ptr)
             MFX_SAFE_CALL(amtScd.calc_RaCa_pic(ptr, w, h, Data.Pitch, raca));
@@ -3458,7 +3521,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
         if (!m_video.mfx.EncodedOrder)
         {
-            if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType())
+            if (IsExtBrcSceneChangeSupported(m_video)
 #if defined(MFX_ENABLE_ENCTOOLS)
                 || (m_enabledEncTools && m_encTools.IsAdaptiveGOP())
 #endif
@@ -3541,9 +3604,14 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             MFX_CHECK_STS(sts);
         }
 #endif
-        if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType()))
+        if (IsExtBrcSceneChangeSupported(m_video))
         {
-            MFX_CHECK_STS(SCD_Put_Frame(task));
+            mfxStatus sts = MFX_ERR_NONE;
+            if (!IsCmSupported(m_core->GetHWType()))
+                sts = SCD_Put_Frame_Hw(task);
+            else
+                sts = SCD_Put_Frame_Cm(task);
+            MFX_CHECK_STS(sts);
         }
 
         OnScdQueried();
@@ -3566,7 +3634,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 #endif
         }
 #endif
-        if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType()))
+        if (IsExtBrcSceneChangeSupported(m_video))
         {
 
             if (task.m_type[0] == 0)
@@ -3962,7 +4030,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 if (bIntRateControlLA(m_video.mfx.RateControlMethod))
                     BrcPreEnc(*task);
 
-                if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType())
+                if (IsExtBrcSceneChangeSupported(m_video)
                     && (task->GetFrameType() & MFX_FRAMETYPE_I) && (task->m_encOrder == 0 || m_video.mfx.GopPicSize != 1))
                 {
                     mfxStatus sts = CalculateFrameCmplx(*task, task->m_brcFrameParams.FrameCmplx);

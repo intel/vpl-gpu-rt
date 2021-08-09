@@ -250,7 +250,7 @@ private:
     mfxStatus SetInterlaceMode(ASCFTS interlaceMode);
 public:
     bool Query_ASCCmDevice();
-    mfxStatus Init(mfxI32 Width, mfxI32 Height, mfxI32 Pitch, mfxU32 PicStruct, CmDevice* pCmDevice);
+    mfxStatus Init(mfxI32 Width, mfxI32 Height, mfxI32 Pitch, mfxU32 PicStruct, CmDevice* pCmDevice, bool isCmSupported);
     void Close();
     bool IsASCinitialized();
 
@@ -279,6 +279,7 @@ public:
     bool Query_resize_Event();
     mfxStatus ProcessQueuedFrame(CmEvent **subSamplingEv, CmTask **subSamplingTask, CmSurface2DUP **inputFrame, mfxU8 **pixelData);
     mfxStatus ProcessQueuedFrame();
+    mfxStatus ProcessQueuedFrame(mfxU8** pixelData);
 
     mfxStatus PutFrameProgressive(mfxHDLPair surface);
     mfxStatus PutFrameProgressive(mfxHDL surface);

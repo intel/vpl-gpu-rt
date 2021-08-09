@@ -43,6 +43,8 @@
 #include "mfx_lp_lookahead.h"
 #endif
 
+#include "mfx_vpp_helper.h"
+
 #ifdef MFX_ENABLE_MCTF_IN_AVC
 #include "cmvm.h"
 #include "mctf_common.h"
@@ -1065,6 +1067,9 @@ namespace MfxHwH264Encode
             , m_isENCPAK(false)
             , m_startTime(0)
             , m_hwType(MFX_HW_UNKNOWN)
+#if defined(MFX_ENABLE_H264_REPARTITION_CHECK)
+            , m_RepartitionCheck(0)
+#endif
             , m_TCBRCTargetFrameSize(0)
             , m_SceneChange(0)
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
@@ -1084,9 +1089,6 @@ namespace MfxHwH264Encode
             , m_wsGpuImage(0)
             , m_wsIdxGpuImage(0)
             , m_Yscd(0)
-#if defined(MFX_ENABLE_H264_REPARTITION_CHECK)
-            , m_RepartitionCheck(0)
-#endif
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
             , m_procBO{0,0}
             , m_scanBO{0,0}
@@ -2940,9 +2942,14 @@ private:
             void *pParam
         );
 #endif
+
+        mfxStatus InitScd(mfxFrameAllocRequest& request);
+
         ASC       amtScd;
-        mfxStatus SCD_Put_Frame(
+        mfxStatus SCD_Put_Frame_Cm(
             DdiTask & newTask);
+        mfxStatus SCD_Put_Frame_Hw(
+            DdiTask& newTask);
         mfxStatus SCD_Get_FrameType(
             DdiTask & newTask);
         mfxStatus CalculateFrameCmplx(
@@ -3132,6 +3139,9 @@ private:
         mfxU32      m_maxBsSize;
 
         std::unique_ptr<DriverEncoder>    m_ddi;
+
+        std::unique_ptr<MfxVppHelper> m_vppHelperScaling;
+
         std::vector<mfxU32>     m_recFrameOrder;
 
         mfxU32 m_recNonRef[2];

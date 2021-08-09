@@ -3274,7 +3274,7 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
     default:
         m_stageGreediness[STG_ACCEPT_FRAME] = 1;
         m_stageGreediness[STG_START_SCD] = 1;
-        m_stageGreediness[STG_WAIT_SCD] = (IsExtBrcSceneChangeSupported(video, platform) && IsCmNeededForSCD(video) ? 1 + !!(video.AsyncDepth > 1) : 1) + adaptGopDelay;
+        m_stageGreediness[STG_WAIT_SCD] = (IsExtBrcSceneChangeSupported(video) && IsCmNeededForSCD(video) ? 1 + !!(video.AsyncDepth > 1) : 1) + adaptGopDelay;
         m_stageGreediness[STG_START_MCTF]   = 1;
         m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video, platform) ? 2 : 1;
 #if USE_AGOP

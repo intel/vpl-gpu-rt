@@ -425,7 +425,6 @@ mfxStatus CheckBitstream(const mfxBitstream *bs)
 
 
 /* Check if pointers required for given FOURCC is NOT null */
-inline
 mfxStatus CheckFramePointers(mfxFrameInfo const& info, mfxFrameData const& data)
 {
     switch (info.FourCC)
