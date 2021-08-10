@@ -172,8 +172,8 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
     m_vPar.CreateExtendedBuffer(MFX_EXTBUFF_CODING_OPTION_SPSPPS);
     m_vPar.CreateExtendedBuffer(MFX_EXTBUFF_HEVC_PARAM);
 
-    mfxU32 asyncDepth = CalculateAsyncDepth(platform, par);
-    m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par, platform);
+    mfxU32 asyncDepth = CalculateAsyncDepth(par);
+    m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par);
 
     m_useDelayedDisplay = ENABLE_DELAYED_DISPLAY_MODE != 0 && IsNeedToUseHWBuffering(m_core->GetHWType()) && (asyncDepth != 1);
 
@@ -439,7 +439,7 @@ mfxStatus VideoDECODEH265::Reset(mfxVideoParam *par)
     m_vPar.CreateExtendedBuffer(MFX_EXTBUFF_CODING_OPTION_SPSPPS);
     m_vPar.CreateExtendedBuffer(MFX_EXTBUFF_HEVC_PARAM);
 
-    m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par, platform);
+    m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par);
 
 
     m_pH265VideoDecoder->SetVideoParams(&m_vFirstPar);
@@ -700,7 +700,7 @@ mfxStatus VideoDECODEH265::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
 
     if (isInternalManaging)
     {
-        request->NumFrameSuggested = request->NumFrameMin = (mfxU16)CalculateAsyncDepth(platform, par);
+        request->NumFrameSuggested = request->NumFrameMin = (mfxU16)CalculateAsyncDepth(par);
 
         if (!IsD3D9SimWithVideoMem)
         {
@@ -723,7 +723,7 @@ mfxStatus VideoDECODEH265::QueryIOSurfInternal(eMFXHWType type, mfxVideoParam *p
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VideoDECODEH265::QueryIOSurfInternal");
     request->Info = par->mfx.FrameInfo;
 
-    mfxU32 asyncDepth = CalculateAsyncDepth(MFX_PLATFORM_HARDWARE, par);
+    mfxU32 asyncDepth = CalculateAsyncDepth(par);
     bool useDelayedDisplay = (ENABLE_DELAYED_DISPLAY_MODE != 0) && IsNeedToUseHWBuffering(type) && (asyncDepth != 1);
 
     mfxExtHEVCParam * hevcParam = (mfxExtHEVCParam *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_HEVC_PARAM);
@@ -966,7 +966,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
     if (surface_work)
     {
-        sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_HEVC, true);
+        sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_HEVC);
         MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
 
         sts = CheckFrameData(surface_work);
@@ -1468,7 +1468,7 @@ bool VideoDECODEH265::IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * o
         return false;
     }
 
-    if (CalculateAsyncDepth(MFX_PLATFORM_HARDWARE, newPar) != CalculateAsyncDepth(MFX_PLATFORM_HARDWARE, oldPar))
+    if (CalculateAsyncDepth(newPar) != CalculateAsyncDepth(oldPar))
     {
         return false;
     }

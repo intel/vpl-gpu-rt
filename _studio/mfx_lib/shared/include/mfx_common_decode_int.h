@@ -113,22 +113,19 @@ protected:
 };
 
 inline
-mfxU16 CalculateNumThread(mfxVideoParam *par, eMFXPlatform platform)
+mfxU16 CalculateNumThread(mfxVideoParam *par)
 {
-    mfxU16 numThread = (MFX_PLATFORM_SOFTWARE == platform) ? static_cast<mfxU16>(vm_sys_info_get_cpu_num()) : 1;
-    if (!par || !par->AsyncDepth)
-        return numThread;
-
-    return std::min(par->AsyncDepth, numThread);
+    (void)par;
+    return 1;
 }
 
 inline
-mfxU32 CalculateAsyncDepth(eMFXPlatform platform, mfxVideoParam *par)
+mfxU32 CalculateAsyncDepth(mfxVideoParam *par)
 {
     mfxU32 asyncDepth = par ? par->AsyncDepth : 0;
     if (!asyncDepth)
     {
-        asyncDepth = (platform == MFX_PLATFORM_SOFTWARE) ? vm_sys_info_get_cpu_num() : MFX_AUTO_ASYNC_DEPTH_VALUE;
+        asyncDepth = MFX_AUTO_ASYNC_DEPTH_VALUE;
     }
 
     return asyncDepth;

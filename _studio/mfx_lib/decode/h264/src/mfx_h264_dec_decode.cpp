@@ -248,8 +248,8 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
     m_vPar.CreateExtendedBuffer(MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
     m_vPar.CreateExtendedBuffer(MFX_EXTBUFF_CODING_OPTION_SPSPPS);
 
-    mfxU32 asyncDepth = CalculateAsyncDepth(platform, par);
-    m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par, platform);
+    mfxU32 asyncDepth = CalculateAsyncDepth(par);
+    m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par);
 
     m_useDelayedDisplay = ENABLE_DELAYED_DISPLAY_MODE != 0 && IsNeedToUseHWBuffering(m_core->GetHWType()) && (asyncDepth != 1);
 
@@ -594,7 +594,7 @@ mfxStatus VideoDECODEH264::Reset(mfxVideoParam *par)
     m_vPar.CreateExtendedBuffer(MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
     m_vPar.CreateExtendedBuffer(MFX_EXTBUFF_CODING_OPTION_SPSPPS);
 
-    m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par, platform);
+    m_vPar.mfx.NumThread = (mfxU16)CalculateNumThread(par);
 
     m_pH264VideoDecoder->SetVideoParams(&m_vFirstPar);
 
@@ -892,7 +892,7 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
 
     if (isInternalManaging)
     {
-        request->NumFrameSuggested = request->NumFrameMin = (mfxU16)CalculateAsyncDepth(platform, par);
+        request->NumFrameSuggested = request->NumFrameMin = (mfxU16)CalculateAsyncDepth(par);
         if (params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
             request->Type = MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_FROM_DECODE;
     }
@@ -925,7 +925,7 @@ mfxStatus VideoDECODEH264::QueryIOSurfInternal(eMFXHWType type, mfxVideoParam *p
         level_idc = mfxU8 (std::max(mfxU16(level_idc), points->OP->LevelIdc));
     }
 
-    mfxU32 asyncDepth = CalculateAsyncDepth(MFX_PLATFORM_HARDWARE, par);
+    mfxU32 asyncDepth = CalculateAsyncDepth(par);
     bool useDelayedDisplay = (ENABLE_DELAYED_DISPLAY_MODE != 0) && IsNeedToUseHWBuffering(type) && (asyncDepth != 1);
 
     mfxI32 dpbSize = UMC::CalculateDPBSize(level_idc, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, 0);
@@ -1732,7 +1732,7 @@ bool VideoDECODEH264::IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * o
         return false;
     }
 
-    if (CalculateAsyncDepth(MFX_PLATFORM_HARDWARE, newPar) != CalculateAsyncDepth(MFX_PLATFORM_HARDWARE, oldPar))
+    if (CalculateAsyncDepth(newPar) != CalculateAsyncDepth(oldPar))
     {
         return false;
     }

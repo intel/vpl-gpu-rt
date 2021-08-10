@@ -164,7 +164,7 @@ mfxStatus CheckFrameInfoEncoders(mfxFrameInfo  *info)
     return MFX_ERR_NONE;
 }
 
-mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
+mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId)
 {
     mfxStatus sts = CheckFrameInfoCommon(info, codecId);
     MFX_CHECK_STS(sts);
@@ -253,8 +253,8 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
         break;
     }
 
-    // HEVC HW supports both kind of shifts, but HEVC SW only Shift == 0
-    if ((codecId != MFX_CODEC_HEVC || !isHW) && (
+    // HEVC HW supports both kind of shifts
+    if ((codecId != MFX_CODEC_HEVC) && (
            info->FourCC == MFX_FOURCC_P010
         || info->FourCC == MFX_FOURCC_P210
         || info->FourCC == MFX_FOURCC_Y210
@@ -262,7 +262,7 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
         || info->FourCC == MFX_FOURCC_Y216
         || info->FourCC == MFX_FOURCC_Y416))
     {
-        MFX_CHECK(info->Shift == (isHW ? 1 : 0), MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(info->Shift == 1, MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     return MFX_ERR_NONE;
@@ -325,7 +325,7 @@ static mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
 {
     MFX_CHECK_NULL_PTR1(in);
 
-    mfxStatus sts = CheckFrameInfoCodecs(&in->mfx.FrameInfo, in->mfx.CodecId, type != MFX_HW_UNKNOWN);
+    mfxStatus sts = CheckFrameInfoCodecs(&in->mfx.FrameInfo, in->mfx.CodecId);
     MFX_CHECK_STS(sts);
 
     if (in->Protected)

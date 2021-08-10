@@ -30,15 +30,13 @@
 namespace MFX_VPX_Utility
 
 {
-    inline mfxU32 GetMaxWidth(mfxU32 codecId, eMFXHWType hwType)
+    inline mfxU32 GetMaxWidth(mfxU32 codecId)
     {
         switch (codecId)
         {
         case MFX_CODEC_VP8:
             return 4096;
         case MFX_CODEC_VP9:
-            if (hwType < MFX_HW_KBL)
-                return 4096;
             return 16384;
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
         case MFX_CODEC_AV1:
@@ -48,15 +46,13 @@ namespace MFX_VPX_Utility
         }
     }
 
-    inline mfxU32 GetMaxHeight(mfxU32 codecId, eMFXHWType hwType)
+    inline mfxU32 GetMaxHeight(mfxU32 codecId)
     {
         switch (codecId)
         {
         case MFX_CODEC_VP8:
             return 4096;
         case MFX_CODEC_VP9:
-            if (hwType < MFX_HW_KBL)
-                return 4096;
             return 16384;
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
         case MFX_CODEC_AV1:
@@ -215,12 +211,12 @@ namespace MFX_VPX_Utility
             if (!p_in->mfx.FrameInfo.ChromaFormat && !(!p_in->mfx.FrameInfo.FourCC && !p_in->mfx.FrameInfo.ChromaFormat))
                 sts = MFX_ERR_UNSUPPORTED;
 
-            if (p_in->mfx.FrameInfo.Width % 16 == 0 && p_in->mfx.FrameInfo.Width <= GetMaxWidth(codecId, core->GetHWType()))
+            if (p_in->mfx.FrameInfo.Width % 16 == 0 && p_in->mfx.FrameInfo.Width <= GetMaxWidth(codecId))
                 p_out->mfx.FrameInfo.Width = p_in->mfx.FrameInfo.Width;
             else
                 sts = MFX_ERR_UNSUPPORTED;
 
-            if (p_in->mfx.FrameInfo.Height % 16 == 0 && p_in->mfx.FrameInfo.Height <= GetMaxHeight(codecId, core->GetHWType()))
+            if (p_in->mfx.FrameInfo.Height % 16 == 0 && p_in->mfx.FrameInfo.Height <= GetMaxHeight(codecId))
                 p_out->mfx.FrameInfo.Height = p_in->mfx.FrameInfo.Height;
             else
                 sts = MFX_ERR_UNSUPPORTED;
@@ -377,21 +373,13 @@ namespace MFX_VPX_Utility
         }
         else
         {
-            /*if (platform == MFX_PLATFORM_SOFTWARE)
-            {
-                if (p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_YV12)
-                    return false;
-            }
-            else*/
-            {
-                if (   p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_NV12
-                    && p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_AYUV
-                    && p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_P010
-                    && !(p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410 && hwtype >= MFX_HW_ICL)
-                    && p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_P016
-                    && p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_Y416)
-                return false;
-            }
+            if (   p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_NV12
+                && p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_AYUV
+                && p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_P010
+                && !(p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410)
+                && p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_P016
+                && p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_Y416)
+            return false;
 
             switch (p_in->mfx.FrameInfo.ChromaFormat)
             {

@@ -258,7 +258,6 @@ namespace UMC_AV1_DECODER
         REFERENCE_MODES = 3,
     };
 
-    // TODO: [Rev0.85] remove this enum once "refresh_frame_context" field will be removed from DDI
     enum REFRESH_FRAME_CONTEXT_MODE {
         REFRESH_FRAME_CONTEXT_DISABLED,
         REFRESH_FRAME_CONTEXT_BACKWARD,

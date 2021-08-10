@@ -1291,7 +1291,7 @@ namespace UMC
 
                     this->m_pPacker.VC1SetPictureBuffer();
                     this->m_pPacker.VC1SetSliceParamBuffer(pOffsets, pValues);
-                    this->m_pPacker.VC1SetSliceDataBuffer(this->m_pContext->m_FrameSize); //TODO: what is a valid size of a buffer here?
+                    this->m_pPacker.VC1SetSliceDataBuffer(this->m_pContext->m_FrameSize);
                     isSecondField = true;
                     // set swap bitstream for parsing
                     this->m_pContext->m_bitstream.pBitstream = reinterpret_cast<uint32_t*>(this->m_pContext->m_pBufferStart + *p_CurOffsets);

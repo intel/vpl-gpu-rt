@@ -305,7 +305,7 @@ bool VideoDECODEAV1::IsNeedChangeVideoParam(mfxVideoParam * newPar, mfxVideoPara
         return false;
     }
 
-    if (CalculateAsyncDepth(MFX_PLATFORM_HARDWARE, newPar) != CalculateAsyncDepth(MFX_PLATFORM_HARDWARE, oldPar))
+    if (CalculateAsyncDepth(newPar) != CalculateAsyncDepth(oldPar))
     {
         return false;
     }

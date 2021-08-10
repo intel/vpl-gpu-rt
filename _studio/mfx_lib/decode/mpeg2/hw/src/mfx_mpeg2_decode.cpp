@@ -37,20 +37,6 @@
 #include "libmfx_core_interface.h"
 using UMC_MPEG2_DECODER::MPEG2DecoderFrame;
 
-// Return a asyncDepth value
-inline mfxU32 CalculateAsyncDepth(const mfxVideoParam *par)
-{
-    return par->AsyncDepth ? par->AsyncDepth : MFX_AUTO_ASYNC_DEPTH_VALUE;
-}
-
-// Return a required number of async thread
-inline mfxU32 CalculateNumThread(const mfxVideoParam *par)
-{
-    mfxU16 numThread = 1;
-
-    return (par->AsyncDepth) ? std::min(par->AsyncDepth, numThread) : numThread;
-}
-
 // Convert display PS to MFX PS
 inline mfxU16 GetMFXPicStruct(const MPEG2DecoderFrame& frame, bool extended)
 {
@@ -361,7 +347,7 @@ mfxStatus VideoDECODEMPEG2::Reset(mfxVideoParam *par)
     m_video_par.CreateExtendedBuffer(MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
     m_video_par.CreateExtendedBuffer(MFX_EXTBUFF_CODING_OPTION_SPSPPS);
 
-    m_video_par.mfx.NumThread = (mfxU16)CalculateNumThread(par, MFX_PLATFORM_HARDWARE);
+    m_video_par.mfx.NumThread = (mfxU16)CalculateNumThread(par);
 
     m_decoder->SetVideoParams(m_first_video_par);
 

@@ -312,7 +312,7 @@ protected:
         H265DecoderRefPicList m_refPicList[2];
     };
 
-    // ML: OPT: TODO: std::vector<> results with relatively slow access code
+    // ML: OPT: std::vector<> results with relatively slow access code
     std::vector<H265DecoderRefPicListPair> m_refPicList;
 
     class FakeFrameInitializer
