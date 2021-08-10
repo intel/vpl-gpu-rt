@@ -4843,8 +4843,7 @@ mfxStatus ImplementationAvc::UpdateBitstream(
 
 
     if ((!((IsOn(m_video.mfx.LowPower) && (m_video.calcParam.numTemporalLayer > 0))) &&
-        m_caps.ddi_caps.HeaderInsertion == 0 &&
-        (m_core->GetVAType() != MFX_HW_VAAPI))
+        m_caps.ddi_caps.HeaderInsertion == 0)
         || m_video.Protected != 0)
         doPatch = needIntermediateBitstreamBuffer = false;
 
