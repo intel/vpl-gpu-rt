@@ -1858,39 +1858,36 @@ mfxU16 MapDNFactor( mfxU16 denoiseFactor )
 
 mfxStatus CheckScalingParam(mfxExtBuffer* pScalingExtBuffer)
 {
-    mfxStatus sts = MFX_ERR_NONE;
+    if (!pScalingExtBuffer)
+        return MFX_ERR_NONE;
 
     mfxExtVPPScaling* pScalingParams = (mfxExtVPPScaling*)pScalingExtBuffer;
-    if (pScalingParams)
-    {
-        // Scaling parameter combination includes the below 2 cases
-        // (MFX_SCALING_MODE_DEFAULT / MFX_SCALING_MODE_QUALITY) + (MFX_INTERPOLATION_DEFAULT / MFX_INTERPOLATION_ADVANCED)
-        // MFX_SCALING_MODE_LOWPOWER + (MFX_INTERPOLATION_DEFAULT / MFX_INTERPOLATION_NEAREST_NEIGHBOR / MFX_INTERPOLATION_BILINEAR / MFX_INTERPOLATION_ADVANCED)
-        switch (pScalingParams->ScalingMode)
-        {
-        case MFX_SCALING_MODE_DEFAULT:
-            sts = ((pScalingParams->InterpolationMethod == MFX_INTERPOLATION_DEFAULT) || (pScalingParams->InterpolationMethod == MFX_INTERPOLATION_ADVANCED)) ? MFX_ERR_NONE : MFX_ERR_INVALID_VIDEO_PARAM;
-            break;
-        case MFX_SCALING_MODE_QUALITY:
-            sts = ((pScalingParams->InterpolationMethod == MFX_INTERPOLATION_DEFAULT) || (pScalingParams->InterpolationMethod == MFX_INTERPOLATION_ADVANCED)) ? MFX_ERR_NONE : MFX_ERR_INVALID_VIDEO_PARAM;
-            break;
-        case MFX_SCALING_MODE_LOWPOWER:
-            sts = (pScalingParams->InterpolationMethod <= MFX_INTERPOLATION_ADVANCED) ? MFX_ERR_NONE : MFX_ERR_INVALID_VIDEO_PARAM;
-            break;
-        default:
-            sts = MFX_ERR_INVALID_VIDEO_PARAM;
-            break;
-        }
-    }
 
-    return sts;
+    // Scaling parameter combination includes the below 2 cases
+    // (MFX_SCALING_MODE_DEFAULT / MFX_SCALING_MODE_QUALITY) + (MFX_INTERPOLATION_DEFAULT / MFX_INTERPOLATION_ADVANCED)
+    // MFX_SCALING_MODE_LOWPOWER + (MFX_INTERPOLATION_DEFAULT / MFX_INTERPOLATION_NEAREST_NEIGHBOR / MFX_INTERPOLATION_BILINEAR / MFX_INTERPOLATION_ADVANCED)
+    switch (pScalingParams->ScalingMode)
+    {
+    case MFX_SCALING_MODE_DEFAULT:
+        MFX_RETURN(((pScalingParams->InterpolationMethod == MFX_INTERPOLATION_DEFAULT) || (pScalingParams->InterpolationMethod == MFX_INTERPOLATION_ADVANCED)) ? MFX_ERR_NONE : MFX_ERR_INVALID_VIDEO_PARAM);
+        break;
+    case MFX_SCALING_MODE_QUALITY:
+        MFX_RETURN(((pScalingParams->InterpolationMethod == MFX_INTERPOLATION_DEFAULT) || (pScalingParams->InterpolationMethod == MFX_INTERPOLATION_ADVANCED)) ? MFX_ERR_NONE : MFX_ERR_INVALID_VIDEO_PARAM);
+        break;
+    case MFX_SCALING_MODE_LOWPOWER:
+        MFX_RETURN((pScalingParams->InterpolationMethod <= MFX_INTERPOLATION_ADVANCED) ? MFX_ERR_NONE : MFX_ERR_INVALID_VIDEO_PARAM);
+        break;
+    default:
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+        break;
+    }
 }
 
 mfxStatus CheckExtParam(VideoCORE * core, mfxExtBuffer** ppExtParam, mfxU16 count)
 {
     if( (NULL == ppExtParam && count > 0) )
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     bool bError = false;
@@ -1984,11 +1981,11 @@ mfxStatus CheckExtParam(VideoCORE * core, mfxExtBuffer** ppExtParam, mfxU16 coun
 
     if( bError )
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
     else if( MFX_ERR_NONE != sts_wrn )
     {
-        return sts_wrn;
+        MFX_RETURN(sts_wrn);
     }
     else
     {

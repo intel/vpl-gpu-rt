@@ -332,59 +332,54 @@ bool IsCompositionMode(mfxVideoParam* pParam)
 
 mfxStatus ExtendedQuery(VideoCORE * core, mfxU32 filterName, mfxExtBuffer* pHint)
 {
-    mfxStatus sts = MFX_ERR_NONE;
-
     if( MFX_EXTBUFF_VPP_DENOISE == filterName
         )
     {
-        sts = MFXVideoVPPDenoise::Query( pHint );
+        MFX_RETURN(MFXVideoVPPDenoise::Query( pHint ));
     }
 #ifdef MFX_ENABLE_MCTF
     else if (MFX_EXTBUFF_VPP_MCTF == filterName)
     {
-        sts = CMC::CheckAndFixParams((mfxExtVppMctf*)pHint);
+        MFX_RETURN(CMC::CheckAndFixParams((mfxExtVppMctf*)pHint));
     }
 #endif
     else if( MFX_EXTBUFF_VPP_DETAIL == filterName )
     {
-        sts = MFXVideoVPPDetailEnhancement::Query( pHint );
+        MFX_RETURN(MFXVideoVPPDetailEnhancement::Query( pHint ));
     }
     else if( MFX_EXTBUFF_VPP_PROCAMP == filterName )
     {
-        sts = MFXVideoVPPProcAmp::Query( pHint );
+        MFX_RETURN(MFXVideoVPPProcAmp::Query( pHint ));
     }
     else if( MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION == filterName )
     {
-        sts = MFXVideoVPPFrameRateConversion::Query( pHint );
+        MFX_RETURN(MFXVideoVPPFrameRateConversion::Query( pHint ));
     }
     else if( MFX_EXTBUFF_VPP_IMAGE_STABILIZATION == filterName )
     {
-        sts = MFX_WRN_FILTER_SKIPPED;
+        MFX_RETURN(MFX_WRN_FILTER_SKIPPED);
     }
     else if( MFX_EXTBUFF_VPP_SCENE_ANALYSIS == filterName )
     {
-        sts = MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
     else if( MFX_EXTBUFF_VPP_COMPOSITE == filterName )
     {
-        sts = MFX_ERR_NONE;
+        return MFX_ERR_NONE;
     }
     else if( MFX_EXTBUFF_VPP_FIELD_PROCESSING == filterName )
     {
-        sts = MFX_ERR_NONE;
+        return MFX_ERR_NONE;
     }
     else if (MFX_EXTBUFF_VPP_SCALING == filterName)
     {
-        sts = CheckScalingParam(pHint);
+        MFX_RETURN(CheckScalingParam(pHint));
     }
     else // ignore
     {
-        sts = MFX_ERR_NONE;
+        return MFX_ERR_NONE;
     }
-
-    return sts;
-
-} // mmfxStatus ExtendedQuery(VideoCORE * core, mfxU32 filterName, mfxExtBuffer* pHint)
+} // mfxStatus ExtendedQuery(VideoCORE * core, mfxU32 filterName, mfxExtBuffer* pHint)
 
 #endif // MFX_ENABLE_VPP
 /* EOF */
