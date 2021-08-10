@@ -50,6 +50,14 @@
 
 #define UMC_VA
 
+#if defined(UNICODE) || defined(_UNICODE)
+    #define MFX_UNICODE
+#endif
+
+#if defined(__SSE4_1__)
+    #define MFX_SSE_4_1
+#endif
+
 #if !defined(NDEBUG)
 #define MFX_ENV_CFG_ENABLE
 #endif

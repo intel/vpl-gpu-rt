@@ -20,8 +20,9 @@
 // SOFTWARE.
 */
 #include "fast_copy_sse4_impl.h"
+#include "mfx_config.h"
 
-#if defined(__SSE4_1__)
+#if defined(MFX_SSE_4_1)
 
 #include <immintrin.h>
 
@@ -191,4 +192,4 @@ void copySysToVideoShift_SSE4(const mfxU16* src, mfxU16* dst, int width, int shi
     }
 }
 
-#endif // __SSE4_1__ || _WIN32
+#endif // MFX_SSE_4_1

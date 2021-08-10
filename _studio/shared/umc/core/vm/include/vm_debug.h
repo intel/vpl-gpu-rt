@@ -91,7 +91,7 @@ void vm_debug_message(const vm_char *format, ...);
 
 /* ///////////////////// */
 
-#if defined(UNICODE) || defined(_UNICODE)
+#if defined(MFX_UNICODE)
 #define VM_STRING_FORMAT VM_STRING("%S")
 #else
 #define VM_STRING_FORMAT VM_STRING("%s")
