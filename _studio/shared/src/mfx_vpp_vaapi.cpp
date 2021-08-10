@@ -538,7 +538,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
     eMFXPlatform platform = m_core->GetPlatformType();
     if (platform == MFX_PLATFORM_HARDWARE)
     {
-        caps.uChromaSiting = m_core->GetHWType() >= MFX_HW_SCL ? 1 : 0;
+        caps.uChromaSiting = 1;
     }
 
     return MFX_ERR_NONE;
