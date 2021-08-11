@@ -28,16 +28,10 @@
 #undef  UMC_VA_LINUX
 #define UMC_VA_LINUX
 
-#if defined(ANDROID)
-    #include "mfx_android_defs.h"
-
-    #define SYNCHRONIZATION_BY_VA_SYNC_SURFACE
-#else
     // mfxconfig.h is auto-generated file containing mediasdk per-component
     // enable defines
     #include "mfxconfig.h"
 
-#endif
 
 // Here follows per-codec feature enable options which as of now we don't
 // want to expose on build system level since they are too detailed.
