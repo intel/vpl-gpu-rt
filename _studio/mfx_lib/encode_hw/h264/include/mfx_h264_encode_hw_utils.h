@@ -1089,6 +1089,9 @@ namespace MfxHwH264Encode
             , m_wsGpuImage(0)
             , m_wsIdxGpuImage(0)
             , m_Yscd(0)
+#if defined(MFX_ENABLE_H264_REPARTITION_CHECK)
+            , m_RepartitionCheck(0)
+#endif
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
             , m_procBO{0,0}
             , m_scanBO{0,0}
