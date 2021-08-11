@@ -39,8 +39,6 @@ mfxStatus UpdateCscOutputFormat(mfxVideoParam *par, mfxFrameAllocRequest *reques
 mfxStatus CheckBitstream(const mfxBitstream *bs);
 mfxStatus CheckFramePointers(mfxFrameInfo const& info, mfxFrameData const& data);
 mfxStatus CheckFrameData(const mfxFrameSurface1 *surface);
-mfxStatus CheckEncryptedBitstream(const mfxBitstream *bs);
-
 mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par);
 
 mfxStatus PackMfxFrameRate(mfxU32 nom, mfxU32 denom, mfxU32& packed); // fit u32 args to u16 and pack: (den << 16) | nom, returns MFX_WRN_VIDEO_PARAM_CHANGED if result differs

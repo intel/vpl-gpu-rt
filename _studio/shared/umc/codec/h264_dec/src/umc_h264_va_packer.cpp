@@ -25,7 +25,6 @@
 #include "umc_h264_task_supplier.h"
 
 #include "umc_va_linux.h"
-#include "umc_va_linux_protected.h"
 #include "umc_va_video_processing.h"
 
 #include "mfx_common_int.h"

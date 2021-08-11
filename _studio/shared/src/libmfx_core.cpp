@@ -20,8 +20,6 @@
 
 #include <assert.h>
 
-#include "mfxpcp.h"
-
 #include <mfx_scheduler_core.h>
 #include <libmfx_core_interface.h>
 #include "mfx_session.h"

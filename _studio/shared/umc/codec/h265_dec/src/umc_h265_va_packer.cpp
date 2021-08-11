@@ -31,7 +31,6 @@
 #endif
 
 #include "umc_h265_va_packer_vaapi.h"
-#include "umc_va_linux_protected.h"
 #include "mfx_ext_buffers.h"
 
 using namespace UMC;

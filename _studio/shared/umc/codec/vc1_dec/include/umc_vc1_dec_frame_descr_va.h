@@ -27,7 +27,6 @@
 
 #include "umc_va_base.h"
 
-#if defined(UMC_VA)
 #include "umc_vc1_dec_frame_descr.h"
 #include "umc_vc1_dec_exception.h"
 #include "umc_vc1_dec_task_store.h"
@@ -1504,8 +1503,6 @@ namespace UMC
 
 
 } // namespace UMC
-
-#endif // #if defined(UMC_VA)
 
 #endif //__UMC_VC1_DEC_FRAME_DESCR_VA_H_
 #endif //MFX_ENABLE_VC1_VIDEO_DECODE

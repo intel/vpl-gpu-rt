@@ -34,8 +34,6 @@
 
 #include "libmfx_core_hw.h"
 
-#include "umc_va_linux_protected.h"
-
 #include "cm_mem_copy.h"
 
 #include <sys/ioctl.h>

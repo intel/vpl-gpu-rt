@@ -39,8 +39,6 @@
 #include "mfx_ext_buffers.h"
 #include "umc_h264_notify.h"
 
-#include "umc_va_linux_protected.h"
-
 namespace UMC
 {
 

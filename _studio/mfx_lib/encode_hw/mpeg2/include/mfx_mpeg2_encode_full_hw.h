@@ -242,7 +242,10 @@ public:
               {
                   return MFX_ERR_NOT_INITIALIZED;
               }
-              sts = m_pDdiEncoder->FillBSBuffer(pIntTask->m_FeedbackNumber, pIntTask->m_BitstreamFrameNumber, pIntTask->m_pBitstream, &m_pExecuteBuffers->m_encrypt);
+
+              sts = m_pDdiEncoder->FillBSBuffer(pIntTask->m_FeedbackNumber, pIntTask->m_BitstreamFrameNumber, pIntTask->m_pBitstream
+              );
+
               MFX_CHECK_STS(sts);
 
               return sts;

@@ -39,21 +39,6 @@
 
 namespace MfxHwMpeg2Encode
 {
-    class Encryption
-    {
-    public:
-        bool                   m_bEncryptionMode;
-        Encryption()
-            : m_bEncryptionMode (false)
-        {
-        }
-        void Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId)
-        {
-            m_bEncryptionMode = false;
-            (void) par;
-            (void) funcId;
-        }
-    };
     struct ExecuteBuffers
     {
         ExecuteBuffers()
@@ -89,7 +74,6 @@ namespace MfxHwMpeg2Encode
             , m_GOPPictureSize()
             , m_GOPRefDist()
             , m_GOPOptFlag()
-            , m_encrypt()
             , m_fFrameRate()
             , m_FrameRateExtN()
             , m_FrameRateExtD()
@@ -140,7 +124,6 @@ namespace MfxHwMpeg2Encode
         UCHAR                                   m_GOPRefDist;
         UCHAR                                   m_GOPOptFlag;
 
-        Encryption                              m_encrypt;
         Ipp64f                                  m_fFrameRate;
 
         mfxU32                                  m_FrameRateExtN;
@@ -167,7 +150,8 @@ namespace MfxHwMpeg2Encode
 
         virtual mfxStatus FillMBBufferPointer(ExecuteBuffers* pExecuteBuffers) = 0;
 
-        virtual mfxStatus FillBSBuffer(mfxU32 nFeedback, mfxU32 nBitstream, mfxBitstream* pBitstream, Encryption *pEncrypt) = 0;
+        virtual mfxStatus FillBSBuffer(mfxU32 nFeedback, mfxU32 nBitstream, mfxBitstream* pBitstream
+        ) = 0;
 
         virtual mfxStatus SetFrames (ExecuteBuffers* pExecuteBuffers) = 0;
 

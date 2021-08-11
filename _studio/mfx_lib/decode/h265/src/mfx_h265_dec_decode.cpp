@@ -32,12 +32,8 @@
 #include "vm_sys_info.h"
 
 #include "umc_h265_va_supplier.h"
-#if defined(MFX_ENABLE_CP)
-#include "umc_va_linux_protected.h"
-#endif
 #include "umc_va_video_processing.h"
 
-#include "mfxpcp.h"
 #include "libmfx_core_interface.h"
 
 using namespace UMC_HEVC_DECODER;

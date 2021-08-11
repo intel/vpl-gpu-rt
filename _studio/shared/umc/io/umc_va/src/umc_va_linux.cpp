@@ -24,7 +24,6 @@
 
 #include "umc_defs.h"
 #include "umc_va_linux.h"
-#include "umc_va_linux_protected.h"
 #include "umc_va_video_processing.h"
 #include "mfx_trace.h"
 #include "umc_frame_allocator.h"
@@ -374,11 +373,6 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         m_allocator         = pParams->m_allocator;
         m_FrameState        = lvaBeforeBegin;
 
-        if (IS_PROTECTION_ANY(pParams->m_protectedVA))
-        {
-            m_protectedVA = new ProtectedVA(pParams->m_protectedVA);
-        }
-
         // profile or stream type should be set
         if (UNKNOWN == (m_Profile & VA_CODEC))
         {
@@ -605,9 +599,6 @@ Status LinuxVideoAccelerator::Close(void)
 
         m_dpy = NULL;
     }
-
-    delete m_protectedVA;
-    m_protectedVA = nullptr;
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     delete m_videoProcessingVA;

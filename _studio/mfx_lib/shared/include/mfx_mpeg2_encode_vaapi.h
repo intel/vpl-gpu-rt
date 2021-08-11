@@ -79,7 +79,8 @@ namespace MfxHwMpeg2Encode
         mfxStatus FillMBBufferPointer(ExecuteBuffers* pExecuteBuffers) override;
 
         virtual
-        mfxStatus FillBSBuffer(mfxU32 nFeedback,mfxU32 nBitstream, mfxBitstream* pBitstream, Encryption *pEncrypt) override;
+        mfxStatus FillBSBuffer(mfxU32 nFeedback,mfxU32 nBitstream, mfxBitstream* pBitstream
+        ) override;
 
         virtual
         mfxStatus SetFrames (ExecuteBuffers* pExecuteBuffers) override;

@@ -16,15 +16,8 @@ if (MFX_ENABLE_H264_VIDEO_ENCODE)
     h264/src/mfx_h264_encode_hw_utils.cpp
     h264/src/mfx_h264_encode_hw_utils_new.cpp
 
-    ${MSDK_LIB_ROOT}/shared/include/mfx_h264_enc_common_hw.h
-    ${MSDK_LIB_ROOT}/shared/include/mfx_h264_encode_interface.h
-    ${MSDK_LIB_ROOT}/shared/include/mfx_h264_encode_struct_vaapi.h
-    ${MSDK_LIB_ROOT}/shared/include/mfx_h264_encode_vaapi.h
 
-    ${MSDK_LIB_ROOT}/shared/src/mfx_h264_encode_vaapi.cpp
-    ${MSDK_LIB_ROOT}/shared/src/mfx_h264_encode_factory.cpp
 
-    ${MSDK_LIB_ROOT}/shared/src/mfx_ddi_enc_dump.cpp
   )
 
   source_group("avc" FILES ${AVC_VIDEO_ENCODE_SRC})
@@ -150,15 +143,6 @@ if (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
     mpeg2/src/mfx_mpeg2_encode_full_hw.cpp
     mpeg2/src/mfx_mpeg2_encode_hw.cpp
     mpeg2/src/mfx_mpeg2_encode_utils_hw.cpp
-
-    ${MSDK_LIB_ROOT}/shared/include/mfx_mpeg2_enc_common.h
-    ${MSDK_LIB_ROOT}/shared/include/mfx_mpeg2_enc_common_hw.h
-    ${MSDK_LIB_ROOT}/shared/include/mfx_mpeg2_encode_interface.h
-    ${MSDK_LIB_ROOT}/shared/include/mfx_mpeg2_encode_vaapi.h
-
-    ${MSDK_LIB_ROOT}/shared/src/mfx_mpeg2_enc_common_hw.cpp
-    ${MSDK_LIB_ROOT}/shared/src/mfx_mpeg2_encode_factory.cpp
-    ${MSDK_LIB_ROOT}/shared/src/mfx_mpeg2_encode_vaapi.cpp
   )
 
   source_group("mpeg2" FILES ${MPEG2_VIDEO_ENCODE_SRC})

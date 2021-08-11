@@ -205,7 +205,6 @@ public:
         m_Profile(UNKNOWN),
         m_Platform(VA_UNKNOWN_PLATFORM),
         m_HWPlatform(MFX_HW_UNKNOWN),
-        m_protectedVA(nullptr),
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
         m_videoProcessingVA(0),
 #endif
@@ -253,8 +252,6 @@ public:
 
     virtual bool IsIntelCustomGUID() const = 0;
     virtual int32_t GetSurfaceID(int32_t idx) const { return idx; }
-
-    virtual ProtectedVA * GetProtectedVA() {return m_protectedVA;}
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     virtual VideoProcessingVA * GetVideoProcessingVA() {return m_videoProcessingVA;}
@@ -347,8 +344,6 @@ public:
     eMFXHWType                  m_HWPlatform;
 
 protected:
-
-    ProtectedVA       *  m_protectedVA;
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     VideoProcessingVA *  m_videoProcessingVA;
