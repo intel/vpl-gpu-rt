@@ -39,6 +39,7 @@
 
 namespace MfxHwMpeg2Encode
 {
+
     struct ExecuteBuffers
     {
         ExecuteBuffers()
@@ -123,6 +124,7 @@ namespace MfxHwMpeg2Encode
         USHORT                                  m_GOPPictureSize;
         UCHAR                                   m_GOPRefDist;
         UCHAR                                   m_GOPOptFlag;
+
 
         Ipp64f                                  m_fFrameRate;
 

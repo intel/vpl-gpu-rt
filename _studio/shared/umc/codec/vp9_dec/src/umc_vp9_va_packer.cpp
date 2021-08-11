@@ -27,6 +27,8 @@
 #include "umc_vp9_frame.h"
 #include "umc_vp9_utils.h"
 
+#include "umc_va_base.h"
+
 using namespace UMC;
 
 namespace UMC_VP9_DECODER

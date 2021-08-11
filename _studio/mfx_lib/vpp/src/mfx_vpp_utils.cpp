@@ -27,8 +27,6 @@
 
 #include "mfx_vpp_hw.h"
 
-#include "mfxpcp.h"
-
 
 #include "ipps.h"
 #include "ippi.h"

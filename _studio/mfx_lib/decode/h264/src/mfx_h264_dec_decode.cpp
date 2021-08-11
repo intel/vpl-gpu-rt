@@ -34,7 +34,7 @@
 #include "umc_h264_va_supplier.h"
 #include "umc_va_video_processing.h"
 
-#include "mfxpcp.h"
+
 #include "libmfx_core_interface.h"
 
 #include "mfx_utils.h"
@@ -1142,13 +1142,6 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
     sts = MFX_ERR_UNDEFINED_BEHAVIOR;
 
-#if defined(MFX_ENABLE_CP)
-    if (bs && IS_PROTECTION_ANY(m_vPar.Protected))
-    {
-        MFX_CHECK(m_va->GetProtectedVA() && (bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME), MFX_ERR_UNDEFINED_BEHAVIOR);
-        m_va->GetProtectedVA()->SetBitstream(bs);
-    }
-#endif
 
     try
     {

@@ -24,7 +24,6 @@
 
 #include "mfx_vc1_dec_common.h"
 #include "umc_vc1_common.h"
-#include "mfxpcp.h"
 
 
 #include "mfx_common_int.h"

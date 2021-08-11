@@ -31,6 +31,7 @@
 #include "umc_vc1_dec_exception.h"
 #include "umc_vc1_dec_task_store.h"
 
+
 namespace UMC
 {
 

@@ -29,6 +29,9 @@
 
 #include "mfx_common_int.h"
 #include "mfx_ext_buffers.h"
+#if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
+#include "vaapi_ext_interface.h"
+#endif
 
 #include "mfx_trace.h"
 

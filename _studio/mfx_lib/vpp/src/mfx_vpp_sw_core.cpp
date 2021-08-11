@@ -30,7 +30,6 @@
 #include "libmfx_core_factory.h"
 #include "libmfx_core_interface.h"
 
-#include "mfxpcp.h"
 
 #include "mfx_vpp_utils.h"
 #include "mfx_vpp_sw.h"
