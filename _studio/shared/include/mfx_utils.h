@@ -759,7 +759,7 @@ template <typename T>
 struct mfxRefCountableInstance
 {
     static mfxRefCountable* Get(T* object)
-    { return static_cast<mfxRefCountable*>(object->Context); }
+    { return static_cast<mfxRefCountable*>(object); }
 };
 
 template <typename T, typename U = T>
