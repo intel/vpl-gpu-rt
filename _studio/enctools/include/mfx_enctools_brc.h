@@ -31,6 +31,7 @@ namespace EncToolsBRC
 {
 
     constexpr mfxU8  LA_P_UPDATE_DIST = 8;
+    constexpr mfxU8  MBQP_P_UPDATE_DIST = 7;
     constexpr mfxU8  MAX_GOP_REFDIST = 8;
 
     constexpr mfxF64 MIN_RACA = 0.25;
@@ -351,6 +352,7 @@ struct BRC_Ctx
         LastLaPBitsAvg(LA_P_UPDATE_DIST + MAX_GOP_REFDIST, 0),
         LastLaQpCalc(0),
         LastLaQpCalcOrder(0),
+        LastMBQpSetOrder(0),
         LastLaQpUpdateOrder(0),
         LastNonBFrameSize(0),
         fAbLong(0),
@@ -391,6 +393,7 @@ struct BRC_Ctx
     std::vector<mfxU32> LastLaPBitsAvg;  // History of Moving Avg of LA bits of last P frames
     mfxU32 LastLaQpCalc;   // Last LaQp calculated
     mfxU32 LastLaQpCalcOrder;
+    mfxU32 LastMBQpSetOrder;
     mfxU32 LastLaQpUpdateOrder;
 
     mfxU32 LastNonBFrameSize; // encoded frame size of last non B frame (is used for sceneChange)
