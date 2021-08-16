@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -43,23 +43,6 @@ using namespace MfxFeatureBlocks;
 namespace ExtBuffer
 {
     using namespace MfxExtBuffer;
-};
-
-class BlockTracer
-    : public ID
-{
-public:
-    using TFeatureTrace = std::pair<std::string, const std::map<mfxU32, const std::string>>;
-
-    BlockTracer(
-        ID id
-        , const char* fName = nullptr
-        , const char* bName = nullptr);
-
-    ~BlockTracer();
-
-    const char* m_featureName;
-    const char* m_blockName;
 };
 
 struct FeatureBlocks

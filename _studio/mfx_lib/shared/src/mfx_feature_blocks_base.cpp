@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Intel Corporation
+// Copyright (c) 2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,12 +18,38 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-//use customized version w/trace support instead of default one
-#define DECL_BLOCK_CLEANUP_DISABLE
-#define CODEC_NAME_PREFIX "HEVCe_"
-#include "feature_blocks/mfx_feature_blocks_decl_blocks.h"
+#include "mfx_feature_blocks_base.h"
 
-#undef CODEC_NAME_PREFIX
-#undef DECL_BLOCK_LIST
-#undef DECL_FEATURE_NAME
-#undef DECL_BLOCK_CLEANUP_DISABLE
+namespace MfxFeatureBlocks
+{
+BlockTracer::BlockTracer(
+    ID id
+    , const char* fName
+    , const char* bName)
+    : ID(id)
+    , m_featureName(fName)
+    , m_blockName(bName)
+{
+#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+    std::stringstream threadID;
+    threadID << std::this_thread::get_id();
+    printf("TH#%s %s::%s -> %d::%d: Enter\n"
+        , threadID.str().c_str(), m_featureName, m_blockName
+        , FeatureID, BlockID);
+    fflush(stdout);
+#endif // MFX_ENABLE_FEATURE_BLOCKS_TRACE
+}
+
+BlockTracer::~BlockTracer()
+{
+#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+    std::stringstream threadID;
+    threadID << std::this_thread::get_id();
+    printf("TH#%s %s::%s -> %d::%d: Exit\n"
+        , threadID.str().c_str(), m_featureName, m_blockName
+        , FeatureID, BlockID);
+    fflush(stdout);
+#endif // MFX_ENABLE_FEATURE_BLOCKS_TRACE
+}
+
+}; //namespace MfxFeatureBlocks

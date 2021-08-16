@@ -34,8 +34,26 @@
         , NUM_BLOCKS
     };
 
+#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+    #if !defined(CODEC_NAME_PREFIX)
+        #error "Invalid usage of " __FILE__ ": CODEC_NAME_PREFIX must be defined"
+    #endif
+
+    BlockTracer::TFeatureTrace m_trace =
+    {
+        CODEC_NAME_PREFIX + std::string(DECL_FEATURE_NAME),
+        {
+        #define DECL_BLOCK(NAME) {BLK_##NAME, #NAME},
+                    DECL_BLOCK_LIST
+        #undef DECL_BLOCK
+        }
+    };
+
+    virtual const BlockTracer::TFeatureTrace* GetTrace() override { return &m_trace; }
+    virtual void SetTraceName(std::string&& name) override { m_trace.first = CODEC_NAME_PREFIX + std::move(name); }
+#endif // defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+
 #if !defined DECL_BLOCK_CLEANUP_DISABLE
     #undef DECL_BLOCK_LIST
     #undef DECL_FEATURE_NAME
 #endif
-
