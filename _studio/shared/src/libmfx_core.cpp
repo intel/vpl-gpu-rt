@@ -1402,6 +1402,9 @@ void* CommonCORE::QueryCoreInterface(const MFX_GUID &guid)
     if (MFXICORE_API_1_19_GUID == guid)
         return &m_API_1_19;
 
+    if (MFXICORE_API_2_0_GUID == guid)
+        return &m_enabled20Interface;
+
     return nullptr;
 }
 
@@ -1436,6 +1439,9 @@ mfxFrameAllocResponse *CommonCORE::GetPluginAllocResponse(mfxFrameAllocResponse&
 
 mfxStatus CommonCORE20::AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool)
 {
+    if (!m_enabled20Interface)
+        return CommonCORE::AllocFrames(request, response);
+
     MFX_CHECK_NULL_PTR2(request, response);
 
 #ifdef MFX_DEBUG_TOOLS
@@ -1461,13 +1467,19 @@ mfxStatus CommonCORE20::AllocFrames(mfxFrameAllocRequest *request, mfxFrameAlloc
 
 mfxStatus CommonCORE20::LockFrame(mfxMemId mid, mfxFrameData *ptr)
 {
+    if (!m_enabled20Interface)
+        return CommonCORE::LockFrame(mid, ptr);
+
     MFX_CHECK_NULL_PTR1(ptr);
 
     return m_frame_allocator_wrapper.Lock(mid, ptr);
 }
 
-mfxStatus CommonCORE20::GetFrameHDL(mfxMemId mid, mfxHDL* handle, bool)
+mfxStatus CommonCORE20::GetFrameHDL(mfxMemId mid, mfxHDL* handle, bool ExtendedSearch)
 {
+    if (!m_enabled20Interface)
+        return CommonCORE::GetFrameHDL(mid, handle, ExtendedSearch);
+
     MFX_CHECK_HDL(handle);
 
     return m_frame_allocator_wrapper.GetHDL(mid, *handle);
@@ -1475,28 +1487,43 @@ mfxStatus CommonCORE20::GetFrameHDL(mfxMemId mid, mfxHDL* handle, bool)
 
 mfxStatus CommonCORE20::UnlockFrame(mfxMemId mid, mfxFrameData *ptr)
 {
+    if (!m_enabled20Interface)
+        return CommonCORE::UnlockFrame(mid, ptr);
+
     return m_frame_allocator_wrapper.Unlock(mid, ptr);
 }
 
-mfxStatus CommonCORE20::FreeFrames(mfxFrameAllocResponse *response, bool)
+mfxStatus CommonCORE20::FreeFrames(mfxFrameAllocResponse *response, bool ExtendedSearch)
 {
+    if (!m_enabled20Interface)
+        return CommonCORE::FreeFrames(response, ExtendedSearch);
+
     MFX_CHECK_NULL_PTR1(response);
 
     return m_frame_allocator_wrapper.Free(*response);
 }
 
-mfxStatus CommonCORE20::LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool)
+mfxStatus CommonCORE20::LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool ExtendedSearch)
 {
+    if (!m_enabled20Interface)
+        return CommonCORE::LockExternalFrame(mid, ptr, ExtendedSearch);
+
     return LockFrame(mid, ptr);
 }
 
-mfxStatus CommonCORE20::GetExternalFrameHDL(mfxMemId mid, mfxHDL *handle, bool)
+mfxStatus CommonCORE20::GetExternalFrameHDL(mfxMemId mid, mfxHDL *handle, bool ExtendedSearch)
 {
+    if (!m_enabled20Interface)
+        return CommonCORE::GetExternalFrameHDL(mid, handle, ExtendedSearch);
+
     return GetFrameHDL(mid, handle);
 }
 
-mfxStatus CommonCORE20::UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool)
+mfxStatus CommonCORE20::UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool ExtendedSearch)
 {
+    if (!m_enabled20Interface)
+        return CommonCORE::UnlockExternalFrame(mid, ptr, ExtendedSearch);
+
     return UnlockFrame(mid, ptr);
 }
 
@@ -1504,6 +1531,8 @@ CommonCORE20::CommonCORE20(const mfxU32 numThreadsAvailable, const mfxSession se
     : deprecate_from_base<CommonCORE>(numThreadsAvailable, session)
 {
     m_frame_allocator_wrapper.allocator_sw.reset(new FlexibleFrameAllocatorSW(nullptr, m_session));
+
+    m_enabled20Interface = true;
 }
 
 mfxStatus CommonCORE20::SetFrameAllocator(mfxFrameAllocator *allocator)
@@ -1527,11 +1556,16 @@ mfxStatus CommonCORE20::SetFrameAllocator(mfxFrameAllocator *allocator)
 
 bool CommonCORE20::IsExternalFrameAllocator() const
 {
+    if (!m_enabled20Interface)
+        return CommonCORE::IsExternalFrameAllocator();
+
     return m_frame_allocator_wrapper.IsExtAllocatorSet();
 }
 
 pair<mfxStatus, bool> CommonCORE20::Lock(mfxFrameSurface1& surf, mfxU32 flags)
 {
+    if (!m_enabled20Interface) return { MFX_STS_TRACE(MFX_ERR_UNSUPPORTED), false };
+
     // Priority 1: If pointers were already set - do nothing
     if (GetFramePointer(surf.Info.FourCC, surf.Data))
         return { MFX_ERR_NONE, false };
@@ -1550,6 +1584,8 @@ pair<mfxStatus, bool> CommonCORE20::Lock(mfxFrameSurface1& surf, mfxU32 flags)
 
 pair<mfxStatus, bool> CommonCORE20::LockInternal(mfxFrameSurface1& surf, mfxU32 flags)
 {
+    if (!m_enabled20Interface) return { MFX_STS_TRACE(MFX_ERR_UNSUPPORTED), false };
+
     // Priority 1: If pointers were already set - do nothing
     if (GetFramePointer(surf.Info.FourCC, surf.Data))
         return { MFX_ERR_NONE, false };
@@ -1566,6 +1602,8 @@ pair<mfxStatus, bool> CommonCORE20::LockInternal(mfxFrameSurface1& surf, mfxU32 
 
 pair<mfxStatus, bool> CommonCORE20::LockExternal(mfxFrameSurface1& surf, mfxU32 flags)
 {
+    if (!m_enabled20Interface) return { MFX_STS_TRACE(MFX_ERR_UNSUPPORTED), false};
+
     // Priority 1: If pointers were already set - do nothing
     if (GetFramePointer(surf.Info.FourCC, surf.Data))
         return { MFX_ERR_NONE, false };
@@ -1582,6 +1620,8 @@ pair<mfxStatus, bool> CommonCORE20::LockExternal(mfxFrameSurface1& surf, mfxU32 
 
 mfxStatus CommonCORE20::Unlock(mfxFrameSurface1& surf)
 {
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
     // Priority 1: If mfxFrameSurfaceInterface is provided, use it
     if (surf.FrameInterface && surf.FrameInterface->Unmap)
         return surf.FrameInterface->Unmap(&surf);
@@ -1596,6 +1636,8 @@ mfxStatus CommonCORE20::Unlock(mfxFrameSurface1& surf)
 
 mfxStatus CommonCORE20::UnlockExternal(mfxFrameSurface1& surf)
 {
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
     // Priority 1: If mfxFrameSurfaceInterface is provided, use it
     if (surf.FrameInterface && surf.FrameInterface->Unmap)
         return surf.FrameInterface->Unmap(&surf);
@@ -1608,6 +1650,8 @@ mfxStatus CommonCORE20::UnlockExternal(mfxFrameSurface1& surf)
 
 mfxStatus CommonCORE20::UnlockInternal(mfxFrameSurface1& surf)
 {
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
     // Priority 1: If mfxFrameSurfaceInterface is provided, use it
     if (surf.FrameInterface && surf.FrameInterface->Unmap)
         return surf.FrameInterface->Unmap(&surf);
@@ -1620,6 +1664,8 @@ mfxStatus CommonCORE20::UnlockInternal(mfxFrameSurface1& surf)
 
 mfxStatus CommonCORE20::SwitchMemidInSurface(mfxFrameSurface1 & surf, mfxHDLPair& handle_pair)
 {
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
     if (surf.Data.MemType & MFX_MEMTYPE_INTERNAL_FRAME)
     {
         MFX_SAFE_CALL(VideoCORE::GetFrameHDL(surf, handle_pair));
@@ -1637,6 +1683,9 @@ mfxStatus CommonCORE20::SwitchMemidInSurface(mfxFrameSurface1 & surf, mfxHDLPair
 
 mfxStatus CommonCORE20::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType)
 {
+    if (!m_enabled20Interface)
+        return CommonCORE::DoFastCopyWrapper(pDst,dstMemType, pSrc, srcMemType);
+
     MFX_CHECK_NULL_PTR2(pSrc, pDst);
 
     // uncomment underlying checks after additional validation
@@ -1669,6 +1718,9 @@ mfxStatus CommonCORE20::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemT
 
 mfxStatus CommonCORE20::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 {
+    if (!m_enabled20Interface)
+        return CommonCORE::DoFastCopyExtended(pDst, pSrc);
+
     UMC::AutomaticUMCMutex guard(m_guard);
 
     mfxStatus sts = CheckFrameData(pSrc);
@@ -1703,6 +1755,8 @@ mfxStatus CommonCORE20::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurfa
 
 mfxStatus CommonCORE20::DeriveMemoryType(const mfxFrameSurface1& surf, mfxU16& derived_memtype)
 {
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
     // Priority 1. If pointers set - treat as SYSTEM | EXTERNAL and pass further
     if (!LumaIsNull(&surf))
     {
@@ -1731,6 +1785,9 @@ mfxStatus CommonCORE20::DeriveMemoryType(const mfxFrameSurface1& surf, mfxU16& d
 
 mfxStatus CommonCORE20::CopyFrame(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
 {
+    if (!m_enabled20Interface)
+        return CommonCORE::CopyFrame(dst, src);
+
     MFX_CHECK_NULL_PTR2(dst, src);
 
     mfxU16 srcMemType, dstMemType;
@@ -1746,18 +1803,22 @@ mfxStatus CommonCORE20::CopyFrame(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
 
 void* CommonCORE20::QueryCoreInterface(const MFX_GUID &guid)
 {
+    if (m_enabled20Interface)
+    {
+        if (MFXIEXTERNALLOC_GUID == guid)
+            return m_frame_allocator_wrapper.GetExtAllocator();
 
-    if (MFXIEXTERNALLOC_GUID == guid)
-        return m_frame_allocator_wrapper.GetExtAllocator();
-
-    if (MFXAllocatorWrapper_GUID == guid)
-        return &m_frame_allocator_wrapper;
+        if (MFXAllocatorWrapper_GUID == guid)
+            return &m_frame_allocator_wrapper;
+    }
 
     return CommonCORE::QueryCoreInterface(guid);
 }
 
 mfxStatus CommonCORE20::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* & surf)
 {
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
     return m_frame_allocator_wrapper.CreateSurface(type, info, surf);
 }
 

@@ -244,6 +244,26 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
                     return mfxRes;
                 }
             }
+
+            this->m_enabled20Interface = false;
+
+            if (dynamic_cast<VAAPIVideoCORE20*>(this))
+            {
+                switch (m_HWType)
+                {
+                case MFX_HW_TGL_LP:
+                case MFX_HW_RKL:
+                case MFX_HW_ADL_S:
+                case MFX_HW_ADL_P:
+                case MFX_HW_DG1:
+                    // These platforms support VPL feature set
+                    this->m_enabled20Interface = true;
+                    break;
+                default:
+                    this->m_enabled20Interface = false;
+                    break;
+                }
+            }
         }
             break;
 
@@ -1146,6 +1166,8 @@ VAAPIVideoCORE20::VAAPIVideoCORE20(
     : VAAPIVideoCORE20_base(adapterNum, numThreadsAvailable, session)
 {
     m_frame_allocator_wrapper.allocator_hw.reset(new FlexibleFrameAllocatorHW_VAAPI(nullptr, m_session));
+
+    m_enabled20Interface = false;
 }
 
 mfxStatus
@@ -1155,7 +1177,7 @@ VAAPIVideoCORE20::SetHandle(
 {
     MFX_SAFE_CALL(VAAPIVideoCORE20_base::SetHandle(type, hdl));
 
-    if (type == MFX_HANDLE_VA_DISPLAY)
+    if (m_enabled20Interface && type == MFX_HANDLE_VA_DISPLAY)
     {
         // Pass display to allocator
         m_frame_allocator_wrapper.SetDevice(m_Display);
@@ -1174,6 +1196,9 @@ mfxStatus VAAPIVideoCORE20::AllocFrames(
     mfxFrameAllocResponse* response,
     bool isNeedCopy)
 {
+    if (!m_enabled20Interface)
+        return VAAPIVideoCORE_T<CommonCORE20>::AllocFrames(request, response, isNeedCopy);
+
     MFX_CHECK_NULL_PTR2(request, response);
 
     MFX_CHECK(!(request->Type & 0x0004), MFX_ERR_UNSUPPORTED); // 0x0004 means MFX_MEMTYPE_OPAQUE_FRAME
@@ -1225,6 +1250,9 @@ mfxStatus VAAPIVideoCORE20::AllocFrames(
 
 mfxStatus VAAPIVideoCORE20::ReallocFrame(mfxFrameSurface1 *surf)
 {
+    if (!m_enabled20Interface)
+        return VAAPIVideoCORE_T<CommonCORE20>::ReallocFrame(surf);
+
     MFX_CHECK_NULL_PTR1(surf);
 
     return m_frame_allocator_wrapper.ReallocSurface(surf->Info, surf->Data.MemId);
@@ -1237,6 +1265,9 @@ VAAPIVideoCORE20::DoFastCopyWrapper(
     mfxFrameSurface1* pSrc,
     mfxU16 srcMemType)
 {
+    if (!m_enabled20Interface)
+        return VAAPIVideoCORE_T<CommonCORE20>::DoFastCopyWrapper(pDst, dstMemType, pSrc, srcMemType);
+
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIVideoCORE20::DoFastCopyWrapper");
 
     MFX_CHECK_NULL_PTR2(pSrc, pDst);
@@ -1293,6 +1324,9 @@ VAAPIVideoCORE20::DoFastCopyExtended(
     mfxFrameSurface1* pDst,
     mfxFrameSurface1* pSrc)
 {
+    if (!m_enabled20Interface)
+        return VAAPIVideoCORE_T<CommonCORE20>::DoFastCopyExtended(pDst, pSrc);
+
     MFX_CHECK_NULL_PTR2(pDst, pSrc);
 
     mfxU8 *srcPtr, *dstPtr;
@@ -1439,6 +1473,8 @@ VAAPIVideoCORE20::DoFastCopyExtended(
 
 mfxStatus VAAPIVideoCORE20::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)
 {
+    MFX_CHECK(m_enabled20Interface, MFX_ERR_UNSUPPORTED);
+
     MFX_SAFE_CALL(CheckOrInitDisplay());
     m_frame_allocator_wrapper.SetDevice(m_Display);
 

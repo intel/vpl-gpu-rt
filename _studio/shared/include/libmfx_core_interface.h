@@ -51,6 +51,10 @@ static const MFX_GUID MFXICOREVDAAPI_GUID =
 static const MFX_GUID MFXICORE_API_1_19_GUID =
 { 0xea851c02, 0x7f04, 0x4126, { 0x90, 0x45, 0x48, 0xd8, 0x28, 0x24, 0x34, 0xa5 } };
 
+// {B9C3862C-8AB0-4ACA-A0F1-9407509FBCEC}
+static const MFX_GUID MFXICORE_API_2_0_GUID =
+{ 0xb9c3862c, 0x8ab0, 0x4aca, { 0xa0, 0xf1, 0x94, 0x7, 0x50, 0x9f, 0xbc, 0xec } };
+
 // {6ED94B99-DB70-4EBB-BC5C-C7E348FC2396}
 static const
 MFX_GUID  MFXIHWCAPS_GUID =
