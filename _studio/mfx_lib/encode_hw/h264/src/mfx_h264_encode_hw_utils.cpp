@@ -4403,7 +4403,7 @@ BrcIface * MfxHwH264Encode::CreateBrc(MfxVideoParam const & video, MFX_ENCODE_CA
     case MFX_RATECONTROL_LA_HRD: return new LookAheadBrc2;
     case MFX_RATECONTROL_LA_ICQ: return new LookAheadCrfBrc;
 
-#if !defined(MFX_EXT_BRC_DISABLE)
+#if defined(MFX_EXT_BRC_ENABLE)
     case MFX_RATECONTROL_CBR:
     case MFX_RATECONTROL_VBR:
         return new H264SWBRC;

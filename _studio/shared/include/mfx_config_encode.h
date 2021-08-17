@@ -37,6 +37,9 @@
     #if !defined(UMC_ENABLE_VIDEO_BRC)
         #define UMC_ENABLE_VIDEO_BRC
     #endif
+    #if !defined(MFX_EXT_BRC_ENABLE)
+        #define MFX_EXT_BRC_ENABLE
+    #endif
 #endif
 
 #if defined(MFX_ENABLE_MVC_VIDEO_ENCODE)
@@ -48,6 +51,9 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
     #define MFX_ENABLE_HEVCE_INTERLACE
     #define MFX_ENABLE_HEVCE_ROI
+    #if !defined(MFX_EXT_BRC_ENABLE)
+        #define MFX_EXT_BRC_ENABLE
+    #endif
 #endif
 
 #if defined (MFX_ENABLE_MPEG2_VIDEO_ENCODE)

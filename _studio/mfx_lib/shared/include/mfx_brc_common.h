@@ -157,7 +157,7 @@ protected:
     }
 };
 
-#if (defined (MFX_ENABLE_H264_VIDEO_ENCODE) || defined (MFX_ENABLE_H265_VIDEO_ENCODE)) && !defined(MFX_EXT_BRC_DISABLE)
+#if defined(MFX_EXT_BRC_ENABLE)
 
 #define MIN_RACA 0.25
 #define MAX_RACA 361.0
