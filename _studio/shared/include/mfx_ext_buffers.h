@@ -146,7 +146,7 @@ typedef struct {
 } mfxExtIntGPUHang;
 #endif
 
-#if defined (MFX_ENABLE_LP_LOOKAHEAD) || defined(MFX_ENABLE_ENCTOOLS_LPLA)
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
 #define MFX_EXTBUFF_LP_LOOKAHEAD MFX_MAKEFOURCC('L','P','L','A')
 typedef struct {
     mfxExtBuffer Header;
@@ -159,12 +159,10 @@ typedef struct {
     mfxU16       GopRefDist;
     mfxU16       MaxAdaptiveGopSize;
     mfxU16       MinAdaptiveGopSize;
-    mfxU16       reserved[20];
+    mfxU32       codecTypeInEncodePass;
+    mfxU16       reserved[18];
 } mfxExtLplaParam;
 
-#endif
-
-#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
 #define MFX_EXTBUFF_LPLA_STATUS MFX_MAKEFOURCC('L', 'P', 'L', 'S')
 typedef struct {
     mfxExtBuffer    Header;
