@@ -1768,22 +1768,9 @@ enum {
     MFX_EXTBUFF_VPP_DETAIL                      = MFX_MAKEFOURCC('D','E','T',' '),
     /*!
        This extended buffer defines video signal type. See the mfxExtVideoSignalInfo structure for details. The application can attach this
-       buffer to the mfxVideoParam structure for encoding initialization, and for retrieving such information from the decoders. If video
-       signal info changes per frame, the application can attach this buffer to the mfxFrameData structure for video processing.
+       buffer to the mfxVideoParam structure for encoding initialization, and for retrieving such information from the decoders.
     */
     MFX_EXTBUFF_VIDEO_SIGNAL_INFO               = MFX_MAKEFOURCC('V','S','I','N'),
-    /*!
-       This extended buffer defines video signal type. See the mfxExtVideoSignalInfo structure for details. The application can attach this
-       buffer to the mfxVideoParam structure for the input of video processing if the input video signal information changes in sequence
-       base.
-    */
-    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN            = MFX_MAKEFOURCC('V','S','I','I'),
-    /*!
-       This extended buffer defines video signal type. See the mfxExtVideoSignalInfo structure for details. The application can attach this
-       buffer to the mfxVideoParam structure for the output of video processing if the output video signal information changes in sequence
-       base.
-    */
-    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT           = MFX_MAKEFOURCC('V','S','I','O'),
     /*!
        This extended buffer defines a list of VPP algorithms that applications should use. See the mfxExtVPPDoUse structure for details.
        The application can attach this buffer to the structure for video processing initialization.
@@ -1990,25 +1977,9 @@ enum {
     */
     MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO        = MFX_MAKEFOURCC('L', 'L', 'I', 'S'),
     /*!
-       This extended buffer configures HDR SEI message. See the mfxExtMasteringDisplayColourVolume structure for details. If colour volume changes
-       per frame, the application can attach this buffer to the mfxFrameData structure for video processing.
+       This extended buffer configures HDR SEI message. See the mfxExtMasteringDisplayColourVolume structure for details.
     */
     MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME = MFX_MAKEFOURCC('D', 'C', 'V', 'S'),
-    /*!
-       This extended buffer configures HDR SEI message. See the mfxExtMasteringDisplayColourVolume structure for details. The application can
-       attach this buffer to the mfxVideoParam structure for the input of video processing if the mastering display colour volume changes per
-       sequence. In this case, this buffer should be together with MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO to indicate the light level and mastering
-       colour volume of the input of video processing. If colour Volume changes per frame instead of per sequence, the application can attach
-       MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME to mfxFrameData for frame based processing.
-    */
-    MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN         = MFX_MAKEFOURCC('D', 'C', 'V', 'I'),
-    /*!
-       This extended buffer configures HDR SEI message. See the mfxExtMasteringDisplayColourVolume structure for details. The application can
-       attach this buffer to the mfxVideoParam structure for the output of video processing if the mastering display colour volume changes per
-       sequence. If colour volume changes per frame instead of per sequence, the application can attach the buffer with MFX_EXTBUFF_MASTERING_
-       DISPLAY_COLOUR_VOLUME to mfxFrameData for frame based processing.
-    */
-    MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT        = MFX_MAKEFOURCC('D', 'C', 'V', 'O'),
     /*!
        See the mfxExtEncodedUnitsInfo structure for details.
     */
@@ -2753,8 +2724,6 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
    If the application attaches this
    structure to the mfxVideoParam structure during initialization or reset, the encoder inserts the HDR SEI message based on InsertPayloadToggle.
 
-   If the application attaches this structure for video processing, InsertPayloadToggle will be ignored.
-
    Field semantics are defined in ITU-T* H.265 Annex D.
 */
 typedef struct {
@@ -2787,8 +2756,6 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
    If the application
    attaches this structure to the mfxVideoParam structure during initialization or reset, the encoder inserts the HDR SEI message based on
    InsertPayloadToggle.
-
-   If the application attaches this structure for video processing, InsertPayloadToggle will be ignored.
 
    Field semantics are defined in ITU-T* H.265 Annex D.
 */
