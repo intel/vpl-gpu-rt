@@ -2146,6 +2146,7 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
         list.push_back(MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO);
     }
 
+
     if(caps.uIStabFilter)
     {
         list.push_back(MFX_EXTBUFF_VPP_IMAGE_STABILIZATION);
@@ -2170,6 +2171,7 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
     {
         list.push_back(MFX_EXTBUFF_VPP_3DLUT);
     }
+
 
     if (caps.uChromaSiting)
     {
