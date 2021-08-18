@@ -215,7 +215,16 @@ inline mfxEncTools *GetEncTools(mfxVideoParam &video)
 inline bool IsEncToolsImplicit(const mfxVideoParam &video)
 {
     const mfxExtCodingOption2  *pExtOpt2 = ExtBuffer::Get(video);
-    return ((video.mfx.GopRefDist == 2 || video.mfx.GopRefDist == 8) && pExtOpt2 && IsOn(pExtOpt2->ExtBRC) && pExtOpt2->LookAheadDepth > 0);
+    bool etOn = false;
+    if (pExtOpt2 && pExtOpt2->LookAheadDepth > 0)
+    {
+        const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
+        etOn = (pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING && IsOn(video.mfx.LowPower)); // LPLA
+        etOn = etOn ||
+            ((video.mfx.GopRefDist == 2 || video.mfx.GopRefDist == 8) && IsOn(pExtOpt2->ExtBRC) // SW EncTools
+                && !(pExtOpt3 && pExtOpt3->ScenarioInfo != MFX_SCENARIO_UNKNOWN));
+    }
+    return etOn;
 }
 
 static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config)
@@ -227,8 +236,7 @@ static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config)
 
     if (!pExtConfig || !IsEncToolsOptOn(*pExtConfig, bGameStreaming))
     {
-        if (IsEncToolsImplicit(video)
-            && !(pExtOpt3 && pExtOpt3->ScenarioInfo != MFX_SCENARIO_UNKNOWN))
+        if (IsEncToolsImplicit(video))
         {
             config.AdaptiveI             = mfxU16((pExtConfig && IsOff(pExtConfig->AdaptiveI))             ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN);
             config.AdaptiveB             = mfxU16((pExtConfig && IsOff(pExtConfig->AdaptiveB))             ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN);
@@ -294,9 +302,9 @@ static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config)
        SetDefaultOpt(config.BRCBufferHints, bLA);
        SetDefaultOpt(config.AdaptivePyramidQuantP, bLA);
        SetDefaultOpt(config.AdaptivePyramidQuantB, bLA);
-       SetDefaultOpt(config.AdaptiveQuantMatrices, bLA);
+       SetDefaultOpt(config.AdaptiveQuantMatrices, bLA && !IsOff(pExtOpt3->AdaptiveCQM));
        SetDefaultOpt(config.AdaptiveI, bLA && bAdaptiveI);
-       SetDefaultOpt(config.AdaptiveB, bLA);
+       SetDefaultOpt(config.AdaptiveB, bLA && !IsOff(pExtOpt2->AdaptiveB));
     }
 #endif
 }

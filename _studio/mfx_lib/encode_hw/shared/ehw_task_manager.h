@@ -96,7 +96,7 @@ namespace MfxEncodeHW
             , {S_QUERY,     S_QUERY}
         };
 
-        const mfxU16 max_num_of_stages               = 9; // 5 "regular" (see above) + 2 added by LPLA (S_LA_SUBMIT, S_LA_QUERY) + 2 added by EncTools (S_ET_SUBMIT,  S_ET_QUERY)
+        const mfxU16 max_num_of_stages               = 7; // 5 "regular" (see above) + 2 added by EncTools (S_ET_SUBMIT,  S_ET_QUERY)
         std::vector<TTaskList>  m_stages             = std::vector<TTaskList>(max_num_of_stages);
         mfxU16                  m_nPicBuffered       = 0;
         mfxU16                  m_bufferSize         = 0;

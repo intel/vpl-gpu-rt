@@ -65,7 +65,6 @@ target_include_directories(mfx_common_hw
     ${MSDK_UMC_ROOT}/codec/h264_enc/include
     ${MSDK_STUDIO_ROOT}/shared/asc/include
     ${MSDK_STUDIO_ROOT}/shared/include
-    ${MSDK_LIB_ROOT}/lpla
   )
 
 target_link_libraries(mfx_common_hw

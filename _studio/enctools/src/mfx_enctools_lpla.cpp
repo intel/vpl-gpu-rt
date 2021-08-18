@@ -200,7 +200,11 @@ mfxStatus LPLA_EncTool::InitEncParams(mfxEncToolsCtrl const & ctrl, mfxExtEncToo
     return sts;
 }
 
-mfxStatus LPLA_EncTool::ConfigureExtBuffs(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig const & pConfig)
+mfxStatus LPLA_EncTool::ConfigureExtBuffs(mfxEncToolsCtrl const & 
+#if defined (MFX_ENABLE_ENCTOOLS_LPLA)
+    ctrl
+#endif
+    , mfxExtEncToolsConfig const & pConfig)
 {
     mfxStatus sts = MFX_ERR_NONE;
     // create ext buffer for lpla

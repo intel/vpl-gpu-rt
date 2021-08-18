@@ -409,6 +409,22 @@ MFX_PACK_END()
 
 #define MFX_ENCTOOLS_VERSION MFX_STRUCT_VERSION(1, 0)
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
+struct mfxLplastatus
+{
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+    mfxU8 ValidInfo = 0;
+    mfxU8 CqmHint = 0xFF;
+    mfxU32 TargetFrameSize = 0;
+    mfxU8 MiniGopSize = 0;
+    mfxU8 QpModulation = 0;
+#endif
+    mfxU32 AvgEncodedBits = 0;
+    mfxU32 CurEncodedBits = 0;
+    mfxU16 DistToNextI = 0;
+};
+MFX_PACK_END()
+
 mfxEncTools*  MFX_CDECL MFXVideoENCODE_CreateEncTools();
 void  MFX_CDECL MFXVideoENCODE_DestroyEncTools(mfxEncTools *et);
 

@@ -28,9 +28,6 @@
 #include "ehw_resources_pool.h"
 #include "ehw_device.h"
 #include <vector>
-#if defined (MFX_ENABLE_ENCTOOLS)
-#include "mfx_lp_lookahead.h"
-#endif
 
 namespace HEVCEHW
 {

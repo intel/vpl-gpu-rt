@@ -189,6 +189,7 @@ void Legacy::SetSupported(ParamSupport& blocks)
         MFX_COPY_FIELD(LowDelayBRC);
         MFX_COPY_FIELD(BRCPanicMode);
         MFX_COPY_FIELD(ScenarioInfo);
+        MFX_COPY_FIELD(AdaptiveCQM);
     });
     blocks.m_ebCopyPtrs[MFX_EXTBUFF_CODING_OPTION_SPSPPS].emplace_back(
         [&](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
@@ -482,6 +483,7 @@ void Legacy::SetInherited(ParamInheritance& par)
         INHERIT_OPT(WinBRCSize);
         INHERIT_OPT(EnableMBQP);
         INHERIT_OPT(ScenarioInfo);
+        INHERIT_OPT(AdaptiveCQM);
 
         mfxU16 RC = parInit.mfx.RateControlMethod
             * (parInit.mfx.RateControlMethod == parReset.mfx.RateControlMethod);

@@ -37,9 +37,6 @@
 
 #include "mfx_h264_encode_cm.h"
 #include "mfx_h264_encode_cm_defs.h"
-#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
-#include "mfx_lp_lookahead.h"
-#endif //MFX_ENABLE_ENCTOOLS_LPLA
 #include "vm_time.h"
 
 #if USE_AGOP

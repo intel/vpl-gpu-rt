@@ -39,10 +39,6 @@
 #include "asc.h"
 #include "libmfx_core_interface.h"
 
-#if defined(MFX_ENABLE_ENCTOOLS)
-#include "mfx_lp_lookahead.h"
-#endif
-
 #include "mfx_vpp_helper.h"
 
 #ifdef MFX_ENABLE_MCTF_IN_AVC

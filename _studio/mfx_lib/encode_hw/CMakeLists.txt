@@ -210,7 +210,6 @@ target_sources(encode_hw PRIVATE
 target_include_directories(encode_hw
   PUBLIC
     ${MSDK_LIB_ROOT}/encode_hw/shared
-    ${MSDK_LIB_ROOT}/lpla
 
     ${MSDK_STUDIO_ROOT}/shared/include
 
