@@ -27,6 +27,7 @@
 // It is only needed for Synchronize
 #include "mfx_session.h"
 
+
 #include "vm_interlocked.h"
 
 #include <shared_mutex>
@@ -772,6 +773,7 @@ public:
         m_allocator = nullptr;
     }
 
+
 protected:
 
     void Close() override
@@ -901,6 +903,7 @@ public:
         return
             reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->Synchronize(timeout);
     }
+
 
     bool ReallocAllowed(const mfxFrameInfo& frame_info) const
     {

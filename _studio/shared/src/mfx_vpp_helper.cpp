@@ -69,17 +69,19 @@ mfxStatus MfxVppHelper::Close()
     return MFX_ERR_NONE;
 }
 
-mfxStatus MfxVppHelper::Submit(mfxFrameSurface1* input, mfxFrameSurface1* output)
+mfxStatus MfxVppHelper::Submit(mfxFrameSurface1 * surface)
 {
     mfxStatus mfxRes = MFX_ERR_NONE;
-    MFX_CHECK_NULL_PTR1(input);
-    MFX_CHECK(m_bInitialized, MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK_NULL_PTR1(surface);
 
-    mfxFrameSurface1* vppout = output ? output : &m_dsSurface;
+    if (!m_bInitialized)
+    {
+        return MFX_ERR_NOT_INITIALIZED;
+    }
 
     mfxU32 numEntryPoints = 2;
 
-    mfxRes = m_pVpp->VppFrameCheck(input, vppout, nullptr, m_entryPoint, numEntryPoints);
+    mfxRes = m_pVpp->VppFrameCheck(surface, &m_dsSurface, nullptr, m_entryPoint, numEntryPoints);
     MFX_CHECK_STS(mfxRes);
 
     if (m_entryPoint[0].pRoutine)

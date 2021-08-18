@@ -245,8 +245,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
                 }
             }
 
-            this->m_enabled20Interface = false;
-
             if (dynamic_cast<VAAPIVideoCORE20*>(this))
             {
                 switch (m_HWType)
@@ -1032,6 +1030,21 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
     MFX_CHECK_COND(attr[0].value && attr[1].value);
     MFX_CHECK(attr[0].value >= par->mfx.FrameInfo.Width, MFX_ERR_UNSUPPORTED);
     MFX_CHECK(attr[1].value >= par->mfx.FrameInfo.Height, MFX_ERR_UNSUPPORTED);
+
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+    //check VD-SFC support
+    mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
+    if (videoProcessing)
+    {
+        VAConfigAttrib attrDecProcess = {VAConfigAttribDecProcessing, 0};
+
+        //ask driver about support
+        va_sts = vaGetConfigAttributes(m_Display, req_profile, req_entrypoint, &attrDecProcess, 1);
+
+        MFX_CHECK(va_sts == VA_STATUS_SUCCESS, MFX_ERR_UNSUPPORTED);
+        MFX_CHECK(attrDecProcess.value == VA_DEC_PROCESSING , MFX_ERR_UNSUPPORTED);
+    }
+#endif
 
     return MFX_ERR_NONE;
 #else

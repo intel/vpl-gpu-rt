@@ -248,4 +248,4 @@ mfxTraceU32 MFXTraceFtrace_EndTask(mfxTraceStaticHandle * //static_handle
 } // extern "C"
 
 
-#endif  // #if defined(MFX_TRACE_ENABLE_FTRACE) && defined(LINUX32)
+#endif  // #if defined(MFX_TRACE_ENABLE_FTRACE)

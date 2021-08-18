@@ -24,7 +24,6 @@
 
 #include <libmfx_core_vaapi.h>
 
-
 VideoCORE* FactoryCORE::CreateCORE(eMFXVAType va_type,
                                    mfxU32 adapterNum,
                                    mfxU32 numThreadsAvailable,

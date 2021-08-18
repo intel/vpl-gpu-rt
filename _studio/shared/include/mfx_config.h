@@ -81,7 +81,7 @@
     // Accompany ITT trace with ftrace. This combination is used by VTune.
     #define MFX_TRACE_ENABLE_FTRACE
 #endif
-#if defined(MFX_TRACE_ENABLE_TEXTLOG) || defined(MFX_TRACE_ENABLE_STAT) || defined(MFX_TRACE_ENABLE_ETW) || defined(MFX_TRACE_ENABLE_ITT) || defined(MFX_TRACE_ENABLE_FTRACE)
+#if defined(MFX_TRACE_ENABLE_TEXTLOG) || defined(MFX_TRACE_ENABLE_STAT) || defined(MFX_TRACE_ENABLE_ITT) || defined(MFX_TRACE_ENABLE_FTRACE)
 #define MFX_TRACE_ENABLE
 #endif
 #endif // #ifndef MFX_TRACE_DISABLE

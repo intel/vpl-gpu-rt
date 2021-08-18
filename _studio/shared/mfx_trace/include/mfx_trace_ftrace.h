@@ -57,5 +57,5 @@ mfxTraceU32 MFXTraceFtrace_EndTask(mfxTraceStaticHandle *static_handle,
 
 mfxTraceU32 MFXTraceFtrace_Close(void);
 
-#endif // defined(MFX_TRACE_ENABLE_FTRACE) && defined(LINUX32)
+#endif // defined(MFX_TRACE_ENABLE_FTRACE)
 #endif // #ifndef __MFX_TRACE_FTRACE_LOG_H__

@@ -19,7 +19,6 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
-
 #include "libmfx_core_hw.h"
 #include "mfx_common_decode_int.h"
 #include "mfx_enc_common.h"
@@ -74,26 +73,22 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
         case MFX_FOURCC_P010:
             profile |= VA_PROFILE_10;
             break;
-
         case MFX_FOURCC_AYUV:
             profile |= VA_PROFILE_444;
             break;
-
         case MFX_FOURCC_Y410:
             profile |= VA_PROFILE_10 | VA_PROFILE_444;
             break;
-
         case MFX_FOURCC_P016:
             profile |= VA_PROFILE_12;
             break;
-
         case MFX_FOURCC_Y416:
             profile |= VA_PROFILE_12 | VA_PROFILE_444;
             break;
         }
         break;
 
-#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+#if defined(MFX_ENABLE_AV1_VIDEO_CODEC)
     case MFX_CODEC_AV1:
         profile |= VA_AV1;
         switch (param->mfx.FrameInfo.FourCC)
@@ -160,4 +155,6 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
 
     return profile;
 }
+
+
 /* EOF */

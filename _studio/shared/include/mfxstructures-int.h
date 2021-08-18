@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2020 Intel Corporation
+// Copyright (c) 2007-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -449,6 +449,7 @@ typedef struct {
     { 0x46C3, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
     { 0x46AA, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
     { 0x462A, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+
 
 };
 

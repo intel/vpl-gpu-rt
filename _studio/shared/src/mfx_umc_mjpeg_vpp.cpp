@@ -130,14 +130,14 @@ UMC::Status mfx_UMC_FrameAllocator_D3D_Converter::Reset()
 
 mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::InitVideoVppJpeg(const mfxVideoParam *params)
 {
-    bool isD3DToSys = false;
+    bool useInternalMem = false;
 
     if(params->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
     {
-        isD3DToSys = true;
+        useInternalMem = true;
     }
 
-    m_pCc.reset(new VideoVppJpeg(m_pCore, isD3DToSys));
+    m_pCc.reset(new VideoVppJpeg(m_pCore, useInternalMem));
 
     mfxStatus mfxSts;
     if (params->mfx.Rotation == MFX_ROTATION_90 || params->mfx.Rotation == MFX_ROTATION_270)

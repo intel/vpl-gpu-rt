@@ -42,11 +42,6 @@ static const MFX_GUID  MFXICORED3D11_GUID =
 static const MFX_GUID MFXICOREVAAPI_GUID =
 { 0xb0fcb183, 0x1a6d, 0x4f00, { 0x8b, 0xaf, 0x93, 0xf2, 0x85, 0xac, 0xec, 0x93 } };
 
-// {86dc1aab-eb20-47a2-a461-428a7bd60183}
-static const MFX_GUID MFXICOREVDAAPI_GUID =
-{ 0x86dc1aab, 0xeb20, 0x47a2, {0xa4, 0x61, 0x42, 0x8a, 0x7b, 0xd6, 0x01, 0x83 } };
-
-
 // {EA851C02-7F04-4126-9045-48D8282434A5}
 static const MFX_GUID MFXICORE_API_1_19_GUID =
 { 0xea851c02, 0x7f04, 0x4126, { 0x90, 0x45, 0x48, 0xd8, 0x28, 0x24, 0x34, 0xa5 } };
@@ -93,16 +88,17 @@ MFX_GUID MFXICMEnabledCore_GUID =
 static const MFX_GUID MFXICORE_GT_CONFIG_GUID =
 { 0xd53ef10e, 0xd4cf, 0x41a7,{ 0xb1, 0xc2, 0xd3, 0xf, 0xab, 0x30, 0xbb, 0x64 } };
 
+
 // {2C3163A0-B061-4931-AF0D-2301AC99DA77}
 static const
 MFX_GUID MFXAllocatorWrapper_GUID =
 { 0x2c3163a0, 0xb061, 0x4931, {0xaf, 0x0d, 0x23, 0x01, 0xac, 0x99, 0xda, 0x77} };
 
+
 // {4C849533-839F-4686-9C94-5FBC39008CD9}
 static const
 MFX_GUID MFXI_IS_CORED3D9ON11_GUID =
 { 0x4c849533, 0x839f, 0x4686, { 0x9c, 0x94, 0x5f, 0xbc, 0x39, 0x0, 0x8c, 0xd9 } };
-
 
 // Try to obtain required interface
 // Declare a template to query an interface
@@ -193,6 +189,7 @@ private:
 
 };
 
+
 template <class T>
 class ComPtrCore
 {
@@ -239,7 +236,6 @@ T* m_pComPtr;
             return MFXICOREVAAPI_GUID;
         }
     };
-
 
 struct CMEnabledCoreInterface
 {

@@ -33,6 +33,7 @@
 #endif
 
 
+
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
 #include "mfx_vpp_jpeg.h"
 #endif
@@ -743,7 +744,7 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
-    if (   surf->Info.FourCC == MFX_FOURCC_P010
+    if (surf->Info.FourCC == MFX_FOURCC_P010
         || surf->Info.FourCC == MFX_FOURCC_P210
         || surf->Info.FourCC == MFX_FOURCC_Y210
         || surf->Info.FourCC == MFX_FOURCC_P016
@@ -890,6 +891,7 @@ mfxI32 mfx_UMC_FrameAllocator::AddSurface(mfxFrameSurface1 *surface)
     case MFX_FOURCC_Y210:
     case MFX_FOURCC_Y410:
     case MFX_FOURCC_Y216:
+
         break;
     default:
         return -1;
@@ -1175,7 +1177,6 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
             SFC_on_windows ? output_info : request.Info));
 
         m_surface20_cache_decoder_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get()));
-
         scoped_cache_ptr.release();
 
         m_sw_fallback_sys_mem = (MFX_PLATFORM_SOFTWARE == platform) && (video_param.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
@@ -1199,7 +1200,6 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
             scoped_cache_ptr.reset(SurfaceCache::Create(*msdk20_core, needVppJPEG ? request_type : output_type, needVppJPEG ? request_info : output_info));
 
             m_surface20_cache_output_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get()));
-
             scoped_cache_ptr.release();
         }
 
@@ -1269,6 +1269,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
 
         bool useInternal = request.Type & MFX_MEMTYPE_INTERNAL_FRAME;
         mfxStatus mfxSts = MFX_ERR_NONE;
+
         if (platform != MFX_PLATFORM_SOFTWARE && !useInternal)
         {
             request.AllocId = video_param.AllocId;
@@ -2109,7 +2110,6 @@ mfxFrameSurface1 * SurfaceSource::GetInternalSurface(UMC::FrameMemID index)
 
     if (m_redirect_to_msdk20)
     {
-
         if (!m_allocate_internal)
             return nullptr;
 
@@ -2144,7 +2144,6 @@ mfxFrameSurface1 * SurfaceSource::GetSurfaceByIndex(UMC::FrameMemID index)
 
     if (m_redirect_to_msdk20)
     {
-
         UMC::AutomaticUMCMutex guard(m_guard);
 
         mfxFrameSurface1* surf = GetDecoderSurface(index);
@@ -2163,7 +2162,6 @@ mfxStatus SurfaceSource::PrepareToOutput(mfxFrameSurface1 *surface_out, UMC::Fra
 
     if (m_redirect_to_msdk20)
     {
-
         MFX_CHECK_NULL_PTR1(surface_out);
 
         UMC::AutomaticUMCMutex guard(m_guard);
@@ -2276,7 +2274,7 @@ mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surfac
         {
             mfxFrameSurface1 & internalSurf = m_frameDataInternal.GetSurface(index);
             mfxFrameSurface1 surface = MakeSurface(internalSurf.Info, internalSurf.Data.MemId);
-            mfxU16 outMemType = static_cast<mfxU16>((m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET) |
+            mfxU16 outMemType = static_cast<mfxU16>((m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET) |
                                                                                  MFX_MEMTYPE_EXTERNAL_FRAME);
             //Performance issue. We need to unlock mutex to let decoding thread run async.
             guard.Unlock();

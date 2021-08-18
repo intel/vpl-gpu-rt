@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef _WIN32
 #include <fcntl.h>
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -108,4 +107,3 @@ mfxTraceU32 MFXTrace_PerfClose()
 
 } // extern "C"
 
-#endif  // !_WIN32

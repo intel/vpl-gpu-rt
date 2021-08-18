@@ -30,8 +30,6 @@
 #include "mfxsvc.h"
 #include "mfxjpeg.h"
 #include "mfxvp8.h"
-
-
 #include <memory>
 #include <functional>
 
@@ -543,7 +541,6 @@ public:
     std::unique_ptr<surface_cache_controller<SurfaceCache>, std::function<void(surface_cache_controller<SurfaceCache>*)>> m_pSurfaceCacheIn;
     std::unique_ptr<surface_cache_controller<SurfaceCache>, std::function<void(surface_cache_controller<SurfaceCache>*)>> m_pSurfaceCacheOut;
 };
-
 
 #ifdef _MSVC_LANG
 #pragma warning(pop)

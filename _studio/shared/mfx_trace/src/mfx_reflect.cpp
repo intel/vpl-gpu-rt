@@ -35,13 +35,10 @@
 #include "mfxenctools.h"
 #endif
 
-
 #include "mfxbrc.h"
 #include "mfxdeprecated.h"
-
 #include "ts_typedef.h"
 
-#include "mfxdeprecated.h"
 #include <memory>
 
 namespace mfx_reflect
@@ -545,3 +542,4 @@ namespace mfx_reflect
 #include "ts_struct_decl.h"
     }
 }
+

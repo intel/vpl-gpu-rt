@@ -20,7 +20,6 @@
 
 #include "mfx_common.h"
 
-
 #ifndef __LIBMFX_CORE__HW_H__
 #define __LIBMFX_CORE__HW_H__
 
@@ -28,5 +27,4 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType hwType);
 bool IsHwMvcEncSupported();
 
 #endif
-
 

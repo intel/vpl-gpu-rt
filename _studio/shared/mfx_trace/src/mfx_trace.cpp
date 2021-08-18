@@ -131,19 +131,6 @@ mfxTraceAlgorithm g_TraceAlgorithms[] =
         MFXTraceStat_Close
     },
 #endif
-#ifdef MFX_TRACE_ENABLE_ETW
-    {
-        0,
-        MFX_TRACE_OUTPUT_ETW,
-        MFXTraceETW_Init,
-        MFXTraceETW_SetLevel,
-        MFXTraceETW_DebugMessage,
-        MFXTraceETW_vDebugMessage,
-        MFXTraceETW_BeginTask,
-        MFXTraceETW_EndTask,
-        MFXTraceETW_Close
-    },
-#endif
 #ifdef MFX_TRACE_ENABLE_TAL
     {
         0,
@@ -268,9 +255,6 @@ mfxTraceU32 MFXTrace_Init()
 #endif
 #if defined(MFX_TRACE_ENABLE_STAT)
     g_OutputMode |= MFX_TRACE_OUTPUT_STAT;
-#endif
-#if defined(MFX_TRACE_ENABLE_ETW)
-    g_OutputMode |= MFX_TRACE_OUTPUT_ETW;
 #endif
 #if defined(MFX_TRACE_ENABLE_TAL)
     g_OutputMode |= MFX_TRACE_OUTPUT_TAL;

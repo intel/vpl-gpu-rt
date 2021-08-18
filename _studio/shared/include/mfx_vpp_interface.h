@@ -316,7 +316,6 @@ namespace MfxHwVideoProcessing
         mfxU32 uFieldProcessing;
 
         mfxU32 u3DLut;
-
         mfxVppCaps()
             : uAdvancedDI(0)
             , uSimpleDI(0)
@@ -375,6 +374,7 @@ namespace MfxHwVideoProcessing
         VPP_SCENE_NEW        = 1,            // BOB display current field to generate output
         VPP_MORE_SCENE_CHANGE_DETECTED = 2 // BOB display only first field to avoid out of frame order
     } vppScene;
+
 
     class mfxExecuteParams
     {
@@ -493,6 +493,7 @@ namespace MfxHwVideoProcessing
                    VideoSignalInfo.clear();
                    VideoSignalInfo.assign(1, VideoSignalInfoIn);
                    lut3DInfo= {};
+
             };
 
             bool IsDoNothing()
@@ -557,11 +558,9 @@ namespace MfxHwVideoProcessing
         mfxI32         iDeinterlacingAlgorithm; //0 - none, 1 - BOB, 2 - advanced (means reference need)
         bool           bFMDEnable;
 
-        // MFX_EXTBUFF_VPP_DENOISE
         bool           bDenoiseAutoAdjust;
         mfxU16         denoiseFactor;
         mfxU16         denoiseFactorOriginal; // Original denoise factor or strength provided by app.
-
         bool           bDetailAutoAdjust;
         mfxU16         detailFactor;
         mfxU16         detailFactorOriginal;  // Original detail factor provided by app.
@@ -655,6 +654,7 @@ namespace MfxHwVideoProcessing
 #endif
         bool reset;
         Lut3DInfo    lut3DInfo;
+
     };
 
     class DriverVideoProcessing

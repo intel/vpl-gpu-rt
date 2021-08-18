@@ -891,10 +891,12 @@ static inline bool operator==(mfxPluginUID const& l, mfxPluginUID const& r)
 
 MFX_DECL_OPERATOR_NOT_EQ(mfxPluginUID)
 
+
 static inline bool operator==(mfxExtBuffer const& l, mfxExtBuffer const& r)
 {
     return MFX_EQ_FIELD(BufferId) && MFX_EQ_FIELD(BufferSz);
 }
+
 
 template <typename CacheType>
 struct surface_cache_controller
@@ -992,5 +994,6 @@ inline bool IsAdapt(mfxU32 opt)
 {
     return opt == MFX_CODINGOPTION_ADAPTIVE;
 }
+
 
 #endif // __MFXUTILS_H__

@@ -26,6 +26,7 @@
 #include "libmfx_core.h"
 #include "mfx_utils.h"
 
+
 #include "mfx_common_int.h"
 #include "vm_interlocked.h"
 
@@ -577,8 +578,10 @@ static inline mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id)
     case MFX_HW_GLK    : platform.CodeName = MFX_PLATFORM_GEMINILAKE;    break;
     case MFX_HW_CFL    : platform.CodeName = MFX_PLATFORM_COFFEELAKE;    break;
     case MFX_HW_CNL    : platform.CodeName = MFX_PLATFORM_CANNONLAKE;    break;
+
     case MFX_HW_ICL    :
     case MFX_HW_ICL_LP : platform.CodeName = MFX_PLATFORM_ICELAKE;       break;
+
     case MFX_HW_EHL    : platform.CodeName = MFX_PLATFORM_ELKHARTLAKE;   break;
     case MFX_HW_JSL    : platform.CodeName = MFX_PLATFORM_JASPERLAKE;    break;
     case MFX_HW_RKL    :
@@ -1404,6 +1407,7 @@ void* CommonCORE::QueryCoreInterface(const MFX_GUID &guid)
 
     if (MFXICORE_API_2_0_GUID == guid)
         return &m_enabled20Interface;
+
 
     return nullptr;
 }

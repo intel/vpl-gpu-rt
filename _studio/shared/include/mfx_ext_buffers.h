@@ -103,34 +103,6 @@ typedef struct {
 
 } mfxExtCodingOptionDDI;
 
-#ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
-#define MFX_EXTBUFF_VPP_VARIANCE_REPORT MFX_MAKEFOURCC('V','R','P','F')
-
-#ifdef _MSVC_LANG
-#pragma warning (disable: 4201 ) /* disable nameless struct/union */
-#endif
-
-typedef struct {
-    mfxExtBuffer    Header;
-    union{
-        struct{
-            mfxU32  SpatialComplexity;
-            mfxU32  TemporalComplexity;
-       };
-       struct{
-           mfxU16  PicStruct;
-           mfxU16  reserved[3];
-       };
-   };
-
-    mfxU16          SceneChangeRate;
-    mfxU16          RepeatedFrame;
-
-    // variances
-    mfxU32          Variances[11];
-} mfxExtVppReport;
-#endif // #ifdef MFX_UNDOCUMENTED_VPP_VARIANCE_REPORT
-
 
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
 #define MFX_EXTBUFF_GPU_HANG MFX_MAKEFOURCC('H','A','N','G')

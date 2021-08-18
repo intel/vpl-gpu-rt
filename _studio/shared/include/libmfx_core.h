@@ -236,6 +236,7 @@ protected:
     EncodeHWCaps                               m_encode_caps;
     EncodeHWCaps                               m_encode_mbprocrate;
 
+
     std::vector<mfxFrameAllocResponse>         m_PlugInMids;
 
     API_1_19_Adapter                           m_API_1_19;
@@ -512,6 +513,7 @@ public:
         if (m_cached_surfaces.size() >= m_limit)
         {
             using namespace std::chrono;
+
             MFX_CHECK(current_time_to_wait != 0ms, MFX_WRN_DEVICE_BUSY);
 
             // Cannot allocate surface, but we can wait
@@ -571,6 +573,7 @@ public:
         std::lock_guard<std::mutex> guard(m_mutex);
         return mfxU32(m_limit);
     }
+
 
 private:
 
@@ -637,12 +640,14 @@ private:
 
         ~SurfaceHolder()
         {
+
             std::ignore = vm_interlocked_dec16((volatile Ipp16u*)&m_locked_count);
 
             m_surface_interface.Release = original_release;
 
             MFX_STS_TRACE(m_surface_interface.Release(this));
         }
+
 
     private:
 
@@ -681,6 +686,7 @@ private:
             assert(!reinterpret_cast<SurfaceHolder*>(surface)->m_was_released);
             reinterpret_cast<SurfaceHolder*>(surface)->m_was_released = true;
 #endif
+
             return MFX_ERR_NONE;
         }
     };

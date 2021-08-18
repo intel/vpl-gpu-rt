@@ -22,8 +22,6 @@
 #define __UMC_DEFS_H__
 
 #include "mfx_config.h"
-// This file contains defines which switch on/off support of
-// codecs and renderers on application level
 
 #ifdef __cplusplus
 

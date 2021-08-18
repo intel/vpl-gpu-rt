@@ -27,7 +27,8 @@
 #define VATriggerCodecHangBufferType ((VABufferType)-16)
 #endif // MFX_EXTBUFF_GPU_HANG_ENABLE
 
-
 #define VA_CODED_BUF_STATUS_HW_TEAR_DOWN 0x4000
+
+
 
 #endif // __VAAPI_EXT_INTERFACE_H__

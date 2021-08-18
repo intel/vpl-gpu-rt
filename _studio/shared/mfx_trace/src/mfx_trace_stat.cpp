@@ -105,6 +105,7 @@ public:
     mfxTraceU32 AddItem(mfxTraceStaticHandle* pStatHandle)
     {
         if (!pStatHandle) return 1;
+
         if (m_StatTableIndex >= m_StatTableSize)
         {
             mfxTraceStaticHandle** pStatTable = NULL;

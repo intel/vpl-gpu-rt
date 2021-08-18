@@ -38,7 +38,7 @@ public:
 
     virtual mfxStatus Close();
 
-    virtual mfxStatus Submit(mfxFrameSurface1* input, mfxFrameSurface1* output = nullptr);
+    virtual mfxStatus Submit(mfxFrameSurface1 * surface);
 
     virtual mfxFrameSurface1 const& GetOutputSurface() const;
 

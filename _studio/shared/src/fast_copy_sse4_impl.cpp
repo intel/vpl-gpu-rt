@@ -192,4 +192,4 @@ void copySysToVideoShift_SSE4(const mfxU16* src, mfxU16* dst, int width, int shi
     }
 }
 
-#endif // MFX_SSE_4_1
+#endif //MFX_SSE_4_1
