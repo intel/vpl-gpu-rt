@@ -1425,8 +1425,8 @@ void VAAPIEncoder::FillSps(
         if (!extSps)
             return;
 
-        sps.picture_width_in_mbs  = par.mfx.FrameInfo.Width  >> 4;
-        sps.picture_height_in_mbs = par.mfx.FrameInfo.Height >> 4;
+        sps.picture_width_in_mbs  = mfx::align2_value(par.mfx.FrameInfo.Width,  16) >> 4;
+        sps.picture_height_in_mbs = mfx::align2_value(par.mfx.FrameInfo.Height, 16) >> 4;
 
         sps.level_idc    = par.mfx.CodecLevel;
 
