@@ -362,6 +362,12 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl)
         MFX_CHECK_STS(sts);
 
         sts = m_pAllocator->Alloc(m_pAllocator->pthis, &(VppRequest[1]), &m_VppResponse);
+        if(sts == MFX_ERR_UNSUPPORTED){
+            //workaround for external allocator, if allocator refused allocation request, then
+            //try to request decoder pool
+            VppRequest[1].Type |= MFX_MEMTYPE_FROM_DECODE;
+        sts = m_pAllocator->Alloc(m_pAllocator->pthis, &(VppRequest[1]), &m_VppResponse);
+        }
         MFX_CHECK_STS(sts);
 
         m_pIntSurfaces_LA.resize(m_VppResponse.NumFrameActual);
@@ -383,6 +389,7 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl)
         MFX_CHECK_STS(sts);
 
         //memory allocation for SCD
+        m_IntSurfaces_SCD = {};
         m_IntSurfaces_SCD.Info = m_mfxVppParams_AEnc.vpp.Out;
         m_IntSurfaces_SCD.Data.Y = new mfxU8[m_IntSurfaces_SCD.Info.Width * m_IntSurfaces_SCD.Info.Height * 3 / 2];
         m_IntSurfaces_SCD.Data.UV = m_IntSurfaces_SCD.Data.Y + m_IntSurfaces_SCD.Info.Width * m_IntSurfaces_SCD.Info.Height;
@@ -461,9 +468,7 @@ mfxStatus EncTools::CloseVPP()
     if (m_IntSurfaces_SCD.Data.Y)
     {
         delete[] m_IntSurfaces_SCD.Data.Y;
-        m_IntSurfaces_SCD.Data.Y = nullptr;
-        m_IntSurfaces_SCD.Data.UV = nullptr;
-        m_IntSurfaces_SCD.Data.Pitch = 0;
+        m_IntSurfaces_SCD = {};
     }
 
     if (m_pmfxVPP_SCD)
