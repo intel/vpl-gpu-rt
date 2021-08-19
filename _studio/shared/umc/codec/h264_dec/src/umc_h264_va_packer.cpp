@@ -704,7 +704,7 @@ void PackerVA::PackProcessingInfo(H264DecoderFrameInfo * sliceInfo)
     pipelineBuf->surface = m_va->GetSurfaceID(sliceInfo->m_pFrame->m_index); // should filled in packer
     pipelineBuf->additional_outputs = (VASurfaceID*)vpVA->GetCurrentOutputSurface();
     // To keep output aligned, decode downsampling use this fixed combination of chroma sitting type
-    pipelineBuf->input_color_properties.chroma_sample_location = VA_CHROMA_SITING_HORIZONTAL_CENTER | VA_CHROMA_SITING_VERTICAL_CENTER;
+    pipelineBuf->input_color_properties.chroma_sample_location = VA_CHROMA_SITING_HORIZONTAL_LEFT | VA_CHROMA_SITING_VERTICAL_CENTER;
 }
 #endif // #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
 
