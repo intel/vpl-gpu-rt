@@ -24,14 +24,10 @@ namespace UMC
 {
 
 VideoProcessingVA::VideoProcessingVA()
-#ifdef UMC_VA_LINUX
     : m_pipelineParams()
     , m_surf_region()
     , m_output_surf_region()
     , m_currentOutputSurface()
-#else
-    : m_currentOutputSurface()
-#endif
 {
 }
 
@@ -48,14 +44,6 @@ mfxHDL VideoProcessingVA::GetCurrentOutputSurface() const
 {
     return m_currentOutputSurface;
 }
-
-#ifdef UMC_VA_DXVA
-Status VideoProcessingVA::Init(mfxVideoParam * , mfxExtDecVideoProcessing * )
-{
-    return UMC_ERR_UNSUPPORTED;
-}
-
-#elif defined(UMC_VA_LINUX)
 
 Status VideoProcessingVA::Init(mfxVideoParam * vpParams, mfxExtDecVideoProcessing * videoProcessing)
 {
@@ -81,12 +69,7 @@ Status VideoProcessingVA::Init(mfxVideoParam * vpParams, mfxExtDecVideoProcessin
 
     pipelineBuf->output_region = &m_output_surf_region;
 
-    /* SFC does not support output_background_color for a while */
-    //if (videoProcessing->FillBackground)
-    //    pipelineBuf->output_background_color = videoProcessing->V | (videoProcessing->U << 8) | (videoProcessing->Y << 16);
-    //else
-        pipelineBuf->output_background_color = 0;
-
+    pipelineBuf->output_background_color = 0;
     pipelineBuf->output_color_standard = VAProcColorStandardBT601;
 
     pipelineBuf->pipeline_flags = 0;
@@ -114,6 +97,5 @@ Status VideoProcessingVA::Init(mfxVideoParam * vpParams, mfxExtDecVideoProcessin
     return UMC_OK;
 }
 
-#endif
 
 } // namespace UMC

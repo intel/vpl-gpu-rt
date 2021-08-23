@@ -43,7 +43,7 @@ uint32_t vm_time_get_current_time(void)
     struct timeval tval;
 
     if (0 != gettimeofday(&tval, NULL)) return 0;
-    return 1000 * tval.tv_sec + (uint32_t)((double)tval.tv_usec/(double)1000);
+    return 1000 * tval.tv_sec + (uint32_t)((double)tval.tv_usec / (double)1000);
 } /* uint32_t vm_time_get_current_time(void) */
 
 #define VM_TIME_MHZ 1000000

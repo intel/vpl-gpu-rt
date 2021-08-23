@@ -32,7 +32,6 @@ class MediaDataEx : public MediaData
 
 public:
     class _MediaDataEx{
-        DYNAMIC_CAST_DECL_BASE(_MediaDataEx)
         public:
         uint32_t count;
         uint32_t index;

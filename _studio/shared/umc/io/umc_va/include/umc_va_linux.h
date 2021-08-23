@@ -23,7 +23,6 @@
 
 #include "umc_va_base.h"
 
-#ifdef UMC_VA_LINUX
 
 #include <mutex>
 #include <set>
@@ -178,6 +177,5 @@ extern "C" {
 }
 #endif // __cplusplus
 
-#endif // #ifdef UMC_VA_LINUX
 
 #endif // #ifndef __UMC_VA_LINUX_H__

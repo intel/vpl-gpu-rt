@@ -34,7 +34,6 @@
 #pragma warning(disable : 26812)
 #endif
 
-#ifdef UMC_VA_LINUX
 #include <va/va.h>
 #include <va/va_dec_vp8.h>
 #include <va/va_vpp.h>
@@ -47,19 +46,10 @@
 #ifndef UNREFERENCED_PARAMETER
 #define UNREFERENCED_PARAMETER(p) (void) (p);
 #endif
-#endif
 
 
-#ifdef UMC_VA_DXVA
-#include <windows.h>
-#endif
 
 
-#ifdef UMC_VA_DXVA
-#include <d3d9.h>
-#include <dxva2api.h>
-#include <dxva.h>
-#endif
 
 namespace UMC
 {
@@ -80,7 +70,9 @@ enum VideoAccelerationProfile
     VA_VP8          = 0x0006,
     VA_H265         = 0x0007,
     VA_VP9          = 0x0008,
+#if defined(MFX_ENABLE_AV1_VIDEO_CODEC)
     VA_AV1          = 0x0009,
+#endif
 
     // Entry points
     VA_ENTRY_POINT  = 0xfff00,
@@ -113,8 +105,10 @@ enum VideoAccelerationProfile
     VP8_VLD         = VA_VP8 | VA_VLD,
     HEVC_VLD        = VA_H265 | VA_VLD,
     VP9_VLD         = VA_VP9 | VA_VLD,
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
     AV1_VLD         = VA_AV1 | VA_VLD,
     AV1_10_VLD      = VA_AV1 | VA_VLD | VA_PROFILE_10,
+#endif
 
     H265_VLD_REXT               = VA_H265 | VA_VLD | VA_PROFILE_REXT,
     H265_10_VLD_REXT            = VA_H265 | VA_VLD | VA_PROFILE_REXT | VA_PROFILE_10,
@@ -253,6 +247,7 @@ public:
     virtual bool IsIntelCustomGUID() const = 0;
     virtual int32_t GetSurfaceID(int32_t idx) const { return idx; }
 
+
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     virtual VideoProcessingVA * GetVideoProcessingVA() {return m_videoProcessingVA;}
 #endif
@@ -344,6 +339,7 @@ public:
     eMFXHWType                  m_HWPlatform;
 
 protected:
+
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     VideoProcessingVA *  m_videoProcessingVA;

@@ -42,20 +42,13 @@ public:
 
     mfxHDL GetCurrentOutputSurface() const;
 
-#ifdef UMC_VA_LINUX
     VAProcPipelineParameterBuffer m_pipelineParams;
-#endif
 
 protected:
-
-#ifdef UMC_VA_DXVA
-
-#elif defined(UMC_VA_LINUX)
 
     VARectangle m_surf_region;
     VARectangle m_output_surf_region;
     VASurfaceID output_surface_array[1];
-#endif
 
     mfxHDL m_currentOutputSurface;
 #endif // #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE

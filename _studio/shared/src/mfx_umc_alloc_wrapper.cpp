@@ -1162,9 +1162,6 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         mfxU16 output_type = MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_FROM_DECODE;
         output_type |= (video_param.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET;
 
-        // In this case decoder works directly with SFC surfaces and real decoders surfaces are allocated inside driver (DDI limitation)
-        bool SFC_on_windows = dec_postprocessing && m_core->GetVAType() == MFX_HW_D3D11;
-
         auto msdk20_core = dynamic_cast<CommonCORE20*>(m_core);
         MFX_CHECK_WITH_THROW(msdk20_core, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
 
@@ -1172,9 +1169,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         {
             request = request_internal;
         }
-
-        std::unique_ptr<SurfaceCache> scoped_cache_ptr(SurfaceCache::Create(*msdk20_core, SFC_on_windows ? output_type : request.Type,
-            SFC_on_windows ? output_info : request.Info));
+        std::unique_ptr<SurfaceCache> scoped_cache_ptr(SurfaceCache::Create(*msdk20_core, request.Type, request.Info));
 
         m_surface20_cache_decoder_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get()));
         scoped_cache_ptr.release();
@@ -1900,6 +1895,7 @@ mfxI32 SurfaceSource::FindSurface(mfxFrameSurface1 *surf)
 }
 
 mfxFrameSurface1* SurfaceSource::GetInternalSurface(mfxFrameSurface1* sfc_surf) {
+
     auto decSurfIt = m_output_work_surface_map.find(sfc_surf->Data.MemId);
     if (decSurfIt == std::end(m_output_work_surface_map))
     {

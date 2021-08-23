@@ -19,8 +19,8 @@
 // SOFTWARE.
 
 #include <stddef.h>
-
 #include "mfxstructures.h"
+
 #include "mfxjpeg.h"
 #include "mfxmvc.h"
 #include "mfxvp8.h"
@@ -256,6 +256,7 @@
 
 #endif //defined (__MFXVP8_H__)
 
+
 //mfxbrc.h
 #if defined (__MFXBRC_H__)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxBRCFrameParam             ,128  )
@@ -303,6 +304,8 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxCam3DLutEntry                ,8   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCam3DLut                  ,40  )
 #endif //defined (__MFXCAMERA_H__)
+
+
 
 // Offsets
 //mfxastructures.h
@@ -723,7 +726,6 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPDoUse                     ,NumAlg                        ,8    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPDoUse                     ,AlgList                       ,16   )
 
-
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAVCRefListCtrl               ,Header                         ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAVCRefListCtrl               ,NumRefIdxL0Active              ,8    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAVCRefListCtrl               ,NumRefIdxL1Active              ,10   )
@@ -912,6 +914,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBDisableSkipMap             ,MapSize                       ,52   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBDisableSkipMap             ,Map                           ,56   )
 
+
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtHEVCParam                    ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtHEVCParam                    ,PicWidthInLumaSamples         ,8    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtHEVCParam                    ,PicHeightInLumaSamples        ,10   )
@@ -968,6 +971,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMoveRect                     ,Rect[0].SourceLeft            ,48   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMoveRect                     ,Rect[0].SourceTop             ,52   )
 
+
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPRotation                  ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPRotation                  ,Angle                         ,8    )
 
@@ -992,8 +996,10 @@
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPColorFill                 ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPColorFill                 ,Enable                        ,8    )
+
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtColorConversion              ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtColorConversion              ,ChromaSiting                  ,8    )
+
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxVP9SegmentParam                 ,FeatureEnabled                ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxVP9SegmentParam                 ,QIndexDelta                   ,2    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxVP9SegmentParam                 ,LoopFilterLevelDelta          ,4    )
@@ -1019,7 +1025,6 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,QIndexDeltaLumaDC             ,26   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,QIndexDeltaChromaAC           ,28   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,QIndexDeltaChromaDC           ,30   )
-
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,NumTileRows                   ,32   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,NumTileColumns                ,34   )
 
@@ -1034,6 +1039,7 @@
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVppMctf                      ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVppMctf                      ,FilterStrength                ,8    )
+
 #endif //defined (__MFXSTRUCTURES_H__)
 
 //mfxvideo.h
@@ -1483,6 +1489,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP8CodingOption              ,NumFramesForIVFHeader         ,64   )
 #endif //defined (__MFXVP8_H__)
 
+
 //mfxbrc.h
 #if defined (__MFXBRC_H__)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,SceneChange                   ,92   )
@@ -1630,4 +1637,6 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCam3DLut                     ,Size                          ,28   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCam3DLut                     ,Table                         ,32   )
 #endif //defined (__MFXCAMERA_H__)
+
+
 

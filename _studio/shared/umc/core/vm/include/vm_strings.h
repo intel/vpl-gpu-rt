@@ -44,8 +44,6 @@ typedef char vm_char;
 #define vm_string_vsprintf  vsprintf
 #define vm_string_vsnprintf vsnprintf
 
-#if !defined(ANDROID)
-
 #define vm_string_strcat    strcat
 #define vm_string_strcpy    strcpy
 #define vm_string_strncpy   strncpy
@@ -59,24 +57,6 @@ typedef char vm_char;
 #define vm_string_strnicmp  strncmp
 #define vm_string_strrchr   strrchr
 
-
-#else // ANDROID
-
-#define vm_string_strcat    strcat
-#define vm_string_strcpy    strcpy
-#define vm_string_strncpy   strncpy
-#define vm_string_strcspn   strcspn
-#define vm_string_strspn    strspn
-
-#define vm_string_strlen    strlen
-#define vm_string_strcmp    strcmp
-#define vm_string_strncmp   strncmp
-#define vm_string_stricmp   strcasecmp
-#define vm_string_strnicmp  strncasecmp
-#define vm_string_strrchr   strrchr
-
-
-#endif // ANDROID
 
 #define vm_string_atol      atol
 #define vm_string_atoi      atoi

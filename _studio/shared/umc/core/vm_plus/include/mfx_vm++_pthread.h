@@ -26,7 +26,6 @@
 #include <new>
 
 /* Getting platform-specific definitions. */
-
 #include "sys/mfx_vm++_pthread_unix.h"
 
 /*------------------------------------------------------------------------------*/

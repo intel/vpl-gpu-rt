@@ -20,7 +20,6 @@
 
 #include <umc_va_base.h>
 
-#ifdef UMC_VA_LINUX
 
 #include "umc_defs.h"
 #include "umc_va_linux.h"
@@ -1054,4 +1053,3 @@ Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorrupti
 
 }; // namespace UMC
 
-#endif // UMC_VA_LINUX
