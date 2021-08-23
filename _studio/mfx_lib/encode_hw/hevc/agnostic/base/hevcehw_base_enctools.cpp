@@ -756,7 +756,7 @@ mfxStatus HevcEncTools::BRCGetCtrl(StorageW&  , StorageW& s_task,
             extParams.push_back(&extBRCHints.Header);
         }
 
-        if (task.GopHints.QPModulaton)
+        if (task.GopHints.QPModulaton || task.GopHints.MiniGopSize)
         {
             mfxEncToolsHintPreEncodeGOP  extPreGop = {};
             extPreGop.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_GOP;

@@ -963,9 +963,10 @@ mfxStatus BRC_EncTool::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *pFram
     mfxU16 ParSceneChange = (frameStruct.frameCmplx || frameStruct.LaAvgEncodedSize) ? frameStruct.sceneChange : 0;
     mfxU32 ParFrameCmplx = frameStruct.frameCmplx;
     if (isIntra && !ParFrameCmplx) ParFrameCmplx = frameStruct.LaAvgEncodedSize;
-    mfxU16 ParQpModulation = (mfxU16) frameStruct.qpModulation;
-    if (ParQpModulation == MFX_QP_MODULATION_NOT_DEFINED 
-        && m_par.gopRefDist == 8 && m_par.bPyr 
+    mfxU16 ParQpModulation = frameStruct.qpModulation;
+    mfxU16 miniGoPSize = frameStruct.miniGopSize == 0 ? m_par.gopRefDist : frameStruct.miniGopSize;
+    if (ParQpModulation == MFX_QP_MODULATION_NOT_DEFINED
+        && miniGoPSize == 8 && m_par.bPyr
         && m_par.codecId == MFX_CODEC_HEVC) ParQpModulation = BRC_QP_MODULATION_HEVC_GOP8_FIXED;
     mfxI32 ParQpDeltaP = 0;
     if(picType == MFX_FRAMETYPE_P) 
@@ -1541,8 +1542,9 @@ mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl
     mfxU32 ParFrameCmplx = frameStruct.frameCmplx;
     mfxU16 ParQpModulation = frameStruct.qpModulation;
     mfxI32 ParQpDeltaP = 0;
-    if (ParQpModulation == MFX_QP_MODULATION_NOT_DEFINED 
-        && m_par.gopRefDist == 8 && m_par.bPyr 
+    mfxU16 miniGoPSize = frameStruct.miniGopSize == 0 ? m_par.gopRefDist : frameStruct.miniGopSize;
+    if (ParQpModulation == MFX_QP_MODULATION_NOT_DEFINED
+        && miniGoPSize == 8 && m_par.bPyr
         && m_par.codecId == MFX_CODEC_HEVC) ParQpModulation = BRC_QP_MODULATION_HEVC_GOP8_FIXED;
 
     mfxI32 qp = 0;
@@ -2089,6 +2091,7 @@ mfxStatus BRC_EncTool::ReportGopHints(mfxU32 dispOrder, mfxEncToolsHintPreEncode
         frStruct.dispOrder = dispOrder;
         frStruct.qpDelta = pGopHints.QPDelta;
         frStruct.qpModulation = pGopHints.QPModulation;
+        (*frameStruct).miniGopSize = pGopHints.MiniGopSize;
         m_FrameStruct.push_back(frStruct);
         frameStruct = m_FrameStruct.end() - 1;
     }
@@ -2096,6 +2099,7 @@ mfxStatus BRC_EncTool::ReportGopHints(mfxU32 dispOrder, mfxEncToolsHintPreEncode
     {
         (*frameStruct).qpDelta = pGopHints.QPDelta;
         (*frameStruct).qpModulation = pGopHints.QPModulation;
+        (*frameStruct).miniGopSize = pGopHints.MiniGopSize;
     }
     return MFX_ERR_NONE;
 

@@ -69,6 +69,7 @@ struct BRC_FrameStruct
         LaIDist(0),
         qpDelta(MFX_QP_UNDEFINED),
         qpModulation(MFX_QP_MODULATION_NOT_DEFINED),
+        miniGopSize(0),
         PersistenceMapNZ(0),
         PersistenceMap(),
         QpMapNZ(0),
@@ -90,6 +91,7 @@ struct BRC_FrameStruct
     mfxU32 LaIDist;
     mfxI16 qpDelta;
     mfxU16 qpModulation;
+    mfxU16 miniGopSize;
     mfxU16 PersistenceMapNZ;
     mfxU8  PersistenceMap[MFX_ENCTOOLS_PREENC_MAP_SIZE];
     mfxU16 QpMapNZ;
