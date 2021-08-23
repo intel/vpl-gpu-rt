@@ -303,9 +303,9 @@ private:
     UMC::VideoDataInfo                        m_video_data_info;
 
     // Case when platform of decoder (SW / HW) and type of output surfaces (SW / HW) mismatch
-    // or if SFC used
+    // or if SFC on linux used
     bool                                      m_allocate_internal          = false;
-    // If m_allocate_internal and SFC is not used we need to copy before output
+    // If m_allocate_internal and not SFC on linux, then we need to copy before output
     bool                                      m_need_to_copy_before_output = false;
     // If sys mem with sw fallback then ext alloc can be off so surface cache will be empty
     bool                                      m_sw_fallback_sys_mem        = false;
