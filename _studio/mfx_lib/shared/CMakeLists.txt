@@ -32,9 +32,7 @@ target_sources(mfx_common_hw
     include/mfx_tools.h
     include/mfx_vc1_dec_common.h
     include/mfx_vpx_dec_common.h
-    include/feature_blocks/mfx_feature_blocks_base.h
 
-    src/mfx_feature_blocks_base.cpp
     src/mfx_brc_common.cpp
     src/mfx_common_decode_int.cpp
     src/mfx_common_int.cpp
@@ -56,7 +54,6 @@ target_sources(mfx_common_hw
 target_include_directories(mfx_common_hw
   PUBLIC
     include
-    include/feature_blocks
     ${MSDK_LIB_ROOT}/cmrt_cross_platform/include
     ${MSDK_LIB_ROOT}/encode_hw/h264/include
     ${MSDK_UMC_ROOT}/codec/brc/include

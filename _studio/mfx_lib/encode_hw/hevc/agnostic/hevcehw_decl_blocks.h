@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,10 +20,23 @@
 
 //use customized version w/trace support instead of default one
 #define DECL_BLOCK_CLEANUP_DISABLE
-#define CODEC_NAME_PREFIX "HEVCe_"
 #include "feature_blocks/mfx_feature_blocks_decl_blocks.h"
 
-#undef CODEC_NAME_PREFIX
+#if defined(_DEBUG)
+BlockTracer::TFeatureTrace m_trace =
+{
+    DECL_FEATURE_NAME,
+    {
+    #define DECL_BLOCK(NAME) {BLK_##NAME, #NAME},
+        DECL_BLOCK_LIST
+    #undef DECL_BLOCK
+    }
+};
+
+virtual const BlockTracer::TFeatureTrace* GetTrace() override { return &m_trace; }
+virtual void SetTraceName(std::string&& name) override { m_trace.first = std::move(name); }
+#endif // defined(_DEBUG)
+
 #undef DECL_BLOCK_LIST
 #undef DECL_FEATURE_NAME
 #undef DECL_BLOCK_CLEANUP_DISABLE

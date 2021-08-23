@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,11 +25,46 @@
 #include <thread>
 #include <sstream>
 
+#if defined(_DEBUG)
+    //#define HEVCE_LOG_FUNCTION_CALLS
+#endif
+
 namespace HEVCEHW
 {
+
+BlockTracer::BlockTracer(
+    ID id
+    , const char* fName
+    , const char* bName)
+    : ID(id)
+    , m_featureName(fName)
+    , m_blockName(bName)
+{
+#if defined(HEVCE_LOG_FUNCTION_CALLS)
+    std::stringstream thid;
+    thid << std::this_thread::get_id();
+    printf("HEVCEHW TH#%s: Enter %d::%d -> %s::%s\n"
+        , thid.str().c_str()
+        , FeatureID, BlockID, m_featureName, m_blockName);
+    fflush(stdout);
+#endif
+}
+
+BlockTracer::~BlockTracer()
+{
+#if defined(HEVCE_LOG_FUNCTION_CALLS)
+    std::stringstream thid;
+    thid << std::this_thread::get_id();
+    printf("HEVCEHW TH#%s: Exit  %d::%d -> %s::%s\n"
+        , thid.str().c_str()
+        , FeatureID, BlockID, m_featureName, m_blockName);
+    fflush(stdout);
+#endif
+}
+
 const char* FeatureBlocks::GetFeatureName(mfxU32 featureID)
 {
-#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+#if defined(HEVCE_LOG_FUNCTION_CALLS)
     return m_trace.at(featureID)->first.c_str();
 #else
     std::ignore = featureID;
@@ -38,7 +73,7 @@ const char* FeatureBlocks::GetFeatureName(mfxU32 featureID)
 }
 const char* FeatureBlocks::GetBlockName(ID id)
 {
-#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+#if defined(HEVCE_LOG_FUNCTION_CALLS)
     return m_trace.at(id.FeatureID)->second.at(id.BlockID).c_str();
 #else
     std::ignore = id;
