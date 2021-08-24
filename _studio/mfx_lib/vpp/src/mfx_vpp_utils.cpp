@@ -1345,8 +1345,6 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
         case MFX_FOURCC_YUY2:
         // A2RGB10 supported as input in case of passthru copy
         case MFX_FOURCC_A2RGB10:
-        // UYVY is supported on Linux only
-        case MFX_FOURCC_UYVY:
             break;
         case MFX_FOURCC_AYUV:
             break;
@@ -1363,6 +1361,8 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
         case MFX_FOURCC_YUV422H:
         case MFX_FOURCC_YUV422V:
         case MFX_FOURCC_YUV444:
+        // UYVY is supported as input on Linux only
+        case MFX_FOURCC_UYVY:
             if (VPP_OUT == request)
                 return MFX_ERR_INVALID_VIDEO_PARAM;
             break;
