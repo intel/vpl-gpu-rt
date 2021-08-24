@@ -2823,7 +2823,7 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
 
     if (m_params.vpp.In.FourCC  != par->vpp.In.FourCC ||
         m_params.vpp.Out.FourCC != par->vpp.Out.FourCC)
-        return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+        return MFX_ERR_INVALID_VIDEO_PARAM;
 
     mfxStatus sts = MFX_ERR_NONE;
     bool bIsFilterSkipped = false;
@@ -4817,7 +4817,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             if (isOnlyHorizontalMirroringSupported && (par->vpp.In.CropX || par->vpp.In.CropY || par->vpp.Out.CropX || par->vpp.Out.CropY))
                 sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
-            if (extMir->Type < 0 || (extMir->Type==MFX_MIRRORING_VERTICAL && isOnlyHorizontalMirroringSupported))
+            if (extMir->Type < MFX_MIRRORING_DISABLED || extMir->Type > MFX_MIRRORING_VERTICAL || (extMir->Type==MFX_MIRRORING_VERTICAL && isOnlyHorizontalMirroringSupported))
                 sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
             // SW d3d->d3d mirroring does not support resize
