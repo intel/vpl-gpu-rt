@@ -3534,28 +3534,32 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
         sts = m_encTools.QueryLookAheadStatus(task.m_frameOrder, &bufHint, gopHint, &cqmHint);
         MFX_CHECK_STS(sts);
 
+        mfxLplastatus lplaStatus = {};
+
         switch (cqmHint.MatrixType)
         {
         case MFX_QUANT_MATRIX_WEAK:
-            task.m_lplastatus.CqmHint = CQM_HINT_USE_CUST_MATRIX1;
+            lplaStatus.CqmHint = CQM_HINT_USE_CUST_MATRIX1;
             break;
         case MFX_QUANT_MATRIX_MEDIUM:
-            task.m_lplastatus.CqmHint = CQM_HINT_USE_CUST_MATRIX2;
+            lplaStatus.CqmHint = CQM_HINT_USE_CUST_MATRIX2;
             break;
         case MFX_QUANT_MATRIX_STRONG:
-            task.m_lplastatus.CqmHint = CQM_HINT_USE_CUST_MATRIX3;
+            lplaStatus.CqmHint = CQM_HINT_USE_CUST_MATRIX3;
             break;
         case MFX_QUANT_MATRIX_EXTREME:
-            task.m_lplastatus.CqmHint = CQM_HINT_USE_CUST_MATRIX4;
+            lplaStatus.CqmHint = CQM_HINT_USE_CUST_MATRIX4;
             break;
         case MFX_QUANT_MATRIX_FLAT:
         default:
-            task.m_lplastatus.CqmHint = CQM_HINT_USE_FLAT_MATRIX;
+            lplaStatus.CqmHint = CQM_HINT_USE_FLAT_MATRIX;
         }
 
-        task.m_lplastatus.TargetFrameSize      = bufHint.OptimalFrameSizeInBytes;
-        task.m_lplastatus.MiniGopSize          = (mfxU8)st.MiniGopSize;
-        task.m_lplastatus.QpModulation         = (mfxU8)st.QPModulation;
+        lplaStatus.TargetFrameSize      = bufHint.OptimalFrameSizeInBytes;
+        lplaStatus.MiniGopSize          = (mfxU8)st.MiniGopSize;
+        lplaStatus.QpModulation         = (mfxU8)st.QPModulation;
+
+        m_lpLaStatus.push_back(lplaStatus);
     }
 #endif
 
@@ -3701,7 +3705,12 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
             if (m_encTools.IsLookAhead())
-                BuildPPyr(task, GetPPyrSize(m_video, task.m_lplastatus.MiniGopSize, m_encTools.IsLookAhead()), true, GetPPyrSize(m_video, task.m_lplastatus.MiniGopSize, m_encTools.IsLookAhead()) != GetPPyrSize(m_video, m_lastTask.m_lplastatus.MiniGopSize, m_encTools.IsLookAhead()));
+            {
+                mfxU32 miniGopSize = m_lpLaStatus.empty() ? 1 : m_lpLaStatus.front().MiniGopSize;
+                mfxU32 pyrWidth = GetPPyrSize(m_video, miniGopSize, m_encTools.IsLookAhead());
+                mfxU32 prevPyrWidth = GetPPyrSize(m_video, m_lastTask.m_lplastatus.MiniGopSize, m_encTools.IsLookAhead());
+                BuildPPyr(task, pyrWidth, true, pyrWidth != prevPyrWidth);
+            }
 #endif
         }
 #endif
@@ -3780,6 +3789,15 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 m_reordering.begin(), m_reordering.end(),
                 gopStrict, m_reordering.size() < m_video.mfx.GopRefDist,
                 closeGopForSceneChange);
+
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+        if (!m_lpLaStatus.empty())
+        {
+            task->m_lplastatus = m_lpLaStatus.front(); // LPLA hints come in encoding order
+            m_lpLaStatus.pop_front();
+        }
+#endif
+
         if (task == m_reordering.end())
             return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
 #if USE_AGOP

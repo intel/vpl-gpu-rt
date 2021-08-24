@@ -1861,6 +1861,7 @@ static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
     ctrl->BRefType = CO2->BRefType;
 
     ctrl->ScenarioInfo = CO3->ScenarioInfo;
+    ctrl->GopOptFlag = (mfxU8)par.mfx.GopOptFlag;
 
     // Rate control info
     mfxU32 mult = par.mfx.BRCParamMultiplier ? par.mfx.BRCParamMultiplier : 1;
@@ -3139,6 +3140,9 @@ private:
 #if defined(MFX_ENABLE_ENCTOOLS)
         H264EncTools m_encTools;
         bool         m_enabledEncTools;
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+        std::list<mfxLplastatus> m_lpLaStatus;
+#endif
 #endif
         mfxU32      m_maxBsSize;
 

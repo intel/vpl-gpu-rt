@@ -69,6 +69,7 @@ mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl, bool bMBQPS
     ctrl->BRefType = CO2->BRefType;
 
     ctrl->ScenarioInfo = CO3->ScenarioInfo;
+    ctrl->GopOptFlag = (mfxU8)par.mfx.GopOptFlag;
 
     // Rate control info
     mfxU32 mult = par.mfx.BRCParamMultiplier ? par.mfx.BRCParamMultiplier : 1;
@@ -93,7 +94,6 @@ mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl, bool bMBQPS
             ctrl->HRDConformance = MFX_BRC_HRD_STRONG;
         else if (IsOn(CO->NalHrdConformance) && IsOff(CO->VuiNalHrdParameters))
             ctrl->HRDConformance = MFX_BRC_HRD_WEAK;
-
 
         if (ctrl->HRDConformance)
         {
