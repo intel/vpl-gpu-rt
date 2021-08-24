@@ -2647,7 +2647,6 @@ mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoVPPHW::SubmitToMctf");
     MFX_CHECK_NULL_PTR1(pTask);
 
-
     if (!IsCmSupported(m_core->GetHWType()))
     {
         mfxFrameSurface1 hvsSurface = {};
