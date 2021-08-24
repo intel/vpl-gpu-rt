@@ -103,8 +103,10 @@ public:
 protected:
     mfxStatus InitMfxVppParams(mfxEncToolsCtrl const & ctrl);
     mfxStatus InitVPP(mfxEncToolsCtrl const & ctrl);
+    mfxStatus ResetVPP(mfxEncToolsCtrl const& ctrl);
     mfxStatus CloseVPP();
 
+    mfxStatus GetDeviceAllocator(mfxEncToolsCtrl const* ctrl);
     mfxStatus InitVPPSession(MFXVideoSession* pmfxSession);
     mfxStatus VPPDownScaleSurface(MFXVideoSession* m_pmfxSession, MFXVideoVPP* pVPP, mfxSyncPoint* pVppSyncp, mfxFrameSurface1* pInSurface, mfxFrameSurface1* pOutSurface);
 };
