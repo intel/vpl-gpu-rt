@@ -21,13 +21,13 @@
 #ifndef __UMC_STRUCTURES_H__
 #define __UMC_STRUCTURES_H__
 
+#include <vm_types.h>
+#include <vm_debug.h>
+
 #ifdef _MSVC_LANG
 #pragma warning(push)
 #pragma warning(disable:26812)
 #endif
-
-#include <vm_types.h>
-#include <vm_debug.h>
 
 #define BSWAP16(x) \
     (uint16_t) ((x) >> 8 | (x) << 8)
