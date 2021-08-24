@@ -63,6 +63,27 @@ mfxStatus MFXVideoVPPDenoise::Query( mfxExtBuffer* pHint )
             sts = MFX_STS_TRACE(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
         }
     }
+    else if (MFX_EXTBUFF_VPP_DENOISE2 == bufferId)
+    {
+        mfxExtVPPDenoise2* bufDN = reinterpret_cast<mfxExtVPPDenoise2*>(pHint);
+        MFX_CHECK_NULL_PTR1(bufDN);
+        mfxDenoiseMode mode = bufDN->Mode;
+        switch (mode)
+        {
+            case mfxDenoiseMode::MFX_DENOISE_MODE_INTEL_HVS_PRE_MANUAL:
+            case mfxDenoiseMode::MFX_DENOISE_MODE_INTEL_HVS_POST_MANUAL:
+            {
+                if (bufDN->Strength > PAR_NRF_STRENGTH_MAX)
+                {
+                    bufDN->Strength = PAR_NRF_STRENGTH_MAX;
+                    sts = MFX_STS_TRACE(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+                }
+                break;
+            }
+            default:
+                break;
+        }
+    }
 
     return sts;
 

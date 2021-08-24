@@ -72,6 +72,7 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
             }
 
             case (mfxU32)MFX_EXTBUFF_VPP_DENOISE:
+            case (mfxU32)MFX_EXTBUFF_VPP_DENOISE2:
             {
                 inputFramesCount[filterIndex]  = MFXVideoVPPDenoise::GetInFramesCountExt();
                 outputFramesCount[filterIndex] = MFXVideoVPPDenoise::GetOutFramesCountExt();
@@ -333,6 +334,8 @@ bool IsCompositionMode(mfxVideoParam* pParam)
 mfxStatus ExtendedQuery(VideoCORE * core, mfxU32 filterName, mfxExtBuffer* pHint)
 {
     if( MFX_EXTBUFF_VPP_DENOISE == filterName
+        || MFX_EXTBUFF_VPP_DENOISE2 == filterName
+
         )
     {
         MFX_RETURN(MFXVideoVPPDenoise::Query( pHint ));

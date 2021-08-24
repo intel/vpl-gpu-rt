@@ -2928,8 +2928,14 @@ private:
 
     protected:
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
-        std::shared_ptr<CMC>
-            amtMctf;
+        std::unique_ptr<CMC>
+            m_mctfDenoiser;
+
+        // m_hvsDenoiser is the replacement for m_mctfDenoiser
+        // due to HW change, and reuse the Init, Query, Submit
+        // functions.
+        std::unique_ptr<MfxVppHelper>
+            m_hvsDenoiser;
 
         mfxStatus SubmitToMctf(
             DdiTask * pTask
@@ -2937,6 +2943,8 @@ private:
         mfxStatus QueryFromMctf(
             void *pParam
         );
+
+        mfxStatus InitMctf(const mfxVideoParam* const par);
 #endif
 
         mfxStatus InitScd(mfxFrameAllocRequest& request);
