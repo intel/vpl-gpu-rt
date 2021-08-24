@@ -398,7 +398,7 @@ mfxStatus LPLA_EncTool::Query(mfxU32 dispOrder, mfxEncToolsHintPreEncodeGOP *pPr
     if (pPreEncGOP->FrameType & MFX_FRAMETYPE_I)
     {
         m_lastIFrameNumber = m_lastIPFrameNumber = dispOrder;
-        if (m_GopPicSize && (dispOrder - m_lastIDRFrameNumber > (mfxU32)m_GopPicSize * m_IdrInterval))
+        if (m_GopPicSize && (dispOrder - m_lastIDRFrameNumber >= (mfxU32)m_GopPicSize * m_IdrInterval))
         {
             pPreEncGOP->FrameType |= MFX_FRAMETYPE_IDR;
             m_lastIDRFrameNumber = dispOrder;

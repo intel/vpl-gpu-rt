@@ -423,13 +423,13 @@ static mfxStatus InitEncToolsCtrl(
     ctrl->FrameInfo = par.mfx.FrameInfo;
     ctrl->IOPattern = par.IOPattern;
     ctrl->MaxDelayInFrames = pCO2 ? pCO2->LookAheadDepth : 0 ;
-    ctrl->MBBRC = (ctrl->CodecId == MFX_CODEC_HEVC && ctrl->MaxDelayInFrames > par.mfx.GopRefDist && bMBQPSupport);
+    ctrl->MBBRC = (ctrl->MaxDelayInFrames > par.mfx.GopRefDist && bMBQPSupport);
 
     ctrl->MaxGopSize = par.mfx.GopPicSize;
     ctrl->MaxGopRefDist = par.mfx.GopRefDist;
-    ctrl->MaxIDRDist = par.mfx.GopPicSize * (par.mfx.IdrInterval + 1);
+    ctrl->MaxIDRDist = par.mfx.GopPicSize * par.mfx.IdrInterval;
     // HEVC Defaults to CRA for IdrInterval == 0
-    if (par.mfx.IdrInterval == 0 && ctrl->CodecId == MFX_CODEC_HEVC && par.mfx.GopPicSize != 0) {
+    if (par.mfx.IdrInterval == 0 && par.mfx.GopPicSize != 0) {
         ctrl->MaxIDRDist = par.mfx.GopPicSize * (0xffff / par.mfx.GopPicSize);
     }
     ctrl->BRefType = pCO2 ? pCO2->BRefType : 0;
