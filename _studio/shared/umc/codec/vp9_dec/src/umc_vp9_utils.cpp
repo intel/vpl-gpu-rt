@@ -282,10 +282,11 @@ namespace UMC_VP9_DECODER
         else
         {
             const int32_t data = GetSegData(seg, segmentId, UMC_VP9_DECODER::SEG_LVL_ALT_Q);
-            return
-                 seg.absDelta == SEGMENT_ABSDATA ?
-                 data :  // Abs value
-                 clamp(baseQIndex + data, 0, MAXQ);  // Delta value
+
+            const int32_t segQIdx = (seg.absDelta == SEGMENT_ABSDATA) ?
+                            data :  // Abs value
+                            baseQIndex + data;  // Delta value
+            return clamp(segQIdx, 0, MAXQ);
         }
     }
 
