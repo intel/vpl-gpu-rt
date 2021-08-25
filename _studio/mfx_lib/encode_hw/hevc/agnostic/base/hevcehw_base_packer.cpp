@@ -1855,6 +1855,9 @@ void Packer::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
         m_pGlob = &global;
 
+        if (global.Contains(CC::Key))
+            CC::Get(global).UpdateLPLAAnalysisSPSBS(global, Glob::SPS::Get(global));
+
         mfxStatus sts = Reset(
             Glob::VPS::Get(global)
             , Glob::SPS::Get(global)

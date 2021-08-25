@@ -261,6 +261,11 @@ namespace Base
             using TPackCqmHeader = CallChain<bool
                 , StorageW*>;
             TPackCqmHeader PackCqmHeader;
+
+            using TUpdateLPLAAnalysisSPSBS = CallChain<void
+                , const StorageR& //global
+                , SPS&>;
+            TUpdateLPLAAnalysisSPSBS UpdateLPLAAnalysisSPSBS;
         };
 
         using CC = StorageVar<Base::Glob::BasePackerKey, CallChains>;
