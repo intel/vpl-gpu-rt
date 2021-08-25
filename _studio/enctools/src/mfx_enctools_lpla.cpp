@@ -406,21 +406,27 @@ mfxStatus LPLA_EncTool::Query(mfxU32 dispOrder, mfxEncToolsHintPreEncodeGOP *pPr
     }
     else if (m_GopRefDist > 1)
     {
-        mfxU32 miniGopSize = pPreEncGOP->MiniGopSize ? pPreEncGOP->MiniGopSize : m_GopRefDist;
-        if ((dispOrder - m_lastIPFrameNumber) % miniGopSize)
-        {
-            pPreEncGOP->FrameType = MFX_FRAMETYPE_B;
-        }
+        // closed GOP
+        if ((dispOrder - m_lastIFrameNumber + 1 == (mfxU32)m_encParams.mfx.GopPicSize) && (m_encParams.mfx.GopOptFlag & MFX_GOP_CLOSED))
+            pPreEncGOP->FrameType = MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;
         else
         {
-            pPreEncGOP->FrameType = MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;
-            if (m_nextPisIntra)
+            mfxU32 miniGopSize = pPreEncGOP->MiniGopSize ? pPreEncGOP->MiniGopSize : m_GopRefDist;
+            if ((dispOrder - m_lastIPFrameNumber) % miniGopSize)
             {
-                pPreEncGOP->FrameType = MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF;
-                m_nextPisIntra = false;
-                m_lastIFrameNumber = dispOrder;
+                pPreEncGOP->FrameType = MFX_FRAMETYPE_B;
             }
-            m_lastIPFrameNumber = dispOrder;
+            else
+            {
+                pPreEncGOP->FrameType = MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;
+                if (m_nextPisIntra)
+                {
+                    pPreEncGOP->FrameType = MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF;
+                    m_nextPisIntra = false;
+                    m_lastIFrameNumber = dispOrder;
+                }
+                m_lastIPFrameNumber = dispOrder;
+            }
         }
     }
     else
