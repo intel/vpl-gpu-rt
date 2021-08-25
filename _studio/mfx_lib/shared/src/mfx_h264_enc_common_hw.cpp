@@ -994,9 +994,9 @@ namespace
         }
     }
 
-    mfxU16 GetDefaultNumRefActiveBL1(const mfxInfoMFX& mfx, eMFXHWType platform)
+    mfxU16 GetDefaultNumRefActiveBL1(const mfxInfoMFX& mfx, eMFXHWType /*platform*/)
     {
-        return GetMaxNumRefActiveBL0(mfx.TargetUsage, platform, IsOn(mfx.LowPower));
+        return GetMaxNumRefActiveBL1(mfx.TargetUsage, mfx.FrameInfo.PicStruct, IsOn(mfx.LowPower));
     }
 
     mfxU16 GetDefaultIntraPredBlockSize(
