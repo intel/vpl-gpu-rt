@@ -32,7 +32,7 @@ target_link_libraries(vm
   PUBLIC
     umc
     mfx_static_lib
-    ipp
+    ${IPP_LIBS}
   PRIVATE
     mfx_sdl_properties
     ${CMAKE_DL_LIBS}

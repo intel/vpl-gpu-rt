@@ -126,5 +126,5 @@ else()
   include(${BUILDER_ROOT}/profiles/onevpl.cmake)
 endif()
 
-configure_file(${BUILDER_ROOT}/mfxconfig.h.in ${MSDK_CMAKE_BINARY_ROOT}/mfxconfig.h)
+configure_file(${BUILDER_ROOT}/mfx_features.h.in ${MSDK_CMAKE_BINARY_ROOT}/mfx_features.h)
 add_definitions( -DMFX_HAVE_EXTERNAL_CONFIG )

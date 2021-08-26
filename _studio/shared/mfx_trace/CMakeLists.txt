@@ -9,7 +9,6 @@ target_sources(mfx_trace
     include/mfx_trace_textlog.h
     include/mfx_trace_utils.h
     include/sys/mfx_trace_utils_linux.h
-
     src/mfx_trace.cpp
     src/mfx_trace_ftrace.cpp
     src/mfx_trace_itt.cpp

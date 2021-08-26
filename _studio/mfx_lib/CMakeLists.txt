@@ -1,11 +1,4 @@
 set(sources_common
-    scheduler/linux/src/mfx_scheduler_core.cpp
-    scheduler/linux/src/mfx_scheduler_core_ischeduler.cpp
-    scheduler/linux/src/mfx_scheduler_core_iunknown.cpp
-    scheduler/linux/src/mfx_scheduler_core_task.cpp
-    scheduler/linux/src/mfx_scheduler_core_task_management.cpp
-    scheduler/linux/src/mfx_scheduler_core_thread.cpp
-
     shared/src/libmfxsw.cpp
     shared/src/libmfxsw_async.cpp
     shared/src/libmfxsw_decode.cpp
@@ -25,7 +18,7 @@ set(sources_common
     shared/include/feature_blocks/mfx_feature_blocks_init_macros.h
     shared/include/feature_blocks/mfx_feature_blocks_utils.h
     shared/include/mfx_utils_extbuf.h
-    ${MSDK_CMAKE_BINARY_ROOT}/mfxconfig.h  # Cmake-generated configuration derived from BuildOptions
+    ${MSDK_CMAKE_BINARY_ROOT}/mfx_features.h  # Cmake-generated configuration derived from BuildOptions
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_config.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_common.h
 
@@ -81,6 +74,18 @@ add_library(mfxcore OBJECT)
 target_sources(mfxcore PRIVATE ${sources_common})
 target_sources(mfxcore PRIVATE ${sources_hw})
 
+if (CMAKE_SYSTEM_NAME MATCHES Linux)
+  target_sources(mfxcore
+    PRIVATE
+      scheduler/linux/src/mfx_scheduler_core.cpp
+      scheduler/linux/src/mfx_scheduler_core_ischeduler.cpp
+      scheduler/linux/src/mfx_scheduler_core_iunknown.cpp
+      scheduler/linux/src/mfx_scheduler_core_task.cpp
+      scheduler/linux/src/mfx_scheduler_core_task_management.cpp
+      scheduler/linux/src/mfx_scheduler_core_thread.cpp
+  )
+endif()
+
 set(HW_ONLY_LIBS
   cmrt_cross_platform_hw
   asc
@@ -109,8 +114,14 @@ target_compile_definitions(mfxcore
 target_include_directories(mfxcore
   PUBLIC
     scheduler/include
-    scheduler/linux/include
-)
+  )
+  
+if (CMAKE_SYSTEM_NAME MATCHES Linux)
+  target_include_directories(mfxcore
+    PUBLIC
+      scheduler/linux/include
+  )
+endif()
 
 target_link_libraries(mfxcore
   PUBLIC

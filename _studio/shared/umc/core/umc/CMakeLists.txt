@@ -36,7 +36,7 @@ target_link_libraries(umc
     mfx_static_lib
     vm
     vm_plus
-    ipp
+    ${IPP_LIBS}
   PRIVATE
     mfx_sdl_properties
   )

@@ -153,3 +153,5 @@ add_library(ipp STATIC
 target_include_directories(ipp PUBLIC include)
 
 target_link_libraries(ipp PRIVATE mfx_common_properties)
+
+set(IPP_LIBS ipp)
