@@ -2480,6 +2480,13 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
 }
 
 
+inline INT GetTimeout(eMFXHWType hw_type)
+{
+    std::ignore = hw_type;
+
+    return CM_MAX_TIMEOUT_MS;
+}
+
 mfxStatus CmCopyWrapper::Initialize(eMFXHWType hwtype)
 {
     cmStatus cmSts = CM_SUCCESS;
@@ -2491,7 +2498,7 @@ mfxStatus CmCopyWrapper::Initialize(eMFXHWType hwtype)
     if (m_HWType == MFX_HW_UNKNOWN)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
 
-    m_timeout = CM_MAX_TIMEOUT_SIM;
+    m_timeout = GetTimeout(m_HWType);
 
     mfxStatus mfxSts = InitializeSwapKernels(hwtype);
     MFX_CHECK_STS(mfxSts);
