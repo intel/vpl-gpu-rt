@@ -36,16 +36,17 @@ if(CMAKE_SYSTEM_NAME MATCHES WindowsStore)
   endif()
 endif()
 
+set(LANG CXX C ASM)
 project(mfxgen1
   VERSION ${MEDIA_VERSION}
-  LANGUAGES CXX C ASM)
+  LANGUAGES ${LANG})
 
 include(CMakeDependentOption)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Default to `release` build if nothing was specified
-if(NOT CMAKE_BUILD_TYPE)
+if((NOT CMAKE_BUILD_TYPE) AND (CMAKE_SYSTEM_NAME MATCHES Linux))
   message(STATUS "No build type selected, default to release")
   set(CMAKE_BUILD_TYPE release)
 endif()
@@ -74,20 +75,14 @@ include( ${BUILDER_ROOT}/FindFunctions.cmake )
 include( ${BUILDER_ROOT}/BuildOptions.cmake )
 include( ${BUILDER_ROOT}/FindGlobals.cmake )
 include( ${BUILDER_ROOT}/FindITT.cmake )
+include( ${BUILDER_ROOT}/FindIPP.cmake OPTIONAL)
 include( ${BUILDER_ROOT}/FindPackages.cmake )
-
-if (BUILD_TOOLS)
-#  add_subdirectory(${CMAKE_HOME_DIRECTORY}/tools)
-endif()
 
 if (BUILD_RUNTIME)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/contrib/ipp)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/_studio)
 endif()
 
-if (BUILD_TESTS)
-#  add_subdirectory(tests)
-endif()
 
 if (ENABLE_ITT)
   target_link_libraries(mfx_common_properties INTERFACE itt)
