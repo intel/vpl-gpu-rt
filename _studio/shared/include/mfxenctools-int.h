@@ -98,9 +98,9 @@ typedef struct
         /* Gop limitations */
         mfxU16  MaxGopSize;
         mfxU16  MaxGopRefDist;
-        mfxU16  MaxIDRDist;
+        mfxU32  MaxIDRDist;
         mfxU16  BRefType;
-        mfxU16  reserved4[64];
+        mfxU16  reserved4[63];
     };
     mfxU16 ScenarioInfo;
 
