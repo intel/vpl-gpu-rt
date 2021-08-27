@@ -64,7 +64,7 @@ mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl, bool bMBQPS
     ctrl->MaxIDRDist = par.mfx.GopPicSize * (par.mfx.IdrInterval + !!(ctrl->CodecId == MFX_CODEC_AVC));
     // For !AVC IdrInterval 0 defaults to CRA
     if (par.mfx.IdrInterval == 0 && ctrl->CodecId != MFX_CODEC_AVC && par.mfx.GopPicSize != 0) {
-        ctrl->MaxIDRDist = par.mfx.GopPicSize * (0xffff / par.mfx.GopPicSize);
+        ctrl->MaxIDRDist = par.mfx.GopPicSize * (UINT_MAX / par.mfx.GopPicSize);
     }
     ctrl->BRefType = CO2->BRefType;
 

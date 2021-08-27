@@ -49,7 +49,7 @@ mfxStatus LPLA_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig 
 
     m_GopPicSize = ctrl.MaxGopSize;
     if (m_GopPicSize)
-        m_IdrInterval = ctrl.MaxIDRDist / m_GopPicSize;
+        m_IdrInterval = mfxU16(ctrl.MaxIDRDist / m_GopPicSize);
 
     m_GopRefDist = ctrl.MaxGopRefDist;
 
@@ -87,7 +87,7 @@ mfxStatus LPLA_EncTool::Reset(mfxEncToolsCtrl const& ctrl, mfxExtEncToolsConfig 
 
     m_GopPicSize = ctrl.MaxGopSize;
     if (m_GopPicSize)
-        m_IdrInterval = ctrl.MaxIDRDist / m_GopPicSize;
+        m_IdrInterval = mfxU16(ctrl.MaxIDRDist / m_GopPicSize);
 
     m_GopRefDist = ctrl.MaxGopRefDist;
 
