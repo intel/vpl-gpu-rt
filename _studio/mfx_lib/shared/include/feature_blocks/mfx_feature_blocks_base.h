@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -84,6 +84,23 @@ struct ID
     }
 };
 
+class BlockTracer
+    : public ID
+{
+public:
+    using TFeatureTrace = std::pair<std::string, std::map<mfxU32, const std::string>>;
+
+    BlockTracer(
+        ID id
+        , const char* fName = nullptr
+        , const char* bName = nullptr);
+
+    ~BlockTracer();
+
+    const char* m_featureName;
+    const char* m_blockName;
+};
+
 template<class TBlockTracer>
 class FeatureBlocksCommon
     : public ParamSupport
@@ -97,6 +114,7 @@ public:
     template<class T>
     struct Block : ID
     {
+        typedef TBlockTracer TTracer;
         typedef T TCall;
 
         Block(
@@ -113,7 +131,6 @@ public:
         template<class... TArg>
         typename TCall::result_type Call(TArg&& ...arg) const
         {
-            TBlockTracer tr(*this, m_featureName, m_blockName);
             return m_call(std::forward<TArg>(arg)...);
         }
 
@@ -124,7 +141,7 @@ public:
 
     template<class T>
     static typename std::conditional<std::is_const<T>::value
-            , typename T::const_iterator, typename T::iterator>::type
+        , typename T::const_iterator, typename T::iterator>::type
     Find(T& queue, const ID id)
     {
         return std::find_if(

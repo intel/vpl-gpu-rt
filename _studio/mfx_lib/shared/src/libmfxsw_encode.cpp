@@ -533,6 +533,18 @@ mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
             MFX_SAFE_CALL(SetupCache(session, *par));
         }
     }
+    // handle std::exception(s)
+    catch (const std::exception & ex)
+    {
+        // set the default error value
+        mfxRes = MFX_ERR_UNKNOWN;
+#if defined(_DEBUG)
+        printf("EHW Exception: %s\n", ex.what());
+        fflush(stdout);
+#else
+        std::ignore = ex;
+#endif
+    }
     // handle error(s)
     catch(...)
     {
