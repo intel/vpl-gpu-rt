@@ -1922,6 +1922,8 @@ mfxStatus SurfaceSource::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
         if (!surf)
             return MFX_ERR_NONE;
 
+        MFX_CHECK(surf->Data.Locked != 0, MFX_ERR_MORE_SURFACE);
+
         MFX_SAFE_CALL(m_surface20_cache_output_surfaces->Update(*surf));
 
         // Memory model 2, non-null work surface passed
