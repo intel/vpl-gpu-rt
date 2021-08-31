@@ -160,11 +160,15 @@ namespace MfxHwVideoProcessing
         std::vector<VAProcFilterCap3DLUT> m_3dlutCaps;
         VABufferID m_3dlutFilterID;
 
+        VABufferID m_hvsDenoiseFilterID;
+
         mfxStatus Init( _mfxPlatformAccelerationService* pVADisplay, mfxVideoParam *pParams);
 
         mfxStatus Close( void );
 
         mfxStatus RemoveBufferFromPipe(VABufferID & id);
+
+        virtual mfxStatus ConfigHVSDenoise(mfxExecuteParams *pParams);
     };
 
 }; // namespace

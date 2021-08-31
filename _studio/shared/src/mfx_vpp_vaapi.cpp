@@ -93,6 +93,7 @@ VAAPIVideoProcessing::VAAPIVideoProcessing():
 , m_numFilterBufs(0)
 , m_primarySurface4Composition(NULL)
 , m_3dlutFilterID(VA_INVALID_ID)
+, m_hvsDenoiseFilterID(VA_INVALID_ID)
 {
 
     for(int i = 0; i < VAProcFilterCount; i++)
@@ -187,6 +188,9 @@ mfxStatus VAAPIVideoProcessing::Close(void)
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_3dlutFilterID);
     std::ignore = MFX_STS_TRACE(sts);
 
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_hvsDenoiseFilterID);
+    std::ignore = MFX_STS_TRACE(sts);
+
     if (m_vaContextVPP != VA_INVALID_ID)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaDestroyContext");
@@ -212,6 +216,7 @@ mfxStatus VAAPIVideoProcessing::Close(void)
     m_procampFilterID   = VA_INVALID_ID;
 
     m_3dlutFilterID     = VA_INVALID_ID;
+    m_hvsDenoiseFilterID= VA_INVALID_ID;
 
     memset( (void*)&m_pipelineCaps, 0, sizeof(m_pipelineCaps));
     memset( (void*)&m_denoiseCaps, 0, sizeof(m_denoiseCaps));
@@ -407,6 +412,9 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
                 case VAProcFilter3DLUT:
                     caps.u3DLut = 1;
                     break;
+                case VAProcFilterHVSNoiseReduction:
+                    caps.uDenoise2Filter= 1;
+                    break;
                 default:
                     break;
             }
@@ -554,6 +562,51 @@ mfxStatus VAAPIVideoProcessing::QueryVariance(
 
     return MFX_ERR_UNSUPPORTED;
 } // mfxStatus VAAPIVideoProcessing::QueryVariance(mfxU32 frameIndex, std::vector<mfxU32> &variance)
+
+mfxStatus VAAPIVideoProcessing::ConfigHVSDenoise(mfxExecuteParams *pParams)
+{
+    VAStatus vaSts = VA_STATUS_SUCCESS;
+    MFX_CHECK_NULL_PTR1(pParams);
+
+    if (pParams->bdenoiseAdvanced)
+    {
+        VAProcFilterParameterBufferHVSNoiseReduction hvs_param = {};
+
+        hvs_param.type              = VAProcFilterHVSNoiseReduction;
+        switch(pParams->denoiseMode)
+        {
+        case MFX_DENOISE_MODE_INTEL_HVS_AUTO_BDRATE:
+            hvs_param.mode      = VA_PROC_HVS_DENOISE_AUTO_BDRATE;
+            break;
+        case MFX_DENOISE_MODE_INTEL_HVS_AUTO_SUBJECTIVE:
+            hvs_param.mode      = VA_PROC_HVS_DENOISE_AUTO_SUBJECTIVE;
+            break;
+        case MFX_DENOISE_MODE_INTEL_HVS_PRE_MANUAL:
+        case MFX_DENOISE_MODE_INTEL_HVS_POST_MANUAL:
+            hvs_param.mode      = VA_PROC_HVS_DENOISE_MANUAL;
+            hvs_param.strength  = pParams->denoiseFactor;
+            break;
+        case MFX_DENOISE_MODE_INTEL_HVS_AUTO_ADJUST:
+        case MFX_DENOISE_MODE_DEFAULT:
+        default:
+            hvs_param.mode      = VA_PROC_HVS_DENOISE_DEFAULT;
+            break;
+        }
+        /* create hvs denoise fitler buffer */
+        vaSts = vaCreateBuffer((void*)m_vaDisplay,
+                                m_vaContextVPP,
+                                VAProcFilterParameterBufferType,
+                                sizeof(hvs_param),
+                                1,
+                                &hvs_param,
+                                &m_hvsDenoiseFilterID);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+        m_filterBufs[m_numFilterBufs++] = m_hvsDenoiseFilterID;
+    }
+
+    return MFX_ERR_NONE;
+}
 
 /// Setup VPP VAAPI driver parameters
 /*!
@@ -971,6 +1024,19 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             pParams->denoiseFactor = 0;
             pParams->bDenoiseAutoAdjust = false;
         }
+    }
+
+    if (pParams->bdenoiseAdvanced)
+    {
+        /* Buffer was created earlier and it's time to refresh its value */
+        mfxSts = RemoveBufferFromPipe(m_hvsDenoiseFilterID);
+        MFX_CHECK_STS(mfxSts);
+    }
+
+    if (VA_INVALID_ID == m_hvsDenoiseFilterID)
+    {
+        mfxSts = ConfigHVSDenoise(pParams);
+        MFX_CHECK_STS(mfxSts);
     }
 
     if (VA_INVALID_ID == m_3dlutFilterID)
