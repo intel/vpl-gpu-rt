@@ -243,8 +243,6 @@ protected:
 
     mfxU16                                     m_deviceId;
 
-    bool                                       m_enabled20Interface = false;
-
     CommonCORE & operator = (const CommonCORE &) = delete;
 };
 
@@ -258,46 +256,46 @@ class deprecate_from_base : public Base
 public:
     virtual ~deprecate_from_base() {}
 
-    virtual mfxMemId MapIdx(mfxMemId mid)                      override { return this->m_enabled20Interface ? mid : Base::MapIdx(mid); }
+    virtual mfxMemId MapIdx(mfxMemId mid)                      override { return mid; }
 
     // Clean up code from buffer allocator usage and uncomment following items
     /* Deprecated functionality : buffer allocator */
     /*
-    virtual mfxStatus SetBufferAllocator(mfxBufferAllocator * allocator)      override
+    virtual mfxStatus SetBufferAllocator(mfxBufferAllocator *) override
     {
-        return this->m_enabled20Interface ? MFX_ERR_UNSUPPORTED : Base::SetBufferAllocator(allocator);
+        return MFX_ERR_UNSUPPORTED;
     }
 
-    virtual mfxStatus AllocBuffer(mfxU32 nbytes, mfxU16 type, mfxMemId *mid)  override
+    virtual mfxStatus AllocBuffer(mfxU32, mfxU16, mfxMemId *)  override
     {
-        return this->m_enabled20Interface ? MFX_ERR_UNSUPPORTED : Base::AllocBuffer(nbytes, type, mid);
+        return MFX_ERR_UNSUPPORTED;
     }
 
-    virtual mfxStatus LockBuffer(mfxMemId mid, mfxU8 **ptr)                   override
+    virtual mfxStatus LockBuffer(mfxMemId, mfxU8 **)           override
     {
-        return this->m_enabled20Interface ? MFX_ERR_UNSUPPORTED : Base::LockBuffer(mid, ptr);
+        return MFX_ERR_UNSUPPORTED;
     }
 
-    virtual mfxStatus UnlockBuffer(mfxMemId mid)                              override
+    virtual mfxStatus UnlockBuffer(mfxMemId)                   override
     {
-        return this->m_enabled20Interface ? MFX_ERR_UNSUPPORTED : Base::UnlockBuffer(mid);
+        return MFX_ERR_UNSUPPORTED;
     }
 
-    virtual mfxStatus FreeBuffer(mfxMemId mid)                                override
+    virtual mfxStatus FreeBuffer(mfxMemId)                     override
     {
-        return this->m_enabled20Interface ? MFX_ERR_UNSUPPORTED : Base::FreeBuffer(mid);
+        return MFX_ERR_UNSUPPORTED;
     }
     */
 
-    virtual bool SetCoreId(mfxU32 Id)                                                                           override
+    virtual bool SetCoreId(mfxU32)                                                        override
     {
-        return this->m_enabled20Interface ? false : Base::SetCoreId(Id);
+        return false;
     }
 
 protected:
-    virtual mfxStatus DefaultAllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)        override
+    virtual mfxStatus DefaultAllocFrames(mfxFrameAllocRequest *, mfxFrameAllocResponse *) override
     {
-        return this->m_enabled20Interface ? MFX_ERR_UNSUPPORTED : Base::DefaultAllocFrames(request, response);
+        return MFX_ERR_UNSUPPORTED;
     }
 
     deprecate_from_base(const mfxU32 numThreadsAvailable, const mfxSession session = nullptr)
@@ -327,8 +325,8 @@ public:
     virtual mfxStatus UnlockFrame(mfxMemId mid, mfxFrameData *ptr = nullptr)                      override;
     virtual mfxStatus FreeFrames(mfxFrameAllocResponse *response, bool = true)                    override;
 
-    virtual mfxStatus LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool = true) override;
-    virtual mfxStatus GetExternalFrameHDL(mfxMemId mid, mfxHDL *handle, bool = true) override;
+    virtual mfxStatus LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool = true)             override;
+    virtual mfxStatus GetExternalFrameHDL(mfxMemId mid, mfxHDL *handle, bool = true)              override;
     virtual mfxStatus UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr = nullptr, bool = true) override;
 
     std::pair<mfxStatus, bool> Lock(mfxFrameSurface1& surf, mfxU32 flags);
@@ -709,9 +707,7 @@ private:
 
 inline bool Supports20FeatureSet(VideoCORE& core)
 {
-    bool* core20_interface = reinterpret_cast<bool*>(core.QueryCoreInterface(MFXICORE_API_2_0_GUID));
-
-    return core20_interface && *core20_interface;
+    return !!dynamic_cast<CommonCORE20*>(&core);
 }
 
 inline bool IsD3D9Simulation(VideoCORE& core)
