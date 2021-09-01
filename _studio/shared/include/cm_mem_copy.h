@@ -82,13 +82,13 @@ public:
         , use_count(0)
     {}
 
-    CmSurface2DWrapper(CmSurface2DWrapper&) = delete;
+    CmSurface2DWrapper(const CmSurface2DWrapper&) = delete;
     CmSurface2DWrapper(CmSurface2DWrapper&& other)
     {
         *this = std::move(other);
     }
 
-    CmSurface2DWrapper& operator= (CmSurface2DWrapper&) = delete;
+    CmSurface2DWrapper& operator= (const CmSurface2DWrapper&) = delete;
     CmSurface2DWrapper& operator= (CmSurface2DWrapper&& other)
     {
         if (this != &other)
@@ -154,13 +154,13 @@ public:
         , cm_device(device)
     {}
 
-    CmBufferUPWrapper(CmBufferUPWrapper&) = delete;
+    CmBufferUPWrapper(const CmBufferUPWrapper&) = delete;
     CmBufferUPWrapper(CmBufferUPWrapper&& other)
     {
         *this = std::move(other);
     }
 
-    CmBufferUPWrapper& operator= (CmBufferUPWrapper&) = delete;
+    CmBufferUPWrapper& operator= (const CmBufferUPWrapper&) = delete;
     CmBufferUPWrapper& operator= (CmBufferUPWrapper&& other)
     {
         if (this != &other)
@@ -442,6 +442,7 @@ protected:
     CmSurface2DWrapper* CreateCmSurface2D(mfxHDLPair surfaceIdPair, mfxU32 width, mfxU32 height);
 
     SurfaceIndex * CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize, mfxU32 width, mfxU32 height);
+
 private:
     bool m_bSwapKernelsInitialized = false;
 };

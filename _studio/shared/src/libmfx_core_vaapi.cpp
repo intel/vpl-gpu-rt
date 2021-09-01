@@ -284,7 +284,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::InitializeCm()
             //if failed to create CM device, continue without CmCopy
         m_bCmCopyAllowed = false;
 
-        MFX_RETURN(MFX_ERR_NULL_PTR);
+        std::ignore = MFX_STS_TRACE(MFX_ERR_NULL_PTR);
+        return MFX_ERR_NONE;
     }
 
     MFX_SAFE_CALL(tmp_cm->Initialize(GetHWType()));
@@ -309,7 +310,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
         mfxStatus sts = MFX_ERR_NONE;
         mfxFrameAllocRequest temp_request = *request;
 
-        MFX_SAFE_CALL(InitializeCm());
+        if (m_bCmCopyAllowed && isNeedCopy)
+            MFX_SAFE_CALL(InitializeCm());
 
         // use common core for sw surface allocation
         if (request->Type & MFX_MEMTYPE_SYSTEM_MEMORY)
@@ -1085,7 +1087,7 @@ void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
             MFX_CHECK_STS_RET_NULL(InitializeCm());
         }
 
-        return (void*)m_pCmCopy->GetCmDevice(m_Display);
+        return m_pCmCopy ? (void*)m_pCmCopy->GetCmDevice(m_Display) : nullptr;
     }
 
     if (MFXICORECMCOPYWRAPPER_GUID == guid)
@@ -1166,7 +1168,8 @@ mfxStatus VAAPIVideoCORE20::AllocFrames(
 
     try
     {
-        MFX_SAFE_CALL(InitializeCm());
+        if (m_bCmCopyAllowed)
+            MFX_SAFE_CALL(InitializeCm());
 
         mfxStatus sts = m_frame_allocator_wrapper.Alloc(*request, *response, request->Type & (MFX_MEMTYPE_FROM_ENC | MFX_MEMTYPE_FROM_PAK));
 
