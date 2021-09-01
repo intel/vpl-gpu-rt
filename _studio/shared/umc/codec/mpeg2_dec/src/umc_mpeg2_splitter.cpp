@@ -83,8 +83,10 @@ namespace UMC_MPEG2_DECODER
             }
             else // start code wasn't found
             {
-                readSize = (uint32_t)(end - begin);
-                m_cache.insert(m_cache.end(), (uint8_t *)begin, (uint8_t *)end); // Load the whole data to the cache
+                // Load the data excepte last 1 or 2 bytes if they have zero values (Considering [... 0x0 0x0] [0x1 ...]) to the cache
+                uint32_t numZerosAtEnd = (0 == end[-1]) ? 1 + (0 == end[-2]) : 0;
+                readSize = (uint32_t)(end - begin - numZerosAtEnd);
+                m_cache.insert(m_cache.end(), (uint8_t *)begin, (uint8_t *)(end - numZerosAtEnd));
             }
 
             in->MoveDataPointer(readSize);
@@ -94,7 +96,15 @@ namespace UMC_MPEG2_DECODER
         RawUnit tmpUnit = FindRawUnit(begin, end);
         if (-1 == tmpUnit.type || (!tmpUnit.begin && !tmpUnit.end)) // Nothing found
         {
-            readSize = (uint32_t)(end - begin); // Skip all data
+            // Considering [0x0 0x0 0x1] [0x0 ...]
+            // if no enough data to parse, leave data to next slice
+            if(begin >= end - prefix_size)
+            {
+                readSize = 0;
+            }
+            else {
+                readSize = (uint32_t)(end - begin); // Skip all data
+            }
         }
         else if (tmpUnit.begin && !tmpUnit.end) // Found only where unit starts
         {
@@ -141,7 +151,7 @@ namespace UMC_MPEG2_DECODER
     // Find start code
     uint8_t * RawHeaderIterator::FindStartCode(uint8_t * begin, uint8_t * end)
     {
-        for (; begin < end - prefix_size; ++begin)
+        for (; begin <= end - prefix_size; ++begin)
         {
             if (begin[0] == 0 && begin[1] == 0 && begin[2] == 1)
             {
