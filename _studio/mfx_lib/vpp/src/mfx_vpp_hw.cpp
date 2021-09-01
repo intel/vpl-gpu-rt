@@ -5887,17 +5887,16 @@ mfxStatus ConfigureExecuteParams(
                         mfxExtVPPComposite* extComp = (mfxExtVPPComposite*)videoParam.ExtParam[i];
                         StreamCount = extComp->NumInputStream;
 
-                        if (!executeParams.dstRects.empty())
+                        if (executeParams.dstRects.empty())
                         {
-                            if (executeParams.dstRects.size() < StreamCount)
-                                return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+                            executeParams.initialStreamNum = StreamCount;
                         }
-
-                        if (executeParams.dstRects.size() != StreamCount)
+                        else
                         {
-                            executeParams.dstRects.clear();
-                            executeParams.dstRects.resize(StreamCount);
+                            MFX_CHECK(StreamCount <= executeParams.initialStreamNum, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
                         }
+                        executeParams.dstRects.resize(StreamCount);
+                        
                         executeParams.iTilesNum4Comp = extComp->NumTiles;
 
                         for (mfxU32 cnt = 0; cnt < StreamCount; ++cnt)
