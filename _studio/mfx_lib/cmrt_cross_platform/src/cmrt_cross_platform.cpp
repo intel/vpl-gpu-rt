@@ -19,7 +19,6 @@
 // SOFTWARE.
 
 #include "assert.h"
-#include "vm_shared_object.h"
 #include "cmrt_cross_platform.h"
 
 #ifdef CM_WIN
@@ -28,10 +27,6 @@
 #endif
 
 const vm_char * DLL_NAME_LINUX = VM_STRING("libigfxcmrt.so.7");
-
-#if defined(ANDROID)
-const vm_char * DLL_NAME_ANDROID = VM_STRING("libigfxcmrt.so");
-#endif
 
 #ifdef CMRT_EMU
     const char * FUNC_NAME_CREATE_CM_DEVICE  = "CreateCmDeviceEmu";
@@ -140,7 +135,7 @@ typedef INT (* DestroyCmDeviceVAAPIFuncType)(CmLinux::CmDevice *&);
 class CmDeviceImpl : public CmDevice
 {
 public:
-    vm_so_handle    m_dll;
+    void*           m_dll;
     INT             m_platform;
 
     union
@@ -436,10 +431,10 @@ On windows we are looking for CMRT DLL in driver store directory
 Driver writes 'DriverStorePathForMDF' reg key during install.
 Use path from driver to load igfx*cmrt*.dll
 */
-vm_so_handle cm_dll_load(const vm_char *so_file_name)
+void* cm_dll_load(const vm_char *so_file_name)
 {
     //mfx_trace_get_reg_string
-    vm_so_handle handle = NULL;
+    void* handle = NULL;
     TCHAR path[MAX_PATH] = _T("");
     DWORD size = sizeof(path);
 
@@ -452,7 +447,7 @@ vm_so_handle cm_dll_load(const vm_char *so_file_name)
     {
         wcscat_s(path, MAX_PATH, _T("\\"));
         wcscat_s(path, MAX_PATH, so_file_name);
-        handle = vm_so_load(path);
+        handle = so_load(path);
     }
 
     return handle;
@@ -471,7 +466,7 @@ INT CreateCmDevice(CmDevice *& pD, UINT & version, IDirect3DDeviceManager9 * pD3
         return CM_FAILURE;
     }
 
-    CreateCmDeviceDx9FuncTypeEx createFunc = (CreateCmDeviceDx9FuncTypeEx)vm_so_get_addr(device->m_dll, FUNC_NAME_CREATE_CM_DEVICE_EX);
+    CreateCmDeviceDx9FuncTypeEx createFunc = (CreateCmDeviceDx9FuncTypeEx)so_get_addr(device->m_dll, FUNC_NAME_CREATE_CM_DEVICE_EX);
 
     if (createFunc == 0)
     {
@@ -506,7 +501,7 @@ INT CreateCmDevice(CmDevice* &pD, UINT& version, ID3D11Device * pD3D11Device, UI
     }
 
 
-    CreateCmDeviceDx11FuncTypeEx createFunc = (CreateCmDeviceDx11FuncTypeEx)vm_so_get_addr(device->m_dll, FUNC_NAME_CREATE_CM_DEVICE_EX);
+    CreateCmDeviceDx11FuncTypeEx createFunc = (CreateCmDeviceDx11FuncTypeEx)so_get_addr(device->m_dll, FUNC_NAME_CREATE_CM_DEVICE_EX);
 
     if (createFunc == 0)
     {
@@ -534,20 +529,15 @@ INT CreateCmDevice(CmDevice *& pD, UINT & version, VADisplay va_dpy, UINT mode)
     CmDeviceImpl * device = new CmDeviceImpl;
 
     device->m_platform = VAAPI;
-#if defined (ANDROID)
-    device->m_dll = vm_so_load(DLL_NAME_ANDROID);
-    if (device->m_dll == 0)
-        device->m_dll = vm_so_load(DLL_NAME_LINUX);
-#else
-    device->m_dll = vm_so_load(DLL_NAME_LINUX);
-#endif
+    device->m_dll = so_load(DLL_NAME_LINUX);
+
     if (device->m_dll == 0)
     {
         delete device;
         return CM_FAILURE;
     }
 
-    CreateCmDeviceLinuxFuncTypeEx createFunc = (CreateCmDeviceLinuxFuncTypeEx)vm_so_get_addr(device->m_dll, FUNC_NAME_CREATE_CM_DEVICE_EX);
+    CreateCmDeviceLinuxFuncTypeEx createFunc = (CreateCmDeviceLinuxFuncTypeEx)so_get_addr(device->m_dll, FUNC_NAME_CREATE_CM_DEVICE_EX);
     if (createFunc == 0)
     {
         delete device;
@@ -576,7 +566,7 @@ INT DestroyCmDevice(CmDevice *& pD)
 
     INT res = CM_SUCCESS;
 
-    if (vm_so_func destroyFunc = vm_so_get_addr(device->m_dll, FUNC_NAME_DESTROY_CM_DEVICE))
+    if (void* destroyFunc = so_get_addr(device->m_dll, FUNC_NAME_DESTROY_CM_DEVICE))
     {
         switch (device->GetPlatform())
         {
@@ -595,7 +585,7 @@ INT DestroyCmDevice(CmDevice *& pD)
         }
     }
 
-    vm_so_free(device->m_dll);
+    so_free(device->m_dll);
 
     device->m_dll  = 0;
 #if defined(CM_WIN)

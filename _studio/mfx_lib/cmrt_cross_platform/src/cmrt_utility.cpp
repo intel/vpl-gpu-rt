@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2018 Intel Corporation
+// Copyright (c) 2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,29 +18,33 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef __VM_SHARED_OBJECT_H__
-#define __VM_SHARED_OBJECT_H__
+#include "cmrt_utility.h"
 
-#include "vm_types.h"
-#include "vm_strings.h"
+#include <dlfcn.h>
 
-typedef void* vm_so_handle;
-typedef void (*vm_so_func)(void);
+void* so_load(const vm_char* so_file_name)
+{
+    /* check error(s) */
+    if (NULL == so_file_name)
+        return NULL;
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
-vm_so_handle vm_so_load(const vm_char* so_file_name);
-vm_so_func   vm_so_get_addr(vm_so_handle so_handle, const char* so_func_name);
-void         vm_so_free(vm_so_handle so_handle);
-
-#ifdef __cplusplus
+    return dlopen(so_file_name, RTLD_LAZY);
 }
-#endif /* __cplusplus */
 
-#ifndef NULL
-#define NULL (void*)0L
-#endif
+void* so_get_addr(void* so_handle, const char* so_func_name)
+{
+    /* check error(s) */
+    if (NULL == so_handle)
+        return nullptr;
 
-#endif /* __VM_SHARED_OBJECT_H__ */
+    return dlsym(so_handle, so_func_name);
+}
+
+void so_free(void* so_handle)
+{
+    /* check error(s) */
+    if (NULL == so_handle)
+        return;
+
+    dlclose(so_handle);
+}

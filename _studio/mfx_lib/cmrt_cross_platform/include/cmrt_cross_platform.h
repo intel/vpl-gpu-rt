@@ -23,6 +23,7 @@
 #define __CMRT_CROSS_PLATFORM_H__
 
 #include "mfx_common.h"
+#include "cmrt_utility.h"
 
 /* Applicable for old and new CMAPI */
 

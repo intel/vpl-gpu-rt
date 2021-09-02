@@ -1,7 +1,9 @@
 
 add_library(cmrt_cross_platform_hw STATIC
   include/cmrt_cross_platform.h
-  src/cmrt_cross_platform.cpp)
+  include/cmrt_utility.h
+  src/cmrt_cross_platform.cpp
+  src/cmrt_utility.cpp)
 
 target_include_directories(cmrt_cross_platform_hw PUBLIC include)
 
