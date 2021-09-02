@@ -1526,8 +1526,11 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
     // init slice divider
     bool fieldCoding = (m_video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
+    bool isSliceSizeConformanceEnabled = extOpt2.MaxSliceSize && (IsDriverSliceSizeControlEnabled(m_video, m_caps) ||
+        (SliceDividerType(m_caps.ddi_caps.SliceLevelRateCtrl) == SliceDividerType::ARBITRARY_MB_SLICE && hasSupportVME(platform)));
+
     m_sliceDivider = MakeSliceDivider(
-        (m_caps.ddi_caps.SliceLevelRateCtrl) ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(m_caps.ddi_caps.SliceStructure),
+        (isSliceSizeConformanceEnabled) ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(m_caps.ddi_caps.SliceStructure),
         extOpt2.NumMbPerSlice,
         extOpt3.NumSliceP,
         m_video.mfx.FrameInfo.Width / 16,
@@ -1716,8 +1719,11 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
         || ((extOpt2New.IntRefType != extOpt2Old.IntRefType) && (extOpt2New.IntRefType != 0))) // reset slice divider
     {
         bool fieldCoding = (newPar.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
+        bool isSliceSizeConformanceEnabled = extOpt2New.MaxSliceSize && (IsDriverSliceSizeControlEnabled(m_video, m_caps) ||
+            (SliceDividerType(m_caps.ddi_caps.SliceLevelRateCtrl) == SliceDividerType::ARBITRARY_MB_SLICE && hasSupportVME(m_core->GetHWType())));
+
         m_sliceDivider = MakeSliceDivider(
-            (m_caps.ddi_caps.SliceLevelRateCtrl) ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(m_caps.ddi_caps.SliceStructure),
+            isSliceSizeConformanceEnabled ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(m_caps.ddi_caps.SliceStructure),
             extOpt2New.NumMbPerSlice,
             extOpt3New.NumSliceP,
             newPar.mfx.FrameInfo.Width / 16,

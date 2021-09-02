@@ -2391,8 +2391,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
 
     if (extOpt2->MaxSliceSize &&
-        !(IsDriverSliceSizeControlEnabled(par, hwCaps) ||      // driver slice control condition
-          (hwCaps.ddi_caps.SliceStructure == 4 && laEnabled))) // sw slice control condition
+        !(IsDriverSliceSizeControlEnabled(par, hwCaps) ||                                                           // driver slice control condition
+          (SliceDividerType(hwCaps.ddi_caps.SliceStructure) == SliceDividerType::ARBITRARY_MB_SLICE && laEnabled))) // sw slice control condition
     {
         unsupported = true;
         extOpt2->MaxSliceSize = 0;
@@ -2606,9 +2606,9 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         mfxU16 widthInMbs  = par.mfx.FrameInfo.Width / 16;
         mfxU16 heightInMbs = par.mfx.FrameInfo.Height / 16 / (fieldCoding ? 2 : 1);
 
-        if (   (hwCaps.ddi_caps.SliceStructure == 0)
-            || (hwCaps.ddi_caps.SliceStructure  < 4 && (extOpt2->NumMbPerSlice % (par.mfx.FrameInfo.Width >> 4)))
-            || (hwCaps.ddi_caps.SliceStructure == 1 && ((extOpt2->NumMbPerSlice / widthInMbs) & ((extOpt2->NumMbPerSlice / widthInMbs) - 1)))
+        if (   (SliceDividerType(hwCaps.ddi_caps.SliceStructure) == SliceDividerType::ONESLICE)
+            || (SliceDividerType(hwCaps.ddi_caps.SliceStructure)  < SliceDividerType::ARBITRARY_MB_SLICE && (extOpt2->NumMbPerSlice % (par.mfx.FrameInfo.Width >> 4)))
+            || (SliceDividerType(hwCaps.ddi_caps.SliceStructure) == SliceDividerType::ROW2ROW && ((extOpt2->NumMbPerSlice / widthInMbs) & ((extOpt2->NumMbPerSlice / widthInMbs) - 1)))
             || (widthInMbs * heightInMbs) < extOpt2->NumMbPerSlice)
         {
             extOpt2->NumMbPerSlice = 0;
@@ -2660,7 +2660,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         bool fieldCoding = (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
 
         SliceDivider divider = MakeSliceDivider(
-            (hwCaps.ddi_caps.SliceLevelRateCtrl)? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(hwCaps.ddi_caps.SliceStructure),
+            (extOpt2->MaxSliceSize != 0) ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(hwCaps.ddi_caps.SliceStructure),
             extOpt2->NumMbPerSlice,
             par.mfx.NumSlice,
             par.mfx.FrameInfo.Width / 16,
@@ -2694,7 +2694,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         bool fieldCoding = (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
 
         SliceDivider divider = MakeSliceDivider(
-            (hwCaps.ddi_caps.SliceLevelRateCtrl)? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(hwCaps.ddi_caps.SliceStructure),
+            (extOpt2->MaxSliceSize != 0) ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(hwCaps.ddi_caps.SliceStructure),
             extOpt2->NumMbPerSlice,
             extOpt3->NumSliceI,
             par.mfx.FrameInfo.Width / 16,
@@ -2720,7 +2720,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         bool fieldCoding = (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
 
         SliceDivider divider = MakeSliceDivider(
-            (hwCaps.ddi_caps.SliceLevelRateCtrl)? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(hwCaps.ddi_caps.SliceStructure),
+            (extOpt2->MaxSliceSize != 0) ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(hwCaps.ddi_caps.SliceStructure),
             extOpt2->NumMbPerSlice,
             extOpt3->NumSliceP,
             par.mfx.FrameInfo.Width / 16,
@@ -2752,7 +2752,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         bool fieldCoding = (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
 
         SliceDivider divider = MakeSliceDivider(
-            (hwCaps.ddi_caps.SliceLevelRateCtrl)? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(hwCaps.ddi_caps.SliceStructure),
+            (extOpt2->MaxSliceSize != 0) ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(hwCaps.ddi_caps.SliceStructure),
             extOpt2->NumMbPerSlice,
             extOpt3->NumSliceB,
             par.mfx.FrameInfo.Width / 16,
@@ -6967,13 +6967,13 @@ SliceDividerArbitraryRowSlice::SliceDividerArbitraryRowSlice(
     mfxU32 heightInMbs)
 {
     m_pfNext              = &SliceDividerArbitraryRowSlice::Next;
-    m_numSlice            = std::max(numSlice, 1u);
+    m_numSlice            = mfx::clamp(numSlice, 1u, heightInMbs);
     m_numMbInRow          = widthInMbs;
     m_numMbRow            = heightInMbs;
     m_leftSlice           = m_numSlice;
     m_leftMbRow           = m_numMbRow;
     m_currSliceFirstMbRow = 0;
-    m_currSliceNumMbRow   = m_leftMbRow / m_leftSlice;
+    m_currSliceNumMbRow   = mfx::CeilDiv(m_leftMbRow, m_leftSlice);
 }
 
 bool SliceDividerArbitraryRowSlice::Next(SliceDividerState & state)
@@ -6989,7 +6989,7 @@ bool SliceDividerArbitraryRowSlice::Next(SliceDividerState & state)
     else
     {
         state.m_currSliceFirstMbRow += state.m_currSliceNumMbRow;
-        state.m_currSliceNumMbRow = state.m_leftMbRow / state.m_leftSlice;
+        state.m_currSliceNumMbRow = mfx::CeilDiv(state.m_leftMbRow, state.m_leftSlice);
         assert(state.m_currSliceNumMbRow != 0);
         return true;
     }
@@ -9356,12 +9356,15 @@ mfxU32 HeaderPacker::WriteSlice(
         m_numMbPerSlice,
         (mfxU32)m_packedSlices.size(),
         sps.picWidthInMbsMinus1 + 1,
-        picHeightInMBs,
-        m_isLowPower);
+        picHeightInMBs);
 
     mfxU32 firstMbInSlice = 0;
-    for (mfxU32 i = 0; i <= sliceId; i++, divider.Next())
-        firstMbInSlice = divider.GetFirstMbInSlice();
+
+    if (!m_isLowPower)
+    {
+        for (mfxU32 i = 0; i <= sliceId; i++, divider.Next())
+            firstMbInSlice = divider.GetFirstMbInSlice();
+    }
 
     mfxU32 sliceHeaderRestrictionFlag = 0;
 
