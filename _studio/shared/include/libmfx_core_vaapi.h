@@ -193,8 +193,6 @@ public:
     // this function should not be virtual
     mfxStatus            SetCmCopyStatus(bool enable);
 
-    mfxStatus InitializeCm();
-
 protected:
     VAAPIVideoCORE_T(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
     virtual void           Close()                                                                            override;
@@ -222,6 +220,7 @@ protected:
     eMFXHWType                                  m_HWType;
     eMFXGTConfig                                m_GTConfig;
 
+    bool                                        m_bCmCopy;
     bool                                        m_bCmCopyAllowed;
     std::unique_ptr<CmCopyWrapper>              m_pCmCopy;
 #if defined (MFX_ENABLE_VPP)
