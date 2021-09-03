@@ -59,10 +59,6 @@ typedef struct drm_i915_getparam {
 using namespace std;
 using namespace UMC;
 
-#ifdef _MSVC_LANG
-#pragma warning(disable: 4311) // in HWVideoCORE::TraceFrames(): pointer truncation from 'void*' to 'int'
-#endif
-
 static
 mfx_device_item getDeviceItem(VADisplay pVaDisplay)
 {
@@ -259,18 +255,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
 }// mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(mfxHandleType type, mfxHDL handle)
 
 template <class Base>
-mfxStatus VAAPIVideoCORE_T<Base>::TraceFrames(
-    mfxFrameAllocRequest* request,
-    mfxFrameAllocResponse* response,
-    mfxStatus sts)
-{
-    (void)request;
-    (void)response;
-
-    return sts;
-}
-
-template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
     mfxFrameAllocRequest* request,
     mfxFrameAllocResponse* response,
@@ -315,7 +299,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
         if (request->Type & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
             sts = Base::AllocFrames(request, response);
-            return TraceFrames(request, response, sts);
+            MFX_RETURN(sts);
         } else
         {
             bool isExtAllocatorCallAllowed = ((request->Type & MFX_MEMTYPE_EXTERNAL_FRAME) &&
@@ -343,7 +327,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
                 sts = ProcessRenderTargets(request, response, &this->m_FrameAllocator);
                 MFX_CHECK_STS(sts);
 
-                return TraceFrames(request, response, sts);
+                return MFX_ERR_NONE;
             }
             else
             {
@@ -352,7 +336,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
                 sts = this->DefaultAllocFrames(request, response);
                 MFX_CHECK_STS(sts);
 
-                return TraceFrames(request, response, sts);
+                return MFX_ERR_NONE;
             }
         }
     }
@@ -1229,7 +1213,7 @@ mfxStatus VAAPIVideoCORE20::AllocFrames(
 #if defined(ANDROID)
         MFX_CHECK(response->NumFrameActual <= 128, MFX_ERR_UNSUPPORTED);
 #endif
-        return TraceFrames(request, response, sts);
+        MFX_RETURN(sts);
     }
     catch (...)
     {

@@ -200,7 +200,6 @@ protected:
 
     mfxStatus              CreateVideoAccelerator(mfxVideoParam * param, int profile, int NumOfRenderTarget, VASurfaceID *RenderTargets, UMC::FrameAllocator *allocator);
     mfxStatus              ProcessRenderTargets(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, mfxBaseWideFrameAllocator* pAlloc);
-    mfxStatus              TraceFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, mfxStatus sts);
     mfxStatus              OnDeblockingInWinRegistry(mfxU32 codecId);
     mfxStatus              CheckOrInitDisplay();
 
