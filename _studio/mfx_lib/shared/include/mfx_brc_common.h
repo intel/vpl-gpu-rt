@@ -157,7 +157,7 @@ protected:
     }
 };
 
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
 
 #define MIN_RACA 0.25
 #define MAX_RACA 361.0

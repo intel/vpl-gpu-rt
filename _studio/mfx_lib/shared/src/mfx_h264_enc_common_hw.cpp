@@ -744,7 +744,7 @@ namespace
         bool changed = false;
         bool unsupported = false;
         bool IsEnabledSwBrc = false;
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
         IsEnabledSwBrc = isSWBRC(par);
 #else
         IsEnabledSwBrc = bRateControlLA(par.mfx.RateControlMethod);
@@ -1925,7 +1925,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
     MFX_CHECK(par.IOPattern                  != 0, MFX_ERR_INVALID_VIDEO_PARAM);
 
 
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
     if (bInit)
     {
         mfxExtBRC           & extBRC  = GetExtBufferRef(par);
@@ -3717,7 +3717,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         }
     }
 #endif
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
     if (IsOn(extOpt2->ExtBRC) && par.mfx.RateControlMethod != 0 && par.mfx.RateControlMethod != MFX_RATECONTROL_CBR && par.mfx.RateControlMethod != MFX_RATECONTROL_VBR)
     {
         extOpt2->ExtBRC = MFX_CODINGOPTION_OFF;
@@ -5196,7 +5196,7 @@ void MfxHwH264Encode::InheritDefaultValues(
     InheritOption(extOpt2Init.SkipFrame,       extOpt2Reset->SkipFrame);
     InheritOption(extOpt3Init.PRefType,        extOpt3Reset->PRefType);
 
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
      InheritOption(extOpt2Init.ExtBRC,  extOpt2Reset->ExtBRC);
 #endif
 
@@ -5216,7 +5216,7 @@ void MfxHwH264Encode::InheritDefaultValues(
     }
 
 
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
 
     mfxExtBRC & extBRCInit  = GetExtBufferRef(parInit);
     mfxExtBRC & extBRCReset = GetExtBufferRef(parReset);
@@ -5659,7 +5659,7 @@ void MfxHwH264Encode::SetDefaults(
     if (extDdi->Hme == MFX_CODINGOPTION_UNKNOWN)
         extDdi->Hme = MFX_CODINGOPTION_ON;
 
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
     if (extOpt2->ExtBRC == MFX_CODINGOPTION_UNKNOWN)
         extOpt2->ExtBRC = MFX_CODINGOPTION_OFF;
 #endif
@@ -6099,7 +6099,7 @@ void MfxHwH264Encode::SetDefaults(
     }
 
     bool IsEnabledSwBrc = false;
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
     IsEnabledSwBrc = isSWBRC(par);
 #else
     IsEnabledSwBrc = bRateControlLA(par.mfx.RateControlMethod);

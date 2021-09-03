@@ -75,7 +75,7 @@ mfxStatus ConvertVideoParam_Brc(const mfxVideoParam *parMFX, UMC::VideoBrcParams
 }
 #endif
 
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
 namespace MfxHwH265EncodeBRC
 {
 

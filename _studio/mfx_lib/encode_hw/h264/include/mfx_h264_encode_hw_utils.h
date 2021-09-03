@@ -917,7 +917,7 @@ namespace MfxHwH264Encode
         mfxF32 weight;
         mfxU32 cost;
     };
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
     struct BRCFrameParams : mfxBRCFrameParam
     {
         mfxU16 picStruct;
@@ -1694,7 +1694,7 @@ namespace MfxHwH264Encode
         mfxU8   m_QPMax[3]; // for I, P and B
 
     };
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
     class H264SWBRC : public BrcIface
     {
     public:

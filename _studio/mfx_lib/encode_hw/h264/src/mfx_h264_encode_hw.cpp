@@ -1048,7 +1048,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
     // CQP enabled
     mfxExtCodingOption2 & extOpt2 = GetExtBufferRef(m_video);
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
     m_enabledSwBrc = bRateControlLA(m_video.mfx.RateControlMethod) || (IsOn(extOpt2.ExtBRC) && (m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || m_video.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
 #else
     m_enabledSwBrc = bRateControlLA(m_video.mfx.RateControlMethod);
@@ -1672,7 +1672,7 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
                   MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     }
 
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
 
     if (IsOn(extOpt2Old.ExtBRC))
     {
@@ -1881,7 +1881,7 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
     }
     else
 #endif
-#if defined(MFX_EXT_BRC_ENABLE)
+#if defined(MFX_ENABLE_EXT_BRC)
     if (m_enabledSwBrc)
     {
         sts = m_brc.Reset(newPar);
