@@ -674,8 +674,6 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
         {
             (*surface_out)->Info.CropH = m_vPar.mfx.FrameInfo.CropH;
             (*surface_out)->Info.CropW = m_vPar.mfx.FrameInfo.CropW;
-            (*surface_out)->Info.Height = m_vPar.mfx.FrameInfo.Height;
-            (*surface_out)->Info.Width = m_vPar.mfx.FrameInfo.Width;
             (*surface_out)->Info.AspectRatioH = isShouldUpdate ? (mfxU16) 1 : m_vFirstPar.mfx.FrameInfo.AspectRatioH;
             (*surface_out)->Info.AspectRatioW = isShouldUpdate ? (mfxU16) 1 : m_vFirstPar.mfx.FrameInfo.AspectRatioW;
         }
@@ -683,8 +681,6 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
         {
             (*surface_out)->Info.CropH = m_vPar.mfx.FrameInfo.CropW;
             (*surface_out)->Info.CropW = m_vPar.mfx.FrameInfo.CropH;
-            (*surface_out)->Info.Height = m_vPar.mfx.FrameInfo.Width;
-            (*surface_out)->Info.Width = m_vPar.mfx.FrameInfo.Height;
             (*surface_out)->Info.AspectRatioH = isShouldUpdate ? (mfxU16) 1 : m_vFirstPar.mfx.FrameInfo.AspectRatioW;
             (*surface_out)->Info.AspectRatioW = isShouldUpdate ? (mfxU16) 1 : m_vFirstPar.mfx.FrameInfo.AspectRatioH;
         }
@@ -800,20 +796,12 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
             mfxVideoParam temp;
             pMJPEGVideoDecoder->FillVideoParam(&temp, false);
 
-            if(m_vPar.mfx.FrameInfo.CropW < temp.mfx.FrameInfo.CropW ||
-                m_vPar.mfx.FrameInfo.CropH < temp.mfx.FrameInfo.CropH)
+            if(m_vPar.mfx.FrameInfo.CropW != temp.mfx.FrameInfo.CropW ||
+                m_vPar.mfx.FrameInfo.CropH != temp.mfx.FrameInfo.CropH)
             {
                 decoder->ReleaseReservedTask();
                 return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
             }
-            else if((m_vPar.mfx.FrameInfo.CropW > temp.mfx.FrameInfo.CropW ||
-                m_vPar.mfx.FrameInfo.CropH > temp.mfx.FrameInfo.CropH))
-                {
-                    m_vPar.mfx.FrameInfo.CropW = temp.mfx.FrameInfo.CropW;
-                    m_vPar.mfx.FrameInfo.CropH = temp.mfx.FrameInfo.CropH;
-                    m_vPar.mfx.FrameInfo.Width = temp.mfx.FrameInfo.Width;
-                    m_vPar.mfx.FrameInfo.Height = temp.mfx.FrameInfo.Height;
-                }
             m_isHeaderParsed = true;
         }
 
