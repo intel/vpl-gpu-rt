@@ -2476,7 +2476,9 @@ mfxStatus  VideoVPPHW::Init(
     {
         CmDevice* pCmDevice = QueryCoreInterface<CmDevice>(m_pCore, MFXICORECM_GUID);
 
-        sts = m_SCD.Init(par->vpp.In.CropW, par->vpp.In.CropH, par->vpp.In.Width, par->vpp.In.PicStruct, pCmDevice, true);
+        sts = m_SCD.Init(par->vpp.In.CropW, par->vpp.In.CropH, par->vpp.In.Width, par->vpp.In.PicStruct, pCmDevice,
+        m_pCore->GetHWType() <= MFX_HW_ADL_P
+        );
         MFX_CHECK_STS(sts);
 
         m_SCD.SetGoPSize(ns_asc::Immediate_GoP);

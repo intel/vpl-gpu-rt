@@ -1385,7 +1385,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         MFX_CHECK_STS(sts);
     }
 
-    if (IsExtBrcSceneChangeSupported(m_video)
+    if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType())
 #if defined(MFX_ENABLE_ENCTOOLS)
         && !(m_enabledEncTools)
 #endif
@@ -3092,7 +3092,7 @@ mfxStatus ImplementationAvc::CalculateFrameCmplx(DdiTask const &task, mfxU32 &ra
     // Raca = l2 norm of average abs row diff and average abs col diff
     raca128 = 0;
 
-    if (IsCmNeededForSCD(m_video) && IsCmSupported(m_core->GetHWType()))
+    if (IsCmNeededForSCD(m_video))
     {
         MFX_SAFE_CALL(m_core->GetExternalFrameHDL(*pSurfI, handle, false));
         MFX_SAFE_CALL(amtScd.calc_RaCa_Surf(handle, raca));
@@ -3614,7 +3614,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
         if (!m_video.mfx.EncodedOrder)
         {
-            if (IsExtBrcSceneChangeSupported(m_video)
+            if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType())
 #if defined(MFX_ENABLE_ENCTOOLS)
                 || (m_enabledEncTools && m_encTools.IsAdaptiveGOP())
 #endif
@@ -3697,7 +3697,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             MFX_CHECK_STS(sts);
         }
 #endif
-        if (IsExtBrcSceneChangeSupported(m_video))
+        if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType()))
         {
             mfxStatus sts = MFX_ERR_NONE;
             if (!IsCmSupported(m_core->GetHWType()))
@@ -3732,7 +3732,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 #endif
         }
 #endif
-        if (IsExtBrcSceneChangeSupported(m_video))
+        if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType()))
         {
 
             if (task.m_type[0] == 0)
@@ -4137,7 +4137,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 if (bIntRateControlLA(m_video.mfx.RateControlMethod))
                     BrcPreEnc(*task);
 
-                if (IsExtBrcSceneChangeSupported(m_video)
+                if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType())
                     && (task->GetFrameType() & MFX_FRAMETYPE_I) && (task->m_encOrder == 0 || m_video.mfx.GopPicSize != 1))
                 {
                     mfxStatus sts = CalculateFrameCmplx(*task, task->m_brcFrameParams.FrameCmplx);

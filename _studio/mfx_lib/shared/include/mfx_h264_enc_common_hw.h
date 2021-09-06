@@ -703,7 +703,8 @@ namespace MfxHwH264Encode
         bool   bEncToolsLA);
 
     bool IsExtBrcSceneChangeSupported(
-        MfxVideoParam const & video);
+        MfxVideoParam const & video,
+	eMFXHWType            platform);
 
     bool IsCmSupported(
         eMFXHWType            platform);
