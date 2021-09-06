@@ -955,7 +955,7 @@ mfxStatus ImplementationAvc::InitScd(mfxFrameAllocRequest& request)
 
         MfxVideoParam vppParams = {};
         vppParams.AsyncDepth = 1;
-        vppParams.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
+        vppParams.IOPattern = (m_video.IOPattern & 0x0f) | MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
         vppParams.vpp.In = m_video.mfx.FrameInfo;
         vppParams.vpp.Out = m_video.mfx.FrameInfo;
         vppParams.vpp.Out.CropX = 0;
@@ -2742,6 +2742,17 @@ mfxStatus ImplementationAvc::QueryFromMctf(void *pParam)
                 m_cmDevice->DestroySurface(pTask->m_cmMCTF);
         }
         MFX_SAFE_CALL(m_mctfDenoiser->MCTF_RELEASE_FRAME(IsCmNeededForSCD(m_video)));
+    }
+    else 
+    {
+        pTask->m_bFrameReady = true;
+        //Check if noise analysis determined if filter is not neeeded and free resources and handle
+        if ((pTask->m_handleMCTF.first))
+        {
+            ReleaseResource(m_mctf, pTask->m_midMCTF);
+            pTask->m_midMCTF = MID_INVALID;
+            MfxHwH264Encode::Zero(pTask->m_handleMCTF);
+        }
     }
 
     return MFX_ERR_NONE;
