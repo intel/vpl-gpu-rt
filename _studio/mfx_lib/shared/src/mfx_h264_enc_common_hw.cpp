@@ -1353,7 +1353,7 @@ bool MfxHwH264Encode::IsMctfSupported(
         IsOn(extOpt2.ExtBRC) &&
         IsExtBrcSceneChangeSupported(video) &&
         (video.mfx.FrameInfo.Width <= 3840 && video.vpp.In.Height <= 2160) &&
-        (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR) &&
+        (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR || video.mfx.RateControlMethod == MFX_RATECONTROL_CQP) &&
         (video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) &&
         ((video.mfx.FrameInfo.FourCC == MFX_FOURCC_NV12) || (video.mfx.FrameInfo.FourCC == MFX_FOURCC_YV12)) &&
         (video.mfx.FrameInfo.ChromaFormat == MFX_CHROMAFORMAT_YUV420) &&

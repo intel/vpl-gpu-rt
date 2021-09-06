@@ -866,7 +866,7 @@ mfxStatus ImplementationAvc::InitMctf(const mfxVideoParam* const par)
 
         MfxVideoParam vppParams    = {};
         vppParams.AsyncDepth       = (mfxU16)m_emulatorForSyncPart.GetStageGreediness(AsyncRoutineEmulator::STG_WAIT_MCTF) + 1;
-        vppParams.IOPattern        = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+        vppParams.IOPattern        = (m_video.IOPattern & 0x0f) | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
         vppParams.vpp.In           = m_video.mfx.FrameInfo;
         vppParams.vpp.Out          = m_video.mfx.FrameInfo;
 
@@ -888,7 +888,8 @@ mfxStatus ImplementationAvc::InitMctf(const mfxVideoParam* const par)
         request.Type &= ~MFX_MEMTYPE_EXTERNAL_FRAME;
         request.Type |= MFX_MEMTYPE_INTERNAL_FRAME;
         request.Type |= MFX_MEMTYPE_FROM_VPPOUT;
-        request.NumFrameMin = (mfxU16)m_emulatorForSyncPart.GetStageGreediness(AsyncRoutineEmulator::STG_WAIT_MCTF) + 1;
+        request.NumFrameMin = (mfxU16)m_emulatorForSyncPart.GetStageGreediness(AsyncRoutineEmulator::STG_WAIT_MCTF) +
+                              (mfxU16)m_emulatorForSyncPart.GetStageGreediness(AsyncRoutineEmulator::STG_START_ENCODE) + 7;
 
         sts = m_mctf.Alloc(m_core, request);
         MFX_CHECK_STS(sts);
