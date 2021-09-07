@@ -118,12 +118,37 @@ mfxStatus MFXDisjoinSession(mfxSession session)
 
 mfxStatus MFXCloneSession(mfxSession session, mfxSession *clone)
 {
-    (void)session;
-    (void)clone;
+    MFX_CHECK_HDL(session);
+    MFX_CHECK_NULL_PTR1(clone);
+    auto pSessionInt = (_mfxSession*)session;
 
-    // this function is implemented at the dispatcher's level.
-    // there is nothing to do inside the llibrary.
-    return MFX_ERR_UNSUPPORTED;
+    if (pSessionInt->m_versionToReport.Major > 1)
+    {
+        mfxInitializationParam par = {};
+        par.AccelerationMode =
+            MFX_ACCEL_MODE_VIA_VAAPI
+            ;
+        par.VendorImplID = pSessionInt->m_adapterNum;
+        MFX_SAFE_CALL(MFXInitialize(par, clone));
+    }
+    else
+    {
+        mfxInitParam par = {};
+        par.Implementation = MFX_IMPL_HARDWARE + pSessionInt->m_implInterface + (MFX_IMPL_HARDWARE_ANY + pSessionInt->m_adapterNum);
+        MFX_SAFE_CALL(MFXInitEx(par, clone));
+    }
+
+    mfx::OnExit closeOnExit([clone]
+    {
+        std::ignore = MFXClose(*clone);
+        *clone = nullptr;
+    });
+
+    MFX_SAFE_CALL(MFXJoinSession(session, *clone));
+
+    closeOnExit = []{};
+
+    return MFX_ERR_NONE;
 
 } // mfxStatus MFXCloneSession(mfxSession session, mfxSession *clone)
 
