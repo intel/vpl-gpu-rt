@@ -1847,7 +1847,8 @@ public:
         general.frame_only_constraint_flag      = 1;
         general.level_idc                       = mfxU8((par.mfx.CodecLevel & 0xFF) * 3);
 
-        if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_REXT)
+        if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_REXT
+            || (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10 && HEVCParam.GeneralConstraintFlags == MFX_HEVC_CONSTR_REXT_ONE_PICTURE_ONLY))
         {
             general.rext_constraint_flags_0_31  = (mfxU32)(HEVCParam.GeneralConstraintFlags & 0xffffffff);
             general.rext_constraint_flags_32_42 = (mfxU32)(HEVCParam.GeneralConstraintFlags >> 32);
