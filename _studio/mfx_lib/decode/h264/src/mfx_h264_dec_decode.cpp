@@ -269,7 +269,6 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
             MFX_ERR_UNSUPPORTED);
 
          //PicStruct support differs, need to check per-platform
-        MFX_CHECK(par->mfx.FrameInfo.FourCC == videoProcessing->Out.FourCC, MFX_ERR_UNSUPPORTED);//This is to avoid CSC cases, will remove once CSC is fully tested
         bool is_fourcc_supported =
                   (  videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
                   || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
@@ -887,6 +886,9 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
     mfxStatus sts = QueryIOSurfInternal(type, &params, request);
     MFX_CHECK_STS(sts);
 
+    sts = UpdateCscOutputFormat(par, request);
+    MFX_CHECK_STS(sts);
+
     if (isInternalManaging)
     {
         request->NumFrameSuggested = request->NumFrameMin = (mfxU16)CalculateAsyncDepth(par);
@@ -1130,8 +1132,20 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
     if (surface_work)
     {
+        bool isVideoProcCscEnabled = false;
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+        mfxExtDecVideoProcessing* videoProcessing = (mfxExtDecVideoProcessing*)GetExtendedBuffer(m_vInitPar.ExtParam, m_vInitPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
+        if (videoProcessing && videoProcessing->Out.FourCC != m_vPar.mfx.FrameInfo.FourCC)
+        {
+            isVideoProcCscEnabled = true;
+        }
+#endif
         sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_AVC);
-        MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
+        //Decode CSC support more FourCC format, already checked in Init, skip the check return;
+        if(!isVideoProcCscEnabled)
+        {
+            MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
+        }
 
         sts = CheckFrameData(surface_work);
         MFX_CHECK_STS(sts);
