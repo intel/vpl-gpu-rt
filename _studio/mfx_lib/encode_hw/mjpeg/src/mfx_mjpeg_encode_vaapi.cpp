@@ -40,6 +40,7 @@ VAAPIEncoder::VAAPIEncoder()
  : m_core(NULL)
  , m_width(-1)
  , m_height(-1)
+ , m_caps()
  , m_vaDisplay(0)
  , m_vaContextEncode(VA_INVALID_ID)
  , m_vaConfig(VA_INVALID_ID)
@@ -107,6 +108,52 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     m_width  = width;
     m_height = height;
+
+    // set caps
+    memset(&m_caps, 0, sizeof(m_caps));
+    m_caps.Baseline         = 1;
+    m_caps.Sequential       = 1;
+    m_caps.Huffman          = 1;
+
+    m_caps.NonInterleaved   = 0;
+    m_caps.Interleaved      = 1;
+
+    m_caps.SampleBitDepth   = 8;
+    m_caps.MaxNumComponent  = 3;
+    m_caps.MaxNumScan       = 1;
+    m_caps.MaxNumHuffTable  = 2;
+    m_caps.MaxNumQuantTable = 2;
+
+    std::map<VAConfigAttribType, int> attrib_map;
+
+    VAConfigAttribType attrib_types[] = {
+        VAConfigAttribEncJPEG,
+        VAConfigAttribMaxPictureWidth,
+        VAConfigAttribMaxPictureHeight,
+        VAConfigAttribContextPriority
+    };
+
+    std::vector<VAConfigAttrib> attrib;
+    attrib.reserve(sizeof(attrib_types) / sizeof(attrib_types[0]));
+    for (size_t i = 0; i < sizeof(attrib_types) / sizeof(attrib_types[0]); i++)
+    {
+        attrib.push_back(VAConfigAttrib{attrib_types[i], 0});
+        attrib_map[attrib_types[i]] = i;
+    }
+
+    vaSts = vaGetConfigAttributes(m_vaDisplay,
+                          VAProfileJPEGBaseline,
+                          VAEntrypointEncPicture,
+                          attrib.data(), attrib.size());
+
+    VAConfigAttribValEncJPEG encAttribVal;
+    encAttribVal.value      = attrib[attrib_map[VAConfigAttribEncJPEG]].value;
+    m_caps.MaxNumComponent  = encAttribVal.bits.max_num_components;
+    m_caps.MaxNumScan       = encAttribVal.bits.max_num_scans;
+    m_caps.MaxNumHuffTable  = encAttribVal.bits.max_num_huffman_tables;
+    m_caps.MaxNumQuantTable = encAttribVal.bits.max_num_quantization_tables;
+    m_caps.MaxPicWidth      = attrib[attrib_map[VAConfigAttribMaxPictureWidth]].value;
+    m_caps.MaxPicHeight     = attrib[attrib_map[VAConfigAttribMaxPictureHeight]].value;
 
     return MFX_ERR_NONE;
 }
@@ -213,42 +260,7 @@ mfxStatus VAAPIEncoder::QueryEncodeCaps(JpegEncCaps & caps)
         MFX_SAFE_CALL(hwCore_20->GetVAService(&m_vaDisplay));
     }
 
-    memset(&caps, 0, sizeof(caps));
-    caps.Baseline         = 1;
-    caps.Sequential       = 1;
-    caps.Huffman          = 1;
-
-    caps.NonInterleaved   = 0;
-    caps.Interleaved      = 1;
-
-    caps.SampleBitDepth   = 8;
-    caps.MaxNumComponent  = 3;
-    caps.MaxNumScan       = 1;
-    caps.MaxNumHuffTable  = 2;
-    caps.MaxNumQuantTable = 2;
-
-    VAStatus vaSts;
-
-    // Configuration
-    VAConfigAttrib attrib;
-
-    attrib.type = VAConfigAttribMaxPictureWidth;
-    vaSts = vaGetConfigAttributes(m_vaDisplay,
-                          VAProfileJPEGBaseline,
-                          VAEntrypointEncPicture,
-                          &attrib, 1);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-    caps.MaxPicWidth      = attrib.value;
-
-    attrib.type = VAConfigAttribMaxPictureHeight;
-    vaSts = vaGetConfigAttributes(m_vaDisplay,
-                          VAProfileJPEGBaseline,
-                          VAEntrypointEncPicture,
-                          &attrib, 1);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-    caps.MaxPicHeight     = attrib.value;
+    caps = m_caps;
 
     return MFX_ERR_NONE;
 }
