@@ -1988,8 +1988,8 @@ mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl
         mfxU32 ih = 8;
         mfxU32 ibw = m_par.cropWidth / iw;
         mfxU32 ibh = m_par.cropHeight / ih;
-        mfxU32 mapBw = 64;  // 64 to Match current driver behaviour (qp applied to LCUs), use 16 after driver MBQP 16x16 fix
-        mfxU32 mapBh = 64;  // 64 to Match current driver behaviour (qp applied to LCUs), use 16 after driver MBQP 16x16 fix
+        mfxU32 mapBw = 16;  // Matches driver after fix
+        mfxU32 mapBh = 16;  // Matches driver after fix
         // Fill all 16x16 blocks
         mfxU16 blSize = 16;
         mfxU32 wInBlk = (m_par.width + blSize - 1) / blSize;
