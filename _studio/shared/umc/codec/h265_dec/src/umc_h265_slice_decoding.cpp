@@ -428,7 +428,7 @@ void H265Slice::setRefPOCListSliceHeader()
     m_SliceHeader.m_numPicLtCurr = NumPicLtCurr;
 
     H265PicParamSet const* pps = GetPicParam();
-    VM_ASSERT(pps);
+    assert(pps);
 
     int32_t numPicTotalCurr = NumPicStCurr0 + NumPicStCurr1 + NumPicLtCurr;
     if (pps->pps_curr_pic_ref_enabled_flag)
@@ -508,7 +508,7 @@ void H265Slice::CopyFromBaseSlice(const H265Slice * s)
     if (!s || !m_SliceHeader.dependent_slice_segment_flag)
         return;
 
-    VM_ASSERT(s);
+    assert(s);
     m_iNumber = s->m_iNumber;
 
     const H265SliceHeader * slice = s->GetSliceHeader();
@@ -596,7 +596,7 @@ UMC::Status H265Slice::UpdateReferenceList(H265DBPList *pDecoderFrameList, H265D
     H265DecoderRefPicList::ReferenceInformation* pRefPicList1 = pH265DecRefPicList1->m_refPicList;
 
     H265SliceHeader* header = GetSliceHeader();
-    VM_ASSERT(header);
+    assert(header);
 
     if (header->slice_type == I_SLICE)
     {
@@ -685,7 +685,7 @@ UMC::Status H265Slice::UpdateReferenceList(H265DBPList *pDecoderFrameList, H265D
     }
 
     H265PicParamSet const* pps = GetPicParam();
-    VM_ASSERT(pps);
+    assert(pps);
 
     int32_t numPicTotalCurr = NumPicStCurr0 + NumPicStCurr1 + NumPicLtCurr;
     if (pps->pps_curr_pic_ref_enabled_flag)

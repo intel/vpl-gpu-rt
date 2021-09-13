@@ -49,7 +49,7 @@ H265_DXVA_SegmentDecoderCommon::H265_DXVA_SegmentDecoderCommon(TaskSupplier_H265
 
 void H265_DXVA_SegmentDecoderCommon::SetVideoAccelerator(UMC::VideoAccelerator *va)
 {
-    VM_ASSERT(va);
+    assert(va);
     m_va = (UMC::VideoAccelerator*)va;
 }
 
@@ -73,7 +73,7 @@ void H265_DXVA_SegmentDecoder::PackAllHeaders(H265DecoderFrame * pFrame)
     if (!m_Packer.get())
     {
         m_Packer.reset(Packer::CreatePacker(m_va));
-        VM_ASSERT(m_Packer.get());
+        assert(m_Packer.get());
     }
 
     m_Packer->BeginFrame(pFrame);

@@ -83,8 +83,8 @@ namespace MFX_VPX_Utility
 
     eMFXPlatform GetPlatform(VideoCORE* core, mfxVideoParam const* par)
     {
-        VM_ASSERT(core);
-        VM_ASSERT(par);
+        assert(core);
+        assert(par);
 
         if (!par)
             return MFX_PLATFORM_SOFTWARE;
@@ -1077,8 +1077,8 @@ mfxU16 av1_native_profile_to_mfx_profile(mfxU16 native)
 
 mfxStatus VideoDECODEAV1::FillVideoParam(UMC_AV1_DECODER::AV1DecoderParams const* vp, mfxVideoParam* par)
 {
-    VM_ASSERT(vp);
-    VM_ASSERT(par);
+    assert(vp);
+    assert(par);
 
     mfxVideoParam p{};
     ConvertUMCParamsToMFX(vp, &p);
@@ -1110,7 +1110,7 @@ mfxStatus VideoDECODEAV1::FillVideoParam(UMC_AV1_DECODER::AV1DecoderParams const
 
 UMC_AV1_DECODER::AV1DecoderFrame* VideoDECODEAV1::GetFrameToDisplay()
 {
-    VM_ASSERT(m_decoder);
+    assert(m_decoder);
 
     UMC_AV1_DECODER::AV1DecoderFrame* frame
         = m_decoder->GetFrameToDisplay();

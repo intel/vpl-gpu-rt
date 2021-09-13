@@ -408,7 +408,7 @@ public:
 
     int8_t GetNumberByParity(int32_t parity) const
     {
-        VM_ASSERT(!parity || parity == 1);
+        assert(!parity || parity == 1);
         return m_bottom_field_flag[1]==parity ? 1 : 0;
     }
 

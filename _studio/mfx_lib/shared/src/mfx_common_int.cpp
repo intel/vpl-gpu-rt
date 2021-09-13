@@ -793,7 +793,7 @@ bool mfxVideoParamWrapper::CreateExtendedBuffer(mfxU32 bufferId)
         break;
 
     default:
-        VM_ASSERT(false);
+        assert(false);
         return false;
     }
 
@@ -884,7 +884,7 @@ void mfxVideoParamWrapper::CopyVideoParam(const mfxVideoParam & par)
                 mfxExtBuffer * out = m_buffers.GetBufferById<mfxExtBuffer >(par.ExtParam[i]->BufferId);
                 if (NULL == out)
                 {
-                    VM_ASSERT(false);
+                    assert(false);
                     throw UMC::UMC_ERR_FAILED;
                 }
 

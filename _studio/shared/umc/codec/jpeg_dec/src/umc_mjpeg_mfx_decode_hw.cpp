@@ -26,7 +26,6 @@
 #if defined(UMC_VA)
 
 #include <string.h>
-#include "vm_debug.h"
 #include <algorithm>
 #include <limits.h>
 

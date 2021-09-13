@@ -59,8 +59,8 @@
 #define SkipNBits(current_data, offset, nbits) \
 { \
     /* check error(s) */ \
-    VM_ASSERT((nbits) > 0 && (nbits) <= 32); \
-    VM_ASSERT(offset >= 0 && offset <= 31); \
+    assert((nbits) > 0 && (nbits) <= 32); \
+    assert(offset >= 0 && offset <= 31); \
     /* decrease number of available bits */ \
     offset -= (nbits); \
     /* normalize bitstream pointer */ \
@@ -70,7 +70,7 @@
         current_data++; \
     } \
     /* check error(s) again */ \
-    VM_ASSERT(offset >= 0 && offset <= 31); \
+    assert(offset >= 0 && offset <= 31); \
 }
 
 #define GetBits1(current_data, offset, data) \

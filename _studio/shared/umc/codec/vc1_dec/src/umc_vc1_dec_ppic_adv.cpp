@@ -486,7 +486,7 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
                     if(VC1_IS_INT_BOTTOM_FIELD(picLayerHeader->INTCOMFIELD) )
                     {
                         //bottom in case "both field"
-                    // VM_ASSERT(0);
+                    // assert(0);
                         //Luma scale
                         VC1_GET_BITS(6, picLayerHeader->LUMSCALE1);
                         //Luma shift
@@ -576,7 +576,7 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
                     if(VC1_IS_INT_BOTTOM_FIELD(picLayerHeader->INTCOMFIELD) )
                     {
                         //bottom in case "both field"
-                    // VM_ASSERT(0);
+                    // assert(0);
                         //Luma scale
                         VC1_GET_BITS(6, picLayerHeader->LUMSCALE1);
                         //Luma shift

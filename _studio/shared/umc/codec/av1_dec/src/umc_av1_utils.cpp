@@ -29,11 +29,11 @@ namespace UMC_AV1_DECODER
 {
     void SetSegData(SegmentationParams & seg, uint8_t segmentId, SEG_LVL_FEATURES featureId, int32_t seg_data)
     {
-        VM_ASSERT(seg_data <= SEG_FEATURE_DATA_MAX[featureId]);
+        assert(seg_data <= SEG_FEATURE_DATA_MAX[featureId]);
         if (seg_data < 0)
         {
-            VM_ASSERT(SEG_FEATURE_DATA_SIGNED[featureId]);
-            VM_ASSERT(-seg_data <= SEG_FEATURE_DATA_MAX[featureId]);
+            assert(SEG_FEATURE_DATA_SIGNED[featureId]);
+            assert(-seg_data <= SEG_FEATURE_DATA_MAX[featureId]);
         }
 
         seg.FeatureData[segmentId][featureId] = seg_data;

@@ -41,7 +41,7 @@ H264_DXVA_SegmentDecoderCommon::H264_DXVA_SegmentDecoderCommon(TaskSupplier * pT
 
 void H264_DXVA_SegmentDecoderCommon::SetVideoAccelerator(VideoAccelerator *va)
 {
-    VM_ASSERT(va);
+    assert(va);
     m_va = (VideoAccelerator*)va;
 }
 

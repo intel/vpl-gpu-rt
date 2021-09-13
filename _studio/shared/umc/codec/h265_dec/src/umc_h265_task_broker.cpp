@@ -262,7 +262,7 @@ bool TaskBroker_H265::AddFrameToDecoding(H265DecoderFrame * frame)
     {
         if ((*iter) == frame)
         {
-            VM_ASSERT(false);
+            assert(false);
         }
     }
 #endif

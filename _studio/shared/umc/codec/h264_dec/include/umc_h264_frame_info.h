@@ -374,7 +374,7 @@ public:
 
     H264DecoderRefPicList* GetRefPicList(uint32_t sliceNumber, int32_t list)
     {
-        VM_ASSERT(list <= LIST_1 && list >= 0);
+        assert(list <= LIST_1 && list >= 0);
 
         if (sliceNumber >= m_refPicList.size())
         {

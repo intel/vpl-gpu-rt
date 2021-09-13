@@ -111,8 +111,8 @@ void PackerVA::PackAU(VP9Bitstream* bs, VP9DecoderFrame const* info)
 
 void PackerVA::PackPicParams(VADecPictureParameterBufferVP9* picParam, VP9DecoderFrame const* info)
 {
-    VM_ASSERT(picParam);
-    VM_ASSERT(info);
+    assert(picParam);
+    assert(info);
 
     picParam->frame_width = info->width;
     picParam->frame_height = info->height;
@@ -181,8 +181,8 @@ void PackerVA::PackPicParams(VADecPictureParameterBufferVP9* picParam, VP9Decode
 
 void PackerVA::PackSliceParams(VASliceParameterBufferVP9* sliceParam, VP9DecoderFrame const* info)
 {
-    VM_ASSERT(sliceParam);
-    VM_ASSERT(info);
+    assert(sliceParam);
+    assert(info);
 
     sliceParam->slice_data_size = info->frameDataSize;
     sliceParam->slice_data_offset = 0;

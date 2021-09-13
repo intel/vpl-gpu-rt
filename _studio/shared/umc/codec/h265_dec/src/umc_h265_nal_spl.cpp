@@ -226,7 +226,7 @@ public:
                 return -1;
             }
 
-            VM_ASSERT(!m_prev.size());
+            assert(!m_prev.size());
 
             size_t sz = source - (uint8_t *)pSource->GetDataPointer();
             size_t szToMove = sz;
@@ -385,7 +385,7 @@ public:
                     pMemSrc->GetDataSize(),
                     pRemovedOffsets);
 
-        VM_ASSERT(pMemDst->GetSize() >= dstSize);
+        assert(pMemDst->GetSize() >= dstSize);
         size_t tail_size = std::min<size_t>(pMemDst->GetSize() - dstSize, DEFAULT_NU_TAIL_SIZE);
         memset(pMemDst->GetPointer() + dstSize, DEFAULT_NU_TAIL_VALUE, tail_size);
         pMemDst->SetDataSize(dstSize);

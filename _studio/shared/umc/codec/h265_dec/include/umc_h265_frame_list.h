@@ -64,7 +64,7 @@ public:
             }
         }
 
-        VM_ASSERT(false);
+        assert(false);
         return -1;
     };
 

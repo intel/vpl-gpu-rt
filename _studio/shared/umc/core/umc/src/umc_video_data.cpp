@@ -19,7 +19,6 @@
 // SOFTWARE.
 
 #include "umc_video_data.h"
-#include "vm_debug.h"
 #include "mfx_utils.h"
 
 namespace UMC
@@ -557,7 +556,7 @@ Status VideoData::ConvertPictureStructure(PictureStructure newPicStructure)
   PictureStructure curr = (PictureStructure)(m_picStructure & PS_FRAME);
   int k;
 
-  vm_debug_trace2(VM_DEBUG_VERBOSE, VM_STRING("VideoData::ConvertPictureStructure %d->%d\n"), curr, newPicStructure);
+  MFX_LTRACE_2(MFX_TRACE_LEVEL_INTERNAL, "VideoData::ConvertPictureStructure ", " %d->%d", curr, newPicStructure);
 
   if (curr == PS_FRAME && newPicStructure == PS_TOP_FIELD) {
     m_ippSize.height >>= 1;

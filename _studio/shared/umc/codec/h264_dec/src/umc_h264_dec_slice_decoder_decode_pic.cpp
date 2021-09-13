@@ -26,7 +26,6 @@
 
 #include "umc_h264_slice_decoding.h"
 #include "umc_h264_dec.h"
-#include "vm_debug.h"
 #include "umc_h264_frame_list.h"
 
 #include "umc_h264_task_supplier.h"

@@ -34,8 +34,8 @@
 { \
     uint32_t x; \
  \
-    VM_ASSERT((nbits) > 0 && (nbits) <= 32); \
-    VM_ASSERT(nbits >= 0 && nbits <= 31); \
+    assert((nbits) > 0 && (nbits) <= 32); \
+    assert(nbits >= 0 && nbits <= 31); \
  \
     int32_t offset = bp - (nbits); \
  \
@@ -52,7 +52,7 @@
         x += current_data[0] << (31 - offset); \
     } \
  \
-    VM_ASSERT(offset >= 0 && offset <= 31); \
+    assert(offset >= 0 && offset <= 31); \
  \
     (data) = x & UMC::bits_data[nbits]; \
 }
@@ -254,7 +254,7 @@ bool H264BaseBitstream::More_RBSP_Data()
     uint32_t* ptr_state = m_pbs;
     int32_t  bit_state = m_bitOffset;
 
-    VM_ASSERT(m_bitOffset >= 0 && m_bitOffset <= 31);
+    assert(m_bitOffset >= 0 && m_bitOffset <= 31);
 
     int32_t remaining_bytes = (int32_t)BytesLeft();
 
@@ -481,7 +481,7 @@ Status H264HeadersBitstream::GetSequenceParamSet(H264SeqParamSet *sps, bool igno
         if (!chroma_format_idc)
             sps->bit_depth_chroma = sps->bit_depth_luma;
 
-        VM_ASSERT(!sps->residual_colour_transform_flag);
+        assert(!sps->residual_colour_transform_flag);
         if (sps->residual_colour_transform_flag == 1)
         {
             return UMC_ERR_INVALID_STREAM;
