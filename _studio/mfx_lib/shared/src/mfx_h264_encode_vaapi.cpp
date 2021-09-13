@@ -1669,7 +1669,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::CreateAccelerationService");
     if(IsMvcProfile(par.mfx.CodecProfile))
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION);
 
     if(0 == m_reconQueue.size())
     {
@@ -1710,7 +1710,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
         }
         if( !bEncodeEnable )
         {
-            return MFX_ERR_DEVICE_FAILED;
+            MFX_RETURN(MFX_ERR_DEVICE_FAILED);
         }
     }
 
@@ -1731,7 +1731,9 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 
     mfxU32 vaRTFormat = ConvertMfxFourcc2VaapiRTFormat(par.mfx.FrameInfo.FourCC);
     if ((attrib[0].value & vaRTFormat) == 0)
-        return MFX_ERR_UNSUPPORTED;
+    {
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
 
     uint32_t vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod);
 
@@ -1739,13 +1741,15 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     if( NULL == extOpt2 )
     {
         assert( extOpt2 );
-        return (MFX_ERR_UNKNOWN);
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
     m_mbbrc = IsOn(extOpt2->MBBRC) ? 1 : IsOff(extOpt2->MBBRC) ? 2 : 0;
     m_skipMode = extOpt2->SkipFrame;
 
     if ((attrib[1].value & vaRCType) == 0)
-        return MFX_ERR_DEVICE_FAILED;
+    {
+        MFX_RETURN(MFX_ERR_DEVICE_FAILED);
+    }
 
     attrib[0].value = VA_RT_FORMAT_YUV420;
     attrib[1].value = vaRCType;
@@ -1849,7 +1853,7 @@ mfxStatus VAAPIEncoder::Reset(MfxVideoParam const & par)
     if( NULL == extOpt2 )
     {
         assert( extOpt2 );
-        return (MFX_ERR_UNKNOWN);
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
     m_mbbrc = IsOn(extOpt2->MBBRC) ? 1 : IsOff(extOpt2->MBBRC) ? 2 : 0;
     m_skipMode = extOpt2->SkipFrame;
@@ -1984,7 +1988,7 @@ mfxStatus VAAPIEncoder::QueryMbPerSec(mfxVideoParam const & par, mfxU32 (&mbPerS
 
 mfxStatus VAAPIEncoder::QueryHWGUID(VideoCORE * /*core*/, GUID /*guid*/, bool /*isTemporal*/)
 {
-    return MFX_ERR_UNSUPPORTED;
+    MFX_RETURN(MFX_ERR_UNSUPPORTED);
 }
 
 mfxStatus VAAPIEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT type)
@@ -2137,7 +2141,7 @@ mfxStatus VAAPIEncoder::Execute(
     }
     else
     {
-        return MFX_ERR_UNKNOWN;
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 
     // find reconstructed surface
@@ -2148,7 +2152,7 @@ mfxStatus VAAPIEncoder::Execute(
     }
     else
     {
-        return MFX_ERR_UNKNOWN;
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 
     m_pps.coded_buf = codedBuffer;
@@ -2882,7 +2886,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
 
     if( !isFound )
     {
-        return MFX_ERR_UNKNOWN;
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 
     if (VA_INVALID_SURFACE == waitSurface) //skipped frame
@@ -2901,7 +2905,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
     }
     else
     {
-        return MFX_ERR_UNKNOWN;
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 
     VAStatus vaSts = VA_STATUS_SUCCESS;
@@ -2928,12 +2932,12 @@ mfxStatus VAAPIEncoder::QueryStatus(
     }
     else if (VASurfaceRendering == surfSts || VASurfaceDisplaying == surfSts)
     {
-        return MFX_WRN_DEVICE_BUSY;
+        MFX_RETURN(MFX_WRN_DEVICE_BUSY);
     }
     else
     {
         assert(!"bad feedback status");
-        return MFX_ERR_DEVICE_FAILED;
+        MFX_RETURN(MFX_ERR_DEVICE_FAILED);
     }
 
 #endif // #if defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
@@ -2998,7 +3002,7 @@ mfxStatus VAAPIEncoder::QueryStatusFEI(
     (void)feiFieldId;
     (void)curFeedback;
 
-    return MFX_ERR_UNKNOWN;
+    MFX_RETURN(MFX_ERR_UNKNOWN);
 } //mfxStatus VAAPIEncoder::QueryStatusFEI
 
 mfxStatus VAAPIEncoder::Destroy()
