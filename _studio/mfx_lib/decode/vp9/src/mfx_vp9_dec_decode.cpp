@@ -254,7 +254,9 @@ void FillVideoParam(eMFXPlatform platform, UMC_VP9_DECODER::VP9DecoderFrame cons
         params.mfx.FrameInfo.Shift = 0;
 
         if (params.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
+            || params.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
             || params.mfx.FrameInfo.FourCC == MFX_FOURCC_P016
+            || params.mfx.FrameInfo.FourCC == MFX_FOURCC_Y216
             || params.mfx.FrameInfo.FourCC == MFX_FOURCC_Y416)
         {
             params.mfx.FrameInfo.Shift = 1;
