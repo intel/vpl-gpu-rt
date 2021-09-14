@@ -64,15 +64,6 @@ static void MemSetZero4mfxExecuteParams (mfxExecuteParams *pMfxExecuteParams )
     pMfxExecuteParams->statusReportID = 0;
     pMfxExecuteParams->bFieldWeaving = false;
     pMfxExecuteParams->iFieldProcessingMode = 0;
-#ifndef MFX_CAMERA_FEATURE_DISABLE
-    pMfxExecuteParams->bCameraPipeEnabled = false;
-    pMfxExecuteParams->bCameraBlackLevelCorrection =false;
-    pMfxExecuteParams->bCameraGammaCorrection = false;
-    pMfxExecuteParams->bCameraHotPixelRemoval = false;
-    pMfxExecuteParams->bCameraWhiteBalaceCorrection = false;
-    pMfxExecuteParams->bCCM = false;
-    pMfxExecuteParams->bCameraLensCorrection = false;
-#endif // #ifndef MFX_CAMERA_FEATURE_DISABLE
     pMfxExecuteParams->rotation = 0;
     pMfxExecuteParams->scalingMode = MFX_SCALING_MODE_DEFAULT;
     pMfxExecuteParams->bEOS = false;

@@ -142,15 +142,6 @@ static void MemSetZero4mfxExecuteParams (mfxExecuteParams *pMfxExecuteParams )
     pMfxExecuteParams->bFieldSplittingExt = false;
     pMfxExecuteParams->mirroringExt = false;
     pMfxExecuteParams->iFieldProcessingMode = 0;
-#ifndef MFX_CAMERA_FEATURE_DISABLE
-    pMfxExecuteParams->bCameraPipeEnabled = false;
-    pMfxExecuteParams->bCameraBlackLevelCorrection = false;
-    pMfxExecuteParams->bCameraGammaCorrection = false;
-    pMfxExecuteParams->bCameraHotPixelRemoval = false;
-    pMfxExecuteParams->bCameraWhiteBalaceCorrection = false;
-    pMfxExecuteParams->bCCM = false;
-    pMfxExecuteParams->bCameraLensCorrection = false;
-#endif
     pMfxExecuteParams->rotation = 0;
     pMfxExecuteParams->scalingMode = MFX_SCALING_MODE_DEFAULT;
     pMfxExecuteParams->interpolationMethod = MFX_INTERPOLATION_DEFAULT;
