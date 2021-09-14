@@ -64,6 +64,7 @@ static void MemSetZero4mfxExecuteParams (mfxExecuteParams *pMfxExecuteParams )
     pMfxExecuteParams->statusReportID = 0;
     pMfxExecuteParams->bFieldWeaving = false;
     pMfxExecuteParams->iFieldProcessingMode = 0;
+
     pMfxExecuteParams->rotation = 0;
     pMfxExecuteParams->scalingMode = MFX_SCALING_MODE_DEFAULT;
     pMfxExecuteParams->bEOS = false;

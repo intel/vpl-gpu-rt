@@ -142,6 +142,7 @@ static void MemSetZero4mfxExecuteParams (mfxExecuteParams *pMfxExecuteParams )
     pMfxExecuteParams->bFieldSplittingExt = false;
     pMfxExecuteParams->mirroringExt = false;
     pMfxExecuteParams->iFieldProcessingMode = 0;
+
     pMfxExecuteParams->rotation = 0;
     pMfxExecuteParams->scalingMode = MFX_SCALING_MODE_DEFAULT;
     pMfxExecuteParams->interpolationMethod = MFX_INTERPOLATION_DEFAULT;
