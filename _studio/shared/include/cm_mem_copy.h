@@ -33,7 +33,7 @@
 #endif
 
 
-#include <mutex>
+#include "umc_mutex.h"
 
 #include <algorithm>
 #include <set>
@@ -73,136 +73,13 @@ class CmTask;
 struct IDirect3DSurface9;
 struct IDirect3DDeviceManager9;
 
-class CmSurface2DWrapper
-{
-public:
-    CmSurface2DWrapper(CmSurface2D* surf, CmDevice* device)
-        : surface(surf)
-        , cm_device(device)
-        , use_count(0)
-    {}
-
-    CmSurface2DWrapper(const CmSurface2DWrapper&) = delete;
-    CmSurface2DWrapper(CmSurface2DWrapper&& other)
-    {
-        *this = std::move(other);
-    }
-
-    CmSurface2DWrapper& operator= (const CmSurface2DWrapper&) = delete;
-    CmSurface2DWrapper& operator= (CmSurface2DWrapper&& other)
-    {
-        if (this != &other)
-        {
-            DestroySurface();
-
-            surface   = other.surface;
-            cm_device = other.cm_device;
-            use_count.exchange(other.use_count, std::memory_order_relaxed);
-
-            other.surface   = nullptr;
-            other.cm_device = nullptr;
-        }
-
-        return *this;
-    }
-
-    ~CmSurface2DWrapper()
-    {
-        DestroySurface();
-    }
-
-    void AddRef()
-    {
-        use_count.fetch_add(1u, std::memory_order_relaxed);
-    }
-
-    void Release()
-    {
-        use_count.fetch_sub(1u, std::memory_order_relaxed);
-    }
-
-    bool IsFree() const
-    {
-        return use_count.load(std::memory_order_relaxed) == 0;
-    }
-
-    operator CmSurface2D* ()
-    {
-        return surface;
-    }
-
-private:
-    void DestroySurface()
-    {
-        if (cm_device && surface)
-        {
-            assert(use_count == 0);
-            std::ignore = MFX_STS_TRACE(cm_device->DestroySurface(surface));
-        }
-    }
-
-    CmSurface2D*        surface   = nullptr;
-    CmDevice*           cm_device = nullptr;
-    std::atomic<mfxU32> use_count;
-};
-
-class CmBufferUPWrapper
-{
-public:
-    CmBufferUPWrapper(CmBufferUP* buf, CmDevice* device)
-        : buffer(buf)
-        , cm_device(device)
-    {}
-
-    CmBufferUPWrapper(const CmBufferUPWrapper&) = delete;
-    CmBufferUPWrapper(CmBufferUPWrapper&& other)
-    {
-        *this = std::move(other);
-    }
-
-    CmBufferUPWrapper& operator= (const CmBufferUPWrapper&) = delete;
-    CmBufferUPWrapper& operator= (CmBufferUPWrapper&& other)
-    {
-        if (this != &other)
-        {
-            DestroyBuffer();
-
-            buffer    = other.buffer;
-            cm_device = other.cm_device;
-
-            other.buffer    = nullptr;
-            other.cm_device = nullptr;
-        }
-
-        return *this;
-    }
-
-    ~CmBufferUPWrapper()
-    {
-        DestroyBuffer();
-    }
-
-    operator CmBufferUP* ()
-    {
-        return buffer;
-    }
-
-private:
-    void DestroyBuffer()
-    {
-        if (cm_device && buffer)
-        {
-            std::ignore = MFX_STS_TRACE(cm_device->DestroyBufferUP(buffer));
-        }
-    }
-
-    CmBufferUP* buffer    = nullptr;
-    CmDevice*   cm_device = nullptr;
-};
 
 class CmCopyWrapper
 {
 public:
+
+    // constructor
+    CmCopyWrapper();
 
     // destructor
     virtual ~CmCopyWrapper(void);
@@ -252,8 +129,8 @@ public:
     mfxStatus Initialize(eMFXHWType hwtype = MFX_HW_UNKNOWN);
     mfxStatus InitializeSwapKernels(eMFXHWType hwtype = MFX_HW_UNKNOWN);
 
-    // release all resources
-    void Close();
+    // release object
+    mfxStatus Release(void);
 
     // check input parameters
     mfxStatus IsCmCopySupported(mfxFrameSurface1 *pSurface, IppiSize roi);
@@ -285,7 +162,7 @@ public:
     mfxStatus CopySwapVideoToVideoMemory(mfxHDLPair dst, mfxHDLPair src, IppiSize roi, mfxU32 format);
     mfxStatus CopyMirrorVideoToVideoMemory(mfxHDLPair dst, mfxHDLPair src, IppiSize roi, mfxU32 format);
 
-    void CleanUpCache();
+    mfxStatus ReleaseCmSurfaces(void);
     mfxStatus EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
@@ -415,36 +292,39 @@ public:
                                     CmEvent* & pEvent );
 protected:
 
-    eMFXHWType     m_HWType        = MFX_HW_UNKNOWN;
-    CmDevice      *m_pCmDevice     = nullptr;
-    CmProgram     *m_pCmProgram    = nullptr;
-    INT            m_timeout       = 0;
+    eMFXHWType m_HWType;
+    CmDevice  *m_pCmDevice;
+    CmProgram *m_pCmProgram;
+    INT m_timeout;
 
-    CmThreadSpace *m_pThreadSpace  = nullptr;
+    CmThreadSpace *m_pThreadSpace;
 
-    CmQueue       *m_pCmQueue      = nullptr;
-    CmTask        *m_pCmTask1      = nullptr;
-    CmTask        *m_pCmTask2      = nullptr;
+    CmQueue *m_pCmQueue;
+    CmTask  *m_pCmTask1;
+    CmTask  *m_pCmTask2;
 
-    CmSurface2D   *m_pCmSurface2D  = nullptr;
-    CmBufferUP    *m_pCmUserBuffer = nullptr;
+    CmSurface2D *m_pCmSurface2D;
+    CmBufferUP *m_pCmUserBuffer;
 
-    SurfaceIndex  *m_pCmSrcIndex   = nullptr;
-    SurfaceIndex  *m_pCmDstIndex   = nullptr;
+    SurfaceIndex *m_pCmSrcIndex;
+    SurfaceIndex *m_pCmDstIndex;
 
-    std::map<std::tuple<mfxHDLPair, mfxU32, mfxU32>, CmSurface2DWrapper> m_tableCmRelations;
-    std::map<std::tuple<mfxU8 *,    mfxU32, mfxU32>, CmBufferUPWrapper>  m_tableSysRelations;
+    std::map<std::tuple<mfxHDLPair, mfxU32, mfxU32>, CmSurface2D *> m_tableCmRelations;
+    std::map<std::tuple<mfxU8 *, mfxU32, mfxU32>, CmBufferUP *> m_tableSysRelations;
 
     std::map<CmBufferUP *,  SurfaceIndex *> m_tableSysIndex;
 
-    std::mutex m_mutex;
+    /* It needs to destroy buffers and surfaces in strict order */
+    std::vector<CmSurface2D*> m_surfacesInCreationOrder;
+    std::vector<CmBufferUP*>  m_buffersInCreationOrder;
+    UMC::Mutex m_guard;
 
-    CmSurface2DWrapper* CreateCmSurface2D(mfxHDLPair surfaceIdPair, mfxU32 width, mfxU32 height);
+    CmSurface2D * CreateCmSurface2D(mfxHDLPair surfaceIdPair, mfxU32 width, mfxU32 height, bool isSecondMode,
+                                    std::map<std::tuple<mfxHDLPair, mfxU32, mfxU32>, CmSurface2D*>& tableCmRelations);
 
-    SurfaceIndex * CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize, mfxU32 width, mfxU32 height);
-
-private:
-    bool m_bSwapKernelsInitialized = false;
+    SurfaceIndex * CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize, mfxU32 width, mfxU32 height,
+                                 std::map<std::tuple<mfxU8*, mfxU32, mfxU32>, CmBufferUP*>& tableSysRelations,
+                                 std::map<CmBufferUP *,  SurfaceIndex *> & tableSysIndex);
 };
 
 #endif // __CM_MEM_COPY_H__
