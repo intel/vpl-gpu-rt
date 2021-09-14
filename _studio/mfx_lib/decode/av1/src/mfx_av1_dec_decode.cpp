@@ -39,13 +39,13 @@
 
 #include "libmfx_core_hw.h"
 
+#include "umc_va_base.h"
+
 #include "umc_av1_decoder_va.h"
 
 #include <algorithm>
 
 #include "vm_sys_info.h"
-
-#include "umc_h265_va_supplier.h"
 
 #include "libmfx_core_interface.h"
 

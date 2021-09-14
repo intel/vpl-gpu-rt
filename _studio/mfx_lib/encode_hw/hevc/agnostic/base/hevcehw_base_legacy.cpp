@@ -3908,7 +3908,9 @@ bool Legacy::IsSWBRC(const ExtBuffer::Param<mfxVideoParam>& par)
 
 bool Legacy::IsEnctoolsLABRC(const ExtBuffer::Param<mfxVideoParam>&par)
 {
-#ifdef MFX_ENABLE_ENCTOOLS
+#if !defined(MFX_ENABLE_ENCTOOLS)
+    std::ignore = par;
+#else
     const mfxExtCodingOption2 * pCO2 = ExtBuffer::Get(par);
     const mfxExtCodingOption3 * pCO3 = ExtBuffer::Get(par);
     const mfxExtEncToolsConfig * pCfg = ExtBuffer::Get(par);
