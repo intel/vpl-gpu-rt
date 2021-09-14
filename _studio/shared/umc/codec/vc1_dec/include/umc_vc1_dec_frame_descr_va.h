@@ -1240,7 +1240,7 @@ namespace UMC
                 slparams.MBEndRow = (this->m_pContext->m_seqLayerHeader.heightMB+1)/2;
             }
 
-            assert(SliceSize<0x0FFFFFFF);
+            VM_ASSERT(SliceSize<0x0FFFFFFF);
 
             {
                 this->m_pPacker.VC1PackBitStream(this->m_pContext,

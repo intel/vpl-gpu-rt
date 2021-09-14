@@ -220,7 +220,7 @@ bool H264CoeffsBuffer::UnLockInputBuffer(size_t size)
     // check used data
     if (size + COEFFS_BUFFER_ALIGN_VALUE + sizeof(BufferInfo) > lFreeSize) // DEBUG : should not be !!!
     {
-        assert(false);
+        VM_ASSERT(false);
         return false;
     }
 
@@ -318,7 +318,7 @@ void RefCounter::DecrementReference()
 {
     m_refCounter--;
 
-    assert(m_refCounter >= 0);
+    VM_ASSERT(m_refCounter >= 0);
     if (!m_refCounter)
     {
         Free();

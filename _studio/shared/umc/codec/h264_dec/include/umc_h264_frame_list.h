@@ -66,7 +66,7 @@ public:
             }
         }
 
-        assert(false);
+        VM_ASSERT(false);
         return -1;
     };
 protected:

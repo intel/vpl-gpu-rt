@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_critical_error_handler.h"
+#include "vm_debug.h"
 
 MfxCriticalErrorHandler::MfxCriticalErrorHandler(void):
     m_CriticalErrorReportedAtLeastOnce(false),
@@ -28,7 +29,7 @@ MfxCriticalErrorHandler::MfxCriticalErrorHandler(void):
 
 mfxStatus MfxCriticalErrorHandler::ReturningCriticalStatus()
 {
-    assert(m_CriticalErrorStatus != MFX_ERR_NONE);
+    VM_ASSERT(m_CriticalErrorStatus != MFX_ERR_NONE);
     m_CriticalErrorReportedAtLeastOnce = true;
     if (m_CriticalErrorStatus == MFX_ERR_NONE)
         m_CriticalErrorStatus = MFX_ERR_UNKNOWN;
@@ -44,7 +45,7 @@ bool MfxCriticalErrorHandler::NeedToReturnCriticalStatus(mfxBitstream *bs)
 
 void MfxCriticalErrorHandler::SetCriticalErrorOccured(mfxStatus errorStatus)
 {
-    assert(errorStatus != MFX_ERR_NONE);
+    VM_ASSERT(errorStatus != MFX_ERR_NONE);
     m_CriticalErrorStatus = errorStatus;
 }
 

@@ -100,7 +100,7 @@ public:
         T * tmp = (T *)hdr;
         if (!tmp)
         {
-            assert(false);
+            VM_ASSERT(false);
             return;
         }
 
@@ -108,17 +108,17 @@ public:
 
         if (id >= m_Header.size())
         {
-            assert(false);
+            VM_ASSERT(false);
             return;
         }
 
         if (!m_Header[id])
         {
-            assert(false);
+            VM_ASSERT(false);
             return;
         }
 
-        assert(m_Header[id] == hdr);
+        VM_ASSERT(m_Header[id] == hdr);
         m_Header[id]->DecrementReference();
         m_Header[id] = 0;
     }

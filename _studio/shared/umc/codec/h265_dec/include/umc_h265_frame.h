@@ -271,7 +271,7 @@ public:
     // Returns pointer to start of specified ref pic list.
     H265_FORCEINLINE const H265DecoderRefPicList* GetRefPicList(int32_t sliceNumber, int32_t list) const
     {
-        assert(list <= REF_PIC_LIST_1 && list >= 0);
+        VM_ASSERT(list <= REF_PIC_LIST_1 && list >= 0);
 
         if (sliceNumber >= (int32_t)m_refPicList.size())
         {

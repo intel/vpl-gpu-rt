@@ -191,7 +191,7 @@ public:
         {
             Item * ptr = m_pFirstFree;
             m_pFirstFree = m_pFirstFree->m_pNext;
-            assert(ptr->m_Size == size);
+            VM_ASSERT(ptr->m_Size == size);
             return ptr;
         }
 

@@ -551,7 +551,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateContext");
 
-            assert(!pParams->m_surf && "render targets tied to the context shoul be NULL");
+            VM_ASSERT(!pParams->m_surf && "render targets tied to the context shoul be NULL");
             va_res = vaCreateContext(m_dpy, *m_pConfigId, width, height, pParams->m_CreateFlags, NULL, 0, m_pContext);
 
             umcRes = va_to_umc_res(va_res);

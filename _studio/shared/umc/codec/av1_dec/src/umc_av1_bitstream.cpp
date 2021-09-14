@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include "vm_debug.h"
 
 #include "umc_av1_bitstream_utils.h"
 #include "umc_av1_utils.h"
@@ -719,7 +720,7 @@ namespace UMC_AV1_DECODER
             uint32_t startSB;
             unsigned int sizeSB = AlignPowerOfTwo(fh.sbCols, info.TileColsLog2);
             sizeSB >>= info.TileColsLog2;
-            assert(sizeSB > 0);
+            VM_ASSERT(sizeSB > 0);
             for (i = 0, startSB = 0; startSB < fh.sbCols; i++)
             {
                 info.SbColStarts[i] = startSB;
@@ -756,7 +757,7 @@ namespace UMC_AV1_DECODER
         {
             sizeSB = AlignPowerOfTwo(fh.sbRows, info.TileRowsLog2);
             sizeSB >>= info.TileRowsLog2;
-            assert(sizeSB > 0);
+            VM_ASSERT(sizeSB > 0);
             for (i = 0, startSB = 0; startSB < fh.sbRows; i++)
             {
                 info.SbRowStarts[i] = startSB;
@@ -1232,8 +1233,8 @@ namespace UMC_AV1_DECODER
 
     uint64_t AV1Bitstream::GetLE(uint32_t n)
     {
-        assert(m_bitOffset == 0);
-        assert(n <= 8);
+        VM_ASSERT(m_bitOffset == 0);
+        VM_ASSERT(n <= 8);
 
         uint64_t t = 0;
         for (uint32_t i = 0; i < n; i++)
@@ -1377,7 +1378,7 @@ namespace UMC_AV1_DECODER
         int bitBeforeAlignment = 8 - m_bitOffset % 8;
         int trailing = GetBits(bitBeforeAlignment);
         if (trailing != (1 << (bitBeforeAlignment - 1))) {
-            assert("Invalid trailing!");
+            VM_ASSERT("Invalid trailing!");
             throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
         }
 
@@ -1391,8 +1392,8 @@ namespace UMC_AV1_DECODER
 
     inline int32_t av1_compare_ref_frame_info(void const* left, void const* right)
     {
-        assert(left);
-        assert(right);
+        VM_ASSERT(left);
+        VM_ASSERT(right);
 
         RefFrameInfo const* a = (RefFrameInfo*)left;
         RefFrameInfo const* b = (RefFrameInfo*)right;
@@ -1434,13 +1435,13 @@ namespace UMC_AV1_DECODER
         // Confirm both LAST_FRAME and GOLDEN_FRAME are valid forward reference frames
         if (lastOrderHint >= curFrameHint)
         {
-            assert("lastOrderHint is not less than curFrameHint!");
+            VM_ASSERT("lastOrderHint is not less than curFrameHint!");
             throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
         }
 
         if (goldOrderHint >= curFrameHint)
         {
-            assert("goldOrderHint is not less than curFrameHint!");
+            VM_ASSERT("goldOrderHint is not less than curFrameHint!");
             throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
         }
 
@@ -1510,7 +1511,7 @@ namespace UMC_AV1_DECODER
             }
         }
 
-        assert(refFlagList[LAST_FRAME - LAST_FRAME] == 1 &&
+        VM_ASSERT(refFlagList[LAST_FRAME - LAST_FRAME] == 1 &&
             refFlagList[GOLDEN_FRAME - LAST_FRAME] == 1);
 
         // == LAST2_FRAME ==
@@ -1554,7 +1555,7 @@ namespace UMC_AV1_DECODER
         }
 
         for (int i = 0; i < INTER_REFS; i++)
-            assert(refFlagList[i] == 1);
+            VM_ASSERT(refFlagList[i] == 1);
     }
 
     static void av1_mark_ref_frames(SequenceHeader const& sh, FrameHeader& fh, DPBType const& frameDpb)
@@ -1672,7 +1673,7 @@ namespace UMC_AV1_DECODER
                     if ((fh.display_frame_id != refHdr.current_frame_id ||
                         false == frameDpb[fh.frame_to_show_map_idx]->RefValid()))
                     {
-                        assert("Frame_to_show is absent in DPB or invalid!");
+                        VM_ASSERT("Frame_to_show is absent in DPB or invalid!");
                     }
 
                     fh.current_frame_id = fh.display_frame_id;
@@ -1719,7 +1720,7 @@ namespace UMC_AV1_DECODER
 
         if (fh.frame_type != KEY_FRAME)
         {
-            assert(frameDpb.size() == NUM_REF_FRAMES);
+            VM_ASSERT(frameDpb.size() == NUM_REF_FRAMES);
         }
 
         fh.disable_cdf_update = GetBit();
@@ -1756,7 +1757,7 @@ namespace UMC_AV1_DECODER
                 if (fh.current_frame_id == PreFrame_id ||
                     diffFrameId >= (1 << (idLen - 1)))
                 {
-                    assert("current_frame_id is incompliant to AV1 spec!");
+                    VM_ASSERT("current_frame_id is incompliant to AV1 spec!");
                     throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
                 }
 
@@ -1887,7 +1888,7 @@ namespace UMC_AV1_DECODER
                         if (expectedFrameId != refHdr.current_frame_id ||
                             false == refFrm->RefValid())
                         {
-                            assert("Active reference frame is absent in DPB or invalid!");
+                            VM_ASSERT("Active reference frame is absent in DPB or invalid!");
                         }
                     }
                 }

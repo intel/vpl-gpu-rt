@@ -31,7 +31,7 @@ namespace UMC_HEVC_DECODER
 // Allocate and initialize scaling list tables
 void H265ScalingList::init()
 {
-    assert(!m_initialized);
+    VM_ASSERT(!m_initialized);
 
     for (uint32_t sizeId = 0; sizeId < SCALING_LIST_SIZE_NUM; sizeId++)
     {
@@ -77,7 +77,7 @@ void H265ScalingList::destroy()
 // Calculated coefficients used for dequantization
 void H265ScalingList::calculateDequantCoef(void)
 {
-    assert(m_initialized);
+    VM_ASSERT(m_initialized);
 
     static const uint32_t g_scalingListSizeX[4] = { 4, 8, 16, 32 };
 
@@ -104,7 +104,7 @@ void H265ScalingList::calculateDequantCoef(void)
 // Initialize scaling list with default data
 void H265ScalingList::initFromDefaultScalingList()
 {
-    assert (!m_initialized);
+    VM_ASSERT (!m_initialized);
 
     init();
 
@@ -160,7 +160,7 @@ const int32_t* H265ScalingList::getScalingListDefaultAddress(unsigned sizeId, un
         src = (listId<1) ? g_quantIntraDefault8x8 : g_quantInterDefault8x8;
         break;
     default:
-        assert(0);
+        VM_ASSERT(0);
         src = NULL;
         break;
     }

@@ -21,11 +21,8 @@
 #ifndef __UMC_STRUCTURES_H__
 #define __UMC_STRUCTURES_H__
 
-#include <assert.h>
-
 #include <vm_types.h>
-#include "vm_strings.h"
-#include "mfx_config.h"
+#include <vm_debug.h>
 
 #ifdef _MSVC_LANG
 #pragma warning(push)
@@ -78,12 +75,14 @@
 
 #define UMC_CHECK_STATUS(umcRes) { \
   if (umcRes != UMC_OK) { \
+    vm_debug_trace1(VM_DEBUG_ERROR, VM_STRING("Result (UMC::Status) = %d\n"), (int)umcRes); \
     return umcRes; \
   } \
 }
 
 #define UMC_CHECK(EXPRESSION, ERR_CODE) { \
   if (!(EXPRESSION)) { \
+    vm_debug_trace2(VM_DEBUG_ERROR, VM_STRING("[%s] FAILED (%s)"), VM_STRING(#ERR_CODE), VM_STRING(#EXPRESSION)); \
     return ERR_CODE; \
   } \
 }
@@ -93,26 +92,33 @@
 
 #define UMC_CALL(FUNC) { \
   Status _umcRes; \
+  vm_debug_trace1(VM_DEBUG_CALL, VM_STRING("[CALL] %s\n"), #FUNC); \
   _umcRes = FUNC; \
   if (_umcRes == UMC_OK) { \
+    vm_debug_trace1(VM_DEBUG_CALL, VM_STRING("[RETURN] %s\n"), #FUNC); \
+  } else { \
+    vm_debug_trace2(VM_DEBUG_ERROR, VM_STRING("[FAILED] %s, Status = %d\n"), #FUNC, (int)_umcRes); \
   } \
   UMC_CHECK_STATUS(_umcRes); \
 }
 
 #define UMC_NEW(PTR, TYPE) { \
   UMC_DELETE(PTR); \
+  vm_debug_trace3(VM_DEBUG_MEMORY, VM_STRING("[MEMORY] %s = new %s (%d bytes)"), VM_STRING(#PTR), VM_STRING(#TYPE), sizeof(TYPE)); \
   PTR = new TYPE;   \
   UMC_CHECK(PTR != NULL, UMC_ERR_ALLOC); \
 }
 
 #define UMC_NEW_ARR(PTR, TYPE, NUM) { \
   UMC_DELETE_ARR(PTR);    \
+  vm_debug_trace3(VM_DEBUG_MEMORY, VM_STRING("[MEMORY] %s = new %s[%d]"), VM_STRING(#PTR), VM_STRING(#TYPE), (int)NUM); \
   PTR = new TYPE[NUM]; \
   UMC_CHECK(PTR != NULL, UMC_ERR_ALLOC); \
 }
 
 #define UMC_DELETE(PTR) { \
   if (PTR) { \
+    vm_debug_trace1(VM_DEBUG_MEMORY, VM_STRING("[MEMORY] delete %s"), VM_STRING(#PTR)); \
     delete PTR; \
     PTR = NULL; \
   } \
@@ -120,6 +126,7 @@
 
 #define UMC_DELETE_ARR(PTR) { \
   if (PTR) { \
+    vm_debug_trace1(VM_DEBUG_MEMORY, VM_STRING("[MEMORY] delete[] %s"), VM_STRING(#PTR)); \
     delete[] PTR; \
     PTR = NULL; \
   } \

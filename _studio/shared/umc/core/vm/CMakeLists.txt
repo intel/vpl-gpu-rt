@@ -5,6 +5,7 @@ target_sources(vm
   PRIVATE
     include/sys/vm_types_linux32.h
 
+    include/vm_debug.h
     include/vm_event.h
     include/vm_interlocked.h
     include/vm_semaphore.h

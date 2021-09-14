@@ -362,7 +362,7 @@ public:
     {
         if (!m_pHead)
         {
-            assert(false);
+            VM_ASSERT(false);
             return;
         }
 
@@ -389,7 +389,7 @@ public:
         }
 
         // it was removed before
-        assert(false);
+        VM_ASSERT(false);
     }
 
     T * DetachItemByPid(int32_t pid)
@@ -435,7 +435,7 @@ public:
             tmp = tmp->m_pNext;
         }
 
-        assert(false);
+        VM_ASSERT(false);
         return 0;
     }
 

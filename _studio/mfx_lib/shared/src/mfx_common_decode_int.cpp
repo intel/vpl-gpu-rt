@@ -183,7 +183,7 @@ void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoDecoderParams *um
             break;
 
         default:
-            assert(false);
+            VM_ASSERT(false);
             break;
         }
     }
@@ -221,7 +221,7 @@ UMC::ColorFormat ConvertFOURCCToUMCColorFormat(mfxU32 fourcc)
 
         case MFX_FOURCC_YUV444:  return UMC::YUV444;
         default:
-            assert(!"Unknown FOURCC");
+            VM_ASSERT(!"Unknown FOURCC");
             return UMC::NV12;
     }
 }
@@ -250,7 +250,7 @@ mfxU32 ConvertUMCColorFormatToFOURCC(UMC::ColorFormat format)
         case UMC::GRAY:    return MFX_FOURCC_YUV400;
 
         default:
-            assert(!"Unknown color format");
+            VM_ASSERT(!"Unknown color format");
             return MFX_FOURCC_NV12;
     }
 }
@@ -269,7 +269,7 @@ mfxU32 ConvertUMCStreamTypeToCodec(UMC::VideoStreamType type)
         case UMC::AV1_VIDEO:   return MFX_CODEC_AV1;
 #endif
         default:
-            assert(!"Unknown stream type");
+            VM_ASSERT(!"Unknown stream type");
             return 0;
     }
 }
@@ -342,7 +342,7 @@ void RefCounter::DecrementReference()
 {
     m_refCounter--;
 
-    assert(m_refCounter >= 0);
+    VM_ASSERT(m_refCounter >= 0);
     if (!m_refCounter)
     {
         Free();

@@ -68,7 +68,7 @@ int const* getDefaultScalingList(unsigned sizeId, unsigned listId)
         src = (listId < 1) ? s_quantIntraDefault8x8 : s_quantInterDefault8x8;
         break;
     default:
-        assert(0);
+        VM_ASSERT(0);
         src = NULL;
         break;
     }

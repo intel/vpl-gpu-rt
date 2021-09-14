@@ -254,7 +254,7 @@ namespace UMC_VP9_DECODER
             case 12:
                 return dc_qlookup_12[clamp(qindex + delta, 0, MAXQ)];
             default:
-                assert(0);
+                VM_ASSERT(0);
                 return -1;
           }
     }
@@ -270,7 +270,7 @@ namespace UMC_VP9_DECODER
             case 12:
                 return ac_qlookup_12[clamp(qindex + delta, 0, MAXQ)];
             default:
-                assert(0);
+                VM_ASSERT(0);
                 return -1;
           }
     }
@@ -310,7 +310,7 @@ namespace UMC_VP9_DECODER
 
         if (!info->subsamplingX)
         {
-            assert(info->subsamplingY == 0);
+            VM_ASSERT(info->subsamplingY == 0);
 
             //4:4:4
             switch (info->bit_depth)
@@ -348,11 +348,11 @@ namespace UMC_VP9_DECODER
 
     void SetSegData(VP9Segmentation & seg, uint8_t segmentId, SEG_LVL_FEATURES featureId, int32_t seg_data)
     {
-        assert(seg_data <= SEG_FEATURE_DATA_MAX[featureId]);
+        VM_ASSERT(seg_data <= SEG_FEATURE_DATA_MAX[featureId]);
         if (seg_data < 0)
         {
-            assert(SEG_FEATURE_DATA_SIGNED[featureId]);
-            assert(-seg_data <= SEG_FEATURE_DATA_MAX[featureId]);
+            VM_ASSERT(SEG_FEATURE_DATA_SIGNED[featureId]);
+            VM_ASSERT(-seg_data <= SEG_FEATURE_DATA_MAX[featureId]);
         }
 
         seg.featureData[segmentId][featureId] = seg_data;
@@ -395,7 +395,7 @@ namespace UMC_VP9_DECODER
         while ((MAX_TILE_WIDTH_B64 << minLog2) < sbCols)
             ++minLog2;
 
-        assert(minLog2 <= maxLog2);
+        VM_ASSERT(minLog2 <= maxLog2);
 
         minLog2TileCols = minLog2;
         maxLog2TileCols = maxLog2;

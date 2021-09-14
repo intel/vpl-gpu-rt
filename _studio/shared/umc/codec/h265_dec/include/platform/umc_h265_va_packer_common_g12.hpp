@@ -46,7 +46,7 @@ namespace UMC_HEVC_DECODER
         uint32_t GetEntryPointOffsetStep(H265Slice const* slice, uint32_t tileYIdx)
         {
             H265PicParamSet const* pps = slice->GetPicParam();
-            assert(pps);
+            VM_ASSERT(pps);
 
             if (!pps->tiles_enabled_flag || !pps->entropy_coding_sync_enabled_flag)
                 return 1;
@@ -63,7 +63,7 @@ namespace UMC_HEVC_DECODER
             H265PicParamSet const* pps = slice->GetPicParam();
             assert(pps);
             //H265SliceHeader const* sh = slice->GetSliceHeader();
-            //assert(sh);
+            //VM_ASSERT(sh);
 
             uint32_t count = 0;
             uint32_t tileXIdx = slice->getTileXIdx();

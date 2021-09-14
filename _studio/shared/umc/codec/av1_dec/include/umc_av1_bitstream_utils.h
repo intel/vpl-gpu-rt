@@ -218,7 +218,7 @@ namespace UMC_AV1_DECODER
             f = static_cast<uint32_t>(round_power_of_two(e, shift - DIV_LUT_BITS));
         else
             f = e << (DIV_LUT_BITS - shift);
-        assert(f <= DIV_LUT_NUM);
+        VM_ASSERT(f <= DIV_LUT_NUM);
         shift += DIV_LUT_PREC_BITS;
         // Use f as lookup into the precomputed table of multipliers
         return div_lut[f];

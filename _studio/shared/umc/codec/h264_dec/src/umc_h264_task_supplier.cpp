@@ -2764,7 +2764,7 @@ Status TaskSupplier::ProcessFrameNumGap(H264Slice *pSlice, int32_t field, int32_
     // set to first missing frame. Note that if frame number wrapped during
     // the gap, the first missing frame_num could be larger than the
     // current frame_num. If that happened, FrameNumGap will be negative.
-    //assert((int32_t)sliceHeader->frame_num > frameNumGap);
+    //VM_ASSERT((int32_t)sliceHeader->frame_num > frameNumGap);
     int32_t frame_num = sliceHeader->frame_num - frameNumGap;
 
     while ((frame_num != sliceHeader->frame_num) && (umcRes == UMC_OK))

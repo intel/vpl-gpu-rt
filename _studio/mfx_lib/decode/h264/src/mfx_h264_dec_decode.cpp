@@ -900,7 +900,7 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
 
     if (platform != core->GetPlatformType())
     {
-        assert(platform == MFX_PLATFORM_SOFTWARE);
+        VM_ASSERT(platform == MFX_PLATFORM_SOFTWARE);
         MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION);
     }
 
@@ -1362,7 +1362,7 @@ void VideoDECODEH264::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
 
     *surf_out = m_surface_source->GetSurface(fd->GetFrameMID(), surface_work, &m_vPar);
 
-    assert(*surf_out);
+    VM_ASSERT(*surf_out);
 
     mfxFrameSurface1 *surface_out = *surf_out;
 

@@ -37,6 +37,8 @@
 #include "jpegbase.h"
 #include "jpegdec_base.h"
 
+#include "vm_debug.h"
+
 CJPEGDecoderBase::CJPEGDecoderBase(void)
 {
   Reset();

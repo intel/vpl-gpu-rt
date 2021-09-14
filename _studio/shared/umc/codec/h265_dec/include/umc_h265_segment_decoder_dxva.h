@@ -130,7 +130,7 @@ public:
             throw h265_exception(sts);
 
         H265_DXVA_SegmentDecoder * dxva_sd = (H265_DXVA_SegmentDecoder*)(m_Base->m_pSegmentDecoder[0]);
-        assert(dxva_sd);
+        VM_ASSERT(dxva_sd);
 
         for (uint32_t i = 0; i < m_Base->m_iThreadNum; i++)
         {
