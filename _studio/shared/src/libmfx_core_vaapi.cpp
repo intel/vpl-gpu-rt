@@ -134,6 +134,9 @@ void VAAPIVideoCORE_T<Base>::Close()
     m_KeepVAState = false;
     m_pVA.reset();
 
+    // It's important to close CM device when VA display is alive
+    m_pCmCopy.reset();
+
     if (m_intDRM >= 0)
     {
         if (m_Display)
