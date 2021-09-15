@@ -358,6 +358,7 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
         MFX_CHECK((m_vPar.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY),
                   MFX_ERR_UNSUPPORTED);
 
+        MFX_CHECK(par->mfx.FrameInfo.FourCC == videoProcessing->Out.FourCC, MFX_ERR_UNSUPPORTED);//This is to avoid CSC cases, will remove once CSC is fully tested
         bool is_fourcc_supported =
                   (  videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
                   || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
@@ -735,9 +736,6 @@ mfxStatus VideoDECODEVP9_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_vid
     }
     p_request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
 
-    sts = UpdateCscOutputFormat(p_video_param, p_request);
-    MFX_CHECK_STS(sts);
-
     MFX_CHECK(CheckHardwareSupport(p_core, p_video_param), MFX_ERR_UNSUPPORTED);
 
     return sts;
@@ -981,24 +979,9 @@ mfxStatus VideoDECODEVP9_HW::PrepareInternalSurface(UMC::FrameMemID &mid)
     return MFX_ERR_NONE;
 }
 
-static mfxStatus CheckFrameInfo(mfxFrameInfo &info, bool isVideoProcCscEnabled)
+static mfxStatus CheckFrameInfo(mfxFrameInfo const &currInfo, mfxFrameInfo &info)
 {
     MFX_SAFE_CALL(CheckFrameInfoCommon(&info, MFX_CODEC_VP9));
-
-    //only CSC output support 422 format
-    if(isVideoProcCscEnabled && info.ChromaFormat == MFX_CHROMAFORMAT_YUV422)
-    {
-        if (info.FourCC != MFX_FOURCC_Y216 && info.FourCC != MFX_FOURCC_YUY2)
-        {
-            MFX_CHECK_STS(MFX_ERR_INVALID_VIDEO_PARAM);
-        }
-        else if (info.FourCC == MFX_FOURCC_Y216)
-        {
-            MFX_CHECK(info.Shift == 1, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-        }
-
-        return MFX_ERR_NONE;
-    }
 
     switch (info.FourCC)
     {
@@ -1025,6 +1008,8 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo &info, bool isVideoProcCscEnabled)
             MFX_CHECK_STS(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
+    MFX_CHECK(currInfo.FourCC == info.FourCC, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+
     return MFX_ERR_NONE;
 }
 
@@ -1046,18 +1031,9 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         MFX_CHECK_NULL_PTR1(surface_work);
     }
 
-    bool isVideoProcCscEnabled = false;
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
-    mfxExtDecVideoProcessing* videoProcessing = (mfxExtDecVideoProcessing*)GetExtendedBuffer(m_vInitPar.ExtParam, m_vInitPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
-    if (videoProcessing && videoProcessing->Out.FourCC != m_vPar.mfx.FrameInfo.FourCC)
-    {
-        isVideoProcCscEnabled = true;
-    }
-#endif
-
     if (surface_work)
     {
-        sts = CheckFrameInfo(surface_work->Info, isVideoProcCscEnabled);
+        sts = CheckFrameInfo(m_vPar.mfx.FrameInfo, surface_work->Info);
         MFX_CHECK_STS(sts);
 
         sts = CheckFrameData(surface_work);
@@ -1107,13 +1083,10 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
         if (surface_work)
         {
-            if (!isVideoProcCscEnabled)
-            {
-                // check bit depth/color format change, skip if CSC enabled
-                MFX_CHECK((m_vPar.mfx.FrameInfo.BitDepthLuma == surface_work->Info.BitDepthLuma &&
-                    m_vPar.mfx.FrameInfo.BitDepthChroma == surface_work->Info.BitDepthChroma),
-                    MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-            }
+            // check bit depth change
+            MFX_CHECK((m_vPar.mfx.FrameInfo.BitDepthLuma == surface_work->Info.BitDepthLuma &&
+                m_vPar.mfx.FrameInfo.BitDepthChroma == surface_work->Info.BitDepthChroma),
+                MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
             // check resize
             if (m_vPar.mfx.FrameInfo.Width > surface_work->Info.Width ||
@@ -1209,6 +1182,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
             (*surface_out)->Info.AspectRatioH = m_vPar.mfx.FrameInfo.AspectRatioH;
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+            mfxExtDecVideoProcessing *videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(m_vInitPar.ExtParam, m_vInitPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
             if (videoProcessing)
             {
                 (*surface_out)->Info.CropH = videoProcessing->Out.CropH;
