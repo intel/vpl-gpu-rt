@@ -66,15 +66,6 @@ typedef struct vm_event
     int32_t state;
 } vm_event;
 
-/* vm_mmap.h */
-typedef struct vm_mmap
-{
-    int32_t fd;
-    void *address;
-    size_t sizet;
-    int32_t fAccessAttr;
-} vm_mmap;
-
 /* vm_semaphore.h */
 typedef struct vm_semaphore
 {
