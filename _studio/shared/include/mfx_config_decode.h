@@ -29,7 +29,14 @@
 #define UMC_ENABLE_VP9_AV1_DECODE
 #endif
 
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+#undef MFX_ENABLE_AV1_VIDEO_CODEC
+#define MFX_ENABLE_AV1_VIDEO_CODEC
+#endif
+
+
 #define DECODE_DEFAULT_TIMEOUT  60000
+
 
 #ifdef __INTEL_COMPILER
 #define H265_RESTRICT __restrict

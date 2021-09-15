@@ -66,12 +66,10 @@
 #endif
 
 #define MFX_ENABLE_QVBR
-
 #ifdef MFX_ENABLE_USER_ENCTOOLS
     #define MFX_ENABLE_ENCTOOLS
     #if defined(MFX_ENABLE_AENC)
         #define ENABLE_ADAPTIVE_ENCODE
     #endif
 #endif
-
 #endif // _MFX_CONFIG_ENCODE_H_

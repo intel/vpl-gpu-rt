@@ -28,28 +28,24 @@
 #undef  UMC_VA_LINUX
 #define UMC_VA_LINUX
 
-    // mfx_features.h is auto-generated file containing mediasdk per-component
-    // enable defines
-    #include "mfx_features.h"
+// mfx_features.h is auto-generated file containing mediasdk per-component
+// enable defines
+#include "mfx_features.h"
 
-
-// Here follows per-codec feature enable options which as of now we don't
-// want to expose on build system level since they are too detailed.
 #define SYNCHRONIZATION_BY_VA_MAP_BUFFER
 #if !defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
     #define SYNCHRONIZATION_BY_VA_SYNC_SURFACE
 #endif
 
+#if defined(__SSE4_1__)
+    #define MFX_SSE_4_1
+#endif
+
 #define CMAPIUPDATE
 
 #define UMC_VA
-
 #if defined(UNICODE) || defined(_UNICODE)
     #define MFX_UNICODE
-#endif
-
-#if defined(__SSE4_1__)
-    #define MFX_SSE_4_1
 #endif
 
 #if !defined(NDEBUG)
@@ -60,20 +56,16 @@
 #define MFX_ENABLE_MJPEG_VIDEO_CODEC
 #endif
 
-#if defined (MFX_ENABLE_VC1_VIDEO_DECODE) || defined (UMC_ENABLE_VC1_SPLITTER) || defined (UMC_ENABLE_VC1_VIDEO_ENCODER)
+#if defined (MFX_ENABLE_VC1_VIDEO_DECODE) || defined (UMC_ENABLE_VC1_SPLITTER)
 #define MFX_ENABLE_VC1_VIDEO_CODEC
 #endif
 
-#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
-#define MFX_ENABLE_AV1_VIDEO_CODEC
-#endif
 
 /*
 * Traces
 */
 #ifndef MFX_TRACE_DISABLE
 // Uncomment one or several lines below to enable tracing
-
 //#define MFX_TRACE_ENABLE_ITT
 //#define MFX_TRACE_ENABLE_TEXTLOG
 //#define MFX_TRACE_ENABLE_STAT
@@ -81,6 +73,7 @@
     // Accompany ITT trace with ftrace. This combination is used by VTune.
     #define MFX_TRACE_ENABLE_FTRACE
 #endif
+
 #if defined(MFX_TRACE_ENABLE_TEXTLOG) || defined(MFX_TRACE_ENABLE_STAT) || defined(MFX_TRACE_ENABLE_ITT) || defined(MFX_TRACE_ENABLE_FTRACE)
 #define MFX_TRACE_ENABLE
 #endif

@@ -40,4 +40,5 @@
 #define MFX_ENABLE_RGBP
 #define MFX_ENABLE_FOURCC_RGB565
 
+
 #endif // _MFX_CONFIG_VPP_H_
