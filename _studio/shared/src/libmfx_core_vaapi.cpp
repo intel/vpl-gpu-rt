@@ -1141,21 +1141,21 @@ bool IsHwMvcEncSupported()
     return false;
 }
 
-VAAPIVideoCORE20::VAAPIVideoCORE20(
+VAAPIVideoCORE_VPL::VAAPIVideoCORE_VPL(
     const mfxU32 adapterNum,
     const mfxU32 numThreadsAvailable,
     const mfxSession session)
-    : VAAPIVideoCORE20_base(adapterNum, numThreadsAvailable, session)
+    : VAAPIVideoCORE_VPL_base(adapterNum, numThreadsAvailable, session)
 {
     m_frame_allocator_wrapper.allocator_hw.reset(new FlexibleFrameAllocatorHW_VAAPI(nullptr, m_session));
 }
 
 mfxStatus
-VAAPIVideoCORE20::SetHandle(
+VAAPIVideoCORE_VPL::SetHandle(
     mfxHandleType type,
     mfxHDL hdl)
 {
-    MFX_SAFE_CALL(VAAPIVideoCORE20_base::SetHandle(type, hdl));
+    MFX_SAFE_CALL(VAAPIVideoCORE_VPL_base::SetHandle(type, hdl));
 
     if (type == MFX_HANDLE_VA_DISPLAY)
     {
@@ -1166,12 +1166,12 @@ VAAPIVideoCORE20::SetHandle(
     return MFX_ERR_NONE;
 }
 
-VAAPIVideoCORE20::~VAAPIVideoCORE20()
+VAAPIVideoCORE_VPL::~VAAPIVideoCORE_VPL()
 {
     m_frame_allocator_wrapper.allocator_hw->Close();
 }
 
-mfxStatus VAAPIVideoCORE20::AllocFrames(
+mfxStatus VAAPIVideoCORE_VPL::AllocFrames(
     mfxFrameAllocRequest* request,
     mfxFrameAllocResponse* response,
     bool isNeedCopy)
@@ -1222,10 +1222,10 @@ mfxStatus VAAPIVideoCORE20::AllocFrames(
     {
         MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
     }
-} // mfxStatus VAAPIVideoCORE20::AllocFrames(...)
+} // mfxStatus VAAPIVideoCORE_VPL::AllocFrames(...)
 
 
-mfxStatus VAAPIVideoCORE20::ReallocFrame(mfxFrameSurface1 *surf)
+mfxStatus VAAPIVideoCORE_VPL::ReallocFrame(mfxFrameSurface1 *surf)
 {
     MFX_CHECK_NULL_PTR1(surf);
 
@@ -1233,13 +1233,13 @@ mfxStatus VAAPIVideoCORE20::ReallocFrame(mfxFrameSurface1 *surf)
 }
 
 mfxStatus
-VAAPIVideoCORE20::DoFastCopyWrapper(
+VAAPIVideoCORE_VPL::DoFastCopyWrapper(
     mfxFrameSurface1* pDst,
     mfxU16 dstMemType,
     mfxFrameSurface1* pSrc,
     mfxU16 srcMemType)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIVideoCORE20::DoFastCopyWrapper");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIVideoCORE_VPL::DoFastCopyWrapper");
 
     MFX_CHECK_NULL_PTR2(pSrc, pDst);
 
@@ -1291,7 +1291,7 @@ VAAPIVideoCORE20::DoFastCopyWrapper(
 }
 
 mfxStatus
-VAAPIVideoCORE20::DoFastCopyExtended(
+VAAPIVideoCORE_VPL::DoFastCopyExtended(
     mfxFrameSurface1* pDst,
     mfxFrameSurface1* pSrc)
 {
@@ -1437,9 +1437,9 @@ VAAPIVideoCORE20::DoFastCopyExtended(
     }
 
     MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
-} // mfxStatus VAAPIVideoCORE20::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
+} // mfxStatus VAAPIVideoCORE_VPL::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 
-mfxStatus VAAPIVideoCORE20::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)
+mfxStatus VAAPIVideoCORE_VPL::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)
 {
     MFX_SAFE_CALL(CheckOrInitDisplay());
     m_frame_allocator_wrapper.SetDevice(m_Display);
@@ -1448,6 +1448,6 @@ mfxStatus VAAPIVideoCORE20::CreateSurface(mfxU16 type, const mfxFrameInfo& info,
 }
 
 template class VAAPIVideoCORE_T<CommonCORE  >;
-template class VAAPIVideoCORE_T<CommonCORE20>;
+template class VAAPIVideoCORE_T<CommonCORE_VPL>;
 
 /* EOF */

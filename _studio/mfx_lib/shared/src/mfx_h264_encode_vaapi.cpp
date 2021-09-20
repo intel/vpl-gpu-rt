@@ -1495,19 +1495,19 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     m_core = core;
 
-    VAAPIVideoCORE* hwCore_10 = dynamic_cast<VAAPIVideoCORE*>(m_core);
-    if (hwCore_10)
+    VAAPIVideoCORE* vaapi_core_1x = dynamic_cast<VAAPIVideoCORE*>(m_core);
+    if (vaapi_core_1x)
     {
         // Legacy MSDK 1.x case
-        MFX_SAFE_CALL(hwCore_10->GetVAService(&m_vaDisplay));
+        MFX_SAFE_CALL(vaapi_core_1x->GetVAService(&m_vaDisplay));
     }
     else
     {
-        // MSDK 2.0 case
-        VAAPIVideoCORE20* hwCore_20 = dynamic_cast<VAAPIVideoCORE20*>(m_core);
-        MFX_CHECK_WITH_ASSERT(hwCore_20, MFX_ERR_DEVICE_FAILED);
+        // VPL case
+        VAAPIVideoCORE_VPL* vaapi_core_vpl = dynamic_cast<VAAPIVideoCORE_VPL*>(m_core);
+        MFX_CHECK_WITH_ASSERT(vaapi_core_vpl, MFX_ERR_DEVICE_FAILED);
 
-        MFX_SAFE_CALL(hwCore_20->GetVAService(&m_vaDisplay));
+        MFX_SAFE_CALL(vaapi_core_vpl->GetVAService(&m_vaDisplay));
     }
 
     m_caps = {};

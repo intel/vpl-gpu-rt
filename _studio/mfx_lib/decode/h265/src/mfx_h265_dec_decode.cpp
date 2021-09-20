@@ -938,7 +938,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 
-    bool allow_null_work_surface = Supports20FeatureSet(*m_core);
+    bool allow_null_work_surface = SupportsVPLFeatureSet(*m_core);
 
     if (allow_null_work_surface)
     {

@@ -124,19 +124,19 @@ mfxStatus VAAPIVideoProcessing::CreateDevice(VideoCORE * core, mfxVideoParam* pP
 {
     MFX_CHECK_NULL_PTR1(core);
 
-    VAAPIVideoCORE* hwCore_10 = dynamic_cast<VAAPIVideoCORE*>(core);
-    if (hwCore_10)
+    VAAPIVideoCORE* vaapi_core_1x = dynamic_cast<VAAPIVideoCORE*>(core);
+    if (vaapi_core_1x)
     {
         // Legacy MSDK 1.x case
-        MFX_SAFE_CALL(hwCore_10->GetVAService(&m_vaDisplay));
+        MFX_SAFE_CALL(vaapi_core_1x->GetVAService(&m_vaDisplay));
     }
     else
     {
-        // MSDK 2.0 case
-        VAAPIVideoCORE20* hwCore_20 = dynamic_cast<VAAPIVideoCORE20*>(core);
-        MFX_CHECK_NULL_PTR1(hwCore_20);
+        // VPL case
+        VAAPIVideoCORE_VPL* vaapi_core_vpl = dynamic_cast<VAAPIVideoCORE_VPL*>(core);
+        MFX_CHECK_NULL_PTR1(vaapi_core_vpl);
 
-        MFX_SAFE_CALL(hwCore_20->GetVAService(&m_vaDisplay));
+        MFX_SAFE_CALL(vaapi_core_vpl->GetVAService(&m_vaDisplay));
     }
 
     MFX_SAFE_CALL(Init(&m_vaDisplay, pParams));

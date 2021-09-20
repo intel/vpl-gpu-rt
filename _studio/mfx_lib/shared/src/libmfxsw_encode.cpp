@@ -469,10 +469,10 @@ static mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
 
     if (!pCache)
     {
-        auto core20 = dynamic_cast<CommonCORE20*>(session->m_pCORE.get());
-        MFX_CHECK_HDL(core20);
+        auto base_core_vpl = dynamic_cast<CommonCORE_VPL*>(session->m_pCORE.get());
+        MFX_CHECK_HDL(base_core_vpl);
 
-        std::unique_ptr<SurfaceCache> scoped_cache_ptr(SurfaceCache::Create(*core20, memory_type, par.mfx.FrameInfo));
+        std::unique_ptr<SurfaceCache> scoped_cache_ptr(SurfaceCache::Create(*base_core_vpl, memory_type, par.mfx.FrameInfo));
 
         using cache_controller = surface_cache_controller<SurfaceCache>;
         using TCachePtr = std::remove_reference<decltype(pCache)>::type;
@@ -528,7 +528,7 @@ mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
             mfxRes = MFX_ERR_INVALID_VIDEO_PARAM;
         }
 
-        if (mfxRes >= MFX_ERR_NONE && Supports20FeatureSet(*session->m_pCORE.get()))
+        if (mfxRes >= MFX_ERR_NONE && SupportsVPLFeatureSet(*session->m_pCORE.get()))
         {
             MFX_SAFE_CALL(SetupCache(session, *par));
         }

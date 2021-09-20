@@ -117,8 +117,8 @@ class VAAPIVideoCORE_T : public Base
 {
 public:
     friend class FactoryCORE;
-    friend class VAAPIVideoCORE20;
-    friend class VAAPIVideoCORE_T<CommonCORE20>;
+    friend class VAAPIVideoCORE_VPL;
+    friend class VAAPIVideoCORE_T<CommonCORE_VPL>;
     class VAAPIAdapter : public VAAPIInterface
     {
     public:
@@ -237,14 +237,14 @@ using VAAPIVideoCORE = VAAPIVideoCORE_T<CommonCORE>;
 
 // Refactored MSDK 2.0 core
 
-using VAAPIVideoCORE20_base = deprecate_from_base < VAAPIVideoCORE_T<CommonCORE20> >;
+using VAAPIVideoCORE_VPL_base = deprecate_from_base < VAAPIVideoCORE_T<CommonCORE_VPL> >;
 
-class VAAPIVideoCORE20 : public VAAPIVideoCORE20_base
+class VAAPIVideoCORE_VPL : public VAAPIVideoCORE_VPL_base
 {
 public:
     friend class FactoryCORE;
 
-    virtual ~VAAPIVideoCORE20();
+    virtual ~VAAPIVideoCORE_VPL();
 
     virtual mfxStatus SetHandle(mfxHandleType type, mfxHDL handle)                                                                                    override;
 
@@ -257,7 +257,7 @@ public:
     virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)                                                   override;
 
 protected:
-    VAAPIVideoCORE20(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
+    VAAPIVideoCORE_VPL(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
 };
 
 

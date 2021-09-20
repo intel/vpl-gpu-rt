@@ -631,7 +631,7 @@ mfxStatus MFXVideoDECODEVC1::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         }
     }
 
-    bool allow_null_work_surface = Supports20FeatureSet(*m_pCore);
+    bool allow_null_work_surface = SupportsVPLFeatureSet(*m_pCore);
 
     if (allow_null_work_surface)
     {

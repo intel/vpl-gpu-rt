@@ -619,7 +619,7 @@ mfxStatus VideoDECODEMPEG2::DecodeFrameCheck(mfxBitstream* bs, mfxFrameSurface1*
     }
     else
     {
-        bool allow_null_work_surface = Supports20FeatureSet(*m_core);
+        bool allow_null_work_surface = SupportsVPLFeatureSet(*m_core);
 
         /*
         In case 1.x core and nullptr surface_work we need to return back to user one of surfaces which were previously decoded.

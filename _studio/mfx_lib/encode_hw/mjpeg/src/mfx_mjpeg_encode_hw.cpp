@@ -613,10 +613,10 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Init(mfxVideoParam *par)
 
     par = &checked; // from now work with fixed copy of input!
 
-    bool core20_interface = Supports20FeatureSet(*m_pCore);
+    bool vpl_interface = SupportsVPLFeatureSet(*m_pCore);
 
     if (!m_pCore->IsExternalFrameAllocator()
-        && !core20_interface
+        && !vpl_interface
         && (par->IOPattern & (MFX_IOPATTERN_OUT_VIDEO_MEMORY | MFX_IOPATTERN_IN_VIDEO_MEMORY)))
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
@@ -905,12 +905,12 @@ mfxStatus MFXVideoENCODEMJPEG_HW::EncodeFrameCheck(
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    bool core20_interface = Supports20FeatureSet(*m_pCore);
+    bool vpl_interface = SupportsVPLFeatureSet(*m_pCore);
 
     mfxStatus checkSts = CheckEncodeFrameParam(
         surface,
         bs,
-        m_pCore->IsExternalFrameAllocator() || core20_interface);
+        m_pCore->IsExternalFrameAllocator() || vpl_interface);
     MFX_CHECK(checkSts >= MFX_ERR_NONE, checkSts);
 
     mfxStatus status = checkSts;

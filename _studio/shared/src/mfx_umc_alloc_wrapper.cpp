@@ -1132,11 +1132,11 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
     m_response = {};
 
     // Since DECODE uses internal allocation at init step (when we can't actually understand whether user will use
-    // MSDK 2.0 interface or not) we are forcing 1.x interface in case if ext allocator set
+    // VPL interface or not) we are forcing 1.x interface in case if ext allocator set
 
-    bool core20_interface = Supports20FeatureSet(*m_core);
+    bool vpl_interface = SupportsVPLFeatureSet(*m_core);
 
-    m_redirect_to_msdk20 = core20_interface && !m_core->IsExternalFrameAllocator();
+    m_redirect_to_msdk20 = vpl_interface && !m_core->IsExternalFrameAllocator();
 
     if (m_redirect_to_msdk20)
     {
@@ -1162,14 +1162,14 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         mfxU16 output_type = MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_FROM_DECODE;
         output_type |= (video_param.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET;
 
-        auto msdk20_core = dynamic_cast<CommonCORE20*>(m_core);
-        MFX_CHECK_WITH_THROW(msdk20_core, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
+        auto base_core_vpl = dynamic_cast<CommonCORE_VPL*>(m_core);
+        MFX_CHECK_WITH_THROW(base_core_vpl, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
 
         if ((request.Type & MFX_MEMTYPE_INTERNAL_FRAME) || needVppJPEG)
         {
             request = request_internal;
         }
-        std::unique_ptr<SurfaceCache> scoped_cache_ptr(SurfaceCache::Create(*msdk20_core, request.Type, request.Info));
+        std::unique_ptr<SurfaceCache> scoped_cache_ptr(SurfaceCache::Create(*base_core_vpl, request.Type, request.Info));
 
         m_surface20_cache_decoder_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get()));
         scoped_cache_ptr.release();
@@ -1192,7 +1192,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         }
         else
         {
-            scoped_cache_ptr.reset(SurfaceCache::Create(*msdk20_core, needVppJPEG ? request_type : output_type, needVppJPEG ? request_info : output_info));
+            scoped_cache_ptr.reset(SurfaceCache::Create(*base_core_vpl, needVppJPEG ? request_type : output_type, needVppJPEG ? request_info : output_info));
 
             m_surface20_cache_output_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get()));
             scoped_cache_ptr.release();
@@ -1710,14 +1710,14 @@ const UMC::FrameData* SurfaceSource::Lock(UMC::FrameMemID MID)
             return nullptr;
         }
 
-        auto msdk20_core = dynamic_cast<CommonCORE20*>(m_core);
-        if (!msdk20_core)
+        auto base_core_vpl = dynamic_cast<CommonCORE_VPL*>(m_core);
+        if (!base_core_vpl)
         {
             std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
             return nullptr;
         }
 
-        auto sts_was_locked_pair = msdk20_core->Lock(*surf, MFX_MAP_READ_WRITE);
+        auto sts_was_locked_pair = base_core_vpl->Lock(*surf, MFX_MAP_READ_WRITE);
 
         if (MFX_STS_TRACE(sts_was_locked_pair.first) != MFX_ERR_NONE)
         {
@@ -1768,7 +1768,7 @@ const UMC::FrameData* SurfaceSource::Lock(UMC::FrameMemID MID)
         break;
         default:
 
-            std::ignore = MFX_STS_TRACE(msdk20_core->Unlock(*surf));
+            std::ignore = MFX_STS_TRACE(base_core_vpl->Unlock(*surf));
             return nullptr;
         }
 
@@ -1792,10 +1792,10 @@ UMC::Status SurfaceSource::Unlock(UMC::FrameMemID MID)
         mfxFrameSurface1* surf = GetDecoderSurface(MID);
         MFX_CHECK(surf, UMC::UMC_ERR_NULL_PTR);
 
-        auto msdk20_core = dynamic_cast<CommonCORE20*>(m_core);
-        MFX_CHECK(msdk20_core, UMC::UMC_ERR_NULL_PTR);
+        auto base_core_vpl = dynamic_cast<CommonCORE_VPL*>(m_core);
+        MFX_CHECK(base_core_vpl, UMC::UMC_ERR_NULL_PTR);
 
-        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(msdk20_core->Unlock(*surf)));
+        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(base_core_vpl->Unlock(*surf)));
     }
     else
     {

@@ -961,17 +961,17 @@ mfxStatus VideoDECODEVP9_HW::PrepareInternalSurface(UMC::FrameMemID &mid)
         surf->Info.Width  = m_vPar.mfx.FrameInfo.Width;
         surf->Info.Height = m_vPar.mfx.FrameInfo.Height;
 
-        if (VAAPIVideoCORE *vaapi_core_10 = dynamic_cast<VAAPIVideoCORE *>(m_core))
+        if (VAAPIVideoCORE *vaapi_core_1x = dynamic_cast<VAAPIVideoCORE *>(m_core))
         {
             // Legacy MSDK 1.x case
-            return vaapi_core_10->ReallocFrame(surf);
+            return vaapi_core_1x->ReallocFrame(surf);
         }
 
-        // MSDK 2.0 case
-        VAAPIVideoCORE20* vaapi_core_20 = dynamic_cast<VAAPIVideoCORE20*>(m_core);
-        MFX_CHECK_NULL_PTR1(vaapi_core_20);
+        // VPL case
+        VAAPIVideoCORE_VPL* vaapi_core_vpl = dynamic_cast<VAAPIVideoCORE_VPL*>(m_core);
+        MFX_CHECK_NULL_PTR1(vaapi_core_vpl);
 
-        return vaapi_core_20->ReallocFrame(surf);
+        return vaapi_core_vpl->ReallocFrame(surf);
     }
     else
         MFX_CHECK(UMC::UMC_OK == umc_sts, MFX_ERR_MEMORY_ALLOC);
@@ -1024,7 +1024,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     MFX_CHECK_NULL_PTR1(surface_out);
     *surface_out = nullptr;
 
-    bool allow_null_work_surface = Supports20FeatureSet(*m_core);
+    bool allow_null_work_surface = SupportsVPLFeatureSet(*m_core);
 
     if (!allow_null_work_surface)
     {

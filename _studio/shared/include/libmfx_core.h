@@ -307,9 +307,7 @@ protected:
     {}
 };
 
-// Virtual table size for CommonCORE and CommonCORE20 should be considered fixed.
-// Otherwise binary compatibility with already released plugins would be broken.
-class CommonCORE20 : public deprecate_from_base<CommonCORE>
+class CommonCORE_VPL : public deprecate_from_base<CommonCORE>
 {
 public:
 
@@ -352,7 +350,7 @@ public:
 
 protected:
 
-    CommonCORE20(const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
+    CommonCORE_VPL(const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
 
     FrameAllocatorWrapper m_frame_allocator_wrapper;
 };
@@ -369,7 +367,7 @@ enum class SurfaceLockType
 class mfxFrameSurface1_scoped_lock
 {
 public:
-    mfxFrameSurface1_scoped_lock(mfxFrameSurface1* surf = nullptr, CommonCORE20* core = nullptr)
+    mfxFrameSurface1_scoped_lock(mfxFrameSurface1* surf = nullptr, CommonCORE_VPL* core = nullptr)
         : surf(surf)
         , core(core)
         , mid(surf ? surf->Data.MemId : nullptr)
@@ -445,7 +443,7 @@ public:
 
 private:
     mfxFrameSurface1*  surf      = nullptr;
-    CommonCORE20*      core      = nullptr;
+    CommonCORE_VPL*    core      = nullptr;
     mfxMemId           mid       = nullptr;
     SurfaceLockType    lock_type = SurfaceLockType::LOCK_NONE;
 };
@@ -470,7 +468,7 @@ class SurfaceCache
     : public mfxRefCountableImpl<SurfaceCacheRefCountable>
 {
 public:
-    static SurfaceCache* Create(CommonCORE20& core, mfxU16 type, const mfxFrameInfo& frame_info)
+    static SurfaceCache* Create(CommonCORE_VPL& core, mfxU16 type, const mfxFrameInfo& frame_info)
     {
         auto cache = new SurfaceCache(core, type, frame_info);
         cache->AddRef();
@@ -575,7 +573,7 @@ public:
 
 private:
 
-    SurfaceCache(CommonCORE20& core, mfxU16 type, const mfxFrameInfo& frame_info)
+    SurfaceCache(CommonCORE_VPL& core, mfxU16 type, const mfxFrameInfo& frame_info)
         : m_core(core)
         , m_type((type & ~MFX_MEMTYPE_EXTERNAL_FRAME) | MFX_MEMTYPE_INTERNAL_FRAME)
         , m_frame_info(frame_info)
@@ -694,7 +692,7 @@ private:
 
     std::chrono::milliseconds m_time_to_wait = std::chrono::milliseconds(0);
 
-    CommonCORE20&             m_core;
+    CommonCORE_VPL&           m_core;
     mfxU16                    m_type;
     mfxFrameInfo              m_frame_info;
 
@@ -705,9 +703,9 @@ private:
     std::list<mfxU32>         m_requests;
 };
 
-inline bool Supports20FeatureSet(VideoCORE& core)
+inline bool SupportsVPLFeatureSet(VideoCORE& core)
 {
-    return !!dynamic_cast<CommonCORE20*>(&core);
+    return !!dynamic_cast<CommonCORE_VPL*>(&core);
 }
 
 inline bool IsD3D9Simulation(VideoCORE& core)
