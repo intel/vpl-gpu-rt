@@ -243,23 +243,6 @@ mfxStatus VAAPIEncoder::QueryBitstreamBufferInfo(mfxFrameAllocRequest& request)
 
 mfxStatus VAAPIEncoder::QueryEncodeCaps(JpegEncCaps & caps)
 {
-    MFX_CHECK_NULL_PTR1(m_core);
-
-    VAAPIVideoCORE* hwCore_10 = dynamic_cast<VAAPIVideoCORE*>(m_core);
-    if (hwCore_10)
-    {
-        // Legacy MSDK 1.x case
-        MFX_SAFE_CALL(hwCore_10->GetVAService(&m_vaDisplay));
-    }
-    else
-    {
-        // MSDK 2.0 case
-        VAAPIVideoCORE20* hwCore_20 = dynamic_cast<VAAPIVideoCORE20*>(m_core);
-        MFX_CHECK_WITH_ASSERT(hwCore_20, MFX_ERR_DEVICE_FAILED);
-
-        MFX_SAFE_CALL(hwCore_20->GetVAService(&m_vaDisplay));
-    }
-
     caps = m_caps;
 
     return MFX_ERR_NONE;
