@@ -5349,7 +5349,9 @@ void MfxHwH264Encode::SetDefaults(
     if (IsOn(par.mfx.LowPower))
     {
         if (par.mfx.GopRefDist == 0)
-            par.mfx.GopRefDist = 1;
+        {
+                par.mfx.GopRefDist = 1;
+        }
         if (par.mfx.FrameInfo.PicStruct == 0)
             par.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
     }
