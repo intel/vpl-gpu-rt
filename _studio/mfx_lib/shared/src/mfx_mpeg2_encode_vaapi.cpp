@@ -385,7 +385,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(mfxU16 codecProfile)
         MFX_SAFE_CALL(hwCore_20->GetVAService(&m_vaDisplay));
     }
 
-    memset(&m_caps, 0, sizeof(m_caps));
+    m_caps = {};
 
     m_caps.EncodeFunc        = 1;
     m_caps.BRCReset          = 1; // No bitrate resolution control

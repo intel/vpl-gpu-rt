@@ -958,7 +958,7 @@ mfxStatus VideoDECODEVP9_HW::PrepareInternalSurface(UMC::FrameMemID &mid)
         mfxFrameSurface1 *surf = m_surface_source->GetSurfaceByIndex(mid);
         MFX_CHECK(surf, MFX_ERR_INVALID_HANDLE);
 
-        surf->Info.Width = m_vPar.mfx.FrameInfo.Width;
+        surf->Info.Width  = m_vPar.mfx.FrameInfo.Width;
         surf->Info.Height = m_vPar.mfx.FrameInfo.Height;
 
         if (VAAPIVideoCORE *vaapi_core_10 = dynamic_cast<VAAPIVideoCORE *>(m_core))
@@ -972,7 +972,7 @@ mfxStatus VideoDECODEVP9_HW::PrepareInternalSurface(UMC::FrameMemID &mid)
         MFX_CHECK_NULL_PTR1(vaapi_core_20);
 
         return vaapi_core_20->ReallocFrame(surf);
-        }
+    }
     else
         MFX_CHECK(UMC::UMC_OK == umc_sts, MFX_ERR_MEMORY_ALLOC);
 

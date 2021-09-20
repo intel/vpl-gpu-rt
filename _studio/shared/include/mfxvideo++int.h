@@ -91,19 +91,15 @@ DEFINE_GUID_VA(DXVA_Intel_ModeAV1_VLD,                       VAProfileAV1Profile
 namespace UMC
 {
     class FrameAllocator;
-};
+}
 
 // Forward declaration of used classes
 struct MFX_ENTRY_POINT;
 
-// Virtual table size for CommonCORE should be considered fixed.
-// Otherwise binary compatibility with already released plugins would be broken.
-// class CommonCORE : public VideoCORE
-// Therefore Virtual table size, function order, argument number and it's types and etc must be unchanged.
 class VideoCORE {
 public:
 
-    virtual ~VideoCORE(void) {};
+    virtual ~VideoCORE(void) {}
 
     // imported to external API
     virtual mfxStatus GetHandle(mfxHandleType type, mfxHDL *handle) = 0;
