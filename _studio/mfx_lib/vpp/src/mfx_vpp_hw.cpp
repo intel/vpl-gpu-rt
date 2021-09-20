@@ -3298,7 +3298,7 @@ mfxStatus VideoVPPHW::PreWorkOutSurface(ExtSurface & output)
     if (!output.pSurf)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
 
-    if ((D3D_TO_D3D == m_ioMode || SYS_TO_D3D == m_ioMode) && !m_isD3D9SimWithVideoMemIn)
+    if ((D3D_TO_D3D == m_ioMode || SYS_TO_D3D == m_ioMode) && !m_isD3D9SimWithVideoMemOut)
     {
         if (
             output.bForcedInternalAlloc
