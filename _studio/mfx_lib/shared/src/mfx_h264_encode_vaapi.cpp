@@ -1495,17 +1495,11 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     m_core = core;
 
-    m_caps = {};
-
-    eMFXHWType platform;
-
     VAAPIVideoCORE* hwCore_10 = dynamic_cast<VAAPIVideoCORE*>(m_core);
     if (hwCore_10)
     {
         // Legacy MSDK 1.x case
         MFX_SAFE_CALL(hwCore_10->GetVAService(&m_vaDisplay));
-
-        platform = hwCore_10->GetHWType();
     }
     else
     {
@@ -1514,9 +1508,11 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         MFX_CHECK_WITH_ASSERT(hwCore_20, MFX_ERR_DEVICE_FAILED);
 
         MFX_SAFE_CALL(hwCore_20->GetVAService(&m_vaDisplay));
-
-        platform = hwCore_20->GetHWType();
     }
+
+    m_caps = {};
+
+    eMFXHWType platform = m_core->GetHWType();
 
     (void)platform;
 

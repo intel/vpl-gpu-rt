@@ -630,21 +630,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     bool bUseReference = false;
     VAStatus vaSts = VA_STATUS_SUCCESS;
 
-    eMFXHWType hwType;
-    VAAPIVideoCORE* hwCore_10 = dynamic_cast<VAAPIVideoCORE*>(m_core);
-    if (hwCore_10)
-    {
-        // Legacy MSDK 1.x case
-        hwType = hwCore_10->GetHWType();
-    }
-    else
-    {
-        // MSDK 2.0 case
-        VAAPIVideoCORE20* hwCore_20 = dynamic_cast<VAAPIVideoCORE20*>(m_core);
-        MFX_CHECK_NULL_PTR1(hwCore_20);
-
-        hwType = hwCore_20->GetHWType();
-    }
+    eMFXHWType hwType = m_core->GetHWType();
 
     // NOTE the following variables should be visible till vaRenderPicture/vaEndPicture,
     // not till vaCreateBuffer as the data they hold are passed to the driver via a pointer
