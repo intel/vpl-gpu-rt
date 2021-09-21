@@ -846,16 +846,7 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo &info)
 
 mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surface_work, mfxFrameSurface1** surface_out)
 {
-    bool allow_null_work_surface = SupportsVPLFeatureSet(*m_core);
-
-    if (allow_null_work_surface)
-    {
-        MFX_CHECK_NULL_PTR1(surface_out);
-    }
-    else
-    {
-        MFX_CHECK_NULL_PTR2(surface_work, surface_out);
-    }
+    MFX_CHECK_NULL_PTR1(surface_out);
 
     if (surface_work)
     {

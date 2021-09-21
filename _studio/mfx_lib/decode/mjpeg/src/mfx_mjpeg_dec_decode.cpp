@@ -736,16 +736,7 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
     // make sure that there is a free task
     MFX_SAFE_CALL(decoder->CheckTaskAvailability(m_vPar.AsyncDepth ? m_vPar.AsyncDepth : m_core->GetAutoAsyncDepth()));
 
-    bool allow_null_work_surface = SupportsVPLFeatureSet(*m_core);
-
-    if (allow_null_work_surface)
-    {
-        MFX_CHECK_NULL_PTR1(surface_out);
-    }
-    else
-    {
-        MFX_CHECK_NULL_PTR2(surface_work, surface_out);
-    }
+    MFX_CHECK_NULL_PTR1(surface_out);
 
     if (bs)
         MFX_SAFE_CALL(CheckBitstream(bs));

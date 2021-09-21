@@ -1032,10 +1032,8 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     eMFXGTConfig* pMFXGTConfig = QueryCoreInterface<eMFXGTConfig>(m_core, MFXICORE_GT_CONFIG_GUID);
     MFX_CHECK(pMFXGTConfig != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    bool vpl_interface = SupportsVPLFeatureSet(*m_core);
-
     mfxStatus checkStatus = CheckVideoParam(m_video, m_caps
-        , m_core->IsExternalFrameAllocator() || vpl_interface
+        , true
         , m_currentPlatform, m_currentVaType, *pMFXGTConfig, true);
     if (checkStatus == MFX_WRN_PARTIAL_ACCELERATION)
         return MFX_WRN_PARTIAL_ACCELERATION;
@@ -1567,10 +1565,8 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
     eMFXGTConfig* pMFXGTConfig = QueryCoreInterface<eMFXGTConfig>(m_core, MFXICORE_GT_CONFIG_GUID);
     MFX_CHECK(pMFXGTConfig != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    bool vpl_interface = SupportsVPLFeatureSet(*m_core);
-
     mfxStatus checkStatus = CheckVideoParam(newPar, m_caps
-        , m_core->IsExternalFrameAllocator() || vpl_interface
+        , true
         , m_currentPlatform, m_currentVaType, *pMFXGTConfig);
     if (checkStatus == MFX_WRN_PARTIAL_ACCELERATION)
         return MFX_ERR_INVALID_VIDEO_PARAM;
@@ -4666,11 +4662,9 @@ mfxStatus ImplementationAvc::EncodeFrameCheckNormalWay(
 {
     MFX_CHECK_STS(m_failedStatus);
 
-    bool vpl_interface = SupportsVPLFeatureSet(*m_core);
-
     mfxStatus checkSts = CheckEncodeFrameParam(
         m_video, ctrl, surface, bs,
-        m_core->IsExternalFrameAllocator() || vpl_interface, m_caps);
+        true, m_caps);
     if (checkSts < MFX_ERR_NONE)
         return checkSts;
 

@@ -370,20 +370,10 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(mfxU16 codecProfile)
 {
     MFX_CHECK_NULL_PTR1(m_core);
 
-    VAAPIVideoCORE* vaapi_core_1x = dynamic_cast<VAAPIVideoCORE*>(m_core);
-    if (vaapi_core_1x)
-    {
-        // Legacy MSDK 1.x case
-        MFX_SAFE_CALL(vaapi_core_1x->GetVAService(&m_vaDisplay));
-    }
-    else
-    {
-        // VPL case
-        VAAPIVideoCORE_VPL* vaapi_core_vpl = dynamic_cast<VAAPIVideoCORE_VPL*>(m_core);
-        MFX_CHECK_WITH_ASSERT(vaapi_core_vpl, MFX_ERR_DEVICE_FAILED);
+    VAAPIVideoCORE_VPL* vaapi_core_vpl = dynamic_cast<VAAPIVideoCORE_VPL*>(m_core);
+    MFX_CHECK_WITH_ASSERT(vaapi_core_vpl, MFX_ERR_DEVICE_FAILED);
 
-        MFX_SAFE_CALL(vaapi_core_vpl->GetVAService(&m_vaDisplay));
-    }
+    MFX_SAFE_CALL(vaapi_core_vpl->GetVAService(&m_vaDisplay));
 
     m_caps = {};
 
@@ -510,20 +500,10 @@ mfxStatus VAAPIEncoder::Init(ENCODE_FUNC func, ExecuteBuffers* pExecuteBuffers)
     ExtVASurface cleanSurf = {VA_INVALID_ID, 0, 0};
     std::fill(m_feedback.begin(), m_feedback.end(), cleanSurf);
 
-    VAAPIVideoCORE* vaapi_core_1x = dynamic_cast<VAAPIVideoCORE*>(m_core);
-    if (vaapi_core_1x)
-    {
-        // Legacy MSDK 1.x case
-        MFX_SAFE_CALL(vaapi_core_1x->GetVAService(&m_vaDisplay));
-    }
-    else
-    {
-        // VPL case
-        VAAPIVideoCORE_VPL* vaapi_core_vpl = dynamic_cast<VAAPIVideoCORE_VPL*>(m_core);
-        MFX_CHECK_WITH_ASSERT(vaapi_core_vpl, MFX_ERR_DEVICE_FAILED);
+    VAAPIVideoCORE_VPL* vaapi_core_vpl = dynamic_cast<VAAPIVideoCORE_VPL*>(m_core);
+    MFX_CHECK_WITH_ASSERT(vaapi_core_vpl, MFX_ERR_DEVICE_FAILED);
 
-        MFX_SAFE_CALL(vaapi_core_vpl->GetVAService(&m_vaDisplay));
-    }
+    MFX_SAFE_CALL(vaapi_core_vpl->GetVAService(&m_vaDisplay));
 
     VAStatus vaSts;
     VAProfile mpegProfile = ConvertProfileTypeMFX2VAAPI(pExecuteBuffers->m_sps.Profile);

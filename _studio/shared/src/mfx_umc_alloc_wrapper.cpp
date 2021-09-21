@@ -1134,9 +1134,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
     // Since DECODE uses internal allocation at init step (when we can't actually understand whether user will use
     // VPL interface or not) we are forcing 1.x interface in case if ext allocator set
 
-    bool vpl_interface = SupportsVPLFeatureSet(*m_core);
-
-    m_redirect_to_vpl_path = vpl_interface && !m_core->IsExternalFrameAllocator();
+    m_redirect_to_vpl_path = !m_core->IsExternalFrameAllocator();
 
     if (m_redirect_to_vpl_path)
     {

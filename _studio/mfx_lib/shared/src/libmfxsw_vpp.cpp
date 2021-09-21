@@ -195,7 +195,7 @@ mfxStatus MFXVideoVPP_Init(mfxSession session, mfxVideoParam *par)
         MFX_CHECK(session->m_pVPP.get(), MFX_ERR_INVALID_VIDEO_PARAM);
         mfxRes = session->m_pVPP->Init(par);
 
-        if (mfxRes >= MFX_ERR_NONE && SupportsVPLFeatureSet(*session->m_pCORE.get()))
+        if (mfxRes >= MFX_ERR_NONE)
         {
             MFX_SAFE_CALL(SetupCache(session, *par));
         }

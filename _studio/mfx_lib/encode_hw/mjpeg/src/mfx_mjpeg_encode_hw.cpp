@@ -613,13 +613,6 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Init(mfxVideoParam *par)
 
     par = &checked; // from now work with fixed copy of input!
 
-    bool vpl_interface = SupportsVPLFeatureSet(*m_pCore);
-
-    if (!m_pCore->IsExternalFrameAllocator()
-        && !vpl_interface
-        && (par->IOPattern & (MFX_IOPATTERN_OUT_VIDEO_MEMORY | MFX_IOPATTERN_IN_VIDEO_MEMORY)))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
-
     m_ddi.reset( CreatePlatformMJpegEncoder( m_pCore ) );
     if (m_ddi.get() == 0)
         return MFX_WRN_PARTIAL_ACCELERATION;
@@ -905,12 +898,10 @@ mfxStatus MFXVideoENCODEMJPEG_HW::EncodeFrameCheck(
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    bool vpl_interface = SupportsVPLFeatureSet(*m_pCore);
-
     mfxStatus checkSts = CheckEncodeFrameParam(
         surface,
         bs,
-        m_pCore->IsExternalFrameAllocator() || vpl_interface);
+        true);
     MFX_CHECK(checkSts >= MFX_ERR_NONE, checkSts);
 
     mfxStatus status = checkSts;

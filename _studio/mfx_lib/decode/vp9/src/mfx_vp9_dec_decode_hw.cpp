@@ -961,13 +961,6 @@ mfxStatus VideoDECODEVP9_HW::PrepareInternalSurface(UMC::FrameMemID &mid)
         surf->Info.Width  = m_vPar.mfx.FrameInfo.Width;
         surf->Info.Height = m_vPar.mfx.FrameInfo.Height;
 
-        if (VAAPIVideoCORE *vaapi_core_1x = dynamic_cast<VAAPIVideoCORE *>(m_core))
-        {
-            // Legacy MSDK 1.x case
-            return vaapi_core_1x->ReallocFrame(surf);
-        }
-
-        // VPL case
         VAAPIVideoCORE_VPL* vaapi_core_vpl = dynamic_cast<VAAPIVideoCORE_VPL*>(m_core);
         MFX_CHECK_NULL_PTR1(vaapi_core_vpl);
 
@@ -1023,13 +1016,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK_NULL_PTR1(surface_out);
     *surface_out = nullptr;
-
-    bool allow_null_work_surface = SupportsVPLFeatureSet(*m_core);
-
-    if (!allow_null_work_surface)
-    {
-        MFX_CHECK_NULL_PTR1(surface_work);
-    }
 
     if (surface_work)
     {

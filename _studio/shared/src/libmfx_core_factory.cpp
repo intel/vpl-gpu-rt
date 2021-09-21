@@ -31,22 +31,13 @@ VideoCORE* FactoryCORE::CreateCORE(eMFXVAType va_type,
 {
     (void)adapterNum;
 
-    bool create_vpl_core = mfx::GetEnv("MFX_CORE_INTERNAL_ALLOCATION_API_ENABLE", true);
-    std::ignore = create_vpl_core;
-
     switch (va_type)
     {
     case MFX_HW_NO:
-        if (create_vpl_core)
-            return new CommonCORE_VPL(numThreadsAvailable, session);
-
-        return new CommonCORE(numThreadsAvailable, session);
+        return new CommonCORE_VPL(numThreadsAvailable, session);
 
     case MFX_HW_VAAPI:
-        if (create_vpl_core)
-            return new VAAPIVideoCORE_VPL(adapterNum, numThreadsAvailable, session);
-
-        return new VAAPIVideoCORE(adapterNum, numThreadsAvailable, session);
+        return new VAAPIVideoCORE_VPL(adapterNum, numThreadsAvailable, session);
     default:
         return nullptr;
     }

@@ -619,18 +619,12 @@ mfxStatus VideoDECODEMPEG2::DecodeFrameCheck(mfxBitstream* bs, mfxFrameSurface1*
     }
     else
     {
-        bool allow_null_work_surface = SupportsVPLFeatureSet(*m_core);
-
-        /*
-        In case 1.x core and nullptr surface_work we need to return back to user one of surfaces which were previously decoded.
-        In case of system memory these surfaces are video surfaces which were allocated by decoder. And we can't return them because user wait system surface.
-        So, we can allow surface_work to be nullptr only for video memory or for new core (model 3).
-        */
-        MFX_CHECK(allow_null_work_surface || m_init_video_par.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY, MFX_ERR_UNSUPPORTED)
+        /* Previously this branch indicated drain state of the decode, but with VPL core + Internal alloac (memory model 3) it is allowed situation to have
+           work_surface == nullptr here. So we use m_allow_null_work_surface as indicator of memory model 3 to skip bitstream check. */
 
         bool empty_bitstream = !bs || bs->DataFlag == MFX_BITSTREAM_EOS;
 
-        if (!empty_bitstream && allow_null_work_surface)
+        if (!empty_bitstream)
         {
             m_allow_null_work_surface = true;
         }

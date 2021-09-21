@@ -1108,22 +1108,9 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs,
 mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out)
 {
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK_NULL_PTR1(surface_out);
 
-    bool allow_null_work_surface = SupportsVPLFeatureSet(*m_core);
-
-    if (allow_null_work_surface)
-    {
-        MFX_CHECK_NULL_PTR1(surface_out);
-    }
-    else
-    {
-        MFX_CHECK_NULL_PTR2(surface_work, surface_out);
-    }
-
-    mfxStatus sts = MFX_ERR_NONE;
-
-    sts = bs ? CheckBitstream(bs) : MFX_ERR_NONE;
-
+    mfxStatus sts = bs ? CheckBitstream(bs) : MFX_ERR_NONE;
     MFX_CHECK_STS(sts);
 
     UMC::Status umcRes = UMC::UMC_OK;

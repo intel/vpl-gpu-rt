@@ -937,17 +937,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH265::DecodeFrameCheck");
 
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
-
-    bool allow_null_work_surface = SupportsVPLFeatureSet(*m_core);
-
-    if (allow_null_work_surface)
-    {
-        MFX_CHECK_NULL_PTR1(surface_out);
-    }
-    else
-    {
-        MFX_CHECK_NULL_PTR2(surface_work, surface_out);
-    }
+    MFX_CHECK_NULL_PTR1(surface_out);
 
     mfxStatus sts = MFX_ERR_NONE;
 
