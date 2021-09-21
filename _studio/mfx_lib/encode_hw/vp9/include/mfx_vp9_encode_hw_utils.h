@@ -939,7 +939,8 @@ mfxStatus GetNativeHandleToRawSurface(
     VideoCORE & core,
     mfxFrameSurface1& surf,
     mfxHDLPair& handle,
-    VP9MfxVideoParam const & video);
+    VP9MfxVideoParam const & video,
+    bool isD3D9SimWithVideoMem);
 
 } // MfxHwVP9Encode
 

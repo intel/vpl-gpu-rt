@@ -812,7 +812,7 @@ mfxStatus CopyRawSurfaceToVideoMemory(
 {
     if (task.m_pRawLocalFrame)
     {
-        mfxFrameSurface1 *pInternalSurf = task.m_pRawLocalFrame->pSurface;
+        mfxFrameSurface1* pInternalSurf = task.m_pRawLocalFrame->pSurface;
         mfxFrameSurface1 *pExternalSurface = 0;
         mfxStatus sts = GetRealSurface(pCore, par, task, pExternalSurface);
         MFX_CHECK_STS(sts);
@@ -837,13 +837,14 @@ mfxStatus GetNativeHandleToRawSurface(
     VideoCORE& core,
     mfxFrameSurface1& surf,
     mfxHDLPair& handle,
-    VP9MfxVideoParam const& video)
+    VP9MfxVideoParam const& video,
+    bool isD3D9SimWithVideoMem)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
     mfxU32 iopattern = video.IOPattern;
 
-    if (    iopattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
+    if (iopattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY || isD3D9SimWithVideoMem)
         sts = core.GetFrameHDL(surf, handle);
     else if (iopattern == MFX_IOPATTERN_IN_VIDEO_MEMORY)
         sts = core.GetExternalFrameHDL(surf, handle);

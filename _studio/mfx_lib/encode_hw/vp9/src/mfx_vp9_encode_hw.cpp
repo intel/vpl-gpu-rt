@@ -359,7 +359,8 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
     request.Info = m_video.mfx.FrameInfo;
     request.Type = MFX_MEMTYPE_D3D_INT;
 
-    m_bUseInternalMem = m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY || (IsD3D9Simulation(*m_pCore) && (m_video.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY));
+    m_isD3D9SimWithVideoMem = IsD3D9Simulation(*m_pCore) && (m_video.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY);
+    m_bUseInternalMem = m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY || m_isD3D9SimWithVideoMem;
     if (m_bUseInternalMem)
     {
         request.NumFrameMin = request.NumFrameSuggested = (mfxU16)CalcNumSurfRaw(m_video);
@@ -872,7 +873,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mf
             MFX_CHECK_STS(sts);
 
             // get handle to input frame in VIDEO memory (either external or local)
-            sts = GetNativeHandleToRawSurface(*m_pCore, *pSurface, surfaceHDL, m_video);
+            sts = GetNativeHandleToRawSurface(*m_pCore, *pSurface, surfaceHDL, m_video, m_isD3D9SimWithVideoMem);
             MFX_CHECK_STS(sts);
 
             MFX_CHECK_STS(sts);
