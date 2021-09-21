@@ -268,12 +268,12 @@ protected:
 
     // Decoder works with these surfaces
     //shared_surface_cache_controller
-    std::shared_ptr<surface_cache_controller<SurfaceCache> > m_surface20_cache_decoder_surfaces;
+    std::shared_ptr<surface_cache_controller<SurfaceCache> > m_vpl_cache_decoder_surfaces;
     // These surfaces are outputted to user (different with previous pool
     // in case of IO pattern and decoder impl mismatch or SFC on Linux)
-    std::shared_ptr<surface_cache_controller<SurfaceCache> > m_surface20_cache_output_surfaces;
+    std::shared_ptr<surface_cache_controller<SurfaceCache> > m_vpl_cache_output_surfaces;
 
-    bool                                          m_redirect_to_msdk20 = false;
+    bool                                          m_redirect_to_vpl_path = false;
 
     std::unique_ptr<mfx_UMC_FrameAllocator>       m_umc_allocator_adapter;
 
@@ -321,7 +321,7 @@ private:
     */
     std::map<mfxFrameSurface1*, mfxFrameSurface1*> m_output_work_surface_skip_frames;
 
-    // MSDK 2.0 memory model 2 (GetSurfaceForDecode + DecodeFrameAsync)
+    // VPL memory model 2 (GetSurfaceForDecode + DecodeFrameAsync)
     bool                                      m_memory_model2        = false;
     mfxFrameSurface1*                         m_current_work_surface = nullptr;
 

@@ -1136,9 +1136,9 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
 
     bool vpl_interface = SupportsVPLFeatureSet(*m_core);
 
-    m_redirect_to_msdk20 = vpl_interface && !m_core->IsExternalFrameAllocator();
+    m_redirect_to_vpl_path = vpl_interface && !m_core->IsExternalFrameAllocator();
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         auto dec_postprocessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(video_param.ExtParam, video_param.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
 
@@ -1171,7 +1171,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         }
         std::unique_ptr<SurfaceCache> scoped_cache_ptr(SurfaceCache::Create(*base_core_vpl, request.Type, request.Info));
 
-        m_surface20_cache_decoder_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get()));
+        m_vpl_cache_decoder_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get()));
         scoped_cache_ptr.release();
 
         m_sw_fallback_sys_mem = (MFX_PLATFORM_SOFTWARE == platform) && (video_param.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
@@ -1188,20 +1188,20 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         if (!m_allocate_internal)
         {
             // We simply use the same surfaces
-            m_surface20_cache_output_surfaces = m_surface20_cache_decoder_surfaces;
+            m_vpl_cache_output_surfaces = m_vpl_cache_decoder_surfaces;
         }
         else
         {
             scoped_cache_ptr.reset(SurfaceCache::Create(*base_core_vpl, needVppJPEG ? request_type : output_type, needVppJPEG ? request_info : output_info));
 
-            m_surface20_cache_output_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get()));
+            m_vpl_cache_output_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get()));
             scoped_cache_ptr.release();
         }
 
         mfxSession session = m_core->GetSession();
         MFX_CHECK_WITH_THROW(session, MFX_ERR_INVALID_HANDLE, mfx::mfxStatus_exception(MFX_ERR_INVALID_HANDLE));
 
-        mfxStatus sts = m_surface20_cache_output_surfaces->SetupCache(session, video_param);
+        mfxStatus sts = m_vpl_cache_output_surfaces->SetupCache(session, video_param);
         MFX_CHECK_WITH_THROW(sts == MFX_ERR_NONE, sts, mfx::mfxStatus_exception(sts));
 
         mfxU32 bit_depth              = BitDepthFromFourcc(video_param.mfx.FrameInfo.FourCC);
@@ -1370,17 +1370,17 @@ void SurfaceSource::ReleaseCurrentWorkSurface()
 // Closes object and releases all allocated memory
 UMC::Status SurfaceSource::Close()
 {
-    MFX_CHECK( m_redirect_to_msdk20 == !!m_surface20_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
-    MFX_CHECK(!m_redirect_to_msdk20 == !!m_umc_allocator_adapter, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK( m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter,      UMC::UMC_ERR_NOT_INITIALIZED);
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
         ReleaseCurrentWorkSurface();
 
-        m_surface20_cache_decoder_surfaces.reset();
-        m_surface20_cache_output_surfaces.reset();
+        m_vpl_cache_decoder_surfaces.reset();
+        m_vpl_cache_output_surfaces.reset();
 
         m_mfx2umc_memid.clear();
         m_umc2mfx_memid.clear();
@@ -1409,10 +1409,10 @@ UMC::Status SurfaceSource::Close()
 
 UMC::Status SurfaceSource::Reset()
 {
-    MFX_CHECK(m_redirect_to_msdk20 == !!m_surface20_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
-    MFX_CHECK(!m_redirect_to_msdk20 == !!m_umc_allocator_adapter, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK(m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter, UMC::UMC_ERR_NOT_INITIALIZED);
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -1471,7 +1471,7 @@ mfxFrameSurface1* SurfaceSource::GetDecoderSurface(UMC::FrameMemID index)
         return nullptr;
     }
 
-    mfxFrameSurface1* surf = (*m_surface20_cache_decoder_surfaces)->FindSurface(it->second);
+    mfxFrameSurface1* surf = (*m_vpl_cache_decoder_surfaces)->FindSurface(it->second);
     if (m_sw_fallback_sys_mem)
     {
         if (index >= (UMC::FrameMemID)m_sw_fallback_surfaces.size())
@@ -1551,10 +1551,10 @@ void SurfaceSource::RemoveCorrespondence(mfxFrameSurface1& surface_work)
 
 UMC::Status SurfaceSource::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDataInfo * info, uint32_t Flags)
 {
-    MFX_CHECK(m_redirect_to_msdk20 == !!m_surface20_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
-    MFX_CHECK(!m_redirect_to_msdk20 == !!m_umc_allocator_adapter, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK(m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter, UMC::UMC_ERR_NOT_INITIALIZED);
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -1599,7 +1599,7 @@ UMC::Status SurfaceSource::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDat
 
         using namespace std::chrono;
 
-        auto cache_timeout = (*m_surface20_cache_decoder_surfaces)->GetTimeout();
+        auto cache_timeout = (*m_vpl_cache_decoder_surfaces)->GetTimeout();
 
         // Start timer if first entry to Alloc and timeout option passed on Init
         if (!m_timer.IsRunnig() && cache_timeout != 0ms)
@@ -1621,7 +1621,7 @@ UMC::Status SurfaceSource::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDat
 
         mfxFrameSurface1* surf = nullptr;
         // If timer wasn't set (i.e. cache hints buffer wasn't attached) cache timeout below would be zero (i.e. no waiting for free surface)
-        sts = (*m_surface20_cache_decoder_surfaces)->GetSurface(surf, cache_timeout, true);
+        sts = (*m_vpl_cache_decoder_surfaces)->GetSurface(surf, cache_timeout, true);
 
         MFX_CHECK(sts == MFX_ERR_NONE,        UMC::UMC_ERR_ALLOC);
 
@@ -1640,7 +1640,7 @@ UMC::Status SurfaceSource::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDat
             // SFC on Linux
 
             mfxFrameSurface1* output_surface = nullptr;
-            sts = (*m_surface20_cache_output_surfaces)->GetSurface(output_surface, true);
+            sts = (*m_vpl_cache_output_surfaces)->GetSurface(output_surface, true);
             MFX_CHECK(sts == MFX_ERR_NONE,        UMC::UMC_ERR_ALLOC);
 
             // RAII lock to drop refcount in case of error
@@ -1668,10 +1668,10 @@ UMC::Status SurfaceSource::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDat
 
 UMC::Status SurfaceSource::GetFrameHandle(UMC::FrameMemID MID, void * handle)
 {
-    MFX_CHECK(m_redirect_to_msdk20 == !!m_surface20_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
-    MFX_CHECK(!m_redirect_to_msdk20 == !!m_umc_allocator_adapter, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK(m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter, UMC::UMC_ERR_NOT_INITIALIZED);
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -1687,18 +1687,18 @@ UMC::Status SurfaceSource::GetFrameHandle(UMC::FrameMemID MID, void * handle)
 
 const UMC::FrameData* SurfaceSource::Lock(UMC::FrameMemID MID)
 {
-    if (m_redirect_to_msdk20 != !!m_surface20_cache_decoder_surfaces)
+    if (m_redirect_to_vpl_path != !!m_vpl_cache_decoder_surfaces)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
         return nullptr;
     }
-    if (!m_redirect_to_msdk20 != !!m_umc_allocator_adapter)
+    if (!m_redirect_to_vpl_path != !!m_umc_allocator_adapter)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
         return nullptr;
     }
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -1782,10 +1782,10 @@ const UMC::FrameData* SurfaceSource::Lock(UMC::FrameMemID MID)
 
 UMC::Status SurfaceSource::Unlock(UMC::FrameMemID MID)
 {
-    MFX_CHECK(m_redirect_to_msdk20 == !!m_surface20_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
-    MFX_CHECK(!m_redirect_to_msdk20 == !!m_umc_allocator_adapter, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK(m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter, UMC::UMC_ERR_NOT_INITIALIZED);
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -1805,10 +1805,10 @@ UMC::Status SurfaceSource::Unlock(UMC::FrameMemID MID)
 
 UMC::Status SurfaceSource::IncreaseReference(UMC::FrameMemID MID)
 {
-    MFX_CHECK(m_redirect_to_msdk20 == !!m_surface20_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
-    MFX_CHECK(!m_redirect_to_msdk20 == !!m_umc_allocator_adapter, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK(m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter, UMC::UMC_ERR_NOT_INITIALIZED);
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -1825,10 +1825,10 @@ UMC::Status SurfaceSource::IncreaseReference(UMC::FrameMemID MID)
 
 UMC::Status SurfaceSource::DecreaseReference(UMC::FrameMemID MID)
 {
-    MFX_CHECK(m_redirect_to_msdk20 == !!m_surface20_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
-    MFX_CHECK(!m_redirect_to_msdk20 == !!m_umc_allocator_adapter, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK(m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
+    MFX_CHECK(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter, UMC::UMC_ERR_NOT_INITIALIZED);
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -1854,18 +1854,18 @@ UMC::Status SurfaceSource::DecreaseReference(UMC::FrameMemID MID)
 
 mfxI32 SurfaceSource::FindSurface(mfxFrameSurface1 *surf)
 {
-    if (m_redirect_to_msdk20 != !!m_surface20_cache_decoder_surfaces)
+    if (m_redirect_to_vpl_path != !!m_vpl_cache_decoder_surfaces)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
         return -1;
     }
-    if (!m_redirect_to_msdk20 != !!m_umc_allocator_adapter)
+    if (!m_redirect_to_vpl_path != !!m_umc_allocator_adapter)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
         return -1;
     }
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         if (!surf)
         {
@@ -1907,10 +1907,10 @@ mfxFrameSurface1* SurfaceSource::GetInternalSurface(mfxFrameSurface1* sfc_surf) 
 
 mfxStatus SurfaceSource::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
 {
-    MFX_CHECK(m_redirect_to_msdk20 == !!m_surface20_cache_decoder_surfaces, MFX_ERR_NOT_INITIALIZED);
-    MFX_CHECK(!m_redirect_to_msdk20 == !!m_umc_allocator_adapter, MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter, MFX_ERR_NOT_INITIALIZED);
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -1924,7 +1924,7 @@ mfxStatus SurfaceSource::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
 
         MFX_CHECK(surf->Data.Locked == 0, MFX_ERR_MORE_SURFACE);
 
-        MFX_SAFE_CALL(m_surface20_cache_output_surfaces->Update(*surf));
+        MFX_SAFE_CALL(m_vpl_cache_output_surfaces->Update(*surf));
 
         // Memory model 2, non-null work surface passed
 
@@ -1938,7 +1938,7 @@ mfxStatus SurfaceSource::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
         {
             // Create internal surface
             mfxFrameSurface1* internal_surf = nullptr;
-            MFX_SAFE_CALL((*m_surface20_cache_decoder_surfaces)->GetSurface(internal_surf, true));
+            MFX_SAFE_CALL((*m_vpl_cache_decoder_surfaces)->GetSurface(internal_surf, true));
             MFX_CHECK_NULL_PTR1(internal_surf);
 
             // RAII lock to drop refcount in case of error
@@ -1980,18 +1980,18 @@ mfxStatus SurfaceSource::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
 
 mfxFrameSurface1 * SurfaceSource::GetSurface(UMC::FrameMemID index, mfxFrameSurface1 *surface, const mfxVideoParam * videoPar)
 {
-    if (m_redirect_to_msdk20 != !!m_surface20_cache_decoder_surfaces)
+    if (m_redirect_to_vpl_path != !!m_vpl_cache_decoder_surfaces)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
         return nullptr;
     }
-    if (!m_redirect_to_msdk20 != !!m_umc_allocator_adapter)
+    if (!m_redirect_to_vpl_path != !!m_umc_allocator_adapter)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
         return nullptr;
     }
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -2033,7 +2033,7 @@ mfxFrameSurface1 * SurfaceSource::GetSurface(UMC::FrameMemID index, mfxFrameSurf
         {
             // Model 3: null work_surface passed by user
             // Allocate SW output surface here
-            mfxStatus sts = (*m_surface20_cache_output_surfaces)->GetSurface(surface, true);
+            mfxStatus sts = (*m_vpl_cache_output_surfaces)->GetSurface(surface, true);
             if (MFX_STS_TRACE(sts) != MFX_ERR_NONE)
             {
                 return nullptr;
@@ -2095,18 +2095,18 @@ mfxFrameSurface1 * SurfaceSource::GetSurface(UMC::FrameMemID index, mfxFrameSurf
 
 mfxFrameSurface1 * SurfaceSource::GetInternalSurface(UMC::FrameMemID index)
 {
-    if (m_redirect_to_msdk20 != !!m_surface20_cache_decoder_surfaces)
+    if (m_redirect_to_vpl_path != !!m_vpl_cache_decoder_surfaces)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
         return nullptr;
     }
-    if (!m_redirect_to_msdk20 != !!m_umc_allocator_adapter)
+    if (!m_redirect_to_vpl_path != !!m_umc_allocator_adapter)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
         return nullptr;
     }
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         if (!m_allocate_internal)
             return nullptr;
@@ -2121,26 +2121,26 @@ mfxFrameSurface1 * SurfaceSource::GetInternalSurface(UMC::FrameMemID index)
 
 mfxStatus SurfaceSource::GetSurface(mfxFrameSurface1* & surface)
 {
-    MFX_CHECK(m_redirect_to_msdk20,              MFX_ERR_UNSUPPORTED);
-    MFX_CHECK(m_surface20_cache_output_surfaces, MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(m_redirect_to_vpl_path,              MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(m_vpl_cache_output_surfaces, MFX_ERR_NOT_INITIALIZED);
 
-    return (*m_surface20_cache_output_surfaces)->GetSurface(surface);
+    return (*m_vpl_cache_output_surfaces)->GetSurface(surface);
 }
 
 mfxFrameSurface1 * SurfaceSource::GetSurfaceByIndex(UMC::FrameMemID index)
 {
-    if (m_redirect_to_msdk20 != !!m_surface20_cache_decoder_surfaces)
+    if (m_redirect_to_vpl_path != !!m_vpl_cache_decoder_surfaces)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
         return nullptr;
     }
-    if (!m_redirect_to_msdk20 != !!m_umc_allocator_adapter)
+    if (!m_redirect_to_vpl_path != !!m_umc_allocator_adapter)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
         return nullptr;
     }
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -2155,10 +2155,10 @@ mfxFrameSurface1 * SurfaceSource::GetSurfaceByIndex(UMC::FrameMemID index)
 
 mfxStatus SurfaceSource::PrepareToOutput(mfxFrameSurface1 *surface_out, UMC::FrameMemID index, const mfxVideoParam * videoPar)
 {
-    MFX_CHECK(m_redirect_to_msdk20 == !!m_surface20_cache_decoder_surfaces, MFX_ERR_NOT_INITIALIZED);
-    MFX_CHECK(!m_redirect_to_msdk20 == !!m_umc_allocator_adapter, MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter, MFX_ERR_NOT_INITIALIZED);
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         MFX_CHECK_NULL_PTR1(surface_out);
 
@@ -2206,18 +2206,18 @@ mfxStatus SurfaceSource::PrepareToOutput(mfxFrameSurface1 *surface_out, UMC::Fra
 
 bool SurfaceSource::HasFreeSurface()
 {
-    if (m_redirect_to_msdk20 != !!m_surface20_cache_decoder_surfaces)
+    if (m_redirect_to_vpl_path != !!m_vpl_cache_decoder_surfaces)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
         return false;
     }
-    if (!m_redirect_to_msdk20 != !!m_umc_allocator_adapter)
+    if (!m_redirect_to_vpl_path != !!m_umc_allocator_adapter)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
         return false;
     }
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -2231,16 +2231,16 @@ bool SurfaceSource::HasFreeSurface()
 
 void SurfaceSource::SetFreeSurfaceAllowedFlag(bool flag)
 {
-    if (m_redirect_to_msdk20 != !!m_surface20_cache_decoder_surfaces)
+    if (m_redirect_to_vpl_path != !!m_vpl_cache_decoder_surfaces)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
     }
-    if (!m_redirect_to_msdk20 != !!m_umc_allocator_adapter)
+    if (!m_redirect_to_vpl_path != !!m_umc_allocator_adapter)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
     }
 
-    if (m_redirect_to_msdk20)
+    if (m_redirect_to_vpl_path)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
     }
