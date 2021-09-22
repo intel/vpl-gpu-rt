@@ -174,7 +174,6 @@ mfxStatus LPLA_EncTool::InitEncParams(mfxEncToolsCtrl const & ctrl, mfxExtEncToo
     m_encParams.mfx.QPB = ctrl.LaQp+2;
     m_encParams.mfx.NumSlice = 1;
     m_encParams.mfx.GopOptFlag = ctrl.GopOptFlag;
-    m_encParams.mfx.IdrInterval = m_IdrInterval;
 
     if (IsOn(pConfig.AdaptiveI))
         m_encParams.mfx.GopPicSize = 0xffff; // infinite GOP
