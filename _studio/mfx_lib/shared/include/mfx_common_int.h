@@ -148,6 +148,7 @@ mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, const mfxFrameSurface1& sur
 mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, mfxMemId mid);
 mfxU16 BitDepthFromFourcc(mfxU32 fourcc);
 mfxU16 ChromaFormatFromFourcc(mfxU32 fourcc);
+mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id);
 
 
 #endif
