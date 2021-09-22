@@ -1149,6 +1149,16 @@ VAAPIVideoCORE_VPL::~VAAPIVideoCORE_VPL()
     m_frame_allocator_wrapper.allocator_hw->Close();
 }
 
+void* VAAPIVideoCORE_VPL::QueryCoreInterface(const MFX_GUID& guid)
+{
+    if (MFXIVAAPIVideoCORE_VPL_GUID == guid)
+    {
+        return (void*)this;
+    }
+
+    return VAAPIVideoCORE_VPL_base::QueryCoreInterface(guid);
+}
+
 mfxStatus VAAPIVideoCORE_VPL::AllocFrames(
     mfxFrameAllocRequest* request,
     mfxFrameAllocResponse* response,

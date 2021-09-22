@@ -248,6 +248,8 @@ public:
 
     virtual ~VAAPIVideoCORE_VPL();
 
+    virtual void* QueryCoreInterface(const MFX_GUID& guid)                                                                                            override;
+
     virtual mfxStatus SetHandle(mfxHandleType type, mfxHDL handle)                                                                                    override;
 
     virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool isNeedCopy = true)                             override;

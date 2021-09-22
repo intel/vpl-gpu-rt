@@ -96,6 +96,13 @@ static const
 MFX_GUID MFXI_IS_CORED3D9ON11_GUID =
 { 0x4c849533, 0x839f, 0x4686, { 0x9c, 0x94, 0x5f, 0xbc, 0x39, 0x0, 0x8c, 0xd9 } };
 
+
+// {D12370E0-71D7-43DE-B704-B0856A414B65}
+static const MFX_GUID MFXIVAAPIVideoCORE_VPL_GUID =
+{ 0xd12370e0, 0x71d7, 0x43de, { 0xb7, 0x4, 0xb0, 0x85, 0x6a, 0x41, 0x4b, 0x65 } };
+
+
+
 // Try to obtain required interface
 // Declare a template to query an interface
 template <class T> inline

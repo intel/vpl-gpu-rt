@@ -1495,7 +1495,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     m_core = core;
 
-    VAAPIVideoCORE_VPL* vaapi_core_vpl = dynamic_cast<VAAPIVideoCORE_VPL*>(m_core);
+    VAAPIVideoCORE_VPL* vaapi_core_vpl = reinterpret_cast<VAAPIVideoCORE_VPL*>(m_core->QueryCoreInterface(MFXIVAAPIVideoCORE_VPL_GUID));
     MFX_CHECK_WITH_ASSERT(vaapi_core_vpl, MFX_ERR_DEVICE_FAILED);
 
     MFX_SAFE_CALL(vaapi_core_vpl->GetVAService(&m_vaDisplay));

@@ -963,7 +963,7 @@ mfxStatus VideoDECODEVP9_HW::PrepareInternalSurface(UMC::FrameMemID &mid)
         surf->Info.Width  = m_vPar.mfx.FrameInfo.Width;
         surf->Info.Height = m_vPar.mfx.FrameInfo.Height;
 
-        VAAPIVideoCORE_VPL* vaapi_core_vpl = dynamic_cast<VAAPIVideoCORE_VPL*>(m_core);
+        VAAPIVideoCORE_VPL* vaapi_core_vpl = reinterpret_cast<VAAPIVideoCORE_VPL*>(m_core->QueryCoreInterface(MFXIVAAPIVideoCORE_VPL_GUID));
         MFX_CHECK_NULL_PTR1(vaapi_core_vpl);
 
         return vaapi_core_vpl->ReallocFrame(surf);

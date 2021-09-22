@@ -124,7 +124,7 @@ mfxStatus VAAPIVideoProcessing::CreateDevice(VideoCORE * core, mfxVideoParam* pP
 {
     MFX_CHECK_NULL_PTR1(core);
 
-    VAAPIVideoCORE_VPL* vaapi_core_vpl = dynamic_cast<VAAPIVideoCORE_VPL*>(core);
+    VAAPIVideoCORE_VPL* vaapi_core_vpl = reinterpret_cast<VAAPIVideoCORE_VPL*>(core->QueryCoreInterface(MFXIVAAPIVideoCORE_VPL_GUID));
     MFX_CHECK_NULL_PTR1(vaapi_core_vpl);
 
     MFX_SAFE_CALL(vaapi_core_vpl->GetVAService(&m_vaDisplay));
