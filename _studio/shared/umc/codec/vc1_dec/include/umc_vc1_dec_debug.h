@@ -88,8 +88,8 @@ public:
     VM_Debug()
     {
 #ifdef VC1_DEBUG_ON
-        Logthread0 = vm_file_fopen(VM_STRING("_Log0.txt"),VM_STRING("w"));
-        Logthread1 = vm_file_fopen(VM_STRING("_Log1.txt"),VM_STRING("w"));
+        Logthread0 = fopen("_Log0.txt","w");
+        Logthread1 = fopen("_Log1.txt","w");
 
         VM_ASSERT(Logthread0 != NULL);
         VM_ASSERT(Logthread1 != NULL);
@@ -100,9 +100,9 @@ public:
     ~VM_Debug()
     {
 #ifdef VC1_DEBUG_ON
-        vm_file_fclose(Logthread0);
+        fclose(Logthread0);
         Logthread0 = NULL;
-        vm_file_fclose(Logthread1);
+        fclose(Logthread1);
         Logthread1 = NULL;
 #endif
     };
@@ -110,8 +110,8 @@ public:
 private:
 
 #ifdef VC1_DEBUG_ON
-    vm_file* Logthread0;
-    vm_file* Logthread1;
+    FILE* Logthread0;
+    FILE* Logthread1;
 #endif
 };
 
