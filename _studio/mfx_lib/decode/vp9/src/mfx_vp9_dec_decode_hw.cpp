@@ -1037,6 +1037,13 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     MFX_CHECK_NULL_PTR1(surface_out);
     *surface_out = nullptr;
 
+    bool allow_null_work_surface = SupportsVPLFeatureSet(*m_core);
+
+    if (!allow_null_work_surface)
+    {
+        MFX_CHECK_NULL_PTR1(surface_work);
+    }
+
     bool isVideoProcCscEnabled = false;
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     mfxExtDecVideoProcessing* videoProcessing = (mfxExtDecVideoProcessing*)GetExtendedBuffer(m_vInitPar.ExtParam, m_vInitPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);

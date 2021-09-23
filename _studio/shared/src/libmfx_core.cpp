@@ -1713,6 +1713,9 @@ void* CommonCORE_VPL::QueryCoreInterface(const MFX_GUID &guid)
     if (MFXAllocatorWrapper_GUID == guid)
         return &m_frame_allocator_wrapper;
 
+    if (MFXICommonCORE_VPL_GUID == guid)
+        return this;
+
     return CommonCORE::QueryCoreInterface(guid);
 }
 

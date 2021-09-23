@@ -631,8 +631,16 @@ mfxStatus MFXVideoDECODEVC1::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         }
     }
 
-    MFX_CHECK_NULL_PTR1(surface_disp);
+    bool allow_null_work_surface = SupportsVPLFeatureSet(*m_pCore);
 
+    if (allow_null_work_surface)
+    {
+        MFX_CHECK_NULL_PTR1(surface_disp);
+    }
+    else
+    {
+        MFX_CHECK_NULL_PTR2(surface_work, surface_disp);
+    }
     // for EOS support
     if (bs)
     {

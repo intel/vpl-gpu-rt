@@ -616,7 +616,16 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
     if (NeedToReturnCriticalStatus(p_bs))
         return ReturningCriticalStatus();
 
-    MFX_CHECK_NULL_PTR1(pp_surface_out);
+    bool allow_null_work_surface = SupportsVPLFeatureSet(*m_p_core);
+
+    if (allow_null_work_surface)
+    {
+        MFX_CHECK_NULL_PTR1(pp_surface_out);
+    }
+    else
+    {
+        MFX_CHECK_NULL_PTR2(p_surface_work, pp_surface_out);
+    }
 
     if (p_surface_work)
     {

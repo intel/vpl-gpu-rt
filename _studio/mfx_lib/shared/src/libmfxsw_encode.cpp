@@ -528,7 +528,7 @@ mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
             mfxRes = MFX_ERR_INVALID_VIDEO_PARAM;
         }
 
-        if (mfxRes >= MFX_ERR_NONE)
+        if (mfxRes >= MFX_ERR_NONE && SupportsVPLFeatureSet(*session->m_pCORE.get()))
         {
             MFX_SAFE_CALL(SetupCache(session, *par));
         }

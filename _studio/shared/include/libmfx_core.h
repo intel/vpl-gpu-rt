@@ -703,6 +703,11 @@ private:
     std::list<mfxU32>         m_requests;
 };
 
+inline bool SupportsVPLFeatureSet(VideoCORE& core)
+{
+    return !!core.QueryCoreInterface(MFXICommonCORE_VPL_GUID);
+}
+
 inline bool IsD3D9Simulation(VideoCORE& core)
 {
     bool* cored3d9on11_interface = reinterpret_cast<bool*>(core.QueryCoreInterface(MFXI_IS_CORED3D9ON11_GUID));
