@@ -205,9 +205,6 @@ protected:
 
     void                   ReleaseHandle();
 
-    bool                   IsCmSupported();
-    mfxStatus              TryInitializeCm();
-
     std::unique_ptr<UMC::LinuxVideoAccelerator> m_pVA;
     VADisplay                                   m_Display;
     mfxHDL                                      m_VAConfigHandle;
@@ -222,7 +219,8 @@ protected:
     eMFXHWType                                  m_HWType;
     eMFXGTConfig                                m_GTConfig;
 
-    mfxU32                                      m_ForcedCmState = MFX_GPUCOPY_DEFAULT;
+    bool                                        m_bCmCopy;
+    bool                                        m_bCmCopyAllowed;
     std::unique_ptr<CmCopyWrapper>              m_pCmCopy;
 #if defined (MFX_ENABLE_VPP)
     VPPHWResMng                                 m_vpp_hw_resmng;
