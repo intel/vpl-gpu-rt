@@ -180,6 +180,7 @@ if (MFX_ENABLE_VP9_VIDEO_ENCODE)
     vp9/include/mfx_vp9_encode_hw_par.h
     vp9/include/mfx_vp9_encode_hw_utils.h
     vp9/include/mfx_vp9_encode_hw_vaapi.h
+    vp9/include/mfx_vp9_encode_hw_ddi.h
 
     vp9/src/mfx_vp9_encode_hw.cpp
     vp9/src/mfx_vp9_encode_hw_ddi.cpp
