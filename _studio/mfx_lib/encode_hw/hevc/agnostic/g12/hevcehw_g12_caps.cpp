@@ -29,7 +29,7 @@ using namespace HEVCEHW::Gen12;
 void Caps::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 {
     Push(BLK_SetDefaultsCallChain,
-        [this](const mfxVideoParam&, mfxVideoParam&, StorageRW& strg) -> mfxStatus
+        [this](const mfxVideoParam&, mfxVideoParam& out, StorageRW& strg) -> mfxStatus
     {
         auto& defaults = HEVCEHW::Base::Glob::Defaults::GetOrConstruct(strg);
         auto& bSet = defaults.SetForFeature[GetID()];
@@ -66,6 +66,34 @@ void Caps::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
                 , std::min<mfxU16>(nRef[bVDEnc][1][tu], std::min<mfxU16>(dpar.caps.MaxNum_Reference0, numRefFrame))
                 , std::min<mfxU16>(nRef[bVDEnc][2][tu], std::min<mfxU16>(dpar.caps.MaxNum_Reference1, numRefFrame)));
         });
+
+        if (IsOn(out.mfx.LowPower))
+        {
+            defaults.GetGopRefDist.Push([](
+                Base::Defaults::TChain<mfxU16>::TExt
+                , const Base::Defaults::Param& par)
+            {
+                if (par.mvp.mfx.GopRefDist)
+                {
+                    return par.mvp.mfx.GopRefDist;
+                }
+                auto GopPicSize = par.base.GetGopPicSize(par);
+                const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par.mvp);
+                bool bNoB =
+                    (pCO2 && pCO2->IntRefType)
+                    || par.base.GetNumTemporalLayers(par) > 1
+                    || par.caps.SliceIPOnly
+                    || GopPicSize < 3
+                    || par.mvp.mfx.NumRefFrame == 1;
+
+                if (bNoB)
+                {
+                    return mfxU16(1);
+                }
+
+                return std::min<mfxU16>(GopPicSize - 1, 8);
+            });
+        }
 
         bSet = true;
 
