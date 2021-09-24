@@ -1061,6 +1061,11 @@ void HevcEncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         {
             std::unique_lock<std::mutex> closeGuard(tm.m_closeMtx);
 
+            if(tm.m_nRecodeTasks)
+            {
+                return MFX_ERR_NONE;
+            }
+
             if (StorageW* pTask = tm.GetTask(tm.Stage(S_ET_SUBMIT)))
             {
                 SubmitPreEncTask(global, *pTask);
@@ -1077,6 +1082,11 @@ void HevcEncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         {
             std::unique_lock<std::mutex> closeGuard(tm.m_closeMtx);
             bool       bFlush = !tm.IsInputTask(s_task);
+
+            if(tm.m_nRecodeTasks)
+            {
+                return MFX_ERR_NONE;
+            }
 
             // Delay For LookAhead Depth
             MFX_CHECK(tm.m_stages.at(tm.Stage(S_ET_QUERY)).size() >= std::max(m_maxDelay,1U)  || bFlush,MFX_ERR_NONE);
