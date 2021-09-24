@@ -205,6 +205,17 @@ typedef union {
     mfxFrameParamMPEG2  MPEG2;
 } mfxFrameParam;
 
+enum
+{
+    CQM_HINT_USE_FLAT_MATRIX  = 0,   //use flat matrix
+    CQM_HINT_USE_CUST_MATRIX1 = 1,   //use weak customized matrixm
+    CQM_HINT_USE_CUST_MATRIX2 = 2,   //use medium customized matrixm
+    CQM_HINT_USE_CUST_MATRIX3 = 3,   //use strong customized matrixm
+    CQM_HINT_USE_CUST_MATRIX4 = 4,   //use extreme customized matrixm
+    CQM_HINT_NUM_CUST_MATRIX  = 4,   //the number of customized matrixm
+    CQM_HINT_INVALID          = 0xFF  //invalid hint
+};
+
 
 #ifdef __cplusplus
 } // extern "C"

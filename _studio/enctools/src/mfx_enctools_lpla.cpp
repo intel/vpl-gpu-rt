@@ -458,7 +458,11 @@ mfxStatus LPLA_EncTool::Query(mfxU32 dispOrder, mfxEncToolsHintQuantMatrix *pCqm
     else if ((mfxI32)dispOrder > m_curDispOrder)
     {
         if (m_encodeHints.empty())
+        {
+            pCqmHint->MatrixType = CQM_HINT_INVALID;
             return MFX_ERR_NOT_FOUND;
+        }
+
         m_curEncodeHints = m_encodeHints.front();
         m_curDispOrder = (mfxI32)dispOrder;
         m_encodeHints.pop_front();
@@ -482,7 +486,6 @@ mfxStatus LPLA_EncTool::Query(mfxU32 dispOrder, mfxEncToolsHintQuantMatrix *pCqm
     default:
         pCqmHint->MatrixType = MFX_QUANT_MATRIX_FLAT;
     }
-
     return MFX_ERR_NONE;
 }
 #endif

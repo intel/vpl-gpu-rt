@@ -1943,7 +1943,7 @@ mfxStatus Packer::Reset(
     const VPS& vps
     , const SPS& sps
     , const PPS& pps
-    , const PPS& cqmpps
+    , const std::vector<PPS>& cqmpps
     , const std::vector<SliceInfo>& si
     , PackedHeaders& ph)
 {
@@ -1984,12 +1984,19 @@ mfxStatus Packer::Reset(
     pESBegin += ph.PPS.BitLen / 8;
 
     // Pack cqm PPS header for adaptive cqm.
-    if (m_pGlob->Contains(CC::Key) && cqmpps.scaling_list_data_present_flag && CC::Get(*m_pGlob).PackCqmHeader(m_pGlob))
+    if (m_pGlob->Contains(CC::Key) && CC::Get(*m_pGlob).PackCqmHeader(m_pGlob))
     {
-        PackPPS(rbsp, cqmpps);
-        sts = PackHeader(rbsp, pESBegin, pESEnd, ph.CqmPPS);
-        MFX_CHECK_STS(sts);
-        pESBegin += ph.CqmPPS.BitLen / 8;
+        ph.CqmPPS.resize(CQM_HINT_NUM_CUST_MATRIX);
+        for (mfxU8 idx = 0; idx < CQM_HINT_NUM_CUST_MATRIX && idx < cqmpps.size(); idx++)
+        {
+            if (cqmpps[idx].scaling_list_data_present_flag)
+            {
+                PackPPS(rbsp, cqmpps[idx]);
+                sts = PackHeader(rbsp, pESBegin, pESEnd, ph.CqmPPS[idx]);
+                MFX_CHECK_STS(sts);
+                pESBegin += ph.CqmPPS[idx].BitLen / 8;
+            }
+        }
     }
 
     ph.SSH.resize(si.size());
@@ -2122,7 +2129,7 @@ void Packer::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             }
 
             // Update Slice header for adaptive cqm.
-            if (global.Contains(CC::Key)) CC::Get(global).UpdateSH(s_task);
+            if (global.Contains(CC::Key)) CC::Get(global).UpdateSH(global, s_task);
 
             mfxU32 sz = GetPSEIAndSSH(
                 Glob::VideoParam::Get(global)
@@ -2169,7 +2176,7 @@ void Packer::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             MFX_CHECK(!bErr, sts);
 
             // Update Slice header for adaptive cqm.
-            if (global.Contains(CC::Key)) CC::Get(global).UpdateSH(s_task);
+            if (global.Contains(CC::Key)) CC::Get(global).UpdateSH(global, s_task);
 
             mfxU32 sz = GetPSEIAndSSH(
                 Glob::VideoParam::Get(global)

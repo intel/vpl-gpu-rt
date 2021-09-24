@@ -942,7 +942,7 @@ namespace Base
         PackedData VPS;
         PackedData SPS;
         PackedData PPS;
-        PackedData CqmPPS;
+        std::vector<PackedData> CqmPPS;
         PackedData AUD[3];
         PackedData PrefixSEI;
         PackedData SuffixSEI;
@@ -1428,7 +1428,7 @@ namespace Base
         using VPS                 = StorageVar<__LINE__ - _KD, Base::VPS>;
         using SPS                 = StorageVar<__LINE__ - _KD, Base::SPS>;
         using PPS                 = StorageVar<__LINE__ - _KD, Base::PPS>;
-        using CqmPPS              = StorageVar<__LINE__ - _KD, Base::PPS>;
+        using CqmPPS              = StorageVar<__LINE__ - _KD, std::vector<Base::PPS>>;
         using SliceInfo           = StorageVar<__LINE__ - _KD, std::vector<Base::SliceInfo>>;
         using AllocRaw            = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocOpq            = StorageVar<__LINE__ - _KD, IAllocation>;

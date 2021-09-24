@@ -884,6 +884,9 @@ mfxStatus HevcEncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
         case MFX_QUANT_MATRIX_EXTREME:
             laStatus.CqmHint = CQM_HINT_USE_CUST_MATRIX4;
             break;
+        case CQM_HINT_INVALID:
+            laStatus.CqmHint = CQM_HINT_INVALID;
+            break;
         case MFX_QUANT_MATRIX_FLAT:
         default:
             laStatus.CqmHint = CQM_HINT_USE_FLAT_MATRIX;

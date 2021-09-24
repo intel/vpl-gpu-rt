@@ -147,7 +147,7 @@ namespace Base
             const VPS& vps
             , const SPS& sps
             , const PPS& pps
-            , const PPS& cqmpps
+            , const std::vector<PPS>& cqmpps
             , const std::vector<SliceInfo>& si
             , PackedHeaders& ph);
 
@@ -255,6 +255,7 @@ namespace Base
             : Storable
         {
             using TUpdateSH = CallChain<void
+                , const StorageR&
                 , StorageW&>;
             TUpdateSH UpdateSH;
 
