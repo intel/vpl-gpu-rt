@@ -160,7 +160,6 @@ mfxStatus MFXHWVideoENCODEH264::QueryImplsDescription(
         , MFX_PROFILE_AVC_HIGH
         , MFX_PROFILE_AVC_CONSTRAINED_HIGH
         , MFX_PROFILE_AVC_PROGRESSIVE_HIGH
-        , MFX_PROFILE_AVC_STEREO_HIGH
     };
     const mfxResourceType SupportedMemTypes[] =
     {
