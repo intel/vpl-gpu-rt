@@ -1,5 +1,5 @@
 /*############################################################################
-  # Copyright (C) 2019-2020 Intel Corporation
+  # Copyright Intel Corporation
   #
   # SPDX-License-Identifier: MIT
   ############################################################################*/
@@ -8,7 +8,7 @@
 #define __MFXDEFS_H__
 
 #define MFX_VERSION_MAJOR 2
-#define MFX_VERSION_MINOR 3
+#define MFX_VERSION_MINOR 5
 
 // MFX_VERSION_NEXT is always +1 from last public release
 // may be enforced by MFX_VERSION_USE_LATEST define
@@ -307,6 +307,8 @@ typedef enum
     /* low-delay partial output */
     MFX_ERR_NONE_PARTIAL_OUTPUT         = 12,   /*!< Frame is not ready, but bitstream contains partial output. */
 
+    MFX_WRN_ALLOC_TIMEOUT_EXPIRED       = 13,   /*!< Timeout expired for internal frame allocation. */
+
     /* threading statuses */
     MFX_TASK_DONE = MFX_ERR_NONE,               /*!< Task has been completed. */
     MFX_TASK_WORKING                    = 8,    /*!< There is some more work to do. */
@@ -316,6 +318,17 @@ typedef enum
     MFX_ERR_MORE_DATA_SUBMIT_TASK       = -10000, /*!< Return MFX_ERR_MORE_DATA but submit internal asynchronous task. */
 
 } mfxStatus;
+
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+/*! Represents Globally Unique Identifier (GUID) with memory layout 
+    compliant to RFC 4122. See https://www.rfc-editor.org/info/rfc4122 for details. */
+typedef struct
+{
+    mfxU8 Data[16]; /*!< Array to keep GUID. */
+} mfxGUID;
+MFX_PACK_END()
+
 
 
 // Application

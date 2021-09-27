@@ -1,5 +1,5 @@
 /*############################################################################
-  # Copyright (C) 2020 Intel Corporation
+  # Copyright Intel Corporation
   #
   # SPDX-License-Identifier: MIT
   ############################################################################*/
@@ -27,7 +27,7 @@ typedef struct _mfxConfig *mfxConfig;
 
    @since This function is available since API version 2.0.
 */
-mfxLoader MFX_CDECL MFXLoad();
+mfxLoader MFX_CDECL MFXLoad(void);
 
 /*!
    @brief Destroys the dispatcher.
@@ -64,66 +64,6 @@ mfxConfig MFX_CDECL MFXCreateConfig(mfxLoader loader);
           One mfxConfig properties can hold only single filter property.
           @note Each new call with the same parameter name will overwrite the previously set value. This may invalidate other properties.
           @note Each new call with another parameter name will delete the previous property and create a new property based on new name's value.
-
-          Simple usage example:
-          @code
-             mfxLoader loader = MFXLoad();
-             mfxConfig cfg = MFXCreateConfig(loader);
-             mfxVariant ImplValue;
-             ImplValue.Type = MFX_VARIANT_TYPE_U32;
-             ImplValue.Data.U32 = MFX_IMPL_TYPE_HARDWARE;
-             MFXSetConfigFilterProperty(cfg,"mfxImplDescription.Impl",ImplValue);
-             MFXCreateSession(loader,0,&session);
-          @endcode
-
-          Usage example with two sessions (multiple loaders):
-          @code
-             // Create session with software based implementation
-             mfxLoader loader1 = MFXLoad();
-             mfxConfig cfg1 = MFXCreateConfig(loader1);
-             mfxVariant ImplValueSW;
-             ImplValueSW.Type = MFX_VARIANT_TYPE_U32;
-             ImplValueSW.Data.U32 = MFX_IMPL_TYPE_SOFTWARE;
-             MFXSetConfigFilterProperty(cfg1,"mfxImplDescription.Impl",ImplValueSW);
-             MFXCreateSession(loader1,0,&sessionSW);
-
-             // Create session with hardware based implementation
-             mfxLoader loader2 = MFXLoad();
-             mfxConfig cfg2 = MFXCreateConfig(loader2);
-             mfxVariant ImplValueHW;
-             ImplValueHW.Type = MFX_VARIANT_TYPE_U32;
-             ImplValueHW.Data.U32 = MFX_IMPL_TYPE_HARDWARE;
-             MFXSetConfigFilterProperty(cfg2,"mfxImplDescription.Impl",ImplValueHW);
-             MFXCreateSession(loader2,0,&sessionHW);
-
-             // use both sessionSW and sessionHW
-             // ...
-             // Close everything
-             MFXClose(sessionSW);
-             MFXClose(sessionHW);
-             MFXUnload(loader1); // cfg1 will be destroyed here.
-             MFXUnload(loader2); // cfg2 will be destroyed here.
-          @endcode
-
-          Usage example with two decoders (multiple config objects):
-          @code
-             mfxLoader loader = MFXLoad();
-
-             mfxConfig cfg1 = MFXCreateConfig(loader);
-             mfxVariant ImplValue;
-             val.Type = MFX_VARIANT_TYPE_U32;
-             val.Data.U32 = MFX_CODEC_AVC;
-             MFXSetConfigFilterProperty(cfg1,"mfxImplDescription.mfxDecoderDescription.decoder.CodecID",ImplValue);
-
-             mfxConfig cfg2 = MFXCreateConfig(loader);
-             mfxVariant ImplValue;
-             val.Type = MFX_VARIANT_TYPE_U32;
-             val.Data.U32 = MFX_CODEC_HEVC;
-             MFXSetConfigFilterProperty(cfg2,"mfxImplDescription.mfxDecoderDescription.decoder.CodecID",ImplValue);
-
-             MFXCreateSession(loader,0,&sessionAVC);
-             MFXCreateSession(loader,0,&sessionHEVC);
-          @endcode
 
    @param[in] config Config handle.
    @param[in] name Name of the parameter (see mfxImplDescription structure and example).
@@ -193,7 +133,7 @@ mfxStatus MFX_CDECL MFXCreateSession(mfxLoader loader, mfxU32 i, mfxSession* ses
 
 /*!
    @brief
-      Destroys handle allocated by the MFXQueryImplsCapabilities function.
+      Destroys handle allocated by the MFXEnumImplementations function.
 
    @param[in] loader   Loader handle.
    @param[in] hdl      Handle to destroy. Can be equal to NULL.
@@ -206,6 +146,98 @@ mfxStatus MFX_CDECL MFXCreateSession(mfxLoader loader, mfxU32 i, mfxSession* ses
    @since This function is available since API version 2.0.
 */
 mfxStatus MFX_CDECL MFXDispReleaseImplDescription(mfxLoader loader, mfxHDL hdl);
+
+/* Helper macro definitions to add config filter properties. */
+
+/*! Adds single property of mfxU32 type.
+   @param[in] loader Valid mfxLoader object
+   @param[in] name Property name string
+   @param[in] value Property value
+*/
+#define MFX_ADD_PROPERTY_U32(loader, name, value)               \
+{                                                               \
+    mfxVariant impl_value;                                      \
+    mfxConfig  cfg = MFXCreateConfig(loader);                   \
+    impl_value.Version.Version = MFX_VARIANT_VERSION;           \
+    impl_value.Type     = MFX_VARIANT_TYPE_U32;                 \
+    impl_value.Data.U32 = value;                                \
+    MFXSetConfigFilterProperty(cfg, (mfxU8 *)name, impl_value); \
+}
+
+/*! Adds single property of mfxU16 type.
+   @param[in] loader Valid mfxLoader object
+   @param[in] name Property name string
+   @param[in] value Property value
+*/
+#define MFX_ADD_PROPERTY_U16(loader, name, value)               \
+{                                                               \
+    mfxVariant impl_value               = { 0 };                \
+    mfxConfig  cfg = MFXCreateConfig(loader);                   \
+    impl_value.Version.Version = MFX_VARIANT_VERSION;           \
+    impl_value.Type     = MFX_VARIANT_TYPE_U16;                 \
+    impl_value.Data.U16 = value;                                \
+    MFXSetConfigFilterProperty(cfg, (mfxU8 *)name, impl_value); \
+}
+
+/*! Adds single property of pointer type.
+   @param[in] loader Valid mfxLoader object
+   @param[in] name Property name string
+   @param[in] value Property value
+*/
+#define MFX_ADD_PROPERTY_PTR(loader, name, value)               \
+{                                                               \
+    mfxVariant impl_value               = { 0 };                \
+    mfxConfig  cfg = MFXCreateConfig(loader);                   \
+    impl_value.Version.Version = MFX_VARIANT_VERSION;           \
+    impl_value.Type     = MFX_VARIANT_TYPE_PTR;                 \
+    impl_value.Data.Ptr = (mfxHDL)value;                        \
+    MFXSetConfigFilterProperty(cfg, (mfxU8 *)name, impl_value); \
+}
+
+/*! Update existing property of mfxU32 type.
+   @param[in] loader Valid mfxLoader object
+   @param[in] config Valid mfxConfig object
+   @param[in] name Property name string
+   @param[in] value Property value
+*/
+#define MFX_UPDATE_PROPERTY_U32(loader, config, name, value)       \
+{                                                                  \
+    mfxVariant impl_value;                                         \
+    impl_value.Version.Version = MFX_VARIANT_VERSION;              \
+    impl_value.Type     = MFX_VARIANT_TYPE_U32;                    \
+    impl_value.Data.U32 = value;                                   \
+    MFXSetConfigFilterProperty(config, (mfxU8 *)name, impl_value); \
+}
+
+/*! Update existing property of mfxU16 type.
+   @param[in] loader Valid mfxLoader object
+   @param[in] config Valid mfxConfig object
+   @param[in] name Property name string
+   @param[in] value Property value
+*/
+#define MFX_UPDATE_PROPERTY_U16(loader, config, name, value)       \
+{                                                                  \
+    mfxVariant impl_value;                                         \
+    impl_value.Version.Version = MFX_VARIANT_VERSION;              \
+    impl_value.Type     = MFX_VARIANT_TYPE_U16;                    \
+    impl_value.Data.U16 = value;                                   \
+    MFXSetConfigFilterProperty(config, (mfxU8 *)name, impl_value); \
+}
+
+/*! Update existing property of pointer type.
+   @param[in] loader Valid mfxLoader object
+   @param[in] config Valid mfxConfig object
+   @param[in] name Property name string
+   @param[in] value Property value
+*/
+#define MFX_UPDATE_PROPERTY_PTR(loader, config, name, value)       \
+{                                                                  \
+    mfxVariant impl_value;                                         \
+    impl_value.Version.Version = MFX_VARIANT_VERSION;              \
+    impl_value.Type     = MFX_VARIANT_TYPE_PTR;                    \
+    impl_value.Data.Ptr = (mfxHDL)value;                           \
+    MFXSetConfigFilterProperty(config, (mfxU8 *)name, impl_value); \
+}
 
 #ifdef __cplusplus
 }
