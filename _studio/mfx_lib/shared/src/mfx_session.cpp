@@ -19,11 +19,11 @@
 // SOFTWARE.
 
 #include <assert.h>
+#include <thread>
 #include "mfx_common.h"
 #include <mfx_session.h>
 
 #include <vm_time.h>
-#include <vm_sys_info.h>
 
 #include <libmfx_core_factory.h>
 #include <libmfx_core.h>
@@ -157,7 +157,7 @@ mfxStatus _mfxSession::Init(mfxIMPL implInterface, mfxVersion *ver)
     }
 
     // get the number of available threads
-    maxNumThreads = vm_sys_info_get_cpu_num();
+    maxNumThreads = std::thread::hardware_concurrency();
     if (maxNumThreads == 1) {
         maxNumThreads = 2;
     }
@@ -367,7 +367,7 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par)
     maxNumThreads = 0;
     if (par.ExternalThreads == 0)
     {
-        maxNumThreads = vm_sys_info_get_cpu_num();
+        maxNumThreads = std::thread::hardware_concurrency();
         if (maxNumThreads == 1)
         {
             maxNumThreads = 2;

@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <thread>
+
 #include "umc_defs.h"
 
 #if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
@@ -26,7 +28,6 @@
 #include "umc_media_data_ex.h"
 #include "umc_vc1_dec_debug.h"
 #include "umc_vc1_dec_seq.h"
-#include "vm_sys_info.h"
 #include "umc_vc1_dec_task_store.h"
 
 #include "umc_memory_allocator.h"
@@ -129,7 +130,7 @@ Status VC1VideoDecoder::Init(BaseCodecParams *pInit)
     VM_Debug::GetInstance(VC1DebugAlloc);
 #endif
 
-    m_iThreadDecoderNum = (0 == nAllowedThreadNumber) ? (vm_sys_info_get_cpu_num()) : (nAllowedThreadNumber);
+    m_iThreadDecoderNum = (0 == nAllowedThreadNumber) ? (std::thread::hardware_concurrency()) : (nAllowedThreadNumber);
 
     m_iMaxFramesInProcessing = m_iThreadDecoderNum + NumBufferedFrames;
 

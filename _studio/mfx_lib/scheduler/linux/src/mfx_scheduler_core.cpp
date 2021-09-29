@@ -25,8 +25,6 @@
 #include <mfx_trace.h>
 
 #include <vm_time.h>
-#include <vm_sys_info.h>
-#include <algorithm>
 
 
 mfxSchedulerCore::mfxSchedulerCore(void)

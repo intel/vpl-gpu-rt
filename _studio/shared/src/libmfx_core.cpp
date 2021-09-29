@@ -34,8 +34,6 @@
 
 #include "mfx_umc_alloc_wrapper.h"
 
-#include "vm_sys_info.h"
-
 using namespace std;
 //
 // THE OTHER CORE FUNCTIONS HAVE IMPLICIT IMPLEMENTATION
@@ -1367,7 +1365,7 @@ void* CommonCORE::QueryCoreInterface(const MFX_GUID &guid)
 
 mfxU16 CommonCORE::GetAutoAsyncDepth()
 {
-    return (mfxU16)vm_sys_info_get_cpu_num();
+    return (mfxU16)std::thread::hardware_concurrency();
 }
 
 

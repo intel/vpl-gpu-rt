@@ -27,6 +27,7 @@
 #include <limits.h> // for INT_MIN, INT_MAX on Linux
 #include <functional>
 #include <algorithm>
+#include <thread>
 
 #include "umc_h265_task_supplier.h"
 #include "umc_h265_frame_list.h"
@@ -34,8 +35,6 @@
 #include "umc_h265_bitstream_headers.h"
 
 #include "umc_h265_dec_defs.h"
-#include "vm_sys_info.h"
-
 #include "umc_h265_task_broker.h"
 
 #include "umc_structures.h"
@@ -681,7 +680,7 @@ UMC::Status TaskSupplier_H265::Init(UMC::VideoDecoderParams *init)
 
     // calculate number of slice decoders.
     // It should be equal to CPU number
-    m_iThreadNum = (0 == nAllowedThreadNumber) ? (vm_sys_info_get_cpu_num()) : (nAllowedThreadNumber);
+    m_iThreadNum = (0 == nAllowedThreadNumber) ? (std::thread::hardware_concurrency()) : (nAllowedThreadNumber);
 
     AU_Splitter_H265::Init(init);
     MVC_Extension::Init();
@@ -735,7 +734,7 @@ UMC::Status TaskSupplier_H265::PreInit(UMC::VideoDecoderParams *init)
 
     // calculate number of slice decoders.
     // It should be equal to CPU number
-    m_iThreadNum = (0 == nAllowedThreadNumber) ? (vm_sys_info_get_cpu_num()) : (nAllowedThreadNumber);
+    m_iThreadNum = (0 == nAllowedThreadNumber) ? (std::thread::hardware_concurrency()) : (nAllowedThreadNumber);
 
     AU_Splitter_H265::Init(init);
 

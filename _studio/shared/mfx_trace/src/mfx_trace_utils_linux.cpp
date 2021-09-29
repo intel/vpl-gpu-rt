@@ -24,7 +24,6 @@
 #include <cstring>
 
 #ifdef MFX_TRACE_ENABLE
-#include "vm_sys_info.h"
 
 inline std::string& trim_string(std::string&& s)
 {

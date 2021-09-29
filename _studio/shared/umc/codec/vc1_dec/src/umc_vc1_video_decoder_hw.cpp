@@ -27,7 +27,6 @@
 #include "umc_media_data_ex.h"
 #include "umc_vc1_dec_debug.h"
 #include "umc_vc1_dec_seq.h"
-#include "vm_sys_info.h"
 #include "umc_vc1_dec_task_store.h"
 
 #include "umc_memory_allocator.h"

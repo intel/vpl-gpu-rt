@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <thread>
 
 #include "mfx_trace.h"
 
@@ -32,7 +33,6 @@
 #include "umc_h264_bitstream_headers.h"
 #include "umc_h264_task_broker.h"
 #include "umc_h264_dec_defs_dec.h"
-#include "vm_sys_info.h"
 #include "umc_structures.h"
 #include "umc_frame_data.h"
 #include "umc_h264_notify.h"
@@ -1993,7 +1993,7 @@ Status TaskSupplier::Init(VideoDecoderParams *init)
 
     // calculate number of slice decoders.
     // It should be equal to CPU number
-    m_iThreadNum = (0 == nAllowedThreadNumber) ? (vm_sys_info_get_cpu_num()) : (nAllowedThreadNumber);
+    m_iThreadNum = (0 == nAllowedThreadNumber) ? (std::thread::hardware_concurrency()) : (nAllowedThreadNumber);
 
     DPBOutput::Reset(m_iThreadNum != 1);
     AU_Splitter::Init();
@@ -2069,7 +2069,7 @@ Status TaskSupplier::PreInit(VideoDecoderParams *init)
 
     // calculate number of slice decoders.
     // It should be equal to CPU number
-    m_iThreadNum = (0 == nAllowedThreadNumber) ? (vm_sys_info_get_cpu_num()) : (nAllowedThreadNumber);
+    m_iThreadNum = (0 == nAllowedThreadNumber) ? (std::thread::hardware_concurrency()) : (nAllowedThreadNumber);
 
     AU_Splitter::Init();
     DPBOutput::Reset(m_iThreadNum != 1);

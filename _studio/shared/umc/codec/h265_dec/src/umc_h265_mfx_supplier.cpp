@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <thread>
+
 #include "umc_defs.h"
 #ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
@@ -28,8 +30,6 @@
 #include "umc_h265_bitstream_headers.h"
 
 #include "umc_h265_dec_defs.h"
-
-#include "vm_sys_info.h"
 
 #include "umc_h265_debug.h"
 
@@ -135,7 +135,7 @@ UMC::Status MFXTaskSupplier_H265::Init(UMC::VideoDecoderParams *init)
 
     // calculate number of slice decoders.
     // It should be equal to CPU number
-    m_iThreadNum = (0 == nAllowedThreadNumber) ? (vm_sys_info_get_cpu_num()) : (nAllowedThreadNumber);
+    m_iThreadNum = (0 == nAllowedThreadNumber) ? (std::thread::hardware_concurrency()) : (nAllowedThreadNumber);
 
     umcRes = MVC_Extension::Init();
     if (UMC::UMC_OK != umcRes)

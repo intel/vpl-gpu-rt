@@ -29,7 +29,6 @@
 
 // debug
 #include "umc_h264_frame_list.h"
-#include "vm_sys_info.h"
 
 #include "umc_h264_va_supplier.h"
 #include "umc_va_video_processing.h"

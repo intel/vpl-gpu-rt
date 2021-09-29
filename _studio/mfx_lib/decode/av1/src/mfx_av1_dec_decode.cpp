@@ -45,8 +45,6 @@
 
 #include <algorithm>
 
-#include "vm_sys_info.h"
-
 #include "libmfx_core_interface.h"
 
 namespace MFX_VPX_Utility

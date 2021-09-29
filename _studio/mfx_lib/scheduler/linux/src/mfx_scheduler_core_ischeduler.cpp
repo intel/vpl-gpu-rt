@@ -24,7 +24,6 @@
 #include <mfx_scheduler_core_handle.h>
 
 #include <vm_time.h>
-#include <vm_sys_info.h>
 #include <mfx_trace.h>
 
 #include <functional>
@@ -48,7 +47,7 @@ mfxStatus mfxSchedulerCore::Initialize(const MFX_SCHEDULER_PARAM *pParam)
     if (!param2.numberOfThreads) {
         // that's just in case: core, which calls scheduler, is doing
         // exactly the same what we are doing below
-        param2.numberOfThreads = vm_sys_info_get_cpu_num();
+        param2.numberOfThreads = std::thread::hardware_concurrency();
     }
     return Initialize2(&param2);
 }

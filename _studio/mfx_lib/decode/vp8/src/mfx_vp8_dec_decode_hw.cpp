@@ -42,8 +42,6 @@
 
 #include "umc_va_base.h"
 
-#include "vm_sys_info.h"
-
 
 #include <va/va.h>
 #include <va/va_dec_vp8.h>

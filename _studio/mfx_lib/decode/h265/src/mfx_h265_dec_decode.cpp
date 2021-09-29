@@ -29,8 +29,6 @@
 #include "umc_h265_mfx_utils.h"
 #include "umc_h265_frame_list.h"
 
-#include "vm_sys_info.h"
-
 #include "umc_h265_va_supplier.h"
 #include "umc_va_video_processing.h"
 

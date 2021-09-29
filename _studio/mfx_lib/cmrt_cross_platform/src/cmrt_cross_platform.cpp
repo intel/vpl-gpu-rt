@@ -24,6 +24,7 @@
 #ifdef CM_WIN
 #include <cfgmgr32.h>
 #include <devguid.h>
+#pragma comment(lib, "cfgmgr32")
 #endif
 
 const vm_char * DLL_NAME_LINUX = VM_STRING("libigfxcmrt.so.7");

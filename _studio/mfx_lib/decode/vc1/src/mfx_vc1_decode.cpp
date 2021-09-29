@@ -25,7 +25,6 @@
 #include "mfxvideo++int.h"
 #include "mfx_vc1_dec_common.h"
 #include "umc_vc1_dec_task_store.h"
-#include "vm_sys_info.h"
 #include "umc_vc1_dec_frame_descr_va.h"
 // calculate framerate
 #include "mfx_enc_common.h"

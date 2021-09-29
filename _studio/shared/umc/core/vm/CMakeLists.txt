@@ -10,7 +10,6 @@ target_sources(vm
     include/vm_interlocked.h
     include/vm_semaphore.h
     include/vm_strings.h
-    include/vm_sys_info.h
     include/vm_time.h
     include/vm_types.h
 
@@ -18,7 +17,6 @@ target_sources(vm
     src/vm_interlocked_unix.c
     src/vm_semaphore_linux32.c
     src/vm_strings_unix.c
-    src/vm_sys_info_linux32.c
     src/vm_time_linux32.c
 )
 

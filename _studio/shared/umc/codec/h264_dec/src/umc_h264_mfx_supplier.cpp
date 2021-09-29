@@ -23,6 +23,7 @@
 #if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #include <algorithm>
+#include <thread>
 
 #include "umc_h264_mfx_supplier.h"
 
@@ -32,8 +33,6 @@
 
 #include "umc_h264_dec_defs_dec.h"
 #include "umc_h264_dec_mfx.h"
-
-#include "vm_sys_info.h"
 
 #include "umc_h264_dec_debug.h"
 
@@ -132,7 +131,7 @@ Status MFXTaskSupplier::Init(VideoDecoderParams *init)
 
     // calculate number of slice decoders.
     // It should be equal to CPU number
-    m_iThreadNum = (0 == nAllowedThreadNumber) ? (vm_sys_info_get_cpu_num()) : (nAllowedThreadNumber);
+    m_iThreadNum = (0 == nAllowedThreadNumber) ? (std::thread::hardware_concurrency()) : (nAllowedThreadNumber);
 
     Status umcRes = SVC_Extension::Init();
     if (UMC_OK != umcRes)
