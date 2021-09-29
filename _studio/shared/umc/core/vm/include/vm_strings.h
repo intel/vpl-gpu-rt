@@ -40,7 +40,6 @@ typedef char vm_char;
 #define vm_string_printf    printf
 #define vm_string_sprintf   sprintf
 #define vm_string_snprintf  snprintf
-
 #define vm_string_vsprintf  vsprintf
 #define vm_string_vsnprintf vsnprintf
 
@@ -91,10 +90,6 @@ extern "C"
 #endif /* __cplusplus */
 
 int32_t vm_string_vprintf(const vm_char *format, va_list argptr);
-vm_findptr vm_string_findfirst(vm_char* filespec, vm_finddata_t* fileinfo);
-int32_t vm_string_findnext(vm_findptr handle, vm_finddata_t* fileinfo);
-int32_t vm_string_findclose(vm_findptr handle);
-void vm_string_splitpath(const vm_char *path, char *drive, char *dir, char *fname, char *ext);
 
 #ifdef __cplusplus
 }
