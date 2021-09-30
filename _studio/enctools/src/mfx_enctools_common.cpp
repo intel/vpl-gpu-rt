@@ -506,7 +506,7 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl)
             //workaround for external allocator, if allocator refused allocation request, then
             //try to request decoder pool
             VppRequest[1].Type |= MFX_MEMTYPE_FROM_DECODE;
-        sts = m_pAllocator->Alloc(m_pAllocator->pthis, &(VppRequest[1]), &m_VppResponse);
+            sts = m_pAllocator->Alloc(m_pAllocator->pthis, &(VppRequest[1]), &m_VppResponse);
         }
         MFX_CHECK_STS(sts);
 
@@ -592,8 +592,11 @@ mfxStatus EncTools::CloseVPP()
 
     if (m_pAllocator)
     {
-        m_pAllocator->Free(m_pAllocator->pthis, &m_VppResponse);
-        m_pAllocator = nullptr;
+        if(m_VppResponse.mids && m_VppResponse.NumFrameActual != 0)
+        {
+            m_pAllocator->Free(m_pAllocator->pthis, &m_VppResponse);
+            m_pAllocator = nullptr;
+        }
     }
     if (m_pIntSurfaces_LA.size())
         m_pIntSurfaces_LA.clear();
