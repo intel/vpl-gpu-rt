@@ -52,7 +52,7 @@ inline mfxU8 ConvertH264FrameTypeToMFX(int32_t slice_type)
         mfx_type = MFX_FRAMETYPE_I;//MFX_SLICETYPE_SI;
         break;
     default:
-        VM_ASSERT(false);
+        UMC_ASSERT(false);
         mfx_type = MFX_FRAMETYPE_I;
     }
 

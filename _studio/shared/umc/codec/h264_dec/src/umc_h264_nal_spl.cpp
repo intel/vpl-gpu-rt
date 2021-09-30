@@ -217,7 +217,7 @@ public:
                 return -1;
             }
 
-            VM_ASSERT(!m_prev.size());
+            UMC_ASSERT(!m_prev.size());
             size_t sz = source - (uint8_t *)pSource->GetDataPointer();
             if (sz >  m_suggestedSize)
             {
@@ -373,7 +373,7 @@ public:
         size_t tail_size = pMemDst->GetSize() - dstSize;
         memset(pMemDst->GetPointer() + dstSize, defaultValue, tail_size);
 
-        VM_ASSERT(pMemDst->GetSize() >= dstSize);
+        UMC_ASSERT(pMemDst->GetSize() >= dstSize);
         pMemDst->SetDataSize(dstSize);
         pMemDst->SetTime(pMemSrc->GetTime());
     }

@@ -21,7 +21,6 @@
 #ifndef __UMC_EVENT_H__
 #define __UMC_EVENT_H__
 
-#include "vm_debug.h"
 #include "vm_event.h"
 #include "umc_structures.h"
 

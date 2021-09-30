@@ -101,7 +101,7 @@ public:
         T * tmp = (T *)hdr;
         if (!tmp)
         {
-            VM_ASSERT(false);
+            UMC_ASSERT(false);
             return;
         }
 
@@ -109,17 +109,17 @@ public:
 
         if (id >= m_Header.size())
         {
-            VM_ASSERT(false);
+            UMC_ASSERT(false);
             return;
         }
 
         if (!m_Header[id])
         {
-            VM_ASSERT(false);
+            UMC_ASSERT(false);
             return;
         }
 
-        VM_ASSERT(m_Header[id] == hdr);
+        UMC_ASSERT(m_Header[id] == hdr);
         m_Header[id]->DecrementReference();
         m_Header[id] = 0;
     }

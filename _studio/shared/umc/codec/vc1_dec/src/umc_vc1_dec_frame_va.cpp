@@ -410,7 +410,7 @@ namespace UMC
                 else if(pContext->m_picLayerHeader->PTypeField2 == VC1_P_FRAME)
                     ptr->picture_fields.bits.picture_type = VC1_I_P_FRAME;
                 else
-                    VM_ASSERT(0);
+                    UMC_ASSERT(0);
                 break;
             case VC1_P_FRAME:
                 if(pContext->m_picLayerHeader->PTypeField2 == VC1_P_FRAME)
@@ -418,7 +418,7 @@ namespace UMC
                 else if(pContext->m_picLayerHeader->PTypeField2 == VC1_I_FRAME)
                     ptr->picture_fields.bits.picture_type = VC1_P_I_FRAME;
                 else
-                    VM_ASSERT(0);
+                    UMC_ASSERT(0);
                 break;
             case VC1_B_FRAME:
                 if(pContext->m_picLayerHeader->PTypeField2 == VC1_B_FRAME)
@@ -426,7 +426,7 @@ namespace UMC
                 else if(pContext->m_picLayerHeader->PTypeField2 == VC1_BI_FRAME)
                     ptr->picture_fields.bits.picture_type = VC1_B_BI_FRAME;
                 else
-                    VM_ASSERT(0);
+                    UMC_ASSERT(0);
                 break;
             case VC1_BI_FRAME:
                 if(pContext->m_picLayerHeader->PTypeField2 == VC1_B_FRAME)
@@ -434,10 +434,10 @@ namespace UMC
                 else if(pContext->m_picLayerHeader->PTypeField2 == VC1_BI_FRAME)
                     ptr->picture_fields.bits.picture_type = VC1_BI_BI_FRAME;
                 else
-                    VM_ASSERT(0);
+                    UMC_ASSERT(0);
                 break;
             default:
-                VM_ASSERT(0);
+                UMC_ASSERT(0);
                 break;
             }
         }

@@ -136,7 +136,7 @@ void H264DecYUVBufferPadded::allocate(const FrameData * frameData, const VideoDa
         }
         else
         {
-            VM_ASSERT(m_frameData.GetInfo()->GetNumPlanes() == 3);
+            UMC_ASSERT(m_frameData.GetInfo()->GetNumPlanes() == 3);
             m_pUPlane = m_frameData.GetPlaneMemoryInfo(1)->m_planePtr;
             m_pVPlane = m_frameData.GetPlaneMemoryInfo(2)->m_planePtr;
             m_pUVPlane = 0;

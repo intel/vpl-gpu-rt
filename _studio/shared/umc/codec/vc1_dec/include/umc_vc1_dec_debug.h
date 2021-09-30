@@ -91,8 +91,8 @@ public:
         Logthread0 = fopen("_Log0.txt","w");
         Logthread1 = fopen("_Log1.txt","w");
 
-        VM_ASSERT(Logthread0 != NULL);
-        VM_ASSERT(Logthread1 != NULL);
+        UMC_ASSERT(Logthread0 != NULL);
+        UMC_ASSERT(Logthread1 != NULL);
 #endif
 
     }; //only for Win debug

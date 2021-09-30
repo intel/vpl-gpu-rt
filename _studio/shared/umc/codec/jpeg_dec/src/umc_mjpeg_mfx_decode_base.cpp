@@ -20,7 +20,6 @@
 
 #include "umc_defs.h"
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
-#include "vm_debug.h"
 #include "umc_video_data.h"
 #include "umc_mjpeg_mfx_decode_base.h"
 #include "membuffin.h"
@@ -388,7 +387,7 @@ Status MJPEGVideoDecoderBaseMFX::_GetFrameInfo(const uint8_t* pBitStream, size_t
 
 void MJPEGVideoDecoderBaseMFX::SetFrameAllocator(FrameAllocator * frameAllocator)
 {
-    VM_ASSERT(frameAllocator);
+    UMC_ASSERT(frameAllocator);
     m_frameAllocator = frameAllocator;
 }
 

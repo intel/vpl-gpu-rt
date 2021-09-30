@@ -21,8 +21,6 @@
 #include "umc_defs.h"
 #if defined(UMC_ENABLE_VP9_AV1_DECODE)
 
-#include "vm_debug.h"
-
 #include "umc_structures.h"
 #include "umc_vp9_bitstream.h"
 #include "umc_vp9_frame.h"

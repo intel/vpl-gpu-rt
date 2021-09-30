@@ -34,8 +34,8 @@
 { \
     uint32_t x; \
  \
-    VM_ASSERT((nbits) > 0 && (nbits) <= 32); \
-    VM_ASSERT(offset >= 0 && offset <= 31); \
+    UMC_ASSERT((nbits) > 0 && (nbits) <= 32); \
+    UMC_ASSERT(offset >= 0 && offset <= 31); \
  \
     offset -= (nbits); \
  \
@@ -53,7 +53,7 @@
         current_data++; \
     } \
  \
-    VM_ASSERT(offset >= 0 && offset <= 31); \
+    UMC_ASSERT(offset >= 0 && offset <= 31); \
  \
     (data) = x & bits_data[nbits]; \
 }
@@ -61,7 +61,7 @@
 // Return bitstream position pointers N bits back
 #define UngetNBits(current_data, offset, nbits) \
 { \
-    VM_ASSERT(offset >= 0 && offset <= 31); \
+    UMC_ASSERT(offset >= 0 && offset <= 31); \
  \
     offset += (nbits); \
     if (offset > 31) \
@@ -70,15 +70,15 @@
         current_data--; \
     } \
  \
-    VM_ASSERT(offset >= 0 && offset <= 31); \
+    UMC_ASSERT(offset >= 0 && offset <= 31); \
 }
 
 // Skip N bits in 32-bit array
 #define SkipNBits(current_data, offset, nbits) \
 { \
     /* check error(s) */ \
-    VM_ASSERT((nbits) > 0 && (nbits) <= 32); \
-    VM_ASSERT(offset >= 0 && offset <= 31); \
+    UMC_ASSERT((nbits) > 0 && (nbits) <= 32); \
+    UMC_ASSERT(offset >= 0 && offset <= 31); \
     /* decrease number of available bits */ \
     offset -= (nbits); \
     /* normalize bitstream pointer */ \
@@ -88,7 +88,7 @@
         current_data++; \
     } \
     /* check error(s) again */ \
-    VM_ASSERT(offset >= 0 && offset <= 31); \
+    UMC_ASSERT(offset >= 0 && offset <= 31); \
  }
 
 // Read 1 bit from 32-bit array
@@ -122,8 +122,8 @@
 { \
     uint32_t x; \
  \
-    VM_ASSERT((nbits) > 0 && (nbits) <= 32); \
-    VM_ASSERT(nbits >= 0 && nbits <= 31); \
+    UMC_ASSERT((nbits) > 0 && (nbits) <= 32); \
+    UMC_ASSERT(nbits >= 0 && nbits <= 31); \
  \
     int32_t offset = bp - (nbits); \
  \
@@ -140,7 +140,7 @@
         x += current_data[0] << (31 - offset); \
     } \
  \
-    VM_ASSERT(offset >= 0 && offset <= 31); \
+    UMC_ASSERT(offset >= 0 && offset <= 31); \
  \
     (data) = x & bits_data[nbits]; \
 }
@@ -521,14 +521,14 @@ inline unsigned H265BaseBitstream::getNumBitsUntilByteAligned() const
 inline void H265BaseBitstream::readOutTrailingBits()
 {
     Get1Bit();
-    //VM_ASSERT(1 == uVal);
+    //UMC_ASSERT(1 == uVal);
 
     uint32_t bits = getNumBitsUntilByteAligned();
 
     if (bits)
     {
         GetBits(bits);
-        //VM_ASSERT(0 == uVal);
+        //UMC_ASSERT(0 == uVal);
     }
 }
 

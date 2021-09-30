@@ -400,7 +400,7 @@ void SEI_Storer_H265::Reset()
 // Set SEI frame for stored SEI messages
 void SEI_Storer_H265::SetFrame(H265DecoderFrame * frame)
 {
-    VM_ASSERT(frame);
+    UMC_ASSERT(frame);
     for (uint32_t i = 0; i < m_payloads.size(); i++)
     {
         if (m_payloads[i].frame == 0 && m_payloads[i].isUsed)
@@ -413,7 +413,7 @@ void SEI_Storer_H265::SetFrame(H265DecoderFrame * frame)
 // Set timestamp for stored SEI messages
 void SEI_Storer_H265::SetTimestamp(H265DecoderFrame * frame)
 {
-    VM_ASSERT(frame);
+    UMC_ASSERT(frame);
     double ts = frame->m_dFrameTime;
 
     for (uint32_t i = 0; i < m_payloads.size(); i++)
@@ -963,7 +963,7 @@ H265DecoderFrame *TaskSupplier_H265::GetFreeFrame()
 
     //pDPB->printDPB();
 
-    VM_ASSERT(!pFrame || pFrame->GetRefCounter() == 0);
+    UMC_ASSERT(!pFrame || pFrame->GetRefCounter() == 0);
 
     // Did we find one?
     if (NULL == pFrame)
@@ -1892,7 +1892,7 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
 
         if (!(flags & UMC::MediaData::FLAG_VIDEO_DATA_NOT_FULL_FRAME))
         {
-            VM_ASSERT(!m_pLastSlice);
+            UMC_ASSERT(!m_pLastSlice);
             return AddSlice(0, true);
         }
     }
@@ -1992,7 +1992,7 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
     }
 
     H265SliceHeader * sliceHdr = pSlice->GetSliceHeader();
-    VM_ASSERT(sliceHdr);
+    UMC_ASSERT(sliceHdr);
 
     if (m_prevSliceBroken && sliceHdr->dependent_slice_segment_flag)
     {
@@ -2007,7 +2007,7 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
         if (pps->pps_curr_pic_ref_enabled_flag)
         {
             ReferencePictureSet const* rps = pSlice->getRPS();
-            VM_ASSERT(rps);
+            UMC_ASSERT(rps);
 
             uint32_t const numPicTotalCurr = rps->getNumberOfUsedPictures();
             if (numPicTotalCurr)
@@ -2241,7 +2241,7 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
     if (pFrame)
     {
         H265Slice *firstSlice = pFrame->GetAU()->GetSlice(0);
-        VM_ASSERT(firstSlice);
+        UMC_ASSERT(firstSlice);
 
         if (pSlice->GetSliceHeader()->dependent_slice_segment_flag)
         {
@@ -2312,7 +2312,7 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
     }
 
     H265PicParamSet const* pps = pSlice->GetPicParam();
-    VM_ASSERT(pps);
+    UMC_ASSERT(pps);
 
     H265DecoderFrame* curr_ref = pps->pps_curr_pic_ref_enabled_flag ?
         AddSelfReferenceFrame(pSlice) : nullptr;
@@ -2326,7 +2326,7 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
 // Not implemented
 H265DecoderFrame* TaskSupplier_H265::AddSelfReferenceFrame(H265Slice* slice)
 {
-    VM_ASSERT(slice);
+    UMC_ASSERT(slice);
 
     return
         slice->GetCurrentFrame();

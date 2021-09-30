@@ -362,7 +362,7 @@ public:
     {
         if (!m_pHead)
         {
-            VM_ASSERT(false);
+            UMC_ASSERT(false);
             return;
         }
 
@@ -389,7 +389,7 @@ public:
         }
 
         // it was removed before
-        VM_ASSERT(false);
+        UMC_ASSERT(false);
     }
 
     T * DetachItemByPid(int32_t pid)
@@ -435,7 +435,7 @@ public:
             tmp = tmp->m_pNext;
         }
 
-        VM_ASSERT(false);
+        UMC_ASSERT(false);
         return 0;
     }
 

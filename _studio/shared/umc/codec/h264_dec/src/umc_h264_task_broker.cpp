@@ -111,7 +111,7 @@ bool TaskBroker::AddFrameToDecoding(H264DecoderFrame * frame)
     {
         if ((*iter) == frame)
         {
-            VM_ASSERT(false);
+            UMC_ASSERT(false);
         }
     }
 #endif
@@ -209,7 +209,7 @@ void TaskBroker::SwitchCurrentAU()
             if (m_FirstAU->IsCompleted())
             {
                 m_FirstAU = m_FirstAU->GetNextAU();
-                VM_ASSERT(!m_FirstAU || !IsFrameCompleted(m_FirstAU->m_pFrame));
+                UMC_ASSERT(!m_FirstAU || !IsFrameCompleted(m_FirstAU->m_pFrame));
                 continue;
             }
 

@@ -66,7 +66,7 @@ public:
             }
         }
 
-        VM_ASSERT(false);
+        UMC_ASSERT(false);
         return -1;
     };
 protected:

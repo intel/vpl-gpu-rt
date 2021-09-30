@@ -143,8 +143,8 @@ mfxU16 QueryMaxProfile(eMFXHWType type)
 inline
 bool CheckChromaFormat(mfxU16 profile, mfxU16 format)
 {
-    VM_ASSERT(profile != MFX_PROFILE_UNKNOWN);
-    VM_ASSERT(
+    UMC_ASSERT(profile != MFX_PROFILE_UNKNOWN);
+    UMC_ASSERT(
         !(profile >  MFX_PROFILE_HEVC_REXT) ||
         profile == MFX_PROFILE_HEVC_SCC
     );
@@ -179,8 +179,8 @@ bool CheckChromaFormat(mfxU16 profile, mfxU16 format)
 inline
 bool CheckBitDepth(mfxU16 profile, mfxU16 bit_depth)
 {
-    VM_ASSERT(profile != MFX_PROFILE_UNKNOWN);
-    VM_ASSERT(
+    UMC_ASSERT(profile != MFX_PROFILE_UNKNOWN);
+    UMC_ASSERT(
         !(profile >  MFX_PROFILE_HEVC_REXT) ||
         profile == MFX_PROFILE_HEVC_SCC
     );
@@ -245,7 +245,7 @@ mfxU32 CalculateFourcc(mfxU16 codecProfile, mfxFrameInfo const* frameInfo)
         { MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_Y416, 0 }  //444
     };
 
-    VM_ASSERT(
+    UMC_ASSERT(
         (frameInfo->ChromaFormat == MFX_CHROMAFORMAT_YUV400 ||
          frameInfo->ChromaFormat == MFX_CHROMAFORMAT_YUV420 ||
          frameInfo->ChromaFormat == MFX_CHROMAFORMAT_YUV422 ||
@@ -255,9 +255,9 @@ mfxU32 CalculateFourcc(mfxU16 codecProfile, mfxFrameInfo const* frameInfo)
 
     //align luma depth up to 2 (8-10-12 ...)
     bit_depth = (bit_depth + 2 - 1) & ~(2 - 1);
-    VM_ASSERT(!(bit_depth & 1) && "Luma depth should be aligned up to 2");
+    UMC_ASSERT(!(bit_depth & 1) && "Luma depth should be aligned up to 2");
 
-    VM_ASSERT(
+    UMC_ASSERT(
         (bit_depth ==  8 ||
          bit_depth == 10 ||
          bit_depth == 12) &&
@@ -274,7 +274,7 @@ mfxU32 CalculateFourcc(mfxU16 codecProfile, mfxFrameInfo const* frameInfo)
 inline
 bool CheckFourcc(mfxU32 fourcc, mfxU16 codecProfile, mfxFrameInfo const* frameInfo)
 {
-    VM_ASSERT(frameInfo);
+    UMC_ASSERT(frameInfo);
     mfxFrameInfo fi = *frameInfo;
 
     if (codecProfile == MFX_PROFILE_UNKNOWN)
@@ -461,7 +461,7 @@ UMC::Status HeadersAnalyzer::DecodeHeader(UMC::MediaData * data, mfxBitstream *b
         if (!first_sps && m_isSPSFound)
         {
             first_sps = m_supplier->GetHeaders()->m_SeqParams.GetCurrentHeader();
-            VM_ASSERT(first_sps && "Current SPS should be valid when [m_isSPSFound]");
+            UMC_ASSERT(first_sps && "Current SPS should be valid when [m_isSPSFound]");
 
             MFX_CHECK_NULL_PTR1(first_sps);
 
@@ -893,7 +893,7 @@ mfxStatus Query_H265(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out, eMF
 
         if (GetPlatform_H265(core, out) != core->GetPlatformType() && sts == MFX_ERR_NONE)
         {
-            VM_ASSERT(GetPlatform_H265(core, out) == MFX_PLATFORM_SOFTWARE);
+            UMC_ASSERT(GetPlatform_H265(core, out) == MFX_PLATFORM_SOFTWARE);
             sts = MFX_ERR_UNSUPPORTED;
         }
     }

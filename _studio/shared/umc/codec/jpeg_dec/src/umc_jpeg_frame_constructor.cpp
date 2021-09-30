@@ -272,7 +272,7 @@ int32_t JpegFrameConstructor::GetMarker(MediaData * pSource, MediaData * pDst)
 
         if (!iCodeNext)
         {
-            VM_ASSERT(!m_prev.size());
+            UMC_ASSERT(!m_prev.size());
             size_t sz = source - (uint8_t *)pSource->GetDataPointer();
             if (m_suggestedSize && sz >  m_suggestedSize)
             {

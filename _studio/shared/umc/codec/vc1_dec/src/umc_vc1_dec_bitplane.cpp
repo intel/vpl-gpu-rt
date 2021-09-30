@@ -196,7 +196,7 @@ static void Norm6ModeDecode(VC1Context* pContext, VC1Bitplane* pBitplane, int32_
                             pContext->m_vlcTbl->m_BitplaneTaledbits
                             );
                 std::ignore = ret;
-                VM_ASSERT(ret == 0);
+                UMC_ASSERT(ret == 0);
 
                 currRowTails[0] = (uint8_t)(k&1);
                 currRowTails[1] = (uint8_t)((k&2)>>1);
@@ -238,7 +238,7 @@ static void Norm6ModeDecode(VC1Context* pContext, VC1Bitplane* pBitplane, int32_
                             &k,
                             pContext->m_vlcTbl->m_BitplaneTaledbits
                             );
-                VM_ASSERT(ret == ippStsNoErr);
+                UMC_ASSERT(ret == ippStsNoErr);
 
                 currRowTails[0] = (uint8_t)(k&1);
                 currRowTails[1] = (uint8_t)((k&2)>>1);
@@ -357,7 +357,7 @@ void DecodeBitplane(VC1Context* pContext, VC1Bitplane* pBitplane, int32_t width,
                 pContext->m_vlcTbl->m_Bitplane_IMODE
                 );
     std::ignore = ret;
-    VM_ASSERT(ret == 0);
+    UMC_ASSERT(ret == 0);
 
 #ifdef VC1_DEBUG_ON
     VM_Debug::GetInstance(VC1DebugRoutine).vm_debug_frame(-1,VC1_BITBLANES,

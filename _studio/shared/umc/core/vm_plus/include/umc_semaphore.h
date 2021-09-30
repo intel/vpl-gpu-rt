@@ -21,7 +21,6 @@
 #ifndef __UMC_SEMAPHORE_H__
 #define __UMC_SEMAPHORE_H__
 
-#include "vm_debug.h"
 #include "vm_semaphore.h"
 #include "umc_structures.h"
 

@@ -216,7 +216,7 @@ H264DecoderFrame *VATaskSupplier::GetFreeFrame(const H264Slice * pSlice)
     if (view.GetDPBList(0)->countAllFrames() >= view.maxDecFrameBuffering + m_DPBSizeEx)
         pFrame = view.GetDPBList(0)->GetDisposable();
 
-    VM_ASSERT(!pFrame || pFrame->GetRefCounter() == 0);
+    UMC_ASSERT(!pFrame || pFrame->GetRefCounter() == 0);
 
     // Did we find one?
     if (NULL == pFrame)
@@ -451,7 +451,7 @@ int32_t VATaskSupplier::GetFreeFrameIndex()
         }
     }
 
-    VM_ASSERT(false);
+    UMC_ASSERT(false);
     return -1;
 }
 

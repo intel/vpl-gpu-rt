@@ -21,7 +21,6 @@
 #include "umc_defs.h"
 #ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
-#include "vm_debug.h"
 #include "umc_h265_bitstream_headers.h"
 #include "umc_h265_slice_decoding.h"
 #include "umc_h265_headers.h"
@@ -107,7 +106,7 @@ bool H265BaseBitstream::More_RBSP_Data()
     uint32_t* ptr_state = m_pbs;
     int32_t  bit_state = m_bitOffset;
 
-    VM_ASSERT(m_bitOffset >= 0 && m_bitOffset <= 31);
+    UMC_ASSERT(m_bitOffset >= 0 && m_bitOffset <= 31);
 
     int32_t remaining_bytes = (int32_t)BytesLeft();
 
@@ -268,7 +267,7 @@ UMC::Status H265HeadersBitstream::GetVideoParamSet(H265VideoParamSet *pcVPS)
     pcVPS->vps_video_parameter_set_id = GetBits(4);
 
     int32_t vps_reserved_three_2bits = GetBits(2);
-    VM_ASSERT(vps_reserved_three_2bits == 3);
+    UMC_ASSERT(vps_reserved_three_2bits == 3);
     if (vps_reserved_three_2bits != 3)
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
@@ -285,7 +284,7 @@ UMC::Status H265HeadersBitstream::GetVideoParamSet(H265VideoParamSet *pcVPS)
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
     uint32_t vps_reserved_ffff_16bits = GetBits(16);
-    VM_ASSERT(vps_reserved_ffff_16bits == 0xffff);
+    UMC_ASSERT(vps_reserved_ffff_16bits == 0xffff);
     if (vps_reserved_ffff_16bits != 0xffff)
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
@@ -394,7 +393,7 @@ UMC::Status H265HeadersBitstream::GetVideoParamSet(H265VideoParamSet *pcVPS)
 // Parse scaling list data block
 void H265HeadersBitstream::xDecodeScalingList(H265ScalingList *scalingList, unsigned sizeId, unsigned listId)
 {
-    VM_ASSERT(scalingList);
+    UMC_ASSERT(scalingList);
 
     int32_t i,coefNum = std::min(MAX_MATRIX_COEF_NUM,(int32_t)g_scalingListSize[sizeId]);
     int32_t nextCoef = SCALING_LIST_START_VALUE;
@@ -460,7 +459,7 @@ void H265HeadersBitstream::parseScalingList(H265ScalingList *scalingList)
 // Parse profile tier layers header part in VPS or SPS
 void H265HeadersBitstream::parsePTL(H265ProfileTierLevel *rpcPTL, int32_t maxNumSubLayersMinus1 )
 {
-    VM_ASSERT(rpcPTL);
+    UMC_ASSERT(rpcPTL);
 
     parseProfileTier(rpcPTL->GetGeneralPTL());
 
@@ -505,7 +504,7 @@ void H265HeadersBitstream::parsePTL(H265ProfileTierLevel *rpcPTL, int32_t maxNum
 // Parse one profile tier layer
 void H265HeadersBitstream::parseProfileTier(H265PTL *ptl)
 {
-    VM_ASSERT(ptl);
+    UMC_ASSERT(ptl);
 
     ptl->profile_space = GetBits(2);
     if (ptl->profile_space)
@@ -880,7 +879,7 @@ UMC::Status H265HeadersBitstream::GetSequenceParamSet(H265SeqParamSet *pcSPS)
                     if (pcSPS->sps_palette_predictor_initializer_present_flag)
                     {
                         uint32_t const PaletteMaxPredictorSize = pcSPS->palette_max_size + pcSPS->delta_palette_max_predictor_size;
-                        VM_ASSERT(PaletteMaxPredictorSize > 0);
+                        UMC_ASSERT(PaletteMaxPredictorSize > 0);
 
                         uint32_t const sps_num_palette_predictor_initializer_minus1 = GetVLCElementU();
                         if (sps_num_palette_predictor_initializer_minus1 > PaletteMaxPredictorSize - 1)
@@ -924,7 +923,7 @@ UMC::Status H265HeadersBitstream::GetSequenceParamSet(H265SeqParamSet *pcSPS)
 // Parse video usability information block in SPS
 void H265HeadersBitstream::parseVUI(H265SeqParamSet *pSPS)
 {
-    VM_ASSERT(pSPS);
+    UMC_ASSERT(pSPS);
 
     pSPS->aspect_ratio_info_present_flag = Get1Bit();
     if (pSPS->aspect_ratio_info_present_flag)
@@ -1305,8 +1304,8 @@ UMC::Status H265HeadersBitstream::GetPictureParamSetFull(H265PicParamSet  *pcPPS
 // Parse weighted prediction table in slice header
 void H265HeadersBitstream::xParsePredWeightTable(const H265SeqParamSet *sps, H265SliceHeader * sliceHdr)
 {
-    VM_ASSERT(sps);
-    VM_ASSERT(sliceHdr);
+    UMC_ASSERT(sps);
+    UMC_ASSERT(sliceHdr);
 
     wpScalingParam* wp;
     SliceType       eSliceType  = sliceHdr->slice_type;
@@ -1826,7 +1825,7 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
         // RefPicList sanity check
         {
             ReferencePictureSet const* rps = pSlice->getRPS();
-            VM_ASSERT(rps);
+            UMC_ASSERT(rps);
 
             uint32_t numPicTotalCurr = rps->getNumberOfUsedPictures();
             if (pps->pps_curr_pic_ref_enabled_flag)
@@ -2108,7 +2107,7 @@ UMC::Status H265HeadersBitstream::GetNALUnitType(NalUnitType &nal_unit_type, uin
     nuh_temporal_id = nuh_temporal_id_plus1 - 1;
     if (nuh_temporal_id)
     {
-        VM_ASSERT( nal_unit_type != NAL_UT_CODED_SLICE_BLA_W_LP
+        UMC_ASSERT( nal_unit_type != NAL_UT_CODED_SLICE_BLA_W_LP
             && nal_unit_type != NAL_UT_CODED_SLICE_BLA_W_RADL
             && nal_unit_type != NAL_UT_CODED_SLICE_BLA_N_LP
             && nal_unit_type != NAL_UT_CODED_SLICE_IDR_W_RADL
@@ -2121,7 +2120,7 @@ UMC::Status H265HeadersBitstream::GetNALUnitType(NalUnitType &nal_unit_type, uin
     }
     else
     {
-        VM_ASSERT( nal_unit_type != NAL_UT_CODED_SLICE_TLA_R
+        UMC_ASSERT( nal_unit_type != NAL_UT_CODED_SLICE_TLA_R
             && nal_unit_type != NAL_UT_CODED_SLICE_TSA_N
             && nal_unit_type != NAL_UT_CODED_SLICE_STSA_R
             && nal_unit_type != NAL_UT_CODED_SLICE_STSA_N );

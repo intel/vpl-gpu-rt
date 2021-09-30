@@ -85,7 +85,7 @@ namespace UMC_AV1_DECODER
 
     AV1DecoderFrame::~AV1DecoderFrame()
     {
-        //VM_ASSERT(Empty());
+        //UMC_ASSERT(Empty());
     }
 
     void AV1DecoderFrame::Reset()
@@ -140,7 +140,7 @@ namespace UMC_AV1_DECODER
         {
             /* film grain is applied - two output surfaces required */
 
-            VM_ASSERT(!data[SURFACE_DISPLAY].get() || !data[SURFACE_RECON].get());
+            UMC_ASSERT(!data[SURFACE_DISPLAY].get() || !data[SURFACE_RECON].get());
 
             int surf = SURFACE_RECON;
             if (!data[SURFACE_DISPLAY].get())
@@ -154,8 +154,8 @@ namespace UMC_AV1_DECODER
             /* film grain not applied - single output surface required
                both data[SURFACE_DISPLAY] and data[SURFACE_RECON] point to same FrameData */
 
-            VM_ASSERT(!data[SURFACE_DISPLAY].get());
-            VM_ASSERT(!data[SURFACE_RECON].get());
+            UMC_ASSERT(!data[SURFACE_DISPLAY].get());
+            UMC_ASSERT(!data[SURFACE_RECON].get());
 
             data[SURFACE_DISPLAY].reset(new UMC::FrameData{});
             *data[SURFACE_DISPLAY] = *fd;

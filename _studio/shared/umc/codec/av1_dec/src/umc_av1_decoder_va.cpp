@@ -70,7 +70,7 @@ namespace UMC_AV1_DECODER
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "AV1 decode DDISubmitTask");
         PERF_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, 0, make_event_data(this), [&]() { return make_event_data(sts);});
 
-        VM_ASSERT(va);
+        UMC_ASSERT(va);
 
         if (firstSubmission)
         {
@@ -79,7 +79,7 @@ namespace UMC_AV1_DECODER
             if (sts != UMC::UMC_OK)
                 return sts;
 
-            VM_ASSERT(packer);
+            UMC_ASSERT(packer);
             packer->BeginFrame();
 
             frame.StartDecoding();
@@ -104,7 +104,7 @@ namespace UMC_AV1_DECODER
 
     void AV1DecoderVA::AllocateFrameData(UMC::VideoDataInfo const& info, UMC::FrameMemID id, AV1DecoderFrame& frame)
     {
-        VM_ASSERT(id != UMC::FRAME_MID_INVALID);
+        UMC_ASSERT(id != UMC::FRAME_MID_INVALID);
 
         UMC::FrameData fd;
         fd.Init(&info, id, allocator);

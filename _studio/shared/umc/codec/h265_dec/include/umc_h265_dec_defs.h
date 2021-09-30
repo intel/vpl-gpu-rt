@@ -973,14 +973,14 @@ struct H265SeqParamSet : public HeapObject, public H265SeqParamSetBase
     int SubWidthC() const
     {
         static int32_t subWidth[] = {1, 2, 2, 1};
-        VM_ASSERT (chroma_format_idc >= 0 && chroma_format_idc <= 4);
+        UMC_ASSERT (chroma_format_idc >= 0 && chroma_format_idc <= 4);
         return subWidth[chroma_format_idc];
     }
 
     int SubHeightC() const
     {
         static int32_t subHeight[] = {1, 2, 1, 1};
-        VM_ASSERT (chroma_format_idc >= 0 && chroma_format_idc <= 4);
+        UMC_ASSERT (chroma_format_idc >= 0 && chroma_format_idc <= 4);
         return subHeight[chroma_format_idc];
     }
 
