@@ -2462,6 +2462,13 @@ protected:
         return !(extDdi.NumActiveRefP == 1 || (video.mfx.GopRefDist > 1 && extDdi.NumActiveRefBL0 == 1) || IsOff(extOpt3.ExtBrcAdaptiveLTR));
     }
 
+    static bool isAdaptiveLTRAllowed(MfxVideoParam& video)
+    {
+        mfxExtCodingOption3& extOpt3 = GetExtBufferRef(video);
+        mfxExtCodingOptionDDI& extDdi = GetExtBufferRef(video);
+        return !(extDdi.NumActiveRefP == 1 || IsOff(extOpt3.ExtBrcAdaptiveLTR));
+    }
+
     static void GetRequiredFunc(MfxVideoParam &video, mfxExtEncToolsConfig &config)
     {
         mfxExtCodingOption2  &extOpt2 = GetExtBufferRef(video);
@@ -2491,8 +2498,11 @@ protected:
                 config.AdaptiveRefP = IsNotDefined(config.AdaptiveRefP) ?
                     (bAdaptiveRef ? (mfxU16)MFX_CODINGOPTION_ON : (mfxU16)MFX_CODINGOPTION_OFF) : config.AdaptiveRefP;
 
+                bool bAdaptiveLTR = isAdaptiveLTRAllowed(video);
+
                 config.AdaptiveLTR = IsNotDefined(config.AdaptiveLTR) ?
-                    (bAdaptiveRef ? (mfxU16)MFX_CODINGOPTION_ON : (mfxU16)MFX_CODINGOPTION_OFF) : config.AdaptiveLTR;
+                    (bAdaptiveLTR ? (mfxU16)MFX_CODINGOPTION_ON : (mfxU16)MFX_CODINGOPTION_OFF) : config.AdaptiveLTR;
+
             }
             config.BRC = IsNotDefined(config.BRC) ?
                 ((video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
@@ -2569,6 +2579,7 @@ protected:
                bAdaptiveI = bAdaptiveI && !(video.mfx.GopOptFlag & MFX_GOP_CLOSED);
 #endif
            bool bAdaptiveRef = isAdaptiveRefAllowed(video);
+           bool bAdaptiveLTR = isAdaptiveLTRAllowed(video);
 
            CheckFlag(pConfig->AdaptiveI, bEncToolsCnd && bAdaptiveI, numChanges);
 
@@ -2578,7 +2589,7 @@ protected:
 
            CheckFlag(pConfig->AdaptiveRefP, bEncToolsCnd && bAdaptiveRef, numChanges);
            CheckFlag(pConfig->AdaptiveRefB, bEncToolsCnd && bAdaptiveRef, numChanges);
-           CheckFlag(pConfig->AdaptiveLTR,  bEncToolsCnd && bAdaptiveRef, numChanges);
+           CheckFlag(pConfig->AdaptiveLTR,  bEncToolsCnd && bAdaptiveLTR, numChanges);
            CheckFlag(pConfig->SceneChange, bEncToolsCnd, numChanges);
            CheckFlag(pConfig->BRCBufferHints, bEncToolsCnd, numChanges);
            CheckFlag(pConfig->AdaptiveQuantMatrices, bEncToolsCnd, numChanges);
