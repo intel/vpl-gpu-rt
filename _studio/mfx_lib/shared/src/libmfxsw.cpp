@@ -500,13 +500,13 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
     try
     {
         std::unique_ptr<mfx::ImplDescriptionHolder> holder(new mfx::ImplDescriptionHolder);
-        auto IsVplHW = [](eMFXHWType hw) -> bool
+        auto IsVplHW = [](eMFXHWType hw, mfxU32 deviceId) -> bool
         {
-            return hw >= MFX_HW_TGL_LP;
+            return hw >= MFX_HW_TGL_LP && deviceId != 0x4907;
         };
         auto QueryImplDesc = [&](VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum) -> bool
         {
-            if (!IsVplHW(core.GetHWType()))
+            if (!IsVplHW(core.GetHWType(), deviceId))
                 return true;
 
             auto& impl = holder->PushBack();

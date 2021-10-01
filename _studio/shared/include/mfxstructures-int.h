@@ -409,7 +409,7 @@ typedef struct {
     /* DG1/SG1 */
     { 0x4905, MFX_HW_DG1, MFX_GT2 },
     { 0x4906, MFX_HW_DG1, MFX_GT2 },
-    { 0x4907, MFX_HW_DG1, MFX_GT2 },
+    { 0x4907, MFX_HW_DG1, MFX_GT2 }, // SG1
     { 0x4908, MFX_HW_DG1, MFX_GT2 },
 
     /* RKL */
