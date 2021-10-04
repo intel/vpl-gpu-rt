@@ -148,6 +148,7 @@ namespace MPEG2EncoderHW
             ,MFX_EXTBUFF_VIDEO_SIGNAL_INFO
             ,MFX_EXTBUFF_CODING_OPTION2
             ,MFX_EXTBUFF_CODING_OPTION3
+            ,MFX_EXTBUFF_ALLOCATION_HINTS
         };
         mfxU32 num_supported = 0;
 

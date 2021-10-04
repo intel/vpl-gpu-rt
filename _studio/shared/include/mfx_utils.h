@@ -31,6 +31,7 @@
 #include "umc_structures.h"
 #include "mfx_trace.h"
 #include "mfx_timing.h"
+#include "mfxsurfacepool.h"
 
 #include <va/va.h>
 
@@ -891,18 +892,64 @@ static inline bool operator==(mfxPluginUID const& l, mfxPluginUID const& r)
 
 MFX_DECL_OPERATOR_NOT_EQ(mfxPluginUID)
 
+static inline bool operator==(mfxGUID const& l, mfxGUID const& r)
+{
+    return MFX_EQ_ARRAY(Data, 16);
+}
+
+MFX_DECL_OPERATOR_NOT_EQ(mfxGUID)
 
 static inline bool operator==(mfxExtBuffer const& l, mfxExtBuffer const& r)
 {
     return MFX_EQ_FIELD(BufferId) && MFX_EQ_FIELD(BufferSz);
 }
 
+static inline bool operator==(mfxExtAllocationHints const& l, mfxExtAllocationHints const& r)
+{
+    return MFX_EQ_FIELD(Header) && MFX_EQ_FIELD(AllocationPolicy) && MFX_EQ_FIELD(NumberToPreAllocate) && MFX_EQ_FIELD(DeltaToAllocateOnTheFly) && MFX_EQ_FIELD(VPPPoolType) && MFX_EQ_FIELD(Wait);
+}
+
+inline mfxStatus CheckAllocationHintsBuffer(const mfxExtAllocationHints& allocation_hints, bool is_vpp = false)
+{
+    switch (allocation_hints.AllocationPolicy)
+    {
+    case MFX_ALLOCATION_OPTIMAL:
+        MFX_CHECK(!allocation_hints.NumberToPreAllocate, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+        MFX_CHECK(!allocation_hints.DeltaToAllocateOnTheFly, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+        break;
+    case MFX_ALLOCATION_UNLIMITED:
+        MFX_CHECK(!allocation_hints.DeltaToAllocateOnTheFly, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+        break;
+    case MFX_ALLOCATION_LIMITED:
+        break;
+
+    default:
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+    }
+
+    if (is_vpp)
+    {
+        MFX_CHECK(allocation_hints.VPPPoolType == MFX_VPP_POOL_IN || allocation_hints.VPPPoolType == MFX_VPP_POOL_OUT, MFX_ERR_INVALID_VIDEO_PARAM);
+    }
+
+    return MFX_ERR_NONE;
+}
+
+enum class ComponentType
+{
+    UNINITIALIZED = 0,
+    DECODE        = 1,
+    ENCODE        = 2,
+    VPP           = 3
+};
 
 template <typename CacheType>
 struct surface_cache_controller
 {
-    surface_cache_controller(CacheType* cache)
+    surface_cache_controller(CacheType* cache, ComponentType type, mfxVPPPoolType vpp_pool_type = mfxVPPPoolType(-1))
         : m_cache(cache)
+        , m_type(type)
+        , m_vpp_pool(vpp_pool_type)
     {}
 
     ~surface_cache_controller()
@@ -912,15 +959,111 @@ struct surface_cache_controller
 
     mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
     {
-        std::ignore = session;
-        std::ignore = par;
+        switch (m_type)
+        {
+        case ComponentType::DECODE:
+        {
+            mfxFrameAllocRequest req = {};
+
+            mfxStatus sts = MFX_STS_TRACE(MFXVideoDECODE_QueryIOSurf(session, const_cast<mfxVideoParam*>(&par), &req));
+            MFX_CHECK(sts >= MFX_ERR_NONE, sts);
+
+            m_required_num_surf = req.NumFrameSuggested;
+        }
+        break;
+
+        case ComponentType::ENCODE:
+        {
+            mfxFrameAllocRequest req = {};
+
+            mfxStatus sts = MFX_STS_TRACE(MFXVideoENCODE_QueryIOSurf(session, const_cast<mfxVideoParam*>(&par), &req));
+            MFX_CHECK(sts >= MFX_ERR_NONE, sts);
+
+            m_required_num_surf = req.NumFrameSuggested;
+        }
+        break;
+
+        case ComponentType::VPP:
+        {
+            mfxFrameAllocRequest req[2] = {};
+
+            mfxStatus sts = MFX_STS_TRACE(MFXVideoVPP_QueryIOSurf(session, const_cast<mfxVideoParam*>(&par), req));
+            MFX_CHECK(sts >= MFX_ERR_NONE, sts);
+
+            MFX_CHECK(m_vpp_pool == MFX_VPP_POOL_IN || m_vpp_pool == MFX_VPP_POOL_OUT, MFX_ERR_INVALID_VIDEO_PARAM);
+
+            m_required_num_surf = req[m_vpp_pool].NumFrameSuggested;
+        }
+        break;
+
+        default:
+            MFX_RETURN(MFX_ERR_NOT_IMPLEMENTED);
+        }
+
+        MFX_CHECK(m_cache, MFX_ERR_NOT_INITIALIZED);
+
+        auto it = std::find_if(par.ExtParam, par.ExtParam + par.NumExtParam,
+            [this](mfxExtBuffer* buffer)
+            {
+                return buffer->BufferId == MFX_EXTBUFF_ALLOCATION_HINTS &&
+                    (m_type != ComponentType::VPP || reinterpret_cast<mfxExtAllocationHints*>(buffer)->VPPPoolType == m_vpp_pool);
+            });
+
+        if (it == par.ExtParam + par.NumExtParam)
+            return MFX_ERR_NONE;
+
+        mfxExtAllocationHints* allocation_hints = reinterpret_cast<mfxExtAllocationHints*>(*it);
+
+        MFX_SAFE_CALL(CheckAllocationHintsBuffer(*allocation_hints, m_type == ComponentType::VPP));
+        MFX_SAFE_CALL(m_cache->SetupPolicy(*allocation_hints));
+
+        if (allocation_hints->AllocationPolicy == MFX_ALLOCATION_OPTIMAL)
+        {
+            unique_ptr_refcountable<mfxSurfacePoolInterface> scoped_surface_lock(m_cache.get());
+            // AddRef here because m_cache is also a smart pointer, so will be decremented twice
+            MFX_SAFE_CALL(scoped_surface_lock->AddRef(scoped_surface_lock.get()));
+
+            MFX_CHECK(m_updated_caches.find(scoped_surface_lock) == std::end(m_updated_caches), MFX_ERR_UNKNOWN);
+
+            MFX_SAFE_CALL(m_cache->UpdateLimits(m_required_num_surf));
+
+            m_updated_caches[std::move(scoped_surface_lock)] = m_required_num_surf;
+        }
+
+        m_cache_hints_set = *allocation_hints;
 
         return MFX_ERR_NONE;
     }
 
     mfxStatus Update(const mfxFrameSurface1& surf)
     {
-        std::ignore = surf;
+        if (!surf.FrameInterface)
+            return MFX_ERR_NONE;
+
+        MFX_CHECK_HDL(surf.FrameInterface->QueryInterface);
+
+        mfxSurfacePoolInterface* pool_interface = nullptr;
+        MFX_SAFE_CALL(surf.FrameInterface->QueryInterface(const_cast<mfxFrameSurface1*>(&surf), MFX_GUID_SURFACE_POOL, reinterpret_cast<mfxHDL*>(&pool_interface)));
+
+        MFX_CHECK_HDL(pool_interface);
+
+        unique_ptr_refcountable<mfxSurfacePoolInterface> scoped_surface_lock(pool_interface);
+
+        // If pool already was updated, do nothing
+        if (m_updated_caches.find(scoped_surface_lock) != std::end(m_updated_caches))
+            return MFX_ERR_NONE;
+
+        MFX_CHECK_HDL(scoped_surface_lock->GetAllocationPolicy);
+
+        mfxPoolAllocationPolicy policy;
+        MFX_SAFE_CALL(scoped_surface_lock->GetAllocationPolicy(scoped_surface_lock.get(), &policy));
+
+        if (policy != MFX_ALLOCATION_OPTIMAL)
+            return MFX_ERR_NONE;
+
+        MFX_SAFE_CALL(scoped_surface_lock->SetNumSurfaces(scoped_surface_lock.get(), m_required_num_surf));
+
+        m_updated_caches[std::move(scoped_surface_lock)] = m_required_num_surf;
 
         return MFX_ERR_NONE;
     }
@@ -932,14 +1075,38 @@ struct surface_cache_controller
 
     mfxStatus ResetCache(mfxExtBuffer** ExtParam, mfxU16 NumExtParam)
     {
-        std::ignore = ExtParam;
-        std::ignore = NumExtParam;
+        MFX_CHECK(m_cache, MFX_ERR_NOT_INITIALIZED);
+
+        auto allocation_hints = std::find_if(ExtParam, ExtParam + NumExtParam,
+            [this](mfxExtBuffer* buffer)
+        {
+            return buffer->BufferId == MFX_EXTBUFF_ALLOCATION_HINTS
+                /* According to VPL spec reserved fields should be zeroed, so VPPPoolType is zero for non-VPP components */
+                && reinterpret_cast<mfxExtAllocationHints*>(buffer)->VPPPoolType == m_cache_hints_set.VPPPoolType;
+        });
+
+        if (allocation_hints != ExtParam + NumExtParam)
+        {
+            // For now it is not allowed to change cache parameters during Reset
+            MFX_CHECK(*reinterpret_cast<mfxExtAllocationHints*>(*allocation_hints) == m_cache_hints_set, MFX_ERR_INVALID_VIDEO_PARAM);
+        }
 
         return MFX_ERR_NONE;
     }
 
     void Close()
     {
+        if (!m_cache)
+        {
+            std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
+            return;
+        }
+
+        // Revoke in other caches (pools)
+        for (auto& pool_num_surf : m_updated_caches)
+            std::ignore = MFX_STS_TRACE(pool_num_surf.first->RevokeSurfaces(pool_num_surf.first.get(), pool_num_surf.second));
+
+        m_updated_caches.clear();
     }
 
     CacheType* operator->()
@@ -952,6 +1119,21 @@ struct surface_cache_controller
 private:
     unique_ptr_refcountable<CacheType>         m_cache;
 
+    ComponentType                              m_type;
+    mfxVPPPoolType                             m_vpp_pool;
+
+    mfxU16                                     m_required_num_surf = 0;
+    mfxExtAllocationHints                      m_cache_hints_set   = {};
+
+    struct ptr_comparator
+    {
+        bool operator()(const unique_ptr_refcountable<mfxSurfacePoolInterface>& left, const unique_ptr_refcountable<mfxSurfacePoolInterface>& right) const
+        {
+            return left.get() < right.get();
+        }
+    };
+
+    std::map<unique_ptr_refcountable<mfxSurfacePoolInterface>, mfxU32, ptr_comparator> m_updated_caches;
 };
 
 struct GUID

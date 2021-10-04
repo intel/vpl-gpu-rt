@@ -1757,6 +1757,7 @@ bool MfxHwH264Encode::IsVideoParamExtBufferIdSupported(mfxU32 id)
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
         || id == MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM
 #endif
+        || id == MFX_EXTBUFF_ALLOCATION_HINTS
         || id == MFX_EXTBUFF_VPP_DENOISE2
 
        );
