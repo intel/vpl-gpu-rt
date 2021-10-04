@@ -1302,6 +1302,11 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         }
 #endif
     }
+
+    if (!m_response.MemType)
+    {
+        m_response.MemType = request.Type;
+    }
 }
 
 void SurfaceSource::CreateUMCAllocator(const mfxVideoParam & video_param, eMFXPlatform platform, bool needVppJPEG)

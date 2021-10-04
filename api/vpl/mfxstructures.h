@@ -2545,7 +2545,7 @@ typedef struct {
     mfxU32      reserved[3];
     mfxMemId    *mids;          /*!< Pointer to the array of the returned memory IDs. The application allocates or frees this array. */
     mfxU16      NumFrameActual; /*!< Number of frames actually allocated. */
-    mfxU16      reserved2;
+    mfxU16      MemType;
 } mfxFrameAllocResponse;
 MFX_PACK_END()
 

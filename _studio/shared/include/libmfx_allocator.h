@@ -513,6 +513,7 @@ public:
             response.AllocId        = request.AllocId;
             response.mids           = m_returned_mids.back().data();
             response.NumFrameActual = request.NumFrameSuggested;
+            response.MemType        = type;
         }
         catch (const mfx::mfxStatus_exception& ex)
         {
