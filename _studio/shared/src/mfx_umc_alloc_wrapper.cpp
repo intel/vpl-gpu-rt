@@ -1171,8 +1171,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         }
         std::unique_ptr<SurfaceCache> scoped_cache_ptr(SurfaceCache::Create(*base_core_vpl, request.Type, request.Info));
 
-        m_vpl_cache_decoder_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get(), ComponentType::DECODE));
-
+        m_vpl_cache_decoder_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get()));
         scoped_cache_ptr.release();
 
         m_sw_fallback_sys_mem = (MFX_PLATFORM_SOFTWARE == platform) && (video_param.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
@@ -1195,8 +1194,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         {
             scoped_cache_ptr.reset(SurfaceCache::Create(*base_core_vpl, needVppJPEG ? request_type : output_type, needVppJPEG ? request_info : output_info));
 
-            m_vpl_cache_output_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get(), ComponentType::DECODE));
-
+            m_vpl_cache_output_surfaces.reset(new surface_cache_controller<SurfaceCache>(scoped_cache_ptr.get()));
             scoped_cache_ptr.release();
         }
 

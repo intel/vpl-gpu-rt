@@ -448,15 +448,24 @@ private:
     SurfaceLockType    lock_type = SurfaceLockType::LOCK_NONE;
 };
 
-template <>
-struct mfxRefCountableInstance<mfxSurfacePoolInterface>
+typedef struct SurfaceCacheRefCountable
 {
-    static mfxRefCountable* Get(mfxSurfacePoolInterface* object)
-    { return reinterpret_cast<mfxRefCountable*>(object->Context); }
+    mfxHDL Context;
+    mfxStatus (MFX_CDECL *AddRef)(struct SurfaceCacheRefCountable*);
+    mfxStatus (MFX_CDECL *Release)(struct SurfaceCacheRefCountable*);
+    mfxStatus (MFX_CDECL *GetRefCounter)(struct SurfaceCacheRefCountable*, mfxU32* /*counter*/);
+} SurfaceCacheRefCountable;
+
+class SurfaceCache;
+template <>
+struct mfxRefCountableInstance<SurfaceCacheRefCountable>
+{
+    static mfxRefCountable* Get(SurfaceCacheRefCountable* object)
+    { return reinterpret_cast<mfxRefCountable*>(object); }
 };
 
 class SurfaceCache
-    : public mfxRefCountableImpl<mfxSurfacePoolInterface>
+    : public mfxRefCountableImpl<SurfaceCacheRefCountable>
 {
 public:
     static SurfaceCache* Create(CommonCORE_VPL& core, mfxU16 type, const mfxFrameInfo& frame_info)
@@ -465,62 +474,6 @@ public:
         cache->AddRef();
 
         return cache;
-    }
-
-    static mfxStatus SetNumSurfaces_impl(mfxSurfacePoolInterface *pool_interface, mfxU32 num_surfaces)
-    {
-        MFX_CHECK_NULL_PTR1(pool_interface);
-        MFX_CHECK_HDL(pool_interface->Context);
-
-        auto cache = reinterpret_cast<SurfaceCache*>(pool_interface->Context);
-
-        return cache->UpdateLimits(num_surfaces);
-    }
-
-    static mfxStatus RevokeSurfaces_impl(mfxSurfacePoolInterface *pool_interface, mfxU32 num_surfaces)
-    {
-        MFX_CHECK_NULL_PTR1(pool_interface);
-        MFX_CHECK_HDL(pool_interface->Context);
-
-        auto cache = reinterpret_cast<SurfaceCache*>(pool_interface->Context);
-
-        return cache->RevokeSurfaces(num_surfaces);
-    }
-
-    static mfxStatus GetAllocationPolicy_impl(mfxSurfacePoolInterface *pool_interface, mfxPoolAllocationPolicy *policy)
-    {
-        MFX_CHECK_NULL_PTR2(pool_interface, policy);
-        MFX_CHECK_HDL(pool_interface->Context);
-
-        auto cache = reinterpret_cast<SurfaceCache*>(pool_interface->Context);
-
-        *policy = cache->ReportPolicy();
-
-        return MFX_ERR_NONE;
-    }
-
-    static mfxStatus GetMaximumPoolSize_impl(mfxSurfacePoolInterface *pool_interface, mfxU32 *size)
-    {
-        MFX_CHECK_NULL_PTR2(pool_interface, size);
-        MFX_CHECK_HDL(pool_interface->Context);
-
-        auto cache = reinterpret_cast<SurfaceCache*>(pool_interface->Context);
-
-        *size = cache->ReportMaxSize();
-
-        return MFX_ERR_NONE;
-    }
-
-    static mfxStatus GetCurrentPoolSize_impl(mfxSurfacePoolInterface *pool_interface, mfxU32 *size)
-    {
-        MFX_CHECK_NULL_PTR2(pool_interface, size);
-        MFX_CHECK_HDL(pool_interface->Context);
-
-        auto cache = reinterpret_cast<SurfaceCache*>(pool_interface->Context);
-
-        *size = cache->ReportCurrentSize();
-
-        return MFX_ERR_NONE;
     }
 
     std::chrono::milliseconds GetTimeout() const
@@ -557,7 +510,7 @@ public:
         {
             using namespace std::chrono;
 
-            MFX_CHECK(current_time_to_wait != 0ms, MFX_WRN_ALLOC_TIMEOUT_EXPIRED);
+            MFX_CHECK(current_time_to_wait != 0ms, MFX_WRN_DEVICE_BUSY);
 
             // Cannot allocate surface, but we can wait
             bool wait_succeeded = m_cv_wait_free_surface.wait_for(lock, current_time_to_wait,
@@ -568,7 +521,7 @@ public:
                 return output_surface != nullptr;
             });
 
-            MFX_CHECK(wait_succeeded, MFX_WRN_ALLOC_TIMEOUT_EXPIRED);
+            MFX_CHECK(wait_succeeded, MFX_WRN_DEVICE_BUSY);
 
             return MFX_ERR_NONE;
         }
@@ -604,146 +557,6 @@ public:
         return it != std::end(m_cached_surfaces) ? &(*it) : nullptr;
     }
 
-    mfxStatus SetupPolicy(const mfxExtAllocationHints& hints_buffer)
-    {
-        std::lock_guard<std::mutex> guard(m_mutex);
-
-        m_policy = hints_buffer.AllocationPolicy;
-
-        // Setup upper limit on surface amount
-        if (m_policy == MFX_ALLOCATION_LIMITED)
-        {
-            m_limit = size_t(hints_buffer.NumberToPreAllocate) + hints_buffer.DeltaToAllocateOnTheFly;
-        }
-        else if (m_policy != MFX_ALLOCATION_UNLIMITED)
-        {
-            m_limit = 0;
-        }
-
-        // Preallocate surfaces if requested
-        if ((m_policy == MFX_ALLOCATION_LIMITED || m_policy == MFX_ALLOCATION_UNLIMITED) && hints_buffer.NumberToPreAllocate)
-        {
-            std::list<SurfaceHolder> preallocated_surfaces;
-            mfxFrameSurface1* surf;
-
-            for (mfxU32 i = 0; i < hints_buffer.NumberToPreAllocate; ++i)
-            {
-                MFX_SAFE_CALL(m_core.CreateSurface(m_type, m_frame_info, surf));
-                preallocated_surfaces.emplace_back(*surf, *this);
-            }
-
-            m_cached_surfaces = std::move(preallocated_surfaces);
-        }
-
-        m_time_to_wait = std::chrono::milliseconds(hints_buffer.Wait);
-
-        return MFX_ERR_NONE;
-    }
-
-    mfxStatus UpdateLimits(mfxU32 num_surfaces_requested_by_component)
-    {
-        MFX_CHECK(m_policy != MFX_ALLOCATION_LIMITED && m_policy != MFX_ALLOCATION_UNLIMITED, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
-
-        std::lock_guard<std::mutex> guard(m_mutex);
-
-        switch (m_policy)
-        {
-        case MFX_ALLOCATION_OPTIMAL:
-            m_limit += num_surfaces_requested_by_component;
-            break;
-
-        default:
-            MFX_RETURN(MFX_ERR_UNKNOWN);
-        }
-
-        m_requests.push_back(num_surfaces_requested_by_component);
-
-        return MFX_ERR_NONE;
-    }
-
-    mfxStatus RevokeSurfaces(mfxU32 num_surfaces_requested_by_component)
-    {
-        MFX_CHECK(m_policy != MFX_ALLOCATION_LIMITED && m_policy != MFX_ALLOCATION_UNLIMITED, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
-
-        std::unique_lock<std::mutex> lock(m_mutex);
-
-        auto it_to_del = std::find(std::begin(m_requests), std::end(m_requests), num_surfaces_requested_by_component);
-        MFX_CHECK(it_to_del != std::end(m_requests), MFX_WRN_OUT_OF_RANGE);
-
-        m_requests.erase(it_to_del);
-
-        size_t num_to_revoke = 0;
-
-        switch (m_policy)
-        {
-        case MFX_ALLOCATION_OPTIMAL:
-
-            m_limit -= num_surfaces_requested_by_component;
-
-            if (m_cached_surfaces.size() <= m_limit)
-                return MFX_ERR_NONE;
-
-            num_to_revoke = m_cached_surfaces.size() - m_limit;
-
-            break;
-
-        default:
-            MFX_RETURN(MFX_ERR_UNKNOWN);
-        }
-
-        // Decommit surfaces
-        if (num_to_revoke)
-        {
-            m_num_to_revoke += num_to_revoke;
-
-            DecomitSurfaces(lock);
-        }
-
-        return MFX_ERR_NONE;
-    }
-
-    // Refresh called when some free surface returned to the pool
-    void Refresh()
-    {
-        if (!m_num_to_revoke)
-        {
-            // If no surfaces to decommit, notify some waiter
-            m_cv_wait_free_surface.notify_one();
-            return;
-        }
-
-        // Decommit current surface
-        std::unique_lock<std::mutex> lock(m_mutex);
-
-        // Here look up repeated, because current surface (which was just returned to cache) may have been already exported again
-        DecomitSurfaces(lock);
-    }
-
-    void DecomitSurfaces(std::unique_lock<std::mutex>& outer_lock)
-    {
-        // Actual delete will happen after mutex unlock
-        std::list<SurfaceHolder> surfaces_to_decommit;
-
-        std::unique_lock<std::mutex> lock(std::move(outer_lock));
-
-        auto should_remove_predicate =
-            [this](const SurfaceHolder& surface_holder)
-        {
-            // Check if surface is still owned by somebody
-            return !surface_holder.m_exported;
-        };
-
-        // splice_if
-        for (auto it = std::begin(m_cached_surfaces); it != std::end(m_cached_surfaces) && m_num_to_revoke;)
-        {
-            auto it_to_transfer = it++;
-            if (should_remove_predicate(*it_to_transfer))
-            {
-                surfaces_to_decommit.splice(std::end(surfaces_to_decommit), m_cached_surfaces, it_to_transfer);
-                --m_num_to_revoke;
-            }
-        }
-    }
 
     mfxU32 ReportCurrentSize() const
     {
@@ -757,11 +570,6 @@ public:
         return mfxU32(m_limit);
     }
 
-    mfxPoolAllocationPolicy ReportPolicy() const
-    {
-        // Right now policy is not changing during runtime, so this function don't have mutex protection
-        return m_policy;
-    }
 
 private:
 
@@ -770,13 +578,7 @@ private:
         , m_type((type & ~MFX_MEMTYPE_EXTERNAL_FRAME) | MFX_MEMTYPE_INTERNAL_FRAME)
         , m_frame_info(frame_info)
     {
-        Context = this;
-
-        mfxSurfacePoolInterface::SetNumSurfaces      = &SurfaceCache::SetNumSurfaces_impl;
-        mfxSurfacePoolInterface::RevokeSurfaces      = &SurfaceCache::RevokeSurfaces_impl;
-        mfxSurfacePoolInterface::GetAllocationPolicy = &SurfaceCache::GetAllocationPolicy_impl;
-        mfxSurfacePoolInterface::GetMaximumPoolSize  = &SurfaceCache::GetMaximumPoolSize_impl;
-        mfxSurfacePoolInterface::GetCurrentPoolSize  = &SurfaceCache::GetCurrentPoolSize_impl;
+        std::ignore = m_num_to_revoke;
     }
 
     mfxFrameSurface1* FreeSurfaceLookup(bool emulate_zero_refcount_base = false)
@@ -829,15 +631,11 @@ private:
 
             std::ignore = vm_interlocked_inc16((volatile Ipp16u*)&m_locked_count);
 
-            // Connect surface with it's pool (cache instance)
-            reinterpret_cast<mfxFrameSurfaceBaseInterface*>(FrameInterface->Context)->SetParentPool(&m_cache);
-
+            std::ignore = m_cache;
         }
 
         ~SurfaceHolder()
         {
-            // Untie surface from pool
-            reinterpret_cast<mfxFrameSurfaceBaseInterface*>(FrameInterface)->SetParentPool(nullptr);
 
             std::ignore = vm_interlocked_dec16((volatile Ipp16u*)&m_locked_count);
 
@@ -846,10 +644,6 @@ private:
             MFX_STS_TRACE(m_surface_interface.Release(this));
         }
 
-        void RefreshParentPool()
-        {
-            m_cache.Refresh();
-        }
 
     private:
 
@@ -888,8 +682,6 @@ private:
             assert(!reinterpret_cast<SurfaceHolder*>(surface)->m_was_released);
             reinterpret_cast<SurfaceHolder*>(surface)->m_was_released = true;
 #endif
-            // Remove surfaces from pool if required or notify waiters about free surface
-            reinterpret_cast<SurfaceHolder*>(surface)->RefreshParentPool();
 
             return MFX_ERR_NONE;
         }
@@ -904,8 +696,6 @@ private:
     mfxU16                    m_type;
     mfxFrameInfo              m_frame_info;
 
-    mfxPoolAllocationPolicy   m_policy = MFX_ALLOCATION_UNLIMITED;
-    // Default is MFX_ALLOCATION_UNLIMITED
     size_t                    m_limit         = std::numeric_limits<size_t>::max();
     size_t                    m_num_to_revoke = 0;
 

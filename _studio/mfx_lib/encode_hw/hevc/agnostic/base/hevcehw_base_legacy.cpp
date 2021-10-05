@@ -276,11 +276,6 @@ void Legacy::SetSupported(ParamSupport& blocks)
     });
 
 
-    blocks.m_ebCopySupported[MFX_EXTBUFF_ALLOCATION_HINTS].emplace_back(
-        [](const mfxExtBuffer*, mfxExtBuffer*) -> void
-    {
-        /* Just allow this buffer to be present at Init */
-    });
 }
 
 bool Legacy::IsTCBRC(const mfxVideoParam& par, mfxU16 tcbrcSupport)

@@ -4931,31 +4931,6 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             break;
         } //case MFX_EXTBUFF_VPP_COMPOSITE
 
-        case MFX_EXTBUFF_ALLOCATION_HINTS:
-        {
-            if (++n_hints_buf > 2)
-            {
-                sts = GetWorstSts(sts, MFX_STS_TRACE(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM));
-            }
-
-            mfxExtAllocationHints* hints_buffer = reinterpret_cast<mfxExtAllocationHints*>(data);
-
-            if (hints_buffer->VPPPoolType == MFX_VPP_POOL_IN)
-            {
-                if (++input_hint > 2)
-                {
-                    sts = GetWorstSts(sts, MFX_STS_TRACE(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM));
-                }
-            }
-            else if (hints_buffer->VPPPoolType == MFX_VPP_POOL_OUT)
-            {
-                if (++output_hint > 2)
-                {
-                    sts = GetWorstSts(sts, MFX_STS_TRACE(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM));
-                }
-            }
-            sts = GetWorstSts(sts, CheckAllocationHintsBuffer(*hints_buffer, true));
-        }
         } // switch
 
         if (output_hint + input_hint != n_hints_buf)

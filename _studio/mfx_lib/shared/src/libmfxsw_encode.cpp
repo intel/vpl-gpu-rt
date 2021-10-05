@@ -477,7 +477,7 @@ static mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
         using cache_controller = surface_cache_controller<SurfaceCache>;
         using TCachePtr = std::remove_reference<decltype(pCache)>::type;
 
-        pCache = TCachePtr(new cache_controller(scoped_cache_ptr.get(), ComponentType::ENCODE), std::default_delete<cache_controller>());
+        pCache = TCachePtr(new cache_controller(scoped_cache_ptr.get()), std::default_delete<cache_controller>());
 
         scoped_cache_ptr.release();
     }

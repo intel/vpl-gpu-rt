@@ -26,7 +26,6 @@
 #include <errno.h>
 #include "mfx_common.h"
 
-#include "mfxsurfacepool.h"
 
 mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 codecId);
 mfxStatus CheckFrameInfoEncoders(mfxFrameInfo  *info);
