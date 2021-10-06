@@ -3996,10 +3996,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
         OnHistogramQueried();
 
-        if (
-#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
-            (m_video.mfx.RateControlMethod != MFX_RATECONTROL_CBR && m_video.mfx.RateControlMethod != MFX_RATECONTROL_VBR) &&
-#endif
+        if (bIntRateControlLA(m_video.mfx.RateControlMethod) &&
             extDdi.LookAheadDependency > 0 && m_lookaheadFinished.size() >= extDdi.LookAheadDependency)
         {
             DdiTaskIter end = m_lookaheadFinished.end();
