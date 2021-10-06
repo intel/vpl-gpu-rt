@@ -297,7 +297,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
         else if (m_bCmCopy)
         {
             if (m_pCmCopy)
-                m_pCmCopy->ReleaseCmSurfaces();
+                m_pCmCopy->CleanUpCache();
             else
                 m_bCmCopy = false;
         }
@@ -1221,7 +1221,7 @@ mfxStatus VAAPIVideoCORE_VPL::AllocFrames(
         else if (m_bCmCopy)
         {
             if (m_pCmCopy)
-                m_pCmCopy->ReleaseCmSurfaces();
+                m_pCmCopy->CleanUpCache();
             else
                 m_bCmCopy = false;
         }
