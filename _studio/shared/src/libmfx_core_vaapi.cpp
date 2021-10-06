@@ -137,6 +137,11 @@ void VAAPIVideoCORE_T<Base>::Close()
     // It's important to close CM device when VA display is alive
     m_pCmCopy.reset();
 
+#if defined (MFX_ENABLE_VPP)
+    // Destroy this object when VA display is alive
+    m_vpp_hw_resmng.Close();
+#endif
+
     if (m_intDRM >= 0)
     {
         if (m_Display)
