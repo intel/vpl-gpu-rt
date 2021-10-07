@@ -1173,7 +1173,8 @@ VAAPIVideoCORE_VPL::SetHandle(
 
 VAAPIVideoCORE_VPL::~VAAPIVideoCORE_VPL()
 {
-    m_frame_allocator_wrapper.allocator_hw->Close();
+    // Need to clean up allocated surfaces before display is closed in destructor of base class (VAAPIVideoCORE_T)
+    m_frame_allocator_wrapper.allocator_hw.reset();
 }
 
 void* VAAPIVideoCORE_VPL::QueryCoreInterface(const MFX_GUID& guid)
