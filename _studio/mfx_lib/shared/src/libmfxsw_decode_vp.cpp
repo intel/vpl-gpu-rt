@@ -42,7 +42,7 @@ class DVP_impl : public _mfxSession::DVP_base
 
     virtual void AssignPool(mfxU16 channel_id, SurfaceCache* cache) override
     {
-        VppPools[channel_id].reset(new surface_cache_controller<SurfaceCache>(cache));
+        VppPools[channel_id].reset(new surface_cache_controller<SurfaceCache>(cache, ComponentType::VPP, MFX_VPP_POOL_OUT));
     }
 
 private:
@@ -97,6 +97,7 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
                     [](mfxExtBuffer* buffer)
                     {
                         return buffer->BufferId == MFX_EXTBUFF_VPP_SCALING
+                            || buffer->BufferId == MFX_EXTBUFF_ALLOCATION_HINTS
                             ;
                     });
 
@@ -121,6 +122,16 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
                     }
                 }
 
+                // Check mfxExtAllocationHints buffer validity
+                it = std::find_if(std::begin(ext_buf), std::end(ext_buf), [](mfxExtBuffer* buffer) { return buffer->BufferId == MFX_EXTBUFF_ALLOCATION_HINTS; });
+
+                if (it != std::end(ext_buf))
+                {
+                    mfxExtAllocationHints& hints_buffer = *reinterpret_cast<mfxExtAllocationHints*>(*it);
+
+                    MFX_SAFE_CALL(CheckAllocationHintsBuffer(hints_buffer));
+                    MFX_CHECK(hints_buffer.VPPPoolType == MFX_VPP_POOL_OUT, MFX_ERR_INVALID_VIDEO_PARAM);
+                }
             }
 
             if (decode_par->mfx.FrameInfo.FrameRateExtN != channelPar->VPP.FrameRateExtN ||
@@ -296,6 +307,25 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
                 session->m_pDVP->VPPs[id].reset(session->Create<VideoVPP>(VppParams));
             }
 
+            // Process cache hints buffer
+            if (VppParams.NumExtParam)
+            {
+                // Remove cache control buffers (they are actually shifted to the end)
+                auto p_new_end = std::remove_if(VppParams.ExtParam, VppParams.ExtParam + VppParams.NumExtParam,
+                    [](mfxExtBuffer* buffer)
+                    {
+                        return buffer->BufferId == MFX_EXTBUFF_ALLOCATION_HINTS;
+                    });
+
+                if (p_new_end != VppParams.ExtParam + VppParams.NumExtParam)
+                {
+                    mfxU16 n_original = VppParams.NumExtParam;
+                    VppParams.NumExtParam = mfxU16(p_new_end - VppParams.ExtParam);
+
+                    // Only one allocation hint buffer is allowed for any of VPPs inside DVP
+                    MFX_CHECK(n_original - VppParams.NumExtParam <= 1, MFX_ERR_INVALID_VIDEO_PARAM);
+                }
+            }
 
             mfxRes = session->m_pDVP->VPPs[id]->Init(&VppParams);
             MFX_CHECK_STS(mfxRes);

@@ -110,4 +110,10 @@ EXTBUF(mfxExtHyperModeParam               , MFX_EXTBUFF_HYPER_MODE_PARAM        
 #if defined(MFX_ENABLE_ENCTOOLS)
 EXTBUF(mfxExtEncToolsConfig              , MFX_EXTBUFF_ENCTOOLS_CONFIG           )
 #endif
+
 #endif // defined(__MFX_EXT_BUFFERS_H__)
+
+#if defined (__MFX_SURFACE_POOL_H__)
+EXTBUF(mfxExtAllocationHints, MFX_EXTBUFF_ALLOCATION_HINTS)
+#endif
+

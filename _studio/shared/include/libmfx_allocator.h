@@ -27,6 +27,7 @@
 // It is only needed for Synchronize
 #include "mfx_session.h"
 
+#include "mfxsurfacepool.h"
 
 #include "vm_interlocked.h"
 
@@ -775,6 +776,21 @@ public:
         m_allocator = nullptr;
     }
 
+    mfxSurfacePoolInterface* QueryParentPool()
+    {
+        if (!m_parent_pool)
+            return nullptr;
+
+        if (MFX_STS_TRACE(m_parent_pool->AddRef(m_parent_pool)) != MFX_ERR_NONE)
+            return nullptr;
+
+        return m_parent_pool;
+    }
+
+    void SetParentPool(mfxSurfacePoolInterface* pool)
+    {
+        m_parent_pool = pool;
+    }
 
 protected:
 
@@ -788,6 +804,7 @@ private:
     FrameAllocatorBase*      m_allocator;
     mfxMemId                 m_mid;
     mfxSyncPoint             m_sp          = nullptr;
+    mfxSurfacePoolInterface* m_parent_pool = nullptr;
 };
 
 template <>
@@ -822,6 +839,7 @@ public:
         mfxFrameSurfaceInterface::GetNativeHandle = &mfxFrameSurfaceInterfaceImpl::GetNativeHandle_impl;
         mfxFrameSurfaceInterface::GetDeviceHandle = &mfxFrameSurfaceInterfaceImpl::GetDeviceHandle_impl;
         mfxFrameSurfaceInterface::Synchronize     = &mfxFrameSurfaceInterfaceImpl::Synchronize_impl;
+        mfxFrameSurfaceInterface::QueryInterface  = &mfxFrameSurfaceInterfaceImpl::QueryInterface_impl;
 
         // Surface representation
         m_internal_surface.Version.Version = MFX_FRAMESURFACE1_VERSION;
@@ -906,6 +924,23 @@ public:
             reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->Synchronize(timeout);
     }
 
+    static mfxStatus QueryInterface_impl(mfxFrameSurface1* surface, mfxGUID guid, mfxHDL* iface)
+    {
+        MFX_CHECK_NULL_PTR2(surface, iface);
+        MFX_CHECK_HDL(surface->FrameInterface);
+        MFX_CHECK_HDL(surface->FrameInterface->Context);
+
+        if (guid == MFX_GUID_SURFACE_POOL)
+        {
+            *iface = reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->QueryParentPool();
+
+            MFX_CHECK(*iface, MFX_ERR_NOT_INITIALIZED);
+
+            return MFX_ERR_NONE;
+        }
+
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
 
     bool ReallocAllowed(const mfxFrameInfo& frame_info) const
     {

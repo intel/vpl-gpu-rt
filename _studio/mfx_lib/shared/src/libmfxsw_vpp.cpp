@@ -131,8 +131,9 @@ static mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
     if (session->m_pCORE->IsExternalFrameAllocator())
         return MFX_ERR_NONE;
 
-    auto CacheInitRoutine = [session, &par](bool input_pool)
+    auto CacheInitRoutine = [session, &par](mfxVPPPoolType pool_type)
     {
+        bool input_pool = pool_type == MFX_VPP_POOL_IN;
 
         auto& pCache = input_pool ? session->m_pVPP->m_pSurfaceCacheIn : session->m_pVPP->m_pSurfaceCacheOut;
 
@@ -151,7 +152,7 @@ static mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
             using cache_controller = surface_cache_controller<SurfaceCache>;
             using TCachePtr = std::remove_reference<decltype(pCache)>::type;
 
-            pCache = TCachePtr(new cache_controller(scoped_cache_ptr.get()), std::default_delete<cache_controller>());
+            pCache = TCachePtr(new cache_controller(scoped_cache_ptr.get(), ComponentType::VPP, pool_type), std::default_delete<cache_controller>());
 
             scoped_cache_ptr.release();
         }
@@ -162,8 +163,8 @@ static mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
         return MFX_ERR_NONE;
     };
 
-    MFX_SAFE_CALL(CacheInitRoutine(true));
-    MFX_SAFE_CALL(CacheInitRoutine(false));
+    MFX_SAFE_CALL(CacheInitRoutine(MFX_VPP_POOL_IN));
+    MFX_SAFE_CALL(CacheInitRoutine(MFX_VPP_POOL_OUT));
 
     return MFX_ERR_NONE;
 }

@@ -490,6 +490,7 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
 #ifndef MFX_ADAPTIVE_PLAYBACK_DISABLE
                                                                MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK,
 #endif
+                                                               MFX_EXTBUFF_ALLOCATION_HINTS
     };
 
     static const mfxU32 g_decoderSupportedExtBuffersAVC[]   = {
@@ -605,6 +606,10 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
 
         MFX_CHECK(is_known, MFX_ERR_UNSUPPORTED);
 
+        if (par->ExtParam[i]->BufferId == MFX_EXTBUFF_ALLOCATION_HINTS)
+        {
+            MFX_SAFE_CALL(CheckAllocationHintsBuffer(*reinterpret_cast<mfxExtAllocationHints*>(par->ExtParam[i])));
+        }
     }
 
     return MFX_ERR_NONE;
