@@ -2239,7 +2239,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         else
         {   // UNKNOWN or garbage
             par.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
-            if (IsOn(par.mfx.LowPower))
+            if (hasSupportVME(platform) && IsOn(par.mfx.LowPower))
                 changed = true;
         }
     }
