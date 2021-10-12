@@ -727,7 +727,7 @@ public:
         std::unique_lock<std::mutex> lock(std::move(outer_lock));
 
         auto should_remove_predicate =
-            [this](const SurfaceHolder& surface_holder)
+            [](const SurfaceHolder& surface_holder)
         {
             // Check if surface is still owned by somebody
             return !surface_holder.m_exported;
@@ -837,7 +837,7 @@ private:
         ~SurfaceHolder()
         {
             // Untie surface from pool
-            reinterpret_cast<mfxFrameSurfaceBaseInterface*>(FrameInterface)->SetParentPool(nullptr);
+            reinterpret_cast<mfxFrameSurfaceBaseInterface*>(FrameInterface->Context)->SetParentPool(nullptr);
 
             std::ignore = vm_interlocked_dec16((volatile Ipp16u*)&m_locked_count);
 
