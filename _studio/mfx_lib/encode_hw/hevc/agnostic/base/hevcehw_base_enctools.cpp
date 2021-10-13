@@ -297,7 +297,7 @@ static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config)
             (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
                 video.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
         // LPLA assumes reordering for I frames, doesn't make much sense with closed GOP
-        bool bAdaptiveI = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveI)) && !(video.mfx.GopOptFlag & (MFX_GOP_STRICT | MFX_GOP_CLOSED));
+        bool bAdaptiveI = (pExtOpt2 && IsOn(pExtOpt2->AdaptiveI)) && !(video.mfx.GopOptFlag & (MFX_GOP_STRICT | MFX_GOP_CLOSED));
 
        SetDefaultOpt(config.BRCBufferHints, bLA);
        SetDefaultOpt(config.AdaptivePyramidQuantP, bLA);
