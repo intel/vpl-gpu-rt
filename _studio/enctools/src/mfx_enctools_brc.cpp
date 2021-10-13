@@ -1536,7 +1536,7 @@ mfxI32 BRC_EncTool::GetLaQpEst(mfxU32 LaAvgEncodedSize, mfxF64 inputBitsPerFrame
         }
         else 
         {
-            laQp = (mfxI32)(0.776f*laQ + 6.6f);
+            laQp = (mfxI32)(0.776f * laQ + 4.6f);
         }
     }
 

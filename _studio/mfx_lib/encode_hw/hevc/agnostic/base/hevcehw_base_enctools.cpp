@@ -512,8 +512,8 @@ static mfxStatus InitEncToolsCtrl(
         if (maxDim >= 720) 
         {
             ctrl->LaScale = 2;
-            ctrl->LaQp = 26;
         }
+        ctrl->LaQp = 26;
     }
 
     return MFX_ERR_NONE;

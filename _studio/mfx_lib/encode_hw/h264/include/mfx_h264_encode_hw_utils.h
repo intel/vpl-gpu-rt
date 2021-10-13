@@ -1928,8 +1928,8 @@ static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
     mfxU16 crW = par.mfx.FrameInfo.CropW ? par.mfx.FrameInfo.CropW : par.mfx.FrameInfo.Width;
     if (crW >= 720) {
         ctrl->LaScale = 2;
-        if (ctrl->ScenarioInfo != MFX_SCENARIO_GAME_STREAMING) ctrl->LaQp = 26;
     }
+    if (ctrl->ScenarioInfo != MFX_SCENARIO_GAME_STREAMING) ctrl->LaQp = 26;
 
     return MFX_ERR_NONE;
 }

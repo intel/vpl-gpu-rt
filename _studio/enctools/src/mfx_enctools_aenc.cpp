@@ -40,8 +40,8 @@ mfxStatus AEnc_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig 
 
     m_aencPar.SrcFrameWidth = frameInfo->Width;
     m_aencPar.SrcFrameHeight = frameInfo->Height;
-
-    if (DoDownScaling(*frameInfo))
+    bool doDownScaling = DoDownScaling(*frameInfo);
+    if (doDownScaling)
     {
         FrameWidth_aligned = ENC_TOOLS_DS_FRAME_WIDTH;
         FrameHeight_aligned = ENC_TOOLS_DS_FRAME_HEIGHT;
@@ -65,7 +65,7 @@ mfxStatus AEnc_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig 
     m_aencPar.MinGopSize = std::max(m_aencPar.MaxMiniGopSize*2, m_aencPar.MaxGopSize/16); // to prevent close I frames
     m_aencPar.StrictIFrame = IsOff(pConfig.AdaptiveI);
     m_aencPar.MaxIDRDist = ctrl.MaxIDRDist;
-    m_aencPar.AGOP = !IsOff(pConfig.AdaptiveB);
+    m_aencPar.AGOP = !IsOff(pConfig.AdaptiveB) && (doDownScaling || m_aencPar.MaxMiniGopSize == 2); // ML AGOP tuned only for downscale path.
     m_aencPar.APQ = (!IsOff(pConfig.AdaptivePyramidQuantP)) || (!IsOff(pConfig.AdaptivePyramidQuantB));
     m_aencPar.AREF = (!IsOff(pConfig.AdaptiveRefP)) || (!IsOff(pConfig.AdaptiveRefB));
     m_aencPar.ALTR = (!IsOff(pConfig.AdaptiveLTR));
