@@ -46,43 +46,24 @@ typedef char vm_char;
 #define vm_string_strcat    strcat
 #define vm_string_strcpy    strcpy
 #define vm_string_strncpy   strncpy
-#define vm_string_strcspn   strcspn
-#define vm_string_strspn    strspn
 
 #define vm_string_strlen    strlen
 #define vm_string_strcmp    strcmp
 #define vm_string_strncmp   strncmp
 #define vm_string_stricmp   strcmp
-#define vm_string_strnicmp  strncmp
-#define vm_string_strrchr   strrchr
 
 
 #define vm_string_atol      atol
 #define vm_string_atoi      atoi
-#define vm_string_atof      atof
 
 #define vm_string_strtod    strtod
 #define vm_string_strtol    strtol
 
-#define vm_string_strstr    strstr
 #define vm_string_sscanf    sscanf
 #define vm_string_vsscanf   vsscanf
 #define vm_string_strchr    strchr
 
-#define vm_finddata_t struct _finddata_t
-
 typedef DIR* vm_findptr;
-
-/*
- * findfirst, findnext, findclose direct emulation
- * for old ala Windows applications
- */
-struct _finddata_t
-{
-  uint32_t attrib;
-  long long size;
-  vm_char  name[260];
-};
 
 #ifdef __cplusplus
 extern "C"
@@ -95,8 +76,6 @@ int32_t vm_string_vprintf(const vm_char *format, va_list argptr);
 }
 #endif /* __cplusplus */
 
-
-#define __VM_STRING(str) VM_STRING(str)
 
 
 typedef int error_t;
