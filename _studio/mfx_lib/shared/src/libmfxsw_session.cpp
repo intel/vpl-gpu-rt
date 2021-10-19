@@ -236,7 +236,7 @@ mfxStatus MFXInternalPseudoJoinSession(mfxSession session, mfxSession child_sess
         child_session->m_pScheduler = session->m_pScheduler;
 
 
-        child_session->m_pCORE.reset(session->m_pCORE.get(), false);
+        child_session->m_pCORE         = session->m_pCORE;
         child_session->m_pOperatorCore = session->m_pOperatorCore;
 
         return MFX_ERR_NONE;

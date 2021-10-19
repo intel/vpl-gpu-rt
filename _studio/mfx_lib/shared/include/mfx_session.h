@@ -34,50 +34,6 @@
 #include <mfx_interface_scheduler.h>
 #include <libmfx_core_operation.h>
 
-// WARNING: please do not change the type of _mfxSession.
-// It is declared as 'struct' in the main header.h
-
-template <class T>
-class mfx_core_ptr
-{
-public:
-
-    explicit mfx_core_ptr(T* ptr = 0)
-        : m_bIsNew(false)
-        , m_ptr(ptr)
-    {
-    };
-    void reset (T* ptr = 0, bool isNew = true)
-    {
-        if (m_bIsNew)
-            delete m_ptr;
-
-        m_ptr = ptr;
-        m_bIsNew = isNew;
-    };
-    T* get() const
-    {
-        return m_ptr;
-    };
-    virtual ~mfx_core_ptr()
-    {
-        if (m_bIsNew)
-            delete m_ptr;
-
-        m_ptr = 0;
-    };
-    T* operator->() const
-    {
-        return get();
-    }
-
-protected:
-    mfx_core_ptr(const mfx_core_ptr<T>& ptr);
-    mfx_core_ptr<T>& operator=(mfx_core_ptr<T>& ptr);
-    bool m_bIsNew;
-    T*   m_ptr;
-};
-
 class SurfaceCache;
 
 template <class T>
@@ -102,7 +58,7 @@ struct _mfxSession
     mfxStatus ReleaseScheduler(void);
 
     // Declare session's components
-    mfx_core_ptr<VideoCORE> m_pCORE;
+    std::shared_ptr<VideoCORE>   m_pCORE;
 
     std::unique_ptr<VideoENCODE> m_pENCODE;
     std::unique_ptr<VideoDECODE> m_pDECODE;
