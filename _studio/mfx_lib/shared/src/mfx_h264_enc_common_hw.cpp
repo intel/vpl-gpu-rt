@@ -958,7 +958,7 @@ namespace
     }
 
     mfxU16 GetMaxNumRefActiveBL0(mfxU32 targetUsage,
-                                        eMFXHWType platform,
+                                        eMFXHWType /*platform*/,
                                         bool isLowPower)
     {
         if (!isLowPower)
