@@ -507,7 +507,7 @@ mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
     return qp;
 }
 
-void SetQPParams(mfxI32 qp, mfxU32 type, BRC_Ctx  &ctx, mfxU32 /* rec_num */, mfxI32 minQuant, mfxI32 maxQuant, mfxU32 level, mfxU32 iDQp, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP, mfxU32 codecId)
+void SetQPParams(mfxI32 qp, mfxU32 type, BRC_Ctx& ctx, mfxU32 /* rec_num */, mfxI32 minQuant, mfxI32 maxQuant, mfxU32 level, mfxU32 iDQp, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP, mfxU32 codecId)
 {
     if (type == MFX_FRAMETYPE_IDR)
     {
