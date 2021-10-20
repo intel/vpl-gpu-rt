@@ -422,7 +422,6 @@ mfxStatus CheckBitstream(const mfxBitstream *bs)
 }
 
 
-
 /* Check if pointers required for given FOURCC is NOT null */
 mfxStatus CheckFramePointers(mfxFrameInfo const& info, mfxFrameData const& data)
 {
