@@ -576,14 +576,6 @@ mfxStatus VAAPIEncoder::Init(ENCODE_FUNC func, ExecuteBuffers* pExecuteBuffers)
 
 #ifdef MPEG2_ENC_HW_PERF
 
-    vm_time_init (&copy_MB_data_time[0]);
-    vm_time_init (&copy_MB_data_time[1]);
-    vm_time_init (&copy_MB_data_time[2]);
-
-    vm_time_init ( &lock_MB_data_time[0]);
-    vm_time_init ( &lock_MB_data_time[1]);
-    vm_time_init ( &lock_MB_data_time[2]);
-
 #endif
 } // mfxStatus VAAPIEncoder::Init(ENCODE_FUNC func,ExecuteBuffers* pExecuteBuffers)
 
@@ -1573,14 +1565,13 @@ mfxStatus VAAPIEncoder::Close()
     {
 #ifdef MPEG2_ENC_HW_PERF
         FILE* f = fopen ("mpeg2_ENK_hw_perf_ex.txt","a+");
-        fprintf(f,"%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
-            (int)lock_MB_data_time[0].diff,
-            (int)lock_MB_data_time[1].diff,
-            (int)lock_MB_data_time[2].diff,
-            (int)copy_MB_data_time[0].diff,
-            (int)copy_MB_data_time[1].diff,
-            (int)copy_MB_data_time[2].diff,
-            (int)lock_MB_data_time[0].freq);
+        fprintf(f,"%lld\t%lld\t%lld\t%lld\t%lld\t%lld\n",
+            (mfxU64)std::chrono::duration_cast<std::chrono::microseconds>(lock_MB_data_time[0].timeSpan).count(),
+            (mfxU64)std::chrono::duration_cast<std::chrono::microseconds>(lock_MB_data_time[1].timeSpan).count(),
+            (mfxU64)std::chrono::duration_cast<std::chrono::microseconds>(lock_MB_data_time[2].timeSpan).count(),
+            (mfxU64)std::chrono::duration_cast<std::chrono::microseconds>(copy_MB_data_time[0].timeSpan).count(),
+            (mfxU64)std::chrono::duration_cast<std::chrono::microseconds>(copy_MB_data_time[1].timeSpan).count(),
+            (mfxU64)std::chrono::duration_cast<std::chrono::microseconds>(copy_MB_data_time[2].timeSpan).count());
         fclose(f);
 #endif
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaDestroyContext");
@@ -1617,15 +1608,15 @@ mfxStatus VAAPIEncoder::FillMBBufferPointer(ExecuteBuffers* pExecuteBuffers)
 #ifdef MPEG2_ENC_HW_PERF
     if (pExecuteBuffers->m_pps.picture_coding_type == CODING_TYPE_I)
     {
-        vm_time_start (0,&lock_MB_data_time[0]);
+        lock_MB_data_time[0].start = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
     }
     else if (pExecuteBuffers->m_pps.picture_coding_type == CODING_TYPE_P)
     {
-        vm_time_start (0,&lock_MB_data_time[1]);
+        lock_MB_data_time[1].start = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
     }
     else if (pExecuteBuffers->m_pps.picture_coding_type == CODING_TYPE_B)
     {
-        vm_time_start (0,&lock_MB_data_time[2]);
+        lock_MB_data_time[2].start = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
     }
 #endif
     sts = m_core->LockFrame(Frame.MemId,&Frame);
@@ -1634,15 +1625,15 @@ mfxStatus VAAPIEncoder::FillMBBufferPointer(ExecuteBuffers* pExecuteBuffers)
 #ifdef MPEG2_ENC_HW_PERF
     if (pExecuteBuffers->m_pps.picture_coding_type == CODING_TYPE_I)
     {
-        vm_time_stop (0,&lock_MB_data_time[0]);
+        lock_MB_data_time[0].time_span = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()) - lock_MB_data_time[0].start;
     }
     else if (pExecuteBuffers->m_pps.picture_coding_type == CODING_TYPE_P)
     {
-        vm_time_stop (0,&lock_MB_data_time[1]);
+        lock_MB_data_time[1].time_span = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()) - lock_MB_data_time[1].start;
     }
     else if (pExecuteBuffers->m_pps.picture_coding_type == CODING_TYPE_B)
     {
-        vm_time_stop (0,&lock_MB_data_time[2]);
+        lock_MB_data_time[2].time_span = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()) - lock_MB_data_time[2].start;
     }
 #endif
     int numMB = 0;
@@ -1661,15 +1652,15 @@ mfxStatus VAAPIEncoder::FillMBBufferPointer(ExecuteBuffers* pExecuteBuffers)
 #ifdef MPEG2_ENC_HW_PERF
         if (pExecuteBuffers->m_pps.picture_coding_type == CODING_TYPE_I)
         {
-            vm_time_start (0,&copy_MB_data_time[0]);
+            copy_MB_data_time[0].start = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
         }
         else if (pExecuteBuffers->m_pps.picture_coding_type == CODING_TYPE_P)
         {
-            vm_time_start (0,&copy_MB_data_time[1]);
+            copy_MB_data_time[1].start = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
         }
         else if (pExecuteBuffers->m_pps.picture_coding_type == CODING_TYPE_B)
         {
-            vm_time_start (0,&copy_MB_data_time[2]);
+            copy_MB_data_time[1].start = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
         }
 #endif
         mfxFrameSurface1 src = {};
@@ -1692,15 +1683,15 @@ mfxStatus VAAPIEncoder::FillMBBufferPointer(ExecuteBuffers* pExecuteBuffers)
 #ifdef MPEG2_ENC_HW_PERF
         if (pExecuteBuffers->m_pps.picture_coding_type == CODING_TYPE_I)
         {
-            vm_time_stop (0,&copy_MB_data_time[0]);
+            copy_MB_data_time[0].time_span = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()) - copy_MB_data_time[0].start;
         }
         else if (pExecuteBuffers->m_pps.picture_coding_type == CODING_TYPE_P)
         {
-            vm_time_stop (0,&copy_MB_data_time[1]);
+            copy_MB_data_time[1].time_span = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()) - copy_MB_data_time[1].start;
         }
         else if (pExecuteBuffers->m_pps.picture_coding_type == CODING_TYPE_B)
         {
-            vm_time_stop (0,&copy_MB_data_time[2]);
+            copy_MB_data_time[2].time_span = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()) - copy_MB_data_time[2].start;
         }
 #endif
     }

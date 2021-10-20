@@ -75,13 +75,6 @@ typedef struct vm_semaphore
     int32_t max_count;
 } vm_semaphore;
 
-typedef struct vm_time
-{
-   long long start;
-   long long diff;
-   long long freq;
-} vm_time;
-
 
 
 #ifdef __cplusplus

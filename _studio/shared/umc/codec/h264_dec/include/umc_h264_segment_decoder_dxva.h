@@ -33,6 +33,7 @@
 #include "umc_h264_frame.h"
 
 #define UMC_VA_MAX_FRAME_BUFFER 32 //max number of uncompressed buffers
+#define SECOND_IN_US 1000000
 
 namespace UMC
 {
@@ -214,8 +215,8 @@ protected:
 
     typedef std::vector<ReportItem> Report;
     Report m_reports;
-    unsigned long long m_lastCounter;
-    unsigned long long m_counterFrequency;
+
+    mfx::ResettableTimerMs timer;
 
     bool   m_useDXVAStatusReporting;
 };

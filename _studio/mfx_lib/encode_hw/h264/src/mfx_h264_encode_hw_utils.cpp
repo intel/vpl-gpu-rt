@@ -32,7 +32,6 @@
 #include "cmrt_cross_platform.h"
 
 #include <assert.h>
-#include "vm_time.h"
 #include "mfx_brc_common.h"
 #include "mfx_h264_encode_hw_utils.h"
 #include "libmfx_core.h"

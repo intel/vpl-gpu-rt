@@ -35,7 +35,6 @@
 #include "mfx_h264_encode_interface.h"
 #include "mfx_h264_encode_cm.h"
 #include "ippi.h"
-#include "vm_time.h"
 #include "asc.h"
 #include "libmfx_core_interface.h"
 

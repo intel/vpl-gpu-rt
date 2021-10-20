@@ -37,7 +37,11 @@
 #include <list>
 
 #ifdef MPEG2_ENC_HW_PERF
-#include "vm_time.h"
+struct Time
+{
+    std::chrono::steady_clock::time_point start;
+    std::chrono::steady_clock::duration timeSpan;
+};
 #endif 
 
 #define ENCODE_ENC_CTRL_CAPS ENCODE_ENC_CTRL_CAPS

@@ -24,9 +24,6 @@
 #include <mfx_scheduler_core_handle.h>
 #include <mfx_trace.h>
 
-#include <vm_time.h>
-
-
 mfxSchedulerCore::mfxSchedulerCore(void)
     :  m_currentTimeStamp(0)
     // since on Linux we have blocking synchronization which means an absence of polling,
@@ -45,7 +42,6 @@ mfxSchedulerCore::mfxSchedulerCore(void)
     m_bQuit = false;
 
     m_pThreadCtx = NULL;
-    m_vmtick_msec_frequency = vm_time_get_frequency()/1000;
 
     // reset task variables
     memset(m_pTasks, 0, sizeof(m_pTasks));
@@ -206,13 +202,13 @@ void mfxSchedulerCore::Wait(const mfxU32 curThreadNum, std::unique_lock<std::mut
 
 mfxU64 mfxSchedulerCore::GetHighPerformanceCounter(void)
 {
-    return (mfxU64) vm_time_get_tick();
+    return (mfxU64) std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
 
 } // mfxU64 mfxSchedulerCore::GetHighPerformanceCounter(void)
 
 mfxU32 mfxSchedulerCore::GetLowResCurrentTime(void)
 {
-    return vm_time_get_current_time();
+    return (mfxU32)std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
 
 } // mfxU32 mfxSchedulerCore::GetCurrentTime(void)
 mfxStatus mfxSchedulerCore::AllocateEmptyTask(void)

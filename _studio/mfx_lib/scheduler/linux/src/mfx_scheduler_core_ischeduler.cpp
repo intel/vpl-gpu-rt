@@ -23,7 +23,6 @@
 #include <mfx_scheduler_core_task.h>
 #include <mfx_scheduler_core_handle.h>
 
-#include <vm_time.h>
 #include <mfx_trace.h>
 
 #include <functional>
@@ -183,8 +182,9 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
         mfxTaskHandle previousTaskHandle = {};
 
         mfxStatus task_sts = MFX_ERR_NONE;
-        mfxU64 start = GetHighPerformanceCounter();
-        mfxU64 frequency = vm_time_get_frequency();
+        
+        mfx::TimerMs<mfxU64> timer((mfxU64)timeToWait * 1000);
+
         while (MFX_WRN_IN_EXECUTION == pTask->opRes)
         {
             std::unique_lock<std::mutex> guard(m_guard);
@@ -207,7 +207,7 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
 
             MarkTaskCompleted(&call, 0);
 
-            if ((mfxU32)((GetHighPerformanceCounter() - start)/frequency) > timeToWait)
+            if (timer.Expired())
                 break;
 
             if (MFX_TASK_DONE!= call.res)

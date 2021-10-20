@@ -174,8 +174,8 @@ namespace MfxHwMpeg2Encode
         UMC::Mutex                          m_guard;
 
 #ifdef MPEG2_ENC_HW_PERF
-        vm_time lock_MB_data_time[3];
-        vm_time copy_MB_data_time[3];
+        Time lock_MB_data_time[3];
+        Time copy_MB_data_time[3];
 #endif
         ENCODE_CAPS                         m_caps;
     }; // class VAAPIEncoder

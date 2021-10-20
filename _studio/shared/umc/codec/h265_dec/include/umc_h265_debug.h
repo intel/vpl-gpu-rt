@@ -24,7 +24,6 @@
 #ifndef __UMC_H265_DEC_DEBUG_H
 #define __UMC_H265_DEC_DEBUG_H
 
-#include "vm_time.h" /* for vm_time_get_tick on Linux */
 #include "umc_h265_dec_defs.h"
 
 //#define ENABLE_TRACE

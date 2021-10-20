@@ -23,8 +23,6 @@
 #include "mfx_common.h"
 #include <mfx_session.h>
 
-#include <vm_time.h>
-
 #include <libmfx_core_factory.h>
 #include <libmfx_core.h>
 

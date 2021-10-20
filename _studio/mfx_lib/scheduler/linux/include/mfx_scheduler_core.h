@@ -29,9 +29,6 @@
 
 #include <mfx_task.h>
 
-// synchronization stuff
-#include <vm_time.h>
-
 #include <vector>
 
 #include "mfx_common.h"
@@ -355,8 +352,6 @@ protected:
     // HW 'buffer done' event counter
     volatile
     mfxU64 m_hwEventCounter;
-    // Frequency for vm_tick to get msec
-    vm_tick m_vmtick_msec_frequency;
 
     // Working time statistic array
     MFX_THREADS_TIME m_workingTime[MFX_TIME_STAT_PARTS];

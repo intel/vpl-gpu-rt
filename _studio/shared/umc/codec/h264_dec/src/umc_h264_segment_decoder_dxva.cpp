@@ -28,8 +28,6 @@
 #include "mfx_trace.h"
 #include "mfxstructures.h"
 
-#include "vm_time.h"
-
 namespace UMC
 {
 H264_DXVA_SegmentDecoderCommon::H264_DXVA_SegmentDecoderCommon(TaskSupplier * pTaskSupplier)
@@ -98,10 +96,8 @@ Status H264_DXVA_SegmentDecoder::ProcessSegment(void)
 
 TaskBrokerSingleThreadDXVA::TaskBrokerSingleThreadDXVA(TaskSupplier * pTaskSupplier)
     : TaskBroker(pTaskSupplier)
-    , m_lastCounter(0)
     , m_useDXVAStatusReporting(true)
 {
-    m_counterFrequency = vm_time_get_frequency();
 }
 
 bool TaskBrokerSingleThreadDXVA::PrepareFrame(H264DecoderFrame * pFrame)
@@ -135,7 +131,7 @@ bool TaskBrokerSingleThreadDXVA::PrepareFrame(H264DecoderFrame * pFrame)
 
 void TaskBrokerSingleThreadDXVA::Reset()
 {
-    m_lastCounter = 0;
+    timer.Stop();
     TaskBroker::Reset();
     m_reports.clear();
 }

@@ -21,6 +21,8 @@
 #include "ehw_task_manager.h"
 #include <thread>
 
+using namespace std::chrono_literals;
+
 namespace MfxEncodeHW
 {
 mfxStatus TaskManager::ManagerInit()
@@ -157,7 +159,7 @@ mfxStatus TaskManager::TaskQuery(StorageW& inTask)
 
         if (bCallAgain)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            std::this_thread::sleep_for(1ms);
             return true;
         }
         ThrowIf(!!sts, sts);

@@ -22,8 +22,6 @@
 #include <mfx_scheduler_core_task.h>
 #include <mfx_trace.h>
 
-#include <vm_time.h>
-
 // declare the static section of the file
 namespace
 {

@@ -22,6 +22,7 @@
 
 #if defined (MFX_ENABLE_VPP)
 
+#include <thread>
 #include <algorithm>
 #include <assert.h>
 #include <limits>
@@ -42,7 +43,6 @@
 #include "libmfx_core_vaapi.h"
 
 #ifdef MFX_ENABLE_MCTF
-#include "vm_time.h"
 #include "mctf_common.h"
 #endif
 
@@ -50,6 +50,7 @@
 
 #include "mfx_common_int.h"
 
+using namespace std::chrono_literals;
 using namespace MfxHwVideoProcessing;
 enum
 {
@@ -3121,7 +3122,7 @@ mfxStatus VideoVPPHW::VppFrameCheck(
                 const mfxU32 MAX_ITER = 1000;
                 while (!pWorkOutSurf && ++iters < MAX_ITER)
                 {
-                    vm_time_sleep(1);
+                    std::this_thread::sleep_for(1ms);
                     MFX_SAFE_CALL(m_pMCTFilter->MCTF_GetEmptySurface(&pWorkOutSurf));
                 }
                 if (MAX_ITER == iters)

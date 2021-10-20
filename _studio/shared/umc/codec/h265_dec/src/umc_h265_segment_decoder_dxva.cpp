@@ -35,7 +35,6 @@
 
 #include "mfx_common.h" //  for trace routines
 
-#include "vm_time.h"
 
 
 namespace UMC_HEVC_DECODER
@@ -99,9 +98,7 @@ UMC::Status H265_DXVA_SegmentDecoder::ProcessSegment(void)
 
 TaskBrokerSingleThreadDXVA::TaskBrokerSingleThreadDXVA(TaskSupplier_H265 * pTaskSupplier)
     : TaskBroker_H265(pTaskSupplier)
-    , m_lastCounter(0)
 {
-    m_counterFrequency = vm_time_get_frequency();
 }
 
 bool TaskBrokerSingleThreadDXVA::PrepareFrame(H265DecoderFrame * pFrame)
@@ -122,7 +119,7 @@ bool TaskBrokerSingleThreadDXVA::PrepareFrame(H265DecoderFrame * pFrame)
 
 void TaskBrokerSingleThreadDXVA::Reset()
 {
-    m_lastCounter = 0;
+    timer.Stop();
     TaskBroker_H265::Reset();
     m_reports.clear();
 }

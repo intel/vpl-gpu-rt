@@ -23,8 +23,6 @@
 
 #include <mfx_trace.h>
 #include <stdio.h>
-#include <vm_time.h>
-
 
 mfxStatus mfxSchedulerCore::StartWakeUpThread(void)
 {

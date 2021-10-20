@@ -23,6 +23,8 @@
 #include <algorithm>
 #include <numeric>
 #include <cmath>
+#include <chrono>
+#include <thread>
 
 #include "cmrt_cross_platform.h"
 
@@ -37,13 +39,13 @@
 
 #include "mfx_h264_encode_cm.h"
 #include "mfx_h264_encode_cm_defs.h"
-#include "vm_time.h"
 
 #if USE_AGOP
 #define DEBUG_ADAPT 0
 const char frameType[] = {'U','I','P','U','B'};
 #endif
 
+using namespace std::chrono_literals;
 using namespace MfxHwH264Encode;
 
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
@@ -1737,7 +1739,7 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
     for (DdiTaskIter i = m_encoding.begin(); i != m_encoding.end(); ++i)
         for (mfxU32 f = 0; f <= i->m_fieldPicFlag; f++)
             while ((sts = QueryStatus(*i, i->m_fid[f])) == MFX_TASK_BUSY)
-                vm_time_sleep(1);
+                std::this_thread::sleep_for(1ms);
     while (!m_encoding.empty())
         OnEncodingQueried(m_encoding.begin());
     DestroyDanglingCmResources();
@@ -2494,8 +2496,7 @@ void ImplementationAvc::OnHistogramQueried()
 
 void ImplementationAvc::OnEncodingSubmitted(DdiTaskIter task)
 {
-
-    task->m_startTime = vm_time_get_current_time();
+    task->m_startTime = (mfxU32)std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
 
     MFX_TRACE_D(task->m_startTime);
 
@@ -4356,7 +4357,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                         {
                             while ((sts = QueryStatus(*nextTask, nextTask->m_fid[f])) == MFX_TASK_BUSY)
                             {
-                                vm_time_sleep(0);
+                                std::this_thread::yield();
                             }
                             if (sts != MFX_ERR_NONE)
                                 return sts;
@@ -4410,7 +4411,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                             PrepareSeiMessageBuffer(m_video, *curTask, curTask->m_fid[f], m_sei);
                             while ((sts = m_ddi->Execute(curTask->m_handleRaw, *curTask, curTask->m_fid[f], m_sei)) == MFX_TASK_BUSY)
                             {
-                                vm_time_sleep(0);
+                                std::this_thread::yield();
                             }
                             if (sts != MFX_ERR_NONE)
                                 return Error(sts);
