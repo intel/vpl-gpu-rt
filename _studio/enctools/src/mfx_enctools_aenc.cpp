@@ -266,20 +266,28 @@ mfxStatus AEnc_EncTool::GetGOPDecision(mfxU32 displayOrder, mfxEncToolsHintPreEn
     }
     pPreEncGOP->QPDelta = (mfxI16)(*m_frameIt).DeltaQP;
     if (m_aencPar.APQ) {
-        switch ((mfxI16)(*m_frameIt).ClassAPQ)
-        {
-        case 1:
-            pPreEncGOP->QPModulation = MFX_QP_MODULATION_HIGH;
-            break;
-        case 2:
-            pPreEncGOP->QPModulation = MFX_QP_MODULATION_MEDIUM;
-            break;
-        case 3:
-            pPreEncGOP->QPModulation = MFX_QP_MODULATION_LOW;
-            break;
-        default:
-            pPreEncGOP->QPModulation = MFX_QP_MODULATION_MIXED;
-            break;
+        if (m_aencPar.CodecId == MFX_CODEC_HEVC) {
+            if (miniGOP == 8)
+                pPreEncGOP->QPModulation = 1 + (mfxI16)(*m_frameIt).ClassAPQ;
+            else
+                pPreEncGOP->QPModulation = (miniGOP == 4) ? 2 : 1;
+        }
+        else {
+            switch ((mfxI16)(*m_frameIt).ClassAPQ)
+            {
+            case 1:
+                pPreEncGOP->QPModulation = MFX_QP_MODULATION_HIGH;
+                break;
+            case 2:
+                pPreEncGOP->QPModulation = MFX_QP_MODULATION_MEDIUM;
+                break;
+            case 3:
+                pPreEncGOP->QPModulation = MFX_QP_MODULATION_LOW;
+                break;
+            default:
+                pPreEncGOP->QPModulation = MFX_QP_MODULATION_MIXED;
+                break;
+            }
         }
     }
     else {
