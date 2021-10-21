@@ -436,7 +436,7 @@ mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
             if (level && !isRef) qp += 1;
         }
     }
-    else {
+    else if (codecId == MFX_CODEC_AVC) {
         if (qpMod == MFX_QP_MODULATION_HIGH) {
             switch (level) {
             case 3:
@@ -445,7 +445,7 @@ mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
                 qp += 1;
             case 1:
             default:
-                qp += 2;
+                qp += 3;
                 break;
             }
         }
@@ -457,7 +457,7 @@ mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
                 qp += 1;
             case 1:
             default:
-                qp += 1;
+                qp += 2;
                 break;
             }
         }
@@ -469,40 +469,18 @@ mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
                 qp += 1;
             case 1:
             default:
-                qp -= 1;
-                break;
-            }
-        }
-        else if (qpMod == MFX_QP_MODULATION_MIXED) {
-            switch (level) {
-            case 3:
-                qp += 1;
-            case 2:
-                qp += 0;
-            case 1:
-            default:
                 qp += 1;
                 break;
             }
-            if (level < 3 && !isRef) qp += 1;  // other than 8 gop
-        }
-        else if (qpMod == BRC_QP_MODULATION_HEVC_GOP8_FIXED) {
-            switch (level) {
-            case 3:
-                qp += 2;
-            case 2:
-                qp += 0;
-            case 1:
-            default:
-                qp += 3;
-                break;
-            }
-            if (level == 2 && !isRef) qp += 1;  // needed other than 8 gop / AGOP
         }
         else {
             qp += (level > 0 ? level - 1 : 0);
             if (level && !isRef) qp += 1;
         }
+    }
+    else {
+        qp += (level > 0 ? level - 1 : 0);
+        if (level && !isRef) qp += 1;
     }
     return qp;
 }
