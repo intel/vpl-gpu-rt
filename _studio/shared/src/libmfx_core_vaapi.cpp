@@ -787,34 +787,34 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
     {
         if (canUseCMCopy)
         {
-            sts = m_pCmCopy->CopyVideoToVideo(pDst, pSrc);
-            MFX_CHECK_STS(sts);
+            // If CM copy failed, fallback to VA copy
+            MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopyVideoToVideo(pDst, pSrc));
+            // Remove CM adapter in case of failed copy
+            this->SetCmCopyStatus(false);
         }
-        else
+
+        MFX_SAFE_CALL(this->CheckOrInitDisplay());
+
+        VASurfaceID *va_surf_src = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
+        VASurfaceID *va_surf_dst = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
+        MFX_CHECK(va_surf_src != va_surf_dst, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+        VAImage va_img_src = {};
+        VAStatus va_sts;
+
+        va_sts = vaDeriveImage(m_Display, *va_surf_src, &va_img_src);
+        MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+
         {
-            MFX_SAFE_CALL(this->CheckOrInitDisplay());
-
-            VASurfaceID *va_surf_src = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
-            VASurfaceID *va_surf_dst = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
-            MFX_CHECK(va_surf_src != va_surf_dst, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-            VAImage va_img_src = {};
-            VAStatus va_sts;
-
-            va_sts = vaDeriveImage(m_Display, *va_surf_src, &va_img_src);
-            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
-
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaPutImage");
-                va_sts = vaPutImage(m_Display, *va_surf_dst, va_img_src.image_id,
-                                    0, 0, roi.width, roi.height,
-                                    0, 0, roi.width, roi.height);
-            }
-            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
-
-            va_sts = vaDestroyImage(m_Display, va_img_src.image_id);
-            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaPutImage");
+            va_sts = vaPutImage(m_Display, *va_surf_dst, va_img_src.image_id,
+                                0, 0, roi.width, roi.height,
+                                0, 0, roi.width, roi.height);
         }
+        MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+
+        va_sts = vaDestroyImage(m_Display, va_img_src.image_id);
+        MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
     }
     else if (nullptr != pSrc->Data.MemId && nullptr != dstPtr)
     {
@@ -824,51 +824,50 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
         {
             if (canUseCMCopy)
             {
-                sts = m_pCmCopy->CopyVideoToSys(pDst, pSrc);
-                MFX_CHECK_STS(sts);
+                // If CM copy failed, fallback to VA copy
+                MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopyVideoToSys(pDst, pSrc));
+                // Remove CM adapter in case of failed copy
+                this->SetCmCopyStatus(false);
             }
-            else
+
+            VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
+            VAImage va_image;
+            VAStatus va_sts;
+            void *pBits = NULL;
+
+            va_sts = vaDeriveImage(m_Display, *va_surface, &va_image);
+            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+
             {
-                VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
-                VAImage va_image;
-                VAStatus va_sts;
-                void *pBits = NULL;
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+                va_sts = vaMapBuffer(m_Display, va_image.buf, (void **) &pBits);
+            }
+            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
-                va_sts = vaDeriveImage(m_Display, *va_surface, &va_image);
-                MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+            {
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FastCopy_vid2sys");
+                mfxStatus sts = mfxDefaultAllocatorVAAPI::SetFrameData(va_image, pDst->Info.FourCC, (mfxU8*)pBits, pSrc->Data);
+                MFX_CHECK_STS(sts);
 
-                {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-                    va_sts = vaMapBuffer(m_Display, va_image.buf, (void **) &pBits);
-                }
-                MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+                mfxMemId saveMemId = pSrc->Data.MemId;
+                pSrc->Data.MemId = 0;
 
-                {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FastCopy_vid2sys");
-                    mfxStatus sts = mfxDefaultAllocatorVAAPI::SetFrameData(va_image, pDst->Info.FourCC, (mfxU8*)pBits, pSrc->Data);
-                    MFX_CHECK_STS(sts);
+                sts = CoreDoSWFastCopy(*pDst, *pSrc, COPY_VIDEO_TO_SYS); // sw copy
+                MFX_CHECK_STS(sts);
 
-                    mfxMemId saveMemId = pSrc->Data.MemId;
-                    pSrc->Data.MemId = 0;
-
-                    sts = CoreDoSWFastCopy(*pDst, *pSrc, COPY_VIDEO_TO_SYS); // sw copy
-                    MFX_CHECK_STS(sts);
-
-                    pSrc->Data.MemId = saveMemId;
-                    MFX_CHECK_STS(sts);
-
-                }
-
-                {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-                    va_sts = vaUnmapBuffer(m_Display, va_image.buf);
-                }
-                MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
-
-                va_sts = vaDestroyImage(m_Display, va_image.image_id);
-                MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+                pSrc->Data.MemId = saveMemId;
+                MFX_CHECK_STS(sts);
 
             }
+
+            {
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+                va_sts = vaUnmapBuffer(m_Display, va_image.buf);
+            }
+            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+
+            va_sts = vaDestroyImage(m_Display, va_image.image_id);
+            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
         }
 
     }
@@ -884,54 +883,54 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
     {
         if (canUseCMCopy)
         {
-            sts = m_pCmCopy->CopySysToVideo(pDst, pSrc);
-            MFX_CHECK_STS(sts);
+            // If CM copy failed, fallback to VA copy
+            MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopySysToVideo(pDst, pSrc));
+            // Remove CM adapter in case of failed copy
+            this->SetCmCopyStatus(false);
         }
-        else
+
+        VAStatus va_sts = VA_STATUS_SUCCESS;
+        VASurfaceID *va_surface = (VASurfaceID*)((mfxHDLPair *)pDst->Data.MemId)->first;
+        VAImage va_image;
+        void *pBits = NULL;
+
+        MFX_SAFE_CALL(this->CheckOrInitDisplay());
+
+        va_sts = vaDeriveImage(m_Display, *va_surface, &va_image);
+        MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+
         {
-            VAStatus va_sts = VA_STATUS_SUCCESS;
-            VASurfaceID *va_surface = (VASurfaceID*)((mfxHDLPair *)pDst->Data.MemId)->first;
-            VAImage va_image;
-            void *pBits = NULL;
-
-            MFX_SAFE_CALL(this->CheckOrInitDisplay());
-
-            va_sts = vaDeriveImage(m_Display, *va_surface, &va_image);
-            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
-
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-                va_sts = vaMapBuffer(m_Display, va_image.buf, (void **) &pBits);
-            }
-            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
-
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FastCopy_sys2vid");
-
-                mfxStatus sts = mfxDefaultAllocatorVAAPI::SetFrameData(va_image, pDst->Info.FourCC, (mfxU8*)pBits, pDst->Data);
-                MFX_CHECK_STS(sts);
-
-                mfxMemId saveMemId = pDst->Data.MemId;
-                pDst->Data.MemId = 0;
-
-                sts = CoreDoSWFastCopy(*pDst, *pSrc, COPY_SYS_TO_VIDEO); // sw copy
-                MFX_CHECK_STS(sts);
-
-                pDst->Data.MemId = saveMemId;
-                MFX_CHECK_STS(sts);
-
-            }
-
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-                va_sts = vaUnmapBuffer(m_Display, va_image.buf);
-            }
-            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
-
-            // vaDestroyImage
-            va_sts = vaDestroyImage(m_Display, va_image.image_id);
-            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+            va_sts = vaMapBuffer(m_Display, va_image.buf, (void **) &pBits);
         }
+        MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FastCopy_sys2vid");
+
+            mfxStatus sts = mfxDefaultAllocatorVAAPI::SetFrameData(va_image, pDst->Info.FourCC, (mfxU8*)pBits, pDst->Data);
+            MFX_CHECK_STS(sts);
+
+            mfxMemId saveMemId = pDst->Data.MemId;
+            pDst->Data.MemId = 0;
+
+            sts = CoreDoSWFastCopy(*pDst, *pSrc, COPY_SYS_TO_VIDEO); // sw copy
+            MFX_CHECK_STS(sts);
+
+            pDst->Data.MemId = saveMemId;
+            MFX_CHECK_STS(sts);
+
+        }
+
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+            va_sts = vaUnmapBuffer(m_Display, va_image.buf);
+        }
+        MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+
+        // vaDestroyImage
+        va_sts = vaDestroyImage(m_Display, va_image.image_id);
+        MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
     }
     else
     {
@@ -1336,7 +1335,10 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     {
         if (canUseCMCopy)
         {
-            return m_pCmCopy->CopyVideoToVideo(pDst, pSrc);
+            // If CM copy failed, fallback to VA copy
+            MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopyVideoToVideo(pDst, pSrc));
+            // Remove CM adapter in case of failed copy
+            this->SetCmCopyStatus(false);
         }
 
         MFX_SAFE_CALL(this->CheckOrInitDisplay());
@@ -1368,7 +1370,10 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
 
         if (canUseCMCopy)
         {
-            return m_pCmCopy->CopyVideoToSys(pDst, pSrc);
+            // If CM copy failed, fallback to VA copy
+            MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopyVideoToSys(pDst, pSrc));
+            // Remove CM adapter in case of failed copy
+            this->SetCmCopyStatus(false);
         }
 
         VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
@@ -1415,7 +1420,10 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     {
         if (canUseCMCopy)
         {
-            return m_pCmCopy->CopySysToVideo(pDst, pSrc);
+            // If CM copy failed, fallback to VA copy
+            MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopySysToVideo(pDst, pSrc));
+            // Remove CM adapter in case of failed copy
+            this->SetCmCopyStatus(false);
         }
 
         MFX_SAFE_CALL(this->CheckOrInitDisplay());

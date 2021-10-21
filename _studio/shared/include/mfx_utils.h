@@ -59,10 +59,11 @@ static inline T mfx_print_err(T sts, const char *file, int line, const char *fun
 #define MFX_STS_TRACE(sts) mfx_print_err(sts, __FILE__, __LINE__, __FUNCTION__)
 #endif
 
-#define MFX_SUCCEEDED(sts)      (MFX_STS_TRACE(sts) == MFX_ERR_NONE)
-#define MFX_FAILED(sts)         (MFX_STS_TRACE(sts) != MFX_ERR_NONE)
-#define MFX_RETURN(sts)         { return MFX_STS_TRACE(sts); }
-#define MFX_CHECK(EXPR, ERR)    { if (!(EXPR)) MFX_RETURN(ERR); }
+#define MFX_SUCCEEDED(sts)          (MFX_STS_TRACE(sts) == MFX_ERR_NONE)
+#define MFX_FAILED(sts)             (MFX_STS_TRACE(sts) != MFX_ERR_NONE)
+#define MFX_RETURN(sts)             { return MFX_STS_TRACE(sts); }
+#define MFX_RETURN_IF_ERR_NONE(sts) { if (MFX_SUCCEEDED(sts)) return MFX_ERR_NONE; }
+#define MFX_CHECK(EXPR, ERR)        { if (!(EXPR)) MFX_RETURN(ERR); }
 
 #define MFX_CHECK_NO_RET(EXPR, STS, ERR){ if (!(EXPR)) { std::ignore = MFX_STS_TRACE(ERR); STS = ERR; } }
 
