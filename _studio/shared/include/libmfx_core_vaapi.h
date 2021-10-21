@@ -124,7 +124,7 @@ public:
     public:
         VAAPIAdapter(VAAPIVideoCORE_T *pVAAPICore):m_pVAAPICore(pVAAPICore)
         {
-        };
+        }
 
     protected:
         VAAPIVideoCORE_T *m_pVAAPICore;
@@ -135,11 +135,11 @@ public:
     public:
         CMEnabledCoreAdapter(VAAPIVideoCORE_T *pVAAPICore): m_pVAAPICore(pVAAPICore)
         {
-        };
-        virtual mfxStatus SetCmCopyStatus(bool enable) override
+        }
+        virtual void SetCmCopyStatus(bool enable) override
         {
-            return m_pVAAPICore->SetCmCopyStatus(enable);
-        };
+            m_pVAAPICore->SetCmCopyStatus(enable);
+        }
     protected:
         VAAPIVideoCORE_T *m_pVAAPICore;
     };
@@ -190,8 +190,7 @@ public:
 
     mfxStatus            GetVAService(VADisplay *pVADisplay);
 
-    // this function should not be virtual
-    mfxStatus            SetCmCopyStatus(bool enable);
+    void                 SetCmCopyStatus(bool enable);
 
 protected:
     VAAPIVideoCORE_T(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);

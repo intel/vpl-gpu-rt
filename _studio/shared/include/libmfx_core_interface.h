@@ -252,7 +252,7 @@ struct CMEnabledCoreInterface
         return MFXICMEnabledCore_GUID;
     }
 
-    virtual mfxStatus SetCmCopyStatus(bool enable) = 0;
+    virtual void SetCmCopyStatus(bool enable) = 0;
     virtual ~CMEnabledCoreInterface() {}
 };
 

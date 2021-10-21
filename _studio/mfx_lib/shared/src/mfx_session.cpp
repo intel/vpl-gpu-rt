@@ -448,10 +448,7 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par)
         CMEnabledCoreInterface* pCmCore = QueryCoreInterface<CMEnabledCoreInterface>(m_pCORE.get());
         if (pCmCore)
         {
-            mfxRes = pCmCore->SetCmCopyStatus(false);
-        }
-        if (MFX_ERR_NONE != mfxRes) {
-            return mfxRes;
+            pCmCore->SetCmCopyStatus(false);
         }
     }
 

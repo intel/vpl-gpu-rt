@@ -243,10 +243,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
                 ;
             if (disableGpuCopy)
             {
-                mfxStatus mfxRes = this->SetCmCopyStatus(false);
-                if (MFX_ERR_NONE != mfxRes) {
-                    return mfxRes;
-                }
+                this->SetCmCopyStatus(false);
             }
         }
             break;
@@ -498,7 +495,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::GetVAService(
 } // mfxStatus VAAPIVideoCORE_T<Base>::GetVAService(...)
 
 template <class Base>
-mfxStatus VAAPIVideoCORE_T<Base>::SetCmCopyStatus(bool enable)
+void VAAPIVideoCORE_T<Base>::SetCmCopyStatus(bool enable)
 {
     UMC::AutomaticUMCMutex guard(this->m_guard);
 
@@ -510,9 +507,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetCmCopyStatus(bool enable)
 
         m_bCmCopy = false;
     }
-
-    return MFX_ERR_NONE;
-} // mfxStatus VAAPIVideoCORE_T<Base>::SetCmCopyStatus(...)
+} // void VAAPIVideoCORE_T<Base>::SetCmCopyStatus(...)
 
 template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
