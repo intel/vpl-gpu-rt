@@ -21,6 +21,12 @@
 #if !defined(__MFX_LOG_H)
 #define __MFX_LOG_H
 
+// set the following define to let the scheduler write log file
+// with all its activities.
+//#define MFX_SCHEDULER_LOG
+
+#if defined(MFX_SCHEDULER_LOG)
+
 #include "mfx_common.h"
 #include <stddef.h>
 
@@ -79,5 +85,7 @@ public:
     // Handle to the protected log
     log_t log;
 };
+
+#endif // defined(MFX_SCHEDULER_LOG)
 
 #endif // __MFX_LOG_H

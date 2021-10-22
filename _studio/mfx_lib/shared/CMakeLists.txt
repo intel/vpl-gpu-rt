@@ -39,6 +39,7 @@ target_sources(mfx_common_hw
     src/mfx_common_decode_int.cpp
     src/mfx_common_int.cpp
     src/mfx_enc_common.cpp
+    src/mfx_log.cpp
     src/mfx_mpeg2_dec_common.cpp
     src/mfx_vc1_dec_common.cpp
     src/mfx_critical_error_handler.cpp

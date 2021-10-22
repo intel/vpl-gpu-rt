@@ -24,6 +24,8 @@
 
 #include <umc_mutex.h>
 
+#if defined(MFX_SCHEDULER_LOG)
+
 #error Overlappped I/O mechanism is not implemented in Unix version.
 #include <unistd.h>
 #include <stdbool.h>
@@ -385,3 +387,5 @@ void mfxLogClose(log_t log)
     }
 
 } // void mfxLogClose(log_t log)
+
+#endif // defined(MFX_SCHEDULER_LOG)
