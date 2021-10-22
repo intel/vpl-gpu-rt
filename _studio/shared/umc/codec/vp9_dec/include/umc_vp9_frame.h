@@ -34,8 +34,8 @@ class VP9DecoderFrame
 {
 public:
 
-    VM_ALIGN16_DECL(int16_t) yDequant[QINDEX_RANGE][8];
-    VM_ALIGN16_DECL(int16_t) uvDequant[QINDEX_RANGE][8];
+    int16_t yDequant[QINDEX_RANGE][8];
+    int16_t uvDequant[QINDEX_RANGE][8];
 
     COLOR_SPACE color_space;
 

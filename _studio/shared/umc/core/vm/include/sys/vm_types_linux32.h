@@ -23,39 +23,14 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
-#ifdef __INTEL_COMPILER
-/* ICC and Fedora Core 3 incompatibility */
-#define __interface xxinterface
-#include <netinet/in.h>
-#undef __interface
-#else /* __INTEL_COMPILER */
-#include <netinet/in.h>
-#endif /* __INTEL_COMPILER */
-
 #include <ippcore.h>
 #include <ipps.h>
 #include <sys/select.h>
-
-#define vm_main main
-
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
-
-#define ENABLE_COUNTER          100
-#define DISABLE_COUNTER         101
-#define GET_TSC_LOW             102
-#define GET_TSC_HIGH            103
-
-#define VM_ALIGN_DECL(X,Y) __attribute__ ((aligned(X))) Y
-
-#define CONST_LL(X) X##LL
-#define CONST_ULL(X) X##ULL
-
-#define vm_timeval timeval
-#define vm_timezone timezone
 
 /* vm_event.h */
 typedef struct vm_event
@@ -74,8 +49,6 @@ typedef struct vm_semaphore
     int32_t count;
     int32_t max_count;
 } vm_semaphore;
-
-
 
 #ifdef __cplusplus
 }

@@ -37,24 +37,10 @@
 
 # include "sys/vm_types_linux32.h"
 
-/* Define NULL pointer value */
-#ifndef NULL
-#ifdef __cplusplus
-#define NULL    0
-#else
-#define NULL    ((void *)0)
-#endif
-#endif
-
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
-
-#define VM_ALIGN16_DECL(X) VM_ALIGN_DECL(16,X)
-#define VM_ALIGN32_DECL(X) VM_ALIGN_DECL(32,X)
-
-#define _MAX_LEN 256
 
 typedef enum e_vm_Status
 {
