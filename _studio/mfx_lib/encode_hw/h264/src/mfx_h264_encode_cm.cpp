@@ -880,13 +880,13 @@ void CmContext::Setup(
         m_kernelHistFields = CreateKernel(m_device, m_programHist, "HistogramSLMFields", (void *)HistogramFields);
     }
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
     m_kernelIAGOP = CreateKernel(m_device, m_program, "EncMB_I", (void *)EncMB_I);
     m_kernelPAGOP = CreateKernel(m_device, m_program, "EncMB_P", (void *)EncMB_P);
     m_kernelBAGOP = CreateKernel(m_device, m_program, "EncMB_B", (void *)EncMB_B);
 #endif
 
-#ifdef USE_DOWN_SAMPLE_KERNELS
+#ifdef MFX_ENABLE_DOWN_SAMPLE_KERNELS
     m_kernelDownSample2X = CreateKernel(m_device, m_program, "DownSampleMB2X", (void *)DownSampleMB2X);
     m_kernelDownSample4X = CreateKernel(m_device, m_program, "DownSampleMB4X", (void *)DownSampleMB4X);
 #endif
@@ -1022,7 +1022,7 @@ CmEvent * CmContext::RunVme(
     if (LaScaleFactor > 1)
     {
 
-#ifdef USE_DOWN_SAMPLE_KERNELS
+#ifdef MFX_ENABLE_DOWN_SAMPLE_KERNELS
         CmKernel * kernelDS = SelectKernelDownSample(LaScaleFactor);
         SetKernelArg(kernelDS, GetIndex(task.m_cmRaw), GetIndex(task.m_cmRawLa));
         CmEvent * e = 0;
@@ -1135,7 +1135,7 @@ mfxStatus CmContext::QueryVme(
     return MFX_ERR_NONE;
 }
 
-#ifdef USE_DOWN_SAMPLE_KERNELS
+#ifdef MFX_ENABLE_DOWN_SAMPLE_KERNELS
 void CmContext::DownSample2X(CmSurface2D* surfOrig, CmSurface2D* surf2X)
 {
     mfxU32 numMbCols = m_video.mfx.FrameInfo.Width >> 2;
@@ -1181,7 +1181,7 @@ CmEvent* CmContext::DownSample4XAsync(CmSurface2D* surfOrig, CmSurface2D* surf4X
 }
 #endif
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
 mfxU32 CmContext::CalcCostAGOP(
     DdiTask const & task,
     mfxI32 prevP,
@@ -1307,7 +1307,7 @@ CmKernel * CmContext::SelectKernelPreMe(mfxU32 frameType)
     }
 }
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
 CmKernel * CmContext::SelectKernelPreMeAGOP(mfxU32 frameType)
 {
     switch (frameType & MFX_FRAMETYPE_IPB)
@@ -1320,7 +1320,7 @@ CmKernel * CmContext::SelectKernelPreMeAGOP(mfxU32 frameType)
 }
 #endif
 
-#ifdef USE_DOWN_SAMPLE_KERNELS
+#ifdef MFX_ENABLE_DOWN_SAMPLE_KERNELS
 CmKernel * CmContext::SelectKernelDownSample(mfxU16 LaScaleFactor)
 {
     switch (LaScaleFactor)

@@ -676,7 +676,7 @@ EncMB_I(SurfaceIndex CurbeDataSurfIndex,
     
     int offset;
 
-#ifndef USE_DOWN_SAMPLE_KERNELS
+#ifndef MFX_ENABLE_DOWN_SAMPLE_KERNELS
     // down scale
     uint LaScaleFactor = GET_CURBE_CurLayerDQId(CURBEData);
     if (LaScaleFactor == 2)

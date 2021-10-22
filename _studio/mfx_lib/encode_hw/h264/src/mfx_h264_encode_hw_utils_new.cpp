@@ -3232,7 +3232,7 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
         m_stageGreediness[STG_WAIT_SCD] = 1 + adaptGopDelay;
         m_stageGreediness[STG_START_MCTF]   = 1;
         m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video, platform) ? 2 : 1;
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
         m_stageGreediness[STG_START_AGOP]         = 1;
         m_stageGreediness[STG_WAIT_AGOP]         = (extOpt2.AdaptiveB & MFX_CODINGOPTION_ON) ? 2 : 1;
         m_stageGreediness[STG_START_LA    ] = 10 + (video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist);
@@ -3258,7 +3258,7 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
         m_stageGreediness[STG_WAIT_SCD] = 1 + adaptGopDelay;
         m_stageGreediness[STG_START_MCTF]   = 1;
         m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video, platform) ? 2 : 1;
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
         m_stageGreediness[STG_START_AGOP]         = 1;
         m_stageGreediness[STG_WAIT_AGOP]         = (extOpt2.AdaptiveB & MFX_CODINGOPTION_ON) ? 2 : 1; //wait third frame
         m_stageGreediness[STG_START_LA    ] = 10 + (video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist);
@@ -3277,7 +3277,7 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
         m_stageGreediness[STG_WAIT_SCD] = (IsExtBrcSceneChangeSupported(video, platform) && IsCmNeededForSCD(video) ? 1 + !!(video.AsyncDepth > 1) : 1) + adaptGopDelay;
         m_stageGreediness[STG_START_MCTF]   = 1;
         m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video, platform) ? 2 : 1;
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
         m_stageGreediness[STG_START_AGOP]         = 1;
         m_stageGreediness[STG_WAIT_AGOP]         = (extOpt2.AdaptiveB & MFX_CODINGOPTION_ON) ? 2 : 1;
         m_stageGreediness[STG_START_LA    ] = 10 + (video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist);

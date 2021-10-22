@@ -2962,11 +2962,7 @@ mfxStatus CmCopyWrapper::CopyVideoToVideoMemoryAPI(mfxHDLPair dst, mfxHDLPair sr
 
     CmSurface2DWrapperScopedLock lock_src(*pSrcCmSurface2D);
 
-#ifdef CMAPIUPDATE
     cmSts = m_pCmQueue->EnqueueCopyGPUToGPU(*pDstCmSurface2D, *pSrcCmSurface2D, CM_FASTCOPY_OPTION_NONBLOCKING, e);
-#else
-    cmSts = m_pCmQueue->EnqueueCopyGPUToGPU(*pDstCmSurface2D, *pSrcCmSurface2D, e);
-#endif
 
     if (CM_SUCCESS == cmSts)
     {

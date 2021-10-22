@@ -38,18 +38,6 @@
 #define DECODE_DEFAULT_TIMEOUT  60000
 
 
-#ifdef __INTEL_COMPILER
-#define H265_RESTRICT __restrict
-#elif defined _MSC_VER
-#if _MSC_VER >= 1400
-#define H265_RESTRICT __restrict
-#else
-#define H265_RESTRICT
-#endif
-#else
-#define H265_RESTRICT
-#endif
-
 #ifdef _DEBUG
 #define ENABLE_JPEGD_TRACING
 #endif

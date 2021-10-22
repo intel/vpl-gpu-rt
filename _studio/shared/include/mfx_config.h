@@ -41,8 +41,6 @@
     #define MFX_SSE_4_1
 #endif
 
-#define CMAPIUPDATE
-
 #define UMC_VA
 #if defined(UNICODE) || defined(_UNICODE)
     #define MFX_UNICODE

@@ -323,7 +323,7 @@ public:
 
     bool isHistogramSupported() { return m_programHist != 0; }
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
     mfxU32 CalcCostAGOP(
         DdiTask const & task,
         mfxI32 prevP,
@@ -345,7 +345,7 @@ public:
         mfxU32&   cost);
 #endif
 
-#ifdef USE_DOWN_SAMPLE_KERNELS
+#ifdef MFX_ENABLE_DOWN_SAMPLE_KERNELS
     void DownSample2X(CmSurface2D* surfOrig, CmSurface2D* surf2X);
 
     void DownSample4X(CmSurface2D* surfOrig, CmSurface2D* surf4X);
@@ -369,7 +369,7 @@ public:
 
 protected:
     CmKernel * SelectKernelPreMe(mfxU32 frameType);
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
     CmKernel * SelectKernelPreMeAGOP(mfxU32 frameType);
 #endif
     CmKernel * SelectKernelDownSample(mfxU16 LaScaleFactor);
@@ -402,7 +402,7 @@ protected:
     CmKernel *  m_kernelHistFrame;
     CmKernel *  m_kernelHistFields;
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
     CmKernel *  m_kernelIAGOP;
     CmKernel *  m_kernelPAGOP;
     CmKernel *  m_kernelBAGOP;
@@ -415,7 +415,7 @@ protected:
     mfxVMEUNIIn m_costsP;
     mfxVMEUNIIn m_costsB;
 
-#ifdef USE_DOWN_SAMPLE_KERNELS
+#ifdef MFX_ENABLE_DOWN_SAMPLE_KERNELS
     CmKernel *  m_kernelDownSample2X;
     CmKernel *  m_kernelDownSample4X;
 #endif

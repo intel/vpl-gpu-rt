@@ -34,9 +34,6 @@
     #if !defined(MFX_ENABLE_VIDEO_BRC_COMMON)
         #define MFX_ENABLE_VIDEO_BRC_COMMON
     #endif
-    #if !defined(UMC_ENABLE_VIDEO_BRC)
-        #define UMC_ENABLE_VIDEO_BRC
-    #endif
     #if !defined(MFX_ENABLE_EXT_BRC)
         #define MFX_ENABLE_EXT_BRC
     #endif
@@ -69,7 +66,7 @@
 #ifdef MFX_ENABLE_USER_ENCTOOLS
     #define MFX_ENABLE_ENCTOOLS
     #if defined(MFX_ENABLE_AENC)
-        #define ENABLE_ADAPTIVE_ENCODE
+        #define MFX_ENABLE_ADAPTIVE_ENCODE
     #endif
 #endif
 #endif // _MFX_CONFIG_ENCODE_H_

@@ -83,7 +83,7 @@ const int MFX_MAX_DIRTY_RECT_COUNT = MFX_ARRAY_SIZE(mfxExtDirtyRect::Rect);
 const int MFX_MAX_MOVE_RECT_COUNT = MFX_ARRAY_SIZE(mfxExtMoveRect::Rect);
 const int DEFAULT_PPYR_INTERVAL = 3;
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
 #define MAX_B_FRAMES 10
 #define MAX_GOP_SEQUENCE 255
 #define MAX_SEQUENCE_COST (0x7FFFFFFF>>1)
@@ -354,7 +354,7 @@ namespace MfxHwH264Encode
         MFX_ENCODE_CAPS caps,
         eMFXHWType platform);
     // Helper which checks number of allocated frames and auto-free.
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
     static bool IsZero (mfxU32 i) { return (i == 0); }
 #endif
     enum
@@ -419,7 +419,7 @@ namespace MfxHwH264Encode
         void   SetFlag(mfxU32 idx, mfxU32 flag);
         mfxU32 GetFlag(mfxU32 idx) const;
 
-#if USE_AGOP //for debug
+#if MFX_ENABLE_AGOP //for debug
         mfxI32 CountNonLocked(){ return std::count_if(m_locked.begin(), m_locked.end(), IsZero); }
         mfxI32 CountLocked(){ return m_locked.size() - std::count_if(m_locked.begin(), m_locked.end(), IsZero); }
 #endif
@@ -1019,7 +1019,7 @@ namespace MfxHwH264Encode
             , m_midRaw(MID_INVALID)
             , m_midRec(MID_INVALID)
             , m_midBit(mfxMemId(MID_INVALID))
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
             , m_cmEventAGOP(0)
 #endif
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
@@ -1283,7 +1283,7 @@ namespace MfxHwH264Encode
         mfxU32          m_idxMCTF;
         CmSurface2D *   m_cmMCTF;
 #endif
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
         CmSurface2D *   m_cmRaw4X;      // down-sized input surface for AGOP
         CmEvent*        m_cmEventAGOP;
         mfxU32          m_costCache[MAX_B_FRAMES][MAX_B_FRAMES]; //if != MAX_COST => already checked
@@ -2740,7 +2740,7 @@ private:
     public:
         enum {
             STG_ACCEPT_FRAME,
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
             STG_START_AGOP,
             STG_WAIT_AGOP,
 #endif
@@ -2760,7 +2760,7 @@ private:
         enum {
             STG_BIT_CALL_EMULATOR = 0,
             STG_BIT_ACCEPT_FRAME  = 1 << STG_ACCEPT_FRAME,
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
             STG_BIT_START_AGOP          = 1 << STG_START_AGOP,
             STG_BIT_WAIT_AGOP          = 1 << STG_WAIT_AGOP,
 #endif
@@ -3022,7 +3022,7 @@ private:
         void OnMctfQueried();
         void OnMctfFinished();
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
         void SubmitMiniGopSize();
 
         bool OnMiniGopSizeSubmitted();
@@ -3067,7 +3067,7 @@ private:
             mfxU32    ffid,
             bool      useEvent = true);
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
         mfxU32 CalcCostAGOP(
             DdiTask const & task,
             mfxI32 prevP,
@@ -3164,7 +3164,7 @@ private:
 
         mfxU32 m_recNonRef[2];
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
         MfxFrameAllocResponse   m_raw4X;
         MfxFrameAllocResponse   m_mbAGOP;
         MfxFrameAllocResponse   m_curbeAGOP;
@@ -3218,7 +3218,7 @@ private:
         std::vector<VmeData *>      m_tmpVmeData;
 
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
         mfxI32        m_agopBestIdx;
         mfxI32        m_agopCurrentLen;
         mfxI32        m_agopFinishedLen;

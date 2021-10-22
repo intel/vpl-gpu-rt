@@ -24,7 +24,7 @@
 #include "mfx_enctools_aenc.h"
 #include "limits.h"
 
-#if !defined(ENABLE_ADAPTIVE_ENCODE)
+#if !defined(MFX_ENABLE_ADAPTIVE_ENCODE)
 
 mfxStatus AEncInit(mfxHDL*, AEncParam) { return MFX_ERR_UNSUPPORTED; }
 mfxStatus AEncProcessFrame(mfxHDL, mfxU32, mfxU8*, mfxI32, AEncFrame*) { return MFX_ERR_UNSUPPORTED; }

@@ -40,7 +40,7 @@
 #include "mfx_h264_encode_cm.h"
 #include "mfx_h264_encode_cm_defs.h"
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
 #define DEBUG_ADAPT 0
 const char frameType[] = {'U','I','P','U','B'};
 #endif
@@ -734,7 +734,7 @@ ImplementationAvc::ImplementationAvc(VideoCORE * core)
 , m_offsetMutex()
 #endif
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
 , m_agopBestIdx(0)
 , m_agopCurrentLen(0)
 , m_agopFinishedLen(0)
@@ -748,7 +748,7 @@ ImplementationAvc::ImplementationAvc(VideoCORE * core)
 {
     memset(&m_recNonRef, 0, sizeof(m_recNonRef));
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
     memset(m_bestGOPSequence, 0, sizeof(m_bestGOPSequence));
     memset(m_bestGOPCost, 0, sizeof(m_bestGOPCost));
 #endif
@@ -1405,7 +1405,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     }
 #endif
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
     if (extOpt2->AdaptiveB & MFX_CODINGOPTION_ON)//AGOP
     {
         const int agopLength = 10;
@@ -1516,7 +1516,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         MFX_CHECK(extOpt3.RepartitionCheckEnable == MFX_CODINGOPTION_UNKNOWN, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     #endif //MFX_ENABLE_H264_REPARTITION_CHECK
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
     m_agopCurrentLen = 0;
     m_agopFinishedLen = 0;
     m_agopDeps = 10;
@@ -2090,7 +2090,7 @@ void ImplementationAvc::OnMctfFinished()
     m_reordering.splice(m_reordering.end(), m_MctfFinished, m_MctfFinished.begin());
 }
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
 //submit tasks to estimate possible combinations
 void ImplementationAvc::SubmitAdaptiveGOP()
 {
@@ -3595,7 +3595,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "ImplementationAvc::AsyncRoutine");
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
     static int numCall = 0;
     numCall++;
 #endif
@@ -3657,7 +3657,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
         // move task to reordering queue
         //printf("\rACCEPTED      do=%4d eo=%4d type=%d\n", newTask.m_frameOrder, newTask.m_encOrder, newTask.m_type[0]); fflush(stdout);
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
         if(extOpt2.AdaptiveB & MFX_CODINGOPTION_ON)  //adaptive GOP do reordering by itself, accept new frame
         {
             if( newTask.m_yuv != NULL) //not empty task
@@ -3678,7 +3678,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             SubmitScd();
             // move task to reordering queue
             //OnNewFrame();
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
         }
 #endif
     }
@@ -3771,7 +3771,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         OnMctfFinished();
     }
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
     if (m_stagesToGo & AsyncRoutineEmulator::STG_BIT_START_AGOP)
     {
 
@@ -3818,7 +3818,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
         if (task == m_reordering.end())
             return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
         if( !task->m_handleRaw.first ) //already done somewhere
         {
 #endif
@@ -3832,7 +3832,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         sts = CopyRawSurfaceToVideoMemory(*m_core, m_video, *task, m_isD3D9SimWithVideoMem);
         if (sts != MFX_ERR_NONE)
             return Error(sts);
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
         }
 #endif
         if (bIntRateControlLA(m_video.mfx.RateControlMethod))
@@ -3847,7 +3847,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             {
                 return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
             }
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
             if(!(task->m_cmRaw))
 #endif
                 task->m_cmRaw = CreateSurface(m_cmDevice, task->m_handleRaw, m_currentVaType);
@@ -4787,7 +4787,7 @@ mfxStatus ImplementationAvc::QueryStatus(
     return MFX_ERR_NONE;
 }
 
-#if USE_AGOP
+#if MFX_ENABLE_AGOP
 //query set of tasks and calc stat
 mfxU32 ImplementationAvc::CalcCostAGOP(
     DdiTask const & task,
