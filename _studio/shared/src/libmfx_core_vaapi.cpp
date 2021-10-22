@@ -104,7 +104,6 @@ VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(
     const mfxU32 numThreadsAvailable,
     const mfxSession session)
           : Base(numThreadsAvailable, session)
-          , m_Display(0)
           , m_VAConfigHandle((mfxHDL)VA_INVALID_ID)
           , m_VAContextHandle((mfxHDL)VA_INVALID_ID)
           , m_KeepVAState(false)
@@ -142,22 +141,13 @@ void VAAPIVideoCORE_T<Base>::Close()
     m_vpp_hw_resmng.Close();
 #endif
 
-    if (m_intDRM >= 0)
-    {
-        if (m_Display)
-        {
-            vaTerminate(m_Display);
-            m_Display = nullptr;
-        }
-        close(m_intDRM);
-        m_intDRM = -1;
-    }
+    m_p_display_wrapper.reset();
 }
 
 template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::CheckOrInitDisplay()
 {
-    if (!m_Display)
+    if (!m_p_display_wrapper)
     {
         std::string path  = std::string("/dev/dri/renderD") + std::to_string(128 + m_adapterNum);
         VADisplay   displ = nullptr;
@@ -180,7 +170,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::CheckOrInitDisplay()
 
         MFX_SAFE_CALL(this->SetHandle(MFX_HANDLE_VA_DISPLAY, displ));
 
-        m_intDRM = fd;
+        m_p_display_wrapper = std::make_shared<VADisplayWrapper>(displ, fd);
+
         closeFD = [] {};
     }
 
@@ -222,17 +213,18 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
         case MFX_HANDLE_VA_DISPLAY:
         {
             // If device manager already set, return error
-            MFX_CHECK(!this->m_hdl, MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(!this->m_hdl,         MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(!m_p_display_wrapper, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-            this->m_hdl = hdl;
-            m_Display   = (VADisplay)this->m_hdl;
+            this->m_hdl         = hdl;
+            m_p_display_wrapper = std::make_shared<VADisplayWrapper>(reinterpret_cast<VADisplay>(this->m_hdl));
 
             /* As we know right VA handle (pointer),
             * we can get real authenticated fd of VAAPI library(display),
             * and can call ioctl() to kernel mode driver,
             * to get device ID and find out platform type
             */
-            const auto devItem = getDeviceItem(m_Display);
+            const auto devItem = getDeviceItem(*m_p_display_wrapper);
             MFX_CHECK(MFX_HW_UNKNOWN != devItem.platform, MFX_ERR_DEVICE_FAILED);
 
             m_HWType         = devItem.platform;
@@ -274,11 +266,11 @@ mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
         mfxStatus sts = MFX_ERR_NONE;
         mfxFrameAllocRequest temp_request = *request;
 
-        if (!m_bCmCopy && m_bCmCopyAllowed && isNeedCopy && m_Display)
+        if (!m_bCmCopy && m_bCmCopyAllowed && isNeedCopy && m_p_display_wrapper)
         {
             m_pCmCopy.reset(new CmCopyWrapper);
 
-            if (!m_pCmCopy->GetCmDevice(m_Display))
+            if (!m_pCmCopy->GetCmDevice(*m_p_display_wrapper))
             {
                 m_bCmCopy        = false;
                 m_bCmCopyAllowed = false;
@@ -320,7 +312,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
 
                 // let's create video accelerator
                 // Checking for unsupported mode - external allocator exist but Device handle doesn't set
-                MFX_CHECK(m_Display, MFX_ERR_UNSUPPORTED)
+                MFX_CHECK(m_p_display_wrapper, MFX_ERR_UNSUPPORTED)
 
                 if (response->NumFrameActual < request->NumFrameMin)
                 {
@@ -397,7 +389,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DefaultAllocFrames(
 
         if (!pAlloc)
         {
-            m_pcHWAlloc.reset(new mfxDefaultAllocatorVAAPI::mfxWideHWFrameAllocator(request->Type, m_Display));
+            m_pcHWAlloc.reset(new mfxDefaultAllocatorVAAPI::mfxWideHWFrameAllocator(request->Type, *m_p_display_wrapper));
             pAlloc = m_pcHWAlloc.get();
         }
         // else ???
@@ -488,7 +480,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::GetVAService(
 
     if (pVADisplay)
     {
-        *pVADisplay = m_Display;
+        *pVADisplay = *m_p_display_wrapper;
     }
 
     return MFX_ERR_NONE;
@@ -530,7 +522,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
     VideoInfo.clip_info.height = pInfo->Height;
 
     // Init Accelerator
-    params.m_Display          = m_Display;
+    params.m_Display          = *m_p_display_wrapper;
     params.m_pConfigId        = (VAConfigID*)&m_VAConfigHandle;
     params.m_pContext         = (VAContextID*)&m_VAContextHandle;
     params.m_pKeepVAState     = &m_KeepVAState;
@@ -797,18 +789,18 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
         VAImage va_img_src = {};
         VAStatus va_sts;
 
-        va_sts = vaDeriveImage(m_Display, *va_surf_src, &va_img_src);
+        va_sts = vaDeriveImage(*m_p_display_wrapper, *va_surf_src, &va_img_src);
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaPutImage");
-            va_sts = vaPutImage(m_Display, *va_surf_dst, va_img_src.image_id,
+            va_sts = vaPutImage(*m_p_display_wrapper, *va_surf_dst, va_img_src.image_id,
                                 0, 0, roi.width, roi.height,
                                 0, 0, roi.width, roi.height);
         }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
-        va_sts = vaDestroyImage(m_Display, va_img_src.image_id);
+        va_sts = vaDestroyImage(*m_p_display_wrapper, va_img_src.image_id);
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
     }
     else if (nullptr != pSrc->Data.MemId && nullptr != dstPtr)
@@ -830,12 +822,12 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
             VAStatus va_sts;
             void *pBits = NULL;
 
-            va_sts = vaDeriveImage(m_Display, *va_surface, &va_image);
+            va_sts = vaDeriveImage(*m_p_display_wrapper, *va_surface, &va_image);
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-                va_sts = vaMapBuffer(m_Display, va_image.buf, (void **) &pBits);
+                va_sts = vaMapBuffer(*m_p_display_wrapper, va_image.buf, (void **) &pBits);
             }
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
@@ -857,11 +849,11 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-                va_sts = vaUnmapBuffer(m_Display, va_image.buf);
+                va_sts = vaUnmapBuffer(*m_p_display_wrapper, va_image.buf);
             }
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
-            va_sts = vaDestroyImage(m_Display, va_image.image_id);
+            va_sts = vaDestroyImage(*m_p_display_wrapper, va_image.image_id);
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
         }
 
@@ -891,12 +883,12 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
         MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
-        va_sts = vaDeriveImage(m_Display, *va_surface, &va_image);
+        va_sts = vaDeriveImage(*m_p_display_wrapper, *va_surface, &va_image);
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-            va_sts = vaMapBuffer(m_Display, va_image.buf, (void **) &pBits);
+            va_sts = vaMapBuffer(*m_p_display_wrapper, va_image.buf, (void **) &pBits);
         }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
@@ -919,12 +911,12 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-            va_sts = vaUnmapBuffer(m_Display, va_image.buf);
+            va_sts = vaUnmapBuffer(*m_p_display_wrapper, va_image.buf);
         }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
         // vaDestroyImage
-        va_sts = vaDestroyImage(m_Display, va_image.image_id);
+        va_sts = vaDestroyImage(*m_p_display_wrapper, va_image.image_id);
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
     }
     else
@@ -952,8 +944,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
     VaGuidMapper mapper(guid);
     VAProfile req_profile         = mapper.m_profile;
     VAEntrypoint req_entrypoint   = mapper.m_entrypoint;
-    mfxI32 va_max_num_entrypoints = vaMaxNumEntrypoints(m_Display);
-    mfxI32 va_max_num_profiles    = vaMaxNumProfiles(m_Display);
+    mfxI32 va_max_num_entrypoints = vaMaxNumEntrypoints(*m_p_display_wrapper);
+    mfxI32 va_max_num_profiles    = vaMaxNumProfiles(*m_p_display_wrapper);
     MFX_CHECK_COND(va_max_num_entrypoints && va_max_num_profiles);
 
     //driver always support VAProfileNone
@@ -962,7 +954,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
         vector <VAProfile> va_profiles (va_max_num_profiles, VAProfileNone);
 
         //ask driver about profile support
-        VAStatus va_sts = vaQueryConfigProfiles(m_Display,
+        VAStatus va_sts = vaQueryConfigProfiles(*m_p_display_wrapper,
                             va_profiles.data(), &va_max_num_profiles);
         MFX_CHECK(va_sts == VA_STATUS_SUCCESS, MFX_ERR_UNSUPPORTED);
 
@@ -974,7 +966,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
     vector <VAEntrypoint> va_entrypoints (va_max_num_entrypoints, static_cast<VAEntrypoint> (0));
 
     //ask driver about entrypoint support
-    VAStatus va_sts = vaQueryConfigEntrypoints(m_Display, req_profile,
+    VAStatus va_sts = vaQueryConfigEntrypoints(*m_p_display_wrapper, req_profile,
                     va_entrypoints.data(), &va_max_num_entrypoints);
     MFX_CHECK(va_sts == VA_STATUS_SUCCESS, MFX_ERR_UNSUPPORTED);
 
@@ -986,7 +978,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
                              {VAConfigAttribMaxPictureHeight, 0}};
 
     //ask driver about support
-    va_sts = vaGetConfigAttributes(m_Display, req_profile,
+    va_sts = vaGetConfigAttributes(*m_p_display_wrapper, req_profile,
                                    req_entrypoint,
                                    attr, sizeof(attr)/sizeof(*attr));
 
@@ -1007,7 +999,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
         VAConfigAttrib attrDecProcess = {VAConfigAttribDecProcessing, 0};
 
         //ask driver about support
-        va_sts = vaGetConfigAttributes(m_Display, req_profile, req_entrypoint, &attrDecProcess, 1);
+        va_sts = vaGetConfigAttributes(*m_p_display_wrapper, req_profile, req_entrypoint, &attrDecProcess, 1);
 
         MFX_CHECK(va_sts == VA_STATUS_SUCCESS, MFX_ERR_UNSUPPORTED);
         MFX_CHECK(attrDecProcess.value == VA_DEC_PROCESSING , MFX_ERR_UNSUPPORTED);
@@ -1075,7 +1067,7 @@ void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
             UMC::AutomaticUMCMutex guard(this->m_guard);
 
             m_pCmCopy.reset(new CmCopyWrapper);
-            pCmDevice = m_pCmCopy->GetCmDevice(m_Display);
+            pCmDevice = m_pCmCopy->GetCmDevice(*m_p_display_wrapper);
 
             if (!pCmDevice)
                 return nullptr;
@@ -1087,7 +1079,7 @@ void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
         }
         else
         {
-            pCmDevice =  m_pCmCopy->GetCmDevice(m_Display);
+            pCmDevice =  m_pCmCopy->GetCmDevice(*m_p_display_wrapper);
         }
         return (void*)pCmDevice;
     }
@@ -1099,7 +1091,7 @@ void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
             UMC::AutomaticUMCMutex guard(this->m_guard);
 
             m_pCmCopy.reset(new CmCopyWrapper);
-            if (!m_pCmCopy->GetCmDevice(m_Display))
+            if (!m_pCmCopy->GetCmDevice(*m_p_display_wrapper))
             {
                 m_bCmCopy        = false;
                 m_bCmCopyAllowed = false;
@@ -1159,7 +1151,7 @@ VAAPIVideoCORE_VPL::SetHandle(
     if (type == MFX_HANDLE_VA_DISPLAY)
     {
         // Pass display to allocator
-        m_frame_allocator_wrapper.SetDevice(m_Display);
+        m_frame_allocator_wrapper.SetDevice(m_p_display_wrapper.get());
     }
 
     return MFX_ERR_NONE;
@@ -1196,11 +1188,11 @@ mfxStatus VAAPIVideoCORE_VPL::AllocFrames(
     {
         mfxStatus sts = MFX_ERR_NONE;
 
-        if (!m_bCmCopy && m_bCmCopyAllowed && isNeedCopy && m_Display)
+        if (!m_bCmCopy && m_bCmCopyAllowed && isNeedCopy && m_p_display_wrapper)
         {
             m_pCmCopy.reset(new CmCopyWrapper);
 
-            if (!m_pCmCopy->GetCmDevice(m_Display))
+            if (!m_pCmCopy->GetCmDevice(*m_p_display_wrapper))
             {
                 m_bCmCopy = false;
                 m_bCmCopyAllowed = false;
@@ -1344,13 +1336,13 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
         MFX_CHECK_HDL(va_surf_src);
         MFX_CHECK_HDL(va_surf_dst);
 
-        SurfaceScopedLock src_lock(m_Display, *va_surf_src);
+        SurfaceScopedLock src_lock(*m_p_display_wrapper, *va_surf_src);
         sts = src_lock.DeriveImage();
         MFX_CHECK_STS(sts);
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaPutImage");
-            VAStatus va_sts = vaPutImage(m_Display, *va_surf_dst, src_lock.m_image.image_id,
+            VAStatus va_sts = vaPutImage(*m_p_display_wrapper, *va_surf_dst, src_lock.m_image.image_id,
                 0, 0, roi.width, roi.height,
                 0, 0, roi.width, roi.height);
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
@@ -1374,7 +1366,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
         VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
         MFX_CHECK_HDL(va_surface);
 
-        SurfaceScopedLock src_lock(m_Display, *va_surface);
+        SurfaceScopedLock src_lock(*m_p_display_wrapper, *va_surface);
         sts = src_lock.DeriveImage();
         MFX_CHECK_STS(sts);
 
@@ -1426,7 +1418,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
         VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
         MFX_CHECK_HDL(va_surface);
 
-        SurfaceScopedLock dst_lock(m_Display, *va_surface);
+        SurfaceScopedLock dst_lock(*m_p_display_wrapper, *va_surface);
         sts = dst_lock.DeriveImage();
         MFX_CHECK_STS(sts);
 
@@ -1461,7 +1453,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
 mfxStatus VAAPIVideoCORE_VPL::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)
 {
     MFX_SAFE_CALL(CheckOrInitDisplay());
-    m_frame_allocator_wrapper.SetDevice(m_Display);
+    m_frame_allocator_wrapper.SetDevice(m_p_display_wrapper.get());
 
     return m_frame_allocator_wrapper.CreateSurface(type, info, surf);
 }
