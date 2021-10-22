@@ -18,9 +18,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+add_library(mfx_ext STATIC)
+
 if(MFX_ENABLE_KERNELS)
 
-  set( MSDK_GENX_ROOT ${MSDK_LIB_ROOT}/genx )
+  set( MSDK_GENX_ROOT ${MSDK_LIB_ROOT}/ext/genx )
 
   if (BUILD_KERNELS)
     # Here we define build steps to generate c-array binary kernels. If you
@@ -64,6 +66,7 @@ if(MFX_ENABLE_KERNELS)
     endfunction()
   endif()
 
+  ### ASC
   if( MFX_ENABLE_ASC )
     if(BUILD_KERNELS)
       foreach(platform gen12lp)
@@ -72,11 +75,15 @@ if(MFX_ENABLE_KERNELS)
     endif()
 
     set( prefix ${MSDK_GENX_ROOT}/asc/isa )
-    list( APPEND sources
-        ${prefix}/genx_scd_gen12lp_isa.cpp
+    list( APPEND genx_sources
+      ${prefix}/genx_scd_gen12lp_isa.cpp
+    )
+    list( APPEND genx_include_dirs
+      ${prefix}
     )
   endif()
 
+  ### copy
   if(BUILD_KERNELS)
     foreach(platform gen12lp)
       add_cmc_target(${MSDK_GENX_ROOT}/copy_kernels/src/genx_copy_kernel.cpp ${platform} ${MSDK_GENX_ROOT}/copy_kernels/isa)
@@ -84,10 +91,14 @@ if(MFX_ENABLE_KERNELS)
   endif()
 
   set( prefix ${MSDK_GENX_ROOT}/copy_kernels/isa )
-  list( APPEND sources
+  list( APPEND genx_sources
     ${prefix}/genx_copy_kernel_gen12lp_isa.cpp
   )
+  list( APPEND genx_include_dirs
+    ${prefix}
+  )
 
+  ### field copy
   if(BUILD_KERNELS)
     foreach(platform gen12lp)
       add_cmc_target(${MSDK_GENX_ROOT}/field_copy/src/genx_fcopy.cpp ${platform} ${MSDK_GENX_ROOT}/field_copy/isa)
@@ -95,24 +106,35 @@ if(MFX_ENABLE_KERNELS)
   endif()
 
   set( prefix ${MSDK_GENX_ROOT}/field_copy/isa )
-  list( APPEND sources
+  list( APPEND genx_sources
     ${prefix}/genx_fcopy_gen12lp_isa.cpp
   )
-
-  if(BUILD_KERNELS)
-    foreach(platform gen12lp)
-      add_cmc_target(${MSDK_GENX_ROOT}/h264_encode/src/genx_histogram.cpp ${platform} ${MSDK_GENX_ROOT}/h264_encode/isa)
-      add_cmc_target(${MSDK_GENX_ROOT}/h264_encode/src/genx_simple_me.cpp ${platform} ${MSDK_GENX_ROOT}/h264_encode/isa)
-    endforeach()
-  endif()
-
-  set( prefix ${MSDK_GENX_ROOT}/h264_encode/isa )
-  list( APPEND sources
-    ${MSDK_GENX_ROOT}/h264_encode/src/genx_simple_me_proto.cpp
-    ${prefix}/genx_simple_me_gen12lp_isa.cpp
-    ${prefix}/genx_histogram_gen12lp_isa.cpp
+  list( APPEND genx_include_dirs
+    ${prefix}
   )
 
+  ### h264_encode
+  if(MFX_ENABLE_H264_VIDEO_ENCODE)
+    if(BUILD_KERNELS)
+      foreach(platform gen12lp)
+        add_cmc_target(${MSDK_GENX_ROOT}/h264_encode/src/genx_histogram.cpp ${platform} ${MSDK_GENX_ROOT}/h264_encode/isa)
+        add_cmc_target(${MSDK_GENX_ROOT}/h264_encode/src/genx_simple_me.cpp ${platform} ${MSDK_GENX_ROOT}/h264_encode/isa)
+      endforeach()
+    endif()
+
+    set( prefix ${MSDK_GENX_ROOT}/h264_encode/isa )
+    list( APPEND genx_sources
+      ${MSDK_GENX_ROOT}/h264_encode/src/genx_simple_me_proto.cpp
+      ${prefix}/genx_simple_me_gen12lp_isa.cpp
+      ${prefix}/genx_histogram_gen12lp_isa.cpp
+    )
+    list( APPEND genx_include_dirs
+      ${prefix}
+    )
+
+  endif()
+
+  ### MCTF
   if(MFX_ENABLE_MCTF)
     if(BUILD_KERNELS)
       foreach(platform gen12lp)
@@ -123,31 +145,27 @@ if(MFX_ENABLE_KERNELS)
     endif()
 
     set( prefix ${MSDK_GENX_ROOT}/mctf/isa )
-    list( APPEND sources
+    list( APPEND genx_sources
       ${prefix}/genx_mc_gen12lp_isa.cpp
       ${prefix}/genx_me_gen12lp_isa.cpp
       ${prefix}/genx_sd_gen12lp_isa.cpp
     )
+    list( APPEND genx_include_dirs
+      ${prefix}
+    )
   endif()
 
-  add_library(genx STATIC ${sources})
-  set_property(TARGET genx PROPERTY FOLDER "kernels")
+  source_group("genx" FILES ${genx_sources})
 
-  target_include_directories(genx
-    PUBLIC
-      asc/isa
-      copy_kernels/isa
-      field_copy/isa
-      h264_encode/isa
-      mctf/isa
-    )
+  target_sources(mfx_ext PRIVATE
+    ${genx_sources}
+  )
 
-  target_link_libraries(genx
+  target_include_directories(mfx_ext
     PUBLIC
-      mfx_static_lib
-    PRIVATE
-      mfx_sdl_properties
-    )
+      ${genx_include_dirs}
+  )
+
 endif()
 
 include(sources_ext.cmake OPTIONAL)

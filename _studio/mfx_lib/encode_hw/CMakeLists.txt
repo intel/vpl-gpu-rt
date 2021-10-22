@@ -226,7 +226,7 @@ target_link_libraries(encode_hw
     umc_va_hw
     asc
     mctf_hw
-    genx
+    mfx_ext
   PRIVATE
     mfx_sdl_properties
     bitrate_control

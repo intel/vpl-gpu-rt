@@ -27,7 +27,7 @@ target_link_libraries(vpp_hw
     mfx_static_lib umc_va_hw cmrt_cross_platform_hw asc mctf_hw
   PRIVATE
     mfx_sdl_properties
-    genx
+    mfx_ext
   )
 
 include(sources_ext.cmake OPTIONAL)

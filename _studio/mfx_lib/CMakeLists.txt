@@ -89,7 +89,7 @@ endif()
 set(HW_ONLY_LIBS
   cmrt_cross_platform_hw
   asc
-  genx
+  mfx_ext
   $<$<BOOL:${MFX_ENABLE_USER_ENCTOOLS}>:enctools_hw>
 )
 
