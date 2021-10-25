@@ -2631,6 +2631,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         }
     }
 
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_VCM &&
+        hwCaps.ddi_caps.VCMBitrateControl == 0)
+    {
+        changed = true;
+        par.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
+    }
+
     if (extOpt3->LowDelayBRC == MFX_CODINGOPTION_ON) {
         if (par.mfx.RateControlMethod != MFX_RATECONTROL_VBR && par.mfx.RateControlMethod != MFX_RATECONTROL_QVBR &&
             par.mfx.RateControlMethod != MFX_RATECONTROL_VCM) {
@@ -3525,6 +3532,16 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             }
         }
 
+        if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR &&
+            hwCaps.AVBRSupport == 0)
+        {
+            par.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
+            par.mfx.Accuracy = 0;
+            par.mfx.Convergence = 0;
+
+            changed = true;
+        }
+
         if (par.calcParam.bufferSizeInKB != 0)
         {
             if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
@@ -3848,22 +3865,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         unsupported = true;
     }
 
-    if (par.mfx.RateControlMethod == MFX_RATECONTROL_VCM &&
-        hwCaps.ddi_caps.VCMBitrateControl == 0)
-    {
-        par.mfx.RateControlMethod = 0;
-        unsupported = true;
-    }
-
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR &&
         hwCaps.ddi_caps.QVBRBRCSupport == 0)
-    {
-        par.mfx.RateControlMethod = 0;
-        unsupported = true;
-    }
-
-    if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR &&
-        hwCaps.AVBRSupport == 0)
     {
         par.mfx.RateControlMethod = 0;
         unsupported = true;
