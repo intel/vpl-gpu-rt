@@ -25,7 +25,6 @@
 #define __LIBMFX_CORE__VAAPI_H__
 
 #include <memory>
-
 #include "umc_structures.h"
 #include "libmfx_core.h"
 #include "libmfx_allocator_vaapi.h"
@@ -39,6 +38,8 @@
 #if defined (MFX_ENABLE_VPP)
 #include "mfx_vpp_interface.h"
 #endif
+
+#include <memory>
 
 // helper struct, it is helper for conversion from between [linux/android GUIDs] and [VAProfile + VAEntryPoint]
 // linux/android GUIDs is defined in _studio/shared/include/mfxvideo++int.h
@@ -204,10 +205,11 @@ protected:
     void                   ReleaseHandle();
 
     std::unique_ptr<UMC::LinuxVideoAccelerator> m_pVA;
-    std::shared_ptr<VADisplayWrapper>           m_p_display_wrapper;
+    VADisplay                                   m_Display;
     mfxHDL                                      m_VAConfigHandle;
     mfxHDL                                      m_VAContextHandle;
     bool                                        m_KeepVAState;
+    int                                         m_intDRM = -1;
 
     const mfxU32                                m_adapterNum; // Ordinal number of adapter to work
     bool                                        m_bUseExtAllocForHWFrames;

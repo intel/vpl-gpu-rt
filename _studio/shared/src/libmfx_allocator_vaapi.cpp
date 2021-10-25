@@ -724,8 +724,8 @@ mfxDefaultAllocatorVAAPI::mfxWideHWFrameAllocator::mfxWideHWFrameAllocator(
     frameAllocator.Free   = &mfxDefaultAllocatorVAAPI::FreeFramesHW;
 }
 
-vaapi_buffer_wrapper::vaapi_buffer_wrapper(const mfxFrameInfo &info, VADisplayWrapper& display, mfxU32 context)
-    : vaapi_resource_wrapper(display)
+vaapi_buffer_wrapper::vaapi_buffer_wrapper(const mfxFrameInfo &info, mfxHDL display, mfxU32 context)
+    : vaapi_resource_wrapper(reinterpret_cast<VADisplay>(display))
     , m_bIsSegmap(info.FourCC == MFX_FOURCC_VP8_SEGMAP)
 {
     mfxU32 codedbuf_size, codedbuf_num;
@@ -751,7 +751,7 @@ vaapi_buffer_wrapper::vaapi_buffer_wrapper(const mfxFrameInfo &info, VADisplayWr
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer");
-        VAStatus va_res = vaCreateBuffer(*m_pVADisplay,
+        VAStatus va_res = vaCreateBuffer(m_VADisplay,
             context,
             codedbuf_type,
             codedbuf_size,
@@ -765,7 +765,7 @@ vaapi_buffer_wrapper::vaapi_buffer_wrapper(const mfxFrameInfo &info, VADisplayWr
 
 vaapi_buffer_wrapper::~vaapi_buffer_wrapper()
 {
-    std::ignore = MFX_STS_TRACE(vaDestroyBuffer(*m_pVADisplay, m_resource_id));
+    std::ignore = MFX_STS_TRACE(vaDestroyBuffer(m_VADisplay, m_resource_id));
 }
 
 mfxStatus vaapi_buffer_wrapper::Lock(mfxFrameData& frame_data, mfxU32 flags)
@@ -779,7 +779,7 @@ mfxStatus vaapi_buffer_wrapper::Lock(mfxFrameData& frame_data, mfxU32 flags)
         mfxU8* p_buffer;
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-            VAStatus va_res = vaMapBuffer(*m_pVADisplay, m_resource_id, (void **)(&p_buffer));
+            VAStatus va_res = vaMapBuffer(m_VADisplay, m_resource_id, (void **)(&p_buffer));
             MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_LOCK_MEMORY);
         }
 
@@ -790,7 +790,7 @@ mfxStatus vaapi_buffer_wrapper::Lock(mfxFrameData& frame_data, mfxU32 flags)
         VACodedBufferSegment *coded_buffer_segment;
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-            VAStatus va_res = vaMapBuffer(*m_pVADisplay, m_resource_id, (void **)(&coded_buffer_segment));
+            VAStatus va_res = vaMapBuffer(m_VADisplay, m_resource_id, (void **)(&coded_buffer_segment));
             MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_LOCK_MEMORY);
         }
 
@@ -807,16 +807,16 @@ mfxStatus vaapi_buffer_wrapper::Unlock()
 {
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-        VAStatus va_res = vaUnmapBuffer(*m_pVADisplay, m_resource_id);
+        VAStatus va_res = vaUnmapBuffer(m_VADisplay, m_resource_id);
         MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
     }
 
     return MFX_ERR_NONE;
 }
 
-vaapi_surface_wrapper::vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 type, VADisplayWrapper& display)
-    : vaapi_resource_wrapper(display)
-    , m_surface_lock(*m_pVADisplay, m_resource_id)
+vaapi_surface_wrapper::vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 type, mfxHDL display)
+    : vaapi_resource_wrapper(reinterpret_cast<VADisplay>(display))
+    , m_surface_lock(m_VADisplay, m_resource_id)
     , m_type(type)
     , m_fourcc(info.FourCC)
 {
@@ -829,7 +829,7 @@ vaapi_surface_wrapper::vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 ty
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateSurfaces");
 
-        VAStatus va_res = vaCreateSurfaces(*m_pVADisplay,
+        VAStatus va_res = vaCreateSurfaces(m_VADisplay,
             format,
             info.Width, info.Height,
             &m_resource_id,
@@ -843,7 +843,7 @@ vaapi_surface_wrapper::vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 ty
 
 vaapi_surface_wrapper::~vaapi_surface_wrapper()
 {
-    std::ignore = MFX_STS_TRACE(vaDestroySurfaces(*m_pVADisplay, &m_resource_id, 1));
+    std::ignore = MFX_STS_TRACE(vaDestroySurfaces(m_VADisplay, &m_resource_id, 1));
 }
 
 mfxStatus vaapi_surface_wrapper::Lock(mfxFrameData& frame_data, mfxU32 flags)
@@ -873,6 +873,7 @@ mfxStatus vaapi_surface_wrapper::Unlock()
 
 mfxFrameSurface1_hw_vaapi::mfxFrameSurface1_hw_vaapi(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>&, mfxHDL display, mfxU32 context, FrameAllocatorBase& allocator)
     : RWAcessSurface(info, type, mid, allocator)
+    , m_VADisplay(reinterpret_cast<VADisplay>(display))
     , m_type(type)
     , m_context(VAContextID(context))
 {
@@ -882,16 +883,13 @@ mfxFrameSurface1_hw_vaapi::mfxFrameSurface1_hw_vaapi(const mfxFrameInfo & info, 
                                                                 MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
     MFX_CHECK_WITH_THROW(!(m_type & MFX_MEMTYPE_SYSTEM_MEMORY), MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
 
-    auto p_va_display_wrapper = reinterpret_cast<VADisplayWrapper*>(display);
-    MFX_CHECK_WITH_THROW(p_va_display_wrapper, MFX_ERR_INVALID_HANDLE, mfx::mfxStatus_exception(MFX_ERR_INVALID_HANDLE));
-
     if (vp8_fourcc == MFX_FOURCC_P8)
     {
-        m_resource_wrapper.reset(new vaapi_buffer_wrapper(info, *p_va_display_wrapper, m_context));
+        m_resource_wrapper.reset(new vaapi_buffer_wrapper(info, display, m_context));
     }
     else
     {
-        m_resource_wrapper.reset(new vaapi_surface_wrapper(info, m_type, *p_va_display_wrapper));
+        m_resource_wrapper.reset(new vaapi_surface_wrapper(info, m_type, display));
     }
 }
 
@@ -948,7 +946,7 @@ std::pair<mfxHDL, mfxResourceType> mfxFrameSurface1_hw_vaapi::GetNativeHandle() 
 
 std::pair<mfxHDL, mfxHandleType> mfxFrameSurface1_hw_vaapi::GetDeviceHandle() const
 {
-    return { reinterpret_cast<mfxHDL>((VADisplay)(m_resource_wrapper->GetDevice())), MFX_HANDLE_VA_DISPLAY };
+    return { reinterpret_cast<mfxHDL>(m_VADisplay), MFX_HANDLE_VA_DISPLAY };
 }
 
 mfxStatus mfxFrameSurface1_hw_vaapi::GetHDL(mfxHDL& handle) const
@@ -971,36 +969,14 @@ mfxStatus mfxFrameSurface1_hw_vaapi::Realloc(const mfxFrameInfo & info)
 
     if (info.FourCC == MFX_FOURCC_P8)
     {
-        m_resource_wrapper.reset(new vaapi_buffer_wrapper(info, m_resource_wrapper->GetDevice(), m_context));
+        m_resource_wrapper.reset(new vaapi_buffer_wrapper(info, m_VADisplay, m_context));
     }
     else
     {
-        m_resource_wrapper.reset(new vaapi_surface_wrapper(info, m_type, m_resource_wrapper->GetDevice()));
+        m_resource_wrapper.reset(new vaapi_surface_wrapper(info, m_type, m_VADisplay));
     }
 
     return MFX_ERR_NONE;
-}
-
-template<>
-void FlexibleFrameAllocatorHW_VAAPI::SetDevice(mfxHDL device)
-{
-    if (m_session)
-    {
-        mfxHDL hdl = nullptr;
-
-        mfxStatus sts = m_session->m_pCORE->GetHandle(MFX_HANDLE_VA_DISPLAY, &hdl);
-
-        MFX_CHECK_WITH_THROW(sts == MFX_ERR_NONE, sts, mfx::mfxStatus_exception(sts));
-
-        auto p_va_display = reinterpret_cast<VADisplayWrapper*>(device);
-        MFX_CHECK_WITH_THROW(p_va_display, MFX_ERR_INVALID_HANDLE, mfx::mfxStatus_exception(MFX_ERR_INVALID_HANDLE));
-
-        MFX_CHECK_WITH_THROW(hdl == *p_va_display, MFX_ERR_INVALID_HANDLE, mfx::mfxStatus_exception(MFX_ERR_INVALID_HANDLE));
-    }
-
-    m_device = device;
-
-    m_staging_adapter->SetDevice(device);
 }
 
 /* EOF */

@@ -673,6 +673,16 @@ public:
 
     void SetDevice(mfxHDL device) override
     {
+        if (m_session)
+        {
+            mfxHDL hdl = nullptr;
+
+            mfxStatus sts = m_session->m_pCORE->GetHandle(MFX_HANDLE_VA_DISPLAY,   &hdl);
+            MFX_CHECK_WITH_THROW(sts == MFX_ERR_NONE, sts, mfx::mfxStatus_exception(sts));
+
+            MFX_CHECK_WITH_THROW(hdl == device, MFX_ERR_INVALID_HANDLE, mfx::mfxStatus_exception(MFX_ERR_INVALID_HANDLE));
+        }
+
         m_device = device;
 
         m_staging_adapter->SetDevice(device);
