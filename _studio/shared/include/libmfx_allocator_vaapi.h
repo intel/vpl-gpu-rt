@@ -25,6 +25,7 @@
 #define _LIBMFX_ALLOCATOR_VAAPI_H_
 
 #include <va/va.h>
+#include <unistd.h>
 
 #include "mfxvideo++int.h"
 #include "libmfx_allocator.h"
@@ -149,28 +150,59 @@ private:
     VASurfaceID&      m_surface_id;
 };
 
+class VADisplayWrapper : public std::enable_shared_from_this<VADisplayWrapper>
+{
+public:
+    VADisplayWrapper(VADisplay dpy, int fdDRM = -1)
+        : m_display(dpy)
+        , m_fdDRM(fdDRM)
+    {}
+
+    ~VADisplayWrapper()
+    {
+        if (m_fdDRM != -1)
+        {
+            std::ignore = MFX_STS_TRACE(vaTerminate(m_display));
+            std::ignore = MFX_STS_TRACE(close(m_fdDRM));
+        }
+    }
+
+    VADisplayWrapper(const VADisplayWrapper&)  = delete;
+    VADisplayWrapper(VADisplayWrapper&& other) = default;
+
+    VADisplayWrapper& operator= (const VADisplayWrapper&)  = delete;
+    VADisplayWrapper& operator= (VADisplayWrapper&& other) = default;
+
+    operator VADisplay() const { return m_display; }
+
+private:
+    VADisplay m_display;
+    int       m_fdDRM = -1;
+};
+
 class vaapi_resource_wrapper
 {
 public:
-    vaapi_resource_wrapper(VADisplay display)
-        : m_VADisplay(display)
+    vaapi_resource_wrapper(VADisplayWrapper& display)
+        : m_pVADisplay(display.shared_from_this())
     {}
 
     virtual mfxStatus Lock(mfxFrameData& frame_data, mfxU32 flags) = 0;
     virtual mfxStatus Unlock()                                     = 0;
     virtual ~vaapi_resource_wrapper() {};
 
-    VAGenericID* GetHandle() { return &m_resource_id; }
+    VAGenericID*      GetHandle() { return &m_resource_id; }
+    VADisplayWrapper& GetDevice() { return *m_pVADisplay;  }
 
 protected:
-    VAGenericID m_resource_id;
-    VADisplay   m_VADisplay;
+    VAGenericID                       m_resource_id;
+    std::shared_ptr<VADisplayWrapper> m_pVADisplay;
 };
 
 class vaapi_buffer_wrapper : public vaapi_resource_wrapper
 {
 public:
-    vaapi_buffer_wrapper(const mfxFrameInfo &info, mfxHDL device, mfxU32 context);
+    vaapi_buffer_wrapper(const mfxFrameInfo &info, VADisplayWrapper& display, mfxU32 context);
     ~vaapi_buffer_wrapper();
     virtual mfxStatus Lock(mfxFrameData& frame_data, mfxU32 flags) override;
     virtual mfxStatus Unlock()                                     override;
@@ -184,7 +216,7 @@ private:
 class vaapi_surface_wrapper : public vaapi_resource_wrapper
 {
 public:
-    vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 type, mfxHDL device);
+    vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 type, VADisplayWrapper& display);
     ~vaapi_surface_wrapper();
     virtual mfxStatus Lock(mfxFrameData& frame_data, mfxU32 flags) override;
     virtual mfxStatus Unlock()                                     override;
@@ -229,14 +261,12 @@ private:
 
     mutable std::shared_timed_mutex         m_hdl_mutex;
 
-    VADisplay                               m_VADisplay;
     mfxU16                                  m_type;
     VAContextID                             m_context;
     std::unique_ptr<vaapi_resource_wrapper> m_resource_wrapper;
 };
 
 using FlexibleFrameAllocatorHW_VAAPI = FlexibleFrameAllocator<mfxFrameSurface1_hw_vaapi, staging_adapter_stub>;
-
 
 #endif // LIBMFX_ALLOCATOR_VAAPI_H_
 /* EOF */
