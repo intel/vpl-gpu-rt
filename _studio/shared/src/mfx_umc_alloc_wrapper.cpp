@@ -2261,37 +2261,41 @@ mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surfac
     if ((surface_work->Data.MemId)&&
         (surface_work->Data.MemId == memId))
     {
-        // all frames are external. No need to do anything
-        return MFX_ERR_NONE;
+        mfxHDLPair surfHDLExt = {};
+        mfxHDLPair surfHDLInt = {};
+
+        MFX_CHECK_STS(m_pCore->GetExternalFrameHDL(surface_work->Data.MemId, &surfHDLExt.first, false));
+        MFX_CHECK_STS(m_pCore->GetFrameHDL(memId, &surfHDLInt.first, false));
+
+        if (surfHDLExt.first == surfHDLInt.first && surfHDLExt.second == surfHDLInt.second) // The same frame. No need to do anything
+            return MFX_ERR_NONE;
     }
-    else
+
+    if (!m_sfcVideoPostProcessing)
+    {
+        mfxFrameSurface1 & internalSurf = m_frameDataInternal.GetSurface(index);
+        mfxFrameSurface1 surface = MakeSurface(internalSurf.Info, internalSurf.Data.MemId);
+        mfxU16 outMemType = static_cast<mfxU16>((m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET) |
+                                                                                MFX_MEMTYPE_EXTERNAL_FRAME);
+        //Performance issue. We need to unlock mutex to let decoding thread run async.
+        guard.Unlock();
+        sts = m_pCore->DoFastCopyWrapper(surface_work,
+                                            outMemType,
+                                            &surface,
+                                            MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET
+                                            );
+        guard.Lock();
+        MFX_CHECK_STS(sts);
+    }
+
+    if (!m_IsUseExternalFrames)
     {
         if (!m_sfcVideoPostProcessing)
         {
-            mfxFrameSurface1 & internalSurf = m_frameDataInternal.GetSurface(index);
-            mfxFrameSurface1 surface = MakeSurface(internalSurf.Info, internalSurf.Data.MemId);
-            mfxU16 outMemType = static_cast<mfxU16>((m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET) |
-                                                                                 MFX_MEMTYPE_EXTERNAL_FRAME);
-            //Performance issue. We need to unlock mutex to let decoding thread run async.
-            guard.Unlock();
-            sts = m_pCore->DoFastCopyWrapper(surface_work,
-                                             outMemType,
-                                             &surface,
-                                             MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET
-                                             );
-            guard.Lock();
-            MFX_CHECK_STS(sts);
+            m_pCore->DecreaseReference(&surface_work->Data);
+            m_extSurfaces[index].FrameSurface = 0;
         }
-
-        if (!m_IsUseExternalFrames)
-        {
-            if (!m_sfcVideoPostProcessing)
-            {
-                m_pCore->DecreaseReference(&surface_work->Data);
-                m_extSurfaces[index].FrameSurface = 0;
-            }
-        }
-
-        return sts;
     }
+
+    return sts;
 }
