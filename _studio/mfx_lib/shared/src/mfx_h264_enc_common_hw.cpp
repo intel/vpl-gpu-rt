@@ -4559,7 +4559,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (!CheckTriStateOption(extOpt3->EnableMBQP)) changed = true;
 
-    if (IsOn(extOpt3->EnableMBQP) && !(hwCaps.ddi_caps.MbQpDataSupport && (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || isSWBRC(par))))
+    if (IsOn(extOpt3->EnableMBQP) && !(hwCaps.ddi_caps.MbQpDataSupport && (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP 
+     || par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR || isSWBRC(par))))
     {
         extOpt3->EnableMBQP = MFX_CODINGOPTION_OFF;
         changed = true;

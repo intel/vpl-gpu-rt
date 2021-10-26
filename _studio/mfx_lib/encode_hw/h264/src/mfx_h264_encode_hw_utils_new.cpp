@@ -2280,7 +2280,15 @@ void MfxHwH264Encode::ConfigureTask(
 
     task.m_numRoi = 0;
 
-    if (pRoi && pRoi->NumROI)
+    if (pRoi && extOpt3.EnableMBQP == MFX_CODINGOPTION_ON)
+    {
+        task.m_NumDeltaQpForNonRectROI = static_cast<mfxU8>(pRoi->NumROI);
+        for (int i = 0; i < pRoi->NumROI; i++)
+        {
+            task.m_NonRectROIDeltaQpList[i] = static_cast<mfxI8>(pRoi->ROI[i].DeltaQP);
+        }
+    }
+    else if (pRoi && pRoi->NumROI)
     {
         mfxU16 numRoi = pRoi->NumROI <= task.m_roi.Capacity() ? pRoi->NumROI : (mfxU16)task.m_roi.Capacity();
 

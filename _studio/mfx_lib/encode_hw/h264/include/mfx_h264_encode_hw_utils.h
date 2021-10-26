@@ -1244,6 +1244,8 @@ namespace MfxHwH264Encode
 
         ArrayRoi        m_roi;
         mfxU16          m_numRoi;
+        mfxI8           m_NonRectROIDeltaQpList[16];
+        mfxU8           m_NumDeltaQpForNonRectROI;
         mfxU16          m_roiMode;
         ArrayRect       m_dirtyRect;
         mfxU16          m_numDirtyRect;
