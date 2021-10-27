@@ -501,6 +501,9 @@ CommonCORE::CommonCORE(const mfxU32 numThreadsAvailable, const mfxSession sessio
     m_bUseExtManager(false),
     m_CoreId(0),
     m_API_1_19(this),
+#if defined(MFX_ENABLE_PXP)
+    m_pPXPCtxHdl(nullptr),
+#endif // MFX_ENABLE_PXP
     m_deviceId(0)
 {
     m_bufferAllocator.bufferAllocator.pthis = &m_bufferAllocator;
@@ -525,6 +528,12 @@ mfxStatus CommonCORE::GetHandle(mfxHandleType type, mfxHDL *handle)
         MFX_CHECK(m_hdl, MFX_ERR_NOT_FOUND);
         *handle = m_hdl;
         break;
+#if defined(MFX_ENABLE_PXP)
+    case MFX_HANDLE_PXP_CONTEXT:
+        MFX_CHECK(m_pPXPCtxHdl, MFX_ERR_NOT_FOUND);
+        *handle = m_pPXPCtxHdl;
+        break;
+#endif // MFX_ENABLE_PXP
     default:
         MFX_RETURN(MFX_ERR_NOT_FOUND);
     }
@@ -551,6 +560,14 @@ mfxStatus CommonCORE::SetHandle(mfxHandleType type, mfxHDL hdl)
 #else
     ignore = type;
 #endif
+
+#if defined(MFX_ENABLE_PXP)
+    if (MFX_HANDLE_PXP_CONTEXT ==  type)
+    {
+        m_pPXPCtxHdl = hdl;
+        return MFX_ERR_NONE;
+    }
+#endif // MFX_ENABLE_PXP
 
     MFX_RETURN(MFX_ERR_INVALID_HANDLE);
 }// mfxStatus CommonCORE::SetHandle(mfxHandleType type, mfxHDL handle)

@@ -44,6 +44,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#if defined(MFX_ENABLE_PXP)
+#include "mfx_pxp_video_accelerator_vaapi.h"
+#endif // MFX_ENABLE_PXP
+
 typedef struct drm_i915_getparam {
     int param;
     int *value;
@@ -546,6 +550,14 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
         params.m_needVideoProcessingVA = true;
     }
 #endif
+#if defined(MFX_ENABLE_PXP)
+    if ( this->m_pPXPCtxHdl )
+    {
+        m_pVA.reset(new PXPLinuxVideoAccelerator());
+        params.m_pPXPCtxHdl = this->m_pPXPCtxHdl;
+    }
+    else
+#endif // MFX_ENABLE_PXP
         m_pVA.reset(new LinuxVideoAccelerator());
 
     m_pVA->m_Platform   = UMC::VA_LINUX;

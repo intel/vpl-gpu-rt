@@ -248,6 +248,7 @@ target_link_libraries(decode_hw
   PUBLIC
     mfx_static_lib
     umc_va_hw
+    $<$<BOOL:${MFX_ENABLE_PXP}>:pxp_hw>
   PRIVATE
     mfx_sdl_properties
     ${IPP_LIBS}

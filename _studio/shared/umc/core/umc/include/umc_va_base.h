@@ -151,6 +151,9 @@ enum VideoAccelerationPlatform
 class UMCVACompBuffer;
 class ProtectedVA;
 class VideoProcessingVA;
+#if defined(MFX_ENABLE_PXP)
+class PXPVA;
+#endif // MFX_ENABLE_PXP
 
 enum eUMC_VA_Status
 {
@@ -174,6 +177,9 @@ public:
         , m_needVideoProcessingVA(false)
         , m_allocator(nullptr)
         , m_surf(nullptr)
+#if defined(MFX_ENABLE_PXP)
+        , m_pPXPCtxHdl(nullptr)
+#endif // MFX_ENABLE_PXP
     {}
 
     virtual ~VideoAcceleratorParams(){}
@@ -187,6 +193,10 @@ public:
 
     // if extended surfaces exist
     void*           *m_surf;
+
+#if defined(MFX_ENABLE_PXP)
+    mfxHDL        m_pPXPCtxHdl;
+#endif // MFX_ENABLE_PXP
 };
 
 
@@ -199,6 +209,9 @@ public:
         m_Profile(UNKNOWN),
         m_Platform(VA_UNKNOWN_PLATFORM),
         m_HWPlatform(MFX_HW_UNKNOWN),
+#if defined(MFX_ENABLE_PROTECT)
+        m_protectedVA(nullptr),
+#endif
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
         m_videoProcessingVA(0),
 #endif
@@ -247,12 +260,15 @@ public:
     virtual bool IsIntelCustomGUID() const = 0;
     virtual int32_t GetSurfaceID(int32_t idx) const { return idx; }
 
+#if defined(MFX_ENABLE_PROTECT)
+    virtual ProtectedVA * GetProtectedVA() { return m_protectedVA.get(); }
+#endif
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     virtual VideoProcessingVA * GetVideoProcessingVA() {return m_videoProcessingVA;}
 #endif
 
-    bool IsGPUSyncEventEnable() const
+    virtual bool IsGPUSyncEventEnable() const
     {
 #ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC_DECODE
         VideoAccelerationProfile codec = (VideoAccelerationProfile)(m_Profile & VA_CODEC);
@@ -340,6 +356,9 @@ public:
 
 protected:
 
+#if defined(MFX_ENABLE_PROTECT)
+    std::shared_ptr<ProtectedVA> m_protectedVA;
+#endif
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     VideoProcessingVA *  m_videoProcessingVA;

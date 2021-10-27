@@ -58,6 +58,13 @@
 #define MFX_ENABLE_VC1_VIDEO_CODEC
 #endif
 
+#if !defined(ONEVPL_EXPERIMENTAL)
+#undef MFX_ENABLE_PXP
+#endif
+
+#if defined (MFX_ENABLE_PXP) || defined (MFX_ENABLE_CP)
+#define MFX_ENABLE_PROTECT
+#endif
 
 /*
 * Traces

@@ -111,6 +111,10 @@ namespace UMC
     class LinuxVideoAccelerator;
 };
 
+#if defined(MFX_ENABLE_PXP)
+class PXPLinuxVideoAccelerator;
+#endif // MFX_ENABLE_PXP
+
 template <class Base>
 class VAAPIVideoCORE_T : public Base
 {

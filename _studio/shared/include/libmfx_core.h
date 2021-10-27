@@ -242,6 +242,9 @@ protected:
     API_1_19_Adapter                           m_API_1_19;
 
     mfxU16                                     m_deviceId;
+#if defined(MFX_ENABLE_PXP)
+    mfxHDL                                     m_pPXPCtxHdl;
+#endif // MFX_ENABLE_PXP
 
     CommonCORE & operator = (const CommonCORE &) = delete;
 };

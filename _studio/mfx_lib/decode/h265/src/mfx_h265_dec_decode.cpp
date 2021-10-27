@@ -32,6 +32,9 @@
 #include "umc_h265_va_supplier.h"
 #include "umc_va_video_processing.h"
 
+#if defined(MFX_ENABLE_PXP)
+#include "mfx_pxp_video_accelerator.h"
+#endif // MFX_ENABLE_PXP
 
 #include "libmfx_core_interface.h"
 
@@ -974,6 +977,17 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
     sts = MFX_ERR_UNDEFINED_BEHAVIOR;
 
+#if defined(MFX_ENABLE_PROTECT)
+#if defined(MFX_ENABLE_PXP)
+    if( bs )
+#else
+#endif // MFX_ENABLE_PXP
+    {
+        MFX_CHECK(m_va->GetProtectedVA(), MFX_ERR_UNSUPPORTED);
+        MFX_CHECK((bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME), MFX_ERR_UNSUPPORTED);
+        m_va->GetProtectedVA()->SetBitstream(bs);
+    }
+#endif // MFX_ENABLE_PROTECT
 
     try
     {
