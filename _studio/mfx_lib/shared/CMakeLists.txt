@@ -52,6 +52,10 @@ target_sources(mfx_common_hw
     src/mfx_mpeg2_encode_factory.cpp
     src/mfx_mpeg2_enc_common_hw.cpp
     src/mfx_vpx_dec_common.cpp
+
+    $<$<PLATFORM_ID:Windows>:
+      ${MSDK_STUDIO_ROOT}/shared/src/mfx_dxva2_device.cpp
+    >
   )
 
 target_include_directories(mfx_common_hw
