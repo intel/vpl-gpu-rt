@@ -1540,6 +1540,9 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
     m_videoInit = m_video;
 
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    m_qpHistory.Reset();
+#endif
 
     return checkStatus;
 }
@@ -1917,6 +1920,9 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
     }
 #endif
 
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    m_qpHistory.Reset();
+#endif
 
     return checkStatus;
 }
@@ -2552,6 +2558,9 @@ void ImplementationAvc::OnEncodingQueried(DdiTaskIter task)
     if (m_useMbControlSurfs && task->m_isMBControl)
         ReleaseResource(m_mbControl, task->m_midMBControl);
 
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    m_qpHistory.Add(task->m_qpY[0]);
+#endif
 
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
     if (IsMctfSupported(m_video, m_core->GetHWType()) && task->m_midMCTF)
@@ -3585,6 +3594,61 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
 }
 #endif
 
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+void SetupAdaptiveCQM(const MfxVideoParam &par, DdiTask &task, const QpHistory qpHistory)
+{
+
+    task.m_adaptiveCQMHint = CQM_HINT_INVALID;
+    const mfxExtCodingOption3 &opt3 = GetExtBufferRef(par);
+    if (IsOn(opt3.AdaptiveCQM))
+    {
+        const mfxExtSpsHeader& extSps = GetExtBufferRef(par);
+        const std::vector<mfxExtPpsHeader>& extCqmPps = par.GetCqmPps();
+        const mfxU32 averageQP = qpHistory.GetAverageQp();
+
+        if (averageQP == 0) // not enough history QP
+        {
+            const mfxU32 MBSIZE = 16;
+            const mfxU32 BITRATE_SCALE = 2000;
+            const mfxU32 numMB = (par.mfx.FrameInfo.Width / MBSIZE) * (par.mfx.FrameInfo.Height / MBSIZE);
+            const mfxU32 normalizedBitrate = mfxU32(mfxU64(BITRATE_SCALE) * par.calcParam.targetKbps
+                * par.mfx.FrameInfo.FrameRateExtD / par.mfx.FrameInfo.FrameRateExtN / numMB);
+
+            const mfxU32 STRONG_QM_BR_THRESHOLD = 25;
+            const mfxU32 MEDIUM_QM_BR_THRESHOLD = 50;
+
+            task.m_adaptiveCQMHint
+                = (normalizedBitrate < STRONG_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX3
+                : (normalizedBitrate < MEDIUM_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX2
+                : CQM_HINT_USE_CUST_MATRIX1;
+        }
+        else
+        {
+            const mfxU32 FLAT_QM_QP_THRESHOLD = 32;
+            const mfxU32 WEAK_QM_QP_THRESHOLD = 38;
+            const mfxU32 MEDIUM_QM_QP_THRESHOLD = 44;
+            const mfxU32 STRONG_QM_QP_THRESHOLD = 50;
+            task.m_adaptiveCQMHint
+                = averageQP < FLAT_QM_QP_THRESHOLD ? CQM_HINT_USE_FLAT_MATRIX
+                : averageQP < WEAK_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX1
+                : averageQP < MEDIUM_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX2
+                : averageQP < STRONG_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX3
+                : CQM_HINT_USE_CUST_MATRIX4;
+        }
+
+        if (IsCustMatrix(task.m_adaptiveCQMHint))
+        {
+            mfxU32 cqmIndex = task.m_adaptiveCQMHint - 1;
+            if (extSps.seqScalingMatrixPresentFlag || extCqmPps[cqmIndex].picScalingMatrixPresentFlag)
+                FillTaskScalingList(extSps, extCqmPps[cqmIndex], task);
+        }
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+        if (task.m_lplastatus.CqmHint != CQM_HINT_INVALID)
+            task.m_lplastatus.CqmHint = (mfxU8)task.m_adaptiveCQMHint;
+#endif
+    }
+}
+#endif
 
 mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 {
@@ -4247,6 +4311,10 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     task->m_AUStartsFromSlice[f] = 1;
                 else
                     task->m_AUStartsFromSlice[f] = 0;
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+                if (isAdaptiveCQMSupported(extOpt3.ScenarioInfo, IsOn(m_video.mfx.LowPower)))
+                    SetupAdaptiveCQM(m_video, *task, m_qpHistory);
+#endif
                 mfxStatus sts = MFX_ERR_NONE;
 
                 //printf("Execute: %d, type %d, qp %d\n", task->m_frameOrder, task->m_type[0], task->m_cqpValue[0]);

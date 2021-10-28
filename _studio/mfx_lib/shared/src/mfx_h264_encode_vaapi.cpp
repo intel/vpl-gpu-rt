@@ -956,7 +956,11 @@ void UpdatePPS(
     DdiTask const & task,
     mfxU32          fieldId,
     VAEncPictureParameterBufferH264 & pps,
-    std::vector<ExtVASurface> const & reconQueue)
+    std::vector<ExtVASurface> const & reconQueue
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    , mfxU32                          cqmPpsNum
+#endif
+)
 {
     pps.frame_num = task.m_frameNum;
 
@@ -990,6 +994,19 @@ void UpdatePPS(
         pps.ReferenceFrames[i].TopFieldOrderCnt    = 0;
         pps.ReferenceFrames[i].BottomFieldOrderCnt = 0;
     }
+
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    if (IsCustMatrix(task.m_adaptiveCQMHint) && cqmPpsNum > 0)
+    {
+        pps.pic_parameter_set_id = static_cast<uint8_t>(task.m_adaptiveCQMHint);
+        pps.pic_fields.bits.pic_scaling_matrix_present_flag = true;
+    }
+    else
+    {   // CqmHint is CQM_HINT_USE_FLAT_MATRIX or CQM_HINT_INVALID, or no available extended CQM pps
+        pps.pic_parameter_set_id = 0;
+        pps.pic_fields.bits.pic_scaling_matrix_present_flag = false;
+    }
+#endif
 } // void UpdatePPS(...)
 
 void FillPWT(
@@ -1366,6 +1383,9 @@ VAAPIEncoder::VAAPIEncoder()
     , m_roiBufferId(VA_INVALID_ID)
     , m_ppsBufferId(VA_INVALID_ID)
     , m_mbqpBufferId(VA_INVALID_ID)
+#if defined (MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    , m_qmBufferId(VA_INVALID_ID)
+#endif
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
     , m_triggerGpuHangBufferId(VA_INVALID_ID)
 #endif
@@ -1380,6 +1400,10 @@ VAAPIEncoder::VAAPIEncoder()
     , m_packedSeiBufferId(VA_INVALID_ID)
     , m_packedSkippedSliceHeaderBufferId(VA_INVALID_ID)
     , m_packedSkippedSliceBufferId(VA_INVALID_ID)
+#if defined (MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    , m_packedCqmPpsHeaderBufferId(CQM_HINT_NUM_CUST_MATRIX, VA_INVALID_ID)
+    , m_packedCqmPpsBufferId(CQM_HINT_NUM_CUST_MATRIX, VA_INVALID_ID)
+#endif
     , m_feedbackCache()
     , m_bsQueue()
     , m_reconQueue()
@@ -2093,7 +2117,11 @@ mfxStatus VAAPIEncoder::Execute(
             MFX_CHECK_STS(mfxSts);
         }
 
-        UpdatePPS(task, fieldId, m_pps, m_reconQueue);
+        UpdatePPS(task, fieldId, m_pps, m_reconQueue
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+            , m_headerPacker.GetPackedCqmPpsNum()
+#endif
+        );
 
         if (task.m_SliceInfo.size())
             UpdateSliceSizeLimited(m_caps, task, fieldId, m_sps, m_pps, m_slice, m_videoParam, m_reconQueue);
@@ -2309,9 +2337,9 @@ mfxStatus VAAPIEncoder::Execute(
             configBuffers.push_back(m_packedSpsBufferId);
         }
 
+        // PPS
         if (task.m_insertPps[fieldId])
         {
-            // PPS
             std::vector<ENCODE_PACKEDHEADER_DATA> const & packedPpsArray = m_headerPacker.GetPps();
             ENCODE_PACKEDHEADER_DATA const & packedPps = packedPpsArray[0];
 
@@ -2345,6 +2373,50 @@ mfxStatus VAAPIEncoder::Execute(
             packedBufferIndexes.push_back(configBuffers.size());
             configBuffers.push_back(m_packedPpsHeaderBufferId);
             configBuffers.push_back(m_packedPpsBufferId);
+
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+            if (IsCustMatrix(task.m_adaptiveCQMHint))
+            {
+                mfxU32 extCqmNum = m_headerPacker.GetPackedCqmPpsNum();
+                if (extCqmNum > 0)
+                {
+                    std::vector<ENCODE_PACKEDHEADER_DATA> const & packedCqmPps = m_headerPacker.GetPps(true);
+                    
+                    for (mfxU32 cqmIndex = 0; cqmIndex < extCqmNum; cqmIndex++)
+                    {
+                        packed_header_param_buffer.has_emulation_bytes = !packedCqmPps[cqmIndex].SkipEmulationByteCount;
+                        packed_header_param_buffer.bit_length = packedCqmPps[cqmIndex].DataLength * 8;
+
+                        mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedCqmPpsHeaderBufferId[cqmIndex]);
+                        MFX_CHECK_STS(mfxSts);
+
+                        vaSts = vaCreateBuffer(m_vaDisplay,
+                                               m_vaContextEncode,
+                                               VAEncPackedHeaderParameterBufferType,
+                                               sizeof(packed_header_param_buffer),
+                                               1,
+                                               &packed_header_param_buffer,
+                                               &m_packedCqmPpsHeaderBufferId[cqmIndex]);
+                        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+
+                        mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedCqmPpsBufferId[cqmIndex]);
+                        MFX_CHECK_STS(mfxSts);
+
+                        vaSts = vaCreateBuffer(m_vaDisplay,
+                                               m_vaContextEncode,
+                                               VAEncPackedHeaderDataBufferType,
+                                               packedCqmPps[cqmIndex].DataLength, 1, packedCqmPps[cqmIndex].pData,
+                                               &m_packedCqmPpsBufferId[cqmIndex]);
+                        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+                        packedBufferIndexes.push_back(configBuffers.size());
+                        configBuffers.push_back(m_packedCqmPpsHeaderBufferId[cqmIndex]);
+                        configBuffers.push_back(m_packedCqmPpsBufferId[cqmIndex]);
+                    }
+                }
+            }
+#endif
         }
 
         // SEI
@@ -2642,6 +2714,31 @@ mfxStatus VAAPIEncoder::Execute(
             configBuffers.push_back(m_mbNoSkipBufferId);
         }
     }
+
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    if (m_pps.pic_fields.bits.pic_scaling_matrix_present_flag ||
+        m_sps.seq_fields.bits.seq_scaling_matrix_present_flag)
+    {
+        VAIQMatrixBufferH264 m_qMatrix;
+        memcpy(m_qMatrix.ScalingList4x4, task.m_qMatrix.scalingList4x4, sizeof(task.m_qMatrix.scalingList4x4));
+        memcpy(m_qMatrix.ScalingList8x8, task.m_qMatrix.scalingList8x8, sizeof(task.m_qMatrix.scalingList8x8));
+
+        mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_qmBufferId);
+        MFX_CHECK_STS(mfxSts);
+
+        vaSts = vaCreateBuffer(m_vaDisplay,
+                               m_vaContextEncode,
+                               VAQMatrixBufferType,
+                               sizeof(m_qMatrix),
+                               1,
+                               &m_qMatrix,
+                               &m_qmBufferId);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+        if (m_qmBufferId != VA_INVALID_ID)
+            configBuffers.push_back(m_qmBufferId);
+    }
+#endif
 
 #if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
     if (m_caps.ddi_caps.RoundingOffset && ctrlRoundingOffset)
@@ -3028,6 +3125,10 @@ mfxStatus VAAPIEncoder::Destroy()
     MFX_CHECK_STS(mfxSts);
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_mbqpBufferId);
     MFX_CHECK_STS(mfxSts);
+#if defined (MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_qmBufferId);
+    MFX_CHECK_STS(mfxSts);
+#endif
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_triggerGpuHangBufferId);
     MFX_CHECK_STS(mfxSts);
@@ -3055,6 +3156,17 @@ mfxStatus VAAPIEncoder::Destroy()
         mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedSvcPrefixBufferId[i]);
         MFX_CHECK_STS(mfxSts);
     }
+
+#if defined (MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    for (size_t i = 0; i < m_packedCqmPpsBufferId.size(); i++)
+    {
+        mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedCqmPpsHeaderBufferId[i]);
+        MFX_CHECK_STS(mfxSts);
+
+        mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedCqmPpsBufferId[i]);
+        MFX_CHECK_STS(mfxSts);
+    }
+#endif  
 
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedAudHeaderBufferId);
     MFX_CHECK_STS(mfxSts);

@@ -221,6 +221,9 @@ namespace MfxHwH264Encode
         VABufferID m_roiBufferId;
         VABufferID m_ppsBufferId;
         VABufferID m_mbqpBufferId;
+#if defined (MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        VABufferID m_qmBufferId;
+#endif
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
         VABufferID m_triggerGpuHangBufferId;
 #endif
@@ -237,6 +240,10 @@ namespace MfxHwH264Encode
         VABufferID m_packedSeiBufferId;
         VABufferID m_packedSkippedSliceHeaderBufferId;
         VABufferID m_packedSkippedSliceBufferId;
+#if defined (MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        std::vector<VABufferID> m_packedCqmPpsHeaderBufferId;
+        std::vector<VABufferID> m_packedCqmPpsBufferId;
+#endif
         std::vector<VABufferID> m_packedSliceHeaderBufferId;
         std::vector<VABufferID> m_packedSliceBufferId;
         std::vector<VABufferID> m_packedSvcPrefixHeaderBufferId;
