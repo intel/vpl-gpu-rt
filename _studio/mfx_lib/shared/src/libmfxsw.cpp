@@ -511,6 +511,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
             auto& impl = holder->PushBack();
 
+            impl.Version.Version  = MFX_STRUCT_VERSION(1, 2);
             impl.Impl             = MFX_IMPL_TYPE_HARDWARE;
             impl.ApiVersion       = { { MFX_VERSION_MINOR, MFX_VERSION_MAJOR } };
             impl.VendorID         = 0x8086;
@@ -521,6 +522,12 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
             snprintf(impl.Dev.DeviceID, sizeof(impl.Dev.DeviceID), "%x/%d", deviceId, adapterNum);
             snprintf(impl.ImplName, sizeof(impl.ImplName), "mfx-gen");
+
+            impl.AccelerationModeDescription.Version.Version = MFX_STRUCT_VERSION(1, 0);
+            impl.PoolPolicies.Version.Version = MFX_STRUCT_VERSION(1, 0);
+            impl.Dec.Version.Version = MFX_STRUCT_VERSION(1, 0);
+            impl.Enc.Version.Version = MFX_STRUCT_VERSION(1, 0);
+            impl.VPP.Version.Version = MFX_STRUCT_VERSION(1, 0);
 
             return (MFX_ERR_NONE == QueryImplsDescription(core, impl.Enc, impl) &&
                     MFX_ERR_NONE == QueryImplsDescription(core, impl.Dec, impl) &&
