@@ -6000,6 +6000,14 @@ void MfxHwH264Encode::SetDefaults(
         extOpt3->AdaptiveCQM = MFX_CODINGOPTION_OFF;
 #endif
 
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+    if (extOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING && IsOn(par.mfx.LowPower)
+        && extOpt2->LookAheadDepth > 0 && par.mfx.GopOptFlag == 0)
+    {
+        par.mfx.GopOptFlag = MFX_GOP_CLOSED;
+    }
+#endif
+
     CheckVideoParamQueryLike(par, hwCaps, platform, vaType, config);
 
     if (extOpt3->NumSliceI == 0 && extOpt3->NumSliceP == 0 && extOpt3->NumSliceB == 0)

@@ -296,6 +296,7 @@ static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config)
         bool bLA = (pExtOpt2 && pExtOpt2->LookAheadDepth > 0 &&
             (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
                 video.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
+
         // LPLA assumes reordering for I frames, doesn't make much sense with closed GOP
         bool bAdaptiveI = (pExtOpt2 && IsOn(pExtOpt2->AdaptiveI)) && !(video.mfx.GopOptFlag & (MFX_GOP_STRICT | MFX_GOP_CLOSED));
 
@@ -328,9 +329,18 @@ static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & s
     mfxU32 changed = 0;
 
 #ifdef MFX_ENABLE_ENCTOOLS_LPLA
-    if (pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING && video.mfx.GopRefDist > 4) {
-        changed++;
-        video.mfx.GopRefDist = 4;
+    if (pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING)
+    {
+        if (video.mfx.GopRefDist > 4)
+        {
+            changed++;
+            video.mfx.GopRefDist = 4;
+        }
+
+        if (pExtOpt2 && pExtOpt2->LookAheadDepth > 0 && video.mfx.GopOptFlag == 0)
+        {
+            video.mfx.GopOptFlag = MFX_GOP_CLOSED;
+        }
     }
 #endif
 
