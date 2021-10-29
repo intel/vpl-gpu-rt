@@ -1014,7 +1014,7 @@ UMC::Status TaskSupplier_H265::DecodeSEI(UMC::MediaDataEx *nalUnit)
         bitStream.Reset((uint8_t*)swappedMem.GetPointer(), (uint32_t)swappedMem.GetDataSize());
 
         NalUnitType nal_unit_type;
-        uint32_t temporal_id;
+        uint32_t temporal_id = 0;
 
         bitStream.GetNALUnitType(nal_unit_type, temporal_id);
 
@@ -1395,7 +1395,7 @@ UMC::Status TaskSupplier_H265::DecodeHeaders(UMC::MediaDataEx *nalUnit)
         bitStream.Reset((uint8_t*)swappedMem.GetPointer(), (uint32_t)swappedMem.GetDataSize());
 
         NalUnitType nal_unit_type;
-        uint32_t temporal_id;
+        uint32_t temporal_id = 0;
 
         bitStream.GetNALUnitType(nal_unit_type, temporal_id);
 

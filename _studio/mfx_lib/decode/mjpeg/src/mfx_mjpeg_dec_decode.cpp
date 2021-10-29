@@ -658,6 +658,7 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
 
     {
         // output surface is always working surface
+        MFX_CHECK_NULL_PTR1(dst);
         *surface_out = decoder->m_surface_source->GetSurface(dst->GetFrameMID(),
                                                     surface_work,
                                                     &m_vPar);
