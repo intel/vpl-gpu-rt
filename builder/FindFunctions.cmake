@@ -66,27 +66,13 @@ endfunction()
 #    - current_repo|<name>: the alias of the folder for which the built components will be placed
 #
 function( create_build_outside_tree current_repo)
-
-  file( GLOB_RECURSE components "${CMAKE_SOURCE_DIR}/*/CMakeLists.txt" )
-  foreach( component ${components} )
-    get_filename_component(path ${component} PATH)
-    get_filename_component(folder_name ${path} NAME)
-    if(NOT path MATCHES ".*/deprecated/.*")
-      message(STATUS "Adding subdir: ${path} ./${current_repo}/${folder_name}")
-      add_subdirectory(${path} ./${current_repo}/${folder_name})
-    endif()
-  endforeach()
+  set(component "${CMAKE_SOURCE_DIR}/${current_repo}/CMakeLists.txt")
+  if(EXISTS ${component})
+    add_subdirectory(${CMAKE_SOURCE_DIR}/${current_repo} ./${current_repo})
+    message(STATUS "Adding subdir: ${CMAKE_SOURCE_DIR}/${current_repo} ./${current_repo}")
+  endif()
 endfunction()
-
 # .....................................................
-function( get_source include sources)
-  file( GLOB_RECURSE include "[^.]*.h" )
-  file( GLOB_RECURSE sources "[^.]*.c" "[^.]*.cpp" )
-
-  set( ${ARGV0} ${include} PARENT_SCOPE )
-  set( ${ARGV1} ${sources} PARENT_SCOPE )
-endfunction()
-
 
 function( git_describe git_commit )
   execute_process(
@@ -97,14 +83,6 @@ function( git_describe git_commit )
   )
   if( NOT ${git_commit} MATCHES "^$" )
     set( git_commit "${git_commit}" PARENT_SCOPE )
-  endif()
-endfunction()
-
-function(msdk_install target dir)
-  if( Windows )
-    install( TARGETS ${target} RUNTIME DESTINATION ${dir} )
-  else()
-    install( TARGETS ${target} LIBRARY DESTINATION ${dir} )
   endif()
 endfunction()
 
@@ -128,3 +106,28 @@ function(disable_werror)
     set(CMAKE_C_FLAGS_RELEASE "${TMP_C_RELEASE}" PARENT_SCOPE)
     set(CMAKE_CXX_FLAGS_RELEASE "${TMP_CXX_RELEASE}" PARENT_SCOPE)
 endfunction()
+
+macro (PushOption)
+  foreach(arg IN ITEMS ${ARGN})
+    if (NOT DEFINED ${arg})
+      continue()
+    endif()
+
+    get_property(_save_help_${arg} CACHE ${arg} PROPERTY HELPSTRING)
+    set(_save_value_${arg} ${${arg}})
+  endforeach()
+endmacro ()
+
+macro (PopOption)
+  foreach(arg IN ITEMS ${ARGN})
+    if (NOT DEFINED ${arg})
+      continue()
+    endif()
+
+    if (DEFINED _save_help_${arg})
+      set(${arg} ${_save_value_${arg}} CACHE BOOL ${_save_help_${arg}} FORCE)
+    else()
+      set(${arg} ${_save_value_${arg}})
+    endif()
+  endforeach()
+endmacro ()

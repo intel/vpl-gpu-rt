@@ -38,6 +38,11 @@ target_link_libraries(mfx_common_properties
   INTERFACE ${MFX_API_TARGET}
 )
 
+target_compile_definitions(mfx_common_properties
+  INTERFACE
+    $<$<NOT:$<CONFIG:Debug>>:NDEBUG>
+)
+
 if( Linux )
   # If user did not override CMAKE_INSTALL_PREFIX, then set the default prefix
   # to /opt/intel/mediasdk instead of cmake's default
@@ -96,15 +101,6 @@ elseif( Windows )
     set( CMAKE_INSTALL_PREFIX "C:/Program Files/mediasdk/" CACHE PATH "Install Path Prefix" FORCE )
   endif()
 
-#  foreach(var
-#    CMAKE_C_FLAGS CMAKE_CXX_FLAGS
-#    CMAKE_C_FLAGS_RELEASE CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELWITHDEBINFO
-#    CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-#    string(REPLACE "/MD" "/MT" ${var} "${${var}}")
-
-    # See https://gitlab.kitware.com/cmake/cmake/-/issues/19084 - we control exception-enabling flags manualy
-#    string(REPLACE "/EHsc" "" ${var} "${${var}}")
-#  endforeach()
   set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
   set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
   set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE})
@@ -118,6 +114,8 @@ elseif( Windows )
 
   target_compile_definitions(mfx_common_properties
     INTERFACE
+      MFX_DX9ON11
+      MFX_D3D11_ENABLED
       UNICODE
       _UNICODE
       NOMINMAX
@@ -136,6 +134,11 @@ elseif( Windows )
       /GS
       /Gy
   )
+  target_link_options(mfx_common_properties
+    INTERFACE
+      /guard:cf
+  )
+
 endif( )
 
 if( NOT DEFINED MFX_APPS_DIR)
@@ -256,6 +259,7 @@ if(NOT CMAKE_SYSTEM_NAME MATCHES Windows)
       $<$<NOT:$<CXX_COMPILER_ID:Intel>>:
         -Wno-deprecated-declarations
         -Wno-unknown-pragmas
+        -Wno-unused
       >
   )
 endif()
@@ -265,6 +269,11 @@ target_compile_definitions(mfx_common_properties
   INTERFACE
     $<$<BOOL:${ENABLE_TEXTLOG}>:MFX_TRACE_ENABLE_TEXTLOG>
     $<$<BOOL:${ENABLE_STAT}>:MFX_TRACE_ENABLE_STAT>
+    $<$<BOOL:${ENABLE_ITT}>:MFX_TRACE_ENABLE_ITT>
+  )
+
+target_compile_definitions(mfx_common_properties
+  INTERFACE
     SYNCHRONIZATION_BY_VA_SYNC_SURFACE
   )
 

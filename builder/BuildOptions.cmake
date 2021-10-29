@@ -40,7 +40,7 @@ option( ENABLE_OPENCL "Build targets dependent on OpenCL?" ON )
 #
 option( ENABLE_ALL "Enable all dependencies and features?" OFF )
 
-option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" ${ENABLE_ALL} )
+  option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" ${ENABLE_ALL} )
 
 option( ENABLE_TEXTLOG "Enable textlog tracing?" "${ENABLE_ALL}")
 option( ENABLE_STAT "Enable stat tracing?" "${ENABLE_ALL}")
@@ -52,9 +52,9 @@ option( ENABLE_STAT "Enable stat tracing?" "${ENABLE_ALL}")
 option( BUILD_ALL "Build all the targets?" OFF )
 
 option( BUILD_RUNTIME "Build mediasdk runtime (library, plugins, etc.)?" ON )
-# Tools depend on samples (sample_common) and can't be built without it. The
-# following BUILD_TOOLS option declaration assures that.
-cmake_dependent_option( BUILD_TOOLS "Build tools?" ON "${BUILD_ALL}" OFF)
+
+  cmake_dependent_option( BUILD_TOOLS "Build tools?" ON "${BUILD_ALL}" OFF)
+
 
 option(BUILD_TESTS "Build tests?" "${BUILD_ALL}")
 option(USE_SYSTEM_GTEST "Use system installed gtest?" OFF)
@@ -90,13 +90,9 @@ option( MFX_ENABLE_MPEG2_VIDEO_ENCODE "Enabled MPEG2 encoder?" ON)
 option( MFX_ENABLE_MJPEG_VIDEO_DECODE "Enabled MJPEG decoder?" ON)
 option( MFX_ENABLE_MJPEG_VIDEO_ENCODE "Enabled MJPEG encoder?" ON)
 option( MFX_ENABLE_VC1_VIDEO_DECODE "Enabled VC1 decoder?" ON)
-
 option( MFX_ENABLE_H264_VIDEO_ENCODE "Enable H.264 (AVC) encoder?" ON)
-
 option( MFX_ENABLE_H265_VIDEO_ENCODE "Enable H.265 (HEVC) encoder?" ON)
-
 option( MFX_ENABLE_VP9_VIDEO_ENCODE "Enable VP9 encoder?" ON)
-
 option( MFX_ENABLE_ASC "Enable ASC support?"  ON )
 option( MFX_ENABLE_VPP "Enabled Video Processing?" ON)
 
@@ -107,9 +103,8 @@ cmake_dependent_option(
   MFX_ENABLE_ENCODE_MCTF "Build encoders with MCTF support?" ON
   "${MFX_ENABLE_ASC};${MFX_ENABLE_KERNELS}" OFF)
 
-option( MFX_ENABLE_MVC_VIDEO_ENCODE "Enable MVC encoder?" OFF)
-
-option( MFX_ENABLE_USER_ENCTOOLS   "Enable encoding tools?" OFF )
+  option( MFX_ENABLE_MVC_VIDEO_ENCODE "Enable MVC encoder?" OFF)
+  option( MFX_ENABLE_USER_ENCTOOLS   "Enable encoding tools?" OFF )
 
 # Now we will include config file which may overwrite default values of the
 # options and options which user provided in a command line.
@@ -126,5 +121,5 @@ else()
   include(${BUILDER_ROOT}/profiles/onevpl.cmake)
 endif()
 
-configure_file(${BUILDER_ROOT}/mfx_features.h.in ${MSDK_CMAKE_BINARY_ROOT}/mfx_features.h)
-add_definitions( -DMFX_HAVE_EXTERNAL_CONFIG )
+configure_file(mfx_features.h.in ${MSDK_CMAKE_BINARY_ROOT}/mfx_features.h)
+

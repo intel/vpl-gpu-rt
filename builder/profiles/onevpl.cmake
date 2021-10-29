@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2021 Intel Corporation
+# Copyright (c) 2018-2019 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +20,7 @@
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
+
 function( make_runtime_name variant name )
   if( CMAKE_SYSTEM_NAME MATCHES Windows)
     set(prefix "lib")
@@ -38,3 +39,4 @@ function( make_runtime_name variant name )
   set (runtime_name ${runtime_name}-gen)
   set( ${name} ${runtime_name} PARENT_SCOPE)
 endfunction()
+

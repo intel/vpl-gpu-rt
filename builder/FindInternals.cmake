@@ -33,26 +33,6 @@ set( MSDK_TOOLS_ROOT   ${MSDK_BUILD_ROOT_MINUS_ONE}/tools )
 set( MSDK_BUILDER_ROOT ${BUILDER_ROOT} )
 set( MSDK_CMAKE_BINARY_ROOT ${CMAKE_CURRENT_BINARY_DIR} )
 
-function( mfx_include_dirs )
-  include_directories (
-    ${MSDK_STUDIO_ROOT}/shared/include
-    ${MSDK_UMC_ROOT}/core/vm/include
-    ${MSDK_UMC_ROOT}/core/vm_plus/include
-    ${MSDK_UMC_ROOT}/core/umc/include
-    ${MSDK_UMC_ROOT}/io/umc_io/include
-    ${MSDK_UMC_ROOT}/io/umc_va/include
-    ${MSDK_UMC_ROOT}/io/media_buffers/include
-    ${MSDK_LIB_ROOT}/shared/include
-    ${MSDK_LIB_ROOT}/optimization/h265/include
-    ${MSDK_LIB_ROOT}/optimization/h264/include
-    ${MSDK_LIB_ROOT}/shared/include
-    ${MSDK_LIB_ROOT}/fei/include
-    ${MSDK_LIB_ROOT}/fei/h264_la
-    ${CMAKE_HOME_DIRECTORY}/contrib/ipp/include
-  )
-endfunction()
-
-
 #================================================
 
 add_library(mfx_static_lib INTERFACE)
@@ -74,8 +54,12 @@ target_link_libraries(mfx_static_lib
   INTERFACE
     mfx_common_properties
     $<$<PLATFORM_ID:Linux>:va>  #fixme: break down to real dependencies
-    ipp
   )
+
+target_link_libraries(mfx_static_lib
+  INTERFACE
+    ipp
+)
 
 #================================================
 
@@ -89,8 +73,12 @@ target_link_options(mfx_shared_lib
       /PDB:$<TARGET_PDB_FILE_DIR:$<TARGET_PROPERTY:NAME>>/$<TARGET_PROPERTY:NAME>_full.pdb
       /PDBSTRIPPED:$<TARGET_PDB_FILE_DIR:$<TARGET_PROPERTY:NAME>>/$<TARGET_PROPERTY:NAME>.pdb
     >
-    $<$<PLATFORM_ID:Linux>:LINKER:--no-undefined,-z,relro,-z,now,-z,noexecstack>
   )
+
+  target_link_options(mfx_shared_lib
+    INTERFACE
+      $<$<PLATFORM_ID:Linux>:LINKER:--no-undefined,-z,relro,-z,now,-z,noexecstack>
+    )
 
 target_link_libraries(mfx_shared_lib
   INTERFACE
@@ -114,6 +102,7 @@ add_library(mfx_sdl_properties INTERFACE)
 target_compile_options(mfx_sdl_properties
   INTERFACE
     $<$<CXX_COMPILER_ID:MSVC>:
+      /WX
       /W4
       /sdl
       /wd5105  # macro expands to defined(smth)
@@ -145,10 +134,10 @@ target_link_libraries(mfx_plugin_properties
 
 add_library(mfx_va_properties INTERFACE) # va stands for video acceleration 
 
-target_link_options(mfx_va_properties
-  INTERFACE
-    $<$<PLATFORM_ID:Linux>:LINKER:--no-undefined,-z,relro,-z,now,-z,noexecstack>
-  )
+  target_link_options(mfx_va_properties
+    INTERFACE
+      $<$<PLATFORM_ID:Linux>:LINKER:--no-undefined,-z,relro,-z,now,-z,noexecstack>
+    )
 
 target_link_libraries(mfx_va_properties
   INTERFACE
@@ -164,19 +153,6 @@ target_compile_definitions(mfx_va_properties
       LIBVA_SUPPORT
       LIBVA_DRM_SUPPORT
     >
-  )
+)
 
-#================================================
-
-# HEVC plugins disabled by default FIXME: put these in configuration-specific build options override
-set( ENABLE_HEVC FALSE )
-set( ENABLE_HEVC_FEI FALSE )
-
-if ((CMAKE_C_COMPILER_ID MATCHES Intel) OR ENABLE_HEVC_ON_GCC )
-    set(ENABLE_HEVC TRUE)
-    set(ENABLE_AV1 TRUE)
-    set(ENABLE_HEVC_FEI TRUE)
-    message( STATUS "  Enabling HEVC plugins build!")
-    message( STATUS "  Enabling AV1 plugin build!")
-endif()
 

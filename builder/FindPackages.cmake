@@ -1,4 +1,4 @@
-##  Copyright(C) 2012-2021 Intel Corporation. All Rights Reserved.
+##  Copyright(C) 2012-2020 Intel Corporation. All Rights Reserved.
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,7 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 if( Linux )
   set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
   set(THREADS_PREFER_PTHREAD_FLAG TRUE)
@@ -34,7 +33,6 @@ if( Linux )
   pkg_check_modules(PKG_LIBDRM    REQUIRED libdrm>=2.4 IMPORTED_TARGET)
   pkg_check_modules(PKG_LIBVA_DRM REQUIRED libva-drm>=1.9 IMPORTED_TARGET)
 
-
   add_library(va INTERFACE)
   target_link_libraries(va
     INTERFACE
@@ -42,4 +40,6 @@ if( Linux )
       PkgConfig::PKG_LIBDRM
       PkgConfig::PKG_LIBVA_DRM
   )
+
 endif()
+

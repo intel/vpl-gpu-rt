@@ -50,21 +50,6 @@ if (NOT MFX_FOUND)
   message( FATAL_ERROR "Unknown API = ${API}")
 endif()
 
-macro( make_api_target target)
-
-  add_library( ${target}-api INTERFACE )
-  target_include_directories(${target}-api
-    INTERFACE
-    ${MFX_API_HOME}
-    ${MFX_API_HOME}/../mediasdk_structures
-    ${MFX_API_HOME}/private
-  )
-
-  add_library( ${target}::api ALIAS ${target}-api )
-  set (MFX_API_TARGET ${target}::api)
-
-endmacro()
-
 function( get_mfx_version mfx_version_major mfx_version_minor )
   file(STRINGS ${MFX_API_HOME}/mfxdefs.h major REGEX "#define MFX_VERSION_MAJOR" LIMIT_COUNT 1)
   if(major STREQUAL "") # old style version
@@ -88,12 +73,21 @@ set( API_VERSION "${major_vers}.${minor_vers}")
 set( MFX_VERSION_MAJOR ${major_vers})
 set( MFX_VERSION_MINOR ${minor_vers})
 
-if ( ${API_VERSION} VERSION_GREATER_EQUAL 2.0 )
-  set( API_USE_LATEST TRUE )
-  set( API_FLAGS -DMFX_VERSION_USE_LATEST )
-  make_api_target( onevpl )
-else()
-  make_api_target( mfx )
-endif()
+set( API_USE_LATEST TRUE )
+set( API_FLAGS -DMFX_VERSION_USE_LATEST )
+
+add_library( onevpl-api INTERFACE )
+target_include_directories(onevpl-api
+  INTERFACE
+  ${MFX_API_HOME}
+  ${MFX_API_HOME}/../mediasdk_structures
+  ${MFX_API_HOME}/private
+)
+target_compile_definitions(onevpl-api
+  INTERFACE MFX_ONEVPL
+)
+
+add_library( onevpl::api ALIAS onevpl-api )
+set (MFX_API_TARGET onevpl::api)
 
 message(STATUS "Enabling API ${major_vers}.${minor_vers} feature set with flags ${API_FLAGS}")
