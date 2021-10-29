@@ -1699,11 +1699,11 @@ namespace MfxHwH264Encode
     class H264SWBRC : public BrcIface
     {
     public:
-        H264SWBRC():
-            m_minSize(0),
-            m_pBRC(0)
+        H264SWBRC()
+            : m_minSize(0)
+            , m_pBRC(nullptr)
+            , m_BRCLocal()
         {
-            memset(&m_BRCLocal,0, sizeof(m_BRCLocal));
         }
         virtual ~H264SWBRC()
         {
