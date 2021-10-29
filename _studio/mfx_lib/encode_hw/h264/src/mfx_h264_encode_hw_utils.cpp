@@ -3030,10 +3030,6 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
     {
         mfxExtCodingOption3* pCO3 = GetExtBuffer(*ctrl);
         if (pCO3) {
-#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
-            if (pCO3->AdaptiveCQM != MFX_CODINGOPTION_UNKNOWN)
-                checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-#endif
         }
     }
     if (surface != 0)

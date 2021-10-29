@@ -216,11 +216,6 @@ enum
     CQM_HINT_INVALID          = 0xFF  //invalid hint
 };
 
-inline bool IsCustMatrix(mfxU32 CqmHint)
-{
-    return CqmHint >= CQM_HINT_USE_CUST_MATRIX1 && CqmHint < (CQM_HINT_USE_CUST_MATRIX1 + CQM_HINT_NUM_CUST_MATRIX);
-}
-
 
 #ifdef __cplusplus
 } // extern "C"

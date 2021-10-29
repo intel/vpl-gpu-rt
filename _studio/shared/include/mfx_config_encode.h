@@ -28,7 +28,6 @@
     #define MFX_ENABLE_APQ_LQ
     #define MFX_ENABLE_H264_REPARTITION_CHECK
     #define MFX_ENABLE_H264_ROUNDING_OFFSET
-    #define MFX_ENABLE_AVC_CUSTOM_QMATRIX
     #if defined(MFX_ENABLE_MCTF) && defined(MFX_ENABLE_KERNELS)
         #define MFX_ENABLE_MCTF_IN_AVC
     #endif

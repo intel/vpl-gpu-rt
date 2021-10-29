@@ -95,6 +95,7 @@ option( MFX_ENABLE_H265_VIDEO_ENCODE "Enable H.265 (HEVC) encoder?" ON)
 option( MFX_ENABLE_VP9_VIDEO_ENCODE "Enable VP9 encoder?" ON)
 option( MFX_ENABLE_ASC "Enable ASC support?"  ON )
 option( MFX_ENABLE_VPP "Enabled Video Processing?" ON)
+option( MFX_ENABLE_PXP "Enabled Video protection?" OFF)
 
 cmake_dependent_option(
   MFX_ENABLE_MCTF "Build with MCTF support?" ON
