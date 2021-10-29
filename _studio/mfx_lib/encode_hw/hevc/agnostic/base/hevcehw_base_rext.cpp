@@ -226,8 +226,8 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
             {
                 // convert to native shift in core.CopyFrame() if required
                 surfDst.Info.Shift |=
-                    surfDst.Info.FourCC == MFX_FOURCC_P016
-                    || surfDst.Info.FourCC == MFX_FOURCC_Y216;
+                    (mfxU16) (surfDst.Info.FourCC == MFX_FOURCC_P016
+                    || surfDst.Info.FourCC == MFX_FOURCC_Y216);
 
                 return prev(
                      surfDst
