@@ -76,7 +76,7 @@ namespace UMC_AV1_DECODER
 
     inline uint32_t MapLevel(uint32_t levelIdx)
     {
-        if (levelIdx >= 0 && levelIdx < 20)
+        if (levelIdx < 20)
             return (2 + (levelIdx >> 2)) * 10 + (levelIdx & 3);
         else
             return MFX_LEVEL_UNKNOWN;
