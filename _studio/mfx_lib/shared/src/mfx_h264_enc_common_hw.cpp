@@ -3989,6 +3989,73 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                     return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
         }
 
+#ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
+        if (extSps->seqScalingMatrixPresentFlag)
+        {
+            // Rec. ITU-T H.264 (04/2017), chapter A.2 Profiles, customized Scaling Matrices is supported
+            // only for High profiles and protected content isn't supported
+            if (!IsAvcHighProfile(par.mfx.CodecProfile) || par.Protected != 0)
+            {
+                extSps->seqScalingMatrixPresentFlag = 0;
+                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            }
+            //levelIdx == 3 isn't supported
+            if (extSps->levelIdc == 3)
+            {
+                extSps->seqScalingMatrixPresentFlag = 0;
+                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            }
+            //if seqScalingMatrixPresent flag isn't 0 at least one matrix has to be provided
+            //More information Rec. ITU-T H.264, 7.4.2.1.1 Sequence parameter set data semantics
+            mfxU8 sum = 0;
+            for (mfxU8 i = 0; i < 8 /*((extSps->levelIdc != 3) ? 8 : 12)*/; ++i)
+            {
+                sum |= extSps->seqScalingListPresentFlag[i];
+                if (extSps->seqScalingListPresentFlag[i] > 1) //bitfield
+                {
+                    extSps->seqScalingListPresentFlag[i] = 1;
+                    changed = true;
+                }
+            }
+            if (!sum)
+            {
+                extSps->seqScalingMatrixPresentFlag = 0;
+                changed = true;
+            }
+        }
+
+        if (extBits->PPSBuffer && extPps->picScalingMatrixPresentFlag)
+        {
+            // Rec. ITU-T H.264 (04/2017), chapter A.2 Profiles, customized Scaling Matrices is supported
+            // only for High profiles and protected content isn't supported
+            if (!IsAvcHighProfile(par.mfx.CodecProfile) || par.Protected != 0)
+            {
+                extPps->picScalingMatrixPresentFlag = 0;
+                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            }
+            //transform8x8ModeFlag has to be 1, other values is unsupported
+            if (extPps->transform8x8ModeFlag != 1)
+            {
+                extPps->picScalingMatrixPresentFlag = 0;
+                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            }
+            else
+            {
+                //if picScalingMatrixPresent flag isn't 0 at least one matrix has to be provided
+                //More information Rec. ITU-T H.264, 7.4.2.2 Picture parameter set RBSP semantics
+                bool sum = 0;
+                for (mfxU8 i = 0; i < 8 /*6 + 2*(!!extPps->transform8x8ModeFlag)*/; ++i)
+                {
+                    sum |= extPps->picScalingListPresentFlag[i];
+                }
+                if (!sum)
+                {
+                    extPps->picScalingMatrixPresentFlag = 0;
+                    changed = true;
+                }
+            }
+        }
+#endif
     }
 
 
@@ -4042,6 +4109,14 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
 #endif //MFX_AUTOLTR_FEATURE_DISABLE
 
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    if (!CheckTriStateOption(extOpt3->AdaptiveCQM)) changed = true;
+    if (IsOn(extOpt3->AdaptiveCQM) && !isAdaptiveCQMSupported(extOpt3->ScenarioInfo, IsOn(par.mfx.LowPower)))
+    {
+        extOpt3->AdaptiveCQM = MFX_CODINGOPTION_OFF;
+        changed = true;
+    }
+#endif
 
     if (IsMvcProfile(par.mfx.CodecProfile) && MFX_ERR_UNSUPPORTED == CheckMVCSeqDescQueryLike(extMvc))
     {
@@ -5915,6 +5990,15 @@ void MfxHwH264Encode::SetDefaults(
             extOpt2->AdaptiveB = MFX_CODINGOPTION_OFF;
     }
 
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    if (isAdaptiveCQMSupported(extOpt3->ScenarioInfo, IsOn(par.mfx.LowPower)))
+    {
+        if (extOpt3->AdaptiveCQM == MFX_CODINGOPTION_UNKNOWN)
+            extOpt3->AdaptiveCQM = MFX_CODINGOPTION_ON;
+    }
+    else
+        extOpt3->AdaptiveCQM = MFX_CODINGOPTION_OFF;
+#endif
 
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
     if (extOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING && IsOn(par.mfx.LowPower)
@@ -6450,6 +6534,24 @@ void MfxHwH264Encode::SetDefaults(
             extPps->picScalingMatrixPresentFlag = 0;
             extPps->secondChromaQpIndexOffset = 0;
         }
+
+#ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
+        if (IsOn(extOpt3->AdaptiveCQM)&&
+            isAdaptiveCQMSupported(extOpt3->ScenarioInfo, IsOn(par.mfx.LowPower)))
+        {
+            std::vector<mfxExtPpsHeader> &extCqmPps = par.GetCqmPps();
+            for (mfxU8 j = 0; j < extCqmPps.size(); j++)
+            {
+                extCqmPps[j] = *extPps;
+                extCqmPps[j].picParameterSetId = j + 1;
+                FillCustomScalingLists(&(extCqmPps[j].scalingList4x4[0][0]), extOpt3->ScenarioInfo, j+1);
+                extCqmPps[j].picScalingMatrixPresentFlag = 1;
+                for (mfxU8 i = 0; i < sizeof(extCqmPps[j].picScalingListPresentFlag) / sizeof(extCqmPps[j].picScalingListPresentFlag[0]); ++i)
+                    extCqmPps[j].picScalingListPresentFlag[i] = (i < ((extSps->levelIdc != 3) ? 8 : 12)) ? 1 : 0;
+            }
+
+        }
+#endif
 
     }
 
@@ -7440,6 +7542,9 @@ MfxVideoParam::MfxVideoParam(mfxVideoParam const & par)
 MfxVideoParam& MfxVideoParam::operator=(MfxVideoParam const & par)
 {
     Construct(par);
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    std::copy(par.m_extCqmPps.begin(), par.m_extCqmPps.end(), m_extCqmPps.begin());
+#endif
     calcParam = par.calcParam;
     return *this;
 }
@@ -7655,6 +7760,9 @@ void MfxVideoParam::Construct(mfxVideoParam const & par)
 
     NumExtParam = 0;
 
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    m_extCqmPps.resize(CQM_HINT_NUM_CUST_MATRIX);
+#endif
 
 #define CONSTRUCT_EXT_BUFFER(type, name)        \
     InitExtBufHeader(name);                     \
@@ -8340,7 +8448,22 @@ namespace
             writer.PutBit(sps.seqScalingMatrixPresentFlag);
             if (sps.seqScalingMatrixPresentFlag)
             {
+#ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
+                for (mfxU8 i = 0; i < ((sps.levelIdc != 3) ? 8 : 12); ++i)
+                {
+                     //Put scaling list present flag
+                     writer.PutBit(sps.seqScalingListPresentFlag[i]);
+                     if (sps.seqScalingListPresentFlag[i])
+                     {
+                         if (i < 6)
+                             WriteScalingList(writer, &sps.scalingList4x4[i][0], 16);
+                        else
+                             WriteScalingList(writer, &sps.scalingList8x8[i - 6][0], 64);
+                     }
+                }
+#else
                 assert("seq_scaling_matrix is unsupported");
+#endif
             }
         }
         writer.PutUe(sps.log2MaxFrameNumMinus4);
@@ -9070,6 +9193,25 @@ void HeaderPacker::Init(
     PrepareSpsPpsHeaders(par, m_sps, m_pps);
 #endif
 
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    const mfxExtCodingOption3 &extOpt3 = GetExtBufferRef(par);
+    if (IsOn(extOpt3.AdaptiveCQM))
+    {
+        const std::vector<mfxExtPpsHeader> &extCqmPps = par.GetCqmPps();
+        if (m_cqmPps.empty())
+        {
+            m_cqmPps.resize(extCqmPps.size());
+            Zero(m_cqmPps);
+        }
+        if (m_packedCqmPps.empty())
+        {
+            m_packedCqmPps.resize(extCqmPps.size());
+            Zero(m_packedCqmPps);
+        }
+        for (mfxU32 i = 0; i < extCqmPps.size(); i++)
+            m_cqmPps[i] = extCqmPps[i];
+    }
+#endif
 
     // prepare data for slice level
 #ifndef MFX_ENABLE_SVC_VIDEO_ENCODE
@@ -9146,6 +9288,19 @@ void HeaderPacker::Init(
         bufBegin += numBits / 8;
     }
 
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    // pack extended pps for adaptive CQM
+    if (!m_packedCqmPps.empty())
+    {
+        bufDesc = Begin(m_packedCqmPps);
+        for (size_t i = 0; i < m_cqmPps.size(); i++)
+        {
+            numBits = WritePpsHeader(obs, m_cqmPps[i]);
+            *bufDesc++ = MakePackedByteBuffer(bufBegin, numBits / 8, m_emulPrev ? 0 : 4);
+            bufBegin += numBits / 8;
+        }
+    }
+#endif
 
     m_hwCaps = hwCaps;
 
@@ -9206,6 +9361,11 @@ ENCODE_PACKEDHEADER_DATA const & HeaderPacker::PackAud(
     mfxU32          fieldId)
 {
     mfxU8 * audBegin = m_packedPps.back().pData + m_packedPps.back().DataLength;
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+    if (!m_packedCqmPps.empty())
+        for (auto it = m_packedCqmPps.begin(); it < m_packedCqmPps.end(); it++)
+            audBegin += it->DataLength;
+#endif
 
     OutputBitstream obs(audBegin, End(m_headerBuffer), m_emulPrev);
     mfxU32 numBits = WriteAud(obs, task.m_type[fieldId]);
@@ -9362,6 +9522,9 @@ mfxU32 HeaderPacker::WriteSlice(
 
     mfxExtSpsHeader const & sps = task.m_viewIdx ? m_sps[task.m_viewIdx] : m_sps[m_spsIdx[task.m_did][task.m_qid]];
     mfxExtPpsHeader const & pps =
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        task.m_adaptiveCQMHint > 0 && task.m_adaptiveCQMHint <= static_cast<mfxU32>(m_cqmPps.size()) ? m_cqmPps[task.m_adaptiveCQMHint - 1] :
+#endif
         task.m_viewIdx ? m_pps[task.m_viewIdx] : m_pps[m_ppsIdx[task.m_did][task.m_qid]];
 
     // if frame_mbs_only_flag = 0 and current task implies encoding of progressive frame
@@ -9596,6 +9759,9 @@ mfxU32 HeaderPacker::WriteSlice(
 
     mfxExtSpsHeader const & sps = task.m_viewIdx ? m_sps[task.m_viewIdx] : m_sps[m_spsIdx[task.m_did][task.m_qid]];
     mfxExtPpsHeader const & pps =
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        IsCustMatrix(task.m_adaptiveCQMHint) ? m_cqmPps[(mfxU32)task.m_adaptiveCQMHint - 1] :
+#endif
         task.m_viewIdx ? m_pps[task.m_viewIdx] : m_pps[m_ppsIdx[task.m_did][task.m_qid]];
 
     // if frame_mbs_only_flag = 0 and current task implies encoding of progressive frame
@@ -9907,6 +10073,9 @@ ENCODE_PACKEDHEADER_DATA const & HeaderPacker::PackSkippedSlice(
 
     mfxExtSpsHeader const & sps = task.m_viewIdx ? m_sps[task.m_viewIdx] : m_sps[m_spsIdx[task.m_did][task.m_qid]];
     mfxExtPpsHeader const & pps =
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        IsCustMatrix(task.m_adaptiveCQMHint) ? m_cqmPps[(mfxU32)task.m_adaptiveCQMHint - 1] :
+#endif
         task.m_viewIdx ? m_pps[task.m_viewIdx] : m_pps[m_ppsIdx[task.m_did][task.m_qid]];
 
     mfxU32 picHeightMultiplier = (sps.frameMbsOnlyFlag == 0) && (task.GetPicStructForEncode() == MFX_PICSTRUCT_PROGRESSIVE) ? 2 : 1;

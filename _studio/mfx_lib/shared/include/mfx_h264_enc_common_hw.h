@@ -555,6 +555,17 @@ namespace MfxHwH264Encode
 
         void ApplyDefaultsToMvcSeqDesc();
 
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        std::vector<mfxExtPpsHeader>& GetCqmPps()
+        {
+            return m_extCqmPps;
+        }
+
+        const std::vector<mfxExtPpsHeader>& GetCqmPps() const
+        {
+            return m_extCqmPps;
+        }
+#endif
 
     protected:
         void Construct(mfxVideoParam const & par);
@@ -605,6 +616,9 @@ namespace MfxHwH264Encode
 
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
         mfxExtLplaParam            m_extLowpowerLA;
+#endif
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        std::vector<mfxExtPpsHeader>  m_extCqmPps;
 #endif
 
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
@@ -1459,6 +1473,10 @@ namespace MfxHwH264Encode
 
         std::vector<ENCODE_PACKEDHEADER_DATA> const & GetPps(bool cqmPps = false ) const {
             (void)cqmPps;
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+            if (cqmPps)
+                return m_packedCqmPps;
+#endif
             return  m_packedPps;
         }
 
@@ -1473,6 +1491,9 @@ namespace MfxHwH264Encode
         void GetHeadersInfo(std::vector<mfxEncodedUnitInfo> &HeadersMap, DdiTask const& task, mfxU32 fid);
 #endif
 
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        mfxU32 GetPackedCqmPpsNum() { return (mfxU32)m_packedCqmPps.size(); }
+#endif
 
     private:
 
@@ -1522,6 +1543,10 @@ namespace MfxHwH264Encode
         static const mfxU32 SPSPPS_BUFFER_SIZE = 1024;
         static const mfxU32 SLICE_BUFFER_SIZE  = 2048;
 
+#if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
+        std::vector<mfxExtPpsHeader>            m_cqmPps;
+        std::vector<ENCODE_PACKEDHEADER_DATA>   m_packedCqmPps;
+#endif
     };
 
     inline mfxU16 LaDSenumToFactor(const mfxU16& LookAheadDS)
