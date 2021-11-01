@@ -4812,7 +4812,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             if (isOnlyHorizontalMirroringSupported && (par->vpp.In.CropX || par->vpp.In.CropY || par->vpp.Out.CropX || par->vpp.Out.CropY))
                 sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
-            if (extMir->Type < 0 || (extMir->Type==MFX_MIRRORING_VERTICAL && isOnlyHorizontalMirroringSupported))
+            if (extMir->Type > MFX_MIRRORING_VERTICAL || (extMir->Type==MFX_MIRRORING_VERTICAL && isOnlyHorizontalMirroringSupported))
                 sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
             // SW d3d->d3d mirroring does not support resize

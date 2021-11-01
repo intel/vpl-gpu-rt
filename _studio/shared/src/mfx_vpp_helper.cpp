@@ -27,13 +27,12 @@ MfxVppHelper::MfxVppHelper(VideoCORE* core, mfxStatus* mfxRes) : m_core(core)
     if (m_pVpp)
         DestroyVpp();
 
-    m_pVpp = new VideoVPPMain(m_core, mfxRes);
+    m_pVpp.reset(new VideoVPPMain(m_core, mfxRes));
+}
 
-    if (MFX_ERR_NONE != *mfxRes)
-    {
-        delete m_pVpp;
-        m_pVpp = nullptr;
-    }
+MfxVppHelper::~MfxVppHelper()
+{
+    Close();
 }
 
 mfxStatus MfxVppHelper::Init(mfxVideoParam* param)
@@ -133,12 +132,6 @@ void MfxVppHelper::DestroyVpp()
 {
     m_core->UnlockFrame(m_dsSurface.Data.MemId, &m_dsSurface.Data);
     m_core->FreeFrames(&m_dsResponse, false);
-    if (m_pVpp)
-    {
-
-        delete m_pVpp;
-        m_pVpp = nullptr;
-    }
 }
 
 mfxFrameSurface1 const& MfxVppHelper::GetOutputSurface() const

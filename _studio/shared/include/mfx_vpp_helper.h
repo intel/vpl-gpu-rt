@@ -30,7 +30,7 @@ class MfxVppHelper
 public:
     MfxVppHelper(VideoCORE* core, mfxStatus* mfxRes);
 
-    virtual ~MfxVppHelper() { Close(); }
+    virtual ~MfxVppHelper();
 
     virtual mfxStatus Init(mfxVideoParam* param);
 
@@ -50,13 +50,9 @@ protected:
     bool                   m_bInitialized = false;
     bool                   m_taskSubmitted= false;
     VideoCORE*             m_core         = nullptr;
-
-
-    //mfxExtBuffer*          m_extBuffer = nullptr;
-    //mfxExtVPPScaling       m_scalingConfig = {};
+    std::unique_ptr<VideoVPPMain> m_pVpp;
 
     MFX_ENTRY_POINT        m_entryPoint[2]   = {};
-    VideoVPPMain*          m_pVpp            = nullptr;
     mfxFrameAllocResponse  m_dsResponse      = {};
     mfxFrameSurface1       m_dsSurface       = {};
 
