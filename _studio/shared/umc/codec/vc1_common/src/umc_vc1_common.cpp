@@ -48,7 +48,7 @@ namespace UMC
                 if (0 == counter)
                     iCur = src[i];
                 iCur <<= 8;
-                iCur |= src[i];
+                iCur |= (uint32_t)src[i];
                 ++counter;
             }
         }
