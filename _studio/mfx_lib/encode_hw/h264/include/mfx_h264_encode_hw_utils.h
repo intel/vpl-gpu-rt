@@ -1945,11 +1945,25 @@ static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
     // LaScale here
     ctrl->LaScale = 0;
     ctrl->LaQp = 30;
-    mfxU16 crW = par.mfx.FrameInfo.CropW ? par.mfx.FrameInfo.CropW : par.mfx.FrameInfo.Width;
-    if (crW >= 720) {
-        ctrl->LaScale = 2;
+    if (ctrl->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING) 
+    {
+        mfxU16 crW = par.mfx.FrameInfo.CropW ? par.mfx.FrameInfo.CropW : par.mfx.FrameInfo.Width;
+        if (crW >= 720) ctrl->LaScale = 2;
     }
-    if (ctrl->ScenarioInfo != MFX_SCENARIO_GAME_STREAMING) ctrl->LaQp = 26;
+    else 
+    {
+        mfxU16 crH = par.mfx.FrameInfo.CropH ? par.mfx.FrameInfo.CropH : par.mfx.FrameInfo.Height;
+        mfxU16 crW = par.mfx.FrameInfo.CropW ? par.mfx.FrameInfo.CropW : par.mfx.FrameInfo.Width;
+        mfxU16 maxDim = std::max(crH, crW);
+        mfxU16 minDim = std::min(crH, crW);
+        constexpr mfxU16 LaScale = 2;
+        if (maxDim >= 720 && 
+            minDim >= (128<<LaScale)) //encoder limitation, 128 and up is fine
+        {
+            ctrl->LaScale = LaScale;
+        }
+        ctrl->LaQp = 26;
+    }
 
     return MFX_ERR_NONE;
 }

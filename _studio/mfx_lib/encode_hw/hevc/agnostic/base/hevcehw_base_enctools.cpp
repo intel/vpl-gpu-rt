@@ -519,9 +519,12 @@ static mfxStatus InitEncToolsCtrl(
         mfxU16 crH = par.mfx.FrameInfo.CropH ? par.mfx.FrameInfo.CropH : par.mfx.FrameInfo.Height;
         mfxU16 crW = par.mfx.FrameInfo.CropW ? par.mfx.FrameInfo.CropW : par.mfx.FrameInfo.Width;
         mfxU16 maxDim = std::max(crH, crW);
-        if (maxDim >= 720) 
+        mfxU16 minDim = std::min(crH, crW);
+        constexpr mfxU16 LaScale = 2;
+        if (maxDim >= 720 && 
+            minDim >= (128<<LaScale)) //encoder limitation, 128 and up is fine
         {
-            ctrl->LaScale = 2;
+            ctrl->LaScale = LaScale;
         }
         ctrl->LaQp = 26;
     }
