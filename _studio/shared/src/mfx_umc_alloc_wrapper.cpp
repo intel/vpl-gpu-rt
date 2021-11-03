@@ -1865,6 +1865,8 @@ mfxI32 SurfaceSource::FindSurface(mfxFrameSurface1 *surf)
 
     if (m_redirect_to_vpl_path)
     {
+        UMC::AutomaticUMCMutex guard(m_guard);
+
         if (!surf)
         {
             std::ignore = MFX_STS_TRACE(MFX_ERR_NULL_PTR);
