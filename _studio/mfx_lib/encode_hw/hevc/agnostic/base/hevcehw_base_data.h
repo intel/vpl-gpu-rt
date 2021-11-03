@@ -1376,7 +1376,6 @@ namespace Base
         , FEATURE_BLOCKING_SYNC
         , FEATURE_EXT_BRC
         , FEATURE_DIRTY_RECT
-        , FEATURE_DPB_REPORT
         , FEATURE_DUMP_FILES
         , FEATURE_EXTDDI
         , FEATURE_HDR_SEI

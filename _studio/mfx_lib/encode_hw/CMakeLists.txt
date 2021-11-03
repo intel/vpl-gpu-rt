@@ -44,7 +44,6 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/agnostic/hevcehw_utils.h
     hevc/agnostic/base/hevcehw_base_data.h
     hevc/agnostic/base/hevcehw_base_dirty_rect.h
-    hevc/agnostic/base/hevcehw_base_dpb_report.h
     hevc/agnostic/base/hevcehw_base_encoded_frame_info.h
     hevc/agnostic/base/hevcehw_base_enctools.cpp
     hevc/agnostic/base/hevcehw_base_enctools.h
@@ -90,7 +89,6 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/agnostic/base/hevcehw_base_alloc.cpp
     hevc/agnostic/base/hevcehw_base_constraints.cpp
     hevc/agnostic/base/hevcehw_base_dirty_rect.cpp
-    hevc/agnostic/base/hevcehw_base_dpb_report.cpp
     hevc/agnostic/base/hevcehw_base_encoded_frame_info.cpp
     hevc/agnostic/base/hevcehw_base_ext_brc.cpp
     hevc/agnostic/base/hevcehw_base_hdr_sei.cpp
