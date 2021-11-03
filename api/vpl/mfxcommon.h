@@ -460,14 +460,51 @@ typedef struct {
 } mfxImplementedFunctions;
 MFX_PACK_END()
 
+#ifdef ONEVPL_EXPERIMENTAL
+
+#define MFX_EXTENDEDDEVICEID_VERSION MFX_STRUCT_VERSION(1, 0)
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+/*! Specifies variouse physical device properties for device matching and identification outside of oneVPL. */
+typedef struct {
+    mfxStructVersion Version;                       /*!< Version of the structure. */
+    mfxU16           VendorID;                      /*!< PCI vendor ID. */
+    mfxU16           DeviceID;                      /*!< PCI device ID. */
+    mfxU32           PCIDomain;                     /*!< PCI bus domain. Equals to '0' if OS doesn't support it or
+                                                         has sequential numbering of buses accross domains. */
+    mfxU32           PCIBus;                        /*!< The number of the bus that the physical device is located on. */
+    mfxU32           PCIDevice;                     /*!< The index of the physical device on the bus. */
+    mfxU32           PCIFunction;                   /*!< The function number of the device on the physical device. */
+    mfxU8            DeviceLUID[8];                 /*!< LUID of DXGI adapter. */
+    mfxU32           LUIDDeviceNodeMask;            /*!< Bitfield identifying the node within a linked
+                                                         device adapter corresponding to the device. */
+    mfxU32           LUIDValid;                     /*!< Boolean value that will be 1 if DeviceLUID contains a valid LUID
+                                                         and LUIDDeviceNodeMask contains a valid node mask,
+                                                         and 0 if they do not. */
+    mfxU32           DRMRenderNodeNum;              /*!< Number of the DRM render node from the path /dev/dri/RenderD<num>.
+                                                         Value equals to 0 means that this field doesn't contain valid DRM Render
+                                                         Node number.*/
+    mfxU32           DRMPrimaryNodeNum;             /*!< Number of the DRM primary node from the path /dev/dri/card<num>.
+                                                         Value equals to 0x7FFFFFFF means that this field doesn't contain valid DRM Primary
+                                                         Node number.*/
+    mfxU8            reserved1[20];                 /*!< Reserved for future use. */
+    mfxChar          DeviceName[MFX_STRFIELD_LEN];  /*!< Null-terminated string in utf-8 with the name of the device. */
+} mfxExtendedDeviceId;
+MFX_PACK_END()
+
+#endif
 
 /* The mfxImplCapsDeliveryFormat enumerator specifies delivery format of the implementation capability. */
 typedef enum {
     MFX_IMPLCAPS_IMPLDESCSTRUCTURE       = 1,  /*!< Deliver capabilities as mfxImplDescription structure. */
     MFX_IMPLCAPS_IMPLEMENTEDFUNCTIONS    = 2,  /*!< Deliver capabilities as mfxImplementedFunctions structure. */
-    MFX_IMPLCAPS_IMPLPATH                = 3   /*!< Deliver pointer to the null-terminated string with the path to the
+    MFX_IMPLCAPS_IMPLPATH                = 3,  /*!< Deliver pointer to the null-terminated string with the path to the
                                                     implementation. String is delivered in a form of buffer of
                                                     mfxChar type. */
+#ifdef ONEVPL_EXPERIMENTAL
+    MFX_IMPLCAPS_DEVICE_ID_EXTENDED      = 4   /*!< Deliver extended device ID information as mfxExtendedDeviceId
+                                                    structure.*/
+#endif
 } mfxImplCapsDeliveryFormat;
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()

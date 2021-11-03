@@ -353,6 +353,9 @@ typedef enum {
     MFX_HANDLE_VA_CONTEXT_ID                    = 7, /*!< Pointer to VAContextID interface. It represents external VA context for Common Encryption usage model. */
     MFX_HANDLE_CM_DEVICE                        = 8,  /*!< Pointer to CmDevice interface ( Intel(r) C for Metal Runtime ). */
     MFX_HANDLE_HDDLUNITE_WORKLOADCONTEXT        = 9,  /*!< Pointer to HddlUnite::WorkloadContext interface. */
+#ifdef ONEVPL_EXPERIMENTAL 
+    MFX_HANDLE_PXP_CONTEXT                      = 10, /*!< Pointer to PXP context for protected content support. */
+#endif
 } mfxHandleType;
 
 /*! The mfxMemoryFlags enumerator specifies memory access mode. */
@@ -1484,6 +1487,15 @@ enum {
                                 DPB by a sliding window. */
 };
 
+#ifdef ONEVPL_EXPERIMENTAL
+/*! Flags to specify what processing units the library can use for adaptive encoding tools. */
+enum {
+    MFX_ENCTOOLS_DEFAULT    = 0, /*!< The library automatically decides what processing units should be used during execution. */
+    MFX_ENCTOOLS_CPU        = 1, /*!< To execute adaptive encoding tools on CPU. It may give better encoding quality, but leads to 
+                                      higher CPU utilization. */
+};
+#endif
+
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
    Used with mfxExtCodingOption and mfxExtCodingOption2 structures to specify additional options for encoding.
@@ -1715,7 +1727,17 @@ typedef struct {
        If this flag is set to OFF, regular reference frames are used for encoding.
     */
     mfxU16      AdaptiveRef;
+  
+#ifdef ONEVPL_EXPERIMENTAL
+    /*!
+       The field specifies what processing units can be used by the implementation running adaptive encoding tools.
+    */
+    mfxU32      EncToolsProcessingUnits;
+    mfxU16      reserved[157];
+#else
     mfxU16      reserved[161];
+#endif
+  
 } mfxExtCodingOption3;
 MFX_PACK_END()
 
@@ -2124,6 +2146,14 @@ enum {
        See the mfxExtTemporalLayers structure for more details.
     */
     MFX_EXTBUFF_UNIVERSAL_TEMPORAL_LAYERS = MFX_MAKEFOURCC('U', 'T', 'M', 'P'),
+#ifdef ONEVPL_EXPERIMENTAL    
+    /*!
+       This extended buffer defines additional encoding controls for reference list. See the mfxExtRefListCtrl structure for details.
+       The application can attach this buffer to the mfxVideoParam structure for encoding & decoding initialization, or
+       the mfxEncodeCtrl structure for per-frame encoding configuration.
+    */
+    MFX_EXTBUFF_UNIVERSAL_REFLIST_CTRL = MFX_EXTBUFF_AVC_REFLIST_CTRL,
+#endif
     /*!
        See the mfxExtVPP3DLut structure for more details.
     */
@@ -3911,6 +3941,10 @@ MFX_PACK_END()
 typedef mfxExtAVCRefListCtrl mfxExtHEVCRefListCtrl;
 typedef mfxExtAVCRefLists mfxExtHEVCRefLists;
 typedef mfxExtAvcTemporalLayers mfxExtHEVCTemporalLayers;
+
+#ifdef ONEVPL_EXPERIMENTAL
+typedef mfxExtAVCRefListCtrl mfxExtRefListCtrl;
+#endif
 
 /* The MirroringType enumerator itemizes mirroring types. */
 enum
