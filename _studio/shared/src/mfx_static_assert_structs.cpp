@@ -213,6 +213,7 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtMBForceIntra           ,64   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtHEVCTiles              ,160  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtMBDisableSkipMap       ,64   )
+
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtHEVCParam              ,256  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtDecodeErrorReport      ,32   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtDecodedFrameInfo       ,128  )
@@ -888,7 +889,6 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBDisableSkipMap             ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBDisableSkipMap             ,MapSize                       ,52   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBDisableSkipMap             ,Map                           ,56   )
-
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtHEVCParam                    ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtHEVCParam                    ,PicWidthInLumaSamples         ,8    )
