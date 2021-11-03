@@ -217,7 +217,7 @@ typedef enum {
 } mfxVariantType;
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-/*! The mfxVariantType enumerator data types for mfxVarianf type. */
+/*! The mfxVariantType enumerator data types for mfxVariant type. */
 typedef struct {
     mfxStructVersion Version;    /*!< Version of the structure. */
     mfxVariantType   Type;       /*!< Value type. */
@@ -233,7 +233,7 @@ typedef struct {
         mfxI64 I64; /*!< mfxI64 data. */
         mfxF32 F32; /*!< mfxF32 data. */
         mfxF64 F64; /*!< mfxF64 data. */
-       mfxHDL Ptr;  /*!< Pointer. */
+        mfxHDL Ptr; /*!< Pointer. When this points to a string the string must be null terminated. */
     } Data;         /*!< Value data member. */
 } mfxVariant;
 MFX_PACK_END()

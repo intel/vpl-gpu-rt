@@ -128,7 +128,7 @@ enum {
     MFX_FOURCC_RGB565       = MFX_MAKEFOURCC('R','G','B','2'),   /*!< 2 bytes per pixel, uint16 in little-endian format, where 0-4 bits are blue, bits 5-10 are green and bits 11-15 are red. */
     /*! RGB 24 bit planar layout (3 separate channels, 8-bits per sample each). This format should be mapped to D3DFMT_R8G8B8 or VA_FOURCC_RGBP. */
     MFX_FOURCC_RGBP         = MFX_MAKEFOURCC('R','G','B','P'),
-    MFX_FOURCC_RGB3         = MFX_MAKEFOURCC('R','G','B','3'),   /* Deprecated */
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_FOURCC_RGB3)         = MFX_MAKEFOURCC('R','G','B','3'),   /* Deprecated. */
     MFX_FOURCC_RGB4         = MFX_MAKEFOURCC('R','G','B','4'),   /*!< RGB4 (RGB32) color planes. BGRA is the order, ‘B’ is 8 MSBs, then 8 bits for ‘G’ channel, then ‘R’ and ‘A’ channels. */
     /*!
        Internal color format. The application should use the following functions to create a surface that corresponds to the Direct3D* version in use.
@@ -616,7 +616,7 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxU32  reserved[7]; /*!< Reserved for future use. */
 
-    /*! For encoders, set this flag to ON to reduce power consumption and GPU usage. See the CodingOptionValue enumerator for values
+    /*! Hint to enable low power consumption mode for encoders. See the CodingOptionValue enumerator for values
         of this option. Use the Query API function to check if this feature is supported. */
     mfxU16  LowPower;
     /*! Specifies a multiplier for bitrate control parameters. Affects the following variables: InitialDelayInKB, BufferSizeInKB,
@@ -1166,7 +1166,7 @@ typedef struct {
     mfxU16      MECostType;             /*!< Motion estimation cost type. This value is reserved and must be zero. */
     mfxU16      MESearchType;           /*!< Motion estimation search algorithm. This value is reserved and must be zero. */
     mfxI16Pair  MVSearchWindow;         /*!< Rectangular size of the search window for motion estimation. This parameter is reserved and must be (0, 0). */
-    mfxU16      EndOfSequence;          /* Deprecated */
+    MFX_DEPRECATED mfxU16      EndOfSequence;          /* Deprecated */
     mfxU16      FramePicture;           /*!< Set this flag to encode interlaced fields as interlaced frames. This flag does not affect progressive input frames. See the CodingOptionValue enumerator for values of this option. */
 
     mfxU16      CAVLC;                  /*!< If set, CAVLC is used; if unset, CABAC is used for encoding. See the CodingOptionValue enumerator for values of this option. */
@@ -1228,7 +1228,7 @@ typedef struct {
     mfxU16      MaxDecFrameBuffering; /*!< Specifies the maximum number of frames buffered in a DPB. A value of zero means unspecified. */
 
     mfxU16      AUDelimiter;            /*!< Set this flag to insert the Access Unit Delimiter NAL. See the CodingOptionValue enumerator for values of this option. */
-    mfxU16      EndOfStream;            /* Deprecated */
+    MFX_DEPRECATED mfxU16      EndOfStream;            /* Deprecated */
     /*!
        Set this flag to insert the picture timing SEI with pic_struct syntax element. See sub-clauses D.1.2 and D.2.2 of the ISO/IEC 14496-10
        specification for the definition of this syntax element. See the CodingOptionValue enumerator for values of this option.
@@ -1693,7 +1693,7 @@ typedef struct {
     mfxU16      EnableNalUnitType;
 
     union {
-        mfxU16      ExtBrcAdaptiveLTR; /* Deprecated */
+        MFX_DEPRECATED mfxU16      ExtBrcAdaptiveLTR; /* Deprecated */
         
         /*!
             If this flag is set to ON, encoder will mark, modify, or remove LTR frames based on encoding parameters and content          
@@ -1786,9 +1786,9 @@ enum {
        The application can attach this buffer to the mfxVideoParam structure for video processing initialization.
     */
     MFX_EXTBUFF_VPP_DENOISE2                    = MFX_MAKEFOURCC('D','N','I','2'),
-    MFX_EXTBUFF_VPP_DENOISE                     = MFX_MAKEFOURCC('D','N','I','S'), /*!< Deprecated in 2.2 API version.*/
-    MFX_EXTBUFF_VPP_SCENE_ANALYSIS              = MFX_MAKEFOURCC('S','C','L','Y'),
-    MFX_EXTBUFF_VPP_SCENE_CHANGE                = MFX_EXTBUFF_VPP_SCENE_ANALYSIS, /* Deprecated */
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_VPP_DENOISE)                     = MFX_MAKEFOURCC('D','N','I','S'), /*!< Deprecated in 2.2 API version.*/
+    MFX_EXTBUFF_VPP_SCENE_ANALYSIS              = MFX_MAKEFOURCC('S','C','L','Y'), /*!< Reserved for future use. */
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_VPP_SCENE_CHANGE)                = MFX_EXTBUFF_VPP_SCENE_ANALYSIS, /* Deprecated. */
     /*!
        The extended buffer defines control parameters for the VPP ProcAmp filter algorithm. See the mfxExtVPPProcAmp structure for details.
        The application can attach this buffer to the mfxVideoParam structure for video processing initialization or to the mfxFrameData
@@ -2355,8 +2355,8 @@ typedef struct {
 
     union{
         struct{
-            mfxU32  SpatialComplexity; /* Deprecated */
-            mfxU32  TemporalComplexity; /* Deprecated */
+            MFX_DEPRECATED mfxU32  SpatialComplexity; /* Deprecated */
+            MFX_DEPRECATED mfxU32  TemporalComplexity; /* Deprecated */
         };
         struct{
             /*!
@@ -2368,8 +2368,8 @@ typedef struct {
             mfxU16  reserved[3];
         };
     };
-    mfxU16          SceneChangeRate; /* Deprecated */
-    mfxU16          RepeatedFrame;   /* Deprecated */
+    MFX_DEPRECATED  mfxU16          SceneChangeRate; /* Deprecated */
+    MFX_DEPRECATED  mfxU16          RepeatedFrame;   /* Deprecated */
 } mfxExtVppAuxData;
 MFX_PACK_END()
 
@@ -4380,7 +4380,9 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer Header;   /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_AV1_BITSTREAM_PARAM. */
 
-    mfxU16 WriteIVFHeaders; /*!< Tri-state option to control IVF headers insertion, default is ON. */
+    mfxU16 WriteIVFHeaders; /*!< Tri-state option to control IVF headers insertion, default is ON.
+                                Writing IVF headers is enabled in the encoder when mfxExtAV1BitstreamParam is attached and its value is ON or zero.
+                                Writing IVF headers is disabled by default in the encoder when mfxExtAV1BitstreamParam is not attached. */
 
     mfxU16 reserved[31];
 } mfxExtAV1BitstreamParam;

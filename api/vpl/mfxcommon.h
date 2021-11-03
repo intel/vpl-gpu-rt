@@ -161,12 +161,13 @@ enum {
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*! Specifies options for threads created by this session. Attached to the
-    mfxInitParam structure during legacy Intel(r) Media SDK session initialization. */
+    mfxInitParam structure during legacy Intel(r) Media SDK session initialization
+    or to mfxInitializationParam by the dispatcher in MFXCreateSession function. */
 typedef struct {
     mfxExtBuffer Header;         /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_THREADS_PARAM. */
 
     mfxU16       NumThread;      /*!< The number of threads. */
-    mfxI32       SchedulingType; /*!< Scheduling policy for all threads. */
+    mfxI32       SchedulingType; /*!< Scheduling policy for all threads.*/
     mfxI32       Priority;       /*!< Priority for all threads. */
     mfxU16       reserved[55];   /*!< Reserved for future use. */
 } mfxExtThreadsParam;
