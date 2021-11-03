@@ -585,11 +585,13 @@ void HevcEncTools::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
 void HevcEncTools::Reset(const FeatureBlocks& /*blocks*/, TPushR Push)
 {
     Push(BLK_ResetCheck
-        , [](
+        , [this](
             const mfxVideoParam& /*par*/
             , StorageRW& global
             , StorageRW&) -> mfxStatus
     {
+        MFX_CHECK(m_pEncTools, MFX_ERR_NONE);
+
         auto& init = Glob::RealState::Get(global);
         auto& parOld = Glob::VideoParam::Get(init);
         auto& parNew = Glob::VideoParam::Get(global);
