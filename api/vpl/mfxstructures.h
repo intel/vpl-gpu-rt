@@ -3616,12 +3616,35 @@ MFX_PACK_END()
 
 /*! The ErrorTypes enumerator uses bit-ORed values to itemize bitstream error types. */
 enum {
-    MFX_ERROR_NO            =        0, /*!< No error in bitstream. */
-    MFX_ERROR_PPS           = (1 << 0), /*!< Invalid/corrupted PPS. */
-    MFX_ERROR_SPS           = (1 << 1), /*!< Invalid/corrupted SPS. */
-    MFX_ERROR_SLICEHEADER   = (1 << 2), /*!< Invalid/corrupted slice header. */
-    MFX_ERROR_SLICEDATA     = (1 << 3), /*!< Invalid/corrupted slice data. */
-    MFX_ERROR_FRAME_GAP     = (1 << 4), /*!< Missed frames. */
+    MFX_ERROR_NO                  =        0,  /*!< No error in bitstream. */
+    MFX_ERROR_PPS                 = (1 << 0),  /*!< Invalid/corrupted PPS. */
+    MFX_ERROR_SPS                 = (1 << 1),  /*!< Invalid/corrupted SPS. */
+    MFX_ERROR_SLICEHEADER         = (1 << 2),  /*!< Invalid/corrupted slice header. */
+    MFX_ERROR_SLICEDATA           = (1 << 3),  /*!< Invalid/corrupted slice data. */
+    MFX_ERROR_FRAME_GAP           = (1 << 4),  /*!< Missed frames. */
+#ifdef ONEVPL_EXPERIMENTAL
+    MFX_ERROR_JPEG_APP0_MARKER    = (1 << 5),  /*!< Invalid/corrupted APP0 marker. */
+    MFX_ERROR_JPEG_APP1_MARKER    = (1 << 6),  /*!< Invalid/corrupted APP1 marker. */
+    MFX_ERROR_JPEG_APP2_MARKER    = (1 << 7),  /*!< Invalid/corrupted APP2 marker. */
+    MFX_ERROR_JPEG_APP3_MARKER    = (1 << 8),  /*!< Invalid/corrupted APP3 marker. */
+    MFX_ERROR_JPEG_APP4_MARKER    = (1 << 9),  /*!< Invalid/corrupted APP4 marker. */
+    MFX_ERROR_JPEG_APP5_MARKER    = (1 << 10), /*!< Invalid/corrupted APP5 marker. */
+    MFX_ERROR_JPEG_APP6_MARKER    = (1 << 11), /*!< Invalid/corrupted APP6 marker. */
+    MFX_ERROR_JPEG_APP7_MARKER    = (1 << 12), /*!< Invalid/corrupted APP7 marker. */
+    MFX_ERROR_JPEG_APP8_MARKER    = (1 << 13), /*!< Invalid/corrupted APP8 marker. */
+    MFX_ERROR_JPEG_APP9_MARKER    = (1 << 14), /*!< Invalid/corrupted APP9 marker. */
+    MFX_ERROR_JPEG_APP10_MARKER   = (1 << 15), /*!< Invalid/corrupted APP10 marker. */
+    MFX_ERROR_JPEG_APP11_MARKER   = (1 << 16), /*!< Invalid/corrupted APP11 marker. */
+    MFX_ERROR_JPEG_APP12_MARKER   = (1 << 17), /*!< Invalid/corrupted APP12 marker. */
+    MFX_ERROR_JPEG_APP13_MARKER   = (1 << 18), /*!< Invalid/corrupted APP13 marker. */
+    MFX_ERROR_JPEG_APP14_MARKER   = (1 << 19), /*!< Invalid/corrupted APP14 marker. */
+    MFX_ERROR_JPEG_DQT_MARKER     = (1 << 20), /*!< Invalid/corrupted DQT marker. */
+    MFX_ERROR_JPEG_SOF0_MARKER    = (1 << 21), /*!< Invalid/corrupted SOF0 marker. */
+    MFX_ERROR_JPEG_DHT_MARKER     = (1 << 22), /*!< Invalid/corrupted DHT marker. */
+    MFX_ERROR_JPEG_DRI_MARKER     = (1 << 23), /*!< Invalid/corrupted DRI marker. */
+    MFX_ERROR_JPEG_SOS_MARKER     = (1 << 24), /*!< Invalid/corrupted SOS marker. */
+    MFX_ERROR_JPEG_UNKNOWN_MARKER = (1 << 25), /*!< Unknown Marker. */
+#endif
 };
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
