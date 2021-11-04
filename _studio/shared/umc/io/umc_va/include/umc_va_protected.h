@@ -39,6 +39,7 @@ public:
     ProtectedVA(mfxU16 p = 0) : m_bs(nullptr) { (void)p; };
     virtual mfxBitstream* GetBitstream() { return m_bs; }
     virtual void SetBitstream(mfxBitstream* bs) { m_bs = bs; }
+    virtual const GUID& GetEncryptionGUID() const { return GUID_NULL; }
 
     mfxU32 GetType() 
     { 
