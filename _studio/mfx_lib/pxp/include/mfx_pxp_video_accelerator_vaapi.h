@@ -42,7 +42,7 @@ public:
     virtual UMC::Status SetAttributes(VAProfile va_profile, UMC::LinuxVideoAcceleratorParams* pParams, VAConfigAttrib *attribute, int32_t *attribsNumber);
 
 protected:
-    PXPCtxHDL m_PXPCtxHdl;
+    mfxPXPCtxHDL m_PXPCtxHdl;
 };
 
 #endif // MFX_ENABLE_PXP

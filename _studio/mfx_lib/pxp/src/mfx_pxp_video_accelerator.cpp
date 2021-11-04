@@ -34,7 +34,7 @@ const GUID& PXPVA::GetEncryptionGUID() const
 {
     if(m_PXPCtxHdl)
     {
-        return *(reinterpret_cast<PXPCtxHDL>(m_PXPCtxHdl)->secureDecodeCfg.guidConfigBitstreamEncryption);
+        return *(reinterpret_cast<mfxPXPCtxHDL>(m_PXPCtxHdl)->secureDecodeCfg.guidConfigBitstreamEncryption);
     }
 
     return GUID_NULL;

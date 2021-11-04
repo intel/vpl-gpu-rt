@@ -41,7 +41,7 @@ UMC::Status PXPLinuxVideoAccelerator::Init(UMC::VideoAcceleratorParams* pInfo)
 
     if(pInfo->m_pPXPCtxHdl)
     {
-        m_PXPCtxHdl = reinterpret_cast<PXPCtxHDL>(pInfo->m_pPXPCtxHdl);
+        m_PXPCtxHdl = reinterpret_cast<mfxPXPCtxHDL>(pInfo->m_pPXPCtxHdl);
     }
 
     umcRes = LinuxVideoAccelerator::Init(pInfo);
@@ -102,7 +102,7 @@ UMC::Status PXPLinuxVideoAccelerator::Execute()
     UMC_CHECK(curBS != nullptr, UMC::UMC_ERR_NOT_INITIALIZED);
 
     auto mapptr = std::find_if(m_PXPCtxHdl->decodeParamMapHdl, m_PXPCtxHdl->decodeParamMapHdl + m_PXPCtxHdl->decodeParamMapCnt,
-        [key = curBS->Data](const DecodeParamMap & data)
+        [key = curBS->Data](const mfxDecodeParamMap & data)
         { return data.pMfxBitstream->Data == key; }
     );
     UMC_CHECK(mapptr != m_PXPCtxHdl->decodeParamMapHdl + m_PXPCtxHdl->decodeParamMapCnt, UMC::UMC_ERR_FAILED);
