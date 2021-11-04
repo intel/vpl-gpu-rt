@@ -979,7 +979,8 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
 #if defined(MFX_ENABLE_PROTECT)
 #if defined(MFX_ENABLE_PXP)
-    if( bs )
+    //Check protect VA is enabled or not
+    if( bs && m_va->GetProtectedVA() )
 #else
 #endif // MFX_ENABLE_PXP
     {

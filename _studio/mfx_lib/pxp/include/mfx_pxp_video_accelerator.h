@@ -34,7 +34,6 @@ namespace UMC
     public:
         PXPVA(mfxHDL pxpCtxHdl);
         virtual ~PXPVA();
-        virtual const GUID& GetEncryptionGUID() const override;
 
     private:
         mfxHDL m_PXPCtxHdl;
