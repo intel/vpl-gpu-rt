@@ -797,11 +797,17 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
             mfxVideoParam temp;
             pMJPEGVideoDecoder->FillVideoParam(&temp, false);
 
-            if(m_vPar.mfx.FrameInfo.CropW != temp.mfx.FrameInfo.CropW ||
-                m_vPar.mfx.FrameInfo.CropH != temp.mfx.FrameInfo.CropH)
+            if(m_vPar.mfx.FrameInfo.CropW < temp.mfx.FrameInfo.CropW ||
+                m_vPar.mfx.FrameInfo.CropH < temp.mfx.FrameInfo.CropH)
             {
                 decoder->ReleaseReservedTask();
                 return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+            }
+            else if (m_vPar.mfx.FrameInfo.CropW > temp.mfx.FrameInfo.CropW ||
+                m_vPar.mfx.FrameInfo.CropH > temp.mfx.FrameInfo.CropH)
+            {
+                m_vPar.mfx.FrameInfo.CropW = temp.mfx.FrameInfo.CropW;
+                m_vPar.mfx.FrameInfo.CropH = temp.mfx.FrameInfo.CropH;
             }
             m_isHeaderParsed = true;
         }
