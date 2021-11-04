@@ -2052,7 +2052,7 @@ mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl
                 mfxU32 y = std::min((i * mapBh + mapBh / 2) / ibh, ih - 1);
                 mfxU32 x = std::min((j * mapBw + mapBw / 2) / ibw, iw - 1);
 
-                pFrameQp->ExtQpMap->QP[i * wInBlk + j] = (mfxI8)mfx::clamp((mfxI32)pFrameQp->QpY + (mfxI32)frameStructItr->QpMap[y * iw + x], (mfxI32)0, (mfxI32)51);
+                pFrameQp->ExtQpMap->QP[i * wInBlk + j] = (mfxU8)mfx::clamp((mfxI32)pFrameQp->QpY + (mfxI32)frameStructItr->QpMap[y * iw + x], (mfxI32)1, (mfxI32)51);
             }
         }
     }
