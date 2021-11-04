@@ -30,5 +30,14 @@ PXPVA::PXPVA(mfxHDL pxpCtxHdl) : m_PXPCtxHdl(pxpCtxHdl)
 PXPVA::~PXPVA() 
 {}
 
+const GUID& PXPVA::GetEncryptionGUID() const
+{
+    if(m_PXPCtxHdl)
+    {
+        return *(reinterpret_cast<mfxPXPCtxHDL>(m_PXPCtxHdl)->secureDecodeCfg.guidConfigBitstreamEncryption);
+    }
+
+    return GUID_NULL;
+}
 
 #endif // MFX_ENABLE_PXP
