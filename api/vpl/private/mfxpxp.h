@@ -45,6 +45,14 @@ typedef struct {
     mfxU8                    reserved[56];      /*!< Reserved for future use. */
 } *mfxSecureDecodeConfigHDL, mfxSecureDecodeConfig;
 MFX_PACK_END()
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+/*! Describes secure vpp configuration. */
+typedef struct {
+    mfxU32                   ContextId;         /*!< context id of VPP. */
+    mfxU8                    reserved[28];      /*!< Reserved for future use. */
+} *mfxSecureVPPConfigHDL, mfxSecureVPPConfig;
+MFX_PACK_END()
 #endif
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
@@ -140,6 +148,7 @@ MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxHDL                   pxpSessionHdl;     /*!< The handle of PXP Session. */
     mfxSecureDecodeConfig    secureDecodeCfg;   /*!< Pointer to mfxSecureDecodeConfig structure. */
+    mfxSecureVPPConfig       secureVPPCfg;      /*!< Pointer to mfxSecureVPPConfig structure. */
 
     mfxDecodeParamMapHDL     decodeParamMapHdl; /*!< Pointer to mfxDecodeParamMapHDL structure. */
     mfxU32                   decodeParamMapCnt; /*!< The count of PXP parameters. */
