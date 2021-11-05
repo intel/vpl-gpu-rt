@@ -62,6 +62,11 @@ typedef typename std::remove_reference<decltype(*T(nullptr))>::type TBase;
     {
     }
 
+    bool isNull() const
+    {
+        return m_ptr == nullptr;
+    }
+
     T get() const
     {
         if (!m_ptr)

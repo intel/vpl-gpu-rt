@@ -224,6 +224,7 @@ void TaskManager::FrameSubmit(const FeatureBlocks& /*blocks*/, TPushFS Push)
 
 mfxStatus TaskManager::RunExtraStages(mfxU16 beginStageID, mfxU16 endStageID, StorageW& task)
 {
+    MFX_CHECK(!m_pGlob.isNull(), MFX_ERR_NONE);
     auto& stages = TMInterface::Get(*m_pGlob).AsyncStages;
     auto itStage = stages.find(beginStageID);
     auto itEnd   = stages.find(endStageID);
