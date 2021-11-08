@@ -3677,6 +3677,7 @@ enum {
 #endif
 };
 
+
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
    Used by the decoders to report bitstream error information right after DecodeHeader or DecodeFrameAsync.

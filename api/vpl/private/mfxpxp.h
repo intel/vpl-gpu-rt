@@ -152,6 +152,7 @@ typedef struct {
 
     mfxDecodeParamMapHDL     decodeParamMapHdl; /*!< Pointer to mfxDecodeParamMapHDL structure. */
     mfxU32                   decodeParamMapCnt; /*!< The count of PXP parameters. */
+    mfxU8                    reserved[20];      /*!< Reserved for future use. */
 } mfxPXPCtx, *mfxPXPCtxHDL;
 MFX_PACK_END()
 
