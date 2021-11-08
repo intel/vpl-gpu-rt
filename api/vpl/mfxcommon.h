@@ -129,7 +129,8 @@ typedef struct _mfxSyncPoint *mfxSyncPoint;
 /*! The GPUCopy enumerator controls usage of GPU accelerated copying between video and system memory in the legacy Intel(r) Media SDK components. */
 enum {
     MFX_GPUCOPY_DEFAULT = 0, /*!< Use default mode for the legacy Intel(r) Media SDK implementation. */
-    MFX_GPUCOPY_ON      = 1, /*!< Enable GPU accelerated copying. */
+    MFX_GPUCOPY_ON      = 1, /*!< The hint to enable GPU accelerated copying when it is supported by the library. 
+                                  If the library doesn't support GPU accelerated copy the operation will be made by CPU. */
     MFX_GPUCOPY_OFF     = 2  /*!< Disable GPU accelerated copying. */
 };
 
@@ -156,7 +157,7 @@ typedef struct {
 MFX_PACK_END()
 
 enum {
-    MFX_EXTBUFF_THREADS_PARAM = MFX_MAKEFOURCC('T','H','D','P') /*!< mfxExtThreadsParam buffer ID */
+    MFX_EXTBUFF_THREADS_PARAM = MFX_MAKEFOURCC('T','H','D','P') /*!< mfxExtThreadsParam buffer ID. */
 };
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
