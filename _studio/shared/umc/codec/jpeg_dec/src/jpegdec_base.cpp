@@ -280,6 +280,25 @@ JERRCODE CJPEGDecoderBase::DetectSampling(void)
   return JPEG_OK;
 } // CJPEGDecoderBase::DetectSampling()
 
+void CJPEGDecoderBase::SetDecodeErrorTypes(void)
+{
+    if (!m_pDecodeErrorReport)
+        return;
+
+#ifdef ONEVPL_EXPERIMENTAL
+    switch (m_marker)
+    {
+        case JM_APP0: m_pDecodeErrorReport->ErrorTypes |= MFX_ERROR_JPEG_APP0_MARKER; break;
+        case JM_APP14: m_pDecodeErrorReport->ErrorTypes |= MFX_ERROR_JPEG_APP14_MARKER; break;
+        case JM_DQT: m_pDecodeErrorReport->ErrorTypes |= MFX_ERROR_JPEG_DQT_MARKER; break;
+        case JM_SOF0: m_pDecodeErrorReport->ErrorTypes |= MFX_ERROR_JPEG_SOF0_MARKER; break;
+        case JM_DHT: m_pDecodeErrorReport->ErrorTypes |= MFX_ERROR_JPEG_DHT_MARKER; break;
+        case JM_DRI: m_pDecodeErrorReport->ErrorTypes |= MFX_ERROR_JPEG_DRI_MARKER; break;
+        case JM_SOS: m_pDecodeErrorReport->ErrorTypes |= MFX_ERROR_JPEG_SOS_MARKER; break;
+        default: m_pDecodeErrorReport->ErrorTypes |= MFX_ERROR_JPEG_UNKNOWN_MARKER; break;
+    };
+#endif
+}
 
 JERRCODE CJPEGDecoderBase::NextMarker(JMARKER* marker)
 {
@@ -1263,6 +1282,7 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseAPP0();
       if(JPEG_OK != jerr)
       {
+        SetDecodeErrorTypes();
         return jerr;
       }
       break;
@@ -1271,6 +1291,7 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseAPP14();
       if(JPEG_OK != jerr)
       {
+        SetDecodeErrorTypes();
         return jerr;
       }
       break;
@@ -1279,6 +1300,7 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseDQT();
       if(JPEG_OK != jerr)
       {
+        SetDecodeErrorTypes();
         return jerr;
       }
       break;
@@ -1287,6 +1309,7 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseSOF0();
       if(JPEG_OK != jerr)
       {
+        SetDecodeErrorTypes();
         return jerr;
       }
       break;
@@ -1309,6 +1332,7 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseDHT();
       if(JPEG_OK != jerr)
       {
+        SetDecodeErrorTypes();
         return jerr;
       }
       break;
@@ -1317,6 +1341,7 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseDRI();
       if(JPEG_OK != jerr)
       {
+        SetDecodeErrorTypes();
         return jerr;
       }
       break;
@@ -1325,6 +1350,7 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseSOS(op);
       if(JPEG_OK != jerr)
       {
+        SetDecodeErrorTypes();
         return jerr;
       }
 
@@ -1334,7 +1360,10 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
           {
               jerr = m_BitStreamIn.Seek(-(m_sos_len + 2));
               if(JPEG_OK != jerr)
+              {
+                  SetDecodeErrorTypes();
                   return jerr;
+              }
           }
           else
           {
@@ -1353,10 +1382,10 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
     default:
       TRC1("-> Unknown marker ",m_marker);
       TRC0("..Skipping");
+      SetDecodeErrorTypes();
       jerr = SkipMarker();
       if(JPEG_OK != jerr)
         return jerr;
-
       break;
     }
   }

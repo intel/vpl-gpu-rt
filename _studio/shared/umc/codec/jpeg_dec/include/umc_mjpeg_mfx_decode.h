@@ -94,7 +94,7 @@ public:
     JCOLOR GetColorType();
 
     // All memory sizes should come in size_t type
-    Status _GetFrameInfo(const uint8_t* pBitStream, size_t nSize);
+    Status _GetFrameInfo(const uint8_t* pBitStream, size_t nSize, MediaData *in);
 
     // Allocate the destination frame
     Status AllocateFrame() override;

@@ -378,7 +378,7 @@ Status MJPEGVideoDecoderMFX::DecodeHeader(MediaData* in)
         }
     }
 
-    Status sts = _GetFrameInfo((uint8_t*)in->GetDataPointer(), in->GetDataSize());
+    Status sts = _GetFrameInfo((uint8_t*)in->GetDataPointer(), in->GetDataSize(), in);
 
     if (sts == UMC_ERR_NOT_ENOUGH_DATA &&
         (!(in->GetFlags() & MediaData::FLAG_VIDEO_DATA_NOT_FULL_FRAME) ||
@@ -937,13 +937,15 @@ Status MJPEGVideoDecoderMFX::PostProcessing(double pts)
     return UMC_OK;
 }
 
-Status MJPEGVideoDecoderMFX::_GetFrameInfo(const uint8_t* pBitStream, size_t nSize)
+Status MJPEGVideoDecoderMFX::_GetFrameInfo(const uint8_t* pBitStream, size_t nSize, MediaData *in)
 {
     int32_t   nchannels;
     int32_t   precision;
     JSS      sampling;
     JCOLOR   color;
     JERRCODE jerr;
+
+    m_dec[0]->SetDecodeErrorReportParam(in);
 
     if (!m_IsInit)
         return UMC_ERR_NOT_INITIALIZED;

@@ -37,6 +37,7 @@
 #endif
 
 #include "mfx_task.h"
+#include "umc_media_data.h"
 
 #include "mfx_vpp_jpeg.h"
 
@@ -46,6 +47,7 @@ namespace UMC
     class JpegFrameConstructor;
     class MediaDataEx;
     class FrameData;
+    class MediaData;
 };
 
 class VideoDECODEMJPEGBase

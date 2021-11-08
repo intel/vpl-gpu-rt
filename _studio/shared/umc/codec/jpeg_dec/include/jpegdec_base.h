@@ -29,6 +29,13 @@
 #include "colorcomp.h"
 #include "membuffin.h"
 #include "bitstreamin.h"
+#include "mfxstructures.h"
+#include "umc_media_data.h"
+
+namespace UMC
+{
+    class MediaData;
+};
 
 class CJPEGDecoderBase
 {
@@ -146,6 +153,18 @@ public:
   JERRCODE SkipMarker(void);
 
   JERRCODE DetectSampling(void);
+
+  void SetDecodeErrorTypes(void);
+
+  void SetDecodeErrorReportParam(UMC::MediaData *in)
+  {
+      UMC::MediaData::AuxInfo* aux = (in) ? in->GetAuxInfo(MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
+      m_pDecodeErrorReport = (aux) ? reinterpret_cast<mfxExtDecodeErrorReport*>(aux->ptr) : NULL;
+  }
+
+protected:
+  mfxExtDecodeErrorReport* m_pDecodeErrorReport;
+
 };
 
 #endif // MFX_ENABLE_MJPEG_VIDEO_DECODE

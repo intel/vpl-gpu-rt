@@ -456,6 +456,14 @@ mfxStatus VideoDECODEMJPEG::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxV
     UMC::Status umcRes = decoder.Init(&umcVideoParams);
     MFX_CHECK_INIT(umcRes == UMC::UMC_OK);
 
+    mfxExtBuffer* extbuf = (bs) ? GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
+
+    if (extbuf)
+    {
+        reinterpret_cast<mfxExtDecodeErrorReport *>(extbuf)->ErrorTypes = 0;
+        in.SetExtBuffer(extbuf);
+    }
+
     umcRes = decoder.DecodeHeader(&in);
 
     in.Save(bs);
@@ -771,6 +779,14 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
         MFXMediaDataAdapter src(bs);
         UMC::MediaDataEx *pSrcData;
 
+        mfxExtBuffer* extbuf = (bs) ? GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
+
+        if (extbuf)
+        {
+            reinterpret_cast<mfxExtDecodeErrorReport *>(extbuf)->ErrorTypes = 0;
+            src.SetExtBuffer(extbuf);
+        }
+
         if (!m_isHeaderFound && bs)
         {
             umcRes = pMJPEGVideoDecoder->FindStartOfImage(&src);
@@ -786,7 +802,8 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
 
         if (!m_isHeaderParsed && bs)
         {
-            umcRes = pMJPEGVideoDecoder->_GetFrameInfo((uint8_t*)src.GetDataPointer(), src.GetDataSize());
+            umcRes = pMJPEGVideoDecoder->_GetFrameInfo((uint8_t*)src.GetDataPointer(), src.GetDataSize(), &src);
+
             if (umcRes != UMC::UMC_OK)
             {
                 if(umcRes != UMC::UMC_ERR_NOT_ENOUGH_DATA)

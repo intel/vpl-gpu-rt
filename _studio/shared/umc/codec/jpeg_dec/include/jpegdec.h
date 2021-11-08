@@ -27,6 +27,7 @@
 #include "omp.h"
 #endif
 #include "jpegdec_base.h"
+#include "umc_media_data.h"
 
 class CBaseStreamInput;
 
