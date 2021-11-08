@@ -239,6 +239,7 @@ namespace UMC_AV1_DECODER
 
         if (fh.show_existing_frame)
         {
+            std::unique_lock<std::mutex> l(guard);
             pFrame = frameDPB[fh.frame_to_show_map_idx];
             //Increase referernce here, and will be decreased when
             //CompleteDecodedFrames not show_frame case.
@@ -250,6 +251,7 @@ namespace UMC_AV1_DECODER
             //When QueryFrame finished and update status in outputted frame
             //list, then it will be released in CompleteDecodedFrames.
             pFrame->IncrementReference();
+            pFrame->Repeated(true);
             outputed_frames.push_back(pFrame);
 
             FrameHeader const& refFH = pFrame->GetFrameHeader();
@@ -572,6 +574,15 @@ namespace UMC_AV1_DECODER
         );
     }
 
+    AV1DecoderFrame* AV1Decoder::DecodeFrameID(UMC::FrameMemID id)
+    {
+        std::unique_lock<std::mutex> l(guard);
+        auto find_it = std::find_if(outputed_frames.begin(), outputed_frames.end(),
+            [id](AV1DecoderFrame const* f) { return f->GetMemID() == id; });
+        return
+            find_it != std::end(outputed_frames) ? (*find_it) : nullptr;
+    }
+
     AV1DecoderFrame* AV1Decoder::GetFrameToDisplay()
     {
         return FindFrame(
@@ -680,6 +691,7 @@ namespace UMC_AV1_DECODER
     {
         if (pPrevFrame && Curr)
         {
+            std::unique_lock<std::mutex> l(guard);
             FrameHeader const& FH_OutTemp = Curr->GetFrameHeader();
             if (outputed_frames.size() == 0)
             {
@@ -692,7 +704,7 @@ namespace UMC_AV1_DECODER
                     for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
                     {
                         AV1DecoderFrame* temp = *iter;
-                        if(temp->Outputted() && temp->Displayed() && !temp->Decoded())
+                        if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated())
                         {
                             temp->DecrementReference();
                             iter = outputed_frames.erase(iter);
