@@ -50,7 +50,7 @@ UMC::Status PXPLinuxVideoAccelerator::Init(UMC::VideoAcceleratorParams* pInfo)
     if(pParams->m_pContext)
     {
         m_PXPCtxHdl->secureDecodeCfg.ContextId = *(pParams->m_pContext);
-        m_protectedVA = std::make_shared<UMC::PXPVA>();
+        m_protectedVA = std::make_shared<UMC::PXPVA>(pInfo->m_pPXPCtxHdl);
     }
 
     return umcRes;
