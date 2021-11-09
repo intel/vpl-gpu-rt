@@ -1733,7 +1733,7 @@ typedef struct {
        The field specifies what processing units can be used by the implementation running adaptive encoding tools.
     */
     mfxU32      EncToolsProcessingUnits;
-    mfxU16      reserved[157];
+    mfxU16      reserved[158];
 #else
     mfxU16      reserved[161];
 #endif
