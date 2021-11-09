@@ -123,7 +123,6 @@ namespace UMC_AV1_DECODER
         AV1DecoderFrame* FindFrameByMemID(UMC::FrameMemID);
         AV1DecoderFrame* GetFrameToDisplay();
         AV1DecoderFrame* FindFrameByUID(int64_t uid);
-        AV1DecoderFrame* DecodeFrameID(UMC::FrameMemID);
         AV1DecoderFrame* FindFrameInProgress();
         AV1DecoderFrame* GetCurrFrame()
         { return Curr; }

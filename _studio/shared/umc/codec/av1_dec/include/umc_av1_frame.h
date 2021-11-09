@@ -154,11 +154,6 @@ namespace UMC_AV1_DECODER
         void Displayed(bool d)
         { displayed = d; }
 
-        bool Repeated() const
-        { return repeated; }
-        void Repeated(bool d)
-        { repeated = d; }
-
         bool Outputted() const
         { return outputted; }
         void Outputted(bool o)
@@ -231,7 +226,6 @@ namespace UMC_AV1_DECODER
         bool                              decoded;   // set in [application thread] to signal that frame is completed and respective reference counter decremented
                                                      // after it frame still may remain in [AV1Decoder::dpb], but only as reference
 
-        bool                              repeated;
         bool                              decoding_started;     // set in [application thread] right after frame submission to the driver started
         bool                              decoding_completed;   // set in [scheduler thread] after getting driver status report for the frame
 

@@ -794,8 +794,7 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
     mfxFrameSurface1* surface_out = info->surface_out;
     if(info->copyfromframe != UMC::FRAME_MID_INVALID)
     {
-        frame = m_decoder->DecodeFrameID(info->copyfromframe);
-        frame->Repeated(false);
+        frame = m_decoder->FindFrameByMemID(info->copyfromframe);
     }
     else
     {
