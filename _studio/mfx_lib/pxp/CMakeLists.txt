@@ -3,6 +3,7 @@ set(sources
     src/mfx_pxp_video_accelerator_vaapi.cpp
     src/mfx_pxp_video_accelerator_d3d11.cpp
     src/mfx_pxp_video_accelerator.cpp
+    src/mfx_pxp_vpp_vaapi.cpp
   )
 
 add_library(pxp_hw STATIC ${sources})

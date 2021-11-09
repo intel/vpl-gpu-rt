@@ -27,6 +27,9 @@
 
 
 
+#if defined (MFX_ENABLE_PXP)
+    #include "mfx_pxp_vpp_vaapi.h"
+#endif // MFX_ENABLE_PXP
     #include "mfx_vpp_vaapi.h"
 
 using namespace MfxHwVideoProcessing;
@@ -39,7 +42,18 @@ DriverVideoProcessing* MfxHwVideoProcessing::CreateVideoProcessing(VideoCORE* co
     (void)core;
 
 
-    return new VAAPIVideoProcessing;
+#if defined (MFX_ENABLE_PXP)
+    mfxHDL pPXPCtxHdl = nullptr;
+    mfxStatus sts = core->GetHandle(MFX_HANDLE_PXP_CONTEXT, (mfxHDL*)&pPXPCtxHdl);
+    if ((sts == MFX_ERR_NONE) && (pPXPCtxHdl != nullptr))
+    {
+        return new PXPVAAPIVPP;
+    }
+    else
+#endif // MFX_ENABLE_PXP
+    {
+        return new VAAPIVideoProcessing;
+    }
 
 } // mfxStatus CreateVideoProcessing( VideoCORE* core )
 

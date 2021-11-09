@@ -116,8 +116,11 @@ namespace MfxHwVideoProcessing
 
         VADisplay   m_vaDisplay;
         VAConfigID  m_vaConfig;
+
+    protected:
         VAContextID m_vaContextVPP;
 
+    private:
         VAProcFilterCap m_denoiseCaps;
         VAProcFilterCap m_detailCaps;
 
