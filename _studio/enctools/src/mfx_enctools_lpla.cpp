@@ -55,7 +55,6 @@ mfxStatus LPLA_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig 
 
     sts = InitEncParams(ctrl, config);
     MFX_CHECK_STS(sts);
-    if (config.AdaptiveI && ctrl.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING) m_encParams.mfx.GopPicSize = 0xffff;
 
     memset(&m_bitstream, 0, sizeof(mfxBitstream));
     mfxU32 bufferSize = std::max((mfxU32)m_encParams.mfx.FrameInfo.Width * m_encParams.mfx.FrameInfo.Height * 3 / 2, ctrl.BufferSizeInKB * 1000);
@@ -93,7 +92,6 @@ mfxStatus LPLA_EncTool::Reset(mfxEncToolsCtrl const& ctrl, mfxExtEncToolsConfig 
 
     sts = InitEncParams(ctrl, config);
     MFX_CHECK_STS(sts);
-    if (config.AdaptiveI && ctrl.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING) m_encParams.mfx.GopPicSize = 0xffff;
 
     mfxU32 bufferSize = std::max((mfxU32)m_encParams.mfx.FrameInfo.Width * m_encParams.mfx.FrameInfo.Height * 3 / 2, ctrl.BufferSizeInKB * 1000);
     if (!m_bitstream.Data || bufferSize > m_bitstream.MaxLength)
