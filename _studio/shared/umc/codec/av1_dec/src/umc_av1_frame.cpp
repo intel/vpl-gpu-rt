@@ -92,6 +92,7 @@ namespace UMC_AV1_DECODER
     {
         error = 0;
         displayed = false;
+        repeated = false;
         outputted = false;
         decoded   = false;
         decoding_started = false;
