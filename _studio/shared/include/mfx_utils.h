@@ -962,13 +962,20 @@ struct surface_cache_controller
 
     mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
     {
+        // Use temporal copy for possible IOPattern adjustment. Hitorically Init doesn't require setting of IOPatter, but QueryIOSurf does.
+        // This function is invoked during Init
+        mfxVideoParam tmp_par = par;
+
         switch (m_type)
         {
         case ComponentType::DECODE:
         {
             mfxFrameAllocRequest req = {};
 
-            mfxStatus sts = MFX_STS_TRACE(MFXVideoDECODE_QueryIOSurf(session, const_cast<mfxVideoParam*>(&par), &req));
+            if (!tmp_par.IOPattern)
+                tmp_par.IOPattern = MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+
+            mfxStatus sts = MFX_STS_TRACE(MFXVideoDECODE_QueryIOSurf(session, &tmp_par, &req));
             MFX_CHECK(sts >= MFX_ERR_NONE, sts);
 
             m_required_num_surf = req.NumFrameSuggested;
@@ -979,7 +986,10 @@ struct surface_cache_controller
         {
             mfxFrameAllocRequest req = {};
 
-            mfxStatus sts = MFX_STS_TRACE(MFXVideoENCODE_QueryIOSurf(session, const_cast<mfxVideoParam*>(&par), &req));
+            if (!tmp_par.IOPattern)
+                tmp_par.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY;
+
+            mfxStatus sts = MFX_STS_TRACE(MFXVideoENCODE_QueryIOSurf(session, &tmp_par, &req));
             MFX_CHECK(sts >= MFX_ERR_NONE, sts);
 
             m_required_num_surf = req.NumFrameSuggested;
@@ -990,7 +1000,10 @@ struct surface_cache_controller
         {
             mfxFrameAllocRequest req[2] = {};
 
-            mfxStatus sts = MFX_STS_TRACE(MFXVideoVPP_QueryIOSurf(session, const_cast<mfxVideoParam*>(&par), req));
+            if (!tmp_par.IOPattern)
+                tmp_par.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+
+            mfxStatus sts = MFX_STS_TRACE(MFXVideoVPP_QueryIOSurf(session, &tmp_par, req));
             MFX_CHECK(sts >= MFX_ERR_NONE, sts);
 
             MFX_CHECK(m_vpp_pool == MFX_VPP_POOL_IN || m_vpp_pool == MFX_VPP_POOL_OUT, MFX_ERR_INVALID_VIDEO_PARAM);
