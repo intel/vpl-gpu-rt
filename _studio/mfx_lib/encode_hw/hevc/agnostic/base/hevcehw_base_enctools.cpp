@@ -331,12 +331,6 @@ static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & s
 #ifdef MFX_ENABLE_ENCTOOLS_LPLA
     if (pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING)
     {
-        if (video.mfx.GopRefDist > 4)
-        {
-            changed++;
-            video.mfx.GopRefDist = 4;
-        }
-
         if (pExtOpt2 && pExtOpt2->LookAheadDepth > 0 && video.mfx.GopOptFlag == 0)
         {
             video.mfx.GopOptFlag = MFX_GOP_CLOSED;
