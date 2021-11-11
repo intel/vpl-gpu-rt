@@ -1487,15 +1487,6 @@ enum {
                                 DPB by a sliding window. */
 };
 
-#ifdef ONEVPL_EXPERIMENTAL
-/*! Flags to specify what processing units the library can use for adaptive encoding tools. */
-enum {
-    MFX_ENCTOOLS_DEFAULT    = 0, /*!< The library automatically decides what processing units should be used during execution. */
-    MFX_ENCTOOLS_CPU        = 1, /*!< To execute adaptive encoding tools on CPU. It may give better encoding quality, but leads to 
-                                      higher CPU utilization. */
-};
-#endif
-
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
    Used with mfxExtCodingOption and mfxExtCodingOption2 structures to specify additional options for encoding.
@@ -1730,13 +1721,15 @@ typedef struct {
   
 #ifdef ONEVPL_EXPERIMENTAL
     /*!
-       The field specifies what processing units can be used by the implementation running adaptive encoding tools.
+       The tri-state option specifies hint for the library to execute encoding tools processing on CPU. 
+       It may give better encoding quality, but leads to higher CPU utilization. 
+       The library can ignore MFX_CODINGOPTION_ON if processing on CPU is not supported.
     */
-    mfxU32      EncToolsProcessingUnits;
-    mfxU16      reserved[158];
+    mfxU16      CPUEncToolsProcessing;
+    mfxU16      reserved[160];
 #else
     mfxU16      reserved[161];
-#endif
+#endif     
   
 } mfxExtCodingOption3;
 MFX_PACK_END()
