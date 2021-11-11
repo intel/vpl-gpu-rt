@@ -759,7 +759,7 @@ vaapi_buffer_wrapper::vaapi_buffer_wrapper(const mfxFrameInfo &info, VADisplayWr
             nullptr,
             &m_resource_id);
 
-        MFX_CHECK_WITH_THROW(va_res == VA_STATUS_SUCCESS, va_res, mfx::mfxStatus_exception(MFX_ERR_MEMORY_ALLOC));
+        MFX_CHECK_WITH_THROW_STS(MFX_STS_TRACE(va_res) == VA_STATUS_SUCCESS, MFX_ERR_MEMORY_ALLOC);
     }
 }
 
@@ -837,7 +837,7 @@ vaapi_surface_wrapper::vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 ty
             attrib.data(),
             attrib.size());
 
-        MFX_CHECK_WITH_THROW(va_res == VA_STATUS_SUCCESS, va_res, mfx::mfxStatus_exception(MFX_ERR_MEMORY_ALLOC));
+        MFX_CHECK_WITH_THROW_STS(MFX_STS_TRACE(va_res) == VA_STATUS_SUCCESS, MFX_ERR_MEMORY_ALLOC);
     }
 }
 
@@ -878,12 +878,11 @@ mfxFrameSurface1_hw_vaapi::mfxFrameSurface1_hw_vaapi(const mfxFrameInfo & info, 
 {
     mfxU32 vp8_fourcc = ConvertVP8FourccToMfxFourcc(info.FourCC);
 
-    MFX_CHECK_WITH_THROW(isFourCCSupported(ConvertMfxFourccToVAFormat(vp8_fourcc)),
-                                                                MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
-    MFX_CHECK_WITH_THROW(!(m_type & MFX_MEMTYPE_SYSTEM_MEMORY), MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
+    MFX_CHECK_WITH_THROW_STS(isFourCCSupported(ConvertMfxFourccToVAFormat(vp8_fourcc)), MFX_ERR_UNSUPPORTED);
+    MFX_CHECK_WITH_THROW_STS(!(m_type & MFX_MEMTYPE_SYSTEM_MEMORY),                     MFX_ERR_UNSUPPORTED);
 
     auto p_va_display_wrapper = reinterpret_cast<VADisplayWrapper*>(display);
-    MFX_CHECK_WITH_THROW(p_va_display_wrapper, MFX_ERR_INVALID_HANDLE, mfx::mfxStatus_exception(MFX_ERR_INVALID_HANDLE));
+    MFX_CHECK_WITH_THROW_STS(p_va_display_wrapper, MFX_ERR_INVALID_HANDLE);
 
     if (vp8_fourcc == MFX_FOURCC_P8)
     {
@@ -990,12 +989,12 @@ void FlexibleFrameAllocatorHW_VAAPI::SetDevice(mfxHDL device)
 
         mfxStatus sts = m_session->m_pCORE->GetHandle(MFX_HANDLE_VA_DISPLAY, &hdl);
 
-        MFX_CHECK_WITH_THROW(sts == MFX_ERR_NONE, sts, mfx::mfxStatus_exception(sts));
+        MFX_CHECK_WITH_THROW_STS(sts == MFX_ERR_NONE, sts);
 
         auto p_va_display = reinterpret_cast<VADisplayWrapper*>(device);
-        MFX_CHECK_WITH_THROW(p_va_display, MFX_ERR_INVALID_HANDLE, mfx::mfxStatus_exception(MFX_ERR_INVALID_HANDLE));
+        MFX_CHECK_WITH_THROW_STS(p_va_display, MFX_ERR_INVALID_HANDLE);
 
-        MFX_CHECK_WITH_THROW(hdl == *p_va_display, MFX_ERR_INVALID_HANDLE, mfx::mfxStatus_exception(MFX_ERR_INVALID_HANDLE));
+        MFX_CHECK_WITH_THROW_STS(hdl == *p_va_display, MFX_ERR_INVALID_HANDLE);
     }
 
     m_device = device;

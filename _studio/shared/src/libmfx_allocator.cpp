@@ -597,11 +597,11 @@ mfxStatus RWAcessSurface::UnlockRW()
 mfxFrameSurface1_sw::mfxFrameSurface1_sw(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>&, mfxHDL, mfxU32, FrameAllocatorBase& allocator)
     : RWAcessSurface(info, type, mid, allocator)
 {
-    MFX_CHECK_WITH_THROW(m_internal_surface.Data.MemType & MFX_MEMTYPE_SYSTEM_MEMORY, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
+    MFX_CHECK_WITH_THROW_STS(m_internal_surface.Data.MemType & MFX_MEMTYPE_SYSTEM_MEMORY, MFX_ERR_UNSUPPORTED);
 
     mfxU32 nbytes;
     mfxStatus sts = GetNumBytesRequired(info, nbytes);
-    MFX_CHECK_WITH_THROW(sts == MFX_ERR_NONE, sts, mfx::mfxStatus_exception(sts));
+    MFX_CHECK_WITH_THROW_STS(sts == MFX_ERR_NONE, sts);
 
     m_data.reset(new mfxU8[nbytes]);
 }

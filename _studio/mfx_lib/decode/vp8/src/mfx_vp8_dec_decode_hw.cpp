@@ -195,9 +195,9 @@ mfxStatus VideoDECODEVP8_HW::Init(mfxVideoParam *p_video_param)
     {
         m_surface_source.reset(new SurfaceSource(m_p_core, *p_video_param, platform, request, request_internal, m_response, m_response_alien));
     }
-    catch (const mfx::mfxStatus_exception& ex)
+    catch (const std::system_error& ex)
     {
-        MFX_CHECK_STS(ex.sts);
+        MFX_CHECK_STS(mfxStatus(ex.code().value()));
     }
 
     sts = m_p_core->CreateVA(&m_on_init_video_params, &request, &m_response, m_surface_source.get());

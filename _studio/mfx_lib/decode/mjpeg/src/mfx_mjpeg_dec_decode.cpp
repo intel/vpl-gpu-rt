@@ -205,9 +205,9 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
             {
                 dec->m_surface_source.reset(new SurfaceSourceJPEG(m_core, *par, m_platform, request, request_internal, m_response, m_response_alien));
             }
-            catch (const mfx::mfxStatus_exception& ex)
+            catch (const std::system_error& ex)
             {
-                MFX_CHECK_STS(ex.sts);
+                MFX_CHECK_STS(mfxStatus(ex.code().value()));
             }
         }
     }
@@ -220,9 +220,9 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
         {
             decoder->m_surface_source.reset(new SurfaceSource(m_core, *par, m_platform, request, request_internal, m_response, m_response_alien));
         }
-        catch (const mfx::mfxStatus_exception& ex)
+        catch (const std::system_error& ex)
         {
-            MFX_CHECK_STS(ex.sts);
+            MFX_CHECK_STS(mfxStatus(ex.code().value()));
         }
     }
 

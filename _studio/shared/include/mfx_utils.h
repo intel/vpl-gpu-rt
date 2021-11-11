@@ -32,6 +32,7 @@
 #include "mfx_trace.h"
 #include "mfx_timing.h"
 #include "mfxsurfacepool.h"
+#include "mfx_error.h"
 
 #include <va/va.h>
 
@@ -84,6 +85,7 @@ static inline T mfx_print_err(T sts, const char *file, int line, const char *fun
 
 #define MFX_CHECK_WITH_ASSERT(EXPR, ERR) { assert(EXPR); MFX_CHECK(EXPR,ERR); }
 #define MFX_CHECK_WITH_THROW(EXPR, ERR, EXP)  { if (!(EXPR)) { std::ignore = MFX_STS_TRACE(ERR); throw EXP; } }
+#define MFX_CHECK_WITH_THROW_STS(EXPR, ERR) MFX_CHECK_WITH_THROW(EXPR, ERR, std::system_error(mfx::make_error_code(mfxStatus(ERR))))
 
 static const mfxU32 MFX_TIME_STAMP_FREQUENCY = 90000; // will go to mfxdefs.h
 static const mfxU64 MFX_TIME_STAMP_INVALID = (mfxU64)-1; // will go to mfxdefs.h
@@ -681,16 +683,6 @@ using TimerMs = Timer<std::chrono::milliseconds, Representation>;
 
 using ResettableTimerMs = ResettableTimer<std::chrono::milliseconds, std::chrono::milliseconds>;
 
-class mfxStatus_exception : public std::exception
-{
-public:
-    mfxStatus_exception(mfxStatus sts = MFX_ERR_NONE) : sts(sts) {}
-
-    operator mfxStatus() const { return sts; }
-
-    mfxStatus sts = MFX_ERR_NONE;
-};
-
 inline mfxExtBuffer* GetExtBuffer(mfxExtBuffer** ExtParam, mfxU32 NumExtParam, mfxU32 BufferId, mfxU32 offset = 0)
 {
     if (!ExtParam)
@@ -1127,7 +1119,7 @@ struct surface_cache_controller
 
     CacheType* operator->()
     {
-        MFX_CHECK_WITH_THROW(m_cache, MFX_ERR_NOT_INITIALIZED, mfx::mfxStatus_exception(MFX_ERR_NOT_INITIALIZED));
+        MFX_CHECK_WITH_THROW_STS(m_cache, MFX_ERR_NOT_INITIALIZED);
 
         return m_cache.get();
     }

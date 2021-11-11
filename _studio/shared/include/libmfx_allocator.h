@@ -513,9 +513,9 @@ public:
             response.mids           = m_returned_mids.back().data();
             response.NumFrameActual = request.NumFrameSuggested;
         }
-        catch (const mfx::mfxStatus_exception& ex)
+        catch (const std::system_error& ex)
         {
-            MFX_CHECK_STS(ex.sts);
+            MFX_CHECK_STS(mfxStatus(ex.code().value()));
         }
         catch (...)
         {
@@ -641,9 +641,9 @@ public:
 
             return output_surf->FrameInterface->AddRef(output_surf);
         }
-        catch (const mfx::mfxStatus_exception& ex)
+        catch (const std::system_error& ex)
         {
-            MFX_CHECK_STS(ex.sts);
+            MFX_CHECK_STS(mfxStatus(ex.code().value()));
         }
         catch (...)
         {

@@ -309,8 +309,8 @@ SurfaceSourceJPEG::SurfaceSourceJPEG(VideoCORE* core, const mfxVideoParam & vide
 
 void SurfaceSourceJPEG::SetJPEGInfo(JPEG_Info * jpegInfo)
 {
-    MFX_CHECK_WITH_THROW(m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, MFX_ERR_NOT_INITIALIZED, std::exception());
-    MFX_CHECK_WITH_THROW(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter, MFX_ERR_NOT_INITIALIZED, std::exception());
+    MFX_CHECK_WITH_THROW_STS(m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK_WITH_THROW_STS(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter, MFX_ERR_NOT_INITIALIZED);
 
     if (m_redirect_to_vpl_path)
     {

@@ -1127,7 +1127,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
     , m_response(response)
     , m_response_alien(response_alien)
 {
-    MFX_CHECK_WITH_THROW(m_core, MFX_ERR_NULL_PTR, mfx::mfxStatus_exception(MFX_ERR_NULL_PTR));
+    MFX_CHECK_WITH_THROW_STS(m_core, MFX_ERR_NULL_PTR);
 
     m_response = {};
 
@@ -1163,7 +1163,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         output_type |= (video_param.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET;
 
         auto base_core_vpl = dynamic_cast<CommonCORE_VPL*>(m_core);
-        MFX_CHECK_WITH_THROW(base_core_vpl, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
+        MFX_CHECK_WITH_THROW_STS(base_core_vpl, MFX_ERR_UNSUPPORTED);
 
         if ((request.Type & MFX_MEMTYPE_INTERNAL_FRAME) || needVppJPEG)
         {
@@ -1201,10 +1201,10 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         }
 
         mfxSession session = m_core->GetSession();
-        MFX_CHECK_WITH_THROW(session, MFX_ERR_INVALID_HANDLE, mfx::mfxStatus_exception(MFX_ERR_INVALID_HANDLE));
+        MFX_CHECK_WITH_THROW_STS(session, MFX_ERR_INVALID_HANDLE);
 
         mfxStatus sts = m_vpl_cache_output_surfaces->SetupCache(session, video_param);
-        MFX_CHECK_WITH_THROW(sts == MFX_ERR_NONE, sts, mfx::mfxStatus_exception(sts));
+        MFX_CHECK_WITH_THROW_STS(sts == MFX_ERR_NONE, sts);
 
         mfxU32 bit_depth              = BitDepthFromFourcc(video_param.mfx.FrameInfo.FourCC);
 
@@ -1252,17 +1252,17 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
             color_format = UMC::Y416;
             break;
         default:
-            MFX_CHECK_WITH_THROW(false, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
+            MFX_CHECK_WITH_THROW_STS(false, MFX_ERR_UNSUPPORTED);
         }
 
         UMC::Status umcSts = m_video_data_info.Init(request.Info.Width, request.Info.Height, color_format, bit_depth);
-        MFX_CHECK_WITH_THROW(ConvertStatusUmc2Mfx(umcSts) == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
+        MFX_CHECK_WITH_THROW_STS(ConvertStatusUmc2Mfx(umcSts) == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
     }
     else
     {
         CreateUMCAllocator(video_param, platform, needVppJPEG);
 
-        MFX_CHECK_WITH_THROW(m_umc_allocator_adapter.get(), MFX_ERR_INVALID_HANDLE, mfx::mfxStatus_exception(MFX_ERR_INVALID_HANDLE));
+        MFX_CHECK_WITH_THROW_STS(m_umc_allocator_adapter.get(), MFX_ERR_INVALID_HANDLE);
 
         bool useInternal = request.Type & MFX_MEMTYPE_INTERNAL_FRAME;
         mfxStatus mfxSts = MFX_ERR_NONE;
@@ -1273,7 +1273,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
             mfxSts = m_core->AllocFrames(&request, &m_response, false);
         }
 
-        MFX_CHECK_WITH_THROW(mfxSts >= MFX_ERR_NONE, mfxSts, mfx::mfxStatus_exception(mfxSts));
+        MFX_CHECK_WITH_THROW_STS(mfxSts >= MFX_ERR_NONE, mfxSts);
 
         useInternal |= needVppJPEG;
 
@@ -1286,7 +1286,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
             bool useSystem = needVppJPEG ? video_param.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY : true;
             mfxSts = m_core->AllocFrames(&request_internal, &m_response, useSystem);
 
-            MFX_CHECK_WITH_THROW(mfxSts >= MFX_ERR_NONE, mfxSts, mfx::mfxStatus_exception(mfxSts));
+            MFX_CHECK_WITH_THROW_STS(mfxSts >= MFX_ERR_NONE, mfxSts);
         }
         else
         {
@@ -1294,12 +1294,12 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         }
 
         UMC::Status umcSts = m_umc_allocator_adapter->InitMfx(0, m_core, &video_param, &request, &m_response, !useInternal, platform == MFX_PLATFORM_SOFTWARE);
-        MFX_CHECK_WITH_THROW(umcSts == UMC::UMC_OK, MFX_ERR_MEMORY_ALLOC, mfx::mfxStatus_exception(MFX_ERR_MEMORY_ALLOC));
+        MFX_CHECK_WITH_THROW_STS(umcSts == UMC::UMC_OK, MFX_ERR_MEMORY_ALLOC);
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
         if ((mfxExtDecVideoProcessing *)GetExtendedBuffer(video_param.ExtParam, video_param.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING))
         {
-            MFX_CHECK_WITH_THROW(useInternal || MFX_HW_D3D11 == m_core->GetVAType() || MFX_HW_VAAPI == m_core->GetVAType(), MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
+            MFX_CHECK_WITH_THROW_STS(useInternal || MFX_HW_D3D11 == m_core->GetVAType() || MFX_HW_VAAPI == m_core->GetVAType(), MFX_ERR_UNSUPPORTED);
             m_umc_allocator_adapter->SetSfcPostProcessingFlag(true);
         }
 #endif
@@ -1314,10 +1314,10 @@ void SurfaceSource::CreateUMCAllocator(const mfxVideoParam & video_param, eMFXPl
     if (MFX_PLATFORM_SOFTWARE == platform)
     {
 #ifdef MFX_ENABLE_JPEG_SW_FALLBACK
-        MFX_CHECK_WITH_THROW(video_param.mfx.CodecId == MFX_CODEC_JPEG, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
+        MFX_CHECK_WITH_THROW_STS(video_param.mfx.CodecId == MFX_CODEC_JPEG, MFX_ERR_UNSUPPORTED);
         m_umc_allocator_adapter.reset(new mfx_UMC_FrameAllocator());
 #else
-        MFX_CHECK_WITH_THROW(false, MFX_ERR_UNSUPPORTED, mfx::mfxStatus_exception(MFX_ERR_UNSUPPORTED));
+        MFX_CHECK_WITH_THROW_STS(false, MFX_ERR_UNSUPPORTED);
 #endif
     }
     else

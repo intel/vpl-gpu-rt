@@ -217,9 +217,9 @@ mfxStatus MFXVideoDECODEVC1::Init(mfxVideoParam *par)
     {
         m_surface_source.reset(new SurfaceSource(m_pCore, *par, m_pCore->GetPlatformType(), request, request_internal, m_response, m_response_alien));
     }
-    catch (const mfx::mfxStatus_exception& ex)
+    catch (const std::system_error& ex)
     {
-        MFX_CHECK_STS(ex.sts);
+        MFX_CHECK_STS(mfxStatus(ex.code().value()));
     }
 
     MFXSts = m_pCore->CreateVA(&m_par, &request, &m_response, m_surface_source.get());
