@@ -39,7 +39,9 @@
  #include "asc.h"        // Scene change detection
 #endif
 #include "cm_mem_copy.h"         // Needed for mirroring kernels
+#ifdef MFX_ENABLE_KERNELS
 #include "genx_fcopy_gen12lp_isa.h"
+#endif
 
 #ifdef MFX_ENABLE_MCTF
 #include "mctf_common.h"

@@ -62,7 +62,6 @@ enum { MCTF_BITRATE_MULTIPLIER = 100000 };
 //#define MFX_MCTF_DEBUG_PRINT
 #include <memory>
 #include "cmrt_cross_platform.h"
-#include "../../../vpp/include/mfx_vpp_defs.h"
 #include "libmfx_core_interface.h"
 #include "asc.h"
 

@@ -223,8 +223,7 @@ target_link_libraries(encode_hw
     mfx_static_lib
     umc_va_hw
     asc
-    mctf_hw
-    mfx_ext
+    $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
   PRIVATE
     mfx_sdl_properties
     bitrate_control

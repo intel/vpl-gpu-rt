@@ -2426,15 +2426,15 @@ mfxStatus  VideoVPPHW::Init(
     //-----------------------------------------------------
     // [5]  cm device
     //-----------------------------------------------------
+#ifdef MFX_ENABLE_KERNELS
     if(m_pCmDevice)
     {
-        int res = 0;
+        int res = CM_FAILURE;
         if (NULL == m_pCmProgram)
         {
             eMFXHWType m_platform = m_pCore->GetHWType();
             switch (m_platform)
             {
-#ifdef MFX_ENABLE_KERNELS
             case MFX_HW_TGL_LP:
             case MFX_HW_DG1:
             case MFX_HW_RKL:
@@ -2442,7 +2442,6 @@ mfxStatus  VideoVPPHW::Init(
             case MFX_HW_ADL_P:
                 res = m_pCmDevice->LoadProgram((void*)genx_fcopy_gen12lp,sizeof(genx_fcopy_gen12lp),m_pCmProgram,"nojitter");
                 break;
-#endif
             default:
                 res = CM_FAILURE;
                 break;
@@ -2463,6 +2462,7 @@ mfxStatus  VideoVPPHW::Init(
             if(res != 0 ) return MFX_ERR_DEVICE_FAILED;
         }
     }
+#endif
 
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
     if (MFX_DEINTERLACING_ADVANCED_SCD == m_executeParams.iDeinterlacingAlgorithm)

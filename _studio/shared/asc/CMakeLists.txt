@@ -65,5 +65,5 @@ target_link_libraries(asc
     mfx_static_lib cmrt_cross_platform_hw
   PRIVATE
     mfx_sdl_properties
-    mfx_ext
+    $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
   )

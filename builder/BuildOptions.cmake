@@ -22,7 +22,9 @@ message( STATUS "Global Configuration of Targets" )
 
 include(CMakeDependentOption)
 
-option( MFX_ENABLE_KERNELS "Build with advanced media kernels support?" ON )
+option( MFX_ENABLE_EXT "Build with extensions?" ON )
+cmake_dependent_option( MFX_ENABLE_KERNELS "Enable media kernels?" ON "${MFX_ENABLE_EXT}" OFF )
+
 option( MFX_ENABLE_JPEG_SW_FALLBACK "Enabled software fallback for JPEG ?" ON )
 
 
@@ -93,10 +95,12 @@ option( MFX_ENABLE_VC1_VIDEO_DECODE "Enabled VC1 decoder?" ON)
 option( MFX_ENABLE_H264_VIDEO_ENCODE "Enable H.264 (AVC) encoder?" ON)
 option( MFX_ENABLE_H265_VIDEO_ENCODE "Enable H.265 (HEVC) encoder?" ON)
 option( MFX_ENABLE_VP9_VIDEO_ENCODE "Enable VP9 encoder?" ON)
-option( MFX_ENABLE_ASC "Enable ASC support?"  ON )
 option( MFX_ENABLE_VPP "Enabled Video Processing?" ON)
 option( MFX_ENABLE_PXP "Enabled Video protection?" OFF)
 
+cmake_dependent_option(
+  MFX_ENABLE_ASC "Enable ASC support?" ON 
+  "${MFX_ENABLE_KERNELS}" OFF)
 cmake_dependent_option(
   MFX_ENABLE_MCTF "Build with MCTF support?" ON
   "${MFX_ENABLE_ASC};${MFX_ENABLE_KERNELS};${MFX_ENABLE_VPP}" OFF)

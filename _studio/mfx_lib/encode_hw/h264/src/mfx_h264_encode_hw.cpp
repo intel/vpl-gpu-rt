@@ -850,6 +850,7 @@ protected:
     }
 };
 
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
 mfxStatus ImplementationAvc::InitMctf(const mfxVideoParam* const par)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "ImplementationAvc::InitMctf");
@@ -919,6 +920,7 @@ mfxStatus ImplementationAvc::InitMctf(const mfxVideoParam* const par)
 
     return sts;
 }
+#endif
 
 mfxStatus ImplementationAvc::InitScd(mfxFrameAllocRequest& request)
 {
