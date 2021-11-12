@@ -331,8 +331,11 @@ static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & s
 #ifdef MFX_ENABLE_ENCTOOLS_LPLA
     if (pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING)
     {
-        if (pExtOpt2 && pExtOpt2->LookAheadDepth > 0 && video.mfx.GopOptFlag == 0)
+        // Closed GOP for GS by default unless IdrInterval is set to max
+        // Open GOP with arbitrary IdrInterval if GOP is strict (GopOptFlag == MFX_GOP_STRICT)
+        if (video.mfx.GopOptFlag == 0 && video.mfx.IdrInterval != USHRT_MAX)
         {
+            changed++;
             video.mfx.GopOptFlag = MFX_GOP_CLOSED;
         }
     }
@@ -528,7 +531,7 @@ void HevcEncTools::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
         const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
         bool bEncTools = (pConfig) ?
             IsEncToolsOptOn(*pConfig, pCO3 && pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING) :
-            false;
+            IsEncToolsImplicit(par);
         mfxU32 changed = 0;
         MFX_CHECK(bEncTools, MFX_ERR_NONE);
 
@@ -816,7 +819,7 @@ mfxStatus HevcEncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
     task_par.DisplayOrder = task.DisplayOrder;
     task_par.NumExtParam = 0;
 
-    if(IsOn(m_EncToolConfig.BRC))
+    if (IsOn(m_EncToolConfig.BRC))
     {
         preEncodeSChg.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_SCENE_CHANGE;
         preEncodeSChg.Header.BufferSz = sizeof(preEncodeSChg);
