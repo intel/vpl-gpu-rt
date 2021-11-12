@@ -175,7 +175,7 @@ inline mfxU32 GetNumTempLayers(mfxVideoParam &video)
 inline bool IsAdaptiveRefAllowed(mfxVideoParam &video)
 {
     mfxExtCodingOption3 *pExtOpt3 = ExtBuffer::Get(video);
-    bool adaptiveRef = (video.mfx.TargetUsage != 7);
+    bool adaptiveRef = (video.mfx.TargetUsage != 7) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
     if (pExtOpt3)
     {
         adaptiveRef = adaptiveRef && !(pExtOpt3->NumRefActiveP[0] == 1 || (video.mfx.GopRefDist > 1 && pExtOpt3->NumRefActiveBL0[0] == 1));
@@ -274,8 +274,9 @@ static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config)
         if (CheckSWEncCondition(video))
         {
             bool bAdaptiveI = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveI)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
+            bool bAdaptiveB = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveB)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
             SetDefaultOpt(config.AdaptiveI, bAdaptiveI);
-            SetDefaultOpt(config.AdaptiveB, !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveB)));
+            SetDefaultOpt(config.AdaptiveB, bAdaptiveB);
             SetDefaultOpt(config.AdaptivePyramidQuantP, false);
             SetDefaultOpt(config.AdaptivePyramidQuantB, false);
 
@@ -296,16 +297,15 @@ static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config)
         bool bLA = (pExtOpt2 && pExtOpt2->LookAheadDepth > 0 &&
             (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
                 video.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
-
-        // LPLA assumes reordering for I frames, doesn't make much sense with closed GOP
-        bool bAdaptiveI = (pExtOpt2 && IsOn(pExtOpt2->AdaptiveI)) && !(video.mfx.GopOptFlag & (MFX_GOP_STRICT | MFX_GOP_CLOSED));
+        bool bAdaptiveI = (pExtOpt2 && IsOn(pExtOpt2->AdaptiveI)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
+        bool bAdaptiveB = (pExtOpt2 && IsOn(pExtOpt2->AdaptiveB)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
 
        SetDefaultOpt(config.BRCBufferHints, bLA);
        SetDefaultOpt(config.AdaptivePyramidQuantP, bLA);
        SetDefaultOpt(config.AdaptivePyramidQuantB, bLA);
        SetDefaultOpt(config.AdaptiveQuantMatrices, bLA && !IsOff(pExtOpt3->AdaptiveCQM));
        SetDefaultOpt(config.AdaptiveI, bLA && bAdaptiveI);
-       SetDefaultOpt(config.AdaptiveB, bLA && !IsOff(pExtOpt2->AdaptiveB));
+       SetDefaultOpt(config.AdaptiveB, bLA && bAdaptiveB);
     }
 #endif
 }
@@ -341,14 +341,7 @@ static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & s
     if (pConfig)
     {
         bool bAdaptiveI = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveI)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
-#ifdef MFX_ENABLE_ENCTOOLS_LPLA
-        if (pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING)
-        {
-            // LPLA assumes reordering for I frames, doesn't make much sense with closed GOP
-            bAdaptiveI = bAdaptiveI && !(video.mfx.GopOptFlag & MFX_GOP_CLOSED);
-        }
-#endif
-        bool bAdaptiveB = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveB));
+        bool bAdaptiveB = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveB)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
         bool bAdaptiveRef = IsAdaptiveRefAllowed(video);
 
         changed += CheckFlag(pConfig->AdaptiveI, bIsEncToolsEnabled && bAdaptiveI);

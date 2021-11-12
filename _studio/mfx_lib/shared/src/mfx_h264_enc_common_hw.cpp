@@ -1319,7 +1319,7 @@ bool MfxHwH264Encode::IsExtBrcSceneChangeSupported(
     // extbrc API change dependency
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
     extbrcsc = (hasSupportVME(platform) &&
-		    IsOn(extOpt2.ExtBRC) &&
+        IsOn(extOpt2.ExtBRC) &&
         (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
         && (video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) && !video.mfx.EncodedOrder && extOpt2.LookAheadDepth == 0);
     return extbrcsc;
@@ -5971,7 +5971,11 @@ void MfxHwH264Encode::SetDefaults(
     {
         if ((IsExtBrcSceneChangeSupported(par, platform) && !extBRC.pthis)
 #if defined(MFX_ENABLE_ENCTOOLS)
-           || (!IsOff(extConfig->AdaptiveI))
+           || (!IsOff(extConfig->AdaptiveI)
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+               && !IsLpLookaheadSupported(extOpt3->ScenarioInfo, extOpt2->LookAheadDepth, par.mfx.RateControlMethod)
+#endif
+               )
 #endif
             )
             extOpt2->AdaptiveI = MFX_CODINGOPTION_ON;
@@ -5983,7 +5987,11 @@ void MfxHwH264Encode::SetDefaults(
     {
         if ((IsExtBrcSceneChangeSupported(par, platform) && !extBRC.pthis)
 #if defined(MFX_ENABLE_ENCTOOLS)
-        || (!IsOff(extConfig->AdaptiveB))
+            || (!IsOff(extConfig->AdaptiveB)
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+                && !IsLpLookaheadSupported(extOpt3->ScenarioInfo, extOpt2->LookAheadDepth, par.mfx.RateControlMethod)
+#endif
+                )
 #endif
             )
             extOpt2->AdaptiveB = MFX_CODINGOPTION_ON;
