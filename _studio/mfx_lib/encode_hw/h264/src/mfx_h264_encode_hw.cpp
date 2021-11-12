@@ -3687,7 +3687,8 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         {
             if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType())
 #if defined(MFX_ENABLE_ENCTOOLS)
-                || (m_enabledEncTools && m_encTools.IsAdaptiveGOP())
+                // for LPLA, use frameType provided by EncTools even if AdaptiveGOP is off
+                || (m_enabledEncTools && (m_encTools.IsAdaptiveGOP() || m_encTools.IsLookAhead()))
 #endif
                 )
             {
@@ -3707,10 +3708,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 newTask.m_frameOrder = m_frameOrder;
                 AssignFrameTypes(newTask);
 
-#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
-                if (!m_encTools.IsLookAhead())
-#endif
-                    BuildPPyr(newTask, GetPPyrSize(m_video, 0, false), true, false);
+                BuildPPyr(newTask, GetPPyrSize(m_video, 0, false), true, false);
             }
 
             m_frameOrder++;
