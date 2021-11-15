@@ -24,10 +24,10 @@ target_include_directories(vpp_hw
 
 target_link_libraries(vpp_hw
   PUBLIC
-    mfx_static_lib umc_va_hw cmrt_cross_platform_hw asc $<$<BOOL:${MFX_ENABLE_PXP}>:pxp_hw>
+    mfx_static_lib umc_va_hw cmrt_cross_platform_hw asc mctf_hw $<$<BOOL:${MFX_ENABLE_PXP}>:pxp_hw>
   PRIVATE
     mfx_sdl_properties
-    $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
+    mfx_ext
   )
 
 include(sources_ext.cmake OPTIONAL)

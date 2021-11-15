@@ -22,9 +22,7 @@
 #include "asc_defs.h"
 #include "asc_cpu_dispatcher.h"
 #include "libmfx_core_interface.h"
-#ifdef MFX_ENABLE_ASC
 #include "genx_scd_gen12lp_isa.h"
-#endif
 #include "tree.h"
 #include "iofunctions.h"
 #include "motion_estimation_engine.h"

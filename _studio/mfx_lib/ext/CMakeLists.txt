@@ -150,37 +150,20 @@ if(MFX_ENABLE_KERNELS)
       ${prefix}/genx_me_gen12lp_isa.cpp
       ${prefix}/genx_sd_gen12lp_isa.cpp
     )
-    list( APPEND mctf_package
-      mctf_package/mctf/src/mctf_common.cpp
-      mctf_package/mctf/include/mctf_common.h
-    )
     list( APPEND genx_include_dirs
       ${prefix}
-    )
-    list ( APPEND mctf_include_dir
-      mctf_package/mctf/include
     )
   endif()
 
   source_group("genx" FILES ${genx_sources})
-  source_group("mctf_hw" FILES ${mctf_package})
 
   target_sources(mfx_ext PRIVATE
     ${genx_sources}
-    ${mctf_package}
   )
 
   target_include_directories(mfx_ext
     PUBLIC
       ${genx_include_dirs}
-      ${mctf_include_dir}
-  )
-
-  target_link_libraries(mfx_ext
-    PUBLIC 
-      mfx_static_lib
-      cmrt_cross_platform_hw
-      asc
   )
 
 endif()

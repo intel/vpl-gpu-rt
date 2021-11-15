@@ -24,9 +24,7 @@
 #include "mfxdefs.h"
 #include "mfxstructures.h"
 #include "ippi.h"
-#ifdef MFX_ENABLE_KERNELS
 #include "genx_copy_kernel_gen12lp_isa.h"
-#endif
 
 #ifdef _MSVC_LANG
 #pragma warning(disable: 4505)

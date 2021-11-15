@@ -1364,7 +1364,6 @@ bool MfxHwH264Encode::IsMctfSupported(
         !video.mfx.EncodedOrder);
 #else
     video;
-    platform;
 #endif
     return isSupported;
 }
