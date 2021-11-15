@@ -32,7 +32,7 @@ public:
     mfxStatus CreateDevice(VideoCORE * core, mfxVideoParam* pParams, bool isTemporal = false) override;
 
 protected:
-    PXPCtxHDL m_PXPCtxHdl = nullptr;
+    mfxPXPCtxHDL m_PXPCtxHdl = nullptr;
 };
 
 #endif // (MFX_ENABLE_PXP)
