@@ -115,6 +115,13 @@ VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(
           , m_bUseExtAllocForHWFrames(false)
           , m_HWType(MFX_HW_UNKNOWN)
           , m_GTConfig(MFX_GT_UNKNOWN)
+#if !defined(ANDROID)
+          , m_bCmCopy(false)
+          , m_bCmCopyAllowed(true)
+#else
+          , m_bCmCopy(false)
+          , m_bCmCopyAllowed(false)
+#endif
 {
 } // VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(...)
 
@@ -205,7 +212,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
     UMC::AutomaticUMCMutex guard(this->m_guard);
     try
     {
-        switch (type)
+        switch ((mfxU32)type)
         {
         case MFX_HANDLE_VA_DISPLAY:
         {
@@ -228,7 +235,12 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
             m_GTConfig       = devItem.config;
             this->m_deviceId = mfxU16(devItem.device_id);
 
-            std::ignore = MFX_STS_TRACE(TryInitializeCm());
+            const bool disableGpuCopy = false
+                ;
+            if (disableGpuCopy)
+            {
+                this->SetCmCopyStatus(false);
+            }
         }
             break;
 
@@ -244,37 +256,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
 }// mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(mfxHandleType type, mfxHDL handle)
 
 template <class Base>
-bool VAAPIVideoCORE_T<Base>::IsCmSupported()
-{
-    return true;
-}
-
-template <class Base>
-mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm()
-{
-    if (m_pCmCopy)
-        return MFX_ERR_NONE;
-
-    // Return immidiately if user requested to turn OFF GPU copy
-    if (m_ForcedCmState == MFX_GPUCOPY_OFF)
-    {
-        return MFX_ERR_NONE;
-    }
-
-    MFX_CHECK(IsCmSupported(), MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
-
-    std::unique_ptr<CmCopyWrapper> tmp_cm(new CmCopyWrapper);
-
-    MFX_CHECK_NULL_PTR1(tmp_cm->GetCmDevice(*m_p_display_wrapper));
-
-    MFX_SAFE_CALL(tmp_cm->Initialize(GetHWType()));
-
-    m_pCmCopy = std::move(tmp_cm);
-
-    return MFX_ERR_NONE;
-}
-
-template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
     mfxFrameAllocRequest* request,
     mfxFrameAllocResponse* response,
@@ -288,6 +269,32 @@ mfxStatus VAAPIVideoCORE_T<Base>::AllocFrames(
     {
         mfxStatus sts = MFX_ERR_NONE;
         mfxFrameAllocRequest temp_request = *request;
+
+        if (!m_bCmCopy && m_bCmCopyAllowed && isNeedCopy && m_p_display_wrapper)
+        {
+            m_pCmCopy.reset(new CmCopyWrapper);
+
+            if (!m_pCmCopy->GetCmDevice(*m_p_display_wrapper))
+            {
+                m_bCmCopy        = false;
+                m_bCmCopyAllowed = false;
+                m_pCmCopy.reset();
+            }
+            else
+            {
+                sts = m_pCmCopy->Initialize(GetHWType());
+                MFX_CHECK_STS(sts);
+                m_bCmCopy = true;
+            }
+        }
+        else if (m_bCmCopy)
+        {
+            if (m_pCmCopy)
+                m_pCmCopy->CleanUpCache();
+            else
+                m_bCmCopy = false;
+        }
+
 
         // use common core for sw surface allocation
         if (request->Type & MFX_MEMTYPE_SYSTEM_MEMORY)
@@ -488,10 +495,14 @@ void VAAPIVideoCORE_T<Base>::SetCmCopyStatus(bool enable)
 {
     UMC::AutomaticUMCMutex guard(this->m_guard);
 
-    m_ForcedCmState = enable ? MFX_GPUCOPY_ON : MFX_GPUCOPY_OFF;
+    m_bCmCopyAllowed = enable;
 
-    if (!enable)
+    if (!m_bCmCopyAllowed)
+    {
         m_pCmCopy.reset();
+
+        m_bCmCopy = false;
+    }
 } // void VAAPIVideoCORE_T<Base>::SetCmCopyStatus(...)
 
 template <class Base>
@@ -769,8 +780,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    // For Linux by default CM copy is OFF
-    bool canUseCMCopy = m_pCmCopy && m_ForcedCmState == MFX_GPUCOPY_ON && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+    bool canUseCMCopy = m_bCmCopy ? CmCopyWrapper::CanUseCmCopy(pDst, pSrc) : false;
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
@@ -781,6 +791,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
             // Remove CM adapter in case of failed copy
             this->SetCmCopyStatus(false);
         }
+
+        MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
         VASurfaceID *va_surf_src = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
         VASurfaceID *va_surf_dst = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
@@ -805,6 +817,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
     }
     else if (nullptr != pSrc->Data.MemId && nullptr != dstPtr)
     {
+        MFX_SAFE_CALL(this->CheckOrInitDisplay());
+
         // copy data
         {
             if (canUseCMCopy)
@@ -878,6 +892,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
         VASurfaceID *va_surface = (VASurfaceID*)((mfxHDLPair *)pDst->Data.MemId)->first;
         VAImage va_image;
         void *pBits = NULL;
+
+        MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
         va_sts = vaDeriveImage(*m_p_display_wrapper, *va_surface, &va_image);
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
@@ -1057,13 +1073,27 @@ void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
     }
     if (MFXICORECM_GUID == guid)
     {
-        if (!m_pCmCopy)
+        CmDevice* pCmDevice = nullptr;
+        if (!m_bCmCopy)
         {
             UMC::AutomaticUMCMutex guard(this->m_guard);
-            MFX_CHECK_STS_RET_NULL(TryInitializeCm());
-        }
 
-        return m_pCmCopy ? (void*)m_pCmCopy->GetCmDevice(*m_p_display_wrapper) : nullptr;
+            m_pCmCopy.reset(new CmCopyWrapper);
+            pCmDevice = m_pCmCopy->GetCmDevice(*m_p_display_wrapper);
+
+            if (!pCmDevice)
+                return nullptr;
+
+            if (MFX_ERR_NONE != m_pCmCopy->Initialize(GetHWType()))
+                return nullptr;
+
+            m_bCmCopy = true;
+        }
+        else
+        {
+            pCmDevice =  m_pCmCopy->GetCmDevice(*m_p_display_wrapper);
+        }
+        return (void*)pCmDevice;
     }
 
     if (MFXICORECMCOPYWRAPPER_GUID == guid)
@@ -1071,9 +1101,22 @@ void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
         if (!m_pCmCopy)
         {
             UMC::AutomaticUMCMutex guard(this->m_guard);
-            MFX_CHECK_STS_RET_NULL(TryInitializeCm());
-        }
 
+            m_pCmCopy.reset(new CmCopyWrapper);
+            if (!m_pCmCopy->GetCmDevice(*m_p_display_wrapper))
+            {
+                m_bCmCopy        = false;
+                m_bCmCopyAllowed = false;
+
+                m_pCmCopy.reset();
+                return nullptr;
+            }
+
+            if (MFX_ERR_NONE != m_pCmCopy->Initialize(GetHWType()))
+                return nullptr;
+
+            m_bCmCopy = true;
+        }
         return (void*)m_pCmCopy.get();
     }
 
@@ -1158,7 +1201,34 @@ mfxStatus VAAPIVideoCORE_VPL::AllocFrames(
         MFX_SAFE_CALL(CheckOrInitDisplay());
         m_frame_allocator_wrapper.SetDevice(m_p_display_wrapper.get());
 
-        mfxStatus sts = m_frame_allocator_wrapper.Alloc(*request, *response, request->Type & (MFX_MEMTYPE_FROM_ENC | MFX_MEMTYPE_FROM_PAK));
+        mfxStatus sts = MFX_ERR_NONE;
+
+        if (!m_bCmCopy && m_bCmCopyAllowed && isNeedCopy && m_p_display_wrapper)
+        {
+            m_pCmCopy.reset(new CmCopyWrapper);
+
+            if (!m_pCmCopy->GetCmDevice(*m_p_display_wrapper))
+            {
+                m_bCmCopy = false;
+                m_bCmCopyAllowed = false;
+                m_pCmCopy.reset();
+            }
+            else
+            {
+                sts = m_pCmCopy->Initialize(GetHWType());
+                MFX_CHECK_STS(sts);
+                m_bCmCopy = true;
+            }
+        }
+        else if (m_bCmCopy)
+        {
+            if (m_pCmCopy)
+                m_pCmCopy->CleanUpCache();
+            else
+                m_bCmCopy = false;
+        }
+
+        sts = m_frame_allocator_wrapper.Alloc(*request, *response, request->Type & (MFX_MEMTYPE_FROM_ENC | MFX_MEMTYPE_FROM_PAK));
 
 #if defined(ANDROID)
         MFX_CHECK(response->NumFrameActual <= 128, MFX_ERR_UNSUPPORTED);
@@ -1261,8 +1331,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     // check that region of interest is valid
     MFX_CHECK(roi.width && roi.height, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    // For Linux by default CM copy is OFF
-    bool canUseCMCopy = m_pCmCopy && m_ForcedCmState == MFX_GPUCOPY_ON && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+    bool canUseCMCopy = m_bCmCopy && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
@@ -1273,6 +1342,8 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
             // Remove CM adapter in case of failed copy
             this->SetCmCopyStatus(false);
         }
+
+        MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
         VASurfaceID *va_surf_src = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
         VASurfaceID *va_surf_dst = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
@@ -1297,6 +1368,8 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
 
     if (NULL != pSrc->Data.MemId && NULL != dstPtr)
     {
+        MFX_SAFE_CALL(this->CheckOrInitDisplay());
+
         if (canUseCMCopy)
         {
             // If CM copy failed, fallback to VA copy
@@ -1355,6 +1428,8 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
             this->SetCmCopyStatus(false);
         }
 
+        MFX_SAFE_CALL(this->CheckOrInitDisplay());
+
         VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
         MFX_CHECK_HDL(va_surface);
 
@@ -1392,12 +1467,8 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
 
 mfxStatus VAAPIVideoCORE_VPL::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)
 {
-    {
-        UMC::AutomaticUMCMutex guard(m_guard);
-
-        MFX_SAFE_CALL(CheckOrInitDisplay());
-        m_frame_allocator_wrapper.SetDevice(m_p_display_wrapper.get());
-    }
+    MFX_SAFE_CALL(CheckOrInitDisplay());
+    m_frame_allocator_wrapper.SetDevice(m_p_display_wrapper.get());
 
     return m_frame_allocator_wrapper.CreateSurface(type, info, surf);
 }
