@@ -575,7 +575,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyWrapper(
     mfxFrameSurface1* pDst,
     mfxU16 dstMemType,
     mfxFrameSurface1* pSrc,
-    mfxU16 srcMemType)
+    mfxU16 srcMemType,
+    bool canUseGpuCopy)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIVideoCORE_T<Base>::DoFastCopyWrapper");
     mfxStatus sts;
@@ -703,7 +704,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyWrapper(
         }
     }
 
-    mfxStatus fcSts = DoFastCopyExtended(&dstTempSurface, &srcTempSurface);
+    mfxStatus fcSts = DoFastCopyExtended(&dstTempSurface, &srcTempSurface, canUseGpuCopy);
 
     if (MFX_ERR_DEVICE_FAILED == fcSts && 0 != dstTempSurface.Data.Corrupted)
     {
@@ -751,7 +752,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyWrapper(
 template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
     mfxFrameSurface1* pDst,
-    mfxFrameSurface1* pSrc)
+    mfxFrameSurface1* pSrc,
+    bool canUseGpuCopy)
 {
     mfxStatus sts;
     mfxU8* srcPtr;
@@ -780,7 +782,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    bool canUseCMCopy = m_bCmCopy ? CmCopyWrapper::CanUseCmCopy(pDst, pSrc) : false;
+    bool canUseCMCopy = canUseGpuCopy && (m_bCmCopy ? CmCopyWrapper::CanUseCmCopy(pDst, pSrc) : false);
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
@@ -938,7 +940,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
+} // mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, bool canUseGpuCopy)
 
 // On linux/android specific function!
 // correct work since libva 1.2 (libva 2.2.1.pre1)
@@ -1254,7 +1256,8 @@ VAAPIVideoCORE_VPL::DoFastCopyWrapper(
     mfxFrameSurface1* pDst,
     mfxU16 dstMemType,
     mfxFrameSurface1* pSrc,
-    mfxU16 srcMemType)
+    mfxU16 srcMemType,
+    bool canUseGpuCopy)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIVideoCORE_VPL::DoFastCopyWrapper");
 
@@ -1298,7 +1301,7 @@ VAAPIVideoCORE_VPL::DoFastCopyWrapper(
         dstTempSurface.Data.MemId = 0;
     }
 
-    sts = DoFastCopyExtended(&dstTempSurface, &srcTempSurface);
+    sts = DoFastCopyExtended(&dstTempSurface, &srcTempSurface, canUseGpuCopy);
     MFX_CHECK_STS(sts);
 
     sts = src_surf_lock.unlock();
@@ -1310,7 +1313,8 @@ VAAPIVideoCORE_VPL::DoFastCopyWrapper(
 mfxStatus
 VAAPIVideoCORE_VPL::DoFastCopyExtended(
     mfxFrameSurface1* pDst,
-    mfxFrameSurface1* pSrc)
+    mfxFrameSurface1* pSrc,
+    bool canUseGpuCopy)
 {
     MFX_CHECK_NULL_PTR2(pDst, pSrc);
 
@@ -1331,7 +1335,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     // check that region of interest is valid
     MFX_CHECK(roi.width && roi.height, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    bool canUseCMCopy = m_bCmCopy && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+    bool canUseCMCopy = canUseGpuCopy && (m_bCmCopy && CmCopyWrapper::CanUseCmCopy(pDst, pSrc));
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {

@@ -881,7 +881,7 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
             }
 
             UMC::AutomaticUMCMutex guardCopy(decoder.m_mCopyGuard[data.copyFromFrame]);
-            MFX_SAFE_CALL(decoder.m_core->DoFastCopyWrapper(&surfaceDst, dstMemType, surfaceSrc, srcMemType));
+            MFX_SAFE_CALL(decoder.m_core->DoFastCopyWrapper(&surfaceDst, dstMemType, surfaceSrc, srcMemType, false));
         }
 
         if (data.currFrameId != -1)
@@ -919,7 +919,7 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
         }
 
         UMC::AutomaticUMCMutex guardCopy(decoder.m_mCopyGuard[data.currFrameId]);
-        mfxStatus sts = decoder.m_surface_source->PrepareToOutput(data.surface_work, data.currFrameId, 0);
+        mfxStatus sts = decoder.m_surface_source->PrepareToOutput(data.surface_work, data.currFrameId, 0, false);
         MFX_CHECK_STS(sts);
     }
 

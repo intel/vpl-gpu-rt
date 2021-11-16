@@ -164,8 +164,8 @@ public:
 
     // need for correct video accelerator creation
     virtual mfxStatus DoFastCopy(mfxFrameSurface1 *dst, mfxFrameSurface1 *src) = 0;
-    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *dst, mfxFrameSurface1 *src) = 0;
-    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *dst, mfxU16 dstMemType, mfxFrameSurface1 *src, mfxU16 srcMemType) = 0;
+    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *dst, mfxFrameSurface1 *src, bool canUseGpuCopy = true) = 0;
+    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *dst, mfxU16 dstMemType, mfxFrameSurface1 *src, mfxU16 srcMemType, bool canUseGpuCopy = true) = 0;
     // DEPRECATED
     virtual bool IsFastCopyEnabled(void) = 0;
 

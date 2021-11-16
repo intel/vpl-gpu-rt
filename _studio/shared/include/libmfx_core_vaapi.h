@@ -164,8 +164,8 @@ public:
     virtual mfxU32       GetAdapterNumber() override { return m_adapterNum; }
     virtual eMFXPlatform GetPlatformType()  override { return MFX_PLATFORM_HARDWARE; }
 
-    virtual mfxStatus    DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)                                      override;
-    virtual mfxStatus    DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType) override;
+    virtual mfxStatus    DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, bool canUseGpuCopy = true)                                      override;
+    virtual mfxStatus    DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, bool canUseGpuCopy = true) override;
 
     mfxHDL * GetFastCompositingService();
     void SetOnFastCompositingService(void);
@@ -247,17 +247,17 @@ public:
 
     virtual ~VAAPIVideoCORE_VPL();
 
-    virtual void* QueryCoreInterface(const MFX_GUID& guid)                                                                                            override;
+    virtual void* QueryCoreInterface(const MFX_GUID& guid)                                                                                               override;
 
-    virtual mfxStatus SetHandle(mfxHandleType type, mfxHDL handle)                                                                                    override;
+    virtual mfxStatus SetHandle(mfxHandleType type, mfxHDL handle)                                                                                       override;
 
-    virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool isNeedCopy = true)                             override;
+    virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool isNeedCopy = true)                                override;
             mfxStatus ReallocFrame(mfxFrameSurface1 *surf);
 
-    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)                                                              override;
-    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType)                         override;
+    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, bool canUseGpuCopy = true)                                      override;
+    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, bool canUseGpuCopy = true) override;
 
-    virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)                                                   override;
+    virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)                                                      override;
 
 protected:
     VAAPIVideoCORE_VPL(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);

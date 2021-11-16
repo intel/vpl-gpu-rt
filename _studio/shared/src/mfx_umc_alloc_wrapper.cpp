@@ -1029,7 +1029,7 @@ mfxFrameSurface1 * mfx_UMC_FrameAllocator::GetSurface(UMC::FrameMemID index, mfx
     return surface;
 }
 
-mfxStatus mfx_UMC_FrameAllocator::PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam *)
+mfxStatus mfx_UMC_FrameAllocator::PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam *, bool canUseGpuCopy)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -1102,7 +1102,8 @@ mfxStatus mfx_UMC_FrameAllocator::PrepareToOutput(mfxFrameSurface1 *surface_work
     sts = m_pCore->DoFastCopyWrapper(surface_work,
                                      dstMemType,
                                      &surface,
-                                     MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY);
+                                     MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY,
+                                     canUseGpuCopy);
     guard.Lock();
 
     MFX_CHECK_STS(sts);
@@ -2153,7 +2154,7 @@ mfxFrameSurface1 * SurfaceSource::GetSurfaceByIndex(UMC::FrameMemID index)
     }
 }
 
-mfxStatus SurfaceSource::PrepareToOutput(mfxFrameSurface1 *surface_out, UMC::FrameMemID index, const mfxVideoParam * videoPar)
+mfxStatus SurfaceSource::PrepareToOutput(mfxFrameSurface1 *surface_out, UMC::FrameMemID index, const mfxVideoParam * videoPar, bool canUseGpuCopy)
 {
     MFX_CHECK(m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter, MFX_ERR_NOT_INITIALIZED);
@@ -2192,7 +2193,8 @@ mfxStatus SurfaceSource::PrepareToOutput(mfxFrameSurface1 *surface_out, UMC::Fra
                 // When this is user provided SW memory surface it might not have correct type set
                 surface_out->Data.MemType ? surface_out->Data.MemType : MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY,
                 srcSurface.get(),
-                srcSurface->Data.MemType
+                srcSurface->Data.MemType,
+                canUseGpuCopy
             ));
         }
 
@@ -2200,7 +2202,7 @@ mfxStatus SurfaceSource::PrepareToOutput(mfxFrameSurface1 *surface_out, UMC::Fra
     }
     else
     {
-        return m_umc_allocator_adapter->PrepareToOutput(surface_out, index, videoPar);
+        return m_umc_allocator_adapter->PrepareToOutput(surface_out, index, videoPar, canUseGpuCopy);
     }
 }
 
@@ -2252,7 +2254,7 @@ void SurfaceSource::SetFreeSurfaceAllowedFlag(bool flag)
 
 // D3D functionality
 // we should copy to external SW surface
-mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam *)
+mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam *, bool canUseGpuCopy)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -2284,7 +2286,8 @@ mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surfac
         sts = m_pCore->DoFastCopyWrapper(surface_work,
                                             outMemType,
                                             &surface,
-                                            MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET
+                                            MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET,
+                                            canUseGpuCopy
                                             );
         guard.Lock();
         MFX_CHECK_STS(sts);
