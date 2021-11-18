@@ -44,6 +44,7 @@
 #include <functional>
 #include <atomic>
 #include <sstream>
+#include <utility>
 
 #ifndef MFX_DEBUG_TRACE
 #define MFX_STS_TRACE(sts) sts
@@ -240,27 +241,6 @@ struct TupleArgs<TRes(*)(TArgs...)>
     using type = std::tuple<TArgs...>;
 };
 
-template<class T, T... args>
-struct integer_sequence
-{
-    using value_type = T;
-    static size_t size() { return (sizeof...(args)); }
-};
-
-template<size_t... args>
-using index_sequence = mfx::integer_sequence<size_t, args...>;
-
-template<size_t N, size_t ...S>
-struct make_index_sequence_impl
-    : make_index_sequence_impl<N - 1, N - 1, S...>
-{};
-
-template<size_t ...S>
-struct make_index_sequence_impl<0, S...>
-{
-    using type = index_sequence<S...>;
-};
-
 template <class F>
 struct result_of;
 
@@ -273,12 +253,9 @@ struct result_of<TRes(*const&)(TArgs...)>
     using type = TRes;
 };
 
-template<size_t S>
-using make_index_sequence = typename make_index_sequence_impl<S>::type;
-
 template<typename TFunc, typename TTuple, size_t ...S >
 inline typename mfx::result_of<TFunc>::type
-    apply_impl(TFunc&& fn, TTuple&& t, mfx::index_sequence<S...>)
+    apply_impl(TFunc&& fn, TTuple&& t, std::index_sequence<S...>)
 {
     return fn(std::get<S>(t) ...);
 }
@@ -290,7 +267,7 @@ inline typename mfx::result_of<TFunc>::type
     return apply_impl(
         std::forward<TFunc>(fn)
         , std::forward<TTuple>(t)
-        , typename mfx::make_index_sequence<std::tuple_size<typename std::remove_reference<TTuple>::type>::value>());
+        , typename std::make_index_sequence<std::tuple_size<typename std::remove_reference<TTuple>::type>::value>());
 }
 
 template<class T>
