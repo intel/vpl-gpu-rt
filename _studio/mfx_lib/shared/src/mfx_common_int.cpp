@@ -163,6 +163,39 @@ mfxStatus CheckFrameInfoEncoders(mfxFrameInfo  *info)
     return MFX_ERR_NONE;
 }
 
+mfxStatus CheckFrameInfoDecVideoProcCsc(mfxFrameInfo *info, mfxU32 codecId)
+{
+    mfxStatus sts = CheckFrameInfoCommon(info, codecId);
+    MFX_CHECK_STS(sts);
+
+    switch(info->FourCC) {
+    case MFX_FOURCC_NV12:
+    case MFX_FOURCC_P010:
+    case MFX_FOURCC_P016:
+        if (info->ChromaFormat == MFX_CHROMAFORMAT_YUV420)
+            return MFX_ERR_NONE;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+
+    case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_Y210:
+    case MFX_FOURCC_Y216:
+        if (info->ChromaFormat == MFX_CHROMAFORMAT_YUV422)
+            return MFX_ERR_NONE;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+
+    case MFX_FOURCC_AYUV:
+    case MFX_FOURCC_Y410:
+    case MFX_FOURCC_Y416:
+    case MFX_FOURCC_RGB4:
+        if (info->ChromaFormat == MFX_CHROMAFORMAT_YUV444)
+            return MFX_ERR_NONE;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+
+    default:
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
+}
+
 mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId)
 {
     mfxStatus sts = CheckFrameInfoCommon(info, codecId);

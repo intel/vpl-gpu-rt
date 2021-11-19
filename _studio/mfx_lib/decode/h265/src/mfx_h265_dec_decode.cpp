@@ -964,8 +964,16 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
     if (surface_work)
     {
-        sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_HEVC);
-        MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
+        bool isVideoProcCscEnabled = false;
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+        mfxExtDecVideoProcessing* videoProcessing = (mfxExtDecVideoProcessing*)GetExtendedBuffer(m_vInitPar.ExtParam, m_vInitPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
+        if (videoProcessing && videoProcessing->Out.FourCC != m_vPar.mfx.FrameInfo.FourCC)
+        {
+            isVideoProcCscEnabled = true;
+        }
+#endif
+        sts = isVideoProcCscEnabled ? CheckFrameInfoDecVideoProcCsc(&surface_work->Info, MFX_CODEC_HEVC) : CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_HEVC);
+        MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM)
 
         sts = CheckFrameData(surface_work);
         MFX_CHECK_STS(sts);
@@ -1185,11 +1193,6 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
 
     surface_out->Info.FrameId.TemporalId = 0;
 
-    surface_out->Info.CropH = (mfxU16)(pFrame->lumaSize().height - pFrame->m_crop_bottom - pFrame->m_crop_top);
-    surface_out->Info.CropW = (mfxU16)(pFrame->lumaSize().width - pFrame->m_crop_right - pFrame->m_crop_left);
-    surface_out->Info.CropX = (mfxU16)(pFrame->m_crop_left);
-    surface_out->Info.CropY = (mfxU16)(pFrame->m_crop_top);
-
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(m_vFirstPar.ExtParam, m_vFirstPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
     if (videoProcessing)
@@ -1198,8 +1201,35 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
         surface_out->Info.CropW = videoProcessing->Out.CropW;
         surface_out->Info.CropX = videoProcessing->Out.CropX;
         surface_out->Info.CropY = videoProcessing->Out.CropY;
+        surface_out->Info.ChromaFormat = videoProcessing->Out.ChromaFormat;
     }
+        else
 #endif
+    {
+        surface_out->Info.CropH = (mfxU16)(pFrame->lumaSize().height - pFrame->m_crop_bottom - pFrame->m_crop_top);
+        surface_out->Info.CropW = (mfxU16)(pFrame->lumaSize().width - pFrame->m_crop_right - pFrame->m_crop_left);
+        surface_out->Info.CropX = (mfxU16)(pFrame->m_crop_left);
+        surface_out->Info.CropY = (mfxU16)(pFrame->m_crop_top);
+
+        switch(pFrame->m_chroma_format)
+        {
+        case 0:
+            surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV400;
+            break;
+        case 1:
+            surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
+            break;
+        case 2:
+            surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV422;
+            break;
+        case 3:
+            surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV444;
+            break;
+        default:
+            UMC_ASSERT(!"Unknown chroma format");
+            surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
+        }
+    }
 
     bool isShouldUpdate = !(m_vFirstPar.mfx.FrameInfo.AspectRatioH || m_vFirstPar.mfx.FrameInfo.AspectRatioW);
 
@@ -1210,26 +1240,6 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
 
     surface_out->Info.FrameRateExtD = isShouldUpdate ? m_vPar.mfx.FrameInfo.FrameRateExtD : m_vFirstPar.mfx.FrameInfo.FrameRateExtD;
     surface_out->Info.FrameRateExtN = isShouldUpdate ? m_vPar.mfx.FrameInfo.FrameRateExtN : m_vFirstPar.mfx.FrameInfo.FrameRateExtN;
-
-    surface_out->Info.PicStruct = 0;
-    switch(pFrame->m_chroma_format)
-    {
-    case 0:
-        surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV400;
-        break;
-    case 1:
-        surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
-        break;
-    case 2:
-        surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV422;
-        break;
-    case 3:
-        surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV444;
-        break;
-    default:
-        UMC_ASSERT(!"Unknown chroma format");
-        surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
-    }
 
     surface_out->Info.PicStruct =
         UMC2MFX_PicStruct(pFrame->m_DisplayPictureStruct_H265, !!m_vPar.mfx.ExtendedPicStruct);

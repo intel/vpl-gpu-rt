@@ -1143,12 +1143,8 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             isVideoProcCscEnabled = true;
         }
 #endif
-        sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_AVC);
-        //Decode CSC support more FourCC format, already checked in Init, skip the check return;
-        if(!isVideoProcCscEnabled)
-        {
-            MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
-        }
+        sts = isVideoProcCscEnabled ? CheckFrameInfoDecVideoProcCsc(&surface_work->Info, MFX_CODEC_AVC) : CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_AVC);
+        MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM)
 
         sts = CheckFrameData(surface_work);
         MFX_CHECK_STS(sts);
@@ -1435,11 +1431,6 @@ void VideoDECODEH264::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
     }
 #endif
 
-    surface_out->Info.CropH = (mfxU16)(pFrame->lumaSize().height - pFrame->m_crop_bottom - pFrame->m_crop_top);
-    surface_out->Info.CropW = (mfxU16)(pFrame->lumaSize().width - pFrame->m_crop_right - pFrame->m_crop_left);
-    surface_out->Info.CropX = (mfxU16)(pFrame->m_crop_left);
-    surface_out->Info.CropY = (mfxU16)(pFrame->m_crop_top);
-
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(m_vFirstPar.ExtParam, m_vFirstPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
     if (videoProcessing)
@@ -1448,8 +1439,28 @@ void VideoDECODEH264::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
         surface_out->Info.CropW = videoProcessing->Out.CropW;
         surface_out->Info.CropX = videoProcessing->Out.CropX;
         surface_out->Info.CropY = videoProcessing->Out.CropY;
-    }
+        surface_out->Info.ChromaFormat = videoProcessing->Out.ChromaFormat;
+    } else
 #endif
+    {
+        surface_out->Info.CropH = (mfxU16)(pFrame->lumaSize().height - pFrame->m_crop_bottom - pFrame->m_crop_top);
+        surface_out->Info.CropW = (mfxU16)(pFrame->lumaSize().width - pFrame->m_crop_right - pFrame->m_crop_left);
+        surface_out->Info.CropX = (mfxU16)(pFrame->m_crop_left);
+        surface_out->Info.CropY = (mfxU16)(pFrame->m_crop_top);
+
+        switch(pFrame->m_chroma_format)
+        {
+        case 0:
+            surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV400;
+            break;
+        case 2:
+            surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV422;
+            break;
+        default:
+            surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
+            break;
+        }
+    }
 
     bool isShouldUpdate = !(m_vFirstPar.mfx.FrameInfo.AspectRatioH || m_vFirstPar.mfx.FrameInfo.AspectRatioW);
 
@@ -1462,18 +1473,7 @@ void VideoDECODEH264::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
     surface_out->Info.FrameRateExtN = isShouldUpdate ? m_vPar.mfx.FrameInfo.FrameRateExtN : m_vFirstPar.mfx.FrameInfo.FrameRateExtN;
 
     surface_out->Info.PicStruct = 0;
-    switch(pFrame->m_chroma_format)
-    {
-    case 0:
-        surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV400;
-        break;
-    case 2:
-        surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV422;
-        break;
-    default:
-        surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
-        break;
-    }
+
 
     switch (pFrame->m_displayPictureStruct)
     {
