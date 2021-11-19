@@ -73,8 +73,11 @@ namespace MfxExtBuffer
 
         ParamBase(mfxExtBuffer** ExtParam, mfxU32 NumExtParam)
         {
-            std::for_each(ExtParam, ExtParam + NumExtParam
-                , [&](mfxExtBuffer* p) { _ConstructEB(p); });
+            if (ExtParam)
+            {
+                std::for_each(ExtParam, ExtParam + NumExtParam
+                    , [&](mfxExtBuffer* p) { _ConstructEB(p); });
+            }
         }
 
         mfxExtBuffer* Get(mfxU32 id) const
