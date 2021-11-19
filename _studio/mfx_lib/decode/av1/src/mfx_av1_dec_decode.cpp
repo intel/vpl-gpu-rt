@@ -1090,7 +1090,7 @@ mfxStatus VideoDECODEAV1::FillVideoParam(UMC_AV1_DECODER::AV1DecoderParams const
         color_format2chroma_format(vp->info.color_format);
 
     par->mfx.FrameInfo            = p.mfx.FrameInfo;
-    par->mfx.CodecProfile         = p.mfx.CodecProfile;
+    par->mfx.CodecProfile         = av1_native_profile_to_mfx_profile(p.mfx.CodecProfile);
     par->mfx.CodecLevel           = p.mfx.CodecLevel;
     par->mfx.DecodedOrder         = p.mfx.DecodedOrder;
     par->mfx.MaxDecFrameBuffering = p.mfx.MaxDecFrameBuffering;
