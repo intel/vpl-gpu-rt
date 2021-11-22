@@ -169,7 +169,6 @@ protected:
     virtual void               Close();
     mfxStatus                  FreeMidArray(mfxFrameAllocator* pAlloc, mfxFrameAllocResponse *response);
     mfxStatus                  RegisterMids(mfxFrameAllocResponse *response, mfxU16 memType, bool IsDefaultAlloc, mfxBaseWideFrameAllocator* pAlloc = 0);
-    mfxStatus                  CheckTimingLog();
 
     bool                       GetUniqID(mfxMemId& mId);
     bool IsEqual (const mfxFrameAllocResponse &resp1, const mfxFrameAllocResponse &resp2) const

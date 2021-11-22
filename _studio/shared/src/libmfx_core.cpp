@@ -107,9 +107,6 @@ mfxStatus CommonCORE::FreeBuffer(mfxMemId mid)
 mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
                                   mfxFrameAllocResponse *response, bool )
 {
-#ifdef MFX_DEBUG_TOOLS
-    MFX::AutoTimer timer("CommonCORE::AllocFrames");
-#endif
     UMC::AutomaticUMCMutex guard(m_guard);
     mfxStatus sts = MFX_ERR_NONE;
     try
@@ -187,9 +184,7 @@ mfxStatus CommonCORE::LockFrame(mfxMemId mid, mfxFrameData *ptr)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::LockFrame");
     UMC::AutomaticUMCMutex guard(m_guard);
-#ifdef MFX_DEBUG_TOOLS
-    MFX::AutoTimer timer("CommonCORE::LockFrame");
-#endif
+
     try
     {
         MFX_CHECK_HDL(mid);
@@ -331,9 +326,7 @@ mfxStatus  CommonCORE::LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool E
 {
     mfxStatus sts;
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "CommonCORE::LockExternalFrame");
-#ifdef MFX_DEBUG_TOOLS
-    MFX::AutoTimer timer("CommonCORE::LockExternalFrame");
-#endif
+
     try
     {
         {
@@ -507,7 +500,6 @@ CommonCORE::CommonCORE(const mfxU32 numThreadsAvailable, const mfxSession sessio
     m_deviceId(0)
 {
     m_bufferAllocator.bufferAllocator.pthis = &m_bufferAllocator;
-    CheckTimingLog();
 }
 
 void CommonCORE::Close()
@@ -545,28 +537,17 @@ mfxStatus CommonCORE::SetHandle(mfxHandleType type, mfxHDL hdl)
 {
     MFX_CHECK_HDL(hdl);
 
-#ifdef MFX_DEBUG_TOOLS
-    UMC::AutomaticUMCMutex guard(m_guard);
-
-    switch ((mfxU32)type)
-    {
-    case MFX_HANDLE_TIMING_LOG:
-        return (MFX::AutoTimer::Init((TCHAR*)hdl, 1) ? MFX_ERR_INVALID_HANDLE : MFX_ERR_NONE);
-    case MFX_HANDLE_TIMING_SUMMARY:
-        return (MFX::AutoTimer::Init((TCHAR*)hdl, 2) ? MFX_ERR_INVALID_HANDLE : MFX_ERR_NONE);
-    case MFX_HANDLE_TIMING_TAL:
-        return (MFX::AutoTimer::Init((TCHAR*)hdl, 3) ? MFX_ERR_INVALID_HANDLE : MFX_ERR_NONE);
-    }
-#else
-    ignore = type;
-#endif
 
 #if defined(MFX_ENABLE_PXP)
+    UMC::AutomaticUMCMutex guard(m_guard);
+
     if (MFX_HANDLE_PXP_CONTEXT ==  type)
     {
         m_pPXPCtxHdl = hdl;
         return MFX_ERR_NONE;
     }
+#else
+    std::ignore = type;
 #endif // MFX_ENABLE_PXP
 
     MFX_RETURN(MFX_ERR_INVALID_HANDLE);
@@ -1297,46 +1278,6 @@ mfxStatus CommonCORE::CopyFrame(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
     }
 }
 
-#ifdef MFX_DEBUG_TOOLS
-#define REG_ROOT                    HKEY_CURRENT_USER
-#define REG_PATH_MEDIASDK           TEXT("Software\\Intel\\MediaSDK")
-#define REG_KEY_TIMING_LOG          TEXT("TimingLog")
-#define REG_KEY_TIMING_PER_FRAME    TEXT("TimingPerFrame")
-#endif
-
-mfxStatus CommonCORE::CheckTimingLog()
-{
-#ifdef MFX_DEBUG_TOOLS
-    HKEY hKey;
-    TCHAR timing_filename[MAX_PATH] = TEXT("");
-    DWORD dwPerFrameStatistic = 0;
-    DWORD type1, type2;
-    DWORD size1 = sizeof(timing_filename);
-    DWORD size2 = sizeof(DWORD);
-
-    if (ERROR_SUCCESS != RegOpenKeyEx(REG_ROOT, REG_PATH_MEDIASDK, 0, KEY_QUERY_VALUE, &hKey))
-    {
-        // not enough permissions
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
-    }
-
-    // read "TimingPerFrame" key
-    RegQueryValueEx(hKey, REG_KEY_TIMING_PER_FRAME, nullptr, &type2, (LPBYTE)&dwPerFrameStatistic, &size2);
-
-    if (ERROR_SUCCESS == RegQueryValueEx(hKey, REG_KEY_TIMING_LOG, nullptr, &type1, (LPBYTE)timing_filename, &size1))
-    {
-        if (REG_SZ == type1)
-        {
-            MFX::AutoTimer::Init(timing_filename, dwPerFrameStatistic);
-        }
-    }
-
-    RegCloseKey(hKey);
-#endif
-
-    return MFX_ERR_NONE;
-}
-
 // 15 bits - uniq surface Id
 // 15 bits score Id
 bool CommonCORE::GetUniqID(mfxMemId& id)
@@ -1413,23 +1354,9 @@ mfxStatus CommonCORE_VPL::AllocFrames(mfxFrameAllocRequest *request, mfxFrameAll
 {
     MFX_CHECK_NULL_PTR2(request, response);
 
-#ifdef MFX_DEBUG_TOOLS
-    MFX::AutoTimer timer("CommonCORE_VPL::AllocFrames");
-#endif
-
     // Do not lock mutex here, allocator designed to be thread-safe
     mfxStatus sts = m_frame_allocator_wrapper.Alloc(*request, *response);
 
-#ifdef MFX_DEBUG_TOOLS
-    if (MFX_ERR_NONE == sts)
-    {
-        char descr[] = "?";
-        if (request->Type & MFX_MEMTYPE_DXVA2_DECODER_TARGET) descr[0] = 'V';
-        if (request->Type & MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET) descr[0] = 'P';
-        if (request->Type & MFX_MEMTYPE_SYSTEM_MEMORY) descr[0] = 'S';
-        timer.AddParam(descr, response->NumFrameActual);
-    }
-#endif
     MFX_LTRACE_I(MFX_TRACE_LEVEL_PARAMS, sts);
     return sts;
 }

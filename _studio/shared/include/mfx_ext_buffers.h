@@ -25,14 +25,6 @@
 #include "mfx_config.h"
 #include "vm_strings.h"
 
-#ifdef MFX_DEBUG_TOOLS
-// internal(undocumented) handles for VideoCORE::SetHandle
-#define MFX_HANDLE_TIMING_LOG       ((mfxHandleType)1001)
-#define MFX_HANDLE_EXT_OPTIONS      ((mfxHandleType)1002)
-#define MFX_HANDLE_TIMING_SUMMARY   ((mfxHandleType)1003)
-#define MFX_HANDLE_TIMING_TAL       ((mfxHandleType)1004)
-#endif
-
 #ifndef MFX_ADAPTIVE_PLAYBACK_DISABLE
 #define MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK MFX_MAKEFOURCC('A','P','B','K')
 #endif
