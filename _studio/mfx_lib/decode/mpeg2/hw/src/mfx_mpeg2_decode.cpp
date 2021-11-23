@@ -493,11 +493,11 @@ mfxStatus VideoDECODEMPEG2::DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfxV
     try
     {
         UMC::Status res = UMC_MPEG2_DECODER::MPEG2Decoder::DecodeHeader(*bs, *par);
-        MFX_CHECK(UMC::UMC_OK == res, ConvertStatusUmc2Mfx(res));
+        MFX_CHECK(UMC::UMC_OK == res, ConvertUMCStatusToMfx(res));
     }
     catch (UMC_MPEG2_DECODER::mpeg2_exception & ex)
     {
-        return ConvertStatusUmc2Mfx(ex.GetStatus());
+        return ConvertUMCStatusToMfx(ex.GetStatus());
     }
 
     return MFX_ERR_NONE;

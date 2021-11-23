@@ -1589,7 +1589,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
     }
     catch(const vp9_exception & ex)
     {
-        mfxStatus sts = ConvertStatusUmc2Mfx(ex.GetStatus());
+        mfxStatus sts = ConvertUMCStatusToMfx(ex.GetStatus());
         MFX_CHECK_STS(sts);
     }
 

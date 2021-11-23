@@ -72,56 +72,6 @@ void MFXMediaDataAdapter::SetExtBuffer(mfxExtBuffer* extbuf)
         SetAuxInfo(extbuf, extbuf->BufferSz, extbuf->BufferId);
 }
 
-mfxStatus ConvertUMCStatusToMfx(UMC::Status status)
-{
-    switch((UMC::eUMC_VA_Status)status)
-    {
-    case UMC::UMC_ERR_FRAME_LOCKED:
-    case UMC::UMC_ERR_DEVICE_FAILED:
-        return MFX_ERR_DEVICE_FAILED;
-    case UMC::UMC_ERR_DEVICE_LOST:
-        return MFX_ERR_DEVICE_LOST;
-    }
-
-    mfxStatus sts = MFX_ERR_NONE;
-
-    switch (status)
-    {
-        case UMC::UMC_OK:
-        case UMC::UMC_ERR_SYNC:
-            sts = MFX_ERR_NONE;
-            break;
-        case UMC::UMC_ERR_NULL_PTR:
-            sts = MFX_ERR_NULL_PTR;
-            break;
-        case UMC::UMC_ERR_NOT_ENOUGH_BUFFER:
-            sts = MFX_ERR_NOT_ENOUGH_BUFFER;
-            break;
-        case UMC::UMC_ERR_NOT_IMPLEMENTED:
-        case UMC::UMC_ERR_UNSUPPORTED:
-            sts = MFX_ERR_UNSUPPORTED;
-            break;
-        case UMC::UMC_ERR_ALLOC:
-            sts = MFX_ERR_MEMORY_ALLOC;
-            break;
-        case UMC::UMC_ERR_LOCK:
-            sts = MFX_ERR_LOCK_MEMORY;
-            break;
-        case UMC::UMC_ERR_INIT:
-        case UMC::UMC_ERR_INVALID_PARAMS:
-        case UMC::UMC_ERR_INVALID_STREAM:
-        case UMC::UMC_ERR_FAILED:
-        case UMC::UMC_ERR_TIMEOUT:
-            sts = MFX_ERR_UNDEFINED_BEHAVIOR;
-            break;
-        default :
-            sts = MFX_ERR_UNKNOWN;
-            break;
-    }
-
-    return sts;
-}
-
 void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoStreamInfo *umcVideoParams)
 {
     umcVideoParams->clip_info.height = par->mfx.FrameInfo.Height;

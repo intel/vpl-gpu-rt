@@ -38,8 +38,6 @@ public:
     void SetExtBuffer(mfxExtBuffer*);
 };
 
-mfxStatus ConvertUMCStatusToMfx(UMC::Status status);
-
 void ConvertMFXParamsToUMC(mfxVideoParam const*, UMC::VideoStreamInfo*);
 void ConvertMFXParamsToUMC(mfxVideoParam const*, UMC::VideoDecoderParams*);
 

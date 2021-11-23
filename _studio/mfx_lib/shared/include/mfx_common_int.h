@@ -28,6 +28,11 @@
 
 #include "mfxsurfacepool.h"
 
+#define MFX_CHECK_UMC_STS(err) \
+    { if (err != static_cast<int>(UMC::UMC_OK)) { MFX_RETURN(ConvertUMCStatusToMfx(err)); } }
+
+mfxStatus ConvertUMCStatusToMfx(UMC::Status);
+
 mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 codecId);
 mfxStatus CheckFrameInfoEncoders(mfxFrameInfo  *info);
 mfxStatus CheckFrameInfoDecVideoProcCsc(mfxFrameInfo *info, mfxU32 codecId);
