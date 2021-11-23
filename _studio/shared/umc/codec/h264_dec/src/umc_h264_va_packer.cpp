@@ -387,7 +387,7 @@ uint8_t* GetSliceStat(H264Slice* slice, uint32_t* size, uint32_t* offset)
         bs->GetState(reinterpret_cast<uint32_t**>(&ptr), &position);
 
         UMC_ASSERT(base != ptr &&
-                  !"slice header should be already parsed here"
+                  "slice header should be already parsed here"
         );
 
         //GetState returns internal offset (bits left) but we need consumed bits
