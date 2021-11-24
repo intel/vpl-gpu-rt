@@ -279,17 +279,6 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
     frameParam.width  = frameParam.renderWidth = extPar.FrameWidth;
     frameParam.height = frameParam.renderHeight = extPar.FrameHeight;
 
-    /*frameParam.sharpness = (mfxU8)opt.SharpnessLevel;
-
-    for (mfxU8 i = 0; i < 4; i ++)
-    {
-        frameParam.lfRefDelta[i] = (mfxI8)opt.LoopFilterRefDelta[i];
-    }
-
-    frameParam.lfModeDelta[0] = (mfxI8)opt.LoopFilterModeDelta[0];
-    frameParam.lfModeDelta[1] = (mfxI8)opt.LoopFilterModeDelta[1];*/
-
-
     frameParam.qIndexDeltaLumaDC   = static_cast<mfxI8>(extPar.QIndexDeltaLumaDC);
     frameParam.qIndexDeltaChromaAC = static_cast<mfxI8>(extPar.QIndexDeltaChromaAC);
     frameParam.qIndexDeltaChromaDC = static_cast<mfxI8>(extPar.QIndexDeltaChromaDC);

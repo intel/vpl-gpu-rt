@@ -1404,22 +1404,6 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         }
     }
 
-    /*for (mfxU8 i = 0; i < MAX_REF_LF_DELTAS; i++)
-    {
-        if (false == CheckRangeDflt(extPar.LoopFilterRefDelta[i], -MAX_LF_LEVEL, MAX_LF_LEVEL, 0))
-        {
-            changed = true;
-        }
-    }
-
-    for (mfxU8 i = 0; i < MAX_MODE_LF_DELTAS; i++)
-    {
-        if (false == CheckRangeDflt(extPar.LoopFilterModeDelta[i], -MAX_LF_LEVEL, MAX_LF_LEVEL, 0))
-        {
-            changed = true;
-        }
-    }*/
-
     // check mfxExtCodingOption2
     if (false == CheckTriStateOption(opt2.MBBRC))
     {
