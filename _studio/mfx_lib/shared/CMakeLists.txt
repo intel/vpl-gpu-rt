@@ -76,7 +76,7 @@ target_link_libraries(mfx_common_hw
   PUBLIC
     mfx_static_lib
     umc_va_hw
-    mctf_hw
+    $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
   PRIVATE
     mfx_sdl_properties
   )

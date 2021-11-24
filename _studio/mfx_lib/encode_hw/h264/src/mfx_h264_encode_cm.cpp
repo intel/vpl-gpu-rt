@@ -35,9 +35,10 @@
 #include "mfx_h264_encode_cm.h"
 #include "mfx_h264_encode_hw_utils.h"
 
+#ifdef MFX_ENABLE_KERNELS
 #include "genx_simple_me_gen12lp_isa.h"
 #include "genx_histogram_gen12lp_isa.h"
-
+#endif
 
 namespace MfxHwH264EncodeHW
 {
@@ -837,6 +838,7 @@ void CmContext::Setup(
     m_video  = video;
     m_device = cmDevice;
 
+#ifdef MFX_ENABLE_KERNELS
 
     if (m_device->CreateQueueEx(m_queue, CM_VME_QUEUE_CREATE_OPTION) != CM_SUCCESS)
         throw CmRuntimeError();
@@ -853,7 +855,6 @@ void CmContext::Setup(
 
     switch (core->GetHWType())
     {
-#ifdef MFX_ENABLE_KERNELS
     case MFX_HW_TGL_LP:
     case MFX_HW_DG1:
     case MFX_HW_RKL:
@@ -862,7 +863,6 @@ void CmContext::Setup(
         m_program = ReadProgram(m_device, genx_simple_me_gen12lp, SizeOf(genx_simple_me_gen12lp));
         m_programHist = ReadProgram(m_device, genx_histogram_gen12lp, SizeOf(genx_histogram_gen12lp));
         break;
-#endif // #ifdef MFX_ENABLE_KERNELS
     default:
         throw CmRuntimeError();
     }
@@ -898,6 +898,7 @@ void CmContext::Setup(
     SetCosts(m_costsB, MFX_FRAMETYPE_B, 26, 2, 3);
     SetLutMv(m_costsP, m_lutMvP);
     SetLutMv(m_costsB, m_lutMvB);
+#endif // #ifdef MFX_ENABLE_KERNELS
 }
 
 CmEvent * CmContext::RunHistogram(

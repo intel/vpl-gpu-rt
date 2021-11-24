@@ -2490,9 +2490,9 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
     if (!m_pCmDevice)
         return MFX_ERR_DEVICE_FAILED;
 
+#ifdef MFX_ENABLE_KERNELS
     switch (hwtype)
     {
-#ifdef MFX_ENABLE_KERNELS
     case MFX_HW_TGL_LP:
     case MFX_HW_DG1:
     case MFX_HW_RKL:
@@ -2500,11 +2500,11 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
     case MFX_HW_ADL_P:
         cmSts = m_pCmDevice->LoadProgram((void*)genx_copy_kernel_gen12lp,sizeof(genx_copy_kernel_gen12lp),m_pCmProgram,"nojitter");
         break;
-#endif
     default:
         cmSts = CM_FAILURE;
         break;
     }
+#endif
     CHECK_CM_STATUS(cmSts, MFX_ERR_DEVICE_FAILED);
 
     m_bSwapKernelsInitialized = true;
