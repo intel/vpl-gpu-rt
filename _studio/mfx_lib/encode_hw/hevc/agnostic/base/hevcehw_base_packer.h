@@ -254,14 +254,14 @@ namespace Base
         struct CallChains
             : Storable
         {
-            using TUpdateSH = CallChain<void
+            using TUpdateAdaptiveCqmSH = CallChain<void
                 , const StorageR&
                 , StorageW&>;
-            TUpdateSH UpdateSH;
+            TUpdateAdaptiveCqmSH UpdateAdaptiveCqmSH;
 
-            using TPackCqmHeader = CallChain<bool
+            using TPackAdaptiveCqmHeader = CallChain<bool
                 , StorageW*>;
-            TPackCqmHeader PackCqmHeader;
+            TPackAdaptiveCqmHeader PackAdaptiveCqmHeader;
 
             using TUpdateLPLAAnalysisSPSBS = CallChain<void
                 , const StorageR& //global

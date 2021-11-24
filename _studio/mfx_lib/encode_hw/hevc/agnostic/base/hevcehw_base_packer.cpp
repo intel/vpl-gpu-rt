@@ -1984,7 +1984,7 @@ mfxStatus Packer::Reset(
     pESBegin += ph.PPS.BitLen / 8;
 
     // Pack cqm PPS header for adaptive cqm.
-    if (m_pGlob->Contains(CC::Key) && CC::Get(*m_pGlob).PackCqmHeader(m_pGlob))
+    if (m_pGlob->Contains(CC::Key) && CC::Get(*m_pGlob).PackAdaptiveCqmHeader(m_pGlob))
     {
         ph.CqmPPS.resize(CQM_HINT_NUM_CUST_MATRIX);
         for (mfxU8 idx = 0; idx < CQM_HINT_NUM_CUST_MATRIX && idx < cqmpps.size(); idx++)
@@ -2129,7 +2129,7 @@ void Packer::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             }
 
             // Update Slice header for adaptive cqm.
-            if (global.Contains(CC::Key)) CC::Get(global).UpdateSH(global, s_task);
+            if (global.Contains(CC::Key)) CC::Get(global).UpdateAdaptiveCqmSH(global, s_task);
 
             mfxU32 sz = GetPSEIAndSSH(
                 Glob::VideoParam::Get(global)
@@ -2176,7 +2176,7 @@ void Packer::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             MFX_CHECK(!bErr, sts);
 
             // Update Slice header for adaptive cqm.
-            if (global.Contains(CC::Key)) CC::Get(global).UpdateSH(global, s_task);
+            if (global.Contains(CC::Key)) CC::Get(global).UpdateAdaptiveCqmSH(global, s_task);
 
             mfxU32 sz = GetPSEIAndSSH(
                 Glob::VideoParam::Get(global)
