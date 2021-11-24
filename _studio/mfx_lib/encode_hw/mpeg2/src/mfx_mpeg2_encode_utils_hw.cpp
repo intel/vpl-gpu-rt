@@ -1809,6 +1809,7 @@ namespace MPEG2EncoderHW
         return MFX_ERR_NONE;
     }
 
+#define RET_UMC_TO_MFX(umc_ret) ConvertStatusUmc2Mfx(umc_ret)
     static void ConvertFrameParamsToUMC(const mfxFrameParamMPEG2* pFrameParams, UMC::FrameType &frType,
         uint32_t &picture_structure,
         uint32_t &repeat_first_field,

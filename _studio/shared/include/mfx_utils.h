@@ -93,6 +93,25 @@ static const mfxU64 MFX_TIME_STAMP_INVALID = (mfxU64)-1; // will go to mfxdefs.h
 static const mfxU32 NO_INDEX = 0xffffffff;
 static const mfxU8  NO_INDEX_U8 = 0xff;
 static const mfxU16 NO_INDEX_U16 = 0xffff;
+#define MFX_CHECK_UMC_STS(err)  { if (err != static_cast<int>(UMC::UMC_OK)) {return ConvertStatusUmc2Mfx(err);} }
+
+inline
+mfxStatus ConvertStatusUmc2Mfx(UMC::Status umcStatus)
+{
+    switch (umcStatus)
+    {
+    case UMC::UMC_OK:                    return MFX_ERR_NONE;
+    case UMC::UMC_ERR_NULL_PTR:          return MFX_ERR_NULL_PTR;
+    case UMC::UMC_ERR_UNSUPPORTED:       return MFX_ERR_UNSUPPORTED;
+    case UMC::UMC_ERR_ALLOC:             return MFX_ERR_MEMORY_ALLOC;
+    case UMC::UMC_ERR_LOCK:              return MFX_ERR_LOCK_MEMORY;
+    case UMC::UMC_ERR_NOT_ENOUGH_BUFFER: return MFX_ERR_NOT_ENOUGH_BUFFER;
+    case UMC::UMC_ERR_NOT_ENOUGH_DATA:   return MFX_ERR_MORE_DATA;
+    case UMC::UMC_ERR_SYNC:              return MFX_ERR_MORE_DATA; // need to skip bad frames
+    default:                             return MFX_ERR_UNKNOWN;   // need general error code here
+    }
+}
+
 
 inline
 mfxF64 GetUmcTimeStamp(mfxU64 ts)

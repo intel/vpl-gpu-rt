@@ -1257,7 +1257,7 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         }
 
         UMC::Status umcSts = m_video_data_info.Init(request.Info.Width, request.Info.Height, color_format, bit_depth);
-        MFX_CHECK_WITH_THROW_STS(ConvertUMCStatusToMfx(umcSts) == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
+        MFX_CHECK_WITH_THROW_STS(ConvertStatusUmc2Mfx(umcSts) == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
     }
     else
     {
@@ -1349,7 +1349,7 @@ void SurfaceSource::CreateUMCAllocator(const mfxVideoParam & video_param, eMFXPl
 
 SurfaceSource::~SurfaceSource()
 {
-    std::ignore = MFX_STS_TRACE(ConvertUMCStatusToMfx(Close()));
+    std::ignore = MFX_STS_TRACE(ConvertStatusUmc2Mfx(Close()));
 }
 
 void SurfaceSource::ReleaseCurrentWorkSurface()
@@ -1676,7 +1676,7 @@ UMC::Status SurfaceSource::GetFrameHandle(UMC::FrameMemID MID, void * handle)
 
         auto it = m_umc2mfx_memid.find(MID);
         MFX_CHECK(it != std::end(m_umc2mfx_memid), MFX_ERR_INVALID_HANDLE);
-        return ConvertUMCStatusToMfx(MFX_STS_TRACE(m_core->GetFrameHDL(it->second, reinterpret_cast<mfxHDL*>(handle), false)));
+        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(m_core->GetFrameHDL(it->second, reinterpret_cast<mfxHDL*>(handle), false)));
     }
     else
     {
@@ -1794,7 +1794,7 @@ UMC::Status SurfaceSource::Unlock(UMC::FrameMemID MID)
         auto base_core_vpl = dynamic_cast<CommonCORE_VPL*>(m_core);
         MFX_CHECK(base_core_vpl, UMC::UMC_ERR_NULL_PTR);
 
-        return ConvertUMCStatusToMfx(MFX_STS_TRACE(base_core_vpl->Unlock(*surf)));
+        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(base_core_vpl->Unlock(*surf)));
     }
     else
     {
@@ -1814,7 +1814,7 @@ UMC::Status SurfaceSource::IncreaseReference(UMC::FrameMemID MID)
         mfxFrameSurface1* surf = GetDecoderSurface(MID);
         MFX_CHECK(surf, UMC::UMC_ERR_NULL_PTR);
 
-        return ConvertUMCStatusToMfx(MFX_STS_TRACE(AddRefSurface(*surf, true)));
+        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(AddRefSurface(*surf, true)));
     }
     else
     {
@@ -1843,7 +1843,7 @@ UMC::Status SurfaceSource::DecreaseReference(UMC::FrameMemID MID)
                 RemoveCorrespondence(*surf);
         }
 
-        return ConvertUMCStatusToMfx(MFX_STS_TRACE(ReleaseSurface(*surf, true)));
+        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(ReleaseSurface(*surf, true)));
     }
     else
     {

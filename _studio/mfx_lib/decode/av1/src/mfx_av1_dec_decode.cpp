@@ -601,7 +601,7 @@ mfxStatus VideoDECODEAV1::DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfxVid
         MFXMediaDataAdapter in(bs);
 
         UMC_AV1_DECODER::AV1DecoderParams vp;
-        sts = ConvertUMCStatusToMfx(UMC_AV1_DECODER::AV1Decoder::DecodeHeader(&in, vp));
+        sts = ConvertStatusUmc2Mfx(UMC_AV1_DECODER::AV1Decoder::DecodeHeader(&in, vp));
         if (sts == MFX_ERR_MORE_DATA || sts == MFX_ERR_MORE_SURFACE)
             return sts;
         MFX_CHECK_STS(sts);
@@ -613,8 +613,9 @@ mfxStatus VideoDECODEAV1::DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfxVid
     }
     catch (UMC_AV1_DECODER::av1_exception const &ex)
     {
-        sts = ConvertUMCStatusToMfx(ex.GetStatus());
+        sts = ConvertStatusUmc2Mfx(ex.GetStatus());
     }
+
 
     return sts;
 }
