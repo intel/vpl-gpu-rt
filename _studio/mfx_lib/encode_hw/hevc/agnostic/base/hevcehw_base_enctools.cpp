@@ -137,6 +137,15 @@ inline bool IsBRC(const mfxExtEncToolsConfig &config)
         IsOn(config.BRC);
 }
 
+
+inline bool IsEncToolsOptSet(const mfxExtEncToolsConfig& config)
+{
+    return
+        (config.AdaptiveB | config.AdaptiveI | config.AdaptiveLTR | config.AdaptivePyramidQuantB
+            | config.AdaptivePyramidQuantP | config.AdaptiveQuantMatrices | config.AdaptiveRefB
+            | config.AdaptiveRefP | config.BRC | config.BRCBufferHints | config.SceneChange);
+}
+
 bool HEVCEHW::Base::IsEncToolsOptOn(const mfxExtEncToolsConfig &config, bool bGameStreaming)
 {
     return
@@ -234,35 +243,35 @@ static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config)
     mfxExtEncToolsConfig *pExtConfig = ExtBuffer::Get(video);
     bool bGameStreaming = pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING;
 
-    if (!pExtConfig || !IsEncToolsOptOn(*pExtConfig, bGameStreaming))
+    if (!pExtConfig || !IsEncToolsOptSet(*pExtConfig))
     {
         if (IsEncToolsImplicit(video))
         {
-            config.AdaptiveI             = mfxU16((pExtConfig && IsOff(pExtConfig->AdaptiveI))             ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN);
-            config.AdaptiveB             = mfxU16((pExtConfig && IsOff(pExtConfig->AdaptiveB))             ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN);
-            config.AdaptivePyramidQuantP = mfxU16((pExtConfig && IsOff(pExtConfig->AdaptivePyramidQuantP)) ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN);
-            config.AdaptivePyramidQuantB = mfxU16((pExtConfig && IsOff(pExtConfig->AdaptivePyramidQuantB)) ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN);
-            config.AdaptiveRefP          = mfxU16((pExtConfig && IsOff(pExtConfig->AdaptiveRefP))          ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN);
-            config.AdaptiveRefB          = mfxU16((pExtConfig && IsOff(pExtConfig->AdaptiveRefB))          ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN);
-            config.AdaptiveLTR           = mfxU16((pExtConfig && IsOff(pExtConfig->AdaptiveLTR))           ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN);
-            config.BRCBufferHints        = mfxU16((pExtConfig && IsOff(pExtConfig->BRCBufferHints))        ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN);
-            config.BRC                   = mfxU16((pExtConfig && IsOff(pExtConfig->BRC))                   ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN);
-            config.AdaptiveQuantMatrices = mfxU16((pExtConfig && IsOff(pExtConfig->AdaptiveQuantMatrices)) ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN);
-            config.SceneChange           = mfxU16((pExtConfig && IsOff(pExtConfig->SceneChange))           ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN);
+            config.AdaptiveI             = MFX_CODINGOPTION_UNKNOWN;
+            config.AdaptiveB             = MFX_CODINGOPTION_UNKNOWN;
+            config.AdaptivePyramidQuantP = MFX_CODINGOPTION_UNKNOWN;
+            config.AdaptivePyramidQuantB = MFX_CODINGOPTION_UNKNOWN;
+            config.AdaptiveRefP          = MFX_CODINGOPTION_UNKNOWN;
+            config.AdaptiveRefB          = MFX_CODINGOPTION_UNKNOWN;
+            config.AdaptiveLTR           = MFX_CODINGOPTION_UNKNOWN;
+            config.BRCBufferHints        = MFX_CODINGOPTION_UNKNOWN;
+            config.BRC                   = MFX_CODINGOPTION_UNKNOWN;
+            config.AdaptiveQuantMatrices = MFX_CODINGOPTION_UNKNOWN;
+            config.SceneChange           = MFX_CODINGOPTION_UNKNOWN;
         }
         else
         {
-            config.AdaptiveI = MFX_CODINGOPTION_OFF;
-            config.AdaptiveB = MFX_CODINGOPTION_OFF;
+            config.AdaptiveI             = MFX_CODINGOPTION_OFF;
+            config.AdaptiveB             = MFX_CODINGOPTION_OFF;
             config.AdaptivePyramidQuantP = MFX_CODINGOPTION_OFF;
             config.AdaptivePyramidQuantB = MFX_CODINGOPTION_OFF;
-            config.AdaptiveRefP = MFX_CODINGOPTION_OFF;
-            config.AdaptiveRefB = MFX_CODINGOPTION_OFF;
-            config.AdaptiveLTR = MFX_CODINGOPTION_OFF;
-            config.BRCBufferHints = MFX_CODINGOPTION_OFF;
-            config.BRC = MFX_CODINGOPTION_OFF;
+            config.AdaptiveRefP          = MFX_CODINGOPTION_OFF;
+            config.AdaptiveRefB          = MFX_CODINGOPTION_OFF;
+            config.AdaptiveLTR           = MFX_CODINGOPTION_OFF;
+            config.BRCBufferHints        = MFX_CODINGOPTION_OFF;
+            config.BRC                   = MFX_CODINGOPTION_OFF;
             config.AdaptiveQuantMatrices = MFX_CODINGOPTION_OFF;
-            config.SceneChange = MFX_CODINGOPTION_OFF;
+            config.SceneChange           = MFX_CODINGOPTION_OFF;
             return;
         }
     }
@@ -524,11 +533,18 @@ void HevcEncTools::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
     Push(BLK_Check,
         [&blocks](const mfxVideoParam&, mfxVideoParam& par, StorageW&) -> mfxStatus
     {
-        mfxExtEncToolsConfig *pConfig = ExtBuffer::Get(par);
-        const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
-        bool bEncTools = (pConfig) ?
-            IsEncToolsOptOn(*pConfig, pCO3 && pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING) :
-            false;
+        const mfxExtEncToolsConfig *pConfig = ExtBuffer::Get(par);
+        bool bEncTools;
+        if (pConfig)
+        {
+            mfxExtEncToolsConfig config = {};
+            const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
+            SetDefaultConfig(par, config);
+            bEncTools = IsEncToolsOptOn(config, pCO3 && pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING);
+        }
+        else
+            bEncTools = IsEncToolsImplicit(par);
+
         mfxU32 changed = 0;
         MFX_CHECK(bEncTools, MFX_ERR_NONE);
 
@@ -816,7 +832,7 @@ mfxStatus HevcEncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
     task_par.DisplayOrder = task.DisplayOrder;
     task_par.NumExtParam = 0;
 
-    if(IsOn(m_EncToolConfig.BRC))
+    if (IsOn(m_EncToolConfig.BRC))
     {
         preEncodeSChg.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_SCENE_CHANGE;
         preEncodeSChg.Header.BufferSz = sizeof(preEncodeSChg);
