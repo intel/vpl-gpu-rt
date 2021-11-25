@@ -1374,13 +1374,6 @@ namespace UMC_AV1_DECODER
 
         sh.film_grain_param_present = GetBit();
 
-        int bitBeforeAlignment = 8 - m_bitOffset % 8;
-        int trailing = GetBits(bitBeforeAlignment);
-        if (trailing != (1 << (bitBeforeAlignment - 1))) {
-            UMC_ASSERT("Invalid trailing!");
-            throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
-        }
-
         AV1D_LOG("[-]: %d", (uint32_t)BitsDecoded());
     }
 
