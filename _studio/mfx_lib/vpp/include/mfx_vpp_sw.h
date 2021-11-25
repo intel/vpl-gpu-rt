@@ -111,7 +111,6 @@ protected:
   // State that keeps Init params. They are changed on Init only
   sErrPrtctState m_InitState;
 
-
   //
   // HW VPP Support
   //

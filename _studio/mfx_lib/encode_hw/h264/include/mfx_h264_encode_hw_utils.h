@@ -383,12 +383,6 @@ namespace MfxHwH264Encode
             bool isCopyRequired = true,
             bool isAllFramesRequired = false);
 
-        mfxStatus Alloc(
-            VideoCORE *            core,
-            mfxFrameAllocRequest & req,
-            mfxFrameSurface1 **    opaqSurf,
-            mfxU32                 numOpaqSurf);
-
         mfxStatus AllocCmBuffers(
             CmDevice *             device,
             mfxFrameAllocRequest & req);

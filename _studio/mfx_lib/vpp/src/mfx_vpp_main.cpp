@@ -142,8 +142,8 @@ mfxStatus VideoVPPMain::VppFrameCheck(mfxFrameSurface1 *in,
         return MFX_ERR_NOT_INITIALIZED;
     }
 
-    mfxFrameSurface1* pInputNative  =  GetNativeSurface(in, VPP_IN);
-    mfxFrameSurface1* pOutputNative =  GetNativeSurface(out, VPP_OUT);
+    mfxFrameSurface1* pInputNative  =  in;
+    mfxFrameSurface1* pOutputNative =  out;
 
     // to prevent Opaque issue
     if( (in && (NULL == pInputNative)) || (out && (NULL == pOutputNative)) )
@@ -161,8 +161,8 @@ mfxStatus VideoVPPMain::VppFrameCheck(mfxFrameSurface1 *in,
 mfxStatus VideoVPPMain::RunFrameVPP(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux)
 {
 
-    mfxFrameSurface1* pNativeInput  = GetNativeSurface(in,   VPP_IN);
-    mfxFrameSurface1* pNativeOutput = GetNativeSurface(out,  VPP_OUT);
+    mfxFrameSurface1* pNativeInput  = in;
+    mfxFrameSurface1* pNativeOutput = out;
 
     mfxStatus mfxSts = m_impl->RunFrameVPP(
         pNativeInput,

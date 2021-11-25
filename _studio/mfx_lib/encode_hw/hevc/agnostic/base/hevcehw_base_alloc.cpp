@@ -59,7 +59,6 @@ IAllocation* Allocator::MakeAlloc(std::unique_ptr<MfxEncodeHW::ResPool>&& upAllo
 
 #define WRAP_CC(X) pIAlloc->X.Push(WrapCC(&MfxEncodeHW::ResPool::X, pAlloc))
     WRAP_CC(Alloc);
-    WRAP_CC(AllocOpaque);
     WRAP_CC(GetResponse);
     WRAP_CC(GetInfo);
     WRAP_CC(Release);

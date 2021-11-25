@@ -91,20 +91,6 @@ mfxStatus ResPool::Alloc(
     return MFX_ERR_NONE;
 }
 
-mfxStatus ResPool::AllocOpaque(
-    const mfxFrameInfo & info
-    , mfxU16 type
-    , mfxFrameSurface1 **surfaces
-    , mfxU16 numSurface)
-{
-    std::ignore = info;
-    std::ignore = type;
-    std::ignore = surfaces;
-    std::ignore = numSurface;
-
-    return MFX_ERR_UNSUPPORTED;
-}
-
 mfxU32 ResPool::Lock(mfxU32 idx)
 {
     if (idx >= m_locked.size())

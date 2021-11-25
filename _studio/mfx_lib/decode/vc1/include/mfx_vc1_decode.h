@@ -137,7 +137,6 @@ protected:
     void            PrepareMediaIn(void);
     static bool     IsHWSupported(VideoCORE *pCore, mfxVideoParam *par);
 
-
     // frame buffering 
     mfxStatus           IsDisplayFrameReady(mfxFrameSurface1 **surface_disp);
 
@@ -222,7 +221,6 @@ protected:
 
     std::vector<uint8_t>                m_RawSeq;
     mfxU64                            m_ext_dur;
-
 
     bool                              m_bStsReport;
     mfxU32                            m_NumberOfQueries;

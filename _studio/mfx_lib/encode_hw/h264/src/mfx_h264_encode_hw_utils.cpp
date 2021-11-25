@@ -2667,20 +2667,6 @@ mfxStatus MfxFrameAllocResponse::Alloc(
     return MFX_ERR_NONE;
 }
 
-mfxStatus MfxFrameAllocResponse::Alloc(
-    VideoCORE *            core,
-    mfxFrameAllocRequest & req,
-    mfxFrameSurface1 **    opaqSurf,
-    mfxU32                 numOpaqSurf)
-{
-    std::ignore = core;
-    std::ignore = req;
-    std::ignore = opaqSurf;
-    std::ignore = numOpaqSurf;
-
-    return MFX_ERR_UNSUPPORTED;
-}
-
 mfxStatus MfxFrameAllocResponse::AllocCmBuffers(
     CmDevice *             device,
     mfxFrameAllocRequest & req)

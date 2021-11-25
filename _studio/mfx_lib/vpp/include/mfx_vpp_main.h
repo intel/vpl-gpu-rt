@@ -104,16 +104,8 @@ public:
 
 private:
 
-    // Opaq processing
-    mfxFrameSurface1 *GetNativeSurface(mfxFrameSurface1 *surface, mfxU32 type)
-    {
-        std::ignore = type;
-        return surface;
-    }
-
     VideoCORE* m_core;
     std::unique_ptr<VideoVPP> m_impl;
-
 };
 
 #endif // __MFX_VPP_MAIN_H

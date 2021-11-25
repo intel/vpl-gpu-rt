@@ -598,7 +598,6 @@ namespace Base
             , mfxU16 /*type*/
             , mfxFrameSurface1 ** /*surfaces*/
             , mfxU16 /*numSurface*/>;
-        TAllocOpaque AllocOpaque;
 
         using TGetResponse = CallChain<mfxFrameAllocResponse>;
         TGetResponse GetResponse;

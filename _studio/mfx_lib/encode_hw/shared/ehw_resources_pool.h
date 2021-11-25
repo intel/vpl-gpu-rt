@@ -45,12 +45,6 @@ public:
          const mfxFrameAllocRequest & req
         , bool isCopyRequired);
 
-    virtual mfxStatus AllocOpaque(
-        const mfxFrameInfo & info
-        , mfxU16 type
-        , mfxFrameSurface1 **surfaces
-        , mfxU16 numSurface);
-
     virtual Resource  Acquire();
     virtual void      Release(mfxU32 idx) { Unlock(idx); }
 
