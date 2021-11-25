@@ -674,12 +674,20 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
                 impl.VendorImplID = adapterNum;
                 impl.AccelerationMode = core.GetVAType() == MFX_HW_VAAPI ? MFX_ACCEL_MODE_VIA_VAAPI : MFX_ACCEL_MODE_VIA_D3D11;
 
+                impl.AccelerationModeDescription.Version.Version = MFX_STRUCT_VERSION(1, 0);
+                mfx::PODArraysHolder& ah = impl;
+                ah.PushBack(impl.AccelerationModeDescription.Mode) = impl.AccelerationMode;
+                impl.AccelerationModeDescription.NumAccelerationModes++;
+                impl.PoolPolicies.Version.Version = MFX_STRUCT_VERSION(1, 0);
+                impl.PoolPolicies.NumPoolPolicies = 3;
+                ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_OPTIMAL;
+                ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_UNLIMITED;
+                ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_LIMITED;
+
 
                 snprintf(impl.Dev.DeviceID, sizeof(impl.Dev.DeviceID), "%x/%d", deviceId, adapterNum);
                 snprintf(impl.ImplName, sizeof(impl.ImplName), "mfx-gen");
 
-                impl.AccelerationModeDescription.Version.Version = MFX_STRUCT_VERSION(1, 0);
-                impl.PoolPolicies.Version.Version = MFX_STRUCT_VERSION(1, 0);
                 impl.Dec.Version.Version = MFX_STRUCT_VERSION(1, 0);
                 impl.Enc.Version.Version = MFX_STRUCT_VERSION(1, 0);
                 impl.VPP.Version.Version = MFX_STRUCT_VERSION(1, 0);
