@@ -1934,7 +1934,7 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
         {
             mfxExtVPPDenoise2 *bufDN = reinterpret_cast<mfxExtVPPDenoise2 *>(par->ExtParam[i]);
             MFX_CHECK_NULL_PTR1(bufDN);
-            bufDN->Strength = m_executeParams.denoiseFactorOriginal;
+            bufDN->Strength = m_executeParams.denoiseStrength;
             bufDN->Mode     = m_executeParams.denoiseMode;
         }
 
@@ -5611,9 +5611,7 @@ mfxStatus ConfigureExecuteParams(
                     if (extDenoise)
                     {
                         executeParams.denoiseMode = extDenoise->Mode;
-                        executeParams.denoiseFactor = MapDNFactor(extDenoise->Strength);
-                        executeParams.denoiseFactorOriginal = extDenoise->Strength;
-                        executeParams.bDenoiseAutoAdjust = (extDenoise->Mode == MFX_DENOISE_MODE_INTEL_HVS_AUTO_ADJUST);
+                        executeParams.denoiseStrength = extDenoise->Strength;
                         executeParams.bdenoiseAdvanced = true;
                     }
                 }
@@ -6226,11 +6224,9 @@ mfxStatus ConfigureExecuteParams(
                 }
                 else if (MFX_EXTBUFF_VPP_DENOISE2 == bufferId)
                 {
-                    executeParams.bDenoiseAutoAdjust    = false;
-                    executeParams.denoiseFactor         = 0;
-                    executeParams.denoiseFactorOriginal = 0;
                     executeParams.denoiseMode           = MFX_DENOISE_MODE_DEFAULT;
-                    executeParams.bdenoiseAdvanced      = true;
+                    executeParams.denoiseStrength       = 0;
+                    executeParams.bdenoiseAdvanced      = false;
                 }
                 else if (MFX_EXTBUFF_VPP_SCENE_ANALYSIS == bufferId)
                 {

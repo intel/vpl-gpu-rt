@@ -398,10 +398,11 @@ namespace MfxHwVideoProcessing
         mfxI32         iDeinterlacingAlgorithm; //0 - none, 1 - BOB, 2 - advanced (means reference need)
         bool           bFMDEnable;
 
-        bool           bDenoiseAutoAdjust;
-        mfxU16         denoiseFactor;
-        mfxU16         denoiseFactorOriginal; // Original denoise factor or strength provided by app.
-        mfxDenoiseMode denoiseMode;           // Denoise mode
+        bool           bDenoiseAutoAdjust;    // MFX_EXTBUFF_VPP_DENOISE
+        mfxU16         denoiseFactor;         // MFX_EXTBUFF_VPP_DENOISE
+        mfxU16         denoiseFactorOriginal; // MFX_EXTBUFF_VPP_DENOISE, Original denoise factor or strength provided by app.
+        mfxDenoiseMode denoiseMode;           // MFX_EXTBUFF_VPP_DENOISE2 Denoise mode
+        mfxU16         denoiseStrength;       // MFX_EXTBUFF_VPP_DENOISE2 denoiseStrength
         bool           bdenoiseAdvanced;      // Indicate MFX_EXTBUFF_VPP_DENOISE2
         bool           bDetailAutoAdjust;
         mfxU16         detailFactor;
