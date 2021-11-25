@@ -261,8 +261,6 @@ public:
 
     bool HasFreeSurface();
 
-    void SetFreeSurfaceAllowedFlag(bool flag);
-
 protected:
     VideoCORE*                                    m_core;
 
