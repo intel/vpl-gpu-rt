@@ -28,7 +28,7 @@
 #include "mfx_utils.h"
 #include "mfx_common.h"
 
-#include <algorithm>
+#include <stdlib.h>
 
 #define ALIGN32(X) (((mfxU32)((X)+31)) & (~ (mfxU32)31))
 #define ID_BUFFER MFX_MAKEFOURCC('B','U','F','F')
@@ -37,6 +37,9 @@
 #define ERROR_STATUS(sts) ((sts)<MFX_ERR_NONE)
 
 #define DEFAULT_ALIGNMENT_SIZE 32
+
+static const size_t BASE_ADDR_ALIGN = 0x1000; // 4k page size alignment
+static const size_t BASE_SIZE_ALIGN = 0x1000; // 4k page size alignment
 
 // Implementation of Internal allocators
 mfxStatus mfxDefaultAllocator::AllocBuffer(mfxHDL pthis, mfxU32 nbytes, mfxU16 type, mfxHDL *mid)
@@ -152,7 +155,7 @@ mfxStatus mfxDefaultAllocator::FreeBuffer(mfxHDL pthis, mfxMemId mid)
     }
 }
 
-inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU32& nbytes)
+inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU32& nbytes, size_t power_of_2_alignment = BASE_SIZE_ALIGN)
 {
     mfxU32 Pitch = mfx::align2_value(Info.Width, 32), Height2 = mfx::align2_value(Info.Height, 32);
 
@@ -226,6 +229,9 @@ inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU32& n
     default:
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
+
+    // Allocate SW memmory with page aligned size
+    nbytes = mfx::align2_value(nbytes, power_of_2_alignment);
 
     return MFX_ERR_NONE;
 }
@@ -596,14 +602,17 @@ mfxStatus RWAcessSurface::UnlockRW()
 
 mfxFrameSurface1_sw::mfxFrameSurface1_sw(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>&, mfxHDL, mfxU32, FrameAllocatorBase& allocator)
     : RWAcessSurface(info, type, mid, allocator)
+    , m_data(nullptr, free)
 {
     MFX_CHECK_WITH_THROW_STS(m_internal_surface.Data.MemType & MFX_MEMTYPE_SYSTEM_MEMORY, MFX_ERR_UNSUPPORTED);
 
     mfxU32 nbytes;
-    mfxStatus sts = GetNumBytesRequired(info, nbytes);
+    mfxStatus sts = GetNumBytesRequired(info, nbytes, BASE_SIZE_ALIGN);
     MFX_CHECK_WITH_THROW_STS(sts == MFX_ERR_NONE, sts);
 
-    m_data.reset(new mfxU8[nbytes]);
+    m_data.reset(reinterpret_cast<mfxU8*>(aligned_alloc(BASE_ADDR_ALIGN, nbytes)));
+
+    MFX_CHECK_WITH_THROW_STS(m_data, MFX_ERR_MEMORY_ALLOC);
 }
 
 mfxStatus mfxFrameSurface1_sw::Lock(mfxU32 flags)
@@ -654,9 +663,11 @@ mfxStatus mfxFrameSurface1_sw::Realloc(const mfxFrameInfo & info)
     MFX_CHECK(!Locked(), MFX_ERR_LOCK_MEMORY);
 
     mfxU32 nbytes;
-    MFX_SAFE_CALL(GetNumBytesRequired(info, nbytes));
+    MFX_SAFE_CALL(GetNumBytesRequired(info, nbytes, BASE_SIZE_ALIGN));
 
-    m_data.reset(new mfxU8[nbytes]);
+    m_data.reset(reinterpret_cast<mfxU8*>(aligned_alloc(BASE_ADDR_ALIGN, nbytes)));
+
+    MFX_CHECK(m_data, MFX_ERR_MEMORY_ALLOC);
 
     m_internal_surface.Info = info;
 

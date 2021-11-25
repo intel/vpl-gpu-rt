@@ -1093,7 +1093,7 @@ struct mfxFrameSurface1_sw : public RWAcessSurface
 protected:
     mfxFrameSurface1_sw(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>& staging_adapter, mfxHDL device, mfxU32 context, FrameAllocatorBase& allocator);
 
-    std::unique_ptr<mfxU8[]> m_data;
+    std::unique_ptr<mfxU8, void(*)(void*)> m_data;
 };
 
 using FlexibleFrameAllocatorSW = FlexibleFrameAllocator<mfxFrameSurface1_sw, staging_adapter_stub>;
