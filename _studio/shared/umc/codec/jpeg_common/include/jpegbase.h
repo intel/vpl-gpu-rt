@@ -341,6 +341,9 @@ public:
   CMemoryBuffer(void) { m_buffer_size = 0; m_buffer = 0; }
   virtual ~CMemoryBuffer(void) { Delete(); }
 
+  CMemoryBuffer(const CMemoryBuffer&) = delete;
+  void operator=(const CMemoryBuffer&) = delete;
+
   JERRCODE Allocate(int size);
   JERRCODE Delete(void);
 

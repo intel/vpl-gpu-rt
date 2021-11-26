@@ -36,6 +36,9 @@ public:
   CBitStreamInput(void);
   virtual ~CBitStreamInput(void);
 
+  CBitStreamInput(const CBitStreamInput&) = delete;
+  void operator=(const CBitStreamInput&) = delete;
+
   JERRCODE Attach(CBaseStreamInput* in);
   JERRCODE Detach(void);
 
