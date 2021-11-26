@@ -4849,6 +4849,25 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             break;
         } //case MFX_EXTBUFF_VPP_FIELD_PROCESSING
 
+        case MFX_EXTBUFF_VPP_DENOISE2:
+        {
+            mfxExtVPPDenoise2* extDN2 = (mfxExtVPPDenoise2*) data;
+            // All pre-processing mode will not be applied for interfaced content
+            // In VPL GPU runtime, default mode is BD-Rate mode.
+            if ((extDN2->Mode == MFX_DENOISE_MODE_INTEL_HVS_AUTO_BDRATE) ||
+                (extDN2->Mode == MFX_DENOISE_MODE_INTEL_HVS_AUTO_SUBJECTIVE) ||
+                (extDN2->Mode == MFX_DENOISE_MODE_INTEL_HVS_PRE_MANUAL) ||
+                (extDN2->Mode == MFX_DENOISE_MODE_DEFAULT))
+            {
+                if ((par->vpp.In.PicStruct != MFX_PICSTRUCT_PROGRESSIVE) ||
+                    (par->vpp.Out.PicStruct != MFX_PICSTRUCT_PROGRESSIVE))
+                {
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+                }
+            }
+            break;
+        }
+
         case MFX_EXTBUFF_VPP_DEINTERLACING:
         {
             mfxExtVPPDeinterlacing* extDI = (mfxExtVPPDeinterlacing*) data;
