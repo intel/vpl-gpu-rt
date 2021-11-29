@@ -886,8 +886,10 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
 
         if (data.currFrameId != -1)
         {
-            // This is allowing proper frame release in case of SW surfaces, when refcounter reaches zero after decrease
+            // This flag is allowing proper frame release in case of SW surfaces, when refcounter reaches zero after decrease
+            decoder.m_surface_source->SetFreeSurfaceAllowedFlag(true);
             decoder.m_surface_source->DecreaseReference(data.currFrameId);
+            decoder.m_surface_source->SetFreeSurfaceAllowedFlag(false);
         }
         decoder.m_framesStorage->DecodeFrame(data.currFrameId);
 

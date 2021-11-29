@@ -2231,6 +2231,27 @@ bool SurfaceSource::HasFreeSurface()
     }
 }
 
+void SurfaceSource::SetFreeSurfaceAllowedFlag(bool flag)
+{
+    if (m_redirect_to_vpl_path != !!m_vpl_cache_decoder_surfaces)
+    {
+        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
+    }
+    if (!m_redirect_to_vpl_path != !!m_umc_allocator_adapter)
+    {
+        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
+    }
+
+    if (m_redirect_to_vpl_path)
+    {
+        std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
+    }
+    else
+    {
+        m_umc_allocator_adapter->SetSfcPostProcessingFlag(flag);
+    }
+}
+
 // D3D functionality
 // we should copy to external SW surface
 mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam *, bool canUseGpuCopy)
