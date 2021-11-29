@@ -574,7 +574,7 @@ mfxStatus VAAPIVideoProcessing::ConfigHVSDenoise(mfxExecuteParams *pParams)
         case MFX_DENOISE_MODE_INTEL_HVS_PRE_MANUAL:
         case MFX_DENOISE_MODE_INTEL_HVS_POST_MANUAL:
             hvs_param.mode      = VA_PROC_HVS_DENOISE_MANUAL;
-            hvs_param.strength  = pParams->denoiseFactor;
+            hvs_param.strength  = pParams->denoiseStrength;
             break;
         case MFX_DENOISE_MODE_INTEL_HVS_AUTO_ADJUST:
         case MFX_DENOISE_MODE_DEFAULT:
