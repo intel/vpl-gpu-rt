@@ -52,6 +52,7 @@ mfxStatus LPLA_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig 
         m_IdrInterval = mfxU16(ctrl.MaxIDRDist / m_GopPicSize);
 
     m_GopRefDist = ctrl.MaxGopRefDist;
+    m_codecId = ctrl.CodecId; // main codec's ID
 
     sts = InitEncParams(ctrl, config);
     MFX_CHECK_STS(sts);
@@ -89,6 +90,7 @@ mfxStatus LPLA_EncTool::Reset(mfxEncToolsCtrl const& ctrl, mfxExtEncToolsConfig 
         m_IdrInterval = mfxU16(ctrl.MaxIDRDist / m_GopPicSize);
 
     m_GopRefDist = ctrl.MaxGopRefDist;
+    m_codecId = ctrl.CodecId; // main codec's ID
 
     sts = InitEncParams(ctrl, config);
     MFX_CHECK_STS(sts);
@@ -424,6 +426,8 @@ mfxStatus LPLA_EncTool::Query(mfxU32 dispOrder, mfxEncToolsHintPreEncodeGOP *pPr
                 if (m_nextPisIntra)
                 {
                     pPreEncGOP->FrameType = MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF;
+                    if (m_codecId == MFX_CODEC_AV1)
+                        pPreEncGOP->FrameType |= MFX_FRAMETYPE_IDR;
                     m_nextPisIntra = false;
                     m_lastIFrameNumber = dispOrder;
                 }
@@ -437,6 +441,8 @@ mfxStatus LPLA_EncTool::Query(mfxU32 dispOrder, mfxEncToolsHintPreEncodeGOP *pPr
         if (m_nextPisIntra)
         {
             pPreEncGOP->FrameType = MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF;
+            if (m_codecId == MFX_CODEC_AV1)
+                pPreEncGOP->FrameType |= MFX_FRAMETYPE_IDR;
             m_nextPisIntra = false;
             m_lastIFrameNumber = dispOrder;
         }

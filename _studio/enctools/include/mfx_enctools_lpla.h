@@ -79,7 +79,8 @@ public:
         m_nextPisIntra(false),
         m_GopPicSize(0),
         m_GopRefDist(0),
-        m_IdrInterval(1)
+        m_IdrInterval(1),
+        m_codecId(0)
     {
         m_bitstream  = {};
         m_encParams  = {};
@@ -151,5 +152,6 @@ protected:
     mfxU16                        m_IdrInterval;
     std::list<MfxFrameSize>       m_frameSizes;
     mfxExtEncToolsConfig          m_config;
+    mfxU32                        m_codecId;
 };
 #endif
