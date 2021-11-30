@@ -32,9 +32,9 @@ TYPEDEF_MEMBER(mfxExtAVCEncodedFrameInfo, UsedRefListL0[0],    mfxExtAVCEncodedF
 TYPEDEF_MEMBER(mfxExtVPPVideoSignalInfo,  In,                  mfxExtVPPVideoSignalInfo_InOut)
 #else
 typedef struct {
-	mfxU16  TransferMatrix;
-	mfxU16  NominalRange;
-	mfxU16  reserved2[6];
+    mfxU16  TransferMatrix;
+    mfxU16  NominalRange;
+    mfxU16  reserved2[6];
 } mfxExtVPPVideoSignalInfo_InOut;
 #endif
 TYPEDEF_MEMBER(mfxExtEncoderROI,          ROI[0],              mfxExtEncoderROI_Entry)
