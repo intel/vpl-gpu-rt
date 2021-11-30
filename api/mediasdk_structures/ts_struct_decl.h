@@ -421,6 +421,21 @@ STRUCT(mfxExtAvcTemporalLayers,
     FIELD_S(mfxExtAvcTemporalLayers_Layer, Layer)
 )
 
+STRUCT(mfxTemporalLayer,
+    FIELD_T(mfxU16, FrameRateScale)
+    FIELD_T(mfxU32, InitialDelayInKB)
+    FIELD_T(mfxU32, BufferSizeInKB)
+    FIELD_T(mfxU32, TargetKbps)
+    FIELD_T(mfxU32, MaxKbps)
+)
+
+STRUCT(mfxExtTemporalLayers,
+    FIELD_S(mfxExtBuffer, Header)
+    FIELD_T(mfxU16, NumLayers)
+    FIELD_T(mfxU16, BaseLayerPID)
+    FIELD_T(mfxTemporalLayer*, Layers)
+)
+
 STRUCT(mfxExtEncoderCapability,
     FIELD_S(mfxExtBuffer, Header)
     FIELD_T(mfxU32, MBPerSec)
@@ -778,6 +793,8 @@ STRUCT(mfxExtVP9Param,
     FIELD_T(mfxI16      , QIndexDeltaLumaDC)
     FIELD_T(mfxI16      , QIndexDeltaChromaAC)
     FIELD_T(mfxI16      , QIndexDeltaChromaDC)
+    FIELD_T(mfxU16      , NumTileRows)
+    FIELD_T(mfxU16      , NumTileColumns)
 )
 
 STRUCT(mfxExtMBForceIntra,
@@ -922,6 +939,38 @@ STRUCT(mfxExtAV1FilmGrainParam,
     FIELD_T(mfxU8, CrMult)
     FIELD_T(mfxU8, CrLumaMult)
     FIELD_T(mfxU16, CrOffset)
+)
+
+STRUCT(mfxExtAV1BitstreamParam,
+    FIELD_S(mfxExtBuffer, Header)
+    FIELD_T(mfxU16, WriteIVFHeaders)
+)
+
+STRUCT(mfxExtAV1ResolutionParam,
+    FIELD_S(mfxExtBuffer, Header)
+    FIELD_T(mfxU32, FrameWidth)
+    FIELD_T(mfxU32, FrameHeight)
+)
+
+STRUCT(mfxExtAV1TileParam,
+    FIELD_S(mfxExtBuffer, Header)
+    FIELD_T(mfxU16, NumTileRows)
+    FIELD_T(mfxU16, NumTileColumns)
+    FIELD_T(mfxU16, NumTileGroups)
+)
+
+STRUCT(mfxAV1SegmentParam,
+    FIELD_T(mfxU16, FeatureEnabled)
+    FIELD_T(mfxU16, AltQIndex)
+)
+
+STRUCT(mfxExtAV1Segmentation,
+    FIELD_S(mfxExtBuffer, Header)
+    FIELD_T(mfxU8, NumSegments)
+    FIELD_S(mfxAV1SegmentParam, Segment)
+    FIELD_T(mfxU16, SegmentIdBlockSize)
+    FIELD_T(mfxU32, NumSegmentIdAlloc)
+    FIELD_T(mfxU8*, SegmentIds)
 )
 
 STRUCT(mfxExtPartialBitstreamParam,

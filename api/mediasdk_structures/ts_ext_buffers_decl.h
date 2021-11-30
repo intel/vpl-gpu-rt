@@ -70,9 +70,13 @@ EXTBUF(mfxExtHEVCTiles                   , MFX_EXTBUFF_HEVC_TILES               
 EXTBUF(mfxExtPredWeightTable             , MFX_EXTBUFF_PRED_WEIGHT_TABLE         )
 EXTBUF(mfxExtEncodedUnitsInfo            , MFX_EXTBUFF_ENCODED_UNITS_INFO        )
 EXTBUF(mfxExtPartialBitstreamParam       , MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM   )
-EXTBUF(mfxExtEncoderIPCMArea             , MFX_EXTBUFF_ENCODER_IPCM_AREA               )
-EXTBUF(mfxExtInsertHeaders               , MFX_EXTBUFF_INSERT_HEADERS                  )
+EXTBUF(mfxExtEncoderIPCMArea             , MFX_EXTBUFF_ENCODER_IPCM_AREA         )
+EXTBUF(mfxExtInsertHeaders               , MFX_EXTBUFF_INSERT_HEADERS            )
 
+EXTBUF(mfxExtAV1BitstreamParam           , MFX_EXTBUFF_AV1_BITSTREAM_PARAM)
+EXTBUF(mfxExtAV1ResolutionParam          , MFX_EXTBUFF_AV1_RESOLUTION_PARAM)
+EXTBUF(mfxExtAV1TileParam                , MFX_EXTBUFF_AV1_TILE_PARAM)
+EXTBUF(mfxExtAV1Segmentation             , MFX_EXTBUFF_AV1_SEGMENTATION)
 #endif //defined(__MFXSTRUCTURES_H__)
 
 #if defined(__MFXCOMMON_H__)
