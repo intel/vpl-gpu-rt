@@ -372,6 +372,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxHDLPair                         ,second                        ,8    )
 #endif //defined (__MFXDEFS_H__)
 
+
 //mfxstructures.h
 #if defined (__MFXSTRUCTURES_H__)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFrameId                         ,TemporalId                    ,0    )
