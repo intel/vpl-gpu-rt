@@ -1015,7 +1015,7 @@ JERRCODE CJPEGDecoderBase::ParseDRI(void)
   if(JPEG_OK != jerr)
       return jerr;
 
-  for(int i=m_curr_scan->scan_no; i<MAX_SCANS_PER_FRAME; i++)
+  for (int i = 0; i < MAX_SCANS_PER_FRAME; i++)
   {
       m_scans[i].jpeg_restart_interval = jpeg_restart_interval;
   }
