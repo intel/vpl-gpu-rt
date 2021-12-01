@@ -1088,6 +1088,13 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
             else
                 return true;
         case MFX_FOURCC_YUY2:
+            if(( par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr &&
+               (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV420 || par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422H)) ||
+               (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB &&
+                    par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444))
+                return false;
+            else
+                return true;
         case MFX_FOURCC_UYVY:
             if( par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr &&
                (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV420 || par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422H)
