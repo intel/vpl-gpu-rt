@@ -165,24 +165,59 @@ if(MFX_ENABLE_KERNELS)
   source_group("genx" FILES ${genx_sources})
   source_group("mctf_hw" FILES ${mctf_package})
 
-  target_sources(mfx_ext PRIVATE
-    ${genx_sources}
-    ${mctf_package}
-  )
-
   target_include_directories(mfx_ext
     PUBLIC
       ${genx_include_dirs}
       ${mctf_include_dir}
   )
 
+  target_sources(mfx_ext PRIVATE
+    ${genx_sources}
+    ${mctf_package}
+  )
+endif()
+
+if (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
+  target_include_directories(mfx_ext PUBLIC
+    mpeg2/include
+    ${MSDK_UMC_ROOT}/codec/brc/include
+    ${MSDK_LIB_ROOT}/shared/include
+  )
+
+  set(mpeg2_video_encode_src
+    mpeg2/include/mfx_mpeg2_encode_debug_hw.h
+    mpeg2/include/mfx_mpeg2_encode_full_hw.h
+    mpeg2/include/mfx_mpeg2_encode_hw.h
+    mpeg2/include/mfx_mpeg2_encode_utils_hw.h
+    mpeg2/include/mfx_mpeg2_enc_common.h
+    mpeg2/include/mfx_mpeg2_enc_common_hw.h
+    mpeg2/include/mfx_mpeg2_encode_interface.h
+    mpeg2/include/mfx_mpeg2_encode_vaapi.h
+
+    mpeg2/src/mfx_mpeg2_encode_debug_hw.cpp
+    mpeg2/src/mfx_mpeg2_encode_full_hw.cpp
+    mpeg2/src/mfx_mpeg2_encode_hw.cpp
+    mpeg2/src/mfx_mpeg2_encode_utils_hw.cpp
+    mpeg2/src/mfx_mpeg2_encode_vaapi.cpp
+    mpeg2/src/mfx_mpeg2_encode_factory.cpp
+    mpeg2/src/mfx_mpeg2_enc_common_hw.cpp
+
+  )
+
+  source_group("mpeg2e" FILES ${mpeg2_video_encode_src})
+
+  target_sources(mfx_ext PRIVATE
+    ${mpeg2_video_encode_src}
+  )
+endif()
+
   target_link_libraries(mfx_ext
     PUBLIC 
       mfx_static_lib
       cmrt_cross_platform_hw
       asc
+    PRIVATE
+      bitrate_control
   )
-
-endif()
 
 include(sources_ext.cmake OPTIONAL)

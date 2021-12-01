@@ -125,27 +125,6 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
   source_group("hevc" FILES ${HEVC_VIDEO_ENCODE_SRC})
 endif()
 
-if (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
-  target_include_directories(encode_hw PUBLIC
-    mpeg2/include
-    ${MSDK_UMC_ROOT}/codec/mpeg2_enc/include
-  )
-
-  set(MPEG2_VIDEO_ENCODE_SRC
-    mpeg2/include/mfx_mpeg2_encode_debug_hw.h
-    mpeg2/include/mfx_mpeg2_encode_full_hw.h
-    mpeg2/include/mfx_mpeg2_encode_hw.h
-    mpeg2/include/mfx_mpeg2_encode_utils_hw.h
-
-    mpeg2/src/mfx_mpeg2_encode_debug_hw.cpp
-    mpeg2/src/mfx_mpeg2_encode_full_hw.cpp
-    mpeg2/src/mfx_mpeg2_encode_hw.cpp
-    mpeg2/src/mfx_mpeg2_encode_utils_hw.cpp
-  )
-
-  source_group("mpeg2" FILES ${MPEG2_VIDEO_ENCODE_SRC})
-endif()
-
 if (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
   target_include_directories(encode_hw PUBLIC
     mjpeg/include
@@ -193,7 +172,6 @@ endif()
 target_sources(encode_hw PRIVATE
   ${AVC_VIDEO_ENCODE_SRC}
   ${HEVC_VIDEO_ENCODE_SRC}
-  ${MPEG2_VIDEO_ENCODE_SRC}
   ${MJPEG_VIDEO_ENCODE_SRC}
   ${VP9_VIDEO_ENCODE_SRC}
 

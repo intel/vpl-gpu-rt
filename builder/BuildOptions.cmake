@@ -88,7 +88,6 @@ option( MFX_ENABLE_VP9_VIDEO_DECODE "Enabled VP9 decoder?" ON)
 option( MFX_ENABLE_H264_VIDEO_DECODE "Enabled AVC decoder?" ON)
 option( MFX_ENABLE_H265_VIDEO_DECODE "Enabled HEVC decoder?" ON)
 option( MFX_ENABLE_MPEG2_VIDEO_DECODE "Enabled MPEG2 decoder?" ON)
-option( MFX_ENABLE_MPEG2_VIDEO_ENCODE "Enabled MPEG2 encoder?" ON)
 option( MFX_ENABLE_MJPEG_VIDEO_DECODE "Enabled MJPEG decoder?" ON)
 option( MFX_ENABLE_MJPEG_VIDEO_ENCODE "Enabled MJPEG encoder?" ON)
 option( MFX_ENABLE_VC1_VIDEO_DECODE "Enabled VC1 decoder?" ON)
@@ -97,6 +96,10 @@ option( MFX_ENABLE_H265_VIDEO_ENCODE "Enable H.265 (HEVC) encoder?" ON)
 option( MFX_ENABLE_VP9_VIDEO_ENCODE "Enable VP9 encoder?" ON)
 option( MFX_ENABLE_VPP "Enabled Video Processing?" ON)
 option( MFX_ENABLE_PXP "Enabled Video protection?" OFF)
+
+cmake_dependent_option(
+  MFX_ENABLE_MPEG2_VIDEO_ENCODE "Enabled MPEG2 encoder?" ON 
+  "${MFX_ENABLE_EXT}" OFF)
 
 cmake_dependent_option(
   MFX_ENABLE_ASC "Enable ASC support?" ON 

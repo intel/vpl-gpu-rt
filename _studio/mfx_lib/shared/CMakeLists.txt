@@ -19,10 +19,6 @@ target_sources(mfx_common_hw
     include/mfx_interface_scheduler.h
     include/mfx_log.h
     include/mfx_mpeg2_dec_common.h
-    include/mfx_mpeg2_enc_common.h
-    include/mfx_mpeg2_enc_common_hw.h
-    include/mfx_mpeg2_encode_interface.h
-    include/mfx_mpeg2_encode_vaapi.h
     include/mfx_msg.h
     include/mfx_platform_headers.h
     include/mfx_session.h
@@ -48,9 +44,6 @@ target_sources(mfx_common_hw
     src/mfx_h264_encode_factory.cpp
     src/mfx_h264_encode_vaapi.cpp
 
-    src/mfx_mpeg2_encode_vaapi.cpp
-    src/mfx_mpeg2_encode_factory.cpp
-    src/mfx_mpeg2_enc_common_hw.cpp
     src/mfx_vpx_dec_common.cpp
 
     $<$<PLATFORM_ID:Windows>:
