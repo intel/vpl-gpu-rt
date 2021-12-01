@@ -5393,7 +5393,6 @@ bool MfxHwH264Encode::isAdaptiveCQMSupported(mfxU16 scenarioInfo, bool isLowPowe
     return ((scenarioInfo == MFX_SCENARIO_GAME_STREAMING) || (scenarioInfo == MFX_SCENARIO_REMOTE_GAMING)) && isLowPowerOn;
 }
 
-
 void MfxHwH264Encode::SetDefaults(
     MfxVideoParam &         par,
     MFX_ENCODE_CAPS const & hwCaps,
@@ -5973,7 +5972,8 @@ void MfxHwH264Encode::SetDefaults(
 #if defined(MFX_ENABLE_ENCTOOLS)
            || (!IsOff(extConfig->AdaptiveI)
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
-               && !IsLpLookaheadSupported(extOpt3->ScenarioInfo, extOpt2->LookAheadDepth, par.mfx.RateControlMethod)
+               && (!IsLpLookaheadSupported(extOpt3->ScenarioInfo, extOpt2->LookAheadDepth, par.mfx.RateControlMethod)
+                   || IsOn(extConfig->AdaptiveI))
 #endif
                )
 #endif
@@ -5989,7 +5989,8 @@ void MfxHwH264Encode::SetDefaults(
 #if defined(MFX_ENABLE_ENCTOOLS)
             || (!IsOff(extConfig->AdaptiveB)
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
-                && !IsLpLookaheadSupported(extOpt3->ScenarioInfo, extOpt2->LookAheadDepth, par.mfx.RateControlMethod)
+                && (!IsLpLookaheadSupported(extOpt3->ScenarioInfo, extOpt2->LookAheadDepth, par.mfx.RateControlMethod)
+                    || IsOn(extConfig->AdaptiveB))
 #endif
                 )
 #endif
