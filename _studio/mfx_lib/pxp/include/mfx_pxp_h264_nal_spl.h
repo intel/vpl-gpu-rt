@@ -18,33 +18,30 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef __MFX_PXP_VIDEO_ACCELERATOR_H
-#define __MFX_PXP_VIDEO_ACCELERATOR_H
+#ifndef __MFX_PXP_H264_NAL_SPL_H
+#define __MFX_PXP_H264_NAL_SPL_H
 
-#include "mfx_config.h"
+#include "mfx_common.h"
 
 #if defined(MFX_ENABLE_PXP)
 
-#include "umc_va_protected.h"
+#include "umc_h264_nal_spl.h"
+#include "mfx_pxp_video_accelerator.h"
+
+#include "mfx_pxp_video_accelerator_vaapi.h"
 
 namespace UMC
 {
-    class PXPVA : public ProtectedVA
+    class PXPNALUnitSplitter : public NALUnitSplitter
     {
     public:
-        PXPVA(mfxHDL pxpCtxHdl);
-        virtual ~PXPVA();
-        void SetPXPCtxHdl(mfxHDL pxpCtxHdl) { m_PXPCtxHdl = pxpCtxHdl; }
-        mfxHDL GetPXPCtxHdl() { return m_PXPCtxHdl; }
-        void SetPXPParams(mfxHDL pxpParams) { m_PXPParams = pxpParams; }
-        mfxHDL GetPXPParams() { return m_PXPParams; }
-        uint8_t m_curSegment;
+        virtual NalUnit* GetNalUnits(MediaData* pSource) override;
+        Status MergeEncryptedNalUnit(NalUnit* nalUnit, MediaData* pSource);
+        void SetVA(VideoAccelerator* va) { m_va = va; }
     private:
-        mfxHDL m_PXPCtxHdl;
-        mfxHDL m_PXPParams;
+        VideoAccelerator* m_va;
     };
+
 }
-
 #endif // MFX_ENABLE_PXP
-#endif // __MFX_PXP_VIDEO_ACCELERATOR_H
-
+#endif // __MFX_PXP_H264_NAL_SPL_H

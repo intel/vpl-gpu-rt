@@ -5,6 +5,7 @@ set(UMC_CODECS ${MSDK_UMC_ROOT}/codec)
 if (MFX_ENABLE_H264_VIDEO_DECODE)
   target_include_directories(decode_hw PUBLIC
     ${UMC_CODECS}/h264_dec/include
+    $<$<BOOL:${MFX_ENABLE_PXP}>:${MSDK_LIB_ROOT}/pxp/include>
     h264/include
   )
 

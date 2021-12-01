@@ -164,7 +164,7 @@ public:
 
     void Reset();
 
-    NalUnit * GetNalUnit(MediaData * src);
+    virtual NalUnit * GetNalUnit(MediaData * src);
 
     NALUnitSplitter * GetNalUnitSplitter();
 

@@ -18,6 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#ifndef __UMC_VA_PROTECTED_H
+#define __UMC_VA_PROTECTED_H
+
 #pragma once
 
 #include "mfx_common.h"
@@ -58,3 +61,4 @@ protected:
 }
 
 #endif // MFX_ENABLE_PROTECT
+#endif //__UMC_VA_PROTECTED_H

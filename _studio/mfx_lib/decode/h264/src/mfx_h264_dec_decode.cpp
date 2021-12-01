@@ -36,6 +36,7 @@
 
 #if defined(MFX_ENABLE_PXP)
 #include "mfx_pxp_video_accelerator.h"
+#include "mfx_pxp_h264_supplier.h"
 #endif // MFX_ENABLE_PXP
 
 #include "libmfx_core_interface.h"
@@ -255,8 +256,6 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
     bool bUseBigSurfaceWA = IsBigSurfacePoolApplicable(type);
 
-    m_pH264VideoDecoder.reset(bUseBigSurfaceWA ? new UMC::VATaskSupplierBigSurfacePool<UMC::VATaskSupplier>() : new UMC::VATaskSupplier()); // HW
-
     int32_t useInternal = m_vPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
@@ -323,8 +322,6 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
     UMC::Status umcSts = m_MemoryAllocator.InitMem(0, m_core);
     MFX_CHECK(umcSts == UMC::UMC_OK, MFX_ERR_MEMORY_ALLOC);
 
-    m_pH264VideoDecoder->SetFrameAllocator(m_surface_source.get());
-
     UMC::H264VideoDecoderParams umcVideoParams;
     ConvertMFXParamsToUMC(&m_vFirstPar, &umcVideoParams);
     umcVideoParams.numThreads = m_vPar.mfx.NumThread;
@@ -332,6 +329,15 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
     m_core->GetVA((mfxHDL*)&m_va, MFX_MEMTYPE_FROM_DECODE);
     umcVideoParams.pVideoAccelerator = m_va;
+
+#if defined(MFX_ENABLE_PXP)
+    if (m_va->GetProtectedVA())
+        m_pH264VideoDecoder.reset(bUseBigSurfaceWA ? new UMC::VATaskSupplierBigSurfacePool<UMC::PXPH264Supplier>() : new UMC::PXPH264Supplier()); // HW
+    else
+#endif // MFX_ENABLE_PXP
+        m_pH264VideoDecoder.reset(bUseBigSurfaceWA ? new UMC::VATaskSupplierBigSurfacePool<UMC::VATaskSupplier>() : new UMC::VATaskSupplier()); // HW
+
+    m_pH264VideoDecoder->SetFrameAllocator(m_surface_source.get());
     static_cast<UMC::VATaskSupplier*>(m_pH264VideoDecoder.get())->SetVideoHardwareAccelerator(m_va);
 
 

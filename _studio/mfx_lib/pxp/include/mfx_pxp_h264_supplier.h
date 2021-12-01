@@ -18,33 +18,34 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef __MFX_PXP_VIDEO_ACCELERATOR_H
-#define __MFX_PXP_VIDEO_ACCELERATOR_H
+#ifndef __MFX_PXP_H264_SUPPLIER_H
+#define __MFX_PXP_H264_SUPPLIER_H
 
-#include "mfx_config.h"
+#include "mfx_common.h"
 
 #if defined(MFX_ENABLE_PXP)
 
-#include "umc_va_protected.h"
+#include "umc_h264_va_supplier.h"
+#include "umc_h264_nal_spl.h"
+#include "mfx_pxp_video_accelerator.h"
+#include "mfx_pxp_h264_nal_spl.h"
+
+#include "mfx_pxp_video_accelerator_vaapi.h"
 
 namespace UMC
 {
-    class PXPVA : public ProtectedVA
-    {
-    public:
-        PXPVA(mfxHDL pxpCtxHdl);
-        virtual ~PXPVA();
-        void SetPXPCtxHdl(mfxHDL pxpCtxHdl) { m_PXPCtxHdl = pxpCtxHdl; }
-        mfxHDL GetPXPCtxHdl() { return m_PXPCtxHdl; }
-        void SetPXPParams(mfxHDL pxpParams) { m_PXPParams = pxpParams; }
-        mfxHDL GetPXPParams() { return m_PXPParams; }
-        uint8_t m_curSegment;
-    private:
-        mfxHDL m_PXPCtxHdl;
-        mfxHDL m_PXPParams;
-    };
+
+class PXPH264Supplier : public VATaskSupplier
+{
+public:
+    PXPH264Supplier();
+    virtual ~PXPH264Supplier() {};
+
+    virtual Status Init(VideoDecoderParams* pInit) override;
+    virtual Status AddOneFrame(MediaData* pSource) override;
+    Status UpdatePXPParams(MediaData const* pSource);
+};
+
 }
-
 #endif // MFX_ENABLE_PXP
-#endif // __MFX_PXP_VIDEO_ACCELERATOR_H
-
+#endif // __MFX_PXP_H264_SUPPLIER_H

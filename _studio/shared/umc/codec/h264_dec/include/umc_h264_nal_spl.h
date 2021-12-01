@@ -182,7 +182,6 @@ public:
     }
 
 protected:
-
     SwapperBase *   m_pSwapper;
     StartCodeIteratorBase * m_pStartCodeIter;
 

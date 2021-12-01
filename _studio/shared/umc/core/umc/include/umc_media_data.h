@@ -69,7 +69,7 @@ public:
 
     // Get an address of the beginning of the buffer.
     // This pointer could not be equal to the beginning of valid data.
-    virtual void* GetBufferPointer(void) { return m_pBufferPointer; }
+    virtual void* GetBufferPointer(void) const { return m_pBufferPointer; }
 
     // Get an address of the beginning of valid data.
     // This pointer could not be equal to the beginning of the buffer.

@@ -26,6 +26,10 @@
 #include "umc_h264_au_splitter.h"
 #include "umc_h264_nal_spl.h"
 
+#if defined(MFX_ENABLE_PXP)
+#include "mfx_pxp_h264_nal_spl.h"
+#endif // MFX_ENABLE_PXP
+
 namespace UMC
 {
 
@@ -520,7 +524,11 @@ void AU_Splitter::Init()
 {
     Close();
 
+#if defined(MFX_ENABLE_PXP)
+    m_pNALSplitter.reset(new PXPNALUnitSplitter());
+#else
     m_pNALSplitter.reset(new NALUnitSplitter());
+#endif // MFX_ENABLE_PXP
     m_pNALSplitter->Init();
 }
 
