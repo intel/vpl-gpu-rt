@@ -47,6 +47,15 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
+/*! Describes secure encode configuration. */
+typedef struct {
+    mfxU32                   pxpFlag;           /*!< flag to create secure encode context. */
+    mfxU32                   ContextId;         /*!< context id of encoder. */
+    mfxU8                    reserved[24];      /*!< Reserved for future use. */
+} *mfxSecureEncodeConfigHDL, mfxSecureEncodeConfig;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
 /*! Describes secure vpp configuration. */
 typedef struct {
     mfxU32                   ContextId;         /*!< context id of VPP. */
@@ -66,6 +75,20 @@ typedef struct {
     mfxHDL                   pPXPParams;        /*!< Pointer to PXP parameters. */
     mfxU8                    reserved[24];      /*!< Reserved for future use. */
 } *mfxDecodeParamMapHDL, mfxDecodeParamMap;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+/*! This is a table to map pxp parameter associacted with encode input/output.
+    PXP parameter point to VAEncryptionParameters on linux.
+    {bitstream_ptr | pxp_param_ptr | pOutput | outputSize}
+*/
+typedef struct {
+    mfxBitstream            *pMfxBitstream;     /*!< Pointer to output bitstream buffer. */
+    mfxHDL                   pPXPParams;        /*!< Pointer to PXP parameters */
+    mfxHDL                   pOutput;           /*!< Pointer to encode output meta data. */
+    mfxU32                   outputSize;        /*!< size of encode output meta data. */
+    mfxU8                    reserved[16];      /*!< Reserved for future use. */
+} *mfxEncodeParamMapHDL, mfxEncodeParamMap;
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
@@ -148,11 +171,14 @@ MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxHDL                   pxpSessionHdl;     /*!< The handle of PXP Session. */
     mfxSecureDecodeConfig    secureDecodeCfg;   /*!< Pointer to mfxSecureDecodeConfig structure. */
+    mfxSecureEncodeConfig    secureEncodeCfg;   /*!< Pointer to mfxSecureEncodeConfig structure. */
     mfxSecureVPPConfig       secureVPPCfg;      /*!< Pointer to mfxSecureVPPConfig structure. */
 
     mfxDecodeParamMapHDL     decodeParamMapHdl; /*!< Pointer to mfxDecodeParamMapHDL structure. */
     mfxU32                   decodeParamMapCnt; /*!< The count of PXP parameters. */
-    mfxU8                    reserved[20];      /*!< Reserved for future use. */
+    mfxEncodeParamMapHDL     encodeParamMapHdl; /*!< Pointer to mfxEncodeParamMapHDL structure. */
+    mfxU32                   encodeParamMapCnt; /*!< The count of PXP parameters. */
+    mfxU8                    reserved[12];      /*!< Reserved for future use. */
 } mfxPXPCtx, *mfxPXPCtxHDL;
 MFX_PACK_END()
 
