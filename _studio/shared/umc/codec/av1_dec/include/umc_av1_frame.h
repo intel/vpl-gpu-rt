@@ -217,6 +217,7 @@ namespace UMC_AV1_DECODER
 
         int64_t          UID;
         DPBType          frame_dpb;
+        UMC::FrameMemID  m_index;
 
     protected:
         virtual void Free()

@@ -46,6 +46,7 @@ namespace UMC_AV1_DECODER
 
         void AllocateFrameData(UMC::VideoDataInfo const&, UMC::FrameMemID, AV1DecoderFrame&) override;
         UMC::Status SubmitTiles(AV1DecoderFrame&, bool) override;
+        int32_t GetFreeIndex(UMC::FrameMemID) const;
 
     private:
         std::vector<ReportItem> reports;

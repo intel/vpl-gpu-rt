@@ -94,6 +94,7 @@ namespace UMC_AV1_DECODER
     const uint8_t MAX_AUTOREG_COEFFS_LUMA                = 24;
     const uint8_t MAX_AUTOREG_COEFFS_CHROMA              = MAX_AUTOREG_COEFFS_LUMA + 1;
 
+
     enum AV1_OBU_TYPE
     {
         OBU_SEQUENCE_HEADER = 1,

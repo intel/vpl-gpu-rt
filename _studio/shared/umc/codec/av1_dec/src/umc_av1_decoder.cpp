@@ -833,6 +833,10 @@ namespace UMC_AV1_DECODER
             throw av1_exception(UMC::UMC_ERR_ALLOC);
 
         AllocateFrameData(info, id, frame);
+        if (frame.m_index < 0)
+        {
+            throw av1_exception(UMC::UMC_ERR_ALLOC);
+        }
     }
 
     template <typename F>

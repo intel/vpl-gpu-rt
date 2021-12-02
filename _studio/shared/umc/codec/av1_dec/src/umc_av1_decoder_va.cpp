@@ -110,6 +110,14 @@ namespace UMC_AV1_DECODER
         fd.Init(&info, id, allocator);
 
         frame.AllocateAndLock(&fd);
+        frame.m_index = GetFreeIndex(id);
+    }
+
+    int32_t AV1DecoderVA::GetFreeIndex (UMC::FrameMemID id) const
+    {
+        int32_t index = id;
+
+        return index;
     }
 
     inline bool InProgress(AV1DecoderFrame const& frame)
