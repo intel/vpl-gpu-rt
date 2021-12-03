@@ -366,7 +366,7 @@ mfxStatus LPLA_EncTool::Query(mfxU32 dispOrder, mfxEncToolsHintPreEncodeGOP *pPr
         case 2:
         case 4:
         case 8:
-            pPreEncGOP->MiniGopSize = (m_curEncodeHints.MiniGopSize <= m_GopRefDist) ? m_curEncodeHints.MiniGopSize : 0;
+            pPreEncGOP->MiniGopSize = m_curEncodeHints.MiniGopSize;
             break;
         default:
             pPreEncGOP->MiniGopSize = 0;
