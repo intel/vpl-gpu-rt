@@ -95,6 +95,8 @@ static inline mfxU32 ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_Y210;
     case MFX_FOURCC_Y410:
         return VA_FOURCC_Y410;
+    case MFX_FOURCC_YUV400:
+        return VA_FOURCC_Y800;
     case MFX_FOURCC_P016:
         return VA_FOURCC_P016;
     case MFX_FOURCC_Y216:
@@ -144,6 +146,19 @@ static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int 
             break;
         case MFX_FOURCC_A2RGB10:
             format = VA_RT_FORMAT_RGB32_10BPP;
+            break;
+        case MFX_FOURCC_YUV400:
+            format = VA_RT_FORMAT_YUV400;
+            //  Enable this hint as required for creating YUV400 surface for JPEG.
+            if ((memType & MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET)
+                    && (memType & MFX_MEMTYPE_FROM_DECODE))
+            {
+                attrib.resize(attrib.size()+1);
+                attrib[1].type            = VASurfaceAttribUsageHint;
+                attrib[1].flags           = VA_SURFACE_ATTRIB_SETTABLE;
+                attrib[1].value.type      = VAGenericValueTypeInteger;
+                attrib[1].value.value.i   = VA_SURFACE_ATTRIB_USAGE_HINT_DECODER;
+            }
             break;
         case MFX_FOURCC_RGBP:
             format = VA_RT_FORMAT_RGBP;
@@ -203,6 +218,7 @@ static inline bool isFourCCSupported(mfxU32 va_fourcc)
 #endif
         case VA_FOURCC_Y210:
         case VA_FOURCC_Y410:
+        case VA_FOURCC_Y800:
         case VA_FOURCC_P016:
         case VA_FOURCC_Y216:
         case VA_FOURCC_Y416:
