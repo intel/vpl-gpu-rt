@@ -4398,7 +4398,7 @@ typedef struct {
     /*! Mask array. Every bit represents sub-device (or thread for CPU).
         "1" means execution is allowed. "0" means that execution is prohibited on
         this sub-device (or thread). Length of the array is equal to the:
-        "max_subdevices / 8" and rounded to the closest (from the right) integer.
+        "NumSubDevices / 8" and rounded to the closest (from the right) integer.
         Bits order within each entry of the mask array is LSB: bit 0 holds data
         for sub device with index 0 and bit 8 for sub device with index 8.
         Index of sub device is defined by the mfxDeviceDescription structure. */
