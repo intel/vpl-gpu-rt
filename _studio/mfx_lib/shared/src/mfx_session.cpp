@@ -163,12 +163,12 @@ mfxStatus _mfxSession::Init(mfxIMPL implInterface, mfxVersion *ver)
     // allocate video core
     if (MFX_PLATFORM_SOFTWARE == m_currentPlatform)
     {
-        m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_NO, 0, maxNumThreads, this));
+        m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_NO, 0, {}, maxNumThreads, this));
     }
 
     else
     {
-        m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_VAAPI, m_adapterNum, maxNumThreads, this));
+        m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_VAAPI, m_adapterNum, {}, maxNumThreads, this));
     }
 
 
@@ -347,18 +347,9 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par)
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
     }
 
-    // only mfxExtThreadsParam is allowed
     if (par.NumExtParam)
     {
-        if ((par.NumExtParam > 1) || !par.ExtParam)
-        {
-            return MFX_ERR_UNSUPPORTED;
-        }
-        if ((par.ExtParam[0]->BufferId != MFX_EXTBUFF_THREADS_PARAM) ||
-            (par.ExtParam[0]->BufferSz != sizeof(mfxExtThreadsParam)))
-        {
-            return MFX_ERR_UNSUPPORTED;
-        }
+        MFX_CHECK(par.ExtParam, MFX_ERR_UNSUPPORTED);
     }
 
     // get the number of available threads
@@ -372,14 +363,41 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par)
         }
     }
 
+    auto IsMaskValid = [](const std::pair<mfxU32, std::vector<mfxU8>> & affinityMask) -> bool
+    {
+        if (!affinityMask.first || affinityMask.first > 15) // va supports 16 sub-devices
+            return false;
+
+        mfxU8 byteIdx = 0;
+        mfxU32 numPowerOfTwo = 0;
+        for (auto val : affinityMask.second)
+        {
+            const auto length = affinityMask.first - (8*byteIdx);
+            val &= (1<<length) - 1;
+            numPowerOfTwo += !!(val && (!(val & (val - 1))));
+            ++byteIdx;
+        }
+        return (numPowerOfTwo == 1);
+
+    };
+
+    auto extAffinityMask = (mfxExtDeviceAffinityMask*) mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_DEVICE_AFFINITY_MASK);
+    std::pair<mfxU32, std::vector<mfxU8>> affinityMask;
+    if (extAffinityMask)
+    {
+        std::vector<mfxU8> mask(extAffinityMask->Mask, extAffinityMask->Mask + (extAffinityMask->NumSubDevices + 7) / 8);
+        affinityMask = {extAffinityMask->NumSubDevices, std::move(mask)};
+        MFX_CHECK(IsMaskValid(affinityMask), MFX_ERR_UNSUPPORTED);
+    }
+
     // allocate video core
     if (MFX_PLATFORM_SOFTWARE == m_currentPlatform)
     {
-        m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_NO, 0, maxNumThreads, this));
+        m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_NO, 0, {}, maxNumThreads, this));
     }
     else
     {
-        m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_VAAPI, m_adapterNum, maxNumThreads, this));
+        m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_VAAPI, m_adapterNum, affinityMask, maxNumThreads, this));
     }
 
     // query the scheduler interface
@@ -391,7 +409,9 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par)
 
     MFXIScheduler2* pScheduler2 = ::QueryInterface<MFXIScheduler2>(m_pSchedulerAllocated, MFXIScheduler2_GUID);
 
-    if (par.NumExtParam && !pScheduler2) {
+    auto threadsParam = (mfxExtThreadsParam*) mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_THREADS_PARAM);
+    if (threadsParam && !pScheduler2)
+    {
         return MFX_ERR_UNKNOWN;
     }
 
@@ -405,8 +425,9 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par)
 #endif
         schedParam.numberOfThreads = maxNumThreads;
         schedParam.pCore = m_pCORE.get();
-        if (par.NumExtParam) {
-            schedParam.params = *((mfxExtThreadsParam*)par.ExtParam[0]);
+        if (threadsParam)
+        {
+            schedParam.params = *threadsParam;
         }
         mfxRes = pScheduler2->Initialize2(&schedParam);
 
@@ -445,23 +466,8 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par)
         }
     }
 
-    return InitEx_2_1(par);
-} // mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par);
-
-mfxStatus _mfxVersionedSessionImpl::InitEx_2_1(mfxInitParam& par)
-{
-    //--- Initialization of stuff related to 1.33 interface
-    if (par.ExtParam)
-    {
-        mfxExtBuffer** found = std::find_if(par.ExtParam, par.ExtParam + par.NumExtParam,
-            [](mfxExtBuffer* x) {
-            return x->BufferId == MFX_EXTBUFF_THREADS_PARAM && x->BufferSz == sizeof(mfxExtThreadsParam); });
-        MFX_CHECK(found!= par.ExtParam + par.NumExtParam, MFX_ERR_UNSUPPORTED);
-    }
-
     return MFX_ERR_NONE;
-} // mfxStatus _mfxVersionedSessionImpl::InitEx2_1(mfxInitParam& par);
-
+} // mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par);
 
 //explicit specification of interface creation
 template<> MFXISession_1_10*  CreateInterfaceInstance<MFXISession_1_10>(const MFX_GUID &guid)

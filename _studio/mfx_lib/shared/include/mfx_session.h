@@ -214,11 +214,6 @@ protected:
     // Reference counters
     mfxU32 m_refCounter;
     mfxU16 m_externalThreads;
-
-    /// Initialization routine related to 2_1 interface
-    /// @param par - initialization parameters
-    /// @return MFX_ERROR_NONE if completed successfully, error code otherwise.
-    virtual mfxStatus InitEx_2_1(mfxInitParam& par);
 };
 
 //

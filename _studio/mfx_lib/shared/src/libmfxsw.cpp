@@ -488,7 +488,7 @@ mfxStatus QueryImplsDescription(VideoCORE&, mfxEncoderDescription&, mfx::PODArra
 mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription&, mfx::PODArraysHolder&);
 mfxStatus QueryImplsDescription(VideoCORE&, mfxVPPDescription&, mfx::PODArraysHolder&);
 
-static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfxU64 ) > QueryImpls)
+static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32, mfxU64, const std::vector<bool>&) > QueryImpls)
 {
     for (int i = 0; i < 64; ++i)
     {
@@ -542,13 +542,26 @@ static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfx
 
             std::shared_ptr<VADisplay> closeVA(&displ, [displ](VADisplay*) { vaTerminate(displ); });
 
+            VADisplayAttribute attr = {};
+            attr.type = VADisplayAttribSubDevice;
+            auto sts = vaGetDisplayAttributes(displ, &attr, 1);
+            std::ignore = MFX_STS_TRACE(sts);
+
+            VADisplayAttribValSubDevice out = {};
+            out.value = attr.value;
+
+            std::vector<bool> subDevMask(VA_STATUS_SUCCESS == sts ? out.bits.sub_device_count : 0);
+            for (std::size_t id = 0; id < subDevMask.size(); ++id)
             {
-                std::unique_ptr<VideoCORE> pCore(FactoryCORE::CreateCORE(MFX_HW_VAAPI, 0, 0));
+                subDevMask[id] = !!((1 << id) & out.bits.sub_device_mask);
+            }
+            {
+                std::unique_ptr<VideoCORE> pCore(FactoryCORE::CreateCORE(MFX_HW_VAAPI, 0, {}, 0));
 
                 if (pCore->SetHandle(MFX_HANDLE_VA_DISPLAY, (mfxHDL)displ))
                     continue;
 
-                if (!QueryImpls(*pCore, deviceId, i, fd))
+                if (!QueryImpls(*pCore, deviceId, i, fd, subDevMask))
                     return false;
             }
         }
@@ -599,7 +612,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
         {
             std::unique_ptr<mfx::ExtendedDeviceIDHolder> holder(new mfx::ExtendedDeviceIDHolder);
 
-            auto QueryDevExtended = [&](VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum, mfxU64 num)-> bool
+            auto QueryDevExtended = [&](VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum, mfxU64 num, const std::vector<bool>&)-> bool
             {
                 if (!IsVplHW(core.GetHWType(), deviceId))
                     return true;
@@ -659,7 +672,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
         {
             std::unique_ptr<mfx::ImplDescriptionHolder> holder(new mfx::ImplDescriptionHolder);
 
-            auto QueryImplDesc = [&](VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum, mfxU64) -> bool
+            auto QueryImplDesc = [&](VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum, mfxU64, const std::vector<bool>& subDevMask) -> bool
             {
                 if (!IsVplHW(core.GetHWType(), deviceId))
                     return true;
@@ -688,6 +701,19 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
                 snprintf(impl.Dev.DeviceID, sizeof(impl.Dev.DeviceID), "%x/%d", deviceId, adapterNum);
                 snprintf(impl.ImplName, sizeof(impl.ImplName), "mfx-gen");
 
+                for (std::size_t i = 0, e = subDevMask.size(); i != e; ++i)
+                {
+                    if (subDevMask[i])
+                    {
+                        auto & subDevices = ah.PushBack(impl.Dev.SubDevices);
+                        subDevices.Index = impl.Dev.NumSubDevices;
+                        snprintf(subDevices.SubDeviceID, sizeof(subDevices.SubDeviceID), "%d", static_cast<mfxU32>(i));
+                        impl.Dev.NumSubDevices++;
+                    }
+                }
+
+                impl.AccelerationModeDescription.Version.Version = MFX_STRUCT_VERSION(1, 0);
+                impl.PoolPolicies.Version.Version = MFX_STRUCT_VERSION(1, 0);
                 impl.Dec.Version.Version = MFX_STRUCT_VERSION(1, 0);
                 impl.Enc.Version.Version = MFX_STRUCT_VERSION(1, 0);
                 impl.VPP.Version.Version = MFX_STRUCT_VERSION(1, 0);

@@ -196,7 +196,7 @@ public:
     void                 SetCmCopyStatus(bool enable);
 
 protected:
-    VAAPIVideoCORE_T(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
+    VAAPIVideoCORE_T(const mfxU32 adapterNum, const AffinityMaskType& affinityMask, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
     virtual void           Close()                                                                            override;
     virtual mfxStatus      DefaultAllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response) override;
 
@@ -217,6 +217,7 @@ protected:
     bool                                        m_KeepVAState;
 
     const mfxU32                                m_adapterNum; // Ordinal number of adapter to work
+    const AffinityMaskType                      m_affinityMask; // Sub-device mask (for multi-tile systems)
     bool                                        m_bUseExtAllocForHWFrames;
     std::unique_ptr<mfxDefaultAllocatorVAAPI::mfxWideHWFrameAllocator>
                                                 m_pcHWAlloc;
@@ -262,7 +263,7 @@ public:
     virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)                                                      override;
 
 protected:
-    VAAPIVideoCORE_VPL(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
+    VAAPIVideoCORE_VPL(const mfxU32 adapterNum, const AffinityMaskType& affinityMask, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
 };
 
 

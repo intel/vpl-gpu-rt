@@ -28,7 +28,8 @@ class FactoryCORE
 {
 public:
     static VideoCORE* CreateCORE(eMFXVAType va_type, 
-                                 mfxU32 adapterNum, 
+                                 mfxU32 adapterNum,
+                                 const std::pair<mfxU32, std::vector<mfxU8>> & affinityMask,
                                  mfxU32 numThreadsAvailable, 
                                  mfxSession session = NULL);
 };

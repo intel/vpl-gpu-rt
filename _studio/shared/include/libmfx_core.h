@@ -37,6 +37,8 @@
 #include <limits>
 
 
+using AffinityMaskType = std::pair<mfxU32/*size*/, std::vector<mfxU8>/*mask*/>;
+
 class CommonCORE : public VideoCORE
 {
 public:
@@ -304,8 +306,8 @@ protected:
         : Base(numThreadsAvailable, session)
     {}
 
-    deprecate_from_base(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr)
-        : Base(adapterNum, numThreadsAvailable, session)
+    deprecate_from_base(const mfxU32 adapterNum, const AffinityMaskType& affinityMask, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr)
+        : Base(adapterNum, affinityMask, numThreadsAvailable, session)
     {}
 };
 

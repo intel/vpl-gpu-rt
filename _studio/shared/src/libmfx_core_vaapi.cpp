@@ -105,6 +105,7 @@ mfx_device_item getDeviceItem(VADisplay pVaDisplay)
 template <class Base>
 VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(
     const mfxU32 adapterNum,
+    const AffinityMaskType& affinityMask,
     const mfxU32 numThreadsAvailable,
     const mfxSession session)
           : Base(numThreadsAvailable, session)
@@ -112,6 +113,7 @@ VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(
           , m_VAContextHandle((mfxHDL)VA_INVALID_ID)
           , m_KeepVAState(false)
           , m_adapterNum(adapterNum)
+          , m_affinityMask(affinityMask)
           , m_bUseExtAllocForHWFrames(false)
           , m_HWType(MFX_HW_UNKNOWN)
           , m_GTConfig(MFX_GT_UNKNOWN)
@@ -164,6 +166,26 @@ mfxStatus VAAPIVideoCORE_T<Base>::CheckOrInitDisplay()
 
         int vamajor = 0, vaminor = 0;
         MFX_CHECK(VA_STATUS_SUCCESS == vaInitialize(displ, &vamajor, &vaminor), MFX_ERR_NOT_INITIALIZED);
+
+        if (m_affinityMask.first)
+        {
+            auto GetSubDeviceIdxPlus1 = [](const AffinityMaskType & affinityMask) -> mfxU8
+            {
+                mfxU8 byteIdx = 0;
+                for (auto val : affinityMask.second)
+                {
+                    const auto length = affinityMask.first - (8*byteIdx);
+                    val &= (1<<length) - 1;
+                    if (val)
+                        return ffs(val);
+                }
+                return 0;
+            };
+            VADisplayAttribValSubDevice subDev = {};
+            subDev.bits.current_sub_device = GetSubDeviceIdxPlus1(m_affinityMask) - 1;
+            VADisplayAttribute attr = { VADisplayAttribSubDevice, 0, 0, static_cast<int32_t>(subDev.value), VA_DISPLAY_ATTRIB_SETTABLE};
+            MFX_CHECK(VA_STATUS_SUCCESS == vaSetDisplayAttributes(displ, &attr, 1), MFX_ERR_NOT_INITIALIZED);
+        }
 
         MFX_SAFE_CALL(this->SetHandle(MFX_HANDLE_VA_DISPLAY, displ));
 
@@ -1105,9 +1127,10 @@ bool IsHwMvcEncSupported()
 
 VAAPIVideoCORE_VPL::VAAPIVideoCORE_VPL(
     const mfxU32 adapterNum,
+	const AffinityMaskType & affinityMask,
     const mfxU32 numThreadsAvailable,
     const mfxSession session)
-    : VAAPIVideoCORE_VPL_base(adapterNum, numThreadsAvailable, session)
+    : VAAPIVideoCORE_VPL_base(adapterNum, affinityMask, numThreadsAvailable, session)
 {
     m_frame_allocator_wrapper.allocator_hw.reset(new FlexibleFrameAllocatorHW_VAAPI(nullptr, m_session));
 }

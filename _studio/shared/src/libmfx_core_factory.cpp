@@ -26,10 +26,12 @@
 
 VideoCORE* FactoryCORE::CreateCORE(eMFXVAType va_type,
                                    mfxU32 adapterNum,
+								   const std::pair<mfxU32, std::vector<mfxU8>> & affinityMask,
                                    mfxU32 numThreadsAvailable,
                                    mfxSession session)
 {
     (void)adapterNum;
+    std::ignore = affinityMask;
 
     switch (va_type)
     {
@@ -37,7 +39,7 @@ VideoCORE* FactoryCORE::CreateCORE(eMFXVAType va_type,
         return new CommonCORE_VPL(numThreadsAvailable, session);
 
     case MFX_HW_VAAPI:
-        return new VAAPIVideoCORE_VPL(adapterNum, numThreadsAvailable, session);
+        return new VAAPIVideoCORE_VPL(adapterNum, affinityMask, numThreadsAvailable, session);
     default:
         return nullptr;
     }
