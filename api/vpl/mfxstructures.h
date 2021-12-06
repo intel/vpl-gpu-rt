@@ -575,6 +575,8 @@ typedef struct mfxFrameSurfaceInterface {
 
     @attention This is callback function and intended to be called by
                the library only.
+    
+    @note The library calls this callback only when this surface is used as the output surface. 
 
     It is expected that the function is low-intrusive designed otherwise it may
     impact performance.
