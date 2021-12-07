@@ -340,8 +340,11 @@ static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & s
 #ifdef MFX_ENABLE_ENCTOOLS_LPLA
     if (pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING)
     {
-        if (pExtOpt2 && pExtOpt2->LookAheadDepth > 0 && video.mfx.GopOptFlag == 0)
+        // Closed GOP for GS by default unless IdrInterval is set to max
+        // Open GOP with arbitrary IdrInterval if GOP is strict (GopOptFlag == MFX_GOP_STRICT)
+        if (video.mfx.GopOptFlag == 0 && video.mfx.IdrInterval != USHRT_MAX)
         {
+            changed++;
             video.mfx.GopOptFlag = MFX_GOP_CLOSED;
         }
     }

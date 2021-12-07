@@ -6011,8 +6011,10 @@ void MfxHwH264Encode::SetDefaults(
 #endif
 
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
-    if (extOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING && IsOn(par.mfx.LowPower)
-        && extOpt2->LookAheadDepth > 0 && par.mfx.GopOptFlag == 0)
+    // Closed GOP for GS/LPLA unless IdrInterval is set to max
+    // Open GOP with arbitrary IdrInterval if GOP is strict (GopOptFlag == MFX_GOP_STRICT)
+    if (extOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING && IsOn(par.mfx.LowPower) && extOpt2->LookAheadDepth > 0
+        && par.mfx.GopOptFlag == 0 && par.mfx.IdrInterval != USHRT_MAX)
     {
         par.mfx.GopOptFlag = MFX_GOP_CLOSED;
     }

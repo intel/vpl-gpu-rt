@@ -49,7 +49,7 @@ mfxStatus LPLA_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig 
 
     m_GopPicSize = ctrl.MaxGopSize;
     if (m_GopPicSize)
-        m_IdrInterval = mfxU16(ctrl.MaxIDRDist / m_GopPicSize);
+        m_IdrInterval = (mfxU16)std::min<mfxU32>(ctrl.MaxIDRDist / m_GopPicSize, USHRT_MAX);
 
     m_GopRefDist = ctrl.MaxGopRefDist;
     m_codecId = ctrl.CodecId; // main codec's ID
@@ -87,7 +87,7 @@ mfxStatus LPLA_EncTool::Reset(mfxEncToolsCtrl const& ctrl, mfxExtEncToolsConfig 
 
     m_GopPicSize = ctrl.MaxGopSize;
     if (m_GopPicSize)
-        m_IdrInterval = mfxU16(ctrl.MaxIDRDist / m_GopPicSize);
+        m_IdrInterval = (mfxU16)std::min<mfxU32>(ctrl.MaxIDRDist / m_GopPicSize, USHRT_MAX);
 
     m_GopRefDist = ctrl.MaxGopRefDist;
     m_codecId = ctrl.CodecId; // main codec's ID
