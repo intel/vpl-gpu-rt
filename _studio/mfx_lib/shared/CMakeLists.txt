@@ -63,12 +63,14 @@ target_include_directories(mfx_common_hw
     ${MSDK_UMC_ROOT}/codec/h264_enc/include
     ${MSDK_STUDIO_ROOT}/shared/asc/include
     ${MSDK_STUDIO_ROOT}/shared/include
+    ${MSDK_STUDIO_ROOT}/shared/mfx_logging/include
   )
 
 target_link_libraries(mfx_common_hw
   PUBLIC
     mfx_static_lib
     umc_va_hw
+    mfx_logging
     $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
   PRIVATE
     mfx_sdl_properties

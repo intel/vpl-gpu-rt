@@ -19,28 +19,46 @@
 // SOFTWARE.
 
 #include "mfx_utils_logging.h"
-#include "mfx_feature_blocks_base.h"
 
-namespace MfxFeatureBlocks
+auto fileDeleter = [](FILE* file)->void { if (file) fclose(file); };
+
+mfxLogLevel gMfxLogLevel               = LEVEL_WARN;
+std::shared_ptr<std::FILE> gMfxLogFile = {};
+std::mutex gMfxLogMutex                = {};
+
+inline bool SetLogLevelFromEnv()
 {
-BlockTracer::BlockTracer(
-    ID id
-    , const char* fName
-    , const char* bName)
-    : ID(id)
-    , m_featureName(fName)
-    , m_blockName(bName)
-{
-#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
-    MFX_LOG_TRACE("%s(%d)::%s(%d): Enter\n", m_featureName, FeatureID, m_blockName, BlockID);
-#endif // MFX_ENABLE_FEATURE_BLOCKS_TRACE
+    const char* logLevelChar = std::getenv("VPL_RUNTIME_LOG_LEVEL");
+    if (logLevelChar)
+    {
+        char** endPtr = nullptr;
+        auto logLevel = std::strtol(logLevelChar, endPtr, 10);
+        if (logLevel != LEVEL_UNKNOWN)
+        {
+            gMfxLogLevel = static_cast<mfxLogLevel>(logLevel);
+            return true;
+        }
+    }
+
+    return false;
 }
 
-BlockTracer::~BlockTracer()
+inline void SetLogFileFromEnv()
 {
-#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
-    MFX_LOG_TRACE("%s(%d)::%s(%d): Exit\n", m_featureName, FeatureID, m_blockName, BlockID);
-#endif // MFX_ENABLE_FEATURE_BLOCKS_TRACE
+    const char* logFileName = std::getenv("VPL_RUNTIME_LOG_FILE");
+    if (logFileName)
+    {
+        gMfxLogFile = std::shared_ptr<std::FILE>(fopen(logFileName, "w"), fileDeleter);
+    }
 }
 
-}; //namespace MfxFeatureBlocks
+void InitMfxLogging()
+{
+#if defined(MFX_ENABLE_LOG_UTILITY)
+    std::unique_lock<std::mutex> closeGuard(gMfxLogMutex);
+
+    SetLogLevelFromEnv();
+    SetLogFileFromEnv();
+#endif
+}
+

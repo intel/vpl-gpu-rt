@@ -21,15 +21,15 @@
 #pragma once
 
 #include "mfx_common.h"
-
 #include "mfxvideo.h"
+#include "mfx_utils_logging.h"
+
 #include <memory>
 #include <map>
 #include <list>
 #include <exception>
 #include <functional>
 #include <algorithm>
-#include <thread>
 #include <assert.h>
 
 namespace MfxFeatureBlocks
@@ -313,13 +313,9 @@ inline mfxStatus CallAndGetMfxSts(TBlock&& blk, TArgs&&... args)
 #if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
     if (sts != MFX_ERR_NONE)
     {
-        std::stringstream threadID;
-        threadID << std::this_thread::get_id();
         std::string stsString = GetMFXStatusString(sts);
-        printf("TH#%s %s::%s -> %d::%d: Return %s\n"
-            , threadID.str().c_str(), blk.m_featureName, blk.m_blockName
-            , blk.FeatureID, blk.BlockID, stsString.c_str());
-        fflush(stdout);
+        MFX_LOG_ERROR("%s(%d)::%s(%d): Return %s\n"
+            , blk.m_featureName, blk.FeatureID, blk.m_blockName, blk.BlockID, stsString.c_str());
     }
 #endif // MFX_ENABLE_FEATURE_BLOCKS_TRACE
 
@@ -349,12 +345,7 @@ mfxStatus RunBlocks(TPred stopAtSts, TQ& queue, TArgs&&... args)
     catch (const std::exception & ex)
     {
         sts = MFX_ERR_UNKNOWN;
-#if defined(_DEBUG)
-        printf("EHW Exception: %s\n", ex.what());
-        fflush(stdout);
-#else
-        std::ignore = ex;
-#endif
+        MFX_LOG_FATAL("EHW Exception: %s\n", ex.what());
     }
 
     return GetWorstSts(sts, wrn);

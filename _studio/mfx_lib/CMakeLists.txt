@@ -100,6 +100,7 @@ set(LIBS
   vpp_hw
   mfx_common_hw
   mfx_trace
+  mfx_logging
   ${HW_ONLY_LIBS}
   $<$<BOOL:${ITT_FOUND}>:itt>
   Threads::Threads

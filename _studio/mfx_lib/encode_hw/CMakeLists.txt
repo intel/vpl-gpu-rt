@@ -189,6 +189,7 @@ target_include_directories(encode_hw
     ${MSDK_LIB_ROOT}/encode_hw/shared
 
     ${MSDK_STUDIO_ROOT}/shared/include
+    ${MSDK_STUDIO_ROOT}/shared/mfx_logging/include
 
     ${MSDK_UMC_ROOT}/codec/brc/include
     ${MSDK_UMC_ROOT}/codec/color_space_converter/include
@@ -201,6 +202,7 @@ target_link_libraries(encode_hw
     mfx_static_lib
     umc_va_hw
     asc
+    mfx_logging
     $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
   PRIVATE
     mfx_sdl_properties

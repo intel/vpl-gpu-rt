@@ -43,6 +43,11 @@ target_compile_definitions(mfx_common_properties
     $<$<NOT:$<CONFIG:Debug>>:NDEBUG>
 )
 
+target_compile_definitions(mfx_common_properties
+  INTERFACE
+    $<$<CONFIG:Debug>:MFX_ENABLE_LOG_UTILITY>
+)
+
 if( Linux )
   # If user did not override CMAKE_INSTALL_PREFIX, then set the default prefix
   # to /opt/intel/mediasdk instead of cmake's default
