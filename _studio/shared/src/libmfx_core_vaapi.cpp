@@ -1127,7 +1127,7 @@ bool IsHwMvcEncSupported()
 
 VAAPIVideoCORE_VPL::VAAPIVideoCORE_VPL(
     const mfxU32 adapterNum,
-	const AffinityMaskType & affinityMask,
+    const AffinityMaskType & affinityMask,
     const mfxU32 numThreadsAvailable,
     const mfxSession session)
     : VAAPIVideoCORE_VPL_base(adapterNum, affinityMask, numThreadsAvailable, session)
