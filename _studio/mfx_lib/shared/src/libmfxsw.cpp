@@ -63,7 +63,7 @@ static inline mfxU32 MakeVersion(mfxU16 major, mfxU16 minor)
     return major * 1000 + minor;
 }
 
-static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession* session, mfxIMPL implInterface, mfxU32 adapterNum);
+static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession* session, mfxIMPL implInterface, mfxU32 adapterNum, bool isSingleThreadMode = false);
 
 mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 {
@@ -153,7 +153,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 
 } // mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 
-static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession *session, mfxIMPL implInterface, mfxU32 adapterNum)
+static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession *session, mfxIMPL implInterface, mfxU32 adapterNum, bool isSingleThreadMode)
 {
     _mfxVersionedSessionImpl* pSession = nullptr;
     mfxStatus                 mfxRes   = MFX_ERR_NONE;
@@ -170,7 +170,7 @@ static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession *session, mfxIMPL
         mfxInitParam init_param = par;
         init_param.Implementation = implInterface;
 
-        mfxRes = pSession->InitEx(init_param);
+        mfxRes = pSession->InitEx(init_param, isSingleThreadMode);
     }
     catch(...)
     {
@@ -318,9 +318,42 @@ mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* sess
     par.NumExtParam = param.NumExtParam;
     par.ExtParam = param.ExtParam;
 
+    bool isSingleThreadMode = false;
+
+#if defined(MFX_ENABLE_SINGLE_THREAD)
+    std::vector<mfxExtBuffer*> buffers;
+
+    if (par.NumExtParam > 0)
+    {
+        MFX_CHECK_NULL_PTR1(par.ExtParam);
+
+        buffers.assign(par.ExtParam, par.ExtParam + par.NumExtParam);
+
+        auto it_thread_param_buffer = std::find_if(std::begin(buffers), std::end(buffers), [](const mfxExtBuffer* buf)
+        {
+            return buf && buf->BufferId == MFX_EXTBUFF_THREADS_PARAM;
+        });
+
+        if (it_thread_param_buffer != std::end(buffers))
+        {
+            auto thread_param_buffer = reinterpret_cast<mfxExtThreadsParam*>(*it_thread_param_buffer);
+
+            if (thread_param_buffer->NumThread == 0)
+            {
+                buffers.erase(it_thread_param_buffer);
+
+                isSingleThreadMode = true;
+            }
+        }
+
+        par.NumExtParam = static_cast<mfxU16>(buffers.size());
+        par.ExtParam = par.NumExtParam > 0 ? buffers.data() : nullptr;
+    }
+#endif
+
     // VendorImplID is used as adapterNum in current implementation - see MFXQueryImplsDescription
     // app. supposed just to copy VendorImplID from mfxImplDescription (returned by MFXQueryImplsDescription) to mfxInitializationParam
-    mfxRes = MFXInit_Internal(par, session, par.Implementation, param.VendorImplID);
+    mfxRes = MFXInit_Internal(par, session, par.Implementation, param.VendorImplID, isSingleThreadMode);
 
     return mfxRes;
 }
