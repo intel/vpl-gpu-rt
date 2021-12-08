@@ -100,12 +100,6 @@ namespace UMC_AV1_DECODER
             return true;
         }
 
-        if ((old_sps->frame_height_bits != new_sps->frame_height_bits) ||
-            (old_sps->frame_width_bits != new_sps->frame_width_bits))
-        {
-            return true;
-        }
-
         return false;
     }
 
