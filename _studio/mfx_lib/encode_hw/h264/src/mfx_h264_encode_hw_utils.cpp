@@ -37,6 +37,7 @@
 #include "libmfx_core.h"
 #include "umc_video_data.h"
 #include "fast_copy.h"
+#include "mfx_enc_common.h"
 
 
 using namespace MfxHwH264Encode;

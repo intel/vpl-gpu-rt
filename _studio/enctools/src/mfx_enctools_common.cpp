@@ -37,7 +37,7 @@ mfxExtBuffer* Et_GetExtBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id
 
     return 0;
 }
-mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl, bool bMBQPSupport)
+mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
 {
     MFX_CHECK_NULL_PTR1(ctrl);
 
@@ -57,7 +57,6 @@ mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl, bool bMBQPS
     ctrl->FrameInfo = par.mfx.FrameInfo;
     ctrl->IOPattern = par.IOPattern;
     ctrl->MaxDelayInFrames = CO2->LookAheadDepth;
-    ctrl->MBBRC = (ctrl->CodecId == MFX_CODEC_HEVC && ctrl->MaxDelayInFrames > par.mfx.GopRefDist && bMBQPSupport);
 
     ctrl->MaxGopSize = par.mfx.GopPicSize;
     ctrl->MaxGopRefDist = par.mfx.GopRefDist;
@@ -247,6 +246,7 @@ mfxStatus EncTools::GetSupportedConfig(mfxExtEncToolsConfig* config, mfxEncTools
             config->AdaptiveLTR = MFX_CODINGOPTION_ON;
             config->AdaptivePyramidQuantP = MFX_CODINGOPTION_ON;
             config->AdaptivePyramidQuantB = MFX_CODINGOPTION_ON;
+            config->AdaptiveMBQP = MFX_CODINGOPTION_ON;
             if (ctrl->MaxDelayInFrames > ctrl->MaxGopRefDist && IsOn(config->BRC))
                 config->BRCBufferHints = MFX_CODINGOPTION_ON;
         }
@@ -687,7 +687,7 @@ mfxStatus EncTools::Init(mfxExtEncToolsConfig const * pConfig, mfxEncToolsCtrl c
     SetToolsStatus(&m_config, false);
     if (IsOn(pConfig->BRC))
     {
-        sts = m_brc.Init(*ctrl);
+        sts = m_brc.Init(*ctrl, IsOn(pConfig->AdaptiveMBQP));
         MFX_CHECK_STS(sts);
         m_config.BRC = MFX_CODINGOPTION_ON;
     }
@@ -772,7 +772,7 @@ mfxStatus EncTools::Reset(mfxExtEncToolsConfig const * config, mfxEncToolsCtrl c
     if (IsOn(config->BRC))
     {
         MFX_CHECK(m_config.BRC, MFX_ERR_UNSUPPORTED);
-        sts = m_brc.Reset(*ctrl);
+        sts = m_brc.Reset(*ctrl, IsOn(config->AdaptiveMBQP));
         MFX_CHECK_STS(sts);
     }
     if (isPreEncSCD(*config, *ctrl))
@@ -1034,9 +1034,11 @@ mfxStatus EncTools::Query(mfxEncToolsTaskParam* par, mfxU32 /*timeOut*/)
     }
 
     mfxEncToolsBRCQuantControl *pFrameQp = (mfxEncToolsBRCQuantControl *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_BRC_QUANT_CONTROL);
+    mfxEncToolsHintQPMap* qpMapHint = (mfxEncToolsHintQPMap*)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_HINT_QPMAP);
+
     if (pFrameQp && IsOn(m_config.BRC))
     {
-        sts = m_brc.ProcessFrame(par->DisplayOrder, pFrameQp);
+        sts = m_brc.ProcessFrame(par->DisplayOrder, pFrameQp, qpMapHint);
         MFX_CHECK_STS(sts);
     }
     mfxEncToolsBRCHRDPos *pHRDPos = (mfxEncToolsBRCHRDPos *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_BRC_HRD_POS);
