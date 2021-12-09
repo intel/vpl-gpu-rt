@@ -997,7 +997,6 @@ namespace MfxHwH264Encode
             , m_numMbPerSlice(0)
             , m_numSlice(0, 0)
             , m_numRoi(0)
-            , m_NumDeltaQpForNonRectROI(0)
             , m_roiMode(MFX_ROI_MODE_PRIORITY)
             , m_numDirtyRect(0)
             , m_numMovingRect(0)
@@ -1048,6 +1047,7 @@ namespace MfxHwH264Encode
             , m_minQP(0)
             , m_maxQP(0)
             , m_resetBRC(false)
+            , m_mbqp(0)
             , m_idxMBQP(NO_INDEX)
             , m_midMBQP(MID_INVALID)
             , m_isMBQP(false)
@@ -1332,6 +1332,7 @@ namespace MfxHwH264Encode
 
         bool m_resetBRC;
 
+        const mfxExtMBQP *m_mbqp;
         mfxU32   m_idxMBQP;
         mfxMemId m_midMBQP;
         bool     m_isMBQP;
@@ -1988,7 +1989,7 @@ public:
     }
     bool IsPreEncNeeded()
     {
-        if (m_pEncTools )
+        if (m_pEncTools && m_EncToolCtrl.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING)
         {
             return
                 (IsOn(m_EncToolConfig.AdaptiveI) ||
@@ -1998,15 +1999,29 @@ public:
                     IsOn(m_EncToolConfig.SceneChange) ||
                     IsOn(m_EncToolConfig.AdaptiveLTR) ||
                     IsOn(m_EncToolConfig.AdaptivePyramidQuantP) ||
-                    IsOn(m_EncToolConfig.AdaptivePyramidQuantB) ||
-                    IsOn(m_EncToolConfig.BRCBufferHints) ||
-                    IsOn(m_EncToolConfig.AdaptiveMBQP));
+                    IsOn(m_EncToolConfig.AdaptivePyramidQuantB));
         }
         return false;
     }
- 
- 
+    inline bool IsLookAhead()
+    {
+        return (m_pEncTools &&
+            (m_EncToolCtrl.ScenarioInfo == MFX_SCENARIO_GAME_STREAMING &&
+                (IsOn(m_EncToolConfig.AdaptiveI) ||
+                IsOn(m_EncToolConfig.AdaptiveB) ||
+                IsOn(m_EncToolConfig.SceneChange) ||
+                IsOn(m_EncToolConfig.BRCBufferHints) ||
+                IsOn(m_EncToolConfig.AdaptivePyramidQuantP) ||
+                IsOn(m_EncToolConfig.AdaptiveQuantMatrices))));
+    }
 
+    inline bool IsLookAheadBRC()
+    {
+        return (m_pEncTools &&
+            m_EncToolCtrl.ScenarioInfo == MFX_SCENARIO_UNKNOWN &&
+            IsOn(m_EncToolConfig.BRCBufferHints) &&
+            IsOn(m_EncToolConfig.BRC));
+    }
 
     inline bool IsAdaptiveQuantMatrices()
     {
@@ -2145,8 +2160,6 @@ public:
             *pConfig = m_EncToolConfig;
             pConfig->Header = header;
         }
-        m_LAHWBRC = IsEnctoolsLAGS(video);
-        m_LASWBRC = IsEnctoolsLABRC(video);
 
         return MFX_ERR_NONE;
     }
@@ -2196,7 +2209,6 @@ public:
             IsOn(m_EncToolConfig.AdaptiveRefP) ||
             IsOn(m_EncToolConfig.SceneChange) ||
             IsOn(m_EncToolConfig.AdaptivePyramidQuantP) ||
-            IsOn(m_EncToolConfig.AdaptiveMBQP) ||
             IsOn(m_EncToolConfig.BRCBufferHints) ||
             IsOn(m_EncToolConfig.AdaptiveQuantMatrices)
             , MFX_ERR_NOT_INITIALIZED);
@@ -2219,7 +2231,6 @@ public:
 
         return m_pEncTools->Submit(m_pEncTools->Context, &par);
     }
-    
 
     mfxStatus QueryPreEncRes(mfxU32 displayOrder, mfxEncToolsHintPreEncodeGOP &preEncodeGOP)
     {
@@ -2290,14 +2301,13 @@ public:
         return sts;
     }
 
-    mfxStatus QueryLookAheadStatus(mfxU32 displayOrder, mfxEncToolsBRCBufferHint *bufHint, mfxEncToolsHintPreEncodeGOP *gopHint, mfxEncToolsHintQuantMatrix *cqmHint, mfxEncToolsHintQPMap* qpMapHint)
+    mfxStatus QueryLookAheadStatus(mfxU32 displayOrder, mfxEncToolsBRCBufferHint *bufHint, mfxEncToolsHintPreEncodeGOP *gopHint, mfxEncToolsHintQuantMatrix *cqmHint)
     {
         MFX_CHECK(m_pEncTools != 0, MFX_ERR_NOT_INITIALIZED);
         MFX_CHECK(bufHint || gopHint || cqmHint, MFX_ERR_NULL_PTR);
-
-        MFX_CHECK(m_LASWBRC || (m_LAHWBRC &&
-            (IsOn(m_EncToolConfig.AdaptiveQuantMatrices) || IsOn(m_EncToolConfig.BRCBufferHints) || IsOn(m_EncToolConfig.AdaptivePyramidQuantP) || 
-                IsOn(m_EncToolConfig.AdaptiveMBQP))), MFX_ERR_NOT_INITIALIZED);
+        bool isLABRC = IsLookAheadBRC();
+        MFX_CHECK(isLABRC || (m_EncToolCtrl.ScenarioInfo == MFX_SCENARIO_GAME_STREAMING  &&
+            (IsOn(m_EncToolConfig.AdaptiveQuantMatrices) || IsOn(m_EncToolConfig.BRCBufferHints) || IsOn(m_EncToolConfig.AdaptivePyramidQuantP))), MFX_ERR_NOT_INITIALIZED);
 
         mfxEncToolsTaskParam par = {};
         par.DisplayOrder = displayOrder;
@@ -2308,7 +2318,7 @@ public:
             *bufHint = {};
             bufHint->Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_BUFFER_HINT;
             bufHint->Header.BufferSz = sizeof(*bufHint);
-            bufHint->OutputMode = mfxU16(m_LASWBRC ? MFX_BUFFERHINT_OUTPUT_DISPORDER : MFX_BUFFERHINT_OUTPUT_ENCORDER);
+            bufHint->OutputMode = mfxU16(isLABRC ? MFX_BUFFERHINT_OUTPUT_DISPORDER : MFX_BUFFERHINT_OUTPUT_ENCORDER);
             extParams.push_back((mfxExtBuffer *)bufHint);
         }
 
@@ -2326,12 +2336,6 @@ public:
             cqmHint->Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_MATRIX;
             cqmHint->Header.BufferSz = sizeof(*cqmHint);
             extParams.push_back((mfxExtBuffer *)cqmHint);
-        }
-        if (qpMapHint && m_LAHWBRC)
-        {
-            qpMapHint->Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_QPMAP;
-            qpMapHint->Header.BufferSz = sizeof(*qpMapHint);
-            extParams.push_back((mfxExtBuffer*)qpMapHint);
         }
 
         par.ExtParam = &extParams[0];
@@ -2387,7 +2391,7 @@ public:
         return m_pEncTools->Submit(m_pEncTools->Context, &par);
     }
 
-    mfxStatus GetFrameCtrl(mfxBRCFrameCtrl *frame_ctrl, mfxU32 dispOrder, mfxEncToolsHintQPMap* qpMapHint)
+    mfxStatus GetFrameCtrl(mfxBRCFrameCtrl *frame_ctrl, mfxU32 dispOrder)
     {
         MFX_CHECK(m_pEncTools != 0, MFX_ERR_NOT_INITIALIZED);
         mfxEncToolsTaskParam par = {};
@@ -2403,14 +2407,6 @@ public:
         extHRDPos.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_HRD_POS;
         extHRDPos.Header.BufferSz = sizeof(extHRDPos);
         extParams.push_back((mfxExtBuffer *)&extHRDPos);
-
-
-        if (qpMapHint)
-        {
-            qpMapHint->Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_QPMAP;
-            qpMapHint->Header.BufferSz = sizeof(*qpMapHint);
-            extParams.push_back(&qpMapHint->Header);
-        }
 
         par.ExtParam = &extParams[0];
         par.NumExtParam = (mfxU16)extParams.size();
@@ -2546,8 +2542,6 @@ protected:
             bool lplaAssistedBRC = (config.BRC == MFX_CODINGOPTION_ON) && (extOpt2.LookAheadDepth > video.mfx.GopRefDist);
             config.BRCBufferHints = (mfxU16)(IsNotDefined(config.BRCBufferHints) ?
                 (lplaAssistedBRC ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF) : config.BRCBufferHints);
-            config.AdaptiveMBQP = (mfxU16)(IsNotDefined(config.AdaptiveMBQP) ?
-                ((lplaAssistedBRC&& IsOn(extOpt2.MBBRC)) ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF) : config.AdaptiveMBQP);
         }
 
 #ifdef MFX_ENABLE_ENCTOOLS_LPLA
@@ -2646,7 +2640,6 @@ protected:
        CheckFlag(extOpt2.AdaptiveB, supportedConfig.AdaptiveB, numChanges);
        CheckFlag(extOpt3.ExtBrcAdaptiveLTR, supportedConfig.AdaptiveLTR, numChanges);
        CheckFlag(extOpt2.ExtBRC, supportedConfig.BRC, numChanges);
-       CheckFlag(extOpt2.MBBRC, supportedConfig.AdaptiveMBQP, numChanges);
 
        //ExtBRC isn't compatible with EncTools
        if (extBRC && (extBRC->pthis || extBRC->Init || extBRC->Close  || extBRC->Update || extBRC->Reset))
@@ -2679,9 +2672,6 @@ protected:
        }
        return MFX_ERR_NONE;
    }
-public:
-    inline bool isLASWBRC() { return m_LASWBRC; }
-    inline bool isLAHWBRC() { return m_LAHWBRC; }
 
 private:
 
@@ -2690,22 +2680,11 @@ private:
     mfxEncToolsCtrl         m_EncToolCtrl = {};
     mfxExtEncToolsConfig    m_EncToolConfig = {};
     mfxExtBuffer*           m_ExtParam[2] = {};
-    bool                    m_LASWBRC = false;
-    bool                    m_LAHWBRC = false;
 
 };
 #endif
 
-    struct MBQPAllocFrameInfo :
-        mfxFrameAllocRequest
-    {
-        mfxU32 width;  
-        mfxU32 height; 
-        mfxU32 pitch; 
-        mfxU32 height_aligned;
-        mfxU32 block_width; 
-        mfxU32 block_height; 
-    };
+
 
     class DdiTask2ndField
     {
@@ -3056,9 +3035,6 @@ private:
         mfxStatus CheckSliceSize(DdiTask &task, bool &bToRecode);
         mfxStatus CheckBufferSize(DdiTask &task, bool &bToRecode, mfxU32 bsDataLength, mfxBitstream * bs);
         mfxStatus CheckBRCStatus(DdiTask &task, bool &bToRecode, mfxU32 bsDataLength);
-#ifdef MFX_ENABLE_ENCTOOLS
-        mfxStatus EncToolsGetFrameCtrl(DdiTask& task);
-#endif
         mfxStatus FillPreEncParams(DdiTask &task);
 
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
@@ -3244,7 +3220,6 @@ private:
         mfxU32                  m_inputFrameType;
         mfxU32                  m_NumSlices;
 
-        MBQPAllocFrameInfo      m_mbqpInfo;
         MfxFrameAllocResponse   m_mbqp;
         bool                    m_useMBQPSurf;
 

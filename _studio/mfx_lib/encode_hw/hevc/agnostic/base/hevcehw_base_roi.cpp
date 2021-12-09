@@ -27,6 +27,10 @@
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
 
+static bool ROIViaMBQP(const ENCODE_CAPS_HEVC caps, const mfxVideoParam par)
+{
+    return (!caps.MaxNumOfROI || !caps.ROIDeltaQPSupport) && Legacy::IsSWBRC(par);
+}
 
 static mfxStatus CheckAndFixRect(
     ROI::RectData& rect
@@ -66,7 +70,7 @@ mfxStatus ROI::CheckAndFixROI(
     mfxU32 changed = 0, invalid = 0;
 
     bool bSWBRC = Legacy::IsSWBRC(par);
-    bool bROIViaMBQP = (Legacy::GetMBQPMode(caps, par) == MBQPMode_ForROI);
+    bool bROIViaMBQP = ROIViaMBQP(caps, par);
     bool bForcedQPMode = par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || bSWBRC;
 
     changed += CheckOrZero<mfxU16>(roi.ROIMode, MFX_ROI_MODE_PRIORITY, MFX_ROI_MODE_QP_DELTA);
@@ -174,7 +178,7 @@ void ROI::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         changed |= CheckOrZero<mfxU16>(pCO3->EnableMBQP
             , MFX_CODINGOPTION_UNKNOWN
             , MFX_CODINGOPTION_ON
-            , !(Legacy::GetMBQPMode(caps, par) == MBQPMode_ForROI) * MFX_CODINGOPTION_OFF);
+            , !ROIViaMBQP(caps, par) * MFX_CODINGOPTION_OFF);
 
         return GetWorstSts(sts, mfxStatus(changed * MFX_WRN_INCOMPATIBLE_VIDEO_PARAM));
     });
@@ -212,7 +216,7 @@ void ROI::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
 
         auto& caps = Glob::EncodeCaps::Get(strg);
 
-        SetDefault(pCO3->EnableMBQP, mfxU16(Legacy::GetMBQPMode(caps, par) == MBQPMode_ForROI ? MFX_CODINGOPTION_ON: MFX_CODINGOPTION_OFF));
+        SetDefault(pCO3->EnableMBQP, mfxU16(ROIViaMBQP(caps, par) * MFX_CODINGOPTION_ON));
 
         return MFX_ERR_NONE;
     });
@@ -223,7 +227,7 @@ void ROI::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
     Push(BLK_SetPPS
         , [this](StorageRW& strg, StorageRW&) -> mfxStatus
     {
-        m_bViaCuQp = (Legacy::GetMBQPMode(Glob::EncodeCaps::Get(strg), Glob::VideoParam::Get(strg)) == MBQPMode_ForROI);
+        m_bViaCuQp = ROIViaMBQP(Glob::EncodeCaps::Get(strg), Glob::VideoParam::Get(strg));
         return MFX_ERR_NONE;
     });
 }

@@ -58,8 +58,7 @@ enum {
     MFX_EXTBUFF_ENCTOOLS_BRC_HRD_POS = MFX_MAKEFOURCC('E', 'B', 'H', 'P'),
     MFX_EXTBUFF_ENCTOOLS_BRC_ENCODE_RESULT = MFX_MAKEFOURCC('E', 'B', 'E', 'R'),
     MFX_EXTBUFF_ENCTOOLS_BRC_STATUS = MFX_MAKEFOURCC('E', 'B', 'S', 'T'),
-    MFX_EXTBUFF_ENCTOOLS_HINT_MATRIX = MFX_MAKEFOURCC('E', 'H', 'Q', 'M'),
-    MFX_EXTBUFF_ENCTOOLS_HINT_QPMAP  = MFX_MAKEFOURCC('E', 'H', 'Q', 'P')
+    MFX_EXTBUFF_ENCTOOLS_HINT_MATRIX = MFX_MAKEFOURCC('E', 'H', 'Q', 'M')
 };
 
 enum
@@ -132,6 +131,7 @@ typedef struct
         mfxU16  LaQp;                       /* QP used for LookAhead encode */
         mfxU16  LaScale;                    /* Downscale Factor for LookAhead encode */
 
+        mfxU16  MBBRC;                      /* Enable Macroblock-CU level QP control (0 == OFF, else ON) */
 
         mfxU16  reserved5[61];
     };
@@ -250,17 +250,6 @@ enum
     MFX_QP_MODULATION_MIXED,            /* Use pyramid delta QP appropriate for mixed content. */
     MFX_QP_MODULATION_RESERVED0
 };
-MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
-    mfxExtBuffer      Header;
-    mfxStructVersion  Version;
-    mfxU16            reserved[2];
-    mfxU16            QpMapFilled;     /* If !0, QP Map is filled */
-    mfxExtMBQP        ExtQpMap;        /* Per Block QP Map for current frame */
-    mfxU16            QpMapPitch;      /* Additional parameter for ExtQpMap, number QPs per MB line */
-    mfxU16            reserved2[9];
-} mfxEncToolsHintQPMap;
-MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
@@ -269,8 +258,8 @@ typedef struct {
     mfxU16            reserved[2];
     mfxU16            FrameType;
     mfxI16            QPDelta;
-    mfxU16            QPModulation;    /* enum */
-    mfxU16            MiniGopSize;     /* Adaptive GOP decision for the frame */
+    mfxU16            QPModulation; /* enum */
+    mfxU16            MiniGopSize;  /* Adaptive GOP decision for the frame */
     mfxU16            reserved2[5];
 } mfxEncToolsHintPreEncodeGOP;
 MFX_PACK_END()
@@ -352,7 +341,9 @@ typedef struct {
     mfxU32            MaxFrameSize;    /* Max frame size in bytes (used for rePak). Optional */
     mfxU8             DeltaQP[8];      /* deltaQP[i] is added to QP value while ith-rePakOptional */
     mfxU16            NumDeltaQP;      /* Max number of rePaks to provide MaxFrameSize (from 0 to 8) */
-    mfxU16            reserved2[5];
+    mfxU16            QpMapNZ;         /* If !0, QP Map has some Non Zero values */
+    mfxExtMBQP*       ExtQpMap;        /* Per Block QP Map for current frame */
+    mfxU16            reserved2[2];
 } mfxEncToolsBRCQuantControl;
 MFX_PACK_END()
 

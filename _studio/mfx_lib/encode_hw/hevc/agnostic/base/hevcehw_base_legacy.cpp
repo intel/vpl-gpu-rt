@@ -37,8 +37,6 @@
 #include <cmath>
 #include <iterator>
 #include "libmfx_core.h"
-#include "mfx_enc_common.h"
-
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
@@ -1217,33 +1215,34 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         auto& core = Glob::VideoCore::Get(strg);
         auto& caps = Glob::EncodeCaps::Get(strg);
 
-        MFX_CHECK(Legacy::GetMBQPMode(caps, par), MFX_ERR_NONE);
+        MFX_CHECK(IsMBQP(par,caps.MbQpDataSupport) && core.GetVAType() != MFX_HW_VAAPI, MFX_ERR_NONE);
 
-        MFX_CHECK(strg.Contains(Glob::MBQPAllocInfo::Key), MFX_ERR_UNDEFINED_BEHAVIOR);
-        auto& req = Glob::MBQPAllocInfo::Get(strg);
+        MFX_CHECK(local.Contains(Tmp::MBQPAllocInfo::Key), MFX_ERR_UNDEFINED_BEHAVIOR);
+        auto& req = Tmp::MBQPAllocInfo::Get(local);
 
-        SetDefault(req.NumFrameMin, GetMaxMBMaps(par));
-        SetDefault(req.NumFrameSuggested, GetMaxMBMaps(par));
+        SetDefault(req.NumFrameMin, GetMaxBS(par));
+        SetDefault(req.Type
+            , mfxU16(MFX_MEMTYPE_FROM_ENCODE
+                | MFX_MEMTYPE_DXVA2_DECODER_TARGET
+                | MFX_MEMTYPE_INTERNAL_FRAME));
 
-        m_CUQPBlkW = (mfxU16)req.width;
-        m_CUQPBlkH = (mfxU16)req.height;
-       
+        std::tie(sts, m_CUQPBlkW, m_CUQPBlkH) = GetCUQPMapBlockSize(
+            par.mfx.FrameInfo.Width
+            , par.mfx.FrameInfo.Height
+            , req.Info.Width
+            , req.Info.Height);
+        MFX_CHECK_STS(sts);
+
+        // need LCU aligned width for the buffer for proper averaging
+        const mfxExtHEVCParam& hpar = ExtBuffer::Get(par);
+        mfxU16 numVal = mfxU16(hpar.LCUSize / m_CUQPBlkW);
+        if (numVal > 1)
+            req.Info.Width = (req.Info.Width + (numVal - 1)) & ~(numVal - 1);
 
         std::unique_ptr<IAllocation> pAlloc(Tmp::MakeAlloc::Get(local)(core));
         sts = pAlloc->Alloc(req, true);
         MFX_CHECK_STS(sts);
 
-        if (!req.pitch)
-        {
-            auto CUQP = pAlloc->Acquire();
-            MFX_CHECK(CUQP.Mid, MFX_ERR_UNDEFINED_BEHAVIOR);
-            {
-                FrameLocker lock(core, CUQP.Mid);
-                MFX_CHECK(lock.Y, MFX_ERR_LOCK_MEMORY);
-                req.pitch = lock.Pitch;
-            }
-            pAlloc->Release(CUQP.Idx);
-        }        
         strg.Insert(Glob::AllocMBQP::Key, std::move(pAlloc));
 
         return sts;
@@ -1614,7 +1613,12 @@ void Legacy::PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Push)
             task.Raw = Glob::AllocRaw::Get(global).Acquire();
             MFX_CHECK(task.Raw.Mid, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
- 
+        if (global.Contains(Glob::AllocMBQP::Key))
+        {
+            task.CUQP = Glob::AllocMBQP::Get(global).Acquire();
+            MFX_CHECK(task.CUQP.Mid, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+
         task.Rec = Glob::AllocRec::Get(global).Acquire();
         task.BS = Glob::AllocBS::Get(global).Acquire();
         MFX_CHECK(task.BS.Idx != IDX_INVALID, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -1782,52 +1786,50 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             , StorageW& s_task)->mfxStatus
     {
         auto& task = Task::Common::Get(s_task);
+
+        MFX_CHECK(task.CUQP.Mid && task.bCUQPMap, MFX_ERR_NONE);
+
+        mfxExtMBQP *mbqp = ExtBuffer::Get(task.ctrl);
         auto& par = Glob::VideoParam::Get(global);
-        auto& caps = Glob::EncodeCaps::Get(global);
-
-        auto mode = GetMBQPMode(caps, par);
-        MFX_CHECK(mode == MBQPMode_ExternalMap || mode == MBQPMode_ForROI, MFX_ERR_NONE);
-
-        std::unique_ptr<FrameLocker> qpMap = nullptr;
-        auto& mapInfo = Glob::MBQPAllocInfo::Get(global);
-        const mfxExtHEVCParam& HEVCParam = ExtBuffer::Get(par);
-
-        if (!task.CUQP.Mid)
-        {
-            task.CUQP = Glob::AllocMBQP::Get(global).Acquire();
-            MFX_CHECK(task.CUQP.Mid, MFX_ERR_UNDEFINED_BEHAVIOR);
-        }        
         auto& core = Glob::VideoCore::Get(global);
-        qpMap = std::make_unique <FrameLocker>(core, task.CUQP.Mid);
+        auto CUQPFrameInfo = Glob::AllocMBQP::Get(global).GetInfo();
 
-        if (mode == MBQPMode_ExternalMap)
+        MFX_CHECK(CUQPFrameInfo.Width && CUQPFrameInfo.Height, MFX_ERR_UNDEFINED_BEHAVIOR);
+        MFX_CHECK(m_CUQPBlkW && m_CUQPBlkH, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+        mfxU32 drBlkW = m_CUQPBlkW;  // block size of driver
+        mfxU32 drBlkH = m_CUQPBlkH;  // block size of driver
+        mfxU16 inBlkSize = 16; //mbqp->BlockSize ? mbqp->BlockSize : 16;  //input block size
+
+        mfxU32 pitch_MBQP = (par.mfx.FrameInfo.Width + inBlkSize - 1) / inBlkSize;
+
+        MFX_CHECK(mbqp && mbqp->NumQPAlloc, MFX_ERR_NONE);
+
+        // CUQPFrameInfo.Width is LCU aligned, so compute unaligned
+        mfxU32 unalignedWidth = (par.mfx.FrameInfo.Width + drBlkW - 1) / drBlkW;
+        bool bInvalid =
+            (mbqp->NumQPAlloc * inBlkSize * inBlkSize) < (drBlkW * drBlkH * unalignedWidth * CUQPFrameInfo.Height);
+        bInvalid &= (drBlkW < inBlkSize || drBlkH < inBlkSize); // needs changing filling loop
+
+        task.bCUQPMap &= !bInvalid;
+        MFX_CHECK(!bInvalid, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+
+        FrameLocker lock(core, task.CUQP.Mid);
+        MFX_CHECK(lock.Y, MFX_ERR_LOCK_MEMORY);
+
+        auto itSrcRow   = MakeStepIter(mbqp->QP, drBlkH / inBlkSize * pitch_MBQP);
+        auto itDstRow   = MakeStepIter(lock.Y, lock.Pitch);
+        auto stepSrcRow = drBlkW / inBlkSize;
+
+        std::for_each(itSrcRow, std::next(itSrcRow, CUQPFrameInfo.Height)
+            , [&](mfxU8& rSrcRowBegin)
         {
-            mfxExtMBQP* mbqpExt = ExtBuffer::Get(task.ctrl);
-            MFX_CHECK(mbqpExt, MFX_ERR_NONE);
+            std::copy_n(MakeStepIter(&rSrcRowBegin, stepSrcRow), unalignedWidth, &*itDstRow);
+            // fill till EO LCU aligned width
+            auto ItLastPos = MakeStepIter(&*itDstRow++ + unalignedWidth - 1);
+            std::fill_n(std::next(ItLastPos), CUQPFrameInfo.Width - unalignedWidth, *ItLastPos);
+        });
 
-            mfxStatus sts = FillCUQPData(mbqpExt,
-                HEVCParam.PicWidthInLumaSamples, HEVCParam.PicHeightInLumaSamples,
-                (mfxI8*)qpMap->Y,
-                mapInfo.pitch, mapInfo.height_aligned,
-                mapInfo.block_width, mapInfo.block_height);
-
-            MFX_CHECK_STS(sts);
-        }
-        else
-        {
-            mfxExtEncoderROI* roi = ExtBuffer::Get(task.ctrl);
-            MFX_CHECK(roi, MFX_ERR_NONE);
-
-            // TO DO: it must be called after GetCtrl block
-            mfxStatus  sts = FillMBMapViaROI(*roi,
-                (mfxI8*)qpMap->Y,
-                mapInfo.Info.Width, mapInfo.Info.Height, mapInfo.pitch,
-                mapInfo.block_width, mapInfo.block_height,
-                task.QpY);
-            MFX_CHECK_STS(sts);
-        }
-
-        task.bCUQPMap = true;
         return MFX_ERR_NONE;
     });
 }
@@ -3909,7 +3911,55 @@ mfxStatus Legacy::CheckCrops(
     return MFX_ERR_NONE;
 }
 
+bool Legacy::IsSWBRC(const ExtBuffer::Param<mfxVideoParam>& par)
+{
+    const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
+#ifdef MFX_ENABLE_ENCTOOLS
+    const mfxExtEncToolsConfig *pCfg = ExtBuffer::Get(par);
+#endif
+    return
+        (      ((pCO2 && IsOn(pCO2->ExtBRC))
+#ifdef MFX_ENABLE_ENCTOOLS
+            || (pCfg && IsOn(pCfg->BRC))
+#endif
+            )
+            && (   par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
+                || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
+}
 
+bool Legacy::IsEnctoolsLABRC(const ExtBuffer::Param<mfxVideoParam>&par)
+{
+#if !defined(MFX_ENABLE_ENCTOOLS)
+    std::ignore = par;
+#else
+    const mfxExtCodingOption2 * pCO2 = ExtBuffer::Get(par);
+    const mfxExtCodingOption3 * pCO3 = ExtBuffer::Get(par);
+    const mfxExtEncToolsConfig * pCfg = ExtBuffer::Get(par);
+
+    if (
+        (
+            ((par.mfx.GopRefDist == 2 || par.mfx.GopRefDist == 8)
+            && pCO2 && pCO2->ExtBRC == MFX_CODINGOPTION_ON && pCO2->LookAheadDepth > par.mfx.GopRefDist
+            && (pCO3 && pCO3->ScenarioInfo != MFX_SCENARIO_GAME_STREAMING)
+            )
+            || (pCfg && IsOn(pCfg->BRC) && pCO2 && pCO2->LookAheadDepth > par.mfx.GopRefDist)
+        )
+        && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
+    )
+        return true;
+#endif
+    return false;
+}
+
+bool Legacy::IsMBQP(const ExtBuffer::Param<mfxVideoParam>& par, bool bMBQPSupport)
+{
+    const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
+    if (pCO3 && IsOn(pCO3->EnableMBQP))
+        return true;
+    else if (IsEnctoolsLABRC(par) && bMBQPSupport)
+        return true;
+    return false;
+}
 
 bool CheckBufferSizeInKB(
     mfxVideoParam & par
@@ -4066,7 +4116,7 @@ mfxStatus Legacy::CheckBRC(
         changed += CheckTriStateOrZero(pCO2->MBBRC);
         changed += (   defPar.caps.MBBRCSupport == 0
                     || par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
-                    )
+                    || IsSWBRC(par))
                 && CheckOrZero<mfxU16, 0, MFX_CODINGOPTION_OFF>(pCO2->MBBRC);
 
         changed += !defPar.caps.SliceByteSizeCtrl && CheckOrZero<mfxU32, 0>(pCO2->MaxSliceSize);

@@ -80,7 +80,7 @@ mfxI32 GetRawFrameSize(mfxU32 lumaSize, mfxU16 chromaFormat, mfxU16 bitDepthLuma
     return frameSize * 8; //frame size in bits
 }
 
-mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool fieldMode)
+mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool fieldMode)
 {
     MFX_CHECK(ctrl.RateControlMethod == MFX_RATECONTROL_CBR ||
               ctrl.RateControlMethod == MFX_RATECONTROL_VBR,
@@ -221,11 +221,11 @@ mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool field
     mLaScale = ctrl.LaScale;
     mLaDepth = ctrl.MaxDelayInFrames;
     mHasALTR = (ctrl.CodecId == MFX_CODEC_AVC);   // check if codec support ALTR
-    mMBBRC = (ctrl.CodecId == MFX_CODEC_HEVC || ctrl.CodecId == MFX_CODEC_AVC)&& bMBBRC;
+    mMBBRC = (ctrl.CodecId == MFX_CODEC_HEVC && ctrl.MBBRC);
     return MFX_ERR_NONE;
 }
 
-mfxStatus   cBRCParams::GetBRCResetType(mfxEncToolsCtrl const &  ctrl,  bool bNewSequence, bool bMBBRC, bool &bBRCReset, bool &bSlidingWindowReset)
+mfxStatus   cBRCParams::GetBRCResetType(mfxEncToolsCtrl const &  ctrl,  bool bNewSequence, bool &bBRCReset, bool &bSlidingWindowReset)
 {
     bBRCReset = false;
     bSlidingWindowReset = false;
@@ -234,7 +234,7 @@ mfxStatus   cBRCParams::GetBRCResetType(mfxEncToolsCtrl const &  ctrl,  bool bNe
         return MFX_ERR_NONE;
 
     cBRCParams new_par;
-    mfxStatus sts = new_par.Init(ctrl, bMBBRC,false);
+    mfxStatus sts = new_par.Init(ctrl);
     MFX_CHECK_STS(sts);
 
     MFX_CHECK(new_par.rateControlMethod == rateControlMethod, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM) ;
@@ -874,12 +874,12 @@ mfxI32 BRC_EncTool::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 isRef
 }
 
 
-mfxStatus BRC_EncTool::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
+mfxStatus BRC_EncTool::Init(mfxEncToolsCtrl const & ctrl)
 {
     MFX_CHECK(!m_bInit, MFX_ERR_UNDEFINED_BEHAVIOR);
     mfxStatus sts = MFX_ERR_NONE;
 
-    sts = m_par.Init(ctrl, bMBBRC, isFieldMode(ctrl));
+    sts = m_par.Init(ctrl, isFieldMode(ctrl));
     MFX_CHECK_STS(sts);
 
     if (m_par.HRDConformance != MFX_BRC_NO_HRD)
@@ -909,12 +909,33 @@ mfxStatus BRC_EncTool::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
         m_avg.reset(new AVGBitrate(m_par.WinBRCSize, (mfxU32)(m_par.WinBRCMaxAvgKbps*1000.0 / m_par.frameRate), (mfxU32)m_par.inputBitsPerFrame));
         MFX_CHECK_NULL_PTR1(m_avg.get());
     }
+    if (m_par.mMBBRC)
+    {
+        mfxU32 size = ctrl.AsyncDepth > 1 ? ctrl.AsyncDepth : 1;
+        mfxU16 blSize = 16;
+        mfxU32 wInBlk = (ctrl.FrameInfo.Width + blSize - 1) / blSize;
+        mfxU32 hInBlk = (ctrl.FrameInfo.Height + blSize - 1) / blSize;
 
+        m_MBQPBuff.resize((size_t) size * wInBlk * hInBlk);
+        m_MBQP.resize(size);
+        m_ExtBuff.resize(size);
+
+        for (mfxU32 i = 0; i < size; i++)
+        {
+            m_MBQP[i].Header.BufferId = MFX_EXTBUFF_MBQP;
+            m_MBQP[i].Header.BufferSz = sizeof(mfxExtMBQP);
+            m_MBQP[i].BlockSize = blSize;
+            m_MBQP[i].NumQPAlloc = wInBlk * hInBlk;
+            m_MBQP[i].Mode = MFX_MBQP_MODE_QP_VALUE;
+            m_MBQP[i].QP = &(m_MBQPBuff[(size_t) i * wInBlk * hInBlk]);
+            m_ExtBuff[i] = (mfxExtBuffer*)&(m_MBQP[i]);
+        }
+    }
     m_bInit = true;
     return sts;
 }
 
-mfxStatus BRC_EncTool::Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
+mfxStatus BRC_EncTool::Reset(mfxEncToolsCtrl const & ctrl)
 {
     mfxStatus sts = MFX_ERR_NONE;
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
@@ -923,19 +944,19 @@ mfxStatus BRC_EncTool::Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
     if (pRO && pRO->StartNewSequence == MFX_CODINGOPTION_ON)
     {
         Close();
-        sts = Init(ctrl, bMBBRC);
+        sts = Init(ctrl);
     }
     else
     {
         bool brcReset = false;
         bool slidingWindowReset = false;
 
-        sts = m_par.GetBRCResetType(ctrl, false, bMBBRC, brcReset, slidingWindowReset);
+        sts = m_par.GetBRCResetType(ctrl, false, brcReset, slidingWindowReset);
         MFX_CHECK_STS(sts);
 
         if (brcReset)
         {
-            sts = m_par.Init(ctrl, bMBBRC, isFieldMode(ctrl));
+            sts = m_par.Init(ctrl, isFieldMode(ctrl));
             MFX_CHECK_STS(sts);
 
             m_ctx.Quant = (mfxI32)(1. / m_ctx.dQuantAb * pow(m_ctx.fAbLong / m_par.inputBitsPerFrame, 0.32) + 0.5);
@@ -1556,8 +1577,7 @@ mfxI32 BRC_EncTool::GetLaQpEst(mfxU32 LaAvgEncodedSize, mfxF64 inputBitsPerFrame
     return laQp;
 }
 
-mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl *pFrameQp, 
-    mfxEncToolsHintQPMap* qpMapHint)
+mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl *pFrameQp)
 {
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK_NULL_PTR1(pFrameQp);
@@ -1993,7 +2013,7 @@ mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl
     frameStructItr->QpMapNZ = 0;    // save for update
     memset(frameStructItr->QpMap, 0, sizeof(frameStructItr->QpMap));
 
-    if (m_par.mMBBRC) 
+    if (m_par.codecId == MFX_CODEC_HEVC && m_par.mMBBRC) 
     {
         if (type != MFX_FRAMETYPE_B && (isIntra || frameStruct.encOrder >= m_ctx.LastMBQpSetOrder + MBQP_P_UPDATE_DIST)) 
         {
@@ -2009,33 +2029,30 @@ mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl
         }
     }
 
-    if (qpMapHint && qpMapHint->ExtQpMap.QP)
-    {
-        qpMapHint->QpMapFilled = frameStructItr->QpMapNZ;
-        if (qpMapHint->QpMapFilled) {
+    pFrameQp->QpMapNZ = frameStructItr->QpMapNZ;
 
-            mfxU32 iw = 16;
-            mfxU32 ih = 8;
-            mfxU32 ibw = m_par.cropWidth / iw;
-            mfxU32 ibh = m_par.cropHeight / ih;
-
-            mfxU32 mapBw = qpMapHint->ExtQpMap.BlockSize;
-            mfxU32 mapBh = qpMapHint->ExtQpMap.BlockSize;            
-            mfxU32 wInBlk = qpMapHint->QpMapPitch;
-            mfxU32 hInBlk = qpMapHint->ExtQpMap.NumQPAlloc/ wInBlk;
-
-   
-            // Map 16x8 map to Width/blSize x Height/blSize
-            for (mfxU32 i = 0; i < hInBlk; i++)
+    if (pFrameQp->QpMapNZ) {
+        pFrameQp->ExtQpMap = &m_MBQP[frameStruct.encOrder % m_MBQP.size()];
+        mfxU32 iw = 16;
+        mfxU32 ih = 8;
+        mfxU32 ibw = m_par.cropWidth / iw;
+        mfxU32 ibh = m_par.cropHeight / ih;
+        mfxU32 mapBw = 16;  // Matches driver after fix
+        mfxU32 mapBh = 16;  // Matches driver after fix
+        // Fill all 16x16 blocks
+        mfxU16 blSize = 16;
+        mfxU32 wInBlk = (m_par.width + blSize - 1) / blSize;
+        mfxU32 hInBlk = (m_par.height + blSize - 1) / blSize;
+        // Map 16x8 map to Width/blSize x Height/blSize
+        for (mfxU32 i = 0; i < hInBlk; i++)
+        {
+            for (mfxU32 j = 0; j < wInBlk; j++)
             {
-                for (mfxU32 j = 0; j < wInBlk; j++)
-                {
-                    // (x,y) is QP lookup location in 16x8 map for pixel center of current block (j,i)
-                    mfxU32 y = std::min((i * mapBh + mapBh / 2) / ibh, ih - 1);
-                    mfxU32 x = std::min((j * mapBw + mapBw / 2) / ibw, iw - 1);
+                // (x,y) is QP lookup location in 16x8 map for pixel center of current block (j,i)
+                mfxU32 y = std::min((i * mapBh + mapBh / 2) / ibh, ih - 1);
+                mfxU32 x = std::min((j * mapBw + mapBw / 2) / ibw, iw - 1);
 
-                    qpMapHint->ExtQpMap.QP[i * wInBlk + j] = (mfxI8)mfx::clamp((mfxI32)pFrameQp->QpY + (mfxI32)frameStructItr->QpMap[y * iw + x], (mfxI32)0, (mfxI32)51);
-                }
+                pFrameQp->ExtQpMap->QP[i * wInBlk + j] = (mfxU8)mfx::clamp((mfxI32)pFrameQp->QpY + (mfxI32)frameStructItr->QpMap[y * iw + x], (mfxI32)1, (mfxI32)51);
             }
         }
     }

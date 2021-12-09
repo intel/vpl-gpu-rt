@@ -807,6 +807,8 @@ namespace Base
         mfxGopHints         GopHints            = {};
         mfxBRCHints         BrcHints            = {};
 
+        mfxU16              etQpMapNZ           = 0;
+        mfxExtMBQP*         etQpMap             = nullptr;
 
         bool                bForceSync          = false;
         bool                bSkip               = false;
@@ -1412,16 +1414,6 @@ namespace Base
         , S_QUERY
         , NUM_STAGES
     };
-    struct MBQPAllocFrameInfo :
-        mfxFrameAllocRequest
-    {
-        mfxU32 width = 0;  //(picWidthInLumaSamples + blkSz - 1) / blkSz;
-        mfxU32 height = 0; // (picHeightInLumaSamples + blkSz - 1) / blkSz;
-        mfxU32 pitch = 0; // mfx::align2_value(m_width, 64);
-        mfxU32 height_aligned = 0; // mfx::align2_value(m_height, 4);
-        mfxU32 block_width = 0;  //blkSz;
-        mfxU32 block_height = 0;  //blkSz;
-    };
 
     struct Glob
     {
@@ -1441,7 +1433,6 @@ namespace Base
         using AllocRec            = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocBS             = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocMBQP           = StorageVar<__LINE__ - _KD, IAllocation>;
-        using MBQPAllocInfo       = StorageVar<__LINE__ - _KD, MBQPAllocFrameInfo>;
         using PackedHeaders       = StorageVar<__LINE__ - _KD, Base::PackedHeaders>;
         using DDI_Resources       = StorageVar<__LINE__ - _KD, std::list<DDIExecParam>>;
         using DDI_SubmitParam     = StorageVar<__LINE__ - _KD, std::list<DDIExecParam>>;
@@ -1471,6 +1462,7 @@ namespace Base
         static const StorageR::TKey _KD = __LINE__ + 1;
         using MakeAlloc     = StorageVar<__LINE__ - _KD, std::function<IAllocation*(VideoCORE&)>>;
         using BSAllocInfo   = StorageVar<__LINE__ - _KD, mfxFrameAllocRequest>;
+        using MBQPAllocInfo = StorageVar<__LINE__ - _KD, mfxFrameAllocRequest>;
         using RecInfo       = StorageVar<__LINE__ - _KD, mfxFrameAllocRequest>;
         using RawInfo       = StorageVar<__LINE__ - _KD, mfxFrameAllocRequest>;
         using CurrTask      = StorageVar<__LINE__ - _KD, StorageW>;
