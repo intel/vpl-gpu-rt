@@ -204,7 +204,7 @@ public:
     /// Initialize session
     /// @param par - initialization parameters
     /// @return MFX_ERROR_NONE if completed successfully, error code otherwise.
-    virtual mfxStatus InitEx(mfxInitParam& par, bool isSingleThreadMode) ;
+    virtual mfxStatus InitEx(mfxInitParam& par) ;
 
     //--- MFXISession_1_9 interface -------------------------------------------------------------------
 
