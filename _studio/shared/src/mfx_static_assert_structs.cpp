@@ -28,7 +28,7 @@
 #include "mfxbrc.h"
 #include "mfxpcp.h"
 #include "mfxadapter.h"
-#if defined(MFX_ENABLE_USER_ENCTOOLS)
+#if defined(MFX_ENABLE_ENCTOOLS)
 #include "mfxenctools-int.h"
 #endif
 

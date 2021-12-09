@@ -112,7 +112,7 @@ cmake_dependent_option(
   "${MFX_ENABLE_ASC};${MFX_ENABLE_KERNELS}" OFF)
 
   option( MFX_ENABLE_MVC_VIDEO_ENCODE "Enable MVC encoder?" OFF)
-  option( MFX_ENABLE_USER_ENCTOOLS   "Enable encoding tools?" OFF )
+  option( MFX_ENABLE_ENCTOOLS   "Enable encoding tools?" OFF )
 
 # Now we will include config file which may overwrite default values of the
 # options and options which user provided in a command line.

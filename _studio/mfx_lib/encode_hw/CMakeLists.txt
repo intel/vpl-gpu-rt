@@ -195,7 +195,7 @@ target_include_directories(encode_hw
     ${MSDK_UMC_ROOT}/codec/color_space_converter/include
 )
 
-set(ENCTOOLS_LIB $<$<BOOL:${MFX_ENABLE_USER_ENCTOOLS}>:enctools_hw>)
+set(ENCTOOLS_LIB $<$<BOOL:${MFX_ENABLE_ENCTOOLS}>:enctools_hw>)
 
 target_link_libraries(encode_hw
   PUBLIC

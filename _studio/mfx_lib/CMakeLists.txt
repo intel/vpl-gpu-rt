@@ -90,7 +90,7 @@ set(HW_ONLY_LIBS
   cmrt_cross_platform_hw
   asc
   $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
-  $<$<BOOL:${MFX_ENABLE_USER_ENCTOOLS}>:enctools_hw>
+  $<$<BOOL:${MFX_ENABLE_ENCTOOLS}>:enctools_hw>
 )
 
 set(LIBS
