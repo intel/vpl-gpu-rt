@@ -36,6 +36,7 @@
 #include "mfx_h264_encode_hw.h"
 #include "mfx_h264_enc_common_hw.h"
 #include "mfx_h264_encode_hw_utils.h"
+#include "mfx_enc_common.h"
 
 #include "mfx_h264_encode_cm.h"
 #include "mfx_h264_encode_cm_defs.h"
@@ -747,6 +748,7 @@ ImplementationAvc::ImplementationAvc(VideoCORE * core)
 , m_RefOrder(-1)
 {
     memset(&m_recNonRef, 0, sizeof(m_recNonRef));
+    memset(&m_mbqpInfo, 0, sizeof(m_mbqpInfo));
 
 #if MFX_ENABLE_AGOP
     memset(m_bestGOPSequence, 0, sizeof(m_bestGOPSequence));
@@ -799,16 +801,23 @@ public:
         m_bInit(false),
         m_RateControlMethod(0),
         m_LookAheadDepth(0),
-        m_MaxKbps(0)
+        m_MaxKbps(0),
+        m_MBBRC(0)
     {}
-    void ModifyForDDI(MfxVideoParam & par, bool bSWBRC)
+    void ModifyForDDI(MfxVideoParam & par, MFX_ENCODE_CAPS  &caps, bool bSWBRC)
     {
-        if (!bSWBRC)
+        mfxExtCodingOption2& extOpt2 = GetExtBufferRef(par);
+        bool bMBBRCviaMBQP = IsOn(extOpt2.MBBRC) && (GetMBQPMode(caps, par) != MBQPMode_None);
+        if (!bSWBRC && !bMBBRCviaMBQP)
             return;
         if (!m_bInit)
             SaveParams(par);
         // in the case of SWBRC driver works in CQP mode
-        par.mfx.RateControlMethod = MFX_RATECONTROL_CQP;
+        if (bSWBRC)
+            par.mfx.RateControlMethod = MFX_RATECONTROL_CQP;
+        if (bMBBRCviaMBQP)
+            extOpt2.MBBRC = MFX_CODINGOPTION_OFF;
+
     }
     void ModifyForBRC(MfxVideoParam & par, bool bSWBRC)
     {
@@ -830,6 +839,7 @@ public:
         par.mfx.RateControlMethod = m_RateControlMethod;
         par.mfx.MaxKbps = m_MaxKbps;
         extOpt2.LookAheadDepth = m_LookAheadDepth;
+        extOpt2.MBBRC = m_MBBRC;
         m_bInit = false;
     }
 
@@ -838,6 +848,7 @@ private:
     mfxU16  m_RateControlMethod;
     mfxU16  m_LookAheadDepth;
     mfxU16  m_MaxKbps;
+    mfxU16  m_MBBRC;
 
 protected:
     void SaveParams(MfxVideoParam & par)
@@ -846,6 +857,7 @@ protected:
         m_RateControlMethod = par.mfx.RateControlMethod;
         m_LookAheadDepth= extOpt2.LookAheadDepth;
         m_MaxKbps = par.mfx.MaxKbps;
+        m_MBBRC = extOpt2.MBBRC;
         m_bInit = true;
     }
 };
@@ -986,6 +998,7 @@ mfxStatus ImplementationAvc::InitScd(mfxFrameAllocRequest& request)
     return sts;
 }
 
+
 mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "ImplementationAvc::Init");
@@ -1101,7 +1114,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
             m_brc.Init(m_video);
             mod_params.Restore(m_video);
         }
-        mod_params.ModifyForDDI(m_video, true);
+        mod_params.ModifyForDDI(m_video, m_caps, true);
         sts = m_ddi->CreateAccelerationService(m_video);
         MFX_CHECK(sts == MFX_ERR_NONE, MFX_WRN_PARTIAL_ACCELERATION);
         mod_params.Restore(m_video);
@@ -1112,7 +1125,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         mod_params.ModifyForBRC(m_video, true);
         m_brc.Init(m_video);
         mod_params.Restore(m_video);
-        mod_params.ModifyForDDI(m_video, true);
+        mod_params.ModifyForDDI(m_video, m_caps, true);
         sts = m_ddi->CreateAccelerationService(m_video);
         MFX_CHECK(sts == MFX_ERR_NONE, MFX_WRN_PARTIAL_ACCELERATION);
         mod_params.Restore(m_video);
@@ -1275,6 +1288,37 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         }
     }
 #endif
+
+    if (GetMBQPMode(m_caps, m_video) )
+    {
+        m_useMBQPSurf = true;
+
+        m_mbqpInfo.block_height = 16;
+        m_mbqpInfo.block_width = 16;
+        m_mbqpInfo.width = m_video.mfx.FrameInfo.Width / 16;
+        m_mbqpInfo.height = m_video.mfx.FrameInfo.Height / 16;
+        m_mbqpInfo.NumFrameMin = IsEnctoolsLAGS(m_video) ? 
+            m_rec.NumFrameActual:
+            mfxU16(m_emulatorForSyncPart.GetStageGreediness(AsyncRoutineEmulator::STG_WAIT_ENCODE) + bParallelEncPak);
+        m_mbqpInfo.pitch = 0;
+
+        {
+            m_mbqpInfo.pitch = mfx::align2_value(m_mbqpInfo.width, 16);
+            m_mbqpInfo.height_aligned = mfx::align2_value(m_mbqpInfo.height, 8);
+            m_mbqpInfo.Info.BufferSize = m_mbqpInfo.pitch * m_mbqpInfo.height_aligned;
+            m_mbqpInfo.Info.FourCC = MFX_FOURCC_P8;
+            m_mbqpInfo.Type = (MFX_MEMTYPE_FROM_ENCODE
+                | MFX_MEMTYPE_SYSTEM_MEMORY
+                | MFX_MEMTYPE_INTERNAL_FRAME);
+        }
+        
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MfxFrameAllocResponse Alloc");
+            sts = m_mbqp.Alloc(m_core, m_mbqpInfo, false);
+        }
+        MFX_CHECK_STS(sts);
+
+    }
 
 
     // Allocate surfaces for bitstreams.
@@ -1760,7 +1804,7 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
 
     // to change m_video before DDI Reset
     ModifiedVideoParams mod_par;
-    mod_par.ModifyForDDI(newPar, m_enabledSwBrc);
+    mod_par.ModifyForDDI(newPar, m_caps, m_enabledSwBrc);
     m_ddi->Reset(newPar);
     mod_par.Restore(newPar);
 
@@ -2554,7 +2598,7 @@ void ImplementationAvc::OnEncodingQueried(DdiTaskIter task)
     if ((task->m_reference[0] + task->m_reference[1]) == 0)
         ReleaseResource(m_rec, task->m_midRec);
 
-    if(m_useMBQPSurf && task->m_isMBQP)
+    if(task->m_midMBQP)
         ReleaseResource(m_mbqp, task->m_midMBQP);
 
     if (m_useMbControlSurfs && task->m_isMBControl)
@@ -3328,6 +3372,41 @@ mfxStatus ImplementationAvc::CheckBufferSize(DdiTask &task, bool &bToRecode, mfx
     }
     return MFX_ERR_NONE;
 }
+#ifdef MFX_ENABLE_ENCTOOLS
+mfxStatus ImplementationAvc::EncToolsGetFrameCtrl(DdiTask& task)
+{
+    mfxEncToolsHintQPMap qpMapHint = {};
+    mfxFrameData qpMap = {};
+    bool bMbQP = false;
+    std::unique_ptr <FrameLocker> lock = nullptr;
+
+    if (GetMBQPMode(m_caps, m_video) == MBQPMode_FromEncToolsBRC)
+    {
+        if (!task.m_midMBQP)
+        {
+            task.m_idxMBQP = FindFreeResourceIndex(m_mbqp);
+            task.m_midMBQP = AcquireResource(m_mbqp, task.m_idxMBQP);
+            MFX_CHECK(task.m_midMBQP, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+
+        lock = std::make_unique <FrameLocker>(m_core, qpMap, task.m_midMBQP);
+        MFX_CHECK(qpMap.Y, MFX_ERR_LOCK_MEMORY);
+
+        qpMapHint.ExtQpMap.BlockSize = (mfxU16)m_mbqpInfo.block_width;
+        qpMapHint.ExtQpMap.QP = qpMap.Y;
+        qpMapHint.ExtQpMap.Mode = MFX_MBQP_MODE_QP_VALUE;
+        qpMapHint.ExtQpMap.NumQPAlloc = m_mbqpInfo.height_aligned * m_mbqpInfo.pitch;
+        qpMapHint.QpMapPitch = (mfxU16)m_mbqpInfo.pitch;
+
+        bMbQP = true;
+    }
+    mfxStatus ests = m_encTools.GetFrameCtrl(&task.m_brcFrameCtrl, task.m_frameOrder, bMbQP ? &qpMapHint : 0);
+    if (bMbQP && qpMapHint.QpMapFilled)
+        task.m_isMBQP = true;
+    return ests;
+}
+#endif
+
 mfxStatus ImplementationAvc::CheckBRCStatus(DdiTask &task, bool &bToRecode, mfxU32 bsDataLength)
 {
     mfxExtCodingOption2    const & extOpt2 = GetExtBufferRef(m_video);
@@ -3411,8 +3490,10 @@ mfxStatus ImplementationAvc::CheckBRCStatus(DdiTask &task, bool &bToRecode, mfxU
             {
                 ests = m_encTools.SubmitFrameForEncoding(task);
                 MFX_CHECK_STS(ests);
-                ests = m_encTools.GetFrameCtrl(&task.m_brcFrameCtrl, task.m_frameOrder);
+
+                ests = EncToolsGetFrameCtrl(task);
                 MFX_CHECK_STS(ests);
+
             } else
 #endif
             m_brc.GetQpForRecode(task.m_brcFrameParams, task.m_brcFrameCtrl);
@@ -3542,10 +3623,10 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
 
     }
 
-    if (m_encTools.IsLookAheadBRC())
+    if (m_encTools.isLASWBRC())
     {
         mfxEncToolsBRCBufferHint bufHint = {};
-        sts = m_encTools.QueryLookAheadStatus(task.m_frameOrder, &bufHint, nullptr, nullptr);
+        sts = m_encTools.QueryLookAheadStatus(task.m_frameOrder, &bufHint, nullptr, nullptr, nullptr);
         MFX_CHECK_STS(sts);
         task.m_lplastatus.AvgEncodedBits = bufHint.AvgEncodedSizeInBits;
         task.m_lplastatus.CurEncodedBits = bufHint.CurEncodedSizeInBits;
@@ -3553,14 +3634,38 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
     }
 
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
-    if (m_encTools.IsLookAhead())
+    if (m_encTools.isLAHWBRC())
     {
         mfxEncToolsBRCBufferHint bufHint = {};
         // if QueryPreEncRes has been called above, no need to Query PreEncodeGOP again
         mfxEncToolsHintPreEncodeGOP *gopHint = (st.Header.BufferSz > 0 ? nullptr : &st);
         mfxEncToolsHintQuantMatrix cqmHint = {};
+        mfxEncToolsHintQPMap qpMapHint = {};
+        mfxFrameData qpMap = {};
+        bool bMbQP = false;
+        std::unique_ptr <FrameLocker> lock = nullptr;
+        if (GetMBQPMode(m_caps, m_video) == MBQPMode_FromEncToolsLA)
+        {
+            if (!task.m_midMBQP)
+            {
+                task.m_idxMBQP = FindFreeResourceIndex(m_mbqp);
+                task.m_midMBQP = AcquireResource(m_mbqp, task.m_idxMBQP);
+                MFX_CHECK(task.m_midMBQP, MFX_ERR_UNDEFINED_BEHAVIOR);
+            }
 
-        sts = m_encTools.QueryLookAheadStatus(task.m_frameOrder, &bufHint, gopHint, &cqmHint);
+            lock = std::make_unique <FrameLocker>(m_core, qpMap, task.m_midMBQP);
+            MFX_CHECK(qpMap.Y, MFX_ERR_LOCK_MEMORY);
+
+            qpMapHint.ExtQpMap.BlockSize = (mfxU16)m_mbqpInfo.block_width;
+            qpMapHint.ExtQpMap.QP = qpMap.Y;
+            qpMapHint.ExtQpMap.Mode = MFX_MBQP_MODE_QP_DELTA;
+            qpMapHint.ExtQpMap.NumQPAlloc = m_mbqpInfo.height_aligned * m_mbqpInfo.pitch;
+            qpMapHint.QpMapPitch = (mfxU16)m_mbqpInfo.pitch;
+
+            bMbQP = true;
+        }
+
+        sts = m_encTools.QueryLookAheadStatus(task.m_frameOrder, &bufHint, gopHint, &cqmHint, bMbQP? &qpMapHint: 0);
         MFX_CHECK_STS(sts);
 
         mfxLplastatus lplaStatus = {};
@@ -3688,7 +3793,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType())
 #if defined(MFX_ENABLE_ENCTOOLS)
                 // for LPLA, use frameType provided by EncTools even if AdaptiveGOP is off
-                || (m_enabledEncTools && (m_encTools.IsAdaptiveGOP() || m_encTools.IsLookAhead()))
+                || (m_enabledEncTools && (m_encTools.IsAdaptiveGOP() || m_encTools.isLAHWBRC() || m_encTools.isLASWBRC()))
 #endif
                 )
             {
@@ -3708,6 +3813,9 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 newTask.m_frameOrder = m_frameOrder;
                 AssignFrameTypes(newTask);
 
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+                if (!m_encTools.isLAHWBRC())
+#endif
                 BuildPPyr(newTask, GetPPyrSize(m_video, 0, false), true, false);
             }
 
@@ -3757,7 +3865,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::STG_BIT_START_SCD");
         DdiTask & task = m_ScDetectionStarted.back();
 #if defined(MFX_ENABLE_ENCTOOLS)
-        if (m_enabledEncTools && (m_encTools.IsPreEncNeeded() || m_encTools.IsLookAheadBRC() || m_encTools.IsLookAhead()))
+        if (m_enabledEncTools && (m_encTools.IsPreEncNeeded()))
         {
             mfxFrameSurface1  tmpSurface = *task.m_yuv;
             mfxStatus sts = m_encTools.SubmitForPreEnc(task.m_frameOrder, &tmpSurface);
@@ -3791,11 +3899,11 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             MFX_CHECK_STS(sts);
 
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
-            if (m_encTools.IsLookAhead())
+            if (m_encTools.isLAHWBRC())
             {
                 mfxU32 miniGopSize = m_lpLaStatus.empty() ? 1 : m_lpLaStatus.front().MiniGopSize;
-                mfxU32 pyrWidth = GetPPyrSize(m_video, miniGopSize, m_encTools.IsLookAhead());
-                mfxU32 prevPyrWidth = GetPPyrSize(m_video, m_lastTask.m_lplastatus.MiniGopSize, m_encTools.IsLookAhead());
+                mfxU32 pyrWidth = GetPPyrSize(m_video, miniGopSize, true);
+                mfxU32 prevPyrWidth = GetPPyrSize(m_video, m_lastTask.m_lplastatus.MiniGopSize, true);
                 BuildPPyr(task, pyrWidth, true, pyrWidth != prevPyrWidth);
             }
 #endif
@@ -4217,8 +4325,9 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     mfxStatus etSts;
                     etSts = m_encTools.SubmitFrameForEncoding(*task);
                     MFX_CHECK_STS(etSts);
-                    etSts = m_encTools.GetFrameCtrl(&task->m_brcFrameCtrl, task->m_frameOrder);
+                    etSts = EncToolsGetFrameCtrl(*task);
                     MFX_CHECK_STS(etSts);
+
                 }
                 else
 #endif
@@ -4245,45 +4354,80 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 }
             }
 
-            if (IsOn(extOpt3.EnableMBQP))
+            auto mode = GetMBQPMode(m_caps, m_video);
+            if (mode)
             {
-                task->m_mbqp = GetExtBuffer(task->m_ctrl);
-                if (!task->m_mbqp && isSWBRC(m_video))
-                {
-                    task->m_mbqp = GetExtBuffer(task->m_brcFrameCtrl);
-                }
-                mfxU32 wMB = (m_video.mfx.FrameInfo.CropW + 15) / 16;
-                mfxU32 hMB = (m_video.mfx.FrameInfo.CropH + 15) / 16;
-                task->m_isMBQP = task->m_mbqp && task->m_mbqp->QP && task->m_mbqp->NumQPAlloc >= wMB * hMB;
-#ifdef MFX_ENABLE_APQ_LQ
-                if (!task->m_isMBQP && task->m_ALQOffset != 0) {
-                    task->m_isMBQP = true;
-                    if (task->m_ALQOffset > 0) {
-                        if (task->m_cqpValue[0] > task->m_ALQOffset && task->m_cqpValue[1] > task->m_ALQOffset) {
-                            task->m_cqpValue[0] = (mfxU8)((mfxI32)task->m_cqpValue[0] - task->m_ALQOffset);
-                            task->m_cqpValue[1] = (mfxU8)((mfxI32)task->m_cqpValue[1] - task->m_ALQOffset);
-                        }
-                        else {
-                            task->m_ALQOffset = 0;
-                            task->m_isMBQP = false;
-                        }
-                    }
-                    else if (task->m_ALQOffset < 0) {
-                        if (task->m_cqpValue[0] > 51 + task->m_ALQOffset || task->m_cqpValue[1] > 51 + task->m_ALQOffset) {
-                            task->m_ALQOffset = 0;
-                            task->m_isMBQP = false;
-                        }
-                    }
-                }
-                else {
-                    task->m_ALQOffset = 0;
-                }
-#endif
-                if (m_useMBQPSurf && task->m_isMBQP)
+                if (!task->m_midMBQP)
                 {
                     task->m_idxMBQP = FindFreeResourceIndex(m_mbqp);
                     task->m_midMBQP = AcquireResource(m_mbqp, task->m_idxMBQP);
+                    MFX_CHECK(task->m_midMBQP, MFX_ERR_UNDEFINED_BEHAVIOR);
                 }
+
+                mfxFrameData qpMap = {};
+                FrameLocker lock(m_core, qpMap, task->m_midMBQP);
+                mfxExtMBQP const* mbqpExt = GetExtBuffer(task->m_ctrl);
+                mfxExtEncoderROI const* extRoi = GetExtBuffer(task->m_ctrl);
+
+                if (mode == MBQPMode_ExternalMap && mbqpExt)
+                {
+                    mfxStatus sts = FillCUQPData(mbqpExt,
+                        m_video.mfx.FrameInfo.CropW, m_video.mfx.FrameInfo.CropH,
+                        (mfxI8*)qpMap.Y,
+                        m_mbqpInfo.pitch, m_mbqpInfo.height_aligned,
+                        m_mbqpInfo.block_width, m_mbqpInfo.block_height);
+                    MFX_CHECK_STS(sts);
+                    task->m_isMBQP = true;
+                  
+                }
+                else if (mode == MBQPMode_ForROI && extRoi)
+                {
+                    mfxStatus  sts = FillMBMapViaROI(*extRoi,
+                        (mfxI8*)qpMap.Y,
+                        m_mbqpInfo.Info.Width, m_mbqpInfo.Info.Height, m_mbqpInfo.pitch,
+                        m_mbqpInfo.block_width, m_mbqpInfo.block_height,
+                        task->m_cqpValue[0]);
+                    MFX_CHECK_STS(sts);
+                    task->m_isMBQP = true;
+                }
+#ifdef MFX_ENABLE_APQ_LQ
+                else if (mode == MBQPMode_ForALQOffset)
+                {
+                    if (task->m_ALQOffset != 0) 
+                    {
+                        bool MBQP_forALQOffset = true;
+                        if (task->m_ALQOffset > 0) 
+                        {
+                            if (task->m_cqpValue[0] > task->m_ALQOffset && task->m_cqpValue[1] > task->m_ALQOffset) 
+                            {
+                                task->m_cqpValue[0] = (mfxU8)((mfxI32)task->m_cqpValue[0] - task->m_ALQOffset);
+                                task->m_cqpValue[1] = (mfxU8)((mfxI32)task->m_cqpValue[1] - task->m_ALQOffset);
+                            }
+                            else 
+                            {
+                                task->m_ALQOffset = 0;
+                                MBQP_forALQOffset = false;
+                            }
+                        }
+                        else if (task->m_ALQOffset < 0) 
+                        {
+                            if (task->m_cqpValue[0] > 51 + task->m_ALQOffset || task->m_cqpValue[1] > 51 + task->m_ALQOffset) 
+                            {
+                                task->m_ALQOffset = 0;
+                                MBQP_forALQOffset = false;
+                            }
+                        }
+                        if (MBQP_forALQOffset)
+                        {
+                            mfxStatus  sts = FillCUQPData((mfxU8)mfx::clamp(task->m_ALQOffset + task->m_cqpValue[0], 1, 51),
+                                (mfxI8*)qpMap.Y,
+                                m_mbqpInfo.pitch, m_mbqpInfo.height_aligned);
+                            MFX_CHECK_STS(sts);
+                            task->m_isMBQP = true;
+                        }
+                    }
+                }
+#endif
             }
 
             // In case of progressive frames in PAFF mode need to switch the flag off to prevent m_fieldCounter changes
@@ -4440,9 +4584,8 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 #if defined(MFX_ENABLE_ENCTOOLS)
                             if (m_enabledEncTools)
                             {
-                                mfxStatus ests;
-                                ests = m_encTools.GetFrameCtrl(&nextTask->m_brcFrameCtrl, nextTask->m_frameOrder);
-                                MFX_CHECK_STS(ests);
+                                mfxStatus etSts = EncToolsGetFrameCtrl(*task);
+                                MFX_CHECK_STS(etSts);
                             } else
 #endif
                             m_brc.GetQpForRecode(nextTask->m_brcFrameParams, nextTask->m_brcFrameCtrl);

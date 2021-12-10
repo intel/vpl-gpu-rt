@@ -26,6 +26,7 @@
 #include "hevcehw_base.h"
 #include "hevcehw_ddi.h"
 #include "hevcehw_base_data.h"
+#include "mfx_enc_common.h"
 #include <tuple>
 
 namespace HEVCEHW
@@ -37,6 +38,7 @@ namespace Base
         BL0 = 1,
         BL1 = 2
     };
+
 
     class Legacy
         : public FeatureBase
@@ -233,11 +235,17 @@ namespace Base
             , Slice & s);
         static mfxU32 GetRawBytes(mfxU16 w, mfxU16 h, mfxU16 ChromaFormat, mfxU16 BitDepth);
         static bool IsInVideoMem(const mfxVideoParam & par);
-        static bool IsSWBRC(const ExtBuffer::Param<mfxVideoParam>& par);
-        static bool IsEnctoolsLABRC(const ExtBuffer::Param<mfxVideoParam>& par);
         static bool IsTCBRC(const mfxVideoParam & par, mfxU16 tcbrcSupport);
         static bool IsMain10SP(const mfxU16 codecProfile, const mfxExtHEVCParam* pHEVC);
-        static bool IsMBQP(const ExtBuffer::Param<mfxVideoParam>& par, bool bMBQPSupport);
+
+        static inline MBQPMode GetMBQPMode(const ENCODE_CAPS_HEVC& caps, const mfxVideoParam& par)
+        {
+            return ::GetMBQPMode(par, caps.MaxNumOfROI, caps.ROIDeltaQPSupport, caps.MbQpDataSupport);
+        }
+        static inline bool  IsSWBRC(const mfxVideoParam& par)
+        {
+            return ::IsSWBRCMode(par);
+        }
 
         mfxU16 GetMaxRaw(const mfxVideoParam & par)
         {
@@ -246,13 +254,19 @@ namespace Base
             mfxU16 extRaw = pCO2 ? pCO2->LookAheadDepth : 0;
             return par.AsyncDepth + (par.mfx.GopRefDist - 1) + (par.AsyncDepth > 1) + extRaw;
         }
+        mfxU16 GetMaxMBMaps(mfxVideoParam const& par)
+        {
+            // Extend extra Raw for frames buffered between LA submit and LA Query stage
+            const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
+            return par.AsyncDepth + ((pCO2 && pCO2->LookAheadDepth) ? (par.mfx.GopRefDist - 1) : 0) + (par.AsyncDepth > 1);        
+        }
         mfxU16 GetMaxBS(mfxVideoParam const & par)
         {
             return par.AsyncDepth + (par.AsyncDepth > 1);
         }
         mfxU32 GetMinBsSize(const ExtBuffer::Param<mfxVideoParam>& par);
 
-        std::tuple<mfxStatus, mfxU16, mfxU16> GetCUQPMapBlockSize(
+        static std::tuple<mfxStatus, mfxU16, mfxU16> GetCUQPMapBlockSize(
             mfxU16 frameWidth, mfxU16 frameHeight,
             mfxU16 CUQPWidth, mfxU16 CUHeight);
 

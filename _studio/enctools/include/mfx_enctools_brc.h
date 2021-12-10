@@ -227,8 +227,8 @@ public:
         mMBBRC(false)
     {}
 
-    mfxStatus Init(mfxEncToolsCtrl const & ctrl, bool bFieldMode = false);
-    mfxStatus GetBRCResetType(mfxEncToolsCtrl const & ctrl, bool bNewSequence, bool &bReset, bool &bSlidingWindowReset);
+    mfxStatus Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool bFieldMode);
+    mfxStatus GetBRCResetType(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool bNewSequence, bool &bReset, bool &bSlidingWindowReset);
 };
 
 struct sHrdInput
@@ -545,8 +545,8 @@ public:
     {}
     ~BRC_EncTool() { Close(); }
 
-    mfxStatus Init(mfxEncToolsCtrl const & ctrl);
-    mfxStatus Reset(mfxEncToolsCtrl const & ctrl);
+    mfxStatus Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC);
+    mfxStatus Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC);
     void Close()
     {
         m_bInit = false;
@@ -556,7 +556,7 @@ public:
     mfxStatus SetFrameStruct(mfxU32 dispOrder, mfxEncToolsBRCFrameParams  const & pFrameStruct);
     mfxStatus ReportBufferHints(mfxU32 dispOrder, mfxEncToolsBRCBufferHint const & pBufHints);
     mfxStatus ReportGopHints(mfxU32 dispOrder, mfxEncToolsHintPreEncodeGOP const & pGopHints);
-    mfxStatus ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl *pFrameQp);
+    mfxStatus ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl *pFrameQp, mfxEncToolsHintQPMap* qpMapHint);
     mfxStatus UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *pFrameSts);
     mfxStatus GetHRDPos(mfxU32 dispOrder, mfxEncToolsBRCHRDPos *pHRDPos);
 
@@ -572,9 +572,6 @@ protected:
     mfxU32     m_ReEncodeCount;
     std::vector<BRC_FrameStruct> m_FrameStruct;
 
-    std::vector <mfxExtMBQP>     m_MBQP;
-    std::vector <mfxU8>          m_MBQPBuff;
-    std::vector <mfxExtBuffer*>  m_ExtBuff;
 
     mfxI32 GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
     mfxI32 GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
