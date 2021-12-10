@@ -2731,6 +2731,10 @@ mfxStatus VideoVPPHW::QueryCaps(VideoCORE* core, MfxHwVideoProcessing::mfxVppCap
 
     caps.uFrameRateConversion = 1;
     caps.uFieldProcessing = 1;
+    if (core->GetHWType() == MFX_HW_DG2)
+    {   
+        caps.uFieldProcessing = 0;
+    }
     return sts;
 
 } // mfxStatus VideoVPPHW::QueryCaps(VideoCORE* core, MfxHwVideoProcessing::mfxVppCaps& caps)

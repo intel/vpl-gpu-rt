@@ -268,7 +268,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
 template <class Base>
 bool VAAPIVideoCORE_T<Base>::IsCmSupported()
 {
-    return true;
+    return GetHWType() < MFX_HW_DG2;
 }
 
 template <class Base>

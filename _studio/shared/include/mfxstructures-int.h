@@ -79,6 +79,7 @@ enum eMFXHWType
     MFX_HW_DG1       = MFX_HW_TGL_LP + 3,
     MFX_HW_ADL_S     = MFX_HW_TGL_LP + 4,
     MFX_HW_ADL_P     = MFX_HW_TGL_LP + 5,
+    MFX_HW_DG2       = MFX_HW_TGL_LP + 7,
 
 };
 
@@ -454,6 +455,39 @@ typedef struct {
     { 0x46AA, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
     { 0x462A, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
 
+    /* DG2 */
+    { 0x4F80, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x4F81, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x4F82, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x4F83, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x4F84, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x4F85, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x4F86, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x4F87, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x4F88, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x5690, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x5691, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x5692, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x5693, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x5694, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x5695, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x5696, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x5697, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x5698, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56A0, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56A1, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56A2, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56A3, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56A4, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56A5, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56A6, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56A7, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56A8, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56A9, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56B0, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56B1, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56C0, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56C1, MFX_HW_DG2, MFX_GT4 }, // DG2
 
 };
 

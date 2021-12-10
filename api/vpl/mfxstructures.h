@@ -170,10 +170,6 @@ enum {
     MFX_FOURCC_BGRA         = MFX_FOURCC_RGB4,                 /*!< Alias for the RGB4 color format. */
     /*! BGR 24 bit planar layout (3 separate channels, 8-bits per sample each). This format should be mapped to VA_FOURCC_BGRP. */
     MFX_FOURCC_BGRP         = MFX_MAKEFOURCC('B','G','R','P'),
-#ifdef ONEVPL_EXPERIMENTAL
-    /*! 8bit per sample 4:4:4 format packed in 32 bits, X=unused/undefined, 'X' channel is 8 MSBs, then 'Y', then 'U', and then 'V' channels. This format should be mapped to VA_FOURCC_XYUV. */
-    MFX_FOURCC_XYUV         = MFX_MAKEFOURCC('X','Y','U','V'),
-#endif
 };
 
 /* PicStruct */

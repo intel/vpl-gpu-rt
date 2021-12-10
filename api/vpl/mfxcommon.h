@@ -199,6 +199,8 @@ enum {
     MFX_PLATFORM_ALDERLAKE_P    = 44, /*!< Code name Alder Lake P. */
     MFX_PLATFORM_ARCTICSOUND_P  = 45,
     MFX_PLATFORM_XEHP_SDV       = 45, /*!< Code name XeHP SDV. */
+    MFX_PLATFORM_DG2            = 46, /*!< Code name DG2. */
+    MFX_PLATFORM_ATS_M          = 46, /*!< Code name ATS-M, same media functionality as DG2. */
     MFX_PLATFORM_KEEMBAY        = 50, /*!< Code name Keem Bay. */
 };
 

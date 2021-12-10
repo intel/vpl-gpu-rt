@@ -715,6 +715,7 @@ typedef enum _GPU_PLATFORM {
     PLATFORM_INTEL_RKL = 19,  //RocketLake
     PLATFORM_INTEL_DG1 = 20,  //DG1
     PLATFORM_INTEL_ADL_S = 21,  //AlderLake
+    PLATFORM_INTEL_DG2 = 22,  //DG2
     PLATFORM_INTEL_ADL_P = 23, //AlderLake
 } GPU_PLATFORM;
 

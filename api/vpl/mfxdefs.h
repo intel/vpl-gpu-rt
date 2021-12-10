@@ -10,21 +10,12 @@
 #define MFX_VERSION_MAJOR 2
 #define MFX_VERSION_MINOR 6
 
-// MFX_VERSION_NEXT is always +1 from last public release
-// may be enforced by MFX_VERSION_USE_LATEST define
-// if MFX_VERSION_USE_LATEST is defined  MFX_VERSION is ignored
-#define MFX_VERSION_NEXT (MFX_VERSION_MAJOR * 1000 + MFX_VERSION_MINOR + 1)
-
 // MFX_VERSION - version of API that 'assumed' by build may be provided externally
 // if it omitted then latest stable API derived from Major.Minor is assumed
 
 
 #if !defined(MFX_VERSION)
-  #if defined(MFX_VERSION_USE_LATEST)
-    #define MFX_VERSION MFX_VERSION_NEXT
-  #else
     #define MFX_VERSION (MFX_VERSION_MAJOR * 1000 + MFX_VERSION_MINOR)
-  #endif
 #else
   #undef MFX_VERSION_MAJOR
   #define MFX_VERSION_MAJOR ((MFX_VERSION) / 1000)

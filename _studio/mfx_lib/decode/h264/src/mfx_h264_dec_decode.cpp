@@ -271,6 +271,11 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
             MFX_ERR_UNSUPPORTED);
 
          //PicStruct support differs, need to check per-platform
+        if (m_core->GetHWType() != MFX_HW_DG2)
+        {
+             MFX_CHECK(m_vPar.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE, MFX_ERR_UNSUPPORTED);
+        }
+
         bool is_fourcc_supported =
                   (  videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
                   || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
