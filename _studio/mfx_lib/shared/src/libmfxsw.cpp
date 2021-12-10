@@ -488,7 +488,35 @@ mfxStatus QueryImplsDescription(VideoCORE&, mfxEncoderDescription&, mfx::PODArra
 mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription&, mfx::PODArraysHolder&);
 mfxStatus QueryImplsDescription(VideoCORE&, mfxVPPDescription&, mfx::PODArraysHolder&);
 
-static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32, mfxU64, const std::vector<bool>&) > QueryImpls)
+inline
+std::tuple<mfxU32 /*Domain*/, mfxU32 /*Bus*/, mfxU32 /*Device*/, mfxU32 /*Function*/>
+GetAdapterInfo(mfxU64 adapterId)
+{
+    auto result = std::make_tuple(-1, -1, -1, -1);
+
+    auto fd = static_cast<int>(adapterId);
+    drmDevicePtr pd;
+    int sts = drmGetDevice(fd, &pd);
+    if (!(!sts && pd))
+        return result;
+    std::unique_ptr<
+        drmDevicePtr, void(*)(drmDevicePtr*)
+    > dev(&pd, drmFreeDevice);
+
+    if ((*dev)->bustype != DRM_BUS_PCI)
+        return result;
+
+    result = std::make_tuple(
+        (*dev)->businfo.pci->domain,
+        (*dev)->businfo.pci->bus,
+        (*dev)->businfo.pci->dev,
+        (*dev)->businfo.pci->func
+    );
+
+    return result;
+}
+
+static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfxU64, const std::vector<bool>& ) > QueryImpls)
 {
     for (int i = 0; i < 64; ++i)
     {
@@ -612,25 +640,14 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
         {
             std::unique_ptr<mfx::ExtendedDeviceIDHolder> holder(new mfx::ExtendedDeviceIDHolder);
 
-            auto QueryDevExtended = [&](VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum, mfxU64 num, const std::vector<bool>&)-> bool
+            auto QueryDevExtended = [&](VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum, mfxU64 adapterId, const std::vector<bool>&)-> bool
             {
                 if (!IsVplHW(core.GetHWType(), deviceId))
-                    return true;
-
-                std::shared_ptr<drmDevicePtr> dev;
-                drmDevicePtr pd;
-                int sts = drmGetDevice((int)num, &pd);
-                if (!(!sts && pd))
-                    return true;
-                dev.reset(&pd, drmFreeDevice);
-
-                if ((*dev.get())->bustype != DRM_BUS_PCI)
                     return true;
 
                 auto& device = holder->PushBack();
 
                 device.Version.Version = MFX_STRUCT_VERSION(1, 0);
-
                 device.VendorID = 0x8086;
                 device.DeviceID = mfxU16(deviceId);
 
@@ -643,11 +660,8 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
                 device.DRMPrimaryNodeNum = adapterNum;
                 device.DRMRenderNodeNum = 128 + adapterNum;
 
-                device.PCIDomain   = (*dev.get())->businfo.pci->domain;
-                device.PCIBus      = (*dev.get())->businfo.pci->bus;
-                device.PCIDevice   = (*dev.get())->businfo.pci->dev;
-                device.PCIFunction = (*dev.get())->businfo.pci->func;
-
+                std::tie(device.PCIDomain, device.PCIBus, device.PCIDevice, device.PCIFunction)
+                    = GetAdapterInfo(adapterId);
 
                 snprintf(device.DeviceName, sizeof(device.DeviceName), "mfx-gen");
 
