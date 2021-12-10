@@ -79,14 +79,22 @@ EXTBUF(mfxExtAV1TileParam                , MFX_EXTBUFF_AV1_TILE_PARAM)
 EXTBUF(mfxExtAV1Segmentation             , MFX_EXTBUFF_AV1_SEGMENTATION)
 #endif //defined(__MFXSTRUCTURES_H__)
 
+
+
 #if defined(__MFXCOMMON_H__)
 // Threading API
 EXTBUF(mfxExtThreadsParam                , MFX_EXTBUFF_THREADS_PARAM)
 #endif //defined(__MFXCOMMON_H__)
 
+
 #if defined(__MFXBRC_H__)
 EXTBUF(mfxExtBRC, MFX_EXTBUFF_BRC)
 #endif // defined(__MFXBRC_H__)
+
+#if defined(__MFXPAVP_H__)
+
+EXTBUF(mfxExtCencParam                   , MFX_EXTBUFF_CENC_PARAM                )
+#endif // defined(__MFXPAVP_H__)
 
 #if defined(__MFXSCD_H__)
 EXTBUF(mfxExtSCD, MFX_EXTBUFF_SCD)
@@ -113,6 +121,7 @@ EXTBUF(mfxExtHyperModeParam               , MFX_EXTBUFF_HYPER_MODE_PARAM        
 #if defined(MFX_ENABLE_ENCTOOLS)
 EXTBUF(mfxExtEncToolsConfig              , MFX_EXTBUFF_ENCTOOLS_CONFIG           )
 #endif
+
 
 #endif // defined(__MFX_EXT_BUFFERS_H__)
 
