@@ -10,7 +10,6 @@ target_sources(mfx_common_hw
     include/mfx_critical_error_handler.h
     include/mfx_ddi_enc_dump.h
     include/mfx_enc_common.h
-    include/mfx_enc_enctools_common.h
     include/mfx_frames.h
     include/mfx_h264_enc_common_hw.h
     include/mfx_h264_encode_interface.h
@@ -37,7 +36,6 @@ target_sources(mfx_common_hw
     src/mfx_common_int.cpp
     src/mfx_enc_common.cpp
     src/mfx_log.cpp
-    src/mfx_enc_enctools_common.cpp
     src/mfx_mpeg2_dec_common.cpp
     src/mfx_vc1_dec_common.cpp
     src/mfx_critical_error_handler.cpp
