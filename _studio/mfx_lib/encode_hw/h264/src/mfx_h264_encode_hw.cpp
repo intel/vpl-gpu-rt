@@ -3611,34 +3611,36 @@ void SetupAdaptiveCQM(const MfxVideoParam &par, DdiTask &task, const QpHistory q
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
 #endif // MFX_ENABLE_ENCTOOLS_LPLA
         {   // History based ACQM
-            if (averageQP == 0) // not enough history QP
             {
-                const mfxU32 MBSIZE = 16;
-                const mfxU32 BITRATE_SCALE = 2000;
-                const mfxU32 numMB = (par.mfx.FrameInfo.Width / MBSIZE) * (par.mfx.FrameInfo.Height / MBSIZE);
-                const mfxU32 normalizedBitrate = mfxU32(mfxU64(BITRATE_SCALE) * par.calcParam.targetKbps
-                    * par.mfx.FrameInfo.FrameRateExtD / par.mfx.FrameInfo.FrameRateExtN / numMB);
+                if (averageQP == 0) // not enough history QP
+                {
+                    const mfxU32 MBSIZE = 16;
+                    const mfxU32 BITRATE_SCALE = 2000;
+                    const mfxU32 numMB = (par.mfx.FrameInfo.Width / MBSIZE) * (par.mfx.FrameInfo.Height / MBSIZE);
+                    const mfxU32 normalizedBitrate = mfxU32(mfxU64(BITRATE_SCALE) * par.calcParam.targetKbps
+                        * par.mfx.FrameInfo.FrameRateExtD / par.mfx.FrameInfo.FrameRateExtN / numMB);
 
-                const mfxU32 STRONG_QM_BR_THRESHOLD = 25;
-                const mfxU32 MEDIUM_QM_BR_THRESHOLD = 50;
+                    const mfxU32 STRONG_QM_BR_THRESHOLD = 25;
+                    const mfxU32 MEDIUM_QM_BR_THRESHOLD = 50;
 
-                task.m_adaptiveCQMHint
-                    = (normalizedBitrate < STRONG_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX3
-                    : (normalizedBitrate < MEDIUM_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX2
-                    : CQM_HINT_USE_CUST_MATRIX1;
-            }
-            else
-            {
-                const mfxU32 FLAT_QM_QP_THRESHOLD = 32;
-                const mfxU32 WEAK_QM_QP_THRESHOLD = 38;
-                const mfxU32 MEDIUM_QM_QP_THRESHOLD = 44;
-                const mfxU32 STRONG_QM_QP_THRESHOLD = 50;
-                task.m_adaptiveCQMHint
-                    = averageQP < FLAT_QM_QP_THRESHOLD ? CQM_HINT_USE_FLAT_MATRIX
-                    : averageQP < WEAK_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX1
-                    : averageQP < MEDIUM_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX2
-                    : averageQP < STRONG_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX3
-                    : CQM_HINT_USE_CUST_MATRIX4;
+                    task.m_adaptiveCQMHint
+                        = (normalizedBitrate < STRONG_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX3
+                        : (normalizedBitrate < MEDIUM_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX2
+                        : CQM_HINT_USE_CUST_MATRIX1;
+                }
+                else
+                {
+                    const mfxU32 FLAT_QM_QP_THRESHOLD = 32;
+                    const mfxU32 WEAK_QM_QP_THRESHOLD = 38;
+                    const mfxU32 MEDIUM_QM_QP_THRESHOLD = 44;
+                    const mfxU32 STRONG_QM_QP_THRESHOLD = 50;
+                    task.m_adaptiveCQMHint
+                        = averageQP < FLAT_QM_QP_THRESHOLD ? CQM_HINT_USE_FLAT_MATRIX
+                        : averageQP < WEAK_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX1
+                        : averageQP < MEDIUM_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX2
+                        : averageQP < STRONG_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX3
+                        : CQM_HINT_USE_CUST_MATRIX4;
+                }
             }
 
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
