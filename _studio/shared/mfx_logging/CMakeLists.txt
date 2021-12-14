@@ -16,6 +16,4 @@ target_link_libraries(mfx_logging
   PUBLIC
     mfx_static_lib
     vm
-  PRIVATE
-    mfx_sdl_properties
   )

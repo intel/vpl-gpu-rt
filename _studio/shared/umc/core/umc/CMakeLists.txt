@@ -29,6 +29,8 @@ target_sources(umc
 target_include_directories(umc
   PUBLIC
     include
+
+    ${MSDK_STUDIO_ROOT}/shared/mfx_logging/include
   )
 
 target_link_libraries(umc
@@ -36,6 +38,7 @@ target_link_libraries(umc
     mfx_static_lib
     vm
     vm_plus
+    mfx_logging
     ${IPP_LIBS}
   PRIVATE
     mfx_sdl_properties

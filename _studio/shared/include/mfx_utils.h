@@ -30,6 +30,7 @@
 
 #include "umc_structures.h"
 #include "mfx_trace.h"
+#include "mfx_utils_logging.h"
 #include "mfx_timing.h"
 #include "mfxsurfacepool.h"
 #include "mfx_error.h"
@@ -46,19 +47,39 @@
 #include <sstream>
 #include <utility>
 
-#ifndef MFX_DEBUG_TRACE
-#define MFX_STS_TRACE(sts) sts
-#else
-template <typename T>
-static inline T mfx_print_err(T sts, const char *file, int line, const char *func)
+#if defined(MFX_ENABLE_LOG_UTILITY)
+template <
+    typename T
+    , typename = typename std::enable_if<std::is_same<T, mfxStatus>::value>::type>
+static inline T mfx_sts_trace(const char* fileName, const uint32_t lineNum, const char* funcName, T sts)
+{
+    const std::string stsString = GetMFXStatusInString(sts);
+    if (sts < MFX_ERR_NONE)
+    {
+        MFX_LOG(LEVEL_ERROR, fileName, lineNum, "%s: returns %s\n", funcName, stsString.c_str());
+    }
+    else if (sts > MFX_ERR_NONE)
+    {
+        MFX_LOG(LEVEL_WARN, fileName, lineNum, "%s: returns %s\n", funcName, stsString.c_str());
+    }
+
+    return sts;
+}
+template <
+    typename T
+    , typename std::enable_if<!std::is_same<T, mfxStatus>::value, int>::type = 0>
+static inline T mfx_sts_trace(const char* fileName, const uint32_t lineNum, const char* funcName, T sts)
 {
     if (sts)
     {
-        printf("%s: %d: %s: Error = %d\n", file, line, func, sts);
+        MFX_LOG(LEVEL_ERROR, fileName, lineNum, "%s: returns %d\n", funcName, sts);
     }
+
     return sts;
 }
-#define MFX_STS_TRACE(sts) mfx_print_err(sts, __FILE__, __LINE__, __FUNCTION__)
+#define MFX_STS_TRACE(sts) mfx_sts_trace(__FILE__, __LINE__, __FUNCTION__, sts)
+#else
+#define MFX_STS_TRACE(sts) sts
 #endif
 
 #define MFX_SUCCEEDED(sts)          (MFX_STS_TRACE(sts) == MFX_ERR_NONE)

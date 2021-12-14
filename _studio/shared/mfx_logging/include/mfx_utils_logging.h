@@ -20,14 +20,14 @@
 
 #pragma once
 
-#include "mfx_common.h"
-
 #include "mfx_ext_buffers.h"
 
 
 #include <iostream>
 #include <thread>
 #include <mutex>
+#include <string>
+#include <map>
 
 typedef enum
 {
@@ -53,6 +53,8 @@ extern std::mutex gMfxLogMutex;
 #define COLOR_WHITE  0x000F
 
 void InitMfxLogging();
+
+const std::string GetMFXStatusInString(mfxStatus mfxSts);
 
 #if defined(MFX_ENABLE_LOG_UTILITY)
     #define SET_LOG_GUARD() std::unique_lock<std::mutex> closeGuard(gMfxLogMutex)
