@@ -2541,9 +2541,7 @@ void MfxHwH264Encode::PutSeiMessage(
 // MVC BD }
 
 MfxFrameAllocResponse::MfxFrameAllocResponse()
-    : m_cmDestroy(0)
-    , m_core(0)
-    , m_cmDevice(0)
+    : m_core(0)
     , m_numFrameActualReturnedByAllocFrames(0)
 {
     Zero((mfxFrameAllocResponse &)*this);
@@ -2575,7 +2573,7 @@ MfxFrameAllocResponse::~MfxFrameAllocResponse()
             }
         }
     }
-
+#ifdef MFX_ENABLE_EXT
     if (m_cmDevice)
     {
         for (size_t i = 0; i < m_mids.size(); i++)
@@ -2594,8 +2592,9 @@ MfxFrameAllocResponse::~MfxFrameAllocResponse()
             }
         }
     }
+#endif
 }
-
+#ifdef MFX_ENABLE_EXT
 void MfxFrameAllocResponse::DestroyBuffer(CmDevice * device, void * p)
 {
     device->DestroySurface((CmBuffer *&)p);
@@ -2615,14 +2614,18 @@ void MfxFrameAllocResponse::DestroyBufferUp(CmDevice * device, void * p)
 {
     device->DestroyBufferUP((CmBufferUP *&)p);
 }
-
+#endif
 mfxStatus MfxFrameAllocResponse::Alloc(
     VideoCORE *            core,
     mfxFrameAllocRequest & req,
     bool isCopyRequired,
     bool isAllFramesRequired)
 {
-    if (m_core || m_cmDevice)
+    if (m_core
+#ifdef MFX_ENABLE_EXT
+        || m_cmDevice
+#endif
+        )
         return Error(MFX_ERR_MEMORY_ALLOC);
 
     req.NumFrameSuggested = req.NumFrameMin; // no need in 2 different NumFrames
@@ -2659,14 +2662,16 @@ mfxStatus MfxFrameAllocResponse::Alloc(
     std::fill(m_flag.begin(), m_flag.end(), 0);
 
     m_core = core;
+#ifdef MFX_ENABLE_EXT
     m_cmDevice = 0;
     m_cmDestroy = 0;
+#endif
     m_numFrameActualReturnedByAllocFrames = NumFrameActual;
     if (!isAllFramesRequired)
         NumFrameActual = req.NumFrameMin; // no need in redundant frames
     return MFX_ERR_NONE;
 }
-
+#ifdef MFX_ENABLE_EXT
 mfxStatus MfxFrameAllocResponse::AllocCmBuffers(
     CmDevice *             device,
     mfxFrameAllocRequest & req)
@@ -2748,11 +2753,16 @@ mfxStatus MfxFrameAllocResponse::AllocCmSurfacesUP(
     m_cmDestroy = &DestroySurface2DUP;
     return MFX_ERR_NONE;
 }
+#endif
 mfxStatus MfxFrameAllocResponse::AllocFrames(
     VideoCORE *            core,
     mfxFrameAllocRequest & req)
 {
-    if (m_core || m_cmDevice)
+    if (m_core
+#ifdef MFX_ENABLE_EXT
+        || m_cmDevice
+#endif
+       )
         return Error(MFX_ERR_MEMORY_ALLOC);
 
     req.NumFrameSuggested = req.NumFrameMin;
@@ -2770,7 +2780,9 @@ mfxStatus MfxFrameAllocResponse::AllocFrames(
     NumFrameActual = req.NumFrameMin;
 
     m_core = core;
+#ifdef MFX_ENABLE_EXT
     m_cmDestroy = 0;
+#endif
     return MFX_ERR_NONE;
 }
 mfxStatus MfxFrameAllocResponse::UpdateResourcePointers(mfxU32 idxScd, void * memY, void * gpuSurf)
@@ -2781,7 +2793,7 @@ mfxStatus MfxFrameAllocResponse::UpdateResourcePointers(mfxU32 idxScd, void * me
     m_sysmems[idxScd] = memY;
     return MFX_ERR_NONE;
 }
-
+#ifdef MFX_ENABLE_EXT
 mfxStatus MfxFrameAllocResponse::AllocCmBuffersUp(
     CmDevice *             device,
     mfxFrameAllocRequest & req)
@@ -2812,7 +2824,7 @@ mfxStatus MfxFrameAllocResponse::AllocCmBuffersUp(
     m_cmDestroy = &DestroyBufferUp;
     return MFX_ERR_NONE;
 }
-
+#endif
 mfxU32 MfxFrameAllocResponse::Lock(mfxU32 idx)
 {
     if (idx >= m_locked.size())

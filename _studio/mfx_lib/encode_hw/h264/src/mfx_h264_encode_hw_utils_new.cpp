@@ -1198,18 +1198,20 @@ namespace
         ref.m_tid               = task.m_tid;
         ref.m_refBase           = 0;
         ref.m_midRec            = task.m_midRec;
+#ifdef MFX_ENABLE_EXT
         ref.m_cmRaw             = task.m_cmRaw;
         ref.m_cmRawLa           = task.m_cmRawLa;
         ref.m_cmMb              = task.m_cmMb;
+#endif
         ref.m_refPicFlag[ fid]  = !!(task.m_type[ fid] & MFX_FRAMETYPE_REF);
         ref.m_refPicFlag[!fid]  = !!(task.m_type[!fid] & MFX_FRAMETYPE_REF);
         if (task.m_fieldPicFlag)
             ref.m_refPicFlag[!fid] = 0;
         ref.m_keyRef = task.m_keyReference;
-
+#ifdef MFX_ENABLE_FADE_DETECTION
         ref.m_cmHist    = task.m_cmHist;
         ref.m_cmHistSys = task.m_cmHistSys;
-
+#endif
         ref.m_midRaw = task.m_midRaw;
         ref.m_yuvRaw = task.m_yuv;
     }
@@ -2780,6 +2782,7 @@ void MfxHwH264Encode::AnalyzeVmeData(DdiTaskIter begin, DdiTaskIter end, mfxU32 
         begin->m_vmeData->propCost += begin->m_vmeData->mb[i].propCost;
 }
 
+#ifdef MFX_ENABLE_FADE_DETECTION
 namespace FadeDetectionHistLSE
 {
     mfxU16 GetSegments(
@@ -3106,7 +3109,6 @@ namespace FadeDetectionHistLSE
     }
 };
 
-
 void MfxHwH264Encode::CalcPredWeightTable(
     DdiTask & task,
     mfxU32 MaxNum_WeightedPredL0,
@@ -3224,7 +3226,7 @@ void MfxHwH264Encode::CalcPredWeightTable(
         }
     }
 }
-
+#endif // #ifdef MFX_ENABLE_FADE_DETECTION
 AsyncRoutineEmulator::AsyncRoutineEmulator()
 {
     std::fill(Begin(m_stageGreediness), End(m_stageGreediness), 1);
@@ -3258,8 +3260,10 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
 #endif
         m_stageGreediness[STG_WAIT_LA     ] = 1;
+#ifdef MFX_ENABLE_FADE_DETECTION
         m_stageGreediness[STG_START_HIST  ] = 1;
         m_stageGreediness[STG_WAIT_HIST   ] = 1;
+#endif
         m_stageGreediness[STG_START_ENCODE] = 1;
         m_stageGreediness[STG_WAIT_ENCODE ] = 1 + !!(video.AsyncDepth > 1);
         if (video.AsyncDepth > 1)
@@ -3284,8 +3288,10 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
 #endif
         m_stageGreediness[STG_WAIT_LA     ] = 1 + !!(video.AsyncDepth > 1);
+#ifdef MFX_ENABLE_FADE_DETECTION
         m_stageGreediness[STG_START_HIST  ] = 1;
         m_stageGreediness[STG_WAIT_HIST   ] = 1;
+#endif
         m_stageGreediness[STG_START_ENCODE] = extOpt2.LookAheadDepth;
         m_stageGreediness[STG_WAIT_ENCODE ] = 1 + !!(video.AsyncDepth > 1);
         break;
@@ -3303,8 +3309,10 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
 #endif
         m_stageGreediness[STG_WAIT_LA]      = 1;
+#ifdef MFX_ENABLE_FADE_DETECTION
         m_stageGreediness[STG_START_HIST  ] = 1;
         m_stageGreediness[STG_WAIT_HIST   ] = 1;
+#endif
         m_stageGreediness[STG_START_ENCODE] = 1;
         m_stageGreediness[STG_WAIT_ENCODE ] = 1 + !!(video.AsyncDepth > 1);
         break;

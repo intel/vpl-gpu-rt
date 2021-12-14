@@ -6,17 +6,19 @@ if (MFX_ENABLE_H264_VIDEO_ENCODE)
   )
 
   set(AVC_VIDEO_ENCODE_SRC
-    h264/include/mfx_h264_encode_cm.h
-    h264/include/mfx_h264_encode_cm_defs.h
     h264/include/mfx_h264_encode_hw.h
     h264/include/mfx_h264_encode_hw_utils.h
+    h264/include/mfx_h264_enc_common_hw.h
+    h264/include/mfx_h264_encode_interface.h
+    h264/include/mfx_h264_encode_struct_vaapi.h
+    h264/include/mfx_h264_encode_vaapi.h
 
-    h264/src/mfx_h264_encode_cm.cpp
     h264/src/mfx_h264_encode_hw.cpp
     h264/src/mfx_h264_encode_hw_utils.cpp
     h264/src/mfx_h264_encode_hw_utils_new.cpp
-
-
+    h264/src/mfx_h264_enc_common_hw.cpp
+    h264/src/mfx_h264_encode_factory.cpp
+    h264/src/mfx_h264_encode_vaapi.cpp
 
   )
 

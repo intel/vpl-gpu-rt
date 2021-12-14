@@ -1162,9 +1162,10 @@ void FillPWT(
         assert(extDdi      != 0);
 
         mfxExtPredWeightTable const * pPWT = GetExtBuffer(task.m_ctrl, idxToPickBuffer);
+#ifdef MFX_ENABLE_FADE_DETECTION
         if (!pPWT)
             pPWT = &task.m_pwt[fieldId];
-
+#endif
         SliceDivider divider = MakeSliceDivider(
             SliceDividerType(hwCaps.ddi_caps.SliceStructure),
             task.m_numMbPerSlice,
@@ -1263,9 +1264,10 @@ void UpdateSliceSizeLimited(
     assert(extDdi      != 0);
 
     mfxExtPredWeightTable const * pPWT = GetExtBuffer(task.m_ctrl, task.m_fid[fieldId]);
+#ifdef MFX_ENABLE_FADE_DETECTION
     if (!pPWT)
         pPWT = &task.m_pwt[fieldId];
-
+#endif
     size_t numSlices = task.m_SliceInfo.size();
     if (numSlices != slice.size())
     {

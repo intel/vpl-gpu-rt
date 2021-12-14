@@ -9453,13 +9453,13 @@ void WritePredWeightTable(
     // However in case of FEI single field mode, only one buffer is attached.
     mfxU32 fieldNum = task.m_singleFieldMode ? 0 : task.m_fid[fieldId];
     const mfxExtPredWeightTable* pPWT = GetExtBuffer(task.m_ctrl, fieldNum);
-
+#ifdef MFX_ENABLE_FADE_DETECTION
     if (!pPWT)
         pPWT = &task.m_pwt[fieldId];
     else if ((pPWT->LumaLog2WeightDenom && pPWT->LumaLog2WeightDenom != 6) ||
         (pPWT->ChromaLog2WeightDenom && pPWT->ChromaLog2WeightDenom != 6))
         pPWT = &task.m_pwt[fieldId];
-
+#endif
     mfxU32 nRef[2] = {
         std::max(1u, task.m_list0[fieldId].Size()),
         std::max(1u, task.m_list1[fieldId].Size())

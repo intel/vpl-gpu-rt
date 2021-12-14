@@ -670,7 +670,14 @@ mfxStatus ASC::SetDimensions(mfxI32 Width, mfxI32 Height, mfxI32 Pitch) {
 #define ASC_CPU_DISP_INIT_AVX2_SSE4_C       ASC_CPU_DISP_INIT_SSE4_C
 #define ASC_CPU_DISP_INIT_AVX2_C            ASC_CPU_DISP_INIT_C
 #endif
-mfxStatus ASC::Init(mfxI32 Width, mfxI32 Height, mfxI32 Pitch, mfxU32 PicStruct, CmDevice* pCmDevice, bool isCmSupported)
+mfxStatus ASC::Init(mfxI32 Width, 
+    mfxI32 Height,
+    mfxI32 Pitch, 
+    mfxU32 PicStruct, 
+#ifdef MFX_ENABLE_KERNELS
+    CmDevice* pCmDevice, 
+#endif
+    bool isCmSupported)
 {
     mfxStatus sts = MFX_ERR_NONE;
     INT res;
@@ -714,13 +721,15 @@ mfxStatus ASC::Init(mfxI32 Width, mfxI32 Height, mfxI32 Pitch, mfxU32 PicStruct,
     {
         return MFX_ERR_MEMORY_ALLOC;
     }
-
+#ifdef MFX_ENABLE_KERNELS
     if (pCmDevice && isCmSupported)
     {
         res = InitGPUsurf(pCmDevice);
         SCD_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
     }
-
+#else
+    (void)res;
+#endif
     for (mfxI32 i = 0; i < ASCVIDEOSTATSBUF; i++)
     {
         try

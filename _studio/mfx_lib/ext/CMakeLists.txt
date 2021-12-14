@@ -175,6 +175,25 @@ if(MFX_ENABLE_KERNELS)
     ${genx_sources}
     ${mctf_package}
   )
+
+  if (MFX_ENABLE_H264_VIDEO_ENCODE)
+    target_include_directories(mfx_ext PUBLIC
+      h264/include
+      ${MSDK_UMC_ROOT}/codec/brc/include
+      ${MSDK_LIB_ROOT}/encode_hw/h264/include
+    )
+    set(avc_video_encode_src
+      h264/include/mfx_h264_encode_cm.h
+      h264/include/mfx_h264_encode_cm_defs.h
+      h264/src/mfx_h264_encode_cm.cpp
+    )
+
+    source_group("avce" FILES ${avc_video_encode_src})
+
+    target_sources(mfx_ext PRIVATE
+      ${avc_video_encode_src}
+    )
+  endif()
 endif()
 
 if (MFX_ENABLE_MPEG2_VIDEO_ENCODE)

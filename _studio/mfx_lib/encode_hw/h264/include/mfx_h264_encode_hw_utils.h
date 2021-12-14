@@ -33,7 +33,9 @@
 #include "mfx_h264_enc_common_hw.h"
 #include "mfx_ext_buffers.h"
 #include "mfx_h264_encode_interface.h"
+#ifdef MFX_ENABLE_EXT
 #include "mfx_h264_encode_cm.h"
+#endif
 #include "ippi.h"
 #include "asc.h"
 #include "libmfx_core_interface.h"
@@ -382,7 +384,7 @@ namespace MfxHwH264Encode
             mfxFrameAllocRequest & req,
             bool isCopyRequired = true,
             bool isAllFramesRequired = false);
-
+#ifdef MFX_ENABLE_EXT
         mfxStatus AllocCmBuffers(
             CmDevice *             device,
             mfxFrameAllocRequest & req);
@@ -398,6 +400,7 @@ namespace MfxHwH264Encode
         mfxStatus AllocCmSurfacesUP(
             CmDevice *             device,
             mfxFrameAllocRequest & req);
+#endif
         mfxStatus AllocFrames(
             VideoCORE *            core,
             mfxFrameAllocRequest & req);
@@ -428,16 +431,16 @@ namespace MfxHwH264Encode
     private:
         MfxFrameAllocResponse(MfxFrameAllocResponse const &);
         MfxFrameAllocResponse & operator =(MfxFrameAllocResponse const &);
-
+#ifdef MFX_ENABLE_EXT
         static void DestroyBuffer     (CmDevice * device, void * p);
         static void DestroySurface    (CmDevice * device, void * p);
         static void DestroySurface2DUP(CmDevice * device, void * p);
         static void DestroyBufferUp   (CmDevice * device, void * p);
-
         void (*m_cmDestroy)(CmDevice *, void *);
 
+        CmDevice *  m_cmDevice = nullptr;
+#endif
         VideoCORE * m_core;
-        CmDevice *  m_cmDevice;
         mfxU16      m_numFrameActualReturnedByAllocFrames;
 
         std::vector<mfxFrameAllocResponse> m_responseQueue;
@@ -826,13 +829,15 @@ namespace MfxHwH264Encode
         mfxU8   m_PIFieldFlag; // for P/I field pair
 
         mfxMemId        m_midRec;
+#ifdef MFX_ENABLE_EXT
         CmSurface2D *   m_cmRaw;
         CmSurface2D *   m_cmRawLa;
         CmBufferUP *    m_cmMb;
-
+#endif
+#ifdef MFX_ENABLE_FADE_DETECTION
         CmBufferUP *  m_cmHist;
         void *        m_cmHistSys;
-
+#endif
         mfxMemId          m_midRaw; // for RefRaw mode
         mfxFrameSurface1* m_yuvRaw; // for RefRaw mode
     };
@@ -1028,6 +1033,7 @@ namespace MfxHwH264Encode
             , m_idxMCTF(NO_INDEX)
             , m_cmMCTF(0)
 #endif
+#ifdef MFX_ENABLE_EXT
             , m_cmRaw(0)
             , m_cmRawLa(0)
             , m_cmMb(0)
@@ -1037,6 +1043,7 @@ namespace MfxHwH264Encode
             , m_cmRefs(0)
             , m_cmRefsLa(0)
             , m_event(0)
+#endif
             , m_vmeData(0)
             , m_fwdRef(0)
             , m_bwdRef(0)
@@ -1060,9 +1067,11 @@ namespace MfxHwH264Encode
 #if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
             , m_adaptiveCQMHint(CQM_HINT_INVALID)
 #endif
+#ifdef MFX_ENABLE_FADE_DETECTION
             , m_cmRawForHist(0)
             , m_cmHist(0)
             , m_cmHistSys(0)
+#endif
             , m_isENCPAK(false)
             , m_startTime(0)
             , m_hwType(MFX_HW_UNKNOWN)
@@ -1107,7 +1116,9 @@ namespace MfxHwH264Encode
             Zero(m_handleMCTF);
 #endif
             Zero(m_fid);
+#ifdef MFX_ENABLE_FADE_DETECTION
             Zero(m_pwt);
+#endif
             Zero(m_brcFrameParams);
             Zero(m_brcFrameCtrl);
             m_FrameName[0] = 0;
@@ -1299,6 +1310,7 @@ namespace MfxHwH264Encode
         CmBuffer*       m_cmCurbeAGOP[MAX_B_FRAMES][MAX_B_FRAMES]; // Curbe Data for each combination
         mfxHDLPair      m_cmMbAGOP[MAX_B_FRAMES][MAX_B_FRAMES]; // Results of kernel run, buf+sys ptr
 #endif
+#ifdef MFX_ENABLE_EXT
         CmSurface2D *   m_cmRaw;        // CM surface made of m_handleRaw
         CmSurface2D *   m_cmRawLa;      // down-sized input surface for Lookahead
         CmBufferUP *    m_cmMb;         // macroblock data, VME kernel output
@@ -1308,6 +1320,7 @@ namespace MfxHwH264Encode
         SurfaceIndex *  m_cmRefs;       // VmeSurfaceG75 for ME kernel
         SurfaceIndex *  m_cmRefsLa;     // VmeSurfaceG75 for 2X kernel
         CmEvent *       m_event;
+#endif
         VmeData *       m_vmeData;
         DdiTask const * m_fwdRef;
         DdiTask const * m_bwdRef;
@@ -1349,11 +1362,12 @@ namespace MfxHwH264Encode
 #if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
         mfxU32 m_adaptiveCQMHint;
 #endif
+#ifdef MFX_ENABLE_FADE_DETECTION
         CmSurface2D *         m_cmRawForHist;
         CmBufferUP *          m_cmHist;     // Histogram data, kernel output
         void *                m_cmHistSys;
         mfxExtPredWeightTable m_pwt[2];     // obtained from fade detection
-
+#endif
         bool     m_isENCPAK;
 
         std::vector<void*> m_userData;
@@ -2779,8 +2793,10 @@ private:
             STG_WAIT_MCTF,
             STG_START_LA,
             STG_WAIT_LA,
+#ifdef MFX_ENABLE_FADE_DETECTION
             STG_START_HIST,
             STG_WAIT_HIST,
+#endif
             STG_START_ENCODE,
             STG_WAIT_ENCODE,
             STG_COUNT
@@ -2799,8 +2815,10 @@ private:
             STG_BIT_WAIT_MCTF     = 1 << STG_WAIT_MCTF,
             STG_BIT_START_LA      = 1 << STG_START_LA,
             STG_BIT_WAIT_LA       = 1 << STG_WAIT_LA,
+#ifdef MFX_ENABLE_FADE_DETECTION
             STG_BIT_START_HIST    = 1 << STG_START_HIST,
             STG_BIT_WAIT_HIST     = 1 << STG_WAIT_HIST,
+#endif
             STG_BIT_START_ENCODE  = 1 << STG_START_ENCODE,
             STG_BIT_WAIT_ENCODE   = 1 << STG_WAIT_ENCODE,
             STG_BIT_RESTART       = 1 << STG_COUNT
@@ -2844,46 +2862,6 @@ private:
 
     class ImplementationAvc : public VideoENCODE
     {
-    public:
-        struct FrameTypeAdapt
-        {
-            FrameTypeAdapt(CmDevice* cmDevice, int width, int height)
-                : m_frameNum(0)
-                , m_isAdapted(0)
-                , m_surface(0)
-                , m_cmDevice(cmDevice)
-
-                , intraCost(0)
-                , interCost(0)
-                , intraDist(0)
-                , interDist(0)
-                , totalDist(0)
-                , numIntraMb(0)
-            {
-                int numMB = width*height/256;
-                mb.resize(numMB);
-
-                m_surface4X.Reset(m_cmDevice, width/4, height/4, CM_SURFACE_FORMAT_NV12);
-            }
-
-            mfxU32              m_frameNum;
-            mfxU32              m_isAdapted;
-            mfxU16              m_frameType;
-            mfxEncodeCtrl*      m_ctrl;
-            mfxFrameSurface1*   m_surface;
-            CmSurface           m_surface4X;
-            CmDevice*           m_cmDevice;
-
-            mfxU32              intraCost;
-            mfxU32              interCost;
-            mfxU32              intraDist;
-            mfxU32              interDist;
-            mfxU32              totalDist;
-            mfxU32              numIntraMb;
-            std::vector<MbData> mb;
-            //std::vector<LAOutObject> m_mb;
-        };
-
     public:
         static mfxStatus Query(
             VideoCORE *     core,
@@ -3060,11 +3038,11 @@ private:
         void OnLookaheadSubmitted(DdiTaskIter task);
 
         void OnLookaheadQueried();
-
+#ifdef MFX_ENABLE_FADE_DETECTION
         void OnHistogramSubmitted();
 
         void OnHistogramQueried();
-
+#endif
         void OnEncodingSubmitted(DdiTaskIter task);
 
         void OnEncodingQueried(DdiTaskIter task);
@@ -3080,17 +3058,13 @@ private:
         static mfxStatus UpdateBitstreamData(
             void * state,
             void * param);
-
-        void RunPreMe(
-            MfxVideoParam const & video,
-            DdiTask const &       task);
-
+#ifdef MFX_ENABLE_EXT
         void SubmitLookahead(
             DdiTask & task);
 
         mfxStatus QueryLookahead(
             DdiTask & task);
-
+#endif
         mfxStatus QueryStatus(
             DdiTask & task,
             mfxU32    ffid,
@@ -3124,11 +3098,12 @@ private:
             bool & isBRCReset,
             bool & isIdrRequired,
             mfxVideoParam const * newParIn = 0);
-
+#ifdef MFX_ENABLE_EXT
         void DestroyDanglingCmResources();
 
-        VideoCORE *         m_core;
         CmDevicePtr         m_cmDevice;
+#endif
+        VideoCORE *         m_core;
         MfxVideoParam       m_video;
         MfxVideoParam       m_videoInit;  // m_video may change by Reset, m_videoInit doesn't change
         mfxEncodeStat       m_stat;
@@ -3213,8 +3188,9 @@ private:
         MfxFrameAllocResponse   m_rawSys;
         MfxFrameAllocResponse   m_rec;
         MfxFrameAllocResponse   m_bit;
-        MfxFrameAllocResponse   m_opaqResponse;     // Response for opaq
+#ifdef MFX_ENABLE_FADE_DETECTION
         MfxFrameAllocResponse   m_histogram;
+#endif
         MFX_ENCODE_CAPS         m_caps;
         mfxStatus               m_failedStatus;
         mfxU32                  m_inputFrameType;
@@ -3243,9 +3219,9 @@ private:
         std::unordered_map<mfxBitstream*, std::queue<uint64_t>> m_offsetsMap;
 #endif
 
-        // bitrate reset for SNB
-
+#ifdef MFX_ENABLE_EXT
         std::unique_ptr<CmContext>    m_cmCtx;
+#endif
         std::vector<VmeData>        m_vmeDataStorage;
         std::vector<VmeData *>      m_tmpVmeData;
 
@@ -3518,8 +3494,6 @@ private:
         // w/a for SNB/IVB: m_spsSubsetSpsDiff is used to calculate padding size for compensation of re-pack AVC headers to MVC
         mfxU32                      m_spsSubsetSpsDiff;
 // MVC BD }
-        MfxFrameAllocResponse       m_opaqResponse;     // Response for opaq
-
         PreAllocatedVector          m_sei;
         std::vector<mfxU8>          m_sysMemBits;
         std::vector<BitstreamDesc>  m_bitsDesc;
@@ -3952,7 +3926,6 @@ private:
         MfxFrameAllocResponse               m_raw;
         MfxFrameAllocResponse               m_recon;
         MfxFrameAllocResponse               m_bitstream;
-        MfxFrameAllocResponse               m_opaqResponse;     // Response for opaq
         ENCODE_MBDATA_LAYOUT                m_layout;
         MFX_ENCODE_CAPS                     m_caps;
         bool                                m_deviceFailed;

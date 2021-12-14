@@ -37,9 +37,10 @@
 #include "mfx_h264_enc_common_hw.h"
 #include "mfx_h264_encode_hw_utils.h"
 
+#ifdef MFX_ENABLE_EXT
 #include "mfx_h264_encode_cm.h"
 #include "mfx_h264_encode_cm_defs.h"
-
+#endif
 #if MFX_ENABLE_AGOP
 #define DEBUG_ADAPT 0
 const char frameType[] = {'U','I','P','U','B'};
@@ -757,9 +758,9 @@ ImplementationAvc::ImplementationAvc(VideoCORE * core)
 ImplementationAvc::~ImplementationAvc()
 {
     amtScd.Close();
-
+#ifdef MFX_ENABLE_EXT
     DestroyDanglingCmResources();
-
+#endif
     mfxExtCodingOption2 const * extOpt2 = GetExtBuffer(m_video);
     if (extOpt2 && IsOn(extOpt2->UseRawRef) && (m_inputFrameType == MFX_IOPATTERN_IN_VIDEO_MEMORY))
     {
@@ -769,6 +770,7 @@ ImplementationAvc::~ImplementationAvc()
             m_core->DecreaseReference(*finDpb[i].m_yuvRaw);
     }
 }
+#ifdef MFX_ENABLE_EXT
 void ImplementationAvc::DestroyDanglingCmResources()
 {
     if (m_cmDevice)
@@ -790,6 +792,7 @@ void ImplementationAvc::DestroyDanglingCmResources()
         }
     }
 }
+#endif
 /*Class for modifying and restoring VideoParams.
   Needed for initialization some components */
 class ModifiedVideoParams
@@ -929,6 +932,7 @@ mfxStatus ImplementationAvc::InitScd(mfxFrameAllocRequest& request)
     request.NumFrameMin = mfxU16(m_video.AsyncDepth);
     request.Info.Width = amtScd.Get_asc_subsampling_width();
     request.Info.Height = amtScd.Get_asc_subsampling_height();
+#ifdef MFX_ENABLE_EXT
     if (IsCmSupported(m_core->GetHWType()))
     {
         if (IsCmNeededForSCD(m_video))
@@ -952,6 +956,7 @@ mfxStatus ImplementationAvc::InitScd(mfxFrameAllocRequest& request)
         }
     }
     else
+#endif
     {
         m_vppHelperScaling.reset(new MfxVppHelper(m_core, &sts));
         MFX_CHECK_STS(sts);
@@ -980,7 +985,14 @@ mfxStatus ImplementationAvc::InitScd(mfxFrameAllocRequest& request)
         sts = m_vppHelperScaling->Init(&vppParams);
         MFX_CHECK_STS(sts);
     }
-    sts = amtScd.Init(m_video.mfx.FrameInfo.CropW, m_video.mfx.FrameInfo.CropH, m_video.mfx.FrameInfo.Width, m_video.mfx.FrameInfo.PicStruct, m_cmDevice, IsCmNeededForSCD(m_video));
+    sts = amtScd.Init(m_video.mfx.FrameInfo.CropW, 
+        m_video.mfx.FrameInfo.CropH, 
+        m_video.mfx.FrameInfo.Width, 
+        m_video.mfx.FrameInfo.PicStruct, 
+#ifdef MFX_ENABLE_KERNELS
+        m_cmDevice, 
+#endif
+        IsCmNeededForSCD(m_video));
     MFX_CHECK_STS(sts);
 
     return sts;
@@ -1323,7 +1335,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
     sts = m_bit.Alloc(m_core, request, false);
     MFX_CHECK_STS(sts);
-
+#ifdef MFX_ENABLE_EXT
     if (IsOn(extOpt3.FadeDetection)
         || bIntRateControlLA(m_video.mfx.RateControlMethod))
     {
@@ -1375,7 +1387,8 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         sts = m_curbe.AllocCmBuffers(m_cmDevice, request);
         MFX_CHECK_STS(sts);
     }
-
+#endif
+#ifdef MFX_ENABLE_FADE_DETECTION
     if (IsOn(extOpt3.FadeDetection) && m_cmCtx.get() && m_cmCtx->isHistogramSupported())
     {
         request.Info.Width  = 256 * 2 * sizeof(uint);
@@ -1387,7 +1400,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         sts = m_histogram.AllocCmBuffersUp(m_cmDevice, request);
         MFX_CHECK_STS(sts);
     }
-
+#endif
     if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType())
 #if defined(MFX_ENABLE_ENCTOOLS)
         && !(m_enabledEncTools)
@@ -1670,7 +1683,11 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
 
 
-    if (IsOn(extOpt3New.FadeDetection) && !(m_cmCtx.get() && m_cmCtx->isHistogramSupported()))
+    if (IsOn(extOpt3New.FadeDetection)
+#ifdef MFX_ENABLE_FADE_DETECTION
+        && !(m_cmCtx.get() && m_cmCtx->isHistogramSupported())
+#endif
+        )
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
 
     if (bIntRateControlLA(m_video.mfx.RateControlMethod) )
@@ -1747,8 +1764,9 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
                 std::this_thread::sleep_for(1ms);
     while (!m_encoding.empty())
         OnEncodingQueried(m_encoding.begin());
+#ifdef MFX_ENABLE_EXT
     DestroyDanglingCmResources();
-
+#endif
     mfxU32  adaptGopDelay = 0;
 #if defined(MFX_ENABLE_ENCTOOLS)
     adaptGopDelay =  m_encTools.GetPreEncDelay(newPar);
@@ -1783,11 +1801,13 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
             {
                m_core->DecreaseReference(*m_lastTask.m_yuv);
             }
+#ifdef MFX_ENABLE_EXT
             if (m_cmDevice)
             {
                 m_cmDevice->DestroySurface(m_lastTask.m_cmRaw);
                 m_lastTask.m_cmRaw = NULL;
             }
+#endif
         }
 
         m_free.splice(m_free.end(), m_incoming);
@@ -2029,12 +2049,6 @@ struct CompareByMidRec
     bool operator ()(DpbFrame const & frame) const { return frame.m_midRec == m_mid; }
 };
 
-struct CompareByMidRaw
-{
-    mfxMemId m_cmSurf;
-    CompareByMidRaw(mfxMemId cmSurf) : m_cmSurf(cmSurf) {}
-    bool operator ()(DpbFrame const & frame) const { return frame.m_cmRaw == m_cmSurf; }
-};
 struct CompareByFrameOrder
 {
     mfxU32 m_FrameOrder;
@@ -2401,11 +2415,10 @@ void ImplementationAvc::OnLookaheadSubmitted(DdiTaskIter task)
     m_lookaheadStarted.splice(m_lookaheadStarted.end(), m_reordering, task);
 }
 
-
 void ImplementationAvc::OnLookaheadQueried()
 {
     m_stagesToGo &= ~AsyncRoutineEmulator::STG_BIT_WAIT_LA;
-
+#ifdef MFX_ENABLE_EXT
     DdiTask & task = m_lookaheadStarted.front();
     int fid = task.m_fid[0];
     mfxExtCodingOption2 & extOpt2 = GetExtBufferRef(m_video);
@@ -2452,10 +2465,10 @@ void ImplementationAvc::OnLookaheadQueried()
             task.m_cmRaw = NULL;
         }
     }
-
+#endif
     m_histRun.splice(m_histRun.end(), m_lookaheadStarted, m_lookaheadStarted.begin());
 }
-
+#ifdef MFX_ENABLE_FADE_DETECTION
 void ImplementationAvc::OnHistogramSubmitted()
 {
     m_stagesToGo &= ~AsyncRoutineEmulator::STG_BIT_START_HIST;
@@ -2500,8 +2513,7 @@ void ImplementationAvc::OnHistogramQueried()
 
     m_lookaheadFinished.splice(m_lookaheadFinished.end(), m_histWait, m_histWait.begin());
 }
-
-
+#endif
 void ImplementationAvc::OnEncodingSubmitted(DdiTaskIter task)
 {
     task->m_startTime = (mfxU32)std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
@@ -3662,7 +3674,9 @@ void SetupAdaptiveCQM(const MfxVideoParam &par, DdiTask &task, const QpHistory q
 mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 {
     mfxExtCodingOption     const & extOpt  = GetExtBufferRef(m_video);
+#ifdef MFX_ENABLE_EXT
     mfxExtCodingOptionDDI  const & extDdi  = GetExtBufferRef(m_video);
+#endif
     mfxExtCodingOption2    const & extOpt2 = GetExtBufferRef(m_video);
     mfxExtCodingOption3    const & extOpt3 = GetExtBufferRef(m_video);
 
@@ -3906,6 +3920,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 #if MFX_ENABLE_AGOP
         }
 #endif
+#ifdef MFX_ENABLE_EXT
         if (bIntRateControlLA(m_video.mfx.RateControlMethod))
         {
             mfxHDLPair cmMb = AcquireResourceUp(m_mb);
@@ -3923,7 +3938,8 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 #endif
                 task->m_cmRaw = CreateSurface(m_cmDevice, task->m_handleRaw, m_currentVaType);
         }
-
+#endif
+#ifdef MFX_ENABLE_FADE_DETECTION
         if (IsOn(extOpt3.FadeDetection) && m_cmCtx.get() && m_cmCtx->isHistogramSupported())
         {
             mfxHDLPair cmHist = AcquireResourceUp(m_histogram);
@@ -3937,7 +3953,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
             task->m_cmRawForHist = CreateSurface(m_cmDevice, task->m_handleRaw, m_currentVaType);
         }
-
+#endif
         task->m_isENCPAK = m_isENCPAK;
         if (m_isENCPAK && (NULL != bs))
             task->m_bs = bs;
@@ -3961,7 +3977,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 m_caps);
             m_baseLayerOrder ++;
         }
-
+#ifdef MFX_ENABLE_EXT
         if (bIntRateControlLA(m_video.mfx.RateControlMethod))
         {
             int ffid = task->m_fid[0];
@@ -3997,7 +4013,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
             SubmitLookahead(*task);
         }
-
+#endif
         //printf("\rLA_SUBMITTED  do=%4d eo=%4d type=%d\n", task->m_frameOrder, task->m_encOrder, task->m_type[0]); fflush(stdout);
         if (extOpt2.MaxSliceSize && m_lastTask.m_yuv && !m_caps.ddi_caps.SliceLevelRateCtrl)
         {
@@ -4005,6 +4021,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             {
                 m_core->DecreaseReference(*m_lastTask.m_yuv);
             }
+#ifdef MFX_ENABLE_EXT
             ReleaseResource(m_rawLa, m_lastTask.m_cmRawLa);
             ReleaseResource(m_mb,    m_lastTask.m_cmMb);
             if (m_cmDevice)
@@ -4012,6 +4029,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 m_cmDevice->DestroySurface(m_lastTask.m_cmRaw);
                 m_lastTask.m_cmRaw = NULL;
             }
+#endif
         }
         m_lastTask = *task;
         if (extOpt2.MaxSliceSize && m_lastTask.m_yuv && !m_caps.ddi_caps.SliceLevelRateCtrl)
@@ -4029,16 +4047,17 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
     {
         mfxStatus sts = MFX_ERR_NONE;
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::WAIT_LA");
+#ifdef MFX_ENABLE_EXT
         if (bIntRateControlLA(m_video.mfx.RateControlMethod))
             sts = QueryLookahead(m_lookaheadStarted.front());
-
+#endif
         if(sts != MFX_ERR_NONE)
             return sts;
 
         //printf("\rLA_SYNCED     do=%4d eo=%4d type=%d\n", m_lookaheadStarted.front().m_frameOrder, m_lookaheadStarted.front().m_encOrder, m_lookaheadStarted.front().m_type[0]); fflush(stdout);
         OnLookaheadQueried();
     }
-
+#ifdef MFX_ENABLE_FADE_DETECTION
     if (m_stagesToGo & AsyncRoutineEmulator::STG_BIT_START_HIST)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::STG_BIT_START_HIST");
@@ -4078,7 +4097,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             AnalyzeVmeData(beg, end, m_video.calcParam.widthLa, m_video.calcParam.heightLa);
         }
     }
-
+#endif
     if ((m_stagesToGo & AsyncRoutineEmulator::STG_BIT_START_ENCODE)|| m_bDeferredFrame)
     {
         bool bParallelEncPak = (m_video.mfx.RateControlMethod == MFX_RATECONTROL_CQP && m_video.mfx.GopRefDist > 2 && m_video.AsyncDepth > 2);
@@ -4811,7 +4830,7 @@ mfxStatus ImplementationAvc::EncodeFrameCheckNormalWay(
     return status;
 }
 
-
+#ifdef MFX_ENABLE_EXT
 void ImplementationAvc::SubmitLookahead(
     DdiTask & task)
 {
@@ -4830,7 +4849,7 @@ mfxStatus ImplementationAvc::QueryLookahead(
 {
     return m_cmCtx->QueryVme(task, task.m_event);
 }
-
+#endif
 
 mfxStatus ImplementationAvc::QueryStatus(
     DdiTask & task,

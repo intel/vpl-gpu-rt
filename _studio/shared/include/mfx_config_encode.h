@@ -32,6 +32,9 @@
     #if defined(MFX_ENABLE_MCTF) && defined(MFX_ENABLE_KERNELS)
         #define MFX_ENABLE_MCTF_IN_AVC
     #endif
+    #if defined(MFX_ENABLE_EXT)
+        #define MFX_ENABLE_FADE_DETECTION
+    #endif
     #if !defined(MFX_ENABLE_VIDEO_BRC_COMMON)
         #define MFX_ENABLE_VIDEO_BRC_COMMON
     #endif

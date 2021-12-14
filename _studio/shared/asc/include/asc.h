@@ -250,7 +250,14 @@ private:
     mfxStatus SetInterlaceMode(ASCFTS interlaceMode);
 public:
     bool Query_ASCCmDevice();
-    mfxStatus Init(mfxI32 Width, mfxI32 Height, mfxI32 Pitch, mfxU32 PicStruct, CmDevice* pCmDevice, bool isCmSupported);
+    mfxStatus Init(mfxI32 Width, 
+        mfxI32 Height, 
+        mfxI32 Pitch, 
+        mfxU32 PicStruct, 
+#ifdef MFX_ENABLE_KERNELS
+        CmDevice* pCmDevice, 
+#endif
+        bool isCmSupported);
     void Close();
     bool IsASCinitialized();
 

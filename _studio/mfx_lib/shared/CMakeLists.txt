@@ -11,10 +11,6 @@ target_sources(mfx_common_hw
     include/mfx_ddi_enc_dump.h
     include/mfx_enc_common.h
     include/mfx_frames.h
-    include/mfx_h264_enc_common_hw.h
-    include/mfx_h264_encode_interface.h
-    include/mfx_h264_encode_struct_vaapi.h
-    include/mfx_h264_encode_vaapi.h
     include/mfx_interface.h
     include/mfx_interface_scheduler.h
     include/mfx_log.h
@@ -40,9 +36,6 @@ target_sources(mfx_common_hw
     src/mfx_vc1_dec_common.cpp
     src/mfx_critical_error_handler.cpp
     src/mfx_ddi_enc_dump.cpp
-    src/mfx_h264_enc_common_hw.cpp
-    src/mfx_h264_encode_factory.cpp
-    src/mfx_h264_encode_vaapi.cpp
 
     src/mfx_vpx_dec_common.cpp
 
@@ -56,11 +49,9 @@ target_include_directories(mfx_common_hw
     include
     include/feature_blocks
     ${MSDK_LIB_ROOT}/cmrt_cross_platform/include
-    ${MSDK_LIB_ROOT}/encode_hw/h264/include
     ${MSDK_UMC_ROOT}/codec/brc/include
     ${MSDK_UMC_ROOT}/codec/vc1_common/include
     ${MSDK_UMC_ROOT}/codec/vc1_dec/include
-    ${MSDK_UMC_ROOT}/codec/h264_enc/include
     ${MSDK_STUDIO_ROOT}/shared/asc/include
     ${MSDK_STUDIO_ROOT}/shared/include
     ${MSDK_STUDIO_ROOT}/shared/mfx_logging/include
