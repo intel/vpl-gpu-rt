@@ -255,7 +255,7 @@ inline mfxStatus CallAndGetMfxSts(TBlock&& blk, TArgs&&... args)
     if (sts != MFX_ERR_NONE)
     {
         std::string stsString = GetMFXStatusInString(sts);
-        MFX_LOG_ERROR("%s(%d)::%s(%d): Return %s\n"
+        MFX_LOG_TRACE("%s(%d)::%s(%d): Return %s\n"
             , blk.m_featureName, blk.FeatureID, blk.m_blockName, blk.BlockID, stsString.c_str());
     }
 #endif // MFX_ENABLE_FEATURE_BLOCKS_TRACE
