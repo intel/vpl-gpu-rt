@@ -96,10 +96,6 @@ UMC::Status PXPLinuxVideoAccelerator::Execute()
     UMC_CHECK(m_PXPCtxHdl != nullptr, UMC::UMC_ERR_INVALID_PARAMS);
     UMC_CHECK(m_PXPCtxHdl->decodeParamMapHdl != nullptr, UMC::UMC_ERR_INVALID_PARAMS);
 
-    UMC::UMCVACompBuffer *encParamBuf;
-    VAEncryptionParameters* pEncParams = (VAEncryptionParameters*)UMC::LinuxVideoAccelerator::GetCompBuffer(VAEncryptionParameterBufferType, &encParamBuf, sizeof(VAEncryptionParameters), 0);
-    UMC_CHECK(pEncParams != nullptr, UMC::UMC_ERR_ALLOC);
-
     mfxBitstream *curBS = GetProtectedVA()->GetBitstream();
     UMC_CHECK(curBS != nullptr, UMC::UMC_ERR_NOT_INITIALIZED);
 
@@ -109,11 +105,16 @@ UMC::Status PXPLinuxVideoAccelerator::Execute()
     );
     UMC_CHECK(mapptr != m_PXPCtxHdl->decodeParamMapHdl + m_PXPCtxHdl->decodeParamMapCnt, UMC::UMC_ERR_FAILED);
 
-    VAEncryptionParameters *encParams = reinterpret_cast<VAEncryptionParameters*>(mapptr->pPXPParams);
-    UMC_CHECK(encParams != nullptr, UMC::UMC_ERR_INVALID_PARAMS);
+    if(mapptr->pPXPParams)
+    {
+        UMC::UMCVACompBuffer *encParamBuf;
+        VAEncryptionParameters* pEncParams = (VAEncryptionParameters*)UMC::LinuxVideoAccelerator::GetCompBuffer(VAEncryptionParameterBufferType, &encParamBuf, sizeof(VAEncryptionParameters), 0);
+        UMC_CHECK(pEncParams != nullptr, UMC::UMC_ERR_ALLOC);
 
-    std::copy((mfxU8*)encParams, ((mfxU8*)encParams) + sizeof(VAEncryptionParameters), (mfxU8*)pEncParams);
-    encParamBuf->SetDataSize(sizeof(VAEncryptionParameters));
+        VAEncryptionParameters *encParams = reinterpret_cast<VAEncryptionParameters*>(mapptr->pPXPParams);
+        *pEncParams = *encParams;
+        encParamBuf->SetDataSize(sizeof(VAEncryptionParameters));
+    }
 
     return UMC::LinuxVideoAccelerator::Execute();
 }
