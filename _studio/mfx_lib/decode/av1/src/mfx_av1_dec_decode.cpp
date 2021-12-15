@@ -795,6 +795,7 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
     if(info->copyfromframe != UMC::FRAME_MID_INVALID)
     {
         frame = m_decoder->DecodeFrameID(info->copyfromframe);
+        MFX_CHECK(frame, MFX_ERR_UNDEFINED_BEHAVIOR);
         frame->Repeated(false);
     }
     else
