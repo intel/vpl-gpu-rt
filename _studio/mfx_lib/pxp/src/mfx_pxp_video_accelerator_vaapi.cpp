@@ -47,6 +47,8 @@ UMC::Status PXPLinuxVideoAccelerator::Init(UMC::VideoAcceleratorParams* pInfo)
     umcRes = LinuxVideoAccelerator::Init(pInfo);
 
     UMC::LinuxVideoAcceleratorParams* pParams = DynamicCast<UMC::LinuxVideoAcceleratorParams>(pInfo);
+    UMC_CHECK(pParams != nullptr, UMC::UMC_ERR_NULL_PTR);
+
     if(pParams->m_pContext)
     {
         m_PXPCtxHdl->secureDecodeCfg.ContextId = *(pParams->m_pContext);
