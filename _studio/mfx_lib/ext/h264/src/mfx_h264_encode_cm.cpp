@@ -879,18 +879,6 @@ void CmContext::Setup(
         m_kernelHistFrame = CreateKernel(m_device, m_programHist, "HistogramSLMFrame", (void *)HistogramFrame);
         m_kernelHistFields = CreateKernel(m_device, m_programHist, "HistogramSLMFields", (void *)HistogramFields);
     }
-
-#if MFX_ENABLE_AGOP
-    m_kernelIAGOP = CreateKernel(m_device, m_program, "EncMB_I", (void *)EncMB_I);
-    m_kernelPAGOP = CreateKernel(m_device, m_program, "EncMB_P", (void *)EncMB_P);
-    m_kernelBAGOP = CreateKernel(m_device, m_program, "EncMB_B", (void *)EncMB_B);
-#endif
-
-#ifdef MFX_ENABLE_DOWN_SAMPLE_KERNELS
-    m_kernelDownSample2X = CreateKernel(m_device, m_program, "DownSampleMB2X", (void *)DownSampleMB2X);
-    m_kernelDownSample4X = CreateKernel(m_device, m_program, "DownSampleMB4X", (void *)DownSampleMB4X);
-#endif
-
     m_nullBuf.Reset(m_device, 4);
 
     SetCosts(m_costsI, MFX_FRAMETYPE_I, 26, 2, 3);
@@ -1022,17 +1010,6 @@ CmEvent * CmContext::RunVme(
 
     if (LaScaleFactor > 1)
     {
-
-#ifdef MFX_ENABLE_DOWN_SAMPLE_KERNELS
-        CmKernel * kernelDS = SelectKernelDownSample(LaScaleFactor);
-        SetKernelArg(kernelDS, GetIndex(task.m_cmRaw), GetIndex(task.m_cmRawLa));
-        CmEvent * e = 0;
-        {
-            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Enqueue DS kernel");
-            e = EnqueueKernel(kernelDS, numMbColsLa, numMbRowsLa, CM_NONE_DEPENDENCY);
-        }
-#endif
-
         SetKernelArg(kernelPreMe,
             GetIndex(task.m_cmCurbe), GetIndex(task.m_cmRaw), GetIndex(task.m_cmRawLa), *task.m_cmRefsLa,
             GetIndex(task.m_cmMb), task.m_cmRefMb ? GetIndex(task.m_cmRefMb) : GetIndex(m_nullBuf));
@@ -1136,167 +1113,6 @@ mfxStatus CmContext::QueryVme(
     return MFX_ERR_NONE;
 }
 
-#ifdef MFX_ENABLE_DOWN_SAMPLE_KERNELS
-void CmContext::DownSample2X(CmSurface2D* surfOrig, CmSurface2D* surf2X)
-{
-    mfxU32 numMbCols = m_video.mfx.FrameInfo.Width >> 2;
-    mfxU32 numMbRows = m_video.mfx.FrameInfo.Height >> 2;
-
-    // DownSample source
-    SetKernelArg(m_kernelDownSample4X, GetIndex(surfOrig), GetIndex(surf2X));
-    CmEvent * e = EnqueueKernel(m_kernelDownSample4X, numMbCols, numMbRows, CM_NONE_DEPENDENCY);
-    //e->WaitForTaskFinished();
-    CM_STATUS status;
-    do {
-        int res = e->GetStatus(status);
-        if (res != CM_SUCCESS)
-            throw CmRuntimeError();
-    } while (status != CM_STATUS_FINISHED);
-}
-
-void CmContext::DownSample4X(CmSurface2D* surfOrig, CmSurface2D* surf4X)
-{
-    mfxU32 numMbCols = m_video.mfx.FrameInfo.Width >> 4;
-    mfxU32 numMbRows = m_video.mfx.FrameInfo.Height >> 4;
-
-    // DownSample source
-    SetKernelArg(m_kernelDownSample4X, GetIndex(surfOrig), GetIndex(surf4X));
-    CmEvent * e = EnqueueKernel(m_kernelDownSample4X, numMbCols, numMbRows, CM_NONE_DEPENDENCY);
-    //e->WaitForTaskFinished();
-    CM_STATUS status;
-    do {
-        int res = e->GetStatus(status);
-        if (res != CM_SUCCESS)
-            throw CmRuntimeError();
-    } while (status != CM_STATUS_FINISHED);
-}
-
-CmEvent* CmContext::DownSample4XAsync(CmSurface2D* surfOrig, CmSurface2D* surf4X)
-{
-    mfxU32 numMbCols = m_video.mfx.FrameInfo.Width >> 4;
-    mfxU32 numMbRows = m_video.mfx.FrameInfo.Height >> 4;
-
-    // DownSample source
-    SetKernelArg(m_kernelDownSample4X, GetIndex(surfOrig), GetIndex(surf4X));
-    return EnqueueKernel(m_kernelDownSample4X, numMbCols, numMbRows, CM_NONE_DEPENDENCY);
-}
-#endif
-
-#if MFX_ENABLE_AGOP
-mfxU32 CmContext::CalcCostAGOP(
-    DdiTask const & task,
-    mfxI32 prevP,
-    mfxI32 nextP)
-{
-    mfxHDLPair mbData = task.m_cmMbAGOP[prevP][nextP];
-    LAOutObject * mb = (LAOutObject *)mbData.second;
-
-    if(!mb) return MAX_SEQUENCE_COST;
-
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "CalcCostAGOP");
-    mfxU32 numMbCols = m_video.mfx.FrameInfo.Width >> 6;  //work with 4X
-    mfxU32 numMbRows = m_video.mfx.FrameInfo.Height >> 6; //work with 4X //round?
-    mfxU32 numMb = numMbCols*numMbRows;
-
-    mfxU16 fType = MFX_FRAMETYPE_B;
-    if(prevP == nextP) fType = MFX_FRAMETYPE_I;
-    else if(nextP == 0) fType = MFX_FRAMETYPE_P;
-
-    mfxU32 cost=0;
-    mfxVMEUNIIn const & costs = SelectCosts(fType);
-
-    for (size_t i = 0; i < numMb; i++)
-    {
-        if (mb[i].IntraMbFlag)
-        {
-            mfxU16 bitCostLambda = mfxU16(Map44LutValueBack(costs.ModeCost[LUTMODE_INTRA_16x16]));
-            //assert(mb[i].intraCost >= bitCostLambda);
-            mb[i].dist = std::max(0, mb[i].intraCost - bitCostLambda);
-            cost += mb[i].intraCost;
-        }
-        else
-        {
-            mfxU32 modeCostLambda = Map44LutValueBack(costs.ModeCost[LUTMODE_INTER_16x16]);
-            mfxU32 mvCostLambda   = (task.m_type[0] & MFX_FRAMETYPE_P)
-                ? GetVmeMvCostP(m_lutMvP, mb[i]) : GetVmeMvCostB(m_lutMvB, mb[i]);
-            mfxU16 bitCostLambda = mfxU16(std::min(mb[i].interCost, modeCostLambda + mvCostLambda));
-
-            mb[i].dist = mb[i].interCost - bitCostLambda;
-            if(!mb[i].SkipMbFlag)
-                cost += mb[i].interCost;
-        }
-    }
-
-    return cost;
-}
-
-CmEvent* CmContext::RunVmeAGOP(
-    mfxU32              qp,
-    CmSurface2D* cur,
-    CmSurface2D* fwd, //0 for I frame
-    CmSurface2D* bwd, //0 for P/I frame
-    mfxU32 biWeight,
-    CmBuffer *  curbe, //store for curbe data
-    CmBufferUP* mb  //output data
-    )
-{
-    mfxU32 numMbCols = m_video.mfx.FrameInfo.Width >> 6;  //work with 4X
-    mfxU32 numMbRows = m_video.mfx.FrameInfo.Height >> 6; //work with 4X
-    mfxU16 frameType = MFX_FRAMETYPE_B;
-
-    if(!bwd)
-    {
-        frameType = MFX_FRAMETYPE_P;
-        if(!fwd)
-            frameType = MFX_FRAMETYPE_I;
-    }
-
-    CURBEData curbeData;
-    SetCurbeData(curbeData, frameType, qp, numMbCols<<4, numMbRows<<4, biWeight);
-    Write(curbe, &curbeData);
-
-    CmSurface2D * fwdRefsArr[1] = { fwd };
-    CmSurface2D * bwdRefsArr[1] = { bwd };
-    CmSurface2D ** fwdRefs = fwd ? fwdRefsArr : 0;
-    CmSurface2D ** bwdRefs = bwd ? bwdRefsArr : 0;
-
-    CmSurfaceVme75 refs(m_device, CreateVmeSurfaceG75(m_device, cur, fwdRefs, bwdRefs, !!fwd, !!bwd));
-
-    CmKernel * kernel = SelectKernelPreMeAGOP(frameType);
-
-    SetKernelArg(kernel,
-        GetIndex(curbe), GetIndex(m_nullBuf) /*orig*/, GetIndex(cur)/*ds surf*/, refs,
-        GetIndex(mb), m_nullBuf.GetIndex()//(fwdMb ? fwdMb->mb : m_nullBuf).GetIndex(),
-    );
-
-    return EnqueueKernel(kernel, numMbCols, numMbRows, CM_WAVEFRONT26);
-}
-
-//query set of tasks and calc stat
-bool CmContext::QueryVmeAGOP(
-    DdiTask const & task,
-    CmEvent *       e,
-    mfxU32& cost)
-{
-    if(!e) return true;
-
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "QueryVme");
-    task;
-    //mfxU32 numMbCols = m_video.mfx.FrameInfo.Width >> 6;  //work with 4X
-    //mfxU32 numMbRows = m_video.mfx.FrameInfo.Height >> 6; //work with 4X //round?
-//    mfxU32 numMb = numMbCols*numMbRows;
-
-    CM_STATUS status = CM_STATUS_QUEUED;
-    if (e->GetStatus(status) != CM_SUCCESS)
-        throw CmRuntimeError();
-    if (status != CM_STATUS_FINISHED)
-        return false;
-
-    cost=0;
-    return true;
-}
-#endif
-
 CmKernel * CmContext::SelectKernelPreMe(mfxU32 frameType)
 {
     switch (frameType & MFX_FRAMETYPE_IPB)
@@ -1307,31 +1123,6 @@ CmKernel * CmContext::SelectKernelPreMe(mfxU32 frameType)
         default: throw CmRuntimeError();
     }
 }
-
-#if MFX_ENABLE_AGOP
-CmKernel * CmContext::SelectKernelPreMeAGOP(mfxU32 frameType)
-{
-    switch (frameType & MFX_FRAMETYPE_IPB)
-    {
-        case MFX_FRAMETYPE_I: return m_kernelIAGOP;
-        case MFX_FRAMETYPE_P: return m_kernelPAGOP;
-        case MFX_FRAMETYPE_B: return m_kernelBAGOP;
-        default: throw CmRuntimeError();
-    }
-}
-#endif
-
-#ifdef MFX_ENABLE_DOWN_SAMPLE_KERNELS
-CmKernel * CmContext::SelectKernelDownSample(mfxU16 LaScaleFactor)
-{
-    switch (LaScaleFactor)
-    {
-        case 2: return m_kernelDownSample2X;
-        case 4: return m_kernelDownSample4X;
-        default: throw CmRuntimeError();
-    }
-}
-#endif
 
 mfxVMEUNIIn & CmContext::SelectCosts(mfxU32 frameType)
 {
