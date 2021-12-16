@@ -125,6 +125,9 @@ void H264DecYUVBufferPadded::allocate(const FrameData * frameData, const VideoDa
     {
         if (m_chroma_format == 0)
             info = frameData->GetInfo();
+
+        if (info->GetPlaneInfo(1) == 0)
+            throw h264_exception(UMC_ERR_NULL_PTR);
         m_chromaSize = info->GetPlaneInfo(1)->m_ippSize;
         m_pitch_chroma = (int32_t)m_frameData.GetPlaneMemoryInfo(1)->m_pitch / info->GetPlaneInfo(1)->m_iSampleSize;
 
