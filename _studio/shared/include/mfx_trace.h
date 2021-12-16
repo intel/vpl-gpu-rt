@@ -462,6 +462,11 @@ extern "C" {
 #define MFX_LTRACE_MSG(_level, _message) \
     MFX_LTRACE_1(_level, _message, NULL, 0)
 
+#define MFX_LTRACE_MSG_1(_level, ...) \
+    char str[256]; \
+    sprintf(str, __VA_ARGS__); \
+    MFX_LTRACE_MSG(_level, str); \
+
 #define MFX_LTRACE_S(_level, _string) \
     MFX_LTRACE_1(_level, #_string " = ", MFX_TRACE_FORMAT_S, _string)
 
