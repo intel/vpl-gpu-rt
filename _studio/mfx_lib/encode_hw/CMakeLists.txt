@@ -1,5 +1,7 @@
 add_library(encode_hw STATIC)
 
+include(functions.cmake)
+
 if (MFX_ENABLE_H264_VIDEO_ENCODE)
   target_include_directories(encode_hw PUBLIC
     h264/include
@@ -124,7 +126,7 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux/g12/hevcehw_g12_lin.cpp
   )
 
-  source_group("hevc" FILES ${HEVC_VIDEO_ENCODE_SRC})
+  custom_source_group("hevc" ${HEVC_VIDEO_ENCODE_SRC})
 endif()
 
 if (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
