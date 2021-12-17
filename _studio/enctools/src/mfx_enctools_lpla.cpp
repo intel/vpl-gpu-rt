@@ -294,7 +294,7 @@ mfxStatus LPLA_EncTool::Submit(mfxFrameSurface1* surface, mfxU16 FrameType, mfxS
 
     m_bitstream.DataLength = 0;
     m_bitstream.DataOffset = 0;
-    mfxEncodeCtrl ctrl = { 0 };
+    mfxEncodeCtrl ctrl = {};
     ctrl.FrameType = FrameType;
     sts = m_pmfxENC->EncodeFrameAsync(&ctrl, surface, &m_bitstream, pEncSyncp);
     MFX_CHECK_STS(sts);
