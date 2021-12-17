@@ -49,7 +49,6 @@ using namespace HEVCEHW::Base;
 
 MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(VideoCORE& core)
     : m_core(core)
-    , m_runtimeErr(MFX_ERR_NONE)
 {
 }
 
