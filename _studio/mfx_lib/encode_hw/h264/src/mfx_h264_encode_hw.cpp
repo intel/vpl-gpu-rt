@@ -3206,6 +3206,18 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
         sts = m_encTools.QueryLookAheadStatus(task.m_frameOrder, &bufHint, gopHint, &cqmHint);
         MFX_CHECK_STS(sts);
 
+        if (gopHint)
+        {
+            if (task.m_type[0] == 0)
+            {
+                task.m_type = ExtendFrameType(st.FrameType);
+                task.m_currGopRefDist = st.MiniGopSize;
+                AssignFrameTypes(task);
+            }
+            else
+                task.m_currGopRefDist = m_video.mfx.GopRefDist;
+        }
+
         mfxLplastatus lplaStatus = {};
 
         switch (cqmHint.MatrixType)
