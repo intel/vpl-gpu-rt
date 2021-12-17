@@ -1261,7 +1261,23 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             if (m_vInitPar.mfx.DecodedOrder)
                 force = true;
 
-            UMC::H264DecoderFrame *pFrame = GetFrameToDisplay(force);
+            UMC::H264DecoderFrame *pFrame = nullptr;
+
+#if defined(MFX_ENABLE_PROTECT)
+#if defined(MFX_ENABLE_PXP)
+            //PXP macro on && secure decode
+            if (m_va->GetProtectedVA())
+            {
+                if (umcFrameRes != UMC::UMC_ERR_NOT_ENOUGH_BUFFER)
+                {
+                    pFrame = GetFrameToDisplay(force);
+                }
+            }
+            // PXP macro on && clear decode
+            else
+#endif // MFX_ENABLE_PXP
+#endif // MFX_ENABLE_PROTECT
+                pFrame = GetFrameToDisplay(force);
 
             // return frame to display
             if (pFrame)
