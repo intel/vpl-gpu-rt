@@ -80,7 +80,6 @@ if (BUILD_KERNELS)
   endif()
 endif()
 
-option( MFX_ENABLE_AENC "Enabled AENC extension?" ON)
 
 option( MFX_ENABLE_AV1_VIDEO_DECODE "Enabled AV1 decoder?" ON)
 option( MFX_ENABLE_VP8_VIDEO_DECODE "Enabled VP8 decoder?" ON)
@@ -111,8 +110,13 @@ cmake_dependent_option(
   MFX_ENABLE_ENCODE_MCTF "Build encoders with MCTF support?" ON
   "${MFX_ENABLE_ASC};${MFX_ENABLE_KERNELS}" OFF)
 
+
+option( MFX_ENABLE_ENCTOOLS "Enable encoding tools?" ON)
+  cmake_dependent_option(
+    MFX_ENABLE_AENC "Enabled AENC extension?" OFF
+    "${MFX_ENABLE_ENCTOOLS}" OFF)
+
   option( MFX_ENABLE_MVC_VIDEO_ENCODE "Enable MVC encoder?" OFF)
-  option( MFX_ENABLE_ENCTOOLS   "Enable encoding tools?" OFF )
 
 # Now we will include config file which may overwrite default values of the
 # options and options which user provided in a command line.
