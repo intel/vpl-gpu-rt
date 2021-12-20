@@ -49,6 +49,7 @@ namespace UMC
         UMC_CHECK(pSource != nullptr, UMC_ERR_INVALID_PARAMS);
 
         uint32_t cur_segment_length = 0;
+        uint32_t start_code_length = 3;
         PXPVA* pxpva = static_cast<PXPVA*>(m_va->GetProtectedVA());
 
         cur_segment_length = (static_cast<VAEncryptionParameters*>(pxpva->GetPXPParams())->segment_info + pxpva->m_curSegment)->segment_length;

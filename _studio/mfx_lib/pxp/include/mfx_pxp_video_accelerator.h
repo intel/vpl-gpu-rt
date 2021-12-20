@@ -38,7 +38,7 @@ namespace UMC
         mfxHDL GetPXPCtxHdl() { return m_PXPCtxHdl; }
         void SetPXPParams(mfxHDL pxpParams) { m_PXPParams = pxpParams; }
         mfxHDL GetPXPParams() { return m_PXPParams; }
-        uint8_t m_curSegment;
+        uint32_t m_curSegment;
     private:
         mfxHDL m_PXPCtxHdl;
         mfxHDL m_PXPParams;
