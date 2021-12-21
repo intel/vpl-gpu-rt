@@ -142,6 +142,22 @@ VideoDECODEAV1::~VideoDECODEAV1()
     }
 }
 
+inline
+mfxU16 av1_mfx_profile_to_native_profile(mfxU16 mfx)
+{
+    switch (mfx)
+    {
+        case MFX_PROFILE_AV1_MAIN: 
+            return 0;
+        case MFX_PROFILE_AV1_HIGH: 
+            return 1;
+        case MFX_PROFILE_AV1_PRO:  
+            return 2;
+        default:                   
+            return mfx;
+    }
+}
+
 mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
 {
     MFX_CHECK_NULL_PTR1(par);
@@ -226,6 +242,7 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
     m_core->GetVA((mfxHDL*)&vp.pVideoAccelerator, MFX_MEMTYPE_FROM_DECODE);
 
     ConvertMFXParamsToUMC(par, &vp);
+    vp.info.profile = av1_mfx_profile_to_native_profile(par->mfx.CodecProfile);
 
     UMC::Status umcSts = m_decoder->Init(&vp);
     MFX_CHECK(umcSts == UMC::UMC_OK, MFX_ERR_NOT_INITIALIZED);
