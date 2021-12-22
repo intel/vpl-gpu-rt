@@ -40,7 +40,7 @@ namespace Base
         mfxStatus SubmitPreEncTask(StorageW&  global, StorageW& s_task);
         mfxStatus QueryPreEncTask(StorageW&  global, StorageW& s_task);
         mfxStatus BRCGetCtrl(StorageW&  global, StorageW& s_task,
-            mfxEncToolsBRCQuantControl &extQuantCtrl, mfxEncToolsBRCHRDPos  &extHRDPos);
+            mfxEncToolsBRCQuantControl &extQuantCtrl, mfxEncToolsBRCHRDPos  &extHRDPos, mfxEncToolsHintQPMap   &qpMapHint);
         mfxStatus BRCUpdate(StorageW&  global, StorageW& s_task,
             mfxEncToolsBRCStatus &sts);
 

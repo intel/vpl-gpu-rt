@@ -38,28 +38,7 @@ namespace Base
 using namespace HEVCEHW::Base;
 using namespace MfxEncodeHW;
 
-class CUQPMap
-{
-public:
-    mfxU32                            m_width;
-    mfxU32                            m_height;
-    mfxU32                            m_pitch;
-    mfxU32                            m_h_aligned;
 
-    mfxU32                            m_block_width;
-    mfxU32                            m_block_height;
-    std::vector<mfxI8>                m_buffer;
-
-    CUQPMap() :
-        m_width(0),
-        m_height(0),
-        m_pitch(0),
-        m_h_aligned(0),
-        m_block_width(0),
-        m_block_height(0) {}
-
-    void Init(mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples, mfxU32 blockSize);
-};
 
 class VAPacker
     : public IDDIPacker
@@ -93,12 +72,6 @@ public:
             , VAEncPictureParameterBufferHEVC&>;
         TUpdatePPS UpdatePPS;
 
-        using TFillCUQPData = CallChain<bool
-            , const StorageR& //glob
-            , const StorageR& //task
-            , CUQPMap&>;
-        TFillCUQPData FillCUQPData;
-
         using TAddMiscData = CallChain<bool
             , const StorageR& //glob
             , const StorageR& //task
@@ -120,7 +93,6 @@ protected:
     VAEncSequenceParameterBufferHEVC            m_sps;
     VAEncPictureParameterBufferHEVC             m_pps;
     std::vector<VAEncSliceParameterBufferHEVC>  m_slices;
-    CUQPMap                                     m_qpMap;
     mfxU32                                      m_numSkipFrames = 0;
     mfxU32                                      m_sizeSkipFrames = 0;
     mfxU32                                      m_resetHintFlags = 0;

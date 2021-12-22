@@ -3154,7 +3154,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
     if (IsOn(extOpt2->MBBRC))
     {
-        if ((isSWBRC(par) && hwCaps.ddi_caps.QpAdjustmentSupport == 0) ||
+        if ((isSWBRC(par) && hwCaps.ddi_caps.QpAdjustmentSupport == 0 && hwCaps.ddi_caps.MbQpDataSupport == 0) ||
             (!isSWBRC(par) && (hwCaps.ddi_caps.MBBRCSupport == 0 && hwCaps.ddi_caps.ICQBRCSupport == 0)))
         {
             changed = true;
@@ -6054,20 +6054,8 @@ void MfxHwH264Encode::SetDefaults(
         }
     }
 
-    if (extOpt3->EnableMBQP == MFX_CODINGOPTION_UNKNOWN) {
-#if defined(MFX_ENABLE_APQ_LQ)
-#if defined(MFX_ENABLE_ENCTOOLS)
-        if ((par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || (!IsOff(extConfig->BRC)))
-            && (!IsOff(extConfig->AdaptivePyramidQuantP) || !IsOff(extConfig->AdaptivePyramidQuantB))
-            && !IsOn(par.mfx.LowPower))
-        {
-            extOpt3->EnableMBQP = MFX_CODINGOPTION_ON;
-        }
-        else
-#endif
-#endif
+    if (extOpt3->EnableMBQP == MFX_CODINGOPTION_UNKNOWN)
         extOpt3->EnableMBQP = MFX_CODINGOPTION_OFF;
-    }
 
     if (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_UNKNOWN)
         extOpt3->MBDisableSkipMap = MFX_CODINGOPTION_OFF;
@@ -10218,6 +10206,9 @@ ENCODE_PACKEDHEADER_DATA const & HeaderPacker::PackSkippedSlice(
 
     return m_packedSlices[0];
 }
+
+
+
 
 #endif //MFX_ENABLE_H264_VIDEO_..._HW
 
