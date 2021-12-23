@@ -238,7 +238,7 @@ mfxStatus SetRateControl(
 #endif
 
     if(par.calcParam.maxKbps)
-        rate_param->target_percentage = (unsigned int)(100.0 * (mfxF64)par.calcParam.targetKbps / (mfxF64)par.calcParam.maxKbps);
+        rate_param->target_percentage = (unsigned int)((mfxU64)par.calcParam.targetKbps * 100 / par.calcParam.maxKbps);
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
     {
