@@ -3015,7 +3015,7 @@ mfxStatus ImplementationAvc::CheckBufferSize(DdiTask &task, bool &bToRecode, mfx
             return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
         task.m_cqpValue[0] = task.m_cqpValue[0] + 1;
         task.m_cqpValue[1] = task.m_cqpValue[0];
-        // printf("Recoding 0: frame %d, qp %d\n", task->m_frameOrder, task->m_cqpValue[0]);
+        // printf("Recoding 0: frame %d, qp %d\n", task.m_frameOrder, task.m_cqpValue[0]);
         bToRecode = true;
     }
     return MFX_ERR_NONE;
@@ -4156,12 +4156,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     if (sts != MFX_ERR_NONE)
                         return Error(sts);
                 }
-                if (!bRecoding)
-                {
-                    sts = CheckBufferSize(*task, bRecoding, bsDataLength, bs);
-                    if (sts != MFX_ERR_NONE)
-                        return Error(sts);
-                }
+                
                 if (!bRecoding)
                 {
                      if (IsOn(extOpt2.MBBRC))
@@ -4170,6 +4165,16 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     if (sts != MFX_ERR_NONE)
                         return Error(sts);
                 }
+
+                if (!bRecoding)
+                {
+                    sts = CheckBufferSize(*task, bRecoding, bsDataLength, bs);
+                    if (bRecoding)
+                        task->m_brcFrameCtrl.QpY = task->m_cqpValue[0];
+                    if (sts != MFX_ERR_NONE)
+                        return Error(sts);
+                }
+
                 if (bRecoding)
                 {
 
