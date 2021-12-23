@@ -779,7 +779,7 @@ bool IsEnctoolsLAGS(const mfxVideoParam& par)
     const mfxExtEncToolsConfig* pCfg = (mfxExtEncToolsConfig*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
     
     if (((pCO2 && pCO2->LookAheadDepth > 0) || (pCfg && IsOn(pCfg->BRCBufferHints)))
-        && (pCO3 && pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING || !IsSWBRCMode(par))
+        && ((pCO3 && pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING) || !IsSWBRCMode(par))
         && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR))
         return true;
 #endif
