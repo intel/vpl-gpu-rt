@@ -28,6 +28,7 @@
 #include <mutex>
 #include <string>
 #include <map>
+#include <sstream>
 
 typedef enum
 {
