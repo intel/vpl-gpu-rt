@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2020 Intel Corporation
+// Copyright (c) 2012-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,14 @@ namespace UMC_AV1_DECODER
             throw av1_exception(UMC::UMC_ERR_NULL_PTR);
 
         TileLocation const& lastTile = layout.back();
-        size_t const size = lastTile.offset + lastTile.size;
+        size_t size = lastTile.offset + lastTile.size;
+
+        if (lastTile.tile_location_type == 1)
+            size += OBU_TILE_LIST_HEADER_LENGTH;
+
+        if (size % 128)
+            size += (128 - size % 128);
+
         source.Alloc(size);
         if (source.GetBufferSize() < size)
             throw av1_exception(UMC::UMC_ERR_ALLOC);
@@ -59,10 +66,16 @@ namespace UMC_AV1_DECODER
         if (!bsBuffer)
             throw av1_exception(UMC::UMC_ERR_NULL_PTR);
 
+        TileLocation const& lastTile = layout.back();
+        uint32_t shift = 0;
+
+        if (lastTile.tile_location_type == 1)
+            shift = lastTile.shift;
+
         uint8_t* data = static_cast<uint8_t*>(source.GetDataPointer());
         const size_t length = std::min<size_t>(source.GetDataSize(), spaceInBuffer);
 
-        MFX_INTERNAL_CPY(bsBuffer + offsetInBuffer, data, length);
+        MFX_INTERNAL_CPY(bsBuffer + offsetInBuffer, data + shift, length);
         source.Close();
 
         for (auto& loc : layout)
@@ -95,6 +108,7 @@ namespace UMC_AV1_DECODER
         repeated = false;
         outputted = false;
         decoded   = false;
+        skipped   = false;
         decoding_started = false;
         decoding_completed = false;
         show_as_existing = false;
@@ -118,6 +132,7 @@ namespace UMC_AV1_DECODER
 
         frame_time = -1;
         frame_order = 0;
+        anchor_map = nullptr;
     }
 
     void AV1DecoderFrame::Reset(FrameHeader const* fh)
@@ -255,6 +270,16 @@ namespace UMC_AV1_DECODER
     uint32_t AV1DecoderFrame::GetFrameHeight() const
     {
         return header->FrameHeight;
+    }
+
+    uint32_t AV1DecoderFrame::GetRenderWidth() const
+    {
+        return header->RenderWidth;
+    }
+
+    uint32_t AV1DecoderFrame::GetRenderHeight() const
+    {
+        return header->RenderHeight;
     }
 }
 

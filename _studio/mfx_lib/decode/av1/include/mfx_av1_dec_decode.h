@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2020 Intel Corporation
+// Copyright (c) 2014-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -112,6 +112,7 @@ private:
     bool                                         m_is_init;
     mfxF64                                       m_in_framerate;
     bool                                         m_is_cscInUse;
+    mfxU16                                       m_anchor_frames_num;
 };
 
 #endif // MFX_ENABLE_AV1_VIDEO_DECODE

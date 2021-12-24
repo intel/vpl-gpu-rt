@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2020 Intel Corporation
+// Copyright (c) 2012-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -147,7 +147,23 @@ namespace UMC_AV1_DECODER
     inline unsigned GetNumMissingTiles(AV1DecoderFrame const& frame)
     {
         FrameHeader const& fh = frame.GetFrameHeader();
-        return NumTiles(fh.tile_info) - GetNumArrivedTiles(frame);
+        if (frame.AnchorMap())
+        {
+            //large scale tile
+            auto& tileSets = frame.GetTileSets();
+            size_t num_tile = 0;
+
+            for (auto& tileSet : tileSets)
+            {
+                num_tile += tileSet.GetTileCount();
+            }
+
+            return (unsigned)num_tile - GetNumArrivedTiles(frame);
+        }
+        else
+        {
+            return NumTiles(fh.tile_info) - GetNumArrivedTiles(frame);
+        }
     }
 }
 

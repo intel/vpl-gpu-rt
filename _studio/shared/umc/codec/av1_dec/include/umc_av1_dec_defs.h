@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2017-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -63,7 +63,11 @@ namespace UMC_AV1_DECODER
 
     const uint16_t RESTORATION_UNITSIZE_MAX     = 256;
 
+    const uint16_t MAX_ANCHOR_SIZE              = 128;
+    const int32_t  AV1_INVALID_IDX              = -1;
+
     const uint8_t MI_SIZE_LOG2 = 2;
+    const uint8_t MI_SIZE = (1 << MI_SIZE_LOG2);
     const uint8_t MAX_MIB_SIZE_LOG2 = MAX_SB_SIZE_LOG2 - MI_SIZE_LOG2;
 
     const uint8_t SCALE_NUMERATOR = 8;
@@ -72,8 +76,11 @@ namespace UMC_AV1_DECODER
     const uint8_t PRIMARY_REF_BITS = 3;
     const uint8_t PRIMARY_REF_NONE = 7;
 
+    const uint32_t MAX_NUM_TILES_IN_LIST = 512;
+    const uint32_t MAX_EXTERNAL_REFS = 128;
+
     const uint32_t MAX_TILE_WIDTH = 4096;        // Max Tile width in pixels
-    const uint32_t MAX_TILE_AREA  = 4096 * 2304;  // Maximum tile area in pixels
+    const uint32_t MAX_TILE_AREA  = 4096 * 2304; // Maximum tile area in pixels
     const uint32_t MAX_TILE_ROWS  = 64;
     const uint32_t MAX_TILE_COLS  = 64;
 
@@ -104,8 +111,12 @@ namespace UMC_AV1_DECODER
         OBU_METADATA = 5,
         OBU_FRAME = 6,
         OBU_REDUNDANT_FRAME_HEADER = 7,
+        OBU_TILE_LIST = 8,
         OBU_PADDING = 15,
     };
+
+    const uint32_t OBU_TILE_LIST_HEADER_LENGTH = 4;
+    const uint32_t OBU_TILE_LIST_ENTRY_HEDAER_LENGTH = 5;
 
     enum AOM_COLOR_PRIMARIES
     {
@@ -387,6 +398,8 @@ namespace UMC_AV1_DECODER
         uint32_t SbRowStarts[MAX_TILE_ROWS + 1];  // valid for 0 <= i <= TileRows
         uint32_t context_update_tile_id;
         uint32_t TileSizeBytes;
+        uint32_t TileWidth;
+        uint32_t TileHeight;
 
         //Rev 0.5 parameters
         uint32_t loop_filter_across_tiles_v_enabled;
@@ -609,6 +622,10 @@ namespace UMC_AV1_DECODER
         uint32_t NumPlanes;
 
         uint32_t large_scale_tile;
+        uint32_t tile_count_in_list;
+        uint32_t output_frame_width_in_tiles;
+        uint32_t output_frame_height_in_tiles;
+        uint32_t is_anchor;
 
         //Rev 0.5 parameters
         uint32_t enable_interintra_compound;
@@ -636,6 +653,13 @@ namespace UMC_AV1_DECODER
         uint32_t numTiles;
         uint32_t startTileIdx;
         uint32_t endTileIdx;
+    };
+
+    struct TileListInfo
+    {
+       uint32_t  frameWidthInTiles;
+       uint32_t  frameHeightInTiles;
+       uint32_t  numTiles;
     };
 
     class av1_exception

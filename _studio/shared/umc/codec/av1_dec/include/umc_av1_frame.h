@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2017-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -43,6 +43,15 @@ namespace UMC_AV1_DECODER
         size_t size; // size of the tile
         uint32_t row; // row in tile grid
         uint32_t col; // column in tile grid
+
+        // Large scale tile mode
+        int32_t   tileIdxInTileList;
+        int32_t   anchorFrameIdx;
+        uint32_t  anchorTileRow;
+        uint32_t  anchorTileCol;
+
+        bool      tile_location_type; // 0 - tile group entry, 1 = tile list entry
+        uint32_t  shift; // shift size of tile list entry which indicate OBU header size
     };
 
     typedef std::vector<TileLocation> TileLayout;
@@ -62,6 +71,8 @@ namespace UMC_AV1_DECODER
         { return static_cast<uint32_t>(layout.size()); }
         size_t GetSize() const
         { return source.GetDataSize(); }
+        void GetTileLayout(TileLayout &lyt)
+        { lyt = layout; }
 
     private:
         UMC::MediaData source;
@@ -164,6 +175,11 @@ namespace UMC_AV1_DECODER
         void Outputted(bool o)
         { outputted = o; }
 
+        bool Skipped() const
+        { return skipped; }
+        void SetSkipFlag(bool o)
+        { skipped = o; }
+
         bool DecodingStarted() const
         { return decoding_started; }
         void StartDecoding()
@@ -204,6 +220,9 @@ namespace UMC_AV1_DECODER
         uint32_t GetUpscaledWidth() const;
         uint32_t GetFrameHeight() const;
 
+        uint32_t GetRenderWidth() const;
+        uint32_t GetRenderHeight() const;
+
         void SetFrameTime(mfxF64 time)
         { frame_time = time; };
         mfxF64 FrameTime() const
@@ -212,6 +231,10 @@ namespace UMC_AV1_DECODER
         { frame_order = order; };
         mfxU16 FrameOrder() const
         { return frame_order; };
+        void SetAnchorMap(UMC::FrameMemID* map)
+        { anchor_map = map; }
+        UMC::FrameMemID* AnchorMap() const
+        { return anchor_map; }
 
     public:
 
@@ -258,6 +281,8 @@ namespace UMC_AV1_DECODER
 
         mfxF64                            frame_time;
         mfxU16                            frame_order;
+        bool                              skipped;
+        UMC::FrameMemID                   *anchor_map;
     };
 
 } // end namespace UMC_AV1_DECODER

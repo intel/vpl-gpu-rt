@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2017-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -52,6 +52,7 @@ public:
     virtual void EndFrame() = 0;
 
     virtual void PackAU(std::vector<TileSet>&, AV1DecoderFrame const&, bool) = 0;
+    virtual void RegisterAnchor(UMC::FrameMemID) = 0;
 
     static Packer* CreatePacker(UMC::VideoAccelerator * va);
 

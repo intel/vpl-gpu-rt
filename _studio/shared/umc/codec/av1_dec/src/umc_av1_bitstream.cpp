@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2017-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -710,7 +710,7 @@ namespace UMC_AV1_DECODER
         limits.minLog2Tiles = std::max(limits.minLog2Tiles, limits.minlog2_tile_cols);
     }
 
-    static void av1_calculate_tile_cols(TileInfo& info, TileLimits& limits, FrameHeader const& fh)
+    static void av1_calculate_tile_cols(TileInfo& info, TileLimits& limits, FrameHeader const& fh, uint32_t sbSize)
     {
         uint32_t i;
 
@@ -729,6 +729,10 @@ namespace UMC_AV1_DECODER
             info.SbColStarts[i] = fh.sbCols;
             limits.minlog2_tile_rows = std::max(static_cast<int32_t>(limits.minLog2Tiles - info.TileColsLog2), 0);
             limits.maxTileHeightSB = fh.sbRows >> limits.minlog2_tile_rows;
+
+            const uint32_t mibSizeLog2 = sbSize == BLOCK_64X64 ? 4 : 5;
+            info.TileWidth = sizeSB << mibSizeLog2;
+            info.TileWidth = std::min(info.TileWidth, fh.MiCols);
         }
         else
         {
@@ -743,10 +747,13 @@ namespace UMC_AV1_DECODER
             if (limits.minLog2Tiles)
                 limits.maxTileAreaInSB >>= (limits.minLog2Tiles + 1);
             limits.maxTileHeightSB = std::max(limits.maxTileAreaInSB / widestTileSB, 1u);
+
+            const uint32_t mibSize = sbSize == BLOCK_64X64 ? 16 : 32;
+            info.TileWidth = widestTileSB * mibSize;
         }
     }
 
-    static void av1_calculate_tile_rows(TileInfo& info, FrameHeader const& fh)
+    static void av1_calculate_tile_rows(TileInfo& info, FrameHeader const& fh, uint32_t sbSize)
     {
         uint32_t startSB;
         uint32_t sizeSB;
@@ -764,9 +771,25 @@ namespace UMC_AV1_DECODER
             }
             info.TileRows = i;
             info.SbRowStarts[i] = fh.sbRows;
+
+            const uint32_t mibSizeLog2 = sbSize == BLOCK_64X64 ? 4 : 5;
+            info.TileHeight = sizeSB << mibSizeLog2;
+            info.TileHeight = std::min(info.TileHeight, fh.MiRows);
         }
         else
+        {
             info.TileRowsLog2 = av1_tile_log2(1, info.TileRows);
+
+            uint32_t highestTileSB = 1;
+            for (i = 0; i < info.TileRows; i++)
+            {
+                sizeSB = info.SbRowStarts[i + 1] - info.SbRowStarts[i];
+                highestTileSB = std::max(highestTileSB, sizeSB);
+            }
+
+            const uint32_t mibSize = sbSize == BLOCK_64X64 ? 16 : 32;
+            info.TileHeight = highestTileSB * mibSize;
+        }
     }
 
     static void av1_read_tile_info_max_tile(AV1Bitstream& bs, TileInfo& info, FrameHeader const& fh, uint32_t sbSize)
@@ -803,7 +826,7 @@ namespace UMC_AV1_DECODER
             info.TileCols = i;
             info.SbColStarts[i] = startSB + sbCols;
         }
-        av1_calculate_tile_cols(info, limits, fh);
+        av1_calculate_tile_cols(info, limits, fh, sbSize);
 
         if (!info.TileCols)
             throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
@@ -835,20 +858,14 @@ namespace UMC_AV1_DECODER
             info.TileRows = i;
             info.SbRowStarts[i] = startSB + sbRows;
         }
-        av1_calculate_tile_rows(info, fh);
+        av1_calculate_tile_rows(info, fh, sbSize);
     }
 
     inline
     void av1_read_tile_info(AV1Bitstream& bs, TileInfo& info, FrameHeader const& fh, uint32_t sbSize)
     {
         AV1D_LOG("[+]: %d", (uint32_t)bs.BitsDecoded());
-        const bool large_scale_tile = 0; // this parameter isn't taken from the bitstream. Looks like decoder gets it from outside (e.g. container or some environment).
-        if (large_scale_tile)
-        {
-            // [Rev0.85] add support of large scale tile
-            AV1D_LOG("[-]: %d", (uint32_t)bs.BitsDecoded());
-            return;
-        }
+
         av1_read_tile_info_max_tile(bs, info, fh, sbSize);
 
         if (info.TileColsLog2 || info.TileRowsLog2)
@@ -1210,7 +1227,7 @@ namespace UMC_AV1_DECODER
     void AV1Bitstream::ReadTileGroupHeader(FrameHeader const& fh, TileGroupInfo& info)
     {
         uint8_t tile_start_and_end_present_flag = 0;
-        if (!fh.large_scale_tile && NumTiles(fh.tile_info) > 1)
+        if (NumTiles(fh.tile_info) > 1)
             tile_start_and_end_present_flag = GetBit();
 
         if (tile_start_and_end_present_flag)
@@ -1230,6 +1247,30 @@ namespace UMC_AV1_DECODER
         ReadByteAlignment();
     }
 
+    void AV1Bitstream::ReadTileListHeader(FrameHeader const&, TileListInfo& tlHeader)
+    {
+        tlHeader.frameWidthInTiles = GetBits(8)+1;
+        tlHeader.frameHeightInTiles = GetBits(8)+1;
+        tlHeader.numTiles = GetBits(16) + 1;
+
+        if (tlHeader.numTiles > MAX_NUM_TILES_IN_LIST)
+            throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
+    }
+
+    void AV1Bitstream::ReadTileListEntry(TileListInfo const&, TileLocation& entry)
+    {
+        entry.anchorFrameIdx = GetBits(8);
+
+        if (entry.anchorFrameIdx < 0 || entry.anchorFrameIdx >= (int32_t)MAX_EXTERNAL_REFS)
+            throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
+
+        entry.anchorTileRow = GetBits(8);
+        entry.anchorTileCol = GetBits(8);
+
+        entry.size = GetBits(16) + 1;
+        entry.tile_location_type = 1;
+    }
+
     uint64_t AV1Bitstream::GetLE(uint32_t n)
     {
         UMC_ASSERT(m_bitOffset == 0);
@@ -1242,12 +1283,21 @@ namespace UMC_AV1_DECODER
         return t;
     }
 
-    void AV1Bitstream::ReadTile(FrameHeader const& fh, size_t& reportedSize, size_t& actualSize)
+    void AV1Bitstream::ReadTile(uint32_t const tileSizeBytes, size_t& reportedSize, size_t& actualSize)
     {
-        const size_t tile_size_minus_1 = static_cast<size_t>(GetLE(fh.tile_info.TileSizeBytes));
+        const size_t tile_size_minus_1 = static_cast<size_t>(GetLE(tileSizeBytes));
         actualSize = reportedSize = tile_size_minus_1 + 1;
 
         if (BytesLeft() < reportedSize)
+            actualSize = BytesLeft();
+
+        m_pbs += actualSize;
+    }
+
+    void AV1Bitstream::ReadTileListEntryData(size_t const tileSizeBytes, size_t& actualSize)
+    {
+        actualSize = tileSizeBytes;
+        if (BytesLeft() < tileSizeBytes)
             actualSize = BytesLeft();
 
         m_pbs += actualSize;
@@ -1943,7 +1993,10 @@ namespace UMC_AV1_DECODER
 
         av1_read_frame_reference_mode(*this, fh, frameDpb);
 
-        fh.skip_mode_present = av1_is_skip_mode_allowed(fh, sh, frameDpb) ? GetBit() : 0;
+        if (fh.large_scale_tile)
+            fh.skip_mode_present = 0;
+        else
+            fh.skip_mode_present = av1_is_skip_mode_allowed(fh, sh, frameDpb) ? GetBit() : 0;
 
         if (!FrameIsResilient(fh) && sh.enable_warped_motion)
             fh.allow_warped_motion = GetBit();
@@ -1952,7 +2005,8 @@ namespace UMC_AV1_DECODER
 
         av1_read_global_motion(*this, fh, frameDpb);
 
-        av1_read_film_grain(*this, sh, fh, frameDpb);
+        if (!fh.large_scale_tile)
+            av1_read_film_grain(*this, sh, fh, frameDpb);
 
         AV1D_LOG("[-]: %d", (uint32_t)BitsDecoded());
     }
