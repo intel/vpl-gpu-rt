@@ -117,13 +117,8 @@ VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(
           , m_bUseExtAllocForHWFrames(false)
           , m_HWType(MFX_HW_UNKNOWN)
           , m_GTConfig(MFX_GT_UNKNOWN)
-#if !defined(ANDROID)
           , m_bCmCopy(false)
           , m_bCmCopyAllowed(true)
-#else
-          , m_bCmCopy(false)
-          , m_bCmCopyAllowed(false)
-#endif
 {
 } // VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(...)
 
@@ -257,8 +252,9 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
             m_GTConfig       = devItem.config;
             this->m_deviceId = mfxU16(devItem.device_id);
 
-            const bool disableGpuCopy = false
-                ;
+            std::set<eMFXHWType> cmCopyPlatforms = { MFX_HW_TGL_LP, MFX_HW_DG1, MFX_HW_ADL_S, MFX_HW_ADL_P };
+
+            const bool disableGpuCopy = (cmCopyPlatforms.find(m_HWType) == cmCopyPlatforms.end());
             if (disableGpuCopy)
             {
                 this->SetCmCopyStatus(false);
