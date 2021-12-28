@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2020 Intel Corporation
+// Copyright (c) 2012-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -47,6 +47,9 @@ namespace UMC_AV1_DECODER
         void AllocateFrameData(UMC::VideoDataInfo const&, UMC::FrameMemID, AV1DecoderFrame&) override;
         UMC::Status SubmitTiles(AV1DecoderFrame&, bool) override;
         int32_t GetFreeIndex(UMC::FrameMemID) const;
+
+        UMC::Status SubmitTileList(AV1DecoderFrame&);
+        UMC::Status RegisterAnchorFrame(uint32_t id);
 
     private:
         std::vector<ReportItem> reports;

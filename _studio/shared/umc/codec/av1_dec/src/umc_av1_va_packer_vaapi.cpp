@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2017-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -66,6 +66,12 @@ namespace UMC_AV1_DECODER
     void PackerVA::BeginFrame() {}
     void PackerVA::EndFrame() {}
 
+    void PackerVA::RegisterAnchor(UMC::FrameMemID id)
+    {
+        VASurfaceID anchorSurfaceId = (VASurfaceID)m_va->GetSurfaceID(id);
+        anchors_frames.push_back(anchorSurfaceId);
+    }
+
     void PackerVA::PackAU(std::vector<TileSet>& tileSets, AV1DecoderFrame const& info, bool firstSubmission)
     {
         if (firstSubmission)
@@ -83,6 +89,9 @@ namespace UMC_AV1_DECODER
             PackPicParams(*picParam, info);
         }
 
+        if (!tileSets.size())
+            return;
+
         UMC::UMCVACompBuffer* compBufBs = nullptr;
         uint8_t* const bitstreamData = (uint8_t *)m_va->GetCompBuffer(VASliceDataBufferType, &compBufBs, CalcSizeOfTileSets(tileSets));
         if (!bitstreamData || !compBufBs)
@@ -90,23 +99,29 @@ namespace UMC_AV1_DECODER
 
         std::vector<VASliceParameterBufferAV1> tileControlParams;
 
+        size_t offsetInBuffer = 0;
+        UMC::FrameMemID* anchor_map = info.AnchorMap();
+
         for (auto& tileSet : tileSets)
         {
-            const size_t offsetInBuffer = compBufBs->GetDataSize();
+            offsetInBuffer = compBufBs->GetDataSize();
             const size_t spaceInBuffer = compBufBs->GetBufferSize() - offsetInBuffer;
             TileLayout layout;
             const size_t bytesSubmitted = tileSet.Submit(bitstreamData, spaceInBuffer, offsetInBuffer, layout);
 
             if (bytesSubmitted)
             {
-                compBufBs->SetDataSize(static_cast<uint32_t>(offsetInBuffer + bytesSubmitted));
+                offsetInBuffer += bytesSubmitted;
 
                 for (auto& loc : layout)
                 {
                     tileControlParams.emplace_back();
+                    if (anchor_map)
+                        loc.anchorFrameIdx = anchor_map[loc.anchorFrameIdx];
                     PackTileControlParams(tileControlParams.back(), loc);
                 }
             }
+            compBufBs->SetDataSize(static_cast<uint32_t>(offsetInBuffer));
         }
 
         UMCVACompBuffer* compBufTile = nullptr;
@@ -179,6 +194,32 @@ namespace UMC_AV1_DECODER
         picInfo.disable_frame_end_update_cdf = info.disable_frame_end_update_cdf;
         picInfo.uniform_tile_spacing_flag = info.tile_info.uniform_tile_spacing_flag;
         picInfo.allow_warped_motion = info.allow_warped_motion;
+
+        if (info.large_scale_tile)
+        {
+            if (info.is_anchor)
+            {
+                picInfo.large_scale_tile = 0;
+            }
+            else
+            {
+                picInfo.large_scale_tile = 1;
+                picParam.tile_count_minus_1 = info.tile_count_in_list - 1;
+                picParam.anchor_frames_num = anchors_frames.size();
+                picParam.output_frame_width_in_tiles_minus_1  = info.output_frame_width_in_tiles - 1;
+                picParam.output_frame_height_in_tiles_minus_1 = info.output_frame_height_in_tiles - 1;
+                picParam.anchor_frames_list = reinterpret_cast<VASurfaceID *>(anchors_frames.data());
+            }
+        }
+        else
+        {
+            picInfo.large_scale_tile = 0;
+            picParam.tile_count_minus_1 = 0;
+            picParam.output_frame_width_in_tiles_minus_1 = 0;
+            picParam.output_frame_height_in_tiles_minus_1 = 0;
+            picParam.anchor_frames_num = 0;
+            picParam.anchor_frames_list = nullptr;
+        }
 
         picParam.order_hint = (uint8_t)info.order_hint;
         picParam.superres_scale_denominator = (uint8_t)info.SuperresDenom;
@@ -366,7 +407,6 @@ namespace UMC_AV1_DECODER
         }
 
         picParam.context_update_tile_id = (uint16_t)info.tile_info.context_update_tile_id;
-        picParam.tile_count_minus_1 = 0;
     }
 
     void PackerVA::PackTileControlParams(VASliceParameterBufferAV1& tileControlParam, TileLocation const& loc)
@@ -374,10 +414,27 @@ namespace UMC_AV1_DECODER
         tileControlParam.slice_data_offset = (uint32_t)loc.offset;
         tileControlParam.slice_data_size = (uint32_t)loc.size;
         tileControlParam.slice_data_flag = 0;
-        tileControlParam.tile_row = (uint16_t)loc.row;
-        tileControlParam.tile_column = (uint16_t)loc.col;
-        tileControlParam.tg_start = (uint16_t)loc.startIdx;
-        tileControlParam.tg_end = (uint16_t)loc.endIdx;
+
+        if (loc.anchorFrameIdx == AV1_INVALID_IDX || loc.tileIdxInTileList == AV1_INVALID_IDX)
+        {
+            // tile group entry
+            tileControlParam.tile_row = (uint16_t)loc.row;
+            tileControlParam.tile_column = (uint16_t)loc.col;
+            tileControlParam.tg_start = (uint16_t)loc.startIdx;
+            tileControlParam.tg_end = (uint16_t)loc.endIdx;
+            tileControlParam.anchor_frame_idx = 0;
+            tileControlParam.tile_idx_in_tile_list = 0;
+        }
+        else
+        {
+            // tile list entry
+            tileControlParam.tile_row = (uint16_t)loc.anchorTileRow;
+            tileControlParam.tile_column = (uint16_t)loc.anchorTileCol;
+            tileControlParam.tg_start = 0;
+            tileControlParam.tg_end = 0;
+            tileControlParam.anchor_frame_idx = loc.anchorFrameIdx;
+            tileControlParam.tile_idx_in_tile_list = loc.tileIdxInTileList;
+        }
     }
 
 } // namespace UMC_AV1_DECODER

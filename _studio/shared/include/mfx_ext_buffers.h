@@ -25,6 +25,7 @@
 #include "mfx_config.h"
 #include "vm_strings.h"
 
+
 #ifndef MFX_ADAPTIVE_PLAYBACK_DISABLE
 #define MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK MFX_MAKEFOURCC('A','P','B','K')
 #endif

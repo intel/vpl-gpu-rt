@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2017-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "umc_av1_dec_defs.h"
+#include "umc_av1_frame.h"
 
 #ifdef MFX_ENABLE_AV1_VIDEO_DECODE
 
@@ -40,7 +40,10 @@ namespace UMC_AV1_DECODER
 
         void ReadOBUInfo(OBUInfo&);
         void ReadTileGroupHeader(FrameHeader const&, TileGroupInfo&);
-        void ReadTile(FrameHeader const&, size_t&, size_t&);
+        void ReadTile(uint32_t const, size_t&, size_t&);
+        void ReadTileListHeader(FrameHeader const&, TileListInfo&);
+        void ReadTileListEntry(TileListInfo const&, TileLocation&);
+        void ReadTileListEntryData(size_t const tileSizeBytes, size_t& actualSize);
         void ReadByteAlignment();
         uint64_t GetLE(uint32_t);
         void ReadSequenceHeader(SequenceHeader&);
