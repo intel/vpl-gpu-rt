@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2021 Intel Corporation
+// Copyright (c) 2012-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@
 
 #include "umc_video_decoder.h"
 #include "umc_frame_allocator.h"
-#include "umc_av1_frame.h"
+#include "umc_av1_dec_defs.h"
 
 #include <mutex>
 #include <memory>
@@ -54,10 +54,6 @@ namespace UMC_AV1_DECODER
             , async_depth(0)
             , film_grain(0)
             , io_pattern(0)
-            , lst_mode(0)
-            , anchors_num(0)
-            , anchors_loaded(false)
-            , skip_first_frames(0)
         {}
 
     public:
@@ -66,11 +62,6 @@ namespace UMC_AV1_DECODER
         uint32_t             async_depth;
         uint32_t             film_grain;
         uint32_t             io_pattern;
-        uint32_t             lst_mode;
-        uint32_t             anchors_num;
-        bool                 anchors_loaded;
-        uint32_t             skip_first_frames;
-        mfxFrameSurface1**   pre_loaded_anchors;
     };
 
     class ReportItem // adopted from HEVC/AVC decoders
@@ -151,14 +142,10 @@ namespace UMC_AV1_DECODER
         virtual AV1DecoderFrame* GetFreeFrame();
         virtual AV1DecoderFrame* GetFrameBuffer(FrameHeader const&);
         virtual void AddFrameData(AV1DecoderFrame&);
-        virtual void AddFrameDataByIdx(AV1DecoderFrame& frame, uint32_t idx);
 
         virtual void AllocateFrameData(UMC::VideoDataInfo const&, UMC::FrameMemID, AV1DecoderFrame&) = 0;
         virtual void CompleteDecodedFrames(FrameHeader const&, AV1DecoderFrame*, AV1DecoderFrame*);
         virtual UMC::Status SubmitTiles(AV1DecoderFrame&, bool) = 0;
-
-        virtual UMC::Status SubmitTileList(AV1DecoderFrame&) = 0;
-        virtual UMC::Status RegisterAnchorFrame(uint32_t id) = 0;
 
     private:
 
@@ -167,9 +154,6 @@ namespace UMC_AV1_DECODER
         AV1DecoderFrame* StartFrame(FrameHeader const&, DPBType &, AV1DecoderFrame*);
 
         void CalcFrameTime(AV1DecoderFrame*);
-
-        AV1DecoderFrame* GetFrameBufferByIdx(FrameHeader const& fh, UMC::FrameMemID id);
-        AV1DecoderFrame* StartAnchorFrame(FrameHeader const& fh, DPBType const& frameDPB, uint32_t idx);
 
     protected:
 
@@ -187,22 +171,10 @@ namespace UMC_AV1_DECODER
         AV1DecoderFrame*                Curr_temp; // store current frame insist double updateDPB
         uint32_t                        Repeat_show; // show if current frame is repeated frame
         uint32_t                        PreFrame_id;//id of previous frame
-        uint32_t                        OldPreFrame_id;//old id of previous frame. When decode LST clip, need this for parsing twice
         DPBType                         refs_temp; // previous updated frameDPB
         mfxU16                          frame_order;
         mfxF64                          in_framerate;
         UMC::FrameMemID                 repeateFrame;//frame to be repeated
-
-        uint32_t                        anchor_frames_count;
-        uint32_t                        tile_list_idx;
-        uint32_t                        frames_to_skip;
-        uint32_t                        saved_clip_info_width;
-        uint32_t                        saved_clip_info_height;
-        bool                            clip_info_size_saved;
-
-        FrameHeader                     m_prev_frame_header;
-        bool                            m_prev_frame_header_exist;
-        UMC::FrameMemID                 m_anchor_frame_mem_ids[MAX_ANCHOR_SIZE];
     };
 }
 

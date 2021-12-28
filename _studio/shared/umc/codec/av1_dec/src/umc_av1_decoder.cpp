@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -41,17 +41,9 @@ namespace UMC_AV1_DECODER
         , Curr_temp(new AV1DecoderFrame{})
         , Repeat_show(0)
         , PreFrame_id(0)
-        , OldPreFrame_id(0)
         , frame_order(0)
         , in_framerate(0)
         , repeateFrame(UMC::FRAME_MID_INVALID)
-        , anchor_frames_count(0)
-        , tile_list_idx(0)
-        , frames_to_skip(0)
-        , saved_clip_info_width(0)
-        , saved_clip_info_height(0)
-        , clip_info_size_saved(false)
-        , m_prev_frame_header_exist(false)
     {
         outputed_frames.clear();
     }
@@ -74,7 +66,6 @@ namespace UMC_AV1_DECODER
         case OBU_REDUNDANT_FRAME_HEADER:
         case OBU_FRAME:
         case OBU_TILE_GROUP:
-        case OBU_TILE_LIST:
         case OBU_METADATA:
         case OBU_PADDING:
             return true;
@@ -165,13 +156,6 @@ namespace UMC_AV1_DECODER
             return UMC::UMC_ERR_INVALID_PARAMS;
         allocator = dp->allocator;
 
-        if (dp->anchors_loaded)
-        {
-            // Parameter for clips started with anchor frames (Vicue)
-            // and anchor loaded from secondary source
-            frames_to_skip = dp->skip_first_frames;
-        }
-
         params = *dp;
         frame_order = 0;
         return SetParams(vp);
@@ -231,8 +215,6 @@ namespace UMC_AV1_DECODER
         const uint32_t idxInFrame = tgInfo.startTileIdx + idxInTG;
         loc.row = idxInFrame / fh.tile_info.TileCols;
         loc.col = idxInFrame - loc.row * fh.tile_info.TileCols;
-        loc.anchorFrameIdx = AV1_INVALID_IDX;
-        loc.tileIdxInTileList = AV1_INVALID_IDX;
 
         size_t tileOffsetInTG = bs->BytesDecoded();
 
@@ -245,7 +227,7 @@ namespace UMC_AV1_DECODER
             // read tile size
             size_t reportedSize = 0;
             size_t actualSize = 0;
-            bs->ReadTile(fh.tile_info.TileSizeBytes, reportedSize, actualSize);
+            bs->ReadTile(fh, reportedSize, actualSize);
             if (actualSize != reportedSize)
             {
                 // before parsing tiles we check that tile_group_obu() is complete (bitstream has enough bytes to hold whole OBU)
@@ -259,44 +241,6 @@ namespace UMC_AV1_DECODER
         }
 
         loc.offset = OBUOffset + tileOffsetInTG;
-        loc.tile_location_type = 0;
-
-    }
-
-    static void GetTileListEntry(
-        AV1Bitstream& bs,
-        TileListInfo &tlInfo,
-        uint32_t idxInTL,
-        size_t OBUOffset,
-        uint32_t shift,
-        size_t &OBUSize,
-        TileLocation& loc)
-    {
-        // calculate tile row and column
-        const uint32_t idxInFrame = idxInTL;
-
-        loc.shift = shift;
-
-        loc.row = idxInFrame / tlInfo.frameWidthInTiles;
-        loc.col = idxInFrame - loc.row * tlInfo.frameWidthInTiles;
-
-        loc.tileIdxInTileList = idxInTL;
-
-        size_t tileOffsetInTL = bs.BytesDecoded();
-        bs.ReadTileListEntry(tlInfo, loc);
-
-        OBUSize = loc.size + OBU_TILE_LIST_ENTRY_HEDAER_LENGTH;
-        loc.offset = OBUOffset + OBU_TILE_LIST_ENTRY_HEDAER_LENGTH;
-
-        tileOffsetInTL += loc.size;
-
-        size_t actualSize = 0;
-        bs.ReadTileListEntryData(loc.size, actualSize);
-
-        if (loc.size != actualSize)
-        {
-            throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
-        }
     }
 
     inline bool CheckTileGroup(uint32_t prevNumTiles, FrameHeader const& fh, TileGroupInfo const& tgInfo)
@@ -324,8 +268,8 @@ namespace UMC_AV1_DECODER
             UMC_ASSERT(pFrame);
             repeateFrame = pFrame->GetMemID();
 
-            //Add one more Reference, and add it into outputed frame list
-            //When QueryFrame finished and update status in outputed frame
+            //Add one more Reference, and add it into outputted frame list
+            //When QueryFrame finished and update status in outputted frame
             //list, then it will be released in CompleteDecodedFrames.
             pFrame->IncrementReference();
             pFrame->Repeated(true);
@@ -380,28 +324,6 @@ namespace UMC_AV1_DECODER
         return pFrame;
     }
 
-    AV1DecoderFrame* AV1Decoder::StartAnchorFrame(FrameHeader const& fh, DPBType const& frameDPB, uint32_t idx)
-    {
-        AV1DecoderFrame* pFrame = nullptr;
-
-        pFrame = GetFrameBufferByIdx(fh, idx);
-
-        if (!pFrame)
-            return nullptr;
-
-        pFrame->SetSeqHeader(*sequence_header.get());
-
-        if (fh.refresh_frame_flags)
-            pFrame->SetRefValid(true);
-
-        pFrame->frame_dpb = frameDPB;
-        pFrame->UpdateReferenceList();
-
-        m_anchor_frame_mem_ids[idx] = pFrame->m_index;
-
-        return pFrame;
-    }
-
     static void ReadTileGroup(TileLayout& layout, AV1Bitstream& bs, FrameHeader const& fh, size_t obuOffset, size_t obuSize)
     {
         TileGroupInfo tgInfo = {};
@@ -422,37 +344,12 @@ namespace UMC_AV1_DECODER
         }
     }
 
-    static uint32_t ReadTileListHeader(AV1Bitstream& bs, FrameHeader const& fh, TileListInfo &tlInfo)
-    {
-        bs.ReadTileListHeader(fh, tlInfo);
-        return tlInfo.numTiles;
-    }
-
-    static uint32_t ReadTileList(TileLayout& layout, AV1Bitstream& bs, FrameHeader const& /*fh*/, size_t /*obuOffset*/, TileListInfo tlInfo, uint32_t shift)
-    {
-        uint32_t idxInLayout = static_cast<uint32_t>(layout.size());
-
-        layout.resize(layout.size() + tlInfo.numTiles);
-
-        size_t TileListEntryOffset = OBU_TILE_LIST_HEADER_LENGTH;
-        for (uint32_t idxInTL = 0; idxInLayout < layout.size() && idxInTL < tlInfo.numTiles; idxInLayout++, idxInTL++)
-        {
-            size_t obuSize;
-            TileLocation& loc = layout[idxInLayout];
-            GetTileListEntry(bs, tlInfo, idxInTL, TileListEntryOffset, shift, obuSize, loc);
-            TileListEntryOffset += obuSize;
-        }
-
-        return tlInfo.numTiles;
-    }
-
     inline bool NextFrameDetected(AV1_OBU_TYPE obuType)
     {
         switch (obuType)
         {
         case OBU_REDUNDANT_FRAME_HEADER:
         case OBU_TILE_GROUP:
-        case OBU_TILE_LIST:
             return false;
         default:
             return true;
@@ -516,7 +413,6 @@ namespace UMC_AV1_DECODER
         DPBType updated_refs;
         UMC::MediaData tmper = *in;
         repeateFrame = UMC::FRAME_MID_INVALID;
-
         if ((tmper.GetDataSize() >= MINIMAL_DATA_SIZE) && pPrevFrame && !pFrameInProgress)
         {
             if (!Repeat_show)
@@ -548,10 +444,7 @@ namespace UMC_AV1_DECODER
 
         bool gotFullFrame = false;
         bool repeatedFrame = false;
-        bool skipFrame = false;
-        bool anchor_decode = params.lst_mode && anchor_frames_count < params.anchors_num;
-        bool firstSubmission = false;
- 
+
         AV1DecoderFrame* pCurrFrame = nullptr;
 
         if (pFrameInProgress && GetNumMissingTiles(*pFrameInProgress) == 0)
@@ -580,12 +473,10 @@ namespace UMC_AV1_DECODER
                 AV1Bitstream bs(src, uint32_t(tmp.GetDataSize()));
 
                 OBUInfo obuInfo;
-                TileListInfo tlInfo = {};
-                uint32_t lst_shift;
                 bs.ReadOBUInfo(obuInfo);
                 const AV1_OBU_TYPE obuType = obuInfo.header.obu_type;
-
                 UMC_ASSERT(CheckOBUType(obuType)); // [clean up] Need to remove assert once decoder code is stabilized
+
                 if (tmp.GetDataSize() < obuInfo.size) // not enough data left in the buffer to hold full OBU unit
                     break;
 
@@ -618,60 +509,6 @@ namespace UMC_AV1_DECODER
                     }
                     break;
                 }
-                case OBU_TILE_LIST:
-                    // This OBU type is purely for the large scale tile decoding mode.
-                    if (anchor_frames_count < params.anchors_num)
-                    {
-                        throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
-                    }
-
-                    // a ext-tile sequence composition: a sequence header OBU, followed by
-                    // a number of OBUs that together constitue one or more coded anchors frames, followed by
-                    // a frame header OBU, followed by
-                    // a set of one or more tile list OBUs
-                    // so for multi tile lists case, need get saved frame header since have only one single fh
-                    // before tile list OBUs.
-                    if (tile_list_idx > 0 && m_prev_frame_header_exist)
-                    {
-                        fh = m_prev_frame_header;
-                    }
-
-                    // different tile lists could have different recon frame size, so need save original clip size,
-                    // then use it as a condition for surfaces reallocation of next tile lists.
-                    if (!clip_info_size_saved)
-                    {
-                        saved_clip_info_width = params.info.clip_info.width;
-                        saved_clip_info_height= params.info.clip_info.height;
-                        clip_info_size_saved = true;
-                    }
-
-                    lst_shift = (uint32_t)bs.BytesDecoded();
-                    ReadTileListHeader(bs, fh, tlInfo);
-
-                    if ((params.info.clip_info.width != (int32_t)(tlInfo.frameWidthInTiles * fh.tile_info.TileWidth * MI_SIZE) ||
-                        params.info.clip_info.height != (int32_t)(tlInfo.frameHeightInTiles * fh.tile_info.TileHeight * MI_SIZE)))
-                    {
-                        params.info.clip_info.width = (int32_t)(tlInfo.frameWidthInTiles * fh.tile_info.TileWidth * MI_SIZE);
-                        params.info.clip_info.height = (int32_t)(tlInfo.frameHeightInTiles * fh.tile_info.TileHeight * MI_SIZE);
-                        params.info.disp_clip_info = params.info.clip_info;
-                        PreFrame_id = OldPreFrame_id;
-                        return UMC::UMC_NTF_NEW_RESOLUTION;
-                    }
-
-                    fh.output_frame_width_in_tiles  = tlInfo.frameWidthInTiles;
-                    fh.output_frame_height_in_tiles = tlInfo.frameHeightInTiles;
-                    fh.tile_count_in_list += ReadTileList(layout, bs, fh, OBUOffset, tlInfo, lst_shift);
-
-                    if (params.lst_mode)
-                    {
-                        fh.large_scale_tile = true;
-                    }
-
-                    in->MoveDataPointer(OBUOffset); // do not submit frame header in data buffer
-                    OBUOffset = 0;
-                    gotFullFrame = true; // tile list is a complete frame
-                    tile_list_idx++;
-                    break;
                 case OBU_FRAME_HEADER:
                 case OBU_REDUNDANT_FRAME_HEADER:
                 case OBU_FRAME:
@@ -682,36 +519,9 @@ namespace UMC_AV1_DECODER
                         // we read only first entry of uncompressed header in the frame
                         // each subsequent copy of uncompressed header (i.e. OBU_REDUNDANT_FRAME_HEADER) must be exact copy of first entry by AV1 spec
                         // [robust] maybe need to add check that OBU_REDUNDANT_FRAME_HEADER contains copy of OBU_FRAME_HEADER
-
-                        OldPreFrame_id = PreFrame_id;
                         bs.ReadUncompressedHeader(fh, *sequence_header, updated_refs, obuInfo.header, PreFrame_id);
                         gotFrameHeader = true;
-                        m_prev_frame_header_exist = true;
-                        m_prev_frame_header = fh;
                     }
-
-                    // got frame in large scale tile mode
-                    if (obuType == OBU_FRAME && params.lst_mode)
-                    {
-                        if (frames_to_skip)
-                        {
-                            skipFrame = true;
-                            gotFrameHeader = false;
-                            gotFullFrame = true;
-                            frames_to_skip--;
-                            fh.is_anchor = 1;
-                        }
-                        else if (anchor_decode)
-                        {
-                            gotFullFrame = true;
-                            fh.is_anchor = 1;
-                        }
-                        else
-                        {
-                            fh.is_anchor = 0;
-                        }
-                    }
-
                     if (obuType != OBU_FRAME)
                     {
                         if (fh.show_existing_frame)
@@ -719,10 +529,6 @@ namespace UMC_AV1_DECODER
                         break;
                     }
                     bs.ReadByteAlignment();
-
-                    // There are no following tile group
-                    if (params.lst_mode && !anchor_decode)
-                        break;
                 case OBU_TILE_GROUP:
                 {
                     FrameHeader const* pFH = nullptr;
@@ -746,139 +552,46 @@ namespace UMC_AV1_DECODER
                 tmp.MoveDataPointer(static_cast<int32_t>(obuInfo.size));
             }
 
-            if (!params.lst_mode || !anchor_decode)
-            {
-                if (!HaveTilesToSubmit(pFrameInProgress, layout) && !repeatedFrame)
-                {
-                    if (params.lst_mode && !anchor_decode)
-                    {
-                        PreFrame_id = OldPreFrame_id;
-                    }
-                    return UMC::UMC_ERR_NOT_ENOUGH_DATA;
-                }
-            }
+            if (!HaveTilesToSubmit(pFrameInProgress, layout) && !repeatedFrame)
+                return UMC::UMC_ERR_NOT_ENOUGH_DATA;
 
-            if (anchor_decode)
-            {
-                // For anchor frame decoding in ext-tile mode, no need to update DPB since they could be treated as
-                // reference surfaces of tile list, but will be not in the reference list if update DPB per frame.
-                // Max anchor_frames_count <= 128 per Spec, so no out-of-bound risk if set DPB size = 128.
-                pCurrFrame = StartAnchorFrame(fh, updated_refs, anchor_frames_count);
- 
-                if (!pCurrFrame)
-                    throw av1_exception(UMC::UMC_ERR_NOT_INITIALIZED);
+            pCurrFrame = pFrameInProgress ?
+                pFrameInProgress : StartFrame(fh, updated_refs, pPrevFrame);
 
-                CompleteDecodedFrames(fh, pCurrFrame, pPrevFrame);
-                pCurrFrame->SetSkipFlag(true);
-            }
-            else
-            {
-                pCurrFrame = pFrameInProgress ?
-                    pFrameInProgress : StartFrame(fh, updated_refs, pPrevFrame);
+            CompleteDecodedFrames(fh, pCurrFrame, pPrevFrame);
 
-                if (params.lst_mode)
-                {
-                    // Update frame width and height since it may be different with orinial input
-                    FrameHeader &lst_fh = pCurrFrame->GetFrameHeader();
-                    lst_fh.RenderWidth = params.info.clip_info.width;
-                    lst_fh.RenderHeight = params.info.clip_info.height;
-                }
- 
-                CompleteDecodedFrames(fh, pCurrFrame, pPrevFrame);
- 
-                CalcFrameTime(pCurrFrame);
-            }
+            CalcFrameTime(pCurrFrame);
+
+            if (!pCurrFrame)
+                return UMC::UMC_ERR_NOT_ENOUGH_BUFFER;
 
             if (!layout.empty())
                 pCurrFrame->AddTileSet(in, layout);
 
-            if (!layout.empty() || repeatedFrame || anchor_decode)
+            if (!layout.empty() || repeatedFrame)
                 in->MoveDataPointer(OBUOffset);
 
             if (repeatedFrame)
             {
                 pCurrFrame->ShowAsExisting(true);
-                if (anchor_decode)
-                {
-                    m_anchor_frame_mem_ids[anchor_frames_count] = updated_refs[pCurrFrame->GetFrameHeader().frame_to_show_map_idx]->m_index;
-                    RegisterAnchorFrame(anchor_frames_count++);
-                }
-
                 return UMC::UMC_OK;
             }
 
-            if (skipFrame)
-            {
-                in->MoveDataPointer(OBUOffset);
- 
-                pCurrFrame->StartDecoding();
-                pCurrFrame->CompleteDecoding();
-                pCurrFrame->SetSkipFlag(true);
-
-                if (anchor_decode)
-                    RegisterAnchorFrame(anchor_frames_count++);
-
-                return UMC::UMC_ERR_NOT_ENOUGH_DATA;
-            }
         }
 
-        if (anchor_decode && skipFrame)
+        bool firstSubmission = false;
+
+        if (!AllocComplete(*pCurrFrame))
         {
+            AddFrameData(*pCurrFrame);
+
             if (!AllocComplete(*pCurrFrame))
-            {
-                AddFrameDataByIdx(*pCurrFrame, anchor_frames_count);
+                return UMC::UMC_OK;
 
-                if (!AllocComplete(*pCurrFrame))
-                    return UMC::UMC_OK;
-
-                firstSubmission = true;
-            }
-        }
-        else
-        {
-            if (!AllocComplete(*pCurrFrame))
-            {
-                AddFrameData(*pCurrFrame);
-
-                // for lst mode, different tile lists could have different output buffer size
-                // and only have 1 frame header OUB before tile list OBU in exe-tile sequence,
-                // so need save clip_info_width/height for new surface re-allocation
-                if (params.lst_mode && !anchor_decode)
-                {
-                     params.info.clip_info.width  = saved_clip_info_width;
-                     params.info.clip_info.height = saved_clip_info_height;
-                }
-
-                if (!AllocComplete(*pCurrFrame))
-                    return UMC::UMC_OK;
-
-                firstSubmission = true;
-            }
-
-            if (anchor_decode)
-                m_anchor_frame_mem_ids[anchor_frames_count] = pCurrFrame->m_index;
+            firstSubmission = true;
         }
 
-        UMC::Status umcRes = UMC::UMC_OK;
-
-        if (!params.lst_mode)
-        {
-            umcRes = SubmitTiles(*pCurrFrame, firstSubmission);
-        }
-        else if (anchor_decode)
-        {
-            umcRes = SubmitTiles(*pCurrFrame, firstSubmission);
-            RegisterAnchorFrame(anchor_frames_count++);
-            QueryFrames();
-
-            return UMC::UMC_ERR_NOT_ENOUGH_DATA;
-        }
-        else
-        {
-            pCurrFrame->SetAnchorMap(m_anchor_frame_mem_ids);
-            umcRes = SubmitTileList(*pCurrFrame);
-        }
-
+        UMC::Status umcRes = SubmitTiles(*pCurrFrame, firstSubmission);
         if (umcRes != UMC::UMC_OK)
             return umcRes;
 
@@ -911,7 +624,7 @@ namespace UMC_AV1_DECODER
             [](AV1DecoderFrame const* f)
             {
                 FrameHeader const& h = f->GetFrameHeader();
-                bool regularShowFrame = h.show_frame && !h.is_anchor && !FrameInProgress(*f) && !f->Outputted();
+                bool regularShowFrame = h.show_frame && !FrameInProgress(*f) && !f->Outputted();
                 return regularShowFrame || f->ShowAsExisting();
             }
         );
@@ -991,18 +704,17 @@ namespace UMC_AV1_DECODER
     void AV1Decoder::SetDPBSize(uint32_t size)
     {
         UMC_ASSERT(size > 0);
-        UMC_ASSERT(size <= MAX_EXTERNAL_REFS);
+        UMC_ASSERT(size < 128);
 
         dpb.resize(size);
         std::generate(std::begin(dpb), std::end(dpb),
             [] { return new AV1DecoderFrame{}; }
         );
     }
-
     void AV1Decoder::SetRefSize(uint32_t size)
     {
         UMC_ASSERT(size > 0);
-        UMC_ASSERT(size <= MAX_EXTERNAL_REFS);
+        UMC_ASSERT(size < 128);
 
         refs_temp.resize(size);
         std::generate(std::begin(refs_temp), std::end(refs_temp),
@@ -1094,19 +806,6 @@ namespace UMC_AV1_DECODER
         return frame;
     }
 
-    AV1DecoderFrame* AV1Decoder::GetFrameBufferByIdx(FrameHeader const& fh, UMC::FrameMemID id)
-    {
-        AV1DecoderFrame* frame = dpb[id];
-
-        if (!frame)
-            return nullptr;
-
-        frame->UID = counter++;
-        frame->Reset(&fh);
-        frame->IncrementReference();
-        return frame;
-    }
-
     void AV1Decoder::AddFrameData(AV1DecoderFrame& frame)
     {
         FrameHeader const& fh = frame.GetFrameHeader();
@@ -1132,19 +831,6 @@ namespace UMC_AV1_DECODER
         {
             throw av1_exception(UMC::UMC_ERR_ALLOC);
         }
-    }
-
-    void AV1Decoder::AddFrameDataByIdx(AV1DecoderFrame& frame, uint32_t id)
-    {
-        if (!allocator)
-            throw av1_exception(UMC::UMC_ERR_NOT_INITIALIZED);
-
-        UMC::VideoDataInfo info{};
-        UMC::Status sts = info.Init(params.info.clip_info.width, params.info.clip_info.height, params.info.color_format, 0);
-        if (sts != UMC::UMC_OK)
-            throw av1_exception(sts);
-
-        AllocateFrameData(info, id, frame);
     }
 
     template <typename F>

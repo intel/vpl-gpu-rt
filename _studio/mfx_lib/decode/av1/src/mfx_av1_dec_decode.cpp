@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +46,6 @@
 #include <algorithm>
 
 #include "libmfx_core_interface.h"
-
 
 namespace MFX_VPX_Utility
 {
@@ -128,7 +127,6 @@ VideoDECODEAV1::VideoDECODEAV1(VideoCORE* core, mfxStatus* sts)
     , m_is_init(false)
     , m_in_framerate(0)
     , m_is_cscInUse(false)
-    , m_anchor_frames_num(0)
 {
     if (sts)
     {
@@ -237,7 +235,6 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
     if (!vp.async_depth)
         vp.async_depth = MFX_AUTO_ASYNC_DEPTH_VALUE;
     vp.io_pattern = par->IOPattern;
-
 
     sts = m_core->CreateVA(par, &m_request, &m_response, m_surface_source.get());
     MFX_CHECK_STS(sts);
@@ -593,7 +590,6 @@ mfxStatus VideoDECODEAV1::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfxFr
 
     request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
 
-
     return sts;
 }
 
@@ -915,18 +911,13 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
 
             UMC::Status umcFrameRes = umcRes;
 
-            if (umcRes == UMC::UMC_NTF_NEW_RESOLUTION ||
+             if (umcRes == UMC::UMC_NTF_NEW_RESOLUTION ||
                  umcRes == UMC::UMC_WRN_REPOSITION_INPROGRESS ||
                  umcRes == UMC::UMC_ERR_UNSUPPORTED)
             {
                  UMC_AV1_DECODER::AV1DecoderParams vp;
                  umcRes = m_decoder->GetInfo(&vp);
                  FillVideoParam(&vp, &m_video_par);
-                 if (m_video_par.mfx.FrameInfo.Width != surface_work->Info.Width ||
-                     m_video_par.mfx.FrameInfo.Height != surface_work->Info.Height)
-                 {
-                     MFX_RETURN(MFX_ERR_REALLOC_SURFACE);
-                 }
                  m_video_par.AsyncDepth = static_cast<mfxU16>(vp.async_depth);
             }
 
@@ -998,19 +989,12 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
             frame = GetFrameToDisplay();
             if (frame)
             {
-                if (frame->Skipped())
-                {
-                    sts = MFX_ERR_MORE_DATA;
-                    break;
-                }
                 sts = FillOutputSurface(surface_out, surface_work, frame);
                 return MFX_ERR_NONE;
             }
 
             if (umcFrameRes != UMC::UMC_OK)
-            {
                 break;
-            }
 
         } // for (;;)
     }
@@ -1249,8 +1233,8 @@ mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFram
     surface_out->Data.FrameOrder = pFrame->FrameOrder();
     surface_out->Data.Corrupted = 0;
     surface_out->Info.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
-    surface_out->Info.CropW = static_cast<mfxU16>(m_anchor_frames_num > 0 ? pFrame->GetRenderWidth() : pFrame->GetUpscaledWidth());
-    surface_out->Info.CropH = static_cast<mfxU16>(m_anchor_frames_num > 0 ? pFrame->GetRenderHeight() : pFrame->GetFrameHeight());
+    surface_out->Info.CropW = static_cast<mfxU16>(pFrame->GetUpscaledWidth());
+    surface_out->Info.CropH = static_cast<mfxU16>(pFrame->GetFrameHeight());
     surface_out->Info.AspectRatioW = 1;
     surface_out->Info.AspectRatioH = 1;
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -57,7 +57,7 @@ namespace UMC_AV1_DECODER
         packer.reset(Packer::CreatePacker(va));
 
         uint32_t const dpb_size =
-            std::min(params.async_depth + TOTAL_REFS + 2 + dp->anchors_num, MAX_EXTERNAL_REFS);
+            params.async_depth + TOTAL_REFS + 2;
         SetDPBSize(dpb_size);
         SetRefSize(TOTAL_REFS);
         return UMC::UMC_OK;
@@ -98,45 +98,6 @@ namespace UMC_AV1_DECODER
 
         if (lastSubmission) // it's last submission for current frame - need to call EndFrame
             sts = va->EndFrame();
-
-        return sts;
-    }
-
-    UMC::Status AV1DecoderVA::SubmitTileList(AV1DecoderFrame& frame)
-    {
-        UMC_ASSERT(va);
-        UMC::Status sts = UMC::UMC_OK;
-
-        sts = va->BeginFrame(frame.GetMemID(SURFACE_RECON));
-        if (sts != UMC::UMC_OK)
-            return sts;
-
-        UMC_ASSERT(packer);
-        packer->BeginFrame();
-        frame.StartDecoding();
-
-        auto &tileSets = frame.GetTileSets();
-        packer->PackAU(tileSets, frame, true);
-
-        packer->EndFrame();
-
-        sts = va->Execute();
-        if (sts != UMC::UMC_OK)
-            return UMC::UMC_ERR_DEVICE_FAILED;
-
-        sts = va->EndFrame();
-        if (sts != UMC::UMC_OK)
-            return sts;
-
-        return sts;
-    }
-
-    UMC::Status AV1DecoderVA::RegisterAnchorFrame(uint32_t id)
-    {
-        UMC::Status sts = UMC::UMC_OK;
-
-        UMC_ASSERT(packer);
-        packer->RegisterAnchor(id);
 
         return sts;
     }
