@@ -4,7 +4,6 @@ set_property(TARGET umc PROPERTY FOLDER "umc")
 target_sources(umc
   PRIVATE
     include/umc_base_codec.h
-    include/umc_base_color_space_converter.h
     include/umc_defs.h
     include/umc_dynamic_cast.h
     include/umc_frame_allocator.h
