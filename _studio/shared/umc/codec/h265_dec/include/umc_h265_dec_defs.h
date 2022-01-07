@@ -669,7 +669,6 @@ public:
 
     H265HRD* getHrdParameters   ( unsigned i )             { return &m_hrdParameters[ i ]; }
     H265ProfileTierLevel* getPTL() { return &m_pcPTL; }
-    const H265TimingInfo* getTimingInfo() const { return &m_timingInfo; }
     H265TimingInfo* getTimingInfo() { return &m_timingInfo; }
 };
 
