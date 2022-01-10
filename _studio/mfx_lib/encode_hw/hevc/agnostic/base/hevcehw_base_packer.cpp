@@ -2074,8 +2074,7 @@ mfxU32 Packer::GetPSEIAndSSH(
     for (mfxU32 i = 0; i < si.size(); i++)
     {
         auto&   d               = ph.SSH.at(i);
-        bool    bLongStartCode  = (!i && !task.InsertHeaders) || task.bForceLongStartCode
-            || (IsOn(par.mfx.LowPower) && (task.SliceNUT == IDR_W_RADL || task.SliceNUT == IDR_N_LP));
+        bool    bLongStartCode  = (!i && !task.InsertHeaders) || task.bForceLongStartCode;
         NALU    nalu            = { mfxU16(bLongStartCode), task.SliceNUT, 0, mfxU16(task.TemporalID + 1) };
 
         d.pData   = pBegin;
