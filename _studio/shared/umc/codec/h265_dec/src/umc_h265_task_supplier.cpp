@@ -1076,6 +1076,8 @@ UMC::Status TaskSupplier_H265::xDecodeSPS(H265HeadersBitstream *bs)
     sps.NumPartitionsInCU = 1 << (sps.MaxCUDepth << 1);
     sps.NumPartitionsInFrameWidth = sps.WidthInCU * sps.NumPartitionsInCUSize;
 
+    HighestTid = sps.sps_max_sub_layers - 1;
+
     uint8_t newDPBsize = (uint8_t)CalculateDPBSize(sps.getPTL()->GetGeneralPTL()->profile_idc, sps.getPTL()->GetGeneralPTL()->level_idc,
                                 sps.pic_width_in_luma_samples,
                                 sps.pic_height_in_luma_samples,
@@ -1086,8 +1088,6 @@ UMC::Status TaskSupplier_H265::xDecodeSPS(H265HeadersBitstream *bs)
         if (sps.sps_max_dec_pic_buffering[i] > newDPBsize)
             sps.sps_max_dec_pic_buffering[i] = newDPBsize;
     }
-
-    HighestTid = sps.sps_max_sub_layers - 1;
 
     if (!sps.getPTL()->GetGeneralPTL()->level_idc && sps.sps_max_dec_pic_buffering[HighestTid])
     {
