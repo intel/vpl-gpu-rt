@@ -1427,6 +1427,7 @@ VAAPIEncoder::VAAPIEncoder()
     , m_isBrcResetRequired(false)
     , m_vaBrcPar()
     , m_vaFrameRate()
+    , m_mbqp_buffer()
     , m_mb_noskip_buffer()
 {
     m_videoParam.mfx.CodecProfile = MFX_PROFILE_AVC_HIGH; // QueryHwCaps will use this value
@@ -1754,7 +1755,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
         assert( extOpt2 );
         MFX_RETURN(MFX_ERR_UNKNOWN);
     }
-    m_mbbrc = IsOn(extOpt2->MBBRC)  ? 1 : IsOff(extOpt2->MBBRC) ? 2 : 0;
+    m_mbbrc = IsOn(extOpt2->MBBRC) ? 1 : IsOff(extOpt2->MBBRC) ? 2 : 0;
     m_skipMode = extOpt2->SkipFrame;
 
     if ((attrib[1].value & vaRCType) == 0)
@@ -1842,6 +1843,9 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 
     if (extOpt3)
     {
+        if (IsOn(extOpt3->EnableMBQP))
+            m_mbqp_buffer.resize(mfx::align2_value(m_width / 16, 64) * mfx::align2_value(m_height / 16, 8));
+
         if (IsOn(extOpt3->MBDisableSkipMap))
             m_mb_noskip_buffer.resize(mfx::align2_value(m_width / 16, 64) * mfx::align2_value(m_height / 16, 8));
     }
@@ -1897,6 +1901,9 @@ mfxStatus VAAPIEncoder::Reset(MfxVideoParam const & par)
 
     if (extOpt3)
     {
+        if (IsOn(extOpt3->EnableMBQP))
+            m_mbqp_buffer.resize(mfx::align2_value(m_width / 16, 64) * mfx::align2_value(m_height / 16, 8));
+
         if (IsOn(extOpt3->MBDisableSkipMap))
             m_mb_noskip_buffer.resize(mfx::align2_value(m_width / 16, 64) * mfx::align2_value(m_height / 16, 8));
     }
@@ -2624,23 +2631,57 @@ mfxStatus VAAPIEncoder::Execute(
     /*FEI has its own interface for MBQp*/
     if ((task.m_isMBQP) && (!m_isENCPAK))
     {
-        mfxFrameData qpMap = {};
-        FrameLocker lock(m_core, qpMap, task.m_midMBQP);
+        const mfxExtMBQP *mbqp = task.m_mbqp;
+        mfxU32 mbW = m_sps.picture_width_in_mbs;
+        mfxU32 mbH = m_sps.picture_height_in_mbs / (2 - !task.m_fieldPicFlag);
+        //width(64byte alignment) height(8byte alignment)
+        mfxU32 bufW = mfx::align2_value(mbW, 64);
+        mfxU32 bufH = mfx::align2_value(mbH, 8);
+        mfxU32 fieldOffset = (mfxU32)fieldId * (mbH * mbW) * (mfxU32)!!task.m_fieldPicFlag;
 
-        mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_mbqpBufferId);
-        MFX_CHECK_STS(mfxSts);
-        // LibVA expect full buffer size w/o interlace adjustments
-        vaSts = vaCreateBuffer(m_vaDisplay,
-            m_vaContextEncode,
-            VAEncQPBufferType,
-            mfx::align2_value(m_sps.picture_width_in_mbs, 64) * sizeof(VAEncQPBufferH264),
-            mfx::align2_value(m_sps.picture_height_in_mbs, 8),
-            qpMap.Y,
-            &m_mbqpBufferId);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        if (mbqp && mbqp->QP && mbqp->NumQPAlloc >= mbW * m_sps.picture_height_in_mbs
+            && m_mbqp_buffer.size() >= (bufW * bufH))
+        {
 
-        configBuffers.push_back(m_mbqpBufferId);
-       
+            Zero(m_mbqp_buffer);
+            for (mfxU32 mbRow = 0; mbRow < mbH; mbRow ++)
+                for (mfxU32 mbCol = 0; mbCol < mbW; mbCol ++)
+                    m_mbqp_buffer[mbRow * bufW + mbCol].qp = mbqp->QP[fieldOffset + mbRow * mbW + mbCol];
+
+            mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_mbqpBufferId);
+            MFX_CHECK_STS(mfxSts);
+            // LibVA expect full buffer size w/o interlace adjustments
+            vaSts = vaCreateBuffer(m_vaDisplay,
+                m_vaContextEncode,
+                VAEncQPBufferType,
+                bufW * sizeof(VAEncQPBufferH264),
+                mfx::align2_value(m_sps.picture_height_in_mbs, 8),
+                &m_mbqp_buffer[0],
+                &m_mbqpBufferId);
+            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+            configBuffers.push_back(m_mbqpBufferId);
+        }
+#ifdef MFX_ENABLE_APQ_LQ
+        else if (task.m_ALQOffset) {
+            Zero(m_mbqp_buffer);
+            for (mfxU32 mbRow = 0; mbRow < mbH; mbRow++)
+                for (mfxU32 mbCol = 0; mbCol < mbW; mbCol++)
+                    m_mbqp_buffer[mbRow * bufW + mbCol].qp = (mfxU8)(std::max(1, std::min(51, task.m_ALQOffset + task.m_cqpValue[0])));
+            mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_mbqpBufferId);
+            MFX_CHECK_STS(mfxSts);
+            // LibVA expect full buffer size w/o interlace adjustments
+            vaSts = vaCreateBuffer(m_vaDisplay,
+                m_vaContextEncode,
+                VAEncQPBufferType,
+                bufW * sizeof(VAEncQPBufferH264),
+                mfx::align2_value(m_sps.picture_height_in_mbs, 8),
+                &m_mbqp_buffer[0],
+                &m_mbqpBufferId);
+            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+            configBuffers.push_back(m_mbqpBufferId);
+        }
+#endif
     }
 
     if (ctrlNoSkipMap)

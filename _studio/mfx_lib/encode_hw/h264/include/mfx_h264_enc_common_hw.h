@@ -47,7 +47,6 @@
 
 #include "umc_defs.h"
 #include "ipps.h"
-#include "mfx_enc_common.h"
 
 #define D3DFMT_NV12 (D3DFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))
 #define D3DDDIFMT_NV12 (D3DDDIFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))
@@ -284,18 +283,12 @@ namespace MfxHwH264Encode
             extBuf.AdaptivePyramidQuantB =
             extBuf.AdaptiveQuantMatrices =
             extBuf.BRCBufferHints =
-            extBuf.AdaptiveMBQP =
             extBuf.BRC = defaultValue;
     }
 #endif
     template <class T> struct GetPointedType {};
     template <class T> struct GetPointedType<T *> { typedef T Type; };
     template <class T> struct GetPointedType<T const *> { typedef T Type; };
-
-    inline MBQPMode GetMBQPMode(const MFX_ENCODE_CAPS& caps, const mfxVideoParam& video)
-    {
-        return GetMBQPMode(video, caps.ddi_caps.MaxNumOfROI, caps.ddi_caps.ROIBRCDeltaQPLevelSupport, caps.ddi_caps.MBBRCSupport);
-    }
 
 
 

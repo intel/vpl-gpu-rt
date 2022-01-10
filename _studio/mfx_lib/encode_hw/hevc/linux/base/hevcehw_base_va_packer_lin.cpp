@@ -373,6 +373,70 @@ void AddVaMiscMaxSliceSize(
     maxSliceSize_param.max_slice_size = CO2.MaxSliceSize;
 }
 
+void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples, mfxU32 blockSize)
+{
+    //16 or 32 : driver limitation
+    mfxU32 blkSz   = 8 << blockSize;
+    m_width        = (picWidthInLumaSamples  + blkSz - 1) / blkSz;
+    m_height       = (picHeightInLumaSamples + blkSz - 1) / blkSz;
+    m_pitch        = mfx::align2_value(m_width, 64);
+    m_h_aligned    = mfx::align2_value(m_height, 4);
+    m_block_width  = blkSz;
+    m_block_height = blkSz;
+    m_buffer.resize(m_pitch * m_h_aligned);
+    std::fill(m_buffer.begin(), m_buffer.end(), mfxI8(0));
+}
+
+static bool FillCUQPDataVA(
+    const Task::Common::TRef & task
+    , const Glob::VideoParam::TRef &par
+    , CUQPMap& cuqpMap)
+{
+    const mfxExtMBQP* mbqp = ExtBuffer::Get(task.ctrl);
+
+    bool bInitialized =
+        cuqpMap.m_width
+        && cuqpMap.m_height
+        && cuqpMap.m_block_width
+        && cuqpMap.m_block_height
+        && cuqpMap.m_pitch
+        && cuqpMap.m_h_aligned;
+
+    if (!bInitialized)
+        return false;
+
+    const mfxExtHEVCParam & HEVCParam = ExtBuffer::Get(par);
+
+    mfxU32 drBlkW = cuqpMap.m_block_width;  // block size of driver
+    mfxU32 drBlkH = cuqpMap.m_block_height; // block size of driver
+    mfxU16 inBlkSize = 16; //mbqp->BlockSize ? mbqp->BlockSize : 16;  //input block size
+
+    mfxU32 inputW = CeilDiv(HEVCParam.PicWidthInLumaSamples, inBlkSize);
+    mfxU32 inputH = CeilDiv(HEVCParam.PicHeightInLumaSamples, inBlkSize);
+
+    bool bInvalid = !mbqp || !mbqp->QP || (mbqp->NumQPAlloc < inputW * inputH);
+
+    if (bInvalid && task.etQpMapNZ) {
+        mbqp = task.etQpMap;
+        bInvalid = !mbqp || !mbqp->QP || (mbqp->NumQPAlloc < inputW* inputH);
+    }
+    if (bInvalid)
+        return false;
+
+    // Fill all LCU blocks: HW hevc averages QP
+    for (mfxU32 i = 0; i < cuqpMap.m_h_aligned; i++)
+    {
+        for (mfxU32 j = 0; j < cuqpMap.m_pitch; j++)
+        {
+            mfxU32 y = std::min(i * drBlkH/inBlkSize, inputH - 1);
+            mfxU32 x = std::min(j * drBlkW/inBlkSize, inputW - 1);
+
+            cuqpMap.m_buffer[i * cuqpMap.m_pitch + j] = mbqp->QP[y * inputW + x];
+        }
+    }
+
+    return true;
+}
 
 void UpdatePPS(
     const TaskCommonPar & task
@@ -452,34 +516,6 @@ void VAPacker::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 
 void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 {
-    Push(BLK_CreateService
-        , [this](StorageRW& strg, StorageRW& local)->mfxStatus
-    {
-        const auto& par = Glob::VideoParam::Get(strg);
-        const auto& caps = Glob::EncodeCaps::Get(strg);
-       
-        if (Legacy::GetMBQPMode(caps, par))
-        {
-            const mfxExtHEVCParam& HEVCPar = ExtBuffer::Get(par);
-            auto pInfo = make_storable<MBQPAllocFrameInfo>(MBQPAllocFrameInfo{});
-            mfxU32 blkSz = 8 << caps.BlockSize;
-            pInfo->width  = (HEVCPar.PicWidthInLumaSamples  + blkSz - 1) / blkSz;
-            pInfo->height = (HEVCPar.PicHeightInLumaSamples + blkSz - 1) / blkSz;
-            pInfo->pitch = mfx::align2_value(pInfo->width, 64);
-            pInfo->height_aligned = mfx::align2_value(pInfo->height, 4);
-            pInfo->block_width = blkSz;
-            pInfo->block_height = blkSz;
-            pInfo->Info.Height = (mfxU16) pInfo->height_aligned;
-            pInfo->Info.Width = (mfxU16)pInfo->pitch;
-            pInfo->Info.FourCC = MFX_FOURCC_P8;
-            pInfo->Type = (MFX_MEMTYPE_FROM_ENCODE
-                | MFX_MEMTYPE_SYSTEM_MEMORY
-                | MFX_MEMTYPE_INTERNAL_FRAME);
-
-            strg.Insert(Glob::MBQPAllocInfo::Key, std::move(pInfo));
-        } 
-        return MFX_ERR_NONE;
-    });
     Push(BLK_Init
         , [this](StorageRW& strg, StorageRW& local) -> mfxStatus
     {
@@ -571,6 +607,12 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         }
 
         const auto& caps = Glob::EncodeCaps::Get(strg);
+        if (Legacy::IsMBQP(par, caps.MbQpDataSupport))
+        {
+            const mfxExtHEVCParam& HEVCPar = ExtBuffer::Get(par);
+
+            m_qpMap.Init(HEVCPar.PicWidthInLumaSamples, HEVCPar.PicHeightInLumaSamples, caps.BlockSize);
+        }
 
         mfxStatus sts = Register(core, Glob::AllocRec::Get(strg).GetResponse(), RES_REF);
         MFX_CHECK_STS(sts);
@@ -603,7 +645,15 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         {
             return ReadFeedback(fb, Task::Common::Get(s_task).BsDataLength);
         });
-
+        cc.FillCUQPData.Push([](
+            CallChains::TFillCUQPData::TExt
+            , const StorageR& global
+            , const StorageR& s_task
+            , CUQPMap& qpmap)
+        {
+            auto& task = Task::Common::Get(s_task);
+            return task.bCUQPMap && FillCUQPDataVA(task, Glob::VideoParam::Get(global), qpmap);
+        });
         cc.AddPerPicMiscData[VAEncMiscParameterTypeSkipFrame].Push([this](
             CallChains::TAddMiscData::TExt
             , const StorageR&
@@ -835,7 +885,6 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
     Push(BLK_SubmitTask
         , [this](StorageW& global, StorageW& s_task) -> mfxStatus
     {
-        auto& core = Glob::VideoCore::Get(global);
         auto& task      = Task::Common::Get(s_task);
         bool  bSkipCurr =
             !(task.SkipCMD & SKIPCMD_NeedDriverCall)
@@ -870,17 +919,13 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         std::transform(m_slices.begin(), m_slices.end(), std::back_inserter(par)
             , [&](VAEncSliceParameterBufferHEVC& s) { return PackVaBuffer(VAEncSliceParameterBufferType, s); });
 
-        if (task.CUQP.Idx != IDX_INVALID && task.bCUQPMap)
+        if (cc.FillCUQPData(global, s_task, m_qpMap))
         {
-            FrameLocker lock(core, task.CUQP.Mid);
-            MFX_CHECK(lock.Y, MFX_ERR_LOCK_MEMORY);
-            auto& req = Glob::MBQPAllocInfo::Get(global);
-
             par.push_back(PackVaBuffer(
                 VAEncQPBufferType
-                , lock.Y
-                , req.pitch
-                , req.height_aligned));
+                , m_qpMap.m_buffer.data()
+                , m_qpMap.m_pitch
+                , m_qpMap.m_h_aligned));
         }
 
         m_vaPerPicMiscData.clear();
