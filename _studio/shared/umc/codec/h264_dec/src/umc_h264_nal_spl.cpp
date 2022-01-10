@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <assert.h>
+
 #include "umc_defs.h"
 #if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
@@ -217,7 +219,7 @@ public:
                 return -1;
             }
 
-            UMC_ASSERT(!m_prev.size());
+            assert(!m_prev.size());
             size_t sz = source - (uint8_t *)pSource->GetDataPointer();
             if (sz >  m_suggestedSize)
             {
@@ -373,7 +375,7 @@ public:
         size_t tail_size = pMemDst->GetSize() - dstSize;
         memset(pMemDst->GetPointer() + dstSize, defaultValue, tail_size);
 
-        UMC_ASSERT(pMemDst->GetSize() >= dstSize);
+        assert(pMemDst->GetSize() >= dstSize);
         pMemDst->SetDataSize(dstSize);
         pMemDst->SetTime(pMemSrc->GetTime());
     }

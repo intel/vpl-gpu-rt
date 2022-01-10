@@ -28,7 +28,7 @@ MfxCriticalErrorHandler::MfxCriticalErrorHandler(void):
 
 mfxStatus MfxCriticalErrorHandler::ReturningCriticalStatus()
 {
-    UMC_ASSERT(m_CriticalErrorStatus != MFX_ERR_NONE);
+    assert(m_CriticalErrorStatus != MFX_ERR_NONE);
     m_CriticalErrorReportedAtLeastOnce = true;
     if (m_CriticalErrorStatus == MFX_ERR_NONE)
         m_CriticalErrorStatus = MFX_ERR_UNKNOWN;
@@ -44,7 +44,7 @@ bool MfxCriticalErrorHandler::NeedToReturnCriticalStatus(mfxBitstream *bs)
 
 void MfxCriticalErrorHandler::SetCriticalErrorOccured(mfxStatus errorStatus)
 {
-    UMC_ASSERT(errorStatus != MFX_ERR_NONE);
+    assert(errorStatus != MFX_ERR_NONE);
     m_CriticalErrorStatus = errorStatus;
 }
 

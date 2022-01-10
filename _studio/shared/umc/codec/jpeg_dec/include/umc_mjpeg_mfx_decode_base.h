@@ -141,7 +141,7 @@ inline mfxU16 GetMFXChromaFormat(ChromaType type)
         chromaFormat = MFX_CHROMAFORMAT_YUV422V;
         break;
     default:
-        UMC_ASSERT(false);
+        assert(false);
         break;
     };
 
@@ -166,7 +166,7 @@ inline mfxU16 GetMFXColorFormat(JCOLOR color)
         colorFormat = MFX_JPEG_COLORFORMAT_RGB;
         break;
     default:
-        UMC_ASSERT(false);
+        assert(false);
         break;
     };
 
@@ -196,7 +196,7 @@ inline JCOLOR GetUMCColorType(uint16_t chromaFormat, uint16_t colorFormat)
         color = JC_RGB;
         break;
     default:
-        UMC_ASSERT(false);
+        assert(false);
         break;
     };
 

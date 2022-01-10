@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <assert.h>
+
 #include "umc_defs.h"
 #if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
@@ -139,7 +141,7 @@ void H264DecYUVBufferPadded::allocate(const FrameData * frameData, const VideoDa
         }
         else
         {
-            UMC_ASSERT(m_frameData.GetInfo()->GetNumPlanes() == 3);
+            assert(m_frameData.GetInfo()->GetNumPlanes() == 3);
             m_pUPlane = m_frameData.GetPlaneMemoryInfo(1)->m_planePtr;
             m_pVPlane = m_frameData.GetPlaneMemoryInfo(2)->m_planePtr;
             m_pUVPlane = 0;

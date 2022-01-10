@@ -134,7 +134,7 @@ public:
             throw h264_exception(sts);
 
         H264_DXVA_SegmentDecoder * dxva_sd = (H264_DXVA_SegmentDecoder*)(m_Base->m_pSegmentDecoder[0]);
-        UMC_ASSERT(dxva_sd);
+        assert(dxva_sd);
 
         for (uint32_t i = 0; i < m_Base->m_iThreadNum; i++)
         {

@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <assert.h>
+
 #include "umc_defs.h"
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
 
@@ -272,7 +274,7 @@ int32_t JpegFrameConstructor::GetMarker(MediaData * pSource, MediaData * pDst)
 
         if (!iCodeNext)
         {
-            UMC_ASSERT(!m_prev.size());
+            assert(!m_prev.size());
             size_t sz = source - (uint8_t *)pSource->GetDataPointer();
             if (m_suggestedSize && sz >  m_suggestedSize)
             {

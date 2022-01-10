@@ -259,7 +259,7 @@ bool MFXTaskSupplier::ProcessNonPairedField(H264DecoderFrame * pFrame)
         pFrame->m_bottom_field_flag[1] = !pFrame->m_bottom_field_flag[0];
 
         H264Slice * pSlice = pFrame->GetAU(0)->GetSlice(0);
-        UMC_ASSERT(pSlice);
+        assert(pSlice);
         if (!pSlice)
             return false;
         pFrame->setPicNum(pSlice->GetSliceHeader()->frame_num*2 + 1, 1);
@@ -427,7 +427,7 @@ Status MFXTaskSupplier::DecodeSEI(NalUnit *nalUnit)
             // calculate payload size
             size_t size = decoded2 - decoded1;
 
-            UMC_ASSERT(size == m_SEIPayLoads.payLoadSize + 2 + (m_SEIPayLoads.payLoadSize / 255) + (m_SEIPayLoads.payLoadType / 255));
+            assert(size == m_SEIPayLoads.payLoadSize + 2 + (m_SEIPayLoads.payLoadSize / 255) + (m_SEIPayLoads.payLoadType / 255));
 
             if (m_sei_messages)
             {
@@ -742,7 +742,7 @@ UMC::Status PosibleMVC::DecodeHeader(UMC::MediaData * data, mfxBitstream *bs, mf
 
     if (IsEnough())
     {
-        UMC_ASSERT(first_sps.obj && "Current SPS should be valid when [m_isSPSFound]");
+        assert(first_sps.obj && "Current SPS should be valid when [m_isSPSFound]");
 
         UMC_H264_DECODER::H264SeqParamSet* last_sps = m_supplier->GetHeaders()->m_SeqParams.GetCurrentHeader();
         if (first_sps.obj && first_sps.obj != last_sps)
@@ -1591,7 +1591,7 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
 
         if (GetPlatform(core, out) != core->GetPlatformType() && sts == MFX_ERR_NONE)
         {
-            UMC_ASSERT(GetPlatform(core, out) == MFX_PLATFORM_SOFTWARE);
+            assert(GetPlatform(core, out) == MFX_PLATFORM_SOFTWARE);
             sts = MFX_WRN_PARTIAL_ACCELERATION;
         }
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE

@@ -77,7 +77,7 @@ inline bool IsSVCProfile(mfxU32 profile)
 inline
 void MoveBitstreamData(mfxBitstream& bs, mfxU32 offset)
 {
-    UMC_ASSERT(offset <= bs.DataLength);
+    assert(offset <= bs.DataLength);
     bs.DataOffset += offset;
     bs.DataLength -= offset;
 }

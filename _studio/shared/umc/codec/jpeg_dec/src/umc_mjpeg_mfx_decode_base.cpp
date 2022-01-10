@@ -389,7 +389,7 @@ Status MJPEGVideoDecoderBaseMFX::_GetFrameInfo(const uint8_t* pBitStream, size_t
 
 void MJPEGVideoDecoderBaseMFX::SetFrameAllocator(FrameAllocator * frameAllocator)
 {
-    UMC_ASSERT(frameAllocator);
+    assert(frameAllocator);
     m_frameAllocator = frameAllocator;
 }
 

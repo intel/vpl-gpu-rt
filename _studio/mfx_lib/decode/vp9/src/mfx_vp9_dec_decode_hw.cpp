@@ -223,7 +223,7 @@ public:
         {
             m_submittedFrames.shrink_to_fit();
             m_submittedFrames.clear();
-            UMC_ASSERT(0);
+            assert(0);
         }
         m_submittedFrames.shrink_to_fit();
         m_submittedFrames.clear();

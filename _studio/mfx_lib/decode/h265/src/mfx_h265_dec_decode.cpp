@@ -1187,7 +1187,7 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
     const UMC::FrameData * fd = pFrame->GetFrameData();
 
     *surf_out = m_surface_source->GetSurface(fd->GetFrameMID(), surface_work, &m_vPar);
-    UMC_ASSERT(*surf_out);
+    assert(*surf_out);
 
     mfxFrameSurface1 *surface_out = *surf_out;
 
@@ -1226,7 +1226,7 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
             surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV444;
             break;
         default:
-            UMC_ASSERT(!"Unknown chroma format");
+            assert(!"Unknown chroma format");
             surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
         }
     }
@@ -1274,7 +1274,7 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
                 break;
 
             default:
-                UMC_ASSERT(!"Unknown frame type");
+                assert(!"Unknown frame type");
                 info->FrameType = MFX_FRAMETYPE_UNKNOWN;
         }
 

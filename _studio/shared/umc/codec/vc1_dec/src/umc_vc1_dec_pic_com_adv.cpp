@@ -204,8 +204,8 @@ VC1Status DecodePictureHeader_Adv(VC1Context* pContext)
                                             &pContext->m_bitstream.bitOffset,
                                             pContext->m_vlcTbl->BFRACTION,
                                             &z1, &z2);
-                UMC_ASSERT (z2 != VC1_BRACTION_INVALID);
-                UMC_ASSERT (!(z2 == VC1_BRACTION_BI && seqLayerHeader->PROFILE==VC1_PROFILE_ADVANCED));
+                assert (z2 != VC1_BRACTION_INVALID);
+                assert (!(z2 == VC1_BRACTION_BI && seqLayerHeader->PROFILE==VC1_PROFILE_ADVANCED));
 
                 if(0 == z2)
                 {
@@ -346,7 +346,7 @@ VC1Status DecodePictHeaderParams_InterlaceFieldPicture_Adv (VC1Context* pContext
         picLayerHeader->PTypeField2 = VC1_BI_FRAME;
         break;
     default:
-        UMC_ASSERT(0);
+        assert(0);
         break;
     }
 
@@ -425,7 +425,7 @@ VC1Status DecodePictHeaderParams_InterlaceFieldPicture_Adv (VC1Context* pContext
                                     &picLayerHeader->REFDIST,
                                     pContext->m_vlcTbl->REFDIST_TABLE);
                 std::ignore = ret;
-                UMC_ASSERT(ret == 0);
+                assert(ret == 0);
 
                 *pContext->pRefDist = picLayerHeader->REFDIST;
         }
@@ -449,8 +449,8 @@ VC1Status DecodePictHeaderParams_InterlaceFieldPicture_Adv (VC1Context* pContext
                                         &pContext->m_bitstream.bitOffset,
                                          pContext->m_vlcTbl->BFRACTION,
                                         &z1, &z2);
-           UMC_ASSERT (z2 != VC1_BRACTION_INVALID);
-           UMC_ASSERT (!(z2 == VC1_BRACTION_BI && seqLayerHeader->PROFILE==VC1_PROFILE_ADVANCED));
+           assert (z2 != VC1_BRACTION_INVALID);
+           assert (!(z2 == VC1_BRACTION_BI && seqLayerHeader->PROFILE==VC1_PROFILE_ADVANCED));
            if(0 == z2)
                 return VC1_ERR_INVALID_STREAM;
 

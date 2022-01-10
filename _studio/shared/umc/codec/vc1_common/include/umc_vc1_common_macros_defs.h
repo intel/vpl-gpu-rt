@@ -92,8 +92,8 @@ namespace UMC
 {                                                                       \
     uint32_t _x;                                                           \
                                                                         \
-    UMC_ASSERT((nbits) >= 0 && (nbits) <= 32);                           \
-    UMC_ASSERT(offset >= 0 && offset <= 31);                             \
+    assert((nbits) >= 0 && (nbits) <= 32);                           \
+    assert(offset >= 0 && offset <= 31);                             \
                                                                         \
     offset -= (nbits);                                                  \
                                                                         \
@@ -111,7 +111,7 @@ namespace UMC
         current_data++;                                                 \
     }                                                                   \
                                                                         \
-    UMC_ASSERT(offset >= 0 && offset <= 31);                             \
+    assert(offset >= 0 && offset <= 31);                             \
                                                                         \
     (data) = _x & ((0x00000001 << (nbits&0x1F)) - 1);                    \
 }
@@ -128,8 +128,8 @@ namespace UMC
     int32_t bp;                                                          \
     uint32_t x;                                                           \
                                                                         \
-    UMC_ASSERT((nbits) >= 0 && (nbits) <= 32);                           \
-    UMC_ASSERT(offset >= 0 && offset <= 31);                             \
+    assert((nbits) >= 0 && (nbits) <= 32);                           \
+    assert(offset >= 0 && offset <= 31);                             \
                                                                         \
     bp = offset - (nbits);                                              \
                                                                         \

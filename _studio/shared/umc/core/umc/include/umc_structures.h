@@ -73,13 +73,6 @@
 
 /***************************************************************************/
 
-#ifdef UMC_DEBUG
-#include <assert.h>
-#define UMC_ASSERT(f) assert((f))
-#else /* UMC_DEBUG */
-#define UMC_ASSERT(f) ((void) 0)
-#endif /* UMC_DEBUG */
-
 #define UMC_CHECK_STATUS(umcRes) { \
   if (umcRes != UMC_OK) { \
     return umcRes; \

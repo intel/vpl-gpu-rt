@@ -21,6 +21,8 @@
 #ifndef __UMC_H264_DEC_MFX_H
 #define __UMC_H264_DEC_MFX_H
 
+#include <assert.h>
+
 #include "umc_defs.h"
 #if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
@@ -52,7 +54,7 @@ inline mfxU8 ConvertH264FrameTypeToMFX(int32_t slice_type)
         mfx_type = MFX_FRAMETYPE_I;//MFX_SLICETYPE_SI;
         break;
     default:
-        UMC_ASSERT(false);
+        assert(false);
         mfx_type = MFX_FRAMETYPE_I;
     }
 

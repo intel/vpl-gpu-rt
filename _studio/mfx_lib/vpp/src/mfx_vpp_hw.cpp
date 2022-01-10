@@ -5306,7 +5306,7 @@ template <class T> T get_total_area(std::vector< cRect<T> > &rects) {
 inline
 mfxU64 make_back_color_yuv(mfxU16 bit_depth, mfxU16 Y, mfxU16 U, mfxU16 V)
 {
-    UMC_ASSERT(bit_depth);
+    assert(bit_depth);
 
     mfxU64 const shift = bit_depth - 8;
     mfxU64 const max_val = (1 << bit_depth) - 1;

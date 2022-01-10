@@ -10208,7 +10208,7 @@ ENCODE_PACKEDHEADER_DATA const & HeaderPacker::PackSkippedSlice(
 
         packer.PutTrailingBits();
 
-        UMC_ASSERT(packer.GetNumBits() % 8 == 0);
+        assert(packer.GetNumBits() % 8 == 0);
     }
 
     m_packedSlices[0].pData                  = sliceBufferBegin;

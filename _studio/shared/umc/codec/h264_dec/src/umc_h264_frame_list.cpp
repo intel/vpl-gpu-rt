@@ -230,7 +230,7 @@ H264DecoderFrame * H264DBPList::findDisplayableByDPBDelay(void)
             else if (pCurr->RefPicListResetCount(0) == LargestRefPicListResetCount &&
                 pCurr->PicOrderCnt(0,3) <= SmallestPicOrderCnt)
             {
-                UMC_ASSERT(pCurr->m_UID != -1);
+                assert(pCurr->m_UID != -1);
                 pOldest = pCurr;
                 SmallestPicOrderCnt = pCurr->PicOrderCnt(0,3);
             }
@@ -279,7 +279,7 @@ H264DecoderFrame * H264DBPList::findOldestDisplayable(int32_t /*dbpSize*/ )
             else if ((pCurr->PicOrderCnt(0,3) <= SmallestPicOrderCnt) &&
                      (pCurr->RefPicListResetCount(0) == LargestRefPicListResetCount))
             {
-                UMC_ASSERT(pCurr->m_UID != -1);
+                assert(pCurr->m_UID != -1);
                 pOldest = pCurr;
                 SmallestPicOrderCnt = pCurr->PicOrderCnt(0,3);
             }
@@ -435,7 +435,7 @@ H264DecoderFrame * H264DBPList::findLongTermRefIdx(int32_t LongTermFrameIdx)
         pCurr = pCurr->future();
     }
 
-    //UMC_ASSERT(false);
+    //assert(false);
     return 0;
 }
 
@@ -493,7 +493,7 @@ H264DecoderFrame *H264DBPList::findShortTermPic(int32_t  picNum, int32_t * field
         pCurr = pCurr->future();
     }
 
-    //UMC_ASSERT(false);    // No match found, should not happen.
+    //assert(false);    // No match found, should not happen.
     return 0;
 }    // findShortTermPic
 
@@ -532,7 +532,7 @@ H264DecoderFrame *H264DBPList::findLongTermPic(int32_t  picNum, int32_t * field)
         pCurr = pCurr->future();
     }
 
-    //UMC_ASSERT(false);    // No match found, should not happen.
+    //assert(false);    // No match found, should not happen.
     return 0;
 }    // findLongTermPic
 
@@ -668,7 +668,7 @@ void H264DBPList::InitPSliceRefPicList(H264Slice *slice, H264DecoderFrame **pRef
     bool bError = false;
     bool bIsFieldSlice = (slice->GetSliceHeader()->field_pic_flag != 0);
 
-    UMC_ASSERT(pRefPicList);
+    assert(pRefPicList);
 
     NumFramesInList = 0;
 
@@ -700,7 +700,7 @@ void H264DBPList::InitPSliceRefPicList(H264Slice *slice, H264DecoderFrame **pRef
                         // Avoid writing beyond end of list
                         if (k > (int32_t)(MAX_NUM_REF_FRAMES-1))
                         {
-                            UMC_ASSERT(0);
+                            assert(0);
                             bError = true;
                             break;
                         }
@@ -735,7 +735,7 @@ void H264DBPList::InitPSliceRefPicList(H264Slice *slice, H264DecoderFrame **pRef
                         // Avoid writing beyond end of list
                         if (k > (int32_t)(MAX_NUM_REF_FRAMES-1))
                         {
-                            UMC_ASSERT(0);
+                            assert(0);
                             bError = true;
                             break;
                         }
@@ -775,7 +775,7 @@ void H264DBPList::InitPSliceRefPicList(H264Slice *slice, H264DecoderFrame **pRef
                         // Avoid writing beyond end of list
                         if (k > (int32_t)(MAX_NUM_REF_FRAMES-1))
                         {
-                            UMC_ASSERT(0);
+                            assert(0);
                             bError = true;
                             break;
                         }
@@ -810,7 +810,7 @@ void H264DBPList::InitPSliceRefPicList(H264Slice *slice, H264DecoderFrame **pRef
                         // Avoid writing beyond end of list
                         if (k > (int32_t)(MAX_NUM_REF_FRAMES-1))
                         {
-                            UMC_ASSERT(0);
+                            assert(0);
                             bError = true;
                             break;
                         }
@@ -893,7 +893,7 @@ void H264DBPList::InitBSliceRefPicLists(H264Slice *slice, H264DecoderFrame **pRe
                             // Avoid writing beyond end of list
                             if (k > (int32_t)(MAX_NUM_REF_FRAMES-1))
                             {
-                                UMC_ASSERT(0);
+                                assert(0);
                                 bError = true;
                                 break;
                             }
@@ -921,7 +921,7 @@ void H264DBPList::InitBSliceRefPicLists(H264Slice *slice, H264DecoderFrame **pRe
                             // Avoid writing beyond end of list
                             if (k > (int32_t)(MAX_NUM_REF_FRAMES-1))
                             {
-                                UMC_ASSERT(0);
+                                assert(0);
                                 bError = true;
                                 break;
                             }
@@ -953,7 +953,7 @@ void H264DBPList::InitBSliceRefPicLists(H264Slice *slice, H264DecoderFrame **pRe
                         // Avoid writing beyond end of list
                         if (k > (int32_t)(MAX_NUM_REF_FRAMES-1))
                         {
-                            UMC_ASSERT(0);
+                            assert(0);
                             bError = true;
                             break;
                         }
@@ -1003,7 +1003,7 @@ void H264DBPList::InitBSliceRefPicLists(H264Slice *slice, H264DecoderFrame **pRe
         else
         {
             // too many reference frames
-            UMC_ASSERT(0);
+            assert(0);
         }
 
     }    // not field slice
@@ -1049,7 +1049,7 @@ void H264DBPList::InitBSliceRefPicLists(H264Slice *slice, H264DecoderFrame **pRe
                             // Avoid writing beyond end of list
                             if (k > (int32_t)(MAX_NUM_REF_FRAMES-1))
                             {
-                                UMC_ASSERT(0);
+                                assert(0);
                                 bError = true;
                                 break;
                             }
@@ -1076,7 +1076,7 @@ void H264DBPList::InitBSliceRefPicLists(H264Slice *slice, H264DecoderFrame **pRe
                             // Avoid writing beyond end of list
                             if (k > (int32_t)(MAX_NUM_REF_FRAMES-1))
                             {
-                                UMC_ASSERT(0);
+                                assert(0);
                                 bError = true;
                                 break;
                             }
@@ -1108,7 +1108,7 @@ void H264DBPList::InitBSliceRefPicLists(H264Slice *slice, H264DecoderFrame **pRe
                         // Avoid writing beyond end of list
                         if (k > (int32_t)(MAX_NUM_REF_FRAMES-1))
                         {
-                            UMC_ASSERT(0);
+                            assert(0);
                             bError = true;
                             break;
                         }
@@ -1160,7 +1160,7 @@ void H264DBPList::InitBSliceRefPicLists(H264Slice *slice, H264DecoderFrame **pRe
         else
         {
             // too many reference frames
-            UMC_ASSERT(0);
+            assert(0);
         }
     }
 

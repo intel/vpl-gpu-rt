@@ -242,7 +242,7 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
 
     if (m_platform != m_core->GetPlatformType())
     {
-        UMC_ASSERT(m_platform == MFX_PLATFORM_SOFTWARE);
+        assert(m_platform == MFX_PLATFORM_SOFTWARE);
         MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION);
     }
 
@@ -348,7 +348,7 @@ mfxStatus VideoDECODEMJPEG::Reset(mfxVideoParam *par)
 
     if (m_platform != m_core->GetPlatformType())
     {
-        UMC_ASSERT(m_platform == MFX_PLATFORM_SOFTWARE);
+        assert(m_platform == MFX_PLATFORM_SOFTWARE);
         MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION);
     }
 
@@ -542,7 +542,7 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfx
 
     if (platform != core->GetPlatformType())
     {
-        UMC_ASSERT(platform == MFX_PLATFORM_SOFTWARE);
+        assert(platform == MFX_PLATFORM_SOFTWARE);
         return MFX_WRN_PARTIAL_ACCELERATION;
     }
 
@@ -1327,7 +1327,7 @@ mfxStatus MFX_JPEG_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPa
 
         if (GetPlatform(core, out) != core->GetPlatformType() && sts == MFX_ERR_NONE)
         {
-            UMC_ASSERT(GetPlatform(core, out) == MFX_PLATFORM_SOFTWARE);
+            assert(GetPlatform(core, out) == MFX_PLATFORM_SOFTWARE);
             sts = MFX_WRN_PARTIAL_ACCELERATION;
         }
 
@@ -1766,7 +1766,7 @@ void VideoDECODEMJPEGBase_HW::AdjustFourCC(mfxFrameInfo *requestFrameInfo, const
             }
             break;
         default:
-            UMC_ASSERT(false);
+            assert(false);
             break;
         }
     }

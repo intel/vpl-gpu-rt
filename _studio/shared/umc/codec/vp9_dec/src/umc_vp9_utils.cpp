@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <assert.h>
+
 #include "umc_defs.h"
 #if defined(MFX_ENABLE_VP9_VIDEO_DECODE)
 
@@ -254,7 +256,7 @@ namespace UMC_VP9_DECODER
             case 12:
                 return dc_qlookup_12[clamp(qindex + delta, 0, MAXQ)];
             default:
-                UMC_ASSERT(0);
+                assert(0);
                 return -1;
           }
     }
@@ -270,7 +272,7 @@ namespace UMC_VP9_DECODER
             case 12:
                 return ac_qlookup_12[clamp(qindex + delta, 0, MAXQ)];
             default:
-                UMC_ASSERT(0);
+                assert(0);
                 return -1;
           }
     }
@@ -310,7 +312,7 @@ namespace UMC_VP9_DECODER
 
         if (!info->subsamplingX)
         {
-            UMC_ASSERT(info->subsamplingY == 0);
+            assert(info->subsamplingY == 0);
 
             //4:4:4
             switch (info->bit_depth)
@@ -348,11 +350,11 @@ namespace UMC_VP9_DECODER
 
     void SetSegData(VP9Segmentation & seg, uint8_t segmentId, SEG_LVL_FEATURES featureId, int32_t seg_data)
     {
-        UMC_ASSERT(seg_data <= SEG_FEATURE_DATA_MAX[featureId]);
+        assert(seg_data <= SEG_FEATURE_DATA_MAX[featureId]);
         if (seg_data < 0)
         {
-            UMC_ASSERT(SEG_FEATURE_DATA_SIGNED[featureId]);
-            UMC_ASSERT(-seg_data <= SEG_FEATURE_DATA_MAX[featureId]);
+            assert(SEG_FEATURE_DATA_SIGNED[featureId]);
+            assert(-seg_data <= SEG_FEATURE_DATA_MAX[featureId]);
         }
 
         seg.featureData[segmentId][featureId] = seg_data;
@@ -395,7 +397,7 @@ namespace UMC_VP9_DECODER
         while ((MAX_TILE_WIDTH_B64 << minLog2) < sbCols)
             ++minLog2;
 
-        UMC_ASSERT(minLog2 <= maxLog2);
+        assert(minLog2 <= maxLog2);
 
         minLog2TileCols = minLog2;
         maxLog2TileCols = maxLog2;

@@ -121,7 +121,7 @@ void PackerVA::FillFrame(VAPictureH264 * pic, const H264DecoderFrame *pFrame,
     }
     else
     {
-        UMC_ASSERT(0);
+        assert(0);
     }
     int parityNum1 = pFrame->GetNumberByParity(1);
     if (parityNum1 >= 0 && parityNum1 < 2)
@@ -130,7 +130,7 @@ void PackerVA::FillFrame(VAPictureH264 * pic, const H264DecoderFrame *pFrame,
     }
     else
     {
-        UMC_ASSERT(0);
+        assert(0);
     }
     pic->flags = 0;
 
@@ -172,7 +172,7 @@ int32_t PackerVA::FillRefFrame(VAPictureH264 * pic, const H264DecoderFrame *pFra
     }
     else
     {
-        UMC_ASSERT(0);
+        assert(0);
     }
     int parityNum1 = pFrame->GetNumberByParity(1);
     if (parityNum1 >= 0 && parityNum1 < 2)
@@ -181,7 +181,7 @@ int32_t PackerVA::FillRefFrame(VAPictureH264 * pic, const H264DecoderFrame *pFra
     }
     else
     {
-        UMC_ASSERT(0);
+        assert(0);
     }
 
     pic->flags = 0;
@@ -322,10 +322,10 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
         {
             if (j >= 16)
             {
-                UMC_ASSERT(false);
+                assert(false);
                 throw h264_exception(UMC_ERR_FAILED);
             }
-            UMC_ASSERT(j < dpbSize + start);
+            assert(j < dpbSize + start);
 
             int32_t defaultIndex = 0;
 
@@ -371,11 +371,11 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
 inline
 uint8_t* GetSliceStat(H264Slice* slice, uint32_t* size, uint32_t* offset)
 {
-    UMC_ASSERT(slice);
-    UMC_ASSERT(size);
+    assert(slice);
+    assert(size);
 
     H264HeadersBitstream* bs = slice->GetBitStream();
-    UMC_ASSERT(bs);
+    assert(bs);
 
     uint8_t* base;   //ptr to first byte of start code
     bs->GetOrg(reinterpret_cast<uint32_t**>(&base), size);
@@ -386,7 +386,7 @@ uint8_t* GetSliceStat(H264Slice* slice, uint32_t* size, uint32_t* offset)
         uint32_t position;
         bs->GetState(reinterpret_cast<uint32_t**>(&ptr), &position);
 
-        UMC_ASSERT(base != ptr &&
+        assert(base != ptr &&
                   "slice header should be already parsed here"
         );
 
@@ -508,7 +508,7 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
     pSlice_H264->slice_data_offset = CompBuf->GetDataSize();
     CompBuf->SetDataSize(pSlice_H264->slice_data_offset + AlignedNalUnitSize);
 
-    UMC_ASSERT (CompBuf->GetBufferSize() >= pSlice_H264->slice_data_offset + AlignedNalUnitSize);
+    assert (CompBuf->GetBufferSize() >= pSlice_H264->slice_data_offset + AlignedNalUnitSize);
 
     pVAAPI_BitStreamBuffer += pSlice_H264->slice_data_offset;
 
@@ -733,16 +733,16 @@ void PackerVA::BeginFrame(H264DecoderFrame* pFrame, int32_t field)
 {
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
     FrameData* fd = pFrame->GetFrameData();
-    UMC_ASSERT(fd);
+    assert(fd);
 
     FrameData::FrameAuxInfo* aux;
     aux = fd->GetAuxInfo(MFX_EXTBUFF_GPU_HANG);
     if (aux)
     {
-        UMC_ASSERT(aux->type == MFX_EXTBUFF_GPU_HANG);
+        assert(aux->type == MFX_EXTBUFF_GPU_HANG);
 
         mfxExtIntGPUHang* ht = reinterpret_cast<mfxExtIntGPUHang*>(aux->ptr);
-        UMC_ASSERT(ht && "Buffer pointer should be valid here");
+        assert(ht && "Buffer pointer should be valid here");
         if (!ht)
             throw h264_exception(UMC_ERR_FAILED);
 

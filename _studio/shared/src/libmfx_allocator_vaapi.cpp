@@ -104,7 +104,7 @@ static inline mfxU32 ConvertMfxFourccToVAFormat(mfxU32 fourcc)
     case MFX_FOURCC_Y416:
         return VA_FOURCC_Y416;
     default:
-        UMC_ASSERT(!"unsupported fourcc");
+        assert(!"unsupported fourcc");
         return 0;
     }
 }

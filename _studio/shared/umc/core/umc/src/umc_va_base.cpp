@@ -38,7 +38,7 @@ Status VideoAccelerator::Reset(void)
 void UMCVACompBuffer::SetDataSize(int32_t size)
 {
     DataSize = size;
-    UMC_ASSERT(DataSize <= BufferSize);
+    assert(DataSize <= BufferSize);
 }
 
 void UMCVACompBuffer::SetNumOfItem(int32_t )

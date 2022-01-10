@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <assert.h>
+
 #include "umc_defs.h"
 #if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
@@ -362,7 +364,7 @@ public:
     {
         if (!m_pHead)
         {
-            UMC_ASSERT(false);
+            assert(false);
             return;
         }
 
@@ -389,7 +391,7 @@ public:
         }
 
         // it was removed before
-        UMC_ASSERT(false);
+        assert(false);
     }
 
     T * DetachItemByPid(int32_t pid)
@@ -435,7 +437,7 @@ public:
             tmp = tmp->m_pNext;
         }
 
-        UMC_ASSERT(false);
+        assert(false);
         return 0;
     }
 

@@ -122,8 +122,8 @@ VC1Status DecodePictHeaderParams_InterlaceBpicture_Adv(VC1Context* pContext)
                                     &pContext->m_bitstream.bitOffset,
                                     pContext->m_vlcTbl->BFRACTION,
                                     &z1, &z2);
-        UMC_ASSERT (z2 != VC1_BRACTION_INVALID);
-        UMC_ASSERT (!(z2 == VC1_BRACTION_BI && seqLayerHeader->PROFILE==VC1_PROFILE_ADVANCED));
+        assert (z2 != VC1_BRACTION_INVALID);
+        assert (!(z2 == VC1_BRACTION_BI && seqLayerHeader->PROFILE==VC1_PROFILE_ADVANCED));
 
         if (z2 == VC1_BRACTION_BI)
         {

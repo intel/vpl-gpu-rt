@@ -274,7 +274,7 @@ mfxStatus MFX_VP8_Utility::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVide
 
         if (GetPlatform(p_core, p_out) != p_core->GetPlatformType() && sts == MFX_ERR_NONE)
         {
-            UMC_ASSERT(GetPlatform(p_core, p_out) == MFX_PLATFORM_SOFTWARE);
+            assert(GetPlatform(p_core, p_out) == MFX_PLATFORM_SOFTWARE);
             sts = MFX_WRN_PARTIAL_ACCELERATION;
         }
     }

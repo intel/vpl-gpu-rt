@@ -128,7 +128,7 @@ namespace UMC_AV1_DECODER
 
                 OBUInfo obuInfo;
                 bs.ReadOBUInfo(obuInfo);
-                UMC_ASSERT(CheckOBUType(obuInfo.header.obu_type)); // [clean up] Need to remove assert once decoder code is stabilized
+                assert(CheckOBUType(obuInfo.header.obu_type)); // [clean up] Need to remove assert once decoder code is stabilized
 
                 if (obuInfo.header.obu_type == OBU_SEQUENCE_HEADER)
                 {
@@ -191,7 +191,7 @@ namespace UMC_AV1_DECODER
 
     DPBType DPBUpdate(AV1DecoderFrame const * prevFrame)
     {
-        UMC_ASSERT(prevFrame);
+        assert(prevFrame);
 
         DPBType updatedFrameDPB;
 
@@ -251,7 +251,7 @@ namespace UMC_AV1_DECODER
                 // before parsing tiles we check that tile_group_obu() is complete (bitstream has enough bytes to hold whole OBU)
                 // but here we encountered incomplete tile inside this tile_group_obu() which means tile size corruption
                 // [maybe] later check for complete tile_group_obu() will be removed, and thus incomplete tile will be possible
-                UMC_ASSERT("Tile size corruption: Incomplete tile encountered inside complete tile_group_obu()!");
+                assert("Tile size corruption: Incomplete tile encountered inside complete tile_group_obu()!");
                 throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
             }
 
@@ -321,7 +321,7 @@ namespace UMC_AV1_DECODER
             //Increase referernce here, and will be decreased when
             //CompleteDecodedFrames not show_frame case.
             pFrame->IncrementReference();
-            UMC_ASSERT(pFrame);
+            assert(pFrame);
             repeateFrame = pFrame->GetMemID();
 
             //Add one more Reference, and add it into outputed frame list
@@ -560,7 +560,7 @@ namespace UMC_AV1_DECODER
                but there were no sufficient surfaces to start decoding (e.g. to apply film_grain)
                in this case reading from bitstream must be skipped, and code should proceed to frame submission to the driver */
 
-            UMC_ASSERT(!AllocComplete(*pFrameInProgress));
+            assert(!AllocComplete(*pFrameInProgress));
             pCurrFrame = pFrameInProgress;
             gotFullFrame = true;
         }
@@ -585,13 +585,13 @@ namespace UMC_AV1_DECODER
                 bs.ReadOBUInfo(obuInfo);
                 const AV1_OBU_TYPE obuType = obuInfo.header.obu_type;
 
-                UMC_ASSERT(CheckOBUType(obuType)); // [clean up] Need to remove assert once decoder code is stabilized
+                assert(CheckOBUType(obuType)); // [clean up] Need to remove assert once decoder code is stabilized
                 if (tmp.GetDataSize() < obuInfo.size) // not enough data left in the buffer to hold full OBU unit
                     break;
 
                 if (pFrameInProgress && NextFrameDetected(obuType))
                 {
-                    UMC_ASSERT(!"Current frame was interrupted unexpectedly!");
+                    assert(!"Current frame was interrupted unexpectedly!");
                     throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
                     // [robust] add support for cases when series of tile_group_obu() interrupted by other OBU type before end of frame was reached
                 }
@@ -960,7 +960,7 @@ namespace UMC_AV1_DECODER
             case UMC::YUV444: par.info.color_format = UMC::Y410; break;
 
             default:
-                UMC_ASSERT(!"Unknown subsampling");
+                assert(!"Unknown subsampling");
                 return UMC::UMC_ERR_UNSUPPORTED;
             }
         }
@@ -973,7 +973,7 @@ namespace UMC_AV1_DECODER
             case UMC::YUV444: par.info.color_format = UMC::Y416; break;
 
             default:
-                UMC_ASSERT(!"Unknown subsampling");
+                assert(!"Unknown subsampling");
                 return UMC::UMC_ERR_UNSUPPORTED;
             }
         }
@@ -990,8 +990,8 @@ namespace UMC_AV1_DECODER
 
     void AV1Decoder::SetDPBSize(uint32_t size)
     {
-        UMC_ASSERT(size > 0);
-        UMC_ASSERT(size <= MAX_EXTERNAL_REFS);
+        assert(size > 0);
+        assert(size <= MAX_EXTERNAL_REFS);
 
         dpb.resize(size);
         std::generate(std::begin(dpb), std::end(dpb),
@@ -1001,8 +1001,8 @@ namespace UMC_AV1_DECODER
 
     void AV1Decoder::SetRefSize(uint32_t size)
     {
-        UMC_ASSERT(size > 0);
-        UMC_ASSERT(size <= MAX_EXTERNAL_REFS);
+        assert(size > 0);
+        assert(size <= MAX_EXTERNAL_REFS);
 
         refs_temp.resize(size);
         std::generate(std::begin(refs_temp), std::end(refs_temp),

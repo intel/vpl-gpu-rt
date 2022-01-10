@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <assert.h>
+
 #include "umc_defs.h"
 #if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
@@ -220,7 +222,7 @@ bool H264CoeffsBuffer::UnLockInputBuffer(size_t size)
     // check used data
     if (size + COEFFS_BUFFER_ALIGN_VALUE + sizeof(BufferInfo) > lFreeSize) // DEBUG : should not be !!!
     {
-        UMC_ASSERT(false);
+        assert(false);
         return false;
     }
 
@@ -318,7 +320,7 @@ void RefCounter::DecrementReference()
 {
     m_refCounter--;
 
-    UMC_ASSERT(m_refCounter >= 0);
+    assert(m_refCounter >= 0);
     if (!m_refCounter)
     {
         Free();

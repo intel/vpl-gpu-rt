@@ -93,8 +93,8 @@ VC1Status DecodePictureHeader (VC1Context* pContext,  bool isExtHeader)
                                     pContext->m_vlcTbl->BFRACTION,
                                     &z1,
                                     &z2);
-        UMC_ASSERT (z2 != VC1_BRACTION_INVALID);
-        UMC_ASSERT (!(z2 == VC1_BRACTION_BI && seqLayerHeader->PROFILE==VC1_PROFILE_ADVANCED));
+        assert (z2 != VC1_BRACTION_INVALID);
+        assert (!(z2 == VC1_BRACTION_BI && seqLayerHeader->PROFILE==VC1_PROFILE_ADVANCED));
         if(0 == z2)
             return VC1_ERR_INVALID_STREAM;
         if (z2 == VC1_BRACTION_BI)
