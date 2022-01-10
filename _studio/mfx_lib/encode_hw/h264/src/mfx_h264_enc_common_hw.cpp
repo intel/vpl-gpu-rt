@@ -7828,7 +7828,7 @@ void MfxVideoParam::Construct(mfxVideoParam const & par)
     if (!pConf)
     {
         // AEnc EncTools on for GopRefDist==8 only (current limitation)
-        if (mfx.GopRefDist == 8 && m_extOpt2.LookAheadDepth > 0 && !bRateControlLA(mfx.RateControlMethod) && m_extOpt2.ExtBRC == MFX_CODINGOPTION_ON && m_extOpt3.ScenarioInfo == MFX_SCENARIO_UNKNOWN)
+        if ((mfx.GopRefDist == 2 || mfx.GopRefDist == 8) && m_extOpt2.LookAheadDepth > 0 && !bRateControlLA(mfx.RateControlMethod) && m_extOpt2.ExtBRC == MFX_CODINGOPTION_ON && m_extOpt3.ScenarioInfo == MFX_SCENARIO_UNKNOWN)
         {
             et_default = MFX_CODINGOPTION_UNKNOWN;
         }
