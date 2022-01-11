@@ -41,7 +41,8 @@ public:
     DECL_BLOCK(SubmitTask) \
     DECL_BLOCK(QueryTask) \
     DECL_BLOCK(SetCallChains) \
-    DECL_BLOCK(HardcodeCaps)
+    DECL_BLOCK(HardcodeCaps)\
+    DECL_BLOCK(CreateService)
 #define DECL_FEATURE_NAME "Base_IDDIPacker"
 #include "hevcehw_decl_blocks.h"
 

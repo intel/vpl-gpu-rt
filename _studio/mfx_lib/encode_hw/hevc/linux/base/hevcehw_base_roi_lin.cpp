@@ -33,122 +33,54 @@ void Linux::Base::ROI::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         , [this](StorageRW& global, StorageRW& /*local*/) -> mfxStatus
     {
         auto& vaPacker = VAPacker::CC::Get(global);
+        MFX_CHECK(!m_bViaCuQp, MFX_ERR_NONE);
 
-        if (m_bViaCuQp)
+        vaPacker.AddPerPicMiscData[VAEncMiscParameterTypeROI].Push([this](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& global
+            , const StorageR& s_task
+            , std::list<std::vector<mfxU8>>& data)
         {
-            vaPacker.FillCUQPData.Push([this](
-                VAPacker::CallChains::TFillCUQPData::TExt prev
-                , const StorageR& global
-                , const StorageR& s_task
-                , CUQPMap& qpMap)
+            auto roi = GetRTExtBuffer<mfxExtEncoderROI>(global, s_task);
+            bool bNeedROI = !!roi.NumROI;
+
+            if (bNeedROI)
             {
-                bool  bRes = prev(global, s_task, qpMap);
-                auto& task = Task::Common::Get(s_task);
-                auto roi = GetRTExtBuffer<mfxExtEncoderROI>(global, s_task);
+                auto& caps = Glob::EncodeCaps::Get(global);
+                auto& par = Glob::VideoParam::Get(global);
+                CheckAndFixROI(caps, par, roi);
+                bNeedROI = !!roi.NumROI;
+            }
 
-                if (roi.NumROI)
-                {
-                    auto& caps = Glob::EncodeCaps::Get(global);
-                    auto& par = Glob::VideoParam::Get(global);
-                    CheckAndFixROI(caps, par, roi);
-                }
-
-                bool bFillQPMap =
-                    !bRes
-                    && roi.NumROI
-                    && qpMap.m_width
-                    && qpMap.m_height
-                    && qpMap.m_block_width
-                    && qpMap.m_block_height;
-
-                if (bFillQPMap)
-                {
-                    mfxU32 x = 0, y = 0;
-                    auto IsXYInRect = [&](const RectData& r)
-                    {
-                        return (x * qpMap.m_block_width) >= r.Left
-                            && (x * qpMap.m_block_width) < r.Right
-                            && (y * qpMap.m_block_height) >= r.Top
-                            && (y * qpMap.m_block_height) < r.Bottom;
-                    };
-                    auto NextQP = [&]()
-                    {
-                        auto pEnd = roi.ROI + roi.NumROI;
-                        auto pRect = std::find_if(roi.ROI, pEnd, IsXYInRect);
-
-                        ++x;
-
-                        if (pRect != pEnd)
-                            return mfxI8(task.QpY + pRect->DeltaQP);
-
-                        return mfxI8(task.QpY);
-                    };
-                    auto FillQpMapRow = [&](mfxI8& qpMapRow)
-                    {
-                        x = 0;
-                        std::generate_n(&qpMapRow, qpMap.m_width, NextQP);
-                        ++y;
-                    };
-                    auto itQpMapRowsBegin = MakeStepIter(qpMap.m_buffer.data(), qpMap.m_pitch);
-                    auto itQpMapRowsEnd = MakeStepIter(qpMap.m_buffer.data() + qpMap.m_height * qpMap.m_pitch);
-
-                    std::for_each(itQpMapRowsBegin, itQpMapRowsEnd, FillQpMapRow);
-
-                    bRes = true;
-                }
-
-                return bRes;
-            });
-        }
-        else
-        {
-            vaPacker.AddPerPicMiscData[VAEncMiscParameterTypeROI].Push([this](
-                VAPacker::CallChains::TAddMiscData::TExt
-                , const StorageR& global
-                , const StorageR& s_task
-                , std::list<std::vector<mfxU8>>& data)
+            if (bNeedROI)
             {
-                auto roi = GetRTExtBuffer<mfxExtEncoderROI>(global, s_task);
-                bool bNeedROI = !!roi.NumROI;
+                auto& vaROI = AddVaMisc<VAEncMiscParameterBufferROI>(VAEncMiscParameterTypeROI, data);
 
-                if (bNeedROI)
+                auto   MakeVAEncROI = [](const RectData& rect)
                 {
-                    auto& caps = Glob::EncodeCaps::Get(global);
-                    auto& par = Glob::VideoParam::Get(global);
-                    CheckAndFixROI(caps, par, roi);
-                    bNeedROI = !!roi.NumROI;
-                }
+                    VAEncROI roi = {};
+                    roi.roi_rectangle.x      = rect.Left;
+                    roi.roi_rectangle.y      = rect.Top;
+                    roi.roi_rectangle.width  = rect.Right - rect.Left;
+                    roi.roi_rectangle.height = rect.Bottom - rect.Top;
+                    roi.roi_value            = int8_t(rect.DeltaQP);
+                    return roi;
+                };
 
-                if (bNeedROI)
-                {
-                    auto& vaROI = AddVaMisc<VAEncMiscParameterBufferROI>(VAEncMiscParameterTypeROI, data);
+                m_vaROI.resize(roi.NumROI);
 
-                    auto   MakeVAEncROI = [](const RectData& rect)
-                    {
-                        VAEncROI roi = {};
-                        roi.roi_rectangle.x      = rect.Left;
-                        roi.roi_rectangle.y      = rect.Top;
-                        roi.roi_rectangle.width  = rect.Right - rect.Left;
-                        roi.roi_rectangle.height = rect.Bottom - rect.Top;
-                        roi.roi_value            = int8_t(rect.DeltaQP);
-                        return roi;
-                    };
+                vaROI.num_roi = roi.NumROI;
+                vaROI.roi     = m_vaROI.data();
 
-                    m_vaROI.resize(roi.NumROI);
+                std::transform(roi.ROI, roi.ROI + roi.NumROI, vaROI.roi, MakeVAEncROI);
 
-                    vaROI.num_roi = roi.NumROI;
-                    vaROI.roi     = m_vaROI.data();
+                vaROI.max_delta_qp = 51;
+                vaROI.min_delta_qp = -51;
+                vaROI.roi_flags.bits.roi_value_is_qp_delta = 1;
+            }
 
-                    std::transform(roi.ROI, roi.ROI + roi.NumROI, vaROI.roi, MakeVAEncROI);
-
-                    vaROI.max_delta_qp = 51;
-                    vaROI.min_delta_qp = -51;
-                    vaROI.roi_flags.bits.roi_value_is_qp_delta = 1;
-                }
-
-                return bNeedROI;
-            });
-        }
+            return bNeedROI;
+        });
 
         return MFX_ERR_NONE;
     });

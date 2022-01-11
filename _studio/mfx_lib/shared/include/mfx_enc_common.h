@@ -148,6 +148,37 @@ inline mfxI64 CalcDTSForNonRefFrameMpeg2(mfxI64 PTS)
 {
     return PTS;
 }
+enum MBQPMode
+{
+    MBQPMode_None = 0,
+    MBQPMode_ExternalMap = 1,
+    MBQPMode_ForROI = 2,
+    MBQPMode_FromEncToolsLA = 3,
+    MBQPMode_FromEncToolsBRC = 4,
+    MBQPMode_ForALQOffset = 5,
+};
+
+MBQPMode    GetMBQPMode(const mfxVideoParam& par, mfxU32 maxNumOfROI, mfxU32 ROIDeltaQPSupport, bool MbQpDataSupport);
+bool        IsSWBRCMode(const mfxVideoParam& par);
+bool        IsEnctoolsLAGS(const mfxVideoParam& par);
+bool        IsEnctoolsLABRC(const mfxVideoParam& par);
+
+mfxStatus FillMBMapViaROI(const mfxExtEncoderROI& roi,
+    mfxI8* pMbMap,
+    mfxU32 width, mfxU32 height, mfxU32 pitch,
+    mfxU32 block_width, mfxU32 block_height,
+    mfxI8 QpY);
+
+mfxStatus FillCUQPData(const mfxExtMBQP* mbqpInput,
+    mfxU32 picWidth, mfxU32 picHeight,
+    mfxI8* pMbMap,
+    mfxU32 pitch, mfxU32 height_aligned,
+    mfxU32 block_width, mfxU32 block_height);
+
+mfxStatus FillCUQPData(mfxI8 QpY,
+    mfxI8* pMbMap,
+    mfxU32 pitch, mfxU32 height_aligned);
+
 
 struct Rational {mfxU64 n, d;};
 

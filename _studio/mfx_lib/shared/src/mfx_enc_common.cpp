@@ -26,6 +26,10 @@
 #include <limits.h>
 #include "mfx_enc_common.h"
 #include "mfx_utils.h"
+#ifdef MFX_ENABLE_ENCTOOLS
+#include "mfxenctools-int.h"
+#endif
+
 
 //----MFX data -> UMC data--------------------------------------------
 Ipp8u CalculateMAXBFrames (mfxU8 GopRefDist)
@@ -614,3 +618,192 @@ mfxStatus CheckExtVideoSignalInfo(mfxExtVideoSignalInfo * videoSignalInfo)
 
     return sts;
 }
+
+typedef std::remove_reference<decltype (mfxExtEncoderROI::ROI[0])>::type RectData;
+mfxStatus FillMBMapViaROI(const mfxExtEncoderROI& roi,
+    mfxI8* pMbMap,
+    mfxU32 width, mfxU32 height, mfxU32 pitch,
+    mfxU32 block_width, mfxU32 block_height, 
+    mfxI8 QpY)
+{
+    MFX_CHECK_NULL_PTR1(pMbMap);
+    mfxU32 x = 0, y = 0;
+    auto IsXYInRect = [&](const RectData& r)
+    {
+        return (x * block_width) >= r.Left
+            && (x * block_width) < r.Right
+            && (y * block_height) >= r.Top
+            && (y * block_height) < r.Bottom; 
+    };
+    auto NextQP = [&]()
+    {
+        auto pEnd = roi.ROI + roi.NumROI;
+        auto pRect = std::find_if(roi.ROI, pEnd, IsXYInRect);
+
+        ++x;
+
+        if (pRect != pEnd)
+            return mfxI8(QpY + pRect->DeltaQP);
+
+        return mfxI8(QpY);
+    };
+    auto FillQpMapRow = [&](mfxI8& qpMapRow)
+    {
+        x = 0;
+        std::generate_n(&qpMapRow, width, NextQP);
+        ++y;
+    };
+    auto itQpMapRowsBegin = mfx::MakeStepIter(pMbMap, pitch);
+    auto itQpMapRowsEnd = mfx::MakeStepIter(pMbMap + height * pitch);
+
+    std::for_each(itQpMapRowsBegin, itQpMapRowsEnd, FillQpMapRow);
+
+    return MFX_ERR_NONE;
+}
+template<class T> inline T CeilDiv(T x, T y) { return (x + y - 1) / y; }
+mfxStatus FillCUQPData(mfxI8 QpY,
+    mfxI8* pMbMap,
+    mfxU32 pitch, mfxU32 height_aligned)
+{
+    MFX_CHECK_NULL_PTR1(pMbMap);
+    // Fill all LCU blocks: HW hevc averages QP
+    for (mfxU32 i = 0; i < height_aligned; i++)
+    {
+        for (mfxU32 j = 0; j < pitch; j++)
+        {
+            pMbMap[i * pitch + j] = QpY;
+        }
+    }
+    return MFX_ERR_NONE;
+}
+mfxStatus FillCUQPData(const mfxExtMBQP* mbqpInput,
+    mfxU32 picWidth, mfxU32 picHeight,
+    mfxI8* pMbMap,
+    mfxU32 pitch, mfxU32 height_aligned,
+    mfxU32 block_width, mfxU32 block_height)
+{
+    MFX_CHECK_NULL_PTR1(pMbMap);
+    MFX_CHECK_NULL_PTR1(mbqpInput);
+    MFX_CHECK_NULL_PTR1(mbqpInput->QP);
+
+    mfxU32 drBlkW = block_width;  // block size of driver
+    mfxU32 drBlkH = block_height; // block size of driver
+    mfxU32 inBlkSize = 16;   //input block size
+
+    mfxU32 inputW = CeilDiv(picWidth, inBlkSize);
+    mfxU32 inputH = CeilDiv(picHeight, inBlkSize);
+
+    MFX_CHECK(mbqpInput->NumQPAlloc >= inputW * inputH, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    // Fill all LCU blocks: HW hevc averages QP
+    for (mfxU32 i = 0; i < height_aligned; i++)
+    {
+        for (mfxU32 j = 0; j < pitch; j++)
+        {
+            mfxU32 y = std::min(i * drBlkH / inBlkSize, inputH - 1);
+            mfxU32 x = std::min(j * drBlkW / inBlkSize, inputW - 1);
+
+            pMbMap[i * pitch + j] = mbqpInput->QP[y * inputW + x];
+        }
+    }
+    return MFX_ERR_NONE;
+}
+bool IsSWBRCMode(const mfxVideoParam& par)
+{     
+    const mfxExtCodingOption2* pCO2 = (mfxExtCodingOption2*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
+#ifdef MFX_ENABLE_ENCTOOLS
+    const mfxExtEncToolsConfig* pCfg = (mfxExtEncToolsConfig*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
+#endif
+    return
+        ((((pCO2 && IsOn(pCO2->ExtBRC))
+#ifdef MFX_ENABLE_ENCTOOLS
+            || (pCfg && IsOn(pCfg->BRC))
+#endif
+            )
+            && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
+                || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)) ||
+            par.mfx.RateControlMethod == MFX_RATECONTROL_LA ||
+            par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD ||
+            par.mfx.RateControlMethod == MFX_RATECONTROL_LA_ICQ
+            );
+}
+static bool ROIViaMBQP(const mfxVideoParam par, mfxU32 maxNumOfROI, mfxU32 ROIDeltaQPSupport)
+{
+    mfxExtEncoderROI *extRoi = (mfxExtEncoderROI*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_ENCODER_ROI);
+    return extRoi && extRoi->NumROI > 0 && (!maxNumOfROI || !ROIDeltaQPSupport) && IsSWBRCMode(par);
+}
+
+bool IsEnctoolsLABRC(const mfxVideoParam& par)
+{
+#if !defined(MFX_ENABLE_ENCTOOLS)
+    std::ignore = par;
+#else
+    const mfxExtCodingOption2* pCO2 = (mfxExtCodingOption2*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
+    const mfxExtCodingOption3* pCO3 = (mfxExtCodingOption3*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION3);
+    const mfxExtEncToolsConfig* pCfg = (mfxExtEncToolsConfig*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
+
+    if (
+        (
+            ((par.mfx.GopRefDist == 2 || par.mfx.GopRefDist == 8)
+                && pCO2 && pCO2->ExtBRC == MFX_CODINGOPTION_ON && pCO2->LookAheadDepth > par.mfx.GopRefDist
+                && !(pCO3 && pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING)
+                )
+            || (pCfg && IsOn(pCfg->BRC) && IsOn(pCfg->AdaptiveMBQP) && pCO2 && pCO2->LookAheadDepth > par.mfx.GopRefDist)
+            )
+        && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
+        )
+        return true;
+#endif
+    return false;
+}
+static bool IsEnctoolsALQOffset(const mfxVideoParam& par)
+{
+#if !defined(MFX_ENABLE_ENCTOOLS)
+    std::ignore = par;
+#else
+    const mfxExtEncToolsConfig* pCfg = (mfxExtEncToolsConfig*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
+
+    if (((par.mfx.GopRefDist == 8) &&   (pCfg && IsOn(pCfg->BRC) && (IsOn(pCfg->AdaptivePyramidQuantB) || IsOn(pCfg->AdaptivePyramidQuantP)))
+        && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)))
+        return true;
+#endif
+    return false;
+}
+bool IsEnctoolsLAGS(const mfxVideoParam& par)
+{
+#if !defined(MFX_ENABLE_ENCTOOLS)
+    std::ignore = par;
+#else
+    const mfxExtCodingOption2* pCO2 = (mfxExtCodingOption2*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
+    const mfxExtCodingOption3* pCO3 = (mfxExtCodingOption3*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION3);
+    const mfxExtEncToolsConfig* pCfg = (mfxExtEncToolsConfig*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
+    
+    if (((pCO2 && pCO2->LookAheadDepth > 0) || (pCfg && IsOn(pCfg->BRCBufferHints)))
+        && ((pCO3 && pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING) || !IsSWBRCMode(par))
+        && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR))
+        return true;
+#endif
+    return false;
+}
+MBQPMode GetMBQPMode(const mfxVideoParam& par,  mfxU32 maxNumOfROI, mfxU32 ROIDeltaQPSupport, bool MbQpDataSupport)
+{
+    const mfxExtCodingOption2* pCO2 = (mfxExtCodingOption2*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
+    const mfxExtCodingOption3* pCO3 = (mfxExtCodingOption3*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION3);
+
+    if (!MbQpDataSupport)
+        return MBQPMode_None;
+    else if (pCO3 && IsOn(pCO3->EnableMBQP))
+        return MBQPMode_ExternalMap;
+    else if (pCO2 && IsOn(pCO2->MBBRC) && IsEnctoolsLABRC(par))
+        return MBQPMode_FromEncToolsBRC;
+    else if (pCO2 && IsOn(pCO2->MBBRC) && IsEnctoolsLAGS(par))
+        return MBQPMode_FromEncToolsLA;
+    else if (ROIViaMBQP(par, maxNumOfROI, ROIDeltaQPSupport))
+        return MBQPMode_ForROI;
+    else if (IsEnctoolsALQOffset(par))
+        return MBQPMode_ForALQOffset;
+
+
+    return MBQPMode_None;
+}
+

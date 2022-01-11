@@ -27,10 +27,6 @@
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
 
-static bool ROIViaMBQP(const ENCODE_CAPS_HEVC caps, const mfxVideoParam par)
-{
-    return (!caps.MaxNumOfROI || !caps.ROIDeltaQPSupport) && Legacy::IsSWBRC(par);
-}
 
 static mfxStatus CheckAndFixRect(
     ROI::RectData& rect
@@ -69,25 +65,23 @@ mfxStatus ROI::CheckAndFixROI(
     mfxStatus sts = MFX_ERR_NONE, rsts = MFX_ERR_NONE;
     mfxU32 changed = 0, invalid = 0;
 
-    bool bSWBRC = Legacy::IsSWBRC(par);
-    bool bROIViaMBQP = ROIViaMBQP(caps, par);
-    bool bForcedQPMode = par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || bSWBRC;
+    bool bROIViaMBQP = (Legacy::GetMBQPMode(caps, par) == MBQPMode_ForROI);
 
     changed += CheckOrZero<mfxU16>(roi.ROIMode, MFX_ROI_MODE_PRIORITY, MFX_ROI_MODE_QP_DELTA);
 
-    if (!bForcedQPMode)
+    if (!bROIViaMBQP)
     {
         invalid += !(roi.ROIMode != MFX_ROI_MODE_QP_DELTA || caps.ROIDeltaQPSupport);
         roi.ROIMode *= !invalid;
-    }
 
-    invalid += !(par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR);
+        invalid += !(par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
+            || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR
+            || par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
+            || par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR);
 
-    invalid += !(caps.MaxNumOfROI || bROIViaMBQP);
-    invalid += !(par.mfx.RateControlMethod != MFX_RATECONTROL_CQP || caps.ROIDeltaQPSupport);
+        invalid += !(caps.MaxNumOfROI);
+        invalid += !(par.mfx.RateControlMethod != MFX_RATECONTROL_CQP || caps.ROIDeltaQPSupport);
+    } 
 
     mfxU16 maxNumOfRoi = !invalid * std::max<mfxU16>(
         mfxU16(bROIViaMBQP * (caps.MbQpDataSupport * ROI::MAX_NUM_ROI))
@@ -175,11 +169,6 @@ void ROI::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         auto sts = CheckAndFixROI(caps, par, *pROI);
         MFX_CHECK(sts >= MFX_ERR_NONE && pCO3, sts);
 
-        changed |= CheckOrZero<mfxU16>(pCO3->EnableMBQP
-            , MFX_CODINGOPTION_UNKNOWN
-            , MFX_CODINGOPTION_ON
-            , !ROIViaMBQP(caps, par) * MFX_CODINGOPTION_OFF);
-
         return GetWorstSts(sts, mfxStatus(changed * MFX_WRN_INCOMPATIBLE_VIDEO_PARAM));
     });
 }
@@ -187,7 +176,7 @@ void ROI::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 void ROI::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
 {
     Push(BLK_SetDefaults
-        , [this](mfxVideoParam& par, StorageW& strg, StorageRW&)
+        , [this](mfxVideoParam& , StorageW& strg, StorageRW&)
     {
         auto& defaults = Glob::Defaults::Get(strg);
         auto& bSet = defaults.SetForFeature[GetID()];
@@ -208,16 +197,6 @@ void ROI::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
 
             bSet = true;
         }
-
-        mfxExtEncoderROI* pROI = ExtBuffer::Get(par);
-        mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
-
-        MFX_CHECK(pCO3 && pROI && pROI->NumROI, MFX_ERR_NONE);
-
-        auto& caps = Glob::EncodeCaps::Get(strg);
-
-        SetDefault(pCO3->EnableMBQP, mfxU16(ROIViaMBQP(caps, par) * MFX_CODINGOPTION_ON));
-
         return MFX_ERR_NONE;
     });
 }
@@ -227,7 +206,7 @@ void ROI::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
     Push(BLK_SetPPS
         , [this](StorageRW& strg, StorageRW&) -> mfxStatus
     {
-        m_bViaCuQp = ROIViaMBQP(Glob::EncodeCaps::Get(strg), Glob::VideoParam::Get(strg));
+        m_bViaCuQp = (Legacy::GetMBQPMode(Glob::EncodeCaps::Get(strg), Glob::VideoParam::Get(strg)) == MBQPMode_ForROI);
         return MFX_ERR_NONE;
     });
 }
