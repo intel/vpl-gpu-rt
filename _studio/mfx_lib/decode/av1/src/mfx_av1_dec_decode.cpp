@@ -834,6 +834,13 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
         MFX_CHECK(frame->DecodingCompleted(), MFX_TASK_WORKING);
     }
     mfxStatus sts = DecodeFrame(surface_out, frame);
+
+    // need decrease reference in VPL memory since reference is increased in GetSurface/FillOutputSurface
+    if (surface_out->FrameInterface)
+    {
+        surface_out->FrameInterface->Release(surface_out);
+    }
+
     MFX_CHECK_STS(sts);
     return MFX_TASK_DONE;
 }
