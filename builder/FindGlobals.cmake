@@ -251,6 +251,7 @@ target_compile_definitions(mfx_common_properties
     MFX_API_VERSION=\"${API_VER_MODIF}\"
     MFX_GIT_COMMIT=\"${git_commit}\"
     MEDIA_VERSION_STR=\"${MEDIA_VERSION_STR}\"
+    ONEVPL_EXPERIMENTAL
   )
 
 if(NOT CMAKE_SYSTEM_NAME MATCHES Windows)
