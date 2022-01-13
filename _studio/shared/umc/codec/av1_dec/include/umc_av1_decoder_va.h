@@ -48,8 +48,8 @@ namespace UMC_AV1_DECODER
         UMC::Status SubmitTiles(AV1DecoderFrame&, bool) override;
         int32_t GetFreeIndex(UMC::FrameMemID) const;
 
-        UMC::Status SubmitTileList(AV1DecoderFrame&);
-        UMC::Status RegisterAnchorFrame(uint32_t id);
+        UMC::Status SubmitTileList(AV1DecoderFrame&) override;
+        UMC::Status RegisterAnchorFrame(uint32_t id) override;
 
     private:
         std::vector<ReportItem> reports;
