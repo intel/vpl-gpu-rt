@@ -98,8 +98,13 @@ void MaxFrameSize::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
         mfxF64 frameRate = mfxF64(par.mfx.FrameInfo.FrameRateExtN) / par.mfx.FrameInfo.FrameRateExtD;
         mfxU32 avgFrameSizeInBytes = mfxU32(MaxKbps(par.mfx) * 1000 / frameRate / 8);
 
-        SetDefault<mfxU32>(pCO2->MaxFrameSize, 2 * avgFrameSizeInBytes);
-
+        mfxExtCodingOption* pCO = ExtBuffer::Get(par);
+        if (IsOn(pCO3->LowDelayBRC) && pCO && IsOff(pCO->NalHrdConformance)) {
+            SetDefault<mfxU32>(pCO2->MaxFrameSize, 1.4 * avgFrameSizeInBytes);
+        }
+        else {
+            SetDefault<mfxU32>(pCO2->MaxFrameSize, 2 * avgFrameSizeInBytes);
+        }
         return MFX_ERR_NONE;
     });
 }
