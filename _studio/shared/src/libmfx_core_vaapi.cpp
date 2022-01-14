@@ -511,9 +511,6 @@ void VAAPIVideoCORE_T<Base>::SetCmCopyStatus(bool enable)
     UMC::AutomaticUMCMutex guard(this->m_guard);
 
     m_ForcedCmState = enable ? MFX_GPUCOPY_ON : MFX_GPUCOPY_OFF;
-
-    if (!enable)
-        m_pCmCopy.reset();
 } // void VAAPIVideoCORE_T<Base>::SetCmCopyStatus(...)
 
 template <class Base>
