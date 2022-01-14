@@ -776,6 +776,9 @@ namespace UMC_AV1_DECODER
                 pCurrFrame = pFrameInProgress ?
                     pFrameInProgress : StartFrame(fh, updated_refs, pPrevFrame);
 
+                if (!pCurrFrame)
+                    throw av1_exception(UMC::UMC_ERR_NOT_INITIALIZED);
+
                 if (params.lst_mode)
                 {
                     // Update frame width and height since it may be different with orinial input
