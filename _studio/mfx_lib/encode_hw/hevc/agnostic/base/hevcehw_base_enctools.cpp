@@ -303,7 +303,7 @@ static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config,
         bool lplaAssistedBRC = IsOn(config.BRC) && pExtOpt2 && (pExtOpt2->LookAheadDepth > video.mfx.GopRefDist);
         SetDefaultOpt(config.BRCBufferHints, lplaAssistedBRC);
 
-        SetDefaultOpt(config.AdaptiveMBQP, pExtOpt2->LookAheadDepth > video.mfx.GopRefDist && bMBQPSupport && IsOn(pExtOpt2->MBBRC) && IsOn(config.BRC));
+        SetDefaultOpt(config.AdaptiveMBQP,  bMBQPSupport && lplaAssistedBRC && IsOn(pExtOpt2->MBBRC));
 
     }
 #ifdef MFX_ENABLE_ENCTOOLS_LPLA
@@ -321,7 +321,7 @@ static void SetDefaultConfig(mfxVideoParam &video, mfxExtEncToolsConfig &config,
        SetDefaultOpt(config.AdaptiveQuantMatrices, bLA && !IsOff(pExtOpt3->AdaptiveCQM));
        SetDefaultOpt(config.AdaptiveI, bLA && bAdaptiveI);
        SetDefaultOpt(config.AdaptiveB, bLA && bAdaptiveB);
-       SetDefaultOpt(config.AdaptiveMBQP, pExtOpt2->LookAheadDepth > 0 && bMBQPSupport && IsOn(pExtOpt2->MBBRC) );
+       SetDefaultOpt(config.AdaptiveMBQP, bLA && bMBQPSupport && IsOn(pExtOpt2->MBBRC) );
     }
 #endif
 }
