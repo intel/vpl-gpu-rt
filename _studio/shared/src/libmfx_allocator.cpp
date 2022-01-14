@@ -159,6 +159,9 @@ inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU32& n
 {
     mfxU32 Pitch = mfx::align2_value(Info.Width, 32), Height2 = mfx::align2_value(Info.Height, 32);
 
+    MFX_CHECK(Pitch,   MFX_ERR_MEMORY_ALLOC);
+    MFX_CHECK(Height2, MFX_ERR_MEMORY_ALLOC);
+
     // Decoders and Encoders use YV12 and NV12 only
     switch (Info.FourCC)
     {
