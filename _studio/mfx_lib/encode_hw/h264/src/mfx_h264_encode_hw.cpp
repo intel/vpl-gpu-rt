@@ -3049,8 +3049,9 @@ mfxStatus ImplementationAvc::EncToolsGetFrameCtrl(DdiTask& task)
         bMbQP = true;
     }
     mfxStatus ests = m_encTools.GetFrameCtrl(&task.m_brcFrameCtrl, task.m_frameOrder, bMbQP ? &qpMapHint : 0);
-    if (bMbQP && qpMapHint.QpMapFilled)
-        task.m_isMBQP = true;
+
+    task.m_isMBQP = (bMbQP && qpMapHint.QpMapFilled);
+    
     return ests;
 }
 #endif
@@ -3234,6 +3235,9 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
             sts = m_encTools.QueryPreEncSChg(task.m_frameOrder, schg);
             MFX_CHECK_STS(sts);
             task.m_SceneChange = schg.SceneChangeFlag;
+            task.m_PersistenceMapNZ = schg.PersistenceMapNZ;
+            if(task.m_PersistenceMapNZ)
+                memcpy(task.m_PersistenceMap, schg.PersistenceMap, sizeof(task.m_PersistenceMap));            
         }
 
         if (m_encTools.IsAdaptiveLTR() || m_encTools.IsAdaptiveRef())

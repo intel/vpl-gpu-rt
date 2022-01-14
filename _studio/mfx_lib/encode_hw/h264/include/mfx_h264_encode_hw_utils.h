@@ -1062,6 +1062,8 @@ namespace MfxHwH264Encode
 #endif
             , m_TCBRCTargetFrameSize(0)
             , m_SceneChange(0)
+            , m_PersistenceMapNZ(0)
+            , m_PersistenceMap{}            
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
             , m_doMCTFIntraFiltering(0)
 #endif
@@ -1359,6 +1361,8 @@ namespace MfxHwH264Encode
 #endif
         mfxU32 m_TCBRCTargetFrameSize;
         mfxU32 m_SceneChange;
+        mfxU16 m_PersistenceMapNZ;
+        mfxU8  m_PersistenceMap[128];        
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
         mfxU32 m_doMCTFIntraFiltering;
 #endif
@@ -2346,6 +2350,9 @@ public:
         extFrameStruct.PyramidLayer = frame_par->PyramidLayer;
         extFrameStruct.LongTerm = frame_par->LongTerm;
         extFrameStruct.SceneChange = frame_par->SceneChange;
+        extFrameStruct.PersistenceMapNZ = task.m_PersistenceMapNZ;
+        if (task.m_PersistenceMapNZ)
+            memcpy(extFrameStruct.PersistenceMap, task.m_PersistenceMap, sizeof(task.m_PersistenceMap));        
         extParams.push_back((mfxExtBuffer *)&extFrameStruct);
 
         if (frame_par->OptimalFrameSizeInBytes | frame_par->LaAvgEncodedSize)

@@ -1997,10 +1997,23 @@ mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl
     {
         if (type != MFX_FRAMETYPE_B && (isIntra || frameStruct.encOrder >= m_ctx.LastMBQpSetOrder + MBQP_P_UPDATE_DIST)) 
         {
+            // delta QP table
+            mfxI32 qp_y = (mfxI32) pFrameQp->QpY;
+            mfxI32 qp_d = 2; 
+
+            if (qp_y > 30)
+                qp_d = 6;
+            else if (qp_y > 25)
+                qp_d = 5;
+            else if (qp_y > 20)
+                qp_d = 4;
+            else if (qp_y > 15)
+                qp_d = 3;                
+
             mfxU16 count = 0;
             for (mfxU32 i = 0; i < MFX_ENCTOOLS_PREENC_MAP_SIZE; i++)
             {
-                frameStructItr->QpMap[i] = (mfxI8) (-1 * std::min(6, (frameStructItr->PersistenceMap[i] + 1) / 3));
+                frameStructItr->QpMap[i] = (mfxI8) (-1 * std::min(qp_d, (frameStructItr->PersistenceMap[i] + 1) / 3));
                 if (frameStructItr->QpMap[i]) count++;
             }
             frameStructItr->QpMapNZ = count;
@@ -2034,7 +2047,7 @@ mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl
                     mfxU32 y = std::min((i * mapBh + mapBh / 2) / ibh, ih - 1);
                     mfxU32 x = std::min((j * mapBw + mapBw / 2) / ibw, iw - 1);
 
-                    qpMapHint->ExtQpMap.QP[i * wInBlk + j] = (mfxI8)mfx::clamp((mfxI32)pFrameQp->QpY + (mfxI32)frameStructItr->QpMap[y * iw + x], (mfxI32)0, (mfxI32)51);
+                    qpMapHint->ExtQpMap.QP[i * wInBlk + j] = (mfxI8)mfx::clamp((mfxI32)pFrameQp->QpY + (mfxI32)frameStructItr->QpMap[y * iw + x], (mfxI32)MIN_PAQ_QP, (mfxI32)51);
                 }
             }
         }

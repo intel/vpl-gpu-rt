@@ -33,6 +33,7 @@ namespace EncToolsBRC
     constexpr mfxU8  LA_P_UPDATE_DIST = 8;
     constexpr mfxU8  MBQP_P_UPDATE_DIST = 7;
     constexpr mfxU8  MAX_GOP_REFDIST = 8;
+    constexpr mfxU8  MIN_PAQ_QP = 10;   //do not allow PAQ to set QP below this value
 
     constexpr mfxF64 MIN_RACA = 0.25;
     constexpr mfxF64 MAX_RACA = 361.0;
