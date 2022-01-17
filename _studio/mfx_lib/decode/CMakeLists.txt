@@ -101,6 +101,15 @@ if (MFX_ENABLE_MJPEG_VIDEO_DECODE)
     ${UMC_CODECS}/jpeg_dec/src/umc_mjpeg_mfx_decode_base.cpp
     ${UMC_CODECS}/jpeg_dec/src/umc_mjpeg_mfx_decode_hw.cpp
 
+    ${UMC_CODECS}/color_space_converter/include/umc_color_space_conversion.h
+    ${UMC_CODECS}/color_space_converter/include/umc_data_pointers_copy.h
+    ${UMC_CODECS}/color_space_converter/include/umc_deinterlacing.h
+    ${UMC_CODECS}/color_space_converter/include/umc_video_processing.h
+    ${UMC_CODECS}/color_space_converter/include/umc_video_resizing.h
+    ${UMC_CODECS}/color_space_converter/src/umc_video_processing.cpp
+    ${UMC_CODECS}/color_space_converter/src/umc_video_resizing.cpp
+    ${UMC_CODECS}/color_space_converter/src/umc_color_space_conversion.cpp
+    ${UMC_CODECS}/color_space_converter/src/umc_deinterlacing.cpp
   )
 
   source_group("mjpeg" FILES ${MJPEG_VIDEO_DECODE_SRC})

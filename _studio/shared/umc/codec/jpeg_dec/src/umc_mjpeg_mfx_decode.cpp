@@ -884,6 +884,54 @@ Status MJPEGVideoDecoderMFX::PostProcessing(double pts)
         m_internalFrame = rotatedFrame;
     }
 
+    if(m_needPostProcessing)
+    {
+        mfxSize size;
+        size.height = m_DecoderParams.info.disp_clip_info.height;
+        size.width = m_DecoderParams.info.disp_clip_info.width;
+
+        AdjustFrameSize(size);
+
+        VideoData out;
+
+        switch (m_DecoderParams.info.color_format)
+        {
+        case RGB32:
+            out.Init(size.width, size.height, RGB32, 8);
+            out.SetPlanePointer(m_frameData.GetPlaneMemoryInfo(0)->m_planePtr, 0);
+            out.SetPlanePitch(m_frameData.GetPlaneMemoryInfo(0)->m_pitch, 0);
+            break;
+        case NV12:
+            out.Init(size.width, size.height, NV12, 8);
+            out.SetPlanePointer(m_frameData.GetPlaneMemoryInfo(0)->m_planePtr, 0);
+            out.SetPlanePitch(m_frameData.GetPlaneMemoryInfo(0)->m_pitch, 0);
+            out.SetPlanePointer(m_frameData.GetPlaneMemoryInfo(1)->m_planePtr, 1);
+            out.SetPlanePitch(m_frameData.GetPlaneMemoryInfo(1)->m_pitch, 1);
+            break;
+        case YUY2:
+            out.Init(size.width, size.height, YUY2, 8);
+            out.SetPlanePointer(m_frameData.GetPlaneMemoryInfo(0)->m_planePtr, 0);
+            out.SetPlanePitch(m_frameData.GetPlaneMemoryInfo(0)->m_pitch, 0);
+            break;
+        default:
+            return UMC_ERR_UNSUPPORTED;
+        }
+
+        m_internalFrame.SetPictureStructure(m_interleaved ? PS_TOP_FIELD_FIRST : PS_FRAME);
+        out.SetPictureStructure(m_internalFrame.GetPictureStructure());
+
+        if (!m_PostProcessing)
+        {
+            m_PostProcessing.reset(createVideoProcessing());
+        }
+
+        Status status = m_PostProcessing->GetFrame(&m_internalFrame, &out);
+        if(status != UMC_OK)
+        {
+            return status;
+        }
+    }
+
     rotatedFrame.Close();
 
     return UMC_OK;
