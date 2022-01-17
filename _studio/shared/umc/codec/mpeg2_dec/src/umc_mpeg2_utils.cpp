@@ -231,7 +231,7 @@ namespace UMC_MPEG2_DECODER
         return res;
     }
 
-    // Table 6-4 – frame_rate_value
+    // Table 6-4 - frame_rate_value
     void GetMfxFrameRate(uint8_t frame_rate_value, mfxU32 & frameRateN, mfxU32 & frameRateD)
     {
         switch (frame_rate_value)
@@ -250,7 +250,7 @@ namespace UMC_MPEG2_DECODER
         return;
     }
 
-    // Table 8-2 – Profile identification
+    // Table 8-2 - Profile identification
     mfxU8 GetMfxCodecProfile(uint8_t profile)
     {
         switch (profile)
@@ -266,7 +266,7 @@ namespace UMC_MPEG2_DECODER
         }
     }
 
-    // Table 8-3 – Level identification
+    // Table 8-3 - Level identification
     mfxU8 GetMfxCodecLevel(uint8_t level)
     {
         switch (level)
@@ -414,7 +414,7 @@ namespace UMC_MPEG2_DECODER
                                                         MFX_CHROMAFORMAT_YUV422 :
                                                         MFX_CHROMAFORMAT_YUV444));
 
-            // Table 8-1 – Meaning of bits in profile_and_level_indication
+            // Table 8-1 - Meaning of bits in profile_and_level_indication
             par.mfx.CodecProfile = GetMfxCodecProfile((seqExt->profile_and_level_indication >> 4) & 7); // [6:4] bits
             par.mfx.CodecLevel = GetMfxCodecLevel(seqExt->profile_and_level_indication & 0xF); // [3:0] bits
         }

@@ -22,9 +22,9 @@
 #define _MFX_FUNCTIONS_H_
 
 /*
-When public API function is called from RT library - the call goes to dispatcher’s exported function instead of internal (RT’s) one.
+When public API function is called from RT library - the call goes to dispatcher's exported function instead of internal (RT's) one.
 Since session object differs between RT and dispatcher this can lead to seg. fault. To avoid this we
-    1. have to mangle (w/ some prefix) RT’s functions implementation and internally use only mangled functions
+    1. have to mangle (w/ some prefix) RT's functions implementation and internally use only mangled functions
     2. to mangle the function we will use a macro-based substitution, in such way that any public API function will be automatically aliased w/ help of APIImpl_ symbol, for example MFXClose -> APIImpl_MFXClose
     3. to export correct (de-mangled) symbols we need to create dedicated translation unit (w/o macro-based substitution) where we will dispatch calls to mangled functions.
 */

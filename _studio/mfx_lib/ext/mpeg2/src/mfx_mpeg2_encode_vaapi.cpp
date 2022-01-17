@@ -1044,7 +1044,7 @@ mfxStatus VAAPIEncoder::FillUserDataBuffer(mfxU8 *pUserData, mfxU32 userDataLen)
 
 mfxStatus VAAPIEncoder::FillVideoSignalInfoBuffer(ExecuteBuffers* pExecuteBuffers)
 {
-    // two steps cast is to work around “strict aliasing” rule warrning
+    // two steps cast is to work around "strict aliasing" rule warrning
     void * data = m_pMiscParamsSeqInfo->data;
     VAEncMiscParameterExtensionDataSeqDisplayMPEG2& miscSeqInfo = *((VAEncMiscParameterExtensionDataSeqDisplayMPEG2*)data);
 

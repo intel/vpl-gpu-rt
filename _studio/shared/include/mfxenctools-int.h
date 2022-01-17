@@ -399,7 +399,7 @@ MFX_PACK_END()
 MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer      Header;
-    mfxStructVersion  Version;           /* what about to return version of EncTools containing commit_id – return through GetVersion? */
+    mfxStructVersion  Version;           /* what about to return version of EncTools containing commit_id - return through GetVersion? */
     mfxU16            reserved[3];       /* to align with Version */
     mfxU32            reserved2[14];
     mfxHDL            Context;
