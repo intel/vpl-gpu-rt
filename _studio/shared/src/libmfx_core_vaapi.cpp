@@ -270,7 +270,6 @@ bool VAAPIVideoCORE_T<Base>::IsCmSupported()
 {
     return GetHWType() < MFX_HW_DG2;
 }
-
 template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm()
 {
@@ -286,7 +285,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm()
     MFX_CHECK(IsCmSupported(), MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
     std::unique_ptr<CmCopyWrapper> tmp_cm(new CmCopyWrapper);
-
     MFX_CHECK_NULL_PTR1(tmp_cm->GetCmDevice(*m_p_display_wrapper));
 
     MFX_SAFE_CALL(tmp_cm->Initialize(GetHWType()));
@@ -790,8 +788,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    // For Linux by default CM copy is OFF
-    bool canUseCMCopy = canUseGpuCopy && m_pCmCopy && m_ForcedCmState == MFX_GPUCOPY_ON && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+    // By default CM copy is ON
+    bool canUseCMCopy = canUseGpuCopy && m_pCmCopy && m_ForcedCmState != MFX_GPUCOPY_OFF && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
@@ -1285,8 +1283,8 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     // check that region of interest is valid
     MFX_CHECK(roi.width && roi.height, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    // For Linux by default CM copy is OFF
-    bool canUseCMCopy = canUseGpuCopy && m_pCmCopy && m_ForcedCmState == MFX_GPUCOPY_ON && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+    // By default CM copy is ON
+    bool canUseCMCopy = canUseGpuCopy && m_pCmCopy && m_ForcedCmState != MFX_GPUCOPY_OFF && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
