@@ -149,13 +149,13 @@ mfxU16 av1_mfx_profile_to_native_profile(mfxU16 mfx)
 {
     switch (mfx)
     {
-        case MFX_PROFILE_AV1_MAIN: 
+        case MFX_PROFILE_AV1_MAIN:
             return 0;
-        case MFX_PROFILE_AV1_HIGH: 
+        case MFX_PROFILE_AV1_HIGH:
             return 1;
-        case MFX_PROFILE_AV1_PRO:  
+        case MFX_PROFILE_AV1_PRO:
             return 2;
-        default:                   
+        default:
             return mfx;
     }
 }
@@ -466,7 +466,7 @@ mfxStatus VideoDECODEAV1::Close()
 
     MFX_CHECK(m_is_init, MFX_ERR_NOT_INITIALIZED);
 
-
+    m_decoder.reset();
     m_surface_source->Close();
 
     m_request = {};
