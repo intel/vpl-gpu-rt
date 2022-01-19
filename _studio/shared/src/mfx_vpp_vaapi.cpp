@@ -537,7 +537,6 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
     if (platform == MFX_PLATFORM_HARDWARE)
     {
         caps.uChromaSiting = 1;
-        caps.uVideoSignalInfoInOut = 1;
     }
 
     return MFX_ERR_NONE;
@@ -1459,43 +1458,6 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
 #endif // #ifdef MFX_ENABLE_VPP_VIDEO_SIGNAL
     }
 
-    if (pParams->m_inVideoSignalInfo.enabled)
-    {
-        // Video Range
-        m_pipelineParam[0].input_color_properties.color_range = (pParams->m_inVideoSignalInfo.VideoFullRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
-        switch (pParams->m_inVideoSignalInfo.ColourPrimaries)
-        {
-        case 9:    // BT.2020
-            m_pipelineParam[0].surface_color_standard = VAProcColorStandardBT2020;
-            break;
-        case 1:    // BT.709
-            m_pipelineParam[0].surface_color_standard = VAProcColorStandardBT709;
-            break;
-        case 6:
-        default:
-            m_pipelineParam[0].surface_color_standard = VAProcColorStandardBT601;
-            break;
-        }
-    }
-
-    if (pParams->m_outVideoSignalInfo.enabled)
-    {
-        // Video Range
-        m_pipelineParam[0].output_color_properties.color_range = (pParams->m_outVideoSignalInfo.VideoFullRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
-        switch (pParams->m_outVideoSignalInfo.ColourPrimaries)
-        {
-        case 9:    // BT.2020
-            m_pipelineParam[0].output_color_standard = VAProcColorStandardBT2020;
-            break;
-        case 1:    // BT.709
-            m_pipelineParam[0].output_color_standard = VAProcColorStandardBT709;
-            break;
-        case 6:
-        default:
-            m_pipelineParam[0].output_color_standard = VAProcColorStandardBT601;
-            break;
-        }
-    }
 
     m_pipelineParam[0].input_color_properties.chroma_sample_location  = VA_CHROMA_SITING_UNKNOWN;
     m_pipelineParam[0].output_color_properties.chroma_sample_location = VA_CHROMA_SITING_UNKNOWN;
@@ -2531,43 +2493,6 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
         m_pipelineParam[refIdx].input_color_properties.chroma_sample_location  = VA_CHROMA_SITING_UNKNOWN;
         m_pipelineParam[refIdx].output_color_properties.chroma_sample_location = VA_CHROMA_SITING_UNKNOWN;
 
-        if (pParams->m_inVideoSignalInfo.enabled)
-        {
-            // Video Range
-            m_pipelineParam[0].input_color_properties.color_range = (pParams->m_inVideoSignalInfo.VideoFullRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
-            switch (pParams->m_inVideoSignalInfo.ColourPrimaries)
-            {
-            case 9:    // BT.2020
-                m_pipelineParam[0].surface_color_standard = VAProcColorStandardBT2020;
-                break;
-            case 1:    // BT.709
-                m_pipelineParam[0].surface_color_standard = VAProcColorStandardBT709;
-                break;
-            case 6:
-            default:
-                m_pipelineParam[0].surface_color_standard = VAProcColorStandardBT601;
-                break;
-            }
-        }
-
-        if (pParams->m_outVideoSignalInfo.enabled)
-        {
-            // Video Range
-            m_pipelineParam[0].output_color_properties.color_range = (pParams->m_outVideoSignalInfo.VideoFullRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
-            switch (pParams->m_outVideoSignalInfo.ColourPrimaries)
-            {
-            case 9:    // BT.2020
-                m_pipelineParam[0].output_color_standard = VAProcColorStandardBT2020;
-                break;
-            case 1:    // BT.709
-                m_pipelineParam[0].output_color_standard = VAProcColorStandardBT709;
-                break;
-            case 6:
-            default:
-                m_pipelineParam[0].output_color_standard = VAProcColorStandardBT601;
-                break;
-            }
-        }
 
         /* to process input parameters of sub stream:
          * crop info and original size*/

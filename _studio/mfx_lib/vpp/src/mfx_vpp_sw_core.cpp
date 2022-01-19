@@ -501,7 +501,6 @@ mfxStatus VideoVPPBase::QueryCaps(VideoCORE * core, MfxHwVideoProcessing::mfxVpp
         sts = VideoVPPHW::QueryCaps(core, caps);
         caps.uFrameRateConversion= 1; // "1" means general FRC is supported. "Interpolation" modes descibed by caps.frcCaps
         caps.uDeinterlacing      = 1; // "1" means general deinterlacing is supported
-        caps.uVideoSignalInfoInOut      = 1; // "1" means general VSII is supported
         caps.uVideoSignalInfo    = 1; // "1" means general VSIN is supported
 
         if (sts >= MFX_ERR_NONE)

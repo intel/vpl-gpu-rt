@@ -155,9 +155,6 @@ namespace MfxHwVideoProcessing
 
         mfxU32 uFrameRateConversion;
         mfxU32 uDeinterlacing;
-
-        mfxU32 uVideoSignalInfoInOut;
-
         mfxU32 uVideoSignalInfo;
         FrcCaps frcCaps;
 
@@ -202,9 +199,6 @@ namespace MfxHwVideoProcessing
             , uSceneChangeDetection(0)
             , uFrameRateConversion(0)
             , uDeinterlacing(0)
-
-            , uVideoSignalInfoInOut(0)
-
             , uVideoSignalInfo(0)
             , frcCaps()
             , uIStabFilter(0)
@@ -249,32 +243,9 @@ namespace MfxHwVideoProcessing
         VPP_MORE_SCENE_CHANGE_DETECTED = 2 // BOB display only first field to avoid out of frame order
     } vppScene;
 
-    // mfxVideoSignalInfo is for MFX_EXTBUFF_VIDEO_SIGNAL_INFO which supports the video signal info
-    // in the video spec theoretically. See the mfxExtVideoSignalInfo structure for details.
-    struct mfxVideoSignalInfo {
-        bool            enabled;
-        mfxU16          VideoFormat;
-        mfxU16          VideoFullRange;
-        mfxU16          ColourDescriptionPresent;
-        mfxU16          ColourPrimaries;
-        mfxU16          TransferCharacteristics;
-        mfxU16          MatrixCoefficients;
-
-        bool operator!=(const mfxVideoSignalInfo & other) const
-        {
-            return enabled                      != other.enabled
-                || VideoFormat                  != other.VideoFormat
-                || VideoFullRange               != other.VideoFullRange
-                || ColourPrimaries              != other.ColourPrimaries
-                || TransferCharacteristics      != other.TransferCharacteristics
-                || MatrixCoefficients           != other.MatrixCoefficients;
-        }
-    };
 
     class mfxExecuteParams
     {
-        // SignalInfo is for MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO which only
-        // supports the signal info of SDR
         struct SignalInfo {
             bool   enabled;
             mfxU16 TransferMatrix;
@@ -371,8 +342,6 @@ namespace MfxHwVideoProcessing
                    VideoSignalInfo.assign(1, VideoSignalInfoIn);
                    lut3DInfo= {};
 
-                   m_inVideoSignalInfo  = {};
-                   m_outVideoSignalInfo = {};
             };
 
             bool IsDoNothing()
@@ -411,8 +380,6 @@ namespace MfxHwVideoProcessing
                 )
                     return false;
                 if (VideoSignalInfoIn != VideoSignalInfoOut)
-                    return false;
-                if (m_inVideoSignalInfo != m_outVideoSignalInfo)
                     return false;
                 return true;
             };
@@ -506,8 +473,6 @@ namespace MfxHwVideoProcessing
         bool reset;
         Lut3DInfo    lut3DInfo;
 
-        mfxVideoSignalInfo    m_inVideoSignalInfo;
-        mfxVideoSignalInfo    m_outVideoSignalInfo;
     };
 
     class DriverVideoProcessing
