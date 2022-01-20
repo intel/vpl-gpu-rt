@@ -79,7 +79,9 @@ enum eMFXHWType
     MFX_HW_DG1       = MFX_HW_TGL_LP + 3,
     MFX_HW_ADL_S     = MFX_HW_TGL_LP + 4,
     MFX_HW_ADL_P     = MFX_HW_TGL_LP + 5,
-    MFX_HW_DG2       = MFX_HW_TGL_LP + 7,
+    MFX_HW_ADL_N     = MFX_HW_TGL_LP + 6,
+    MFX_HW_DG2       = MFX_HW_TGL_LP + 8,
+
 
 };
 
@@ -471,6 +473,11 @@ typedef struct {
     { 0x46C3, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
     { 0x46AA, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
     { 0x462A, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
+
+    /* ADL-N */
+    { 0x46D0, MFX_HW_ADL_N, MFX_GT1 },//ADL-N
+    { 0x46D1, MFX_HW_ADL_N, MFX_GT1 },//ADL-N
+    { 0x46D2, MFX_HW_ADL_N, MFX_GT1 },//ADL-N
 
     /* DG2 */
     { 0x4F80, MFX_HW_DG2, MFX_GT4 }, // DG2

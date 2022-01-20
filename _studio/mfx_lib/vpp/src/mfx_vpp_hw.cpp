@@ -2440,6 +2440,7 @@ mfxStatus  VideoVPPHW::Init(
             case MFX_HW_RKL:
             case MFX_HW_ADL_S:
             case MFX_HW_ADL_P:
+            case MFX_HW_ADL_N:
                 res = m_pCmDevice->LoadProgram((void*)genx_fcopy_gen12lp,sizeof(genx_fcopy_gen12lp),m_pCmProgram,"nojitter");
                 break;
             default:
@@ -2470,7 +2471,7 @@ mfxStatus  VideoVPPHW::Init(
         CmDevice* pCmDevice = QueryCoreInterface<CmDevice>(m_pCore, MFXICORECM_GUID);
 
         sts = m_SCD.Init(par->vpp.In.CropW, par->vpp.In.CropH, par->vpp.In.Width, par->vpp.In.PicStruct, pCmDevice,
-        m_pCore->GetHWType() <= MFX_HW_ADL_P
+        m_pCore->GetHWType() <= MFX_HW_ADL_N
         );
         MFX_CHECK_STS(sts);
 

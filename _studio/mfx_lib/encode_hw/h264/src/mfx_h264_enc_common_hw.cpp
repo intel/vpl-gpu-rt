@@ -1328,7 +1328,7 @@ bool MfxHwH264Encode::IsExtBrcSceneChangeSupported(
 bool MfxHwH264Encode::IsCmSupported(eMFXHWType platform)
 {
     return
-        (platform <= MFX_HW_ADL_P);
+        (platform <= MFX_HW_ADL_N);
 }
 
 bool MfxHwH264Encode::IsCmNeededForSCD(
