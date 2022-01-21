@@ -906,7 +906,8 @@ void MfxHwH264Encode::PrepareSeiMessage(
 
 void MfxHwH264Encode::PrepareSeiMessage(
     MfxVideoParam const &   par,
-    mfxExtAvcSeiRecPoint &  msg)
+    mfxExtAvcSeiRecPoint &  msg, 
+    mfxU16 recovery_frame_cnt)
 {
     mfxExtCodingOption2 & extOpt2 = GetExtBufferRef(par);
     mfxU32 numTL = par.calcParam.numTemporalLayer;
@@ -914,7 +915,7 @@ void MfxHwH264Encode::PrepareSeiMessage(
         // following calculation assumes that for multiple temporal layers last layer is always non-reference
         msg.recovery_frame_cnt = (extOpt2.IntRefCycleSize - 1) << (numTL > 2 ? (numTL >> 1) : 0);
     else
-        msg.recovery_frame_cnt = par.mfx.GopPicSize;
+        msg.recovery_frame_cnt = recovery_frame_cnt;
     msg.exact_match_flag = 1;
     msg.broken_link_flag = 0;
     msg.changing_slice_group_idc = 0;
@@ -3630,7 +3631,8 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
     MfxVideoParam const & video,
     DdiTask const &       task,
     mfxU32                fieldId,
-    PreAllocatedVector &  sei)
+    PreAllocatedVector &  sei,
+    mfxU16 recovery_frame_cnt)
 {
     mfxExtCodingOption const     & extOpt  = GetExtBufferRef(video);
     mfxExtSpsHeader const        & extSps  = GetExtBufferRef(video);
@@ -3649,7 +3651,7 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
 
     mfxU32 needRecoveryPointSei = (extOpt.RecoveryPointSEI == MFX_CODINGOPTION_ON &&
         ((extOpt2.IntRefType && task.m_IRState.firstFrameInCycle && task.m_IRState.IntraLocation == 0) ||
-        (extOpt2.IntRefType == 0 && isIPicture)));
+        (extOpt2.IntRefType == 0 && isIPicture && !idrPicFlag)));
 
     mfxU32 needCpbRemovalDelay = idrPicFlag || recoveryPoint || needRecoveryPointSei ||
         (isIPicture && extOpt2.BufferingPeriodSEI == MFX_BPSEI_IFRAME);
@@ -3760,7 +3762,7 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
     if (needRecoveryPointSei)
     {
         mfxExtAvcSeiRecPoint msgPicTiming;
-        PrepareSeiMessage(video, msgPicTiming);
+        PrepareSeiMessage(video, msgPicTiming, recovery_frame_cnt);
         if (IsOff(extOpt.SingleSeiNalUnit))
             writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
         PutSeiMessage(writer, msgPicTiming);
