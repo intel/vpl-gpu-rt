@@ -32,7 +32,7 @@ MFX_PACK_END()
 /* Library initialization and deinitialization */
 /*!
     This enumerator itemizes implementation types.
-    The implementation type is a bit OR’ed value of the base type and any decorative flags.
+    The implementation type is a bit OR'ed value of the base type and any decorative flags.
     @note This enumerator is for legacy dispatcher compatibility only. The new dispatcher does not use it.
  */
 typedef mfxI32 mfxIMPL;
@@ -142,7 +142,7 @@ MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxIMPL     Implementation;  /*!< Enumerator that indicates the desired legacy Intel(r) Media SDK implementation. */
     mfxVersion  Version;         /*!< Structure which specifies minimum library version or zero, if not specified. */
-    mfxU16      ExternalThreads; /*!< Desired threading mode. Value 0 means internal threading, 1 – external. */
+    mfxU16      ExternalThreads; /*!< Desired threading mode. Value 0 means internal threading, 1 - external. */
     /*! @internal :unnamed(union) @endinternal */
     union {
         struct {
