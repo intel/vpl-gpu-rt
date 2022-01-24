@@ -775,9 +775,12 @@ namespace UMC_AV1_DECODER
             {
                 pCurrFrame = pFrameInProgress ?
                     pFrameInProgress : StartFrame(fh, updated_refs, pPrevFrame);
+ 
+                CompleteDecodedFrames(fh, pCurrFrame, pPrevFrame);
+                CalcFrameTime(pCurrFrame);
 
                 if (!pCurrFrame)
-                    throw av1_exception(UMC::UMC_ERR_NOT_INITIALIZED);
+                    return UMC::UMC_ERR_NOT_ENOUGH_BUFFER;
 
                 if (params.lst_mode)
                 {
@@ -786,10 +789,6 @@ namespace UMC_AV1_DECODER
                     lst_fh.RenderWidth = params.info.clip_info.width;
                     lst_fh.RenderHeight = params.info.clip_info.height;
                 }
- 
-                CompleteDecodedFrames(fh, pCurrFrame, pPrevFrame);
- 
-                CalcFrameTime(pCurrFrame);
             }
 
             if (!layout.empty())
