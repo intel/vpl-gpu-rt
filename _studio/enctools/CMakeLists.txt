@@ -7,6 +7,7 @@ set(sources
     src/mfx_enctools_lpla.cpp
     src/mfx_enctools_allocator.cpp
     aenc/include/aenc.h
+    include/mfx_ienctools.h
     include/mfx_enctools.h
     include/mfx_enctools_aenc.h
     include/mfx_enctools_brc.h

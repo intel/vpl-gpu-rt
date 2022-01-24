@@ -43,4 +43,17 @@ namespace EncToolsUtils
     template mfxStatus DownScaleNN(mfxU8 const & pSrc, mfxU32 srcWidth, mfxU32 srcHeight, mfxU32 srcPitch,
         mfxU8 & pDst, mfxU32 dstWidth, mfxU32 dstHeight, mfxU32 dstPitch);
 
+    mfxExtBuffer* Et_GetExtBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id)
+    {
+        if (extBuf != 0)
+        {
+            for (mfxU16 i = 0; i < numExtBuf; i++)
+            {
+                if (extBuf[i] != 0 && extBuf[i]->BufferId == id) // assuming aligned buffers
+                    return (extBuf[i]);
+            }
+        }
+
+        return 0;
+    }
 }

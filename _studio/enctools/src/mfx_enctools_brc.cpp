@@ -19,6 +19,8 @@
 // SOFTWARE.
 
 #include "mfx_enctools.h"
+#include "mfx_enctools_brc.h"
+
 #include <algorithm>
 #include <math.h>
 
@@ -47,6 +49,16 @@
 #define BRC_SCENE_CHANGE_RATIO2 5.0
 
 #define BRC_QP_MODULATION_HEVC_GOP8_FIXED MFX_QP_MODULATION_RESERVED0
+
+namespace EncToolsBRC {
+
+struct CompareByDisplayOrder
+{
+    mfxU32 m_DispOrder;
+    CompareByDisplayOrder(mfxU32 frameOrder) : m_DispOrder(frameOrder) {}
+    bool operator ()(BRC_FrameStruct const & frameStruct) const { return frameStruct.dispOrder == m_DispOrder; }
+};
+
 static mfxU32 hevcBitRateScale(mfxU32 bitrate)
 {
     mfxU32 bit_rate_scale = 0;
@@ -54,6 +66,7 @@ static mfxU32 hevcBitRateScale(mfxU32 bitrate)
         bit_rate_scale++;
     return bit_rate_scale;
 }
+
 static mfxU32 hevcCbpSizeScale(mfxU32 cpbSize)
 {
     mfxU32 cpb_size_scale = 2;
@@ -277,8 +290,6 @@ mfxStatus   cBRCParams::GetBRCResetType(mfxEncToolsCtrl const &  ctrl,  bool bNe
     return MFX_ERR_NONE;
 }
 
-
-
 enum
 {
     MFX_BRC_RECODE_NONE           = 0,
@@ -286,23 +297,25 @@ enum
     MFX_BRC_RECODE_PANIC          = 2,
 };
 
-   mfxF64 const QSTEP[88] = {
-         0.630,  0.707,  0.794,  0.891,  1.000,   1.122,   1.260,   1.414,   1.587,   1.782,   2.000,   2.245,   2.520,
-         2.828,  3.175,  3.564,  4.000,  4.490,   5.040,   5.657,   6.350,   7.127,   8.000,   8.980,  10.079,  11.314,
-        12.699, 14.254, 16.000, 17.959, 20.159,  22.627,  25.398,  28.509,  32.000,  35.919,  40.317,  45.255,  50.797,
-        57.018, 64.000, 71.838, 80.635, 90.510, 101.594, 114.035, 128.000, 143.675, 161.270, 181.019, 203.187, 228.070,
-        256.000, 287.350, 322.540, 362.039, 406.375, 456.140, 512.000, 574.701, 645.080, 724.077, 812.749, 912.280,
-        1024.000, 1149.401, 1290.159, 1448.155, 1625.499, 1824.561, 2048.000, 2298.802, 2580.318, 2896.309, 3250.997, 3649.121,
-        4096.000, 4597.605, 5160.637, 5792.619, 6501.995, 7298.242, 8192.000, 9195.209, 10321.273, 11585.238, 13003.989, 14596.485
-    };
+mfxF64 const QSTEP[88] =
+{
+      0.630,  0.707,  0.794,  0.891,  1.000,   1.122,   1.260,   1.414,   1.587,   1.782,   2.000,   2.245,   2.520,
+      2.828,  3.175,  3.564,  4.000,  4.490,   5.040,   5.657,   6.350,   7.127,   8.000,   8.980,  10.079,  11.314,
+     12.699, 14.254, 16.000, 17.959, 20.159,  22.627,  25.398,  28.509,  32.000,  35.919,  40.317,  45.255,  50.797,
+     57.018, 64.000, 71.838, 80.635, 90.510, 101.594, 114.035, 128.000, 143.675, 161.270, 181.019, 203.187, 228.070,
+     256.000, 287.350, 322.540, 362.039, 406.375, 456.140, 512.000, 574.701, 645.080, 724.077, 812.749, 912.280,
+     1024.000, 1149.401, 1290.159, 1448.155, 1625.499, 1824.561, 2048.000, 2298.802, 2580.318, 2896.309, 3250.997, 3649.121,
+     4096.000, 4597.605, 5160.637, 5792.619, 6501.995, 7298.242, 8192.000, 9195.209, 10321.273, 11585.238, 13003.989, 14596.485
+};
 
-
+inline
 mfxI32 QStep2QpFloor(mfxF64 qstep, mfxI32 qpoffset = 0) // QSTEP[qp] <= qstep, return 0<=qp<=51+mQuantOffset
 {
     mfxU8 qp = mfxU8(std::upper_bound(QSTEP, QSTEP + 51 + qpoffset, qstep) - QSTEP);
     return qp > 0 ? qp - 1 : 0;
 }
 
+inline
 mfxI32 Qstep2QP(mfxF64 qstep, mfxI32 qpoffset = 0) // return 0<=qp<=51+mQuantOffset
 {
     mfxI32 qp = QStep2QpFloor(qstep, qpoffset);
@@ -311,12 +324,15 @@ mfxI32 Qstep2QP(mfxF64 qstep, mfxI32 qpoffset = 0) // return 0<=qp<=51+mQuantOff
         return 0;
     return (qp == 51 + qpoffset || qstep < (QSTEP[qp] + QSTEP[qp + 1]) / 2) ? qp : qp + 1;
 }
+
+inline
 mfxF64 QP2Qstep(mfxI32 qp, mfxI32 qpoffset = 0)
 {
     return QSTEP[std::min(51 + qpoffset, qp)];
 }
 
-inline  mfxU16 CheckHrdAndUpdateQP(HRDCodecSpec &hrd, mfxU32 frameSizeInBits, mfxU32 eo, bool bIdr, mfxI32 currQP)
+inline
+mfxU16 CheckHrdAndUpdateQP(HRDCodecSpec &hrd, mfxU32 frameSizeInBits, mfxU32 eo, bool bIdr, mfxI32 currQP)
 {
     if (frameSizeInBits > hrd.GetMaxFrameSizeInBits(eo, bIdr))
     {
@@ -330,12 +346,15 @@ inline  mfxU16 CheckHrdAndUpdateQP(HRDCodecSpec &hrd, mfxU32 frameSizeInBits, mf
     }
     return MFX_BRC_OK;
 }
-inline mfxI32 GetFrameTargetSize(mfxU32 brcSts, mfxI32 minFrameSize, mfxI32 maxFrameSize)
+
+inline
+mfxI32 GetFrameTargetSize(mfxU32 brcSts, mfxI32 minFrameSize, mfxI32 maxFrameSize)
 {
     if (brcSts != MFX_BRC_BIG_FRAME && brcSts != MFX_BRC_SMALL_FRAME) return 0;
     return (brcSts == MFX_BRC_BIG_FRAME) ? maxFrameSize * 3 / 4 : minFrameSize * 5 / 4;
 }
 
+static
 mfxI32 GetNewQP(mfxF64 totalFrameBits, mfxF64 targetFrameSizeInBits, mfxI32 minQP , mfxI32 maxQP, mfxI32 qp , mfxI32 qp_offset, mfxF64 f_pow, bool bStrict = false, bool bLim = true)
 {
     mfxF64 qstep = 0, qstep_new = 0;
@@ -377,7 +396,7 @@ mfxI32 GetNewQP(mfxF64 totalFrameBits, mfxF64 targetFrameSizeInBits, mfxI32 minQ
 // QP Offset is realtive QuantB.
 // QuantB = QuantP+1
 // qpMod=0, can be for used non 8GOP and/or non Pyramid cases.
-
+static
 mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
 {
     mfxI32 qp = 0;
@@ -485,6 +504,7 @@ mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
     return qp;
 }
 
+static
 void SetQPParams(mfxI32 qp, mfxU32 type, BRC_Ctx& ctx, mfxU32 /* rec_num */, mfxI32 minQuant, mfxI32 maxQuant, mfxU32 level, mfxU32 iDQp, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP, mfxU32 codecId)
 {
     if (type == MFX_FRAMETYPE_IDR)
@@ -525,6 +545,7 @@ void SetQPParams(mfxI32 qp, mfxU32 type, BRC_Ctx& ctx, mfxU32 /* rec_num */, mfx
     //printf("ctx.QuantIDR %d, QuantI %d, ctx.QuantP %d, ctx.QuantB  %d, level %d iDQp %d\n", ctx.QuantIDR, ctx.QuantI, ctx.QuantP, ctx.QuantB, level, iDQp);
 }
 
+inline
 void UpdateQPParams(mfxI32 qp, mfxU32 type , BRC_Ctx  &ctx, mfxU32 rec_num, mfxI32 minQuant, mfxI32 maxQuant, mfxU32 level, mfxU32 iDQp, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP, mfxU32 codecId)
 {
     ctx.Quant = qp;
@@ -534,7 +555,7 @@ void UpdateQPParams(mfxI32 qp, mfxU32 type , BRC_Ctx  &ctx, mfxU32 rec_num, mfxI
     SetQPParams(qp, type, ctx, rec_num, minQuant, maxQuant, level, iDQp, isRef, qpMod, qpDeltaP, codecId);
 }
 
-
+inline
 mfxU16 GetFrameType(mfxU16 m_frameType, mfxU16 level, mfxU16 gopRefDist, mfxU32 codecId)
 {
     if (m_frameType & MFX_FRAMETYPE_IDR)
@@ -551,13 +572,15 @@ mfxU16 GetFrameType(mfxU16 m_frameType, mfxU16 level, mfxU16 gopRefDist, mfxU32 
         return MFX_FRAMETYPE_B;
 }
 
+inline
+bool isFrameBeforeIntra(mfxU32 order, mfxU32 intraOrder, mfxU32 gopPicSize, mfxU32 gopRefDist)
+{
+    mfxI32 distance0 = gopPicSize * 3 / 4;
+    mfxI32 distance1 = gopPicSize - gopRefDist * 3;
+    return (order - intraOrder) > (mfxU32)(std::max(distance0, distance1));
+}
 
-bool  isFrameBeforeIntra (mfxU32 order, mfxU32 intraOrder, mfxU32 gopPicSize, mfxU32 gopRefDist)
- {
-     mfxI32 distance0 = gopPicSize*3/4;
-     mfxI32 distance1 = gopPicSize - gopRefDist*3;
-     return (order - intraOrder) > (mfxU32)(std::max(distance0, distance1));
- }
+static
 mfxStatus SetRecodeParams(mfxU16 brcStatus, mfxI32 qp, mfxI32 qp_new, mfxI32 minQP, mfxI32 maxQP, BRC_Ctx &ctx, mfxBRCFrameStatus* status)
 {
     ctx.bToRecode = 1;
@@ -603,6 +626,8 @@ mfxStatus SetRecodeParams(mfxU16 brcStatus, mfxI32 qp, mfxI32 qp_new, mfxI32 min
     //printf("recode %d, qp %d new %d, status %d\n", ctx.encOrder, qp, qp_new, status->BRCStatus);
     return MFX_ERR_NONE;
 }
+
+static
 mfxI32 GetNewQPTotal(mfxF64 bo, mfxF64 dQP, mfxI32 minQP , mfxI32 maxQP, mfxI32 qp, bool bPyr, bool bSC)
 {
     mfxU8 mode = (!bPyr) ;
@@ -648,7 +673,8 @@ mfxI32 GetNewQPTotal(mfxF64 bo, mfxF64 dQP, mfxI32 minQP , mfxI32 maxQP, mfxI32 
 }
 
 // Reduce AB period before intra and increase it after intra (to avoid intra frame affect on the bottom of hrd)
-mfxF64 GetAbPeriodCoeff (mfxU32 numInGop, mfxU32 gopPicSize, mfxU32 SC)
+static
+mfxF64 GetAbPeriodCoeff(mfxU32 numInGop, mfxU32 gopPicSize, mfxU32 SC)
 {
     const mfxU32 maxForCorrection = 30;
     mfxF64 maxValue = (SC) ? 1.3 : 1.5;
@@ -673,10 +699,10 @@ mfxF64 GetAbPeriodCoeff (mfxU32 numInGop, mfxU32 gopPicSize, mfxU32 SC)
         mfxU32 n = gopPicSize - 1 - numInGop;
         return 1.0/ k[n < numForCorrection ? n : numForCorrection - 1];
     }
-
 }
 
-static void ResetMinQForMaxFrameSize(cBRCParams* par, mfxU32 type)
+static
+void ResetMinQForMaxFrameSize(cBRCParams* par, mfxU32 type)
 {
     if (type == MFX_FRAMETYPE_IDR || type == MFX_FRAMETYPE_I || type == MFX_FRAMETYPE_P) {
         par->mMinQstepCmplxKPUpdt = 0;
@@ -686,7 +712,8 @@ static void ResetMinQForMaxFrameSize(cBRCParams* par, mfxU32 type)
     }
 }
 
-static mfxI32 GetMinQForMaxFrameSize(const cBRCParams& par, mfxF64 targetBits, mfxU32 type)
+static
+mfxI32 GetMinQForMaxFrameSize(const cBRCParams& par, mfxF64 targetBits, mfxU32 type)
 {
     mfxI32 qp = 0;
     if (type == MFX_FRAMETYPE_P) {
@@ -705,7 +732,8 @@ static mfxI32 GetMinQForMaxFrameSize(const cBRCParams& par, mfxF64 targetBits, m
     return qp;
 }
 
-static void UpdateMinQForMaxFrameSize(cBRCParams* par, mfxI32 bits, mfxI32 qp, const BRC_Ctx& ctx, mfxU32 type, bool shstrt, mfxU16 brcSts)
+static
+void UpdateMinQForMaxFrameSize(cBRCParams* par, mfxI32 bits, mfxI32 qp, const BRC_Ctx& ctx, mfxU32 type, bool shstrt, mfxU16 brcSts)
 {
     if (type == MFX_FRAMETYPE_I || type == MFX_FRAMETYPE_IDR) {
         mfxI32 rawSize = par->mRawFrameSizeInPixs;
@@ -754,7 +782,7 @@ static void UpdateMinQForMaxFrameSize(cBRCParams* par, mfxI32 bits, mfxI32 qp, c
     }
 }
 
-mfxI32 BRC_EncTool::GetCurQP (mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const
+mfxI32 BRC_EncToolBase::GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const
 {
     mfxI32 qp = 0;
     if (type == MFX_FRAMETYPE_IDR)
@@ -784,7 +812,7 @@ mfxI32 BRC_EncTool::GetCurQP (mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qp
     return qp;
 }
 
-mfxF64 BRC_EncTool::ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong, mfxU32 eo, bool bIdr, mfxU16 qpMod, mfxI32 qpDeltaP, bool bNoNewQp) const
+mfxF64 BRC_EncToolBase::ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong, mfxU32 eo, bool bIdr, mfxU16 qpMod, mfxI32 qpDeltaP, bool bNoNewQp) const
 {
     mfxI32 seqQP_new = GetSeqQP(qp, type, layer, isRef, qpMod, qpDeltaP);
     mfxF64 dQuantAb_new = 1.0 / seqQP_new;
@@ -825,7 +853,7 @@ mfxF64 BRC_EncTool::ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 is
     return dQuantAb;
 }
 
-mfxI32 BRC_EncTool::GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const
+mfxI32 BRC_EncToolBase::GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const
 {
     mfxI32 pqp = 0;
     if (type == MFX_FRAMETYPE_IDR) {
@@ -843,7 +871,7 @@ mfxI32 BRC_EncTool::GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef,
     return pqp;
 }
 
-mfxI32 BRC_EncTool::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const
+mfxI32 BRC_EncToolBase::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const
 {
     mfxI32 qp = 0;
 
@@ -874,7 +902,7 @@ mfxI32 BRC_EncTool::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 isRef
 }
 
 
-mfxStatus BRC_EncTool::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
+mfxStatus BRC_EncToolBase::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
 {
     MFX_CHECK(!m_bInit, MFX_ERR_UNDEFINED_BEHAVIOR);
     mfxStatus sts = MFX_ERR_NONE;
@@ -914,7 +942,7 @@ mfxStatus BRC_EncTool::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
     return sts;
 }
 
-mfxStatus BRC_EncTool::Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
+mfxStatus BRC_EncToolBase::Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
 {
     mfxStatus sts = MFX_ERR_NONE;
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
@@ -960,7 +988,7 @@ mfxStatus BRC_EncTool::Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
 
 
 
-mfxStatus BRC_EncTool::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *pFrameSts)
+mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *pFrameSts)
 {
     mfxStatus sts = MFX_ERR_NONE;
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
@@ -1502,7 +1530,7 @@ static mfxI32 compute_new_qp_intra(mfxI32 targetBits, mfxI32 rawSize, mfxF64 rac
     if (qp < 1) qp = 1;
     return qp;
 }
-mfxStatus BRC_EncTool::GetHRDPos(mfxU32 dispOrder, mfxEncToolsBRCHRDPos *pHRDPos)
+mfxStatus BRC_EncToolBase::GetHRDPos(mfxU32 dispOrder, mfxEncToolsBRCHRDPos *pHRDPos)
 {
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK_NULL_PTR1(pHRDPos);
@@ -1528,7 +1556,7 @@ static mfxU8 SelectQp(mfxF64 erate[52], mfxF64 budget)
     return 51;
 }
 
-mfxI32 BRC_EncTool::GetLaQpEst(mfxU32 LaAvgEncodedSize, mfxF64 inputBitsPerFrame) const
+mfxI32 BRC_EncToolBase::GetLaQpEst(mfxU32 LaAvgEncodedSize, mfxF64 inputBitsPerFrame) const
 {
     mfxU32 laScaledSize = LaAvgEncodedSize << (m_par.mLaScale << 1);
     mfxF32 laQ = ((mfxF32)(m_par.mLaQp) - ((logf((mfxF32)inputBitsPerFrame / (mfxF32)laScaledSize) / logf(2.0f)) * 6.0f));
@@ -1556,7 +1584,7 @@ mfxI32 BRC_EncTool::GetLaQpEst(mfxU32 LaAvgEncodedSize, mfxF64 inputBitsPerFrame
     return laQp;
 }
 
-mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl *pFrameQp, 
+mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl *pFrameQp, 
     mfxEncToolsHintQPMap* qpMapHint)
 {
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
@@ -1989,75 +2017,13 @@ mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl
     pFrameQp->QpY = frameStruct.qp;
     pFrameQp->NumDeltaQP = 0;
 
-    // PAQ
-    frameStructItr->QpMapNZ = 0;    // save for update
-    memset(frameStructItr->QpMap, 0, sizeof(frameStructItr->QpMap));
-
-    if (m_par.mMBBRC && frameStructItr->PersistenceMapNZ)
-    {
-        if (type != MFX_FRAMETYPE_B && (isIntra || frameStruct.encOrder >= m_ctx.LastMBQpSetOrder + MBQP_P_UPDATE_DIST)) 
-        {
-            // delta QP table
-            mfxI32 qp_y = (mfxI32) pFrameQp->QpY;
-            mfxI32 qp_d = 2; 
-
-            if (qp_y > 30)
-                qp_d = 6;
-            else if (qp_y > 25)
-                qp_d = 5;
-            else if (qp_y > 20)
-                qp_d = 4;
-            else if (qp_y > 15)
-                qp_d = 3;                
-
-            mfxU16 count = 0;
-            for (mfxU32 i = 0; i < MFX_ENCTOOLS_PREENC_MAP_SIZE; i++)
-            {
-                frameStructItr->QpMap[i] = (mfxI8) (-1 * std::min(qp_d, (frameStructItr->PersistenceMap[i] + 1) / 3));
-                if (frameStructItr->QpMap[i]) count++;
-            }
-            frameStructItr->QpMapNZ = count;
-            if(count)
-                m_ctx.LastMBQpSetOrder = frameStruct.encOrder;
-        }
-    }
-
-    if (qpMapHint && qpMapHint->ExtQpMap.QP)
-    {
-        qpMapHint->QpMapFilled = frameStructItr->QpMapNZ;
-        if (qpMapHint->QpMapFilled) {
-
-            mfxU32 iw = 16;
-            mfxU32 ih = 8;
-            mfxU32 ibw = m_par.cropWidth / iw;
-            mfxU32 ibh = m_par.cropHeight / ih;
-
-            mfxU32 mapBw = qpMapHint->ExtQpMap.BlockSize;
-            mfxU32 mapBh = qpMapHint->ExtQpMap.BlockSize;            
-            mfxU32 wInBlk = qpMapHint->QpMapPitch;
-            mfxU32 hInBlk = qpMapHint->ExtQpMap.NumQPAlloc/ wInBlk;
-
-   
-            // Map 16x8 map to Width/blSize x Height/blSize
-            for (mfxU32 i = 0; i < hInBlk; i++)
-            {
-                for (mfxU32 j = 0; j < wInBlk; j++)
-                {
-                    // (x,y) is QP lookup location in 16x8 map for pixel center of current block (j,i)
-                    mfxU32 y = std::min((i * mapBh + mapBh / 2) / ibh, ih - 1);
-                    mfxU32 x = std::min((j * mapBw + mapBw / 2) / ibw, iw - 1);
-
-                    qpMapHint->ExtQpMap.QP[i * wInBlk + j] = (mfxI8)mfx::clamp((mfxI32)pFrameQp->QpY + (mfxI32)frameStructItr->QpMap[y * iw + x], (mfxI32)MIN_PAQ_QP, (mfxI32)51);
-                }
-            }
-        }
-    }
+    FillQpMap(*frameStructItr, pFrameQp->QpY, qpMapHint);
 
     return MFX_ERR_NONE;
 }
 
 
-mfxStatus BRC_EncTool::ReportEncResult(mfxU32 dispOrder, mfxEncToolsBRCEncodeResult const & pEncRes)
+mfxStatus BRC_EncToolBase::ReportEncResult(mfxU32 dispOrder, mfxEncToolsBRCEncodeResult const & pEncRes)
 {
     auto frameStruct = std::find_if(m_FrameStruct.begin(), m_FrameStruct.end(), CompareByDisplayOrder(dispOrder));
     if (frameStruct == m_FrameStruct.end())
@@ -2071,7 +2037,7 @@ mfxStatus BRC_EncTool::ReportEncResult(mfxU32 dispOrder, mfxEncToolsBRCEncodeRes
 }
 
 
-mfxStatus BRC_EncTool::SetFrameStruct(mfxU32 dispOrder, mfxEncToolsBRCFrameParams  const & pFrameStruct)
+mfxStatus BRC_EncToolBase::SetFrameStruct(mfxU32 dispOrder, mfxEncToolsBRCFrameParams  const & pFrameStruct)
 {
     auto frameStruct = std::find_if(m_FrameStruct.begin(), m_FrameStruct.end(), CompareByDisplayOrder(dispOrder));
     if (frameStruct == m_FrameStruct.end())
@@ -2103,14 +2069,13 @@ mfxStatus BRC_EncTool::SetFrameStruct(mfxU32 dispOrder, mfxEncToolsBRCFrameParam
     return MFX_ERR_NONE;
 }
 
-mfxStatus BRC_EncTool::ReportBufferHints(mfxU32 dispOrder, mfxEncToolsBRCBufferHint const & pBufHints)
+mfxStatus BRC_EncToolBase::ReportBufferHints(mfxU32 dispOrder, mfxEncToolsBRCBufferHint const & pBufHints)
 {
     auto frameStruct = std::find_if(m_FrameStruct.begin(), m_FrameStruct.end(), CompareByDisplayOrder(dispOrder));
     if (frameStruct == m_FrameStruct.end())
     {
         BRC_FrameStruct frStruct;
         frStruct.dispOrder = dispOrder;
-        frStruct.OptimalFrameSizeInBytes = pBufHints.OptimalFrameSizeInBytes;
         frStruct.LaAvgEncodedSize        = pBufHints.AvgEncodedSizeInBits;
         frStruct.LaCurEncodedSize        = pBufHints.CurEncodedSizeInBits;
         frStruct.LaIDist                 = pBufHints.DistToNextI;
@@ -2119,7 +2084,6 @@ mfxStatus BRC_EncTool::ReportBufferHints(mfxU32 dispOrder, mfxEncToolsBRCBufferH
     }
     else
     {
-        (*frameStruct).OptimalFrameSizeInBytes = pBufHints.OptimalFrameSizeInBytes;
         (*frameStruct).LaAvgEncodedSize        = pBufHints.AvgEncodedSizeInBits;
         (*frameStruct).LaCurEncodedSize        = pBufHints.CurEncodedSizeInBits;
         (*frameStruct).LaIDist                 = pBufHints.DistToNextI;
@@ -2127,7 +2091,7 @@ mfxStatus BRC_EncTool::ReportBufferHints(mfxU32 dispOrder, mfxEncToolsBRCBufferH
     return MFX_ERR_NONE;
 }
 
-mfxStatus BRC_EncTool::ReportGopHints(mfxU32 dispOrder, mfxEncToolsHintPreEncodeGOP const & pGopHints)
+mfxStatus BRC_EncToolBase::ReportGopHints(mfxU32 dispOrder, mfxEncToolsHintPreEncodeGOP const & pGopHints)
 {
     auto frameStruct = std::find_if(m_FrameStruct.begin(), m_FrameStruct.end(), CompareByDisplayOrder(dispOrder));
     if (frameStruct == m_FrameStruct.end())
@@ -2381,6 +2345,89 @@ mfxU32 H264_HRD::GetMaxFrameSizeInBits(mfxU32 eo, bool bSEI)  const
     return  maxFrameSize;
 }
 
+void sHrdInput::Init(cBRCParams par)
+{
+    m_cbrFlag = (par.rateControlMethod == MFX_RATECONTROL_CBR);
+    m_bitrate = par.maxbps;
+    m_maxCpbRemovalDelay = 1 << (h264_h265_au_cpb_removal_delay_length_minus1 + 1);
+    m_clockTick = 90000. / par.frameRate;
+    m_cpbSize90k = mfxU32(90000. * par.bufferSizeInBytes*8.0 / m_bitrate);
+    m_initCpbRemovalDelay = 90000. * 8. * par.initialDelayInBytes / m_bitrate;
+}
+
+void BRC_EncTool::FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp, mfxEncToolsHintQPMap* qpMapHint)
+{
+    const auto type = GetFrameType(frameStruct.frameType, frameStruct.pyrLayer, m_par.gopRefDist, m_par.codecId);
+    const mfxU16 isIntra = frameStruct.frameType & (MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_I);
+
+    decltype(frameStruct.PersistenceMap) QpMap = {};
+    decltype(frameStruct.QpMapNZ) QpMapNZ = 0;
+
+    // PAQ
+    if (m_par.mMBBRC && frameStruct.PersistenceMapNZ)
+    {
+        if (type != MFX_FRAMETYPE_B && (isIntra || frameStruct.encOrder >= m_ctx.LastMBQpSetOrder + MBQP_P_UPDATE_DIST)) 
+        {
+            // delta QP table
+            mfxI32 qp_y = (mfxI32) frameQp;
+            mfxI32 qp_d = 2; 
+
+            if (qp_y > 30)
+                qp_d = 6;
+            else if (qp_y > 25)
+                qp_d = 5;
+            else if (qp_y > 20)
+                qp_d = 4;
+            else if (qp_y > 15)
+                qp_d = 3;
+
+            mfxU16 count = 0;
+            for (mfxU32 i = 0; i < MFX_ENCTOOLS_PREENC_MAP_SIZE; i++)
+            {
+                QpMap[i] = (mfxI8) (-1 * std::min(qp_d, (frameStruct.PersistenceMap[i] + 1) / 3));
+                if (QpMap[i]) count++;
+            }
+            QpMapNZ = count;
+            if(count)
+                m_ctx.LastMBQpSetOrder = frameStruct.encOrder;
+        }
+    }
+
+    if (qpMapHint && qpMapHint->ExtQpMap.QP)
+    {
+        qpMapHint->QpMapFilled = frameStruct.QpMapNZ;
+        if (qpMapHint->QpMapFilled) {
+
+            mfxU32 iw = 16;
+            mfxU32 ih = 8;
+            mfxU32 ibw = m_par.cropWidth / iw;
+            mfxU32 ibh = m_par.cropHeight / ih;
+
+            mfxU32 mapBw = qpMapHint->ExtQpMap.BlockSize;
+            mfxU32 mapBh = qpMapHint->ExtQpMap.BlockSize;
+            mfxU32 wInBlk = qpMapHint->QpMapPitch;
+            mfxU32 hInBlk = qpMapHint->ExtQpMap.NumQPAlloc/ wInBlk;
+
+            // Map 16x8 map to Width/blSize x Height/blSize
+            for (mfxU32 i = 0; i < hInBlk; i++)
+            {
+                for (mfxU32 j = 0; j < wInBlk; j++)
+                {
+                    // (x,y) is QP lookup location in 16x8 map for pixel center of current block (j,i)
+                    mfxU32 y = std::min((i * mapBh + mapBh / 2) / ibh, ih - 1);
+                    mfxU32 x = std::min((j * mapBw + mapBw / 2) / ibw, iw - 1);
+
+                    qpMapHint->ExtQpMap.QP[i * wInBlk + j] = mfxI8(
+                        mfx::clamp(frameQp + QpMap[y * iw + x], mfxU32(MIN_PAQ_QP), 51U)
+                    );
+                }
+            }
+        }
+    }
+}
+
+} //namespace EncToolsBRC
+
 mfxStatus ExtBRC::GetFrameCtrl(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* ctrl)
 {
     mfxEncToolsTaskParam par;
@@ -2406,7 +2453,6 @@ mfxStatus ExtBRC::GetFrameCtrl(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* ctr
     sts = Submit(&par);
     MFX_CHECK_STS(sts);
 
-
     extParams.clear();
 
     mfxEncToolsBRCQuantControl extFrameQP;
@@ -2422,19 +2468,7 @@ mfxStatus ExtBRC::GetFrameCtrl(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* ctr
 
     ctrl->QpY = extFrameQP.QpY;
     return sts;
-
 }
-
-void sHrdInput::Init(cBRCParams par)
-{
-    m_cbrFlag = (par.rateControlMethod == MFX_RATECONTROL_CBR);
-    m_bitrate = par.maxbps;
-    m_maxCpbRemovalDelay = 1 << (h264_h265_au_cpb_removal_delay_length_minus1 + 1);
-    m_clockTick = 90000. / par.frameRate;
-    m_cpbSize90k = mfxU32(90000. * par.bufferSizeInBytes*8.0 / m_bitrate);
-    m_initCpbRemovalDelay = 90000. * 8. * par.initialDelayInBytes / m_bitrate;
-}
-
 
 mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctrl, mfxBRCFrameStatus* status)
 {

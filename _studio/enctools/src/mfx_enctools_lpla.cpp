@@ -19,9 +19,11 @@
 // SOFTWARE.
 
 #include "mfx_enctools.h"
+#include "mfx_enctools_lpla.h"
+
 #include <algorithm>
 #include <math.h>
-#include "mfx_enctools_lpla.h"
+#include <climits>
 
 mfxStatus LPLA_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig const & config)
 {

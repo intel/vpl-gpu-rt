@@ -21,10 +21,8 @@
 #ifndef __MFX_ENCTOOLS_H__
 #define __MFX_ENCTOOLS_H__
 
-#include "mfxcommon.h"
-#include "mfxenctools-int.h"
+#include "mfx_ienctools.h"
 #include "mfx_enctools_defs.h"
-#include "mfx_enctools_brc.h"
 #include "mfx_enctools_aenc.h"
 #include "mfx_enctools_lpla.h"
 #include "mfx_enctools_utils.h"
@@ -36,18 +34,18 @@
 #include <algorithm>
 
 using namespace EncToolsUtils;
-using namespace EncToolsBRC;
 
 mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl);
 
-class EncTools
+class EncTools : public IEncTools
 {
 private:
 
     bool       m_bVPPInit;
     bool       m_bInit;
 
-    BRC_EncTool  m_brc;
+    std::unique_ptr<IEncToolsBRC> m_brc;
+
     AEnc_EncTool m_scd;
     LPLA_EncTool m_lpLookAhead;
     mfxExtEncToolsConfig m_config;
@@ -69,36 +67,20 @@ private:
     mfxFrameSurface1 m_IntSurfaces_SCD;                 // internal surface for SCD
 
 public:
-    EncTools() :
 
-        m_bVPPInit(false),
-        m_bInit(false),
-        m_config(),
-        m_ctrl(),
-        m_device(0),
-        m_deviceType(0),
-        m_pAllocator(nullptr),
-        m_pETAllocator(nullptr),
-        m_pmfxAllocatorParams(nullptr),
-        m_mfxSession_LA(nullptr),
-        m_mfxVppParams_LA(),
-        m_mfxVppParams_AEnc(),
-        m_VppResponse(),
-        m_IntSurfaces_SCD()
-    {}
+    EncTools();
+    ~EncTools() override { Close(); }
 
-    virtual ~EncTools() { Close(); }
+    mfxStatus Init(mfxExtEncToolsConfig const * pEncToolConfig, mfxEncToolsCtrl const * ctrl) override;
+    mfxStatus GetSupportedConfig(mfxExtEncToolsConfig* pConfig, mfxEncToolsCtrl const * ctrl) override;
+    mfxStatus GetActiveConfig(mfxExtEncToolsConfig* pConfig) override;
+    mfxStatus GetDelayInFrames(mfxExtEncToolsConfig const * pConfig, mfxEncToolsCtrl const * ctrl, mfxU32 *numFrames) override;
+    mfxStatus Reset(mfxExtEncToolsConfig const * pEncToolConfig, mfxEncToolsCtrl const * ctrl) override;
+    mfxStatus Close() override;
 
-    mfxStatus Init(mfxExtEncToolsConfig const * pEncToolConfig, mfxEncToolsCtrl const * ctrl);
-    mfxStatus GetSupportedConfig(mfxExtEncToolsConfig* pConfig, mfxEncToolsCtrl const * ctrl);
-    mfxStatus GetActiveConfig(mfxExtEncToolsConfig* pConfig);
-    mfxStatus GetDelayInFrames(mfxExtEncToolsConfig const * pConfig, mfxEncToolsCtrl const * ctrl, mfxU32 *numFrames);
-    mfxStatus Reset(mfxExtEncToolsConfig const * pEncToolConfig, mfxEncToolsCtrl const * ctrl);
-    mfxStatus Close();
-
-    mfxStatus Submit(mfxEncToolsTaskParam const * par);
-    mfxStatus Query(mfxEncToolsTaskParam* par, mfxU32 timeOut);
-    mfxStatus Discard(mfxU32 displayOrder);
+    mfxStatus Submit(mfxEncToolsTaskParam const * par) override;
+    mfxStatus Query(mfxEncToolsTaskParam* par, mfxU32 timeOut)override ;
+    mfxStatus Discard(mfxU32 displayOrder) override;
 
 protected:
     mfxStatus InitMfxVppParams(mfxEncToolsCtrl const & ctrl);
@@ -111,65 +93,6 @@ protected:
     mfxStatus VPPDownScaleSurface(MFXVideoSession* m_pmfxSession, MFXVideoVPP* pVPP, mfxSyncPoint* pVppSyncp, mfxFrameSurface1* pInSurface, mfxFrameSurface1* pOutSurface);
 };
 
-namespace EncToolsFuncs
-{
-
-    inline mfxStatus Init(mfxHDL pthis, mfxExtEncToolsConfig* config, mfxEncToolsCtrl* ctrl)
-    {
-        MFX_CHECK_NULL_PTR1(pthis);
-        return ((EncTools*)pthis)->Init(config, ctrl);
-    }
-
-    inline mfxStatus GetSupportedConfig(mfxHDL pthis, mfxExtEncToolsConfig* config, mfxEncToolsCtrl* ctrl)
-    {
-        MFX_CHECK_NULL_PTR1(pthis);
-        return ((EncTools*)pthis)->GetSupportedConfig(config, ctrl);
-    }
-    inline mfxStatus GetActiveConfig(mfxHDL pthis, mfxExtEncToolsConfig* config)
-    {
-        MFX_CHECK_NULL_PTR1(pthis);
-        return ((EncTools*)pthis)->GetActiveConfig(config);
-    }
-    inline mfxStatus Reset(mfxHDL pthis, mfxExtEncToolsConfig* config, mfxEncToolsCtrl* ctrl)
-    {
-        MFX_CHECK_NULL_PTR1(pthis);
-        return ((EncTools*)pthis)->Reset(config, ctrl);
-    }
-    inline mfxStatus Close(mfxHDL pthis)
-    {
-        MFX_CHECK_NULL_PTR1(pthis);
-        return ((EncTools*)pthis)->Close();
-    }
-
-    // Submit info to tool
-    inline mfxStatus Submit(mfxHDL pthis, mfxEncToolsTaskParam* submitParam)
-    {
-        MFX_CHECK_NULL_PTR1(pthis);
-        return ((EncTools*)pthis)->Submit(submitParam);
-    }
-
-    // Query info from tool
-    inline mfxStatus Query(mfxHDL pthis, mfxEncToolsTaskParam* queryParam, mfxU32 timeOut)
-    {
-        MFX_CHECK_NULL_PTR1(pthis);
-        return ((EncTools*)pthis)->Query(queryParam, timeOut);
-    }
-
-    // Query info from tool
-    inline mfxStatus Discard(mfxHDL pthis, mfxU32 displayOrder)
-    {
-        MFX_CHECK_NULL_PTR1(pthis);
-        return ((EncTools*)pthis)->Discard(displayOrder);
-    }
-    inline mfxStatus GetDelayInFrames(mfxHDL pthis, mfxExtEncToolsConfig* config, mfxEncToolsCtrl* ctrl, mfxU32 *numFrames)
-    {
-        MFX_CHECK_NULL_PTR1(pthis);
-        return ((EncTools*)pthis)->GetDelayInFrames(config, ctrl, numFrames);
-    }
-
-}
-
-
 class ExtBRC : public EncTools
 {
 public:
@@ -178,10 +101,8 @@ public:
     mfxStatus Update(mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl, mfxBRCFrameStatus* status);
 };
 
-
 namespace ExtBRCFuncs
 {
-
     inline mfxStatus Init(mfxHDL pthis, mfxVideoParam* par)
     {
         MFX_CHECK_NULL_PTR2(pthis,par);
@@ -236,20 +157,9 @@ namespace ExtBRCFuncs
     }
 }
 
-
-mfxExtBuffer* Et_GetExtBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id);
-
 inline bool isFieldMode(mfxEncToolsCtrl const & ctrl)
 {
     return ((ctrl.CodecId == MFX_CODEC_HEVC) && !(ctrl.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE));
 }
-
-struct CompareByDisplayOrder
-{
-    mfxU32 m_DispOrder;
-    CompareByDisplayOrder(mfxU32 frameOrder) : m_DispOrder(frameOrder) {}
-    bool operator ()(BRC_FrameStruct const & frameStruct) const { return frameStruct.dispOrder == m_DispOrder; }
-};
-
 
 #endif

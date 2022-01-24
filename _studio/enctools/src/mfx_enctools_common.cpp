@@ -19,24 +19,13 @@
 // SOFTWARE.
 
 #include "mfx_enctools.h"
+#include "mfx_enctools_brc.h"
+
 #include <algorithm>
 #include <math.h>
 
 constexpr mfxU32 ENC_TOOLS_WAIT_INTERVAL = 300000;
 
-mfxExtBuffer* Et_GetExtBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id)
-{
-    if (extBuf != 0)
-    {
-        for (mfxU16 i = 0; i < numExtBuf; i++)
-        {
-            if (extBuf[i] != 0 && extBuf[i]->BufferId == id) // assuming aligned buffers
-                return (extBuf[i]);
-        }
-    }
-
-    return 0;
-}
 mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
 {
     MFX_CHECK_NULL_PTR1(ctrl);
@@ -223,6 +212,25 @@ inline bool isPreEncLA(mfxExtEncToolsConfig const & conf, mfxEncToolsCtrl const 
          IsOn(conf.AdaptivePyramidQuantP) ||
          IsOn(conf.AdaptivePyramidQuantB) ||
          IsOn(conf.AdaptiveMBQP))));
+}
+
+EncTools::EncTools()
+    : m_bVPPInit(false)
+    , m_bInit(false)
+    , m_brc(new EncToolsBRC::BRC_EncTool())
+    , m_config()
+    , m_ctrl()
+    , m_device(0)
+    , m_deviceType(0)
+    , m_pAllocator(nullptr)
+    , m_pETAllocator(nullptr)
+    , m_pmfxAllocatorParams(nullptr)
+    , m_mfxSession_LA(nullptr)
+    , m_mfxVppParams_LA()
+    , m_mfxVppParams_AEnc()
+    , m_VppResponse()
+    , m_IntSurfaces_SCD()
+{
 }
 
 mfxStatus EncTools::GetSupportedConfig(mfxExtEncToolsConfig* config, mfxEncToolsCtrl const * ctrl)
@@ -690,7 +698,7 @@ mfxStatus EncTools::Init(mfxExtEncToolsConfig const * pConfig, mfxEncToolsCtrl c
     SetToolsStatus(&m_config, false);
     if (IsOn(pConfig->BRC))
     {
-        sts = m_brc.Init(*ctrl, IsOn(pConfig->AdaptiveMBQP));
+        sts = m_brc->Init(*ctrl, IsOn(pConfig->AdaptiveMBQP));
         MFX_CHECK_STS(sts);
         m_config.BRC = MFX_CODINGOPTION_ON;
     }
@@ -742,7 +750,7 @@ mfxStatus EncTools::Close()
 
     if (IsOn(m_config.BRC))
     {
-        m_brc.Close();
+        m_brc->Close();
         m_config.BRC = false;
     }
 
@@ -775,7 +783,7 @@ mfxStatus EncTools::Reset(mfxExtEncToolsConfig const * config, mfxEncToolsCtrl c
     if (IsOn(config->BRC))
     {
         MFX_CHECK(m_config.BRC, MFX_ERR_UNSUPPORTED);
-        sts = m_brc.Reset(*ctrl, IsOn(config->AdaptiveMBQP));
+        sts = m_brc->Reset(*ctrl, IsOn(config->AdaptiveMBQP));
         MFX_CHECK_STS(sts);
     }
     if (isPreEncSCD(*config, *ctrl))
@@ -949,27 +957,27 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
     }
     if (pEncRes && IsOn(m_config.BRC))
     {
-        return m_brc.ReportEncResult(par->DisplayOrder, *pEncRes);
+        return m_brc->ReportEncResult(par->DisplayOrder, *pEncRes);
     }
 
     mfxEncToolsBRCFrameParams  *pFrameStruct = (mfxEncToolsBRCFrameParams *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_BRC_FRAME_PARAM );
     if (pFrameStruct && IsOn(m_config.BRC))
     {
-        sts = m_brc.SetFrameStruct(par->DisplayOrder, *pFrameStruct);
+        sts = m_brc->SetFrameStruct(par->DisplayOrder, *pFrameStruct);
         MFX_CHECK_STS(sts);
     }
 
     mfxEncToolsBRCBufferHint  *pBRCHints = (mfxEncToolsBRCBufferHint *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_BRC_BUFFER_HINT);
     if (pBRCHints && IsOn(m_config.BRC))
     {
-        sts = m_brc.ReportBufferHints(par->DisplayOrder, *pBRCHints);
+        sts = m_brc->ReportBufferHints(par->DisplayOrder, *pBRCHints);
         MFX_CHECK_STS(sts);
     }
 
     mfxEncToolsHintPreEncodeGOP *pPreEncGOP = (mfxEncToolsHintPreEncodeGOP *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_HINT_GOP);
     if (pPreEncGOP && IsOn(m_config.BRC))
     {
-        return m_brc.ReportGopHints(par->DisplayOrder, *pPreEncGOP);
+        return m_brc->ReportGopHints(par->DisplayOrder, *pPreEncGOP);
     }
 
     return sts;
@@ -1033,7 +1041,7 @@ mfxStatus EncTools::Query(mfxEncToolsTaskParam* par, mfxU32 /*timeOut*/)
     mfxEncToolsBRCStatus  *pFrameSts = (mfxEncToolsBRCStatus *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_BRC_STATUS);
     if (pFrameSts && IsOn(m_config.BRC))
     {
-        return m_brc.UpdateFrame(par->DisplayOrder, pFrameSts);
+        return m_brc->UpdateFrame(par->DisplayOrder, pFrameSts);
     }
 
     mfxEncToolsBRCQuantControl *pFrameQp = (mfxEncToolsBRCQuantControl *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_BRC_QUANT_CONTROL);
@@ -1041,13 +1049,13 @@ mfxStatus EncTools::Query(mfxEncToolsTaskParam* par, mfxU32 /*timeOut*/)
 
     if (pFrameQp && IsOn(m_config.BRC))
     {
-        sts = m_brc.ProcessFrame(par->DisplayOrder, pFrameQp, qpMapHint);
+        sts = m_brc->ProcessFrame(par->DisplayOrder, pFrameQp, qpMapHint);
         MFX_CHECK_STS(sts);
     }
     mfxEncToolsBRCHRDPos *pHRDPos = (mfxEncToolsBRCHRDPos *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_BRC_HRD_POS);
     if (pHRDPos && IsOn(m_config.BRC))
     {
-        sts = m_brc.GetHRDPos(par->DisplayOrder, pHRDPos);
+        sts = m_brc->GetHRDPos(par->DisplayOrder, pHRDPos);
         MFX_CHECK_STS(sts);
     }
 

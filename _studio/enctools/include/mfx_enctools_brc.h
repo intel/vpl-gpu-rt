@@ -27,6 +27,7 @@
 #include <algorithm>
 #include "mfx_enctools_utils.h"
 #include <climits>
+
 namespace EncToolsBRC
 {
 
@@ -53,52 +54,27 @@ NalHrdConformance | VuiNalHrdParameters   |  Result
 
 struct BRC_FrameStruct
 {
-    BRC_FrameStruct() :
-        frameType(0),
-        pyrLayer(0),
-        encOrder(0),
-        dispOrder(0),
-        qp(0),
-        frameSize(0),
-        numRecode(0),
-        sceneChange(0),
-        longTerm(0),
-        frameCmplx(0),
-        OptimalFrameSizeInBytes(0),
-        LaAvgEncodedSize(0),
-        LaCurEncodedSize(0),
-        LaIDist(0),
-        qpDelta(MFX_QP_UNDEFINED),
-        qpModulation(MFX_QP_MODULATION_NOT_DEFINED),
-        miniGopSize(0),
-        PersistenceMapNZ(0),
-        PersistenceMap(),
-        QpMapNZ(0),
-        QpMap()
-    {}
-    mfxU16 frameType;
-    mfxU16 pyrLayer;
-    mfxU32 encOrder;
-    mfxU32 dispOrder;
-    mfxI32 qp;
-    mfxI32 frameSize;
-    mfxI32 numRecode;
-    mfxU16 sceneChange;
-    mfxU16 longTerm;
-    mfxU32 frameCmplx;
-    mfxU32 OptimalFrameSizeInBytes;
-    mfxU32 LaAvgEncodedSize;
-    mfxU32 LaCurEncodedSize;
-    mfxU32 LaIDist;
-    mfxI16 qpDelta;
-    mfxU16 qpModulation;
-    mfxU16 miniGopSize;
-    mfxU16 PersistenceMapNZ;
-    mfxU8  PersistenceMap[MFX_ENCTOOLS_PREENC_MAP_SIZE];
-    mfxU16 QpMapNZ;
-    mfxI8  QpMap[MFX_ENCTOOLS_PREENC_MAP_SIZE];
-};
+    mfxU16 frameType        = 0;
+    mfxU16 pyrLayer         = 0;
+    mfxU32 encOrder         = 0;
+    mfxU32 dispOrder        = 0;
+    mfxI32 qp               = 0;
+    mfxI32 frameSize        = 0;
+    mfxI32 numRecode        = 0;
+    mfxU16 sceneChange      = 0;
+    mfxU16 longTerm         = 0;
+    mfxU32 frameCmplx       = 0;
+    mfxU32 LaAvgEncodedSize = 0;
+    mfxU32 LaCurEncodedSize = 0;
+    mfxU32 LaIDist          = 0;
+    mfxI16 qpDelta          = MFX_QP_UNDEFINED;
+    mfxU16 qpModulation     = MFX_QP_MODULATION_NOT_DEFINED;
+    mfxU16 miniGopSize      = 0;
+    mfxU16 QpMapNZ          = 0;
+    mfxU16 PersistenceMapNZ = 0;
 
+    mfxU8  PersistenceMap[MFX_ENCTOOLS_PREENC_MAP_SIZE] = {};
+};
 
 class cBRCParams
 {
@@ -532,10 +508,12 @@ protected:
 };
 
 
-class BRC_EncTool
+class BRC_EncToolBase
+    : public IEncToolsBRC
 {
 public:
-    BRC_EncTool() :
+
+    BRC_EncToolBase() :
         m_bInit(false),
         m_par(),
         m_hrdSpec(),
@@ -544,25 +522,26 @@ public:
         m_SkipCount(0),
         m_ReEncodeCount(0)
     {}
-    ~BRC_EncTool() { Close(); }
 
-    mfxStatus Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC);
-    mfxStatus Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC);
-    void Close()
+    ~BRC_EncToolBase() override { Close(); }
+
+    mfxStatus Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC) override;
+    mfxStatus Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC) override;
+    void Close() override
     {
         m_bInit = false;
     }
 
-    mfxStatus ReportEncResult(mfxU32 dispOrder, mfxEncToolsBRCEncodeResult const & pEncRes);
-    mfxStatus SetFrameStruct(mfxU32 dispOrder, mfxEncToolsBRCFrameParams  const & pFrameStruct);
-    mfxStatus ReportBufferHints(mfxU32 dispOrder, mfxEncToolsBRCBufferHint const & pBufHints);
-    mfxStatus ReportGopHints(mfxU32 dispOrder, mfxEncToolsHintPreEncodeGOP const & pGopHints);
-    mfxStatus ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl *pFrameQp, mfxEncToolsHintQPMap* qpMapHint);
-    mfxStatus UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *pFrameSts);
-    mfxStatus GetHRDPos(mfxU32 dispOrder, mfxEncToolsBRCHRDPos *pHRDPos);
-
+    mfxStatus ReportEncResult(mfxU32 dispOrder, mfxEncToolsBRCEncodeResult const & pEncRes) override;
+    mfxStatus SetFrameStruct(mfxU32 dispOrder, mfxEncToolsBRCFrameParams  const & pFrameStruct) override;
+    mfxStatus ReportBufferHints(mfxU32 dispOrder, mfxEncToolsBRCBufferHint const & pBufHints) override;
+    mfxStatus ReportGopHints(mfxU32 dispOrder, mfxEncToolsHintPreEncodeGOP const & pGopHints) override;
+    mfxStatus ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl *pFrameQp, mfxEncToolsHintQPMap* qpMapHint) override;
+    mfxStatus UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *pFrameSts) override;
+    mfxStatus GetHRDPos(mfxU32 dispOrder, mfxEncToolsBRCHRDPos *pHRDPos) override;
 
 protected:
+
     bool m_bInit;
     cBRCParams m_par;
     std::unique_ptr < HRDCodecSpec> m_hrdSpec;
@@ -573,6 +552,7 @@ protected:
     mfxU32     m_ReEncodeCount;
     std::vector<BRC_FrameStruct> m_FrameStruct;
 
+    virtual void FillQpMap(BRC_FrameStruct const&, mfxU32 /*frameQp*/, mfxEncToolsHintQPMap*) = 0;
 
     mfxI32 GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
     mfxI32 GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
@@ -581,7 +561,14 @@ protected:
     mfxI32 GetLaQpEst(mfxU32 LaAvgEncodedSize, mfxF64 inputBitsPerFrame) const;
 };
 
+class BRC_EncTool : public BRC_EncToolBase
+{
+public:
+
+    void FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp, mfxEncToolsHintQPMap* qpMap) override;
 };
+
+}
 
 
 #endif
