@@ -2116,8 +2116,9 @@ mfxStatus MfxHwH264Encode::CheckAndFixOpenRectQueryLike(
         }
     }
 
-    if (rect->Right && rect->Right < rect->Left)
+    if (rect->Right <= rect->Left)
     {
+        rect->Left = 0;
         rect->Right = 0;
         return MFX_ERR_UNSUPPORTED;
     }
@@ -2132,8 +2133,9 @@ mfxStatus MfxHwH264Encode::CheckAndFixOpenRectQueryLike(
         }
     }
 
-    if (rect->Bottom && rect->Bottom <= rect->Top)
+    if (rect->Bottom <= rect->Top)
     {
+        rect->Top = 0;
         rect->Bottom = 0;
         return MFX_ERR_UNSUPPORTED;
     }
