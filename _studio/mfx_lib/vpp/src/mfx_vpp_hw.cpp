@@ -2057,6 +2057,28 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
                 bufSc->VideoBuffer.MemId            = m_executeParams.lut3DInfo.MemId;
             }
         }
+        else if (MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN == bufferId)
+        {
+            mfxExtVideoSignalInfo *bufSc = reinterpret_cast<mfxExtVideoSignalInfo *>(par->ExtParam[i]);
+            MFX_CHECK_NULL_PTR1(bufSc);
+            bufSc->VideoFormat                      = m_executeParams.m_inVideoSignalInfo.VideoFormat;
+            bufSc->VideoFullRange                   = m_executeParams.m_inVideoSignalInfo.VideoFullRange;
+            bufSc->ColourDescriptionPresent         = m_executeParams.m_inVideoSignalInfo.ColourDescriptionPresent;
+            bufSc->ColourPrimaries                  = m_executeParams.m_inVideoSignalInfo.ColourPrimaries;
+            bufSc->TransferCharacteristics          = m_executeParams.m_inVideoSignalInfo.TransferCharacteristics;
+            bufSc->MatrixCoefficients               = m_executeParams.m_inVideoSignalInfo.MatrixCoefficients;
+        }
+        else if (MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT == bufferId)
+        {
+            mfxExtVideoSignalInfo *bufSc = reinterpret_cast<mfxExtVideoSignalInfo *>(par->ExtParam[i]);
+            MFX_CHECK_NULL_PTR1(bufSc);
+            bufSc->VideoFormat                      = m_executeParams.m_outVideoSignalInfo.VideoFormat;
+            bufSc->VideoFullRange                   = m_executeParams.m_outVideoSignalInfo.VideoFullRange;
+            bufSc->ColourDescriptionPresent         = m_executeParams.m_outVideoSignalInfo.ColourDescriptionPresent;
+            bufSc->ColourPrimaries                  = m_executeParams.m_outVideoSignalInfo.ColourPrimaries;
+            bufSc->TransferCharacteristics          = m_executeParams.m_outVideoSignalInfo.TransferCharacteristics;
+            bufSc->MatrixCoefficients               = m_executeParams.m_outVideoSignalInfo.MatrixCoefficients;
+        }
         else if (MFX_EXTBUFF_VPP_COLOR_CONVERSION == bufferId)
         {
             mfxExtColorConversion *bufSc = reinterpret_cast<mfxExtColorConversion *>(par->ExtParam[i]);
@@ -2129,6 +2151,7 @@ mfxStatus VideoVPPHW::QueryImplsDescription(VideoCORE* core, mfxVPPDescription& 
 
     for(auto &filterId : capsList)
     {
+
         mfxVPPDescription::filter filter = { };
         filter.FilterFourCC = filterId;
 
@@ -2722,13 +2745,20 @@ mfxStatus VideoVPPHW::QueryCaps(VideoCORE* core, MfxHwVideoProcessing::mfxVppCap
 
     caps = ddi->GetCaps();
 
-#ifdef MFX_ENABLE_MCTF
     eMFXHWType  hwType = core->GetHWType();
+#ifdef MFX_ENABLE_MCTF
     caps.uMCTF = 0;
-    if (hwType >= MFX_HW_TGL_LP
-        )
+    if (hwType >= MFX_HW_TGL_LP && hwType < MFX_HW_DG2)
+    {
         caps.uMCTF = 1;
+    }
 #endif
+
+    caps.uVideoSignalInfoInOut = 0;
+    if(hwType >= MFX_HW_DG2)
+    {
+        caps.uVideoSignalInfoInOut = 1;
+    }
 
     caps.uFrameRateConversion = 1;
     caps.uFieldProcessing = 1;
@@ -5732,6 +5762,62 @@ mfxStatus ConfigureExecuteParams(
                 }
                 break;
             }
+            case MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN:
+            {
+                if (caps.uVideoSignalInfoInOut)
+                {
+                    for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
+                    {
+                        if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN)
+                        {
+                            mfxExtVideoSignalInfo *extBuf = (mfxExtVideoSignalInfo*) videoParam.ExtParam[i];
+                            if (extBuf)
+                            {
+                                executeParams.m_inVideoSignalInfo.enabled                         = true;
+                                executeParams.m_inVideoSignalInfo.VideoFormat                     = extBuf->VideoFormat;
+                                executeParams.m_inVideoSignalInfo.VideoFullRange                  = extBuf->VideoFullRange;
+                                executeParams.m_inVideoSignalInfo.ColourDescriptionPresent        = extBuf->ColourDescriptionPresent;
+                                executeParams.m_inVideoSignalInfo.ColourPrimaries                 = extBuf->ColourPrimaries;
+                                executeParams.m_inVideoSignalInfo.TransferCharacteristics         = extBuf->TransferCharacteristics;
+                                executeParams.m_inVideoSignalInfo.MatrixCoefficients              = extBuf->MatrixCoefficients;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    bIsFilterSkipped = true;
+                }
+                break;
+            }
+            case MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT:
+            {
+                if (caps.uVideoSignalInfoInOut)
+                {
+                    for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
+                    {
+                        if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT)
+                        {
+                            mfxExtVideoSignalInfo *extBuf = (mfxExtVideoSignalInfo*) videoParam.ExtParam[i];
+                            if (extBuf)
+                            {
+                                executeParams.m_outVideoSignalInfo.enabled                         = true;
+                                executeParams.m_outVideoSignalInfo.VideoFormat                     = extBuf->VideoFormat;
+                                executeParams.m_outVideoSignalInfo.VideoFullRange                  = extBuf->VideoFullRange;
+                                executeParams.m_outVideoSignalInfo.ColourDescriptionPresent        = extBuf->ColourDescriptionPresent;
+                                executeParams.m_outVideoSignalInfo.ColourPrimaries                 = extBuf->ColourPrimaries;
+                                executeParams.m_outVideoSignalInfo.TransferCharacteristics         = extBuf->TransferCharacteristics;
+                                executeParams.m_outVideoSignalInfo.MatrixCoefficients              = extBuf->MatrixCoefficients;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    bIsFilterSkipped = true;
+                }
+                break;
+            }
             case MFX_EXTBUFF_VPP_COLOR_CONVERSION:
             {
                 if (caps.uChromaSiting )
@@ -6298,6 +6384,14 @@ mfxStatus ConfigureExecuteParams(
                 else if (MFX_EXTBUFF_VPP_3DLUT == bufferId)
                 {
                     executeParams.lut3DInfo.Enabled = false;
+                }
+                else if (MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN== bufferId)
+                {
+                    executeParams.m_inVideoSignalInfo.enabled = false;
+                }
+                else if (MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT== bufferId)
+                {
+                    executeParams.m_outVideoSignalInfo.enabled = false;
                 }
                 else if (MFX_EXTBUFF_VPP_COLOR_CONVERSION == bufferId)
                 {

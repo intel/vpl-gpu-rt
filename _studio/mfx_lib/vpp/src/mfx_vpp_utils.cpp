@@ -51,8 +51,10 @@ const mfxU32 g_TABLE_DO_NOT_USE [] =
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
     MFX_EXTBUFF_VPP_MIRRORING,
-    MFX_EXTBUFF_VPP_3DLUT
-    ,MFX_EXTBUFF_VPP_DENOISE2
+    MFX_EXTBUFF_VPP_3DLUT,
+    MFX_EXTBUFF_VPP_DENOISE2,
+    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN,
+    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT
 };
 
 
@@ -75,8 +77,10 @@ const mfxU32 g_TABLE_DO_USE [] =
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
     MFX_EXTBUFF_VPP_MIRRORING,
-    MFX_EXTBUFF_VPP_3DLUT
-    ,MFX_EXTBUFF_VPP_DENOISE2
+    MFX_EXTBUFF_VPP_3DLUT,
+    MFX_EXTBUFF_VPP_DENOISE2,
+    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN,
+    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT
 };
 
 
@@ -100,8 +104,10 @@ const mfxU32 g_TABLE_CONFIG [] =
     MFX_EXTBUFF_VPP_SCALING,
     MFX_EXTBUFF_VPP_COLOR_CONVERSION,
     MFX_EXTBUFF_VPP_MIRRORING,
-    MFX_EXTBUFF_VPP_3DLUT
-    ,MFX_EXTBUFF_VPP_DENOISE2
+    MFX_EXTBUFF_VPP_3DLUT,
+    MFX_EXTBUFF_VPP_DENOISE2,
+    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN,
+    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT
 };
 
 
@@ -131,8 +137,10 @@ const mfxU32 g_TABLE_EXT_PARAM [] =
     MFX_EXTBUFF_VPP_SCALING,
     MFX_EXTBUFF_VPP_COLOR_CONVERSION,
     MFX_EXTBUFF_VPP_MIRRORING,
-    MFX_EXTBUFF_VPP_3DLUT
-    ,MFX_EXTBUFF_VPP_DENOISE2
+    MFX_EXTBUFF_VPP_3DLUT,
+    MFX_EXTBUFF_VPP_DENOISE2,
+    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN,
+    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT
 };
 
 PicStructMode GetPicStructMode(mfxU16 inPicStruct, mfxU16 outPicStruct)
@@ -680,6 +688,16 @@ void ShowPipeline( std::vector<mfxU32> pipelineList )
                 fprintf(stderr, "MFX_EXTBUFF_VPP_3DLUT\n");
                 break;
             }
+            case (mfxU32)MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN:
+            {
+                fprintf(stderr, "MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN\n");
+                break;
+            }
+            case (mfxU32)MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT:
+            {
+                fprintf(stderr, "MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT\n");
+                break;
+            }
             default:
             {
                 fprintf(stderr, "UNKNOWN Filter ID!!! \n");
@@ -802,6 +820,16 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
     if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_3DLUT ) )
     {
         newList[index] = MFX_EXTBUFF_VPP_3DLUT;
+        index++;
+    }
+    if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN) )
+    {
+        newList[index] = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN;
+        index++;
+    }
+    if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT) )
+    {
+        newList[index] = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT;
         index++;
     }
     if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_SCENE_ANALYSIS ) )
@@ -1251,6 +1279,20 @@ mfxStatus GetPipelineList(
         if( !IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_3DLUT ) )
         {
             pipelineList.push_back( MFX_EXTBUFF_VPP_3DLUT );
+        }
+    }
+    if( IsFilterFound( &configList[0], configCount, MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN ) && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN) )
+    {
+        if( !IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN ) )
+        {
+            pipelineList.push_back( MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN );
+        }
+    }
+    if( IsFilterFound( &configList[0], configCount, MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT ) && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT) )
+    {
+        if( !IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT ) )
+        {
+            pipelineList.push_back( MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT );
         }
     }
 
@@ -2165,6 +2207,11 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
         list.push_back(MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO);
     }
 
+    if(caps.uVideoSignalInfoInOut)
+    {
+        list.push_back(MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN);
+        list.push_back(MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT);
+    }
 
     if(caps.uIStabFilter)
     {
