@@ -518,10 +518,21 @@ MFX_PACK_BEGIN_STRUCT_W_PTR()
 */
 typedef struct {
     mfxAccelerationMode    AccelerationMode; /*!< Hardware acceleration stack to use. OS dependent parameter. Use VA for Linux*, DX* for Windows* or HDDL. */
+#ifdef ONEVPL_EXPERIMENTAL
+    mfxU16  DeviceCopy;                      /*!< Enables or disables device's accelerated copying between device and
+                                                  host. See the GPUCopy enumerator for a list of valid values.
+                                                  This parameter is the equivalent of mfxInitParam::GPUCopy. */
+    mfxU16  reserved[2];                     /*!< Reserved for future use. */
+#else
     mfxU16  reserved[3];                     /*!< Reserved for future use. */
-    mfxU16  NumExtParam;                     /*!< The number of extra configuration structures attached to this structure. */
-    mfxExtBuffer **ExtParam;                 /*!< Points to an array of pointers to the extra configuration structures; see the ExtendedBufferID enumerator for a list of extended configurations. */
-    mfxU32      VendorImplID;                /*!< Vendor specific number with given implementation ID. Represents the same field from mfxImplDescription. */
+#endif
+    mfxU16  NumExtParam;                     /*!< The number of extra configuration structures attached to this
+                                                  structure. */
+    mfxExtBuffer **ExtParam;                 /*!< Points to an array of pointers to the extra configuration structures;
+                                                  see the ExtendedBufferID enumerator for a list of extended
+                                                  configurations. */
+    mfxU32      VendorImplID;                /*!< Vendor specific number with given implementation ID. Represents
+                                                  the same field from mfxImplDescription. */
     mfxU32      reserved2[3];                /*!< Reserved for future use. */
 } mfxInitializationParam;
 MFX_PACK_END()
