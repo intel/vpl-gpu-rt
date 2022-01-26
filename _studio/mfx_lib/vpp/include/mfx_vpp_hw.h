@@ -34,9 +34,10 @@
 #include "mfx_vpp_defs.h"
 #include "libmfx_core_interface.h"
 
+#ifdef MFX_ENABLE_EXT
 #include "cmrt_cross_platform.h" // Gpucopy stuff
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
- #include "asc.h"        // Scene change detection
+#include "asc.h"        // Scene change detection
 #endif
 #include "cm_mem_copy.h"         // Needed for mirroring kernels
 #ifdef MFX_ENABLE_KERNELS
@@ -48,8 +49,7 @@
 #include "cpu_detect.h"
 #include <list>
 #endif
-
-class CmDevice;
+#endif
 
 namespace MfxHwVideoProcessing
 {
@@ -979,6 +979,7 @@ namespace MfxHwVideoProcessing
         VPPHWResMng * m_ddi;
         bool          m_bMultiView;
 
+#ifdef MFX_ENABLE_EXT
 #ifdef MFX_ENABLE_MCTF
         bool m_MctfIsFlushing;
 
@@ -1017,6 +1018,7 @@ namespace MfxHwVideoProcessing
 
         public:
             void SetCmDevice(CmDevice * device) { m_pCmDevice = device; }
+#endif
     };
 
 }; // namespace MfxHwVideoProcessing

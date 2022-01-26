@@ -163,10 +163,10 @@ mfxStatus VideoVPPBase::Init(mfxVideoParam *par)
     if (par->Protected)
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
-    sts = CheckFrameInfo( &(par->vpp.In), VPP_IN, m_core->GetHWType());
+    sts = CheckFrameInfo( &(par->vpp.In), VPP_IN);
     MFX_CHECK_STS( sts );
 
-    sts = CheckFrameInfo( &(par->vpp.Out), VPP_OUT, m_core->GetHWType());
+    sts = CheckFrameInfo( &(par->vpp.Out), VPP_OUT);
     MFX_CHECK_STS(sts);
 
     PicStructMode picStructMode = GetPicStructMode(par->vpp.In.PicStruct, par->vpp.Out.PicStruct);
@@ -282,10 +282,10 @@ mfxStatus VideoVPPBase::QueryIOSurf(VideoCORE* core, mfxVideoParam *par, mfxFram
 
     MFX_CHECK_NULL_PTR2(par, request);
 
-    mfxSts = CheckFrameInfo( &(par->vpp.In), VPP_IN, core->GetHWType());
+    mfxSts = CheckFrameInfo( &(par->vpp.In), VPP_IN);
     MFX_CHECK_STS( mfxSts );
 
-    mfxSts = CheckFrameInfo( &(par->vpp.Out), VPP_OUT, core->GetHWType());
+    mfxSts = CheckFrameInfo( &(par->vpp.Out), VPP_OUT);
     MFX_CHECK_STS( mfxSts );
 
     // make sense?
@@ -358,7 +358,7 @@ mfxStatus VideoVPPBase::QueryIOSurf(VideoCORE* core, mfxVideoParam *par, mfxFram
             request[VPP_OUT].NumFrameMin *= vppAsyncDepth;
         }
 
-        mfxSts = CheckIOPattern_AndSetIOMemTypes(par->IOPattern, &(request[VPP_IN].Type), &(request[VPP_OUT].Type), bSWLib);
+        mfxSts = CheckIOPattern_AndSetIOMemTypes(par->IOPattern, &(request[VPP_IN].Type), &(request[VPP_OUT].Type));
         MFX_CHECK_STS(mfxSts);
         return (bSWLib)? MFX_ERR_UNSUPPORTED : MFX_ERR_NONE;
     }
@@ -584,7 +584,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
          */
         mfxU16 inPattern;
         mfxU16 outPattern;
-        if (0 == in->IOPattern || MFX_ERR_NONE == CheckIOPattern_AndSetIOMemTypes(in->IOPattern, &inPattern, &outPattern, true))
+        if (0 == in->IOPattern || MFX_ERR_NONE == CheckIOPattern_AndSetIOMemTypes(in->IOPattern, &inPattern, &outPattern))
         {
             out->IOPattern = in->IOPattern;
         }
@@ -1077,10 +1077,10 @@ mfxStatus VideoVPPBase::Reset(mfxVideoParam *par)
 
     VPP_CHECK_NOT_INITIALIZED;
 
-    sts = CheckFrameInfo( &(par->vpp.In),  VPP_IN, m_core->GetHWType());
+    sts = CheckFrameInfo( &(par->vpp.In),  VPP_IN);
     MFX_CHECK_STS( sts );
 
-    sts = CheckFrameInfo( &(par->vpp.Out), VPP_OUT, m_core->GetHWType());
+    sts = CheckFrameInfo( &(par->vpp.Out), VPP_OUT);
     MFX_CHECK_STS(sts);
 
     //-----------------------------------------------------
@@ -1190,10 +1190,12 @@ mfxStatus VideoVPP_HW::InternalInit(mfxVideoParam *par)
 
     bool bIsFilterSkipped  = false;
 
+#ifdef MFX_ENABLE_EXT
     bool isSWFieldProcessing = IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_PROCESSING)
                             || IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_WEAVING)
                             || IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_SPLITTING);
 
+#endif
 
     pCommonCore = QueryCoreInterface<CommonCORE>(m_core, MFXIVideoCORE_GUID);
     MFX_CHECK(pCommonCore, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -1203,6 +1205,7 @@ mfxStatus VideoVPP_HW::InternalInit(mfxVideoParam *par)
 
     m_pHWVPP.reset(new VideoVPPHW(mode, m_core));
 
+#ifdef MFX_ENABLE_EXT
     if (isSWFieldProcessing)
     {
         CmDevice * device = QueryCoreInterface<CmDevice>(m_core, MFXICORECM_GUID);
@@ -1210,6 +1213,8 @@ mfxStatus VideoVPP_HW::InternalInit(mfxVideoParam *par)
 
         m_pHWVPP.get()->SetCmDevice(device);
     }
+#endif
+
     sts = m_pHWVPP.get()->Init(par); // OK or ERR only
     if (MFX_WRN_FILTER_SKIPPED == sts)
     {

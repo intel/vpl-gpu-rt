@@ -91,7 +91,7 @@ mfxStatus GetPipelineList(
     //mfxU32* pLen,
     bool    bExtended = false);
 
-mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform);
+mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request);
 
 mfxStatus CheckCropParam( mfxFrameInfo* info );
 mfxStatus CheckScalingParam(mfxExtBuffer* pScalingExtBuffer);
@@ -145,7 +145,7 @@ mfxStatus CheckTransferMatrix( mfxU16 transferMatrix );
 mfxGamutMode GetGamutMode( mfxU16 srcTransferMatrix, mfxU16 dstTransferMatrix );
 
 //
-mfxStatus CheckIOPattern_AndSetIOMemTypes(mfxU16 IOPattern, mfxU16* pInMemType, mfxU16* pOutMemType, bool bSWLib = true );
+mfxStatus CheckIOPattern_AndSetIOMemTypes(mfxU16 IOPattern, mfxU16* pInMemType, mfxU16* pOutMemType);
 
 // Video Analytics
 mfxU16 EstimatePicStruct(

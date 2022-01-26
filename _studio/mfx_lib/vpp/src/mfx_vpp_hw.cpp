@@ -1860,6 +1860,7 @@ VideoVPPHW::VideoVPPHW(IOMode mode, VideoCORE *core)
 ,m_ddi(NULL)
 ,m_bMultiView(false)
 
+#ifdef MFX_ENABLE_EXT
 #ifdef MFX_ENABLE_MCTF
 ,m_MctfIsFlushing(false)
 ,m_bMctfAllocatedMemory(false)
@@ -1875,6 +1876,7 @@ VideoVPPHW::VideoVPPHW(IOMode mode, VideoCORE *core)
 ,m_pCmProgram(NULL)
 ,m_pCmKernel(NULL)
 ,m_pCmQueue(NULL)
+#endif
 {
     m_config.m_bRefFrameEnable = false;
     m_config.m_bMode30i60pEnable = false;
@@ -2502,6 +2504,7 @@ mfxStatus  VideoVPPHW::Init(
     }
 #endif
 
+#ifdef MFX_ENABLE_EXT
     /* Starting from TGL, there is support for HW mirroring, but only with d3d11.
        On platforms prior to TGL we use driver kernel for Linux with d3d_to_d3d
        and msdk kernel for other cases*/
@@ -2520,6 +2523,7 @@ mfxStatus  VideoVPPHW::Init(
             return MFX_ERR_DEVICE_FAILED;
         }
     }
+#endif
 
 #ifdef MFX_ENABLE_MCTF
     {
@@ -3049,6 +3053,7 @@ mfxStatus VideoVPPHW::Close()
     // sync workload mode by default
     m_workloadMode = VPP_SYNC_WORKLOAD;
 
+#ifdef MFX_ENABLE_EXT
 #if defined (MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
     m_SCD.Close();
 #endif
@@ -3064,6 +3069,7 @@ mfxStatus VideoVPPHW::Close()
         m_pCmQueue = NULL;
         //::DestroyCmDevice(device);
     }
+#endif
 
 #ifdef MFX_ENABLE_MCTF
     if (m_bMctfAllocatedMemory)
@@ -3400,6 +3406,7 @@ mfxStatus VideoVPPHW::PreWorkInputSurface(std::vector<ExtSurface> & surfQueue)
             {
                 mfxFrameSurface1 inputVidSurf = MakeSurface(surfQueue[i].pSurf->Info, m_internalVidSurf[VPP_IN].mids[resIdx]);
 
+#ifdef MFX_ENABLE_EXT
                 if (MFX_MIRRORING_HORIZONTAL == m_executeParams.mirroring && MIRROR_INPUT == m_executeParams.mirroringPosition && m_pCmCopy && !m_isD3D9SimWithVideoMemIn)
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "HW_VPP: Mirror (sys->d3d)");
@@ -3445,6 +3452,7 @@ mfxStatus VideoVPPHW::PreWorkInputSurface(std::vector<ExtSurface> & surfQueue)
                     }
                 }
                 else
+#endif
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "HW_VPP: Copy input (sys->d3d)");
 
@@ -3524,6 +3532,7 @@ mfxStatus VideoVPPHW::PostWorkOutSurfaceCopy(ExtSurface & output)
 
         mfxFrameSurface1 d3dSurf = MakeSurface(output.pSurf->Info, m_internalVidSurf[VPP_OUT].mids[output.resIdx]);
 
+#ifdef MFX_ENABLE_EXT
         if (MFX_MIRRORING_HORIZONTAL == m_executeParams.mirroring && MIRROR_OUTPUT == m_executeParams.mirroringPosition && m_pCmCopy && !m_isD3D9SimWithVideoMemOut)
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "HW_VPP: Mirror (d3d->sys)");
@@ -3569,6 +3578,7 @@ mfxStatus VideoVPPHW::PostWorkOutSurfaceCopy(ExtSurface & output)
             }
         }
         else
+#endif
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "HW_VPP: Copy output (d3d->sys)");
 
@@ -3637,6 +3647,7 @@ mfxStatus VideoVPPHW::PostWorkInputSurface(mfxU32 numSamples)
 
 #define CHECK_CM_ERR(ERR) if ((ERR) != CM_SUCCESS) return MFX_ERR_DEVICE_FAILED;
 
+#ifdef MFX_ENABLE_EXT
 int RunGpu(
     void* inD3DSurf, void* outD3DSurf,
     int fieldMask,
@@ -3735,7 +3746,7 @@ mfxStatus VideoVPPHW::ProcessFieldCopy(mfxHDL in, mfxHDL out, mfxU32 fieldMask)
     return MFX_ERR_NONE;
 
 }
-
+#endif
 
 mfxStatus VideoVPPHW::MergeRuntimeParams(const DdiTask *pTask, MfxHwVideoProcessing::mfxExecuteParams *execParams)
 {
@@ -4034,6 +4045,7 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
         }
     }
 
+#ifdef MFX_ENABLE_EXT
     if ((m_executeParams.iFieldProcessingMode != 0)   /* If Mode is enabled*/
         && ((imfxFPMode - 1) != (mfxU32)FRAME2FRAME)  /* And we don't do copy frame to frame lets call our FieldCopy*/
         && m_pCmDevice                                /* And cm device is loaded*/
@@ -4148,6 +4160,7 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
         m_executeParams.statusReportID = pTask->taskIndex;
         return sts;
     }
+#endif
 
     sts = PreWorkOutSurface(pTask->output);
     MFX_CHECK_STS(sts);

@@ -1368,7 +1368,7 @@ mfxU32 GetFilterIndex( mfxU32* pList, mfxU32 len, mfxU32 filterName )
 
 
 /* check each field of FrameInfo excluding PicStruct */
-mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform)
+mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request)
 {
     mfxStatus mfxSts = MFX_ERR_NONE;
 
@@ -1783,7 +1783,7 @@ mfxGamutMode GetGamutMode( mfxU16 srcTransferMatrix, mfxU16 dstTransferMatrix )
 
 } // mfxGamutMode GetGamutMode( mfxU16 srcTransferMatrix, mfxU16 dstTransferMatrix )
 
-mfxStatus CheckIOPattern_AndSetIOMemTypes(mfxU16 IOPattern, mfxU16* pInMemType, mfxU16* pOutMemType, bool bSWLib)
+mfxStatus CheckIOPattern_AndSetIOMemTypes(mfxU16 IOPattern, mfxU16* pInMemType, mfxU16* pOutMemType)
 {
     if ((IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY) &&
         (IOPattern & MFX_IOPATTERN_IN_SYSTEM_MEMORY))
@@ -1825,7 +1825,7 @@ mfxStatus CheckIOPattern_AndSetIOMemTypes(mfxU16 IOPattern, mfxU16* pInMemType, 
 
     return MFX_ERR_NONE;
 
-} // mfxStatus CheckIOPattern_AndSetIOMemTypes(mfxU16 IOPattern,mfxU16* pInMemType, mfxU16* pOutMemType, bool bSWLib)
+} // mfxStatus CheckIOPattern_AndSetIOMemTypes(mfxU16 IOPattern,mfxU16* pInMemType, mfxU16* pOutMemType)
 
 
 mfxU16 EstimatePicStruct(

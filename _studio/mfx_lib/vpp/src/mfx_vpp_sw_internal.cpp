@@ -339,7 +339,7 @@ bool IsCompositionMode(mfxVideoParam* pParam)
     return false;
 }
 
-mfxStatus ExtendedQuery(VideoCORE * core, mfxU32 filterName, mfxExtBuffer* pHint)
+mfxStatus ExtendedQuery(VideoCORE *, mfxU32 filterName, mfxExtBuffer* pHint)
 {
     if( MFX_EXTBUFF_VPP_DENOISE == filterName
         || MFX_EXTBUFF_VPP_DENOISE2 == filterName
