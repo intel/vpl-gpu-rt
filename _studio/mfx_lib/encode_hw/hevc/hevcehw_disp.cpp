@@ -101,6 +101,12 @@ mfxStatus Query(
     if (hw < MFX_HW_TGL_LP)
         return MFX_ERR_UNSUPPORTED;
 
+    if (in)
+    {
+        const mfxExtEncoderResetOption* pResetOpt = ExtBuffer::Get(*in);
+        MFX_CHECK(!pResetOpt, MFX_ERR_NONE);
+    }
+
     mfxStatus sts = MFX_ERR_NONE;
     std::unique_ptr<ImplBase> impl(CreateSpecific(hw, *core, sts, in ? eFeatureMode::QUERY1 : eFeatureMode::QUERY0));
 
