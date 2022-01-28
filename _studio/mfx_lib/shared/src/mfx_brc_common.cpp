@@ -82,10 +82,11 @@ namespace MfxHwH265EncodeBRC
 #define IS_IFRAME(pictype) ((pictype == MFX_FRAMETYPE_I || pictype == MFX_FRAMETYPE_IDR) ? MFX_FRAMETYPE_I: 0)
 #define MAX_DQP_LTR 4
 #define MAX_MODEL_ERR 6
-#define BRC_BUFK(verylowdelay) (verylowdelay? 6.0 : 3.5)
+#define BRC_BUFK(verylowdelay) (verylowdelay? 4.0 : 2.5)
+#define SCH_BUFK(verylowdelay) (verylowdelay? 6.0 : 3.5)
 #define LTR_BUFK(verylowdelay) (verylowdelay? 8.0:  4.5)
 #define LTR_BUF(type, dqp, boost, schg, shstrt, verylowdelay) \
-((type == MFX_FRAMETYPE_IDR) ? (((schg && !boost) || !dqp) ? BRC_BUFK(verylowdelay) : LTR_BUFK(verylowdelay)) : (shstrt ? BRC_BUFK(verylowdelay) : 2.5))
+((type == MFX_FRAMETYPE_IDR) ? (((schg && !boost) || !dqp) ? BRC_BUFK(verylowdelay) : LTR_BUFK(verylowdelay)) : (shstrt ? SCH_BUFK(verylowdelay) : BRC_BUFK(verylowdelay)))
 
 #define DQFF0 1.0
 #define DQFF1 1.66
@@ -269,7 +270,6 @@ mfxStatus cBRCParams::Init(mfxVideoParam* par, bool bField)
     mIntraBoost = (mNumRefsInGop > maxFrameRatio * 8.0) ? 1 : 0;
 
     mVeryLowDelay = (HRDConformance != MFX_BRC_NO_HRD && (bufferSizeInBytes * 8.0) / targetbps < 0.12) ? 1 : 0;
-    //printf("Very Low delay %d\n", mVeryLowDelay);
 
     mfxF64 maxFrameSize = mRawFrameSizeInBits;
     if (maxFrameSizeInBits) {
@@ -1241,6 +1241,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
             if ((quant_new - qpY) * (quant_new - GetCurQP (picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ)) > 0)
             {
                 UpdateQPParams(quant_new ,picType, m_ctx, 0, m_ctx.QuantMin , m_ctx.QuantMax, layer, m_par.iDQp, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ);
+                m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, fAbLong, frame_par->EncodedOrder, bIdr, ParClassAPQ);
             }
             bNeedUpdateQP = false;
         }
