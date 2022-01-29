@@ -2584,7 +2584,7 @@ void Legacy::InitDPB(
     {
         Remove(task.DPB.Active, 0, MAX_DPB_SIZE);
 
-        // Temporally always check, will add mode to disable this check.
+        // Always check in current release, there are chances in future release to add mode to disable this check.
         std::copy_if(
             prevTask.DPB.After
             , prevTask.DPB.After + Size(prevTask.DPB.After)
