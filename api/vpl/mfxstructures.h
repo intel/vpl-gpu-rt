@@ -2836,7 +2836,7 @@ enum {
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
-   Configures the HDR SEI message.
+   Handle the HDR SEI message.
 
    If the application attaches this structure to the mfxEncodeCtrl structure
    at runtime, the encoder inserts the HDR SEI message for the current frame and ignores InsertPayloadToggle.
@@ -2845,6 +2845,12 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
    structure to the mfxVideoParam structure during initialization or reset, the encoder inserts the HDR SEI message based on InsertPayloadToggle.
 
    If the application attaches this structure for video processing, InsertPayloadToggle will be ignored.
+
+   If the application attaches this structure to the mfxFrameSurface1 structure at runtime
+   which will seed to the MFXVideoDECODE_DecodeFrameAsync() as surface_work parameter,
+   the decoder will parse the HDR SEI message if the bitstream include HDR SEI message per frame.
+   The parsed HDR SEI will be attached to the ExtendBuffer of surface_out parameter of MFXVideoDECODE_DecodeFrameAsync().
+   This function is support for HEVC only now.
 
    Field semantics are defined in ITU-T* H.265 Annex D.
 */
@@ -2870,7 +2876,7 @@ MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
-   Configures the HDR SEI message.
+   Handle the HDR SEI message.
 
    If the application attaches this structure to the mfxEncodeCtrl
    structure at runtime, the encoder inserts the HDR SEI message for the current frame and ignores InsertPayloadToggle.
@@ -2880,6 +2886,12 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
    InsertPayloadToggle.
 
    If the application attaches this structure for video processing, InsertPayloadToggle will be ignored.
+
+   If the application attaches this structure to the mfxFrameSurface1 structure at runtime
+   which will seed to the MFXVideoDECODE_DecodeFrameAsync() as surface_work parameter,
+   the decoder will parse the HDR SEI message if the bitstream include HDR SEI message per frame.
+   The parsed HDR SEI will be attached to the ExtendBuffer of surface_out parameter of MFXVideoDECODE_DecodeFrameAsync().
+   This function is support for HEVC only now.
 
    Field semantics are defined in ITU-T* H.265 Annex D.
 */
