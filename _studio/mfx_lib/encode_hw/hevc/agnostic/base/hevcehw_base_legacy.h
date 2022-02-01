@@ -240,7 +240,7 @@ namespace Base
 
         static inline MBQPMode GetMBQPMode(const ENCODE_CAPS_HEVC& caps, const mfxVideoParam& par)
         {
-            return ::GetMBQPMode(par, caps.MaxNumOfROI, caps.ROIDeltaQPSupport, caps.MbQpDataSupport);
+            return ::GetMBQPMode(par, caps.MaxNumOfROI, caps.ROIDeltaQPSupport, caps.MbQpDataSupport, false);
         }
         static inline bool  IsSWBRC(const mfxVideoParam& par)
         {

@@ -1299,6 +1299,10 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         m_mbqpInfo.NumFrameMin = IsEnctoolsLAGS(m_video) ? 
             m_rec.NumFrameActual:
             mfxU16(m_emulatorForSyncPart.GetStageGreediness(AsyncRoutineEmulator::STG_WAIT_ENCODE) + bParallelEncPak);
+
+        if (IsFieldCodingPossible(m_video))
+            m_mbqpInfo.NumFrameMin *= 2;
+
         m_mbqpInfo.pitch = 0;
 
         {
@@ -2246,8 +2250,11 @@ void ImplementationAvc::OnEncodingQueried(DdiTaskIter task)
     if ((task->m_reference[0] + task->m_reference[1]) == 0)
         ReleaseResource(m_rec, task->m_midRec);
 
-    if(task->m_midMBQP)
-        ReleaseResource(m_mbqp, task->m_midMBQP);
+    if (task->m_midMBQP[0])
+        ReleaseResource(m_mbqp, task->m_midMBQP[0]);
+    if (task->m_midMBQP[1])
+        ReleaseResource(m_mbqp, task->m_midMBQP[1]);
+
 
     if (m_useMbControlSurfs && task->m_isMBControl)
         ReleaseResource(m_mbControl, task->m_midMBControl);
@@ -3030,11 +3037,12 @@ mfxStatus ImplementationAvc::EncToolsGetFrameCtrl(DdiTask& task)
 
     if (GetMBQPMode(m_caps, m_video) == MBQPMode_FromEncToolsBRC)
     {
-        if (!task.m_midMBQP)
+        MFX_CHECK(task.m_fieldPicFlag == 0, MFX_ERR_NOT_IMPLEMENTED);
+        if (!task.m_midMBQP[0])
         {
-            task.m_idxMBQP = FindFreeResourceIndex(m_mbqp);
-            task.m_midMBQP = AcquireResource(m_mbqp, task.m_idxMBQP);
-            MFX_CHECK(task.m_midMBQP, MFX_ERR_UNDEFINED_BEHAVIOR);
+            task.m_idxMBQP[0] = FindFreeResourceIndex(m_mbqp);
+            task.m_midMBQP[0] = AcquireResource(m_mbqp, task.m_idxMBQP[0]);
+            MFX_CHECK(task.m_midMBQP[0], MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
         lock = std::make_unique <FrameLocker>(m_core, qpMap, task.m_midMBQP);
@@ -3050,7 +3058,7 @@ mfxStatus ImplementationAvc::EncToolsGetFrameCtrl(DdiTask& task)
     }
     mfxStatus ests = m_encTools.GetFrameCtrl(&task.m_brcFrameCtrl, task.m_frameOrder, bMbQP ? &qpMapHint : 0);
 
-    task.m_isMBQP = (bMbQP && qpMapHint.QpMapFilled);
+    task.m_isMBQP[0] = (bMbQP && qpMapHint.QpMapFilled);
     
     return ests;
 }
@@ -3298,14 +3306,15 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
         std::unique_ptr <FrameLocker> lock = nullptr;
         if (GetMBQPMode(m_caps, m_video) == MBQPMode_FromEncToolsLA)
         {
-            if (!task.m_midMBQP)
+            MFX_CHECK(task.m_fieldPicFlag == 0, MFX_ERR_NOT_IMPLEMENTED);
+            if (!task.m_midMBQP[0])
             {
-                task.m_idxMBQP = FindFreeResourceIndex(m_mbqp);
-                task.m_midMBQP = AcquireResource(m_mbqp, task.m_idxMBQP);
-                MFX_CHECK(task.m_midMBQP, MFX_ERR_UNDEFINED_BEHAVIOR);
+                task.m_idxMBQP[0] = FindFreeResourceIndex(m_mbqp);
+                task.m_midMBQP[0] = AcquireResource(m_mbqp, task.m_idxMBQP[0]);
+                MFX_CHECK(task.m_midMBQP[0], MFX_ERR_UNDEFINED_BEHAVIOR);
             }
 
-            lock = std::make_unique <FrameLocker>(m_core, qpMap, task.m_midMBQP);
+            lock = std::make_unique <FrameLocker>(m_core, qpMap, task.m_midMBQP[0]);
             MFX_CHECK(qpMap.Y, MFX_ERR_LOCK_MEMORY);
 
             qpMapHint.ExtQpMap.BlockSize = (mfxU16)m_mbqpInfo.block_width;
@@ -3972,73 +3981,78 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             auto mode = GetMBQPMode(m_caps, m_video);
             if (mode)
             {
-                if (!task->m_midMBQP)
+                mfxFrameData qpMap[2] = {};
+                std::unique_ptr<FrameLocker> lock[2];
+                for (int f = 0; f <= task->m_fieldPicFlag; f++)
                 {
-                    task->m_idxMBQP = FindFreeResourceIndex(m_mbqp);
-                    task->m_midMBQP = AcquireResource(m_mbqp, task->m_idxMBQP);
-                    MFX_CHECK(task->m_midMBQP, MFX_ERR_UNDEFINED_BEHAVIOR);
-                }
+                    if (!task->m_midMBQP[f])
+                    {
+                        task->m_idxMBQP[f] = FindFreeResourceIndex(m_mbqp);
+                        task->m_midMBQP[f] = AcquireResource(m_mbqp, task->m_idxMBQP[f]);
+                        MFX_CHECK(task->m_midMBQP[f], MFX_ERR_UNDEFINED_BEHAVIOR);
+                        lock[f].reset(new FrameLocker(m_core, qpMap[f], task->m_midMBQP[f]));
+                        MFX_CHECK_NULL_PTR1(qpMap[f].Y);
+                    }
+                }        
+ 
 
-                mfxFrameData qpMap = {};
-                FrameLocker lock(m_core, qpMap, task->m_midMBQP);
                 mfxExtMBQP const* mbqpExt = GetExtBuffer(task->m_ctrl);
                 mfxExtEncoderROI const* extRoi = GetExtBuffer(task->m_ctrl);
 
                 if (mode == MBQPMode_ExternalMap && mbqpExt)
                 {
-                    mfxStatus sts = FillCUQPData(mbqpExt,
+                    mfxU8* maps[2] = {qpMap[0].Y,qpMap[1].Y};
+                    mfxStatus  sts = FillMBQPData(mbqpExt,
                         m_video.mfx.FrameInfo.CropW, m_video.mfx.FrameInfo.CropH,
-                        (mfxI8*)qpMap.Y,
+                        maps,
                         m_mbqpInfo.pitch, m_mbqpInfo.height_aligned,
-                        m_mbqpInfo.block_width, m_mbqpInfo.block_height);
+                        m_mbqpInfo.block_width, m_mbqpInfo.block_height,
+                        task->m_fieldPicFlag,
+                        task->m_isMBQP);
                     MFX_CHECK_STS(sts);
-                    task->m_isMBQP = true;
-                  
-                }
+                 }
                 else if (mode == MBQPMode_ForROI && extRoi)
                 {
+                    MFX_CHECK(task->m_fieldPicFlag == 0, MFX_ERR_NOT_IMPLEMENTED);
                     mfxStatus  sts = FillMBMapViaROI(*extRoi,
-                        (mfxI8*)qpMap.Y,
+                        (mfxI8*)qpMap[0].Y,
                         m_mbqpInfo.Info.Width, m_mbqpInfo.Info.Height, m_mbqpInfo.pitch,
                         m_mbqpInfo.block_width, m_mbqpInfo.block_height,
                         task->m_cqpValue[0]);
                     MFX_CHECK_STS(sts);
-                    task->m_isMBQP = true;
+                    task->m_isMBQP[0] = true;
                 }
 #ifdef MFX_ENABLE_APQ_LQ
                 else if (mode == MBQPMode_ForALQOffset)
                 {
+                    MFX_CHECK(task->m_fieldPicFlag == 0, MFX_ERR_NOT_IMPLEMENTED);
                     if (task->m_ALQOffset != 0) 
                     {
                         bool MBQP_forALQOffset = true;
                         if (task->m_ALQOffset > 0) 
                         {
-                            if (task->m_cqpValue[0] > task->m_ALQOffset && task->m_cqpValue[1] > task->m_ALQOffset) 
-                            {
-                                task->m_cqpValue[0] = (mfxU8)((mfxI32)task->m_cqpValue[0] - task->m_ALQOffset);
-                                task->m_cqpValue[1] = (mfxU8)((mfxI32)task->m_cqpValue[1] - task->m_ALQOffset);
-                            }
+                            if (task->m_cqpValue[0] > task->m_ALQOffset) 
+                                task->m_cqpValue[0] = (mfxU8)((mfxI32)task->m_cqpValue[0] - task->m_ALQOffset);                                
                             else 
                             {
                                 task->m_ALQOffset = 0;
                                 MBQP_forALQOffset = false;
                             }
                         }
-                        else if (task->m_ALQOffset < 0) 
+                        else if (task->m_ALQOffset < 0 && 
+                            task->m_cqpValue[0] > 51 + task->m_ALQOffset)
                         {
-                            if (task->m_cqpValue[0] > 51 + task->m_ALQOffset || task->m_cqpValue[1] > 51 + task->m_ALQOffset) 
-                            {
-                                task->m_ALQOffset = 0;
-                                MBQP_forALQOffset = false;
-                            }
+                             task->m_ALQOffset = 0;
+                             MBQP_forALQOffset = false;
                         }
                         if (MBQP_forALQOffset)
                         {
+                            MFX_CHECK(task->m_fieldPicFlag == 0, MFX_ERR_NOT_IMPLEMENTED);
                             mfxStatus  sts = FillCUQPData((mfxU8)mfx::clamp(task->m_ALQOffset + task->m_cqpValue[0], 1, 51),
-                                (mfxI8*)qpMap.Y,
+                                (mfxI8*)qpMap[0].Y,
                                 m_mbqpInfo.pitch, m_mbqpInfo.height_aligned);
                             MFX_CHECK_STS(sts);
-                            task->m_isMBQP = true;
+                            task->m_isMBQP[0] = true;
                         }
                     }
                 }

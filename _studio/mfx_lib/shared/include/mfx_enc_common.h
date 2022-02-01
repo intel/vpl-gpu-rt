@@ -158,10 +158,18 @@ enum MBQPMode
     MBQPMode_ForALQOffset = 5,
 };
 
-MBQPMode    GetMBQPMode(const mfxVideoParam& par, mfxU32 maxNumOfROI, mfxU32 ROIDeltaQPSupport, bool MbQpDataSupport);
+MBQPMode    GetMBQPMode(const mfxVideoParam& par, mfxU32 maxNumOfROI, mfxU32 ROIDeltaQPSupport, bool MbQpDataSupport, bool bFieldMode);
 bool        IsSWBRCMode(const mfxVideoParam& par);
 bool        IsEnctoolsLAGS(const mfxVideoParam& par);
 bool        IsEnctoolsLABRC(const mfxVideoParam& par);
+
+mfxStatus FillMBQPBuffer(
+    const mfxU8* mbqpInputBuffer,
+    mfxU32 mbqpInputBufferSize,
+    mfxU32 picWidth, mfxU32 picHeight,
+    mfxI8* pMbMap,
+    mfxU32 pitch, mfxU32 height_aligned,
+    mfxU32 block_width, mfxU32 block_height);
 
 mfxStatus FillMBMapViaROI(const mfxExtEncoderROI& roi,
     mfxI8* pMbMap,

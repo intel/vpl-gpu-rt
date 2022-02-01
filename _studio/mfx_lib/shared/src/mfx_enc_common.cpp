@@ -676,6 +676,38 @@ mfxStatus FillCUQPData(mfxI8 QpY,
     }
     return MFX_ERR_NONE;
 }
+mfxStatus FillMBQPBuffer(
+    const mfxU8* mbqpInputBuffer,
+    mfxU32 mbqpInputBufferSize,
+    mfxU32 picWidth, mfxU32 picHeight,
+    mfxI8* pMbMap,
+    mfxU32 pitch, mfxU32 height_aligned,
+    mfxU32 block_width, mfxU32 block_height)
+{ 
+    
+
+    mfxU32 drBlkW = block_width;  // block size of driver
+    mfxU32 drBlkH = block_height; // block size of driver
+    mfxU32 inBlkSize = 16;   //input block size
+
+    mfxU32 inputW = CeilDiv(picWidth, inBlkSize);
+    mfxU32 inputH = CeilDiv(picHeight, inBlkSize);
+
+    MFX_CHECK(mbqpInputBufferSize >= inputW * inputH, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    // Fill all LCU blocks: HW hevc averages QP
+    for (mfxU32 i = 0; i < height_aligned; i++)
+    {
+        for (mfxU32 j = 0; j < pitch; j++)
+        {
+            mfxU32 y = std::min(i * drBlkH / inBlkSize, inputH - 1);
+            mfxU32 x = std::min(j * drBlkW / inBlkSize, inputW - 1);
+
+            pMbMap[i * pitch + j] = mbqpInputBuffer[y * inputW + x];
+        }
+    }
+    return MFX_ERR_NONE;
+}
 mfxStatus FillCUQPData(const mfxExtMBQP* mbqpInput,
     mfxU32 picWidth, mfxU32 picHeight,
     mfxI8* pMbMap,
@@ -686,27 +718,8 @@ mfxStatus FillCUQPData(const mfxExtMBQP* mbqpInput,
     MFX_CHECK_NULL_PTR1(mbqpInput);
     MFX_CHECK_NULL_PTR1(mbqpInput->QP);
 
-    mfxU32 drBlkW = block_width;  // block size of driver
-    mfxU32 drBlkH = block_height; // block size of driver
-    mfxU32 inBlkSize = 16;   //input block size
-
-    mfxU32 inputW = CeilDiv(picWidth, inBlkSize);
-    mfxU32 inputH = CeilDiv(picHeight, inBlkSize);
-
-    MFX_CHECK(mbqpInput->NumQPAlloc >= inputW * inputH, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-    // Fill all LCU blocks: HW hevc averages QP
-    for (mfxU32 i = 0; i < height_aligned; i++)
-    {
-        for (mfxU32 j = 0; j < pitch; j++)
-        {
-            mfxU32 y = std::min(i * drBlkH / inBlkSize, inputH - 1);
-            mfxU32 x = std::min(j * drBlkW / inBlkSize, inputW - 1);
-
-            pMbMap[i * pitch + j] = mbqpInput->QP[y * inputW + x];
-        }
-    }
-    return MFX_ERR_NONE;
+    return FillMBQPBuffer(mbqpInput->QP, mbqpInput->NumQPAlloc,
+        picWidth, picHeight, pMbMap, pitch, height_aligned, block_width, block_height); 
 }
 bool IsSWBRCMode(const mfxVideoParam& par)
 {     
@@ -785,7 +798,7 @@ bool IsEnctoolsLAGS(const mfxVideoParam& par)
 #endif
     return false;
 }
-MBQPMode GetMBQPMode(const mfxVideoParam& par,  mfxU32 maxNumOfROI, mfxU32 ROIDeltaQPSupport, bool MbQpDataSupport)
+MBQPMode GetMBQPMode(const mfxVideoParam& par,  mfxU32 maxNumOfROI, mfxU32 ROIDeltaQPSupport, bool MbQpDataSupport, bool bFieldMode)
 {
     const mfxExtCodingOption2* pCO2 = (mfxExtCodingOption2*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
     const mfxExtCodingOption3* pCO3 = (mfxExtCodingOption3*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION3);
@@ -794,13 +807,13 @@ MBQPMode GetMBQPMode(const mfxVideoParam& par,  mfxU32 maxNumOfROI, mfxU32 ROIDe
         return MBQPMode_None;
     else if (pCO3 && IsOn(pCO3->EnableMBQP))
         return MBQPMode_ExternalMap;
-    else if (pCO2 && IsOn(pCO2->MBBRC) && IsEnctoolsLABRC(par))
+    else if (pCO2 && IsOn(pCO2->MBBRC) && IsEnctoolsLABRC(par) && (!bFieldMode))
         return MBQPMode_FromEncToolsBRC;
-    else if (pCO2 && IsOn(pCO2->MBBRC) && IsEnctoolsLAGS(par))
+    else if (pCO2 && IsOn(pCO2->MBBRC) && IsEnctoolsLAGS(par) && (!bFieldMode))
         return MBQPMode_FromEncToolsLA;
-    else if (ROIViaMBQP(par, maxNumOfROI, ROIDeltaQPSupport))
+    else if (ROIViaMBQP(par, maxNumOfROI, ROIDeltaQPSupport) && (!bFieldMode))
         return MBQPMode_ForROI;
-    else if (IsEnctoolsALQOffset(par))
+    else if (IsEnctoolsALQOffset(par) && (!bFieldMode))
         return MBQPMode_ForALQOffset;
 
 

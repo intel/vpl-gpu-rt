@@ -292,9 +292,36 @@ namespace MfxHwH264Encode
     template <class T> struct GetPointedType<T *> { typedef T Type; };
     template <class T> struct GetPointedType<T const *> { typedef T Type; };
 
-    inline MBQPMode GetMBQPMode(const MFX_ENCODE_CAPS& caps, const mfxVideoParam& video)
+
+    inline mfxStatus FillMBQPData(const mfxExtMBQP* mbqpInput,
+        mfxU32 picWidth, mfxU32 picHeight,
+        mfxU8* pMbMap[],
+        mfxU32 pitch, mfxU32 height_aligned,
+        mfxU32 block_width, mfxU32 block_height,
+        bool  bFieldMode,
+        bool  bMBQPUsing[2])
     {
-        return GetMBQPMode(video, caps.ddi_caps.MaxNumOfROI, caps.ddi_caps.ROIBRCDeltaQPLevelSupport, caps.ddi_caps.MBBRCSupport);
+        mfxStatus sts = MFX_ERR_NONE;
+        MFX_CHECK_NULL_PTR1(mbqpInput);
+        MFX_CHECK_NULL_PTR1(mbqpInput->QP);
+        if (bFieldMode)
+        {
+            sts = FillMBQPBuffer(mbqpInput->QP, mbqpInput->NumQPAlloc/2, picWidth, picHeight/2,
+                (mfxI8*)pMbMap[0], pitch, height_aligned, block_width, block_height);
+            MFX_CHECK_STS(sts);
+            sts = FillMBQPBuffer(mbqpInput->QP + mbqpInput->NumQPAlloc/2, mbqpInput->NumQPAlloc/2, picWidth, picHeight/2,
+                (mfxI8*)pMbMap[1], pitch, height_aligned, block_width, block_height);
+            MFX_CHECK_STS(sts);
+            bMBQPUsing[0] = bMBQPUsing[1] = true;
+        }
+        else
+        {
+            sts = FillMBQPBuffer(mbqpInput->QP, mbqpInput->NumQPAlloc, picWidth, picHeight,
+                (mfxI8*)pMbMap[0], pitch, height_aligned, block_width, block_height);
+            MFX_CHECK_STS(sts);
+            bMBQPUsing[0]  = true;
+        }
+        return sts;
     }
 
 
@@ -981,6 +1008,10 @@ namespace MfxHwH264Encode
     inline bool IsFieldCodingPossible(MfxVideoParam const & par)
     {
         return (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
+    }
+    inline MBQPMode GetMBQPMode(const MFX_ENCODE_CAPS& caps, const mfxVideoParam& video)
+    {
+        return GetMBQPMode(video, caps.ddi_caps.MaxNumOfROI, caps.ddi_caps.ROIBRCDeltaQPLevelSupport, caps.ddi_caps.MBBRCSupport, IsFieldCodingPossible(video));
     }
 
     inline void ResetNumSliceIPB(mfxVideoParam &par)

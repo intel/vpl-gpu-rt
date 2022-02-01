@@ -1038,9 +1038,9 @@ namespace MfxHwH264Encode
             , m_minQP(0)
             , m_maxQP(0)
             , m_resetBRC(false)
-            , m_idxMBQP(NO_INDEX)
-            , m_midMBQP(MID_INVALID)
-            , m_isMBQP(false)
+            , m_idxMBQP{ NO_INDEX, NO_INDEX }
+            , m_midMBQP{ MID_INVALID, MID_INVALID }
+            , m_isMBQP{ false, false }
             , m_isUseRawRef(false)
             , m_isSkipped (false)
             , m_toRecode (false)
@@ -1323,9 +1323,9 @@ namespace MfxHwH264Encode
 
         bool m_resetBRC;
 
-        mfxU32   m_idxMBQP;
-        mfxMemId m_midMBQP;
-        bool     m_isMBQP;
+        mfxU32   m_idxMBQP[2];
+        mfxMemId m_midMBQP[2];
+        bool     m_isMBQP[2];
         bool     m_isUseRawRef;
         bool     m_isSkipped;
         bool     m_toRecode;
