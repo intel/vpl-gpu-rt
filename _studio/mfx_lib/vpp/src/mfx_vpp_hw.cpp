@@ -2759,9 +2759,12 @@ mfxStatus VideoVPPHW::QueryCaps(VideoCORE* core, MfxHwVideoProcessing::mfxVppCap
 #endif
 
     caps.uVideoSignalInfoInOut = 0;
-    if(hwType >= MFX_HW_DG2)
+    if (hwType >= MFX_HW_DG2)
     {
-        caps.uVideoSignalInfoInOut = 1;
+        if (MFX_HW_VAAPI == core->GetVAType())
+        {
+            caps.uVideoSignalInfoInOut = 1;
+        }
     }
 
     caps.uFrameRateConversion = 1;
