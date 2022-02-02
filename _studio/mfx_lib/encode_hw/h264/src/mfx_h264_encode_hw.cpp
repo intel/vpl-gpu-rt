@@ -4977,6 +4977,9 @@ mfxStatus ImplementationAvc::UpdateBitstream(
             task.m_bs->DataLength = dataLength;
     }
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+    setEncUnitsInfo(task, fid);
+#endif
 
     return MFX_ERR_NONE;
 }
@@ -5071,16 +5074,6 @@ void ImplementationAvc::FillEncodingUnitsInfo(
 
 void ImplementationAvc::setFrameInfo( DdiTask & task, mfxU32    fid )
 {
-
-#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
-    mfxExtEncodedUnitsInfo * encUnitsInfo = NULL;
-    if (task.m_collectUnitsInfo
-        )
-    {
-        encUnitsInfo = (mfxExtEncodedUnitsInfo*)mfx::GetExtBuffer(task.m_bs->ExtParam, task.m_bs->NumExtParam, MFX_EXTBUFF_ENCODED_UNITS_INFO);
-    }
-#endif
-
     mfxExtCodingOption const &extOpt = GetExtBufferRef(m_video);
     mfxU32 seconfFieldOffset = 0;
     if (fid)
@@ -5133,24 +5126,27 @@ void ImplementationAvc::setFrameInfo( DdiTask & task, mfxU32    fid )
                 }
             }
         }
+    }
+}
 
-#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
-        if (task.m_collectUnitsInfo)
-        {
-            FillEncodingUnitsInfo(
-                task,
-                task.m_bs->Data + task.m_bs->DataOffset,
-                task.m_bs->Data + task.m_bs->DataOffset + task.m_bs->DataLength,
-                encUnitsInfo,
-                fid
-            );
+void ImplementationAvc::setEncUnitsInfo(DdiTask& task, mfxU32    fid)
+{
+    mfxExtEncodedUnitsInfo* encUnitsInfo = NULL;
+    if (task.m_collectUnitsInfo
+        )
+    {
+        encUnitsInfo = (mfxExtEncodedUnitsInfo*)mfx::GetExtBuffer(task.m_bs->ExtParam, task.m_bs->NumExtParam, MFX_EXTBUFF_ENCODED_UNITS_INFO);
+        FillEncodingUnitsInfo(
+            task,
+            task.m_bs->Data + task.m_bs->DataOffset,
+            task.m_bs->Data + task.m_bs->DataOffset + task.m_bs->DataLength,
+            encUnitsInfo,
+            fid
+        );
+    }
 
-        }
-        if (task.m_headersCache[fid].size() > 0) //if we have previously collected data about headers/slices
-            task.m_headersCache[fid].clear();
-#endif
-    } //if (task.m_bs->NumExtParam > 0)
-
+    if (task.m_headersCache[fid].size() > 0) //if we have previously collected data about headers/slices
+        task.m_headersCache[fid].clear();
 }
 
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)

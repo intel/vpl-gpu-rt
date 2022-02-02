@@ -2992,6 +2992,9 @@ private:
         void setFrameInfo(DdiTask & task,
             mfxU32    fid);
 
+        void setEncUnitsInfo(DdiTask& task,
+            mfxU32    fid);
+
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
         void addPartialOutputOffset(DdiTask & task, mfxU64 offset, bool last = false);
 #endif
