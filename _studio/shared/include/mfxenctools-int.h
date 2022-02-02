@@ -133,7 +133,9 @@ typedef struct
         mfxU16  LaScale;                    /* Downscale Factor for LookAhead encode */
 
 
-        mfxU16  reserved5[61];
+        mfxU16  NumRefP;                     /* Number for Reference allowed for P frames to handle reflists*/
+
+        mfxU16  reserved5[60];
     };
     mfxU16 NumExtParam;
     mfxExtBuffer** ExtParam;
@@ -294,7 +296,9 @@ typedef struct {                               /* only for progressive. Need to 
     mfxU32            RejectedRefList[16];
     mfxU16            PreferredRefListSize;
     mfxU16            RejectedRefListSize;
-    mfxU16            reserved2[7];
+    mfxU32            LongTermRefList[16];
+    mfxU16            LongTermRefListSize;
+    mfxU16            reserved2[6];
 } mfxEncToolsHintPreEncodeARefFrames;         /* Output structure */
 MFX_PACK_END()
 

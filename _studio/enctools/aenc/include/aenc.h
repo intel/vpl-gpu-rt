@@ -41,6 +41,7 @@ extern "C" {
         mfxU32 MaxIDRDist; //IDR distance in frames
         mfxU32 MaxMiniGopSize;
         mfxU32 CodecId;
+        mfxU32 NumRefP;
         //toolset
         mfxU32 AGOP;
         mfxU32 ALTR;
@@ -52,6 +53,7 @@ extern "C" {
 
     typedef struct {
         mfxU32 POC;
+        mfxU32 QpY;
         mfxU32 SceneChanged;
         mfxU32 RepeatedFrame;
         mfxU32 TemporalComplexity;
@@ -67,6 +69,8 @@ extern "C" {
         mfxU32 RemoveFromDPB[32];
         mfxU32 RefListSize;
         mfxU32 RefList[32];
+        mfxU32 LongTermRefListSize;
+        mfxU32 LongTermRefList[32];
         mfxU16 PMapNZ;
         mfxU8  PMap[AENC_MAP_SIZE];
     } AEncFrame;
@@ -76,7 +80,7 @@ extern "C" {
     mfxStatus MFX_CDECL AEncProcessFrame(mfxHDL pthis, mfxU32 POC, mfxU8* InFrame, mfxI32 pitch, AEncFrame* OutFrame);
     mfxU16    MFX_CDECL AEncGetIntraDecision(mfxHDL pthis, mfxU32 displayOrder);
     mfxU16    MFX_CDECL AEncGetPersistenceMap(mfxHDL pthis, mfxU32 displayOrder, mfxU8 PMap[AENC_MAP_SIZE]);
-    void      MFX_CDECL AEncUpdatePFrameBits(mfxHDL pthis, mfxU32 displayOrder, mfxU32 bits, mfxU32 QpY, mfxU32 ClassCmplx);
+    void      MFX_CDECL AEncUpdateFrame(mfxHDL pthis, mfxU32 displayOrder, mfxU32 bits, mfxU32 QpY, mfxU32 ClassCmplx);
 
 #ifdef __cplusplus
 } // extern "C"

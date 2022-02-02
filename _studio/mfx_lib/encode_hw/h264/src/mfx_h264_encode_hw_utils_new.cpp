@@ -828,7 +828,7 @@ void MfxHwH264Encode::ModifyRefPicLists(
                 else
                 {
                     mfxU32 numActiveRefL0Final = ctrl->NumRefIdxL0Active ? std::min<mfxU32>(ctrl->NumRefIdxL0Active, numActiveRefL0) : numActiveRefL0;
-                    ReorderRefPicList(list0, dpb, ctrl_copied, numActiveRefL0Final, bIntList, BEncToolsMode);
+                    ReorderRefPicList(list0, dpb, ctrl_copied, numActiveRefL0Final, !bIntList, BEncToolsMode);
                 }
             }
 
@@ -842,7 +842,7 @@ void MfxHwH264Encode::ModifyRefPicLists(
                 else
                 {
                     numActiveRefL1 = ctrl->NumRefIdxL1Active ? std::min<mfxU32>(ctrl->NumRefIdxL1Active,numMaxActiveRefL1) : numActiveRefL1;
-                    ReorderRefPicList(list1, dpb, ctrl_copied, numActiveRefL1, bIntList, BEncToolsMode);
+                    ReorderRefPicList(list1, dpb, ctrl_copied, numActiveRefL1, !bIntList, BEncToolsMode);
                 }
             }
 

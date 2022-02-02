@@ -34,6 +34,8 @@ mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
     mfxExtCodingOption2 *CO2 = (mfxExtCodingOption2 *)Et_GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
     mfxExtCodingOption3 *CO3 = (mfxExtCodingOption3 *)Et_GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION3);
     MFX_CHECK_NULL_PTR3(CO, CO2, CO3);
+    mfxExtCodingOptionDDI* extDdi = (mfxExtCodingOptionDDI*)Et_GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_DDI);
+    MFX_CHECK_NULL_PTR1(extDdi);
 
     ctrl = {};
 
@@ -47,6 +49,7 @@ mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
     ctrl->IOPattern = par.IOPattern;
     ctrl->MaxDelayInFrames = CO2->LookAheadDepth;
 
+    ctrl->NumRefP = std::min(par.mfx.NumRefFrame, extDdi->NumActiveRefP);
     ctrl->MaxGopSize = par.mfx.GopPicSize;
     ctrl->MaxGopRefDist = par.mfx.GopRefDist;
     ctrl->MaxIDRDist = par.mfx.GopPicSize * (par.mfx.IdrInterval + !!(ctrl->CodecId == MFX_CODEC_AVC));
@@ -290,7 +293,11 @@ mfxStatus EncTools::GetDelayInFrames(mfxExtEncToolsConfig const * config, mfxEnc
 {
     MFX_CHECK_NULL_PTR3(config, ctrl, numFrames);
     //to fix: delay should be asked from m_scd
-    *numFrames = (isPreEncSCD(*config, *ctrl)) ? 8 : 0; //
+    *numFrames = (isPreEncSCD(*config, *ctrl)
+                    && (IsOn(config->AdaptiveB)
+                    || IsOn(config->AdaptiveRefB)
+                    || IsOn(config->AdaptivePyramidQuantB))
+                 ) ? ctrl->MaxGopRefDist : 0; // Only MiniGOP tools may need delay
 
     if (isPreEncLA(*config, *ctrl))
     {

@@ -136,6 +136,7 @@ public:
     mfxU32   iDQp;
     mfxU32   mNumRefsInGop;
     bool     mIntraBoost;
+    bool     mVeryLowDelay;
     mfxF64   mMinQstepCmplxKP;
     mfxF64   mMinQstepRateEP;
     mfxI32   mMinQstepCmplxKPUpdt;
@@ -192,6 +193,7 @@ public:
         iDQp(0),
         mNumRefsInGop(0),
         mIntraBoost(0),
+        mVeryLowDelay(0),
         mMinQstepCmplxKP(0),
         mMinQstepRateEP(0),
         mMinQstepCmplxKPUpdt(0),

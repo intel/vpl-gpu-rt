@@ -26,10 +26,35 @@
 
 #define MAX_DQP_LTR 4
 #define MAX_MODEL_ERR 6
-#define BRC_BUFK 3.5
-#define LTR_BUFK 4.5
-#define LTR_BUF(type, dqp, boost, schg, shstrt) \
-((type == MFX_FRAMETYPE_IDR) ? (((schg && !boost) || !dqp) ? BRC_BUFK : LTR_BUFK) : (shstrt ? BRC_BUFK : 2.5))
+#define BRC_BUFK(verylowdelay) (verylowdelay? 4.0 : 2.5)
+#define SCH_BUFK(verylowdelay) (verylowdelay? 6.0 : 3.5)
+#define LTR_BUFK(verylowdelay) (verylowdelay? 8.0:  4.5)
+
+static mfxF64 LTR_BUF(mfxU16 type, mfxU32 dqp, bool boost, bool schg, bool shstrt, bool verylowdelay)
+{
+    if (type == MFX_FRAMETYPE_IDR)
+    {
+        if ((schg && !boost) || !dqp)
+        {
+            return BRC_BUFK(verylowdelay);
+        } 
+        else
+        {
+            return LTR_BUFK(verylowdelay);
+        }
+    }
+    else
+    {
+        if (shstrt)
+        {
+            return SCH_BUFK(verylowdelay);
+        }
+        else
+        {
+            return BRC_BUFK(verylowdelay);
+        }
+    }
+}
 
 #define DQFF0 1.0
 #define DQFF1 1.66
@@ -209,12 +234,14 @@ mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool field
 
     mIntraBoost = (mNumRefsInGop > maxFrameRatio * 8.0) ? 1 : 0;
 
+    mVeryLowDelay = (HRDConformance != MFX_BRC_NO_HRD && (bufferSizeInBytes * 8.0) / targetbps < 0.12) ? 1 : 0;
+
     mfxF64 maxFrameSize = mRawFrameSizeInBits;
     if (maxFrameSizeInBits) {
         maxFrameSize = std::min<mfxF64>(maxFrameSize, maxFrameSizeInBits);
     }
     if (HRDConformance != MFX_BRC_NO_HRD) {
-        mfxF64 bufOccupy = LTR_BUF(MFX_FRAMETYPE_IDR, 1, mIntraBoost, 1, 0);
+        mfxF64 bufOccupy = LTR_BUF(MFX_FRAMETYPE_IDR, 1, mIntraBoost, 1, 0, mVeryLowDelay);
         maxFrameSize = std::min(maxFrameSize, bufOccupy / 9.* (initialDelayInBytes * 8.0) + (9.0 - bufOccupy) / 9.*inputBitsPerFrame);
     }
 
@@ -1003,7 +1030,7 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
     mfxI32 bitsEncoded = frameStruct.frameSize * 8;
     mfxI32 qpY = frameStruct.qp + m_par.quantOffset;
     mfxI32 layer = frameStruct.pyrLayer;
-    mfxU32 picType = GetFrameType(frameStruct.frameType, frameStruct.pyrLayer, m_par.gopRefDist, m_par.codecId);
+    mfxU16 picType = GetFrameType(frameStruct.frameType, frameStruct.pyrLayer, m_par.gopRefDist, m_par.codecId);
     mfxU16 isRef = frameStruct.frameType & MFX_FRAMETYPE_REF;
     mfxU16 isIntra = frameStruct.frameType & (MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_I);
     bool bIdr = (picType ==  MFX_FRAMETYPE_IDR);
@@ -1143,7 +1170,7 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
         frameSizeLim = std::min(frameSizeLim, m_par.maxFrameSizeInBits);
     }
     //printf("frameSizeLim %d (%d)\n", frameSizeLim, bitsEncoded);
-    if (frameStruct.numRecode < 100)
+    if (!m_ctx.bPanic)
         UpdateMinQForMaxFrameSize(&m_par, bitsEncoded, qpY, m_ctx, picType, bSHStart, brcSts);
 
     if (frameStruct.numRecode < 2)
@@ -1178,7 +1205,7 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
         if (m_par.HRDConformance != MFX_BRC_NO_HRD)
         {
             mfxF64 maxFrameSizeHrd = m_hrdSpec->GetMaxFrameSizeInBits(frameStruct.encOrder,bIdr);
-            mfxF64 bufOccupy = LTR_BUF(picType, m_par.iDQp, ((picType == MFX_FRAMETYPE_IDR) ? m_par.mIntraBoost : false), ParSceneChange, bSHStart);
+            mfxF64 bufOccupy = LTR_BUF(picType, m_par.iDQp, ((picType == MFX_FRAMETYPE_IDR) ? m_par.mIntraBoost : false), ParSceneChange, bSHStart, m_par.mVeryLowDelay);
             mfxF64 maxFrameSizeHRDBalanced = bufOccupy / 9.* maxFrameSizeHrd + (9.0 - bufOccupy) / 9.*targetFrameSize;
             if (m_ctx.encOrder == 0)
             {
@@ -1319,6 +1346,7 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
             if ((quant_new - qpY) * (quant_new - GetCurQP(picType, layer, isRef, ParQpModulation, ParQpDeltaP)) > 0)
             {
                 UpdateQPParams(quant_new, picType, m_ctx, 0, m_ctx.QuantMin, m_ctx.QuantMax, layer, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
+                m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, isRef, fAbLong, frameStruct.encOrder, bIdr, ParQpModulation, ParQpDeltaP, false);
             }
             bNeedUpdateQP = false;
         }
@@ -1649,7 +1677,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
                     maxFrameSize = std::min<mfxF64>(maxFrameSize, m_par.maxFrameSizeInBits);
                 }
                 if (m_par.HRDConformance != MFX_BRC_NO_HRD) {
-                    mfxF64 bufOccupy = LTR_BUF(type, m_par.iDQp, m_par.mIntraBoost, 1, 0);
+                    mfxF64 bufOccupy = LTR_BUF(type, m_par.iDQp, m_par.mIntraBoost, 1, 0, m_par.mVeryLowDelay);
                     maxFrameSize = std::min(maxFrameSize, (bufOccupy / 9.* (m_par.initialDelayInBytes * 8.0) + (9.0 - bufOccupy) / 9.*m_par.inputBitsPerFrame));
                 }
                 // Set Intra QP
@@ -1716,7 +1744,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
                 mfxF64 hrdMaxFrameSize = m_par.initialDelayInBytes * 8;
                 if (maxFrameSizeHrd > 0)
                     hrdMaxFrameSize =  std::min(hrdMaxFrameSize, maxFrameSizeHrd);
-                mfxF64 bufOccupy = LTR_BUF(type, m_par.iDQp, ((type == MFX_FRAMETYPE_IDR) ? m_par.mIntraBoost : false), (ParSceneChange || (m_ctx.LastIQpSet && m_ctx.QuantP > ((mfxI32)m_ctx.LastIQpSet + (mfxI32)m_par.iDQp + 1))), 0);
+                mfxF64 bufOccupy = LTR_BUF(type, m_par.iDQp, ((type == MFX_FRAMETYPE_IDR) ? m_par.mIntraBoost : false), (ParSceneChange || (m_ctx.LastIQpSet && m_ctx.QuantP > ((mfxI32)m_ctx.LastIQpSet + (mfxI32)m_par.iDQp + 1))), 0, m_par.mVeryLowDelay);
                 maxFrameSize = std::min(maxFrameSize, (bufOccupy / 9.* hrdMaxFrameSize + (9.0 - bufOccupy) / 9.*m_par.inputBitsPerFrame));
             }
 
@@ -1863,7 +1891,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
                 mfxF64 hrdMaxFrameSize = m_par.initialDelayInBytes * 8;
                 if (maxFrameSizeHrd > 0) hrdMaxFrameSize = std::min(hrdMaxFrameSize, (mfxF64)maxFrameSizeHrd);
 
-                mfxF64 bufOccupy = LTR_BUF(ltype, m_par.iDQp, false, ParSceneChange, ParSceneChange);
+                mfxF64 bufOccupy = LTR_BUF(ltype, m_par.iDQp, false, ParSceneChange, ParSceneChange, m_par.mVeryLowDelay);
                 maxFrameSize = std::min(maxFrameSize, (bufOccupy / 9.* hrdMaxFrameSize + (9.0 - bufOccupy) / 9.*m_par.inputBitsPerFrame));
             }
 

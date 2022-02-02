@@ -430,6 +430,7 @@ static mfxStatus InitEncToolsCtrl(
     const mfxExtCodingOption  *pCO  = ExtBuffer::Get(par);
     const mfxExtCodingOption2 *pCO2 = ExtBuffer::Get(par);
     const mfxExtCodingOption3 *pCO3 = ExtBuffer::Get(par);
+    const mfxExtCodingOptionDDI* pCODDI = ExtBuffer::Get(par);
 
     ctrl->CodecId = par.mfx.CodecId;
     ctrl->CodecProfile = par.mfx.CodecProfile;
@@ -441,6 +442,7 @@ static mfxStatus InitEncToolsCtrl(
     ctrl->IOPattern = par.IOPattern;
     ctrl->MaxDelayInFrames = pCO2 ? pCO2->LookAheadDepth : 0 ;
 
+    ctrl->NumRefP = pCODDI ? std::min(par.mfx.NumRefFrame, pCODDI->NumActiveRefP) : par.mfx.NumRefFrame;
     ctrl->MaxGopSize = par.mfx.GopPicSize;
     ctrl->MaxGopRefDist = par.mfx.GopRefDist;
     ctrl->MaxIDRDist = par.mfx.GopPicSize * par.mfx.IdrInterval;

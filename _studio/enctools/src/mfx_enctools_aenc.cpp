@@ -28,7 +28,7 @@
 
 mfxStatus AEncInit(mfxHDL*, AEncParam) { return MFX_ERR_UNSUPPORTED; }
 mfxStatus AEncProcessFrame(mfxHDL, mfxU32, mfxU8*, mfxI32, AEncFrame*) { return MFX_ERR_UNSUPPORTED; }
-void AEncUpdatePFrameBits(mfxHDL, mfxU32, mfxU32, mfxU32, mfxU32) {}
+void AEncUpdateFrame(mfxHDL, mfxU32, mfxU32, mfxU32, mfxU32) {}
 void AEncClose(mfxHDL) {}
 mfxU16 AEncGetIntraDecision(mfxHDL, mfxU32) { return 0; }
 mfxU16 AEncGetPersistenceMap(mfxHDL, mfxU32, mfxU8[]) { return 0; }
@@ -69,7 +69,7 @@ mfxStatus AEnc_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig 
     m_aencPar.APQ = (!IsOff(pConfig.AdaptivePyramidQuantP)) || (!IsOff(pConfig.AdaptivePyramidQuantB));
     m_aencPar.AREF = (!IsOff(pConfig.AdaptiveRefP)) || (!IsOff(pConfig.AdaptiveRefB));
     m_aencPar.ALTR = (!IsOff(pConfig.AdaptiveLTR));
-
+    m_aencPar.NumRefP = ctrl.NumRefP;
     mfxStatus sts = AEncInit(&m_aenc, m_aencPar);
     MFX_CHECK_STS(sts);
     m_bInit = true;
@@ -172,11 +172,9 @@ mfxStatus AEnc_EncTool::ReportEncResult(mfxU32 displayOrder, mfxEncToolsBRCEncod
      MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
      mfxStatus sts = FindOutFrame(displayOrder);
      MFX_CHECK_STS(sts);
-     //printf("Found SCD_Enctool Reporting Frame %d\n", displayOrder);
-     if ((*m_frameIt).Type == MFX_FRAMETYPE_P) {
-        //printf("Updating Frame %d %d %d %d\n", displayOrder, pEncRes->CodedFrameSize, pEncRes->QpY, (*m_frameIt).ClassCmplx);
-        AEncUpdatePFrameBits(m_aenc, displayOrder, pEncRes.CodedFrameSize*8, pEncRes.QpY, (*m_frameIt).ClassCmplx);
-     }
+
+    AEncUpdateFrame(m_aenc, displayOrder, pEncRes.CodedFrameSize*8, pEncRes.QpY, (*m_frameIt).ClassCmplx);
+
      return MFX_ERR_NONE;
 }
 
@@ -199,13 +197,13 @@ mfxStatus AEnc_EncTool::GetPersistenceMap(mfxU32 displayOrder, mfxEncToolsHintPr
     mfxStatus sts = FindOutFrame(displayOrder);
     MFX_CHECK_STS(sts);
     mfxU16 count = 0;
-    if (m_outframes.size() > m_aencPar.MaxMiniGopSize) 
+    std::vector<AEncFrame>::iterator startIt = m_frameIt; // Curr Frame
+    ++startIt; // Next Frame
+    if (startIt != m_outframes.end())
     {
         memset(pPreEncSC->PersistenceMap, 0, sizeof(pPreEncSC->PersistenceMap));
 
         pPreEncSC->PersistenceMapNZ = 0;
-        std::vector<AEncFrame>::iterator startIt = ++m_frameIt;
-        if (startIt != m_outframes.end()) 
         {
             for (mfxU32 i = 0; i < MFX_ENCTOOLS_PREENC_MAP_SIZE; i++) 
             {
@@ -224,7 +222,7 @@ mfxStatus AEnc_EncTool::GetPersistenceMap(mfxU32 displayOrder, mfxEncToolsHintPr
         }
     }
     else {
-        pPreEncSC->PersistenceMapNZ =  AEncGetPersistenceMap(m_aenc, displayOrder, pPreEncSC->PersistenceMap);
+        pPreEncSC->PersistenceMapNZ =  AEncGetPersistenceMap(m_aenc, displayOrder, pPreEncSC->PersistenceMap); // has async issues
     }
     return MFX_ERR_NONE;
 }
@@ -323,6 +321,9 @@ mfxStatus AEnc_EncTool::GetARefDecision(mfxU32 displayOrder, mfxEncToolsHintPreE
 
     pPreEncARef->PreferredRefListSize = std::min<mfxU16>((mfxU16)(*m_frameIt).RefListSize, 16);
     std::copy((*m_frameIt).RefList, (*m_frameIt).RefList + pPreEncARef->PreferredRefListSize, pPreEncARef->PreferredRefList);
+
+    pPreEncARef->LongTermRefListSize = std::min<mfxU16>((mfxU16)(*m_frameIt).LongTermRefListSize, 16);
+    std::copy((*m_frameIt).LongTermRefList, (*m_frameIt).LongTermRefList + pPreEncARef->LongTermRefListSize, pPreEncARef->LongTermRefList);
 
     return sts;
 }

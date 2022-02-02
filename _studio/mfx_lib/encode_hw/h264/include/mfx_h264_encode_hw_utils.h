@@ -1850,6 +1850,8 @@ static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
     mfxExtCodingOption2 *CO2 = (mfxExtCodingOption2 *)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
     mfxExtCodingOption3 *CO3 = (mfxExtCodingOption3 *)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION3);
     MFX_CHECK_NULL_PTR3(CO, CO2, CO3);
+    mfxExtCodingOptionDDI* extDdi = (mfxExtCodingOptionDDI*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_DDI);
+    MFX_CHECK_NULL_PTR1(extDdi);
 
 
     ctrl->CodecId = par.mfx.CodecId;
@@ -1861,7 +1863,7 @@ static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
     ctrl->FrameInfo = par.mfx.FrameInfo;
     ctrl->IOPattern = par.IOPattern;
     ctrl->MaxDelayInFrames = CO2->LookAheadDepth;
-
+    ctrl->NumRefP = std::min(par.mfx.NumRefFrame, extDdi->NumActiveRefP);
     ctrl->MaxGopSize = par.mfx.GopPicSize;
     ctrl->MaxGopRefDist = par.mfx.GopRefDist;
     ctrl->MaxIDRDist = par.mfx.GopPicSize * (par.mfx.IdrInterval + 1);
@@ -2495,7 +2497,7 @@ protected:
     {
         mfxExtCodingOptionDDI& extDdi = GetExtBufferRef(video);
         bool aRefAllowed = isAdaptiveLTRAllowed(video);
-        return aRefAllowed && !(video.mfx.GopRefDist > 1 && extDdi.NumActiveRefBL0 == 1);
+        return aRefAllowed && video.mfx.GopRefDist > 1 && extDdi.NumActiveRefBL0 != 1;
     }
 
     static void GetRequiredFunc(MfxVideoParam &video, mfxExtEncToolsConfig &config)
@@ -2511,15 +2513,18 @@ protected:
             if (CheckSCConditions(video))
             {
                 bool bAdaptiveI = !(video.mfx.GopOptFlag & MFX_GOP_STRICT) && !IsOff(extOpt2.AdaptiveI);
-                bool bAdaptiveB = !(video.mfx.GopOptFlag & MFX_GOP_STRICT) && !IsOff(extOpt2.AdaptiveB);
+                bool bHasB = video.mfx.GopRefDist > 1;
+                bool bAdaptiveB = !(video.mfx.GopOptFlag & MFX_GOP_STRICT) && !IsOff(extOpt2.AdaptiveB) && bHasB;
 
                 config.AdaptiveI = (mfxU16)(IsNotDefined(config.AdaptiveI) ?
                     (bAdaptiveI ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF) : config.AdaptiveI);
                 config.AdaptiveB = (mfxU16)(IsNotDefined(config.AdaptiveB) ?
                     (bAdaptiveB ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF) : config.AdaptiveB);
 
-                config.AdaptivePyramidQuantP = IsNotDefined(config.AdaptivePyramidQuantP) ? (mfxU16)MFX_CODINGOPTION_ON : config.AdaptivePyramidQuantP;
-                config.AdaptivePyramidQuantB = IsNotDefined(config.AdaptivePyramidQuantB) ? (mfxU16)MFX_CODINGOPTION_ON : config.AdaptivePyramidQuantB;
+                config.AdaptivePyramidQuantP = IsNotDefined(config.AdaptivePyramidQuantP) ?
+                    (!bHasB ? (mfxU16)MFX_CODINGOPTION_ON : (mfxU16)MFX_CODINGOPTION_OFF) : config.AdaptivePyramidQuantP;
+                config.AdaptivePyramidQuantB = IsNotDefined(config.AdaptivePyramidQuantB) ?
+                    (bHasB ? (mfxU16)MFX_CODINGOPTION_ON : (mfxU16)MFX_CODINGOPTION_OFF) : config.AdaptivePyramidQuantB;
 
                 bool bAdaptiveRef = isAdaptiveRefBAllowed(video);
                 bool bAdaptiveLTR = isAdaptiveLTRAllowed(video);
@@ -2536,8 +2541,8 @@ protected:
 
             }
             config.BRC = IsNotDefined(config.BRC) ?
-                ((video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
-                    video.mfx.RateControlMethod == MFX_RATECONTROL_VBR) ?
+                (((video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
+                    video.mfx.RateControlMethod == MFX_RATECONTROL_VBR) && extOpt3.ScenarioInfo != MFX_SCENARIO_REMOTE_GAMING) ?
                     (mfxU16)MFX_CODINGOPTION_ON : (mfxU16)MFX_CODINGOPTION_OFF) : config.BRC;
 
             bool lplaAssistedBRC = (config.BRC == MFX_CODINGOPTION_ON) && (extOpt2.LookAheadDepth > video.mfx.GopRefDist);
@@ -2609,15 +2614,16 @@ protected:
                video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) &&
                video.calcParam.numTemporalLayer == 0);
            bool bAdaptiveI = !(video.mfx.GopOptFlag & MFX_GOP_STRICT) && !IsOff(extOpt2.AdaptiveI);
-           bool bAdaptiveB = !(video.mfx.GopOptFlag & MFX_GOP_STRICT) && !IsOff(extOpt2.AdaptiveB);
+           bool bHasB = video.mfx.GopRefDist > 1;
+           bool bAdaptiveB = !(video.mfx.GopOptFlag & MFX_GOP_STRICT) && !IsOff(extOpt2.AdaptiveB) && bHasB;
            bool bAdaptiveRef = isAdaptiveRefBAllowed(video);
            bool bAdaptiveLTR = isAdaptiveLTRAllowed(video);
 
            CheckFlag(pConfig->AdaptiveI, bEncToolsCnd && bAdaptiveI, numChanges);
 
            CheckFlag(pConfig->AdaptiveB, bEncToolsCnd && bAdaptiveB, numChanges);
-           CheckFlag(pConfig->AdaptivePyramidQuantB, bEncToolsCnd, numChanges);
-           CheckFlag(pConfig->AdaptivePyramidQuantP, bEncToolsCnd, numChanges);
+           CheckFlag(pConfig->AdaptivePyramidQuantB, bEncToolsCnd && bHasB, numChanges);
+           CheckFlag(pConfig->AdaptivePyramidQuantP, bEncToolsCnd && !bHasB, numChanges);
            CheckFlag(pConfig->AdaptiveRefP, bEncToolsCnd && bAdaptiveLTR, numChanges);
            CheckFlag(pConfig->AdaptiveRefB, bEncToolsCnd && bAdaptiveRef, numChanges);
            CheckFlag(pConfig->AdaptiveLTR,  bEncToolsCnd && bAdaptiveLTR, numChanges);

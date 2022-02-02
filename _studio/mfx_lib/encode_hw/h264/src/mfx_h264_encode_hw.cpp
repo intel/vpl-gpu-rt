@@ -2277,7 +2277,17 @@ void ImplementationAvc::OnEncodingQueried(DdiTaskIter task)
 
 #if defined(MFX_ENABLE_ENCTOOLS)
     if (m_enabledEncTools)
+    {
+        if (!m_encTools.IsBRC()) {
+            mfxStatus ests;
+            BRCFrameParams brcFrameParams = {};
+            brcFrameParams.CodedFrameSize = task->m_bsDataLength[0] + task->m_bsDataLength[1];
+            brcFrameParams.DisplayOrder = task->m_frameOrder;
+            brcFrameParams.EncodedOrder = task->m_encOrder;
+            ests = m_encTools.SubmitEncodeResult(&brcFrameParams, task->m_qpY[0]);
+        }
         m_encTools.Discard(task->m_frameOrder);
+    }
 #endif
 
     *task = DdiTask();
@@ -3199,43 +3209,37 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
 
     if (m_encTools.IsAdaptiveGOP() || m_encTools.IsAdaptiveQP() || m_encTools.IsAdaptiveLTR() || m_encTools.IsAdaptiveRef())
     {
-        sts = m_encTools.QueryPreEncRes(task.m_frameOrder, st);
-        MFX_CHECK_STS(sts);
-
-        if (task.m_type[0] == 0)
+        if (m_encTools.IsAdaptiveGOP() || m_encTools.IsAdaptiveQP())
         {
-            task.m_type = ExtendFrameType(st.FrameType);
-            task.m_currGopRefDist = st.MiniGopSize;
-            AssignFrameTypes(task);
-        }
-        else
-            task.m_currGopRefDist = m_video.mfx.GopRefDist;
+            sts = m_encTools.QueryPreEncRes(task.m_frameOrder, st);
+            MFX_CHECK_STS(sts);
 
-        if (m_encTools.IsPreEncNeeded())
-        {
-            task.m_QPdelta = st.QPDelta;
-            task.m_bQPDelta = true;
-        }
+            if (task.m_type[0] == 0)
+            {
+                task.m_type = ExtendFrameType(st.FrameType);
+                task.m_currGopRefDist = st.MiniGopSize;
+                AssignFrameTypes(task);
+            }
+            else
+                task.m_currGopRefDist = m_video.mfx.GopRefDist;
 
-        if (m_encTools.IsAdaptiveQP())
-        {
-            task.m_QPmodulation = st.QPModulation;
+            if (m_encTools.IsPreEncNeeded())
+            {
+                task.m_QPdelta = st.QPDelta;
+                task.m_bQPDelta = true;
+            }
+
+            if (m_encTools.IsAdaptiveQP())
+            {
+                task.m_QPmodulation = st.QPModulation;
 #ifdef MFX_ENABLE_APQ_LQ
-            if (task.m_currGopRefDist == 8) {
-                if ((task.m_type[0] & MFX_FRAMETYPE_B)) {
-                    task.m_ALQOffset = 2;
-                }
-                else if ((task.m_type[0] & MFX_FRAMETYPE_P)) {
-                    task.m_ALQOffset = -1;
-                }
-            }
-            else if (m_video.mfx.GopRefDist == 8) {
-                if ((task.m_type[0] & MFX_FRAMETYPE_B)) {
-                    task.m_ALQOffset = 2;
-                }
-            }
+                task.m_ALQOffset = ((task.m_currGopRefDist == 8 || m_video.mfx.GopRefDist == 8)
+                                    && (task.m_type[0] & MFX_FRAMETYPE_B)) ? 2 : task.m_ALQOffset; 
+                task.m_ALQOffset = (task.m_currGopRefDist == 8
+                                    && (task.m_type[0] & MFX_FRAMETYPE_P)) ? -1 : task.m_ALQOffset;
 #endif
-            //printf("%d type %d, m_QPdelta %d m_QPmodulation %d, currGopRefDist %d, ALQOffset %d\n", task.m_frameOrder, st.FrameType, st.QPDelta, st.QPModulation, task.m_currGopRefDist, task.m_ALQOffset);
+                //printf("%d type %d, m_QPdelta %d m_QPmodulation %d, currGopRefDist %d, ALQOffset %d\n", task.m_frameOrder, st.FrameType, st.QPDelta, st.QPModulation, task.m_currGopRefDist, task.m_ALQOffset);
+            }
         }
 
         if (m_encTools.IsAdaptiveI() || m_encTools.IsAdaptiveLTR()) {
@@ -3257,27 +3261,39 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
             InitExtBufHeader(task.m_internalListCtrl);
             task.m_internalListCtrlPresent = true;
 
+            if (ref.CurrFrameType == MFX_REF_FRAME_TYPE_KEY)
+                task.m_keyReference = 1;
+
             if (ref.CurrFrameType == MFX_REF_FRAME_TYPE_LTR)
             {
                 task.m_internalListCtrl.LongTermRefList[0].FrameOrder = task.m_frameOrder;
                 task.m_internalListCtrl.LongTermRefList[0].PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+                //printf("et reflists for POC %d LongTerm %d\n", task.m_frameOrder, task.m_frameOrder);
             }
-            if (ref.CurrFrameType == MFX_REF_FRAME_TYPE_KEY)
-                task.m_keyReference = 1;
 
+            for (mfxU32 i = (ref.CurrFrameType == MFX_REF_FRAME_TYPE_LTR) ? 1 : 0; i < std::min(ref.LongTermRefListSize, (mfxU16)16); i++)
+            {
+                task.m_internalListCtrl.LongTermRefList[i].FrameOrder =
+                    ref.LongTermRefList[i];
+                task.m_internalListCtrl.LongTermRefList[i].PicStruct =
+                    MFX_PICSTRUCT_PROGRESSIVE;
+                //printf("et reflists for POC %d LongTerm %d\n", task.m_frameOrder, ref.LongTermRefList[i]);
+            }
             for (mfxU32 i = 0; i < std::min(ref.PreferredRefListSize, (mfxU16)32); i++)
             {
                 task.m_internalListCtrl.PreferredRefList[i].FrameOrder =
                     ref.PreferredRefList[i];
                 task.m_internalListCtrl.PreferredRefList[i].PicStruct =
                     MFX_PICSTRUCT_PROGRESSIVE;
+                //printf("et reflists for POC %d Preferred %d\n", task.m_frameOrder, ref.PreferredRefList[i]);
             }
-            for (mfxU32 i = 0; i < std::min(ref.RejectedRefListSize, (mfxU16)32); i++)
+            for (mfxU32 i = 0; i < std::min(ref.RejectedRefListSize, (mfxU16)16); i++)
             {
                 task.m_internalListCtrl.RejectedRefList[i].FrameOrder =
                     ref.RejectedRefList[i];
                 task.m_internalListCtrl.RejectedRefList[i].PicStruct =
                     MFX_PICSTRUCT_PROGRESSIVE;
+                //printf("et reflists for POC %d Rejected %d\n", task.m_frameOrder, ref.RejectedRefList[i]);
             }
         }
 
