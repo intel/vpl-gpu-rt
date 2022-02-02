@@ -1307,7 +1307,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
         {
             m_mbqpInfo.pitch = mfx::align2_value(m_mbqpInfo.width, 64);
-            m_mbqpInfo.height_aligned = mfx::align2_value(m_mbqpInfo.height, 8);
+            m_mbqpInfo.height_aligned = mfx::align2_value(m_mbqpInfo.height, IsFieldCodingPossible(m_video) ? 16 : 8);
             m_mbqpInfo.Info.Width =  (mfxU16)m_mbqpInfo.pitch ;
             m_mbqpInfo.Info.Height = (mfxU16)m_mbqpInfo.height_aligned;
             m_mbqpInfo.Info.FourCC = MFX_FOURCC_P8;
