@@ -3045,7 +3045,7 @@ mfxStatus ImplementationAvc::EncToolsGetFrameCtrl(DdiTask& task)
             MFX_CHECK(task.m_midMBQP[0], MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
-        lock = std::make_unique <FrameLocker>(m_core, qpMap, task.m_midMBQP);
+        lock = std::make_unique <FrameLocker>(m_core, qpMap, task.m_midMBQP[0]);
         MFX_CHECK(qpMap.Y, MFX_ERR_LOCK_MEMORY);
 
         qpMapHint.ExtQpMap.BlockSize = (mfxU16)m_mbqpInfo.block_width;
