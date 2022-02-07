@@ -45,6 +45,7 @@ namespace Base
             mfxEncToolsBRCStatus &sts);
 
 #define DECL_BLOCK_LIST\
+    DECL_BLOCK(SetDefaultsCallChain)\
     DECL_BLOCK(Check)\
     DECL_BLOCK(Init)\
     DECL_BLOCK(ResetCheck)\
