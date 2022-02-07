@@ -33,6 +33,10 @@
 #include "mfx_vpx_dec_common.h"
 #include <libmfx_core_vaapi.h>
 
+#if defined(MFX_ENABLE_PXP)
+#include "umc_va_protected.h"
+#endif // MFX_ENABLE_PXP
+
 
 #include "umc_va_video_processing.h"
 
@@ -1061,6 +1065,16 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         sts = CheckFrameData(surface_work);
         MFX_CHECK_STS(sts);
     }
+
+#if defined(MFX_ENABLE_PXP)
+	//Check protect VA is enabled or not
+    if( bs && m_va && m_va->GetProtectedVA())
+    {
+        MFX_CHECK(m_va->GetProtectedVA(), MFX_ERR_UNSUPPORTED);
+        MFX_CHECK((bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME), MFX_ERR_UNSUPPORTED);
+        m_va->GetProtectedVA()->SetBitstream(bs);
+    }
+#endif // MFX_ENABLE_PXP
 
     do
     {
