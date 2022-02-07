@@ -714,6 +714,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
                 snprintf(impl.Dev.DeviceID, sizeof(impl.Dev.DeviceID), "%x/%d", deviceId, adapterNum);
                 snprintf(impl.ImplName, sizeof(impl.ImplName), "mfx-gen");
+                snprintf(impl.License, sizeof(impl.License), "MIT License");
 
                 for (std::size_t i = 0, e = subDevMask.size(); i != e; ++i)
                 {
