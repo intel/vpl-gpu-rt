@@ -71,7 +71,6 @@ extern "C" {
         mfxU32 RefList[32];
         mfxU32 LongTermRefListSize;
         mfxU32 LongTermRefList[32];
-        mfxU16 PMapNZ;
         mfxU8  PMap[AENC_MAP_SIZE];
     } AEncFrame;
 
