@@ -3999,6 +3999,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             {
                 mfxFrameData qpMap[2] = {};
                 std::unique_ptr<FrameLocker> lock[2];
+
                 for (int f = 0; f <= task->m_fieldPicFlag; f++)
                 {
                     if (!task->m_midMBQP[f])
@@ -4006,11 +4007,10 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                         task->m_idxMBQP[f] = FindFreeResourceIndex(m_mbqp);
                         task->m_midMBQP[f] = AcquireResource(m_mbqp, task->m_idxMBQP[f]);
                         MFX_CHECK(task->m_midMBQP[f], MFX_ERR_UNDEFINED_BEHAVIOR);
-                        lock[f].reset(new FrameLocker(m_core, qpMap[f], task->m_midMBQP[f]));
-                        MFX_CHECK_NULL_PTR1(qpMap[f].Y);
                     }
+                    lock[f].reset(new FrameLocker(m_core, qpMap[f], task->m_midMBQP[f]));
+                    MFX_CHECK_NULL_PTR1(qpMap[f].Y);
                 }        
- 
 
                 mfxExtMBQP const* mbqpExt = GetExtBuffer(task->m_ctrl);
                 mfxExtEncoderROI const* extRoi = GetExtBuffer(task->m_ctrl);

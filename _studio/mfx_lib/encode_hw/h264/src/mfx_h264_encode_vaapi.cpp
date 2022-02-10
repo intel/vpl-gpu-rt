@@ -2628,13 +2628,14 @@ mfxStatus VAAPIEncoder::Execute(
         FrameLocker lock(m_core, qpMap, task.m_midMBQP[fieldId]);
         static_assert(sizeof(VAEncQPBufferH264) == 1, "qpMapBuffer must be changed");
         mfxU32 mbH = mfx::align2_value(m_sps.picture_height_in_mbs >> (!!task.m_fieldPicFlag),8);
+        mfxU32 mbW = mfx::align2_value(m_sps.picture_width_in_mbs, 64);
         mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_mbqpBufferId);
         MFX_CHECK_STS(mfxSts);
         // LibVA expect full buffer size w/o interlace adjustments
         vaSts = vaCreateBuffer(m_vaDisplay,
             m_vaContextEncode,
             VAEncQPBufferType,
-            qpMap.Pitch, mbH,
+            mbW, mbH,
             qpMap.Y,
             &m_mbqpBufferId);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
