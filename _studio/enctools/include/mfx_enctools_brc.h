@@ -554,7 +554,7 @@ protected:
     mfxU32     m_ReEncodeCount;
     std::vector<BRC_FrameStruct> m_FrameStruct;
 
-    virtual void FillQpMap(BRC_FrameStruct const&, mfxU32 /*frameQp*/, mfxEncToolsHintQPMap*) = 0;
+    virtual mfxU16 FillQpMap(const BRC_FrameStruct&, mfxU32 /*frameQp*/, mfxEncToolsHintQPMap*) = 0;
 
     mfxI32 GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
     mfxI32 GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
@@ -567,7 +567,7 @@ class BRC_EncTool : public BRC_EncToolBase
 {
 public:
 
-    void FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp, mfxEncToolsHintQPMap* qpMap) override;
+    mfxU16 FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp, mfxEncToolsHintQPMap* qpMap) override;
 };
 
 }

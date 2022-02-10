@@ -6037,8 +6037,17 @@ void MfxHwH264Encode::SetDefaults(
         }
         else
         {
-            // turn off MBBRC by default
             extOpt2->MBBRC = MFX_CODINGOPTION_OFF;
+
+            // turn on MBBRC by default for enctools if
+            //  - entools is ON
+            //  - look-ahead
+            //  - hw supports MBdata
+            //  - VBR or CBR
+            const mfxExtCodingOption3* pCO3 = (mfxExtCodingOption3*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION3);
+            bool bNonGS = !(pCO3 && pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING);
+            if(IsEnctoolsLABRC(par) && hwCaps.ddi_caps.MbQpDataSupport && bNonGS)
+                extOpt2->MBBRC = MFX_CODINGOPTION_ON;
         }
     }
 

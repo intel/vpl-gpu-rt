@@ -2045,7 +2045,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
     pFrameQp->QpY = frameStruct.qp;
     pFrameQp->NumDeltaQP = 0;
 
-    FillQpMap(*frameStructItr, pFrameQp->QpY, qpMapHint);
+    frameStructItr->QpMapNZ = FillQpMap(*frameStructItr, pFrameQp->QpY, qpMapHint);
 
     return MFX_ERR_NONE;
 }
@@ -2383,13 +2383,13 @@ void sHrdInput::Init(cBRCParams par)
     m_initCpbRemovalDelay = 90000. * 8. * par.initialDelayInBytes / m_bitrate;
 }
 
-void BRC_EncTool::FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp, mfxEncToolsHintQPMap* qpMapHint)
+mfxU16 BRC_EncTool::FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp, mfxEncToolsHintQPMap* qpMapHint)
 {
     const auto type = GetFrameType(frameStruct.frameType, frameStruct.pyrLayer, m_par.gopRefDist, m_par.codecId);
     const mfxU16 isIntra = frameStruct.frameType & (MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_I);
 
-    decltype(frameStruct.PersistenceMap) QpMap = {};
-    decltype(frameStruct.QpMapNZ) QpMapNZ = 0;
+    mfxI8 QpMap[MFX_ENCTOOLS_PREENC_MAP_SIZE] = {};
+    mfxU16 QpMapNZ = 0;
 
     // PAQ
     if (m_par.mMBBRC && frameStruct.PersistenceMapNZ)
@@ -2423,7 +2423,7 @@ void BRC_EncTool::FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp, 
 
     if (qpMapHint && qpMapHint->ExtQpMap.QP)
     {
-        qpMapHint->QpMapFilled = frameStruct.QpMapNZ;
+        qpMapHint->QpMapFilled = QpMapNZ;
         if (qpMapHint->QpMapFilled) {
 
             mfxU32 iw = 16;
@@ -2452,6 +2452,8 @@ void BRC_EncTool::FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp, 
             }
         }
     }
+
+    return QpMapNZ;
 }
 
 } //namespace EncToolsBRC

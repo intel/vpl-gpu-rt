@@ -761,7 +761,7 @@ bool IsEnctoolsLABRC(const mfxVideoParam& par)
                 && pCO2 && pCO2->ExtBRC == MFX_CODINGOPTION_ON && pCO2->LookAheadDepth > par.mfx.GopRefDist
                 && !(pCO3 && pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING)
                 )
-            || (pCfg && IsOn(pCfg->BRC) && IsOn(pCfg->AdaptiveMBQP) && pCO2 && pCO2->LookAheadDepth > par.mfx.GopRefDist)
+            || (pCfg && IsOn(pCfg->BRC) && pCO2 && pCO2->LookAheadDepth > par.mfx.GopRefDist)
             )
         && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
         )
