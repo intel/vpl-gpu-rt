@@ -87,6 +87,21 @@ inline void SetLogColor(uint16_t backColor, uint16_t frontColor)
 #pragma warning(disable: 4100)
 #endif
 
+// Fix GCC warning: format not a string literal and no format arguments
+template<class... Args,
+    typename std::enable_if<sizeof...(Args) == 1, bool>::type = true>
+inline void MfxFprintf(FILE* file, Args&&... args)
+{
+    fprintf(file, "%s", std::forward<Args>(args)...);
+}
+
+template<class... Args,
+    typename std::enable_if<sizeof...(Args) >= 2, bool>::type = true>
+inline void MfxFprintf(FILE* file, Args&&... args)
+{
+    fprintf(file, std::forward<Args>(args)...);
+}
+
 template<class... Args>
 inline void MfxLog(FILE* file, const char* levelName, const char* fileName, const uint32_t lineNum, Args&&... args)
 {
@@ -94,7 +109,7 @@ inline void MfxLog(FILE* file, const char* levelName, const char* fileName, cons
     std::stringstream threadID;
     threadID << std::this_thread::get_id();
     fprintf(file, "TH#%s %s %s[Line: %d]", threadID.str().c_str(), levelName, fileName, lineNum);
-    fprintf(file, std::forward<Args>(args)...);
+    MfxFprintf(file, std::forward<Args>(args)...);
     fflush(file);
 #endif
 }
