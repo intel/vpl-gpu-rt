@@ -260,7 +260,7 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
         }
     }
 
-    mfxU32 nbytes;
+    mfxU32 nbytes = 0;
     mfxStatus sts = GetNumBytesRequired(request->Info, nbytes);
     MFX_CHECK_STS(sts);
 
@@ -609,7 +609,7 @@ mfxFrameSurface1_sw::mfxFrameSurface1_sw(const mfxFrameInfo & info, mfxU16 type,
 {
     MFX_CHECK_WITH_THROW_STS(m_internal_surface.Data.MemType & MFX_MEMTYPE_SYSTEM_MEMORY, MFX_ERR_UNSUPPORTED);
 
-    mfxU32 nbytes;
+    mfxU32 nbytes = 0;
     mfxStatus sts = GetNumBytesRequired(info, nbytes, BASE_SIZE_ALIGN);
     MFX_CHECK_WITH_THROW_STS(sts == MFX_ERR_NONE, sts);
 
@@ -665,7 +665,7 @@ mfxStatus mfxFrameSurface1_sw::Realloc(const mfxFrameInfo & info)
 
     MFX_CHECK(!Locked(), MFX_ERR_LOCK_MEMORY);
 
-    mfxU32 nbytes;
+    mfxU32 nbytes = 0;
     MFX_SAFE_CALL(GetNumBytesRequired(info, nbytes, BASE_SIZE_ALIGN));
 
     m_data.reset(reinterpret_cast<mfxU8*>(aligned_alloc(BASE_ADDR_ALIGN, nbytes)));
