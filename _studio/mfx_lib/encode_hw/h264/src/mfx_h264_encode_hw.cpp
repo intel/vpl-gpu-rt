@@ -3063,14 +3063,10 @@ mfxStatus ImplementationAvc::EncToolsGetFrameCtrl(DdiTask& task)
         qpMapHint.ExtQpMap.Mode = MFX_MBQP_MODE_QP_VALUE;
         qpMapHint.ExtQpMap.NumQPAlloc = m_mbqpInfo.height_aligned * m_mbqpInfo.pitch;
         qpMapHint.QpMapPitch = (mfxU16)m_mbqpInfo.pitch;
-
+        task.m_isMBQP[0] = qpMapHint.QpMapFilled;
         bMbQP = true;
     }
-    mfxStatus ests = m_encTools.GetFrameCtrl(&task.m_brcFrameCtrl, task.m_frameOrder, bMbQP ? &qpMapHint : 0);
-
-    task.m_isMBQP[0] = (bMbQP && qpMapHint.QpMapFilled);
-    
-    return ests;
+    return m_encTools.GetFrameCtrl(&task.m_brcFrameCtrl, task.m_frameOrder, bMbQP ? &qpMapHint : 0);
 }
 #endif
 
@@ -4237,7 +4233,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 #if defined(MFX_ENABLE_ENCTOOLS)
                             if (m_enabledEncTools)
                             {
-                                mfxStatus etSts = EncToolsGetFrameCtrl(*task);
+                                mfxStatus etSts = EncToolsGetFrameCtrl(*nextTask);
                                 MFX_CHECK_STS(etSts);
                             } else
 #endif
@@ -4274,6 +4270,18 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                             }
                             else if (sts != MFX_ERR_NONE)
                                 return Error(sts);
+                        }
+                        if (GetMBQPMode(m_caps, m_video) == MBQPMode_ForALQOffset &&
+                            curTask->m_ALQOffset && curTask->m_isMBQP[0])
+                        {
+                            mfxFrameData qpMap = {};
+                            FrameLocker lock(m_core, qpMap, curTask->m_midMBQP[0]);
+                            MFX_CHECK_NULL_PTR1(qpMap.Y);
+                            MFX_CHECK(curTask->m_fieldPicFlag == 0, MFX_ERR_NOT_IMPLEMENTED);
+                            sts = FillCUQPData((mfxU8)mfx::clamp(curTask->m_ALQOffset + curTask->m_cqpValue[0], 1, 51),
+                                (mfxI8*)qpMap.Y,
+                                m_mbqpInfo.pitch, m_mbqpInfo.height_aligned);
+                            MFX_CHECK_STS(sts);                           
                         }
                         for (mfxU32 f = 0; f <= curTask->m_fieldPicFlag; f++)
                         {
