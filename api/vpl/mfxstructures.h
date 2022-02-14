@@ -2398,7 +2398,7 @@ typedef struct {
         };
     };
     MFX_DEPRECATED  mfxU16          SceneChangeRate; /* Deprecated */
-    MFX_DEPRECATED  mfxU16          RepeatedFrame;   /* Deprecated */
+    mfxU16          RepeatedFrame;   /*!< The flag signalizes that the frame is identical to the previous one. */
 } mfxExtVppAuxData;
 MFX_PACK_END()
 
