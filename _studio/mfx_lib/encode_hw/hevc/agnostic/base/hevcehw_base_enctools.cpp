@@ -221,7 +221,7 @@ inline mfxEncTools *GetEncTools(mfxVideoParam &video)
 {
     return (mfxEncTools *)mfx::GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCTOOLS);
 }
-bool isGameStreaming(const mfxVideoParam& video)
+inline bool IsGameStreaming(const mfxVideoParam& video)
 {
     const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
     return (pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING);
@@ -234,7 +234,7 @@ inline bool IsEncToolsImplicit(const mfxVideoParam &video)
     if (pExtOpt2 && pExtOpt2->LookAheadDepth > 0)
     {
         const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
-        etOn = (isGameStreaming(video) && IsOn(video.mfx.LowPower)); // LPLA
+        etOn = (IsGameStreaming(video) && IsOn(video.mfx.LowPower)); // LPLA
         etOn = etOn ||
             ((video.mfx.GopRefDist == 2 || video.mfx.GopRefDist == 8) && IsOn(pExtOpt2->ExtBRC) // SW EncTools
                 && !(pExtOpt3 && pExtOpt3->ScenarioInfo != MFX_SCENARIO_UNKNOWN));
@@ -254,7 +254,7 @@ static void SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsConfig &c
     const mfxExtCodingOption2  *pExtOpt2 = ExtBuffer::Get(video);
     const mfxExtCodingOption3  *pExtOpt3 = ExtBuffer::Get(video);
     const mfxExtEncToolsConfig *pExtConfig = ExtBuffer::Get(video);
-    bool bGameStreaming = isGameStreaming(video);
+    bool bGameStreaming = IsGameStreaming(video);
 
     if (!pExtConfig || !IsEncToolsOptSet(*pExtConfig))
     {
@@ -356,7 +356,7 @@ static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & s
     mfxU32 changed = 0;
 
 #ifdef MFX_ENABLE_ENCTOOLS_LPLA
-    if (isGameStreaming(video))
+    if (IsGameStreaming(video))
     {
         // Closed GOP for GS by default unless IdrInterval is set to max
         // Open GOP with arbitrary IdrInterval if GOP is strict (GopOptFlag == MFX_GOP_STRICT)
@@ -558,7 +558,7 @@ static  bool isEncTools(const mfxVideoParam& par)
     {
         mfxExtEncToolsConfig config = {};
         SetDefaultConfig(par, config, true);
-        bEncTools = IsEncToolsOptOn(config, isGameStreaming(par));
+        bEncTools = IsEncToolsOptOn(config, IsGameStreaming(par));
     }
     else
         bEncTools = IsEncToolsImplicit(par);
@@ -578,7 +578,7 @@ void HevcEncTools::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
                     , const Defaults::Param& par)
                 {
                     bool bEncTools = isEncTools(par.mvp);
-                    if (bEncTools && !isGameStreaming(par.mvp) && isSWLACondition(par.mvp))
+                    if (bEncTools && !IsGameStreaming(par.mvp) && isSWLACondition(par.mvp))
                     {
                         const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par.mvp);
                         const mfxExtEncToolsConfig* pConfig = ExtBuffer::Get(par.mvp);
@@ -595,7 +595,6 @@ void HevcEncTools::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
         [&blocks](const mfxVideoParam&, mfxVideoParam& par, StorageW& ) -> mfxStatus
     {
         bool bEncTools = isEncTools(par);
-
         mfxU32 changed = 0;
         MFX_CHECK(bEncTools, MFX_ERR_NONE);
 
@@ -740,25 +739,52 @@ inline mfxHandleType GetHandleType(eMFXVAType vaType)
 void HevcEncTools::QueryIOSurf(const FeatureBlocks&, TPushQIS Push)
 {
     Push(BLK_QueryIOSurf
-        , [](const mfxVideoParam& par, mfxFrameAllocRequest& req, StorageRW& /*strg*/) -> mfxStatus
+        , [](const mfxVideoParam& parInput, mfxFrameAllocRequest& req, StorageRW& strg) -> mfxStatus
     {
-        const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
-        const mfxExtEncToolsConfig  *pConfig = ExtBuffer::Get(par);
-        bool bGameStreaming = isGameStreaming(par);
-        bool bEncToolsPreEnc = false;
-        if (pConfig)
-            bEncToolsPreEnc = IsEncToolsOptOn(*pConfig, bGameStreaming);
+            ExtBuffer::Param<mfxVideoParam> par = parInput;
+            auto& caps = Glob::EncodeCaps::Get(strg);
 
-        if (bEncToolsPreEnc || IsEncToolsImplicit(par))
-        {
-            mfxU16 nExtraRaw = 8;
+            bool bEncTools = isEncTools(par);
+            mfxU32 changed = 0;
+            MFX_CHECK(bEncTools, MFX_ERR_NONE);
+
+            mfxEncTools* pEncTools = GetEncTools(par);
+            bool bCreated = false;
+
+            if (!pEncTools)
+            {
+                pEncTools = MFXVideoENCODE_CreateEncTools();
+                bCreated = !!pEncTools;
+            }
+            MFX_CHECK_NULL_PTR1(pEncTools);
+
+            mfxEncToolsCtrl ctrl = {};
+            mfxExtEncToolsConfig supportedConfig = {};
+
+            mfxStatus sts = InitEncToolsCtrl(par, &ctrl);
+            MFX_CHECK_STS(sts);
+
+            pEncTools->GetSupportedConfig(pEncTools->Context, &supportedConfig, &ctrl);
+
+            changed += CorrectVideoParams(par, supportedConfig);
+
+            mfxExtEncToolsConfig config = {};
+            SetDefaultConfig(par, config, caps.MbQpDataSupport);           
+ 
+            mfxU32 maxDelay = 0;
+            pEncTools->GetDelayInFrames(pEncTools->Context, &config, &ctrl, &maxDelay);
+            
+            mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
             if (pCO2)
-                nExtraRaw = (mfxU16)std::max(0, 8 - pCO2->LookAheadDepth); //LA is used in base_legacy
-            req.NumFrameMin += nExtraRaw;
-            req.NumFrameSuggested += nExtraRaw;
-        }
+                maxDelay = (mfxU32)std::max<mfxI32>(0, maxDelay - pCO2->LookAheadDepth); //LA is used in base_legacy
+            req.NumFrameMin += (mfxU16)maxDelay;
+            req.NumFrameSuggested += (mfxU16)maxDelay;
 
-        return MFX_ERR_NONE;
+            if (bCreated)
+                MFXVideoENCODE_DestroyEncTools(pEncTools);
+
+            MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+            return MFX_ERR_NONE;
     });
 }
 
@@ -1093,7 +1119,7 @@ void HevcEncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 
         mfxExtEncToolsConfig* pConfig = ExtBuffer::Get(par);
         bool bEncTools = (pConfig) ?
-            IsEncToolsOptOn(*pConfig, isGameStreaming(par)) :
+            IsEncToolsOptOn(*pConfig, IsGameStreaming(par)) :
             false;
         MFX_CHECK(bEncTools, MFX_ERR_NONE);
         MFX_CHECK(!m_pEncTools, MFX_ERR_NONE);
