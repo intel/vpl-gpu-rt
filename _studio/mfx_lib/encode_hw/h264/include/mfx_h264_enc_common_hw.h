@@ -1011,7 +1011,7 @@ namespace MfxHwH264Encode
     }
     inline MBQPMode GetMBQPMode(const MFX_ENCODE_CAPS& caps, const mfxVideoParam& video)
     {
-        return GetMBQPMode(video, caps.ddi_caps.MaxNumOfROI, caps.ddi_caps.ROIBRCDeltaQPLevelSupport, caps.ddi_caps.MBBRCSupport, IsFieldCodingPossible(video));
+        return GetMBQPMode(video, caps.ddi_caps.MaxNumOfROI, caps.ddi_caps.ROIBRCDeltaQPLevelSupport, caps.ddi_caps.MbQpDataSupport, IsFieldCodingPossible(video));
     }
 
     inline void ResetNumSliceIPB(mfxVideoParam &par)

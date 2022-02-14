@@ -777,7 +777,8 @@ static bool IsEnctoolsALQOffset(const mfxVideoParam& par)
     const mfxExtEncToolsConfig* pCfg = (mfxExtEncToolsConfig*)mfx::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_ENCTOOLS_CONFIG);
 
     if (((par.mfx.GopRefDist == 8) &&   (pCfg && IsOn(pCfg->BRC) && (IsOn(pCfg->AdaptivePyramidQuantB) || IsOn(pCfg->AdaptivePyramidQuantP)))
-        && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)))
+        && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR))
+        && !IsOn(par.mfx.LowPower))
         return true;
 #endif
     return false;
