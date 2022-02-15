@@ -24,7 +24,7 @@
 #include "mfx_enctools.h"
 #include "mfx_enctools_brc.h"
 
-mfxEncTools* MFXVideoENCODE_CreateEncTools()
+mfxEncTools* MFXVideoENCODE_CreateEncTools(const mfxVideoParam&)
 {
     std::unique_ptr<mfxEncTools> et(new mfxEncTools);
     et->Context = new EncTools;

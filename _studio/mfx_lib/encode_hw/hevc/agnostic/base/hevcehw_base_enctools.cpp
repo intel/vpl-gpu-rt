@@ -603,7 +603,7 @@ void HevcEncTools::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
 
         if (!pEncTools)
         {
-            pEncTools = MFXVideoENCODE_CreateEncTools();
+            pEncTools = MFXVideoENCODE_CreateEncTools(par);
             bCreated = !!pEncTools;
         }
 
@@ -753,7 +753,7 @@ void HevcEncTools::QueryIOSurf(const FeatureBlocks&, TPushQIS Push)
 
             if (!pEncTools)
             {
-                pEncTools = MFXVideoENCODE_CreateEncTools();
+                pEncTools = MFXVideoENCODE_CreateEncTools(par);
                 bCreated = !!pEncTools;
             }
             MFX_CHECK_NULL_PTR1(pEncTools);
@@ -1156,7 +1156,7 @@ void HevcEncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         m_bEncToolsInner = false;
         if (!(encTools && encTools->Context))
         {
-            encTools = MFXVideoENCODE_CreateEncTools();
+            encTools = MFXVideoENCODE_CreateEncTools(par);
             m_bEncToolsInner = !!encTools;
         }
         if (encTools)

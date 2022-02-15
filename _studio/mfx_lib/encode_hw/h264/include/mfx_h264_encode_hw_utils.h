@@ -2676,7 +2676,7 @@ protected:
        bCreated = false;
        if (!(encTools && encTools->Context))
        {
-           encTools = MFXVideoENCODE_CreateEncTools();
+           encTools = MFXVideoENCODE_CreateEncTools(video);
            MFX_CHECK(encTools != 0, MFX_ERR_INVALID_VIDEO_PARAM);
            bCreated = true;
        }

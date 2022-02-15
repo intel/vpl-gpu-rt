@@ -438,7 +438,7 @@ struct mfxLplastatus
 };
 MFX_PACK_END()
 
-mfxEncTools*  MFX_CDECL MFXVideoENCODE_CreateEncTools();
+mfxEncTools*  MFX_CDECL MFXVideoENCODE_CreateEncTools(const mfxVideoParam& par);
 void  MFX_CDECL MFXVideoENCODE_DestroyEncTools(mfxEncTools *et);
 
 #ifdef __cplusplus
