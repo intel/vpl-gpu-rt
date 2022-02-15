@@ -1239,6 +1239,12 @@ mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFram
     mfxFrameSurface1* surface_out = *surf_out;
     MFX_CHECK(surface_out, MFX_ERR_INVALID_HANDLE);
 
+    // For repeated frame in VPL memory, ref_count of copied surface is added twice (in GetSurface),
+    // so need to decrease one more reference.
+     UMC::FrameMemID copiedFrmMid = m_decoder->GetRepeatedFrame();
+    if (copiedFrmMid != -1 && (fd->GetFrameMID() == copiedFrmMid) && surface_out->FrameInterface)
+        m_surface_source->DecreaseReference(copiedFrmMid);
+
     SetFrameType(*pFrame, *surface_out);
 
     surface_out->Info.FrameId.TemporalId = 0;
