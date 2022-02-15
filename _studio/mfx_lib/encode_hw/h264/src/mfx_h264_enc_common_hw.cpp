@@ -4771,11 +4771,9 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     {
         changed = true;
     }
-    if ((extOpt3->RepartitionCheckEnable != MFX_CODINGOPTION_ADAPTIVE) &&
-        (extOpt3->RepartitionCheckEnable != MFX_CODINGOPTION_UNKNOWN) &&
-        !hwCaps.ddi_caps.ForceRepartitionCheckSupport)
+    if (!hwCaps.ddi_caps.ForceRepartitionCheckSupport && IsOn(extOpt3->RepartitionCheckEnable))
     {
-        extOpt3->RepartitionCheckEnable = 0;
+        extOpt3->RepartitionCheckEnable = MFX_CODINGOPTION_UNKNOWN;
         unsupported = true;
     }
 #endif // MFX_ENABLE_H264_REPARTITION_CHECK
