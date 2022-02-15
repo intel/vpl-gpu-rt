@@ -448,7 +448,6 @@ inline mfxU16 tile_log2(mfxU16 blkSize, mfxU16 target)
     return k;
 }
 
-
 static int GetUnsignedBits(unsigned int num_values)
 {
     int cat = 0;

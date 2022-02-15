@@ -747,7 +747,7 @@ namespace Base
         Resource          CUQP;
         mfxHDLPair        HDLRaw               = {};
         bool              bCUQPMap             = false;
-        mfxGopHints       GopHints             = {};        
+        mfxGopHints       GopHints             = {};
         bool              bForceSync           = false;
         bool              bSkip                = false;
         bool              bResetBRC            = false;

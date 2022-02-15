@@ -83,6 +83,7 @@ void General::SetSupported(ParamSupport& blocks)
         MFX_COPY_FIELD(mfx.FrameInfo.ChromaFormat);
     });
 
+
     blocks.m_ebCopySupported[MFX_EXTBUFF_AV1_BITSTREAM_PARAM].emplace_back(
         [](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
     {
@@ -2707,7 +2708,7 @@ void General::SetDefaults(
     {
         SetDefault(pTL->Layers[0].FrameRateScale, mfxU16(1));
     }
-    
+
 }
 
 mfxStatus General::CheckNumRefFrame(
