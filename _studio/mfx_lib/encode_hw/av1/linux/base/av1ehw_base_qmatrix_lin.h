@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,30 +18,43 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#cmakedefine MFX_ENABLE_EXT
-#cmakedefine MFX_ENABLE_KERNELS
-#cmakedefine MFX_ENABLE_JPEG_SW_FALLBACK
-#cmakedefine MFX_ENABLE_MCTF
-#cmakedefine MFX_ENABLE_ENCODE_MCTF
-#cmakedefine MFX_ENABLE_ASC
-#cmakedefine MFX_ENABLE_CPLIB
+#pragma once
 
-#cmakedefine MFX_ENABLE_VPP
-#cmakedefine MFX_ENABLE_ENCTOOLS
-#cmakedefine MFX_ENABLE_MVC_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_SVC_VIDEO_ENCODE
+#include "mfx_common.h"
+#if defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
 
-#cmakedefine MFX_ENABLE_H264_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_AV1_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VP8_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H264_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VC1_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_AV1_VIDEO_DECODE
+#include "av1ehw_base_qmatrix.h"
+#include "av1ehw_base_va_packer_lin.h"
+
+namespace AV1EHW
+{
+namespace Linux
+{
+namespace Base
+{
+    class QMatrix
+        : public AV1EHW::Base::QMatrix
+    {
+    public:
+
+        QMatrix(mfxU32 FeatureId)
+            : AV1EHW::Base::QMatrix(FeatureId)
+        {}
+
+    protected:
+        virtual mfxStatus GetQPInfo(const void* pDdiFeedback, mfxU16& qp) override
+        {
+            MFX_CHECK(pDdiFeedback, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+            const auto pFeedback = static_cast<const VACodedBufferSegment*>(pDdiFeedback);
+            qp = mfxU16(pFeedback->status & VA_CODED_BUF_STATUS_PICTURE_AVE_QP_MASK);
+
+            return MFX_ERR_NONE;
+        }
+    };
+
+} //Base
+} //Linux
+} //namespace AV1EHW
+
+#endif //defined(MFX_ENABLE_AV1_VIDEO_ENCODE)

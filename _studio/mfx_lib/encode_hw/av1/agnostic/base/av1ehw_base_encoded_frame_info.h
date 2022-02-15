@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,30 +18,41 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#cmakedefine MFX_ENABLE_EXT
-#cmakedefine MFX_ENABLE_KERNELS
-#cmakedefine MFX_ENABLE_JPEG_SW_FALLBACK
-#cmakedefine MFX_ENABLE_MCTF
-#cmakedefine MFX_ENABLE_ENCODE_MCTF
-#cmakedefine MFX_ENABLE_ASC
-#cmakedefine MFX_ENABLE_CPLIB
+#pragma once
 
-#cmakedefine MFX_ENABLE_VPP
-#cmakedefine MFX_ENABLE_ENCTOOLS
-#cmakedefine MFX_ENABLE_MVC_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_SVC_VIDEO_ENCODE
+#include "mfx_common.h"
+#if defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
 
-#cmakedefine MFX_ENABLE_H264_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_AV1_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VP8_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H264_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VC1_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_AV1_VIDEO_DECODE
+#include "av1ehw_base.h"
+#include "av1ehw_base_data.h"
+
+namespace AV1EHW
+{
+namespace Base
+{
+    class EncodedFrameInfo
+        : public FeatureBase
+    {
+    public:
+#define DECL_BLOCK_LIST\
+    DECL_BLOCK(CheckMAD)\
+    DECL_BLOCK(QueryTask)
+#define DECL_FEATURE_NAME "Base_EncodedFrameInfo"
+#include "av1ehw_decl_blocks.h"
+
+        EncodedFrameInfo(mfxU32 FeatureId)
+            : FeatureBase(FeatureId)
+        {}
+
+    protected:
+        virtual void SetSupported(ParamSupport& par) override;
+        virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
+        virtual void QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push) override;
+
+        virtual mfxStatus GetDdiInfo(const void* pDdiFeedback, mfxExtAVCEncodedFrameInfo& info) = 0;
+    };
+
+} //Base
+} //namespace AV1EHW
+
+#endif //defined(MFX_ENABLE_AV1_VIDEO_ENCODE)

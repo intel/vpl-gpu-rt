@@ -79,7 +79,9 @@ EXTBUF(mfxExtAV1TileParam                , MFX_EXTBUFF_AV1_TILE_PARAM)
 EXTBUF(mfxExtAV1Segmentation             , MFX_EXTBUFF_AV1_SEGMENTATION)
 #endif //defined(__MFXSTRUCTURES_H__)
 
-
+#if defined(__MFXAV1_H__)
+EXTBUF(mfxExtAV1AuxData                  , MFX_EXTBUFF_AV1_AUXDATA)
+#endif
 
 #if defined(__MFXCOMMON_H__)
 // Threading API

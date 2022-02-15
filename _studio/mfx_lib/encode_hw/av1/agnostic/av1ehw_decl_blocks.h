@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,30 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#cmakedefine MFX_ENABLE_EXT
-#cmakedefine MFX_ENABLE_KERNELS
-#cmakedefine MFX_ENABLE_JPEG_SW_FALLBACK
-#cmakedefine MFX_ENABLE_MCTF
-#cmakedefine MFX_ENABLE_ENCODE_MCTF
-#cmakedefine MFX_ENABLE_ASC
-#cmakedefine MFX_ENABLE_CPLIB
+//use customized version w/trace support instead of default one
+#define DECL_BLOCK_CLEANUP_DISABLE
+#define CODEC_NAME_PREFIX "AV1e_"
+#include "feature_blocks/mfx_feature_blocks_decl_blocks.h"
 
-#cmakedefine MFX_ENABLE_VPP
-#cmakedefine MFX_ENABLE_ENCTOOLS
-#cmakedefine MFX_ENABLE_MVC_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_SVC_VIDEO_ENCODE
-
-#cmakedefine MFX_ENABLE_H264_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_AV1_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VP8_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H264_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VC1_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_AV1_VIDEO_DECODE
+#undef CODEC_NAME_PREFIX
+#undef DECL_BLOCK_LIST
+#undef DECL_FEATURE_NAME
+#undef DECL_BLOCK_CLEANUP_DISABLE

@@ -54,6 +54,9 @@
 #include "mfx_vp9_encode_hw.h"
 #endif
 
+#if defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
+#include "../../encode_hw/av1/av1ehw_disp.h"
+#endif
 
 
 #include "libmfx_core.h"
@@ -278,6 +281,38 @@ static const CodecId2Handlers codecId2Handlers =
     },
 #endif // MFX_ENABLE_VP9_VIDEO_ENCODE
 
+#if defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
+    {
+        {
+            MFX_CODEC_AV1
+        },
+        {
+            // .primary =
+            {
+                // .ctor =
+                [](VideoCORE* core, mfxU16 /*codecProfile*/, mfxStatus *mfxRes)
+                -> VideoENCODE*
+                {
+                    if (core && mfxRes)
+                        return AV1EHW::Create(*core, *mfxRes);
+                    return nullptr;
+                },
+                // .query =
+                [](mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
+                { return AV1EHW::Query(session->m_pCORE.get(), in, out); },
+                // .queryIOSurf =
+                [](mfxSession session, mfxVideoParam *par, mfxFrameAllocRequest *request)
+                { return AV1EHW::QueryIOSurf(session->m_pCORE.get(), par, request); }
+                // .QueryImplsDescription =
+                , [](VideoCORE& core, mfxEncoderDescription::encoder& caps, mfx::PODArraysHolder& ah)
+                { return AV1EHW::QueryImplsDescription(core, caps, ah); }
+            },
+            // .fallback =
+            {
+            }
+         }
+    }
+#endif // MFX_ENABLE_AV1_VIDEO_ENCODE
 }; // codecId2Handlers
 
 

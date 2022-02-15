@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,30 +18,39 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#cmakedefine MFX_ENABLE_EXT
-#cmakedefine MFX_ENABLE_KERNELS
-#cmakedefine MFX_ENABLE_JPEG_SW_FALLBACK
-#cmakedefine MFX_ENABLE_MCTF
-#cmakedefine MFX_ENABLE_ENCODE_MCTF
-#cmakedefine MFX_ENABLE_ASC
-#cmakedefine MFX_ENABLE_CPLIB
+#pragma once
 
-#cmakedefine MFX_ENABLE_VPP
-#cmakedefine MFX_ENABLE_ENCTOOLS
-#cmakedefine MFX_ENABLE_MVC_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_SVC_VIDEO_ENCODE
+#include "mfx_common.h"
+#if defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
 
-#cmakedefine MFX_ENABLE_H264_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_AV1_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VP8_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H264_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VC1_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_AV1_VIDEO_DECODE
+#include "mfxvideo.h"
+
+class ImplBase
+    : virtual public VideoENCODE
+{
+public:
+    virtual mfxStatus InternalQuery(
+        VideoCORE& core
+        , mfxVideoParam *in
+        , mfxVideoParam& out) = 0;
+
+    virtual mfxStatus InternalQueryIOSurf(
+        VideoCORE& core
+        , mfxVideoParam& par
+        , mfxFrameAllocRequest& request) = 0;
+
+    virtual ImplBase* ApplyMode(mfxU32 /*mode*/)
+    {
+        return this;
+    }
+
+    virtual mfxStatus QueryImplsDescription(
+        VideoCORE&
+        , mfxEncoderDescription::encoder&
+        , mfx::PODArraysHolder&)
+    {
+        return MFX_ERR_UNSUPPORTED;
+    }
+};
+
+#endif

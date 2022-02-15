@@ -129,6 +129,76 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
   custom_source_group("hevc" ${HEVC_VIDEO_ENCODE_SRC})
 endif()
 
+if (MFX_ENABLE_AV1_VIDEO_ENCODE)
+  target_include_directories(encode_hw PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM
+  )
+
+  set(AV1_VIDEO_ENCODE_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/av1ehw_disp.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/av1eimplbase.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/av1ehw_disp.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/av1ehw_base.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/av1ehw_block_queues.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/av1ehw_ddi.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/av1ehw_decl_blocks.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/av1ehw_utils.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/av1ehw_base.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_lin.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_lin.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_va_lin.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_va_lin.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_va_packer_lin.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_va_packer_lin.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_qmatrix_lin.h
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm_segmentation.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm_segmentation.h
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM/av1ehw_xe_hpm_lin.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM/av1ehw_xe_hpm_lin.h
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_alloc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_alloc.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_constraints.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_constraints.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_data.h
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_qmatrix.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_qmatrix.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_general.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_general.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_general_defaults.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_iddi.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_iddi_packer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_impl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_impl.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_packer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_packer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_query_impl_desc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_query_impl_desc.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_segmentation.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_segmentation.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_task.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_task.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_tile.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_tile.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_encoded_frame_info.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_encoded_frame_info.h
+  )
+
+  custom_source_group("av1" ${AV1_VIDEO_ENCODE_SRC})
+endif()
+
 if (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
   target_include_directories(encode_hw PUBLIC
     mjpeg/include
@@ -176,6 +246,7 @@ endif()
 target_sources(encode_hw PRIVATE
   ${AVC_VIDEO_ENCODE_SRC}
   ${HEVC_VIDEO_ENCODE_SRC}
+  ${AV1_VIDEO_ENCODE_SRC}
   ${MJPEG_VIDEO_ENCODE_SRC}
   ${VP9_VIDEO_ENCODE_SRC}
 
