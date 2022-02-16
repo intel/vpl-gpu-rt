@@ -3063,10 +3063,14 @@ mfxStatus ImplementationAvc::EncToolsGetFrameCtrl(DdiTask& task)
         qpMapHint.ExtQpMap.Mode = MFX_MBQP_MODE_QP_VALUE;
         qpMapHint.ExtQpMap.NumQPAlloc = m_mbqpInfo.height_aligned * m_mbqpInfo.pitch;
         qpMapHint.QpMapPitch = (mfxU16)m_mbqpInfo.pitch;
-        task.m_isMBQP[0] = qpMapHint.QpMapFilled;
         bMbQP = true;
     }
-    return m_encTools.GetFrameCtrl(&task.m_brcFrameCtrl, task.m_frameOrder, bMbQP ? &qpMapHint : 0);
+    mfxStatus sts = m_encTools.GetFrameCtrl(&task.m_brcFrameCtrl, task.m_frameOrder, bMbQP ? &qpMapHint : 0);
+    if (bMbQP)
+        task.m_isMBQP[0] = !!(qpMapHint.QpMapFilled);
+
+    return sts;
+
 }
 #endif
 
