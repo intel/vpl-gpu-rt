@@ -5430,10 +5430,6 @@ void MfxHwH264Encode::SetDefaults(
 
     if (IsOn(par.mfx.LowPower))
     {
-        if (par.mfx.GopRefDist == 0)
-        {
-                par.mfx.GopRefDist = 1;
-        }
         if (par.mfx.FrameInfo.PicStruct == 0)
             par.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
     }
@@ -5565,7 +5561,7 @@ void MfxHwH264Encode::SetDefaults(
                                   IsOn(extConfig->AdaptiveI) ||
                                   IsOn(extConfig->AdaptiveB) ||
 #endif
-                                  IsAdaptiveLtrOn(par))? 8 : 3;
+                                  IsAdaptiveLtrOn(par))? 8 : 4;
             if (par.mfx.GopPicSize > 0 && par.mfx.GopPicSize <= par.mfx.GopRefDist)
                 par.mfx.GopRefDist = par.mfx.GopPicSize;
         }
