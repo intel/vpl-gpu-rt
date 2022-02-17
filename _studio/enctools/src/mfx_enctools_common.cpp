@@ -292,12 +292,8 @@ mfxStatus EncTools::GetActiveConfig(mfxExtEncToolsConfig* pConfig)
 mfxStatus EncTools::GetDelayInFrames(mfxExtEncToolsConfig const * config, mfxEncToolsCtrl const * ctrl, mfxU32 *numFrames)
 {
     MFX_CHECK_NULL_PTR3(config, ctrl, numFrames);
-    //to fix: delay should be asked from m_scd
-    *numFrames = (isPreEncSCD(*config, *ctrl)
-                    && (IsOn(config->AdaptiveB)
-                    || IsOn(config->AdaptiveRefB)
-                    || IsOn(config->AdaptivePyramidQuantB))
-                 ) ? ctrl->MaxGopRefDist : 0; // Only MiniGOP tools may need delay
+
+    *numFrames = (isPreEncSCD(*config, *ctrl)) ? ctrl->MaxGopRefDist : 0; // MaxMiniGOP delay needed
 
     if (isPreEncLA(*config, *ctrl))
     {
