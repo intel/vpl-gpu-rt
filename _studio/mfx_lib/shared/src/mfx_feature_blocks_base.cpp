@@ -31,16 +31,16 @@ BlockTracer::BlockTracer(
     , m_featureName(fName)
     , m_blockName(bName)
 {
-#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+#if defined(MFX_ENABLE_LOG_UTILITY)
     MFX_LOG_TRACE("%s(%d)::%s(%d): Enter\n", m_featureName, FeatureID, m_blockName, BlockID);
-#endif // MFX_ENABLE_FEATURE_BLOCKS_TRACE
+#endif // MFX_ENABLE_LOG_UTILITY
 }
 
 BlockTracer::~BlockTracer()
 {
-#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+#if defined(MFX_ENABLE_LOG_UTILITY)
     MFX_LOG_TRACE("%s(%d)::%s(%d): Exit\n", m_featureName, FeatureID, m_blockName, BlockID);
-#endif // MFX_ENABLE_FEATURE_BLOCKS_TRACE
+#endif // MFX_ENABLE_LOG_UTILITY
 }
 
 }; //namespace MfxFeatureBlocks

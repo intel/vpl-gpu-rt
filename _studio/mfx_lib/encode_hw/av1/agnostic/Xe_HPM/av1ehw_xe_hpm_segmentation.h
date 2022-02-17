@@ -43,7 +43,7 @@ namespace Xe_HPM
         Segmentation(mfxU32 FeatureId)
             : Base::Segmentation(FeatureId)
         {
-#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+#if defined(MFX_ENABLE_LOG_UTILITY)
             m_trace.second.insert(Base::Segmentation::m_trace.second.begin(), Base::Segmentation::m_trace.second.end());
 #endif
         }

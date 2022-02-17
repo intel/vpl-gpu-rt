@@ -29,7 +29,7 @@ namespace AV1EHW
 {
 const char* FeatureBlocks::GetFeatureName(mfxU32 featureID)
 {
-#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+#if defined(MFX_ENABLE_LOG_UTILITY)
     return m_trace.at(featureID)->first.c_str();
 #else
     std::ignore = featureID;
@@ -38,7 +38,7 @@ const char* FeatureBlocks::GetFeatureName(mfxU32 featureID)
 }
 const char* FeatureBlocks::GetBlockName(ID id)
 {
-#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+#if defined(MFX_ENABLE_LOG_UTILITY)
     return m_trace.at(id.FeatureID)->second.at(id.BlockID).c_str();
 #else
     std::ignore = id;

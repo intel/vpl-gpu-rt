@@ -46,7 +46,7 @@
     #undef BLOCK_ID_OFFSET
 #endif
 
-#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+#if defined(MFX_ENABLE_LOG_UTILITY)
     #if !defined(CODEC_NAME_PREFIX)
         #error "Invalid usage of " __FILE__ ": CODEC_NAME_PREFIX must be defined"
     #endif
@@ -63,7 +63,7 @@
 
     virtual const BlockTracer::TFeatureTrace* GetTrace() override { return &m_trace; }
     virtual void SetTraceName(std::string&& name) override { m_trace.first = CODEC_NAME_PREFIX + std::move(name); }
-#endif // defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+#endif // defined(MFX_ENABLE_LOG_UTILITY)
 
 #if !defined DECL_BLOCK_CLEANUP_DISABLE
     #undef DECL_BLOCK_LIST

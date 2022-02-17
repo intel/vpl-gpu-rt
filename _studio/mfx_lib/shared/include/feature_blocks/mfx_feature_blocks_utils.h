@@ -231,9 +231,9 @@ template<
     , class... TArgs>
 inline mfxStatus CallAndGetMfxSts(TBlock&& blk, TArgs&&... args)
 {
-#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+#if defined(MFX_ENABLE_LOG_UTILITY)
     typename std::remove_reference<TBlock>::type::TTracer tr(blk, blk.m_featureName, blk.m_blockName);
-#endif // MFX_ENABLE_FEATURE_BLOCKS_TRACE
+#endif // MFX_ENABLE_LOG_UTILITY
 
     blk.Call(std::forward<TArgs>(args)...);
     return MFX_ERR_NONE;
@@ -245,20 +245,20 @@ template<
     , class... TArgs>
 inline mfxStatus CallAndGetMfxSts(TBlock&& blk, TArgs&&... args)
 {
-#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+#if defined(MFX_ENABLE_LOG_UTILITY)
     typename std::remove_reference<TBlock>::type::TTracer tr(blk, blk.m_featureName, blk.m_blockName);
-#endif // MFX_ENABLE_FEATURE_BLOCKS_TRACE
+#endif // MFX_ENABLE_LOG_UTILITY
 
     mfxStatus sts = blk.Call(std::forward<TArgs>(args)...);
 
-#if defined(MFX_ENABLE_FEATURE_BLOCKS_TRACE)
+#if defined(MFX_ENABLE_LOG_UTILITY)
     if (sts != MFX_ERR_NONE)
     {
         std::string stsString = GetMFXStatusInString(sts);
         MFX_LOG_TRACE("%s(%d)::%s(%d): Return %s\n"
             , blk.m_featureName, blk.FeatureID, blk.m_blockName, blk.BlockID, stsString.c_str());
     }
-#endif // MFX_ENABLE_FEATURE_BLOCKS_TRACE
+#endif // MFX_ENABLE_LOG_UTILITY
 
     return sts;
 }
