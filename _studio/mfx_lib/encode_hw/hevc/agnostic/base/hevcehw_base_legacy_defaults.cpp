@@ -1467,7 +1467,7 @@ public:
             return par.mfx.LowPower;
 
         auto fcc = par.mfx.FrameInfo.FourCC;
-        bool bOn = fcc == MFX_FOURCC_AYUV || fcc == MFX_FOURCC_Y410;
+        bool bOn = fcc == MFX_FOURCC_AYUV || fcc == MFX_FOURCC_Y410 || fcc == MFX_FOURCC_A2RGB10;
 
         return mfxU16(
             bOn * MFX_CODINGOPTION_ON
