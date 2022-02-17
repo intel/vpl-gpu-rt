@@ -38,7 +38,7 @@ namespace Base
     public:
 
 #define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetLogLevel          )\
+    DECL_BLOCK(SetLogging           )\
     DECL_BLOCK(Query0               )\
     DECL_BLOCK(SetDefaultsCallChain )\
     DECL_BLOCK(PreCheckCodecId      )\

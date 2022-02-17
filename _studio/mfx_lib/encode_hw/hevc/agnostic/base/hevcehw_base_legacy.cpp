@@ -101,6 +101,7 @@ void Legacy::SetSupported(ParamSupport& blocks)
         MFX_COPY_FIELD(mfx.FrameInfo.PicStruct);
     });
 
+
     blocks.m_ebCopySupported[MFX_EXTBUFF_HEVC_PARAM].emplace_back(
         [](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
     {
@@ -543,6 +544,16 @@ void Legacy::Query0(const FeatureBlocks& blocks, TPushQ0 Push)
 
 void Legacy::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
 {
+#if defined(MFX_ENABLE_LOG_UTILITY)
+    Push(BLK_SetLogging,
+        [this](const mfxVideoParam&, mfxVideoParam& out, StorageRW&) -> mfxStatus
+    {
+        InitMfxLogging();
+
+        return MFX_ERR_NONE;
+    });
+#endif
+
     Push(BLK_SetDefaultsCallChain,
         [this](const mfxVideoParam&, mfxVideoParam&, StorageRW& strg) -> mfxStatus
     {
@@ -3528,6 +3539,7 @@ void Legacy::SetDefaults(
         constr |= MFX_HEVC_CONSTR_REXT_MAX_8BIT * (bdY <= 8 && (cf != MFX_CHROMAFORMAT_YUV422));
         constr |= MFX_HEVC_CONSTR_REXT_LOWER_BIT_RATE;
     }
+
 }
 
 mfxStatus Legacy::CheckLevelConstraints(

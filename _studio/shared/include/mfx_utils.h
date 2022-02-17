@@ -455,6 +455,24 @@ namespace options //MSDK API options verification utilities
         return true;
     }
 
+    template<class T, class I>
+    inline bool CheckRangeOrClip(T & opt, I min, I max)
+    {
+        if (opt < static_cast<T>(min))
+        {
+            opt = static_cast<T>(min);
+            return true;
+        }
+
+        if (opt > static_cast<T>(max))
+        {
+            opt = static_cast<T>(max);
+            return true;
+        }
+
+        return false;
+    }
+
     template <class T>
     inline bool CheckRangeOrSetDefault(T & opt, T min, T max, T dflt)
     {

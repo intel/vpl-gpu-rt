@@ -380,6 +380,15 @@ void General::Query0(const FeatureBlocks& blocks, TPushQ0 Push)
 
 void General::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
 {
+#if defined(MFX_ENABLE_LOG_UTILITY)
+    Push(BLK_SetLogging,
+        [this](const mfxVideoParam&, mfxVideoParam& out, StorageRW&) -> mfxStatus
+    {
+        InitMfxLogging();
+
+        return MFX_ERR_NONE;
+    });
+#endif
 
     Push(BLK_SetDefaultsCallChain,
         [this](const mfxVideoParam&, mfxVideoParam&, StorageRW& strg) -> mfxStatus

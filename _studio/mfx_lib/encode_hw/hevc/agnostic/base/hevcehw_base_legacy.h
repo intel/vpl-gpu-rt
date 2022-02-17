@@ -47,6 +47,7 @@ namespace Base
 
 #define DECL_BLOCK_LIST\
     DECL_BLOCK(Query0               )\
+    DECL_BLOCK(SetLogging           )\
     DECL_BLOCK(SetDefaultsCallChain )\
     DECL_BLOCK(PreCheckCodecId      )\
     DECL_BLOCK(PreCheckChromaFormat )\
