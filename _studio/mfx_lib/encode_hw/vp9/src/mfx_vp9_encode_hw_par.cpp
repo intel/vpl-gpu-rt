@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Intel Corporation
+// Copyright (c) 2016-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -718,8 +718,8 @@ mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, 
         unsupported = true;
     }
 
-    // currently only 64x64 block size for segmentation map is supported (HW limitation) for platform < DG2
-    // for DG2+: 32x32 and 64x64 blocks
+    // currently only 64x64 block size for segmentation map is supported (HW limitation) for platform < Xe_HPM
+    // for Xe_HPM+: 32x32 and 64x64 blocks
     if (seg.SegmentIdBlockSize &&
         seg.SegmentIdBlockSize != MFX_VP9_SEGMENT_ID_BLOCK_SIZE_64x64
         )

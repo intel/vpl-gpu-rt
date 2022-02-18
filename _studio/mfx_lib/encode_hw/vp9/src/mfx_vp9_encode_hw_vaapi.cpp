@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2020 Intel Corporation
+// Copyright (c) 2012-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -318,7 +318,7 @@ namespace MfxHwVP9Encode
             }
         }
 
-        // for now application seg map is accepted in 64x64 blocks, for DG2+ in 32x32 and 64x64 blocks
+        // for now application seg map is accepted in 64x64 blocks, for Xe_HPM+ in 32x32 and 64x64 blocks
         // and driver seg map is always in 16x16 blocks
         // need to map one to another
 
