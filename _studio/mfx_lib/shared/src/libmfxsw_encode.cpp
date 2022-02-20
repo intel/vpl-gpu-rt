@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2021 Intel Corporation
+// Copyright (c) 2008-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -311,7 +311,7 @@ static const CodecId2Handlers codecId2Handlers =
             {
             }
          }
-    }
+    },
 #endif // MFX_ENABLE_AV1_VIDEO_ENCODE
 }; // codecId2Handlers
 
