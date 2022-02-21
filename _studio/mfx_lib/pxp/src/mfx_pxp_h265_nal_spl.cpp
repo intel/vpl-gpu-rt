@@ -64,7 +64,7 @@ namespace UMC_HEVC_DECODER
         uint32_t start_code_length = 3;
         UMC::PXPVA* pxpva = static_cast<UMC::PXPVA*>(m_va->GetProtectedVA());
 
-        cur_segment_length = (static_cast<VAEncryptionParameters*>(pxpva->GetPXPParams())->segment_info + pxpva->m_curSegment)->segment_length;
+        cur_segment_length = (static_cast<VAEncryptionParameters*>(pxpva->GetPXPParams())->segment_info + pxpva->m_curSegment)->segment_length - start_code_length;
 
         while (cur_segment_length != nalUnit->GetBufferSize())
         {
