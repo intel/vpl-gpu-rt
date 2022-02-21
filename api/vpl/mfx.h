@@ -24,4 +24,12 @@
 
 #include "mfxsurfacepool.h" 
 
+#ifndef STRIP_EMBARGO
+#include "mfxencodextensions.h"
+#endif
+
+#ifdef ONEVPL_EXPERIMENTAL
+#include "mfxencodestats.h"
+#endif
+
 #endif /* __MFXDEFS_H__ */

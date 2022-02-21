@@ -29,6 +29,66 @@ typedef struct {
 } mfxExtBuffer;
 MFX_PACK_END()
 
+#ifdef ONEVPL_EXPERIMENTAL
+
+#define MFX_REFINTERFACE_VERSION MFX_STRUCT_VERSION(1, 0)
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+/*! The structure respresents reference counted interface structure.
+    The memory is allocated and released by the implementation.
+*/
+typedef struct mfxRefInterface {
+    mfxHDL              Context; /*!< The context of the container interface. User should not touch (change, set, null) this pointer. */
+    mfxStructVersion    Version; /*!< The version of the structure. */
+    /*! @brief
+    Increments the internal reference counter of the container. The container is not destroyed until the container 
+    is released using the mfxRefInterface::Release function.
+    mfxRefInterface::AddRef should be used each time a new link to the container is created 
+    (for example, copy structure) for proper  management.
+
+    @param[in]  ref_interface  Valid interface.
+
+    @return
+     MFX_ERR_NONE              If no error. \n
+     MFX_ERR_NULL_PTR          If interface is NULL. \n
+     MFX_ERR_INVALID_HANDLE    If mfxRefInterface->Context is invalid (for example NULL). \n
+     MFX_ERR_UNKNOWN           Any internal error.
+
+    */
+    mfxStatus (MFX_CDECL *AddRef)(struct mfxRefInterface*  ref_interface);
+   /*! @brief
+    Decrements the internal reference counter of the container. mfxRefInterface::Release should be called after using the
+    mfxRefInterface::AddRef function to add a container or when allocation logic requires it. 
+
+    @param[in]  ref_interface  Valid interface.
+
+    @return
+     MFX_ERR_NONE               If no error. \n
+     MFX_ERR_NULL_PTR           If interface is NULL. \n
+     MFX_ERR_INVALID_HANDLE     If mfxRefInterface->Context is invalid (for example NULL). \n
+     MFX_ERR_UNDEFINED_BEHAVIOR If Reference Counter of container is zero before call. \n
+     MFX_ERR_UNKNOWN            Any internal error.
+    */
+    mfxStatus (MFX_CDECL *Release)(struct mfxRefInterface*  ref_interface);
+    /*! @brief
+    Returns current reference counter of mfxRefInterface structure.
+
+    @param[in]   ref_interface  Valid interface.
+    @param[out]  counter  Sets counter to the current reference counter value.
+
+    @return
+     MFX_ERR_NONE               If no error. \n
+     MFX_ERR_NULL_PTR           If interface or counter is NULL. \n
+     MFX_ERR_INVALID_HANDLE     If mfxRefInterface->Context is invalid (for example NULL). \n
+     MFX_ERR_UNKNOWN            Any internal error.
+    */
+    mfxStatus (MFX_CDECL *GetRefCounter)(struct mfxRefInterface*  ref_interface, mfxU32* counter);
+    mfxHDL reserved[4];
+
+}mfxRefInterface;
+MFX_PACK_END()
+#endif
+
 /* Library initialization and deinitialization */
 /*!
     This enumerator itemizes implementation types.
@@ -291,7 +351,12 @@ typedef struct {
         mfxU32 CodecID;                                  /*!< Encoder ID in FourCC format. */
         mfxU16 MaxcodecLevel;                            /*!< Maximum supported codec level. See the CodecProfile enumerator for possible values. */
         mfxU16 BiDirectionalPrediction;                  /*!< Indicates B-frames support. */
+#ifdef ONEVPL_EXPERIMENTAL
+        mfxU16 ReportedStats;                            /*!< Indicates what type of statistics can be reported: block/slice/tile/frame. */
+        mfxU16 reserved[6];                              /*!< Reserved for future use. */
+#else
         mfxU16 reserved[7];                              /*!< Reserved for future use. */
+#endif
         mfxU16 NumProfiles;                              /*!< Number of supported profiles. */
         /*! This structure represents the codec profile description. */
         struct encprofile {
