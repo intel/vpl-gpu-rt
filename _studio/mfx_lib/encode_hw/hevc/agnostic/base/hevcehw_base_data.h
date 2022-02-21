@@ -947,17 +947,6 @@ namespace Base
     };
 
     using MfxEncodeHW::DDIExecParam;
-
-    template<class T>
-    inline T& Deref(const DDIExecParam::Param& par, mfxU32 idx = 0)
-    {
-        ThrowAssert(
-            !par.pData
-            || (par.Size * std::max<mfxU32>(par.Num, 1)) < (sizeof(T) * (idx + 1))
-            , "Invalid DDIExecParam::Param data");
-        return *((T*)par.pData);
-    }
-
     using DDIFeedbackParam = MfxEncodeHW::DDIFeedback;
 
     struct BsDataInfo

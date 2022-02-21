@@ -821,7 +821,7 @@ mfxStatus Parser::SpsToMFX(const SPS& sps, mfxVideoParam& par)
     bool bArFromIdc =
         vui.aspect_ratio_info_present_flag
         && !bArFromSarWH
-        && vui.aspect_ratio_idc < Size(AspectRatioByIdc);
+        && vui.aspect_ratio_idc < mfx::size(AspectRatioByIdc);
     auto ArIdc = vui.aspect_ratio_idc * bArFromIdc;
     SetIf(fi.AspectRatioW, bArFromIdc, AspectRatioByIdc[ArIdc][0]);
     SetIf(fi.AspectRatioH, bArFromIdc, AspectRatioByIdc[ArIdc][1]);

@@ -212,11 +212,6 @@ inline bool  CheckSWEncCondition(const mfxVideoParam &video)
             || video.mfx.GopRefDist == 8));
 }
 
-inline void SetDefaultOpt(mfxU16 &opt, bool bCond)
-{
-    SetDefault(opt, bCond ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
-}
-
 inline mfxEncTools *GetEncTools(mfxVideoParam &video)
 {
     return (mfxEncTools *)mfx::GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCTOOLS);

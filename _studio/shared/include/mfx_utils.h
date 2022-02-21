@@ -513,6 +513,11 @@ namespace options //MSDK API options verification utilities
         return true;
     }
 
+    inline void SetDefaultOpt(mfxU16 &opt, bool bCond)
+    {
+        SetDefault(opt, bCond ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
+    }
+
     template<typename T, typename TF>
     inline bool SetIf(T& opt, bool bSet, TF get)
     {

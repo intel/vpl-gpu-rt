@@ -224,9 +224,9 @@ public:
         mfxU16 NumRefActiveP[8], NumRefActiveBL0[8], NumRefActiveBL1[8];
         par.base.GetNumRefActive(par, &NumRefActiveP, &NumRefActiveBL0, &NumRefActiveBL1);
 
-        const mfxU16 RefActiveP   = *std::max_element(NumRefActiveP,   NumRefActiveP   + Size(NumRefActiveP));
-        const mfxU16 RefActiveBL0 = *std::max_element(NumRefActiveBL0, NumRefActiveBL0 + Size(NumRefActiveBL0));
-        const mfxU16 RefActiveBL1 = *std::max_element(NumRefActiveBL1, NumRefActiveBL1 + Size(NumRefActiveBL1));
+        const mfxU16 RefActiveP   = *std::max_element(NumRefActiveP,   NumRefActiveP   + mfx::size(NumRefActiveP));
+        const mfxU16 RefActiveBL0 = *std::max_element(NumRefActiveBL0, NumRefActiveBL0 + mfx::size(NumRefActiveBL0));
+        const mfxU16 RefActiveBL1 = *std::max_element(NumRefActiveBL1, NumRefActiveBL1 + mfx::size(NumRefActiveBL1));
 
         return mfxU16((par.base.GetGopRefDist(par) > 1) ? std::max<mfxU16>(RefActiveP, RefActiveBL0 + RefActiveBL1) : RefActiveP);
     }

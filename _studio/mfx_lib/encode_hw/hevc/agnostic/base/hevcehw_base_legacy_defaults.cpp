@@ -100,7 +100,7 @@ mfxU16 TemporalLayers::CountTL(const mfxExtAvcTemporalLayers& tl)
 {
     typedef decltype(tl.Layer[0]) TRLayer;
     return std::max<mfxU16>(1, (mfxU16)std::count_if(
-        tl.Layer, tl.Layer + Size(tl.Layer), [](TRLayer l) { return !!l.Scale; }));
+        tl.Layer, tl.Layer + mfx::size(tl.Layer), [](TRLayer l) { return !!l.Scale; }));
 }
 
 class GetDefault
@@ -251,7 +251,7 @@ public:
     {
         mfxU16 NumRefActiveP[8];
         par.base.GetNumRefActive(par, &NumRefActiveP, nullptr, nullptr);
-        mfxU16 RefActiveP = *std::max_element(NumRefActiveP, NumRefActiveP + Size(NumRefActiveP));
+        mfxU16 RefActiveP = *std::max_element(NumRefActiveP, NumRefActiveP + mfx::size(NumRefActiveP));
         return std::min<mfxU16>(DEFAULT_PPYR_INTERVAL, RefActiveP);
     }
 
@@ -261,8 +261,8 @@ public:
     {
         mfxU16 NumRefActiveP[8], NumRefActiveBL0[8];
         par.base.GetNumRefActive(par, &NumRefActiveP, &NumRefActiveBL0, nullptr);
-        mfxU16 RefActiveP = *std::max_element(NumRefActiveP, NumRefActiveP + Size(NumRefActiveP));
-        mfxU16 RefActiveBL0 = *std::max_element(NumRefActiveBL0, NumRefActiveBL0 + Size(NumRefActiveBL0));
+        mfxU16 RefActiveP = *std::max_element(NumRefActiveP, NumRefActiveP + mfx::size(NumRefActiveP));
+        mfxU16 RefActiveBL0 = *std::max_element(NumRefActiveBL0, NumRefActiveBL0 + mfx::size(NumRefActiveBL0));
         return mfxU16(std::max<mfxU16>(RefActiveP, RefActiveBL0) + (par.base.GetGopRefDist(par) > 1) * RefActiveBL0);
     }
 
@@ -942,7 +942,7 @@ public:
         mfxU16 LCUSize    =
             bForce64 * 64
             + bForce32 * 32
-            + bMaxByCaps * (1 << (CeilLog2(par.caps.LCUSizeSupported + 1) + 3));
+            + bMaxByCaps * (1 << (mfx::CeilLog2(par.caps.LCUSizeSupported + 1) + 3));
 
         assert((LCUSize >> 4) & par.caps.LCUSizeSupported);
 
@@ -1152,8 +1152,8 @@ public:
         l0 = std::min(l0, mfxU8(maxL0));
         l1 = std::min(l1, mfxU8(maxL1));
 
-        std::fill(RefPicList[0] + l0, RefPicList[0] + Size(RefPicList[0]), IDX_INVALID);
-        std::fill(RefPicList[1] + l1, RefPicList[1] + Size(RefPicList[1]), IDX_INVALID);
+        std::fill(RefPicList[0] + l0, RefPicList[0] + mfx::size(RefPicList[0]), IDX_INVALID);
+        std::fill(RefPicList[1] + l1, RefPicList[1] + mfx::size(RefPicList[1]), IDX_INVALID);
 
         return std::make_tuple(l0, l1);
     }
@@ -1167,8 +1167,8 @@ public:
         , const FrameBaseInfo& cur
         , mfxU8(&RefPicList)[2][MAX_DPB_SIZE])
     {
-        mfxU8 l0 = mfxU8(Size(RefPicList[0]) - std::count(RefPicList[0], RefPicList[0] + Size(RefPicList[0]), IDX_INVALID));
-        mfxU8 l1 = mfxU8(Size(RefPicList[1]) - std::count(RefPicList[1], RefPicList[1] + Size(RefPicList[1]), IDX_INVALID));
+        mfxU8 l0 = mfxU8(mfx::size(RefPicList[0]) - std::count(RefPicList[0], RefPicList[0] + mfx::size(RefPicList[0]), IDX_INVALID));
+        mfxU8 l1 = mfxU8(mfx::size(RefPicList[1]) - std::count(RefPicList[1], RefPicList[1] + mfx::size(RefPicList[1]), IDX_INVALID));
         bool isB = IsB(cur.FrameType) && !cur.isLDB;
 
         bool bDefaultL1 = isB && !l1 && l0;
@@ -1237,8 +1237,8 @@ public:
         bool bLowDelay = (CO3.PRefType == MFX_P_REF_PYRAMID);
         mfxU8 l0 = 0, l1 = 0;
         const DpbFrame* dpbBegin = &DPB[0];
-        std::list<const DpbFrame*> L0(Size(DPB), nullptr);
-        std::list<const DpbFrame*> L1(Size(DPB) * (IsB(cur.FrameType) && !cur.isLDB), nullptr);
+        std::list<const DpbFrame*> L0(mfx::size(DPB), nullptr);
+        std::list<const DpbFrame*> L1(mfx::size(DPB) * (IsB(cur.FrameType) && !cur.isLDB), nullptr);
 
         std::iota(L0.begin(), L0.end(), dpbBegin);
         std::iota(L1.begin(), L1.end(), dpbBegin);
@@ -1328,16 +1328,16 @@ public:
 
         mfxU8 pref[2] = {};
         mfxU8 IdxList[16];
-        auto pIdxListEnd = IdxList + Size(IdxList);
-        mfxU8 l0 = mfxU8(Size(RefPicList[0]) - std::count(RefPicList[0], RefPicList[0] + Size(RefPicList[0]), IDX_INVALID));
-        mfxU8 l1 = mfxU8(Size(RefPicList[1]) - std::count(RefPicList[1], RefPicList[1] + Size(RefPicList[1]), IDX_INVALID));
+        auto pIdxListEnd = IdxList + mfx::size(IdxList);
+        mfxU8 l0 = mfxU8(mfx::size(RefPicList[0]) - std::count(RefPicList[0], RefPicList[0] + mfx::size(RefPicList[0]), IDX_INVALID));
+        mfxU8 l1 = mfxU8(mfx::size(RefPicList[1]) - std::count(RefPicList[1], RefPicList[1] + mfx::size(RefPicList[1]), IDX_INVALID));
 
         SetIf(maxL0, ctrl.NumRefIdxL0Active, std::min<mfxU16>(ctrl.NumRefIdxL0Active, maxL0));
         SetIf(maxL1, ctrl.NumRefIdxL1Active, std::min<mfxU16>(ctrl.NumRefIdxL1Active, maxL1));
 
         std::transform(
             ctrl.RejectedRefList
-            , ctrl.RejectedRefList + Size(IdxList)
+            , ctrl.RejectedRefList + mfx::size(IdxList)
             , IdxList
             , [&](TRRejected x) { return Legacy::GetDPBIdxByFO(DPB, x.FrameOrder); });
 
@@ -1348,7 +1348,7 @@ public:
 
         std::transform(
             ctrl.PreferredRefList
-            , ctrl.PreferredRefList + Size(IdxList)
+            , ctrl.PreferredRefList + mfx::size(IdxList)
             , IdxList
             , [&](TRPreferred x) { return Legacy::GetDPBIdxByFO(DPB, x.FrameOrder); });
 
@@ -1532,7 +1532,7 @@ public:
         bool   bAlignLcuPerSliceByRows = SliceStructure == ROWSLICE && bStrictNumLCUPerSlice;
         mfxU32 nLcuPerSliceAlignment   = std::max<mfxU32>(1, bAlignLcuPerSliceByRows * nCol);
 
-        nLcuPerSlice = CeilDiv<mfxU32>(nLcuPerSlice, nLcuPerSliceAlignment) * nLcuPerSliceAlignment;
+        nLcuPerSlice = mfx::CeilDiv<mfxU32>(nLcuPerSlice, nLcuPerSliceAlignment) * nLcuPerSliceAlignment;
 
         //if not aligned already but need to
         bAlignLcuPerSliceByRows = !bAlignLcuPerSliceByRows && SliceStructure < ARBITRARY_MB_SLICE;
@@ -1540,7 +1540,7 @@ public:
         if (bAlignLcuPerSliceByRows)
         {
             nSlice = std::min<mfxU32>(nSlice, nRow);
-            mfxU32 nRowsPerSlice = CeilDiv(nRow, nSlice);
+            mfxU32 nRowsPerSlice = mfx::CeilDiv(nRow, nSlice);
             bool   bAddSlice     = (SliceStructure != POW2ROW) && (nRowsPerSlice * (nSlice - 1)) >= nRow;
 
             nSlice        += bAddSlice;
@@ -1548,13 +1548,13 @@ public:
 
             if (SliceStructure == POW2ROW)
             {
-                mfxU32 nRowLog2     = CeilLog2(nRowsPerSlice);
+                mfxU32 nRowLog2     = mfx::CeilLog2(nRowsPerSlice);
                 mfxU32 nRowsCand[2] = { mfxU32(1 << (nRowLog2 - 1)), mfxU32(1 << nRowLog2) };
                 mfxI32 dC0          = nRowsPerSlice - nRowsCand[0];
                 mfxI32 dC1          = nRowsCand[1] - nRowsPerSlice;
 
                 nRowsPerSlice = nRowsCand[dC0 > dC1];
-                nSlice = CeilDiv(nRow, nRowsPerSlice);
+                nSlice = mfx::CeilDiv(nRow, nRowsPerSlice);
             }
 
             nLcuPerSlice           = nRowsPerSlice;
@@ -1586,8 +1586,8 @@ public:
 
             mfxI32 delta       = (1 - 2 * bLessLCUs) * nLCUMult;
             mfxU32 step        = nSlice / nLCULeft;
-            auto   slStepBegin = MakeStepIter(slBegin, step);
-            auto   slStepEnd   = MakeStepIter(slEnd, step);
+            auto   slStepBegin = mfx::MakeStepIter(slBegin, step);
+            auto   slStepEnd   = mfx::MakeStepIter(slEnd, step);
             auto   ModNumLCU   = [&delta](SliceInfo& si) { si.NumLCU += delta; };
 
             std::for_each(slStepBegin, slStepEnd, ModNumLCU);
@@ -1595,7 +1595,7 @@ public:
             nLCULeft    = (mfxU32)std::max(0, int(nSlice / step - nLCULeft));
             step        = ((nSlice / step) / std::max(1u, nLCULeft)) * step;
             delta      *= -1;
-            slStepBegin = MakeStepIter(slBegin, step);
+            slStepBegin = mfx::MakeStepIter(slBegin, step);
             slStepEnd   = std::next(slStepBegin, nLCULeft);
 
             std::for_each(slStepBegin, slStepEnd, ModNumLCU);
@@ -1681,8 +1681,8 @@ public:
         mfxU16 W        = defPar.base.GetCodedPicWidth(defPar);
         mfxU16 H        = defPar.base.GetCodedPicHeight(defPar);
         mfxU16 LCUSize  = defPar.base.GetLCUSize(defPar);
-        mfxU32 nCol     = CeilDiv<mfxU32>(W, LCUSize);
-        mfxU32 nRow     = CeilDiv<mfxU32>(H, LCUSize);
+        mfxU32 nCol     = mfx::CeilDiv<mfxU32>(W, LCUSize);
+        mfxU32 nRow     = mfx::CeilDiv<mfxU32>(H, LCUSize);
         auto   tiles    = defPar.base.GetNumTiles(defPar);
         mfxU32 nTCol    = std::get<0>(tiles);
         mfxU32 nTRow    = std::get<1>(tiles);
@@ -1714,7 +1714,7 @@ public:
 
         bool bNumMbPerSliceSet = pCO2 && pCO2->NumMbPerSlice != 0;
         if (bNumMbPerSliceSet)
-            nSlice = CeilDiv<mfxU32>(nLCU / nTile, pCO2->NumMbPerSlice) * nTile;
+            nSlice = mfx::CeilDiv<mfxU32>(nLCU / nTile, pCO2->NumMbPerSlice) * nTile;
 
         nSlice = std::max<mfxU32>(nSlice * (SliceStructure != 0), 1);
         nSlice = std::max<mfxU32>(nSlice, nTile * (nSlice > 1));
@@ -1765,7 +1765,7 @@ public:
             };
             std::vector<TileInfo> tile(nTile);
             mfxU32 id           = 0;
-            mfxU32 nLcuPerSlice = CeilDiv(nLCU, nSlice);
+            mfxU32 nLcuPerSlice = mfx::CeilDiv(nLCU, nSlice);
             mfxU32 nSliceRest   = nSlice;
 
             std::for_each(std::begin(rowHeight), std::end(rowHeight), [&](mfxU32 h)
@@ -1915,10 +1915,10 @@ public:
         sps.conformance_window_flag           = 0;
         sps.bit_depth_luma_minus8             = (mfxU8)std::max<mfxI32>(0, CO3.TargetBitDepthLuma - 8);
         sps.bit_depth_chroma_minus8           = (mfxU8)std::max<mfxI32>(0, CO3.TargetBitDepthChroma - 8);
-        sps.log2_max_pic_order_cnt_lsb_minus4 = (mfxU8)mfx::clamp(CeilLog2(mfx.GopRefDist + slo.max_dec_pic_buffering_minus1) - 1, 0u, 12u);
+        sps.log2_max_pic_order_cnt_lsb_minus4 = (mfxU8)mfx::clamp(mfx::CeilLog2(mfx.GopRefDist + slo.max_dec_pic_buffering_minus1) - 1, 0u, 12u);
 
         sps.log2_min_luma_coding_block_size_minus3   = 0;
-        sps.log2_diff_max_min_luma_coding_block_size = CeilLog2(HEVCParam.LCUSize) - 3 - sps.log2_min_luma_coding_block_size_minus3;
+        sps.log2_diff_max_min_luma_coding_block_size = mfx::CeilLog2(HEVCParam.LCUSize) - 3 - sps.log2_min_luma_coding_block_size_minus3;
         sps.log2_min_transform_block_size_minus2     = 0;
         sps.log2_diff_max_min_transform_block_size   = 3;
         sps.max_transform_hierarchy_depth_inter      = 2;
@@ -2070,8 +2070,8 @@ public:
 
         if (HEVCTiles.NumTileColumns * HEVCTiles.NumTileRows > 1)
         {
-            mfxU16 nCol   = (mfxU16)CeilDiv(HEVCParam.PicWidthInLumaSamples,  HEVCParam.LCUSize);
-            mfxU16 nRow   = (mfxU16)CeilDiv(HEVCParam.PicHeightInLumaSamples, HEVCParam.LCUSize);
+            mfxU16 nCol   = (mfxU16)mfx::CeilDiv(HEVCParam.PicWidthInLumaSamples,  HEVCParam.LCUSize);
+            mfxU16 nRow   = (mfxU16)mfx::CeilDiv(HEVCParam.PicHeightInLumaSamples, HEVCParam.LCUSize);
             mfxU16 nTCol  = std::max<mfxU16>(HEVCTiles.NumTileColumns, 1);
             mfxU16 nTRow  = std::max<mfxU16>(HEVCTiles.NumTileRows, 1);
 
@@ -2538,7 +2538,7 @@ public:
         };
 
         mfxU16 maxChroma = dpar.base.GetMaxChroma(dpar) + 1;
-        maxChroma *= (maxChroma <= Size(cfTbl));
+        maxChroma *= (maxChroma <= mfx::size(cfTbl));
         SetDefault(maxChroma, mfxU16(MFX_CHROMAFORMAT_YUV420 + 1));
 
         invalid += !std::count(cfTbl, cfTbl + maxChroma, pCO3->TargetChromaFormatPlus1);
@@ -2669,7 +2669,7 @@ public:
         MFX_CHECK(bVBR && !bExtBRC, MFX_ERR_NONE);
 
         auto   fr      = dpar.base.GetFrameRate(dpar);
-        mfxU16 fps     = mfxU16(CeilDiv(std::get<0>(fr), std::get<1>(fr)));
+        mfxU16 fps     = mfxU16(mfx::CeilDiv(std::get<0>(fr), std::get<1>(fr)));
         auto   maxKbps = dpar.base.GetMaxKbps(dpar);
 
         changed += pCO3->WinBRCSize && SetIf(pCO3->WinBRCSize, pCO3->WinBRCSize != fps, fps);
@@ -2757,12 +2757,12 @@ public:
             mfxU16 W = defPar.base.GetCodedPicWidth(defPar);
             mfxU16 H = defPar.base.GetCodedPicHeight(defPar);
             mfxU16 LCUSize = defPar.base.GetLCUSize(defPar);
-            mfxU32 nLCU = CeilDiv(W, LCUSize) * CeilDiv(H, LCUSize);
+            mfxU32 nLCU = mfx::CeilDiv(W, LCUSize) * mfx::CeilDiv(H, LCUSize);
             mfxU32 nTile = std::get<0>(tiles) * std::get<1>(tiles);
             mfxU32 maxSlicesPerTile = MAX_SLICES / nTile;
             mfxU32 maxSlicesTotal = maxSlicesPerTile * nTile;
-            mfxU32 maxNumMbPerSlice = CeilDiv(nLCU, nTile);
-            mfxU32 minNumMbPerSlice = CeilDiv(nLCU, maxSlicesTotal);
+            mfxU32 maxNumMbPerSlice = mfx::CeilDiv(nLCU, nTile);
+            mfxU32 minNumMbPerSlice = mfx::CeilDiv(nLCU, maxSlicesTotal);
 
             changed += CheckMinOrClip(pCO2->NumMbPerSlice, minNumMbPerSlice);
             changed += CheckMaxOrClip(pCO2->NumMbPerSlice, maxNumMbPerSlice);

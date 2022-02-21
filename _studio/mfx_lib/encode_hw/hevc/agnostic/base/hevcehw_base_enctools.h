@@ -94,7 +94,7 @@ namespace Base
 
         std::list<mfxLplastatus>         LpLaStatus;
 
-        OnExit    m_destroy;
+        mfx::OnExit    m_destroy;
     };
 
     bool IsEncToolsOptOn(const mfxExtEncToolsConfig &config, bool bGameStreaming);

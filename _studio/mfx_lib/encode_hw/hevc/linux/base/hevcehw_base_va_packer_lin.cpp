@@ -394,7 +394,7 @@ void UpdatePPS(
     pps.nal_unit_type                   = task.SliceNUT;
 
     auto pDpbBegin = task.DPB.Active;
-    auto pDpbEnd = task.DPB.Active + Size(task.DPB.Active);
+    auto pDpbEnd = task.DPB.Active + mfx::size(task.DPB.Active);
     auto pDpbValidEnd = std::find_if(pDpbBegin, pDpbEnd
         , [](decltype(*pDpbBegin) ref) { return ref.Rec.Idx == IDX_INVALID; });
 
@@ -414,7 +414,7 @@ void UpdatePPS(
 
     std::fill(
         pps.reference_frames + (pDpbValidEnd - pDpbBegin)
-        , pps.reference_frames + Size(pps.reference_frames)
+        , pps.reference_frames + mfx::size(pps.reference_frames)
         , vaRefInvalid);
 }
 
@@ -790,13 +790,13 @@ void UpdateSlices(
 
         auto GetRef = [&](mfxU8 idx)
         {
-            if (idx < Size(pps.reference_frames))
+            if (idx < mfx::size(pps.reference_frames))
                 return pps.reference_frames[idx];
             return vaRefInvalid;
         };
 
-        std::fill(slice.ref_pic_list0, slice.ref_pic_list0 + Size(slice.ref_pic_list0), vaRefInvalid);
-        std::fill(slice.ref_pic_list1, slice.ref_pic_list1 + Size(slice.ref_pic_list1), vaRefInvalid);
+        std::fill(slice.ref_pic_list0, slice.ref_pic_list0 + mfx::size(slice.ref_pic_list0), vaRefInvalid);
+        std::fill(slice.ref_pic_list1, slice.ref_pic_list1 + mfx::size(slice.ref_pic_list1), vaRefInvalid);
 
         std::transform(
             task.RefPicList[0]

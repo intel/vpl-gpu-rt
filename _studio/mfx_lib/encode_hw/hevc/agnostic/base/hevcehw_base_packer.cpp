@@ -1044,7 +1044,7 @@ void Packer::PackSSHPartIdAddr(
     Slice const &    slice)
 {
     mfxU32 MaxCU = (1<<(sps.log2_min_luma_coding_block_size_minus3 + 3 + sps.log2_diff_max_min_luma_coding_block_size));
-    mfxU32 PicSizeInCtbsY = CeilDiv(sps.pic_width_in_luma_samples, MaxCU) * CeilDiv(sps.pic_height_in_luma_samples, MaxCU);
+    mfxU32 PicSizeInCtbsY = mfx::CeilDiv(sps.pic_width_in_luma_samples, MaxCU) * mfx::CeilDiv(sps.pic_height_in_luma_samples, MaxCU);
 
     bs.PutBit(slice.first_slice_segment_in_pic_flag);
 
@@ -1060,7 +1060,7 @@ void Packer::PackSSHPartIdAddr(
         if (pps.dependent_slice_segments_enabled_flag)
             bs.PutBit(slice.dependent_slice_segment_flag);
 
-        bs.PutBits(CeilLog2(PicSizeInCtbsY), slice.segment_address);
+        bs.PutBits(mfx::CeilLog2(PicSizeInCtbsY), slice.segment_address);
     }
 }
 
@@ -1073,7 +1073,7 @@ void Packer::PackSSHPartNonIDR(
     bool   bNeedStIdx   = slice.short_term_ref_pic_set_sps_flag && (sps.num_short_term_ref_pic_sets > 1);
     auto   PutSpsLT     = [&](const Slice::LongTerm& lt)
     {
-        nSE += (sps.num_long_term_ref_pics_sps > 1) && PutBits(bs, CeilLog2(sps.num_long_term_ref_pics_sps), lt.lt_idx_sps);
+        nSE += (sps.num_long_term_ref_pics_sps > 1) && PutBits(bs, mfx::CeilLog2(sps.num_long_term_ref_pics_sps), lt.lt_idx_sps);
         nSE += PutBit(bs, lt.delta_poc_msb_present_flag);
         nSE += lt.delta_poc_msb_present_flag && PutUE(bs, lt.delta_poc_msb_cycle_lt);
     };
@@ -1095,7 +1095,7 @@ void Packer::PackSSHPartNonIDR(
         PackSTRPS(bs, strps.data(), sps.num_short_term_ref_pic_sets, sps.num_short_term_ref_pic_sets);
     }
 
-    nSE += bNeedStIdx && PutBits(bs, CeilLog2(sps.num_short_term_ref_pic_sets), slice.short_term_ref_pic_set_idx);
+    nSE += bNeedStIdx && PutBits(bs, mfx::CeilLog2(sps.num_short_term_ref_pic_sets), slice.short_term_ref_pic_set_idx);
 
     if (sps.long_term_ref_pics_present_flag)
     {
@@ -1214,7 +1214,7 @@ void Packer::PackSSHPartPB(
         std::for_each(slice.list_entry_lx[lx], slice.list_entry_lx[lx] + num
             , [&](mfxU8 entry)
         {
-            nSE += PutBits(bs, CeilLog2(NumPocTotalCurr), entry);
+            nSE += PutBits(bs, mfx::CeilLog2(NumPocTotalCurr), entry);
         });
     };
 
@@ -1499,7 +1499,7 @@ void Packer::PackBPPayload(
     bp.nal[0].initial_cpb_removal_delay = bp.vcl[0].initial_cpb_removal_delay = task.initial_cpb_removal_delay;
     bp.nal[0].initial_cpb_removal_offset = bp.vcl[0].initial_cpb_removal_offset = task.initial_cpb_removal_offset;
 
-    mfxU32 size = CeilDiv(rbsp.GetOffset(), 8u);
+    mfxU32 size = mfx::CeilDiv(rbsp.GetOffset(), 8u);
     mfxU8* pl = rbsp.GetStart() + size; // payload start
 
     rbsp.PutBits(8, 0);    //payload type
@@ -1508,7 +1508,7 @@ void Packer::PackBPPayload(
 
     Packer::PackSEIPayload(rbsp, sps.vui, bp);
 
-    size = CeilDiv(rbsp.GetOffset(), 8u) - size;
+    size = mfx::CeilDiv(rbsp.GetOffset(), 8u) - size;
 
     assert(size < 256);
     pl[1] = (mfxU8)size; //payload size
@@ -1557,7 +1557,7 @@ void Packer::PackPTPayload(
         + sps.sub_layer[sps.max_sub_layers_minus1].max_num_reorder_pics
         - task.EncodedOrder;
 
-    mfxU32 size = CeilDiv(rbsp.GetOffset(), 8u);
+    mfxU32 size = mfx::CeilDiv(rbsp.GetOffset(), 8u);
     mfxU8* pl = rbsp.GetStart() + size; // payload start
 
     rbsp.PutBits(8, 1);    //payload type
@@ -1566,7 +1566,7 @@ void Packer::PackPTPayload(
 
     Packer::PackSEIPayload(rbsp, sps.vui, pt);
 
-    size = CeilDiv(rbsp.GetOffset(), 8u) - size;
+    size = mfx::CeilDiv(rbsp.GetOffset(), 8u) - size;
 
     assert(size < 256);
     pl[1] = (mfxU8)size; //payload size
@@ -1604,7 +1604,7 @@ mfxU32 Packer::GetPrefixSEI(
 
         rbsp.PutTrailingBits();
 
-        auto bytesPacked = PackRBSP(buf, rbsp.GetStart(), sizeInBytes, CeilDiv(rbsp.GetOffset(), 8u));
+        auto bytesPacked = PackRBSP(buf, rbsp.GetStart(), sizeInBytes, mfx::CeilDiv(rbsp.GetOffset(), 8u));
 
         buf += bytesPacked;
         sizeInBytes -= bytesPacked;
@@ -1657,12 +1657,12 @@ mfxU32 Packer::GetPrefixSEI(
         PackPTPayload(rbsp, par, task, sps);
 
         PTSEI.NumBit  = rbsp.GetOffset() - PTSEI.NumBit;
-        PTSEI.BufSize = (mfxU16)CeilDiv<mfxU32>(PTSEI.NumBit, 8);
+        PTSEI.BufSize = (mfxU16)mfx::CeilDiv<mfxU32>(PTSEI.NumBit, 8);
 
         prefixPL.push_front(&PTSEI);
         rbsp.PutTrailingBits(true);
 
-        auto pNewRBSPStart = rbsp.GetStart() + CeilDiv(rbsp.GetOffset(), 8u);
+        auto pNewRBSPStart = rbsp.GetStart() + mfx::CeilDiv(rbsp.GetOffset(), 8u);
         rbsp.Reset(pNewRBSPStart, mfxU32(rbsp.GetEnd() - pNewRBSPStart));
     }
 
@@ -1677,12 +1677,12 @@ mfxU32 Packer::GetPrefixSEI(
         PackBPPayload(rbsp, task, sps);
 
         BPSEI.NumBit  = rbsp.GetOffset() - BPSEI.NumBit;
-        BPSEI.BufSize = (mfxU16)CeilDiv<mfxU32>(BPSEI.NumBit, 8);
+        BPSEI.BufSize = (mfxU16)mfx::CeilDiv<mfxU32>(BPSEI.NumBit, 8);
 
         prefixPL.push_front(&BPSEI);
         rbsp.PutTrailingBits(true);
 
-        auto pNewRBSPStart = rbsp.GetStart() + CeilDiv(rbsp.GetOffset(), 8u);
+        auto pNewRBSPStart = rbsp.GetStart() + mfx::CeilDiv(rbsp.GetOffset(), 8u);
         rbsp.Reset(pNewRBSPStart, mfxU32(rbsp.GetEnd() - pNewRBSPStart));
     }
 
@@ -1739,7 +1739,7 @@ mfxU32 Packer::GetSuffixSEI(
 
     rbsp.PutTrailingBits();
 
-    return PackRBSP(buf, rbsp.GetStart(), sizeInBytes, CeilDiv(rbsp.GetOffset(), 8u));
+    return PackRBSP(buf, rbsp.GetStart(), sizeInBytes, mfx::CeilDiv(rbsp.GetOffset(), 8u));
 }
 
 static void PackSkipCTU(
@@ -1817,7 +1817,7 @@ void Packer::PackSkipSSD(
     CABACContext ctx;
     const mfxU32 CtbLog2SizeY = sps.log2_min_luma_coding_block_size_minus3 + 3 + sps.log2_diff_max_min_luma_coding_block_size;
     const mfxU32 CtbSizeY = (1 << CtbLog2SizeY);
-    const mfxU32 PicWidthInCtbsY = CeilDiv(sps.pic_width_in_luma_samples, CtbSizeY);
+    const mfxU32 PicWidthInCtbsY = mfx::CeilDiv(sps.pic_width_in_luma_samples, CtbSizeY);
 
     ctx.Init(pps, sh);
 
@@ -1872,11 +1872,11 @@ void Packer::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         mfxExtCodingOptionSPSPPS& spspps = ExtBuffer::Get(vpar);
 
         vps.VPSBuffer     = ph->VPS.pData;
-        vps.VPSBufSize    = mfxU16(CeilDiv(ph->VPS.BitLen, 8u));
+        vps.VPSBufSize    = mfxU16(mfx::CeilDiv(ph->VPS.BitLen, 8u));
         spspps.SPSBuffer  = ph->SPS.pData;
-        spspps.SPSBufSize = mfxU16(CeilDiv(ph->SPS.BitLen, 8u));
+        spspps.SPSBufSize = mfxU16(mfx::CeilDiv(ph->SPS.BitLen, 8u));
         spspps.PPSBuffer  = ph->PPS.pData;
-        spspps.PPSBufSize = mfxU16(CeilDiv(ph->PPS.BitLen, 8u));
+        spspps.PPSBufSize = mfxU16(mfx::CeilDiv(ph->PPS.BitLen, 8u));
 
         global.Insert(Glob::PackedHeaders::Key, std::move(ph));
 
@@ -1910,11 +1910,11 @@ void Packer::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
         mfxExtCodingOptionSPSPPS& spspps = ExtBuffer::Get(vpar);
 
         vps.VPSBuffer     = ph.VPS.pData;
-        vps.VPSBufSize    = mfxU16(CeilDiv(ph.VPS.BitLen, 8u));
+        vps.VPSBufSize    = mfxU16(mfx::CeilDiv(ph.VPS.BitLen, 8u));
         spspps.SPSBuffer  = ph.SPS.pData;
-        spspps.SPSBufSize = mfxU16(CeilDiv(ph.SPS.BitLen, 8u));
+        spspps.SPSBufSize = mfxU16(mfx::CeilDiv(ph.SPS.BitLen, 8u));
         spspps.PPSBuffer  = ph.PPS.pData;
-        spspps.PPSBufSize = mfxU16(CeilDiv(ph.PPS.BitLen, 8u));
+        spspps.PPSBufSize = mfxU16(mfx::CeilDiv(ph.PPS.BitLen, 8u));
 
         auto& vparInit = Glob::VideoParam::Get(initState);
         ((mfxExtCodingOptionVPS&)ExtBuffer::Get(vparInit)) = vps;
@@ -1926,7 +1926,7 @@ void Packer::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
 
 mfxStatus Packer::PackHeader(BitstreamWriter& rbsp, mfxU8* pESBegin, mfxU8* pESEnd, PackedData& d)
 {
-    d.BitLen = PackRBSP(pESBegin, rbsp.GetStart(), mfxU32(pESEnd - pESBegin), CeilDiv(rbsp.GetOffset(), 8u));
+    d.BitLen = PackRBSP(pESBegin, rbsp.GetStart(), mfxU32(pESEnd - pESBegin), mfx::CeilDiv(rbsp.GetOffset(), 8u));
     MFX_CHECK(d.BitLen, MFX_ERR_NOT_ENOUGH_BUFFER);
 
     d.pData   = pESBegin;
@@ -1965,7 +1965,7 @@ mfxStatus Packer::Reset(
         d.BitLen = es.GetOffset();
         d.bLongSC = true;
         d.bHasEP = true;
-        pESBegin += CeilDiv(d.BitLen, 8u);
+        pESBegin += mfx::CeilDiv(d.BitLen, 8u);
     }
 
     PackVPS(rbsp, vps);
@@ -2036,7 +2036,7 @@ mfxU32 Packer::GetPSEIAndSSH(
         PackSSH(rbsp, nalu, sps, pps, sh, bDSS);
 
         d.BitLen = rbsp.GetOffset();
-        pBegin += CeilDiv(d.BitLen, 8u);
+        pBegin += mfx::CeilDiv(d.BitLen, 8u);
 
         return d.BitLen;
     };
@@ -2047,7 +2047,7 @@ mfxU32 Packer::GetPSEIAndSSH(
         PackSSH(rbsp, nalu, sps, pps, sh, bDSS);
         PackSkipSSD(rbsp, sps, pps, sh, nLCU);
 
-        d.BitLen = PackRBSP(pBegin, rbsp.GetStart(), mfxU32(pEnd - pBegin), CeilDiv(rbsp.GetOffset(), 8u));
+        d.BitLen = PackRBSP(pBegin, rbsp.GetStart(), mfxU32(pEnd - pBegin), mfx::CeilDiv(rbsp.GetOffset(), 8u));
         pBegin   += d.BitLen;
         d.BitLen *= 8;
 
@@ -2107,7 +2107,7 @@ void Packer::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             , StorageW& s_task) -> mfxStatus
     {
         auto& task = Task::Common::Get(s_task);
-        OnExit cleanup([&]() { task.PLInternal.clear(); });
+        mfx::OnExit cleanup([&]() { task.PLInternal.clear(); });
 
         if (task.SkipCMD & SKIPCMD_NeedDriverCall)
         {
@@ -2158,7 +2158,7 @@ void Packer::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
             auto BSInsert = [&](const PackedData& d) -> mfxStatus
             {
-                mfxU32 sz = CeilDiv(d.BitLen, 8u);
+                mfxU32 sz = mfx::CeilDiv(d.BitLen, 8u);
                 MFX_CHECK(sz <= BsBytesAvailable, MFX_ERR_NOT_ENOUGH_BUFFER);
                 MFX_CHECK(d.bHasEP, MFX_ERR_UNDEFINED_BEHAVIOR);
 

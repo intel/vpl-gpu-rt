@@ -438,16 +438,6 @@ void Packer::PackSPS(BitstreamWriter& bs, SH const& sh, FH const& fh, ObuExtensi
     bs.PutBitsBuffer(tmpBitstream.GetOffset(), tmpBitstream.GetStart());
 }
 
-inline mfxU32 CeilDiv(mfxU32 x, mfxU32 y) { return (x + y - 1) / y; }
-
-inline mfxU16 tile_log2(mfxU16 blkSize, mfxU16 target)
-{
-    mfxU16 k;
-    for (k = 0; (blkSize << k) < target; k++) {
-    }
-    return k;
-}
-
 static int GetUnsignedBits(unsigned int num_values)
 {
     int cat = 0;

@@ -151,7 +151,7 @@ void SCC::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
                 , const Base::Defaults::Param& dpar
                 , mfxVideoParam& par)
         {
-            OnExit reveretProfile([&](){ SetIf(par.mfx.CodecProfile, !!par.mfx.CodecProfile, MFX_PROFILE_HEVC_SCC); });
+            mfx::OnExit reveretProfile([&](){ SetIf(par.mfx.CodecProfile, !!par.mfx.CodecProfile, MFX_PROFILE_HEVC_SCC); });
             par.mfx.CodecProfile = MFX_PROFILE_HEVC_REXT;
 
             return prev(dpar, par);

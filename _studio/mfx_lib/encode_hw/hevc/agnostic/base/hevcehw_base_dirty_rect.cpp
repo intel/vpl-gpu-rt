@@ -99,7 +99,7 @@ void DirtyRect::SetSupported(ParamSupport& blocks)
 
         dst.NumRect = src.NumRect;
 
-        for (mfxU32 i = 0; i < Size(src.Rect); ++i)
+        for (mfxU32 i = 0; i < mfx::size(src.Rect); ++i)
         {
             dst.Rect[i].Left = src.Rect[i].Left;
             dst.Rect[i].Top = src.Rect[i].Top;

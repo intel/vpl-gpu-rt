@@ -1033,7 +1033,7 @@ void Legacy::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
             SPS& newSPS = Glob::SPS::Get(strg);
 
             SPS oldSPScopy = oldSPS;
-            std::copy(newSPS.strps, newSPS.strps + Size(newSPS.strps), oldSPScopy.strps);
+            std::copy(newSPS.strps, newSPS.strps + mfx::size(newSPS.strps), oldSPScopy.strps);
             oldSPScopy.num_short_term_ref_pic_sets = newSPS.num_short_term_ref_pic_sets;
 
             if (!oldSPS.vui_parameters_present_flag)
@@ -1062,7 +1062,7 @@ void Legacy::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 
         //sacrifice STRPS optimization at Reset to avoid IDR insertion
         newSPS.num_short_term_ref_pic_sets = oldSPS.num_short_term_ref_pic_sets;
-        std::copy(oldSPS.strps, oldSPS.strps + Size(oldSPS.strps), newSPS.strps);
+        std::copy(oldSPS.strps, oldSPS.strps + mfx::size(oldSPS.strps), newSPS.strps);
 
         return MFX_ERR_NONE;
     });
@@ -1208,7 +1208,7 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         if (mfxU32(req.Info.Width * req.Info.Height) < minBS)
         {
             MFX_CHECK(req.Info.Width != 0, MFX_ERR_UNDEFINED_BEHAVIOR);
-            req.Info.Height = (mfxU16)CeilDiv<mfxU32>(minBS, req.Info.Width);
+            req.Info.Height = (mfxU16)mfx::CeilDiv<mfxU32>(minBS, req.Info.Width);
         }
 
         sts = pAlloc->Alloc(req, false);
@@ -1979,9 +1979,9 @@ void Legacy::FreeTask(const FeatureBlocks& /*blocks*/, TPushFT Push)
             , "task.Rec resource is invalid");
 
         auto pDPBBeforeEnd = std::find_if_not(
-            task.DPB.Before, task.DPB.Before + Size(task.DPB.Before), isValid);
+            task.DPB.Before, task.DPB.Before + mfx::size(task.DPB.Before), isValid);
         auto pDPBAfterEnd = std::find_if_not(
-            task.DPB.After, task.DPB.After + Size(task.DPB.After), isValid);
+            task.DPB.After, task.DPB.After + mfx::size(task.DPB.After), isValid);
         auto DPBFrameReleaseVerify = [&](DpbFrame& ref)
         {
             auto IsSameRecIdx = [&](DpbFrame& refA) { return refA.Rec.Idx == ref.Rec.Idx; };
@@ -2035,8 +2035,8 @@ IntraRefreshState GetIntraRefreshState(
     mfxU32 IRBlockSize = 1 << (3 + IntraRefreshBlockUnitSize);
     // refreshing parts (stripes) in frame
     mfxU32 refreshDimension = CO2.IntRefType == MFX_REFRESH_HORIZONTAL
-        ? CeilDiv<mfxU32>(HEVCParam.PicHeightInLumaSamples, IRBlockSize)
-        : CeilDiv<mfxU32>(HEVCParam.PicWidthInLumaSamples, IRBlockSize);
+        ? mfx::CeilDiv<mfxU32>(HEVCParam.PicHeightInLumaSamples, IRBlockSize)
+        : mfx::CeilDiv<mfxU32>(HEVCParam.PicWidthInLumaSamples, IRBlockSize);
 
     // In most cases number of refresh stripes is no aligned with number of frames for refresh.
     // In head frames are refreshed min stripes (can be 0), in tail min+1
@@ -2222,7 +2222,7 @@ static void SetTaskQpY(
         else if (bUseQPOffset)
         {
             task.QpY = (mfxI8)mfx::clamp<mfxI32>(
-                CO3.QPOffset[std::min<size_t>(task.PyramidLevel, Size(CO3.QPOffset) - 1)] + task.QpY
+                CO3.QPOffset[std::min<size_t>(task.PyramidLevel, mfx::size(CO3.QPOffset) - 1)] + task.QpY
                 , 1, maxQP);
         }
     }
@@ -2337,7 +2337,7 @@ void Legacy::ConfigureTask(
     task.InsertHeaders |= INSERT_AUD * IsOn(CO.AUDelimiter);
 
     // update dpb
-    std::copy(task.DPB.Active, task.DPB.Active + Size(task.DPB.Active), task.DPB.After);
+    std::copy(task.DPB.Active, task.DPB.Active + mfx::size(task.DPB.Active), task.DPB.After);
     Remove(task.DPB.After, 0, MAX_DPB_SIZE * isIDR);
 
     if (isRef)
@@ -2598,7 +2598,7 @@ void Legacy::InitDPB(
         // Always check in current release, there are chances in future release to add mode to disable this check.
         std::copy_if(
             prevTask.DPB.After
-            , prevTask.DPB.After + Size(prevTask.DPB.After)
+            , prevTask.DPB.After + mfx::size(prevTask.DPB.After)
             , task.DPB.Active
             , [&](const DpbFrame& ref)
         {
@@ -2607,13 +2607,13 @@ void Legacy::InitDPB(
     }
     else
     {
-        std::copy_n(prevTask.DPB.After, Size(prevTask.DPB.After), task.DPB.Active);
+        std::copy_n(prevTask.DPB.After, mfx::size(prevTask.DPB.After), task.DPB.Active);
     }
 
-    std::copy_n(prevTask.DPB.After, Size(prevTask.DPB.After), task.DPB.Before);
+    std::copy_n(prevTask.DPB.After, mfx::size(prevTask.DPB.After), task.DPB.Before);
 
     DpbArray& dpb = task.DPB.Active;
-    auto dpbEnd = std::find_if_not(dpb, dpb + Size(dpb), isValid);
+    auto dpbEnd = std::find_if_not(dpb, dpb + mfx::size(dpb), isValid);
 
     dpbEnd = RemoveIf(dpb, dpbEnd
         , [&](const DpbFrame& ref)
@@ -2664,7 +2664,7 @@ mfxU16 Legacy::UpdateDPB(
     auto IsLTR                      = [](DpbFrame& f) { return f.isLTR; };
     auto POCLess                    = [](DpbFrame& l, DpbFrame& r) { return l.POC < r.POC; };
 
-    end = mfxU16(std::find_if_not(dpb, dpb + Size(dpb), isValid) - dpb);
+    end = mfxU16(std::find_if_not(dpb, dpb + mfx::size(dpb), isValid) - dpb);
     st0 = mfxU16(std::find_if_not(dpb, dpb + end, IsLTR) - dpb);
 
     // frames stored in DPB in POC ascending order,
@@ -2695,7 +2695,7 @@ mfxU16 Legacy::UpdateDPB(
 
         auto lctrlLtrEnd = std::find_if(
             pLCtrl->LongTermRefList
-            , pLCtrl->LongTermRefList + Size(pLCtrl->LongTermRefList)
+            , pLCtrl->LongTermRefList + mfx::size(pLCtrl->LongTermRefList)
             , [](const TLCtrlRLE& lt) { return lt.FrameOrder == mfxU32(MFX_FRAMEORDER_UNKNOWN); });
 
         std::list<mfxU16> markLTR;
@@ -2825,7 +2825,7 @@ mfxU32 EstimateRpsBits(const STRPS* pSpsRps, mfxU8 nSet, const STRPS & rps, mfxU
 {
     auto NBitsUE = [](mfxU32 b) -> mfxU32
     {
-        return CeilLog2(b + 2) * 2 - 1;
+        return mfx::CeilLog2(b + 2) * 2 - 1;
     };
     auto IsNotUsed = [](const STRPSPic& pic)
     {
@@ -3088,7 +3088,7 @@ void Legacy::SetSTRPS(
         {
             bool bAfterRAP = (RAPPOC >= 0) && (cur->POC > RAPPOC); // if true - need to remove refs <RAPPOC
 
-            RemoveIf(dpb, dpb + Size(dpb) * (bTL | bAfterRAP)
+            RemoveIf(dpb, dpb + mfx::size(dpb) * (bTL | bAfterRAP)
                 , [&](DpbFrame& ref)
             {
                 return
@@ -3111,8 +3111,8 @@ void Legacy::SetSTRPS(
                 mfxU8 nRef[2] = {};
                 mfxU8 RefPicList[2][MAX_DPB_SIZE];
 
-                std::fill_n(RefPicList[0], Size(RefPicList[0]), IDX_INVALID);
-                std::fill_n(RefPicList[1], Size(RefPicList[1]), IDX_INVALID);
+                std::fill_n(RefPicList[0], mfx::size(RefPicList[0]), IDX_INVALID);
+                std::fill_n(RefPicList[1], mfx::size(RefPicList[1]), IDX_INVALID);
 
                 auto SetRPL = [&]()
                 {
@@ -3161,15 +3161,15 @@ void Legacy::SetSTRPS(
         //bits for RPS in SPS and SSHs
         mfxU32 bits0 =
             EstimateRpsBits(pSetsBegin, nSet, rps, nSet - 1) //bits for RPS in SPS
-            + (CeilLog2(nSet + 1) - CeilLog2(nSet)) * 2 //diff of bits for STRPS num in SPS (ue() coded)
-            + (nSet > 1) * (par.mfx.NumSlice * CeilLog2(nSet) * n); //bits for RPS idx in SSHs
+            + (mfx::CeilLog2(nSet + 1) - mfx::CeilLog2(nSet)) * 2 //diff of bits for STRPS num in SPS (ue() coded)
+            + (nSet > 1) * (par.mfx.NumSlice * mfx::CeilLog2(nSet) * n); //bits for RPS idx in SSHs
 
         // count frames that use SPS RPS
         auto AccFrWithRPS = [](mfxU32 x, const STRPS& r)
         {
             return std::move(x) + r.inter_ref_pic_set_prediction_flag * r.WeightInGop;
         };
-        if (CeilLog2(nSet) - CeilLog2(nSet - 1)) //diff RPS idx bits with bigger RPS for ALL frames
+        if (mfx::CeilLog2(nSet) - mfx::CeilLog2(nSet - 1)) //diff RPS idx bits with bigger RPS for ALL frames
             bits0 = par.mfx.NumSlice * std::accumulate(pSetsBegin, pSetsBegin + nSet - 1, bits0, AccFrWithRPS);
 
         //emulate removal of current RPS from SPS
@@ -3392,7 +3392,7 @@ void SetDefaultBRC(
         if (bSetWinBRC)
         {
             SetDefault<mfxU16>(pCO3->WinBRCSize
-                , (mfxU16)CeilDiv(par.mfx.FrameInfo.FrameRateExtN, par.mfx.FrameInfo.FrameRateExtD));
+                , (mfxU16)mfx::CeilDiv(par.mfx.FrameInfo.FrameRateExtN, par.mfx.FrameInfo.FrameRateExtD));
             SetDefault<mfxU16>(pCO3->WinBRCMaxAvgKbps, par.mfx.MaxKbps);
         }
 
@@ -3513,7 +3513,7 @@ void Legacy::SetDefaults(
         auto minQP = defPar.base.GetMinQPMFX(defPar);
         auto maxQP = defPar.base.GetMaxQPMFX(defPar);
 
-        SetDefault(pCO2->IntRefCycleSize, mfxU16(CeilDiv(fi.FrameRateExtN, fi.FrameRateExtD) * !!pCO2->IntRefType));
+        SetDefault(pCO2->IntRefCycleSize, mfxU16(mfx::CeilDiv(fi.FrameRateExtN, fi.FrameRateExtD) * !!pCO2->IntRefType));
 
         SetDefault(pCO2->MinQPI, minQP);
         SetDefault(pCO2->MinQPP, minQP);
@@ -4452,10 +4452,10 @@ mfxU16 GetSliceHeaderLTRs(
     mfxI32 DPBLT[MAX_DPB_SIZE] = {};
     mfxI32 InvalidPOC = -9000;
 
-    std::transform(DPB, DPB + Size(DPB), DPBLT
+    std::transform(DPB, DPB + mfx::size(DPB), DPBLT
         , [InvalidPOC](const DpbFrame& x) { return (x.isLTR && isValid(x)) ? x.POC : InvalidPOC; });
 
-    nDPBLT = std::remove_if(DPBLT, DPBLT + Size(DPBLT)
+    nDPBLT = std::remove_if(DPBLT, DPBLT + mfx::size(DPBLT)
         , [InvalidPOC](mfxI32 x) { return x == InvalidPOC; }) - DPBLT;
 
     std::sort(DPBLT, DPBLT + nDPBLT, std::greater<mfxI32>()); // sort for DeltaPocMsbCycleLt (may only increase)
@@ -4624,7 +4624,7 @@ mfxStatus Legacy::GetSliceHeader(
         nSTR[0] = mfxU16(std::transform(picsUsed[0].begin(), picsUsed[0].end(), STR[0], PicToPOC) - STR[0]);
         nSTR[1] = mfxU16(std::transform(picsUsed[1].begin(), picsUsed[1].end(), STR[1], PicToPOC) - STR[1]);
 
-        if (std::any_of(DPB, DPB + Size(DPB), IsLTR))
+        if (std::any_of(DPB, DPB + mfx::size(DPB), IsLTR))
         {
             assert(sps.long_term_ref_pics_present_flag);
             nLTR = GetSliceHeaderLTRs(task, m_prevTask, DPB, sps, LTR, s);

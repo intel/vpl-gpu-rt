@@ -138,7 +138,7 @@ void ROI::SetSupported(ParamSupport& blocks)
         dst.NumROI = src.NumROI;
         dst.ROIMode = src.ROIMode;
 
-        std::transform(src.ROI, src.ROI + Size(src.ROI), dst.ROI
+        std::transform(src.ROI, src.ROI + mfx::size(src.ROI), dst.ROI
             , [](const RectData& s)
         {
             RectData d = {};

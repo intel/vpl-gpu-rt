@@ -267,7 +267,7 @@ void Interlace::Query1NoCaps(const FeatureBlocks& , TPushQ1 Push)
 
             sps.log2_max_pic_order_cnt_lsb_minus4 =
                 mfx::clamp<mfxU32>(
-                    CeilLog2(mfx.GopRefDist * 2 + sps.sub_layer[sps.max_sub_layers_minus1].max_dec_pic_buffering_minus1) - 1
+                    mfx::CeilLog2(mfx.GopRefDist * 2 + sps.sub_layer[sps.max_sub_layers_minus1].max_dec_pic_buffering_minus1) - 1
                     , sps.log2_max_pic_order_cnt_lsb_minus4
                     , 12u);
             sps.vui.frame_field_info_present_flag = 1;
@@ -366,7 +366,7 @@ static bool IsL1Ready(
     TTaskItWrap end,
     bool flush)
 {
-    std::list<const DpbFrame*> bwd(Size(dpb), nullptr);
+    std::list<const DpbFrame*> bwd(mfx::size(dpb), nullptr);
     std::iota(bwd.begin(), bwd.end(), std::begin(dpb));
 
     bwd.remove_if([&](const DpbFrame* p) { return !isValid(*p) || p->POC < poc; });
@@ -546,7 +546,7 @@ void Interlace::SubmitTask(const FeatureBlocks& , TPushST Push)
         Packer::PackSEIPayload(bs, sps.vui, pt);
 
         pl.NumBit  = bs.GetOffset();
-        pl.BufSize = mfxU16(CeilDiv(pl.NumBit, 8u));
+        pl.BufSize = mfxU16(mfx::CeilDiv(pl.NumBit, 8u));
 
         assert(pl.BufSize < 256);
         pl.Data[1] = (mfxU8)pl.BufSize - 2; //payload size

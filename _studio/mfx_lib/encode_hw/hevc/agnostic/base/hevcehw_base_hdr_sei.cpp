@@ -47,8 +47,8 @@ void HdrSei::SetSupported(ParamSupport& blocks)
         auto& dst = *(mfxExtMasteringDisplayColourVolume*)pDst;
 
         dst.InsertPayloadToggle = src.InsertPayloadToggle;
-        std::copy_n(src.DisplayPrimariesX, Size(src.DisplayPrimariesX), dst.DisplayPrimariesX);
-        std::copy_n(src.DisplayPrimariesY, Size(src.DisplayPrimariesY), dst.DisplayPrimariesY);
+        std::copy_n(src.DisplayPrimariesX, mfx::size(src.DisplayPrimariesX), dst.DisplayPrimariesX);
+        std::copy_n(src.DisplayPrimariesY, mfx::size(src.DisplayPrimariesY), dst.DisplayPrimariesY);
         dst.WhitePointX = src.WhitePointX;
         dst.WhitePointY = src.WhitePointY;
         dst.MaxDisplayMasteringLuminance = src.MaxDisplayMasteringLuminance;
@@ -60,7 +60,7 @@ void PackSEIPayload(
     BitstreamWriter& bs
     , const mfxExtMasteringDisplayColourVolume & DisplayColour)
 {
-    mfxU32 size = CeilDiv(bs.GetOffset(), 8u);
+    mfxU32 size = mfx::CeilDiv(bs.GetOffset(), 8u);
     mfxU8* pl = bs.GetStart() + size; // payload start
 
     bs.PutBits(8, 137);  //payload type
@@ -77,7 +77,7 @@ void PackSEIPayload(
     bs.PutBits(32, DisplayColour.MaxDisplayMasteringLuminance);
     bs.PutBits(32, DisplayColour.MinDisplayMasteringLuminance);
 
-    size = CeilDiv(bs.GetOffset(), 8u) - size;
+    size = mfx::CeilDiv(bs.GetOffset(), 8u) - size;
 
     assert(size < 256);
     pl[1] = (mfxU8)size; //payload size
@@ -87,7 +87,7 @@ void PackSEIPayload(
     BitstreamWriter& bs
     , const mfxExtContentLightLevelInfo & LightLevel)
 {
-    mfxU32 size = CeilDiv(bs.GetOffset(), 8u);
+    mfxU32 size = mfx::CeilDiv(bs.GetOffset(), 8u);
     mfxU8* pl = bs.GetStart() + size; // payload start
 
     bs.PutBits(8, 144);  //payload type
@@ -97,7 +97,7 @@ void PackSEIPayload(
     bs.PutBits(16, LightLevel.MaxContentLightLevel);
     bs.PutBits(16, LightLevel.MaxPicAverageLightLevel);
 
-    size = CeilDiv(bs.GetOffset(), 8u) - size;
+    size = mfx::CeilDiv(bs.GetOffset(), 8u) - size;
 
     assert(size < 256);
     pl[1] = (mfxU8)size; //payload size
@@ -191,13 +191,13 @@ void HdrSei::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
             pl.Type     = 137;
             pl.NumBit   = bs.GetOffset();
-            pl.BufSize  = (mfxU16)CeilDiv(pl.NumBit, 8u);
+            pl.BufSize  = (mfxU16)mfx::CeilDiv(pl.NumBit, 8u);
             pl.Data     = bs.GetStart() + pl.BufSize;
 
             PackSEIPayload(bs, *pMDCV);
 
             pl.NumBit   = bs.GetOffset() - pl.NumBit;
-            pl.BufSize  = (mfxU16)CeilDiv(pl.NumBit, 8u);
+            pl.BufSize  = (mfxU16)mfx::CeilDiv(pl.NumBit, 8u);
 
             task.PLInternal.push_back(pl);
 
@@ -210,13 +210,13 @@ void HdrSei::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
             pl.Type     = 144;
             pl.NumBit   = bs.GetOffset();
-            pl.BufSize  = (mfxU16)CeilDiv(pl.NumBit, 8u);
+            pl.BufSize  = (mfxU16)mfx::CeilDiv(pl.NumBit, 8u);
             pl.Data     = bs.GetStart() + pl.BufSize;
 
             PackSEIPayload(bs, *pCLLI);
 
             pl.NumBit   = bs.GetOffset() - pl.NumBit;
-            pl.BufSize  = (mfxU16)CeilDiv(pl.NumBit, 8u);
+            pl.BufSize  = (mfxU16)mfx::CeilDiv(pl.NumBit, 8u);
 
             task.PLInternal.push_back(pl);
 

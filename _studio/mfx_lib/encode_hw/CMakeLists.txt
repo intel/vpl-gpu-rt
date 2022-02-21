@@ -250,6 +250,7 @@ target_sources(encode_hw PRIVATE
   ${MJPEG_VIDEO_ENCODE_SRC}
   ${VP9_VIDEO_ENCODE_SRC}
 
+  shared/ehw_utils.h
   shared/ehw_resources_pool.h
   shared/ehw_task_manager.h
 

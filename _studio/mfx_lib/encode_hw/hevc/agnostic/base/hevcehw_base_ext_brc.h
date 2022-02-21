@@ -69,9 +69,9 @@ protected:
 
     mfxBRCFrameParam MakeFrameParam(const TaskCommonPar& task);
 
-    mfxExtBRC m_brc = {};
-    OnExit    m_destroy;
-    bool      m_bUseLevel = true;
+    mfxExtBRC      m_brc = {};
+    mfx::OnExit    m_destroy;
+    bool           m_bUseLevel = true;
 };
 
 } //Base
