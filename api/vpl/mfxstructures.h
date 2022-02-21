@@ -357,9 +357,7 @@ typedef enum {
     MFX_HANDLE_VA_CONTEXT_ID                    = 7, /*!< Pointer to VAContextID interface. It represents external VA context for Common Encryption usage model. */
     MFX_HANDLE_CM_DEVICE                        = 8,  /*!< Pointer to CmDevice interface ( Intel(r) C for Metal Runtime ). */
     MFX_HANDLE_HDDLUNITE_WORKLOADCONTEXT        = 9,  /*!< Pointer to HddlUnite::WorkloadContext interface. */
-#ifdef ONEVPL_EXPERIMENTAL 
     MFX_HANDLE_PXP_CONTEXT                      = 10, /*!< Pointer to PXP context for protected content support. */
-#endif
 } mfxHandleType;
 
 /*! The mfxMemoryFlags enumerator specifies memory access mode. */
@@ -3667,7 +3665,6 @@ enum {
     MFX_ERROR_SLICEHEADER         = (1 << 2),  /*!< Invalid/corrupted slice header. */
     MFX_ERROR_SLICEDATA           = (1 << 3),  /*!< Invalid/corrupted slice data. */
     MFX_ERROR_FRAME_GAP           = (1 << 4),  /*!< Missed frames. */
-#ifdef ONEVPL_EXPERIMENTAL
     MFX_ERROR_JPEG_APP0_MARKER    = (1 << 5),  /*!< Invalid/corrupted APP0 marker. */
     MFX_ERROR_JPEG_APP1_MARKER    = (1 << 6),  /*!< Invalid/corrupted APP1 marker. */
     MFX_ERROR_JPEG_APP2_MARKER    = (1 << 7),  /*!< Invalid/corrupted APP2 marker. */
@@ -3689,7 +3686,6 @@ enum {
     MFX_ERROR_JPEG_DRI_MARKER     = (1 << 23), /*!< Invalid/corrupted DRI marker. */
     MFX_ERROR_JPEG_SOS_MARKER     = (1 << 24), /*!< Invalid/corrupted SOS marker. */
     MFX_ERROR_JPEG_UNKNOWN_MARKER = (1 << 25), /*!< Unknown Marker. */
-#endif
 };
 
 
