@@ -25,6 +25,10 @@
 #include "umc_h265_au_splitter.h"
 #include "umc_h265_nal_spl.h"
 
+#if defined(MFX_ENABLE_PXP)
+#include "mfx_pxp_h265_nal_spl.h"
+#endif
+
 namespace UMC_HEVC_DECODER
 {
 
@@ -42,7 +46,11 @@ void AU_Splitter_H265::Init(UMC::VideoDecoderParams *)
 {
     Close();
 
+#if defined(MFX_ENABLE_PXP)
+    m_pNALSplitter.reset(new PXPNALUnitSplitter_H265());
+#else
     m_pNALSplitter.reset(new NALUnitSplitter_H265());
+#endif
     m_pNALSplitter->Init();
 }
 

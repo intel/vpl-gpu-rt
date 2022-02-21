@@ -6,6 +6,8 @@ set(sources
     src/mfx_pxp_vpp_vaapi.cpp
     src/mfx_pxp_h264_supplier.cpp
     src/mfx_pxp_h264_nal_spl.cpp
+    src/mfx_pxp_h265_supplier.cpp
+    src/mfx_pxp_h265_nal_spl.cpp
   )
 
 add_library(pxp_hw STATIC ${sources})
@@ -16,6 +18,7 @@ target_include_directories(pxp_hw
     ${MSDK_LIB_ROOT}/pxp/include
     ${MSDK_UMC_ROOT}/io/umc_va/include
     ${MSDK_UMC_ROOT}/codec/h264_dec/include
+    ${MSDK_UMC_ROOT}/codec/h265_dec/include
 )
 
 target_link_libraries(pxp_hw

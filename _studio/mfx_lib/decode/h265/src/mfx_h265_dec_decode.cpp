@@ -34,6 +34,7 @@
 
 #if defined(MFX_ENABLE_PXP)
 #include "mfx_pxp_video_accelerator.h"
+#include "mfx_pxp_h265_supplier.h"
 #endif // MFX_ENABLE_PXP
 
 #include "libmfx_core_interface.h"
@@ -177,8 +178,6 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
 
     bool useBigSurfacePoolWA = MFX_Utility::IsBugSurfacePoolApplicable(par);
 
-    m_pH265VideoDecoder.reset(useBigSurfacePoolWA ? new VATaskSupplierBigSurfacePool<VATaskSupplier>() : new VATaskSupplier()); // HW
-
     int32_t useInternal = m_vPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
@@ -258,8 +257,6 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
 
     UMC::Status umcSts = m_MemoryAllocator.InitMem(0, m_core);
 
-    m_pH265VideoDecoder->SetFrameAllocator(m_surface_source.get());
-
     UMC::VideoDecoderParams umcVideoParams;
     ConvertMFXParamsToUMC(&m_vFirstPar, &umcVideoParams);
     umcVideoParams.numThreads = m_vPar.mfx.NumThread;
@@ -267,6 +264,15 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
 
     m_core->GetVA((mfxHDL*)&m_va, MFX_MEMTYPE_FROM_DECODE);
     umcVideoParams.pVideoAccelerator = m_va;
+
+#if defined(MFX_ENABLE_PXP)
+    if (m_va->GetProtectedVA())
+        m_pH265VideoDecoder.reset(useBigSurfacePoolWA ? new VATaskSupplierBigSurfacePool<PXPH265Supplier>() : new PXPH265Supplier()); // HW
+    else
+#endif // MFX_ENABLE_PXP
+    m_pH265VideoDecoder.reset(useBigSurfacePoolWA ? new VATaskSupplierBigSurfacePool<VATaskSupplier>() : new VATaskSupplier()); // HW
+
+    m_pH265VideoDecoder->SetFrameAllocator(m_surface_source.get());
     static_cast<VATaskSupplier*>(m_pH265VideoDecoder.get())->SetVideoHardwareAccelerator(m_va);
 
 
@@ -1098,7 +1104,19 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             if (m_vInitPar.mfx.DecodedOrder)
                 force = true;
 
-            H265DecoderFrame *pFrame = GetFrameToDisplay_H265(force);
+            H265DecoderFrame *pFrame = nullptr;
+
+#if defined(MFX_ENABLE_PXP)
+            if (m_va->GetProtectedVA())
+            {
+                if (umcFrameRes != UMC::UMC_ERR_NOT_ENOUGH_BUFFER)
+                {
+                    pFrame = GetFrameToDisplay_H265(force);
+                }
+            }
+            else
+#endif
+            pFrame = GetFrameToDisplay_H265(force);
 
             // return frame to display
             if (pFrame)
