@@ -261,9 +261,7 @@ enum {
     MFX_PLATFORM_XEHP_SDV       = 45, /*!< Code name XeHP SDV. */
     MFX_PLATFORM_DG2            = 46, /*!< Code name DG2. */
     MFX_PLATFORM_ATS_M          = 46, /*!< Code name ATS-M, same media functionality as DG2. */
-#ifdef ONEVPL_EXPERIMENTAL
     MFX_PLATFORM_ALDERLAKE_N    = 55, /*!< Code name Alder Lake N. */
-#endif
     MFX_PLATFORM_KEEMBAY        = 50, /*!< Code name Keem Bay. */
 };
 
