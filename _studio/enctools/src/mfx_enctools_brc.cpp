@@ -2394,7 +2394,9 @@ mfxU16 BRC_EncTool::FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp
     // PAQ
     if (m_par.mMBBRC && frameStruct.PersistenceMapNZ)
     {
-        if (type != MFX_FRAMETYPE_B && (isIntra || frameStruct.encOrder >= m_ctx.LastMBQpSetOrder + MBQP_P_UPDATE_DIST)) 
+        if (type != MFX_FRAMETYPE_B && 
+           (isIntra || frameStruct.encOrder >= m_ctx.LastMBQpSetOrder + MBQP_P_UPDATE_DIST ||
+           (frameStruct.numRecode && frameStruct.QpMapNZ)))
         {
             // delta QP table
             mfxI32 qp_y = (mfxI32) frameQp;
@@ -2446,7 +2448,7 @@ mfxU16 BRC_EncTool::FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp
                     mfxU32 x = std::min((j * mapBw + mapBw / 2) / ibw, iw - 1);
 
                     qpMapHint->ExtQpMap.QP[i * wInBlk + j] = mfxI8(
-                        mfx::clamp(frameQp + QpMap[y * iw + x], mfxU32(MIN_PAQ_QP), 51U)
+                        mfx::clamp((mfxI32)frameQp + (mfxI32)QpMap[y * iw + x], mfxI32(MIN_PAQ_QP), mfxI32(51))
                     );
                 }
             }
