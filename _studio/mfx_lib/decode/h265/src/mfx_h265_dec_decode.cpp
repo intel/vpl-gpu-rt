@@ -1612,4 +1612,9 @@ mfxStatus VideoDECODEH265::GetSurface(mfxFrameSurface1* & surface)
     return m_surface_source->GetSurface(surface);
 }
 
+mfxFrameSurface1 *VideoDECODEH265::GetInternalSurface(mfxFrameSurface1 *surface)
+{
+    return m_surface_source->GetInternalSurface(surface);
+}
+
 #endif // MFX_ENABLE_H265_VIDEO_DECODE

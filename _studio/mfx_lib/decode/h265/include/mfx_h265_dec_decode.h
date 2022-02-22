@@ -116,6 +116,8 @@ protected:
     // Fill up resolution information if new header arrived
     void FillVideoParam(mfxVideoParamWrapper *par, bool full);
 
+    mfxFrameSurface1 * GetInternalSurface(mfxFrameSurface1 *surface) override;
+
     std::unique_ptr<UMC_HEVC_DECODER::MFXTaskSupplier_H265>  m_pH265VideoDecoder;
     mfx_UMC_MemAllocator              m_MemoryAllocator;
 
