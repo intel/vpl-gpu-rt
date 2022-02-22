@@ -1932,6 +1932,15 @@ mfxStatus CheckScalingParam(mfxExtBuffer* pScalingExtBuffer)
     case MFX_SCALING_MODE_LOWPOWER:
         MFX_RETURN((pScalingParams->InterpolationMethod <= MFX_INTERPOLATION_ADVANCED) ? MFX_ERR_NONE : MFX_ERR_INVALID_VIDEO_PARAM);
         break;
+    case MFX_SCALING_MODE_INTEL_GEN_COMPUTE:
+        MFX_RETURN(MFX_ERR_NONE);
+        break;
+    case MFX_SCALING_MODE_INTEL_GEN_VDBOX:
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+        break;
+    case MFX_SCALING_MODE_INTEL_GEN_VEBOX:
+        MFX_RETURN(MFX_ERR_NONE);
+        break;
     default:
         MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         break;
