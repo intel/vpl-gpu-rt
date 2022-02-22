@@ -1530,6 +1530,19 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         m_pipelineParam[0].filter_flags |= interpolation[pParams->interpolationMethod];
         mfxSts = ((pParams->interpolationMethod == MFX_INTERPOLATION_DEFAULT) || (pParams->interpolationMethod == MFX_INTERPOLATION_ADVANCED)) ? MFX_ERR_NONE : MFX_ERR_UNSUPPORTED;
         break;
+    case MFX_SCALING_MODE_INTEL_GEN_COMPUTE:
+        m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_HQ;
+        m_pipelineParam[0].filter_flags |= interpolation[pParams->interpolationMethod];
+        m_pipelineParam[0].pipeline_flags |= VA_PROC_PIPELINE_FAST;
+        break;
+    case MFX_SCALING_MODE_INTEL_GEN_VDBOX:
+        /* In VPP RT, invalid parameters. */
+        mfxSts = MFX_ERR_INVALID_VIDEO_PARAM;
+        break;
+    case MFX_SCALING_MODE_INTEL_GEN_VEBOX:
+        m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_DEFAULT;
+        m_pipelineParam[0].filter_flags |= interpolation[pParams->interpolationMethod];
+        break;
     case MFX_SCALING_MODE_DEFAULT:
     default:
         if(MFX_HW_APL == hwType)
