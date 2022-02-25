@@ -104,12 +104,12 @@ namespace Base
 
     struct ScalingList
     {
-        mfxU8 scalingLists0[6][16]                        = { 0 };
-        mfxU8 scalingLists1[6][64]                        = { 0 };
-        mfxU8 scalingLists2[6][64]                        = { 0 };
-        mfxU8 scalingLists3[2][64]                        = { 0 };
-        mfxU8 scalingListDCCoefSizeID2[6]                 = { 0 };
-        mfxU8 scalingListDCCoefSizeID3[2]                 = { 0 };
+        mfxU8 scalingLists0[6][16]                        = {};
+        mfxU8 scalingLists1[6][64]                        = {};
+        mfxU8 scalingLists2[6][64]                        = {};
+        mfxU8 scalingLists3[2][64]                        = {};
+        mfxU8 scalingListDCCoefSizeID2[6]                 = {};
+        mfxU8 scalingListDCCoefSizeID3[2]                 = {};
     };
 
     struct TimingInfo
