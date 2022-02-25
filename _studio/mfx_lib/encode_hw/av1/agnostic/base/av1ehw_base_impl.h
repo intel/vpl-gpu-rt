@@ -108,12 +108,12 @@ namespace Base
         virtual mfxStatus InternalQuery(
             VideoCORE& core
             , mfxVideoParam *in
-            , mfxVideoParam& out);
+            , mfxVideoParam& out) override;
 
         virtual mfxStatus InternalQueryIOSurf(
             VideoCORE& core
             , mfxVideoParam& par
-            , mfxFrameAllocRequest& request);
+            , mfxFrameAllocRequest& request) override;
 
         virtual mfxStatus QueryImplsDescription(
             VideoCORE&
