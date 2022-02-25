@@ -272,6 +272,13 @@ bool VAAPIVideoCORE_T<Base>::IsCmSupported()
 }
 
 template <class Base>
+bool VAAPIVideoCORE_T<Base>::IsCmEnabledByDefault(eMFXHWType t)
+{
+    return t != MFX_HW_DG1;
+}
+
+
+template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm()
 {
     if (m_pCmCopy)
@@ -279,6 +286,11 @@ mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm()
 
     // Return immidiately if user requested to turn OFF GPU copy
     if (m_ForcedCmState == MFX_GPUCOPY_OFF)
+    {
+        return MFX_ERR_NONE;
+    }
+
+    if (m_ForcedCmState != MFX_GPUCOPY_ON && !IsCmEnabledByDefault(GetHWType()))
     {
         return MFX_ERR_NONE;
     }
@@ -791,7 +803,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
     }
 
     // For Linux by default CM copy is OFF
-    bool canUseCMCopy = canUseGpuCopy && m_pCmCopy && m_ForcedCmState == MFX_GPUCOPY_ON && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+    bool canUseCMCopy = canUseGpuCopy && m_pCmCopy && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
@@ -1286,7 +1298,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     MFX_CHECK(roi.width && roi.height, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     // For Linux by default CM copy is OFF
-    bool canUseCMCopy = canUseGpuCopy && m_pCmCopy && m_ForcedCmState == MFX_GPUCOPY_ON && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+    bool canUseCMCopy = canUseGpuCopy && m_pCmCopy && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
