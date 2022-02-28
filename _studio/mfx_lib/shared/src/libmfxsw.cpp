@@ -740,8 +740,13 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
                     MFX_ERR_NONE == QueryImplsDescription(core, impl.VPP, impl));
             };
 
-            if (!QueryImplCaps(QueryImplDesc))
-                return impl;
+            {
+                auto logSkip = GetMfxLogSkip();
+                std::ignore  = logSkip;
+
+                if (!QueryImplCaps(QueryImplDesc))
+                    return impl;
+            }
 
             if (!holder->GetSize())
                 return impl;

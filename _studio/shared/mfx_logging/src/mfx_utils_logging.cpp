@@ -22,6 +22,7 @@
 
 auto fileDeleter = [](FILE* file)->void { if (file) fclose(file); };
 
+bool gMfxLogSkipped                    = false;
 mfxLogLevel gMfxLogLevel               = LEVEL_WARN;
 std::shared_ptr<std::FILE> gMfxLogFile = {};
 std::mutex gMfxLogMutex                = {};
@@ -117,3 +118,12 @@ void InitMfxLogging()
 #endif
 }
 
+
+std::unique_ptr<MfxLogSkip> GetMfxLogSkip()
+{
+#if defined(MFX_ENABLE_LOG_UTILITY)
+    return std::make_unique<MfxLogSkip>();
+#else
+    return nullptr;
+#endif
+}

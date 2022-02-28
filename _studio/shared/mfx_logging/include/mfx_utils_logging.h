@@ -43,6 +43,7 @@ typedef enum
     LEVEL_FATAL    = 7,
 } mfxLogLevel;
 
+extern bool gMfxLogSkipped;
 extern mfxLogLevel gMfxLogLevel;
 extern std::shared_ptr<std::FILE> gMfxLogFile;
 extern std::mutex gMfxLogMutex;
@@ -54,7 +55,23 @@ extern std::mutex gMfxLogMutex;
 #define COLOR_YELLOW 0x000E
 #define COLOR_WHITE  0x000F
 
+class MfxLogSkip
+{
+public:
+    MfxLogSkip()
+    {
+        gMfxLogSkipped = true;
+    };
+
+    ~MfxLogSkip()
+    {
+        gMfxLogSkipped = false;
+    }
+};
+
+std::unique_ptr<MfxLogSkip> GetMfxLogSkip();
 void InitMfxLogging();
+
 
 const std::string GetMFXStatusInString(mfxStatus mfxSts);
 
@@ -66,7 +83,7 @@ const std::string GetMFXStatusInString(mfxStatus mfxSts);
 
 #if defined(MFX_ENABLE_LOG_UTILITY)
     #define CHECK_LOG_LEVEL(level) \
-        if (gMfxLogLevel == LEVEL_DISABLED || level < gMfxLogLevel) break
+        if (gMfxLogSkipped || gMfxLogLevel == LEVEL_DISABLED || level < gMfxLogLevel) break
 #else
     #define CHECK_LOG_LEVEL(level)
 #endif
