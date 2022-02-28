@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2020 Intel Corporation
+// Copyright (c) 2011-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -75,38 +75,24 @@ class CmTask;
 struct IDirect3DSurface9;
 struct IDirect3DDeviceManager9;
 
-class CmSurface2DWrapper
+template <typename T>
+class CmSurfBufferBase
 {
 public:
-    CmSurface2DWrapper(CmSurface2D* surf, CmDevice* device)
-        : surface(surf)
+    CmSurfBufferBase(T* surfbuf, CmDevice* device)
+        : surfacebuffer(surfbuf)
         , cm_device(device)
         , use_count(0)
     {}
 
-    CmSurface2DWrapper(const CmSurface2DWrapper&) = delete;
-    CmSurface2DWrapper(CmSurface2DWrapper&& other)
-        : surface(other.surface)
+    CmSurfBufferBase(const CmSurfBufferBase&) = delete;
+    CmSurfBufferBase(CmSurfBufferBase&& other)
+        : surfacebuffer(other.surfacebuffer)
         , cm_device(other.cm_device)
     {
         use_count.exchange(other.use_count, std::memory_order_relaxed);
-
-        other.surface   = nullptr;
+        other.surfacebuffer = nullptr;
         other.cm_device = nullptr;
-    }
-
-    CmSurface2DWrapper& operator= (const CmSurface2DWrapper&) = delete;
-    CmSurface2DWrapper& operator= (CmSurface2DWrapper&& other)
-    {
-        CmSurface2DWrapper tmp = std::move(other);
-        std::swap(tmp, *this);
-
-        return *this;
-    }
-
-    ~CmSurface2DWrapper()
-    {
-        DestroySurface();
     }
 
     void AddRef()
@@ -124,41 +110,65 @@ public:
         return use_count.load(std::memory_order_relaxed) == 0;
     }
 
-    operator CmSurface2D* ()
+    operator T* ()
     {
-        return surface;
+        return surfacebuffer;
+    }
+
+protected:
+    T* surfacebuffer = nullptr;
+    CmDevice* cm_device = nullptr;
+    std::atomic<mfxU32> use_count;
+};
+
+class CmSurface2DWrapper : public CmSurfBufferBase<CmSurface2D>
+{
+public:
+    CmSurface2DWrapper(CmSurface2D* surf, CmDevice* device)
+        : CmSurfBufferBase(surf, device)
+    {}
+    CmSurface2DWrapper(const CmSurface2DWrapper&) = delete;
+    CmSurface2DWrapper(CmSurface2DWrapper&& other)
+        : CmSurfBufferBase((CmSurface2DWrapper&&)other)
+    {}
+
+    CmSurface2DWrapper& operator= (const CmSurface2DWrapper&) = delete;
+    CmSurface2DWrapper& operator= (CmSurface2DWrapper&& other)
+    {
+        CmSurface2DWrapper tmp = std::move(other);
+        std::swap(tmp, *this);
+        return *this;
+    }
+
+    ~CmSurface2DWrapper()
+    {
+        DestroySurface();
     }
 
 private:
     void DestroySurface()
     {
-        if (cm_device && surface)
+        if (cm_device && surfacebuffer)
         {
             assert(use_count == 0);
-            std::ignore = MFX_STS_TRACE(cm_device->DestroySurface(surface));
+            std::ignore = MFX_STS_TRACE(cm_device->DestroySurface(surfacebuffer));
         }
     }
-
-    CmSurface2D*        surface   = nullptr;
-    CmDevice*           cm_device = nullptr;
-    std::atomic<mfxU32> use_count;
 };
 
-class CmBufferUPWrapper
+class CmBufferUPWrapper : public CmSurfBufferBase<CmBufferUP>
 {
 public:
-    CmBufferUPWrapper(CmBufferUP* buf, CmDevice* device)
-        : buffer(buf)
-        , cm_device(device)
+    CmBufferUPWrapper(CmBufferUP* buf, SurfaceIndex* pindx, CmDevice* device)
+        : CmSurfBufferBase(buf, device)
+        , pIndex(pindx)
     {}
-
     CmBufferUPWrapper(const CmBufferUPWrapper&) = delete;
     CmBufferUPWrapper(CmBufferUPWrapper&& other)
-        : buffer(other.buffer)
-        , cm_device(other.cm_device)
+        : CmSurfBufferBase((CmSurfBufferBase&&) other)
+        , pIndex(other.pIndex)
     {
-        other.buffer    = nullptr;
-        other.cm_device = nullptr;
+        other.pIndex = nullptr;
     }
 
     CmBufferUPWrapper& operator= (const CmBufferUPWrapper&) = delete;
@@ -166,7 +176,6 @@ public:
     {
         CmBufferUPWrapper tmp = std::move(other);
         std::swap(tmp, *this);
-
         return *this;
     }
 
@@ -175,22 +184,21 @@ public:
         DestroyBuffer();
     }
 
-    operator CmBufferUP* ()
+    SurfaceIndex* GetIndex()
     {
-        return buffer;
+        return pIndex;
     }
 
 private:
     void DestroyBuffer()
     {
-        if (cm_device && buffer)
+        if (cm_device && surfacebuffer)
         {
-            std::ignore = MFX_STS_TRACE(cm_device->DestroyBufferUP(buffer));
+            std::ignore = MFX_STS_TRACE(cm_device->DestroyBufferUP(surfacebuffer));
         }
     }
 
-    CmBufferUP* buffer    = nullptr;
-    CmDevice*   cm_device = nullptr;
+    SurfaceIndex* pIndex = nullptr;
 };
 
 class CmCopyWrapper
@@ -428,13 +436,11 @@ protected:
     std::map<std::tuple<mfxHDLPair, mfxU32, mfxU32>, CmSurface2DWrapper> m_tableCmRelations;
     std::map<std::tuple<mfxU8 *,    mfxU32, mfxU32>, CmBufferUPWrapper>  m_tableSysRelations;
 
-    std::map<CmBufferUP *,  SurfaceIndex *> m_tableSysIndex;
-
     std::mutex m_mutex;
 
     CmSurface2DWrapper* CreateCmSurface2D(mfxHDLPair surfaceIdPair, mfxU32 width, mfxU32 height);
 
-    SurfaceIndex * CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize, mfxU32 width, mfxU32 height);
+    CmBufferUPWrapper* CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize, mfxU32 width, mfxU32 height);
 
 private:
     bool m_bSwapKernelsInitialized = false;
