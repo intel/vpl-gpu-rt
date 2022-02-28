@@ -2152,6 +2152,10 @@ enum {
        the mfxEncodeCtrl structure for per-frame encoding configuration.
     */
     MFX_EXTBUFF_UNIVERSAL_REFLIST_CTRL = MFX_EXTBUFF_AVC_REFLIST_CTRL,
+    /*!
+       See the mfxExtEncodeStats structure for details.
+    */
+    MFX_EXTBUFF_ENCODESTATS                   = MFX_MAKEFOURCC('E','N','S','B'),
 #endif
     /*!
        See the mfxExtVPP3DLut structure for more details.
