@@ -1063,14 +1063,6 @@ void Packer::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
     });
 }
 
-mfxStatus Packer::Reset(
-    const SH& /*sh*/
-    , const FH& /*fh*/
-    , PackedHeaders& /*ph*/)
-{
-    return MFX_ERR_NONE;
-}
-
 void Packer::SubmitTask(const FeatureBlocks& blocks, TPushST Push)
 {
     Push(BLK_SubmitTask

@@ -129,11 +129,6 @@ namespace Base
         virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
         virtual void GetVideoParam(const FeatureBlocks& blocks, TPushGVP Push) override;
 
-        mfxStatus Reset(
-            const SH& sh
-            , const FH& fh
-            , PackedHeaders& ph);
-
         void PackIVF          (BitstreamWriter& bs, const FH& fh, mfxU32 insertHeaders, const mfxVideoParam& vp);
         void PackOBUHeader    (BitstreamWriter& bs, AV1_OBU_TYPE obu_type, mfxU32 obu_extension_flag, const ObuExtensionHeader& oeh);
         void PackOBUHeaderSize(BitstreamWriter& bs, const mfxU32 obu_size_in_bytes, const mfxU8 fixed_output_len = 0);
