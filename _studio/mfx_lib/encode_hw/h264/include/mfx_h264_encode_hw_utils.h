@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2021 Intel Corporation
+// Copyright (c) 2009-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -41,6 +41,7 @@
 #include "libmfx_core_interface.h"
 
 #include "mfx_vpp_helper.h"
+#include "mfx_platform_caps.h"
 
 #ifdef MFX_ENABLE_MCTF_IN_AVC
 #include "cmvm.h"
@@ -68,13 +69,6 @@ inline constexpr
 bool bRateControlLA(mfxU16 mode)
 {
     return bIntRateControlLA(mode);
-}
-
-inline constexpr
-bool hasSupportVME(eMFXHWType platform)
-{
-    return
-           (platform <= MFX_HW_ADL_N);
 }
 
 #define MFX_H264ENC_HW_TASK_TIMEOUT 2000

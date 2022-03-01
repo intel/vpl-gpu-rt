@@ -18,6 +18,7 @@ target_sources(mfx_common_hw
     include/mfx_mpeg2_dec_common.h
     include/mfx_msg.h
     include/mfx_platform_headers.h
+    include/mfx_platform_caps.h
     include/mfx_session.h
     include/mfx_task.h
     include/mfx_task_threading_policy.h

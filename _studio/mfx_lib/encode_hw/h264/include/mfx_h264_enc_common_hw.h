@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2021 Intel Corporation
+// Copyright (c) 2008-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -753,9 +753,6 @@ namespace MfxHwH264Encode
     bool IsExtBrcSceneChangeSupported(
         MfxVideoParam const & video,
 	eMFXHWType            platform);
-
-    bool IsCmSupported(
-        eMFXHWType            platform);
 
     bool IsCmNeededForSCD(
         MfxVideoParam const & video);

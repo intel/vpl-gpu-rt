@@ -23,6 +23,7 @@
 #include "mfx_enc_common.h"
 #include "mfx_vp9_encode_hw_par.h"
 #include "mfx_vp9_encode_hw_utils.h"
+#include "mfx_platform_caps.h"
 #include "mfx_common_int.h"
 #include "mfx_ext_buffers.h"
 
@@ -718,11 +719,9 @@ mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, 
         unsupported = true;
     }
 
-    // currently only 64x64 block size for segmentation map is supported (HW limitation) for platform < Xe_HPM
-    // for Xe_HPM+: 32x32 and 64x64 blocks
     if (seg.SegmentIdBlockSize &&
-        seg.SegmentIdBlockSize != MFX_VP9_SEGMENT_ID_BLOCK_SIZE_64x64
-        )
+        ((seg.SegmentIdBlockSize != MFX_VP9_SEGMENT_ID_BLOCK_SIZE_64x64 && !VP9ECaps::Is32x32BlockSupported(par.m_platform)) ||
+        (seg.SegmentIdBlockSize < MFX_VP9_SEGMENT_ID_BLOCK_SIZE_32x32 && VP9ECaps::Is32x32BlockSupported(par.m_platform))))
     {
         seg.SegmentIdBlockSize = 0;
         unsupported = true;

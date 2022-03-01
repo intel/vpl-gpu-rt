@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2021 Intel Corporation
+// Copyright (c) 2009-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -917,8 +917,12 @@ namespace
     {
         mfxU16 const DEFAULT_BY_TU[][8] = {
             { 0, 3, 3, 3, 2, 1, 1, 1 },
+            { 0, 2, 2, 2, 2, 2, 2, 2 }
         };
-        (void)platform;
+
+        if (H264ECaps::IsAltRefSupported(platform))
+            return DEFAULT_BY_TU[1][targetUsage];
+
         return DEFAULT_BY_TU[0][targetUsage];
     }
 
@@ -948,12 +952,26 @@ namespace
         }
         else
         {
+
+            if (H264ECaps::IsAltRefSupported(platform))
+                return 3;
+
             return DEFAULT_BY_TU[2][targetUsage];
         }
     }
 
     mfxU16 GetDefaultNumRefActivePL0(const mfxInfoMFX& mfx, eMFXHWType platform)
     {
+
+        if (H264ECaps::IsAltRefSupported(platform))
+        {
+            constexpr mfxU16 DEFAULT_BY_TU[][8] = {
+                { 0, 2, 2, 2, 2, 2, 1, 1 }, // without B refs
+                { 0, 2, 2, 2, 2, 2, 2, 2 }  // with B refs
+            };
+            return DEFAULT_BY_TU[mfx.GopRefDist > 2][mfx.TargetUsage];
+        }
+
         return GetMaxNumRefActivePL0(mfx.TargetUsage, platform, IsOn(mfx.LowPower), mfx.FrameInfo);
     }
 
@@ -1318,17 +1336,11 @@ bool MfxHwH264Encode::IsExtBrcSceneChangeSupported(
     bool extbrcsc = false;
     // extbrc API change dependency
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
-    extbrcsc = (hasSupportVME(platform) &&
+    extbrcsc = (H264ECaps::IsVmeSupported(platform) &&
         IsOn(extOpt2.ExtBRC) &&
         (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
         && (video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) && !video.mfx.EncodedOrder && extOpt2.LookAheadDepth == 0);
     return extbrcsc;
-}
-
-bool MfxHwH264Encode::IsCmSupported(eMFXHWType platform)
-{
-    return
-        (platform <= MFX_HW_ADL_N);
 }
 
 bool MfxHwH264Encode::IsCmNeededForSCD(
@@ -1351,7 +1363,7 @@ bool MfxHwH264Encode::IsMctfSupported(
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
     isSupported = ((
-        hasSupportVME(platform)) &&
+        H264ECaps::IsVmeSupported(platform)) &&
         IsOn(extOpt2.ExtBRC) &&
         IsExtBrcSceneChangeSupported(video, platform) &&
         (video.mfx.FrameInfo.Width <= 3840 && video.vpp.In.Height <= 2160) &&
@@ -1421,7 +1433,7 @@ mfxStatus MfxHwH264Encode::SetLowPowerDefault(MfxVideoParam& par, const eMFXHWTy
 {
     mfxStatus sts = CheckTriStateOption(par.mfx.LowPower) ? MFX_ERR_NONE : MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
 
-    if (!hasSupportVME(platform))
+    if (!H264ECaps::IsVmeSupported(platform))
     {   // DualPipe (aka VME) is not available
         par.mfx.LowPower = MFX_CODINGOPTION_ON;
         return sts;
@@ -2244,7 +2256,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         else
         {   // UNKNOWN or garbage
             par.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
-            if (hasSupportVME(platform) && IsOn(par.mfx.LowPower))
+            if (H264ECaps::IsVmeSupported(platform) && IsOn(par.mfx.LowPower))
                 changed = true;
         }
     }
@@ -2382,7 +2394,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     bool laEnabled = true;
     // LA and FD supports only with VME
-    if (!hasSupportVME(platform))
+    if (!H264ECaps::IsVmeSupported(platform))
     {
         laEnabled = false;
         if (bRateControlLA(par.mfx.RateControlMethod))
@@ -4219,7 +4231,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         unsupported = true;
     }
 
-    if (!hasSupportVME(platform) &&
+    if (!H264ECaps::IsVmeSupported(platform) &&
         (extOpt2->IntRefType > MFX_REFRESH_HORIZONTAL))
     {
         extOpt2->IntRefType = MFX_REFRESH_HORIZONTAL;

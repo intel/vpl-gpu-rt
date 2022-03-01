@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2021 Intel Corporation
+// Copyright (c) 2011-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1526,10 +1526,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     MFX_SAFE_CALL(vaapi_core_vpl->GetVAService(&m_vaDisplay));
 
     m_caps = {};
-
-    eMFXHWType platform = m_core->GetHWType();
-
-    (void)platform;
+    m_caps.ddi_caps.FrameSizeToleranceSupport = 
+        H264ECaps::IsFrameSizeTolerenceSupported(m_core->GetHWType());
 
     m_width  = width;
     m_height = height;
@@ -1598,6 +1596,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 #endif
 #if VA_CHECK_VERSION(1,3,0)
     m_caps.AVBRSupport = !!(AV(VAConfigAttribRateControl) & VA_RC_AVBR);
+    m_caps.AVBRSupport = H264ECaps::IsVmeSupported(m_core->GetHWType());
 #endif
 #if VA_CHECK_VERSION(1, 10, 0)
     m_caps.ddi_caps.TCBRCSupport = !!(AV(VAConfigAttribRateControl) & VA_RC_TCBRC);

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2021 Intel Corporation
+// Copyright (c) 2009-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -333,7 +333,7 @@ mfxStatus ImplementationAvc::Query(
         out->AsyncDepth            = 1;
         out->mfx.CodecId           = 1;
         out->mfx.LowPower          = 1;
-        if (!hasSupportVME(platform))
+        if (!H264ECaps::IsVmeSupported(platform))
             out->mfx.LowPower      = 0;
         out->mfx.CodecLevel        = 1;
         out->mfx.CodecProfile      = 1;
@@ -1522,7 +1522,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     // init slice divider
     bool fieldCoding = (m_video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
     bool isSliceSizeConformanceEnabled = extOpt2.MaxSliceSize && (IsDriverSliceSizeControlEnabled(m_video, m_caps) ||
-        (SliceDividerType(m_caps.ddi_caps.SliceLevelRateCtrl) == SliceDividerType::ARBITRARY_MB_SLICE && hasSupportVME(platform)));
+        (SliceDividerType(m_caps.ddi_caps.SliceLevelRateCtrl) == SliceDividerType::ARBITRARY_MB_SLICE && H264ECaps::IsVmeSupported(platform)));
 
     m_sliceDivider = MakeSliceDivider(
         (isSliceSizeConformanceEnabled) ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(m_caps.ddi_caps.SliceStructure),
@@ -1722,7 +1722,7 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
     {
         bool fieldCoding = (newPar.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
         bool isSliceSizeConformanceEnabled = extOpt2New.MaxSliceSize && (IsDriverSliceSizeControlEnabled(m_video, m_caps) ||
-            (SliceDividerType(m_caps.ddi_caps.SliceLevelRateCtrl) == SliceDividerType::ARBITRARY_MB_SLICE && hasSupportVME(m_core->GetHWType())));
+            (SliceDividerType(m_caps.ddi_caps.SliceLevelRateCtrl) == SliceDividerType::ARBITRARY_MB_SLICE && H264ECaps::IsVmeSupported(m_core->GetHWType())));
 
         m_sliceDivider = MakeSliceDivider(
             isSliceSizeConformanceEnabled ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(m_caps.ddi_caps.SliceStructure),
@@ -3403,8 +3403,22 @@ void SetupAdaptiveCQM(const MfxVideoParam &par, DdiTask &task, const QpHistory q
         const mfxU32 averageQP = qpHistory.GetAverageQp();
 
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+        if (task.m_lplastatus.CqmHint != CQM_HINT_INVALID && par.mfx.GopRefDist >= 4 && H264ECaps::IsAcqmSupported(task.m_hwType)) // LPLA based ACQM
+        {
+            if (task.m_type.top & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_P))
+            {
+                task.m_lplastatus.CqmHint = CQM_HINT_USE_FLAT_MATRIX;
+            }
+            task.m_adaptiveCQMHint = task.m_lplastatus.CqmHint;
+        }
+        else
 #endif // MFX_ENABLE_ENCTOOLS_LPLA
         {   // History based ACQM
+            if (par.mfx.GopRefDist >= 4 && H264ECaps::IsAcqmSupported(task.m_hwType) && (task.m_type.top & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_P)))
+            {
+                task.m_adaptiveCQMHint = CQM_HINT_USE_FLAT_MATRIX;
+            }
+            else
             {
                 if (averageQP == 0) // not enough history QP
                 {

@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2020 Intel Corporation
+// Copyright (c) 2008-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1000,7 +1000,6 @@ namespace MPEG2EncoderHW
         CHECK_VERSION(par->Version);
         CHECK_CODEC_ID(par->mfx.CodecId, MFX_CODEC_MPEG2);
         MFX_CHECK (CheckExtendedBuffers(par) == MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
-
 
         mfxStatus sts = MFX_ERR_NONE;
         sts = core->IsGuidSupported(DXVA2_Intel_Encode_MPEG2, par, true);
