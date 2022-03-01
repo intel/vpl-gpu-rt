@@ -202,7 +202,8 @@ inline bool isPreEncSCD(mfxExtEncToolsConfig const & conf, mfxEncToolsCtrl const
         IsOn(conf.AdaptiveRefB) ||
         IsOn(conf.AdaptiveLTR) ||
         IsOn(conf.AdaptivePyramidQuantP) ||
-        IsOn(conf.AdaptivePyramidQuantB)) && ctrl.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING);
+        IsOn(conf.AdaptivePyramidQuantB) ||
+        IsOn(conf.AdaptiveMBQP)) && ctrl.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING);
 }
 inline bool isPreEncLA(mfxExtEncToolsConfig const & conf, mfxEncToolsCtrl const & ctrl)
 {
