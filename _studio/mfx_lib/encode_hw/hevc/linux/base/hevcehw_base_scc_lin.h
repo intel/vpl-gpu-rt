@@ -41,14 +41,6 @@ public:
         : HEVCEHW::Base::SCC(FeatureId)
     {}
 protected:
-    virtual void SetExtraGUIDs(StorageRW& strg) override
-    {
-        auto& g2va = HEVCEHW::Base::Glob::GuidToVa::GetOrConstruct(strg);
-        g2va[DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main]       = { VAProfileHEVCSccMain,    VAEntrypointEncSliceLP };
-        g2va[DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main10]     = { VAProfileHEVCSccMain10,  VAEntrypointEncSliceLP };
-        g2va[DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main444]    = { VAProfileHEVCSccMain444, VAEntrypointEncSliceLP };
-        g2va[DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main444_10] = { VAProfileHEVCSccMain444_10, VAEntrypointEncSliceLP };
-    };
 
     void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) override
     {

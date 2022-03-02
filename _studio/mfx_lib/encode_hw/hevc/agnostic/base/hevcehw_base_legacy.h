@@ -54,7 +54,6 @@ namespace Base
     DECL_BLOCK(PreCheckExtBuffers   )\
     DECL_BLOCK(CopyConfigurable     )\
     DECL_BLOCK(SetLowPowerDefault   )\
-    DECL_BLOCK(SetGUID              )\
     DECL_BLOCK(CheckHeaders         )\
     DECL_BLOCK(CheckLCUSize         )\
     DECL_BLOCK(CheckFormat          )\
@@ -113,6 +112,7 @@ namespace Base
     DECL_BLOCK(DoPadding            )\
     DECL_BLOCK(UpdateBsInfo         )\
     DECL_BLOCK(SetRawInfo           )\
+    DECL_BLOCK(SetVideoParam        )\
     DECL_BLOCK(FreeTask             )
 #define DECL_FEATURE_NAME "Base_Legacy"
 #include "hevcehw_decl_blocks.h"

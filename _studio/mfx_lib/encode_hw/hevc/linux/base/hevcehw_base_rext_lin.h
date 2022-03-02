@@ -53,9 +53,6 @@ public:
             }
         };
     }
-
-protected:
-    virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
 };
 
 } //Linux

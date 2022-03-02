@@ -30,33 +30,177 @@ using namespace HEVCEHW::Base;
 using namespace HEVCEHW::Linux;
 using namespace HEVCEHW::Linux::Base;
 
-static const Glob::GuidToVa::TRef DefaultGuidToVa =
+mfxStatus PickDDIIDNormal(VAID*& DDIID, Defaults::Param defPar, const mfxVideoParam& par)
 {
-    { DXVA2_Intel_Encode_HEVC_Main,                 VAGUID{VAProfileHEVCMain,       VAEntrypointEncSlice}}
-    , { DXVA2_Intel_Encode_HEVC_Main10,             VAGUID{VAProfileHEVCMain10,     VAEntrypointEncSlice}}
-    , { DXVA2_Intel_LowpowerEncode_HEVC_Main,       VAGUID{VAProfileHEVCMain,       VAEntrypointEncSliceLP}}
-    , { DXVA2_Intel_LowpowerEncode_HEVC_Main10,     VAGUID{VAProfileHEVCMain10,     VAEntrypointEncSliceLP}}
-    , { DXVA2_Intel_Encode_HEVC_Main422,            VAGUID{VAProfileHEVCMain422_10, VAEntrypointEncSlice}} // Unsupported by VA
-    , { DXVA2_Intel_Encode_HEVC_Main422_10,         VAGUID{VAProfileHEVCMain422_10,  VAEntrypointEncSlice}}
-    , { DXVA2_Intel_Encode_HEVC_Main444,            VAGUID{VAProfileHEVCMain444,     VAEntrypointEncSlice}}
-    , { DXVA2_Intel_Encode_HEVC_Main444_10,         VAGUID{VAProfileHEVCMain444_10,  VAEntrypointEncSlice}}
-    , { DXVA2_Intel_LowpowerEncode_HEVC_Main422,    VAGUID{VAProfileHEVCMain422_10,  VAEntrypointEncSliceLP}} // Unsupported by VA
-    , { DXVA2_Intel_LowpowerEncode_HEVC_Main422_10, VAGUID{VAProfileHEVCMain422_10, VAEntrypointEncSliceLP}}
-    , { DXVA2_Intel_LowpowerEncode_HEVC_Main444,    VAGUID{VAProfileHEVCMain444,    VAEntrypointEncSliceLP}}
-    , { DXVA2_Intel_LowpowerEncode_HEVC_Main444_10, VAGUID{VAProfileHEVCMain444_10, VAEntrypointEncSliceLP}}
-};
+    const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(defPar.mvp);
 
+    bool bBDInvalid = pCO3 && Check<mfxU16, 10, 8, 0>(pCO3->TargetBitDepthLuma);
+    bool bCFInvalid = pCO3 && Check<mfxU16
+        , MFX_CHROMAFORMAT_YUV420 + 1
+        , MFX_CHROMAFORMAT_YUV422 + 1
+        , MFX_CHROMAFORMAT_YUV444 + 1>
+        (pCO3->TargetChromaFormatPlus1);
 
-VAGUID DDI_VA::MapGUID(StorageR& strg, const GUID& guid)
-{
-    if (strg.Contains(Glob::GuidToVa::Key))
+    mfxU16 bitDepth = 8 * (defPar.base.GetProfile(defPar) == MFX_PROFILE_HEVC_MAIN);
+    mfxU16 chromFormat = 0;
+
+    auto mvpCopy = defPar.mvp;
+    mvpCopy.NumExtParam = 0;
+
+    Defaults::Param parCopy(mvpCopy, defPar.caps, defPar.hw, defPar.base);
+    auto pParForBD = &defPar;
+    auto pParForCF = &defPar;
+
+    SetIf(pParForBD, bBDInvalid, &parCopy);
+    SetIf(pParForCF, bCFInvalid, &parCopy);
+
+    SetIf(bitDepth, !bitDepth, [&]() { return pParForBD->base.GetTargetBitDepthLuma(*pParForBD); });
+    SetIf(chromFormat, !chromFormat, [&]() { return mfxU16(pParForCF->base.GetTargetChromaFormat(*pParForCF) - 1); });
+    
+    static const std::map<mfxU16, std::map<mfxU16, ::VAID>> VAIDSupported[2] =
     {
-        auto& g2va = Glob::GuidToVa::Get(strg);
-        if (g2va.find(guid) != g2va.end())
-            return g2va.at(guid);
+        //LowPower = OFF
+        {
+            {
+                mfxU16(8),
+                {
+                      {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileHEVCMain, VAEntrypointEncSlice}}
+                    , {mfxU16(MFX_CHROMAFORMAT_YUV422), VAID{VAProfileHEVCMain422_10, VAEntrypointEncSlice}}
+                    , {mfxU16(MFX_CHROMAFORMAT_YUV444), VAID{VAProfileHEVCMain444, VAEntrypointEncSlice}}
+                }
+            }
+            , {
+                mfxU16(10),
+                {
+                      {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileHEVCMain10, VAEntrypointEncSlice}}
+                    , {mfxU16(MFX_CHROMAFORMAT_YUV422), VAID{VAProfileHEVCMain422_10, VAEntrypointEncSlice}}
+                    , {mfxU16(MFX_CHROMAFORMAT_YUV444), VAID{VAProfileHEVCMain444_10, VAEntrypointEncSlice}}
+                }
+            }
+        }
+        //LowPower = ON
+        ,{
+            {
+                mfxU16(8),
+                {
+                      {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileHEVCMain, VAEntrypointEncSliceLP}}
+                    , {mfxU16(MFX_CHROMAFORMAT_YUV422), VAID{VAProfileHEVCMain422_10, VAEntrypointEncSliceLP}}
+                    , {mfxU16(MFX_CHROMAFORMAT_YUV444), VAID{VAProfileHEVCMain444, VAEntrypointEncSliceLP}}
+                }
+            }
+            , {
+                mfxU16(10),
+                {
+                      {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileHEVCMain10, VAEntrypointEncSliceLP}}
+                    , {mfxU16(MFX_CHROMAFORMAT_YUV422), VAID{VAProfileHEVCMain422_10, VAEntrypointEncSliceLP}}
+                    , {mfxU16(MFX_CHROMAFORMAT_YUV444), VAID{VAProfileHEVCMain444_10, VAEntrypointEncSliceLP}}
+                }
+            }
+        }
+    };
+
+    bool bLowPower = IsOn(par.mfx.LowPower);
+
+    // Choose and return VAID
+    MFX_CHECK((bitDepth == 8 || bitDepth == 10), MFX_ERR_NONE);
+    DDIID = const_cast<VAID*>(&VAIDSupported[bLowPower].at(bitDepth).at(chromFormat));
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus PickDDIIDREXT(VAID* DDIID, const mfxVideoParam& par)
+{
+    auto& fi = par.mfx.FrameInfo;
+    const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
+    MFX_CHECK(fi.BitDepthLuma <= 12, MFX_ERR_NONE);
+    MFX_CHECK(fi.BitDepthChroma <= 12, MFX_ERR_NONE);
+    MFX_CHECK(!pCO3 || pCO3->TargetBitDepthLuma <= 12, MFX_ERR_NONE);
+    MFX_CHECK(!pCO3 || pCO3->TargetBitDepthChroma <= 12, MFX_ERR_NONE);
+    MFX_CHECK(!IsOn(par.mfx.LowPower), MFX_ERR_NONE);
+
+    static const std::map < mfxU32, ::VAID> VAIDSupported12bit =
+    {
+        {mfxU32(MFX_FOURCC_P016) , VAID{VAProfileHEVCMain12,     VAEntrypointEncSlice}}
+        ,{mfxU32(MFX_FOURCC_Y216), VAID{VAProfileHEVCMain422_12, VAEntrypointEncSlice}}
+        ,{mfxU32(MFX_FOURCC_Y416), VAID{VAProfileHEVCMain444_12, VAEntrypointEncSlice}}
+    };
+
+    MFX_CHECK(fi.FourCC == MFX_FOURCC_P016 || fi.FourCC == MFX_FOURCC_Y216 || fi.FourCC == MFX_FOURCC_Y416, MFX_ERR_NONE);
+
+    SetIf(DDIID, fi.FourCC == MFX_FOURCC_P016, const_cast<VAID*>(&VAIDSupported12bit.at(fi.FourCC)));
+    SetIf(DDIID, fi.FourCC == MFX_FOURCC_Y216, const_cast<VAID*>(&VAIDSupported12bit.at(fi.FourCC)));
+    SetIf(DDIID, fi.FourCC == MFX_FOURCC_Y416, const_cast<VAID*>(&VAIDSupported12bit.at(fi.FourCC)));
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus PickDDIIDSCC(VAID* &DDIID, const mfxVideoParam& par)
+{
+    MFX_CHECK(par.mfx.CodecProfile == MFX_PROFILE_HEVC_SCC, MFX_ERR_NONE);
+    MFX_CHECK(IsOn(par.mfx.LowPower), MFX_ERR_NONE);
+
+    static const std::map<mfxU16, std::map<mfxU16, VAID>> VAIDSupported =
+    {
+        {
+            mfxU16(8),
+            {
+                {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileHEVCSccMain,    VAEntrypointEncSliceLP}}
+                , {mfxU16(MFX_CHROMAFORMAT_YUV444), VAID{VAProfileHEVCSccMain444, VAEntrypointEncSliceLP}}
+            }
+        }
+        , {
+            mfxU16(10),
+            {
+                {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileHEVCSccMain10,  VAEntrypointEncSliceLP}}
+                , {mfxU16(MFX_CHROMAFORMAT_YUV444), VAID{VAProfileHEVCSccMain444_10, VAEntrypointEncSliceLP}}
+            }
+        }
+    };
+    auto& fi = par.mfx.FrameInfo;
+    const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
+    mfxU16 bd = 8, cf = fi.ChromaFormat;
+
+    bd = std::max<mfxU16>(bd, fi.BitDepthLuma);
+    bd = std::max<mfxU16>(bd, fi.BitDepthChroma);
+
+    if (pCO3)
+    {
+        bd = std::max<mfxU16>(bd, pCO3->TargetBitDepthLuma);
+        bd = std::max<mfxU16>(bd, pCO3->TargetBitDepthChroma);
+
+        if (pCO3->TargetChromaFormatPlus1)
+            cf = std::max<mfxU16>(cf, pCO3->TargetChromaFormatPlus1 - 1);
     }
 
-    return DefaultGuidToVa.at(guid);
+    // Check that list of VAIDs contains VAU for resulting BitDepth, ChromaFormat
+    MFX_CHECK(VAIDSupported.count(bd) && VAIDSupported.at(bd).count(cf), MFX_ERR_NONE);
+
+    // Choose and return VAID
+    DDIID = const_cast<VAID*>(&VAIDSupported.at(bd).at(cf));
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus DDI_VA::SetDDIID(VAID* &DDIID, const mfxVideoParam& par, StorageRW& strg)
+{
+    VideoCORE& core = Glob::VideoCore::Get(strg);
+    auto& defaults = Glob::Defaults::Get(strg);
+    EncodeCapsHevc fakeCaps = {};
+    Defaults::Param defPar(par, fakeCaps, core.GetHWType(), defaults);
+    
+    fakeCaps.MaxEncodedBitDepth = true;
+    fakeCaps.YUV422ReconSupport = Glob::DDIIDSetting::GetOrConstruct(strg).EnableRecon422 || !IsOn(par.mfx.LowPower);
+    fakeCaps.YUV444ReconSupport = true;
+
+    MFX_CHECK_STS(PickDDIIDNormal(DDIID, defPar, par));
+
+    MFX_CHECK_STS(PickDDIIDREXT(DDIID, par));
+
+    MFX_CHECK_STS(PickDDIIDSCC(DDIID, par));
+
+    MFX_CHECK_NULL_PTR1(DDIID);
+
+    return MFX_ERR_NONE;
 }
 
 void DDI_VA::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
@@ -77,6 +221,33 @@ void DDI_VA::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 
         return MFX_ERR_NONE;
     });
+
+    Push(BLK_SetDDIID
+        , [this](const mfxVideoParam&, mfxVideoParam& out, StorageRW& strg) -> mfxStatus
+    {
+        if (strg.Contains(Glob::DDIIDSetting::Key))
+        {
+            auto& ddiidSetting = Glob::DDIIDSetting::Get(strg);
+            MFX_CHECK(!ddiidSetting.DDIID, MFX_ERR_NONE);
+        }
+
+        if (strg.Contains(Glob::RealState::Key))
+        {
+            //don't change VAID in Reset
+            auto& initPar = Glob::RealState::Get(strg);
+            strg.Insert(Glob::DDIIDSetting::Key, make_storable<DDIIDSetting>(Glob::DDIIDSetting::Get(initPar)));
+            return MFX_ERR_NONE;
+        }
+
+        VAID* vaid = nullptr;
+        MFX_SAFE_CALL(SetDDIID(vaid, out, strg));
+        MFX_CHECK_NULL_PTR1(vaid);
+
+        auto& ddiidSetting = Glob::DDIIDSetting::GetOrConstruct(strg);
+        ddiidSetting.DDIID = (void*)vaid;
+
+        return MFX_ERR_NONE;
+    });
 }
 
 void DDI_VA::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
@@ -84,14 +255,16 @@ void DDI_VA::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     Push(BLK_QueryCaps
         , [this](const mfxVideoParam&, mfxVideoParam& /*par*/, StorageRW& strg) -> mfxStatus
     {
-        MFX_CHECK(strg.Contains(Glob::GUID::Key), MFX_ERR_UNSUPPORTED);
+        MFX_CHECK(strg.Contains(Glob::DDIIDSetting::Key), MFX_ERR_UNSUPPORTED);
+        auto& ddiidSetting = Glob::DDIIDSetting::Get(strg);
+        MFX_CHECK(ddiidSetting.DDIID, MFX_ERR_UNSUPPORTED);
 
         auto& core = Glob::VideoCore::Get(strg);
-        const GUID& guid = Glob::GUID::Get(strg);
+        VAID* vaid = (VAID*)ddiidSetting.DDIID;
+        MFX_CHECK_NULL_PTR1(vaid);
 
-        auto  vaGuid         = MapGUID(strg, guid);
-        auto  vap            = VAProfile(vaGuid.Profile);
-        auto  vaep           = VAEntrypoint(vaGuid.Entrypoint);
+        auto  vap = VAProfile(vaid->Profile);
+        auto  vaep = VAEntrypoint(vaid->Entrypoint);
         bool  bNeedNewDevice = !IsValid() || vap != m_profile || vaep != m_entrypoint;
 
         m_callVa = Glob::DDI_Execute::Get(strg);
@@ -116,11 +289,13 @@ void DDI_VA::InitExternal(const FeatureBlocks& /*blocks*/, TPushIE Push)
     Push(BLK_CreateDevice
         , [this](const mfxVideoParam& /*par*/, StorageRW& strg, StorageRW&) -> mfxStatus
     {
-        auto& core           = Glob::VideoCore::Get(strg);
-        auto& guid           = Glob::GUID::Get(strg);
-        auto  vaGuid         = MapGUID(strg, guid);
-        auto  vap            = VAProfile(vaGuid.Profile);
-        auto  vaep           = VAEntrypoint(vaGuid.Entrypoint);
+        auto& core = Glob::VideoCore::Get(strg);
+        auto& ddiidSetting = Glob::DDIIDSetting::GetOrConstruct(strg);
+        VAID* vaid = (VAID*)ddiidSetting.DDIID;
+        MFX_CHECK_NULL_PTR1(vaid);
+
+        auto  vap = VAProfile(vaid->Profile);
+        auto  vaep = VAEntrypoint(vaid->Entrypoint);
         bool  bNeedNewDevice = !IsValid() || vap != m_profile || vaep != m_entrypoint;
 
         m_callVa = Glob::DDI_Execute::Get(strg);

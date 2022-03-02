@@ -37,7 +37,6 @@ public:
 #define DECL_BLOCK_LIST\
     DECL_BLOCK(SetCallChains)\
     DECL_BLOCK(SetLowPowerDefault)\
-    DECL_BLOCK(SetGUID)\
     DECL_BLOCK(CheckProfile)\
     DECL_BLOCK(SetDefaults)\
     DECL_BLOCK(Init)\
@@ -103,10 +102,6 @@ protected:
     static bool PackSpsExt(StorageRW& strg, const Base::SPS&, mfxU8 id, Base::IBsWriter& bs);
     static bool PackPpsExt(StorageRW& strg, const Base::PPS&, mfxU8 id, Base::IBsWriter& bs);
 
-    static const GUID DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main;
-    static const GUID DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main10;
-    static const GUID DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main444;
-    static const GUID DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main444_10;
     bool m_bPatchNextDDITask = false;
     bool m_bPatchDDISlices   = false;
 };

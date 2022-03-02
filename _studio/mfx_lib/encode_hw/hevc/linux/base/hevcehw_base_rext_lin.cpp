@@ -27,23 +27,4 @@
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
 
-void Linux::Base::RExt::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
-{
-    HEVCEHW::Base::RExt::Query1NoCaps(blocks, Push);
-
-    Push(BLK_SetGUID
-        , [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus
-    {
-        auto& g2va = Glob::GuidToVa::GetOrConstruct(strg);
-        g2va[DXVA2_Intel_Encode_HEVC_Main12]     = { VAProfileHEVCMain12,     VAEntrypointEncSlice };
-        g2va[DXVA2_Intel_Encode_HEVC_Main422_12] = { VAProfileHEVCMain422_12, VAEntrypointEncSlice };
-        g2va[DXVA2_Intel_Encode_HEVC_Main444_12] = { VAProfileHEVCMain444_12, VAEntrypointEncSlice };
-
-        //don't change GUID in Reset
-        MFX_CHECK(!strg.Contains(Glob::RealState::Key), MFX_ERR_NONE);
-
-        return SetGuid(par, strg);
-    });
-}
-
 #endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

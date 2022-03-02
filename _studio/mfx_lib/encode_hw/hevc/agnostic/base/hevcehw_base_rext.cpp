@@ -27,13 +27,6 @@
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
 
-const GUID RExt::DXVA2_Intel_Encode_HEVC_Main12 =
-{ 0xd6d6bc4f, 0xd51a, 0x4712,{ 0x97, 0xe8, 0x75, 0x9, 0x17, 0xc8, 0x60, 0xfd } };
-const GUID RExt::DXVA2_Intel_Encode_HEVC_Main422_12 =
-{ 0x7fef652d, 0x3233, 0x44df,{ 0xac, 0xf7, 0xec, 0xfb, 0x58, 0x4d, 0xab, 0x35 } };
-const GUID RExt::DXVA2_Intel_Encode_HEVC_Main444_12 =
-{ 0xf8fa34b7, 0x93f5, 0x45a4,{ 0xbf, 0xc0, 0x38, 0x17, 0xce, 0xe6, 0xbb, 0x93 } };
-
 void RExt::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 {
     Push(BLK_SetRecInfo
@@ -72,29 +65,6 @@ void RExt::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 
         return MFX_ERR_NONE;
     });
-}
-
-mfxStatus RExt::SetGuid(mfxVideoParam& par, StorageRW& strg)
-{
-    auto& fi = par.mfx.FrameInfo;
-    const GUID* pGUID = nullptr;
-    const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
-
-    MFX_CHECK(fi.BitDepthLuma <= 12, MFX_ERR_NONE);
-    MFX_CHECK(fi.BitDepthChroma <= 12, MFX_ERR_NONE);
-    MFX_CHECK(!pCO3 || pCO3->TargetBitDepthLuma <= 12, MFX_ERR_NONE);
-    MFX_CHECK(!pCO3 || pCO3->TargetBitDepthChroma <= 12, MFX_ERR_NONE);
-    MFX_CHECK(!IsOn(par.mfx.LowPower), MFX_ERR_NONE);
-
-    SetIf(pGUID, fi.FourCC == MFX_FOURCC_P016, &DXVA2_Intel_Encode_HEVC_Main12);
-    SetIf(pGUID, fi.FourCC == MFX_FOURCC_Y216, &DXVA2_Intel_Encode_HEVC_Main422_12);
-    SetIf(pGUID, fi.FourCC == MFX_FOURCC_Y416, &DXVA2_Intel_Encode_HEVC_Main444_12);
-
-    MFX_CHECK(pGUID, MFX_ERR_NONE);
-
-    Base::Glob::GUID::GetOrConstruct(strg) = *pGUID;
-
-    return MFX_ERR_NONE;
 }
 
 void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
@@ -240,13 +210,6 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 
         return MFX_ERR_NONE;
 
-    });
-    Push(BLK_SetGUID
-        , [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus
-    {
-        //don't change GUID in Reset
-        MFX_CHECK(!strg.Contains(Glob::RealState::Key), MFX_ERR_NONE);
-        return SetGuid(par, strg);
     });
 }
 

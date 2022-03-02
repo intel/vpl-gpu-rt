@@ -49,8 +49,6 @@ public:
         SetTraceName("Base_DDI_VA");
     }
 
-    static VAGUID MapGUID(StorageR& strg, const GUID& guid);
-
 protected:
     virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
     virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
@@ -68,6 +66,7 @@ protected:
 
     using MfxEncodeHW::DeviceVAAPI::QueryCaps;
     mfxStatus QueryCaps();
+    mfxStatus SetDDIID(VAID*& DDIID, const mfxVideoParam& par, StorageRW& strg);
     uint32_t  ConvertRateControlMFX2VAAPI(mfxU16 rateControl, bool bSWBRC);
     uint32_t  ConvertSliceStructureVAAPIToMFX(uint32_t structure);
 
@@ -76,7 +75,6 @@ protected:
     std::vector<VABufferID> m_perPicPar;
     std::vector<VABufferID> m_bs;
 };
-
 } //Base
 } //Linux
 } //namespace HEVCEHW

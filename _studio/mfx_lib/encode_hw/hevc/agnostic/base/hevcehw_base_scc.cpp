@@ -27,15 +27,6 @@
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
 
-const GUID SCC::DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main =
-{ 0x2dec00c7, 0x21ee, 0x4bf8,{ 0x8f, 0x0e, 0x77, 0x3f, 0x11, 0xf1, 0x26, 0xa2 } };
-const GUID SCC::DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main10 =
-{ 0xc35153a0, 0x23c0, 0x4a81,{ 0xb3, 0xbb, 0x6a, 0x13, 0x26, 0xf2, 0xb7, 0x6b } };
-const GUID SCC::DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main444 =
-{ 0xa33fd0ec, 0xa9d3, 0x4c21,{ 0x92, 0x76, 0xc2, 0x41, 0xcc, 0x90, 0xf6, 0xc7 } };
-const GUID SCC::DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main444_10 =
-{ 0x310e59d2, 0x7ea4, 0x47bb,{ 0xb3, 0x19, 0x50, 0x0e, 0x78, 0x85, 0x53, 0x36 } };
-
 constexpr mfxU8 SCC_EXT_ID = 3;
 
 bool SCC::ReadSpsExt(StorageRW& strg, const Base::SPS&, mfxU8 id, Base::IBsReader& bs)
@@ -241,55 +232,6 @@ void SCC::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
             Glob::ReadPpsExt::GetOrConstruct(strg) = std::bind(ReadPpsExt, std::ref(strg), _1, _2, _3);
             Glob::PackPpsExt::GetOrConstruct(strg) = std::bind(PackPpsExt, std::ref(strg), _1, _2, _3);
         }
-
-        return MFX_ERR_NONE;
-    });
-
-    Push(BLK_SetGUID
-        , [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus
-    {
-        MFX_CHECK(par.mfx.CodecProfile == MFX_PROFILE_HEVC_SCC, MFX_ERR_NONE);
-        MFX_CHECK(IsOn(par.mfx.LowPower), MFX_ERR_NONE);
-        //don't change GUID in Reset
-        MFX_CHECK(!strg.Contains(Glob::RealState::Key), MFX_ERR_NONE);
-
-        SetExtraGUIDs(strg);
-
-        static const std::map<mfxU16, std::map<mfxU16, GUID>> GUIDSupported =
-        {
-            {
-                mfxU16(8),
-                {
-                    {mfxU16(MFX_CHROMAFORMAT_YUV420), DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main}
-                    , {mfxU16(MFX_CHROMAFORMAT_YUV444), DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main444}
-                }
-            }
-            , {
-                mfxU16(10),
-                {
-                    {mfxU16(MFX_CHROMAFORMAT_YUV420), DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main10}
-                    , {mfxU16(MFX_CHROMAFORMAT_YUV444), DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main444_10}
-                }
-            }
-        };
-        auto& fi = par.mfx.FrameInfo;
-        const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
-        mfxU16 bd = 8, cf = fi.ChromaFormat;
-
-        bd = std::max<mfxU16>(bd, fi.BitDepthLuma);
-        bd = std::max<mfxU16>(bd, fi.BitDepthChroma);
-
-        if (pCO3)
-        {
-            bd = std::max<mfxU16>(bd, pCO3->TargetBitDepthLuma);
-            bd = std::max<mfxU16>(bd, pCO3->TargetBitDepthChroma);
-
-            if (pCO3->TargetChromaFormatPlus1)
-                cf = std::max<mfxU16>(cf, pCO3->TargetChromaFormatPlus1 - 1);
-        }
-
-        MFX_CHECK(GUIDSupported.count(bd) && GUIDSupported.at(bd).count(cf), MFX_ERR_NONE);
-        Glob::GUID::GetOrConstruct(strg) = GUIDSupported.at(bd).at(cf);
 
         return MFX_ERR_NONE;
     });

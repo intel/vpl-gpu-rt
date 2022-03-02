@@ -807,87 +807,6 @@ public:
             + bMain * MFX_PROFILE_HEVC_MAIN;
     }
 
-    static bool GUID(
-        Defaults::TGetGUID::TExt
-        , const Defaults::Param& par
-        , ::GUID& guid)
-    {
-        const std::map<mfxU16, std::map<mfxU16, ::GUID>> GUIDSupported[2] =
-        {
-            //LowPower = OFF
-            {
-                {
-                    mfxU16(8),
-                    {
-                          {mfxU16(MFX_CHROMAFORMAT_YUV420), DXVA2_Intel_Encode_HEVC_Main}
-                        , {mfxU16(MFX_CHROMAFORMAT_YUV422), DXVA2_Intel_Encode_HEVC_Main422}
-                        , {mfxU16(MFX_CHROMAFORMAT_YUV444), DXVA2_Intel_Encode_HEVC_Main444}
-                    }
-                }
-                , {
-                    mfxU16(10),
-                    {
-                          {mfxU16(MFX_CHROMAFORMAT_YUV420), DXVA2_Intel_Encode_HEVC_Main10}
-                        , {mfxU16(MFX_CHROMAFORMAT_YUV422), DXVA2_Intel_Encode_HEVC_Main422_10}
-                        , {mfxU16(MFX_CHROMAFORMAT_YUV444), DXVA2_Intel_Encode_HEVC_Main444_10}
-                    }
-                }
-            }
-            //LowPower = ON
-            ,{
-                {
-                    mfxU16(8),
-                    {
-                          {mfxU16(MFX_CHROMAFORMAT_YUV420), DXVA2_Intel_LowpowerEncode_HEVC_Main}
-                        , {mfxU16(MFX_CHROMAFORMAT_YUV422), DXVA2_Intel_LowpowerEncode_HEVC_Main422}
-                        , {mfxU16(MFX_CHROMAFORMAT_YUV444), DXVA2_Intel_LowpowerEncode_HEVC_Main444}
-                    }
-                }
-                , {
-                    mfxU16(10),
-                    {
-                          {mfxU16(MFX_CHROMAFORMAT_YUV420), DXVA2_Intel_LowpowerEncode_HEVC_Main10}
-                        , {mfxU16(MFX_CHROMAFORMAT_YUV422), DXVA2_Intel_LowpowerEncode_HEVC_Main422_10}
-                        , {mfxU16(MFX_CHROMAFORMAT_YUV444), DXVA2_Intel_LowpowerEncode_HEVC_Main444_10}
-                    }
-                }
-            }
-        };
-        const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par.mvp);
-
-        bool bBDInvalid = pCO3 && Check<mfxU16, 10, 8, 0>(pCO3->TargetBitDepthLuma);
-        bool bCFInvalid = pCO3 && Check<mfxU16
-            , MFX_CHROMAFORMAT_YUV420 + 1
-            , MFX_CHROMAFORMAT_YUV422 + 1
-            , MFX_CHROMAFORMAT_YUV444 + 1>
-            (pCO3->TargetChromaFormatPlus1);
-
-        bool bLowPower = IsOn(par.mvp.mfx.LowPower);
-        mfxU16 BitDepth = 8 * (par.base.GetProfile(par) == MFX_PROFILE_HEVC_MAIN);
-        mfxU16 ChromaFormat = 0;
-
-        auto mvpCopy = par.mvp;
-        mvpCopy.NumExtParam = 0;
-
-        Defaults::Param parCopy(mvpCopy, par.caps, par.hw, par.base);
-        auto pParForBD = &par;
-        auto pParForCF = &par;
-
-        SetIf(pParForBD, bBDInvalid, &parCopy);
-        SetIf(pParForCF, bCFInvalid, &parCopy);
-
-        SetIf(BitDepth, !BitDepth, [&]() { return pParForBD->base.GetTargetBitDepthLuma(*pParForBD); });
-        SetIf(ChromaFormat, !ChromaFormat, [&]() { return mfxU16(pParForCF->base.GetTargetChromaFormat(*pParForCF) - 1); });
-
-        bool bSupported =
-            GUIDSupported[bLowPower].count(BitDepth)
-            && GUIDSupported[bLowPower].at(BitDepth).count(ChromaFormat);
-
-        SetIf(guid, bSupported, [&]() { return GUIDSupported[bLowPower].at(BitDepth).at(ChromaFormat); });
-
-        return bSupported;
-    }
-
     static mfxU16 MBBRC(
         Defaults::TChain<mfxU16>::TExt
         , const Defaults::Param& par)
@@ -2201,7 +2120,6 @@ public:
         PUSH_DEFAULT(QPMFX);
         PUSH_DEFAULT(QPOffset);
         PUSH_DEFAULT(Profile);
-        PUSH_DEFAULT(GUID);
         PUSH_DEFAULT(MBBRC);
         PUSH_DEFAULT(AsyncDepth);
         PUSH_DEFAULT(NumSlices);

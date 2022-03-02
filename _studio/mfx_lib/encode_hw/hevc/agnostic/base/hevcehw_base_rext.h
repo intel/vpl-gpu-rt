@@ -36,7 +36,6 @@ class RExt
 public:
 #define DECL_BLOCK_LIST\
     DECL_BLOCK(SetRecInfo)\
-    DECL_BLOCK(SetGUID)\
     DECL_BLOCK(HardcodeCaps)\
     DECL_BLOCK(SetDefaultsCallChain)\
     DECL_BLOCK(CheckShift)
@@ -52,8 +51,6 @@ protected:
     virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
     virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
 
-    mfxStatus SetGuid(mfxVideoParam& par, StorageRW& strg);
-
     static bool IsRextFourCC(mfxU32 FourCC)
     {
         return !Check<mfxU32
@@ -61,10 +58,6 @@ protected:
             , MFX_FOURCC_Y216
             , MFX_FOURCC_Y416>(FourCC);
     }
-
-    static const GUID DXVA2_Intel_Encode_HEVC_Main12;
-    static const GUID DXVA2_Intel_Encode_HEVC_Main422_12;
-    static const GUID DXVA2_Intel_Encode_HEVC_Main444_12;
 
     typedef std::function<void(mfxFrameInfo&, mfxU16&, bool)> RecUpd;
     std::map<mfxU16, RecUpd> mUpdateRecInfo;

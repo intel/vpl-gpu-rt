@@ -36,12 +36,14 @@ void VAPacker::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     Push(BLK_HardcodeCaps
         , [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus
     {
-        auto&       caps     = Glob::EncodeCaps::Get(strg);
-        auto        vaGUID   = DDI_VA::MapGUID(strg, Glob::GUID::Get(strg));
+        auto& caps           = Glob::EncodeCaps::Get(strg);
+        auto& ddiidSetting = Glob::DDIIDSetting::Get(strg);
+        VAID* vaid           = (VAID*)ddiidSetting.DDIID;
+        MFX_CHECK_NULL_PTR1(vaid);
 
         HardcodeCapsCommon(caps, par);
 
-        bool bLP   = (vaGUID.Entrypoint == VAEntrypointEncSliceLP);
+        bool bLP   = (vaid-> Entrypoint == VAEntrypointEncSliceLP);
 
         caps.LCUSizeSupported |=
               (32 >> 4) * (!bLP)

@@ -616,34 +616,6 @@ void Legacy::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
         MFX_CHECK(!bChanged, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
         return MFX_ERR_NONE;
     });
-
-    Push(BLK_SetGUID
-        , [](const mfxVideoParam&, mfxVideoParam& out, StorageRW& strg) -> mfxStatus
-    {
-        MFX_CHECK(!strg.Contains(Glob::GUID::Key), MFX_ERR_NONE);
-
-        if (strg.Contains(Glob::RealState::Key))
-        {
-            //don't change GUID in Reset
-            auto& initPar = Glob::RealState::Get(strg);
-            strg.Insert(Glob::GUID::Key, make_storable<GUID>(Glob::GUID::Get(initPar)));
-            return MFX_ERR_NONE;
-        }
-
-        VideoCORE& core = Glob::VideoCore::Get(strg);
-        auto pGUID = make_storable<GUID>();
-        auto& defaults = Glob::Defaults::Get(strg);
-        EncodeCapsHevc fakeCaps;
-        Defaults::Param defPar(out, fakeCaps, core.GetHWType(), defaults);
-        fakeCaps.MaxEncodedBitDepth = true;
-        fakeCaps.YUV422ReconSupport = !IsOn(out.mfx.LowPower);
-        fakeCaps.YUV444ReconSupport = true;
-
-        MFX_CHECK(defaults.GetGUID(defPar, *pGUID), MFX_ERR_NONE);
-        strg.Insert(Glob::GUID::Key, std::move(pGUID));
-
-        return MFX_ERR_NONE;
-    });
 }
 
 void Legacy::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
@@ -923,7 +895,7 @@ void Legacy::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
 
 void Legacy::InitExternal(const FeatureBlocks& blocks, TPushIE Push)
 {
-    Push(BLK_SetGUID
+    Push(BLK_SetVideoParam
         , [&blocks](const mfxVideoParam& in, StorageRW& strg, StorageRW&) -> mfxStatus
     {
         const auto& query = FeatureBlocks::BQ<FeatureBlocks::BQ_Query1NoCaps>::Get(blocks);
@@ -939,7 +911,7 @@ void Legacy::InitExternal(const FeatureBlocks& blocks, TPushIE Push)
 
         return sts;
     });
-
+    
     Push(BLK_CheckVideoParam
         , [&blocks](const mfxVideoParam& in, StorageRW& strg, StorageRW&) -> mfxStatus
     {

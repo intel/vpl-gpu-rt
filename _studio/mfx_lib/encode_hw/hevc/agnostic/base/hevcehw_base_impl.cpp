@@ -61,13 +61,21 @@ void MFXVideoENCODEH265_HW::InternalInitFeatures(
     for (auto& pFeature : m_features)
         pFeature->Init(mode, *this);
 
+    if (mode & (QUERY1 | QUERY_IO_SURF | INIT | QUERY_IMPLS_DESCRIPTION))
+    {
+        Reorder(
+            BQ<BQ_Query1NoCaps>::Get(*this)
+            , { FEATURE_LEGACY, Legacy::BLK_SetLowPowerDefault }
+            , { FEATURE_DDI, IDDI::BLK_SetDDIID }
+        , PLACE_AFTER);
+    }
+
     if (mode & INIT)
     {
         Reorder(
             BQ<BQ_InitExternal>::Get(*this)
             , { FEATURE_DDI, IDDI::BLK_CreateDevice }
-            , { FEATURE_LEGACY, Legacy::BLK_SetGUID });
-
+            , { FEATURE_LEGACY, Legacy::BLK_SetVideoParam });        
         auto& qII = BQ<BQ_InitInternal>::Get(*this);
         Reorder(qII
             , { FEATURE_LEGACY, Legacy::BLK_SetReorder }
