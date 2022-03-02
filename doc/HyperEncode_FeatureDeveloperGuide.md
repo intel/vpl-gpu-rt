@@ -23,17 +23,20 @@ Intel and the Intel logo are trademarks or registered trademarks of Intel Corpor
 
 \*Other names and brands may be claimed as the property of others.
 
-Copyright © 2020-2021, Intel Corporation. All Rights reserved.
-<div style="page-break-before:always" /> 
+Copyright © 2020-2022, Intel Corporation. All Rights reserved.
+<div style="page-break-before:always" />
 
 - [Overview](#overview)
 - [Developer guide](#developer-guide)
   * [Feature API](#feature-api)
   * [Migrating your application from Intel Media SDK to Intel oneVPL](#migrating-your-application-from-intel-media-sdk-to-intel-onevpl)
+  * [How to install graphic driver](#how-to-install-graphic-driver)
+  * [How to prepare the system](#how-to-prepare-the-system)
   * [Running application with oneVPL runtime](#running-application-with-onevpl-runtime)
   * [How to get the best performance](#how-to-get-the-best-performance)
   * [Choice of async value](#choice-of-async-value)
-  * [How to prepare the system](#how-to-prepare-the-system)
+  * [Recommendations for GOP size](#recommendations-for-gop-size)
+  * [CPU and system memory utilization on the 4K streams](#cpu-and-system-memory-utilization-on-the-4K-streams)
 - [Release Notes](#release-notes)
   * [Supported configurations](#supported-configurations)
   * [Known limitations](#known-limitations)
@@ -45,13 +48,15 @@ Intel(R) oneVPL Deep Link Hyper Encode Feature leverages Intel integrated and di
 For the sake of readability, we will refer to the following Intel processor families by their former codenames:
 
 -   Intel Xe discrete graphics will be referred to as "DG1"
+-   Intel® Arc™ Alchemist graphics will be referred to as "DG2"
 -   11th Generation Intel® Core™ Processors will be referred to as "TGL" (Tiger Lake)
+-   12th Generation Intel® Core™ Processors with Intel® Iris® Xe Graphics and Intel® UHD Graphics will be referred to as "ADL" (Alder Lake)
 
 # Developer guide
 
 ## Feature API
 
--   The feature is enabled and configured through `mfxExtHyperModeParam mfxExtBuffer` interface:
+- The feature is enabled and configured through `mfxExtHyperModeParam mfxExtBuffer` interface:
 ```c++
 /*! The mfxHyperMode enumerator describes HyperMode implementation behavior. */
 typedef enum {
@@ -67,7 +72,7 @@ typedef struct {
     mfxU16          reserved[19];
 } mfxExtHyperModeParam;
 ```
--   Application must attach `mfxExtHyperModeParam` structure to the list of extension buffers for encoder’s `mfxVideoParam`:
+- Application must attach `mfxExtHyperModeParam` structure to the list of extension buffers for encoder’s `mfxVideoParam`:
 ```c++
 mfxVideoParam par;
 par.NumExtParam = 1;
@@ -82,8 +87,8 @@ par.ExtParam[0] = &hyperEncodeParam->Header;
 
 ## Migrating your application from Intel Media SDK to Intel oneVPL
 
-1.  Rebuild your application with new oneVPL headers and link application with oneVPL dispatcher from the package.
-2.  Change MFX session initialization in the following way (check sample_encode source for reference):
+1. Rebuild your application with new oneVPL headers and link application with oneVPL dispatcher from the package.
+2. Change MFX session initialization in the following way (check sample_encode source for reference):
 
 From
 ```c++
@@ -104,51 +109,96 @@ MFXSetConfigFilterProperty(cfg,"mfxImplDescription.Impl",ImplValue);
 MFXCreateSession(loader,0,&session);
 ```
 
-3.  For more information please refer to full migration guide [here](https://software.intel.com/content/www/us/en/develop/articles/upgrading-from-msdk-to-onevpl.html)
-
-## Running sample_encode with oneVPL runtime
-
-1.  Download and install the [graphics driver](https://www.intel.com/content/www/us/en/download/19344/intel-graphics-windows-dch-drivers.html) not older than 30.0.100.9805, containing oneVPL GPU runtime.
-2.  Download and install the [oneVPL Toolkit](https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onevpl.html), containing pre-built sample_encode and oneVPL dispatcher.
-3.  Find `sample_encode.exe` application in the pre-built 'bin' directory of the oneVPL Toolkit installation folder.
-5.  Run Command Prompt under administrative rights.
-6.  Run simple example of sample_encode command line with enabled Deep Link Hyper Encode feature:
-```bash
-sample_encode h264 -i input.yuv -o output.h264 -dGfx -dual_gfx::on -w 1920 -h 1080 -nv12 -idr_interval 0 -d3d11 -async 30 -g 30 -r 1 -u 4 -lowpower:on -perf_opt 10 -n 2000 -api2x_dispatcher        
+3. Please pay attention to `MaxLength` field of `mfxBitstream` structure during bitstream allocation for encoder output. It must be set using `par.mfx.BufferSizeInKB` and `par.mfx.BRCParamMultiplier` (if it's not zero). Bigger `MaxLength` values will lead to huge memory consumption on Deep Link Hyper Encode.
+```c++
+mfxVideoParam par;
+mfxStatus sts = encoder->GetVideoParam(&par);
+mfxBitstream bs;
+bs.MaxLength = par.mfx.BufferSizeInKB * par.mfx.BRCParamMultiplier;
 ```
-5.  Sample_encode source code please find [here](https://github.com/oneapi-src/oneVPL/commits/master).
 
-## Choice of async value
+4. For more information please refer to full migration guide [here](https://software.intel.com/content/www/us/en/develop/articles/upgrading-from-msdk-to-onevpl.html)
 
-Figure 1 shows performance dependency from the async value. For example, for AVC NV12 4K GOP=60 – common async value threshold is 35. It means, that for async>=35 there are no performance lost and at the same time lower async value helps to reduce memory consumption. For async<35 performance fall lower than 424 fps.
+## How to install graphic driver
 
-But please pay attention, that these data depend on the system configuration (especially physical memory size) and application, in which Deep Link Hyper Encode feature would be enabled. So, this chart cannot be universal recommendation for optimal async value selection. The chart is for informational purposes only to show possibility of using async value lower than GOP size without performance lost.
+* Go to `device manager` -> `display adapters`. Determine which adapter is integrated and which is discrete by `DeviceID` as illustrated on Figure 1.
+###### Figure 1: Display Adapter Properties
+<img src="./pic/display_adapter_properties.png" width="700"/>
 
-###### Figure 1: Chart Of Async Values
-![Async Values](./pic/async_values.png)
+* Uninstall driver from integrated and discrete adapters as illustrated on Figure 2.
+###### Figure 2: Device Manager Adapter Uninstall
+<img src="./pic/device_manager_uninstall.png" width="700"/>
+<img src="./pic/device_manager_uninstall_2.png" width="700"/>
+
+* Install driver on integrated and discrete adapters: `Update driver` -> `Browse my computer for drivers` -> `Let me pick from a list of available drivers on my computer`. Select `iigd_dch.inf` for integrated adapter and `iigd_dch_d.inf` for discrete as illustrated on Figure 3.
+###### Figure 3: Device Manager Adapter Install
+<img src="./pic/device_manager_install_igfx.png" width="700"/>
+<img src="./pic/device_manager_install_igfx_2.png" width="700"/>
+<img src="./pic/device_manager_install_dgfx.png" width="700"/>
+<img src="./pic/device_manager_install_dgfx_2.png" width="700"/>
 
 ## How to prepare the system
 
 HW/SW requirements:
 
-1.  iGPU: TGL
-2.  dGPU: DG1
+1. iGPU: TGL/ADL
+2. dGPU: DG1/DG2
 
-Set virtual memory not less than physical memory size as illustrated in Figure 2.
+Set virtual memory not less than physical memory size as illustrated on Figure 4.
+###### Figure 4: System Settings
+<img src="./pic/system_settings.png" width="700"/>
 
-###### Figure 2: System Settings
-![System Settings](./pic/system_settings.png)
+## Running sample_encode with oneVPL runtime
+
+1. Download and install the graphics driver, containing oneVPL GPU runtime.
+2. Download and install the [oneVPL Toolkit](https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onevpl.html), containing pre-built sample_encode and oneVPL dispatcher.
+3. Find `sample_encode.exe` application in the pre-built `bin` directory of the oneVPL Toolkit installation folder.
+4. Run Command Prompt under administrative rights.
+5. Run simple example of sample_encode command line with enabled Deep Link Hyper Encode feature:
+```bash
+sample_encode h264 -i input.yuv -o output.h264 -dGfx -dual_gfx::on -w 1920 -h 1080 -nv12 -idr_interval 0 -d3d11 -async 30 -g 30 -r 1 -u 4 -lowpower:on -perf_opt 10 -n 2000        
+```
+6. Sample_encode source code please find [here](https://github.com/oneapi-src/oneVPL/commits/master).
+
+## How to get the best performance
+
+sample_encode tool has performance mode. This mode enables by using `-perf_opt n` option. It sets `n` prefetched frames (application preallocates buffers and preload `n` first frames to buffers from input stream). Performance mode allows to evaluate clear benefit of the Deep Link Hyper Encode feature, excluding input stream reading from measurements and providing permanent load of Deep Link Hyper Encode with input surfaces. And this is the main requirement for the applications, otherwise Deep Link Hyper Encode will not bring performance improvement if it will not be loaded enough with new surfaces.
+
+## Choice of async value
+
+Figure 6 shows performance dependency from the async value. For example, for AVC NV12 4K GOP=60 – common async value threshold is 35. It means, that for async>=35 there are no performance lost and at the same time lower async value helps to reduce memory consumption. For async<35 performance fall lower than 445 fps.
+
+But please pay attention, that these data depend on the system configuration (especially physical memory size) and application, in which LE library would be integrated. So, this chart cannot be universal recommendation for optimal async value selection. The chart is for informational purposes only to show possibility of using async value lower than GOP size without performance lost.
+###### Figure 6: Async Values
+<img src="./pic/async_values.png" width="700"/>
+
+## Recommendations for GOP size
+
+Deep Link Hyper Encode don’t have particular recommendations about GOP size. With gop size increasing, the probability of 2nd adapther wait increases, that may be the reason of performance regression. Also with bigger gop size, async value must be increased to have enough queue of input surfaces for hyper encode, that would be the reason of memory consumption growth.
+
+## CPU and system memory utilization on the 4K streams
+
+Figure 7,8 shows max CPU and system memory usages on sample_encode application with 4K streams: GOP size 30, async depth 30, input video(dx11) memory, sample_encode `perf_opt` option enabled. Please pay attention, that these data shows usages on clear encoding pipeline and depends on the Deep Link Hyper Encode configuration parameters.
+
+###### Figure 7: Max CPU usage on sample_encode application with 4K streams
+<img src="./pic/4k_max_cpu_usage.png" width="700"/>
+
+###### Figure 8: Max system memory usage on sample_encode application with 4K streams
+<img src="./pic/4k_max_sys_mem_usage.png" width="700"/>
 
 # Release Notes
 
 ## Supported configurations
 
--   Deep Link Hyper Encode was tested on TGL+DG1.
--   Supports AVC and HEVC encoders in low power mode (VDENC); Direct3D11 and system memory surfaces in NV12/P010/RGB format; VBR/CQP/ICQ bitrate control modes.
+- Supported OS: Windows.
+- Deep Link Hyper Encode was tested on TGL+DG1/TGL+DG2/ADL+DG2.
+- Supports AVC, HEVC, AV1 encoders in low power mode (VDENC); Direct3D11 and system memory surfaces in NV12/P010/RGB format; VBR/CQP/ICQ/CBR/QVBR bitrate controls with disabled HRD-compliance.
 
 ## Known limitations
 
--   If encoder configured with MFX_HYPERMODE_ADAPTIVE it will automatically fall back to single GPU when underlying parameter combination is not supported for hyper encoding.
--   For achieving good performance, we recommend using async value not less than GOP size, but this might be not possible to achieve due to memory volume limitation, then we recommend tuning down async.
--   Performance on AVC 4K NV12 dx11 for DG1 as primary graphics is lower than expected.
--   Performance on HEVC 4K P010 dx11 for DG1 as primary graphics is lower than expected.
+- If encoder configured with MFX_HYPERMODE_ADAPTIVE it will automatically fall back to single GPU when underlying parameter combination is not supported for hyper encoding.
+- Deep Link Hyper Encode check codec/feature support on each adapter and if encoder on primary adapter don't support it, Hyper Encode will return MFX_ERR_UNSUPPORTED: 
+  - as AVC B-frames and AV1 are supported on DG2 and not supported on TGL, Hyper Encode will accelerate encoding with 2VDBOX on DG2 if it's primary adapter and will return MFX_ERR_UNSUPPORTED in the case of TGL is primary adapter;
+  - if application don't set the number of B-frames Deep Link Hyper Encode will try to set the default value from the primary adapter for both adapters to check if it's supported. If primary adapter supports lower value of B-frames, then encoders will be initialized on both adapters with this value. If primary adapter supports greater value of B-frames, then encoders will be initialized only on primray adapter.
+- For achieving good performance, we recommend using async value not less than GOP size, but this might be not possible to achieve due to memory volume limitation, then we recommend tuning down and share sample based measurement for reference.
+- Possible low performance gain in the case of fast encoder (target usage 7) on transcoding scenarios due to insufficient encoder loading.
