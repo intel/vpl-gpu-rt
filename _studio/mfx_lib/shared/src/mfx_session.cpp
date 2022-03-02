@@ -316,12 +316,12 @@ mfxU32 _mfxVersionedSessionImpl::GetNumRef(void) const
 } // mfxU32 _mfxVersionedSessionImpl::GetNumRef(void) const
 
 
-mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par)
+mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par, bool isSingleThreadMode = false)
 {
     mfxStatus mfxRes;
     mfxU32 maxNumThreads;
 #if defined(MFX_ENABLE_SINGLE_THREAD)
-    bool isSingleThreadMode = (par.Implementation & MFX_IMPL_EXTERNAL_THREADING) ? true : false;
+    isSingleThreadMode = (par.Implementation & MFX_IMPL_EXTERNAL_THREADING) ? true : isSingleThreadMode;
     par.Implementation &= ~MFX_IMPL_EXTERNAL_THREADING;
 #endif
     // release the object before initialization
