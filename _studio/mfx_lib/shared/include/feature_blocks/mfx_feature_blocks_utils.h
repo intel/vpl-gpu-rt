@@ -195,6 +195,16 @@ struct StorageVar
     }
 };
 
+inline bool IsErrorSts(mfxStatus sts)
+{
+    return sts < MFX_ERR_NONE;
+}
+
+inline bool IsWarnSts(mfxStatus sts)
+{
+    return sts > MFX_ERR_NONE;
+}
+
 inline mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
 {
     mfxStatus sts_min = std::min<mfxStatus>(sts1, sts2);

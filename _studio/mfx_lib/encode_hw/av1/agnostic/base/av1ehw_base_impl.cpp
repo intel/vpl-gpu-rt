@@ -81,7 +81,6 @@ mfxStatus MFXVideoENCODEAV1_HW::InternalQuery(
     , mfxVideoParam *in
     , mfxVideoParam& out)
 {
-
     if (!in)
     {
         return RunBlocks(IgnoreSts, BQ<BQ_Query0>::Get(*this), out);
@@ -94,12 +93,17 @@ mfxStatus MFXVideoENCODEAV1_HW::InternalQuery(
     strg.Insert(Glob::VideoCore::Key, new StorableRef<VideoCORE>(core));
 
     sts = RunBlocks(CheckGE<mfxStatus, MFX_ERR_NONE>, BQ<BQ_Query1NoCaps>::Get(*this), *in, out, strg);
-    MFX_CHECK(sts >= MFX_ERR_NONE, sts);
+    MFX_CHECK(!IsErrorSts(sts), MFX_ERR_UNSUPPORTED);
     wrn = sts;
 
     sts = RunBlocks(CheckGE<mfxStatus, MFX_ERR_NONE>, BQ<BQ_Query1WithCaps>::Get(*this), *in, out, strg);
+    MFX_CHECK(!IsErrorSts(sts), MFX_ERR_UNSUPPORTED);
 
-    return GetWorstSts(wrn, sts);
+    sts = GetWorstSts(wrn, sts);
+    if (IsWarnSts(sts))
+        sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+
+    return sts;
 }
 
 mfxStatus MFXVideoENCODEAV1_HW::InternalQueryIOSurf(
@@ -133,14 +137,14 @@ mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
     global.Insert(Glob::RTErr::Key, new StorableRef<mfxStatus>(m_runtimeErr));
 
     wrn = RunBlocks(CheckGE<mfxStatus, MFX_ERR_NONE>, BQ<BQ_InitExternal>::Get(*this), *par, global, local);
-    MFX_CHECK(wrn >= MFX_ERR_NONE, wrn);
+    MFX_CHECK(!IsErrorSts(sts), wrn);
 
     sts = RunBlocks(CheckGE<mfxStatus, MFX_ERR_NONE>, BQ<BQ_InitInternal>::Get(*this), global, local);
-    MFX_CHECK(sts >= MFX_ERR_NONE, sts);
+    MFX_CHECK(!IsErrorSts(sts), sts);
     wrn = GetWorstSts(sts, wrn);
 
     sts = RunBlocks(CheckGE<mfxStatus, MFX_ERR_NONE>, BQ<BQ_InitAlloc>::Get(*this), global, local);
-    MFX_CHECK(sts >= MFX_ERR_NONE, sts);
+    MFX_CHECK(!IsErrorSts(sts), sts);
     wrn = GetWorstSts(sts, wrn);
 
     m_storage = std::move(global);
@@ -260,7 +264,7 @@ mfxStatus MFXVideoENCODEAV1_HW::Reset(mfxVideoParam* par)
     global.Insert(Glob::RealState::Key, new StorableRef<StorageW>(m_storage));
 
     wrn = RunBlocks(CheckGE<mfxStatus, MFX_ERR_NONE>, BQ<BQ_Reset>::Get(*this), *par, global, local);
-    MFX_CHECK(wrn >= MFX_ERR_NONE, wrn);
+    MFX_CHECK(!IsErrorSts(wrn), wrn);
 
     sts = RunBlocks(CheckGE<mfxStatus, MFX_ERR_NONE>, BQ<BQ_ResetState>::Get(*this), global, local);
 
