@@ -80,6 +80,7 @@ enum eMFXHWType
     MFX_HW_ADL_S     = MFX_HW_TGL_LP + 4,
     MFX_HW_ADL_P     = MFX_HW_TGL_LP + 5,
     MFX_HW_ADL_N     = MFX_HW_TGL_LP + 6,
+    MFX_HW_XE_HP_SDV = MFX_HW_TGL_LP + 7,
     MFX_HW_DG2       = MFX_HW_TGL_LP + 8,
 
 

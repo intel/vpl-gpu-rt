@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Intel Corporation
+// Copyright (c) 2021-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@
     #define MFX_ENABLE_H264_REPARTITION_CHECK
     #define MFX_ENABLE_H264_ROUNDING_OFFSET
     #define MFX_ENABLE_AVC_CUSTOM_QMATRIX
+    #define MFX_ENABLE_AVCE_VDENC_B_FRAMES
     #if defined(MFX_ENABLE_MCTF) && defined(MFX_ENABLE_KERNELS)
         #define MFX_ENABLE_MCTF_IN_AVC
     #endif

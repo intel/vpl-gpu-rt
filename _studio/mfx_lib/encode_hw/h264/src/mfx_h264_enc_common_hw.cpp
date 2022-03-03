@@ -1363,6 +1363,7 @@ bool MfxHwH264Encode::IsMctfSupported(
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
     isSupported = ((
+        H264ECaps::IsHvsSupported(platform) ||
         H264ECaps::IsVmeSupported(platform)) &&
         IsOn(extOpt2.ExtBRC) &&
         IsExtBrcSceneChangeSupported(video, platform) &&
@@ -2268,7 +2269,14 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (IsOn(par.mfx.LowPower))
     {
+#if defined(MFX_ENABLE_AVCE_VDENC_B_FRAMES)
+        // Gen12HP VDEnc supports B frames
+        if (par.mfx.GopRefDist > 1
+            && platform < MFX_HW_XE_HP_SDV
+            )
+#else
         if (par.mfx.GopRefDist > 1)
+#endif
         {
             changed = true;
             par.mfx.GopRefDist = 1;
@@ -2283,6 +2291,17 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
             par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ)
         {
+            if (H264ECaps::IsRateControlLASupported(platform) &&
+                bRateControlLA(par.mfx.RateControlMethod)) // non LA modes are used instead
+            {
+                changed = true;
+                if ((par.mfx.RateControlMethod == MFX_RATECONTROL_LA) ||
+                    (par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD))
+                    par.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
+                else if (par.mfx.RateControlMethod == MFX_RATECONTROL_LA_ICQ)
+                    par.mfx.RateControlMethod = MFX_RATECONTROL_ICQ;
+            }
+            else
             {
                 unsupported = true;
                 par.mfx.RateControlMethod = 0;
@@ -5444,6 +5463,9 @@ void MfxHwH264Encode::SetDefaults(
     {
         if (par.mfx.GopRefDist == 0)
         {
+            if (platform >= MFX_HW_DG2)
+                par.mfx.GopRefDist = 4; // on DG2+ 3 B-frames with B-pyramid is default
+            else
                 par.mfx.GopRefDist = 1;
         }
 

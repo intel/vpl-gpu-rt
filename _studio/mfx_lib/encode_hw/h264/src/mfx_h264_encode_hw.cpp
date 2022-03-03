@@ -182,6 +182,9 @@ mfxStatus MFXHWVideoENCODEH264::QueryImplsDescription(
     caps.MaxcodecLevel           = MFX_LEVEL_AVC_52;
     caps.BiDirectionalPrediction =
         !IsOn(tmp.mfx.LowPower)
+#if defined(MFX_ENABLE_AVCE_VDENC_B_FRAMES)
+        ||  (platform >= MFX_HW_XE_HP_SDV)
+#endif
         ;
 
     for (mfxU32 profile : SupportedProfiles)
