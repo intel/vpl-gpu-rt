@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Intel Corporation
+// Copyright (c) 2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,94 +23,105 @@
 
 #include "mfxcommon.h"
 #include "mfxenctools-int.h"
-#include "mfx_enctools_defs.h"
 
-struct IEncTools
+class IEncTools
 {
-    virtual ~IEncTools() {};
+public:
 
-    virtual mfxStatus Init(mfxExtEncToolsConfig const*, mfxEncToolsCtrl const*) = 0;
-    virtual mfxStatus GetSupportedConfig(mfxExtEncToolsConfig*, mfxEncToolsCtrl const*) = 0;
-    virtual mfxStatus GetActiveConfig(mfxExtEncToolsConfig*) = 0;
-    virtual mfxStatus GetDelayInFrames(mfxExtEncToolsConfig const*, mfxEncToolsCtrl const*, mfxU32* /*numFrames*/) = 0;
-    virtual mfxStatus Reset(mfxExtEncToolsConfig const*, mfxEncToolsCtrl const*) = 0;
+    virtual ~IEncTools() {};
+    virtual mfxStatus Init(mfxExtEncToolsConfig const* pEncToolConfig, mfxEncToolsCtrl const* ctrl) = 0;
+    virtual mfxStatus GetSupportedConfig(mfxExtEncToolsConfig* pConfig, mfxEncToolsCtrl const* ctrl) = 0;
+    virtual mfxStatus GetActiveConfig(mfxExtEncToolsConfig* pConfig) = 0;
+    virtual mfxStatus GetDelayInFrames(mfxExtEncToolsConfig const* pConfig, mfxEncToolsCtrl const* ctrl, mfxU32* numFrames) = 0;   
+    virtual mfxStatus Reset(mfxExtEncToolsConfig const* pEncToolConfig, mfxEncToolsCtrl const* ctrl) = 0;   
     virtual mfxStatus Close() = 0;
-    virtual mfxStatus Submit(mfxEncToolsTaskParam const*) = 0;
-    virtual mfxStatus Query(mfxEncToolsTaskParam*, mfxU32 /*timeOut*/) = 0;
-    virtual mfxStatus Discard(mfxU32 /*displayOrder*/) = 0;
+    virtual mfxStatus Submit(mfxEncToolsTaskParam const* par) = 0;
+    virtual mfxStatus Query(mfxEncToolsTaskParam* par, mfxU32 timeOut) = 0;
+    virtual mfxStatus Discard(mfxU32 displayOrder) = 0;
 
     void* m_etModule = nullptr;
 };
 
-struct IEncToolsBRC
-{
-    virtual ~IEncToolsBRC() {}
-
-    virtual mfxStatus Init(mfxEncToolsCtrl const&, bool /*bMBBRC*/) = 0;
-    virtual mfxStatus Reset(mfxEncToolsCtrl const&, bool /*bMBBRC*/) = 0;
-    virtual void Close() = 0;
-
-    virtual mfxStatus ReportEncResult(mfxU32 /*dispOrder*/, mfxEncToolsBRCEncodeResult const&) = 0;
-    virtual mfxStatus SetFrameStruct(mfxU32 /*dispOrder*/, mfxEncToolsBRCFrameParams  const&) = 0;
-    virtual mfxStatus ReportBufferHints(mfxU32 /*dispOrder*/, mfxEncToolsBRCBufferHint const&) = 0;
-    virtual mfxStatus ReportGopHints(mfxU32 /*dispOrder*/, mfxEncToolsHintPreEncodeGOP const&) = 0;
-    virtual mfxStatus ProcessFrame(mfxU32 /*dispOrder*/, mfxEncToolsBRCQuantControl*, mfxEncToolsHintQPMap*) = 0;
-    virtual mfxStatus UpdateFrame(mfxU32 /*dispOrder*/, mfxEncToolsBRCStatus*) = 0;
-    virtual mfxStatus GetHRDPos(mfxU32 /*dispOrder*/, mfxEncToolsBRCHRDPos*) = 0;
-};
-
 namespace EncToolsFuncs
 {
+
     inline mfxStatus Init(mfxHDL pthis, mfxExtEncToolsConfig* config, mfxEncToolsCtrl* ctrl)
     {
-        MFX_CHECK_NULL_PTR1(pthis);
+        if (!pthis)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
         return ((IEncTools*)pthis)->Init(config, ctrl);
     }
 
     inline mfxStatus GetSupportedConfig(mfxHDL pthis, mfxExtEncToolsConfig* config, mfxEncToolsCtrl* ctrl)
     {
-        MFX_CHECK_NULL_PTR1(pthis);
+        if (!pthis)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
         return ((IEncTools*)pthis)->GetSupportedConfig(config, ctrl);
     }
     inline mfxStatus GetActiveConfig(mfxHDL pthis, mfxExtEncToolsConfig* config)
     {
-        MFX_CHECK_NULL_PTR1(pthis);
+        if (!pthis)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
         return ((IEncTools*)pthis)->GetActiveConfig(config);
     }
     inline mfxStatus Reset(mfxHDL pthis, mfxExtEncToolsConfig* config, mfxEncToolsCtrl* ctrl)
     {
-        MFX_CHECK_NULL_PTR1(pthis);
+        if (!pthis)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
         return ((IEncTools*)pthis)->Reset(config, ctrl);
     }
     inline mfxStatus Close(mfxHDL pthis)
     {
-        MFX_CHECK_NULL_PTR1(pthis);
+        if (!pthis)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
         return ((IEncTools*)pthis)->Close();
     }
 
     // Submit info to tool
     inline mfxStatus Submit(mfxHDL pthis, mfxEncToolsTaskParam* submitParam)
     {
-        MFX_CHECK_NULL_PTR1(pthis);
+        if (!pthis)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
         return ((IEncTools*)pthis)->Submit(submitParam);
     }
 
     // Query info from tool
     inline mfxStatus Query(mfxHDL pthis, mfxEncToolsTaskParam* queryParam, mfxU32 timeOut)
     {
-        MFX_CHECK_NULL_PTR1(pthis);
+        if (!pthis)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
         return ((IEncTools*)pthis)->Query(queryParam, timeOut);
     }
 
     // Query info from tool
     inline mfxStatus Discard(mfxHDL pthis, mfxU32 displayOrder)
     {
-        MFX_CHECK_NULL_PTR1(pthis);
+        if (!pthis)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
         return ((IEncTools*)pthis)->Discard(displayOrder);
     }
-    inline mfxStatus GetDelayInFrames(mfxHDL pthis, mfxExtEncToolsConfig* config, mfxEncToolsCtrl* ctrl, mfxU32* numFrames)
+    inline mfxStatus GetDelayInFrames(mfxHDL pthis, mfxExtEncToolsConfig* config, mfxEncToolsCtrl* ctrl, mfxU32 *numFrames)
     {
-        MFX_CHECK_NULL_PTR1(pthis);
+        if (!pthis)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
         return ((IEncTools*)pthis)->GetDelayInFrames(config, ctrl, numFrames);
     }
 

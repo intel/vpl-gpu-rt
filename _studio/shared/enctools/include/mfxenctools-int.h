@@ -1,6 +1,6 @@
 /******************************************************************************* *\
 
-Copyright (C) 2019-2021 Intel Corporation.  All rights reserved.
+Copyright (C) 2019-2022 Intel Corporation.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -31,7 +31,6 @@ File Name: mfxenctools-int.h
 #define __MFXENCTOOLS_INT_H__
 
 #include "mfx_config.h"
-#include "mfxvideo++.h"
 #include "mfxbrc.h"
 
 #include "mfxenctools.h"
@@ -445,6 +444,7 @@ void  MFX_CDECL MFXVideoENCODE_DestroyEncTools(mfxEncTools *et);
 } /* extern "C" */
 #endif /* __cplusplus */
 #endif
+
 
 
 

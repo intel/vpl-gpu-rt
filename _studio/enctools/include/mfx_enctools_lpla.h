@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Intel Corporation
+// Copyright (c) 2019-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@
 #include <algorithm>
 #include "aenc.h"
 #include "mfx_enctools_utils.h"
+#include "mfxenctools_dl_int.h"
 
 struct MfxFrameSize
 {
@@ -65,10 +66,11 @@ enum
 class LPLA_EncTool
 {
 public:
-    LPLA_EncTool() :
+    LPLA_EncTool(void* module) :
         m_bInit(false),
         m_device(nullptr),
         m_pAllocator(nullptr),
+        m_mfxSession(module),
         m_pmfxENC(nullptr),
         m_curDispOrder(-1),
         m_lookAheadScale (0),
@@ -80,7 +82,8 @@ public:
         m_GopPicSize(0),
         m_GopRefDist(0),
         m_IdrInterval(1),
-        m_codecId(0)
+        m_codecId(0),
+        m_hRTModule(module)
     {
         m_bitstream  = {};
         m_encParams  = {};
@@ -91,12 +94,14 @@ public:
         m_config = {};
     }
 
-    virtual ~LPLA_EncTool () { Close(); }
+    virtual ~LPLA_EncTool () {
+        Close();
+    }
 
     virtual mfxStatus Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig const & pConfig);
     virtual mfxStatus Reset(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig const & pConfig);
     virtual mfxStatus Close();
-    virtual MFXVideoSession* GetEncSession();
+    virtual MFXDLVideoSession* GetEncSession();
     virtual mfxStatus SaveEncodedFrameSize(mfxFrameSurface1* surface, mfxU16 FrameType);
     virtual mfxStatus Submit(mfxFrameSurface1* surface, mfxU16 FrameType, mfxSyncPoint* pEncSyncp);
     virtual mfxStatus Query(mfxU32 dispOrder, mfxEncToolsBRCBufferHint *pBufHint);
@@ -123,8 +128,8 @@ protected:
     mfxHDL                        m_device;
     mfxU32                        m_deviceType;
     mfxFrameAllocator*            m_pAllocator;
-    MFXVideoSession               m_mfxSession;
-    MFXVideoENCODE*               m_pmfxENC;
+    MFXDLVideoSession             m_mfxSession;
+    MFXDLVideoENCODE*             m_pmfxENC;
     mfxBitstream                  m_bitstream;
 #if defined (MFX_ENABLE_ENCTOOLS_LPLA)
     std::list<MfxLookAheadReport> m_encodeHints;
@@ -153,5 +158,7 @@ protected:
     std::list<MfxFrameSize>       m_frameSizes;
     mfxExtEncToolsConfig          m_config;
     mfxU32                        m_codecId;
+
+    void* m_hRTModule = nullptr;
 };
 #endif

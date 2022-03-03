@@ -31,7 +31,6 @@ set(sources_common
     ${MSDK_STUDIO_ROOT}/shared/include/libmfx_core_factory.h
     ${MSDK_STUDIO_ROOT}/shared/include/libmfx_core_interface.h
     ${MSDK_STUDIO_ROOT}/shared/include/libmfx_core_operation.h
-    ${MSDK_STUDIO_ROOT}/shared/include/mfxenctools-int.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfxstructures-int.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfxstructurespro.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfxvideo++int.h
@@ -90,7 +89,6 @@ set(HW_ONLY_LIBS
   cmrt_cross_platform_hw
   asc
   $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
-  $<$<BOOL:${MFX_ENABLE_ENCTOOLS}>:enctools_hw>
 )
 
 set(LIBS
@@ -101,6 +99,7 @@ set(LIBS
   mfx_common_hw
   mfx_trace
   mfx_logging
+  $<$<BOOL:${MFX_ENABLE_ENCTOOLS}>:enctools_base>
   ${HW_ONLY_LIBS}
   $<$<BOOL:${ITT_FOUND}>:itt>
   Threads::Threads

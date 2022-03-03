@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Intel Corporation
+// Copyright (c) 2019-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +46,7 @@ mfxStatus LPLA_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig 
     sts = InitSession();
     MFX_CHECK_STS(sts);
 
-    m_pmfxENC = new MFXVideoENCODE(m_mfxSession);
+    m_pmfxENC = new MFXDLVideoENCODE(m_mfxSession, m_hRTModule);
     MFX_CHECK_NULL_PTR1(m_pmfxENC);
 
     m_GopPicSize = ctrl.MaxGopSize;
@@ -142,7 +142,7 @@ mfxStatus LPLA_EncTool::InitSession()
     sts = m_mfxSession.InitEx(initPar);
     MFX_CHECK_STS(sts);
 
-    sts = MFXQueryVersion(m_mfxSession, &version); // get real API version of the loaded library
+    sts = m_mfxSession.QueryVersion(&version); // get real API version of the loaded library
     MFX_CHECK_STS(sts);
 
     if (m_pAllocator)
@@ -285,7 +285,7 @@ mfxStatus LPLA_EncTool::ConfigureExtBuffs(mfxEncToolsCtrl const &
     return sts;
 }
 
-MFXVideoSession* LPLA_EncTool::GetEncSession()
+MFXDLVideoSession* LPLA_EncTool::GetEncSession()
 {
     return &m_mfxSession;
 }

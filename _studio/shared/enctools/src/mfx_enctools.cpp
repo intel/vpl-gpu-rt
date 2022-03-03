@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,16 +18,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// enctools.cpp : Defines the exported functions for the DLL application.
+// mfx_enctools.cpp : Defines the enctools interfaces for the RT to call.
 
-#include "mfxenctools-int.h"
-#include "mfx_enctools.h"
-#include "mfx_enctools_brc.h"
+#include "mfx_enctools_stub.h"
+#include "mfx_enctools_loader.h"
 
 mfxEncTools* MFXVideoENCODE_CreateEncTools(const mfxVideoParam&)
 {
     std::unique_ptr<mfxEncTools> et(new mfxEncTools);
-    et->Context = new EncTools;
+
+    et->Context = MFXNewEncTools(mfxEncToolsLoader::LoadEncToolsLib());
+    if (!et->Context)
+    {
+        et->Context = new EncToolsStub;
+    }
+
     et->Init = EncToolsFuncs::Init;
     et->Reset = EncToolsFuncs::Reset;
     et->Close = EncToolsFuncs::Close;
@@ -41,37 +46,15 @@ mfxEncTools* MFXVideoENCODE_CreateEncTools(const mfxVideoParam&)
     return et.release();
 }
 
-void MFXVideoENCODE_DestroyEncTools(mfxEncTools *et)
+void  MFX_CDECL MFXVideoENCODE_DestroyEncTools(mfxEncTools* et)
 {
-    if (et != NULL)
+    if (et != nullptr && et->Context != nullptr)
     {
-        delete (EncTools*)et->Context;
+        void* etmodule = ((IEncTools*)et->Context)->m_etModule;
+        delete (IEncTools*)et->Context;
         delete et;
+        et = nullptr;
+
+        mfxEncToolsLoader::UnLoadEncToolsLib(&etmodule);
     }
 }
-
-
-mfxExtBRC* MFXVideoENCODE_CreateExtBRC()
-{
-    std::unique_ptr <mfxExtBRC> ebrc(new mfxExtBRC);
-    ebrc->Header.BufferId = MFX_EXTBUFF_BRC;
-    ebrc->Header.BufferSz = sizeof(*ebrc);
-    ebrc->pthis = new ExtBRC;
-    ebrc->Init = ExtBRCFuncs::Init;
-    ebrc->Reset = ExtBRCFuncs::Reset;
-    ebrc->Close = ExtBRCFuncs::Close;
-    ebrc->GetFrameCtrl = ExtBRCFuncs::GetFrameCtrl;
-    ebrc->Update = ExtBRCFuncs::Update;
-
-    return ebrc.release();
-}
-
-void MFXVideoENCODE_DestroyExtBRC(mfxExtBRC *ebrc)
-{
-    if (ebrc != NULL)
-    {
-        delete (ExtBRC*)ebrc->pthis;
-        delete ebrc;
-    }
-}
-

@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2021 Intel Corporation
+# Copyright (c) 2022 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,29 +18,26 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-add_subdirectory(shared/mfx_trace)
-add_subdirectory(shared/mfx_logging)
-add_subdirectory(shared/umc)
-add_subdirectory(shared/asc)
-add_subdirectory(mfx_lib/cmrt_cross_platform)
-add_subdirectory(mfx_lib/decode)
-add_subdirectory(mfx_lib/encode_hw)
-if (MFX_ENABLE_EXT)
-  add_subdirectory(mfx_lib/ext)
-endif()
-add_subdirectory(mfx_lib/vpp)
-add_subdirectory(mfx_lib/shared)
-if (MFX_ENABLE_PXP)
-  add_subdirectory(mfx_lib/pxp)
-endif()
-add_subdirectory(mfx_lib)
-if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/mfx_config_trace")
-add_subdirectory(mfx_config_trace)
-endif()
+set(sources
+    include/mfxenctools-int.h
+    include/mfx_enctools_loader.h
+    include/mfx_ienctools.h
+    include/mfx_enctools_stub.h
+    include/mfx_loader_utils.h
+    src/mfx_enctools.cpp
+    src/mfx_enctools_loader.cpp
+  )
 
-if (MFX_ENABLE_ENCTOOLS)
-  add_subdirectory(shared/enctools)
-  add_subdirectory(enctools)
-endif()
+add_library(enctools_base STATIC ${sources})
+
+target_include_directories(enctools_base
+  PUBLIC
+    include
+  )
+target_link_libraries(enctools_base
+  PRIVATE 
+    mfx_static_lib
+    umc
+  )
 
 include(sources_ext.cmake OPTIONAL)

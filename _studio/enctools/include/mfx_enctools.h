@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Intel Corporation
+// Copyright (c) 2019-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@
 #include "mfx_enctools_lpla.h"
 #include "mfx_enctools_utils.h"
 #include "mfx_enctools_allocator.h"
+#include "mfxenctools_dl_int.h"
 
 #include <vector>
 #include <memory>
@@ -55,20 +56,22 @@ private:
     mfxFrameAllocator *m_pAllocator;
     MFXFrameAllocator *m_pETAllocator;
     mfxAllocatorParams *m_pmfxAllocatorParams;
-    MFXVideoSession *m_mfxSession_LA;
-    MFXVideoSession m_mfxSession_SCD;
+    MFXDLVideoSession* m_mfxSession_LA;
+    MFXDLVideoSession m_mfxSession_SCD;
 
-    std::unique_ptr<MFXVideoVPP> m_pmfxVPP_LA;
-    std::unique_ptr<MFXVideoVPP> m_pmfxVPP_SCD;
+    std::unique_ptr<MFXDLVideoVPP> m_pmfxVPP_LA;
+    std::unique_ptr<MFXDLVideoVPP> m_pmfxVPP_SCD;
+
     mfxVideoParam m_mfxVppParams_LA;
     mfxVideoParam m_mfxVppParams_AEnc;
     mfxFrameAllocResponse m_VppResponse;
     std::vector<mfxFrameSurface1> m_pIntSurfaces_LA;    // internal surfaces
     mfxFrameSurface1 m_IntSurfaces_SCD;                 // internal surface for SCD
 
-public:
+    void* m_hRTModule = nullptr;
 
-    EncTools();
+public:
+    EncTools(void* rtmodule, void* etmodule);
     ~EncTools() override { Close(); }
 
     mfxStatus Init(mfxExtEncToolsConfig const * pEncToolConfig, mfxEncToolsCtrl const * ctrl) override;
@@ -89,14 +92,15 @@ protected:
     mfxStatus CloseVPP();
 
     mfxStatus GetDeviceAllocator(mfxEncToolsCtrl const* ctrl);
-    mfxStatus InitVPPSession(MFXVideoSession* pmfxSession);
-    mfxStatus VPPDownScaleSurface(MFXVideoSession* m_pmfxSession, MFXVideoVPP* pVPP, mfxSyncPoint* pVppSyncp, mfxFrameSurface1* pInSurface, mfxFrameSurface1* pOutSurface);
+    mfxStatus InitVPPSession(MFXDLVideoSession* pmfxSession);
+    mfxStatus VPPDownScaleSurface(MFXDLVideoSession* m_pmfxSession, MFXDLVideoVPP* pVPP, mfxSyncPoint* pVppSyncp, mfxFrameSurface1* pInSurface, mfxFrameSurface1* pOutSurface);
 };
 
 class ExtBRC : public EncTools
 {
 public:
-
+    ExtBRC(void* rtmodule, void* etmodule) :
+        EncTools(rtmodule, etmodule) {}
     mfxStatus GetFrameCtrl(mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl);
     mfxStatus Update(mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl, mfxBRCFrameStatus* status);
 };

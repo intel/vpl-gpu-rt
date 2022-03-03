@@ -1,0 +1,7 @@
+LIBENCTOOLS {
+  global:
+    MFXVideoENCODE_NewEncTools;
+
+  local:
+    *;
+};

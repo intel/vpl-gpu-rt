@@ -2681,7 +2681,6 @@ public:
     inline bool isLAHWBRC() { return m_LAHWBRC; }
 
 private:
-
     mfxEncTools*            m_pEncTools = nullptr;
     bool                    m_bEncToolsCreated = false;
     mfxEncToolsCtrl         m_EncToolCtrl = {};

@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Intel Corporation
+// Copyright (c) 2019-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <math.h>
+#include "mfx_loader_utils.h"
 
 constexpr mfxU32 ENC_TOOLS_WAIT_INTERVAL = 300000;
 
@@ -218,10 +219,11 @@ inline bool isPreEncLA(mfxExtEncToolsConfig const & conf, mfxEncToolsCtrl const 
          IsOn(conf.AdaptiveMBQP))));
 }
 
-EncTools::EncTools()
+EncTools::EncTools(void* rtmodule, void* etmodule)
     : m_bVPPInit(false)
     , m_bInit(false)
     , m_brc(new EncToolsBRC::BRC_EncTool())
+    , m_lpLookAhead(rtmodule)
     , m_config()
     , m_ctrl()
     , m_device(0)
@@ -230,11 +232,14 @@ EncTools::EncTools()
     , m_pETAllocator(nullptr)
     , m_pmfxAllocatorParams(nullptr)
     , m_mfxSession_LA(nullptr)
+    , m_mfxSession_SCD(rtmodule)
     , m_mfxVppParams_LA()
     , m_mfxVppParams_AEnc()
     , m_VppResponse()
     , m_IntSurfaces_SCD()
+    , m_hRTModule(rtmodule)
 {
+    m_etModule = etmodule;
 }
 
 mfxStatus EncTools::GetSupportedConfig(mfxExtEncToolsConfig* config, mfxEncToolsCtrl const * ctrl)
@@ -304,7 +309,7 @@ mfxStatus EncTools::GetDelayInFrames(mfxExtEncToolsConfig const * config, mfxEnc
     return MFX_ERR_NONE;
 }
 
-mfxStatus EncTools::InitVPPSession(MFXVideoSession* pmfxSession)
+mfxStatus EncTools::InitVPPSession(MFXDLVideoSession* pmfxSession)
 {
     MFX_CHECK_NULL_PTR1(pmfxSession);
     mfxStatus sts;
@@ -372,7 +377,7 @@ mfxStatus EncTools::ResetVPP(mfxEncToolsCtrl const& ctrl)
                 m_mfxSession_LA = m_lpLookAhead.GetEncSession();
                 MFX_CHECK(m_mfxSession_LA != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
             }
-            m_pmfxVPP_LA.reset(new MFXVideoVPP(*m_mfxSession_LA));
+            m_pmfxVPP_LA.reset(new MFXDLVideoVPP(*m_mfxSession_LA, m_hRTModule));
             MFX_CHECK(m_pmfxVPP_LA, MFX_ERR_MEMORY_ALLOC);
         }
         else
@@ -437,7 +442,7 @@ mfxStatus EncTools::ResetVPP(mfxEncToolsCtrl const& ctrl)
         bool toInit = true;
         if (!m_pmfxVPP_SCD)
         {
-            m_pmfxVPP_SCD.reset(new MFXVideoVPP(m_mfxSession_SCD));
+            m_pmfxVPP_SCD.reset(new MFXDLVideoVPP(m_mfxSession_SCD, m_hRTModule));
             MFX_CHECK(m_pmfxVPP_SCD, MFX_ERR_MEMORY_ALLOC);
         }
         else
@@ -494,7 +499,7 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl)
         m_mfxSession_LA = m_lpLookAhead.GetEncSession();
         MFX_CHECK(m_mfxSession_LA != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-        m_pmfxVPP_LA.reset(new MFXVideoVPP(*m_mfxSession_LA));
+        m_pmfxVPP_LA.reset(new MFXDLVideoVPP(*m_mfxSession_LA, m_hRTModule));
         MFX_CHECK(m_pmfxVPP_LA, MFX_ERR_MEMORY_ALLOC);
         mfxExtVPPScaling vppScalingMode = {};
         vppScalingMode.Header.BufferId = MFX_EXTBUFF_VPP_SCALING;
@@ -537,11 +542,10 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl)
     //SCD VPP
     if (isPreEncSCD(m_config, ctrl))
     {
-        m_pmfxVPP_SCD.reset(new MFXVideoVPP(m_mfxSession_SCD));
+        m_pmfxVPP_SCD.reset(new MFXDLVideoVPP(m_mfxSession_SCD, m_hRTModule));
         MFX_CHECK(m_pmfxVPP_SCD, MFX_ERR_MEMORY_ALLOC);
 
         sts = m_pmfxVPP_SCD->Init(&m_mfxVppParams_AEnc);
-        MFX_CHECK_STS(sts);
 
         //memory allocation for SCD
         m_IntSurfaces_SCD = {};
@@ -568,7 +572,7 @@ mfxStatus EncTools::InitMfxVppParams(mfxEncToolsCtrl const & ctrl)
     if (!mfxVppParams_Common.vpp.In.CropH)
         mfxVppParams_Common.vpp.In.CropH = mfxVppParams_Common.vpp.In.Height;
 
-    MFXVideoSession* pSession = nullptr;
+    MFXDLVideoSession* pSession = nullptr;
     if (isPreEncSCD(m_config, ctrl))
         pSession = &m_mfxSession_SCD;
     else if (isPreEncLA(m_config, ctrl))
@@ -759,6 +763,7 @@ mfxStatus EncTools::Close()
     }
 
     m_bInit = false;
+
     return sts;
 }
 
@@ -816,7 +821,7 @@ mfxStatus EncTools::Reset(mfxExtEncToolsConfig const * config, mfxEncToolsCtrl c
     return sts;
 }
 
-mfxStatus EncTools::VPPDownScaleSurface(MFXVideoSession* /*m_pmfxSession*/, MFXVideoVPP* pVPP, mfxSyncPoint* pVppSyncp, mfxFrameSurface1* pInSurface, mfxFrameSurface1* pOutSurface/*, bool doSync*/)
+mfxStatus EncTools::VPPDownScaleSurface(MFXDLVideoSession* /*m_pmfxSession*/, MFXDLVideoVPP* pVPP, mfxSyncPoint* pVppSyncp, mfxFrameSurface1* pInSurface, mfxFrameSurface1* pOutSurface/*, bool doSync*/)
 {
     mfxStatus sts;
     MFX_CHECK_NULL_PTR2(pInSurface, pOutSurface);

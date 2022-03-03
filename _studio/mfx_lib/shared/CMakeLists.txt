@@ -58,6 +58,9 @@ target_include_directories(mfx_common_hw
     ${MSDK_STUDIO_ROOT}/shared/asc/include
     ${MSDK_STUDIO_ROOT}/shared/include
     ${MSDK_STUDIO_ROOT}/shared/mfx_logging/include
+    $<$<BOOL:${MFX_ENABLE_ENCTOOLS}>:
+      ${MSDK_STUDIO_ROOT}/shared/enctools/include
+    >
   )
 
 target_link_libraries(mfx_common_hw

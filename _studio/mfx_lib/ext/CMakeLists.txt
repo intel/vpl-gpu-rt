@@ -201,6 +201,7 @@ if (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
     mpeg2/include
     ${MSDK_UMC_ROOT}/codec/brc/include
     ${MSDK_LIB_ROOT}/shared/include
+    ${MSDK_STUDIO_ROOT}/shared/enctools/include
   )
 
   set(mpeg2_video_encode_src
