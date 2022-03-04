@@ -297,7 +297,7 @@ static void SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsConfig &c
             SetDefaultOpt(config.AdaptiveI, bAdaptiveI);
             SetDefaultOpt(config.AdaptiveB, bAdaptiveB);
             SetDefaultOpt(config.AdaptivePyramidQuantP, false);
-            SetDefaultOpt(config.AdaptivePyramidQuantB, false);
+            SetDefaultOpt(config.AdaptivePyramidQuantB, true);
 
             bool bAdaptiveRef = IsAdaptiveRefAllowed(video);
             SetDefaultOpt(config.AdaptiveRefP, bAdaptiveRef);
