@@ -25,8 +25,7 @@
 
 inline bool IsCmSupported(eMFXHWType platform)
 {
-    return
-        (platform <= MFX_HW_ADL_N);
+    return platform <= MFX_HW_XE_HP_SDV;
 }
 
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE
@@ -39,8 +38,7 @@ namespace H264ECaps {
 
     inline bool IsHvsSupported(eMFXHWType platform)
     {
-        return
-            false;
+        return (platform >= MFX_HW_DG2);
     }
 
     inline bool IsFrameSizeTolerenceSupported(eMFXHWType platform)
@@ -51,20 +49,17 @@ namespace H264ECaps {
 
     inline bool IsAcqmSupported(eMFXHWType platform)
     {
-        return
-            false;
+        return (platform >= MFX_HW_DG2);
     }
 
     inline bool IsAltRefSupported(eMFXHWType platform)
     {
-        return
-            false;
+        return (platform >= MFX_HW_DG2);
     }
 
     inline bool IsRateControlLASupported(eMFXHWType platform)
     {
-        return
-            false;
+        return (platform >= MFX_HW_DG2);
     }
 }
 #endif //MFX_ENABLE_H264_VIDEO_ENCODE
@@ -73,8 +68,7 @@ namespace H264ECaps {
 namespace VP9ECaps {
     inline bool Is32x32BlockSupported(eMFXHWType platform)
     {
-        return
-            false;
+        return (platform >= MFX_HW_DG2);
     }
 }
 #endif
