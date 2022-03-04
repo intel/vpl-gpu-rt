@@ -137,7 +137,7 @@ mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
     global.Insert(Glob::RTErr::Key, new StorableRef<mfxStatus>(m_runtimeErr));
 
     wrn = RunBlocks(CheckGE<mfxStatus, MFX_ERR_NONE>, BQ<BQ_InitExternal>::Get(*this), *par, global, local);
-    MFX_CHECK(!IsErrorSts(sts), wrn);
+    MFX_CHECK(!IsErrorSts(wrn), wrn);
 
     sts = RunBlocks(CheckGE<mfxStatus, MFX_ERR_NONE>, BQ<BQ_InitInternal>::Get(*this), global, local);
     MFX_CHECK(!IsErrorSts(sts), sts);
