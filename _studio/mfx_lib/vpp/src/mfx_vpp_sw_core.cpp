@@ -29,6 +29,7 @@
 #include "libmfx_core.h"
 #include "libmfx_core_factory.h"
 #include "libmfx_core_interface.h"
+#include "mfx_platform_caps.h"
 
 
 #include "mfx_vpp_utils.h"

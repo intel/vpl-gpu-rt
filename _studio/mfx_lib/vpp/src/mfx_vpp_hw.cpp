@@ -39,6 +39,7 @@
 #include "mfx_task.h"
 #include "mfx_vpp_defs.h"
 #include "mfx_vpp_hw.h"
+#include "mfx_platform_caps.h"
 
 #include "libmfx_core_vaapi.h"
 
@@ -2495,9 +2496,7 @@ mfxStatus  VideoVPPHW::Init(
     {
         CmDevice* pCmDevice = QueryCoreInterface<CmDevice>(m_pCore, MFXICORECM_GUID);
 
-        sts = m_SCD.Init(par->vpp.In.CropW, par->vpp.In.CropH, par->vpp.In.Width, par->vpp.In.PicStruct, pCmDevice,
-        m_pCore->GetHWType() <= MFX_HW_ADL_N
-        );
+        sts = m_SCD.Init(par->vpp.In.CropW, par->vpp.In.CropH, par->vpp.In.Width, par->vpp.In.PicStruct, pCmDevice, IsCmSupported(m_pCore->GetHWType()));
         MFX_CHECK_STS(sts);
 
         m_SCD.SetGoPSize(ns_asc::Immediate_GoP);
@@ -2750,29 +2749,15 @@ mfxStatus VideoVPPHW::QueryCaps(VideoCORE* core, MfxHwVideoProcessing::mfxVppCap
     caps = ddi->GetCaps();
 
     eMFXHWType  hwType = core->GetHWType();
+
 #ifdef MFX_ENABLE_MCTF
-    caps.uMCTF = 0;
-    if (hwType >= MFX_HW_TGL_LP && hwType < MFX_HW_DG2)
-    {
-        caps.uMCTF = 1;
-    }
+    caps.uMCTF = VppCaps::IsMctfSupported(hwType) ? 1 : 0;
 #endif
 
-    caps.uVideoSignalInfoInOut = 0;
-    if (hwType >= MFX_HW_DG2)
-    {
-        if (MFX_HW_VAAPI == core->GetVAType())
-        {
-            caps.uVideoSignalInfoInOut = 1;
-        }
-    }
-
+    caps.uVideoSignalInfoInOut = (MFX_HW_VAAPI == core->GetVAType() && VppCaps::IsVideoSignalSupported(hwType)) ? 1 : 0;
     caps.uFrameRateConversion = 1;
-    caps.uFieldProcessing = 1;
-    if (core->GetHWType() == MFX_HW_DG2)
-    {   
-        caps.uFieldProcessing = 0;
-    }
+    caps.uFieldProcessing = VppCaps::IsFieldProcessingSupported(hwType) ? 1 :0;
+
     return sts;
 
 } // mfxStatus VideoVPPHW::QueryCaps(VideoCORE* core, MfxHwVideoProcessing::mfxVppCaps& caps)

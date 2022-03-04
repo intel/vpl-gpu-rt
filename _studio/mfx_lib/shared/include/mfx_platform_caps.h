@@ -78,4 +78,34 @@ namespace VP9ECaps {
     }
 }
 #endif
+
+namespace VppCaps
+{
+
+inline bool IsMctfSupported(eMFXHWType platform)
+{
+    return (platform >= MFX_HW_TGL_LP && platform < MFX_HW_DG2);
+}
+
+inline bool IsVideoSignalSupported(eMFXHWType platform)
+{
+    return 
+    platform >= MFX_HW_DG2;
+}
+
+inline bool IsSwFieldProcessingSupported(eMFXHWType platform)
+{
+    return
+    platform < MFX_HW_DG2;
+}
+
+inline bool IsFieldProcessingSupported(eMFXHWType platform)
+{
+    return platform != MFX_HW_DG2;
+}
+
+}
+
+
+
 #endif // __MFX_PLATFORM_CAPS_H__
