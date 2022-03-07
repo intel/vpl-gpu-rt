@@ -2461,6 +2461,8 @@ JERRCODE CJPEGDecoder::DecodeHuffmanMCURowBL(int16_t* pMCUBuf, uint32_t colMCU, 
       {
           return JPEG_ERR_PARAMS;
       }
+      if (m_dctbl[m_ccomp[n].m_dc_selector].IsEmpty())
+          return JPEG_ERR_PARAMS;
       IppiDecodeHuffmanSpec* dctbl  = m_dctbl[m_ccomp[n].m_dc_selector];
       IppiDecodeHuffmanSpec* actbl  = m_actbl[m_ccomp[n].m_ac_selector];
 
