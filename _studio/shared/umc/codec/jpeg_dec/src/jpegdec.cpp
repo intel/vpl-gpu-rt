@@ -160,6 +160,7 @@ void CJPEGDecoder::Reset(void)
   m_marker                 = JM_NONE;
 
   m_block_buffer           = 0;
+  m_block_buffer_size      = 0;
   m_num_threads            = 0;
   m_nblock                 = 0;
 
@@ -245,6 +246,7 @@ JERRCODE CJPEGDecoder::Clean(void)
     free(m_block_buffer);
     m_block_buffer = 0;
   }
+  m_block_buffer_size = 0;
 
   m_state.Destroy();
 
@@ -1469,7 +1471,7 @@ JERRCODE CJPEGDecoder::Init(void)
     {
       return JPEG_ERR_ALLOC;
     }
-
+    m_block_buffer_size = tr_buf_size;
     memset((uint8_t*)m_block_buffer, 0, tr_buf_size);
   }
 
@@ -3477,6 +3479,8 @@ JERRCODE CJPEGDecoder::DecodeScanBaseline(void)
 #ifdef __TIMING__
             c0 = mfxGetCpuClocks();
 #endif
+            if (m_numxMCU * m_nblock * DCTSIZE2 > (uint32_t)m_block_buffer_size)
+                return JPEG_ERR_BUFF;
             mfxsZero_16s(pMCUBuf, m_numxMCU * m_nblock * DCTSIZE2);
 
             jerr = DecodeHuffmanMCURowBL(pMCUBuf, colMCU, maxMCU);
