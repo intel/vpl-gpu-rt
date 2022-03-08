@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Intel Corporation
+// Copyright (c) 2019-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -280,6 +280,7 @@ void AddVaMiscRC(
             rc.max_qp = 51;
     }
 
+
 #ifdef MFX_ENABLE_QVBR
     const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
     if (CO3.WinBRCSize)
@@ -496,7 +497,6 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
         InitPPS(par, bs_pps, m_pps);
         InitSSH(par, Glob::SliceInfo::Get(strg), m_slices);
-
         if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
             par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ) {
             cc.AddPerSeqMiscData[VAEncMiscParameterTypeHRD].Push([this, &par](
@@ -858,6 +858,10 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         }
 
         auto& cc = CC::Get(global);
+        if (cc.UpdateSPS)
+        {
+            cc.UpdateSPS(global, m_sps);
+        }
         cc.UpdatePPS(global, s_task, m_sps, m_pps);
         UpdateSlices(task, sh, m_pps, m_slices);
 
@@ -949,6 +953,14 @@ void VAPacker::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
 
         auto sts = CC::Get(global).ReadFeedback(global, s_task, *(const VACodedBufferSegment*)pFB);
         SetIf(rtErr, sts < MFX_ERR_NONE, sts);
+
+#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+        auto& cc = CC::Get(global);
+        if (cc.UpdateCqmHint)
+        {
+            cc.UpdateCqmHint(task, *(const VACodedBufferSegment*)pFB);
+        }
+#endif
 
         fb.Remove(task.StatusReportId);
 

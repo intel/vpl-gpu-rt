@@ -2052,7 +2052,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
     // for game streaming scenario, if option enable lowpower lookahead, check encoder's capability
     if (IsLpLookaheadSupported(extOpt3.ScenarioInfo, extOpt2.LookAheadDepth, par.mfx.RateControlMethod))
     {
-        MFX_CHECK(hwCaps.ddi_caps.LookaheadBRCSupport, MFX_ERR_INVALID_VIDEO_PARAM);
     }
 #endif
 
@@ -2494,8 +2493,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
             if (extOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING)
             {
-                if (!hwCaps.ddi_caps.LookaheadBRCSupport)
-                    unsupported = true;
             }
             else
 #endif

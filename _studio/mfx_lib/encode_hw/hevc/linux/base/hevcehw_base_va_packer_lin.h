@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -65,12 +65,22 @@ public:
             , VAEncSequenceParameterBufferHEVC&>;
         TInitSPS InitSPS;
 
+        using TUpdateSPS = CallChain<void
+            , const StorageR& //global
+            , VAEncSequenceParameterBufferHEVC&>;
+        TUpdateSPS UpdateSPS;
+
         using TUpdatePPS = CallChain<void
             , const StorageR& //glob
             , const StorageR& //task
             , const VAEncSequenceParameterBufferHEVC&
             , VAEncPictureParameterBufferHEVC&>;
         TUpdatePPS UpdatePPS;
+
+        using TUpdateCqmHint = CallChain<void
+            , TaskCommonPar&
+            , const VACodedBufferSegment&>;
+        TUpdateCqmHint UpdateCqmHint;
 
         using TAddMiscData = CallChain<bool
             , const StorageR& //glob
