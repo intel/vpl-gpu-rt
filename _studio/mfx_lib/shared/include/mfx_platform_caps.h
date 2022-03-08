@@ -23,6 +23,31 @@
 #ifndef __MFX_PLATFORM_CAPS_H__
 #define __MFX_PLATFORM_CAPS_H__
 
+namespace CommonCaps {
+    inline bool IsPreSiPlatform(eMFXHWType platform)
+    {
+        return
+            false;
+    }
+
+    inline bool HasNativeDX9Support(eMFXHWType platform)
+    {
+        return platform < MFX_HW_ADL_S;
+    }
+
+    inline bool IsVplHW(eMFXHWType hw, mfxU32 deviceId)
+    {
+        return hw >= MFX_HW_TGL_LP && deviceId != 0x4907;
+    }
+
+    inline bool CapsQueryOptimizationSupport(eMFXHWType platform)
+    {
+        return
+            true
+            ;
+    }
+}
+
 inline bool IsCmSupported(eMFXHWType platform)
 {
     return platform <= MFX_HW_XE_HP_SDV;
@@ -100,6 +125,34 @@ inline bool IsFieldProcessingSupported(eMFXHWType platform)
 
 }
 
+#ifdef MFX_ENABLE_VP8_VIDEO_DECODE
+namespace VP8DCaps {
+    inline bool IsSupported(eMFXHWType platform)
+    {
+        return platform >= MFX_HW_ADL_S;
+    }
+}
+#endif // MFX_ENABLE_VP8_VIDEO_DECODE
 
+#ifdef MFX_ENABLE_AV1_VIDEO_DECODE
+namespace AV1DCaps {
+    inline bool IsPostProcessSupported(eMFXHWType platform)
+    {
+        return
+            false
+            ;
+    }
+}
+#endif // MFX_ENABLE_AV1_VIDEO_DECODE
 
+#ifdef MFX_ENABLE_H264_VIDEO_DECODE
+namespace H264DCaps {
+    // Progressive only for Platforms Before Tgllp.
+    inline bool IsOnlyProgressivePicStructSupported(eMFXHWType platform)
+    {
+        return
+            platform != MFX_HW_DG2;
+    }
+}
+#endif // MFX_ENABLE_H264_VIDEO_DECODE
 #endif // __MFX_PLATFORM_CAPS_H__

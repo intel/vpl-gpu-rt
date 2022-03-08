@@ -208,7 +208,33 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
     mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
     if (videoProcessing)
     {
+#ifndef ENABLE_AV1D_POST_PROCESSING
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
+#else
+        MFX_CHECK(AV1DCaps::IsPostProcessSupported(m_core->GetHWType()) &&
+            (m_video_par.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY),
+            MFX_ERR_UNSUPPORTED);
+        if (par->mfx.FrameInfo.FourCC != videoProcessing->Out.FourCC)//csc is in use
+            m_is_cscInUse = true;
+
+        bool is_fourcc_supported = false;
+        is_fourcc_supported =
+            (videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
+                || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
+                || videoProcessing->Out.FourCC == MFX_FOURCC_P010
+                || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
+                || videoProcessing->Out.FourCC == MFX_FOURCC_AYUV
+                || videoProcessing->Out.FourCC == MFX_FOURCC_Y410
+                || videoProcessing->Out.FourCC == MFX_FOURCC_Y210
+                || videoProcessing->Out.FourCC == MFX_FOURCC_Y216
+                || videoProcessing->Out.FourCC == MFX_FOURCC_Y416
+                || videoProcessing->Out.FourCC == MFX_FOURCC_P016
+                );
+        
+        MFX_CHECK(is_fourcc_supported, MFX_ERR_UNSUPPORTED);
+        if (m_core->GetVAType() == MFX_HW_VAAPI)
+            internal = 1;
+#endif
     }
 #endif
 

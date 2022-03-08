@@ -272,8 +272,6 @@ public:
     {
 #ifdef MFX_ENABLE_HW_BLOCKING_TASK_SYNC_DECODE
         VideoAccelerationProfile codec = (VideoAccelerationProfile)(m_Profile & VA_CODEC);
-        VideoAccelerationProfile profile = (VideoAccelerationProfile)(m_Profile & VA_PROFILE);
-        bool isHybrid = ((codec == VA_H265 && profile == VA_PROFILE_10) || codec == VA_VP9) && (m_HWPlatform < MFX_HW_APL);
         bool isEnabled = false;
         switch (codec)
         {
@@ -323,7 +321,7 @@ public:
             break;
         }
 
-        return !isHybrid && isEnabled;
+        return isEnabled;
 #else
         return false;
 #endif

@@ -26,6 +26,7 @@
 #include "mfx_common.h"
 #include "mfx_common_int.h"
 #include "umc_video_decoder.h"
+#include "mfx_platform_caps.h"
 
 class MFXMediaDataAdapter : public UMC::MediaData
 {

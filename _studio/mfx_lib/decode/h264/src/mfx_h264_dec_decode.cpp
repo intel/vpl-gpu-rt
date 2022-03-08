@@ -260,18 +260,13 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
-    /* There are following conditions for post processing via HW fixed function engine:
-     * (1): Progressive only for Platforms Before Tgllp.
-     * (2): Supported on SKL (Core) and APL (Atom) platform and above
-     * (3): Only video memory supported (so, OPAQ memory does not supported!)
-     * */
     if (videoProcessing)
     {
          MFX_CHECK((m_vPar.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY),
             MFX_ERR_UNSUPPORTED);
 
          //PicStruct support differs, need to check per-platform
-        if (m_core->GetHWType() != MFX_HW_DG2)
+        if (H264DCaps::IsOnlyProgressivePicStructSupported(m_core->GetHWType()))
         {
              MFX_CHECK(m_vPar.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE, MFX_ERR_UNSUPPORTED);
         }

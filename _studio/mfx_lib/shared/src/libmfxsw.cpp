@@ -37,6 +37,7 @@
 #include "libmfx_core_factory.h"
 #include "mfx_interface_scheduler.h"
 #include "libmfx_core_interface.h"
+#include "mfx_platform_caps.h"
 
 mfxStatus MFXInit(mfxIMPL implParam, mfxVersion *ver, mfxSession *session)
 {
@@ -638,11 +639,6 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
         [&]() { return make_event_data(*num_impls); }
     );
 
-    auto IsVplHW = [](eMFXHWType hw, mfxU32 deviceId) -> bool
-    {
-        return hw >= MFX_HW_TGL_LP && deviceId != 0x4907;
-    };
-
     try
     {
         switch (format)
@@ -671,7 +667,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
             auto QueryDevExtended = [&](VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum, mfxU64 adapterId, const std::vector<bool>&)-> bool
             {
-                if (!IsVplHW(core.GetHWType(), deviceId))
+                if (!CommonCaps::IsVplHW(core.GetHWType(), deviceId))
                     return true;
 
                 auto& device = holder->PushBack();
@@ -717,7 +713,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
             auto QueryImplDesc = [&](VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum, mfxU64, const std::vector<bool>& subDevMask) -> bool
             {
-                if (!IsVplHW(core.GetHWType(), deviceId))
+                if (!CommonCaps::IsVplHW(core.GetHWType(), deviceId))
                     return true;
 
                 auto& impl = holder->PushBack();

@@ -27,6 +27,7 @@
 #include <libmfx_core.h>
 
 #include <libmfx_core_vaapi.h>
+#include "mfx_platform_caps.h"
 
 #define TRY_GET_SESSION(verMax,verMin) MFXIPtr<MFXISession_##verMax##_##verMin> TryGetSession_##verMax##_##verMin(mfxSession session) \
 { \

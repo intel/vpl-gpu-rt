@@ -28,7 +28,6 @@
 #include "mfx_common.h"
 #include "mfx_common_decode_int.h"
 #include "mfx_common_int.h"
-#include "mfx_enc_common.h"
 
 using namespace UMC;
 
@@ -169,7 +168,7 @@ mfxStatus MFX_VP8_Utility::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVide
         return Query(p_core, &in1, p_out, type);
     }
 
-    if (p_core->GetPlatformType() == MFX_PLATFORM_HARDWARE && p_core->GetHWType() >= MFX_HW_ADL_S)
+    if (p_core->GetPlatformType() == MFX_PLATFORM_HARDWARE && VP8DCaps::IsSupported(p_core->GetHWType()))
         return MFX_ERR_UNSUPPORTED;
 
     memset(&p_out->mfx, 0, sizeof(mfxInfoMFX));

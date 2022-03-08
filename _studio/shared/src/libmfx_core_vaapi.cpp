@@ -1034,7 +1034,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
     case MFX_CODEC_VP9:
         break;
     case MFX_CODEC_HEVC:
-        MFX_CHECK(m_HWType >= MFX_HW_HSW, MFX_WRN_PARTIAL_ACCELERATION);
         MFX_CHECK(par->mfx.FrameInfo.Width <= 8192 && par->mfx.FrameInfo.Height <= 8192, MFX_WRN_PARTIAL_ACCELERATION);
         break;
     case MFX_CODEC_MPEG2: //MPEG2 decoder doesn't support resolution bigger than 2K
@@ -1044,7 +1043,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
         MFX_CHECK(par->mfx.FrameInfo.Width <= 8192 && par->mfx.FrameInfo.Height <= 8192, MFX_WRN_PARTIAL_ACCELERATION);
         break;
     case MFX_CODEC_VP8:
-        MFX_CHECK(m_HWType >= MFX_HW_BDW, MFX_ERR_UNSUPPORTED);
         break;
     default:
         MFX_RETURN(MFX_ERR_UNSUPPORTED);

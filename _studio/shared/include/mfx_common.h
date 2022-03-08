@@ -47,10 +47,4 @@ struct SynchronizedTask
     mfxU32 taskIndex;
 };
 
-inline bool IsPreSiPlatform(eMFXHWType type)
-{
-    return
-        false;
-}
-
 #endif //_MFX_COMMON_H_
