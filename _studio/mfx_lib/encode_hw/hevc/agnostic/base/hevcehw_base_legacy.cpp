@@ -3835,7 +3835,7 @@ mfxStatus Legacy::CheckFrameRate(mfxVideoParam & par)
         if (fi.FrameRateExtN > mfxU32(300 * fi.FrameRateExtD))
         {
             fi.FrameRateExtN = fi.FrameRateExtD = 0;
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
     }
 
@@ -3843,7 +3843,7 @@ mfxStatus Legacy::CheckFrameRate(mfxVideoParam & par)
     {
         fi.FrameRateExtN = 0;
         fi.FrameRateExtD = 0;
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     return MFX_ERR_NONE;
@@ -4127,7 +4127,7 @@ mfxStatus Legacy::CheckTU(mfxVideoParam & par, const ENCODE_CAPS_HEVC& caps)
     auto& tu = par.mfx.TargetUsage;
 
     if (CheckMaxOrZero(tu, 7u))
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
 
     if (!tu)
         return MFX_ERR_NONE;

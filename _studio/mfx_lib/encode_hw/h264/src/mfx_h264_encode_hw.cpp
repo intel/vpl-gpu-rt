@@ -113,7 +113,7 @@ mfxStatus MFXHWVideoENCODEH264::Init(mfxVideoParam * par)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MFXHWVideoENCODEH264::Init");
     if (m_impl.get() != 0)
     {
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
@@ -227,11 +227,11 @@ mfxStatus MFXHWVideoENCODEH264::Query(
 
     if (in && IsSvcProfile(in->mfx.CodecProfile) &&
         (core->GetVAType() == MFX_HW_VAAPI) )
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
 #endif
 
     if (in && IsMvcProfile(in->mfx.CodecProfile) && !IsHwMvcEncSupported())
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
 
     if (in == 0)
         return ImplementationAvc::Query(core, in, out);
@@ -253,7 +253,7 @@ mfxStatus MFXHWVideoENCODEH264::Query(
         if (!AVCEncoder->m_impl.get())
         {
             assert(!"Encoder implementation isn't initialized");
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
         return ImplementationAvc::Query(core, in, out, AVCEncoder->m_impl.get());
@@ -1380,7 +1380,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     {
         m_cmDevice.Reset(TryCreateCmDevicePtr(m_core));
         if (m_cmDevice == NULL)
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         m_cmCtx.reset(new CmContext(m_video, m_cmDevice, m_core));
     }
 
@@ -1573,7 +1573,9 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
         , m_core->IsExternalFrameAllocator() || vpl_interface
         , m_currentPlatform, m_currentVaType, *pMFXGTConfig);
     if (checkStatus == MFX_WRN_PARTIAL_ACCELERATION)
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+    {
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+    }
     else if (checkStatus < MFX_ERR_NONE)
         return checkStatus;
     else if (checkStatus == MFX_ERR_NONE)
@@ -1620,7 +1622,7 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
         || newPar.mfx.GopPicSize != m_video.mfx.GopPicSize;
 
     if (isIdrRequired && IsOff(extResetOpt.StartNewSequence))
-        return MFX_ERR_INVALID_VIDEO_PARAM; // Reset can't change parameters w/o IDR. Report an error
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM); // Reset can't change parameters w/o IDR. Report an error
 
     mfxExtCodingOption & extOptNew = GetExtBufferRef(newPar);
     mfxExtCodingOption & extOptOld = GetExtBufferRef(m_video);
@@ -1661,7 +1663,7 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
 
     // we can use feature only if sufs was allocated on init
     if (IsOn(extOpt3New.EnableMBForceIntra) && m_useMbControlSurfs == false)
-        return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
 
     if (IsOn(extOpt3New.FadeDetection)
@@ -1669,7 +1671,7 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
         && !(m_cmCtx.get() && m_cmCtx->isHistogramSupported())
 #endif
         )
-        return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     if (bIntRateControlLA(m_video.mfx.RateControlMethod) )
     {
@@ -1974,7 +1976,7 @@ mfxStatus ImplementationAvc::GetVideoParam(mfxVideoParam *par)
                 }
                 catch (std::exception &)
                 {
-                    return MFX_ERR_INVALID_VIDEO_PARAM;
+                    MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
                 }
 
                 dst->SPSId = sps.seqParameterSetId;
@@ -1987,7 +1989,7 @@ mfxStatus ImplementationAvc::GetVideoParam(mfxVideoParam *par)
         }
         else
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
     }
 
@@ -2012,7 +2014,7 @@ mfxStatus ImplementationAvc::GetFrameParam(mfxFrameParam *par)
 {
     MFX_CHECK_NULL_PTR1(par);
 
-    return MFX_ERR_UNSUPPORTED;
+    MFX_RETURN(MFX_ERR_UNSUPPORTED);
 }
 
 mfxStatus ImplementationAvc::GetEncodeStat(mfxEncodeStat *stat)
@@ -2878,7 +2880,7 @@ mfxStatus FixForcedFrameType (DdiTask & newTask, mfxU32 frameOrder)
         else if (newTask.m_type[1] & MFX_FRAMETYPE_I)
             newTask.m_type[1] = newTask.m_type[1] | MFX_FRAMETYPE_IDR;
         else
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
     if (!(newTask.m_type[0] & MFX_FRAMETYPE_REF))
         newTask.m_type[0] = newTask.m_type[0] | MFX_FRAMETYPE_REF;
@@ -3022,7 +3024,7 @@ mfxStatus ImplementationAvc::CheckSliceSize(DdiTask &task, bool &bToRecode)
                 task.m_cqpValue[1] = task.m_cqpValue[0];
             }
             else if (task.m_SliceInfo.size() > 255)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
+                MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
         }
     }
     return sts;
@@ -3122,7 +3124,7 @@ mfxStatus ImplementationAvc::CheckBRCStatus(DdiTask &task, bool &bToRecode, mfxU
     if ((res != 0) && (!extOpt2.MaxSliceSize))
     {
         if (task.m_panicMode)
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
         task.m_brcFrameParams.NumRecode++;
         if ((task.m_cqpValue[0] == 51 || (res & UMC::BRC_NOT_ENOUGH_BUFFER)) && (res & UMC::BRC_ERR_BIG_FRAME))
@@ -4521,7 +4523,7 @@ mfxStatus ImplementationAvc::EncodeFrameCheck(
 
             m_fieldCounter = 1;
             m_1stFieldStatus = sts;
-            return MFX_ERR_MORE_BITSTREAM;
+            MFX_RETURN(MFX_ERR_MORE_BITSTREAM);
         }
         else
         {
@@ -4583,7 +4585,7 @@ mfxStatus ImplementationAvc::EncodeFrameCheckNormalWay(
         stagesToGo = m_emulatorForSyncPart.Go(!!surface);
 
     if (stagesToGo == AsyncRoutineEmulator::STG_BIT_CALL_EMULATOR)
-        return MFX_ERR_MORE_DATA; // end of encoding session
+        MFX_RETURN(MFX_ERR_MORE_DATA); // end of encoding session
 
     if ((stagesToGo & AsyncRoutineEmulator::STG_BIT_WAIT_ENCODE) == 0)
     {

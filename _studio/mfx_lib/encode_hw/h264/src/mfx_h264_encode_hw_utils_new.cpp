@@ -2606,7 +2606,7 @@ mfxStatus MfxHwH264Encode::CodeAsSkipFrame(     VideoCORE &            core,
                 memset(curr.V, 128, size >> 2);
                 break;
             default:
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
+                MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
         }
     }
     else

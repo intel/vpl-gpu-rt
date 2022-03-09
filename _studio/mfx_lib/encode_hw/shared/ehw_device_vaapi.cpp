@@ -98,7 +98,7 @@ mfxStatus DeviceVAAPI::QueryCaps(void* pCaps, mfxU32 size)
 
 mfxStatus DeviceVAAPI::QueryCompBufferInfo(mfxU32 /*type*/, mfxFrameInfo& /*info*/)
 {
-    return MFX_ERR_UNSUPPORTED;
+    MFX_RETURN(MFX_ERR_UNSUPPORTED);
 }
 
 mfxStatus DeviceVAAPI::Init(const std::list<DDIExecParam>* pPar)

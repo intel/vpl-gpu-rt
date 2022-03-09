@@ -201,7 +201,7 @@ mfxStatus Parser::ParseNALU(BitstreamReader& bs, NALU & nalu)
         }
 
         if (bs.GetBit())
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
         nalu.long_start_code = (n > 3) && !(start_code >> 24);
         nalu.nal_unit_type = bs.GetBits(6);
@@ -625,7 +625,7 @@ mfxStatus Parser::ParseSPS(BitstreamReader& bs, SPS & sps)
     }
     catch (std::exception &)
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     return MFX_ERR_NONE;
@@ -742,7 +742,7 @@ mfxStatus Parser::ParsePPS(BitstreamReader& bs, PPS & pps)
     }
     catch (std::exception &)
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     return MFX_ERR_NONE;

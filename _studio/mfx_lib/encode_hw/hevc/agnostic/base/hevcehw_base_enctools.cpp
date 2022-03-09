@@ -1162,7 +1162,7 @@ void HevcEncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
             encTools->GetSupportedConfig(encTools->Context, &supportedConfig, &m_EncToolCtrl);
 
             if (CorrectVideoParams(par, supportedConfig))
-                return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+                MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
             SetDefaultConfig(par, m_EncToolConfig,caps.MbQpDataSupport);
 
@@ -1363,7 +1363,7 @@ void HevcEncTools::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
             task.bRecode = true;
             break;
         default:
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
         task.bForceSync |= task.bSkip;

@@ -1472,7 +1472,9 @@ mfxStatus MfxHwH264Encode::QueryHwCaps(VideoCORE* core, MFX_ENCODE_CAPS & hwCaps
 
     EncodeHWCaps* pEncodeCaps = QueryCoreInterface<EncodeHWCaps>(core);
     if (!pEncodeCaps)
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+    {
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
+    }
     else
     {
         if (pEncodeCaps->GetHWCaps<MFX_ENCODE_CAPS>(guid, &hwCaps) == MFX_ERR_NONE)
@@ -1505,7 +1507,9 @@ mfxStatus MfxHwH264Encode::QueryMbProcRate(VideoCORE* core, mfxVideoParam const 
 
     EncodeHWCaps* pEncodeCaps = QueryCoreInterface<EncodeHWCaps>(core, MFXIHWMBPROCRATE_GUID);
     if (!pEncodeCaps)
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+    {
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
+    }
     else
     {
         if (pEncodeCaps->GetHWCaps<mfxU32>(guid, mbPerSec, 16) == MFX_ERR_NONE &&
@@ -1565,7 +1569,7 @@ mfxStatus MfxHwH264Encode::ReadSpsPpsHeaders(MfxVideoParam & par)
     }
     catch (std::exception &)
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     return MFX_ERR_NONE;
@@ -1784,10 +1788,10 @@ mfxStatus MfxHwH264Encode::CheckExtBufferId(mfxVideoParam const & par)
     for (mfxU32 i = 0; i < par.NumExtParam; i++)
     {
         if (par.ExtParam[i] == 0)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
         if (!IsVideoParamExtBufferIdSupported(par.ExtParam[i]->BufferId))
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
         // check if buffer presents twice in video param
         {
@@ -1796,7 +1800,7 @@ mfxStatus MfxHwH264Encode::CheckExtBufferId(mfxVideoParam const & par)
                 par.NumExtParam - i - 1,
                 par.ExtParam[i]->BufferId) != 0)
             {
-                return MFX_ERR_INVALID_VIDEO_PARAM;
+                MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
             }
         }
     }
@@ -1861,11 +1865,11 @@ mfxStatus MfxHwH264Encode::CheckWidthAndHeight(MfxVideoParam const & par)
         mfxExtSVCSeqDesc const * extSvc = GetExtBuffer(par);
         mfxU32 lastDid = GetLastDid(*extSvc);
         if (lastDid > 7)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         width  = extSvc->DependencyLayer[lastDid].Width;
         height = extSvc->DependencyLayer[lastDid].Height;
         if (width == 0 || height == 0)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 #endif
 
@@ -1959,7 +1963,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
             extBRC.GetFrameCtrl = 0;
             extBRC.Update       = 0;
             extBRC.Reset        = 0;
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
  #else
@@ -1979,13 +1983,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
         }
         else if (sts < MFX_ERR_NONE)
         {
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
         sts = CheckVideoParamMvcQueryLike(par); // check and correct mvc per-view bitstream, buffer, level
         switch (sts)
         {
         case MFX_ERR_UNSUPPORTED:
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         case MFX_ERR_INVALID_VIDEO_PARAM:
         case MFX_WRN_PARTIAL_ACCELERATION:
         case MFX_ERR_INCOMPATIBLE_VIDEO_PARAM:
@@ -2002,7 +2006,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
     switch (sts)
     {
     case MFX_ERR_UNSUPPORTED:
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     case MFX_ERR_INVALID_VIDEO_PARAM:
     case MFX_WRN_PARTIAL_ACCELERATION:
     case MFX_ERR_INCOMPATIBLE_VIDEO_PARAM:
@@ -2134,7 +2138,7 @@ mfxStatus MfxHwH264Encode::CheckAndFixOpenRectQueryLike(
     {
         rect->Left = 0;
         rect->Right = 0;
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     if (par.mfx.FrameInfo.Height)
@@ -2151,7 +2155,7 @@ mfxStatus MfxHwH264Encode::CheckAndFixOpenRectQueryLike(
     {
         rect->Top = 0;
         rect->Bottom = 0;
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     return checkSts;
@@ -6757,7 +6761,7 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
         else if (!buffer_pair && buffer_pair_required)
         {
             // Return error if only one per-field buffer provided
-            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
         }
     }
 
@@ -7021,7 +7025,7 @@ mfxStatus MfxHwH264Encode::CheckRunTimePicStruct(
         return MFX_ERR_NONE;
 
     if (initPs == UNK && runtPs == UNK)
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
     return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
 }

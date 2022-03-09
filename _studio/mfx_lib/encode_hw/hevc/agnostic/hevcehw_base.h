@@ -118,7 +118,7 @@ public:
         , mfxEncoderDescription::encoder&
         , mfx::PODArraysHolder&)
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 };
 

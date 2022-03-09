@@ -179,7 +179,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(mfxVideoParam const & par)
     }
     if( !bEncodeEnable )
     {
-        return MFX_ERR_DEVICE_FAILED;
+        MFX_RETURN(MFX_ERR_DEVICE_FAILED);
     }
 
     // Configuration
@@ -194,7 +194,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(mfxVideoParam const & par)
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     if (!(attrib.value & VA_RT_FORMAT_YUV420) || !(attrib.value & VA_RT_FORMAT_YUV422) ) //to be do
-        return MFX_ERR_DEVICE_FAILED;
+        MFX_RETURN(MFX_ERR_DEVICE_FAILED);
 
     vaSts = vaCreateConfig(
         m_vaDisplay,
@@ -313,7 +313,7 @@ mfxStatus VAAPIEncoder::Execute(DdiTask &task, mfxHDL surface)
     }
     else
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     vaSts = vaRenderPicture(m_vaDisplay, m_vaContextEncode, (VABufferID *)&m_ppsBufferId, 1);
@@ -385,7 +385,7 @@ mfxStatus VAAPIEncoder::QueryStatus(DdiTask & task)
 
     if( !isFound )
     {
-        return MFX_ERR_UNKNOWN;
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 
     // find used bitstream
@@ -396,7 +396,7 @@ mfxStatus VAAPIEncoder::QueryStatus(DdiTask & task)
     }
     else
     {
-        return MFX_ERR_UNKNOWN;
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
     if (waitSurface != VA_INVALID_SURFACE) // Not skipped frame
     {
@@ -458,7 +458,7 @@ mfxStatus VAAPIEncoder::QueryStatus(DdiTask & task)
             case VASurfaceSkipped:
             default:
                 assert(!"bad feedback status");
-                return MFX_ERR_DEVICE_FAILED;
+                MFX_RETURN(MFX_ERR_DEVICE_FAILED);
         }
     }
     else

@@ -393,7 +393,7 @@ mfxStatus CheckAndFixBuffers(
     if (invalid)
     {
         CleanTileBuffers(&tilePar, pAuxPar);
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     // Check number of tile rows
@@ -420,7 +420,7 @@ mfxStatus CheckAndFixBuffers(
     if (invalid)
     {
         CleanTileBuffers(&tilePar, pAuxPar);
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     if (bTileSizeSet)
@@ -436,7 +436,7 @@ mfxStatus CheckAndFixBuffers(
     if (invalid)
     {
         CleanTileBuffers(&tilePar, pAuxPar);
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     if (pAuxPar != nullptr)

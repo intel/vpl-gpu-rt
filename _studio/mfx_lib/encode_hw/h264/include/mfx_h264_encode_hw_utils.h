@@ -2118,7 +2118,7 @@ public:
         m_pEncTools->GetSupportedConfig(m_pEncTools->Context, &supportedConf, &m_EncToolCtrl);
 
         if (CorrectVideoParams(video, supportedConf))
-            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
         GetRequiredFunc(video, requiredConf);
 
@@ -2900,7 +2900,7 @@ private:
             mfxFrameSurface1 **,
             mfxEncodeInternalParams *)
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
         virtual mfxStatus EncodeFrameCheck(
@@ -2927,7 +2927,7 @@ private:
             mfxFrameSurface1 *,
             mfxBitstream *)
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
         virtual mfxStatus CancelFrame(
@@ -2936,7 +2936,7 @@ private:
             mfxFrameSurface1 *,
             mfxBitstream *)
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
     protected:
@@ -3351,7 +3351,7 @@ private:
             mfxFrameSurface1 **,
             mfxEncodeInternalParams *)
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
         virtual mfxStatus EncodeFrameCheck(
@@ -3369,7 +3369,7 @@ private:
             mfxFrameSurface1 *,
             mfxBitstream *)
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
         virtual mfxStatus CancelFrame(
@@ -3378,7 +3378,7 @@ private:
             mfxFrameSurface1 *,
             mfxBitstream *)
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
     protected:
@@ -3803,7 +3803,7 @@ private:
             mfxFrameSurface1 **,
             mfxEncodeInternalParams *)
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
         virtual mfxStatus EncodeFrameCheck(
@@ -3821,7 +3821,7 @@ private:
             mfxFrameSurface1 *,
             mfxBitstream *)
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
         virtual mfxStatus CancelFrame(
@@ -3830,7 +3830,7 @@ private:
             mfxFrameSurface1 *,
             mfxBitstream *)
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
     protected:

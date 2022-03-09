@@ -66,10 +66,10 @@ mfxStatus MfxHwMJpegEncode::CheckExtBufferId(mfxVideoParam const & par)
     for (mfxU32 i = 0; i < par.NumExtParam; i++)
     {
         if (par.ExtParam[i] == 0)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
         if (!IsJpegParamExtBufferIdSupported(par.ExtParam[i]->BufferId))
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
         // check if buffer presents twice in video param
         if (mfx::GetExtBuffer(
@@ -251,7 +251,7 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
                 }
                 else
                 {
-                    return MFX_ERR_INVALID_VIDEO_PARAM;
+                    MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
                 }
             }
         }
@@ -284,7 +284,7 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
     else if (fourCC == MFX_FOURCC_RGB4 && chromaFormat == MFX_CHROMAFORMAT_YUV444)
         m_pps.num_components = 3;
     else
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
     // Scan Header
     m_pps.num_scan = 1;
@@ -329,7 +329,7 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
             m_pps.quantiser_table_selector[2] = 1;
         }
         else
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
     else
     {
@@ -367,7 +367,7 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
                 MFX_INTERNAL_CPY(m_dht_list[0].huffman_table[j].dc_values, pExtHuffman->DCTables[j].Values, 12 * sizeof(mfxU8));
             }
             else
-                return MFX_ERR_INVALID_VIDEO_PARAM;
+                MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
         for (mfxU16 j = 0; j < pExtHuffman->NumACTable; j++)
         {
@@ -377,7 +377,7 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
                 MFX_INTERNAL_CPY(m_dht_list[0].huffman_table[j].ac_values, pExtHuffman->ACTables[j].Values, 162 * sizeof(mfxU8));
             }
             else
-                return MFX_ERR_INVALID_VIDEO_PARAM;
+                MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
     else
@@ -494,7 +494,7 @@ mfxStatus TaskManager::Init(mfxU32 maxTaskNum)
     {
         m_pTaskList = 0;
         m_TaskNum   = 0;
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 }
 

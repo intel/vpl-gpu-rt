@@ -57,11 +57,11 @@ namespace Base
 
         virtual mfxStatus GetFrameParam(mfxFrameParam * /*par*/) override
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
         virtual mfxStatus GetEncodeStat(mfxEncodeStat* /*stat*/) override
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
         virtual mfxStatus EncodeFrameCheck(
@@ -78,7 +78,7 @@ namespace Base
             , mfxFrameSurface1 * /*surface*/
             , mfxBitstream * /*bs*/) override
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
         virtual mfxStatus EncodeFrameCheck(
@@ -88,7 +88,7 @@ namespace Base
             , mfxFrameSurface1 ** /*reordered_surface*/
             , mfxEncodeInternalParams * /*pInternalParams*/) override
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
         virtual mfxStatus CancelFrame(
@@ -97,7 +97,7 @@ namespace Base
             , mfxFrameSurface1 * /*surface*/
             , mfxBitstream * /*bs*/) override
         {
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
         virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) override
@@ -135,7 +135,7 @@ namespace Base
             if (pState)
                 return ((MFXVideoENCODEAV1_HW*)pState)->Execute(task, uid_p, uid_a);
             else
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
+                MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
         static mfxStatus FreeResources(void *pState, void *task, mfxStatus sts)
@@ -143,7 +143,7 @@ namespace Base
             if (pState)
                 return ((MFXVideoENCODEAV1_HW*)pState)->FreeResources(task, sts);
             else
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
+                MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
         template<class T>

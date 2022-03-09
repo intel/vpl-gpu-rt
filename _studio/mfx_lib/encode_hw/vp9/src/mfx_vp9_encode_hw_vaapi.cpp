@@ -270,7 +270,7 @@ namespace MfxHwVP9Encode
         FrameLocker lock(pCore, segMap, task.m_pSegmentMap->pSurface->Data.MemId);
         mfxU8 *pBuf = segMap.Y;
         if (pBuf == 0)
-            return MFX_ERR_LOCK_MEMORY;
+            MFX_RETURN(MFX_ERR_LOCK_MEMORY);
 
 
         mfxExtVP9Segmentation const & seg = GetActualExtBufferRef(*task.m_pParam, task.m_ctrl);
@@ -293,7 +293,7 @@ namespace MfxHwVP9Encode
         if (seg.NumSegmentIdAlloc < srcW * srcH || seg.SegmentId == 0 ||
             srcW != (dstW + ratio - 1) / ratio || srcH != (dstH + ratio - 1) / ratio)
         {
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
         for (mfxI8 i = seg.NumSegments - 1; i >= 0; i --)
@@ -692,7 +692,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     VAProfile vaapipr = ConvertGuidToVAAPIProfile(guid);
     if (vaapipr == VAProfileNone) {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     VAStatus vaSts = vaGetConfigAttributes(m_vaDisplay,
@@ -809,7 +809,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
     }
     if( !bEncodeEnable )
     {
-        return MFX_ERR_DEVICE_FAILED;
+        MFX_RETURN(MFX_ERR_DEVICE_FAILED);
     }
 
     // Configuration
@@ -825,12 +825,12 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
 
     uint32_t vaRTFormat = ConvertRTFormatMFX2VAAPI(par.mfx.FrameInfo.ChromaFormat);
     if ((attrib[0].value & vaRTFormat) == 0)
-        return MFX_ERR_DEVICE_FAILED;
+        MFX_RETURN(MFX_ERR_DEVICE_FAILED);
 
     uint32_t vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod);
 
     if ((attrib[1].value & vaRCType) == 0)
-        return MFX_ERR_DEVICE_FAILED;
+        MFX_RETURN(MFX_ERR_DEVICE_FAILED);
 
     attrib[0].value = vaRTFormat;
     attrib[1].value = vaRCType;
@@ -1045,7 +1045,7 @@ mfxStatus VAAPIEncoder::Execute(
     }
     else
     {
-        return MFX_ERR_UNKNOWN;
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 
     m_pps.coded_buf = codedBuffer;
@@ -1266,13 +1266,13 @@ mfxStatus VAAPIEncoder::QueryStatus(
 
     if( !isFound )
     {
-        return MFX_ERR_UNKNOWN;
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 
     VABufferID codedBuffer;
     if( waitIdxBs >= m_bsQueue.size())
     {
-        return MFX_ERR_UNKNOWN;
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
     else
         codedBuffer = m_bsQueue[waitIdxBs].surface;
@@ -1337,7 +1337,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
         case VASurfaceSkipped:
         default:
             assert(!"bad feedback status");
-            return MFX_ERR_DEVICE_FAILED;
+            MFX_RETURN(MFX_ERR_DEVICE_FAILED);
     }
 } // mfxStatus VAAPIEncoder::QueryStatus(mfxU32 feedbackNumber, mfxU32& bytesWritten)
 

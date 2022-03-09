@@ -87,12 +87,12 @@ public:
 
     virtual mfxStatus GetFrameParam(mfxFrameParam * /*par*/)
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     virtual mfxStatus GetEncodeStat(mfxEncodeStat * /*stat*/)
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     virtual mfxStatus EncodeFrameCheck(mfxEncodeCtrl * /*ctrl*/, mfxFrameSurface1 * /*surface*/, mfxBitstream * /*bs*/, mfxFrameSurface1 ** /*reordered_surface*/, mfxEncodeInternalParams * /*pInternalParams*/)
@@ -132,7 +132,7 @@ public:
         if (pState)
             return ((MFXVideoENCODEVP9_HW*)pState)->Execute(task, uid_p, uid_a);
         else
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
     virtual mfxStatus Execute(mfxThreadTask task, mfxU32 uid_p, mfxU32 uid_a);
@@ -142,7 +142,7 @@ public:
         if (pState)
             return ((MFXVideoENCODEVP9_HW*)pState)->FreeResources(task, sts);
         else
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
     virtual mfxStatus FreeResources(mfxThreadTask task, mfxStatus sts);

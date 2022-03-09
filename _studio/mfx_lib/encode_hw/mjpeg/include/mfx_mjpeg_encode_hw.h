@@ -85,21 +85,21 @@ public:
                                        mfxFrameSurface1 **,
                                        mfxEncodeInternalParams *)
     {
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
     virtual mfxStatus EncodeFrame(mfxEncodeCtrl *,
                                   mfxEncodeInternalParams *,
                                   mfxFrameSurface1 *,
                                   mfxBitstream *)
     {
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
     virtual mfxStatus CancelFrame(mfxEncodeCtrl *,
                                   mfxEncodeInternalParams *,
                                   mfxFrameSurface1 *,
                                   mfxBitstream *)
     {
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 protected:
     // callbacks to work with scheduler

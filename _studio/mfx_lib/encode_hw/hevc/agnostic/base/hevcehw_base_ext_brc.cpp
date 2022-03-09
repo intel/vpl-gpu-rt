@@ -370,7 +370,7 @@ void ExtBRC::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
             task.bRecode = true;
             break;
         default:
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
         task.bForceSync |= task.bSkip;

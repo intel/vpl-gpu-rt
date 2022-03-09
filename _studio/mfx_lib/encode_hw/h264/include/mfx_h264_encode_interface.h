@@ -153,15 +153,15 @@ namespace MfxHwH264Encode
 
         virtual
         mfxStatus QueryEncCtrlCaps(
-            ENCODE_ENC_CTRL_CAPS & /*caps*/) { return MFX_ERR_UNSUPPORTED; };
+            ENCODE_ENC_CTRL_CAPS & /*caps*/) { MFX_RETURN(MFX_ERR_UNSUPPORTED); };
 
         virtual
         mfxStatus GetEncCtrlCaps(
-            ENCODE_ENC_CTRL_CAPS & /*caps*/) { return MFX_ERR_UNSUPPORTED; };
+            ENCODE_ENC_CTRL_CAPS & /*caps*/) { MFX_RETURN(MFX_ERR_UNSUPPORTED); };
 
         virtual
         mfxStatus SetEncCtrlCaps(
-            ENCODE_ENC_CTRL_CAPS const & /*caps*/) { return MFX_ERR_UNSUPPORTED; };
+            ENCODE_ENC_CTRL_CAPS const & /*caps*/) { MFX_RETURN(MFX_ERR_UNSUPPORTED); };
 
     };
 

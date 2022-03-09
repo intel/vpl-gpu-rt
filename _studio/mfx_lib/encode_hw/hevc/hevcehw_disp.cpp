@@ -82,7 +82,7 @@ mfxStatus QueryIOSurf(
     auto hw = core->GetHWType();
 
     if (hw < MFX_HW_TGL_LP)
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
 
     mfxStatus sts = MFX_ERR_NONE;
     std::unique_ptr<ImplBase> impl(CreateSpecific(hw, *core, sts, eFeatureMode::QUERY_IO_SURF));
@@ -106,7 +106,7 @@ mfxStatus Query(
     auto hw = core->GetHWType();
 
     if (hw < MFX_HW_TGL_LP)
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
 
     if (in)
     {
@@ -134,7 +134,7 @@ mfxStatus QueryImplsDescription(
     auto hw = core.GetHWType();
 
     if (hw < MFX_HW_TGL_LP)
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
 
     mfxStatus sts = MFX_ERR_NONE;
     std::unique_ptr<ImplBase> impl(CreateSpecific(hw, core, sts, eFeatureMode::QUERY_IMPLS_DESCRIPTION));

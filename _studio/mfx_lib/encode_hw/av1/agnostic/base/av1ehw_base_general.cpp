@@ -2763,7 +2763,7 @@ mfxStatus General::CheckFrameRate(mfxVideoParam & par)
         if (fi.FrameRateExtN > mfxU32(300 * fi.FrameRateExtD))
         {
             fi.FrameRateExtN = fi.FrameRateExtD = 0;
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
     }
 
@@ -2771,7 +2771,7 @@ mfxStatus General::CheckFrameRate(mfxVideoParam & par)
     {
         fi.FrameRateExtN = 0;
         fi.FrameRateExtD = 0;
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     return MFX_ERR_NONE;
@@ -3023,7 +3023,7 @@ mfxStatus General::CheckIOPattern(mfxVideoParam & par)
     if (invalid)
     {
         par.IOPattern = 0;
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     return MFX_ERR_NONE;
@@ -3121,7 +3121,7 @@ mfxStatus General::CheckTU(mfxVideoParam & par, const ENCODE_CAPS_AV1& /* caps *
     auto& tu = par.mfx.TargetUsage;
 
     if (CheckMaxOrZero(tu, 7u))
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
 
     return MFX_ERR_NONE;
 
@@ -3478,7 +3478,7 @@ mfxStatus General::CheckLevelConstraints(
     {
         par.mfx.FrameInfo.Width  = 0;
         par.mfx.FrameInfo.Height = 0;
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     mfxExtAV1ResolutionParam* pRsPar  = ExtBuffer::Get(par);
@@ -3487,7 +3487,7 @@ mfxStatus General::CheckLevelConstraints(
     {
         pRsPar->FrameWidth  = 0;
         pRsPar->FrameHeight = 0;
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     const mfxF64 maxFrameRate = GetMaxFrameRateByLevel(par.mfx.CodecLevel, std::get<0>(res), std::get<1>(res));

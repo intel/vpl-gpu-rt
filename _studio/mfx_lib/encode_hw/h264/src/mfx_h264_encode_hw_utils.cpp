@@ -2657,7 +2657,7 @@ mfxStatus MfxFrameAllocResponse::Alloc(
     }
 
     if (NumFrameActual < req.NumFrameMin)
-        return MFX_ERR_MEMORY_ALLOC;
+        MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
 
     m_locked.resize(req.NumFrameMin, 0);
     m_flag.resize(req.NumFrameMin, 0);
@@ -3104,7 +3104,7 @@ mfxStatus MfxHwH264Encode::CheckBeforeCopyQueryLike(mfxExtMVCSeqDesc & dst, mfxE
         dst.NumView   = src.NumView;
         dst.NumViewId = src.NumViewId;
         dst.NumOP     = src.NumOP;
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     return MFX_ERR_NONE;

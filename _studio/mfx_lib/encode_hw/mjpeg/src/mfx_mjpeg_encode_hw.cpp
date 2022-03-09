@@ -159,7 +159,7 @@ mfxStatus MfxFrameAllocResponse::Alloc(
     }
 
     if (NumFrameActual < req.NumFrameMin)
-        return MFX_ERR_MEMORY_ALLOC;
+        MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
 
     return MFX_ERR_NONE;
 }
@@ -298,7 +298,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Query(VideoCORE * core, mfxVideoParam *in, mfx
 
         if ((qt_in == 0) != (qt_out == 0) ||
             (ht_in == 0) != (ht_out == 0))
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
         if (qt_in && qt_out)
         {
@@ -510,7 +510,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Query(VideoCORE * core, mfxVideoParam *in, mfx
     }
 
     if(isInvalid)
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
 
     if(isCorrected)
         return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
@@ -540,7 +540,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::QueryIOSurf(VideoCORE * core, mfxVideoParam *p
            (IOPatternIn != MFX_IOPATTERN_IN_VIDEO_MEMORY)
         && (IOPatternIn != MFX_IOPATTERN_IN_SYSTEM_MEMORY)))
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     request->Info              = par->mfx.FrameInfo;
@@ -558,7 +558,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Init(mfxVideoParam *par)
     mfxStatus sts, QueryStatus;
 
     if (m_bInitialized || !m_pCore)
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
     if(par == NULL)
         return MFX_ERR_NULL_PTR;
@@ -604,7 +604,9 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Init(mfxVideoParam *par)
         (sts != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM))
     {
         if (sts == MFX_ERR_UNSUPPORTED)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+        {
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+        }
         else
             return sts;
     }
@@ -618,7 +620,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Init(mfxVideoParam *par)
     if (!m_pCore->IsExternalFrameAllocator()
         && !vpl_interface
         && (par->IOPattern & (MFX_IOPATTERN_OUT_VIDEO_MEMORY | MFX_IOPATTERN_IN_VIDEO_MEMORY)))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
     m_ddi.reset( CreatePlatformMJpegEncoder( m_pCore ) );
     if (m_ddi.get() == 0)
@@ -780,7 +782,9 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Reset(mfxVideoParam *par)
     if (sts != MFX_ERR_NONE && sts != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM && sts != MFX_WRN_PARTIAL_ACCELERATION)
     {
         if (sts == MFX_ERR_UNSUPPORTED)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+        {
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+        }
         else
             return sts;
     }
@@ -795,18 +799,18 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Reset(mfxVideoParam *par)
            (IOPatternIn != MFX_IOPATTERN_IN_VIDEO_MEMORY)
         && (IOPatternIn != MFX_IOPATTERN_IN_SYSTEM_MEMORY)))
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     if (!m_pCore->IsExternalFrameAllocator() && (par->IOPattern & (MFX_IOPATTERN_OUT_VIDEO_MEMORY | MFX_IOPATTERN_IN_VIDEO_MEMORY)))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
     if(par->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_UNKNOWN &&
        par->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE &&
        par->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_FIELD_TFF &&
        par->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_FIELD_BFF)
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     // check that new params don't require allocation of additional memory
@@ -814,7 +818,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Reset(mfxVideoParam *par)
         par->mfx.FrameInfo.Height > m_vFirstParam.mfx.FrameInfo.Height ||
         m_vFirstParam.mfx.FrameInfo.FourCC != par->mfx.FrameInfo.FourCC ||
         m_vFirstParam.mfx.FrameInfo.ChromaFormat != par->mfx.FrameInfo.ChromaFormat)
-        return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     sts = m_TaskManager.Reset();
     MFX_CHECK_STS(sts);
@@ -825,7 +829,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Reset(mfxVideoParam *par)
     m_vParam.Protected = 0;
 
     if(par->AsyncDepth != m_vFirstParam.AsyncDepth)
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
     m_counter = 1;
 
@@ -867,7 +871,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::GetVideoParam(mfxVideoParam *par)
 mfxStatus MFXVideoENCODEMJPEG_HW::GetFrameParam(mfxFrameParam *par)
 {
     MFX_CHECK_NULL_PTR1(par);
-    return MFX_ERR_UNSUPPORTED;
+    MFX_RETURN(MFX_ERR_UNSUPPORTED);
 }
 
 mfxStatus MFXVideoENCODEMJPEG_HW::GetEncodeStat(mfxEncodeStat *stat)
@@ -881,7 +885,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::GetEncodeStat(mfxEncodeStat *stat)
     stat->NumBit = m_totalBits;
     stat->NumFrame = m_encodedFrames;*/
 
-    return MFX_ERR_UNSUPPORTED;
+    MFX_RETURN(MFX_ERR_UNSUPPORTED);
 }
 
 // main function to run encoding process, synchronous
@@ -902,7 +906,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::EncodeFrameCheck(
 
     if (inSurface && !surface)
     {
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
     bool vpl_interface = SupportsVPLFeatureSet(*m_pCore);
@@ -933,13 +937,13 @@ mfxStatus MFXVideoENCODEMJPEG_HW::EncodeFrameCheck(
 
         mfxRes = CheckJpegParam(m_pCore, vPar, hwCaps);
         if (mfxRes != MFX_ERR_NONE)
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
     mfxExtJPEGQuantTables* jpegQTInitial = (mfxExtJPEGQuantTables*) mfx::GetExtBuffer( m_vParam.ExtParam, m_vParam.NumExtParam, MFX_EXTBUFF_JPEG_QT );
     if (!(jpegQTInitial || jpegQT || m_vParam.mfx.Quality))
     {
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
     DdiTask * task = 0;
@@ -1015,7 +1019,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::CheckEncodeFrameParam(
     if ( NULL != surface )
     {
         if (surface->Info.ChromaFormat != m_vParam.mfx.FrameInfo.ChromaFormat)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
         if (m_vParam.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
         {
@@ -1030,7 +1034,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::CheckEncodeFrameParam(
     }
     else
     {
-        return MFX_ERR_MORE_DATA;
+        MFX_RETURN(MFX_ERR_MORE_DATA);
     }
 
     return sts;
@@ -1061,7 +1065,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::TaskRoutineSubmitFrame(
     else if (MFX_HW_VAAPI == enc.m_pCore->GetVAType())
         pSurfaceHdl = (mfxHDL *)&surfaceHDL;
     else
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
     mfxFrameSurface1 * nativeSurf = task.surface;
 
@@ -1091,7 +1095,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::TaskRoutineSubmitFrame(
             mfxSize roi = {nativeSurf->Info.Width, nativeSurf->Info.Height};
             mfxSize setroi = {nativeSurf->Info.Width*4, nativeSurf->Info.Height};
             if (0 == roi.width || 0 == roi.height)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
+                MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
             mfxU32 srsPitch = nativeSurf->Data.PitchLow + ((mfxU32)nativeSurf->Data.PitchHigh << 16);
             mfxU32 dstPitch = dst.Data.PitchLow + ((mfxU32)dst.Data.PitchHigh << 16);
