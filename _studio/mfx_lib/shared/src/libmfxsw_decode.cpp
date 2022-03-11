@@ -138,6 +138,8 @@ VideoDECODE* _mfxSession::Create<VideoDECODE>(mfxVideoParam& par)
 
 mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
 {
+    InitMfxLogging();
+
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(out, MFX_ERR_NULL_PTR);
 
@@ -228,6 +230,8 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 
 mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
+    InitMfxLogging();
+
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(par, MFX_ERR_NULL_PTR);
     MFX_CHECK(request, MFX_ERR_NULL_PTR);
@@ -386,6 +390,8 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
 
 mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
 {
+    InitMfxLogging();
+
     mfxStatus mfxRes;
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);

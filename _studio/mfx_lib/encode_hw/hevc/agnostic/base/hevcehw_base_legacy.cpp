@@ -548,7 +548,6 @@ void Legacy::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
     Push(BLK_SetLogging,
         [this](const mfxVideoParam&, mfxVideoParam& out, StorageRW&) -> mfxStatus
     {
-        InitMfxLogging();
 
         return MFX_ERR_NONE;
     });

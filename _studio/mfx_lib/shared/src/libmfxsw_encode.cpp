@@ -352,6 +352,8 @@ VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
 
 mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
 {
+    InitMfxLogging();
+
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(out, MFX_ERR_NULL_PTR);
 
@@ -438,6 +440,8 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 
 mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
+    InitMfxLogging();
+
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(par, MFX_ERR_NULL_PTR);
     MFX_CHECK(request, MFX_ERR_NULL_PTR);
@@ -525,6 +529,8 @@ static mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
 
 mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
 {
+    InitMfxLogging();
+
     mfxStatus mfxRes;
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
