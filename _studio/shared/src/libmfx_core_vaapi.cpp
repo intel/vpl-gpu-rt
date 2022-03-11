@@ -266,12 +266,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
 }// mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(mfxHandleType type, mfxHDL handle)
 
 template <class Base>
-bool VAAPIVideoCORE_T<Base>::IsCmSupported()
-{
-    return GetHWType() < MFX_HW_DG2;
-}
-
-template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm()
 {
     if (m_pCmCopy)
@@ -283,7 +277,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm()
         return MFX_ERR_NONE;
     }
 
-    MFX_CHECK(IsCmSupported(), MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+    MFX_CHECK(CommonCaps::IsCmSupported(GetHWType()), MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
     std::unique_ptr<CmCopyWrapper> tmp_cm(new CmCopyWrapper);
 

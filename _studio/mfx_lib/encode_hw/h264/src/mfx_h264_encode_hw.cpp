@@ -864,7 +864,7 @@ mfxStatus ImplementationAvc::InitMctf(const mfxVideoParam* const par)
     mfxStatus sts = CheckExtBufferId(*par);
     MFX_CHECK_STS(sts);
 
-    if (!IsCmSupported(m_core->GetHWType()))
+    if (!CommonCaps::IsCmSupported(m_core->GetHWType()))
     {
         // init vpp
         mfxExtVPPDenoise2* extBufDenoise2 = reinterpret_cast<mfxExtVPPDenoise2*>(mfx::GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_VPP_DENOISE2));
@@ -935,7 +935,7 @@ mfxStatus ImplementationAvc::InitScd(mfxFrameAllocRequest& request)
     request.Info.Width = amtScd.Get_asc_subsampling_width();
     request.Info.Height = amtScd.Get_asc_subsampling_height();
 #ifdef MFX_ENABLE_EXT
-    if (IsCmSupported(m_core->GetHWType()))
+    if (CommonCaps::IsCmSupported(m_core->GetHWType()))
     {
         if (IsCmNeededForSCD(m_video))
         {
@@ -2379,7 +2379,7 @@ mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoVPPHW::SubmitToMctf");
     MFX_CHECK_NULL_PTR1(pTask);
 
-    if (!IsCmSupported(m_core->GetHWType()))
+    if (!CommonCaps::IsCmSupported(m_core->GetHWType()))
     {
         mfxFrameSurface1 hvsSurface = {};
         pTask->m_idxMCTF = FindFreeResourceIndex(m_mctf);
@@ -2454,7 +2454,7 @@ mfxStatus ImplementationAvc::QueryFromMctf(void *pParam)
     MFX_CHECK_NULL_PTR1(pParam);
     DdiTask *pTask = (DdiTask*)pParam;
 
-    if (IsCmSupported(m_core->GetHWType()))
+    if (CommonCaps::IsCmSupported(m_core->GetHWType()))
     {
         pTask->m_bFrameReady = m_mctfDenoiser->MCTF_ReadyToOutput();
         //Check if noise analysis determined if filter is not neeeded and free resources and handle
@@ -2777,13 +2777,13 @@ mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
 using namespace ns_asc;
 mfxStatus ImplementationAvc::Prd_LTR_Operation(DdiTask & task)
 {
-    if (task.m_wsSubSamplingEv && IsCmSupported(m_core->GetHWType()))
+    if (task.m_wsSubSamplingEv && CommonCaps::IsCmSupported(m_core->GetHWType()))
     {
         MFX_SAFE_CALL(amtScd.ProcessQueuedFrame(&task.m_wsSubSamplingEv, &task.m_wsSubSamplingTask, &task.m_wsGpuImage, &task.m_Yscd));
         m_scd.UpdateResourcePointers(task.m_idxScd, (void *)task.m_Yscd, (void *)task.m_wsGpuImage);
         ReleaseResource(m_scd, (mfxHDL)task.m_wsGpuImage);
     }
-    else if (!IsCmSupported(m_core->GetHWType()))
+    else if (!CommonCaps::IsCmSupported(m_core->GetHWType()))
     {
         amtScd.ProcessQueuedFrame(&task.m_Yscd);
     }
@@ -3563,7 +3563,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType()))
         {
             mfxStatus sts = MFX_ERR_NONE;
-            if (!IsCmSupported(m_core->GetHWType()))
+            if (!CommonCaps::IsCmSupported(m_core->GetHWType()))
                 sts = SCD_Put_Frame_Hw(task);
             else
                 sts = SCD_Put_Frame_Cm(task);
