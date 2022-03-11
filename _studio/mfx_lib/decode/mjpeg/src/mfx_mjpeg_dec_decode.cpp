@@ -120,7 +120,7 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
     std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (m_isInit)
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
     MFX_CHECK_NULL_PTR1(par);
 
@@ -133,10 +133,10 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
     }
 
     if (CheckVideoParamDecoders(par, type) < MFX_ERR_NONE)
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
     if (!MFX_JPEG_Utility::CheckVideoParam(par, type))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
     m_vFirstPar = *par;
     m_vFirstPar.mfx.NumThread = 0;
@@ -178,7 +178,7 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
 #ifdef MFX_ENABLE_JPEG_SW_FALLBACK
         decoder.reset(new VideoDECODEMJPEGBase_SW);
 #else
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
 #endif
     }
     else
@@ -358,7 +358,7 @@ mfxStatus VideoDECODEMJPEG::Reset(mfxVideoParam *par)
 mfxStatus VideoDECODEMJPEG::Close(void)
 {
     if (!m_isInit)
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     decoder->Close();
 
@@ -388,7 +388,7 @@ mfxStatus VideoDECODEMJPEG::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPa
 mfxStatus VideoDECODEMJPEG::GetVideoParam(mfxVideoParam *par)
 {
     if (!m_isInit)
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR1(par);
 
@@ -510,10 +510,10 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfx
 
     if (   !(par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
         && !(par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
     if ((par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
     MFX_SAFE_CALL(QueryIOSurfInternal(core, &params, request));
 
@@ -630,7 +630,7 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurfInternal(VideoCORE *core, mfxVideoParam *
 mfxStatus VideoDECODEMJPEG::GetDecodeStat(mfxDecodeStat *stat)
 {
     if (!m_isInit)
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR1(stat);
 
@@ -740,7 +740,7 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
     UMC::Status umcRes = UMC::UMC_OK;
 
     if (!m_isInit)
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     // make sure that there is a free task
     MFX_SAFE_CALL(decoder->CheckTaskAvailability(m_vPar.AsyncDepth ? m_vPar.AsyncDepth : m_core->GetAutoAsyncDepth()));
@@ -818,7 +818,7 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
                 m_vPar.mfx.FrameInfo.CropH < temp.mfx.FrameInfo.CropH)
             {
                 decoder->ReleaseReservedTask();
-                return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+                MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
             }
             else if (m_vPar.mfx.FrameInfo.CropW > temp.mfx.FrameInfo.CropW ||
                 m_vPar.mfx.FrameInfo.CropH > temp.mfx.FrameInfo.CropH)
@@ -857,7 +857,7 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
         if (!pSrcData)
         {
             decoder->ReleaseReservedTask();
-            return MFX_ERR_MORE_DATA;
+            MFX_RETURN(MFX_ERR_MORE_DATA);
         }
 
         m_isHeaderFound = false;
@@ -891,7 +891,7 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
 
         // it is time to skip a frame
         decoder->ReleaseReservedTask();
-        return MFX_ERR_MORE_DATA;
+        MFX_RETURN(MFX_ERR_MORE_DATA);
     }
 
     return MFX_ERR_NONE;
@@ -905,19 +905,19 @@ mfxStatus VideoDECODEMJPEG::DecodeFrame(mfxBitstream *, mfxFrameSurface1 *, mfxF
 mfxStatus VideoDECODEMJPEG::GetUserData(mfxU8 *ud, mfxU32 *sz, mfxU64 *ts)
 {
     if (!m_isInit)
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR3(ud, sz, ts);
-    return MFX_ERR_UNSUPPORTED;
+    MFX_RETURN(MFX_ERR_UNSUPPORTED);
 }
 
 mfxStatus VideoDECODEMJPEG::GetPayload( mfxU64 *ts, mfxPayload *payload )
 {
     if (!m_isInit)
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR3(ts, payload, payload->Data);
-    return MFX_ERR_UNSUPPORTED;
+    MFX_RETURN(MFX_ERR_UNSUPPORTED);
 }
 
 mfxStatus VideoDECODEMJPEG::SetSkipMode(mfxSkipMode mode)
@@ -925,7 +925,7 @@ mfxStatus VideoDECODEMJPEG::SetSkipMode(mfxSkipMode mode)
     // check error(s)
     if (!m_isInit)
     {
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
     }
 
     // check if we reached bounds of skipping
@@ -1566,7 +1566,7 @@ mfxStatus VideoDECODEMJPEGBase_HW::Reset(mfxVideoParam *par)
 
     if (m_surface_source->Reset() != UMC::UMC_OK)
     {
-        return MFX_ERR_MEMORY_ALLOC;
+        MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
     }
 
     memset(&m_stat, 0, sizeof(mfxDecodeStat));
@@ -1576,7 +1576,7 @@ mfxStatus VideoDECODEMJPEGBase_HW::Reset(mfxVideoParam *par)
 mfxStatus VideoDECODEMJPEGBase_HW::Close(void)
 {
     if (!m_pMJPEGVideoDecoder.get())
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     m_pMJPEGVideoDecoder->Close();
     m_numPic = 0;
@@ -1969,7 +1969,7 @@ mfxStatus VideoDECODEMJPEGBase_HW::FillEntryPoint(MFX_ENTRY_POINT *pEntryPoint, 
     mfxU16 taskId = 0;
 
     if (m_dsts.empty())
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
     UMC::FrameData *dst = m_dsts.back();
     if (m_needVpp)
@@ -2224,7 +2224,7 @@ mfxStatus VideoDECODEMJPEGBase_SW::RunThread(void *pParam, mfxU32 threadNumber, 
 {
     CJpegTask *task = (CJpegTask *) pParam;
     if (!task)
-        return MFX_ERR_NULL_PTR;
+        MFX_RETURN(MFX_ERR_NULL_PTR);
 
     // check the number of call. one call = one piece decoded. all extra call
     // should go exit.

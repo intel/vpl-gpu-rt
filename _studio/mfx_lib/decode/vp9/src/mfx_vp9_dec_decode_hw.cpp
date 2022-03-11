@@ -809,7 +809,7 @@ mfxStatus VideoDECODEVP9_HW::GetUserData(mfxU8 *pUserData, mfxU32 *pSize, mfxU64
 
     MFX_CHECK_NULL_PTR3(pUserData, pSize, pTimeStamp);
 
-    return MFX_ERR_UNSUPPORTED;
+    MFX_RETURN(MFX_ERR_UNSUPPORTED);
 }
 
 mfxStatus VideoDECODEVP9_HW::GetPayload(mfxU64 *pTimeStamp, mfxPayload *pPayload)
@@ -820,7 +820,7 @@ mfxStatus VideoDECODEVP9_HW::GetPayload(mfxU64 *pTimeStamp, mfxPayload *pPayload
 
     MFX_CHECK_NULL_PTR3(pTimeStamp, pPayload, pPayload->Data);
 
-    return MFX_ERR_UNSUPPORTED;
+    MFX_RETURN(MFX_ERR_UNSUPPORTED);
 }
 
 mfxStatus VideoDECODEVP9_HW::SetSkipMode(mfxSkipMode /*mode*/)
@@ -1086,14 +1086,14 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         {
             UMC::Status status = e.GetStatus();
             if (status != UMC::UMC_OK)
-                return MFX_ERR_UNKNOWN;
+                MFX_RETURN(MFX_ERR_UNKNOWN);
         }
 
         if (NeedToReturnCriticalStatus(bs))
             return ReturningCriticalStatus();
 
         if (bs && !bs->DataLength)
-            return MFX_ERR_MORE_DATA;
+            MFX_RETURN(MFX_ERR_MORE_DATA);
 
         if (bs == nullptr)
         {
@@ -1102,7 +1102,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
             if (m_framesStorage->IsAllFramesCompleted())
             {
-                return MFX_ERR_MORE_DATA;
+                MFX_RETURN(MFX_ERR_MORE_DATA);
             }
 
             return MFX_WRN_DEVICE_BUSY;
@@ -1132,7 +1132,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
                 m_vPar.mfx.FrameInfo.Height > surface_work->Info.Height)
             {
                 MFX_CHECK(m_adaptiveMode, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-                return MFX_ERR_REALLOC_SURFACE;
+                MFX_RETURN(MFX_ERR_REALLOC_SURFACE);
             }
         }
 
@@ -1323,7 +1323,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
         VP9Bitstream bsReader(in->Data + in->DataOffset, in->DataOffset + in->DataLength);
 
         if (VP9_FRAME_MARKER != bsReader.GetBits(2))
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
         info.profile = bsReader.GetBit();
         info.profile |= bsReader.GetBit() << 1;

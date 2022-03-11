@@ -413,7 +413,7 @@ mfxStatus VideoDECODEH265::Reset(mfxVideoParam *par)
             // for now only downscale is supported
             // at least Windows DirectX 11 provides only downscale interface
             // ID3D11VideoContext1->DecoderEnableDownsampling()
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
 #endif
@@ -1404,7 +1404,7 @@ mfxStatus VideoDECODEH265::GetUserData(mfxU8 *ud, mfxU32 *sz, mfxU64 *ts)
     UMC::Status umcRes = m_pH265VideoDecoder->GetUserData(&data);
 
     if (umcRes == UMC::UMC_ERR_NOT_ENOUGH_DATA)
-        return MFX_ERR_MORE_DATA;
+        MFX_RETURN(MFX_ERR_MORE_DATA);
 
     MFX_CHECK(*sz >= data.GetDataSize(), MFX_ERR_NOT_ENOUGH_BUFFER);
 

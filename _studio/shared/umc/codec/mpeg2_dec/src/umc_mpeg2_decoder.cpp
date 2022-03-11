@@ -297,7 +297,7 @@ namespace UMC_MPEG2_DECODER
                 if (rawHdr.GetSize())
                 {
                     if (mfxSeq->SPSBufSize < rawHdr.GetSize())
-                        return MFX_ERR_NOT_ENOUGH_BUFFER;
+                        MFX_RETURN(MFX_ERR_NOT_ENOUGH_BUFFER);
 
                     mfxSeq->SPSBufSize = (mfxU16)(rawHdr.GetSize());
                     std::copy(rawHdr.GetPointer(), rawHdr.GetPointer() + mfxSeq->SPSBufSize, mfxSeq->SPSBuffer);

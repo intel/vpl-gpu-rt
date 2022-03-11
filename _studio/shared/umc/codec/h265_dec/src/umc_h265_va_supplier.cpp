@@ -81,7 +81,7 @@ void VATaskSupplier::CreateTaskBroker()
 
 mfxStatus VATaskSupplier::ChangeVideoDecodingSpeed(int32_t& /* num */)
 {
-    return MFX_ERR_UNSUPPORTED;
+    MFX_RETURN(MFX_ERR_UNSUPPORTED);
 }
 
 void VATaskSupplier::SetBufferedFramesNumber(uint32_t buffered)

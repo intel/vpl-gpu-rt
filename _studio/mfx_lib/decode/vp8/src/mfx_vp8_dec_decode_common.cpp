@@ -47,7 +47,7 @@ namespace VP8DecodeCommon
     
         if (p_bs->DataLength < 3)
         {
-            return MFX_ERR_MORE_DATA;
+            MFX_RETURN(MFX_ERR_MORE_DATA);
         }
 
         mfxU8 *p_bitstream = p_bs->Data + p_bs->DataOffset;
@@ -78,7 +78,7 @@ namespace VP8DecodeCommon
     
             MoveBitstreamData(*p_bs, n_bytes_offset - 6);
 
-            return MFX_ERR_MORE_DATA;
+            MFX_RETURN(MFX_ERR_MORE_DATA);
         }
 
         FrameType frame_type;
@@ -90,7 +90,7 @@ namespace VP8DecodeCommon
 
         if (frame_type != I_PICTURE)
         {
-            return MFX_ERR_MORE_DATA;
+            MFX_RETURN(MFX_ERR_MORE_DATA);
         }
 
         mfxU32 first_partion_size = (p_bitstream[0] >> 5) | // 19 bit
@@ -100,7 +100,7 @@ namespace VP8DecodeCommon
 
         if (p_bitstream + first_partion_size > p_bitstream_end)
         {
-            return MFX_ERR_MORE_DATA;
+            MFX_RETURN(MFX_ERR_MORE_DATA);
         }
 
         // move to start code
@@ -169,7 +169,7 @@ mfxStatus MFX_VP8_Utility::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVide
     }
 
     if (p_core->GetPlatformType() == MFX_PLATFORM_HARDWARE && VP8DCaps::IsSupported(p_core->GetHWType()))
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
 
     memset(&p_out->mfx, 0, sizeof(mfxInfoMFX));
 

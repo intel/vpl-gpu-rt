@@ -133,12 +133,12 @@ mfxStatus VideoDECODEVP8_HW::Init(mfxVideoParam *p_video_param)
     mfxStatus sts = MFX_ERR_NONE;
 
     if (m_is_initialized)
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
     eMFXVAType vatype = m_p_core->GetVAType();
     if(vatype == MFX_HW_D3D11)
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     eMFXPlatform platform = MFX_VP8_Utility::GetPlatform(m_p_core, p_video_param);
@@ -148,17 +148,17 @@ mfxStatus VideoDECODEVP8_HW::Init(mfxVideoParam *p_video_param)
 
     if (MFX_ERR_NONE > CheckVideoParamDecoders(p_video_param, type))
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     if(CheckHardwareSupport(m_p_core, p_video_param) == false)
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     if (MFX_VPX_Utility::CheckVideoParam(p_video_param, MFX_CODEC_VP8) == false)
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     m_on_init_video_params = *p_video_param;
@@ -293,7 +293,7 @@ static bool IsSameVideoParam(mfxVideoParam *newPar, mfxVideoParam *oldPar)
 mfxStatus VideoDECODEVP8_HW::Reset(mfxVideoParam *p_video_param)
 {
     if(m_is_initialized == false)
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR1(p_video_param);
 
@@ -331,7 +331,7 @@ mfxStatus VideoDECODEVP8_HW::Reset(mfxVideoParam *p_video_param)
 
     if(CheckHardwareSupport(m_p_core, p_video_param) == false)
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     gold_indx = 0;
@@ -357,7 +357,7 @@ mfxStatus VideoDECODEVP8_HW::Close()
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEVP8_HW::Close");
     if(m_is_initialized == false)
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     m_is_initialized = false;
     m_surface_source->Close();
@@ -388,7 +388,7 @@ mfxStatus VideoDECODEVP8_HW::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVi
 
     if (!CheckHardwareSupport(p_core, p_in ? p_in : p_out))
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     return MFX_VP8_Utility::Query(p_core, p_in, p_out, type);
@@ -406,13 +406,13 @@ mfxStatus VideoDECODEVP8_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_vid
     if (   !(p_params.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
         && !(p_params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     if ((p_params.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
         && (p_params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     if(p_params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
@@ -429,7 +429,7 @@ mfxStatus VideoDECODEVP8_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_vid
 
     if (!CheckHardwareSupport(p_core, p_video_param))
     {
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     return sts;
@@ -448,7 +448,7 @@ mfxStatus VideoDECODEVP8_HW::GetOutputSurface(mfxFrameSurface1 **pp_surface_out,
 
     if (!p_native_surface)
     {
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
     *pp_surface_out = p_native_surface;
@@ -481,7 +481,7 @@ mfxStatus VideoDECODEVP8_HW::PreDecodeFrame(mfxBitstream *p_bs, mfxU32& w, mfxU3
 
     if (m_init_w != w || m_init_h != h)
     {
-        return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     }
 
     return MFX_ERR_NONE;
@@ -495,7 +495,7 @@ mfxStatus VideoDECODEVP8_HW::ConstructFrame(mfxBitstream *p_in, mfxBitstream *p_
 
     if (p_in->DataLength == 0)
     {
-        return MFX_ERR_MORE_DATA;
+        MFX_RETURN(MFX_ERR_MORE_DATA);
     }
 
     mfxU8 *p_bs_start = p_in->Data + p_in->DataOffset;
@@ -608,7 +608,7 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
 
     if(m_is_initialized == false)
     {
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
     }
 
     if (NeedToReturnCriticalStatus(p_bs))
@@ -641,13 +641,13 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
         MFX_CHECK_STS(sts);
 
         if (p_bs == NULL)
-            return MFX_ERR_MORE_DATA;
+            MFX_RETURN(MFX_ERR_MORE_DATA);
 
         bool show_frame;
         UMC::FrameType frame_type;
 
         if (p_bs->DataLength == 0)
-            return MFX_ERR_MORE_DATA;
+            MFX_RETURN(MFX_ERR_MORE_DATA);
 
         sts = m_surface_source->SetCurrentMFXSurface(p_surface_work);
         MFX_CHECK_STS(sts);
@@ -672,7 +672,7 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
         if (m_firstFrame && frame_type != UMC::I_PICTURE)
         {
             MoveBitstreamData(*p_bs, p_bs->DataLength);
-            return MFX_ERR_MORE_DATA;
+            MFX_RETURN(MFX_ERR_MORE_DATA);
         }
 
         m_firstFrame = false;
@@ -1011,7 +1011,7 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameHeader(mfxBitstream *in)
     data_in = (uint8_t*)in->Data;
 
     if(!data_in)
-        return MFX_ERR_NULL_PTR;
+        MFX_RETURN(MFX_ERR_NULL_PTR);
 
     data_in_end = data_in + in->DataLength;
 
@@ -1060,10 +1060,10 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameHeader(mfxBitstream *in)
     if (m_frame_info.frameType == UMC::I_PICTURE)  // if VP8_KEY_FRAME
     {
         if (first_partition_size > in->DataLength - 10)
-            return MFX_ERR_MORE_DATA;
+            MFX_RETURN(MFX_ERR_MORE_DATA);
 
         if (!(VP8_START_CODE_FOUND(data_in))) // (0x9D && 0x01 && 0x2A)
-            return MFX_ERR_UNKNOWN;
+            MFX_RETURN(MFX_ERR_UNKNOWN);
 
         width               = ((data_in[4] << 8) | data_in[3]) & 0x3FFF;
         m_frame_info.h_scale = data_in[4] >> 6;
@@ -1124,7 +1124,7 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameHeader(mfxBitstream *in)
         // supported only color_space_type == 0
         // see "VP8 Data Format and Decoding Guide" ch.9.2
         if(m_frame_info.color_space_type)
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     m_frame_info.segmentationEnabled = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode();
@@ -1187,7 +1187,7 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameHeader(mfxBitstream *in)
             m_frame_info.partitionStart[i+1] = m_frame_info.partitionStart[i] + m_frame_info.partitionSize[i];
 
             if (m_frame_info.partitionStart[i+1] > data_in_end)
-                return MFX_ERR_MORE_DATA; //???
+                MFX_RETURN(MFX_ERR_MORE_DATA); //???
 
             m_boolDecoder[i + 1].init(m_frame_info.partitionStart[i], m_frame_info.partitionSize[i]);
         }
@@ -1328,7 +1328,7 @@ mfxTaskThreadingPolicy VideoDECODEVP8_HW::GetThreadingPolicy()
 mfxStatus VideoDECODEVP8_HW::GetVideoParam(mfxVideoParam *pPar)
 {
     if (!m_is_initialized)
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR1(pPar);
 
@@ -1350,7 +1350,7 @@ mfxStatus VideoDECODEVP8_HW::GetVideoParam(mfxVideoParam *pPar)
 mfxStatus VideoDECODEVP8_HW::GetDecodeStat(mfxDecodeStat *pStat)
 {
     if (!m_is_initialized)
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR1(pStat);
 
@@ -1371,27 +1371,27 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrame(mfxBitstream *, mfxFrameSurface1 *, mfx
 mfxStatus VideoDECODEVP8_HW::GetUserData(mfxU8 *pUserData, mfxU32 *pSize, mfxU64 *pTimeStamp)
 {
     if (!m_is_initialized)
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR3(pUserData, pSize, pTimeStamp);
 
-    return MFX_ERR_UNSUPPORTED;
+    MFX_RETURN(MFX_ERR_UNSUPPORTED);
 }
 
 mfxStatus VideoDECODEVP8_HW::GetPayload(mfxU64 *pTimeStamp, mfxPayload *pPayload)
 {
     if (!m_is_initialized)
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR3(pTimeStamp, pPayload, pPayload->Data);
 
-    return MFX_ERR_UNSUPPORTED;
+    MFX_RETURN(MFX_ERR_UNSUPPORTED);
 }
 
 mfxStatus VideoDECODEVP8_HW::SetSkipMode(mfxSkipMode /*mode*/)
 {
     if (!m_is_initialized)
-        return MFX_ERR_NOT_INITIALIZED;
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     return MFX_ERR_NONE;
 }

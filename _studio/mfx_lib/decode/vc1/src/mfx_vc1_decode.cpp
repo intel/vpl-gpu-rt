@@ -571,7 +571,7 @@ mfxStatus MFXVideoDECODEVC1::GetVideoParam(mfxVideoParam *par)
     if (pSPS)
     {
         if (pSPS->SPSBufSize < m_RawSeq.size())
-            return MFX_ERR_NOT_ENOUGH_BUFFER;
+            MFX_RETURN(MFX_ERR_NOT_ENOUGH_BUFFER);
 
         std::copy(std::begin(m_RawSeq), std::end(m_RawSeq), pSPS->SPSBuffer);
         pSPS->SPSBufSize = (mfxU16)m_RawSeq.size();
@@ -614,7 +614,7 @@ mfxStatus MFXVideoDECODEVC1::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
                 if(*((uint32_t*)ptr)!= 0x0F010000)
                 {
                     bs->DataOffset = bs->DataLength;
-                    return MFX_ERR_MORE_DATA;
+                    MFX_RETURN(MFX_ERR_MORE_DATA);
                 }
                 else
                 {
@@ -626,7 +626,7 @@ mfxStatus MFXVideoDECODEVC1::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         }
         else
         {
-            return MFX_ERR_MORE_DATA;
+            MFX_RETURN(MFX_ERR_MORE_DATA);
         }
     }
 
@@ -794,7 +794,7 @@ mfxStatus MFXVideoDECODEVC1::SelfConstructFrame(mfxBitstream *bs)
         {
             bs->DataLength -= dataSize;
             bs->DataOffset += dataSize;
-            return MFX_ERR_MORE_DATA;
+            MFX_RETURN(MFX_ERR_MORE_DATA);
         }
         else
         {
@@ -884,9 +884,9 @@ mfxStatus MFXVideoDECODEVC1::SelfConstructFrame(mfxBitstream *bs)
                     std::copy(bs->Data + bs->DataOffset, bs->Data + bs->DataOffset + m_SaveBytesSize, m_pSaveBytes);
                     m_sbs.TimeStamp = bs->TimeStamp;
                 }
-                return MFX_ERR_MORE_DATA;
+                MFX_RETURN(MFX_ERR_MORE_DATA);
             }
-            return MFX_ERR_NOT_ENOUGH_BUFFER;
+            MFX_RETURN(MFX_ERR_NOT_ENOUGH_BUFFER);
         }
     }
 }
@@ -948,9 +948,13 @@ mfxStatus MFXVideoDECODEVC1::SelfDecodeFrame(mfxFrameSurface1 *surface_work, mfx
         {
             *surface_disp = 0;
             if (bs && bs->DataLength > 4)
-                return MFX_ERR_MORE_SURFACE;
+            {
+                MFX_RETURN(MFX_ERR_MORE_SURFACE);
+            }
             else
-                return MFX_ERR_MORE_DATA;
+            {
+                MFX_RETURN(MFX_ERR_MORE_DATA);
+            }
         }
 
 
@@ -968,7 +972,7 @@ mfxStatus MFXVideoDECODEVC1::SelfDecodeFrame(mfxFrameSurface1 *surface_work, mfx
         bs->DataLength -= m_SHSize;
         bs->DataOffset += m_SHSize;
 
-        return MFX_ERR_MORE_DATA;
+        MFX_RETURN(MFX_ERR_MORE_DATA);
     }
 
     else if ((IntUMCStatus == UMC::UMC_OK)||
@@ -1047,7 +1051,7 @@ mfxStatus MFXVideoDECODEVC1::SelfDecodeFrame(mfxFrameSurface1 *surface_work, mfx
             (!m_pVC1VideoDecoder->IsLastFrameSkipped())) // skipped picture
         {
             m_bIsNeedToProcFrame = false;
-            return MFX_ERR_MORE_SURFACE;
+            MFX_RETURN(MFX_ERR_MORE_SURFACE);
         }
 
 
@@ -1093,9 +1097,13 @@ mfxStatus MFXVideoDECODEVC1::SelfDecodeFrame(mfxFrameSurface1 *surface_work, mfx
         else
         {
             if (bs && bs->DataLength > 4)
-                return MFX_ERR_MORE_SURFACE;
+            {
+                MFX_RETURN(MFX_ERR_MORE_SURFACE);
+            }
             else
-                return MFX_ERR_MORE_DATA;
+            {
+                MFX_RETURN(MFX_ERR_MORE_DATA);
+            }
         }
 
     }
@@ -1165,7 +1173,7 @@ mfxStatus MFXVideoDECODEVC1::ReturnLastFrame(mfxFrameSurface1 *surface_work, mfx
     if (m_bIsDecodeOrder)
     {
         SetFrameOrder(m_surface_source.get(), &m_par, true, m_qTS.front(), m_bIsSamePolar);
-        return MFX_ERR_MORE_DATA;
+        MFX_RETURN(MFX_ERR_MORE_DATA);
     }
 
     m_pVC1VideoDecoder->m_pStore->SeLastFramesMode();
@@ -1201,7 +1209,7 @@ mfxStatus MFXVideoDECODEVC1::ReturnLastFrame(mfxFrameSurface1 *surface_work, mfx
         switch (memID) {
         case -1:
         case -2:
-            return MFX_ERR_MORE_DATA;
+            MFX_RETURN(MFX_ERR_MORE_DATA);
         default:
             // only one frame in stream | reset + decodeframeasync + drain with zero bitstream
             // memID may be arbitrary in case of external allocator
@@ -1260,7 +1268,7 @@ mfxStatus MFXVideoDECODEVC1::PostProcessFrameHW(mfxFrameSurface1 *surface_work, 
     }
 
     if (-1 == memIDdisp)
-        return MFX_ERR_MORE_DATA;
+        MFX_RETURN(MFX_ERR_MORE_DATA);
 
     if (m_bIsSWD3D && memIDdisp > -1)
     {
@@ -1302,7 +1310,7 @@ mfxStatus MFXVideoDECODEVC1::DecodeHeader(VideoCORE *, mfxBitstream *bs, mfxVide
 
     mfxVideoParam temp;
     MFXSts = MFXVC1DecCommon::ParseSeqHeader(bs, &temp, pVideoSignal, pSPS);
-    if(MFXSts == MFX_ERR_NOT_INITIALIZED) return MFX_ERR_MORE_DATA;
+    if(MFXSts == MFX_ERR_NOT_INITIALIZED) MFX_RETURN(MFX_ERR_MORE_DATA);
     if((MFXSts == MFX_ERR_MORE_DATA) && (bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME || bs->DataFlag & MFX_BITSTREAM_EOS))
         MFXSts = MFX_ERR_NONE;
 
@@ -1730,7 +1738,7 @@ mfxStatus MFXVideoDECODEVC1::IsDisplayFrameReady(mfxFrameSurface1 **surface_disp
         MFXSts = m_pCore->IncreaseReference(&(*surface_disp)->Data);
         MFX_CHECK_STS(MFXSts);
 
-        return MFX_ERR_MORE_SURFACE;
+        MFX_RETURN(MFX_ERR_MORE_SURFACE);
     }
     else
     {
@@ -1824,7 +1832,7 @@ mfxStatus MFXVideoDECODEVC1::RunThread(mfxFrameSurface1 *surface_work,
         }
     }
 
-    return MFX_ERR_ABORTED;
+    MFX_RETURN(MFX_ERR_ABORTED);
 }
 
 static mfxStatus VC1CompleteProc(void *, void *pParam, mfxStatus )

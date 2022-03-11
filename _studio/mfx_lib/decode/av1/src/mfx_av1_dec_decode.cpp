@@ -923,7 +923,7 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
     }
 
     if (!bs)
-        return MFX_ERR_MORE_DATA;
+        MFX_RETURN(MFX_ERR_MORE_DATA);
 
     mfxStatus sts = CheckBitstream(bs);
     MFX_CHECK_STS(sts);

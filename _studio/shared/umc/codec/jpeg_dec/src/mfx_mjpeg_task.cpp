@@ -197,7 +197,7 @@ mfxStatus CJpegTask::AddPicture(UMC::MediaDataEx *pSrcData,
     // we strongly need auxilary data
     if (NULL == pAuxData)
     {
-        return MFX_ERR_NULL_PTR;
+        MFX_RETURN(MFX_ERR_NULL_PTR);
     }
 
     // allocate the buffer
@@ -282,7 +282,7 @@ mfxStatus CJpegTask::AddPicture(UMC::MediaDataEx *pSrcData,
 
     // copy the data
     if(m_pics[m_numPic]->bufSize < srcSize)
-        return MFX_ERR_NOT_ENOUGH_BUFFER;
+        MFX_RETURN(MFX_ERR_NOT_ENOUGH_BUFFER);
     std::copy(pSrc, pSrc + srcSize, m_pics[m_numPic]->pBuf);
     m_pics[m_numPic]->dataSize = srcSize;
     m_pics[m_numPic]->imageHeaderSize = imageHeaderSize;

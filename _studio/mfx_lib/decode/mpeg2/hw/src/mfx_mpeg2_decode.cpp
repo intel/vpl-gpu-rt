@@ -426,17 +426,17 @@ mfxStatus VideoDECODEMPEG2::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfx
     eMFXPlatform platform = UMC_MPEG2_DECODER::GetPlatform_MPEG2(core, par);
 
     if (platform != MFX_PLATFORM_HARDWARE)
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
 
     mfxVideoParam params(*par);
     bool isNeedChangeVideoParamWarning = IsNeedChangeVideoParam(&params);
 
     if (   !(par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
         && !(par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
     if ((par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
 
     mfxStatus sts = QueryIOSurfInternal(&params, request);
     MFX_CHECK_STS(sts);
@@ -537,7 +537,7 @@ mfxStatus VideoDECODEMPEG2::GetVideoParam(mfxVideoParam *par)
 
         if (mfxSeq->SPSBufSize < spsPpsInternal->SPSBufSize ||
             mfxSeq->PPSBufSize < spsPpsInternal->PPSBufSize)
-            return MFX_ERR_NOT_ENOUGH_BUFFER;
+            MFX_RETURN(MFX_ERR_NOT_ENOUGH_BUFFER);
 
         mfxSeq->SPSBufSize = spsPpsInternal->SPSBufSize;
 
@@ -679,7 +679,7 @@ mfxStatus VideoDECODEMPEG2::SetSkipMode(mfxSkipMode mode)
         new_speed = -1;
         break;
     default:
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     m_decoder->ChangeVideoDecodingSpeed(new_speed);
@@ -707,7 +707,7 @@ mfxStatus VideoDECODEMPEG2::GetPayload(mfxU64 *ts, mfxPayload *payload)
     if (msg)
     {
         if (payload->BufSize < msg->msg_size)
-            return MFX_ERR_NOT_ENOUGH_BUFFER;
+            MFX_RETURN(MFX_ERR_NOT_ENOUGH_BUFFER);
 
         *ts = GetMfxTimeStamp(msg->timestamp);
 
@@ -864,12 +864,12 @@ mfxStatus VideoDECODEMPEG2::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surf
                 break;
 
             case UMC::UMC_NTF_NEW_RESOLUTION:
-                return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+                MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
             case UMC::UMC_ERR_DEVICE_FAILED: // return errors immediatelly
-                return MFX_ERR_DEVICE_FAILED;
+                MFX_RETURN(MFX_ERR_DEVICE_FAILED);
 
             case UMC::UMC_ERR_GPU_HANG: // return errors immediatelly
-                return MFX_ERR_GPU_HANG;
+                MFX_RETURN(MFX_ERR_GPU_HANG);
             }
 
             if (umcRes == UMC::UMC_WRN_REPOSITION_INPROGRESS) // New sequence header
@@ -923,7 +923,7 @@ mfxStatus VideoDECODEMPEG2::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surf
             if (m_init_video_par.mfx.FrameInfo.Width != m_video_par.mfx.FrameInfo.Width ||
                 m_init_video_par.mfx.FrameInfo.Height != m_video_par.mfx.FrameInfo.Height)
             {
-                return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+                MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
             }
         }
 
@@ -931,11 +931,11 @@ mfxStatus VideoDECODEMPEG2::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surf
     }
     catch (std::bad_alloc const&)
     {
-        return MFX_ERR_MEMORY_ALLOC;
+        MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
     }
     catch (...)
     {
-        return MFX_ERR_UNKNOWN;
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 
     return sts;

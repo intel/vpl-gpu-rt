@@ -53,7 +53,7 @@ mfxStatus DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfxVideoParam* params)
     if (bs->DataLength < 3)
     {
         MoveBitstreamData(*bs, bs->DataLength);
-        return MFX_ERR_MORE_DATA;
+        MFX_RETURN(MFX_ERR_MORE_DATA);
     }
 
     bool bHeaderRead = false;
@@ -74,7 +74,7 @@ mfxStatus DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfxVideoParam* params)
             frame.profile += bsReader.GetBit();
 
         if (frame.profile >= 4)
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
         if (bsReader.GetBit()) // show_existing_frame
             break;
@@ -86,7 +86,7 @@ mfxStatus DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfxVideoParam* params)
         if (KEY_FRAME == frameType)
         {
             if (!CheckSyncCode(&bsReader))
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
+                MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
             if (frame.profile >= 2)
             {
@@ -131,7 +131,7 @@ mfxStatus DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfxVideoParam* params)
                 bsReader.GetBits(2);
 
             if (!CheckSyncCode(&bsReader))
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
+                MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
             if (frame.profile >= 2)
                 frame.bit_depth = bsReader.GetBit() ? 12 : 10;
@@ -182,7 +182,7 @@ mfxStatus DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfxVideoParam* params)
     if (!bHeaderRead)
     {
         MoveBitstreamData(*bs, bs->DataLength);
-        return MFX_ERR_MORE_DATA;
+        MFX_RETURN(MFX_ERR_MORE_DATA);
     }
 
     FillVideoParam(core->GetPlatformType(), frame, *params);

@@ -240,12 +240,12 @@ mfxStatus MFXTaskSupplier::RunThread(mfxU32 threadNumber)
     if (sts == UMC_ERR_NOT_ENOUGH_DATA)
         return MFX_TASK_BUSY;
     else if(sts == UMC_ERR_DEVICE_FAILED)
-        return MFX_ERR_DEVICE_FAILED;
+        MFX_RETURN(MFX_ERR_DEVICE_FAILED)
     else if (sts == UMC_ERR_GPU_HANG)
-        return MFX_ERR_GPU_HANG;
+        MFX_RETURN(MFX_ERR_GPU_HANG);
 
     if (sts != UMC_OK)
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
     return MFX_TASK_WORKING;
 }
@@ -1177,12 +1177,12 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
             int codecProfile = in->mfx.CodecProfile & 0xFF;
             if (    (codecProfile == MFX_PROFILE_AVC_STEREO_HIGH) ||
                     (codecProfile == MFX_PROFILE_AVC_MULTIVIEW_HIGH))
-                return MFX_ERR_UNSUPPORTED;
+                MFX_RETURN(MFX_ERR_UNSUPPORTED);
 
 #ifdef MFX_ENABLE_SVC_VIDEO_DECODE
             if (    (codecProfile == MFX_PROFILE_AVC_SCALABLE_BASELINE) ||
                     (codecProfile == MFX_PROFILE_AVC_SCALABLE_HIGH) )
-                return MFX_ERR_UNSUPPORTED;
+                MFX_RETURN(MFX_ERR_UNSUPPORTED);
 #endif
         }
 

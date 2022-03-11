@@ -179,7 +179,7 @@ namespace UMC_MPEG2_DECODER
             if (in->mfx.FrameInfo.FourCC != MFX_FOURCC_NV12)
             {
                 out->mfx.FrameInfo.FourCC = 0;
-                return MFX_ERR_UNSUPPORTED;
+                MFX_RETURN(MFX_ERR_UNSUPPORTED);
             }
 
             CHECK_UNSUPPORTED( (in->NumExtParam == 0) != (in->ExtParam == nullptr) );
@@ -204,7 +204,7 @@ namespace UMC_MPEG2_DECODER
                 in->mfx.CodecLevel == 0))
             {
                 out->mfx.CodecLevel = 0;
-                return MFX_ERR_UNSUPPORTED;
+                MFX_RETURN(MFX_ERR_UNSUPPORTED);
             }
 
             if (!(in->mfx.CodecProfile == MFX_PROFILE_MPEG2_SIMPLE ||
@@ -214,7 +214,7 @@ namespace UMC_MPEG2_DECODER
                 in->mfx.CodecProfile == 0))
             {
                 out->mfx.CodecProfile = 0;
-                return MFX_ERR_UNSUPPORTED;
+                MFX_RETURN(MFX_ERR_UNSUPPORTED);
             }
 
             if (in->IOPattern)
@@ -222,7 +222,7 @@ namespace UMC_MPEG2_DECODER
                 if ((in->IOPattern == MFX_IOPATTERN_OUT_SYSTEM_MEMORY) || (in->IOPattern == MFX_IOPATTERN_OUT_VIDEO_MEMORY))
                     out->IOPattern = in->IOPattern;
                 else
-                    return MFX_STS_TRACE(MFX_ERR_UNSUPPORTED);
+                    MFX_RETURN(MFX_ERR_UNSUPPORTED);
             }
 
             CHECK_UNSUPPORTED(!IsHWSupported(core, in));

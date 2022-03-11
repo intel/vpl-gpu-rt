@@ -165,7 +165,7 @@ mfxStatus MJPEGVideoDecoderMFX_HW::CheckStatusReportNumber(uint32_t statusReport
         {
             UMC::Status waitSts = m_va->SyncTask((int32_t)(iteratorPicIndex->second), NULL);
             if (waitSts != UMC_OK && waitSts != UMC_ERR_TIMEOUT)
-                return MFX_ERR_DEVICE_FAILED;
+                MFX_RETURN(MFX_ERR_DEVICE_FAILED);
             if (waitSts == UMC_OK)
                 m_pic_index.erase(iteratorPicIndex);
         }
@@ -193,7 +193,7 @@ mfxStatus MJPEGVideoDecoderMFX_HW::CheckStatusReportNumber(uint32_t statusReport
 
         if(sts != UMC_OK)
         {
-            return MFX_ERR_DEVICE_FAILED;
+            MFX_RETURN(MFX_ERR_DEVICE_FAILED);
         }
 
         for (mfxU32 i = 0; i < numStructures; i += 1)
@@ -209,7 +209,7 @@ mfxStatus MJPEGVideoDecoderMFX_HW::CheckStatusReportNumber(uint32_t statusReport
             }
             else if (3 == queryStatus[i].bStatus)
             {
-                return MFX_ERR_DEVICE_FAILED;
+                MFX_RETURN(MFX_ERR_DEVICE_FAILED);
             }
             else if (5 == queryStatus[i].bStatus)
             {
@@ -227,9 +227,9 @@ mfxStatus MJPEGVideoDecoderMFX_HW::CheckStatusReportNumber(uint32_t statusReport
                 if(m_cachedCorruptedTaskIndex.end() == iteratorCorrupted)
                 {
                     if(m_submittedTaskIndex.end() != iteratorSubmitted && numZeroFeedback == numStructures )
-                        return MFX_ERR_DEVICE_FAILED;
+                        MFX_RETURN(MFX_ERR_DEVICE_FAILED)
                     else
-                        return MFX_TASK_BUSY;
+                        MFX_RETURN(MFX_TASK_BUSY);
                 }
 
                 m_cachedCorruptedTaskIndex.erase(iteratorCorrupted);
@@ -690,7 +690,7 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
                                                                                  &compBufSlice,
                                                                                  sizeof(VASliceParameterBufferJPEGBaseline));
         if ( !sliceParams )
-            return MFX_ERR_DEVICE_FAILED;
+            MFX_RETURN(MFX_ERR_DEVICE_FAILED);
         sliceParams->slice_data_size           = obtainedScanParams->DataLength;
         sliceParams->slice_data_offset         = 0;
         sliceParams->slice_data_flag           = VA_SLICE_DATA_FLAG_ALL;

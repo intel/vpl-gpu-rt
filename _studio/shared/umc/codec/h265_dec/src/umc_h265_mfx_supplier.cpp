@@ -220,12 +220,12 @@ mfxStatus MFXTaskSupplier_H265::RunThread(mfxU32 threadNumber)
     if (sts == UMC::UMC_ERR_NOT_ENOUGH_DATA)
         return MFX_TASK_BUSY;
     else if(sts == UMC::UMC_ERR_DEVICE_FAILED)
-        return MFX_ERR_DEVICE_FAILED;
+        MFX_RETURN(MFX_ERR_DEVICE_FAILED)
     else if (sts == UMC::UMC_ERR_GPU_HANG)
-        return MFX_ERR_GPU_HANG;
+        MFX_RETURN(MFX_ERR_GPU_HANG);
 
     if (sts != UMC::UMC_OK)
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
     return MFX_TASK_WORKING;
 }
