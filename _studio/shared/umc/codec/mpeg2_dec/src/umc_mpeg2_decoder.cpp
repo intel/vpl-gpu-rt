@@ -503,7 +503,10 @@ namespace UMC_MPEG2_DECODER
 
         // Frame time stamp
         m_currFrame->dFrameTime = slice->source.GetTime();
-        MPEG2DecoderFrameInfo & info = *m_currFrame->GetAU(m_currFrame->firstFieldIndex);
+
+        const auto picExt = *m_currHeaders.picExtHdr;
+        uint32_t fieldIndex = m_currFrame->GetNumberByParity(picExt.picture_structure == BOTTOM_FLD_PICTURE);
+        MPEG2DecoderFrameInfo & info = *m_currFrame->GetAU((uint8_t)fieldIndex);
 
         // Add the slice to the picture
         info.AddSlice(slice);
@@ -797,10 +800,8 @@ namespace UMC_MPEG2_DECODER
                 }
             }
         }
-        //The flag of each slice of current frame, 0 means first field (in decoded order) or frame, 1 means 2nd field (in decoded order)
+
         frame.currFieldIndex = frame.GetNumberByParity(picExt.picture_structure == BOTTOM_FLD_PICTURE);
-        //The flag of the first slice of current frame, 0 means first field (in decoded order) or frame, 1 means 2nd field (in decoded order)
-        frame.firstFieldIndex = frame.currFieldIndex;
     }
 
     MPEG2DecoderFrame* MPEG2Decoder::StartFrame(MPEG2Slice * slice)
@@ -855,7 +856,7 @@ namespace UMC_MPEG2_DECODER
 
     bool MPEG2Decoder::IsFieldOfCurrentFrame() const
     {
-        const auto firstFrameSlice = m_currFrame->GetAU(m_currFrame->firstFieldIndex)->GetSlice(0);
+        const auto firstFrameSlice = m_currFrame->GetAU(0)->GetSlice(0);
         const auto picHdr = firstFrameSlice->GetPicHeader();
         const auto picExtHdr = firstFrameSlice->GetPicExtHeader();
         const auto newPicHdr = *m_currHeaders.picHdr.get();
