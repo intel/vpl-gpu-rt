@@ -211,6 +211,7 @@ namespace MfxHwH264Encode
 #if defined (MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
     BIND_EXTBUF_TYPE_TO_ID(mfxExtPartialBitstreamParam,  MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM );
 #endif
+    BIND_EXTBUF_TYPE_TO_ID(mfxExtVPPDenoise2,           MFX_EXTBUFF_VPP_DENOISE2);
 #if defined (MFX_ENABLE_ENCTOOLS)
     BIND_EXTBUF_TYPE_TO_ID(mfxEncTools, MFX_EXTBUFF_ENCTOOLS);
     BIND_EXTBUF_TYPE_TO_ID(mfxEncToolsBRCFrameParams, MFX_EXTBUFF_ENCTOOLS_BRC_FRAME_PARAM);
@@ -608,9 +609,9 @@ namespace MfxHwH264Encode
 
     private:
 #if defined(MFX_ENABLE_ENCTOOLS)
-        mfxExtBuffer *              m_extParam[40];
+        mfxExtBuffer *              m_extParam[41];
 #else
-        mfxExtBuffer *              m_extParam[35];
+        mfxExtBuffer *              m_extParam[36];
 #endif
         // external, documented
         mfxExtCodingOption          m_extOpt;
@@ -647,6 +648,7 @@ namespace MfxHwH264Encode
         mfxEncToolsCtrlExtDevice        m_extDevice;
         mfxEncToolsCtrlExtAllocator     m_extAllocator;
 #endif
+        mfxExtVPPDenoise2               m_extVppHVS;
 
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
         mfxExtLplaParam            m_extLowpowerLA;
@@ -741,7 +743,7 @@ namespace MfxHwH264Encode
 
     mfxU8 GetCabacInitIdc(mfxU32 targetUsage);
 
-    bool IsMctfSupported(
+    bool IsDenoiserSupported(
         MfxVideoParam const & video,
         eMFXHWType            platform);
 

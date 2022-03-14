@@ -1452,7 +1452,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     }
 
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
-    if (IsMctfSupported(m_video, m_core->GetHWType()))
+    if (IsDenoiserSupported(m_video, m_core->GetHWType()))
     {
         sts = InitMctf(par);
         MFX_CHECK_STS(sts);
@@ -2269,7 +2269,7 @@ void ImplementationAvc::OnEncodingQueried(DdiTaskIter task)
 #endif
 
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
-    if (IsMctfSupported(m_video, m_core->GetHWType()) && task->m_midMCTF)
+    if (IsDenoiserSupported(m_video, m_core->GetHWType()) && task->m_midMCTF)
     {
         ReleaseResource(m_mctf, task->m_midMCTF);
         task->m_midMCTF = MID_INVALID;
@@ -2379,39 +2379,40 @@ mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoVPPHW::SubmitToMctf");
     MFX_CHECK_NULL_PTR1(pTask);
 
-    if (!CommonCaps::IsCmSupported(m_core->GetHWType()))
-    {
-        mfxFrameSurface1 hvsSurface = {};
-        pTask->m_idxMCTF = FindFreeResourceIndex(m_mctf);
-        pTask->m_midMCTF = AcquireResource(m_mctf, pTask->m_idxMCTF);
-        if (pTask->m_midMCTF)
-        {
-            MFX_SAFE_CALL(m_core->GetFrameHDL(pTask->m_midMCTF, &pTask->m_handleMCTF.first));
-        }
-        hvsSurface.Info            = m_video.mfx.FrameInfo;
-        hvsSurface.Data.MemId      = pTask->m_midMCTF;
-        hvsSurface.Data.MemType    = MFX_MEMTYPE_D3D_INT;
-        MFX_SAFE_CALL(m_hvsDenoiser->Submit(pTask->m_yuv, &hvsSurface));
-    }
-    else
-    {
-        pTask->m_bFrameReady = false;
-        bool isIntraFrame = pTask->GetFrameType() & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR);
-        bool isPFrame = pTask->GetFrameType() & MFX_FRAMETYPE_P;
-        bool isAnchorFrame = isIntraFrame || isPFrame;
+    bool isIntraFrame = pTask->GetFrameType() & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR);
+    bool isPFrame = pTask->GetFrameType() & MFX_FRAMETYPE_P;
+    bool isAnchorFrame = isIntraFrame || isPFrame;
 
-        m_mctfDenoiser->IntBufferUpdate(pTask->m_SceneChange, isIntraFrame, pTask->m_doMCTFIntraFiltering);
-        if (isAnchorFrame || pTask->m_SceneChange)
-        {
-            pTask->m_idxMCTF = FindFreeResourceIndex(m_mctf);
-            pTask->m_midMCTF = AcquireResource(m_mctf, pTask->m_idxMCTF);
+    pTask->m_idxMCTF = FindFreeResourceIndex(m_mctf);
+    pTask->m_midMCTF = AcquireResource(m_mctf, pTask->m_idxMCTF);
+
+    if (m_hvsDenoiser)
+    {
             if (pTask->m_midMCTF)
             {
                 MFX_SAFE_CALL(m_core->GetFrameHDL(pTask->m_midMCTF, &pTask->m_handleMCTF.first));
+
+            mfxFrameSurface1 hvsSurface = {};
+            hvsSurface.Info = m_video.mfx.FrameInfo;
+            hvsSurface.Data.MemId = pTask->m_midMCTF;
+            hvsSurface.Data.MemType = MFX_MEMTYPE_D3D_INT;
+
+            MFX_SAFE_CALL(m_hvsDenoiser->Submit(pTask->m_yuv, &hvsSurface));
+#if defined(MFX_ENABLE_HVS_ON_ANCHOR_FRAMES)
+            if (!isAnchorFrame)
+            {
+                ReleaseResource(m_mctf, pTask->m_midMCTF);
+                pTask->m_midMCTF = MID_INVALID;
+                MfxHwH264Encode::Zero(pTask->m_handleMCTF);
             }
-            else
-                isAnchorFrame = false; //No resource available to generate filtered output, let it pass.
+#endif
         }
+    }
+    else if (m_mctfDenoiser)
+    {
+        m_mctfDenoiser->IntBufferUpdate(pTask->m_SceneChange, isIntraFrame, pTask->m_doMCTFIntraFiltering);
+        if (!pTask->m_midMCTF)
+            isAnchorFrame = false; //No resource available to generate filtered output, let it pass.
         if (IsCmNeededForSCD(m_video))
         {
             MFX_SAFE_CALL(m_mctfDenoiser->MCTF_PUT_FRAME(
@@ -2438,25 +2439,22 @@ mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask)
                 isAnchorFrame,
                 pTask->m_doMCTFIntraFiltering));
         }
-
         // --- access to the internal MCTF queue to increase buffer_count: no need to protect by mutex, as 1 writer & 1 reader
         MFX_SAFE_CALL(m_mctfDenoiser->MCTF_UpdateBufferCount());
-
         // filtering itself
         MFX_SAFE_CALL(m_mctfDenoiser->MCTF_DO_FILTERING_IN_AVC());
     }
-
     return MFX_ERR_NONE;
 }
 
 mfxStatus ImplementationAvc::QueryFromMctf(void *pParam)
 {
+#ifdef MFX_ENABLE_EXT
     MFX_CHECK_NULL_PTR1(pParam);
     DdiTask *pTask = (DdiTask*)pParam;
 
     if (CommonCaps::IsCmSupported(m_core->GetHWType()))
     {
-        pTask->m_bFrameReady = m_mctfDenoiser->MCTF_ReadyToOutput();
         //Check if noise analysis determined if filter is not neeeded and free resources and handle
         if (!m_mctfDenoiser->MCTF_CHECK_FILTER_USE() && (pTask->m_handleMCTF.first))
         {
@@ -2468,18 +2466,7 @@ mfxStatus ImplementationAvc::QueryFromMctf(void *pParam)
         }
         MFX_SAFE_CALL(m_mctfDenoiser->MCTF_RELEASE_FRAME(IsCmNeededForSCD(m_video)));
     }
-    else 
-    {
-        pTask->m_bFrameReady = true;
-        //Check if noise analysis determined if filter is not neeeded and free resources and handle
-        if ((pTask->m_handleMCTF.first))
-        {
-            ReleaseResource(m_mctf, pTask->m_midMCTF);
-            pTask->m_midMCTF = MID_INVALID;
-            MfxHwH264Encode::Zero(pTask->m_handleMCTF);
-        }
-    }
-
+#endif
     return MFX_ERR_NONE;
 }
 #endif
@@ -3611,7 +3598,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
     if (m_stagesToGo & AsyncRoutineEmulator::STG_BIT_START_MCTF)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::STG_BIT_START_MCTF");
-        if (IsMctfSupported(m_video, m_core->GetHWType()))
+        if (IsDenoiserSupported(m_video, m_core->GetHWType()))
         {
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
             DdiTask & task = m_MctfStarted.back();
@@ -3624,7 +3611,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
     if (m_stagesToGo & AsyncRoutineEmulator::STG_BIT_WAIT_MCTF)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::STG_BIT_WAIT_MCTF");
-        if (IsMctfSupported(m_video, m_core->GetHWType()))
+        if (IsDenoiserSupported(m_video, m_core->GetHWType()))
         {
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
             DdiTask & task = m_MctfFinished.front();

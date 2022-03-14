@@ -3251,7 +3251,7 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
         m_stageGreediness[STG_START_SCD] = 1;
         m_stageGreediness[STG_WAIT_SCD] = 1 + adaptGopDelay;
         m_stageGreediness[STG_START_MCTF]   = 1;
-        m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video, platform) ? 2 : 1;
+        m_stageGreediness[STG_WAIT_MCTF]    = IsDenoiserSupported(video, platform) ? 2 : 1;
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
         m_stageGreediness[STG_WAIT_LA     ] = 1;
 #ifdef MFX_ENABLE_FADE_DETECTION
@@ -3273,7 +3273,7 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
         m_stageGreediness[STG_START_SCD] = 1;
         m_stageGreediness[STG_WAIT_SCD] = 1 + adaptGopDelay;
         m_stageGreediness[STG_START_MCTF]   = 1;
-        m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video, platform) ? 2 : 1;
+        m_stageGreediness[STG_WAIT_MCTF]    = IsDenoiserSupported(video, platform) ? 2 : 1;
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
         m_stageGreediness[STG_WAIT_LA     ] = 1 + !!(video.AsyncDepth > 1);
 #ifdef MFX_ENABLE_FADE_DETECTION
@@ -3288,7 +3288,7 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDel
         m_stageGreediness[STG_START_SCD] = 1;
         m_stageGreediness[STG_WAIT_SCD] = (IsExtBrcSceneChangeSupported(video, platform) && IsCmNeededForSCD(video) ? 1 + !!(video.AsyncDepth > 1) : 1) + adaptGopDelay;
         m_stageGreediness[STG_START_MCTF]   = 1;
-        m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video, platform) ? 2 : 1;
+        m_stageGreediness[STG_WAIT_MCTF]    = IsDenoiserSupported(video, platform) ? 2 : 1;
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
         m_stageGreediness[STG_WAIT_LA]      = 1;
 #ifdef MFX_ENABLE_FADE_DETECTION

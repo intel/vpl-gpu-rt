@@ -99,7 +99,7 @@ namespace MfxHwH264Encode
         {
             mfxExtCodingOption2 *       extOpt2 = GetExtBuffer(par);
             mfxExtCodingOption3 *       extOpt3 = GetExtBuffer(par);
-            mfxU16 mctfFrames = IsMctfSupported(par, platform) ? (par.AsyncDepth > 1 ? 0 : 1) : 0;
+            mfxU16 mctfFrames = ((par.AsyncDepth == 1) && IsDenoiserSupported(par, platform)) ? 1 : 0;
             mfxU32  adaptGopDelay = 0;
 #if defined(MFX_ENABLE_ENCTOOLS)
             adaptGopDelay = H264EncTools::GetPreEncDelay(par);

@@ -1069,7 +1069,6 @@ namespace MfxHwH264Encode
             , m_LtrQp(0)
             , m_RefOrder(-1)
             , m_RefQp(0)
-            , m_bFrameReady(false)
             , m_idxScd(0)
             , m_wsSubSamplingEv(0)
             , m_wsSubSamplingTask(0)
@@ -1369,7 +1368,6 @@ namespace MfxHwH264Encode
         mfxI32 m_RefOrder;
         mfxI32 m_RefQp;
 
-        bool           m_bFrameReady;
         mfxU32         m_idxScd;
         CmEvent       *m_wsSubSamplingEv;
         CmTask        *m_wsSubSamplingTask;

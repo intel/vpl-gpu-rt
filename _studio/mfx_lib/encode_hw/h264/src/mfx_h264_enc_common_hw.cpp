@@ -1353,7 +1353,7 @@ bool MfxHwH264Encode::IsCmNeededForSCD(
     return useCm;
 }
 
-bool MfxHwH264Encode::IsMctfSupported(
+bool MfxHwH264Encode::IsDenoiserSupported(
     MfxVideoParam const & video,
     eMFXHWType            platform)
 {
@@ -1361,23 +1361,25 @@ bool MfxHwH264Encode::IsMctfSupported(
     bool
         isSupported = false;
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
-    mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
-    isSupported = ((
-        H264ECaps::IsHvsSupported(platform) ||
-        H264ECaps::IsVmeSupported(platform)) &&
-        IsOn(extOpt2.ExtBRC) &&
-        IsExtBrcSceneChangeSupported(video, platform) &&
-        (video.mfx.FrameInfo.Width <= 3840 && video.vpp.In.Height <= 2160) &&
-        (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR || video.mfx.RateControlMethod == MFX_RATECONTROL_CQP) &&
-        (video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) &&
-        ((video.mfx.FrameInfo.FourCC == MFX_FOURCC_NV12) || (video.mfx.FrameInfo.FourCC == MFX_FOURCC_YV12)) &&
-        (video.mfx.FrameInfo.ChromaFormat == MFX_CHROMAFORMAT_YUV420) &&
+
+    auto isDenoiserInPipeSupported = (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||video.mfx.RateControlMethod == MFX_RATECONTROL_VBR || video.mfx.RateControlMethod == MFX_RATECONTROL_CQP) &&
+        ((video.mfx.FrameInfo.FourCC == MFX_FOURCC_NV12) ||(video.mfx.FrameInfo.FourCC == MFX_FOURCC_YV12)) &&
         (video.mfx.FrameInfo.BitDepthLuma == 0 || video.mfx.FrameInfo.BitDepthLuma == 8) &&
+        (video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) &&
+        (video.mfx.FrameInfo.ChromaFormat == MFX_CHROMAFORMAT_YUV420) &&
+        !video.mfx.EncodedOrder;
+
+    mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
+    auto isMCTFsupported = (video.mfx.FrameInfo.Width <= 3840) &&
+        (video.vpp.In.Height <= 2160) &&
         (video.mfx.GopRefDist == 8) &&
-        !video.mfx.EncodedOrder);
-#else
-    video;
-    platform;
+        IsOn(extOpt2.ExtBRC) &&
+        IsExtBrcSceneChangeSupported(video, platform);
+
+
+    isSupported = isDenoiserInPipeSupported &&
+        (isMCTFsupported
+            );
 #endif
     return isSupported;
 }
@@ -7885,6 +7887,8 @@ void MfxVideoParam::Construct(mfxVideoParam const & par)
     CONSTRUCT_EXT_BUFFER(mfxEncToolsCtrlExtAllocator, m_extAllocator);
 
 #endif
+
+    CONSTRUCT_EXT_BUFFER(mfxExtVPPDenoise2, m_extVppHVS);
 
 
 
