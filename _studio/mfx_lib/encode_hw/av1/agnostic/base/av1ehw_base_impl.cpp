@@ -126,6 +126,7 @@ mfxStatus MFXVideoENCODEAV1_HW::QueryImplsDescription(
     return RunBlocks(Check<mfxStatus, MFX_ERR_NONE>, queue, core, caps, ah, m_storage);
 }
 
+
 mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
 {
     MFX_CHECK_NULL_PTR1(par);
