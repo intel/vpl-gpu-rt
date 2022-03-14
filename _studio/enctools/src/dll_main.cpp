@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "mfx_ienctools.h"
 #include "mfx_enctools.h"
 #include "mfx_loader_utils.h"
 
