@@ -61,7 +61,7 @@ public:
     mfxStatus JoinSession(mfxSession) override {
         return MFX_ERR_UNSUPPORTED;
     }
-    mfxStatus DisjoinSession() {
+    mfxStatus DisjoinSession() override {
         return MFX_ERR_UNSUPPORTED;
     }
     mfxStatus CloneSession(mfxSession*) override {
