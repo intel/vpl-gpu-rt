@@ -71,10 +71,10 @@ public:
         }
         else
         {
-            return MFX_WRN_PARTIAL_ACCELERATION;
+            return MFX_ERR_UNSUPPORTED;
         }
         sts = pEncoder->Init(par);
-        if (sts == MFX_WRN_PARTIAL_ACCELERATION || sts < MFX_ERR_NONE)
+        if (sts < MFX_ERR_NONE)
         {
             Close();
             return sts;

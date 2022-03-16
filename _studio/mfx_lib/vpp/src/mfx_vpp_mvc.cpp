@@ -37,7 +37,7 @@ mfxStatus ImplementationMvc::QueryIOSurf(VideoCORE* core, mfxVideoParam *par, mf
     mfxStatus sts = VideoVPPBase::QueryIOSurf(core, par, request);
 
     // in case of multiview we should correct result
-    if( MFX_ERR_NONE == sts || MFX_WRN_PARTIAL_ACCELERATION == sts )
+    if( MFX_ERR_NONE == sts)
     {
         mfxExtBuffer* pHint = NULL;
         GetFilterParam(par, MFX_EXTBUFF_MVC_SEQ_DESC, &pHint);
@@ -122,7 +122,7 @@ mfxStatus ImplementationMvc::Init(mfxVideoParam *par)
             return mfxSts;
         }
 
-        if (MFX_WRN_PARTIAL_ACCELERATION == mfxSts || MFX_WRN_FILTER_SKIPPED == mfxSts || MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == mfxSts)
+        if (MFX_WRN_FILTER_SKIPPED == mfxSts || MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == mfxSts)
         {
             intSts = mfxSts;
             mfxSts = MFX_ERR_NONE;
@@ -168,7 +168,7 @@ mfxStatus ImplementationMvc::Reset(mfxVideoParam *par)
     for( curVPP = m_VPP.begin(); curVPP != m_VPP.end(); curVPP++)
     {
         sts = (curVPP->second)->Reset( par );
-        if(MFX_WRN_PARTIAL_ACCELERATION == sts || MFX_WRN_FILTER_SKIPPED == sts || MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == sts)
+        if(MFX_WRN_FILTER_SKIPPED == sts || MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == sts)
         {
             internalSts = sts;
             sts = MFX_ERR_NONE;

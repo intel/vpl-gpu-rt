@@ -459,7 +459,7 @@ mfxStatus VideoDECODEMPEG2::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfx
     if (platform != core->GetPlatformType())
     {
         assert(platform == MFX_PLATFORM_SOFTWARE);
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
     return isNeedChangeVideoParamWarning ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;

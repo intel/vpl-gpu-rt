@@ -92,7 +92,7 @@ mfxStatus MfxHwMJpegEncode::CheckJpegParam(VideoCORE *core, mfxVideoParam & par,
     MFX_CHECK(hwCaps.Huffman, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     MFX_CHECK((par.mfx.Interleaved && hwCaps.Interleaved) || (!par.mfx.Interleaved && hwCaps.NonInterleaved),
-        MFX_WRN_PARTIAL_ACCELERATION);
+        MFX_ERR_UNSUPPORTED);
 
     MFX_CHECK(par.mfx.FrameInfo.Width > 0 && par.mfx.FrameInfo.Height > 0,
         MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
@@ -113,27 +113,26 @@ mfxStatus MfxHwMJpegEncode::CheckJpegParam(VideoCORE *core, mfxVideoParam & par,
     }
     if (core->GetVAType() == MFX_HW_D3D9)
     {
-        MFX_CHECK(par.mfx.FrameInfo.Height <= hwCaps.MaxPicWidth/BytesPerPx, MFX_WRN_PARTIAL_ACCELERATION );
+        MFX_CHECK(par.mfx.FrameInfo.Height <= hwCaps.MaxPicWidth/BytesPerPx, MFX_ERR_UNSUPPORTED );
     }
 
     MFX_CHECK(par.mfx.FrameInfo.Width <= (mfxU16)hwCaps.MaxPicWidth && par.mfx.FrameInfo.Height <= (mfxU16)hwCaps.MaxPicHeight,
-        MFX_WRN_PARTIAL_ACCELERATION);
+        MFX_ERR_UNSUPPORTED);
 
     MFX_CHECK(hwCaps.SampleBitDepth == 8, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     MFX_CHECK(hwCaps.MaxNumComponent == 3, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-    MFX_CHECK(hwCaps.MaxNumScan >= 1, MFX_WRN_PARTIAL_ACCELERATION);
+    MFX_CHECK(hwCaps.MaxNumScan >= 1, MFX_ERR_UNSUPPORTED);
 
     mfxStatus sts = CheckExtBufferId(par);
-    if (sts != MFX_ERR_NONE)
-        return MFX_WRN_PARTIAL_ACCELERATION;
+    MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
 
     mfxExtJPEGQuantTables* qt_in    = (mfxExtJPEGQuantTables*)  mfx::GetExtBuffer( par.ExtParam, par.NumExtParam, MFX_EXTBUFF_JPEG_QT );
     mfxExtJPEGHuffmanTables* ht_in  = (mfxExtJPEGHuffmanTables*)mfx::GetExtBuffer( par.ExtParam, par.NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
 
     if (qt_in && qt_in->NumTable > hwCaps.MaxNumQuantTable)
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        return MFX_ERR_UNSUPPORTED;
     if (ht_in && (ht_in->NumDCTable > hwCaps.MaxNumHuffTable || ht_in->NumACTable > hwCaps.MaxNumHuffTable))
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        return MFX_ERR_UNSUPPORTED;
 
     return MFX_ERR_NONE;
 }

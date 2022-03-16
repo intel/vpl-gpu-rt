@@ -136,8 +136,7 @@ mfxStatus MFXHWVideoENCODEH264::Init(mfxVideoParam * par)
 
     mfxStatus sts = impl->Init(par);
     MFX_CHECK(
-        sts >= MFX_ERR_NONE &&
-        sts != MFX_WRN_PARTIAL_ACCELERATION, sts);
+        sts >= MFX_ERR_NONE, sts);
 
     m_impl = std::move(impl);
     return sts;
@@ -277,7 +276,7 @@ mfxStatus MFXHWVideoENCODEH264::QueryIOSurf(
 #endif
 
     if (IsMvcProfile(par->mfx.CodecProfile) && !IsHwMvcEncSupported())
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        return MFX_ERR_UNSUPPORTED;
 
 #ifdef MFX_ENABLE_MVC_VIDEO_ENCODE
     if (IsMvcProfile(par->mfx.CodecProfile))
@@ -437,13 +436,7 @@ mfxStatus ImplementationAvc::Query(
         else
             sts = QueryHwCaps(core, hwCaps, &tmp);
 
-        if (sts != MFX_ERR_NONE)
-        {
-            if (IsOn(in->mfx.LowPower))
-                MFX_RETURN(MFX_ERR_UNSUPPORTED)
-            else
-                MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION)
-        }
+        MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
 
         sts = ReadSpsPpsHeaders(tmp);
         MFX_CHECK_STS(sts);
@@ -452,9 +445,7 @@ mfxStatus ImplementationAvc::Query(
         MFX_CHECK(pMFXGTConfig != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
         mfxStatus checkSts = CheckVideoParamQueryLike(tmp, hwCaps, platform, core->GetVAType(), *pMFXGTConfig);
 
-        if (checkSts == MFX_WRN_PARTIAL_ACCELERATION)
-            MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION)
-        else if (checkSts == MFX_ERR_INCOMPATIBLE_VIDEO_PARAM)
+        if (checkSts == MFX_ERR_INCOMPATIBLE_VIDEO_PARAM)
             checkSts = MFX_ERR_UNSUPPORTED;
         else if (checkSts == MFX_ERR_NONE && lpSts != MFX_ERR_NONE) // transfer MFX_WRN_INCOMPATIBLE_VIDEO_PARAM to upper level
             checkSts = lpSts;
@@ -608,8 +599,7 @@ mfxStatus ImplementationAvc::Query(
         {
             extCaps->MBPerSec = 0;
             // driver don't support reporting of MB processing rate
-            MFX_CHECK(sts != MFX_ERR_UNSUPPORTED, MFX_ERR_UNSUPPORTED);
-            MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION); // any other HW problem
+            MFX_RETURN(MFX_ERR_UNSUPPORTED); // any other HW problem
         }
 
         extCaps->MBPerSec = mbPerSec[out->mfx.TargetUsage-1];
@@ -666,9 +656,7 @@ mfxStatus ImplementationAvc::QueryIOSurf(
     MFX_CHECK(pMFXGTConfig != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
     mfxStatus checkSts = CheckVideoParamQueryLike(tmp, hwCaps, platform, core->GetVAType(), *pMFXGTConfig);
     MFX_CHECK(checkSts != MFX_ERR_UNSUPPORTED, MFX_ERR_UNSUPPORTED);
-    if (checkSts == MFX_WRN_PARTIAL_ACCELERATION)
-        MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION) // return immediately
-    else if (checkSts == MFX_ERR_NONE && lpSts != MFX_ERR_NONE)
+    if (checkSts == MFX_ERR_NONE && lpSts != MFX_ERR_NONE)
         checkSts = lpSts;
 
     SetDefaults(tmp, hwCaps, true, core->GetHWType(), core->GetVAType(), *pMFXGTConfig);
@@ -1019,7 +1007,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
     m_ddi.reset(CreatePlatformH264Encoder(m_core));
     if (m_ddi.get() == 0)
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        return MFX_ERR_UNSUPPORTED;
 
     GUID guid;
     if (IsOn(m_video.mfx.LowPower))
@@ -1036,11 +1024,11 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         GetFrameWidth(m_video),
         GetFrameHeight(m_video));
         if (sts != MFX_ERR_NONE)
-            return MFX_WRN_PARTIAL_ACCELERATION;
+            return MFX_ERR_UNSUPPORTED;
 
     sts = m_ddi->QueryEncodeCaps(m_caps);
     if (sts != MFX_ERR_NONE)
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        return MFX_ERR_UNSUPPORTED;
 
     m_currentPlatform = platform;
     m_currentVaType = m_core->GetVAType();
@@ -1055,9 +1043,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     mfxStatus checkStatus = CheckVideoParam(m_video, m_caps
         , m_core->IsExternalFrameAllocator() || vpl_interface
         , m_currentPlatform, m_currentVaType, *pMFXGTConfig, true);
-    if (checkStatus == MFX_WRN_PARTIAL_ACCELERATION)
-        return MFX_WRN_PARTIAL_ACCELERATION;
-    else if (checkStatus < MFX_ERR_NONE)
+    if (checkStatus < MFX_ERR_NONE)
         return checkStatus;
     else if (checkStatus == MFX_ERR_NONE)
         checkStatus = spsppsSts;
@@ -1118,7 +1104,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         }
         mod_params.ModifyForDDI(m_video, m_caps, true);
         sts = m_ddi->CreateAccelerationService(m_video);
-        MFX_CHECK(sts == MFX_ERR_NONE, MFX_WRN_PARTIAL_ACCELERATION);
+        MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
         mod_params.Restore(m_video);
 #else
         m_brc.SetImpl(CreateBrc(m_video, m_caps));
@@ -1129,15 +1115,14 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         mod_params.Restore(m_video);
         mod_params.ModifyForDDI(m_video, m_caps, true);
         sts = m_ddi->CreateAccelerationService(m_video);
-        MFX_CHECK(sts == MFX_ERR_NONE, MFX_WRN_PARTIAL_ACCELERATION);
+        MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
         mod_params.Restore(m_video);
 #endif
     }
     else
     {
         sts = m_ddi->CreateAccelerationService(m_video);
-        if (sts != MFX_ERR_NONE)
-            return MFX_WRN_PARTIAL_ACCELERATION;
+        MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
     }
 
     if (IsOn(extOpt2.EnableMAD))
@@ -1572,11 +1557,7 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
     mfxStatus checkStatus = CheckVideoParam(newPar, m_caps
         , m_core->IsExternalFrameAllocator() || vpl_interface
         , m_currentPlatform, m_currentVaType, *pMFXGTConfig);
-    if (checkStatus == MFX_WRN_PARTIAL_ACCELERATION)
-    {
-        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
-    }
-    else if (checkStatus < MFX_ERR_NONE)
+    if (checkStatus < MFX_ERR_NONE)
         return checkStatus;
     else if (checkStatus == MFX_ERR_NONE)
         checkStatus = spsppsSts;

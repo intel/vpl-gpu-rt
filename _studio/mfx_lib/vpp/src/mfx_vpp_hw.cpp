@@ -2130,7 +2130,7 @@ mfxStatus VideoVPPHW::Query(VideoCORE *core, mfxVideoParam *par)
     core->GetVideoProcessing((mfxHDL*)&vpp_ddi);
     if (0 == vpp_ddi)
     {
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        return MFX_ERR_UNSUPPORTED;
     }
 
     mfxVppCaps caps;
@@ -2337,7 +2337,7 @@ mfxStatus  VideoVPPHW::Init(
         }
         catch(std::bad_alloc&)
         {
-            return MFX_WRN_PARTIAL_ACCELERATION;
+            return MFX_ERR_UNSUPPORTED;
         }
 
         sts = m_ddi->CreateDevice(m_pCore);
@@ -2354,7 +2354,7 @@ mfxStatus  VideoVPPHW::Init(
         m_pCore->GetVideoProcessing((mfxHDL*)&m_ddi);
         if (0 == m_ddi)
         {
-            return MFX_WRN_PARTIAL_ACCELERATION;
+            return MFX_ERR_UNSUPPORTED;
         }
     }
 
@@ -2418,7 +2418,7 @@ mfxStatus  VideoVPPHW::Init(
         request.NumFrameMin = request.NumFrameSuggested = m_config.m_surfCount[VPP_OUT] ;
 
         sts = m_internalVidSurf[VPP_OUT].Alloc(m_pCore, request, par->vpp.Out.FourCC != MFX_FOURCC_YV12);
-        MFX_CHECK(MFX_ERR_NONE == sts, MFX_WRN_PARTIAL_ACCELERATION);
+        MFX_CHECK(MFX_ERR_NONE == sts, MFX_ERR_UNSUPPORTED);
 
         m_config.m_IOPattern |= m_isD3D9SimWithVideoMemOut ? MFX_IOPATTERN_OUT_VIDEO_MEMORY : MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
 
@@ -2433,7 +2433,7 @@ mfxStatus  VideoVPPHW::Init(
         request.NumFrameMin = request.NumFrameSuggested = m_config.m_surfCount[VPP_IN] ;
 
         sts = m_internalVidSurf[VPP_IN].Alloc(m_pCore, request, par->vpp.In.FourCC != MFX_FOURCC_YV12);
-        MFX_CHECK(MFX_ERR_NONE == sts, MFX_WRN_PARTIAL_ACCELERATION);
+        MFX_CHECK(MFX_ERR_NONE == sts, MFX_ERR_UNSUPPORTED);
 
         m_config.m_IOPattern |= m_isD3D9SimWithVideoMemIn ? MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY;
 
@@ -2743,7 +2743,7 @@ mfxStatus VideoVPPHW::QueryCaps(VideoCORE* core, MfxHwVideoProcessing::mfxVppCap
     core->GetVideoProcessing((mfxHDL*)&ddi);
     if (0 == ddi)
     {
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        return MFX_ERR_UNSUPPORTED;
     }
 
     caps = ddi->GetCaps();
@@ -2783,7 +2783,7 @@ mfxStatus VideoVPPHW::QueryIOSurf(
     core->GetVideoProcessing((mfxHDL*)&vpp_ddi);
     if (0 == vpp_ddi)
     {
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        return MFX_ERR_UNSUPPORTED;
     }
 
     mfxVppCaps caps;
@@ -2939,7 +2939,7 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
         if (m_config.m_surfCount[VPP_OUT] != m_internalVidSurf[VPP_OUT].NumFrameActual || m_executeParams.bComposite)
         {
             sts = m_internalVidSurf[VPP_OUT].Alloc(m_pCore, request, par->vpp.Out.FourCC != MFX_FOURCC_YV12);
-            MFX_CHECK(MFX_ERR_NONE == sts, MFX_WRN_PARTIAL_ACCELERATION);
+            MFX_CHECK(MFX_ERR_NONE == sts, MFX_ERR_UNSUPPORTED);
         }
 
         m_config.m_IOPattern |= m_isD3D9SimWithVideoMemOut ? MFX_IOPATTERN_OUT_VIDEO_MEMORY : MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
@@ -2959,7 +2959,7 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
         if (m_config.m_surfCount[VPP_IN] != m_internalVidSurf[VPP_IN].NumFrameActual || m_executeParams.bComposite)
         {
             sts = m_internalVidSurf[VPP_IN].Alloc(m_pCore, request, par->vpp.In.FourCC != MFX_FOURCC_YV12);
-            MFX_CHECK(MFX_ERR_NONE == sts, MFX_WRN_PARTIAL_ACCELERATION);
+            MFX_CHECK(MFX_ERR_NONE == sts, MFX_ERR_UNSUPPORTED);
         }
 
         m_config.m_IOPattern |= m_isD3D9SimWithVideoMemIn ? MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY;
@@ -5062,11 +5062,11 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
     /* 4. Check size */
     if (par->vpp.In.Width > caps->uMaxWidth  || par->vpp.In.Height  > caps->uMaxHeight ||
         par->vpp.Out.Width > caps->uMaxWidth || par->vpp.Out.Height > caps->uMaxHeight)
-        sts = GetWorstSts(sts, MFX_WRN_PARTIAL_ACCELERATION);
+        sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
     /* 5. Check fourcc */
     if ( !(caps->mFormatSupport[par->vpp.In.FourCC] & MFX_FORMAT_SUPPORT_INPUT) || !(caps->mFormatSupport[par->vpp.Out.FourCC] & MFX_FORMAT_SUPPORT_OUTPUT) )
-        sts = GetWorstSts(sts, MFX_WRN_PARTIAL_ACCELERATION);
+        sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
     /* 6. BitDepthLuma and BitDepthChroma should be configured for p010 format */
     if (MFX_FOURCC_P010 == par->vpp.In.FourCC
@@ -6782,7 +6782,7 @@ mfxStatus CopyFrameDataBothFields(
 
 mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
 {
-    mfxStatus statuses[] = {MFX_ERR_UNSUPPORTED, MFX_ERR_INVALID_VIDEO_PARAM, MFX_WRN_PARTIAL_ACCELERATION, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM, MFX_WRN_FILTER_SKIPPED, MFX_ERR_NONE};
+    mfxStatus statuses[] = {MFX_ERR_UNSUPPORTED, MFX_ERR_INVALID_VIDEO_PARAM, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM, MFX_WRN_FILTER_SKIPPED, MFX_ERR_NONE};
     std::vector<mfxStatus> stsPriority(statuses, statuses + sizeof(statuses) / sizeof(mfxStatus)); // first - the worst, last - the best
 
     std::vector<mfxStatus>::iterator it1 = std::find(stsPriority.begin(), stsPriority.end(), sts1);

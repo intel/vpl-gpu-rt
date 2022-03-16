@@ -260,26 +260,21 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Query(VideoCORE * core, mfxVideoParam *in, mfx
 
         //Extended coding options
         mfxStatus sts = CheckExtBufferId(*out);
-        if (sts != MFX_ERR_NONE)
-            return MFX_WRN_PARTIAL_ACCELERATION;
+        MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
 
         JpegEncCaps hwCaps = {};
         sts = QueryHwCaps(core, hwCaps);
-        if (sts != MFX_ERR_NONE)
-            return MFX_WRN_PARTIAL_ACCELERATION;
+        MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
     }
     else
     {
         // Check HW caps
         JpegEncCaps hwCaps = {};
         mfxStatus sts = QueryHwCaps(core, hwCaps);
-        if (sts != MFX_ERR_NONE)
-            return MFX_WRN_PARTIAL_ACCELERATION;
+        MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
 
         sts = CheckJpegParam(core, *in, hwCaps);
-        if (sts == MFX_WRN_PARTIAL_ACCELERATION)
-            return MFX_WRN_PARTIAL_ACCELERATION;
-        else if (sts == MFX_ERR_INCOMPATIBLE_VIDEO_PARAM)
+        if (sts == MFX_ERR_INCOMPATIBLE_VIDEO_PARAM)
             isInvalid++;
 
         // Extended coding options
@@ -406,7 +401,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Query(VideoCORE * core, mfxVideoParam *in, mfx
         {
             out->mfx.FrameInfo.FourCC = 0;
             out->mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
-            return MFX_WRN_PARTIAL_ACCELERATION;
+            return MFX_ERR_UNSUPPORTED;
         }
 
         if (in->Protected != 0)
@@ -501,7 +496,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Query(VideoCORE * core, mfxVideoParam *in, mfx
             //case MFX_PICSTRUCT_FIELD_REPEATED:
             //case MFX_PICSTRUCT_FRAME_DOUBLING:
             //case MFX_PICSTRUCT_FRAME_TRIPLING:
-                return MFX_WRN_PARTIAL_ACCELERATION;
+                return MFX_ERR_UNSUPPORTED;
             default:
                 isInvalid++;
                 out->mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_UNKNOWN;
@@ -525,12 +520,9 @@ mfxStatus MFXVideoENCODEMJPEG_HW::QueryIOSurf(VideoCORE * core, mfxVideoParam *p
 
     JpegEncCaps hwCaps = { };
     sts = QueryHwCaps(core, hwCaps);
-    if (sts != MFX_ERR_NONE)
-        return MFX_WRN_PARTIAL_ACCELERATION;
+    MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
 
     sts = CheckJpegParam(core, *par, hwCaps);
-    if (sts == MFX_WRN_PARTIAL_ACCELERATION)
-        return MFX_WRN_PARTIAL_ACCELERATION;
 
     // check for valid IOPattern
     mfxU16 IOPatternIn = par->IOPattern & (
@@ -624,7 +616,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Init(mfxVideoParam *par)
 
     m_ddi.reset( CreatePlatformMJpegEncoder( m_pCore ) );
     if (m_ddi.get() == 0)
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        return MFX_ERR_UNSUPPORTED;
 
     MFX_INTERNAL_CPY(&m_vFirstParam, par, sizeof(mfxVideoParam));
     MFX_INTERNAL_CPY(&m_vParam, &m_vFirstParam, sizeof(mfxVideoParam));
@@ -633,12 +625,10 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Init(mfxVideoParam *par)
         m_pCore,
         m_vParam.mfx.FrameInfo.Width,
         m_vParam.mfx.FrameInfo.Height);
-    if (sts != MFX_ERR_NONE)
-        return MFX_WRN_PARTIAL_ACCELERATION;
+    MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
 
     sts = m_ddi->CreateAccelerationService(m_vParam);
-    if (sts != MFX_ERR_NONE)
-        return MFX_WRN_PARTIAL_ACCELERATION;
+    MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
 
     mfxFrameAllocRequest request = { };
     request.Info = m_vParam.mfx.FrameInfo;
@@ -779,7 +769,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Reset(mfxVideoParam *par)
 
     sts = Query(m_pCore, par, &checked);
 
-    if (sts != MFX_ERR_NONE && sts != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM && sts != MFX_WRN_PARTIAL_ACCELERATION)
+    if (sts != MFX_ERR_NONE && sts != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
     {
         if (sts == MFX_ERR_UNSUPPORTED)
         {

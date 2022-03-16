@@ -910,7 +910,7 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
     if (platform != core->GetPlatformType())
     {
         assert(platform == MFX_PLATFORM_SOFTWARE);
-        MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION);
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
     if (isNeedChangeVideoParamWarning)
