@@ -1814,11 +1814,9 @@ mfxStatus MFXVideoDECODEVC1::RunThread(mfxFrameSurface1 *surface_work,
         else
         {
 
-            return sts;
+            MFX_RETURN(sts);
         }
     }
-
-    MFX_RETURN(MFX_ERR_ABORTED);
 }
 
 static mfxStatus VC1CompleteProc(void *, void *pParam, mfxStatus )
