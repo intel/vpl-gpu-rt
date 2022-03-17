@@ -46,11 +46,10 @@ namespace CommonCaps {
             true
             ;
     }
-}
-
-inline bool IsCmSupported(eMFXHWType platform)
-{
-    return platform <= MFX_HW_XE_HP_SDV;
+    inline bool IsCmSupported(eMFXHWType platform)
+    {
+        return platform <= MFX_HW_XE_HP_SDV;
+    }
 }
 
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE
@@ -100,29 +99,27 @@ namespace VP9ECaps {
 
 namespace VppCaps
 {
+    inline bool IsMctfSupported(eMFXHWType platform)
+    {
+        return (platform >= MFX_HW_TGL_LP && platform < MFX_HW_DG2);
+    }
 
-inline bool IsMctfSupported(eMFXHWType platform)
-{
-    return (platform >= MFX_HW_TGL_LP && platform < MFX_HW_DG2);
-}
+    inline bool IsVideoSignalSupported(eMFXHWType platform)
+    {
+        return 
+        platform >= MFX_HW_DG2;
+    }
 
-inline bool IsVideoSignalSupported(eMFXHWType platform)
-{
-    return 
-    platform >= MFX_HW_DG2;
-}
+    inline bool IsSwFieldProcessingSupported(eMFXHWType platform)
+    {
+        return
+        platform < MFX_HW_DG2;
+    }
 
-inline bool IsSwFieldProcessingSupported(eMFXHWType platform)
-{
-    return
-    platform < MFX_HW_DG2;
-}
-
-inline bool IsFieldProcessingSupported(eMFXHWType platform)
-{
-    return platform != MFX_HW_DG2;
-}
-
+    inline bool IsFieldProcessingSupported(eMFXHWType platform)
+    {
+        return platform != MFX_HW_DG2;
+    }
 }
 
 #ifdef MFX_ENABLE_VP8_VIDEO_DECODE
