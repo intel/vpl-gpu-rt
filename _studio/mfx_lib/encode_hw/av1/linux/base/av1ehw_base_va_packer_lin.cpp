@@ -84,6 +84,9 @@ void InitSPS(
     sps.seq_fields.bits.enable_superres            = bs_sh.enable_superres;
     sps.seq_fields.bits.enable_cdef                = bs_sh.enable_cdef;
     sps.seq_fields.bits.enable_restoration         = bs_sh.enable_restoration;
+
+    const mfxExtCodingOption2& CO2 = ExtBuffer::Get(par);
+    sps.reserved8b = CO2.BRefType == MFX_B_REF_PYRAMID;
 }
 
 void InitPPS(
@@ -434,6 +437,7 @@ void UpdatePPS(
     pps.qmatrix_flags.bits.qm_u = bs_fh.quantization_params.qm_u;
     pps.qmatrix_flags.bits.qm_v = bs_fh.quantization_params.qm_v;
 
+    pps.reserved8bits0 = static_cast<mfxU8>(task.PyramidLevel + 1);
 }
 
 inline void AddVaMiscHRD(
