@@ -22,7 +22,6 @@ set(sources_common
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_config.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_common.h
 
-    ${MSDK_STUDIO_ROOT}/shared/include/cm_mem_copy.h
     ${MSDK_STUDIO_ROOT}/shared/include/dispatch_session.h
     ${MSDK_STUDIO_ROOT}/shared/include/fast_copy_c_impl.h
     ${MSDK_STUDIO_ROOT}/shared/include/fast_copy.h
@@ -59,7 +58,6 @@ set(sources_hw
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_vpp_vaapi.h
     ${MSDK_STUDIO_ROOT}/shared/include/mfx_vpp_helper.h
 
-    ${MSDK_STUDIO_ROOT}/shared/src/cm_mem_copy.cpp
     ${MSDK_STUDIO_ROOT}/shared/src/mfx_vpp_vaapi.cpp
     ${MSDK_STUDIO_ROOT}/shared/src/mfx_vpp_helper.cpp
     ${MSDK_STUDIO_ROOT}/shared/src/libmfx_allocator_vaapi.cpp
@@ -86,7 +84,6 @@ if (CMAKE_SYSTEM_NAME MATCHES Linux)
 endif()
 
 set(HW_ONLY_LIBS
-  cmrt_cross_platform_hw
   asc
   $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
 )
@@ -104,6 +101,7 @@ set(LIBS
   $<$<BOOL:${ITT_FOUND}>:itt>
   Threads::Threads
   ${CMAKE_DL_LIBS}
+  $<$<PLATFORM_ID:Windows>:cfgmgr32>
 )
 
 target_compile_definitions(mfxcore

@@ -34,7 +34,11 @@
 
 #include "libmfx_core_hw.h"
 
+#ifdef MFX_ENABLE_EXT
 #include "cm_mem_copy.h"
+#else
+#include "cm_mem_copy_stub.h"
+#endif
 
 #include <sys/ioctl.h>
 

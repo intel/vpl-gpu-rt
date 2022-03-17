@@ -26,8 +26,6 @@
 #include <chrono>
 #include <thread>
 
-#include "cmrt_cross_platform.h"
-
 #include "mfx_task.h"
 #include "libmfx_core.h"
 #include "libmfx_core_hw.h"
@@ -38,6 +36,7 @@
 #include "mfx_h264_encode_hw_utils.h"
 #include "mfx_enc_common.h"
 #ifdef MFX_ENABLE_EXT
+#include "cmrt_cross_platform.h"
 #include "mfx_h264_encode_cm.h"
 #include "mfx_h264_encode_cm_defs.h"
 #endif
@@ -84,13 +83,6 @@ namespace MfxHwH264EncodeHW
         {
             return par.mfx.FrameInfo.Height;
         }
-    }
-
-    IDirect3DDeviceManager9 * GetDeviceManager(VideoCORE * core)
-    {
-    (void)core;
-
-    throw std::logic_error("GetDeviceManager not implemented on Linux for Look Ahead");
     }
 
     VmeData * FindUnusedVmeData(std::vector<VmeData> & vmeData)
@@ -2454,6 +2446,8 @@ mfxStatus ImplementationAvc::QueryFromMctf(void *pParam)
 using namespace ns_asc;
 mfxStatus ImplementationAvc::SCD_Put_Frame_Cm(DdiTask & task)
 {
+    (void)task;
+#ifdef MFX_ENABLE_EXT
     task.m_SceneChange = false;
     mfxFrameSurface1 *pSurfI = nullptr;
     pSurfI = task.m_yuv;
@@ -2488,6 +2482,9 @@ mfxStatus ImplementationAvc::SCD_Put_Frame_Cm(DdiTask & task)
         MFX_SAFE_CALL(amtScd.PutFrameProgressive(pData.Y, pData.Pitch));
     }
     return MFX_ERR_NONE;
+#else
+    MFX_RETURN(MFX_ERR_UNSUPPORTED);
+#endif
 }
 
 mfxStatus ImplementationAvc::SCD_Put_Frame_Hw(DdiTask& task)
@@ -2660,11 +2657,13 @@ mfxStatus ImplementationAvc::BuildPPyr(DdiTask & task, mfxU32 pyrWidth, bool bLa
 
 mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
 {
+#ifdef MFX_ENABLE_EXT
     if (task.m_wsSubSamplingEv)
     {
         MFX_SAFE_CALL(amtScd.ProcessQueuedFrame(&task.m_wsSubSamplingEv, &task.m_wsSubSamplingTask, &task.m_wsGpuImage, &task.m_Yscd));
         ReleaseResource(m_scd, (mfxHDL)task.m_wsGpuImage);
     }
+#endif
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(m_video);
     mfxExtCodingOption3 const & extOpt3 = GetExtBufferRef(m_video);
     task.m_SceneChange = amtScd.Get_frame_shot_Decision();
@@ -2745,6 +2744,7 @@ mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
 using namespace ns_asc;
 mfxStatus ImplementationAvc::Prd_LTR_Operation(DdiTask & task)
 {
+#ifdef MFX_ENABLE_EXT
     if (task.m_wsSubSamplingEv && CommonCaps::IsCmSupported(m_core->GetHWType()))
     {
         MFX_SAFE_CALL(amtScd.ProcessQueuedFrame(&task.m_wsSubSamplingEv, &task.m_wsSubSamplingTask, &task.m_wsGpuImage, &task.m_Yscd));
@@ -2755,6 +2755,7 @@ mfxStatus ImplementationAvc::Prd_LTR_Operation(DdiTask & task)
     {
         amtScd.ProcessQueuedFrame(&task.m_Yscd);
     }
+#endif
     task.m_frameLtrReassign = 0;
     task.m_LtrOrder = m_LtrOrder;
     task.m_RefOrder = m_RefOrder;

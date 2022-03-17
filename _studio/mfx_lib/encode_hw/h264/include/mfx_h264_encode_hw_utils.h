@@ -35,9 +35,13 @@
 #include "mfx_h264_encode_interface.h"
 #ifdef MFX_ENABLE_EXT
 #include "mfx_h264_encode_cm.h"
+#ifdef MFX_ENABLE_ASC
+#include "asc_cm.h"
+#endif
+#else
+#include "asc.h"
 #endif
 #include "ippi.h"
-#include "asc.h"
 #include "libmfx_core_interface.h"
 
 #include "mfx_vpp_helper.h"
@@ -1070,10 +1074,12 @@ namespace MfxHwH264Encode
             , m_RefOrder(-1)
             , m_RefQp(0)
             , m_idxScd(0)
+#ifdef MFX_ENABLE_EXT
             , m_wsSubSamplingEv(0)
             , m_wsSubSamplingTask(0)
             , m_wsGpuImage(0)
             , m_wsIdxGpuImage(0)
+#endif
             , m_Yscd(0)
 #ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
             , m_qMatrix()
@@ -1369,10 +1375,12 @@ namespace MfxHwH264Encode
         mfxI32 m_RefQp;
 
         mfxU32         m_idxScd;
+#ifdef MFX_ENABLE_EXT
         CmEvent       *m_wsSubSamplingEv;
         CmTask        *m_wsSubSamplingTask;
         CmSurface2DUP *m_wsGpuImage;
         SurfaceIndex  *m_wsIdxGpuImage;
+#endif
         mfxU8         *m_Yscd;
 
         BRCFrameParams  m_brcFrameParams;
@@ -2840,7 +2848,6 @@ private:
 
     struct LAOutObject;
 
-    using ns_asc::ASC;
 
     struct QpHistory
     {
@@ -2959,8 +2966,11 @@ private:
 #endif
 
         mfxStatus InitScd(mfxFrameAllocRequest& request);
-
-        ASC       amtScd;
+#ifdef MFX_ENABLE_ASC
+        ns_asc::ASC_Cm  amtScd;
+#else
+        ns_asc::ASC     amtScd;
+#endif
         mfxStatus SCD_Put_Frame_Cm(
             DdiTask & newTask);
         mfxStatus SCD_Put_Frame_Hw(

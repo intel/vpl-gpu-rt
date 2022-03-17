@@ -27,11 +27,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdint.h>
+
+#include "mfx_config.h"
 
     #include <immintrin.h>
 
 #include "mfxdefs.h"
-#include "cmrt_cross_platform.h"
 
 typedef mfxU8*             pmfxU8;
 typedef mfxI8*             pmfxI8;
@@ -44,6 +46,10 @@ typedef mfxF32*            pmfxF32;
 typedef mfxF64*            pmfxF64;
 typedef mfxU64*            pmfxU64;
 typedef mfxI64*            pmfxI64;
+
+typedef struct _LARGE_INTEGER {
+    int64_t QuadPart;
+} LARGE_INTEGER;
 
 namespace ns_asc{
 

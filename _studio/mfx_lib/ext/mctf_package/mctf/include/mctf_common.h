@@ -22,6 +22,7 @@
 
 #include <vector>
 #include "mfx_common.h"
+#include "asc_cm.h"
 
 // all internal logic is based on these constants
 // if they are not defined, the logic of all checks,
@@ -301,10 +302,6 @@ public:
     CMCRuntimeError() : std::exception() { assert(!"CmRuntimeError"); }
 };
 
-// forward declarations
-using ns_asc::ASC;
-//class Time;
-
 //Cm based Motion estimation and compensation
 class CMC
 {
@@ -502,7 +499,7 @@ private:
         m_externalSCD,
         m_adaptControl, //Based on sequence stats indicates if denoising should be performed or not
         m_doFilterFrame;
-    std::unique_ptr<ASC>
+    std::unique_ptr<ns_asc::ASC_Cm>
         pSCD;
     // a queue MCTF of frames MCTF operates on
     std::vector<gpuFrameData>

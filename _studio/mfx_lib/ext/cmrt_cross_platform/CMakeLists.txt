@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2021 Intel Corporation
+# Copyright (c) 2022 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,28 +18,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-add_subdirectory(shared/mfx_trace)
-add_subdirectory(shared/mfx_logging)
-add_subdirectory(shared/umc)
-add_subdirectory(shared/asc)
-add_subdirectory(mfx_lib/decode)
-add_subdirectory(mfx_lib/encode_hw)
-if (MFX_ENABLE_EXT)
-  add_subdirectory(mfx_lib/ext)
-endif()
-add_subdirectory(mfx_lib/vpp)
-add_subdirectory(mfx_lib/shared)
-if (MFX_ENABLE_PXP)
-  add_subdirectory(mfx_lib/pxp)
-endif()
-add_subdirectory(mfx_lib)
-if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/mfx_config_trace")
-add_subdirectory(mfx_config_trace)
-endif()
+add_library(cmrt_cross_platform_hw STATIC
+  include/cmrt_cross_platform.h
+  include/cmrt_utility.h
+  include/cm_mem_copy.h
+  include/cm_gpu_copy_code.h
+  src/cmrt_cross_platform.cpp
+  src/cmrt_utility.cpp
+  src/cm_mem_copy.cpp
+)
 
-if (MFX_ENABLE_ENCTOOLS)
-  add_subdirectory(shared/enctools)
-  add_subdirectory(enctools)
-endif()
+target_include_directories(cmrt_cross_platform_hw
+  PUBLIC
+    include
+    ${MSDK_STUDIO_ROOT}/shared/asc/include
+    ${MSDK_STUDIO_ROOT}/mfx_lib/ext/genx/copy_kernels/isa
+)
+
+target_sources(cmrt_cross_platform_hw
+  PRIVATE
+    ${MSDK_STUDIO_ROOT}/mfx_lib/ext/genx/copy_kernels/isa/genx_copy_kernel_gen12lp_isa.cpp
+)
+
+target_link_libraries(cmrt_cross_platform_hw
+  PUBLIC
+    $<$<PLATFORM_ID:Windows>:cfgmgr32>
+    mfx_static_lib
+    vm
+    mfx_logging
+  PRIVATE
+    mfx_sdl_properties
+)
 
 include(sources_ext.cmake OPTIONAL)

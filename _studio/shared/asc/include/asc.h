@@ -21,11 +21,24 @@
 #define _ASC_H_
 
 #include <list>
-#include <map>
 #include <string>
 #include "asc_structures.h"
 
 namespace ns_asc {
+
+#if defined(__AVX2__)
+#define ASC_CPU_DISP_INIT_AVX2(func)        (func = (func ## _AVX2))
+#define ASC_CPU_DISP_INIT_AVX2_SSE4_C(func) (m_AVX2_available ? ASC_CPU_DISP_INIT_AVX2(func) : ASC_CPU_DISP_INIT_SSE4_C(func))
+#define ASC_CPU_DISP_INIT_AVX2_C(func)      (m_AVX2_available ? ASC_CPU_DISP_INIT_AVX2(func) : ASC_CPU_DISP_INIT_C(func))
+#else
+#define ASC_CPU_DISP_INIT_AVX2_SSE4_C       ASC_CPU_DISP_INIT_SSE4_C
+#define ASC_CPU_DISP_INIT_AVX2_C            ASC_CPU_DISP_INIT_C
+#endif
+
+#define ASC_CPU_DISP_INIT_C(func)           (func = (func ## _C))
+#define ASC_CPU_DISP_INIT_SSE4(func)        (func = (func ## _SSE4))
+#define ASC_CPU_DISP_INIT_SSE4_C(func)      (m_SSE4_available ? ASC_CPU_DISP_INIT_SSE4(func) : ASC_CPU_DISP_INIT_C(func))
+
 
 typedef void(*t_GainOffset)(pmfxU8 *pSrc, pmfxU8 *pDst, mfxU16 width, mfxU16 height, mfxU16 pitch, mfxI16 gainDiff);
 typedef void(*t_RsCsCalc)(pmfxU8 pSrc, int srcPitch, int wblocks, int hblocks, pmfxU16 pRs, pmfxU16 pCs);
@@ -50,10 +63,6 @@ public:
     mfxI16
         tcor,
         mcTcor;
-    CmSurface2DUP
-        *gpuImage;
-    SurfaceIndex
-        *idxImage;
     mfxU32
         CsVal,
         RsVal;
@@ -108,37 +117,13 @@ typedef struct ASCextended_storage {
 class ASC {
 public:
     ASC();
-private:
-    CmDevice
-        *m_device;
-    CmQueue
-        *m_queue;
-    CmSurface2DUP
-        *m_pSurfaceCp;
-    SurfaceIndex
-        *m_pIdxSurfCp;
-    CmProgram
-        *m_program;
-    CmKernel
-        *m_kernel_p,
-        *m_kernel_t,
-        *m_kernel_b,
-        *m_kernel_cp;
-    CmThreadSpace
-        *m_threadSpace,
-        *m_threadSpaceCp;
-    CmEvent
-        *m_subSamplingEv,
-        *m_frameCopyEv;
+protected:
     mfxU32
         m_gpuImPitch,
         m_threadsWidth,
         m_threadsHeight;
     mfxU8
         *m_frameBkp;
-    CmTask
-        *m_task,
-        *m_taskCp;
     mfxI32
         m_gpuwidth,
         m_gpuheight;
@@ -148,10 +133,8 @@ private:
 
     ASCVidRead *m_support;
     ASCVidData *m_dataIn;
-    ASCVidSample **m_videoData;
     bool
         m_dataReady,
-        m_cmDeviceAssigned,
         m_is_LTR_on,
         m_ASCinitialized;
     mfxI32
@@ -170,10 +153,6 @@ private:
     std::list<std::pair<mfxI32, bool> >
         ltr_check_history;
 
-    // these maps will be used by m_pCmCopy to track already created surfaces
-    std::map<mfxHDLPair, CmSurface2D *> m_tableCmRelations2;
-    std::map<CmSurface2D *, SurfaceIndex *> m_tableCmIndex2;
-
     int m_AVX2_available;
     int m_SSE4_available;
     t_GainOffset               GainOffset;
@@ -183,6 +162,8 @@ private:
     t_ImageDiffHistogram       ImageDiffHistogram;
     t_ME_SAD_8x8_Block_Search  ME_SAD_8x8_Block_Search;
     t_Calc_RaCa_pic            Calc_RaCa_pic;
+
+    virtual void VidSample_dispose();
 
     void SubSample_Point(
         pmfxU8 pSrc, mfxU32 srcWidth, mfxU32 srcHeight, mfxU32 srcPitch,
@@ -194,21 +175,16 @@ private:
 
     typedef void(ASC::*t_resizeImg)(mfxU8 *frame, mfxI32 srcWidth, mfxI32 srcHeight, mfxI32 inputPitch, ns_asc::ASCLayers dstIdx, mfxU32 parity);
     t_resizeImg resizeFunc;
-    mfxStatus VidSample_Alloc();
-    void VidSample_dispose();
+
     void VidRead_dispose();
     mfxStatus SetWidth(mfxI32 Width);
     mfxStatus SetHeight(mfxI32 Height);
     mfxStatus SetPitch(mfxI32 Pitch);
     void SetNextField();
     mfxStatus SetDimensions(mfxI32 Width, mfxI32 Height, mfxI32 Pitch);
-    mfxStatus alloc();
-    mfxStatus InitCPU();
     void Setup_Environment();
     void SetUltraFastDetection();
-    mfxStatus InitGPUsurf(CmDevice* pCmDevice);
     void Params_Init();
-    mfxStatus IO_Setup();
     void InitStruct();
     mfxStatus VidRead_Init();
     void VidSample_Init();
@@ -222,48 +198,17 @@ private:
     void GeneralBufferRotation();
     void Put_LTR_Hint();
     ASC_LTR_DEC Continue_LTR_Mode(mfxU16 goodLTRLimit, mfxU16 badLTRLimit);
-    mfxStatus SetKernel(SurfaceIndex *idxFrom, SurfaceIndex *idxTo, CmTask **subSamplingTask, mfxU32 parity);
-    mfxStatus SetKernel(SurfaceIndex *idxFrom, CmTask **subSamplingTask, mfxU32 parity);
-    mfxStatus SetKernel(SurfaceIndex *idxFrom, mfxU32 parity);
-
-    mfxStatus QueueFrame(mfxHDLPair frameHDL, SurfaceIndex *idxTo, CmEvent **subSamplingEv, CmTask **subSamplingTask, mfxU32 parity);
-    mfxStatus QueueFrame(mfxHDLPair frameHDL, CmEvent **subSamplingEv, CmTask **subSamplingTask, mfxU32 parity);
-
-    mfxStatus QueueFrame(mfxHDLPair frameHDL, mfxU32 parity);
-    mfxStatus QueueFrame(SurfaceIndex *idxFrom, mfxU32 parity);
-#ifndef CMRT_EMU
-    mfxStatus QueueFrame(SurfaceIndex *idxFrom, SurfaceIndex *idxTo, CmEvent **subSamplingEv, CmTask **subSamplingTask, mfxU32 parity);
-    mfxStatus QueueFrame(SurfaceIndex *idxFrom, CmEvent **subSamplingEv, CmTask **subSamplingTask, mfxU32 parity);
-#else
-    mfxStatus QueueFrame(SurfaceIndex *idxFrom, CmEvent **subSamplingEv, CmTask **subSamplingTask, CmThreadSpace *subThreadSpace, mfxU32 parity);
-#endif
     void AscFrameAnalysis();
-    mfxStatus RunFrame(SurfaceIndex *idxFrom, mfxU32 parity);
-    mfxStatus RunFrame(mfxHDLPair frameHDL, mfxU32 parity);
-    mfxStatus RunFrame(mfxU8 *frame, mfxU32 parity);
-
-    mfxStatus CreateCmSurface2D(mfxHDLPair pSrcPair, CmSurface2D* & pCmSurface2D, SurfaceIndex* &pCmSrcIndex);
-    mfxStatus CreateCmKernels();
-    mfxStatus CopyFrameSurface(mfxHDLPair frameHDL);
-    void Reset_ASCCmDevice();
-    void Set_ASCCmDevice();
     mfxStatus SetInterlaceMode(ASCFTS interlaceMode);
 public:
-    bool Query_ASCCmDevice();
-    mfxStatus Init(mfxI32 Width, 
+
+    virtual mfxStatus Init(mfxI32 Width, 
         mfxI32 Height, 
         mfxI32 Pitch, 
         mfxU32 PicStruct, 
-#ifdef MFX_ENABLE_KERNELS
-        CmDevice* pCmDevice, 
-#endif
         bool isCmSupported);
-    void Close();
+    virtual void Close();
     bool IsASCinitialized();
-
-    mfxStatus AssignResources(mfxU8 position, mfxU8 *pixelData);
-    mfxStatus AssignResources(mfxU8 position, CmSurface2DUP *inputFrame, mfxU8 *pixelData);
-    mfxStatus SwapResources(mfxU8 position, CmSurface2DUP **inputFrame, mfxU8 **pixelData);
 
     void SetControlLevel(mfxU8 level);
     mfxStatus SetGoPSize(mfxU32 GoPSize);
@@ -272,32 +217,6 @@ public:
     inline void SetParityTFF() { SetInterlaceMode(ASCtopfieldfirst_frame); }
     inline void SetParityBFF() { SetInterlaceMode(ASCbotfieldFirst_frame); }
     inline void SetProgressiveOp() { SetInterlaceMode(ASCprogressive_frame); }
-
-    mfxStatus QueueFrameProgressive(mfxHDLPair surface, SurfaceIndex *idxTo, CmEvent **subSamplingEv, CmTask **subSamplingTask);
-    mfxStatus QueueFrameProgressive(mfxHDLPair surface, CmEvent **taskEvent, CmTask **subSamplingTask);
-
-    mfxStatus QueueFrameProgressive(mfxHDLPair surface);
-    mfxStatus QueueFrameInterlaced(mfxHDLPair surface);
-
-    mfxStatus QueueFrameProgressive(SurfaceIndex* idxSurf, CmEvent *subSamplingEv, CmTask *subSamplingTask);
-    mfxStatus QueueFrameProgressive(SurfaceIndex* idxSurf);
-    mfxStatus QueueFrameInterlaced(SurfaceIndex* idxSurf);
-
-    bool Query_resize_Event();
-    mfxStatus ProcessQueuedFrame(CmEvent **subSamplingEv, CmTask **subSamplingTask, CmSurface2DUP **inputFrame, mfxU8 **pixelData);
-    mfxStatus ProcessQueuedFrame();
-    mfxStatus ProcessQueuedFrame(mfxU8** pixelData);
-
-    mfxStatus PutFrameProgressive(mfxHDLPair surface);
-    mfxStatus PutFrameProgressive(mfxHDL surface);
-    mfxStatus PutFrameInterlaced(mfxHDLPair surface);
-    mfxStatus PutFrameInterlaced(mfxHDL surface);
-
-    mfxStatus PutFrameProgressive(SurfaceIndex* idxSurf);
-    mfxStatus PutFrameInterlaced(SurfaceIndex* idxSurf);
-
-    mfxStatus PutFrameProgressive(mfxU8 *frame, mfxI32 Pitch);
-    mfxStatus PutFrameInterlaced(mfxU8 *frame, mfxI32 Pitch);
 
     bool   Get_Last_frame_Data();
     mfxU16 Get_asc_subsampling_width();
@@ -317,13 +236,16 @@ public:
     mfxStatus get_LTR_op_hint(ASC_LTR_DEC& scd_LTR_hint);
 
     mfxStatus calc_RaCa_pic(mfxU8 *pSrc, mfxI32 width, mfxI32 height, mfxI32 pitch, mfxF64 &RsCs);
-    mfxStatus calc_RaCa_Surf(mfxHDLPair surface, mfxF64 &rscs);
 
     bool Check_last_frame_processed(mfxU32 frameOrder);
     void Reset_last_frame_processed();
 
     static mfxI32 Get_CpuFeature_AVX2();
     static mfxI32 Get_CpuFeature_SSE41();
+
+    virtual mfxStatus calc_RaCa_Surf(mfxHDLPair surface, mfxF64& rscs);
+protected:
+    ASCVidSample** m_videoData;
 };
 };
 

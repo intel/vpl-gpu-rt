@@ -182,7 +182,22 @@ template<typename T> void Clear(std::vector<T> & v)
 
 mfxStatus CheckIOMode(mfxVideoParam *par, VideoVPPHW::IOMode mode);
 mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, bool bCorrectionEnable = false);
-mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2);
+
+mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
+{
+    mfxStatus statuses[] = {MFX_ERR_UNSUPPORTED, MFX_ERR_INVALID_VIDEO_PARAM, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM, MFX_WRN_FILTER_SKIPPED, MFX_ERR_NONE};
+    std::vector<mfxStatus> stsPriority(statuses, statuses + sizeof(statuses) / sizeof(mfxStatus)); // first - the worst, last - the best
+
+    std::vector<mfxStatus>::iterator it1 = std::find(stsPriority.begin(), stsPriority.end(), sts1);
+    std::vector<mfxStatus>::iterator it2 = std::find(stsPriority.begin(), stsPriority.end(), sts2);
+
+    if (stsPriority.end() == it1 || stsPriority.end() == it2)
+        return MFX_ERR_UNKNOWN;
+
+    return (it1 < it2) ? *it1 : *it2;
+} // mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
+
+
 mfxStatus ConfigureExecuteParams(
     mfxVideoParam & videoParam, // [IN]
     mfxVppCaps & caps,          // [IN]
@@ -6778,21 +6793,6 @@ mfxStatus CopyFrameDataBothFields(
 
     return core->DoFastCopyExtended(&vidSurf, &sysSurf);
 } // mfxStatus CopyFrameDataBothFields(
-
-
-mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
-{
-    mfxStatus statuses[] = {MFX_ERR_UNSUPPORTED, MFX_ERR_INVALID_VIDEO_PARAM, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM, MFX_WRN_FILTER_SKIPPED, MFX_ERR_NONE};
-    std::vector<mfxStatus> stsPriority(statuses, statuses + sizeof(statuses) / sizeof(mfxStatus)); // first - the worst, last - the best
-
-    std::vector<mfxStatus>::iterator it1 = std::find(stsPriority.begin(), stsPriority.end(), sts1);
-    std::vector<mfxStatus>::iterator it2 = std::find(stsPriority.begin(), stsPriority.end(), sts2);
-
-    if (stsPriority.end() == it1 || stsPriority.end() == it2)
-        return MFX_ERR_UNKNOWN;
-
-    return (it1 < it2) ? *it1 : *it2;
-} // mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
 
 #endif // MFX_ENABLE_VPP
 /* EOF */

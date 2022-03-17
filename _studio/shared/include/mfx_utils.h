@@ -46,6 +46,8 @@
 #include <atomic>
 #include <sstream>
 #include <utility>
+#include <malloc.h>
+#include <cstdlib>
 
 #if defined(MFX_ENABLE_LOG_UTILITY)
 template <
@@ -1204,6 +1206,17 @@ inline bool IsOff(mfxU32 opt)
 inline bool IsAdapt(mfxU32 opt)
 {
     return opt == MFX_CODINGOPTION_ADAPTIVE;
+}
+
+
+inline void* AlignedMalloc(size_t size, size_t alignment)
+{
+    return aligned_alloc(alignment, size);
+}
+
+inline void AlignedFree(void* memory)
+{
+    free(memory);
 }
 
 

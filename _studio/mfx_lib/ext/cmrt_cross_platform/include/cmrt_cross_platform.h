@@ -24,6 +24,7 @@
 
 #include "mfx_common.h"
 #include "cmrt_utility.h"
+#include "asc_structures.h"
 
 /* Applicable for old and new CMAPI */
 
@@ -383,14 +384,6 @@ typedef DWORD *PDWORD;
 typedef unsigned int *PUINT;
 typedef LONG HRESULT;
 typedef long long LONGLONG;
-
-typedef union _LARGE_INTEGER {
-    struct {
-        uint32_t LowPart;
-        int32_t HighPart;
-    } u;
-    int64_t QuadPart;
-} LARGE_INTEGER;
 
 //Performance
 EXTERN_C INT QueryPerformanceFrequency(LARGE_INTEGER *lpFrequency);

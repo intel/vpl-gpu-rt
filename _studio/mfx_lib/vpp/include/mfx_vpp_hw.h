@@ -35,11 +35,14 @@
 #include "libmfx_core_interface.h"
 
 #ifdef MFX_ENABLE_EXT
+
 #include "cmrt_cross_platform.h" // Gpucopy stuff
-#if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
-#include "asc.h"        // Scene change detection
-#endif
 #include "cm_mem_copy.h"         // Needed for mirroring kernels
+
+#if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+#include "asc_cm.h"        // Scene change detection
+#endif
+
 #ifdef MFX_ENABLE_KERNELS
 #include "genx_fcopy_gen12lp_isa.h"
 #endif
@@ -49,6 +52,9 @@
 #include "cpu_detect.h"
 #include <list>
 #endif
+
+#else
+#include "asc.h"
 #endif
 
 namespace MfxHwVideoProcessing
@@ -1008,7 +1014,7 @@ namespace MfxHwVideoProcessing
         CmCopyWrapper *m_pCmCopy;
 
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
-       ns_asc::ASC m_SCD;
+       ns_asc::ASC_Cm m_SCD;
 #endif
 
         CmDevice  *m_pCmDevice;

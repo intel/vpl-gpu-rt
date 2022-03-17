@@ -27,9 +27,12 @@
 #include <numeric>
 #include <math.h>
 #include <limits.h> /* for INT_MIN, INT_MAX, etc. on Linux/Android */
+#include <stdlib.h>
 
 
+#ifdef MFX_ENABLE_EXT
 #include "cmrt_cross_platform.h"
+#endif
 
 #include <assert.h>
 #include "mfx_brc_common.h"
@@ -38,7 +41,7 @@
 #include "umc_video_data.h"
 #include "fast_copy.h"
 #include "mfx_enc_common.h"
-
+#include "mfx_utils.h"
 
 using namespace MfxHwH264Encode;
 
@@ -2569,7 +2572,7 @@ MfxFrameAllocResponse::~MfxFrameAllocResponse()
             {
                 if (m_sysmems[i])
                 {
-                    CM_ALIGNED_FREE(m_sysmems[i]);
+                    AlignedFree(m_sysmems[i]);
                     m_sysmems[i] = 0;
                 }
             }
@@ -2743,7 +2746,7 @@ mfxStatus MfxFrameAllocResponse::AllocCmSurfacesUP(
     std::fill(m_flag.begin(), m_flag.end(), 0);
 
     for (int i = 0; i < req.NumFrameMin; i++) {
-        m_sysmems[i] = CM_ALIGNED_MALLOC(size, 0x1000);
+        m_sysmems[i] = AlignedMalloc(size, 0x1000);
         m_mids[i] = CreateSurface(device, m_sysmems[i], req.Info.Width, req.Info.Height, req.Info.FourCC);
     }
 
@@ -2776,7 +2779,7 @@ mfxStatus MfxFrameAllocResponse::AllocFrames(
     std::fill(m_flag.begin(), m_flag.end(), 0);
 
     for (int i = 0; i < req.NumFrameMin; i++) {
-        m_sysmems[i] = CM_ALIGNED_MALLOC(size, 0x1000);
+        m_sysmems[i] = AlignedMalloc(size, 0x1000);
     }
 
     NumFrameActual = req.NumFrameMin;
@@ -2814,7 +2817,7 @@ mfxStatus MfxFrameAllocResponse::AllocCmBuffersUp(
 
     for (int i = 0; i < req.NumFrameMin; i++)
     {
-        m_sysmems[i] = CM_ALIGNED_MALLOC(size, 0x1000);
+        m_sysmems[i] = AlignedMalloc(size, 0x1000);
         m_mids[i] = CreateBuffer(device, size, m_sysmems[i]);
     }
 

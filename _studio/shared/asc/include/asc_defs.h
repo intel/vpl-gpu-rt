@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <stdint.h>
+
 #include "mfx_config.h"
 
 #ifndef __ASC_DEFS_H__
@@ -50,7 +52,6 @@
 #define NABS(a)           (((a)<0)?(-(a)):(a))
 #define NAVG(a,b)         ((a+b)/2)
 
-#define Clamp(x)           ((x<0)?0:((x>255)?255:x))
 #define RF_DECISION_LEVEL 10
 
 #define TSCSTATBUFFER     3

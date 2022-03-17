@@ -20,6 +20,7 @@
 
 #include "mctf_common.h"
 #include "asc.h"
+#include "asc_cm.h"
 #include "asc_defs.h"
 
 #include "genx_me_gen12lp_isa.h"
@@ -660,7 +661,7 @@ mfxStatus CMC::MCTF_INIT(
 
     mfxStatus sts = MFX_ERR_NONE;
     if(!m_externalSCD)
-        pSCD.reset(new(ASC));
+        pSCD.reset(new(ASC_Cm));
 
     IntMctfParams MctfParam{};
     QueryDefaultParams(&MctfParam);

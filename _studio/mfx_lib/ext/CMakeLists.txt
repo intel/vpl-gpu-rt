@@ -18,6 +18,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+add_subdirectory(cmrt_cross_platform)
+add_subdirectory(asc)
+
 add_library(mfx_ext STATIC)
 
 if(MFX_ENABLE_KERNELS)
@@ -231,13 +234,13 @@ if (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
   )
 endif()
 
-  target_link_libraries(mfx_ext
-    PUBLIC 
-      mfx_static_lib
-      cmrt_cross_platform_hw
-      asc
-    PRIVATE
-      bitrate_control
-  )
+target_link_libraries(mfx_ext
+  PUBLIC
+    mfx_static_lib
+    asc_ext
+    cmrt_cross_platform_hw
+  PRIVATE
+    bitrate_control
+)
 
 include(sources_ext.cmake OPTIONAL)
