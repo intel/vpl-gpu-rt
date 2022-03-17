@@ -767,6 +767,7 @@ namespace Base
         RepeatedFrames    FramesToShow         = {};
         mfxU16            RepeatedFrameBytes   = 0;
         mfxU16            PrevRepeatedFrameBytes = 0;
+        mfxU32            TCBRCTargetFrameSize   = 0;
     };
 
     inline void Invalidate(TaskCommonPar& par)
@@ -852,6 +853,20 @@ namespace Base
         numTileRows = std::max(mfxU16(1), numTileRows);
 
         return std::make_tuple(numTileCols, numTileRows);
+    }
+
+    inline mfxU32 GetAvgFrameSizeInBytes(const mfxVideoParam& par)
+    {
+        mfxU32 avgFrameSizeInBytes = 0;
+
+        if (par.mfx.FrameInfo.FrameRateExtN && par.mfx.FrameInfo.FrameRateExtD)
+        {
+            // Use type mfxU64 to avoid value overflow with most value precise obtained.
+            mfxU64 targetbps    = TargetKbps(par.mfx) * 1000;
+            avgFrameSizeInBytes = mfxU32(targetbps * par.mfx.FrameInfo.FrameRateExtD / par.mfx.FrameInfo.FrameRateExtN / 8);
+        }
+
+        return avgFrameSizeInBytes;
     }
 
     class FrameLocker
@@ -1200,6 +1215,7 @@ namespace Base
         , FEATURE_ENCODED_FRAME_INFO
         , FEATURE_QMATRIX
         , FEATURE_QUERY_IMPL_DESC
+        , FEATURE_MAX_FRAME_SIZE
         , NUM_FEATURES
     };
 

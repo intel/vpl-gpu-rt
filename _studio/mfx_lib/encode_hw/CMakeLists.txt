@@ -202,6 +202,8 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_tile.h
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_encoded_frame_info.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_encoded_frame_info.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_max_frame_size.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_max_frame_size.h
   )
 
   custom_source_group("av1" ${AV1_VIDEO_ENCODE_SRC})

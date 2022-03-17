@@ -118,6 +118,8 @@ void General::SetSupported(ParamSupport& blocks)
         MFX_COPY_FIELD(TargetChromaFormatPlus1);
         MFX_COPY_FIELD(TargetBitDepthLuma);
         MFX_COPY_FIELD(TargetBitDepthChroma);
+        MFX_COPY_FIELD(LowDelayBRC);
+        MFX_COPY_FIELD(ScenarioInfo);
     });
 
     // keep it temporally for backward compability
@@ -367,6 +369,8 @@ void General::SetInherited(ParamInheritance& par)
         INHERIT_OPT(TargetChromaFormatPlus1);
         INHERIT_OPT(TargetBitDepthLuma);
         INHERIT_OPT(TargetBitDepthChroma);
+        INHERIT_OPT(LowDelayBRC);
+        INHERIT_OPT(ScenarioInfo);
     });
 #undef INIT_EB
 #undef INHERIT_OPT
@@ -656,6 +660,13 @@ void General::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
     {
         return CheckLevelConstraints(out, *m_pQWCDefaults);
+    });
+
+    Push(BLK_CheckTCBRC
+        ,[this](const mfxVideoParam&, mfxVideoParam& out, StorageW& strg) -> mfxStatus
+    {
+        const auto& caps = Glob::EncodeCaps::Get(strg);
+        return CheckTCBRC(out, caps);
     });
 }
 
@@ -1117,11 +1128,12 @@ void General::Reset(const FeatureBlocks& blocks, TPushR Push)
         MFX_CHECK(!isIdrRequired || !(pResetOpt && IsOff(pResetOpt->StartNewSequence))
             , MFX_ERR_INVALID_VIDEO_PARAM); // Reset can't change parameters w/o IDR. Report an error
 
+        const mfxExtCodingOption3& CO3 = ExtBuffer::Get(parNew);
         bool brcReset =
             (      parOld.mfx.RateControlMethod == MFX_RATECONTROL_CBR
                 || parOld.mfx.RateControlMethod == MFX_RATECONTROL_VBR
                 || parOld.mfx.RateControlMethod == MFX_RATECONTROL_VCM)
-            && (   (mfxU32)TargetKbps(parOld.mfx) != (mfxU32)TargetKbps(parNew.mfx)
+            && (   ((mfxU32)TargetKbps(parOld.mfx) != (mfxU32)TargetKbps(parNew.mfx) && IsOff(CO3.LowDelayBRC))
                 || (mfxU32)BufferSizeInKB(parOld.mfx) != (mfxU32)BufferSizeInKB(parNew.mfx)
                 || (mfxU32)InitialDelayInKB(parOld.mfx) != (mfxU32)InitialDelayInKB(parNew.mfx)
                 || parOld.mfx.FrameInfo.FrameRateExtN != parNew.mfx.FrameInfo.FrameRateExtN
@@ -2090,6 +2102,16 @@ inline void SetTaskInsertHeaders(
         task.InsertHeaders |= INSERT_FRM_OBU;
 }
 
+inline void SetTaskTCBRC(
+    TaskCommonPar& task
+    , const mfxVideoParam& par)
+{
+    ThrowAssert(par.mfx.FrameInfo.FrameRateExtD == 0, "FrameRateExtD = 0");
+
+    mfxU32 avgFrameSizeInBytes = GetAvgFrameSizeInBytes(par);
+    task.TCBRCTargetFrameSize  = avgFrameSizeInBytes;
+}
+
 void General::ConfigureTask(
     TaskCommonPar& task
     , const Defaults::Param& dflts
@@ -2111,6 +2133,12 @@ void General::ConfigureTask(
     SetTaskRepeatedFrames(task, m_prevTask);
 
     SetTaskInsertHeaders(task, m_prevTask, par, m_insertIVFSeq);
+
+    const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
+    if (pCO3 && IsOn(pCO3->LowDelayBRC) && task.TCBRCTargetFrameSize == 0)
+    {
+        SetTaskTCBRC(task, par);
+    }
 
     if (!IsHidden(task))
         task.wasShown = true;
@@ -2637,6 +2665,11 @@ void SetDefaultBRC(
     if (pCO3)
     {
         defPar.base.GetQPOffset(defPar, pCO3->EnableQPOffset, pCO3->QPOffset);
+    }
+
+    if(pCO3 && IsOn(pCO3->LowDelayBRC))
+    {
+        SetDefault<mfxU16>(pCO3->ScenarioInfo, MFX_SCENARIO_REMOTE_GAMING);
     }
 }
 
@@ -3514,6 +3547,19 @@ mfxStatus General::CheckLevelConstraints(
             changed++;
         }
     }
+
+    MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+    return MFX_ERR_NONE;
+}
+
+mfxStatus General::CheckTCBRC(mfxVideoParam& par, const ENCODE_CAPS_AV1& caps)
+{
+    mfxExtCodingOption3* CO3 = ExtBuffer::Get(par);
+    MFX_CHECK(CO3 && IsOn(CO3->LowDelayBRC), MFX_ERR_NONE);
+
+    bool isVBR = par.mfx.RateControlMethod  ==  MFX_RATECONTROL_VBR;
+    mfxU32 changed = 0;
+    changed += SetIf(CO3->LowDelayBRC, !(caps.SupportedRateControlMethods.fields.TCBRCSupport && isVBR), MFX_CODINGOPTION_OFF);
 
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
     return MFX_ERR_NONE;

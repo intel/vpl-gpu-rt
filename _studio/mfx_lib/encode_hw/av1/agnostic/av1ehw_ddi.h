@@ -160,7 +160,8 @@ typedef struct tagENCODE_CAPS_AV1
             uint32_t  LowDelay                 : 1;
             uint32_t  LookaheadBRCSupport      : 1;  
             uint32_t  LookaheadAnalysisSupport : 1;  
-            uint32_t  reserved2                : 12; // [0]
+            uint32_t  TCBRCSupport             : 1;
+            uint32_t  reserved2                : 11; // [0]
         } fields;
         uint32_t value;
     } SupportedRateControlMethods;
