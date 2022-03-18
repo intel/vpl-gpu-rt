@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2022 Intel Corporation
+# Copyright (c) 2017-2021 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +42,7 @@ option( ENABLE_OPENCL "Build targets dependent on OpenCL?" ON )
 #
 option( ENABLE_ALL "Enable all dependencies and features?" OFF )
 
-option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" ${ENABLE_ALL} )
+  option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" ${ENABLE_ALL} )
 
 option( ENABLE_TEXTLOG "Enable textlog tracing?" ${ENABLE_ALL})
 option( ENABLE_STAT "Enable stat tracing?" ${ENABLE_ALL})
@@ -55,13 +55,15 @@ option( BUILD_ALL "Build all the targets?" OFF )
 
 option( BUILD_RUNTIME "Build mediasdk runtime (library, plugins, etc.)?" ON )
 
-  cmake_dependent_option( BUILD_TOOLS "Build tools?" ON "${BUILD_ALL}" OFF)
+  cmake_dependent_option( BUILD_TOOLS "Build tools?" ON "BUILD_ALL" OFF)
 
 
-option(BUILD_TESTS "Build tests?" "${BUILD_ALL}")
+option(BUILD_TESTS "Build tests?" ${BUILD_ALL})
 option(USE_SYSTEM_GTEST "Use system installed gtest?" OFF)
 
 option(BUILD_MOCK_TESTS "Build all mocks' self tests?" ${BUILD_TESTS} )
+
+option(BUILD_TUTORIALS "Build tutorials?" ${BUILD_ALL})
 
 cmake_dependent_option(
   BUILD_KERNELS "Rebuild kernels (shaders)?" OFF
@@ -97,7 +99,7 @@ option( MFX_ENABLE_PXP "Enabled Video protection?" OFF)
 
 cmake_dependent_option(
   MFX_ENABLE_MPEG2_VIDEO_ENCODE "Enabled MPEG2 encoder?" ON 
-  "${MFX_ENABLE_EXT}" OFF)
+  "MFX_ENABLE_EXT" OFF)
 
 cmake_dependent_option(
   MFX_ENABLE_ASC "Enable ASC support?" ON 
