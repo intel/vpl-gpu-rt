@@ -2552,8 +2552,9 @@ mfxStatus VAAPIEncoder::Execute(
     }
 
     configBuffers.push_back(m_hrdBufferId);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetRateControl(m_videoParam, m_mbbrc, task.m_minQP, task.m_maxQP, task.m_TCBRCTargetFrameSize,
-                                                         m_vaDisplay, m_vaContextEncode, m_rateParamBufferId), MFX_ERR_DEVICE_FAILED);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetRateControl(m_videoParam, m_mbbrc, task.m_minQP, task.m_maxQP,
+        task.m_TCBRCTargetFrameSize, m_vaDisplay, m_vaContextEncode, m_rateParamBufferId), MFX_ERR_DEVICE_FAILED);
+
     configBuffers.push_back(m_rateParamBufferId);
     configBuffers.push_back(m_frameRateId);
     configBuffers.push_back(m_qualityLevelId);
