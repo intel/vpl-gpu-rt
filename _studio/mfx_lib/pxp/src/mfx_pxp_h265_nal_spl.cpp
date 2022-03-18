@@ -45,7 +45,9 @@ namespace UMC_HEVC_DECODER
               || NAL_UT_CODED_SLICE_IDR_N_LP == unitType
               || NAL_UT_CODED_SLICE_CRA == unitType
               || NAL_UT_CODED_SLICE_RADL_R == unitType
+              || NAL_UT_CODED_SLICE_RADL_N == unitType
               || NAL_UT_CODED_SLICE_RASL_R == unitType
+              || NAL_UT_CODED_SLICE_RASL_N == unitType
             )
             {
                 UMC_CHECK(UMC::UMC_ERR_INVALID_PARAMS != MergeEncryptedNalUnit(nalUnit, pSource), nullptr);
