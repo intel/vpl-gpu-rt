@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2021 Intel Corporation
+# Copyright (c) 2017-2022 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@ message( STATUS "Global Configuration of Targets" )
 include(CMakeDependentOption)
 
 option( MFX_ENABLE_EXT "Build with extensions?" ON )
-cmake_dependent_option( MFX_ENABLE_KERNELS "Enable media kernels?" ON "${MFX_ENABLE_EXT}" OFF )
+cmake_dependent_option( MFX_ENABLE_KERNELS "Enable media kernels?" ON "MFX_ENABLE_EXT" OFF )
 
 option( MFX_ENABLE_JPEG_SW_FALLBACK "Enabled software fallback for JPEG ?" ON )
 
@@ -42,10 +42,10 @@ option( ENABLE_OPENCL "Build targets dependent on OpenCL?" ON )
 #
 option( ENABLE_ALL "Enable all dependencies and features?" OFF )
 
-  option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" ${ENABLE_ALL} )
+option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" ${ENABLE_ALL} )
 
-option( ENABLE_TEXTLOG "Enable textlog tracing?" "${ENABLE_ALL}")
-option( ENABLE_STAT "Enable stat tracing?" "${ENABLE_ALL}")
+option( ENABLE_TEXTLOG "Enable textlog tracing?" ${ENABLE_ALL})
+option( ENABLE_STAT "Enable stat tracing?" ${ENABLE_ALL})
 
 # -DBUILD_ALL will enable all the build targets unless user did not explicitly
 # switched some targets OFF, i.e. configuring in the following way is possible:
@@ -62,8 +62,6 @@ option(BUILD_TESTS "Build tests?" "${BUILD_ALL}")
 option(USE_SYSTEM_GTEST "Use system installed gtest?" OFF)
 
 option(BUILD_MOCK_TESTS "Build all mocks' self tests?" ${BUILD_TESTS} )
-
-option(BUILD_TUTORIALS "Build tutorials?" "${BUILD_ALL}")
 
 cmake_dependent_option(
   BUILD_KERNELS "Rebuild kernels (shaders)?" OFF
@@ -103,19 +101,19 @@ cmake_dependent_option(
 
 cmake_dependent_option(
   MFX_ENABLE_ASC "Enable ASC support?" ON 
-  "${MFX_ENABLE_KERNELS}" OFF)
+  "MFX_ENABLE_KERNELS" OFF)
 cmake_dependent_option(
   MFX_ENABLE_MCTF "Build with MCTF support?" ON
-  "${MFX_ENABLE_ASC};${MFX_ENABLE_KERNELS};${MFX_ENABLE_VPP}" OFF)
+  "MFX_ENABLE_ASC;MFX_ENABLE_KERNELS;MFX_ENABLE_VPP" OFF)
 cmake_dependent_option(
   MFX_ENABLE_ENCODE_MCTF "Build encoders with MCTF support?" ON
-  "${MFX_ENABLE_ASC};${MFX_ENABLE_KERNELS}" OFF)
+  "MFX_ENABLE_ASC;MFX_ENABLE_KERNELS" OFF)
 
 
 option( MFX_ENABLE_ENCTOOLS "Enable encoding tools?" ON)
   cmake_dependent_option(
     MFX_ENABLE_AENC "Enabled AENC extension?" OFF
-    "${MFX_ENABLE_ENCTOOLS}" OFF)
+    "MFX_ENABLE_ENCTOOLS" OFF)
 
   option( MFX_ENABLE_MVC_VIDEO_ENCODE "Enable MVC encoder?" OFF)
 
