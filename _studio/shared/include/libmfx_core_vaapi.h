@@ -164,8 +164,8 @@ public:
     virtual mfxU32       GetAdapterNumber() override { return m_adapterNum; }
     virtual eMFXPlatform GetPlatformType()  override { return MFX_PLATFORM_HARDWARE; }
 
-    virtual mfxStatus    DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, bool canUseGpuCopy = true)                                      override;
-    virtual mfxStatus    DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, bool canUseGpuCopy = true) override;
+    virtual mfxStatus    DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, mfxU32 gpuCopyMode = MFX_COPY_USE_ANY)                                      override;
+    virtual mfxStatus    DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, mfxU32 gpuCopyMode = MFX_COPY_USE_ANY) override;
 
     mfxHDL * GetFastCompositingService();
     void SetOnFastCompositingService(void);
@@ -257,8 +257,8 @@ public:
     virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool isNeedCopy = true)                                override;
             mfxStatus ReallocFrame(mfxFrameSurface1 *surf);
 
-    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, bool canUseGpuCopy = true)                                      override;
-    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, bool canUseGpuCopy = true) override;
+    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, mfxU32 gpuCopyMode = MFX_COPY_USE_ANY)                                      override;
+    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, mfxU32 gpuCopyMode = MFX_COPY_USE_ANY) override;
 
     virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)                                                      override;
 

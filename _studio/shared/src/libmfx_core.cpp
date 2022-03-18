@@ -695,7 +695,7 @@ bool CommonCORE::IsExternalFrameAllocator() const
     return m_bSetExtFrameAlloc;
 }
 
-mfxStatus CommonCORE::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, bool)
+mfxStatus CommonCORE::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, mfxU32)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -1139,7 +1139,7 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
     }
 }
 
-mfxStatus CommonCORE::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, bool)
+mfxStatus CommonCORE::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, mfxU32)
 {
     // up mutex
     UMC::AutomaticUMCMutex guard(m_guard);
@@ -1537,7 +1537,7 @@ mfxStatus CommonCORE_VPL::SwitchMemidInSurface(mfxFrameSurface1 & surf, mfxHDLPa
 }
 
 
-mfxStatus CommonCORE_VPL::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, bool)
+mfxStatus CommonCORE_VPL::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, mfxU32)
 {
     MFX_CHECK_NULL_PTR2(pSrc, pDst);
 
@@ -1569,7 +1569,7 @@ mfxStatus CommonCORE_VPL::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMe
     return dst_surf_lock.unlock();
 }
 
-mfxStatus CommonCORE_VPL::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, bool)
+mfxStatus CommonCORE_VPL::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, mfxU32)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
 

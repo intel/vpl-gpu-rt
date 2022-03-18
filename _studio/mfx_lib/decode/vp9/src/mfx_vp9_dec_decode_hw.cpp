@@ -885,7 +885,8 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
             }
 
             UMC::AutomaticUMCMutex guardCopy(decoder.m_mCopyGuard[data.copyFromFrame]);
-            MFX_SAFE_CALL(decoder.m_core->DoFastCopyWrapper(&surfaceDst, dstMemType, surfaceSrc, srcMemType, decoder.m_core->GetVAType() == MFX_HW_VAAPI));
+            mfxU32 useGPUCopy = decoder.m_core->GetVAType() == MFX_HW_VAAPI ? (MFX_COPY_USE_CM | MFX_COPY_USE_VACOPY_BLT) : 0u;
+            MFX_SAFE_CALL(decoder.m_core->DoFastCopyWrapper(&surfaceDst, dstMemType, surfaceSrc, srcMemType, useGPUCopy));
         }
 
         if (data.currFrameId != -1)

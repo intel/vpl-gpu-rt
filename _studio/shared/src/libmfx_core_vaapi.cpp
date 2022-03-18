@@ -588,7 +588,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyWrapper(
     mfxU16 dstMemType,
     mfxFrameSurface1* pSrc,
     mfxU16 srcMemType,
-    bool canUseGpuCopy)
+    mfxU32 gpuCopyMode)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIVideoCORE_T<Base>::DoFastCopyWrapper");
     mfxStatus sts;
@@ -716,7 +716,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyWrapper(
         }
     }
 
-    mfxStatus fcSts = DoFastCopyExtended(&dstTempSurface, &srcTempSurface, canUseGpuCopy);
+    mfxStatus fcSts = DoFastCopyExtended(&dstTempSurface, &srcTempSurface, gpuCopyMode);
 
     if (MFX_ERR_DEVICE_FAILED == fcSts && 0 != dstTempSurface.Data.Corrupted)
     {
@@ -765,7 +765,7 @@ template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
     mfxFrameSurface1* pDst,
     mfxFrameSurface1* pSrc,
-    bool canUseGpuCopy)
+    mfxU32 gpuCopyMode)
 {
     mfxStatus sts;
     mfxU8* srcPtr;
@@ -795,7 +795,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
     }
 
     // For Linux by default CM copy is OFF
-    bool canUseCMCopy = canUseGpuCopy && m_pCmCopy && m_ForcedCmState == MFX_GPUCOPY_ON && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+    bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && m_ForcedCmState == MFX_GPUCOPY_ON && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
@@ -947,7 +947,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, bool canUseGpuCopy)
+} // mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, bool gpuCopyMode)
 
 // On linux/android specific function!
 // correct work since libva 1.2 (libva 2.2.1.pre1)
@@ -1209,7 +1209,7 @@ VAAPIVideoCORE_VPL::DoFastCopyWrapper(
     mfxU16 dstMemType,
     mfxFrameSurface1* pSrc,
     mfxU16 srcMemType,
-    bool canUseGpuCopy)
+    mfxU32 gpuCopyMode)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIVideoCORE_VPL::DoFastCopyWrapper");
 
@@ -1253,7 +1253,7 @@ VAAPIVideoCORE_VPL::DoFastCopyWrapper(
         dstTempSurface.Data.MemId = 0;
     }
 
-    sts = DoFastCopyExtended(&dstTempSurface, &srcTempSurface, canUseGpuCopy);
+    sts = DoFastCopyExtended(&dstTempSurface, &srcTempSurface, gpuCopyMode);
     MFX_CHECK_STS(sts);
 
     sts = src_surf_lock.unlock();
@@ -1266,7 +1266,7 @@ mfxStatus
 VAAPIVideoCORE_VPL::DoFastCopyExtended(
     mfxFrameSurface1* pDst,
     mfxFrameSurface1* pSrc,
-    bool canUseGpuCopy)
+    mfxU32 gpuCopyMode)
 {
     MFX_CHECK_NULL_PTR2(pDst, pSrc);
 
@@ -1288,7 +1288,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     MFX_CHECK(roi.width && roi.height, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     // For Linux by default CM copy is OFF
-    bool canUseCMCopy = canUseGpuCopy && m_pCmCopy && m_ForcedCmState == MFX_GPUCOPY_ON && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+    bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && m_ForcedCmState == MFX_GPUCOPY_ON && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {

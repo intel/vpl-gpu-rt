@@ -1844,7 +1844,7 @@ mfxStatus VideoDECODEMJPEGBase_HW::RunThread(void *params, mfxU32, mfxU32 )
             return mfxSts;
         }
 
-        mfxSts = m_surface_source->PrepareToOutput(info->surface_out, info->dst->GetFrameMID(), &m_vPar);
+        mfxSts = m_surface_source->PrepareToOutput(info->surface_out, info->dst->GetFrameMID(), &m_vPar, mfxU32(~MFX_COPY_USE_VACOPY_ANY));
         if (mfxSts < MFX_ERR_NONE)
         {
             return mfxSts;
@@ -2258,7 +2258,7 @@ mfxStatus VideoDECODEMJPEGBase_SW::CompleteTask(void *pParam, mfxStatus taskRes)
         // decoding is ready. prepare to output:
         mfxStatus mfxSts = m_surface_source->PrepareToOutput(task.surface_out,
                                                                     task.dst->GetFrameMID(),
-                                                                    &m_vPar);
+                                                                    &m_vPar, mfxU32(~MFX_COPY_USE_VACOPY_ANY));
         if (mfxSts < MFX_ERR_NONE)
         {
             return mfxSts;

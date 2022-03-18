@@ -96,6 +96,16 @@ namespace UMC
 // Forward declaration of used classes
 struct MFX_ENTRY_POINT;
 
+enum
+{
+    MFX_COPY_USE_CM             = 0x00000001u
+    , MFX_COPY_USE_VACOPY_VE    = 0x00000002u
+    , MFX_COPY_USE_VACOPY_BLT   = 0x00000004u
+    , MFX_COPY_USE_VACOPY_EU    = 0x00000008u
+    , MFX_COPY_USE_VACOPY_ANY   = (MFX_COPY_USE_VACOPY_VE | MFX_COPY_USE_VACOPY_BLT | MFX_COPY_USE_VACOPY_EU)
+    , MFX_COPY_USE_ANY          = 0xffffffffu
+};
+
 class VideoCORE {
 public:
 
@@ -164,8 +174,8 @@ public:
 
     // need for correct video accelerator creation
     virtual mfxStatus DoFastCopy(mfxFrameSurface1 *dst, mfxFrameSurface1 *src) = 0;
-    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *dst, mfxFrameSurface1 *src, bool canUseGpuCopy = true) = 0;
-    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *dst, mfxU16 dstMemType, mfxFrameSurface1 *src, mfxU16 srcMemType, bool canUseGpuCopy = true) = 0;
+    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *dst, mfxFrameSurface1 *src, mfxU32 gpuCopyMode = MFX_COPY_USE_ANY) = 0;
+    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *dst, mfxU16 dstMemType, mfxFrameSurface1 *src, mfxU16 srcMemType, mfxU32 gpuCopyMode = MFX_COPY_USE_ANY) = 0;
     // DEPRECATED
     virtual bool IsFastCopyEnabled(void) = 0;
 

@@ -125,7 +125,7 @@ public:
     virtual mfxStatus SetCurrentMFXSurface(mfxFrameSurface1 *srf);
 
     virtual mfxFrameSurface1*  GetSurface(UMC::FrameMemID index, mfxFrameSurface1 *surface_work, const mfxVideoParam * videoPar);
-    virtual mfxStatus          PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam * videoPar, bool canUseGpuCopy = true);
+    virtual mfxStatus          PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam * videoPar, mfxU32 gpuCopyMode = MFX_COPY_USE_ANY);
     mfxI32 FindSurface(mfxFrameSurface1 *surf);
     bool   HasFreeSurface();
 
@@ -257,7 +257,7 @@ public:
 
     mfxFrameSurface1 * GetSurfaceByIndex(UMC::FrameMemID index);
 
-    mfxStatus PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam * videoPar, bool canUseGpuCopy = true);
+    mfxStatus PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam * videoPar, mfxU32 gpuCopyMode = MFX_COPY_USE_ANY);
 
     bool HasFreeSurface();
 
@@ -335,7 +335,7 @@ private:
 class mfx_UMC_FrameAllocator_D3D : public mfx_UMC_FrameAllocator
 {
 public:
-    virtual mfxStatus PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam * videoPar, bool canUseGpuCopy = true);
+    virtual mfxStatus PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam * videoPar, mfxU32 gpuCopyMode = MFX_COPY_USE_ANY);
 };
 
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)

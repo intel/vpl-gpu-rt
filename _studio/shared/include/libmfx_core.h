@@ -111,9 +111,9 @@ public:
     virtual void INeedMoreThreadsInside(const void *pComponent) override;
 
     virtual mfxStatus DoFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)                      override;
-    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, bool = true) override;
+    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, mfxU32 = MFX_COPY_USE_ANY) override;
 
-    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, bool = true) override;
+    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, mfxU32 = MFX_COPY_USE_ANY) override;
 
     // DEPRECATED
     virtual bool IsFastCopyEnabled()              override { return true; }
@@ -340,9 +340,9 @@ public:
     mfxStatus SwitchMemidInSurface(mfxFrameSurface1 & surf, mfxHDLPair& handle_pair);
     mfxStatus DeriveMemoryType(const mfxFrameSurface1& surf, mfxU16& derived_memtype);
 
-    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, bool = true)                                      override;
+    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, mfxU32 = MFX_COPY_USE_ANY)                                      override;
 
-    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, bool = true) override;
+    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, mfxU32 = MFX_COPY_USE_ANY) override;
 
     virtual bool IsExternalFrameAllocator() const                             override;
 
