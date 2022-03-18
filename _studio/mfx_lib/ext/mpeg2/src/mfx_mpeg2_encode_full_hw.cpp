@@ -164,7 +164,7 @@ mfxStatus FullEncode::Init(mfxVideoParam *par)
 
     sts = m_pController->Reset(par);
 
-    if (sts < MFX_ERR_NONE)
+    if (sts == MFX_WRN_PARTIAL_ACCELERATION || sts < MFX_ERR_NONE)
     {
         Close();
         return sts;
@@ -188,7 +188,7 @@ mfxStatus FullEncode::Reset(mfxVideoParam *par)
 
     sts = m_pController->Reset(par);
 
-    if (sts < MFX_ERR_NONE)
+    if (sts == MFX_WRN_PARTIAL_ACCELERATION || sts < MFX_ERR_NONE)
     {
         return sts;
     }

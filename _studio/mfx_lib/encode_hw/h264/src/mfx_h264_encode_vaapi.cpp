@@ -1679,7 +1679,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::CreateAccelerationService");
     if(IsMvcProfile(par.mfx.CodecProfile))
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+        MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION);
 
     if(0 == m_reconQueue.size())
     {

@@ -1993,6 +1993,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
         case MFX_ERR_UNSUPPORTED:
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         case MFX_ERR_INVALID_VIDEO_PARAM:
+        case MFX_WRN_PARTIAL_ACCELERATION:
         case MFX_ERR_INCOMPATIBLE_VIDEO_PARAM:
             return sts;
         case MFX_WRN_INCOMPATIBLE_VIDEO_PARAM:
@@ -2009,6 +2010,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
     case MFX_ERR_UNSUPPORTED:
         MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     case MFX_ERR_INVALID_VIDEO_PARAM:
+    case MFX_WRN_PARTIAL_ACCELERATION:
     case MFX_ERR_INCOMPATIBLE_VIDEO_PARAM:
         return sts;
     case MFX_WRN_INCOMPATIBLE_VIDEO_PARAM:
@@ -2244,7 +2246,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     // check HW capabilities
     if (par.mfx.FrameInfo.Width  > hwCaps.ddi_caps.MaxPicWidth ||
         par.mfx.FrameInfo.Height > hwCaps.ddi_caps.MaxPicHeight)
-        return Error(MFX_ERR_UNSUPPORTED);
+        return Error(MFX_WRN_PARTIAL_ACCELERATION);
 
     if ((par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PART1) != MFX_PICSTRUCT_PROGRESSIVE)
     {
@@ -2266,7 +2268,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
     if (hwCaps.ddi_caps.MaxNum_TemporalLayer != 0 &&
         hwCaps.ddi_caps.MaxNum_TemporalLayer < par.calcParam.numTemporalLayer)
-        return Error(MFX_ERR_UNSUPPORTED);
+        return Error(MFX_WRN_PARTIAL_ACCELERATION);
 
     if (!CheckTriStateOption(par.mfx.LowPower)) changed = true;
 

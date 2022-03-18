@@ -81,11 +81,16 @@ mfxStatus VideoVPPMain::Init(mfxVideoParam *par)
     mfxStatus mfxSts = impl->Init(par);
     MFX_CHECK(
         mfxSts == MFX_ERR_NONE                 ||
+        mfxSts == MFX_WRN_PARTIAL_ACCELERATION ||
         mfxSts == MFX_WRN_FILTER_SKIPPED       ||
         mfxSts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM,
         mfxSts);
 
-    /*if (MFX_WRN_FILTER_SKIPPED == mfxSts)
+    /*if( MFX_WRN_PARTIAL_ACCELERATION == mfxSts)
+    {
+        isPartialAcceleration = true;
+    }
+    else if(MFX_WRN_FILTER_SKIPPED == mfxSts)
     {
         isFilterSkipped = true;
     }

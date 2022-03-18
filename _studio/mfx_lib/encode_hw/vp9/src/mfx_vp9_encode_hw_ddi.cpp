@@ -62,7 +62,7 @@ namespace MfxHwVP9Encode
         std::unique_ptr<DriverEncoder> ddi;
 
         ddi.reset(CreatePlatformVp9Encoder(pCore));
-        MFX_CHECK(ddi.get() != NULL, MFX_ERR_UNSUPPORTED);
+        MFX_CHECK(ddi.get() != NULL, MFX_WRN_PARTIAL_ACCELERATION);
 
         mfxStatus sts = ddi.get()->CreateAuxilliaryDevice(pCore, guid, par);
         MFX_CHECK_STS(sts);
