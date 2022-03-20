@@ -956,8 +956,8 @@ template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
                                          mfxVideoParam *par, bool /* isEncoder */)
 {
-    MFX_CHECK(par, MFX_WRN_PARTIAL_ACCELERATION);
-    MFX_CHECK(!IsMVCProfile(par->mfx.CodecProfile), MFX_WRN_PARTIAL_ACCELERATION);
+    MFX_CHECK(par, MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(!IsMVCProfile(par->mfx.CodecProfile), MFX_ERR_UNSUPPORTED);
 
     MFX_SAFE_CALL(this->CheckOrInitDisplay());
 
@@ -1038,10 +1038,10 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
     case MFX_CODEC_VP9:
         break;
     case MFX_CODEC_HEVC:
-        MFX_CHECK(par->mfx.FrameInfo.Width <= 8192 && par->mfx.FrameInfo.Height <= 8192, MFX_WRN_PARTIAL_ACCELERATION);
+        MFX_CHECK(par->mfx.FrameInfo.Width <= 8192 && par->mfx.FrameInfo.Height <= 8192, MFX_ERR_UNSUPPORTED);
         break;
     case MFX_CODEC_MPEG2: //MPEG2 decoder doesn't support resolution bigger than 2K
-        MFX_CHECK(par->mfx.FrameInfo.Width <= 2048 && par->mfx.FrameInfo.Height <= 2048, MFX_WRN_PARTIAL_ACCELERATION);
+        MFX_CHECK(par->mfx.FrameInfo.Width <= 2048 && par->mfx.FrameInfo.Height <= 2048, MFX_ERR_UNSUPPORTED);
         break;
     case MFX_CODEC_JPEG:
         MFX_CHECK(par->mfx.FrameInfo.Width <= 8192 && par->mfx.FrameInfo.Height <= 8192, MFX_WRN_PARTIAL_ACCELERATION);
@@ -1054,7 +1054,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
 
     MFX_CHECK(MFX_CODEC_JPEG == par->mfx.CodecId || MFX_CODEC_HEVC == par->mfx.CodecId ||
         (par->mfx.FrameInfo.Width <= 4096 && par->mfx.FrameInfo.Height <= 4096),
-        MFX_WRN_PARTIAL_ACCELERATION
+        MFX_ERR_UNSUPPORTED
     );
 
     return MFX_ERR_NONE;

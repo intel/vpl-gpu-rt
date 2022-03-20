@@ -385,14 +385,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_UNSUPPORTED
                 : (handler->second.primary.query)(session, in, out);
 
-            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
-            {
-                assert(handler != codecId2Handlers.end());
-
-                mfxRes = !handler->second.fallback.query ? MFX_ERR_UNSUPPORTED
-                    : (handler->second.fallback.query)(session, in, out);
-            }
-            else
+            if (MFX_ERR_UNSUPPORTED != mfxRes)
             {
                 bIsHWENCSupport = true;
             }
@@ -463,15 +456,7 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_INVALID_VIDEO_PARAM
                 : (handler->second.primary.queryIOSurf)(session, par, request);
 
-            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
-            {
-                assert(handler != codecId2Handlers.end());
-
-                mfxRes = !handler->second.fallback.query ? MFX_ERR_INVALID_VIDEO_PARAM
-                    : (handler->second.fallback.queryIOSurf)(session, par, request);
-
-            }
-            else
+            if (MFX_ERR_UNSUPPORTED != mfxRes)
             {
                 bIsHWENCSupport = true;
             }
@@ -554,7 +539,7 @@ mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
 
         mfxRes = session->m_pENCODE->Init(par);
 
-        if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
+        if (MFX_ERR_UNSUPPORTED == mfxRes)
         {
             session->m_bIsHWENCSupport = false;
             mfxRes = MFX_ERR_INVALID_VIDEO_PARAM;

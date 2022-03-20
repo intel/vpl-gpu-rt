@@ -54,7 +54,7 @@ namespace MPEG2EncoderHW
 
         if (par->mfx.FrameInfo.Width  > hwCaps.MaxPicWidth ||
             par->mfx.FrameInfo.Height > hwCaps.MaxPicHeight)
-            return MFX_WRN_PARTIAL_ACCELERATION;
+            return MFX_ERR_UNSUPPORTED;
 
         if (par->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
         {
@@ -62,11 +62,11 @@ namespace MPEG2EncoderHW
                 ext = GetExtCodingOptions(par->ExtParam, par->NumExtParam);
 
             if (ext != 0 && ext->FramePicture == MFX_CODINGOPTION_OFF)
-                return MFX_WRN_PARTIAL_ACCELERATION;
+                return MFX_ERR_UNSUPPORTED;
         }
         if (!hwCaps.EncodeFunc && !hwCaps.EncFunc)
         {
-            return MFX_WRN_PARTIAL_ACCELERATION;
+            return MFX_ERR_UNSUPPORTED;
         }
         if( pCaps )
         {
@@ -1195,7 +1195,7 @@ namespace MPEG2EncoderHW
         {
             return is_initialized()
                 ? MFX_ERR_INVALID_VIDEO_PARAM // reset can't return partial acceleration
-                : MFX_WRN_PARTIAL_ACCELERATION;
+                : MFX_ERR_UNSUPPORTED;
         }
         m_nEncodeCalls = 0;
         m_nFrameInGOP  = 0;

@@ -280,7 +280,7 @@ mfxStatus MFXVideoDECODEVC1::Init(mfxVideoParam *par)
 
     // Check. May be we in part mode
     if (MFX_ERR_NONE == MFXSts && isPartMode)
-        MFXSts = MFX_WRN_PARTIAL_ACCELERATION;
+        MFXSts = MFX_ERR_UNSUPPORTED;
 
     if (IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
     {
@@ -440,7 +440,7 @@ mfxStatus MFXVideoDECODEVC1::Reset(mfxVideoParam *par)
 
     if (false == IsHWSupported(m_pCore, par))
     {
-        MFXSts = MFX_WRN_PARTIAL_ACCELERATION;
+        MFXSts = MFX_ERR_UNSUPPORTED;
     }
 
     MFX_CHECK(!isNeedChangeVideoParamWarning, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
@@ -526,25 +526,11 @@ mfxStatus MFXVideoDECODEVC1::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoP
         in = &tpar;
 
         if (!IsHWSupported(core, in))
-            MFXSts = MFX_WRN_PARTIAL_ACCELERATION;
+            MFXSts = MFX_ERR_UNSUPPORTED;
     }
 
     if (MFX_ERR_NONE == MFXSts)
         MFXSts = MFXVC1DecCommon::Query(core, in, out);
-    else // MFX_WRN_PARTIAL_ACCELERATION;
-    {
-        MFXSts = MFXVC1DecCommon::Query(core, in, out);
-
-        if (0 < out->Protected)
-        {
-            // unsupported since there is no protected decoding
-            out->Protected = 0;
-            MFXSts = MFX_ERR_UNSUPPORTED;
-        }
-
-        if (MFX_ERR_NONE == MFXSts)
-            MFXSts = MFX_WRN_PARTIAL_ACCELERATION;
-    }
     MFX_CHECK(MFXSts < MFX_ERR_NONE, MFXSts);
     return MFXSts;
 }
@@ -1456,7 +1442,7 @@ mfxStatus MFXVideoDECODEVC1::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mf
 
     if (!IsHWSupported(core, par))
     {
-        sts = MFX_WRN_PARTIAL_ACCELERATION;
+        sts = MFX_ERR_UNSUPPORTED;
     }
 
     return sts;
