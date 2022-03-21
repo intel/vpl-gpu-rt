@@ -308,8 +308,8 @@ typedef struct tagENCODE_CAPS
             UINT    TCBRCSupport                 : 1;
             UINT    HRDConformanceSupport        : 1;
             UINT    PollingModeSupport           : 1;
-            UINT    LookaheadBRCSupport          : 1;
-            UINT    QpAdjustmentSupport          : 1;
+            UINT    LookAheadBRCSupport          : 1;
+            UINT    QpAdjustmentSupport           : 1;
             UINT                                 : 3;
         };
         UINT      CodingLimits2;
