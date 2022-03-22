@@ -148,6 +148,9 @@ typedef void*               mfxHDL;        /*!< Handle type. */
 typedef mfxHDL              mfxMemId;      /*!< Memory ID type. */
 typedef void*               mfxThreadTask; /*!< Thread task type. */
 typedef char                mfxChar;       /*!< UTF-8 byte. */
+#ifdef ONEVPL_EXPERIMENTAL
+typedef unsigned short      mfxFP16;       /*!< Half precision floating point, 16 bit type. */
+#endif
 
 /* MFX structures version info */
 MFX_PACK_BEGIN_USUAL_STRUCT()
@@ -189,6 +192,9 @@ typedef enum {
     MFX_DATA_TYPE_I64,                    /*!< 64-bit signed integer. */
     MFX_DATA_TYPE_F32,                    /*!< 32-bit single precision floating point. */
     MFX_DATA_TYPE_F64,                    /*!< 64-bit double precision floating point. */
+#ifdef ONEVPL_EXPERIMENTAL
+    MFX_DATA_TYPE_FP16,                   /*!< 16-bit half precision floating point. */
+#endif
 }mfxDataType;
 
 /*! The mfxVariantType enumerator data types for mfxVariantType. */
@@ -204,6 +210,9 @@ typedef enum {
     MFX_VARIANT_TYPE_I64   = MFX_DATA_TYPE_I64,                          /*!< 64-bit signed integer. */
     MFX_VARIANT_TYPE_F32   = MFX_DATA_TYPE_F32,                          /*!< 32-bit single precision floating point. */
     MFX_VARIANT_TYPE_F64   = MFX_DATA_TYPE_F64,                          /*!< 64-bit double precision floating point. */
+#ifdef ONEVPL_EXPERIMENTAL
+    MFX_VARIANT_TYPE_FP16  = MFX_DATA_TYPE_FP16,                         /*!< 16-bit half precision floating point. */
+#endif
     MFX_VARIANT_TYPE_PTR,                                                /*!< Generic type pointer. */
 } mfxVariantType;
 
@@ -224,6 +233,9 @@ typedef struct {
         mfxI64 I64; /*!< mfxI64 data. */
         mfxF32 F32; /*!< mfxF32 data. */
         mfxF64 F64; /*!< mfxF64 data. */
+#ifdef ONEVPL_EXPERIMENTAL
+        mfxFP16 FP16; /*!< mfxFP16 data. */
+#endif
         mfxHDL Ptr; /*!< Pointer. When this points to a string the string must be null terminated. */
     } Data;         /*!< Value data member. */
 } mfxVariant;

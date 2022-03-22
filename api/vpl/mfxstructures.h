@@ -174,6 +174,9 @@ enum {
     /*! 8bit per sample 4:4:4 format packed in 32 bits, X=unused/undefined, 'X' channel is 8 MSBs, then 'Y', then 'U', and then 'V' channels. This format should be mapped to VA_FOURCC_XYUV. */
     MFX_FOURCC_XYUV         = MFX_MAKEFOURCC('X','Y','U','V'),
 #endif
+#ifdef ONEVPL_EXPERIMENTAL
+    MFX_FOURCC_ABGR16F      = MFX_MAKEFOURCC('B', 'G', 'R', 'F'),  /*!< 16 bits float point ABGR color format packed in 64 bits. 'A' channel is 16 MSBs, then 'B', then 'G' and then 'R' channels. This format should be mapped to DXGI_FORMAT_R16G16B16A16_FLOAT or D3DFMT_A16B16G16R16F formats.. */
+#endif
 };
 
 /* PicStruct */
@@ -268,6 +271,19 @@ typedef struct
 } mfxA2RGB10;
 MFX_PACK_END()
 
+#ifdef ONEVPL_EXPERIMENTAL
+MFX_PACK_BEGIN_USUAL_STRUCT()
+/*! Specifies "pixel" in ABGR 16 bit half float point color format */
+typedef struct
+{
+    mfxFP16 R; /*!< R component. */
+    mfxFP16 G; /*!< G component. */
+    mfxFP16 B; /*!< B component. */
+    mfxFP16 A; /*!< A component. */
+} mfxABGR16FP;
+MFX_PACK_END()
+#endif
+
 /*! Describes frame buffer pointers. */
 MFX_PACK_BEGIN_STRUCT_W_L_TYPE()
 typedef struct {
@@ -330,6 +346,9 @@ typedef struct {
         mfxU16  *V16;   /*!< V16 channel. */
         mfxU8   *B;     /*!< B channel. */
         mfxA2RGB10 *A2RGB10; /*!< A2RGB10 channel for A2RGB10 format (merged ARGB). */
+#ifdef ONEVPL_EXPERIMENTAL
+        mfxABGR16FP* ABGRFP16; /*!< ABGRFP16 channel for half float ARGB format (use this merged one due to no seperate FP16 Alpha Channel). */
+#endif
     };
     mfxU8       *A;     /*!< A channel. */
     mfxMemId    MemId;  /*!< Memory ID of the data buffers. Ignored if any of the preceding data pointers is non-zero. */
