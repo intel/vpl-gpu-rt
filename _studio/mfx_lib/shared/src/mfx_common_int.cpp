@@ -79,6 +79,7 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
     case MFX_FOURCC_P016:
     case MFX_FOURCC_Y216:
     case MFX_FOURCC_Y416:
+    case MFX_FOURCC_ABGR16F:
         break;
     default:
         MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
