@@ -2455,8 +2455,12 @@ mfxStatus  VideoVPPHW::Init(
         m_config.m_surfCount[VPP_IN] = request.NumFrameMin;
     }
 
-    // async workload mode by default
-    m_workloadMode = VPP_ASYNC_WORKLOAD;
+    // VA usage need to fully utilize VDBox engine. In ASYNC mode, there is a high cost synchronization, 
+    // i.e., it usually takes 1~2ms, which breaks CPU/GPU concurrency - CPU has to be blocked there and waiting for HW completion, 
+    // so that cannot proceed to prepare GPU workloads for next frames, therefore cannot make GPU engines fully busy.
+    // Enable VPP_SYNC_WORKLOAD by default when app operates with input video memory. 
+    // For input system memory cases use VPP_ASYNC_WORKLOAD mode.
+    m_workloadMode = (D3D_TO_D3D == m_ioMode || D3D_TO_SYS == m_ioMode) ? VPP_SYNC_WORKLOAD : VPP_ASYNC_WORKLOAD;
 
     //-----------------------------------------------------
     // [4] resource and task manager
@@ -2982,8 +2986,12 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
         m_config.m_surfCount[VPP_IN] = request.NumFrameMin;
     }
 
-    // async workload mode by default
-    m_workloadMode = VPP_ASYNC_WORKLOAD;
+    // VA usage need to fully utilize VDBox engine. In ASYNC mode, there is a high cost synchronization, 
+    // i.e., it usually takes 1~2ms, which breaks CPU/GPU concurrency - CPU has to be blocked there and waiting for HW completion, 
+    // so that cannot proceed to prepare GPU workloads for next frames, therefore cannot make GPU engines fully busy.
+    // Enable VPP_SYNC_WORKLOAD by default when app operates with input video memory. 
+    // For input system memory cases use VPP_ASYNC_WORKLOAD mode.
+    m_workloadMode = (D3D_TO_D3D == m_ioMode || D3D_TO_SYS == m_ioMode) ? VPP_SYNC_WORKLOAD : VPP_ASYNC_WORKLOAD;
 
     //-----------------------------------------------------
     // [5] resource and task manager
