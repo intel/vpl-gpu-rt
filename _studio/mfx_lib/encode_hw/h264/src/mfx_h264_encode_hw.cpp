@@ -2361,9 +2361,9 @@ mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask)
 
     if (m_hvsDenoiser)
     {
-            if (pTask->m_midMCTF)
-            {
-                MFX_SAFE_CALL(m_core->GetFrameHDL(pTask->m_midMCTF, &pTask->m_handleMCTF.first));
+        if (pTask->m_midMCTF)
+        {
+            MFX_SAFE_CALL(m_core->GetFrameHDL(pTask->m_midMCTF, &pTask->m_handleMCTF.first));
 
             mfxFrameSurface1 hvsSurface = {};
             hvsSurface.Info = m_video.mfx.FrameInfo;
@@ -2386,6 +2386,9 @@ mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask)
         m_mctfDenoiser->IntBufferUpdate(pTask->m_SceneChange, isIntraFrame, pTask->m_doMCTFIntraFiltering);
         if (!pTask->m_midMCTF)
             isAnchorFrame = false; //No resource available to generate filtered output, let it pass.
+        else
+            MFX_SAFE_CALL(m_core->GetFrameHDL(pTask->m_midMCTF, &pTask->m_handleMCTF.first));
+
         if (IsCmNeededForSCD(m_video))
         {
             MFX_SAFE_CALL(m_mctfDenoiser->MCTF_PUT_FRAME(
