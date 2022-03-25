@@ -24,6 +24,7 @@
 #include "cm_gpu_copy_code.h"
 
 #include "mfx_common_int.h"
+#include "mfx_platform_caps.h"
 
 typedef const mfxU8 mfxUC8;
 
