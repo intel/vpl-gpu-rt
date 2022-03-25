@@ -493,10 +493,10 @@ mfxStatus ASC_Cm::CreateCmKernels() {
 mfxStatus ASC_Cm::CopyFrameSurface(mfxHDLPair frameHDL) {
     if (!m_ASCinitialized)
         return MFX_ERR_NOT_INITIALIZED;
-    CmSurface2D* p_surfaceFrom = 0;
+    CmSurface2D* p_surfaceFrom = nullptr;
     mfxStatus sts;
     INT res;
-    SurfaceIndex *idxFrom;
+    SurfaceIndex *idxFrom = nullptr;
 
     sts = CreateCmSurface2D(frameHDL, p_surfaceFrom, idxFrom);
     SCD_CHECK_MFX_ERR(sts);
