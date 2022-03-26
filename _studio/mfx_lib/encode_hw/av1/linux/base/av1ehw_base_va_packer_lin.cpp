@@ -438,6 +438,7 @@ void UpdatePPS(
     pps.qmatrix_flags.bits.qm_v = bs_fh.quantization_params.qm_v;
 
     pps.reserved8bits0 = static_cast<mfxU8>(task.PyramidLevel + 1);
+    pps.skip_frames_reduced_size = static_cast<mfxI32>(task.PrevRepeatedFrameBytes);
 }
 
 inline void AddVaMiscHRD(
