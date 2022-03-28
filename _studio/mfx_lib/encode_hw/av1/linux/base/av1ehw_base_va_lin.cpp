@@ -193,7 +193,7 @@ void DDI_VA::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
             MFX_CHECK(attrib[0].value & (VA_RT_FORMAT_YUV420 | VA_RT_FORMAT_YUV420_10), MFX_ERR_DEVICE_FAILED);
 
-            uint32_t vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod, IsSWBRCMode(par));
+            uint32_t vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod);
 
             MFX_CHECK((attrib[1].value & vaRCType), MFX_ERR_DEVICE_FAILED);
 
@@ -399,13 +399,8 @@ mfxStatus DDI_VA::QueryCaps()
     return MFX_ERR_NONE;
 }
 
-uint32_t DDI_VA::ConvertRateControlMFX2VAAPI(mfxU16 rateControl, bool bSWBRC)
+uint32_t DDI_VA::ConvertRateControlMFX2VAAPI(mfxU16 rateControl)
 {
-    
-    if (bSWBRC) {
-        return VA_RC_CQP;
-    }
-
     static const std::map<mfxU16, uint32_t> RCMFX2VAAPI =
     {
         { mfxU16(MFX_RATECONTROL_CQP)   , uint32_t(VA_RC_CQP) },

@@ -2047,6 +2047,12 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
 
     frameStructItr->QpMapNZ = FillQpMap(*frameStructItr, pFrameQp->QpY, qpMapHint);
 
+    if(m_par.codecId == MFX_CODEC_AV1 ){
+        //we are going to merge AV1 SW BRC in stages, first stage uses fixed QP value
+        //we will update this code in next PR  
+        pFrameQp->QpY = 33;
+    }
+
     return MFX_ERR_NONE;
 }
 

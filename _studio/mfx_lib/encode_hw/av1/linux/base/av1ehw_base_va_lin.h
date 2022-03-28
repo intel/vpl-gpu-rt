@@ -69,7 +69,7 @@ protected:
     using MfxEncodeHW::DeviceVAAPI::QueryCaps;
     mfxStatus QueryCaps();
     mfxStatus CreateAndQueryCaps(const mfxVideoParam& par, StorageW& strg);
-    uint32_t  ConvertRateControlMFX2VAAPI(mfxU16 rateControl, bool bSWBRC);
+    uint32_t  ConvertRateControlMFX2VAAPI(mfxU16 rateControl);
 
     EncodeCapsAv1           m_caps;
     std::vector<VABufferID> m_perSeqPar;
