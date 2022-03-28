@@ -303,15 +303,15 @@ bool AV1EHW::Base::IsSwEncToolsOn(const mfxVideoParam& video){
         SetDefaultConfig(video, config, true);
 
         return
-              IsOn(config.AdaptiveI) | IsOn(config.AdaptiveB)
-            | IsOn(config.AdaptiveRefP) | IsOn(config.AdaptiveRefB)
-            | IsOn(config.SceneChange)
-            | IsOn(config.AdaptiveLTR)
-            | IsOn(config.AdaptivePyramidQuantP) | IsOn(config.AdaptivePyramidQuantB)
-            | IsOn(config.AdaptiveQuantMatrices)
-            | IsOn(config.AdaptiveMBQP)
-            | IsOn(config.BRCBufferHints)
-            | IsOn(config.BRC);
+              IsOn(config.AdaptiveI) || IsOn(config.AdaptiveB)
+            || IsOn(config.AdaptiveRefP) || IsOn(config.AdaptiveRefB)
+            || IsOn(config.SceneChange)
+            || IsOn(config.AdaptiveLTR)
+            || IsOn(config.AdaptivePyramidQuantP) || IsOn(config.AdaptivePyramidQuantB)
+            || IsOn(config.AdaptiveQuantMatrices)
+            || IsOn(config.AdaptiveMBQP)
+            || IsOn(config.BRCBufferHints)
+            || IsOn(config.BRC);
     }
     else
     {

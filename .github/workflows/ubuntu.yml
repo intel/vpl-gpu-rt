@@ -7,12 +7,12 @@ env:
   LDFLAGS: -Wl,--as-needed
 
 jobs:
-  clang13:
-    runs-on: ubuntu-20.04
+  clang14:
+    runs-on: ubuntu-22.04
     env:
-      CC: /usr/bin/clang-13
-      CXX: /usr/bin/clang++-13
-      ASM: /usr/bin/clang-13
+      CC: /usr/bin/clang-14
+      CXX: /usr/bin/clang++-14
+      ASM: /usr/bin/clang-14
     steps:
     - name: checkout libmfxgen
       uses: actions/checkout@v2
@@ -26,12 +26,12 @@ jobs:
     - name: install toolchain
       run: |
         if [[ -e $CC && -e $CXX ]]; then \
-          echo "clang-13 already presents in the image"; \
+          echo "clang-14 already presents in the image"; \
         else \
-          echo "clang-13 missed in the image, installing from llvm"; \
-          echo "deb [trusted=yes] http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main" | sudo tee -a /etc/apt/sources.list; \
+          echo "clang-14 missed in the image, installing from llvm"; \
+          echo "deb [trusted=yes] https://apt.llvm.org/jammy/ llvm-toolchain-jammy-14 main" | sudo tee -a /etc/apt/sources.list; \
           sudo apt-get update; \
-          sudo apt-get install -y --no-install-recommends clang-13; \
+          sudo apt-get install -y --no-install-recommends clang-14; \
         fi
     - name: install prerequisites
       run: |
@@ -69,12 +69,12 @@ jobs:
         ninja
         sudo ninja install
 
-  clang13-enctools-full:
-    runs-on: ubuntu-20.04
+  clang14-enctools-full:
+    runs-on: ubuntu-22.04
     env:
-      CC: /usr/bin/clang-13
-      CXX: /usr/bin/clang++-13
-      ASM: /usr/bin/clang-13
+      CC: /usr/bin/clang-14
+      CXX: /usr/bin/clang++-14
+      ASM: /usr/bin/clang-14
     steps:
     - name: checkout libmfxgen
       uses: actions/checkout@v2
@@ -88,12 +88,12 @@ jobs:
     - name: install toolchain
       run: |
         if [[ -e $CC && -e $CXX ]]; then \
-          echo "clang-13 already presents in the image"; \
+          echo "clang-14 already presents in the image"; \
         else \
-          echo "clang-13 missed in the image, installing from llvm"; \
-          echo "deb [trusted=yes] http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main" | sudo tee -a /etc/apt/sources.list; \
+          echo "clang-14 missed in the image, installing from llvm"; \
+          echo "deb [trusted=yes] https://apt.llvm.org/jammy/ llvm-toolchain-jammy-14 main" | sudo tee -a /etc/apt/sources.list; \
           sudo apt-get update; \
-          sudo apt-get install -y --no-install-recommends clang-13; \
+          sudo apt-get install -y --no-install-recommends clang-14; \
         fi
     - name: install prerequisites
       run: |
@@ -133,12 +133,12 @@ jobs:
         ninja
         sudo ninja install
 
-  clang13-enctools-noaenc:
-    runs-on: ubuntu-20.04
+  clang14-enctools-noaenc:
+    runs-on: ubuntu-22.04
     env:
-      CC: /usr/bin/clang-13
-      CXX: /usr/bin/clang++-13
-      ASM: /usr/bin/clang-13
+      CC: /usr/bin/clang-14
+      CXX: /usr/bin/clang++-14
+      ASM: /usr/bin/clang-14
     steps:
     - name: checkout libmfxgen
       uses: actions/checkout@v2
@@ -152,12 +152,12 @@ jobs:
     - name: install toolchain
       run: |
         if [[ -e $CC && -e $CXX ]]; then \
-          echo "clang-13 already presents in the image"; \
+          echo "clang-14 already presents in the image"; \
         else \
-          echo "clang-13 missed in the image, installing from llvm"; \
-          echo "deb [trusted=yes] http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main" | sudo tee -a /etc/apt/sources.list; \
+          echo "clang-14 missed in the image, installing from llvm"; \
+          echo "deb [trusted=yes] https://apt.llvm.org/jammy/ llvm-toolchain-jammy-14 main" | sudo tee -a /etc/apt/sources.list; \
           sudo apt-get update; \
-          sudo apt-get install -y --no-install-recommends clang-13; \
+          sudo apt-get install -y --no-install-recommends clang-14; \
         fi
     - name: install prerequisites
       run: |
