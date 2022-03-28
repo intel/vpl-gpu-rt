@@ -93,6 +93,7 @@ namespace MfxHwVideoProcessing
         MFX_FOURCC_Y216      ,
         MFX_FOURCC_Y416      ,
         MFX_FOURCC_BGRP      ,
+        MFX_FOURCC_ABGR16F   ,
     };
 
     typedef enum mfxFormatSupport {
