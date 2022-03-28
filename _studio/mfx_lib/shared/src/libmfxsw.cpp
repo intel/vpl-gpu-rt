@@ -809,3 +809,4 @@ mfxStatus MFX_CDECL MFXReleaseImplDescription(mfxHDL hdl)
 
     return MFX_ERR_NONE;
 }
+
