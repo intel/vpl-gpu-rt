@@ -140,7 +140,9 @@ namespace UMC_AV1_DECODER
                         return UMC::UMC_OK;
                 }
 
-                in->MoveDataPointer(static_cast<int32_t>(obuInfo.size));
+                if(in->MoveDataPointer(static_cast<int32_t>(obuInfo.size)) != UMC::UMC_OK)
+                    return UMC::UMC_ERR_NOT_ENOUGH_DATA;
+
             }
             catch (av1_exception const& e)
             {
