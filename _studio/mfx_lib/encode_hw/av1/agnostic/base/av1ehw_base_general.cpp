@@ -2630,7 +2630,7 @@ void SetDefaultBRC(
     SetDefault(par.mfx.BRCParamMultiplier, 1);
 
     par.mfx.RateControlMethod = defPar.base.GetRateControlMethod(defPar);
-    BufferSizeInKB(par.mfx) = defPar.base.GetBufferSizeInKB(defPar);
+    BufferSizeInKB(par.mfx)   = defPar.base.GetBufferSizeInKB(defPar);
 
     bool bSetQP = par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
         && !(par.mfx.QPI && par.mfx.QPP && par.mfx.QPB);
@@ -2646,7 +2646,7 @@ void SetDefaultBRC(
     if (bSetRCPar)
     {
         MaxKbps(par.mfx) = defPar.base.GetMaxKbps(defPar);
-        SetDefault<mfxU16>(par.mfx.InitialDelayInKB, par.mfx.BufferSizeInKB/2);
+        SetDefault<mfxU16>(par.mfx.InitialDelayInKB, par.mfx.BufferSizeInKB / 2);
     }
     SetDefault(par.mfx.BRCParamMultiplier, 1);
 
@@ -2860,45 +2860,35 @@ mfxStatus General::CheckCrops(
     return MFX_ERR_NONE;
 }
 
-bool CheckBufferSizeInKB(
-    mfxVideoParam & par
-    , const Defaults::Param& defPar
-    , mfxU16 bd)
+mfxU32 CheckBufferSizeInKB(mfxVideoParam& par, const Defaults::Param& defPar)
 {
     mfxU32 changed = 0;
-    auto W = defPar.base.GetCodedPicWidth(defPar);
-    auto H = defPar.base.GetCodedPicHeight(defPar);
-    mfxU16 cf = defPar.base.GetTargetChromaFormatPlus1(defPar) - 1;
+    if (!par.mfx.BufferSizeInKB)
+        return changed;
 
-    mfxU32 rawBytes = General::GetRawBytes(W, H, cf, bd) / 1000;
-
-    bool bCqpOrIcq =
-        par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
+    mfxU32     minSizeInKB   = 0;
+    const bool bCqpOrIcq     = par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
         || par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ;
-
-    bool bSetToRaw = bCqpOrIcq && BufferSizeInKB(par.mfx) < rawBytes;
-
-    if (bSetToRaw)
+    if (bCqpOrIcq)
     {
-        BufferSizeInKB(par.mfx) = rawBytes;
+        minSizeInKB = General::GetRawBytes(par) / 1000;
+    }
+    else
+    {
+        mfxU32 frN          = 0;
+        mfxU32 frD          = 0;
+        std::tie(frN, frD)  = defPar.base.GetFrameRate(defPar);
+        mfxU32 avgFrameSize = Ceil((mfxF64)TargetKbps(par.mfx) * frD / frN / 8);
+        minSizeInKB         = avgFrameSize * 2 + 1;
+    }
+
+    if (BufferSizeInKB(par.mfx) < minSizeInKB)
+    {
+        BufferSizeInKB(par.mfx) = minSizeInKB;
         changed++;
     }
-    else if (!bCqpOrIcq)
-    {
-        mfxU32 frN = 0;
-        mfxU32 frD = 0;
 
-        std::tie(frN, frD) = defPar.base.GetFrameRate(defPar);
-        mfxU32 avgFS = Ceil((mfxF64)TargetKbps(par.mfx) * frD / frN / 8);
-
-        if (BufferSizeInKB(par.mfx) < avgFS * 2 + 1)
-        {
-            BufferSizeInKB(par.mfx) = avgFS * 2 + 1;
-            changed++;
-        }
-    }
-
-    return !!changed;
+    return changed;
 }
 
 inline mfxU32 CheckAndFixQP(mfxU16& qp, const mfxU16 minQP, const mfxU16 maxQP)
@@ -2915,7 +2905,7 @@ inline mfxU32 CheckAndFixQP(mfxU16& qp, const mfxU16 minQP, const mfxU16 maxQP)
 }
 
 mfxStatus General::CheckRateControl(
-    mfxVideoParam & par
+    mfxVideoParam& par
     , const Defaults::Param& defPar)
 {
     mfxU32 changed = 0;
@@ -2927,28 +2917,23 @@ mfxStatus General::CheckRateControl(
         changed++;
     }
 
-    auto rateControl = defPar.base.GetRateControlMethod(defPar);
-    bool supportedRateControl = !CheckOrZero<mfxU16>(rateControl
+    auto RateControlMethod = defPar.base.GetRateControlMethod(defPar);
+    bool bSupported = !CheckOrZero<mfxU16>(RateControlMethod
         , !!defPar.caps.msdk.CBRSupport * MFX_RATECONTROL_CBR
         , !!defPar.caps.msdk.VBRSupport * MFX_RATECONTROL_VBR
         , !!defPar.caps.msdk.CQPSupport * MFX_RATECONTROL_CQP
         , !!defPar.caps.msdk.ICQSupport * MFX_RATECONTROL_ICQ
         );
+    MFX_CHECK(bSupported, MFX_ERR_UNSUPPORTED);
 
-    MFX_CHECK(supportedRateControl, MFX_ERR_UNSUPPORTED);
-
-    const bool bCQP = rateControl == MFX_RATECONTROL_CQP;
-    const bool bICQ = rateControl == MFX_RATECONTROL_ICQ;
-    if (bICQ)
-    {
-        changed += CheckAndFixQP(par.mfx.ICQQuality, 1, 51);
-    }
-
-    changed += ((rateControl == MFX_RATECONTROL_VBR)
+    changed += ((RateControlMethod == MFX_RATECONTROL_VBR)
         && par.mfx.MaxKbps != 0
         && par.mfx.TargetKbps != 0)
         && CheckMinOrClip(par.mfx.MaxKbps, par.mfx.TargetKbps);
 
+    changed += CheckBufferSizeInKB(par, defPar);
+
+    const bool bCQP  = RateControlMethod == MFX_RATECONTROL_CQP;
     const auto minQP = defPar.base.GetMinQPMFX(defPar);
     const auto maxQP = defPar.base.GetMaxQPMFX(defPar);
     if (bCQP)
@@ -2958,8 +2943,10 @@ mfxStatus General::CheckRateControl(
         changed += CheckAndFixQP(par.mfx.QPB, minQP, maxQP);
     }
 
-    const auto bd = defPar.base.GetTargetBitDepthLuma(defPar);
-    changed += par.mfx.BufferSizeInKB && CheckBufferSizeInKB(par, defPar, bd);
+    if (RateControlMethod == MFX_RATECONTROL_ICQ)
+    {
+        changed += CheckAndFixQP(par.mfx.ICQQuality, 1, 51);
+    }
 
     mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
     if (pCO2)
@@ -3025,22 +3012,25 @@ mfxStatus General::CheckRateControl(
     return MFX_ERR_NONE;
 }
 
-mfxU32 General::GetRawBytes(mfxU32 w, mfxU32 h, mfxU16 ChromaFormat, mfxU16 BitDepth)
+mfxU32 General::GetRawBytes(const mfxVideoParam& par)
 {
-    mfxU32 s = w * h;
+    mfxU64 width = 0, height = 0;
+    std::tie(width, height)  = GetRealResolution(par);
 
-    if (ChromaFormat == MFX_CHROMAFORMAT_YUV420)
-        s = s * 3 / 2;
-    else if (ChromaFormat == MFX_CHROMAFORMAT_YUV422)
-        s *= 2;
-    else if (ChromaFormat == MFX_CHROMAFORMAT_YUV444)
-        s *= 3;
+    mfxU64 size       = width * height;
+    const auto format = par.mfx.FrameInfo.ChromaFormat;
+    const auto depth  = par.mfx.FrameInfo.BitDepthLuma;
+    if (format == MFX_CHROMAFORMAT_YUV420)
+        size = size * 3 / 2;
+    else if (format == MFX_CHROMAFORMAT_YUV422)
+        size *= 2;
+    else if (format == MFX_CHROMAFORMAT_YUV444)
+        size *= 3;
 
-    assert(BitDepth >= 8);
-    if (BitDepth != 8)
-        s = (s * BitDepth + 7) / 8;
+    if (depth != 8)
+        size = mfx::CeilDiv(size * depth, mfxU64(8));
 
-    return s;
+    return static_cast<mfxU32>(size);
 }
 mfxStatus General::CheckIOPattern(mfxVideoParam & par)
 {

@@ -210,8 +210,8 @@ namespace Base
             , const FH& pps
             , FH & s) const;
         TTaskIt ReorderWrap(const ExtBuffer::Param<mfxVideoParam> & par, TTaskIt begin, TTaskIt end, bool flush);
-        static mfxU32 GetRawBytes(mfxU32 w, mfxU32 h, mfxU16 ChromaFormat, mfxU16 BitDepth);
-        static bool IsInVideoMem(const mfxVideoParam & par);
+        static mfxU32 GetRawBytes(const mfxVideoParam& par);
+        static bool IsInVideoMem(const mfxVideoParam& par);
 
         mfxU16 GetMaxRaw(const mfxVideoParam & par)
         {
