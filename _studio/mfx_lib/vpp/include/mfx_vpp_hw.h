@@ -38,13 +38,10 @@
 
 #include "cmrt_cross_platform.h" // Gpucopy stuff
 #include "cm_mem_copy.h"         // Needed for mirroring kernels
+#include "cmrt_vpp.h"
 
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
 #include "asc_cm.h"        // Scene change detection
-#endif
-
-#ifdef MFX_ENABLE_KERNELS
-#include "genx_fcopy_gen12lp_isa.h"
 #endif
 
 #ifdef MFX_ENABLE_MCTF

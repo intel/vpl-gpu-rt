@@ -2472,42 +2472,7 @@ mfxStatus  VideoVPPHW::Init(
     // [5]  cm device
     //-----------------------------------------------------
 #ifdef MFX_ENABLE_KERNELS
-    if(m_pCmDevice)
-    {
-        int res = CM_FAILURE;
-        if (NULL == m_pCmProgram)
-        {
-            eMFXHWType m_platform = m_pCore->GetHWType();
-            switch (m_platform)
-            {
-            case MFX_HW_TGL_LP:
-            case MFX_HW_DG1:
-            case MFX_HW_RKL:
-            case MFX_HW_ADL_S:
-            case MFX_HW_ADL_P:
-            case MFX_HW_ADL_N:
-                res = m_pCmDevice->LoadProgram((void*)genx_fcopy_gen12lp,sizeof(genx_fcopy_gen12lp),m_pCmProgram,"nojitter");
-                break;
-            default:
-                res = CM_FAILURE;
-                break;
-            }
-            if(res != 0 ) return MFX_ERR_DEVICE_FAILED;
-        }
-
-        if (NULL == m_pCmKernel)
-        {
-            // MbCopyFieLd copies TOP or BOTTOM field from inSurf to OutSurf
-            res = m_pCmDevice->CreateKernel(m_pCmProgram, CM_KERNEL_FUNCTION(MbCopyFieLd), m_pCmKernel);
-            if(res != 0 ) return MFX_ERR_DEVICE_FAILED;
-        }
-
-        if (NULL == m_pCmQueue)
-        {
-            res = m_pCmDevice->CreateQueue(m_pCmQueue);
-            if(res != 0 ) return MFX_ERR_DEVICE_FAILED;
-        }
-    }
+    MFX_SAFE_CALL(InitVppCm(m_pCmDevice, m_pCmProgram, m_pCmKernel, m_pCmQueue, m_pCore));
 #endif
 
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
