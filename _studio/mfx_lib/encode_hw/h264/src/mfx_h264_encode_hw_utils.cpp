@@ -827,13 +827,14 @@ void MfxHwH264Encode::PrepareSeiMessage(
     DdiTask const &                task,
     mfxU32                         fieldId,
     mfxU32                         cpbDpbDelaysPresentFlag,
+    mfxU32                         picStructPresentFlag,
     mfxExtAvcSeiPicTiming &        msg)
 {
     Zero(msg);
     msg.cpb_dpb_delays_present_flag = mfxU8(cpbDpbDelaysPresentFlag);
     msg.cpb_removal_delay_length    = 24;
     msg.dpb_output_delay_length     = 24;
-    msg.pic_struct_present_flag     = 1;
+    msg.pic_struct_present_flag     = mfxU8(picStructPresentFlag);
     msg.time_offset_length          = 24;
     msg.cpb_removal_delay           = task.m_cpbRemoval[fieldId];
     msg.dpb_output_delay            = task.m_dpbOutputDelay;
@@ -3719,6 +3720,7 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
                 task,
                 fieldId,
                 IsOn(extOpt.VuiNalHrdParameters) || IsOn(extOpt.VuiVclHrdParameters),
+                extSps.vui.flags.picStructPresent,
                 msgPicTiming);
 
             if (IsOff(extOpt.SingleSeiNalUnit))
@@ -3881,6 +3883,7 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
                 task,
                 fieldId,
                 IsOn(extOpt.VuiNalHrdParameters) || IsOn(extOpt.VuiVclHrdParameters),
+                extSps.vui.flags.picStructPresent,
                 msgPicTiming);
 
             // write NAL unit with MVC nesting SEI for PT

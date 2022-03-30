@@ -275,6 +275,7 @@ namespace MfxHwH264Encode
         DdiTask const &                task,
         mfxU32                         fieldId,
         mfxU32                         cpbDpbDelaysPresentFlag,
+        mfxU32                         picStructPresentFlag,
         mfxExtAvcSeiPicTiming &        msg);
 
     void PrepareSeiMessage(
