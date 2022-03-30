@@ -1545,8 +1545,16 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         break;
     case MFX_SCALING_MODE_DEFAULT:
     default:
+        if(MFX_HW_APL == hwType)
+        {
+            /* Use HW fixed function scaling engine by default on APL due to power consumption considerations */
+            m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_DEFAULT;
+        }
+        else
+        {
             /* Force AVS by default for all platforms except BXT */
-        m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_HQ;
+            m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_HQ;
+        }
         m_pipelineParam[0].filter_flags |= interpolation[pParams->interpolationMethod];
         mfxSts = ((pParams->interpolationMethod == MFX_INTERPOLATION_DEFAULT) || (pParams->interpolationMethod == MFX_INTERPOLATION_ADVANCED)) ? MFX_ERR_NONE : MFX_ERR_UNSUPPORTED;
         break;

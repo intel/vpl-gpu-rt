@@ -23,7 +23,6 @@ add_library(cmrt_cross_platform_hw STATIC
   include/cmrt_utility.h
   include/cm_mem_copy.h
   include/cm_gpu_copy_code.h
-  include/cmrt_vpp.h
   src/cmrt_cross_platform.cpp
   src/cmrt_utility.cpp
   src/cm_mem_copy.cpp
