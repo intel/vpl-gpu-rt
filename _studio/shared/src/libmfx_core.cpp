@@ -1133,6 +1133,16 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
     }
     case MFX_FOURCC_P8:
         return FastCopy::Copy(dst.Data.Y, dstPitch, src.Data.Y, srcPitch, roi, copyFlag);
+    case MFX_FOURCC_ABGR16F:
+    {
+        MFX_CHECK_NULL_PTR1(src.Data.ABGRFP16);
+        mfxU8* ptrSrc = (mfxU8*)src.Data.ABGRFP16;
+        mfxU8* ptrDst = (mfxU8*)dst.Data.ABGRFP16;
+
+        roi.width *= 8;
+
+        return FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
+    }
 
     default:
         MFX_RETURN(MFX_ERR_UNSUPPORTED);

@@ -966,7 +966,8 @@ mfxU32 GetMinPitch(mfxU32 fourcc, mfxU16 width)
         case MFX_FOURCC_A2RGB10:     return width * 4;
 
         case MFX_FOURCC_ARGB16:
-        case MFX_FOURCC_ABGR16:      return width * 8;
+        case MFX_FOURCC_ABGR16:  
+        case MFX_FOURCC_ABGR16F:     return width * 8;
 
         case MFX_FOURCC_YUY2:
         case MFX_FOURCC_UYVY:        return width * 2;
@@ -1012,6 +1013,8 @@ mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const& data)
         case MFX_FOURCC_Y410:        return reinterpret_cast<mfxU8*>(data.Y410); break;
 
         case MFX_FOURCC_Y416:        return reinterpret_cast<mfxU8*>(data.U16); break;
+
+        case MFX_FOURCC_ABGR16F:     return reinterpret_cast<mfxU8*>(data.ABGRFP16); break;
 
         default:                     return data.Y;
     }
@@ -1089,6 +1092,9 @@ mfxU16 BitDepthFromFourcc(mfxU32 fourcc)
     case MFX_FOURCC_Y216:
     case MFX_FOURCC_Y416:
         return 12;
+
+    case MFX_FOURCC_ABGR16F:
+        return 16;
 
         // RGB formats
 #if defined (MFX_ENABLE_FOURCC_RGB565)
