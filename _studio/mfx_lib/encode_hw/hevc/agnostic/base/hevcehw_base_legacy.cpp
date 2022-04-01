@@ -1403,7 +1403,7 @@ void Legacy::Reset(const FeatureBlocks& blocks, TPushR Push)
         MFX_CHECK(
            !(   brcReset
              && parOld.mfx.RateControlMethod == MFX_RATECONTROL_CBR
-             && (HRDConformance || !isIdrRequired))
+             && HRDConformance)
             , MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
         hint.Flags |= RF_BRC_RESET * (brcReset || isIdrRequired);
