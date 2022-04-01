@@ -467,7 +467,11 @@ public:
 
         SetIf(maxKbps, !!mfx.CodecLevel, [&]() { return GetMaxKbpsByLevel(mfx.CodecLevel, mfx.CodecProfile); });
 
-        mfxU32 rawBits           = General::GetRawBytes(defPar.mvp) << 3;
+        mfxU32 width = 0, height = 0;
+        std::tie(width, height)  = GetRealResolution(defPar.mvp);
+        mfxU16 bd                = defPar.base.GetTargetBitDepthLuma(defPar);
+        mfxU16 cf                = defPar.base.GetTargetChromaFormatPlus1(defPar) - 1;
+        mfxU32 rawBits           = (General::GetRawBytes(width, height, cf, bd) << 3);
         std::tie(frN, frD)       = defPar.base.GetFrameRate(defPar);
 
         // Set a large default value for TargetKbps when ICQ enalbed
@@ -503,21 +507,14 @@ public:
             return mfx.BufferSizeInKB * std::max<const mfxU32>(1, mfx.BRCParamMultiplier);
         }
 
-        bool bUseMaxKbps =
-            mfx.RateControlMethod == MFX_RATECONTROL_CBR
-            || mfx.RateControlMethod == MFX_RATECONTROL_VBR;
-        mfxU32 minSize            = bUseMaxKbps * InitialDelayInKB(mfx);
-        mfxU32 defaultSize        = 0;
-        auto   GetFromMaxKbps  = [&]() { return defPar.base.GetMaxKbps(defPar) / 4; };
-        auto   GetFromRawBytes = [&]()
-        {
-            return General::GetRawBytes(defPar.mvp) / 1000;
-        };
+        // This code is relevant for CQP only
+        mfxU32 width = 0, height = 0;
+        std::tie(width, height)  = GetRealResolution(defPar.mvp);
 
-        SetIf(defaultSize, bUseMaxKbps, GetFromMaxKbps);
-        SetDefault(defaultSize, GetFromRawBytes);
-
-        return std::max<mfxU32>(minSize, defaultSize);
+        if (mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
+            return (width * height * 3) / 1000; // size of two uncompressed 420 10bit frames in KB
+        else
+            return (width * height * 3) / 2 / 1000;  // size of uncompressed 420 8bit frame in KB
     }
 
     static std::tuple<mfxU16, mfxU16, mfxU16> MaxNumRef(
