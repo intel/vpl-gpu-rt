@@ -442,7 +442,7 @@ static mfxStatus InitEncToolsCtrl(
     ctrl->CodecId = par.mfx.CodecId;
     ctrl->CodecProfile = par.mfx.CodecProfile;
     ctrl->CodecLevel = par.mfx.CodecLevel;
-
+    ctrl->LowPower = par.mfx.LowPower;
     ctrl->AsyncDepth = par.AsyncDepth;
 
     ctrl->FrameInfo = par.mfx.FrameInfo;

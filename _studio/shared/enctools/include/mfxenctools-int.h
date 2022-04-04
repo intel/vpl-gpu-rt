@@ -83,7 +83,8 @@ typedef struct
         mfxU32  CodecId;
         mfxU16  CodecProfile;
         mfxU16  CodecLevel;
-        mfxU16  reserved2[64];
+        mfxU16  LowPower;
+        mfxU16  reserved2[63];
     };
     struct      /* input frames info */
     {

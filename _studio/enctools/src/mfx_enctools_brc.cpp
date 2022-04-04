@@ -201,25 +201,25 @@ mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool field
         bRec = 1;
         bPanic = 1;
     }
-    mfxI32 minQPI = 1;
+    mfxI32 minQPI = IsOn(ctrl.LowPower) ? 10 : 1;
     mfxI32 maxQPI = 51;
-    mfxI32 minQPP = 1;
+    mfxI32 minQPP = IsOn(ctrl.LowPower) ? 10 : 1;
     mfxI32 maxQPP = 51;
-    mfxI32 minQPB = 1;
+    mfxI32 minQPB = IsOn(ctrl.LowPower) ? 10 : 1;
     mfxI32 maxQPB = 51;
 
     quantMinI = (ctrl.MinQPLevel[0] != 0) ?
-        ctrl.MinQPLevel[0] : minQPI;
+        std::max((mfxI32)ctrl.MinQPLevel[0], minQPI) : minQPI;
     quantMaxI = (ctrl.MaxQPLevel[0] != 0) ?
         ctrl.MaxQPLevel[0] : maxQPI + quantOffset;
 
     quantMinP = (ctrl.MinQPLevel[1] != 0) ?
-        ctrl.MinQPLevel[1] : minQPP;
+        std::max((mfxI32)ctrl.MinQPLevel[1], minQPP) : minQPP;
     quantMaxP = (ctrl.MaxQPLevel[1] != 0) ?
         ctrl.MaxQPLevel[1] : maxQPP + quantOffset;
 
     quantMinB = (ctrl.MinQPLevel[2] != 0) ?
-        ctrl.MinQPLevel[2] : minQPB;
+        std::max((mfxI32)ctrl.MinQPLevel[2], minQPB) : minQPB;
     quantMaxB = (ctrl.MaxQPLevel[2] != 0) ?
         ctrl.MaxQPLevel[2] : maxQPB + quantOffset;
 
@@ -1689,6 +1689,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
                     qp0 -= 3; // use re-encoding for best results (maxFrameSizeGood)
                 else if (raca == MIN_RACA && qp0 > 3)
                     qp0 -= 3; // uncertainty; use re-encoding for best results
+                qp0 = mfx::clamp(qp0, m_par.quantMinI, m_par.quantMaxI);
                 ltrprintf("Qp0 %d\n", qp0);
                 UpdateQPParams(qp0, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
                 qpMin = qp0;
@@ -1705,7 +1706,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
             m_ctx.LastLaQpCalc = laQp;
             m_ctx.LastLaQpCalcOrder = frameStruct.encOrder;
             laQp = std::max(laQp, m_ctx.QuantP - (m_ctx.QuantP/2));
-            mfxI32 qp0 = std::max(laQp - 1 - (mfxI32)m_par.iDQp, 1);
+            mfxI32 qp0 = mfx::clamp(std::max(laQp - 1 - (mfxI32)m_par.iDQp, 1), m_par.quantMinI, m_par.quantMaxI);
             ltrprintf("Dynamic Init LA %d Qp %d P Qp %d\n", frameStruct.LaAvgEncodedSize, laQp, m_ctx.QuantP);
             UpdateQPParams(qp0, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
             qpMin = m_ctx.QuantIDR;
@@ -2424,8 +2425,6 @@ mfxU16 BRC_EncTool::FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp
                 if (QpMap[i]) count++;
             }
             QpMapNZ = count;
-            if(count)
-                m_ctx.LastMBQpSetOrder = frameStruct.encOrder;
         }
     }
 
@@ -2444,6 +2443,25 @@ mfxU16 BRC_EncTool::FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp
             mfxU32 wInBlk = qpMapHint->QpMapPitch;
             mfxU32 hInBlk = qpMapHint->ExtQpMap.NumQPAlloc/ wInBlk;
 
+            mfxU16 count = 0;
+            mfxI32 minQp = 1;
+            mfxI32 maxQp = 51;
+            if (type == MFX_FRAMETYPE_IDR || type == MFX_FRAMETYPE_I)
+            {
+                minQp = m_par.quantMinI;
+                maxQp = m_par.quantMaxI;
+            }
+            else if (type == MFX_FRAMETYPE_P)
+            {
+                minQp = m_par.quantMinP;
+                maxQp = m_par.quantMaxP;
+            }
+            else
+            {
+                minQp = m_par.quantMinB;
+                maxQp = m_par.quantMaxB;
+            }
+
             // Map 16x8 map to Width/blSize x Height/blSize
             for (mfxU32 i = 0; i < hInBlk; i++)
             {
@@ -2454,10 +2472,17 @@ mfxU16 BRC_EncTool::FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp
                     mfxU32 x = std::min((j * mapBw + mapBw / 2) / ibw, iw - 1);
 
                     qpMapHint->ExtQpMap.QP[i * wInBlk + j] = mfxI8(
-                        mfx::clamp((mfxI32)frameQp + (mfxI32)QpMap[y * iw + x], mfxI32(MIN_PAQ_QP), mfxI32(51))
+                        mfx::clamp((mfxI32)frameQp + (mfxI32)QpMap[y * iw + x], minQp, maxQp)
                     );
+
+                    if (qpMapHint->ExtQpMap.QP[i * wInBlk + j] != frameQp) count++;
                 }
             }
+            QpMapNZ = count;
+            qpMapHint->QpMapFilled = count;
+
+            if(qpMapHint->QpMapFilled)
+                m_ctx.LastMBQpSetOrder = frameStruct.encOrder;
         }
     }
 
