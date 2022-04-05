@@ -7800,7 +7800,7 @@ void MfxVideoParam::AlignCalcWithBRCParamMultiplier()
         calcParam.bufferSizeInKB   = mfx.BufferSizeInKB   * mfx.BRCParamMultiplier;
         calcParam.initialDelayInKB = mfx.InitialDelayInKB * mfx.BRCParamMultiplier;
         calcParam.targetKbps       = mfx.TargetKbps       * mfx.BRCParamMultiplier;
-        calcParam.maxKbps          = mfx.MaxKbps          * mfx.BRCParamMultiplier;
+        calcParam.maxKbps          = (mfx.RateControlMethod == MFX_RATECONTROL_AVBR ? mfx.TargetKbps : mfx.MaxKbps) * mfx.BRCParamMultiplier;
         calcParam.WinBRCMaxAvgKbps = m_extOpt3.WinBRCMaxAvgKbps * mfx.BRCParamMultiplier;
     }
 }
