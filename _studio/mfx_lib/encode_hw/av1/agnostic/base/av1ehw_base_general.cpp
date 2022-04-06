@@ -1133,7 +1133,7 @@ void General::Reset(const FeatureBlocks& blocks, TPushR Push)
             (      parOld.mfx.RateControlMethod == MFX_RATECONTROL_CBR
                 || parOld.mfx.RateControlMethod == MFX_RATECONTROL_VBR
                 || parOld.mfx.RateControlMethod == MFX_RATECONTROL_VCM)
-            && (   ((mfxU32)TargetKbps(parOld.mfx) != (mfxU32)TargetKbps(parNew.mfx) && IsOff(CO3.LowDelayBRC))
+            && (   ((mfxU32)TargetKbps(parOld.mfx) != (mfxU32)TargetKbps(parNew.mfx) && !IsOn(CO3.LowDelayBRC))
                 || (mfxU32)BufferSizeInKB(parOld.mfx) != (mfxU32)BufferSizeInKB(parNew.mfx)
                 || (mfxU32)InitialDelayInKB(parOld.mfx) != (mfxU32)InitialDelayInKB(parNew.mfx)
                 || parOld.mfx.FrameInfo.FrameRateExtN != parNew.mfx.FrameInfo.FrameRateExtN
@@ -2665,6 +2665,7 @@ void SetDefaultBRC(
     if (pCO3)
     {
         defPar.base.GetQPOffset(defPar, pCO3->EnableQPOffset, pCO3->QPOffset);
+        SetDefault(pCO3->LowDelayBRC, MFX_CODINGOPTION_OFF);
     }
 
     if(pCO3 && IsOn(pCO3->LowDelayBRC))

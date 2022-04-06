@@ -121,7 +121,7 @@ void MaxFrameSize::Reset(const FeatureBlocks& /*blocks*/, TPushR Push)
         hint.Flags |= RF_BRC_RESET *
             ((     parOld.mfx.RateControlMethod == MFX_RATECONTROL_CBR
                 || parOld.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
-            && IsOff(CO3.LowDelayBRC)
+            && !IsOn(CO3.LowDelayBRC)
             && (CO2Old.MaxFrameSize != CO2New.MaxFrameSize));
 
         return MFX_ERR_NONE;
