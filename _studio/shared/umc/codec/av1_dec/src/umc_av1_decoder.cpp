@@ -455,6 +455,9 @@ namespace UMC_AV1_DECODER
         case OBU_REDUNDANT_FRAME_HEADER:
         case OBU_TILE_GROUP:
         case OBU_TILE_LIST:
+        case OBU_PADDING:
+        case OBU_SEQUENCE_HEADER:
+        case OBU_METADATA:
             return false;
         default:
             return true;
@@ -575,6 +578,7 @@ namespace UMC_AV1_DECODER
             TileLayout layout;
 
             UMC::MediaData tmp = *in; // use local copy of [in] for OBU header parsing to not move data pointer in original [in] prematurely
+            OldPreFrame_id = PreFrame_id;
 
             while (tmp.GetDataSize() >= MINIMAL_DATA_SIZE && gotFullFrame == false && repeatedFrame == false)
             {
@@ -747,6 +751,13 @@ namespace UMC_AV1_DECODER
                 OBUOffset += static_cast<uint32_t>(obuInfo.size);
                 tmp.MoveDataPointer(static_cast<int32_t>(obuInfo.size));
             }
+
+            // For small decbufsize, cur bitstream may not contain any tile, then deocder will read more data and do header parse again.
+            // So we use OldPreFrame_id to update PreFrame_id to avoid the Frame_id check fail in ReadUncompressedHeader.
+            if (layout.empty() && !gotFullFrame)
+                PreFrame_id = OldPreFrame_id;
+            else if (gotFullFrame)
+                OldPreFrame_id = PreFrame_id;
 
             if (!params.lst_mode || !anchor_decode)
             {
