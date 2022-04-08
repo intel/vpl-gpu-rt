@@ -108,7 +108,7 @@ mfxStatus PickDDIIDNormal(VAID*& DDIID, Defaults::Param defPar, const mfxVideoPa
     return MFX_ERR_NONE;
 }
 
-mfxStatus PickDDIIDREXT(VAID* DDIID, const mfxVideoParam& par)
+mfxStatus PickDDIIDREXT(VAID* &DDIID, const mfxVideoParam& par)
 {
     auto& fi = par.mfx.FrameInfo;
     const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
