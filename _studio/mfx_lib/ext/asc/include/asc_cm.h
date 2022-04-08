@@ -49,8 +49,10 @@ typedef struct ASCvideoBufferCm: public ASCVidSample
 
 class ASC_Cm: public ASC
 {
+using ASC::Init;
 public:
     ASC_Cm();
+    virtual ~ASC_Cm(){}
     virtual void Close();
     virtual mfxStatus Init(mfxI32 Width,
         mfxI32 Height,
