@@ -72,7 +72,7 @@ struct BRC_FrameStruct
     mfxU16 miniGopSize      = 0;
     mfxU16 QpMapNZ          = 0;
     mfxU16 PersistenceMapNZ = 0;
-
+    mfxI16 QpMapBias        = 0;
     mfxU8  PersistenceMap[MFX_ENCTOOLS_PREENC_MAP_SIZE] = {};
 };
 
@@ -554,7 +554,7 @@ protected:
     mfxU32     m_ReEncodeCount;
     std::vector<BRC_FrameStruct> m_FrameStruct;
 
-    virtual mfxU16 FillQpMap(const BRC_FrameStruct&, mfxU32 /*frameQp*/, mfxEncToolsHintQPMap*) = 0;
+    virtual mfxU16 FillQpMap(const BRC_FrameStruct&, mfxU32 /*frameQp*/, mfxEncToolsHintQPMap*, mfxI16&) = 0;
 
     mfxI32 GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
     mfxI32 GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
@@ -567,7 +567,7 @@ class BRC_EncTool : public BRC_EncToolBase
 {
 public:
 
-    mfxU16 FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp, mfxEncToolsHintQPMap* qpMap) override;
+    mfxU16 FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp, mfxEncToolsHintQPMap* qpMap, mfxI16& qpMapBias) override;
 };
 
 }

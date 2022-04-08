@@ -1029,6 +1029,10 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
 
     mfxI32 bitsEncoded = frameStruct.frameSize * 8;
     mfxI32 qpY = frameStruct.qp + m_par.quantOffset;
+    if (frameStructItr->QpMapNZ)
+    {
+        qpY = mfx::clamp((mfxI32)qpY - frameStructItr->QpMapBias, 1, 51);
+    }
     mfxI32 layer = frameStruct.pyrLayer;
     mfxU16 picType = GetFrameType(frameStruct.frameType, frameStruct.pyrLayer, m_par.gopRefDist, m_par.codecId);
     mfxU16 isRef = frameStruct.frameType & MFX_FRAMETYPE_REF;
@@ -2046,7 +2050,12 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
     pFrameQp->QpY = frameStruct.qp;
     pFrameQp->NumDeltaQP = 0;
 
-    frameStructItr->QpMapNZ = FillQpMap(*frameStructItr, pFrameQp->QpY, qpMapHint);
+    // PAQ QpMapNZ & QpMap Average return by Base FillQpMap, other implementations can override these.
+    frameStructItr->QpMapNZ = FillQpMap(*frameStructItr, pFrameQp->QpY, qpMapHint, frameStructItr->QpMapBias);
+    if (frameStructItr->QpMapNZ) 
+    {
+        pFrameQp->QpY = mfx::clamp((mfxI32)pFrameQp->QpY + frameStructItr->QpMapBias, 1, 51); // Allow slice Qp to change 1-51 for lambda
+    }
 
     if(m_par.codecId == MFX_CODEC_AV1 ){
         //we are going to merge AV1 SW BRC in stages, first stage uses fixed QP value
@@ -2390,14 +2399,14 @@ void sHrdInput::Init(cBRCParams par)
     m_initCpbRemovalDelay = 90000. * 8. * par.initialDelayInBytes / m_bitrate;
 }
 
-mfxU16 BRC_EncTool::FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp, mfxEncToolsHintQPMap* qpMapHint)
+mfxU16 BRC_EncTool::FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp, mfxEncToolsHintQPMap* qpMapHint, mfxI16& qpMapBias)
 {
     const auto type = GetFrameType(frameStruct.frameType, frameStruct.pyrLayer, m_par.gopRefDist, m_par.codecId);
     const mfxU16 isIntra = frameStruct.frameType & (MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_I);
 
     mfxI8 QpMap[MFX_ENCTOOLS_PREENC_MAP_SIZE] = {};
     mfxU16 QpMapNZ = 0;
-
+    qpMapBias= 0;
     // PAQ
     if (m_par.mMBBRC && frameStruct.PersistenceMapNZ)
     {
@@ -2422,9 +2431,11 @@ mfxU16 BRC_EncTool::FillQpMap(const BRC_FrameStruct& frameStruct, mfxU32 frameQp
             for (mfxU32 i = 0; i < MFX_ENCTOOLS_PREENC_MAP_SIZE; i++)
             {
                 QpMap[i] = (mfxI8) (-1 * std::min(qp_d, (frameStruct.PersistenceMap[i] + 1) / 3));
+                qpMapBias += QpMap[i];
                 if (QpMap[i]) count++;
             }
             QpMapNZ = count;
+            qpMapBias = qpMapBias / MFX_ENCTOOLS_PREENC_MAP_SIZE; // Avg
         }
     }
 
