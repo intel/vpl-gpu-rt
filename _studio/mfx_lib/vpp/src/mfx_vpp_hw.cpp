@@ -2252,6 +2252,8 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
         case MFX_EXTBUFF_VPP_DENOISE2:
         case MFX_EXTBUFF_VPP_FIELD_WEAVING:
         case MFX_EXTBUFF_VPP_FIELD_SPLITTING:
+	    case MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN:
+	    case MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT:
             if (format == MFX_FOURCC_NV12 ||
                 format == MFX_FOURCC_P010 ||
                 format == MFX_FOURCC_P016 ||
@@ -4367,6 +4369,15 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
     {
         m_executeParams.iDeinterlacingAlgorithm = 0;
         m_executeParams.bFMDEnable = false;
+    }
+
+    if ((imfxFPMode - 1 == FIELD2TFF || imfxFPMode - 1 == FIELD2BFF) && !VppCaps::IsSwFieldProcessingSupported(m_pCore->GetHWType()))
+    {
+        m_executeParams.bFieldWeavingExt = true;
+    }
+    if ((imfxFPMode - 1 == TFF2FIELD || imfxFPMode - 1 == BFF2FIELD) && !VppCaps::IsSwFieldProcessingSupported(m_pCore->GetHWType()))
+    {
+        m_executeParams.bFieldSplittingExt = true;
     }
 
     if (m_executeParams.mirroring && m_pCore->GetVAType() != MFX_HW_D3D9)

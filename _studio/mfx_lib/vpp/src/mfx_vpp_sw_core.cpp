@@ -1197,6 +1197,11 @@ mfxStatus VideoVPP_HW::InternalInit(mfxVideoParam *par)
                             || IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_WEAVING)
                             || IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_SPLITTING);
 
+    /* We call driver instead of kernel on XeHP_SDV+ for field weaving and splitting */
+    if ((IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_WEAVING)
+      || IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_FIELD_SPLITTING))
+      && !VppCaps::IsSwFieldProcessingSupported(m_core->GetHWType()))
+        isSWFieldProcessing = false;
 #endif
 
     pCommonCore = QueryCoreInterface<CommonCORE>(m_core, MFXIVideoCORE_GUID);
