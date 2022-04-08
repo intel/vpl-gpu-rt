@@ -3335,7 +3335,7 @@ void SetDefaultBRC(
     if (bSetRCPar)
     {
         TargetKbps(par.mfx) = defPar.base.GetTargetKbps(defPar);
-        SetDefault<mfxU16>(par.mfx.MaxKbps, par.mfx.TargetKbps);
+        MaxKbps(par.mfx) = defPar.base.GetMaxKbps(defPar);
         SetDefault<mfxU16>(par.mfx.InitialDelayInKB
             , par.mfx.BufferSizeInKB * (2 + (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR && Legacy::IsSWBRC(par))) / 4);
     }
