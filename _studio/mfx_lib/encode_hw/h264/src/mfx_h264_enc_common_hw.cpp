@@ -2274,7 +2274,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     if (IsOn(par.mfx.LowPower))
     {
 #if defined(MFX_ENABLE_AVCE_VDENC_B_FRAMES)
-        // Gen12HP VDEnc supports B frames
+        // VDEnc B frame supported from XeHP_SDV
         if (par.mfx.GopRefDist > 1
             && platform < MFX_HW_XE_HP_SDV
             )
