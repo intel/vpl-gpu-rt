@@ -303,6 +303,70 @@ private:
 
 };
 
+struct LA_Ctx
+{
+LA_Ctx():
+    LastLaPBitsAvg(LA_P_UPDATE_DIST + MAX_GOP_REFDIST, 0),
+    LastLaQpCalc(0),
+    LastLaQpCalcEncOrder(0),
+    LastLaQpCalcDispOrder(0),
+    LastLaQpCalcHasI(0),
+    LastLaQpUpdateEncOrder(0),
+    LastLaQpUpdateDispOrder(0),
+    LastLaIBits(0),
+    LastMBQpSetEncOrder(0),
+    LastMBQpSetDispOrder(0)
+    {}
+
+    std::vector<mfxU32> LastLaPBitsAvg;  // History of Moving Avg of LA bits of last P frames
+    mfxU32 LastLaQpCalc;                 // Last LaQp calculated
+    mfxU32 LastLaQpCalcEncOrder;
+    mfxU32 LastLaQpCalcDispOrder;
+    bool   LastLaQpCalcHasI;
+    mfxU32 LastLaQpUpdateEncOrder;
+    mfxU32 LastLaQpUpdateDispOrder;
+    mfxU32 LastLaIBits;                 // LA bits of Last Intra Frame
+    mfxU32 LastMBQpSetEncOrder;
+    mfxU32 LastMBQpSetDispOrder;
+
+    bool IsCalcLaQpDist(mfxU32 dispOrder)
+    {
+        return dispOrder >= LastLaQpCalcDispOrder + LA_P_UPDATE_DIST;
+    }
+    bool IsUpdateLaQpDist(mfxU32 dispOrder)
+    {
+        return dispOrder >= LastLaQpUpdateDispOrder + LA_P_UPDATE_DIST;
+    }
+    void SetLaQpCalcOrder(mfxU32 encOrder, mfxU32 dispOrder)
+    {
+        LastLaQpCalcEncOrder = encOrder;
+        LastLaQpCalcDispOrder = dispOrder;
+    }
+    void SetLaQpUpdateOrder(mfxU32 encOrder, mfxU32 dispOrder) 
+    { 
+        LastLaQpUpdateEncOrder = encOrder;
+        LastLaQpUpdateDispOrder = dispOrder;
+    }
+    mfxU32 GetLastCalcLaBitsAvg(mfxU32 encOrder)
+    {
+        return LastLaPBitsAvg[mfx::clamp((mfxI32)encOrder - (mfxI32)LastLaQpCalcEncOrder - 1, 0, (mfxI32)LastLaPBitsAvg.size() - 1)];
+    }
+    void SaveLaBits(bool intra, mfxU32 LaCurEncodedSize, mfxU32 period, bool rotate)
+    {
+        if (intra) LastLaIBits = LaCurEncodedSize;
+        if (rotate) std::rotate(LastLaPBitsAvg.rbegin(), LastLaPBitsAvg.rbegin() + 1, LastLaPBitsAvg.rend());
+        if (LastLaPBitsAvg[1])
+        {
+            LastLaPBitsAvg[0] = (mfxI32)LastLaPBitsAvg[1] +
+                ((mfxI32)LaCurEncodedSize - (mfxI32)LastLaPBitsAvg[1]) / (mfxI32)period;
+        }
+        else
+        {
+            LastLaPBitsAvg[0] = LaCurEncodedSize;
+        }
+    }
+};
+
 struct BRC_Ctx
 {
     BRC_Ctx() :
@@ -325,17 +389,12 @@ struct BRC_Ctx
         LastIQpAct(0),
         LastIFrameSize(0),
         LastICmplx(0),
-        LastLaIBits(0),
         LastIQpSetOrder(0),
         LastQpUpdateOrder(0),
         LastIQpMin(0),
         LastIQpSet(0),
-        LastLaPBitsAvg(LA_P_UPDATE_DIST + MAX_GOP_REFDIST, 0),
-        LastLaQpCalc(0),
-        LastLaQpCalcOrder(0),
-        LastMBQpSetOrder(0),
-        LastLaQpUpdateOrder(0),
         LastNonBFrameSize(0),
+        la(),
         fAbLong(0),
         fAbShort(0),
         fAbLA(0),
@@ -366,19 +425,14 @@ struct BRC_Ctx
     mfxU32 LastIQpAct;      // Qp of last intra frame
     mfxU32 LastIFrameSize; // encoded frame size of last non B frame (is used for sceneChange)
     mfxF64 LastICmplx;      // Cmplx of last intra frame
-    mfxU32 LastLaIBits;     // La bits of Last Intra Frame
+
     mfxU32 LastIQpSetOrder; // Qp of last intra frame
     mfxU32 LastQpUpdateOrder;   // When using UpdateQpParams
     mfxU32 LastIQpMin;      // Qp of last intra frame
     mfxU32 LastIQpSet;      // Qp of last intra frame
-    std::vector<mfxU32> LastLaPBitsAvg;  // History of Moving Avg of LA bits of last P frames
-    mfxU32 LastLaQpCalc;   // Last LaQp calculated
-    mfxU32 LastLaQpCalcOrder;
-    mfxU32 LastMBQpSetOrder;
-    mfxU32 LastLaQpUpdateOrder;
 
     mfxU32 LastNonBFrameSize; // encoded frame size of last non B frame (is used for sceneChange)
-
+    LA_Ctx la;
     mfxF64 fAbLong;         // frame aberration (long period)
     mfxF64 fAbShort;        // frame aberration (short period)
     mfxF64 fAbLA;           // frame aberration (LA period)
@@ -560,7 +614,7 @@ protected:
     mfxI32 GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
     mfxI32 GetPicQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
     mfxF64 ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong, mfxU32 eo, bool bIdr, mfxU16 qpMod, mfxI32 qpDeltaP, bool bNoNewQp) const;
-    mfxI32 GetLaQpEst(mfxU32 LaAvgEncodedSize, mfxF64 inputBitsPerFrame) const;
+    mfxI32 GetLaQpEst(mfxU32 LaAvgEncodedSize, mfxF64 inputBitsPerFrame, const BRC_FrameStruct& frameStruct, bool updateState);
 };
 
 class BRC_EncTool : public BRC_EncToolBase
