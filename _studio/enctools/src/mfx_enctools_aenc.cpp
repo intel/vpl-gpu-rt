@@ -264,7 +264,7 @@ mfxStatus AEnc_EncTool::GetGOPDecision(mfxU32 displayOrder, mfxEncToolsHintPreEn
     }
     pPreEncGOP->QPDelta = (mfxI16)(*m_frameIt).DeltaQP;
     if (m_aencPar.APQ) {
-        if (m_aencPar.CodecId == MFX_CODEC_HEVC) {
+        if (m_aencPar.CodecId == MFX_CODEC_HEVC || m_aencPar.CodecId == MFX_CODEC_AV1) {
             if (miniGOP == 8)
                 pPreEncGOP->QPModulation = MFX_QP_MODULATION_LOW + (mfxI16)(*m_frameIt).ClassAPQ;
             else

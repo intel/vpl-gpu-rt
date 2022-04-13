@@ -959,8 +959,13 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
         }
     }
 
-
     mfxEncToolsBRCEncodeResult  *pEncRes = (mfxEncToolsBRCEncodeResult *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_BRC_ENCODE_RESULT);
+
+    // Since AV1 BRC uses HEVC BRC, so need this conversion
+    if(pEncRes && m_ctrl.CodecId == MFX_CODEC_AV1) {
+        pEncRes->QpY = EncToolsBRC::AV1_DC_Q_IDX_2_HEVC_QP[pEncRes->QpY];        
+    }
+
     if (pEncRes && isPreEncSCD(m_config, m_ctrl)) {
         m_scd.ReportEncResult(par->DisplayOrder, *pEncRes);
     }
@@ -1060,6 +1065,11 @@ mfxStatus EncTools::Query(mfxEncToolsTaskParam* par, mfxU32 /*timeOut*/)
     {
         sts = m_brc->ProcessFrame(par->DisplayOrder, pFrameQp, qpMapHint);
         MFX_CHECK_STS(sts);
+
+        // Note: AV1 BRC is based on HEVC BRC, so need this conversion
+        if (m_ctrl.CodecId == MFX_CODEC_AV1) {
+            pFrameQp->QpY =  EncToolsBRC::HEVC_QP_2_AV1_DC_Q_IDX[pFrameQp->QpY];
+        }
     }
     mfxEncToolsBRCHRDPos *pHRDPos = (mfxEncToolsBRCHRDPos *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_BRC_HRD_POS);
     if (pHRDPos && IsOn(m_config.BRC))
