@@ -112,7 +112,7 @@ private:
     bool                                         m_is_init;
     mfxF64                                       m_in_framerate;
     bool                                         m_is_cscInUse;
-    mfxU16                                       m_anchor_frames_num;
+    mfxU16                                       m_anchorFramesSource;
 };
 
 #endif // MFX_ENABLE_AV1_VIDEO_DECODE

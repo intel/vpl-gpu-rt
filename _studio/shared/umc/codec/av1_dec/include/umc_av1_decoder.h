@@ -139,6 +139,10 @@ namespace UMC_AV1_DECODER
         UMC::FrameMemID  GetRepeatedFrame(){return repeateFrame;}
         void SetInFrameRate(mfxF64 rate)
         { in_framerate = rate; }
+        void SetAnchorIdx(UMC::FrameMemID idx)
+        { m_specified_anchor_Idx = idx;}
+        void SetAsAnchor(bool isAnchorFrame)
+        { m_isAnchor = isAnchorFrame;}
 
         virtual bool QueryFrames() = 0;
 
@@ -203,6 +207,8 @@ namespace UMC_AV1_DECODER
         FrameHeader                     m_prev_frame_header;
         bool                            m_prev_frame_header_exist;
         UMC::FrameMemID                 m_anchor_frame_mem_ids[MAX_ANCHOR_SIZE];
+        UMC::FrameMemID                 m_specified_anchor_Idx; // anchor frame index specified by application
+        bool                            m_isAnchor; // check if current frame is a anchor frame
     };
 }
 

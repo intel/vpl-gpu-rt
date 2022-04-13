@@ -128,7 +128,7 @@ VideoDECODEAV1::VideoDECODEAV1(VideoCORE* core, mfxStatus* sts)
     , m_is_init(false)
     , m_in_framerate(0)
     , m_is_cscInUse(false)
-    , m_anchor_frames_num(0)
+    , m_anchorFramesSource(0)
 {
     if (sts)
     {
@@ -618,7 +618,6 @@ mfxStatus VideoDECODEAV1::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfxFr
     MFX_CHECK_STS(sts);
 
     request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
-
 
     return sts;
 }
@@ -1282,8 +1281,8 @@ mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFram
     surface_out->Data.FrameOrder = pFrame->FrameOrder();
     surface_out->Data.Corrupted = 0;
     surface_out->Info.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
-    surface_out->Info.CropW = static_cast<mfxU16>(m_anchor_frames_num > 0 ? pFrame->GetRenderWidth() : pFrame->GetUpscaledWidth());
-    surface_out->Info.CropH = static_cast<mfxU16>(m_anchor_frames_num > 0 ? pFrame->GetRenderHeight() : pFrame->GetFrameHeight());
+    surface_out->Info.CropW = static_cast<mfxU16>(m_anchorFramesSource > 0 ? pFrame->GetRenderWidth() : pFrame->GetUpscaledWidth());
+    surface_out->Info.CropH = static_cast<mfxU16>(m_anchorFramesSource > 0 ? pFrame->GetRenderHeight() : pFrame->GetFrameHeight());
     surface_out->Info.AspectRatioW = 1;
     surface_out->Info.AspectRatioH = 1;
 

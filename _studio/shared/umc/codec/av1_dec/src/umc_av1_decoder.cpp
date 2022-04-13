@@ -554,7 +554,7 @@ namespace UMC_AV1_DECODER
         bool gotFullFrame = false;
         bool repeatedFrame = false;
         bool skipFrame = false;
-        bool anchor_decode = params.lst_mode && anchor_frames_count < params.anchors_num;
+        bool anchor_decode = params.lst_mode && m_isAnchor;
         bool firstSubmission = false;
  
         AV1DecoderFrame* pCurrFrame = nullptr;
@@ -625,12 +625,6 @@ namespace UMC_AV1_DECODER
                     break;
                 }
                 case OBU_TILE_LIST:
-                    // This OBU type is purely for the large scale tile decoding mode.
-                    if (anchor_frames_count < params.anchors_num)
-                    {
-                        throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
-                    }
-
                     // a ext-tile sequence composition: a sequence header OBU, followed by
                     // a number of OBUs that together constitue one or more coded anchors frames, followed by
                     // a frame header OBU, followed by
@@ -871,7 +865,7 @@ namespace UMC_AV1_DECODER
             }
 
             if (anchor_decode)
-                m_anchor_frame_mem_ids[anchor_frames_count] = pCurrFrame->m_index;
+                m_anchor_frame_mem_ids[m_specified_anchor_Idx] = pCurrFrame->m_index;
         }
 
         UMC::Status umcRes = UMC::UMC_OK;

@@ -241,6 +241,7 @@ namespace UMC_AV1_DECODER
         int64_t          UID;
         DPBType          frame_dpb;
         UMC::FrameMemID  m_index;
+        UMC::FrameMemID  m_anchorFrameIdx; // application to specify anchor frame index used by current frame
 
     protected:
         virtual void Free()
