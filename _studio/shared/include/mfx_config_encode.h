@@ -54,6 +54,7 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
     #define MFX_ENABLE_HEVCE_INTERLACE
     #define MFX_ENABLE_HEVCE_ROI
+    #define MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION
     #if !defined(MFX_ENABLE_EXT_BRC)
         #define MFX_ENABLE_EXT_BRC
     #endif
