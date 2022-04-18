@@ -602,8 +602,23 @@ public:
         Defaults::TChain<mfxU8>::TExt
         , const Defaults::Param& par)
     {
-        mfxU8 BFrameRate = mfxU8(par.base.GetGopRefDist(par) - 1);
-        return !!BFrameRate;
+        const mfxU8 GopRefDist = mfxU8(par.base.GetGopRefDist(par));
+        if (GopRefDist < 2)
+            return 0;
+
+        const bool bBPyramid  = (par.base.GetBRefType(par) == MFX_B_REF_PYRAMID);
+        if (!bBPyramid)
+            return 1;
+
+        mfxU8 BFrameRate = GopRefDist - 1;
+        mfxU8 n          = 0;
+        while (BFrameRate)
+        {
+            BFrameRate >>= 1;
+            n++;
+        }
+
+        return n;
     }
 
     static bool NonStdReordering(

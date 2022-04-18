@@ -1458,9 +1458,11 @@ void General::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
 
         if (bs.TimeStamp != mfxU64(MFX_TIMESTAMP_UNKNOWN))
         {
-            const auto&  par             = Glob::VideoParam::Get(global);
-            const mfxI32 dpbOutputDelay  = task.DisplayOrder - task.EncodedOrder;
-            const mfxF64 tcDuration90KHz = (mfxF64)par.mfx.FrameInfo.FrameRateExtD / par.mfx.FrameInfo.FrameRateExtN * 90000;
+            const auto&  par              = Glob::VideoParam::Get(global);
+            const auto   dflts            = GetRTDefaults(global);
+            const auto   numReorderFrames = dflts.base.GetNumReorderFrames(dflts);
+            const mfxI32 dpbOutputDelay   = task.DisplayOrder + numReorderFrames - task.EncodedOrder;
+            const mfxF64 tcDuration90KHz  = (mfxF64)par.mfx.FrameInfo.FrameRateExtD / par.mfx.FrameInfo.FrameRateExtN * 90000;
             bs.DecodeTimeStamp = mfxI64(bs.TimeStamp - tcDuration90KHz * dpbOutputDelay);
         }
 
