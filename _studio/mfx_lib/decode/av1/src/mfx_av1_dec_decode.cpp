@@ -838,6 +838,9 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
         reinterpret_cast<TaskInfo*>(task);
     UMC_AV1_DECODER::AV1DecoderFrame* frame = NULL;
     mfxFrameSurface1* surface_out = info->surface_out;
+    MFX_CHECK_NULL_PTR1(surface_out);
+    MFX_CHECK(surface_out, MFX_ERR_INVALID_HANDLE);
+
     if(info->copyfromframe != UMC::FRAME_MID_INVALID)
     {
         frame = m_decoder->DecodeFrameID(info->copyfromframe);
@@ -999,7 +1002,7 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
                     break;
 
                 default:
-                    if (sts < 0)
+                    if (sts < 0 || umcRes < 0)
                         sts = MFX_ERR_UNDEFINED_BEHAVIOR;
                     break;
             }

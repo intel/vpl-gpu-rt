@@ -128,7 +128,8 @@ namespace UMC_AV1_DECODER
 
                 OBUInfo obuInfo;
                 bs.ReadOBUInfo(obuInfo);
-                assert(CheckOBUType(obuInfo.header.obu_type)); // [clean up] Need to remove assert once decoder code is stabilized
+                if (!CheckOBUType(obuInfo.header.obu_type))
+                    return UMC::UMC_ERR_INVALID_PARAMS;
 
                 if (obuInfo.header.obu_type == OBU_SEQUENCE_HEADER)
                 {
@@ -345,7 +346,7 @@ namespace UMC_AV1_DECODER
                 {
                     if ((Repeat_H.refresh_frame_flags >> i) & 1)
                     {
-                        if (!frameDPB.empty() && frameDPB[i])
+                        if (!frameDPB.empty() && frameDPB[i] && frameDPB[i]->GetRefCounter())
                            frameDPB[i]->DecrementReference();
 
                         frameDPB[i] = const_cast<AV1DecoderFrame*>(pFrame);
@@ -591,7 +592,9 @@ namespace UMC_AV1_DECODER
                 bs.ReadOBUInfo(obuInfo);
                 const AV1_OBU_TYPE obuType = obuInfo.header.obu_type;
 
-                assert(CheckOBUType(obuType)); // [clean up] Need to remove assert once decoder code is stabilized
+                if (!CheckOBUType(obuInfo.header.obu_type))
+                    return UMC::UMC_ERR_INVALID_PARAMS;
+
                 if (tmp.GetDataSize() < obuInfo.size) // not enough data left in the buffer to hold full OBU unit
                     break;
 
@@ -677,7 +680,7 @@ namespace UMC_AV1_DECODER
                 case OBU_FRAME:
                     if (!sequence_header.get())
                         break; // bypass frame header if there is no active seq header
-                    if (!gotFrameHeader)
+                    if (!gotFrameHeader && !updated_refs.empty())
                     {
                         // we read only first entry of uncompressed header in the frame
                         // each subsequent copy of uncompressed header (i.e. OBU_REDUNDANT_FRAME_HEADER) must be exact copy of first entry by AV1 spec
@@ -780,8 +783,11 @@ namespace UMC_AV1_DECODER
             }
             else
             {
-                pCurrFrame = pFrameInProgress ?
-                    pFrameInProgress : StartFrame(fh, updated_refs, pPrevFrame);
+                if (!updated_refs.empty())
+                {
+                    pCurrFrame = pFrameInProgress ?
+                        pFrameInProgress : StartFrame(fh, updated_refs, pPrevFrame);
+                }
  
                 CompleteDecodedFrames(fh, pCurrFrame, pPrevFrame);
                 CalcFrameTime(pCurrFrame);
@@ -807,7 +813,7 @@ namespace UMC_AV1_DECODER
             if (repeatedFrame)
             {
                 pCurrFrame->ShowAsExisting(true);
-                if (anchor_decode)
+                if (anchor_decode && !updated_refs.empty())
                 {
                     m_anchor_frame_mem_ids[anchor_frames_count] = updated_refs[pCurrFrame->GetFrameHeader().frame_to_show_map_idx]->m_index;
                     RegisterAnchorFrame(anchor_frames_count++);
