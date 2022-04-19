@@ -4575,6 +4575,7 @@ mfxStatus Legacy::GetSliceHeader(
         auto IsL1Pic    = [](const STRPSPic& pic)   { return pic.used_by_curr_pic_sx_flag && (pic.DeltaPocSX > 0); };
         auto PicToPOC   = [&](const STRPSPic& pic)  { return (task.POC + pic.DeltaPocSX); };
 
+        MFX_CHECK(std::max(task.NumRefActive[0], task.NumRefActive[1]) <= MAX_DPB_SIZE, MFX_ERR_INVALID_VIDEO_PARAM)
         ConstructSTRPS(DPB, RefPicList, task.NumRefActive, task.POC, s.strps);
 
         s.pic_order_cnt_lsb = (task.POC & ~(0xFFFFFFFF << (sps.log2_max_pic_order_cnt_lsb_minus4 + 4)));
