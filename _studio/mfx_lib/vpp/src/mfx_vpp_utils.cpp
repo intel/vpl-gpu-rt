@@ -107,7 +107,10 @@ const mfxU32 g_TABLE_CONFIG [] =
     MFX_EXTBUFF_VPP_3DLUT,
     MFX_EXTBUFF_VPP_DENOISE2,
     MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN,
-    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT
+    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT,
+    MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO,
+    MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN,
+    MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT
 };
 
 
@@ -140,7 +143,10 @@ const mfxU32 g_TABLE_EXT_PARAM [] =
     MFX_EXTBUFF_VPP_3DLUT,
     MFX_EXTBUFF_VPP_DENOISE2,
     MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN,
-    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT
+    MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT,
+    MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO,
+    MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN,
+    MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT
 };
 
 PicStructMode GetPicStructMode(mfxU16 inPicStruct, mfxU16 outPicStruct)
@@ -832,6 +838,21 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
         newList[index] = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT;
         index++;
     }
+    if (IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO))
+    {
+        newList[index] = MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO;
+        index++;
+    }
+    if (IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN))
+    {
+        newList[index] = MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN;
+        index++;
+    }
+    if (IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT))
+    {
+        newList[index] = MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT;
+        index++;
+    }
     if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_SCENE_ANALYSIS ) )
     {
         newList[index] = MFX_EXTBUFF_VPP_SCENE_ANALYSIS;
@@ -1293,6 +1314,27 @@ mfxStatus GetPipelineList(
         if( !IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT ) )
         {
             pipelineList.push_back( MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT );
+        }
+    }
+    if (IsFilterFound(&configList[0], configCount, MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN) && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN))
+    {
+        if (!IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN))
+        {
+            pipelineList.push_back(MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN);
+        }
+    }
+    if (IsFilterFound(&configList[0], configCount, MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT) && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT))
+    {
+        if (!IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT))
+        {
+            pipelineList.push_back(MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT);
+        }
+    }
+    if (IsFilterFound(&configList[0], configCount, MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO) && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO))
+    {
+        if (!IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO))
+        {
+            pipelineList.push_back(MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO);
         }
     }
 

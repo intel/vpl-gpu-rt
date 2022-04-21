@@ -2736,7 +2736,7 @@ mfxStatus VideoVPPHW::QueryCaps(VideoCORE* core, MfxHwVideoProcessing::mfxVppCap
     caps.uMCTF = VppCaps::IsMctfSupported(hwType) ? 1 : 0;
 #endif
 
-    caps.uVideoSignalInfoInOut = (MFX_HW_VAAPI == core->GetVAType() && VppCaps::IsVideoSignalSupported(hwType)) ? 1 : 0;
+    caps.uVideoSignalInfoInOut = VppCaps::IsVideoSignalSupported(hwType) ? 1 : 0;
     caps.uFrameRateConversion = 1;
     caps.uFieldProcessing = VppCaps::IsFieldProcessingSupported(hwType) ? 1 :0;
 
@@ -5483,8 +5483,21 @@ mfxStatus ConfigureExecuteParams(
     //-----------------------------------------------------
     for (mfxU32 j = 0; j < pipelineList.size(); j += 1)
     {
-        mfxU32 curFilterId = pipelineList[j];
+        auto SetHdrMetaData = [](mfxExtMasteringDisplayColourVolume* extBuf, mfxExecuteParams::HDR10MetaData& retHDR10MetaData)
+        {
+            retHDR10MetaData.enabled = true;
+            for (int i = 0; i < 3; i++)
+            {
+                retHDR10MetaData.displayPrimariesX[i] = extBuf->DisplayPrimariesX[i];
+                retHDR10MetaData.displayPrimariesY[i] = extBuf->DisplayPrimariesY[i];
+            }
+            retHDR10MetaData.whitePoint[0] = extBuf->WhitePointX;
+            retHDR10MetaData.whitePoint[1] = extBuf->WhitePointY;
+            retHDR10MetaData.maxMasteringLuminance = extBuf->MaxDisplayMasteringLuminance;
+            retHDR10MetaData.minMasteringLuminance = extBuf->MinDisplayMasteringLuminance;
+        };
 
+        mfxU32 curFilterId = pipelineList[j];
         switch(curFilterId)
         {
             case MFX_EXTBUFF_VPP_DEINTERLACING:
@@ -5810,6 +5823,78 @@ mfxStatus ConfigureExecuteParams(
                 }
                 break;
             }
+            
+            case MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO:
+            {
+                if (caps.uContentLightLevelInfo)
+                {
+                    for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
+                    {
+                        if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO)
+                        {
+                            mfxExtContentLightLevelInfo* extBuf = (mfxExtContentLightLevelInfo*)videoParam.ExtParam[i];
+                            if (extBuf)
+                            {
+                                executeParams.inHDR10MetaData.enabled                   = true;
+                                executeParams.inHDR10MetaData.maxContentLightLevel      = extBuf->MaxContentLightLevel;
+                                executeParams.inHDR10MetaData.maxFrameAverageLightLevel = extBuf->MaxPicAverageLightLevel;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    bIsFilterSkipped = true;
+                }
+                break;
+            }
+
+            case MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN:
+            {
+                if (caps.uMasteringDisplayColourVolumeInOut)
+                {
+                    for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
+                    {
+                        if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN)
+                        {
+                            mfxExtMasteringDisplayColourVolume* extBuf = (mfxExtMasteringDisplayColourVolume*)videoParam.ExtParam[i];
+                            if (extBuf)
+                            {
+                                SetHdrMetaData(extBuf, executeParams.inHDR10MetaData);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    bIsFilterSkipped = true;
+                }
+                break;
+            }
+
+            case MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT:
+            {
+                if (caps.uMasteringDisplayColourVolumeInOut)
+                {
+                    for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
+                    {
+                        if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT)
+                        {
+                            mfxExtMasteringDisplayColourVolume* extBuf = (mfxExtMasteringDisplayColourVolume*)videoParam.ExtParam[i];
+                            if (extBuf)
+                            {
+                                SetHdrMetaData(extBuf, executeParams.outHDR10MetaData);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    bIsFilterSkipped = true;
+                }
+                break;
+            }
+            
             case MFX_EXTBUFF_VPP_COLOR_CONVERSION:
             {
                 if (caps.uChromaSiting )
@@ -6384,6 +6469,14 @@ mfxStatus ConfigureExecuteParams(
                 else if (MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT== bufferId)
                 {
                     executeParams.m_outVideoSignalInfo.enabled = false;
+                }
+                else if (MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN== bufferId)
+                {
+                    executeParams.inHDR10MetaData.enabled = false;
+                }
+                else if (MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT== bufferId)
+                {
+                    executeParams.outHDR10MetaData.enabled = false;
                 }
                 else if (MFX_EXTBUFF_VPP_COLOR_CONVERSION == bufferId)
                 {

@@ -151,6 +151,18 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
             {
                 break;
             }
+            case (mfxU32)MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO:
+            {
+                break;
+            }
+            case (mfxU32)MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN:
+            {
+                break;
+            }
+            case (mfxU32)MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT:
+            {
+                break;
+            }
             case (mfxU32)MFX_EXTBUFF_VPP_DEINTERLACING:
             {
                 break;
