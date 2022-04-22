@@ -67,7 +67,7 @@ void Segmentation::InitTask(const FeatureBlocks& blocks, TPushIT Push)
 
             const mfxU8 id = FindUnusedSegmentId(segPar);
 
-            if (id == Base::AV1_MAX_NUM_OF_SEGMENTS)
+            if (id >= Base::AV1_MAX_NUM_OF_SEGMENTS)
             {
                 // All segment_ids 0-7 are present in segmentation map
                 // WA cannot be applied

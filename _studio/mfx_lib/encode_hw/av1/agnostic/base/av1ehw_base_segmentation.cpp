@@ -142,7 +142,7 @@ mfxU32 CheckHWLimitations(mfxExtAV1Segmentation& seg)
 {
     mfxU32 invalid = 0;
 
-    if (seg.NumSegments)
+    if (seg.NumSegments && seg.NumSegments <= AV1_MAX_NUM_OF_SEGMENTS)
     {
         const mfxAV1SegmentParam lastSeg = seg.Segment[seg.NumSegments - 1];
 
