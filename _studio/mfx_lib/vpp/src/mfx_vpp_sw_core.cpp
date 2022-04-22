@@ -500,10 +500,10 @@ mfxStatus VideoVPPBase::QueryCaps(VideoCORE * core, MfxHwVideoProcessing::mfxVpp
     if(MFX_PLATFORM_HARDWARE == core->GetPlatformType() )
     {
         sts = VideoVPPHW::QueryCaps(core, caps);
-        caps.uFrameRateConversion  = 1; // "1" means general FRC is supported. "Interpolation" modes descibed by caps.frcCaps
-        caps.uDeinterlacing        = 1; // "1" means general deinterlacing is supported
-        caps.uVideoSignalInfoInOut = 1; // "1" means general VSII is supported
-        caps.uVideoSignalInfo      = 1; // "1" means general VSIN is supported
+        caps.uFrameRateConversion= 1; // "1" means general FRC is supported. "Interpolation" modes descibed by caps.frcCaps
+        caps.uDeinterlacing      = 1; // "1" means general deinterlacing is supported
+        caps.uVideoSignalInfoInOut      = 1; // "1" means general VSII is supported
+        caps.uVideoSignalInfo    = 1; // "1" means general VSIN is supported
 
         if (sts >= MFX_ERR_NONE)
            return sts;
@@ -842,18 +842,6 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
                         continue;
                     }
 #endif
-                    else if (MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN == in->ExtParam[i]->BufferId)
-                    {
-                        continue;
-                    }
-                    else if (MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO == in->ExtParam[i]->BufferId)
-                    {
-                        continue;
-                    }
-                    else if (MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN == in->ExtParam[i]->BufferId)
-                    {
-                        continue;
-                    }
                     else
                     {
                         out->ExtParam[i]->BufferId = 0;
