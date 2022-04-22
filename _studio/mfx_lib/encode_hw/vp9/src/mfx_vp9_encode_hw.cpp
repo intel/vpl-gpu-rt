@@ -684,11 +684,6 @@ mfxStatus MFXVideoENCODEVP9_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameS
                 // no tasks in the pool
                 MFX_RETURN(MFX_WRN_DEVICE_BUSY);
             }
-            // check that this input surface isn't used for encoding
-            MFX_CHECK(m_accepted.end() == std::find_if(m_accepted.begin(), m_accepted.end(), FindTaskByRawSurface(surface)),
-                MFX_ERR_UNDEFINED_BEHAVIOR);
-            MFX_CHECK(m_submitted.end() == std::find_if(m_submitted.begin(), m_submitted.end(), FindTaskByRawSurface(surface)),
-                MFX_ERR_UNDEFINED_BEHAVIOR);
 
             Task& newFrame = m_free.front();
             Zero(newFrame);
