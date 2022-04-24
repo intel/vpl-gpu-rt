@@ -159,6 +159,9 @@ namespace MfxHwVideoProcessing
 
         mfxU32 uVideoSignalInfoInOut;
 
+        mfxU32 uContentLightLevelInfo;
+        mfxU32 uMasteringDisplayColourVolumeInOut;
+
         mfxU32 uVideoSignalInfo;
         FrcCaps frcCaps;
 
@@ -509,6 +512,20 @@ namespace MfxHwVideoProcessing
 
         mfxVideoSignalInfo    m_inVideoSignalInfo;
         mfxVideoSignalInfo    m_outVideoSignalInfo;
+
+        struct HDR10MetaData
+        {
+            bool   enabled;
+            mfxU16 displayPrimariesX[3];
+            mfxU16 displayPrimariesY[3];
+            mfxU16 whitePoint[2];
+            mfxU32 maxMasteringLuminance;
+            mfxU32 minMasteringLuminance;
+            mfxU16 maxContentLightLevel;
+            mfxU16 maxFrameAverageLightLevel;
+        };
+        HDR10MetaData inHDR10MetaData;
+        HDR10MetaData outHDR10MetaData;
     };
 
     class DriverVideoProcessing
