@@ -102,6 +102,7 @@ protected:
 
     VAEncSequenceParameterBufferHEVC            m_sps;
     VAEncPictureParameterBufferHEVC             m_pps;
+    VAQMatrixBufferHEVC                         m_qm;
     std::vector<VAEncSliceParameterBufferHEVC>  m_slices;
     mfxU32                                      m_numSkipFrames = 0;
     mfxU32                                      m_sizeSkipFrames = 0;

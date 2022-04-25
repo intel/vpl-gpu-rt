@@ -311,7 +311,7 @@ static void SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsConfig &c
         bool lplaAssistedBRC = IsOn(config.BRC) && isSWLACondition(video);
         SetDefaultOpt(config.BRCBufferHints, lplaAssistedBRC);
         SetDefaultOpt(config.AdaptiveMBQP,  bMBQPSupport && lplaAssistedBRC && IsOn(pExtOpt2->MBBRC));
-
+        SetDefaultOpt(config.AdaptiveQuantMatrices, false);
     }
 #ifdef MFX_ENABLE_ENCTOOLS_LPLA
     else

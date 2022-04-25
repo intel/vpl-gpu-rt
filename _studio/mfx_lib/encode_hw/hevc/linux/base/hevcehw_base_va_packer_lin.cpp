@@ -873,6 +873,12 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         par.push_back(PackVaBuffer(VAEncSequenceParameterBufferType, m_sps));
         par.push_back(PackVaBuffer(VAEncPictureParameterBufferType, m_pps));
 
+        if(m_sps.seq_fields.bits.scaling_list_enabled_flag)
+        {
+            m_qm = {};
+            par.push_back(PackVaBuffer(VAQMatrixBufferType, m_qm));
+        }
+
         std::transform(m_slices.begin(), m_slices.end(), std::back_inserter(par)
             , [&](VAEncSliceParameterBufferHEVC& s) { return PackVaBuffer(VAEncSliceParameterBufferType, s); });
 

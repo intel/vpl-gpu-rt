@@ -3584,7 +3584,9 @@ mfxStatus Legacy::CheckESPackParam(mfxVideoParam & par, eMFXHWType hw)
     }
 
     if (pCO2)
+    {
         changed += CheckTriStateOrZero(pCO2->RepeatPPS);
+    }
 
     if (pVSI)
     {

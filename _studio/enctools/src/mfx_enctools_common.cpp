@@ -267,6 +267,7 @@ mfxStatus EncTools::GetSupportedConfig(mfxExtEncToolsConfig* config, mfxEncTools
             config->AdaptivePyramidQuantP = MFX_CODINGOPTION_ON;
             config->AdaptivePyramidQuantB = MFX_CODINGOPTION_ON;
             config->AdaptiveMBQP = MFX_CODINGOPTION_ON;
+            config->AdaptiveQuantMatrices = MFX_CODINGOPTION_ON;
             if (ctrl->MaxDelayInFrames > ctrl->MaxGopRefDist && IsOn(config->BRC))
                 config->BRCBufferHints = MFX_CODINGOPTION_ON;
         }
@@ -624,7 +625,7 @@ mfxStatus EncTools::CloseVPP()
         m_pmfxVPP_LA->Close();
         m_pmfxVPP_LA.reset();
     }
-    
+
     m_mfxSession_LA = nullptr;
 
     if (m_IntSurfaces_SCD.Data.Y)
@@ -824,6 +825,7 @@ mfxStatus EncTools::Reset(mfxExtEncToolsConfig const * config, mfxEncToolsCtrl c
 mfxStatus EncTools::VPPDownScaleSurface(MFXDLVideoSession* /*m_pmfxSession*/, MFXDLVideoVPP* pVPP, mfxSyncPoint* pVppSyncp, mfxFrameSurface1* pInSurface, mfxFrameSurface1* pOutSurface/*, bool doSync*/)
 {
     mfxStatus sts;
+    MFX_CHECK_NULL_PTR2(pVPP, pVppSyncp);
     MFX_CHECK_NULL_PTR2(pInSurface, pOutSurface);
 
     sts = pVPP->RunFrameVPPAsync(pInSurface, pOutSurface, NULL, pVppSyncp);

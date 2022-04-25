@@ -40,6 +40,9 @@
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
 #include "hevcehw_base_weighted_prediction_lin.h"
 #endif
+#if defined (MFX_ENABLE_HEVC_CUSTOM_QMATRIX)
+#include "hevcehw_base_qmatrix_lin.h"
+#endif
 #if defined(MFX_ENABLE_HEVCE_ROI)
 #include "hevcehw_base_roi_lin.h"
 #endif
@@ -89,6 +92,9 @@ Linux::Base::MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
     m_features.emplace_back(new WeightPred(FEATURE_WEIGHTPRED));
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+#if defined (MFX_ENABLE_HEVC_CUSTOM_QMATRIX)
+    m_features.emplace_back(new QMatrix(FEATURE_QMATRIX));
+#endif
 #if defined(MFX_ENABLE_HEVCE_ROI)
     m_features.emplace_back(new ROI(FEATURE_ROI));
 #endif
@@ -130,6 +136,15 @@ mfxStatus Linux::Base::MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)
             , { FEATURE_DDI_PACKER, VAPacker::BLK_QueryTask }
             , { FEATURE_ENCODED_FRAME_INFO, EncodedFrameInfo::BLK_QueryTask });
     }
+    {
+        auto& queue = BQ<BQ_SubmitTask>::Get(*this);
+#if defined (MFX_ENABLE_HEVC_CUSTOM_QMATRIX)
+        Reorder(queue
+            , { FEATURE_DDI, IDDI::BLK_SubmitTask }
+            , { FEATURE_QMATRIX, QMatrix::BLK_PatchDDITask });
+#endif //defined(MFX_ENABLE_HEVC_CUSTOM_QMATRIX)
+    }
+
 
     return sts;
 }
