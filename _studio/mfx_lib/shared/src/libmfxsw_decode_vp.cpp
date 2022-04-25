@@ -504,6 +504,7 @@ mfxStatus MFXVideoDECODE_VPP_DecodeFrameAsync(mfxSession session, mfxBitstream* 
 
             mfxFrameSurface1* vppOut = nullptr;
             MFX_SAFE_CALL((*session->m_pDVP->GetSurfacePool(id))->GetSurface(vppOut));
+            MFX_CHECK(vppOut, MFX_ERR_NULL_PTR);
 
             const auto& vpp = p.second;
 

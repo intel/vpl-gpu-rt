@@ -38,7 +38,7 @@ mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
     mfxExtCodingOptionDDI* extDdi = (mfxExtCodingOptionDDI*)Et_GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_DDI);
     MFX_CHECK_NULL_PTR1(extDdi);
 
-    ctrl = {};
+    *ctrl = {};
 
     ctrl->CodecId = par.mfx.CodecId;
     ctrl->CodecProfile = par.mfx.CodecProfile;
