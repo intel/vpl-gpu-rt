@@ -1105,7 +1105,12 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
             mfxF64 maxFrameSizeHrd = m_hrdSpec->GetMaxFrameSizeInBits(frame_par->EncodedOrder,bIdr);
             mfxF64 bufOccupy = LTR_BUF(picType, m_par.iDQp, ((picType == MFX_FRAMETYPE_IDR) ? m_par.mIntraBoost : false), ParSceneChange, bSHStart, m_par.mVeryLowDelay);
             mfxF64 maxFrameSizeHRDBalanced = bufOccupy / 9.* maxFrameSizeHrd + (9.0 - bufOccupy) / 9.*targetFrameSize;
-            if (m_ctx.encOrder == 0)
+
+            if (m_par.mVeryLowDelay && frame_par->NumRecode)
+            {
+                maxFrameSize = std::min(maxFrameSize, maxFrameSizeHrd); // very low delay also in low latency, avoid 2nd recode if possible
+            }
+            else if (m_ctx.encOrder == 0)
             {
                 // modify buf limits for VCM like encode for init only
                 mfxF64 maxFrameSizeGood = 6.5 * m_par.inputBitsPerFrame;
@@ -1114,7 +1119,9 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
                 maxFrameSize = std::min(maxFrameSize, maxFrameSizeInit);
             }
             else
+            {
                 maxFrameSize = std::min(maxFrameSize, maxFrameSizeHRDBalanced);
+            }
 
             quantMax = std::min(m_hrdSpec->GetMaxQuant(), quantMax);
             quantMin = std::max(m_hrdSpec->GetMinQuant(), quantMin);
@@ -1124,7 +1131,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
 
         if (bitsEncoded >  maxFrameSize && quant < quantMax)
         {
-            mfxI32 quant_new = GetNewQP(bitsEncoded, (mfxU32)maxFrameSize, quantMin , quantMax, quant ,m_par.quantOffset, 1);
+            mfxI32 quant_new = GetNewQP(bitsEncoded, (mfxU32)maxFrameSize, quantMin , quantMax, quant ,m_par.quantOffset, m_par.mVeryLowDelay ? 1.24 : 1.0, false, m_par.mVeryLowDelay ? false : true);
             if (quant_new > quant)
             {
                 bNeedUpdateQP = false;
