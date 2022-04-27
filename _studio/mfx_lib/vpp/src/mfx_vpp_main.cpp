@@ -103,7 +103,7 @@ mfxStatus VideoVPPMain::Init(mfxVideoParam *par)
 
     m_impl = std::move(impl);
 
-    return (MFX_ERR_NONE == mfxSts) ? internalSts : mfxSts;
+    return mfxSts;
 
 } // mfxStatus VideoVPPMain::Init(mfxVideoParam *par)
 
@@ -142,16 +142,7 @@ mfxStatus VideoVPPMain::VppFrameCheck(mfxFrameSurface1 *in,
         return MFX_ERR_NOT_INITIALIZED;
     }
 
-    mfxFrameSurface1* pInputNative  =  in;
-    mfxFrameSurface1* pOutputNative =  out;
-
-    // to prevent Opaque issue
-    if( (in && (NULL == pInputNative)) || (out && (NULL == pOutputNative)) )
-    {
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
-    }
-
-    mfxStatus mfxSts = m_impl->VppFrameCheck( pInputNative, pOutputNative, aux, pEntryPoint, numEntryPoints );
+    mfxStatus mfxSts = m_impl->VppFrameCheck( in, out, aux, pEntryPoint, numEntryPoints );
 
     return mfxSts;
 
@@ -160,13 +151,9 @@ mfxStatus VideoVPPMain::VppFrameCheck(mfxFrameSurface1 *in,
 
 mfxStatus VideoVPPMain::RunFrameVPP(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux)
 {
-
-    mfxFrameSurface1* pNativeInput  = in;
-    mfxFrameSurface1* pNativeOutput = out;
-
     mfxStatus mfxSts = m_impl->RunFrameVPP(
-        pNativeInput,
-        pNativeOutput,
+        in,
+        out,
         aux);
 
     return mfxSts;

@@ -283,6 +283,8 @@ mfxStatus ImplementationMvc::VppFrameCheck(
 // depreciated
 mfxStatus ImplementationMvc::RunFrameVPP(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux)
 {
+    MFX_CHECK_NULL_PTR1( out );
+
     mfxU16 viewId = 0;
 
     if( m_bMultiViewMode )
