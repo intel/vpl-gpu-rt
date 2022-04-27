@@ -36,6 +36,7 @@ class IDDI
 public:
 #define DECL_BLOCK_LIST\
     DECL_BLOCK(SetCallChains) \
+    DECL_BLOCK(SetDDIID)      \
     DECL_BLOCK(QueryCORE)     \
     DECL_BLOCK(QueryCaps)     \
     DECL_BLOCK(QueryDDI)      \

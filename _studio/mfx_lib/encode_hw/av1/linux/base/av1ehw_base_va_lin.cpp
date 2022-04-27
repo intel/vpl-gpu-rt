@@ -79,6 +79,25 @@ void DDI_VA::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 
         return MFX_ERR_NONE;
     });
+
+    Push(BLK_SetDDIID
+        , [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus
+    {
+        EncodeCapsAv1 fakeCaps;
+        std::unique_ptr<Defaults::Param> m_pDefaults(
+            new Defaults::Param(
+                par
+                , fakeCaps
+                , Glob::Defaults::Get(strg)));
+        MFX_CHECK_NULL_PTR1(m_pDefaults);
+
+        const mfxU16 bitDepth     = m_pDefaults->base.GetBitDepthLuma(*m_pDefaults);
+        const mfxU16 chromaFormat = par.mfx.FrameInfo.ChromaFormat;
+
+        MFX_SAFE_CALL(SetDDIID(bitDepth, chromaFormat));
+
+        return MFX_ERR_NONE;
+    });
 }
 
 mfxStatus DDI_VA::CreateAndQueryCaps(const mfxVideoParam& par, StorageW& strg)
@@ -90,12 +109,6 @@ mfxStatus DDI_VA::CreateAndQueryCaps(const mfxVideoParam& par, StorageW& strg)
 
     if (bNeedNewDevice)
     {
-        EncodeCapsAv1 fakeCaps;
-        Defaults::Param dpar(par, fakeCaps, Glob::Defaults::Get(strg));
-        const mfxU16 BitDepth     = dpar.base.GetBitDepthLuma(dpar);
-        const mfxU16 ChromaFormat = par.mfx.FrameInfo.ChromaFormat;
-        MFX_SAFE_CALL(SetDDIID(BitDepth, ChromaFormat));
-
         MFX_CHECK(m_vaid, MFX_ERR_UNDEFINED_BEHAVIOR);
         auto vap   = VAProfile(m_vaid->Profile);
         auto vaep  = VAEntrypoint(m_vaid->Entrypoint);

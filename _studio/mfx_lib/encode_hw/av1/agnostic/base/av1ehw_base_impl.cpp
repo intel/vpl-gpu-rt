@@ -51,6 +51,15 @@ void MFXVideoENCODEAV1_HW::InternalInitFeatures(
     for (auto& pFeature : m_features)
         pFeature->Init(mode, *this);
 
+    if (mode & QUERY1 || mode & QUERY_IO_SURF || mode & INIT)
+    {
+        Reorder(
+            BQ<BQ_Query1NoCaps>::Get(*this)
+            , { FEATURE_GENERAL, AV1EHW::Base::General::BLK_SetDefaultsCallChain }
+            , { FEATURE_DDI, IDDI::BLK_SetDDIID }
+            , PLACE_AFTER);
+    }
+
     if (mode & INIT)
     {
         Reorder(
