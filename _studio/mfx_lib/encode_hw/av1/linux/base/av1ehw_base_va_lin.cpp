@@ -81,7 +81,7 @@ void DDI_VA::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     });
 
     Push(BLK_SetDDIID
-        , [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus
+        , [this](const mfxVideoParam& par, mfxVideoParam&, StorageRW& strg) -> mfxStatus
     {
         EncodeCapsAv1 fakeCaps;
         std::unique_ptr<Defaults::Param> m_pDefaults(
