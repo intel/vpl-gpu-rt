@@ -51,7 +51,7 @@ void MFXVideoENCODEAV1_HW::InternalInitFeatures(
     for (auto& pFeature : m_features)
         pFeature->Init(mode, *this);
 
-    if (mode & QUERY1 || mode & QUERY_IO_SURF || mode & INIT)
+    if (mode & QUERY1 || mode & QUERY_IMPLS_DESCRIPTION || mode & QUERY_IO_SURF || mode & INIT)
     {
         Reorder(
             BQ<BQ_Query1NoCaps>::Get(*this)
