@@ -645,7 +645,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
                     (in->ExtParam[i] != 0 && out->ExtParam[i] == 0))
                 {
                     //mfxSts = MFX_ERR_UNDEFINED_BEHAVIOR;
-                    mfxSts = MFX_ERR_NULL_PTR;
+                    mfxSts = MFX_ERR_UNSUPPORTED;
                     continue; // stop working with ExtParam[i]
                 }
 

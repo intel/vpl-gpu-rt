@@ -147,7 +147,7 @@ mfxStatus VideoVppJpeg::Init(const mfxVideoParam *par)
 
     if (sts != 0)
     {
-        return MFX_ERR_UNSUPPORTED;
+        return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
     mfxVppCaps caps;
@@ -172,20 +172,20 @@ mfxStatus VideoVppJpeg::Init(const mfxVideoParam *par)
         }
     } else {
         if(MFX_ROTATION_0 != par->mfx.Rotation)
-            return MFX_ERR_UNSUPPORTED;
+            return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 #endif
 
     if(par->vpp.In.Width > caps.uMaxWidth || par->vpp.In.Height > caps.uMaxHeight ||
        par->vpp.Out.Width > caps.uMaxWidth || par->vpp.Out.Height > caps.uMaxHeight)
     {
-        return MFX_ERR_UNSUPPORTED;
+        return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
     if( par->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE &&
         FALSE == caps.uFieldWeavingControl)
     {
-        return MFX_ERR_UNSUPPORTED;
+        return MFX_ERR_INVALID_VIDEO_PARAM;
     }
     m_IOPattern = par->IOPattern;
 
@@ -245,7 +245,7 @@ mfxStatus VideoVppJpeg::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface,
         }
         if (index == -1)
         {
-            return MFX_ERR_MEMORY_ALLOC;
+            return MFX_ERR_LOCK_MEMORY;
         }
         m_pCore->IncreasePureReference(m_surfaces[index].Data.Locked);
         MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index], hdl));
@@ -333,7 +333,7 @@ mfxStatus VideoVppJpeg::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop
         }
         if (index == -1)
         {
-            return MFX_ERR_MEMORY_ALLOC;
+            return MFX_ERR_LOCK_MEMORY;
         }
         m_pCore->IncreasePureReference(m_surfaces[index].Data.Locked);
         MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index], hdl));

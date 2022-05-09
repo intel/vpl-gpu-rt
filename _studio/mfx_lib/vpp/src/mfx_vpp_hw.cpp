@@ -2157,6 +2157,12 @@ mfxStatus VideoVPPHW::Query(VideoCORE *core, mfxVideoParam *par)
     config.m_IOPattern = 0;
     sts = ConfigureExecuteParams(params, caps, executeParams, config);
 
+    if (MFX_WRN_FILTER_SKIPPED == sts)
+    {
+        sts = MFX_ERR_NONE;
+    }
+    MFX_CHECK_STS(sts);
+
     return sts;
 }
 

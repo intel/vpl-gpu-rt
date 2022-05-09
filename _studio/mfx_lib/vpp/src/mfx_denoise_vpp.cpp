@@ -47,7 +47,7 @@ mfxStatus MFXVideoVPPDenoise::Query( mfxExtBuffer* pHint )
 {
     if( NULL == pHint )
     {
-        return MFX_ERR_NONE;
+        return MFX_ERR_UNSUPPORTED;
     }
 
     mfxStatus sts = MFX_ERR_NONE;

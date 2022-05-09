@@ -1091,7 +1091,7 @@ mfxStatus GetPipelineList(
     /* [Deinterlace] FILTER */
     if( 0 != videoParam->NumExtParam && NULL == videoParam->ExtParam )
     {
-        return MFX_ERR_NULL_PTR;
+        return MFX_ERR_INVALID_VIDEO_PARAM;
     }
     PicStructMode picStructMode = GetPicStructMode(par->In.PicStruct, par->Out.PicStruct);
 

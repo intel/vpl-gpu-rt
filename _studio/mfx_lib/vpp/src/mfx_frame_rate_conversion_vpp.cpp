@@ -35,14 +35,13 @@ mfxStatus MFXVideoVPPFrameRateConversion::Query( mfxExtBuffer* pHint )
 {
     if( NULL == pHint )
     {
-        return MFX_ERR_NONE;
+        return MFX_ERR_UNSUPPORTED;
     }
-
 
     mfxExtVPPFrameRateConversion* pParam = (mfxExtVPPFrameRateConversion*)pHint;
 
     if( MFX_FRCALGM_PRESERVE_TIMESTAMP    == pParam->Algorithm    || 
-        MFX_FRCALGM_DISTRIBUTED_TIMESTAMP == pParam->Algorithm ||
+        MFX_FRCALGM_DISTRIBUTED_TIMESTAMP == pParam->Algorithm    ||
         MFX_FRCALGM_FRAME_INTERPOLATION   == pParam->Algorithm)
     {
         return MFX_ERR_NONE;
