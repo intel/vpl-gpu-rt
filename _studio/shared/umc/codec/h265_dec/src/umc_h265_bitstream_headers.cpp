@@ -114,6 +114,7 @@ bool H265BaseBitstream::More_RBSP_Data()
         return false;
 
     // get top bit, it can be "rbsp stop" bit
+    CheckBitsLeft(1);
     GetNBits(m_pbs, m_bitOffset, 1, code);
 
     // get remain bits, which is less then byte
@@ -121,6 +122,7 @@ bool H265BaseBitstream::More_RBSP_Data()
 
     if(tmp)
     {
+        CheckBitsLeft(tmp);
         GetNBits(m_pbs, m_bitOffset, tmp, code);
         if ((code << (8 - tmp)) & 0x7f)    // most sig bit could be rbsp stop bit
         {
@@ -136,6 +138,7 @@ bool H265BaseBitstream::More_RBSP_Data()
     // run through remain bytes
     while (0 < remaining_bytes)
     {
+        CheckBitsLeft(8);
         GetNBits(m_pbs, m_bitOffset, 8, code);
 
         if (code)
