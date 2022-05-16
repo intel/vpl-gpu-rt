@@ -159,8 +159,7 @@ namespace MfxHwVideoProcessing
 
         mfxU32 uVideoSignalInfoInOut;
 
-        mfxU32 uContentLightLevelInfo;
-        mfxU32 uMasteringDisplayColourVolumeInOut;
+        mfxU32 uHdr10ToneMapping;
 
         mfxU32 uVideoSignalInfo;
         FrcCaps frcCaps;
@@ -377,6 +376,9 @@ namespace MfxHwVideoProcessing
 
                    m_inVideoSignalInfo  = {};
                    m_outVideoSignalInfo = {};
+
+                   inHDR10MetaData = {};
+                   outHDR10MetaData = {};
             };
 
             bool IsDoNothing()
