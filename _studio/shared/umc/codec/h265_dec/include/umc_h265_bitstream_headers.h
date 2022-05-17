@@ -242,9 +242,6 @@ public:
     // Returns number of bytes left in bitstream array
     size_t BytesLeft() const;
 
-    // Throw exception if left bits not enough to decode
-    void CheckBitsLeft(const uint32_t nbits);
-
     // Returns number of bits needed for byte alignment
     unsigned getNumBitsUntilByteAligned() const;
 
@@ -374,7 +371,6 @@ uint32_t H265BaseBitstream::GetBits(const uint32_t nbits)
 {
     uint32_t w, n = nbits;
 
-    CheckBitsLeft(n);
     GetNBits(m_pbs, m_bitOffset, n, w);
     return(w);
 }
@@ -385,7 +381,6 @@ inline uint32_t H265BaseBitstream::GetPredefinedBits()
 {
     uint32_t w, n = nbits;
 
-    CheckBitsLeft(n);
     GetNBits(m_pbs, m_bitOffset, n, w);
     return(w);
 }
@@ -393,7 +388,6 @@ inline uint32_t H265BaseBitstream::GetPredefinedBits()
 inline bool DecodeExpGolombOne_H265_1u32s (uint32_t **ppBitStream,
                                                       int32_t *pBitOffset,
                                                       int32_t *pDst,
-                                                      int32_t remainingBits,
                                                       int32_t isSigned)
 {
     uint32_t code;
@@ -405,36 +399,21 @@ inline bool DecodeExpGolombOne_H265_1u32s (uint32_t **ppBitStream,
     /* check error(s) */
 
     /* Fast check for element = 0 */
-    if ((remainingBits < 1))
-    {
-        throw h265_exception(UMC::UMC_ERR_NOT_ENOUGH_DATA);
-    }
-    GetNBits((*ppBitStream), (*pBitOffset), 1, code);
-    remainingBits -= 1;
+    GetNBits((*ppBitStream), (*pBitOffset), 1, code)
     if (code)
     {
         *pDst = 0;
         return true;
     }
 
-    if ((remainingBits < 8))
-    {
-        throw h265_exception(UMC::UMC_ERR_NOT_ENOUGH_DATA);
-    }
     GetNBits((*ppBitStream), (*pBitOffset), 8, code);
     length += 8;
-    remainingBits -= 8;
 
     /* find nonzero byte */
     while (code == 0 && 32 > length)
     {
-        if ((remainingBits < 8))
-        {
-            throw h265_exception(UMC::UMC_ERR_NOT_ENOUGH_DATA);
-        }
         GetNBits((*ppBitStream), (*pBitOffset), 8, code);
         length += 8;
-        remainingBits -= 8;
     }
 
     /* find leading '1' */
@@ -445,8 +424,7 @@ inline bool DecodeExpGolombOne_H265_1u32s (uint32_t **ppBitStream,
     }
     length -= 8 - thisChunksLength;
 
-    UngetNBits((*ppBitStream), (*pBitOffset),8 - (thisChunksLength + 1));
-    remainingBits += 8 - (thisChunksLength + 1);
+    UngetNBits((*ppBitStream), (*pBitOffset),8 - (thisChunksLength + 1))
 
     /* skipping very long codes, let's assume what the code is corrupted */
     if (32 <= length || 32 <= thisChunksLength)
@@ -464,12 +442,7 @@ inline bool DecodeExpGolombOne_H265_1u32s (uint32_t **ppBitStream,
     /* Get info portion of codeword */
     if (length)
     {
-        if ((remainingBits < length))
-        {
-            throw h265_exception(UMC::UMC_ERR_NOT_ENOUGH_DATA);
-        }
-        GetNBits((*ppBitStream), (*pBitOffset),length, info);
-        remainingBits -= length;
+        GetNBits((*ppBitStream), (*pBitOffset),length, info)
     }
 
     sval = ((1 << (length)) + (info) - 1);
@@ -490,9 +463,8 @@ inline bool DecodeExpGolombOne_H265_1u32s (uint32_t **ppBitStream,
 inline uint32_t H265BaseBitstream::GetVLCElementU()
 {
     int32_t sval = 0;
-    int32_t remainingbits = (int32_t)m_maxBsSize * 8 - (int32_t)BitsDecoded();
 
-    bool res = DecodeExpGolombOne_H265_1u32s(&m_pbs, &m_bitOffset, &sval, remainingbits, false);
+    bool res = DecodeExpGolombOne_H265_1u32s(&m_pbs, &m_bitOffset, &sval, false);
 
     if (!res)
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
@@ -504,9 +476,8 @@ inline uint32_t H265BaseBitstream::GetVLCElementU()
 inline int32_t H265BaseBitstream::GetVLCElementS()
 {
     int32_t sval = 0;
-    int32_t remainingbits = (int32_t)m_maxBsSize * 8 - (int32_t)BitsDecoded();
 
-    bool res = DecodeExpGolombOne_H265_1u32s(&m_pbs, &m_bitOffset, &sval, remainingbits, true);
+    bool res = DecodeExpGolombOne_H265_1u32s(&m_pbs, &m_bitOffset, &sval, true);
 
     if (!res)
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
@@ -519,7 +490,6 @@ inline uint8_t H265BaseBitstream::Get1Bit()
 {
     uint32_t w;
 
-    CheckBitsLeft(1);
     GetBits1(m_pbs, m_bitOffset, w);
     return (uint8_t)w;
 
@@ -543,13 +513,6 @@ inline size_t H265BaseBitstream::BitsDecoded() const
 inline size_t H265BaseBitstream::BytesLeft() const
 {
     return (int32_t)m_maxBsSize - (int32_t) BytesDecoded();
-}
-
-// Throw exception if left bits not enough to decode
-inline void H265BaseBitstream::CheckBitsLeft(const uint32_t nbits)
-{
-    if ((int32_t)m_maxBsSize * 8 - BitsDecoded() < nbits)
-        throw h265_exception(UMC::UMC_ERR_NOT_ENOUGH_DATA);
 }
 
 // Returns number of bits needed for byte alignment
