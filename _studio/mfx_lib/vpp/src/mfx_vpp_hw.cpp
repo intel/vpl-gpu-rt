@@ -5832,7 +5832,7 @@ mfxStatus ConfigureExecuteParams(
             
             case MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO:
             {
-                if (caps.uHdr10ToneMapping)
+                if (caps.uContentLightLevelInfo)
                 {
                     for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
                     {
@@ -5857,7 +5857,7 @@ mfxStatus ConfigureExecuteParams(
 
             case MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN:
             {
-                if (caps.uHdr10ToneMapping)
+                if (caps.uMasteringDisplayColourVolumeInOut)
                 {
                     for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
                     {
@@ -5880,7 +5880,7 @@ mfxStatus ConfigureExecuteParams(
 
             case MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT:
             {
-                if (caps.uHdr10ToneMapping)
+                if (caps.uMasteringDisplayColourVolumeInOut)
                 {
                     for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
                     {

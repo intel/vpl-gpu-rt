@@ -94,7 +94,6 @@ VAAPIVideoProcessing::VAAPIVideoProcessing():
 , m_primarySurface4Composition(NULL)
 , m_3dlutFilterID(VA_INVALID_ID)
 , m_hvsDenoiseFilterID(VA_INVALID_ID)
-, m_hdrtmFilterID(VA_INVALID_ID)
 {
 
     for(int i = 0; i < VAProcFilterCount; i++)
@@ -108,7 +107,6 @@ VAAPIVideoProcessing::VAAPIVideoProcessing():
     memset( (void*)&m_frcCaps, 0, sizeof(m_frcCaps));
 #endif
     memset( (void*)&m_procampCaps, 0, sizeof(m_procampCaps));
-    memset( (void*)&m_hdrtm_caps, 0, sizeof(m_hdrtm_caps));
 
     m_cachedReadyTaskIndex.clear();
     m_feedbackCache.clear();
@@ -183,9 +181,6 @@ mfxStatus VAAPIVideoProcessing::Close(void)
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_hvsDenoiseFilterID);
     std::ignore = MFX_STS_TRACE(sts);
 
-    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_hdrtmFilterID);
-    std::ignore = MFX_STS_TRACE(sts);
-
     if (m_vaContextVPP != VA_INVALID_ID)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaDestroyContext");
@@ -212,14 +207,12 @@ mfxStatus VAAPIVideoProcessing::Close(void)
 
     m_3dlutFilterID     = VA_INVALID_ID;
     m_hvsDenoiseFilterID= VA_INVALID_ID;
-    m_hdrtmFilterID     = VA_INVALID_ID;
 
     memset( (void*)&m_pipelineCaps, 0, sizeof(m_pipelineCaps));
     memset( (void*)&m_denoiseCaps, 0, sizeof(m_denoiseCaps));
     memset( (void*)&m_detailCaps, 0, sizeof(m_detailCaps));
     memset( (void*)&m_procampCaps,  0, sizeof(m_procampCaps));
     memset( (void*)&m_deinterlacingCaps, 0, sizeof(m_deinterlacingCaps));
-    memset( (void*)&m_hdrtm_caps,  0, sizeof(m_hdrtm_caps));
 
     return MFX_ERR_NONE;
 
@@ -412,16 +405,13 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
                 case VAProcFilterHVSNoiseReduction:
                     caps.uDenoise2Filter= 1;
                     break;
-                case VAProcFilterHighDynamicRangeToneMapping:
-                    caps.uHdr10ToneMapping = 1;
-                    break;
                 default:
                     break;
             }
         }
     }
 
-    if (caps.u3DLut == 1){
+    if(caps.u3DLut == 1){
         mfxU32 num_3dlut_caps = 0;
         vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
                                            m_vaContextVPP,
@@ -439,16 +429,6 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
                                     &num_3dlut_caps);
             MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         }
-    }
-
-    if (caps.uHdr10ToneMapping)
-    {
-        mfxU32 num_hdrtm_caps = VAProcHighDynamicRangeMetadataTypeCount;
-        vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
-                                m_vaContextVPP,
-                                VAProcFilterHighDynamicRangeToneMapping,
-                                &m_hdrtm_caps, &num_hdrtm_caps);
-        MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
 
     memset(&m_pipelineCaps,  0, sizeof(VAProcPipelineCaps));
@@ -1496,9 +1476,6 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             m_pipelineParam[0].surface_color_standard = VAProcColorStandardBT601;
             break;
         }
-        m_pipelineParam[0].surface_color_standard = VAProcColorStandardExplicit;
-        m_pipelineParam[0].input_color_properties.colour_primaries = pParams->m_inVideoSignalInfo.ColourPrimaries;
-        m_pipelineParam[0].input_color_properties.transfer_characteristics = pParams->m_inVideoSignalInfo.TransferCharacteristics;
     }
 
     if (pParams->m_outVideoSignalInfo.enabled)
@@ -1518,66 +1495,10 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             m_pipelineParam[0].output_color_standard = VAProcColorStandardBT601;
             break;
         }
-        m_pipelineParam[0].output_color_standard = VAProcColorStandardExplicit;
-        m_pipelineParam[0].output_color_properties.colour_primaries = pParams->m_outVideoSignalInfo.ColourPrimaries;
-        m_pipelineParam[0].output_color_properties.transfer_characteristics = pParams->m_outVideoSignalInfo.TransferCharacteristics;
     }
 
     m_pipelineParam[0].input_color_properties.chroma_sample_location  = VA_CHROMA_SITING_UNKNOWN;
     m_pipelineParam[0].output_color_properties.chroma_sample_location = VA_CHROMA_SITING_UNKNOWN;
-
-    VAHdrMetaData      out_metadata     = {};
-    VAHdrMetaDataHDR10 outHDR10MetaData = {};
-
-    auto SetHdrMetaData = [](const mfxExecuteParams::HDR10MetaData& data)
-    {
-        VAHdrMetaDataHDR10 retHDR10MetaData =
-        {
-            {data.displayPrimariesX[0], data.displayPrimariesX[1], data.displayPrimariesX[2]},
-            {data.displayPrimariesY[0], data.displayPrimariesY[1], data.displayPrimariesY[2]},
-            data.whitePoint[0], 
-            data.whitePoint[1],
-            data.maxMasteringLuminance,
-            data.minMasteringLuminance,
-            data.maxContentLightLevel,
-            data.maxFrameAverageLightLevel
-        };
-        return retHDR10MetaData;
-    };
-
-    VAHdrMetaDataHDR10 inHDR10MetaData = {};
-    if(pParams->inHDR10MetaData.enabled)
-    {
-        inHDR10MetaData = SetHdrMetaData(pParams->inHDR10MetaData);
-        VAProcFilterParameterBufferHDRToneMapping hdrtm_param = {};
-        hdrtm_param.type                                      = VAProcFilterHighDynamicRangeToneMapping;
-        hdrtm_param.data.metadata_type                        = VAProcHighDynamicRangeMetadataHDR10;
-        hdrtm_param.data.metadata                             = &inHDR10MetaData;
-        hdrtm_param.data.metadata_size                        = sizeof(VAHdrMetaDataHDR10);
-
-        vaSts = vaCreateBuffer((void*)m_vaDisplay, 
-                                    m_vaContextVPP, 
-                                    VAProcFilterParameterBufferType, 
-                                    sizeof(hdrtm_param), 
-                                    1, 
-                                    (void*)&hdrtm_param, 
-                                    &m_hdrtmFilterID);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-        m_filterBufs[m_numFilterBufs++] = m_hdrtmFilterID;
-        m_pipelineParam[0].num_filters  = m_numFilterBufs;
-    }
-
-    if (pParams->outHDR10MetaData.enabled)
-    {
-        outHDR10MetaData = SetHdrMetaData(pParams->outHDR10MetaData);
-
-        out_metadata.metadata_type = VAProcHighDynamicRangeMetadataHDR10;
-        out_metadata.metadata      = &outHDR10MetaData;
-        out_metadata.metadata_size = sizeof(VAHdrMetaDataHDR10);
-
-        m_pipelineParam[0].output_hdr_metadata = &out_metadata;
-    }
 
     mfxU32 interpolation[4] = {
         VA_FILTER_INTERPOLATION_DEFAULT,            // MFX_INTERPOLATION_DEFAULT                = 0,

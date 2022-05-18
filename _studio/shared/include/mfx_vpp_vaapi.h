@@ -165,9 +165,6 @@ namespace MfxHwVideoProcessing
 
         VABufferID m_hvsDenoiseFilterID;
 
-        VABufferID m_hdrtmFilterID;
-        VAProcFilterCapHighDynamicRange m_hdrtm_caps[VAProcHighDynamicRangeMetadataTypeCount];
-
         mfxStatus Init( _mfxPlatformAccelerationService* pVADisplay, mfxVideoParam *pParams);
 
         mfxStatus Close( void );
