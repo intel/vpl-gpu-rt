@@ -39,6 +39,10 @@
 #include "mfxdeprecated.h"
 #include "ts_typedef.h"
 
+#ifdef MFX_ENABLE_ENCODE_STATS
+#include "mfxencodestats.h"
+#endif
+
 #include <memory>
 
 namespace mfx_reflect

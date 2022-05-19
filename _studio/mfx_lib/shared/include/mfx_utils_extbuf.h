@@ -32,6 +32,10 @@
 #endif
 
 
+#ifdef MFX_ENABLE_ENCODE_STATS
+#include "mfxencodestats.h"
+#endif
+
 namespace MfxExtBuffer
 {
     template<class T> struct IdMap {};

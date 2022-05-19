@@ -112,12 +112,15 @@ typedef struct tagENCODE_CAPS_HEVC
 
     union {
         struct {
-            uint16_t PFrameSupport            : 1;
-            uint16_t LookaheadAnalysisSupport : 1;
-            uint16_t LookaheadBRCSupport      : 1;
-            uint16_t TileReplaySupport        : 1;
-            uint16_t TCBRCSupport             : 1;
-            uint16_t reservedbits             : 11;
+            uint16_t PFrameSupport              : 1;
+            uint16_t LookaheadAnalysisSupport   : 1;
+            uint16_t LookaheadBRCSupport        : 1;
+            uint16_t TileReplaySupport          : 1;
+            uint16_t TCBRCSupport               : 1;
+            uint16_t reservedbits0              : 2;
+            uint16_t ExtFrameStatsReport        : 1;
+            uint16_t BlockStatsReport           : 1;
+            uint16_t reservedbits1              : 7;
         };
         uint16_t CodingLimits3;
     };

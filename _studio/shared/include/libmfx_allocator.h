@@ -37,6 +37,10 @@
 #include <condition_variable>
 #include <algorithm>
 
+#ifdef MFX_ENABLE_ENCODE_STATS
+#include "mfxencodestats.h"
+#endif // MFX_ENABLE_ENCODE_STATS
+
 // Internal Allocators
 namespace mfxDefaultAllocator
 {
@@ -1015,6 +1019,120 @@ private:
     std::vector<mfxFrameSurface1*> m_surfaces;
     std::mutex m_mutex;
 };
+
+#ifdef MFX_ENABLE_ENCODE_STATS
+class mfxEncodeStatsContainerImpl : public mfxRefCountableImpl<mfxEncodeStatsContainer>
+{
+public:
+    mfxStatus AllocFrameStatsBuf()
+    {
+        std::lock_guard<std::mutex> guard(m_mutex);
+
+        if (this->EncodeFrameStats == nullptr)
+        {
+            this->EncodeFrameStats = new mfxEncodeFrameStats{};
+
+            MFX_CHECK(this->EncodeFrameStats, MFX_ERR_MEMORY_ALLOC);
+        }
+        else
+        {
+            *this->EncodeFrameStats = {};
+        }
+
+        return MFX_ERR_NONE;
+    }
+
+    mfxStatus AllocBlkStatsBuf(mfxU32 numBlk)
+    {
+        MFX_CHECK(numBlk, MFX_ERR_INVALID_VIDEO_PARAM);
+
+        std::lock_guard<std::mutex> guard(m_mutex);
+
+        if (this->EncodeBlkStats == nullptr)
+        {
+            this->EncodeBlkStats = new mfxEncodeBlkStats{};
+            MFX_CHECK(this->EncodeBlkStats, MFX_ERR_MEMORY_ALLOC);
+        }
+
+        MFX_CHECK_STS(AllocBlkStatsArray(numBlk));
+
+        return MFX_ERR_NONE;
+    }
+
+protected:
+    template <typename T>
+    static void Delete(T*& p)
+    {
+        if (p)
+        {
+            delete p;
+            p = nullptr;
+        }
+    }
+
+    template <typename T>
+    static void DeleteArray(T*& p)
+    {
+        if (p)
+        {
+            delete[] p;
+            p = nullptr;
+        }
+    }
+
+    template <typename T>
+    static mfxStatus AllocBlkStatsBuf(mfxU32 numBlkIn, mfxU32& numBlkOut, T*& buf)
+    {
+        if (numBlkIn <= numBlkOut && buf)
+        {
+            for (mfxU32 i = 0; i < numBlkOut; i++)
+            {
+                buf[i] = {};
+            }
+
+            return MFX_ERR_NONE;
+        }
+
+        if (numBlkOut)
+        {
+            DeleteArray(buf);
+        }
+
+        buf = new T[numBlkIn]{};
+        MFX_CHECK(buf, MFX_ERR_MEMORY_ALLOC);
+        numBlkOut = numBlkIn;
+
+        return MFX_ERR_NONE;
+    }
+
+    virtual mfxStatus AllocBlkStatsArray(mfxU32 numBlk) = 0;
+
+    virtual void DetroyBlkStatsArray() = 0;
+
+    void Close() override
+    {
+        if (this->EncodeFrameStats)
+        {
+            Delete(this->EncodeFrameStats);
+        }
+
+        if (this->EncodeBlkStats)
+        {
+            DetroyBlkStatsArray();
+            Delete(this->EncodeBlkStats);
+        }
+    }
+
+protected:
+    mfxEncodeStatsContainerImpl()
+    {
+        Version.Version      = MFX_ENCODESTATSCONTAINER_VERSION;
+        RefInterface.Context = static_cast<mfxRefCountable*>(this);
+    }
+
+    std::mutex m_mutex;
+};
+#endif // MFX_ENABLE_ENCODE_STATS
 
 class RWAcessSurface : public mfxFrameSurfaceInterfaceImpl
 {

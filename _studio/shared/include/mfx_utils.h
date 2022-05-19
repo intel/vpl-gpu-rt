@@ -786,6 +786,28 @@ class mfxRefCountableImpl
     : public mfxRefCountable
     , public T
 {
+protected:
+    template <typename X, typename = void>
+    struct HasRefInterface : std::false_type { };
+
+    template <typename X>
+    struct HasRefInterface <X, decltype(X::RefInterface, void())> : std::true_type { };
+
+    template <typename X, typename std::enable_if<HasRefInterface<X>::value, bool>::type = true>
+    void AssignFunctionPointers()
+    {
+        T::RefInterface.AddRef        = _AddRef2;
+        T::RefInterface.Release       = _Release2;
+        T::RefInterface.GetRefCounter = _GetRefCounter2;
+    }
+
+    template <typename X, typename std::enable_if<!HasRefInterface<X>::value, bool>::type = true>
+    void AssignFunctionPointers()
+    {
+        T::AddRef        = _AddRef;
+        T::Release       = _Release;
+        T::GetRefCounter = _GetRefCounter;
+    }
 public:
     mfxRefCountableImpl()
         : T()
@@ -795,9 +817,7 @@ public:
         g_global_registry.RegisterRefcountObject(this);
 #endif
 
-        T::AddRef          = _AddRef;
-        T::Release         = _Release;
-        T::GetRefCounter   = _GetRefCounter;
+        AssignFunctionPointers<T>();
     }
 
     virtual ~mfxRefCountableImpl()
@@ -865,6 +885,37 @@ public:
         MFX_CHECK_NULL_PTR1(counter);
 
         auto instance = mfxRefCountableInstance<U>::Get(object);
+        MFX_CHECK_HDL(instance);
+
+        *counter = instance->GetRefCounter();
+        return MFX_ERR_NONE;
+    }
+
+    static mfxStatus _AddRef2(mfxRefInterface* object)
+    {
+        MFX_CHECK_NULL_PTR1(object);
+        auto instance = static_cast<mfxRefCountable*>(object->Context);
+        MFX_CHECK_HDL(instance);
+
+        instance->AddRef();
+        return MFX_ERR_NONE;
+    }
+
+    static mfxStatus _Release2(mfxRefInterface* object)
+    {
+        MFX_CHECK_NULL_PTR1(object);
+        auto instance = static_cast<mfxRefCountable*>(object->Context);
+        MFX_CHECK_HDL(instance);
+
+        return instance->Release();
+    }
+
+    static mfxStatus _GetRefCounter2(mfxRefInterface* object, mfxU32* counter)
+    {
+        MFX_CHECK_NULL_PTR1(object);
+        MFX_CHECK_NULL_PTR1(counter);
+
+        auto instance = static_cast<mfxRefCountable*>(object->Context);
         MFX_CHECK_HDL(instance);
 
         *counter = instance->GetRefCounter();

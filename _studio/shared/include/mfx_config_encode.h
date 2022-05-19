@@ -75,4 +75,11 @@
         #define MFX_ENABLE_ADAPTIVE_ENCODE
     #endif
 #endif
+
+#ifdef ONEVPL_EXPERIMENTAL
+#if (!defined(LINUX32) && !defined(LINUX64))
+#define MFX_ENABLE_ENCODE_STATS
+#endif
+#endif
+
 #endif // _MFX_CONFIG_ENCODE_H_

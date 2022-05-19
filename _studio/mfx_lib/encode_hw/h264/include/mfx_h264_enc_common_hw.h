@@ -49,6 +49,10 @@
 #include "ipps.h"
 #include "mfx_enc_common.h"
 
+#ifdef MFX_ENABLE_ENCODE_STATS
+#include "mfxencodestats.h"
+#endif
+
 #define D3DFMT_NV12 (D3DFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))
 #define D3DDDIFMT_NV12 (D3DDDIFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))
 #define D3DDDIFMT_YU12 (D3DDDIFORMAT)(MFX_MAKEFOURCC('Y', 'U', '1', '2'))
@@ -230,6 +234,10 @@ namespace MfxHwH264Encode
 
 #endif
 
+
+#ifdef MFX_ENABLE_ENCODE_STATS
+    BIND_EXTBUF_TYPE_TO_ID(mfxExtEncodeStatsOutput, MFX_EXTBUFF_ENCODESTATS);
+#endif
 
 #undef BIND_EXTBUF_TYPE_TO_ID
 
