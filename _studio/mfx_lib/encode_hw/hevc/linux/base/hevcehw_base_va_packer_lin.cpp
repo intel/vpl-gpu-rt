@@ -273,7 +273,7 @@ void AddVaMiscRC(
         const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
         rc.min_qp = task.m_minQP - 6*(CO3.TargetBitDepthLuma - 8);
         if ((rc.min_qp < 0) || (rc.min_qp > 51))
-            rc.min_qp = 1;
+            rc.min_qp = 10;
 
         rc.max_qp = task.m_maxQP - 6*(CO3.TargetBitDepthLuma - 8);
         if ((rc.max_qp < 0) || (rc.max_qp > 51))
