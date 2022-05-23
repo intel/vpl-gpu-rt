@@ -49,7 +49,8 @@ void H265BaseBitstream::Reset(uint8_t * const pb, const uint32_t maxsize)
     m_pbs       = (uint32_t*)pb;
     m_pbsBase   = (uint32_t*)pb;
     m_bitOffset = 31;
-    m_maxBsSize    = maxsize;
+    m_maxBsSize = maxsize;
+    m_tailBsSize = 0;
 
 } // void Reset(uint8_t * const pb, const uint32_t maxsize)
 
@@ -60,6 +61,7 @@ void H265BaseBitstream::Reset(uint8_t * const pb, int32_t offset, const uint32_t
     m_pbsBase   = (uint32_t*)pb;
     m_bitOffset = offset;
     m_maxBsSize = maxsize;
+    m_tailBsSize = 0;
 
 } // void Reset(uint8_t * const pb, int32_t offset, const uint32_t maxsize)
 
@@ -75,6 +77,11 @@ void H265BaseBitstream::SetDecodedBytes(size_t nBytes)
 {
     m_pbs = m_pbsBase + (nBytes / 4);
     m_bitOffset = 31 - ((int32_t) ((nBytes % sizeof(uint32_t)) * 8));
+}
+
+void H265BaseBitstream::SetTailBsSize(const uint32_t nBytes)
+{
+    m_tailBsSize = nBytes;
 }
 
 // Return current bitstream address and bit offset
@@ -114,6 +121,7 @@ bool H265BaseBitstream::More_RBSP_Data()
         return false;
 
     // get top bit, it can be "rbsp stop" bit
+    CheckBitsLeft(1);
     GetNBits(m_pbs, m_bitOffset, 1, code);
 
     // get remain bits, which is less then byte
@@ -121,6 +129,7 @@ bool H265BaseBitstream::More_RBSP_Data()
 
     if(tmp)
     {
+        CheckBitsLeft(tmp);
         GetNBits(m_pbs, m_bitOffset, tmp, code);
         if ((code << (8 - tmp)) & 0x7f)    // most sig bit could be rbsp stop bit
         {
@@ -136,6 +145,7 @@ bool H265BaseBitstream::More_RBSP_Data()
     // run through remain bytes
     while (0 < remaining_bytes)
     {
+        CheckBitsLeft(8);
         GetNBits(m_pbs, m_bitOffset, 8, code);
 
         if (code)
