@@ -121,7 +121,7 @@ public:
             return par.mvp.mfx.GopPicSize;
         }
 
-        return mfxU16(GOP_INFINITE);
+        return mfxU16(DEFAULT_GOP_PIC_SIZE);
     }
 
     static mfxU16 GopRefDist(
@@ -133,7 +133,7 @@ public:
             return par.mvp.mfx.GopRefDist;
         }
 
-        return 1;
+        return std::min<mfxU16>(DEFAULT_GOP_REF_DIST, par.base.GetGopPicSize(par) - 1);
     }
 
     static mfxU16 NumBPyramidLayers(
