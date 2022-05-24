@@ -346,6 +346,20 @@ static void InitSegMap(
     InitSegMap(segPar, segment_map);
 }
 
+inline uint16_t MapLRTypeToDDI(RestorationType lrType)
+{
+    switch (lrType)
+    {
+    case RESTORE_NONE:
+        return 0;
+    case RESTORE_WIENER:
+        return 1;
+    default:
+        ThrowAssert(true, "Only RESTORE_NONE and RESTORE_WIENER are supported");
+        return 0;
+    }
+}
+
 void UpdatePPS(
     const TaskCommonPar& task
     , const std::vector<VASurfaceID>& rec
@@ -394,9 +408,9 @@ void UpdatePPS(
     FillCDEF(bs_sh, bs_fh, pps);
 
     //loop restoration
-    pps.loop_restoration_flags.bits.yframe_restoration_type  = bs_fh.lr_params.lr_type[0];
-    pps.loop_restoration_flags.bits.cbframe_restoration_type = bs_fh.lr_params.lr_type[1];
-    pps.loop_restoration_flags.bits.crframe_restoration_type = bs_fh.lr_params.lr_type[2];
+    pps.loop_restoration_flags.bits.yframe_restoration_type  = MapLRTypeToDDI(bs_fh.lr_params.lr_type[0]);
+    pps.loop_restoration_flags.bits.cbframe_restoration_type = MapLRTypeToDDI(bs_fh.lr_params.lr_type[1]);
+    pps.loop_restoration_flags.bits.crframe_restoration_type = MapLRTypeToDDI(bs_fh.lr_params.lr_type[2]);
     pps.loop_restoration_flags.bits.lr_unit_shift            = bs_fh.lr_params.lr_unit_shift;
     pps.loop_restoration_flags.bits.lr_uv_shift              = bs_fh.lr_params.lr_uv_shift;
 
