@@ -174,8 +174,18 @@ public:
     CmBufferUPWrapper& operator= (const CmBufferUPWrapper&) = delete;
     CmBufferUPWrapper& operator= (CmBufferUPWrapper&& other)
     {
-        CmBufferUPWrapper tmp = std::move(other);
-        std::swap(tmp, *this);
+        if(this != &other)
+        {
+            pIndex        = other.pIndex;
+            surfacebuffer = other.surfacebuffer;
+            cm_device     = other.cm_device;
+
+            use_count.exchange(other.use_count, std::memory_order_relaxed);
+
+            other.pIndex        = nullptr;
+            other.surfacebuffer = nullptr;
+            other.cm_device     = nullptr;
+        }
         return *this;
     }
 

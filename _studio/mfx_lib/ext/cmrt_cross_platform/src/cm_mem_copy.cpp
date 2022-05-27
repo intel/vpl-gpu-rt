@@ -172,6 +172,18 @@ CmBufferUPWrapper* CmCopyWrapper::CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize, mf
 
     if (m_tableSysRelations.end() != it)
     {
+        if (it->second.IsFree())
+        {
+            CmBufferUP* pCmUserBuffer;
+            cmStatus cmSts = m_pCmDevice->CreateBufferUP(memSize, pDst, pCmUserBuffer);
+            CHECK_CM_STATUS_RET_NULL(cmSts);
+
+            SurfaceIndex* pCmDstIndex;
+            cmSts = pCmUserBuffer->GetIndex(pCmDstIndex);
+            CHECK_CM_STATUS_RET_NULL(cmSts);
+
+            it->second = CmBufferUPWrapper(pCmUserBuffer, pCmDstIndex, m_pCmDevice);
+        }
         it->second.AddRef();
         return &(it->second);
     }
