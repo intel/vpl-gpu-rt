@@ -3216,6 +3216,8 @@ private:
         mfxI32      m_LtrOrder;
         mfxI32      m_RefQp;
         mfxI32      m_RefOrder;
+
+        mfxBitstream* m_bs;
     };
 
 
