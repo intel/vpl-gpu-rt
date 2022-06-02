@@ -167,8 +167,31 @@ bool LumaIsNull(const mfxFrameSurface1 * surf)
 
 #define IS_PROTECTION_ANY(val) (false)
 
+#if !defined(MFX_ENABLE_LOG_UTILITY)
 #define MFX_COPY_FIELD(Field)       buf_dst.Field = buf_src.Field
 #define MFX_COPY_ARRAY_FIELD(Array) std::copy(std::begin(buf_src.Array), std::end(buf_src.Array), std::begin(buf_dst.Array))
+#else
+#define MFX_COPY_FIELD(Field)                                                                   \
+    buf_dst.Field = buf_src.Field;                                                              \
+    {                                                                                           \
+        const std::string fieldForamt = GetNumberFormat(buf_src.Field);                         \
+        const std::string typeName    = std::string(typeid(buf_src).name());                    \
+        const std::string format      = typeName + ".%s = " + fieldForamt + "\n";               \
+        MFX_LOG_API_TRACE(format.c_str(), #Field, buf_src.Field);                               \
+    }
+
+#define MFX_COPY_ARRAY_FIELD(Array)                                                             \
+    std::copy(std::begin(buf_src.Array), std::end(buf_src.Array), std::begin(buf_dst.Array));   \
+    {                                                                                           \
+        int idx = 0;                                                                            \
+        const std::string fieldForamt = GetNumberFormat(buf_src.Array[0]);                      \
+        const std::string typeName    = std::string(typeid(buf_src).name());                    \
+        const std::string format      = typeName + ".%s[%d] = " + fieldForamt + "\n";           \
+        for (auto it = std::begin(buf_src.Array); it != std::end(buf_src.Array); it++, idx++) { \
+            MFX_LOG_API_TRACE(format.c_str(), #Array, idx, *it);                                \
+        }                                                                                       \
+    }
+#endif
 
 namespace mfx
 {

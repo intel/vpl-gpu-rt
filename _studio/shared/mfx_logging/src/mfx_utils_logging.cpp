@@ -22,10 +22,11 @@
 
 auto fileDeleter = [](FILE* file)->void { if (file) fclose(file); };
 
-bool gMfxLogSkipped                    = false;
-mfxLogLevel gMfxLogLevel               = LEVEL_WARN;
-std::shared_ptr<std::FILE> gMfxLogFile = {};
-std::mutex gMfxLogMutex                = {};
+bool gMfxLogSkipped                        = false;
+mfxLogLevel gMfxLogLevel                   = LEVEL_WARN;
+std::shared_ptr<std::FILE> gMfxLogFile     = {};
+std::mutex gMfxLogMutex                    = {};
+std::shared_ptr<std::FILE> gMfxAPIDumpFile = {};
 
 #define DEFINE_ERR_CODE(code)\
     {code, #code}
@@ -102,9 +103,16 @@ inline bool SetLogLevelFromEnv()
 inline void SetLogFileFromEnv()
 {
     const char* logFileName = std::getenv("VPL_RUNTIME_LOG_FILE");
-    if (logFileName)
+    if (logFileName && gMfxLogFile == nullptr)
     {
-        gMfxLogFile = std::shared_ptr<std::FILE>(fopen(logFileName, "w"), fileDeleter);
+        gMfxLogFile = std::shared_ptr<std::FILE>(fopen(logFileName, "a"), fileDeleter);
+    }
+
+    std::stringstream trace_name_stream;
+    trace_name_stream << "VPL_API_LOG_THREAD_" << std::this_thread::get_id() << ".txt";
+    if (gMfxAPIDumpFile == nullptr)
+    {
+        gMfxAPIDumpFile = std::shared_ptr<std::FILE>(fopen(trace_name_stream.str().c_str(), "a"), fileDeleter);
     }
 }
 

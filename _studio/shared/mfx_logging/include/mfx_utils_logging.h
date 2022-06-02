@@ -46,6 +46,7 @@ typedef enum
 extern bool gMfxLogSkipped;
 extern mfxLogLevel gMfxLogLevel;
 extern std::shared_ptr<std::FILE> gMfxLogFile;
+extern std::shared_ptr<std::FILE> gMfxAPIDumpFile;
 extern std::mutex gMfxLogMutex;
 
 #define COLOR_BLACK  0x0000
@@ -212,5 +213,21 @@ while(0)
     #define MFX_LOG_DDI_TRACE(file, ...) do { \
         CHECK_LOG_LEVEL(LEVEL_TRACE); \
         MfxLogPrint(file, ##__VA_ARGS__); } \
+    while (0)
+#endif
+
+#if defined(MFX_ENABLE_LOG_UTILITY)
+    template <typename T>
+    const std::string GetNumberFormat(T&)
+    {
+        if (std::is_signed<T>::value)
+            return "%d";
+        else
+            return "%u";
+    }
+
+    #define MFX_LOG_API_TRACE(...) do { \
+        CHECK_LOG_LEVEL(LEVEL_TRACE); \
+        if (gMfxAPIDumpFile != nullptr) MfxLogPrint(gMfxAPIDumpFile.get(), ##__VA_ARGS__); } \
     while (0)
 #endif
