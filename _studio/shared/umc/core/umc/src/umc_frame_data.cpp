@@ -35,6 +35,13 @@ enum
     MAX_PLANE_NUMBER            = 4
 };
 
+struct PlaneFormatInfo
+{
+    int32_t m_iWidthScale;  // Horizontal downsampling factor
+    int32_t m_iHeightScale; // Vertical downsampling factor
+    int32_t m_iChannels;  // Number of merged channels in the plane
+};
+
 // Color format description structure
 struct ColorFormatInfo
 {
@@ -42,11 +49,7 @@ struct ColorFormatInfo
     uint32_t m_iPlanes;        // Number of planes
     int32_t m_iMinBitDepth;   // Minimum bitdepth
 
-    struct {
-        int32_t m_iWidthScale;  // Horizontal downsampling factor
-        int32_t m_iHeightScale; // Vertical downsampling factor
-        int32_t m_iChannels;  // Number of merged channels in the plane
-    } m_PlaneFormatInfo[MAX_PLANE_NUMBER];
+    PlaneFormatInfo m_PlaneFormatInfo[MAX_PLANE_NUMBER];
 };
 
 // Color format description table

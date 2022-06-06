@@ -54,7 +54,7 @@ enum
 };
 
 
-struct ThreadTaskInfo
+struct ThreadTaskInfoJpeg
 {
     mfxFrameSurface1 *surface_work;
     mfxFrameSurface1 *surface_out;
@@ -1795,7 +1795,7 @@ mfxStatus VideoDECODEMJPEGBase_HW::RunThread(void *params, mfxU32, mfxU32 )
     mfxStatus mfxSts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR1(params);
 
-    ThreadTaskInfo * info = (ThreadTaskInfo *)params;
+    ThreadTaskInfoJpeg * info = (ThreadTaskInfoJpeg *)params;
 
     if (m_needVpp)
     {
@@ -1990,7 +1990,7 @@ mfxStatus VideoDECODEMJPEGBase_HW::FillEntryPoint(MFX_ENTRY_POINT *pEntryPoint, 
         }
     }
 
-    ThreadTaskInfo * info = new ThreadTaskInfo();
+    ThreadTaskInfoJpeg * info = new ThreadTaskInfoJpeg();
     info->surface_work = surface_work;
     info->surface_out = surface_out;
     info->decodeTaskID = m_pMJPEGVideoDecoder->GetStatusReportNumber();
@@ -2018,7 +2018,7 @@ mfxStatus VideoDECODEMJPEGBase_HW::CheckTaskAvailability(mfxU32 maxTaskNumber)
 
 mfxStatus VideoDECODEMJPEGBase_HW::CompleteTask(void *pParam, mfxStatus )
 {
-    ThreadTaskInfo * info = (ThreadTaskInfo *)pParam;
+    ThreadTaskInfoJpeg * info = (ThreadTaskInfoJpeg *)pParam;
 
     std::lock_guard<std::mutex> guard(m_guard);
 
@@ -2040,7 +2040,7 @@ mfxStatus VideoDECODEMJPEGBase_HW::CompleteTask(void *pParam, mfxStatus )
         m_dsts.erase(m_dsts.begin() + index);
     }
 
-    delete (ThreadTaskInfo *)pParam;
+    delete (ThreadTaskInfoJpeg *)pParam;
     return MFX_ERR_NONE;
 }
 

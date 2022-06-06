@@ -105,7 +105,7 @@ UMC::Status FillParam(MFXTaskSupplier_H265 * decoder, mfxVideoParam *par, bool f
     return umcRes;
 }
 
-struct ThreadTaskInfo
+struct ThreadTaskInfo265
 {
     bool              is_decoding_done = false;
     mfxFrameSurface1 *surface_out = nullptr;
@@ -801,7 +801,7 @@ static mfxStatus HEVCDECODERoutine(void *pState, void *pParam, mfxU32 threadNumb
 // Threads complete proc callback
 static mfxStatus HEVCCompleteProc(void *, void *pParam, mfxStatus )
 {
-    delete reinterpret_cast<ThreadTaskInfo*>(pParam);
+    delete reinterpret_cast<ThreadTaskInfo265*>(pParam);
     return MFX_ERR_NONE;
 }
 
@@ -809,7 +809,7 @@ static mfxStatus HEVCCompleteProc(void *, void *pParam, mfxStatus )
 mfxStatus VideoDECODEH265::RunThread(void * params, mfxU32 threadNumber)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH265::RunThread");
-    ThreadTaskInfo * info = reinterpret_cast<ThreadTaskInfo*>(params);
+    ThreadTaskInfo265* info = reinterpret_cast<ThreadTaskInfo265*>(params);
 
     MFX_CHECK_NULL_PTR1(info);
 
@@ -920,7 +920,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs,
             }
         }
 
-        ThreadTaskInfo * info = new ThreadTaskInfo();
+        ThreadTaskInfo265* info = new ThreadTaskInfo265();
 
         if (*surface_out)
             info->surface_out = *surface_out;

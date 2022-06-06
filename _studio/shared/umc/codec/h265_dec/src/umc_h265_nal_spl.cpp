@@ -236,7 +236,12 @@ public:
             }
 
             if (!m_prev.size())
-                m_prev.insert(m_prev.end(), startCodePrefix, startCodePrefix + sizeof(startCodePrefix));
+            {
+                for (uint32_t i = 0; i < sizeof(startCodePrefix) / sizeof(uint8_t); i++)
+                {
+                    m_prev.push_back(startCodePrefix[i]);
+                }
+            }
             m_prev.insert(m_prev.end(), (uint8_t *)pSource->GetDataPointer(), (uint8_t *)pSource->GetDataPointer() + sz);
             pSource->MoveDataPointer((int32_t)szToMove);
             return -1;

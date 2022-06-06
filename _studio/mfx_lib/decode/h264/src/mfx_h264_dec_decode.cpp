@@ -56,12 +56,12 @@ inline bool IsBigSurfacePoolApplicable(eMFXHWType type)
     return ret;
 }
 
-struct ThreadTaskInfo
+struct ThreadTaskInfo264
 {
     mfxFrameSurface1* surface_out      = nullptr;
     bool              is_decoding_done = false;
 
-    ThreadTaskInfo(mfxFrameSurface1* out)
+    ThreadTaskInfo264(mfxFrameSurface1* out)
         : surface_out(out)
     {}
 };
@@ -993,7 +993,7 @@ static mfxStatus AVCDECODERoutine(void *pState, void *pParam, mfxU32 threadNumbe
     MFX_CHECK(decoder, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     auto task =
-        reinterpret_cast<ThreadTaskInfo*>(pParam);
+        reinterpret_cast<ThreadTaskInfo264*>(pParam);
     MFX_CHECK(task, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     return
@@ -1002,11 +1002,11 @@ static mfxStatus AVCDECODERoutine(void *pState, void *pParam, mfxU32 threadNumbe
 
 static mfxStatus AVCCompleteProc(void *, void *pParam, mfxStatus )
 {
-    delete reinterpret_cast<ThreadTaskInfo*>(pParam);
+    delete reinterpret_cast<ThreadTaskInfo264*>(pParam);
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoDECODEH264::RunThread(ThreadTaskInfo* info, mfxU32 threadNumber)
+mfxStatus VideoDECODEH264::RunThread(ThreadTaskInfo264* info, mfxU32 threadNumber)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH264::RunThread");
 
@@ -1101,7 +1101,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs,
                 return MFX_WRN_DEVICE_BUSY;
         }
 
-        ThreadTaskInfo * info = new ThreadTaskInfo{ *surface_out };
+        ThreadTaskInfo264* info = new ThreadTaskInfo264{ *surface_out };
 
         pEntryPoint->pRoutine           = &AVCDECODERoutine;
         pEntryPoint->pCompleteProc      = &AVCCompleteProc;

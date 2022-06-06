@@ -50,7 +50,7 @@ namespace UMC
 
 typedef UMC::VATaskSupplier  MFX_AVC_Decoder;
 
-struct ThreadTaskInfo;
+struct ThreadTaskInfo264;
 class VideoDECODE;
 class VideoDECODEH264 : public VideoDECODE
 {
@@ -77,7 +77,7 @@ public:
     virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload) override;
     virtual mfxStatus SetSkipMode(mfxSkipMode mode) override;
 
-    mfxStatus RunThread(ThreadTaskInfo*, mfxU32 /*threadNumber*/);
+    mfxStatus RunThread(ThreadTaskInfo264*, mfxU32 /*threadNumber*/);
 
     virtual mfxStatus GetSurface(mfxFrameSurface1* & surface) override;
 

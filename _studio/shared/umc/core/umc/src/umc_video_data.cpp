@@ -33,25 +33,28 @@ enum
     MAX_PLANE_NUMBER            = 4
 };
 
+struct PlaneFormatInfoVideo
+{
+    int32_t m_iWidthDiv;  // Horizontal downsampling factor
+    int32_t m_iHeightDiv; // Vertical downsampling factor
+    int32_t m_iChannels;  // Number of merged channels in the plane
+    int32_t m_iAlignMult; // Alignment value multiplier
+};
+
 // Color format description structure
-struct ColorFormatInfo
+struct ColorFormatInfoVideo
 {
     ColorFormat m_cFormat;
     int32_t m_iPlanes;        // Number of planes
     int32_t m_iMinBitDepth;   // Minimum bitdepth
     int32_t m_iMinAlign;      // Minimal required alignment in bytes
-    struct {
-        int32_t m_iWidthDiv;  // Horizontal downsampling factor
-        int32_t m_iHeightDiv; // Vertical downsampling factor
-        int32_t m_iChannels;  // Number of merged channels in the plane
-        int32_t m_iAlignMult; // Alignment value multiplier
-    } m_PlaneFormatInfo[MAX_PLANE_NUMBER];
+    PlaneFormatInfoVideo m_PlaneFormatInfo[MAX_PLANE_NUMBER];
 };
 
 // Color format description table
 static
 const
-ColorFormatInfo FormatInfo[] =
+ColorFormatInfoVideo FormatInfo[] =
 {
     {YV12,    3,  8, 1, {{1, 1, 1, 2}, {2, 2, 1, 1}, {2, 2, 1, 1}}},
     {NV12,    2,  8, 2, {{1, 1, 1, 1}, {1, 2, 1, 1}, }},
@@ -86,9 +89,9 @@ int32_t iNumberOfFormats = sizeof(FormatInfo) / sizeof(FormatInfo[0]);
 // or NULL if cFormat is not described (unknown color format).
 static
 const
-ColorFormatInfo *GetColorFormatInfo(ColorFormat cFormat)
+ColorFormatInfoVideo *GetColorFormatInfo(ColorFormat cFormat)
 {
-    const ColorFormatInfo *pReturn = NULL;
+    const ColorFormatInfoVideo *pReturn = NULL;
     int32_t i;
 
     // find required format
@@ -102,7 +105,7 @@ ColorFormatInfo *GetColorFormatInfo(ColorFormat cFormat)
     }
 
     return pReturn;
-} // ColorFormatInfo *GetColorFormatInfo(ColorFormat cFormat)
+} // ColorFormatInfoVideo *GetColorFormatInfo(ColorFormat cFormat)
 
 // Initialization to undefined image type
 VideoData::VideoData(void)
@@ -213,7 +216,7 @@ Status VideoData::Init(int32_t iWidth,
                        int32_t iBitDepth)
 {
     Status umcRes;
-    const ColorFormatInfo* pFormat;
+    const ColorFormatInfoVideo* pFormat;
 
     pFormat = GetColorFormatInfo(cFormat);
     if(NULL == pFormat)
@@ -242,7 +245,7 @@ Status VideoData::Init(int32_t iWidth,
 Status VideoData::SetColorFormat(ColorFormat cFormat)
 {
     int32_t i;
-    const ColorFormatInfo *pFormat;
+    const ColorFormatInfoVideo *pFormat;
 
     // check error(s)
     pFormat = GetColorFormatInfo(cFormat);
