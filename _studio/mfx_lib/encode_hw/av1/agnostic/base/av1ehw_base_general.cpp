@@ -40,12 +40,12 @@ namespace AV1EHW
 
 void General::SetSupported(ParamSupport& blocks)
 {
-
     blocks.m_mvpCopySupported.emplace_back(
         [](const mfxVideoParam* pSrc, mfxVideoParam* pDst) -> void
     {
         const auto& buf_src = *(const mfxVideoParam*)pSrc;
         auto& buf_dst = *(mfxVideoParam*)pDst;
+
         MFX_COPY_FIELD(IOPattern);
         MFX_COPY_FIELD(Protected);
         MFX_COPY_FIELD(AsyncDepth);
@@ -89,6 +89,7 @@ void General::SetSupported(ParamSupport& blocks)
     {
         const auto& buf_src = *(const mfxExtAV1BitstreamParam*)pSrc;
         auto& buf_dst = *(mfxExtAV1BitstreamParam*)pDst;
+
         MFX_COPY_FIELD(WriteIVFHeaders);
     });
 
@@ -97,6 +98,7 @@ void General::SetSupported(ParamSupport& blocks)
     {
         const auto& buf_src = *(const mfxExtAV1ResolutionParam*)pSrc;
         auto& buf_dst = *(mfxExtAV1ResolutionParam*)pDst;
+
         MFX_COPY_FIELD(FrameWidth);
         MFX_COPY_FIELD(FrameHeight);
     });
@@ -136,16 +138,15 @@ void General::SetSupported(ParamSupport& blocks)
 
         MFX_COPY_FIELD(NumLayers);
         MFX_COPY_FIELD(Layers);
-
     });
 
     blocks.m_ebCopySupported[MFX_EXTBUFF_ENCODER_CAPABILITY].emplace_back(
         [](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
     {
-        auto& src = *(const mfxExtEncoderCapability*)pSrc;
-        auto& dst = *(mfxExtEncoderCapability*)pDst;
+        auto& buf_src = *(const mfxExtEncoderCapability*)pSrc;
+        auto& buf_dst = *(mfxExtEncoderCapability*)pDst;
 
-        dst.MBPerSec = src.MBPerSec;
+        MFX_COPY_FIELD(MBPerSec);
     });
 
     blocks.m_ebCopySupported[MFX_EXTBUFF_CODING_OPTION].emplace_back(
@@ -174,6 +175,7 @@ void General::SetSupported(ParamSupport& blocks)
     {
         const auto& buf_src = *(const mfxExtEncoderResetOption*)pSrc;
         auto& buf_dst = *(mfxExtEncoderResetOption*)pDst;
+
         MFX_COPY_FIELD(StartNewSequence);
     });
 
@@ -182,6 +184,7 @@ void General::SetSupported(ParamSupport& blocks)
     {
         const auto& buf_src = *(const mfxExtRefListCtrl*)pSrc;
         auto& buf_dst = *(mfxExtRefListCtrl*)pDst;
+
         for (mfxU32 i = 0; i < 16; i++)
         {
             MFX_COPY_FIELD(RejectedRefList[i].FrameOrder);

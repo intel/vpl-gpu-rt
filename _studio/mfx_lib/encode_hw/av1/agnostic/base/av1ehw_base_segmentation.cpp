@@ -299,7 +299,8 @@ void Segmentation::SetSupported(ParamSupport& blocks)
 
         for (mfxU32 i = 0; i < buf_src.NumSegments; i++)
         {
-            MFX_COPY_FIELD(Segment[i]);
+            MFX_COPY_FIELD(Segment[i].FeatureEnabled);
+            MFX_COPY_FIELD(Segment[i].AltQIndex);
         }
 
         MFX_COPY_FIELD(SegmentIdBlockSize);

@@ -526,6 +526,7 @@ void Tile::SetSupported(ParamSupport& blocks)
     {
         const auto& buf_src = *(const mfxExtAV1TileParam*)pSrc;
         auto& buf_dst = *(mfxExtAV1TileParam*)pDst;
+
         MFX_COPY_FIELD(NumTileRows);
         MFX_COPY_FIELD(NumTileColumns);
         MFX_COPY_FIELD(NumTileGroups);

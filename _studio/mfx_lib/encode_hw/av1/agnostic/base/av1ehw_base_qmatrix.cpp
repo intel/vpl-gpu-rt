@@ -99,11 +99,11 @@ void QMatrix::SetSupported(ParamSupport& blocks)
     blocks.m_ebCopySupported[MFX_EXTBUFF_CODING_OPTION3].emplace_back(
         [](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
     {
-        auto& src = *(const mfxExtCodingOption3*)pSrc;
-        auto& dst = *(mfxExtCodingOption3*)pDst;
+        const auto& buf_src = *(const mfxExtCodingOption3*)pSrc;
+        auto& buf_dst = *(mfxExtCodingOption3*)pDst;
 
-        dst.AdaptiveCQM  = src.AdaptiveCQM;
-        dst.ScenarioInfo = src.ScenarioInfo;
+        MFX_COPY_FIELD(AdaptiveCQM);
+        MFX_COPY_FIELD(ScenarioInfo);
     });
 }
 

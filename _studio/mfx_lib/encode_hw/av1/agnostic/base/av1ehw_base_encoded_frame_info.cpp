@@ -28,12 +28,12 @@ using namespace AV1EHW::Base;
 
 void EncodedFrameInfo::SetSupported(ParamSupport& blocks)
 {
-
     blocks.m_ebCopySupported[MFX_EXTBUFF_CODING_OPTION2].emplace_back(
         [](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
     {
         const auto& buf_src = *(const mfxExtCodingOption2*)pSrc;
         auto& buf_dst = *(mfxExtCodingOption2*)pDst;
+
         MFX_COPY_FIELD(EnableMAD);
     });
 }

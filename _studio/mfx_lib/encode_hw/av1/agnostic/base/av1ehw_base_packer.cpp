@@ -1027,7 +1027,7 @@ void Packer::SetSupported(ParamSupport& blocks)
         [](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
     {
         const auto& buf_src = *(const mfxExtCodingOptionSPSPPS*)pSrc;
-        auto&       buf_dst = *(mfxExtCodingOptionSPSPPS*)pDst;
+        auto& buf_dst = *(mfxExtCodingOptionSPSPPS*)pDst;
 
         MFX_COPY_FIELD(SPSBuffer);
         MFX_COPY_FIELD(SPSBufSize);
