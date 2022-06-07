@@ -19,16 +19,57 @@
 // SOFTWARE.
 
 #ifndef CMRT_EMU
+#include "mfx_common.h"
+#include "cmrt_cross_platform.h"
+#include "cmvm.h"
+
+#define SIZE_OF_CURBEDATA 160u
 
 extern "C"
 {
-    void EncMB_I() {}
-    void EncMB_P() {}
-    void EncMB_B() {}
+    void EncMB_I(
+        vector<mfxU8, SIZE_OF_CURBEDATA> laCURBEData,
+        SurfaceIndex SrcSurfIndexRaw,
+        SurfaceIndex SrcSurfIndex,
+        SurfaceIndex VMEInterPredictionSurfIndex,
+        SurfaceIndex MBDataSurfIndex,
+        SurfaceIndex FwdFrmMBDataSurfIndex) {}
+
+    void EncMB_P(
+        vector<mfxU8, SIZE_OF_CURBEDATA> laCURBEData,
+        SurfaceIndex SrcSurfIndexRaw,
+        SurfaceIndex SrcSurfIndex,
+        SurfaceIndex VMEInterPredictionSurfIndex,
+        SurfaceIndex MBDataSurfIndex,
+        SurfaceIndex FwdFrmMBDataSurfIndex) {}
+
+    void EncMB_B(
+        vector<mfxU8, SIZE_OF_CURBEDATA> laCURBEData,
+        SurfaceIndex SrcSurfIndexRaw,
+        SurfaceIndex SrcSurfIndex,
+        SurfaceIndex VMEInterPredictionSurfIndex,
+        SurfaceIndex MBDataSurfIndex,
+        SurfaceIndex FwdFrmMBDataSurfIndex) {}
+
     void DownSampleMB2X() {}
+
     void DownSampleMB4X() {}
-    void HistogramFrame() {}
-    void HistogramFields() {}
+
+    void HistogramFrame(
+        SurfaceIndex INBUF,
+        SurfaceIndex OUTBUF,
+        uint max_h_pos,
+        uint max_v_pos,
+        uint off_h,
+        uint off_v) {}
+
+    void HistogramFields(
+        SurfaceIndex INBUF,
+        SurfaceIndex OUTBUF,
+        uint max_h_pos,
+        uint max_v_pos,
+        uint off_h,
+        uint off_v) {}
 }
 
 #endif // CMRT_EMU
