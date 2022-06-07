@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -221,8 +221,10 @@ extern  void  mfxownYCbCr420ToYCbCr422_8u_P3R(const Ipp8u* pSrc[3], int srcStep[
     Caller = mfxiYCbCr422_8u_C2P3R
 */
 extern  void  mfxalYCbCr422ToYCbCr422_8u_C2P3R( const Ipp8u* pSrc, int srcStep, Ipp8u* pDst[3],
-        int dstStep[3], IppiSize roiSize )
+        int dstStep[3], IppiSize roiSize, int reserved)
 {
+  reserved = 0;
+
   int h,w,width32,width8,width16;
   int width  = roiSize.width ;
   int height = roiSize.height;
