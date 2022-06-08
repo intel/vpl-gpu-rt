@@ -208,6 +208,7 @@ protected:
     void                   ReleaseHandle();
 
     bool                   IsCmSupported();
+    bool                   IsCmCopyEnabledByDefault();
     mfxStatus              TryInitializeCm();
 
     std::unique_ptr<UMC::LinuxVideoAccelerator> m_pVA;
