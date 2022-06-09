@@ -30,7 +30,9 @@
 #include "umc_av1_frame.h"
 
 #include <algorithm>
-
+#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+#include "mfx_unified_av1d_logging.h"
+#endif
 namespace UMC_AV1_DECODER
 {
     AV1Decoder::AV1Decoder()
@@ -551,7 +553,17 @@ namespace UMC_AV1_DECODER
             updated_refs = refs_temp;
             Curr_temp = Curr;
         }
-
+#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+        if (EtwLogConfig == ETW_BUFFER || EtwLogConfig == ETW_API_BUFFER || EtwLogConfig == ETW_INFO_BUFFER || EtwLogConfig == ETW_ALL)
+        {
+            DECODE_EVENTDATA_DPBINFO_AV1 eventDpbData;
+            if (!updated_refs.empty())
+            {
+                DecodeEventDpbInfoAV1(&eventDpbData, updated_refs);
+                TRACE_EVENT(MFX_TRACE_API_AV1_DPBPARAMETER_TASK, 0, make_event_data(eventDpbData), [&]() { return make_event_data(UMC::UMC_OK); });
+            }
+        }
+#endif
         bool gotFullFrame = false;
         bool repeatedFrame = false;
         bool skipFrame = false;

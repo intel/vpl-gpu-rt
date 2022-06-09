@@ -34,6 +34,10 @@
 
 #include <algorithm>
 
+#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+#include "mfx_unified_av1d_logging.h"
+#endif
+
 namespace UMC_AV1_DECODER
 {
     AV1DecoderVA::AV1DecoderVA()
@@ -73,7 +77,7 @@ namespace UMC_AV1_DECODER
         UMC::Status sts = UMC::UMC_OK;
 
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "AV1 decode DDISubmitTask");
-        PERF_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, 0, make_event_data(this), [&]() { return make_event_data(sts);});
+        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, 0, make_event_data(this), [&]() { return make_event_data(sts);});
 
         assert(va);
 
@@ -223,6 +227,17 @@ namespace UMC_AV1_DECODER
                         break;
                 }
             }
+#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+            if (EtwLogConfig == ETW_INFO || EtwLogConfig == ETW_API_INFO || EtwLogConfig == ETW_INFO_BUFFER || EtwLogConfig == ETW_ALL)
+            {
+                DECODE_EVENTDATA_SYNC_AV1 eventData;
+                eventData.m_index = frame.m_index;
+                eventData.isOutputted = frame.Outputted();
+                eventData.isDecodingCompleted = frame.DecodingCompleted();
+                eventData.isDisplayable = frame.Displayed();
+                TRACE_EVENT(MFX_TRACE_API_AV1_SYNCINFO_TASK, 0, make_event_data(eventData), [&]() { return make_event_data(UMC::UMC_OK); });
+            }
+#endif
         }
 
         return wasCompleted;

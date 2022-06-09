@@ -43,6 +43,10 @@
 
 #include "mfx_utils.h"
 
+#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+#include "mfx_unified_h264d_logging.h"
+#endif
+
 inline bool IsNeedToUseHWBuffering(eMFXHWType /*type*/)
 {
     return false;
@@ -1560,6 +1564,15 @@ void VideoDECODEH264::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
 
     surface_out->Data.DataFlag = (mfxU16)(pFrame->m_isOriginalPTS ? MFX_FRAMEDATA_ORIGINAL_TIMESTAMP : 0);
 
+#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+    if (EtwLogConfig == ETW_INFO || EtwLogConfig == ETW_API_INFO || EtwLogConfig == ETW_INFO_BUFFER || EtwLogConfig == ETW_ALL)
+    {
+        DECODE_EVENTDATA_SURFACEOUT_AVC eventData;
+        DecodeEventDataAVCSurfaceOutparam(&eventData, surface_out, pFrame);
+        TRACE_EVENT(MFX_TRACE_API_AVC_OUTPUTINFO_TASK, 0, make_event_data(eventData), [&]() { return make_event_data(UMC::UMC_OK); });
+    }
+#endif
+
     UMC::SEI_Storer * storer = m_pH264VideoDecoder->GetSEIStorer();
     if (storer)
         storer->SetTimestamp(pFrame);
@@ -1616,6 +1629,18 @@ mfxStatus VideoDECODEH264::DecodeFrame(mfxFrameSurface1 *surface_out, UMC::H264D
 
     UMC::AutomaticUMCMutex guard(m_mGuard);
     pFrame->setWasDisplayed();
+#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+    if (EtwLogConfig == ETW_INFO || EtwLogConfig == ETW_API_INFO || EtwLogConfig == ETW_INFO_BUFFER || EtwLogConfig == ETW_ALL)
+    {
+        DECODE_EVENTDATA_OUTPUTFRAME_h264 eventData;
+        eventData.PicOrderCnt[0] = pFrame->m_PicOrderCnt[0];
+        eventData.PicOrderCnt[1] = pFrame->m_PicOrderCnt[1];
+        eventData.frameNum = pFrame->FrameNum();
+        eventData.wasDisplayed = pFrame->wasDisplayed();
+        eventData.wasOutputted = pFrame->wasOutputted();
+        TRACE_EVENT(MFX_TRACE_API_AVC_DISPLAYINFO_TASK, 0, make_event_data(eventData), [&]() { return make_event_data(UMC::UMC_OK); });
+    }
+#endif
     return sts;
 }
 

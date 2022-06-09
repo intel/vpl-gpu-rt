@@ -29,6 +29,10 @@
 
 #include "umc_va_base.h"
 
+#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+#include "mfx_unified_vp9d_logging.h"
+#endif
+
 using namespace UMC;
 
 namespace UMC_VP9_DECODER
