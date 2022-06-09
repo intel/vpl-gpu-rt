@@ -776,6 +776,9 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
                 auto logSkip = GetMfxLogSkip();
                 std::ignore  = logSkip;
 
+                InitMfxLogging();
+                MFX_LOG_API_TRACE("----------------MFXQueryImplsDescription----------------\n");
+
                 if (!QueryImplCaps(QueryImplDesc))
                     return impl;
             }

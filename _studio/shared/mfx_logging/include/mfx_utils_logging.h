@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Intel Corporation
+// Copyright (c) 2021-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -206,7 +206,7 @@ while(0)
 #if defined(MFX_ENABLE_LOG_UTILITY)
     #define MFX_LOG_FATAL(...) MFX_LOG(LEVEL_FATAL, __FILE__, __LINE__, __VA_ARGS__)
 #else
-   #define MFX_LOG_FATAL(...) MfxLogPrint(stdout, ##__VA_ARGS__)
+    #define MFX_LOG_FATAL(...) MfxLogPrint(stdout, ##__VA_ARGS__)
 #endif
 
 #if defined(MFX_ENABLE_LOG_UTILITY)
@@ -225,9 +225,13 @@ while(0)
         else
             return "%u";
     }
+#endif
 
+#if defined(MFX_ENABLE_LOG_UTILITY)
     #define MFX_LOG_API_TRACE(...) do { \
         CHECK_LOG_LEVEL(LEVEL_TRACE); \
         if (gMfxAPIDumpFile != nullptr) MfxLogPrint(gMfxAPIDumpFile.get(), ##__VA_ARGS__); } \
     while (0)
+#else
+    #define MFX_LOG_API_TRACE(...)
 #endif
