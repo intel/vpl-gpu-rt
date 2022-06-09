@@ -205,8 +205,8 @@ mfxStatus cBRCParams::Init(mfxVideoParam* par, bool bField)
 
     chromaFormat = par->mfx.FrameInfo.ChromaFormat == 0 ?  MFX_CHROMAFORMAT_YUV420 : par->mfx.FrameInfo.ChromaFormat ;
     bitDepthLuma = par->mfx.FrameInfo.BitDepthLuma == 0 ?  8 : par->mfx.FrameInfo.BitDepthLuma;
-
-    quantOffset   = 6 * (bitDepthLuma - 8);
+    mfxI32 bitdepthOffset = (6 * (bitDepthLuma - 8));
+    quantOffset = IsOn(par->mfx.LowPower) ? 0 : bitdepthOffset;
 
     inputBitsPerFrame    = targetbps / frameRate;
     maxInputBitsPerFrame = maxbps / frameRate;
@@ -232,21 +232,29 @@ mfxStatus cBRCParams::Init(mfxVideoParam* par, bool bField)
         bPanic = 1;
     }
 
+    mfxI32 minQPI = 1;
+    mfxI32 maxQPI = IsOn(par->mfx.LowPower) ? 51 : (51 + bitdepthOffset);
+    mfxI32 minQPP = 1;
+    mfxI32 maxQPP = IsOn(par->mfx.LowPower) ? 51 : (51 + bitdepthOffset);
+    mfxI32 minQPB = 1;
+    mfxI32 maxQPB = IsOn(par->mfx.LowPower) ? 51 : (51 + bitdepthOffset);
+    mfxI32 minmaxOffset = IsOn(par->mfx.LowPower) ? bitdepthOffset : 0;
+
     if (pExtCO2
-        && pExtCO2->MaxQPI <=51 && pExtCO2->MaxQPI > pExtCO2->MinQPI && pExtCO2->MinQPI >=1
-        && pExtCO2->MaxQPP <=51 && pExtCO2->MaxQPP > pExtCO2->MinQPP && pExtCO2->MinQPP >=1
-        && pExtCO2->MaxQPB <=51 && pExtCO2->MaxQPB > pExtCO2->MinQPB && pExtCO2->MinQPB >=1 )
+        && pExtCO2->MaxQPI <= maxQPI && pExtCO2->MaxQPI > pExtCO2->MinQPI && pExtCO2->MinQPI >= minQPI
+        && pExtCO2->MaxQPP <= maxQPP && pExtCO2->MaxQPP > pExtCO2->MinQPP && pExtCO2->MinQPP >= minQPP
+        && pExtCO2->MaxQPB <= maxQPB && pExtCO2->MaxQPB > pExtCO2->MinQPB && pExtCO2->MinQPB >= minQPB)
     {
-        quantMaxI = pExtCO2->MaxQPI + quantOffset;
-        quantMinI = pExtCO2->MinQPI;
-        quantMaxP = pExtCO2->MaxQPP + quantOffset;
-        quantMinP = pExtCO2->MinQPP;
-        quantMaxB = pExtCO2->MaxQPB + quantOffset;
-        quantMinB = pExtCO2->MinQPB;
+        quantMaxI = pExtCO2->MaxQPI - minmaxOffset;
+        quantMinI = pExtCO2->MinQPI - minmaxOffset;
+        quantMaxP = pExtCO2->MaxQPP - minmaxOffset;
+        quantMinP = pExtCO2->MinQPP - minmaxOffset;
+        quantMaxB = pExtCO2->MaxQPB - minmaxOffset;
+        quantMinB = pExtCO2->MinQPB - minmaxOffset;
     }
     else
     {
-        quantMaxI = quantMaxP = quantMaxB = 51 + quantOffset;
+        quantMaxI = quantMaxP = quantMaxB = maxQPB;
         quantMinI = quantMinP = quantMinB = 1;
     }
 
@@ -259,8 +267,8 @@ mfxStatus cBRCParams::Init(mfxVideoParam* par, bool bField)
         WinBRCSize = pExtCO3->WinBRCSize;
     }
 
-    mRawFrameSizeInBits = GetRawFrameSize(width * height, chromaFormat, bitDepthLuma);
-    mRawFrameSizeInPixs = mRawFrameSizeInBits / bitDepthLuma;
+    mRawFrameSizeInBits = GetRawFrameSize(width * height, chromaFormat, IsOn(par->mfx.LowPower) ? 8 : bitDepthLuma);
+    mRawFrameSizeInPixs = mRawFrameSizeInBits / (IsOn(par->mfx.LowPower) ? 8 : bitDepthLuma);
     iDQp0 = 0;
 
     mNumRefsInGop = (mfxU32)(std::max(1.0, (!bPyr ? (mfxF64)gopPicSize / (mfxF64)gopRefDist : (mfxF64)gopPicSize / 2.0)));
@@ -535,7 +543,7 @@ mfxStatus ExtBRC::Init (mfxVideoParam* par)
     m_ctx.fAbLong  = m_par.inputBitsPerFrame;
     m_ctx.fAbShort = m_par.inputBitsPerFrame;
 
-    mfxI32 rawSize = GetRawFrameSize(m_par.width * m_par.height ,m_par.chromaFormat, m_par.bitDepthLuma);
+    mfxI32 rawSize = GetRawFrameSize(m_par.width * m_par.height ,m_par.chromaFormat, m_par.quantOffset ? m_par.bitDepthLuma : 8);
     mfxI32 qp = GetNewQP(rawSize, m_par.inputBitsPerFrame, m_par.quantMinI, m_par.quantMaxI, 1 , m_par.quantOffset, 0.5, false, false);
 
     UpdateQPParams(qp,MFX_FRAMETYPE_IDR , m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, MFX_FRAMETYPE_REF, 0);

@@ -166,8 +166,8 @@ mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool field
 
     chromaFormat = ctrl.FrameInfo.ChromaFormat == 0 ?  MFX_CHROMAFORMAT_YUV420 : ctrl.FrameInfo.ChromaFormat ;
     bitDepthLuma = ctrl.FrameInfo.BitDepthLuma == 0 ?  8 : ctrl.FrameInfo.BitDepthLuma;
-
-    quantOffset   = 6 * (bitDepthLuma - 8);
+    mfxI32 bitdepthOffset = (6 * (bitDepthLuma - 8));
+    quantOffset   = IsOn(ctrl.LowPower) ? 0 : bitdepthOffset;
 
     inputBitsPerFrame    = targetbps / frameRate;
     maxInputBitsPerFrame = maxbps / frameRate;
@@ -194,8 +194,8 @@ mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool field
     dqAbPeriod = 120 * reaction_mult;
     bAbPeriod = 120 * reaction_mult;
     fAbPeriodLA = 16;
-    mRawFrameSizeInBits = GetRawFrameSize(width * height, chromaFormat, bitDepthLuma);
-    mRawFrameSizeInPixs = mRawFrameSizeInBits / bitDepthLuma;
+    mRawFrameSizeInBits = GetRawFrameSize(width * height, chromaFormat, IsOn(ctrl.LowPower) ? 8 : bitDepthLuma);
+    mRawFrameSizeInPixs = mRawFrameSizeInBits / (IsOn(ctrl.LowPower) ? 8 : bitDepthLuma);
 
     if (maxFrameSizeInBits)
     {
@@ -203,26 +203,27 @@ mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool field
         bPanic = 1;
     }
     mfxI32 minQPI = IsOn(ctrl.LowPower) ? 10 : 1;
-    mfxI32 maxQPI = 51;
+    mfxI32 maxQPI = IsOn(ctrl.LowPower) ? 51 : (51 + bitdepthOffset);
     mfxI32 minQPP = IsOn(ctrl.LowPower) ? 10 : 1;
-    mfxI32 maxQPP = 51;
+    mfxI32 maxQPP = IsOn(ctrl.LowPower) ? 51 : (51 + bitdepthOffset);
     mfxI32 minQPB = IsOn(ctrl.LowPower) ? 10 : 1;
-    mfxI32 maxQPB = 51;
+    mfxI32 maxQPB = IsOn(ctrl.LowPower) ? 51 : (51 + bitdepthOffset);
+    mfxI32 minmaxOffset = IsOn(ctrl.LowPower) ? bitdepthOffset : 0;
 
     quantMinI = (ctrl.MinQPLevel[0] != 0) ?
-        std::max((mfxI32)ctrl.MinQPLevel[0], minQPI) : minQPI;
+        std::max((mfxI32)ctrl.MinQPLevel[0]-minmaxOffset, minQPI) : minQPI;
     quantMaxI = (ctrl.MaxQPLevel[0] != 0) ?
-        ctrl.MaxQPLevel[0] : maxQPI + quantOffset;
+        std::min((mfxI32)ctrl.MaxQPLevel[0]-minmaxOffset, maxQPI) : maxQPI;
 
     quantMinP = (ctrl.MinQPLevel[1] != 0) ?
-        std::max((mfxI32)ctrl.MinQPLevel[1], minQPP) : minQPP;
+        std::max((mfxI32)ctrl.MinQPLevel[1]-minmaxOffset, minQPP) : minQPP;
     quantMaxP = (ctrl.MaxQPLevel[1] != 0) ?
-        ctrl.MaxQPLevel[1] : maxQPP + quantOffset;
+        std::min((mfxI32)ctrl.MaxQPLevel[1]-minmaxOffset, maxQPP) : maxQPP;
 
     quantMinB = (ctrl.MinQPLevel[2] != 0) ?
-        std::max((mfxI32)ctrl.MinQPLevel[2], minQPB) : minQPB;
+        std::max((mfxI32)ctrl.MinQPLevel[2]-minmaxOffset, minQPB) : minQPB;
     quantMaxB = (ctrl.MaxQPLevel[2] != 0) ?
-        ctrl.MaxQPLevel[2] : maxQPB + quantOffset;
+        std::min((mfxI32)ctrl.MaxQPLevel[2]-minmaxOffset, maxQPB) : maxQPB;
 
     WinBRCMaxAvgKbps = ctrl.WinBRCMaxAvgKbps;
     WinBRCSize = ctrl.WinBRCSize;
@@ -953,7 +954,7 @@ mfxStatus BRC_EncToolBase::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
     m_ctx.fAbShort = m_par.inputBitsPerFrame;
     m_ctx.fAbLA = m_par.inputBitsPerFrame;
 
-    mfxI32 rawSize = GetRawFrameSize(m_par.width * m_par.height, m_par.chromaFormat, m_par.bitDepthLuma);
+    mfxI32 rawSize = GetRawFrameSize(m_par.width * m_par.height, m_par.chromaFormat, m_par.quantOffset ? m_par.bitDepthLuma : 8);
     mfxI32 qp = GetNewQP(rawSize, m_par.inputBitsPerFrame, m_par.quantMinI, m_par.quantMaxI, 1, m_par.quantOffset, 0.5, false, false);
 
     UpdateQPParams(qp, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, MFX_FRAMETYPE_REF, 0, 0, m_par.codecId);

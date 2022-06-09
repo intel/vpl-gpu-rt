@@ -204,6 +204,14 @@ mfxStatus LPLA_EncTool::InitEncParams(mfxEncToolsCtrl const & ctrl, mfxExtEncToo
         m_encParams.mfx.FrameInfo.Height = (m_encParams.mfx.FrameInfo.CropH + 15) & ~0xF;
     }
 
+    if(ctrl.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING && m_encParams.mfx.FrameInfo.BitDepthLuma == 10){
+        m_encParams.mfx.FrameInfo.FourCC = MFX_FOURCC_NV12;
+        m_encParams.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
+        m_encParams.mfx.FrameInfo.BitDepthLuma = 8;
+        m_encParams.mfx.FrameInfo.BitDepthChroma = 8;
+        m_encParams.mfx.FrameInfo.Shift = 0;
+    }
+
     return sts;
 }
 
