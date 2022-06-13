@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Intel Corporation
+// Copyright (c) 2021-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,10 @@
 #ifndef _MFX_CONFIG_DECODE_H_
 #define _MFX_CONFIG_DECODE_H_
 
+#if !defined (DECODE_JPEG_ROTATION)
 #if !defined(ANDROID) && defined(__linux__)
 #define MFX_ENABLE_MJPEG_ROTATE_VPP
+#endif
 #endif
 
 #if defined(MFX_ENABLE_VP9_VIDEO_DECODE) || defined(MFX_ENABLE_AV1_VIDEO_DECODE)

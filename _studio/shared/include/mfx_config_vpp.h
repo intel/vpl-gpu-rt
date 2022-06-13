@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Intel Corporation
+// Copyright (c) 2021-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,9 @@
     #define MFX_ENABLE_MJPEG_WEAVE_DI_VPP
     #define MFX_ENABLE_VPP_RUNTIME_HSBC
 
-    #define MFX_ENABLE_MJPEG_ROTATE_VPP
-
+    #if !defined (DECODE_JPEG_ROTATION)
+            #define MFX_ENABLE_MJPEG_ROTATE_VPP
+    #endif
     //#define MFX_ENABLE_VPP_FRC
 #endif
 

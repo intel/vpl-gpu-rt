@@ -1,4 +1,4 @@
-// Copyright (c) 2004-2020 Intel Corporation
+// Copyright (c) 2004-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1751,6 +1751,16 @@ void VideoDECODEMJPEGBase_HW::AdjustFourCC(mfxFrameInfo *requestFrameInfo, const
                 requestFrameInfo->FourCC = MFX_FOURCC_NV12;
                 *needVpp = true;
             }
+#if defined (DECODE_JPEG_ROTATION)
+            else
+            {
+                if (info->Rotation == MFX_ROTATION_0 || info->Rotation == MFX_ROTATION_180)
+                    requestFrameInfo->FourCC = MFX_FOURCC_YUV422H;
+                else if (info->Rotation == MFX_ROTATION_90 || info->Rotation == MFX_ROTATION_270)
+                    requestFrameInfo->FourCC = MFX_FOURCC_YUV422V;
+                *needVpp = true;
+            }
+#endif
             break;
         case MFX_CHROMAFORMAT_YUV422V:
             break;

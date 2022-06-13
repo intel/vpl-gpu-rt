@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2020 Intel Corporation
+// Copyright (c) 2007-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -103,6 +103,12 @@ static inline mfxU32 ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_Y216;
     case MFX_FOURCC_Y416:
         return VA_FOURCC_Y416;
+#if defined (DECODE_JPEG_ROTATION)
+    case MFX_FOURCC_YUV422H:
+        return VA_FOURCC_422H;
+    case MFX_FOURCC_YUV422V:
+        return VA_FOURCC_422V;
+#endif
     default:
         assert(!"unsupported fourcc");
         return 0;
@@ -222,6 +228,10 @@ static inline bool isFourCCSupported(mfxU32 va_fourcc)
         case VA_FOURCC_P016:
         case VA_FOURCC_Y216:
         case VA_FOURCC_Y416:
+#if defined (DECODE_JPEG_ROTATION)
+        case VA_FOURCC_422H:
+        case VA_FOURCC_422V:
+#endif
             return true;
         default:
             return false;
