@@ -278,8 +278,8 @@ bool VAAPIVideoCORE_T<Base>::IsCmSupported()
 template <class Base>
 bool VAAPIVideoCORE_T<Base>::IsCmCopyEnabledByDefault()
 {
-    // For Linux by default CM copy is ON on TGL/RKL/ADL
-    return IsCmSupported() && GetHWType() != MFX_HW_DG1;
+    // For Linux by default CM copy is ON on RKL/ADL
+    return IsCmSupported() && GetHWType() != MFX_HW_DG1 && GetHWType() != MFX_HW_TGL_LP;
 }
 
 template <class Base>
