@@ -595,7 +595,12 @@ public:
         Defaults::TChain<mfxU16>::TExt
         , const Defaults::Param& par)
     {
-        return par.mvp.AsyncDepth + !par.mvp.AsyncDepth * 2;
+        if (par.mvp.AsyncDepth)
+        {
+            return par.mvp.AsyncDepth;
+        }
+
+        return 5;
     }
 
     static mfxU8 NumReorderFrames(

@@ -1562,7 +1562,7 @@ inline mfxU32 GetDefaultBufferSize(VP9MfxVideoParam const &par)
 
 inline mfxU16 GetDefaultAsyncDepth(VP9MfxVideoParam const &/*par*/)
 {
-    return 2;
+    return 5;
 }
 
 inline mfxU16 GetMinProfile(mfxU16 depth, mfxU16 format)
