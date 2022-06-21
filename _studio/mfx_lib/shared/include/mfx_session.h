@@ -29,6 +29,7 @@
 #include <mfxvideo++int.h>
 
 #include "mfx_common.h"
+#include "mfx_utils_logging.h"
 
 // private headers
 #include <mfx_interface_scheduler.h>
@@ -224,6 +225,7 @@ protected:
 #define FUNCTION_IMPL(component, func_name, formal_param_list, actual_param_list) \
 mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
 { \
+    MFX_LOG_API_TRACE("----------------MFXVideo" #component "_" #func_name "----------------\n"); \
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE); \
     MFX_CHECK(session->m_p##component.get(), MFX_ERR_NOT_INITIALIZED); \
     try { \
@@ -253,6 +255,7 @@ mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
 #define FUNCTION_RESET_IMPL(component, func_name, formal_param_list, actual_param_list) \
 mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
 { \
+    MFX_LOG_API_TRACE("----------------MFXVideo" #component "_" #func_name "----------------\n"); \
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE); \
     MFX_CHECK(session->m_p##component.get(), MFX_ERR_NOT_INITIALIZED); \
                                                                                          \

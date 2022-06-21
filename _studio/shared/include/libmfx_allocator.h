@@ -810,12 +810,12 @@ struct mfxRefCountableInstance<mfxFrameSurface1>
 
 inline void copy_frame_surface_pixel_pointers(mfxFrameData& buf_dst, const mfxFrameData& buf_src)
 {
-    MFX_COPY_FIELD(PitchLow);
-    MFX_COPY_FIELD(PitchHigh);
-    MFX_COPY_FIELD(Y);
-    MFX_COPY_FIELD(U);
-    MFX_COPY_FIELD(V);
-    MFX_COPY_FIELD(A);
+    MFX_COPY_FIELD_NO_LOG(PitchLow);
+    MFX_COPY_FIELD_NO_LOG(PitchHigh);
+    MFX_COPY_FIELD_NO_LOG(Y);
+    MFX_COPY_FIELD_NO_LOG(U);
+    MFX_COPY_FIELD_NO_LOG(V);
+    MFX_COPY_FIELD_NO_LOG(A);
 }
 
 class mfxFrameSurfaceInterfaceImpl : public mfxFrameSurfaceBaseInterface

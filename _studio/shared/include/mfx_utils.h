@@ -167,6 +167,8 @@ bool LumaIsNull(const mfxFrameSurface1 * surf)
 
 #define IS_PROTECTION_ANY(val) (false)
 
+#define MFX_COPY_FIELD_NO_LOG(Field)       buf_dst.Field = buf_src.Field
+
 #if !defined(MFX_ENABLE_LOG_UTILITY)
 #define MFX_COPY_FIELD(Field)       buf_dst.Field = buf_src.Field
 #define MFX_COPY_ARRAY_FIELD(Array) std::copy(std::begin(buf_src.Array), std::end(buf_src.Array), std::begin(buf_dst.Array))
