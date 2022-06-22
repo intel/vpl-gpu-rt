@@ -1,7 +1,6 @@
 
 set(sources
     src/mfx_pxp_video_accelerator_vaapi.cpp
-    src/mfx_pxp_video_accelerator_d3d11.cpp
     src/mfx_pxp_video_accelerator.cpp
     src/mfx_pxp_vpp_vaapi.cpp
     src/mfx_pxp_h264_supplier.cpp
@@ -26,3 +25,6 @@ target_link_libraries(pxp_hw
     mfx_static_lib
     umc_va_hw
 )
+
+include(sources_ext.cmake OPTIONAL)
+
