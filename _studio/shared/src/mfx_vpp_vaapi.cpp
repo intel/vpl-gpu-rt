@@ -655,6 +655,8 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     MFX_CHECK_NULL_PTR1( pParams->pRefSurfaces );
     MFX_CHECK_NULL_PTR1( pParams->pRefSurfaces[0].hdl.first );
 
+    UMC::AutomaticUMCMutex guard(m_guard);
+
     /* There is a special case for composition */
     mfxStatus mfxSts = MFX_ERR_NONE;
     if (pParams->bComposite)
@@ -1760,7 +1762,7 @@ if (pParams->mirroringExt)
     // (3) info needed for sync operation
     //-------------------------------------------------------
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        // UMC::AutomaticUMCMutex guard(m_guard);
 
         ExtVASurface currentFeedback; // {surface & number_of_task}
         currentFeedback.surface = *outputSurface;
