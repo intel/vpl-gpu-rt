@@ -62,7 +62,6 @@ typedef struct {
     mfxU8                    reserved[28];      /*!< Reserved for future use. */
 } *mfxSecureVPPConfigHDL, mfxSecureVPPConfig;
 MFX_PACK_END()
-#endif
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
 /*! This is a table to map pxp parameter associacted with decode input.
