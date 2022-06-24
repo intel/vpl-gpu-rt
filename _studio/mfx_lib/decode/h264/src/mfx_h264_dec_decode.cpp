@@ -993,15 +993,26 @@ mfxStatus VideoDECODEH264::GetDecodeStat(mfxDecodeStat *stat)
 
 static mfxStatus AVCDECODERoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32)
 {
-    auto decoder = reinterpret_cast<VideoDECODEH264*>(pState);
-    MFX_CHECK(decoder, MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "AVCDECODERoutine");
+    mfxStatus sts = MFX_ERR_NONE;
 
-    auto task =
-        reinterpret_cast<ThreadTaskInfo264*>(pParam);
-    MFX_CHECK(task, MFX_ERR_UNDEFINED_BEHAVIOR);
+    try
+    {
+        auto decoder = reinterpret_cast<VideoDECODEH264*>(pState);
+        MFX_CHECK(decoder, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    return
-        decoder->RunThread(task, threadNumber);
+        auto task =
+            reinterpret_cast<ThreadTaskInfo264*>(pParam);
+        MFX_CHECK(task, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+        sts = decoder->RunThread(task, threadNumber);
+    }
+    catch(...)
+    {
+        MFX_LTRACE_MSG_1(MFX_TRACE_LEVEL_API, "exception handled");
+        return MFX_ERR_NONE;
+    }
+    return sts;
 }
 
 static mfxStatus AVCCompleteProc(void *, void *pParam, mfxStatus )

@@ -1080,16 +1080,28 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
 
 mfxStatus VideoDECODEAV1::DecodeRoutine(void* state, void* param, mfxU32, mfxU32)
 {
-    auto decoder = reinterpret_cast<VideoDECODEAV1*>(state);
-    MFX_CHECK(decoder, MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "AV1DECODERoutine");
+    mfxStatus sts = MFX_ERR_NONE;
 
-    mfxThreadTask task =
-        reinterpret_cast<TaskInfo*>(param);
+    try
+    {
+        auto decoder = reinterpret_cast<VideoDECODEAV1*>(state);
+        MFX_CHECK(decoder, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    MFX_CHECK(task, MFX_ERR_UNDEFINED_BEHAVIOR);
+        mfxThreadTask task =
+            reinterpret_cast<TaskInfo*>(param);
 
-    mfxStatus sts = decoder->QueryFrame(task);
-    MFX_CHECK_STS(sts);
+        MFX_CHECK(task, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+        sts = decoder->QueryFrame(task);
+        MFX_CHECK_STS(sts);
+    }
+    catch(...)
+    {
+        MFX_LTRACE_MSG_1(MFX_TRACE_LEVEL_API, "exception handled");
+        return MFX_ERR_NONE;
+    }
+
     return sts;
 }
 

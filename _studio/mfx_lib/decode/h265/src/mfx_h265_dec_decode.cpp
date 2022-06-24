@@ -792,13 +792,21 @@ mfxStatus VideoDECODEH265::GetDecodeStat(mfxDecodeStat *stat)
 static mfxStatus HEVCDECODERoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "HEVCDECODERoutine");
+    mfxStatus sts = MFX_ERR_NONE;
 
-    auto decoder = reinterpret_cast<VideoDECODEH265*>(pState);
-    MFX_CHECK(decoder, MFX_ERR_UNDEFINED_BEHAVIOR);
+    try
+    {
+        auto decoder = reinterpret_cast<VideoDECODEH265*>(pState);
+        MFX_CHECK(decoder, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    mfxStatus sts = decoder->RunThread(pParam, threadNumber);
-    MFX_CHECK_STS(sts);
-
+        sts = decoder->RunThread(pParam, threadNumber);
+        MFX_CHECK_STS(sts);
+    }
+    catch(...)
+    {
+        MFX_LTRACE_MSG_1(MFX_TRACE_LEVEL_API, "exception handled");
+        return MFX_ERR_NONE;
+    }
     return sts;
 }
 
