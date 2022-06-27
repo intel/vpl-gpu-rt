@@ -24,7 +24,7 @@
 #include "mfxpxp.h"
 using namespace UMC;
 
-PXPVA::PXPVA(mfxHDL pxpCtxHdl) : m_PXPCtxHdl(pxpCtxHdl), m_PXPParams(nullptr), m_curSegment(0)
+PXPVA::PXPVA(mfxHDL pxpCtxHdl) : m_curSegment(0), m_PXPCtxHdl(pxpCtxHdl), m_PXPParams(nullptr)
 {}
 
 PXPVA::~PXPVA() 
