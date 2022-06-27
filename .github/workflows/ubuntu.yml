@@ -65,7 +65,7 @@ jobs:
       run: |
         cd libmfxgen
         mkdir build && cd build
-        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" ..
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DMFX_ENABLE_PXP=ON -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" ..
         ninja
         sudo ninja install
 
@@ -128,7 +128,7 @@ jobs:
         cd libmfxgen
         mkdir build && cd build
         cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" \
-          -DMFX_ENABLE_USER_ENCTOOLS=ON -DMFX_ENABLE_AENC=ON \
+          -DMFX_ENABLE_USER_ENCTOOLS=ON -DMFX_ENABLE_AENC=ON -DMFX_ENABLE_PXP=ON \
           ..
         ninja
         sudo ninja install
@@ -192,7 +192,7 @@ jobs:
         cd libmfxgen
         mkdir build && cd build
         cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" \
-          -DMFX_ENABLE_USER_ENCTOOLS=ON -DMFX_ENABLE_AENC=OFF \
+          -DMFX_ENABLE_USER_ENCTOOLS=ON -DMFX_ENABLE_AENC=OFF -DMFX_ENABLE_PXP=ON \
           ..
         ninja
         sudo ninja install
@@ -245,7 +245,7 @@ jobs:
       run: |
         cd libmfxgen
         mkdir build && cd build
-        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" ..
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DMFX_ENABLE_PXP=ON -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" ..
         ninja
         sudo ninja install
 
@@ -308,7 +308,7 @@ jobs:
       run: |
         cd libmfxgen
         mkdir build && cd build
-        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" ..
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DMFX_ENABLE_PXP=ON -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" ..
         ninja
         ninja install
 
@@ -360,6 +360,6 @@ jobs:
       run: |
         cd libmfxgen
         mkdir build && cd build
-        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" ..
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DMFX_ENABLE_PXP=ON -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" ..
         ninja
         sudo ninja install
