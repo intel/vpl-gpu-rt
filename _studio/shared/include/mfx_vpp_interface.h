@@ -208,7 +208,7 @@ namespace MfxHwVideoProcessing
             , uDeinterlacing(0)
 
             , uVideoSignalInfoInOut(0)
-
+            , uHdr10ToneMapping(0)
             , uVideoSignalInfo(0)
             , frcCaps()
             , uIStabFilter(0)
