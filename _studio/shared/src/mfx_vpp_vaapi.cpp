@@ -429,16 +429,26 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
                                            (void*)m_3dlutCaps.data(),
                                            &num_3dlut_caps);
         MFX_CHECK(((VA_STATUS_SUCCESS == vaSts) || (VA_STATUS_ERROR_MAX_NUM_EXCEEDED == vaSts)), MFX_ERR_DEVICE_FAILED);
-        if (num_3dlut_caps != 0)
-        {
-            m_3dlutCaps.resize(num_3dlut_caps);
-            vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
-                                    m_vaContextVPP,
-                                    VAProcFilter3DLUT,
-                                    (void*)m_3dlutCaps.data(),
-                                    &num_3dlut_caps);
-            MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-        }
+        MFX_CHECK(num_3dlut_caps != 0, MFX_ERR_UNSUPPORTED);
+        m_3dlutCaps.resize(num_3dlut_caps);
+        vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
+                                m_vaContextVPP,
+                                VAProcFilter3DLUT,
+                                (void*)m_3dlutCaps.data(),
+                                &num_3dlut_caps);
+        MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    }
+
+    if (caps.uDenoise2Filter)
+    {
+        mfxU32 num_denoise2_caps = 0;
+        vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
+                                m_vaContextVPP,
+                                VAProcFilterHVSNoiseReduction,
+                                nullptr,
+                                &num_denoise2_caps);
+        MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        MFX_CHECK(num_denoise2_caps != 0, MFX_ERR_UNSUPPORTED);
     }
 
     if (caps.uHdr10ToneMapping)
@@ -449,6 +459,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
                                 VAProcFilterHighDynamicRangeToneMapping,
                                 &m_hdrtm_caps, &num_hdrtm_caps);
         MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        MFX_CHECK(num_hdrtm_caps != 0, MFX_ERR_UNSUPPORTED);
     }
 
     memset(&m_pipelineCaps,  0, sizeof(VAProcPipelineCaps));
