@@ -215,6 +215,7 @@ static inline bool isFourCCSupported(mfxU32 va_fourcc)
 #ifdef MFX_ENABLE_RGBP
         case VA_FOURCC_RGBP:
 #endif
+        case VA_FOURCC_BGRP:
         case VA_FOURCC_UYVY:
         case VA_FOURCC_P208:
         case VA_FOURCC_P010:
@@ -559,6 +560,11 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         frame_data.B = p_buffer + va_image.offsets[2];
         break;
 #endif
+    case VA_FOURCC_BGRP:
+        frame_data.B = p_buffer + va_image.offsets[0];
+        frame_data.G = p_buffer + va_image.offsets[1];
+        frame_data.R = p_buffer + va_image.offsets[2];
+        break;
     case VA_FOURCC_ABGR:
         frame_data.R = p_buffer + va_image.offsets[0];
         frame_data.G = frame_data.R + 1;
