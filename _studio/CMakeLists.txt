@@ -19,6 +19,7 @@
 # SOFTWARE.
 
 add_subdirectory(shared/mfx_trace)
+add_subdirectory(shared/IntelMediaSDK)
 add_subdirectory(shared/mfx_logging)
 add_subdirectory(shared/umc)
 add_subdirectory(shared/asc)
