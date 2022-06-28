@@ -1441,6 +1441,8 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request)
         case MFX_FOURCC_Y416:
             break;
         case MFX_FOURCC_ABGR16F:
+        case MFX_FOURCC_I420:
+        case MFX_FOURCC_UYVY:
             break;
         case MFX_FOURCC_IMC3:
         case MFX_FOURCC_YUV400:
@@ -1449,7 +1451,6 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request)
         case MFX_FOURCC_YUV422V:
         case MFX_FOURCC_YUV444:
         // UYVY is supported as input on Linux only
-        case MFX_FOURCC_UYVY:
             if (VPP_OUT == request)
                 return MFX_ERR_INVALID_VIDEO_PARAM;
             break;

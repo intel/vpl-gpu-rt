@@ -1002,6 +1002,20 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
 
         return FastCopy::Copy(dst.Data.V, dstPitch, src.Data.V, srcPitch, roi, copyFlag);
 
+    case MFX_FOURCC_I420:
+
+        MFX_SAFE_CALL(FastCopy::Copy(dst.Data.Y, dstPitch, src.Data.Y, srcPitch, roi, copyFlag));
+
+        roi.width  >>= 1;
+        roi.height >>= 1;
+
+        srcPitch >>= 1;
+        dstPitch >>= 1;
+
+        MFX_SAFE_CALL(FastCopy::Copy(dst.Data.U, dstPitch, src.Data.U, srcPitch, roi, copyFlag));
+
+        return FastCopy::Copy(dst.Data.V, dstPitch, src.Data.V, srcPitch, roi, copyFlag);
+
     case MFX_FOURCC_UYVY:
         roi.width *= 2;
 

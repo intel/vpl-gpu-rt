@@ -109,6 +109,8 @@ static inline mfxU32 ConvertMfxFourccToVAFormat(mfxU32 fourcc)
     case MFX_FOURCC_YUV422V:
         return VA_FOURCC_422V;
 #endif
+    case MFX_FOURCC_I420:
+        return VA_FOURCC_I420;
     default:
         assert(!"unsupported fourcc");
         return 0;
@@ -148,7 +150,6 @@ static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int 
         case MFX_FOURCC_UYVY:
         case MFX_FOURCC_YUY2:
             format = VA_RT_FORMAT_YUV422;
-            break;
             break;
         case MFX_FOURCC_A2RGB10:
             format = VA_RT_FORMAT_RGB32_10BPP;
@@ -233,6 +234,7 @@ static inline bool isFourCCSupported(mfxU32 va_fourcc)
         case VA_FOURCC_422H:
         case VA_FOURCC_422V:
 #endif
+        case VA_FOURCC_I420:
             return true;
         default:
             return false;
@@ -493,6 +495,8 @@ static inline mfxU32 SupportedVAfourccToMFXfourcc(mfxU32 va_fourcc)
         return MFX_FOURCC_NV12;
     case MFX_FOURCC_VP8_SEGMAP:
         return MFX_FOURCC_P8;
+    case VA_FOURCC_I420:
+        return MFX_FOURCC_I420;
     default:
         return va_fourcc;
     }
@@ -517,6 +521,12 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         frame_data.Y = p_buffer + va_image.offsets[0];
         frame_data.V = p_buffer + va_image.offsets[1];
         frame_data.U = p_buffer + va_image.offsets[2];
+        break;
+
+    case VA_FOURCC_I420:
+        frame_data.Y = p_buffer + va_image.offsets[0];
+        frame_data.U = p_buffer + va_image.offsets[1];
+        frame_data.V = p_buffer + va_image.offsets[2];
         break;
 
     case VA_FOURCC_YUY2:

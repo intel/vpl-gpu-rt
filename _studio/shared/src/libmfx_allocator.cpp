@@ -338,6 +338,12 @@ static inline mfxStatus SetPointers(mfxFrameData& frame_data, const mfxFrameInfo
         frame_data.U = frame_data.Y + 1;
         frame_data.V = frame_data.Y + 3;
         break;
+    case MFX_FOURCC_UYVY:
+        std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 2u);
+        frame_data.U = bytes;
+        frame_data.Y = frame_data.Y + 1;
+        frame_data.V = frame_data.Y + 2;
+        break;
 #if defined (MFX_ENABLE_FOURCC_RGB565)
     case MFX_FOURCC_RGB565:
         std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 2u);
