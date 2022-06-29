@@ -39,10 +39,6 @@
 #include "libmfx_core_interface.h"
 #include "mfx_platform_caps.h"
 
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-#include "mfx_unified_decode_logging.h"
-#endif
-
 mfxStatus MFXInit(mfxIMPL implParam, mfxVersion *ver, mfxSession *session)
 {
     mfxInitParam par = {};
@@ -253,6 +249,7 @@ mfxStatus MFXClose(mfxSession session)
         // since it inserts class variable on stack which calls to trace library in the
         // destructor.
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXClose");
+        PERF_EVENT(MFX_TRACE_API_MFX_CLOSE_TASK, 0, make_event_data(session), [&](){ return make_event_data(mfxRes);});
 
         // parent session can't be closed,
         // because there is no way to let children know about parent's death.
@@ -261,10 +258,6 @@ mfxStatus MFXClose(mfxSession session)
         if (session->IsChildSession())
         {
             mfxRes = MFXDisjoinSession(session);
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-            if (EtwLogConfig == ETW_API || EtwLogConfig == ETW_API_BUFFER || EtwLogConfig == ETW_API_INFO || EtwLogConfig == ETW_ALL)
-                TRACE_EVENT(MFX_TRACE_API_MFX_CLOSE_TASK, 0, make_event_data(session), [&]() { return make_event_data(mfxRes); });
-#endif
             if (MFX_ERR_NONE != mfxRes)
             {
                 return mfxRes;

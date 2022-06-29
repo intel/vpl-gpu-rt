@@ -95,35 +95,6 @@ enum mfxTraceTaskType
     MFX_TRACE_HOTSPOT_SCHED_ROUTINE,
     MFX_TRACE_API_MFXINITIALIZE_TASK,
     MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK,
-    MFX_TRACE_API_INITINFO_TASK,
-    MFX_TRACE_API_QUERYIOSURFINFO_TASK,
-    MFX_TRACE_API_HEVC_OUTPUTINFO_TASK,
-    MFX_TRACE_API_AVC_OUTPUTINFO_TASK,
-    MFX_TRACE_API_AV1_OUTPUTINFO_TASK,
-    MFX_TRACE_API_VP9_OUTPUTINFO_TASK,
-    MFX_TRACE_API_HEVC_SYNCINFO_TASK,
-    MFX_TRACE_API_AVC_SYNCINFO_TASK,
-    MFX_TRACE_API_AV1_SYNCINFO_TASK,
-    MFX_TRACE_API_VP9_SYNCINFO_TASK,
-    MFX_TRACE_API_HEVC_DISPLAYINFO_TASK,
-    MFX_TRACE_API_AVC_DISPLAYINFO_TASK,
-    MFX_TRACE_API_AV1_DISPLAYINFO_TASK,
-    MFX_TRACE_API_VP9_DISPLAYINFO_TASK,
-    MFX_TRACE_API_HEVC_PICTUREPARAMETER_TASK,   
-    MFX_TRACE_API_HEVC_SLICEPARAMETER_TASK,
-    MFX_TRACE_API_HEVC_QMATRIXARAMETER_TASK,
-    MFX_TRACE_API_AVC_PICTUREPARAMETER_TASK,
-    MFX_TRACE_API_AVC_SLICEPARAMETER_TASK,
-    MFX_TRACE_API_AVC_QMATRIXARAMETER_TASK,
-    MFX_TRACE_API_AV1_PICTUREPARAMETER_TASK,
-    MFX_TRACE_API_AV1_TILECONTROLPARAMETER_TASK,      
-    MFX_TRACE_API_VP9_PICTUREPARAMETER_TASK,
-    MFX_TRACE_API_VP9_SEGMENTPARAMETER_TASK,   
-    MFX_TRACE_API_BITSTREAM_TASK,
-    MFX_TRACE_API_HEVC_DPBPARAMETER_TASK,
-    MFX_TRACE_API_AVC_DPBPARAMETER_TASK,
-    MFX_TRACE_API_AV1_DPBPARAMETER_TASK,
-    MFX_TRACE_API_VP9_DPBPARAMETER_TASK,
 };
 
 // list of output modes
@@ -423,10 +394,6 @@ public:
 #define PERF_EVENT(task, level, data, at_exit_func) \
     PerfScopedTrace _perf_scoped_trace##__LINE__ (task, level, data, at_exit_func)
 
-// This macro is recommended to use instead creating RT Info ScopedTrace object directly
-#define TRACE_EVENT(task, level, data, at_exit_func) \
-    PerfScopedTrace _info_scoped_trace##__LINE__ (task, level, data, at_exit_func)
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -466,7 +433,6 @@ extern "C" {
 #define MFX_TRACE_CLOSE_RES(res)
 #define MFX_LTRACE(_trace_all_params)
 #define PERF_EVENT(task, level, ...)
-#define TRACE_EVENT(task, level, ...)
 #endif
 
 /*------------------------------------------------------------------------------*/
@@ -724,63 +690,5 @@ template <>
 struct TraceTaskType2TraceLevel<MFX_TRACE_API_MFXINITIALIZE_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
 template <>
 struct TraceTaskType2TraceLevel<MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_INITINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_QUERYIOSURFINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_HEVC_OUTPUTINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_AVC_OUTPUTINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_AV1_OUTPUTINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_VP9_OUTPUTINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_HEVC_SYNCINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_AVC_SYNCINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_AV1_SYNCINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_VP9_SYNCINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_HEVC_DISPLAYINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_AVC_DISPLAYINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_AV1_DISPLAYINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_VP9_DISPLAYINFO_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_HEVC_PICTUREPARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_HEVC_SLICEPARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_HEVC_QMATRIXARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_AVC_PICTUREPARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_AVC_SLICEPARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_AVC_QMATRIXARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_AV1_PICTUREPARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_AV1_TILECONTROLPARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_VP9_PICTUREPARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_VP9_SEGMENTPARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_BITSTREAM_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_HEVC_DPBPARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_AVC_DPBPARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_AV1_DPBPARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
-template <>
-struct TraceTaskType2TraceLevel<MFX_TRACE_API_VP9_DPBPARAMETER_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
 
 #endif // #ifndef __MFX_TRACE_H__

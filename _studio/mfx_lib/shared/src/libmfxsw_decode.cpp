@@ -62,11 +62,6 @@
 #include "mfx_av1_dec_decode.h"
 #endif
 
-
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-#include "mfx_unified_decode_logging.h"
-#endif
-
 template<>
 VideoDECODE* _mfxSession::Create<VideoDECODE>(mfxVideoParam& par)
 {
@@ -163,6 +158,7 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
     mfxStatus mfxRes;
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODE_Query");
+    PERF_EVENT(MFX_TRACE_API_DECODE_QUERY_TASK, 0, make_event_data(session, in ? in->mfx.FrameInfo.Width : 0, in ? in->mfx.FrameInfo.Height : 0, in ? in->mfx.CodecId : 0), [&](){ return make_event_data(mfxRes);});
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, in);
 
     try
@@ -220,10 +216,6 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
         }
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-        if (EtwLogConfig == ETW_API || EtwLogConfig == ETW_API_BUFFER || EtwLogConfig == ETW_API_INFO || EtwLogConfig == ETW_ALL)
-            TRACE_EVENT(MFX_TRACE_API_DECODE_QUERY_TASK, 0, make_event_data(session, in ? in->mfx.FrameInfo.Width : 0, in ? in->mfx.FrameInfo.Height : 0, in ? in->mfx.CodecId : 0), [&]() { return make_event_data(mfxRes); });
-#endif
     }
     // handle error(s)
     catch(...)
@@ -247,6 +239,7 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
     mfxStatus mfxRes;
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODE_QueryIOSurf");
+    PERF_EVENT(MFX_TRACE_API_DECODE_QUERY_IOSURF_TASK, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId), [&](){ return make_event_data(mfxRes);});
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, par);
 
     try
@@ -304,25 +297,12 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
         }
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-        if (EtwLogConfig == ETW_API || EtwLogConfig == ETW_API_BUFFER || EtwLogConfig == ETW_API_INFO || EtwLogConfig == ETW_ALL)
-            TRACE_EVENT(MFX_TRACE_API_DECODE_QUERY_IOSURF_TASK, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId), [&]() { return make_event_data(mfxRes); });
-#endif
     }
     // handle error(s)
     catch(...)
     {
         mfxRes = MFX_ERR_UNKNOWN;
     }
-
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-    if (EtwLogConfig == ETW_INFO || EtwLogConfig == ETW_API_INFO || EtwLogConfig == ETW_INFO_BUFFER || EtwLogConfig == ETW_ALL)
-    {
-        DECODE_EVENTDATA_QUERY eventData;
-        DecodeEventDataQueryParam(&eventData, request);
-        TRACE_EVENT(MFX_TRACE_API_QUERYIOSURFINFO_TASK, 0, make_event_data(eventData), [&]() { return make_event_data(mfxRes); });
-    }
-#endif
 
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, request);
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
@@ -338,12 +318,9 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
     mfxStatus mfxRes;
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODE_DecodeHeader");
+    PERF_EVENT(MFX_TRACE_API_DECODE_HEADER_TASK, 0, make_event_data(session, bs, bs ? bs->DataLength : 0), [&](){ return make_event_data(mfxRes);});
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, bs);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, par);
-
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED    
-    SetEtwTaceFromEnv();
-#endif
 
     try
     {
@@ -400,10 +377,6 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
         }
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-        if (EtwLogConfig == ETW_API || EtwLogConfig == ETW_API_BUFFER || EtwLogConfig == ETW_API_INFO || EtwLogConfig == ETW_ALL)
-            TRACE_EVENT(MFX_TRACE_API_DECODE_HEADER_TASK, 0, make_event_data(session, bs, bs ? bs->DataLength : 0), [&]() { return make_event_data(mfxRes); });
-#endif
     }
     // handle error(s)
     catch(...)
@@ -427,6 +400,8 @@ mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODE_Init");
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, par);
 
+    PERF_EVENT(MFX_TRACE_API_DECODE_INIT_TASK, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId), [&](){ return make_event_data(mfxRes);});
+
     try
     {
         // check existence of component
@@ -438,25 +413,12 @@ mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
         }
 
         mfxRes = session->m_pDECODE->Init(par);
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-        if (EtwLogConfig == ETW_API || EtwLogConfig == ETW_API_BUFFER || EtwLogConfig == ETW_API_INFO || EtwLogConfig == ETW_ALL)
-            TRACE_EVENT(MFX_TRACE_API_DECODE_INIT_TASK, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId), [&]() { return make_event_data(mfxRes); });
-#endif
     }
     catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
     }
-
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-    if (EtwLogConfig == ETW_INFO || EtwLogConfig == ETW_API_INFO || EtwLogConfig == ETW_INFO_BUFFER || EtwLogConfig == ETW_ALL)
-    {
-        DECODE_EVENTDATA_INIT eventData;
-        DecodeEventDataInitParam(&eventData, par);
-        TRACE_EVENT(MFX_TRACE_API_INITINFO_TASK, 0, make_event_data(eventData), [&]() { return make_event_data(UMC::UMC_OK); });
-    }
-#endif
 
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
     return mfxRes;
@@ -470,6 +432,7 @@ mfxStatus MFXVideoDECODE_Close(mfxSession session)
     MFX_CHECK(session->m_pScheduler, MFX_ERR_NOT_INITIALIZED);
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODE_Close");
+    PERF_EVENT(MFX_TRACE_API_DECODE_CLOSE_TASK, 0, make_event_data(session), [&](){ return make_event_data(mfxRes);});
 
     try
     {
@@ -484,10 +447,6 @@ mfxStatus MFXVideoDECODE_Close(mfxSession session)
         mfxRes = session->m_pDECODE->Close();
 
         session->m_pDECODE.reset(nullptr);
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-        if (EtwLogConfig == ETW_API || EtwLogConfig == ETW_API_BUFFER || EtwLogConfig == ETW_API_INFO || EtwLogConfig == ETW_ALL)
-            TRACE_EVENT(MFX_TRACE_API_DECODE_CLOSE_TASK, 0, make_event_data(session), [&]() { return make_event_data(mfxRes); });
-#endif
     }
     // handle error(s)
     catch(...)
@@ -505,6 +464,7 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
     mfxStatus mfxRes;
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODE_DecodeFrameAsync");
+    PERF_EVENT(MFX_TRACE_API_DECODE_FRAME_ASYNC_TASK, 0, make_event_data(session, surface_work, bs ? bs->DataLength : 0), [&](){ return make_event_data(mfxRes, syncp ? *syncp : nullptr);});
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, bs);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, surface_work);
 
@@ -575,10 +535,6 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
         {
             *syncp = syncPoint;
         }
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-        if (EtwLogConfig == ETW_API || EtwLogConfig == ETW_API_BUFFER || EtwLogConfig == ETW_API_INFO || EtwLogConfig == ETW_ALL)
-            TRACE_EVENT(MFX_TRACE_API_DECODE_FRAME_ASYNC_TASK, 0, make_event_data(session, surface_work, bs ? bs->DataLength : 0), [&]() { return make_event_data(mfxRes, syncp ? *syncp : nullptr); });
-#endif
     }
     // handle error(s)
     catch(...)

@@ -35,10 +35,6 @@
 
 #include "mfx_trace.h"
 
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-#include "mfx_unified_h264d_logging.h"
-#endif
-
 namespace UMC
 {
 
