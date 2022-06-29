@@ -591,6 +591,11 @@ inline void H265BaseBitstream::AlignPointerRight(void)
     }
 }
 
+inline void H265BaseBitstream::SetTailBsSize(const uint32_t nBytes)
+{
+    m_tailBsSize = nBytes;
+}
+
 } // namespace UMC_HEVC_DECODER
 
 

@@ -79,11 +79,6 @@ void H265BaseBitstream::SetDecodedBytes(size_t nBytes)
     m_bitOffset = 31 - ((int32_t) ((nBytes % sizeof(uint32_t)) * 8));
 }
 
-void H265BaseBitstream::SetTailBsSize(const uint32_t nBytes)
-{
-    m_tailBsSize = nBytes;
-}
-
 // Return current bitstream address and bit offset
 void H265BaseBitstream::GetState(uint32_t** pbs,uint32_t* bitOffset)
 {

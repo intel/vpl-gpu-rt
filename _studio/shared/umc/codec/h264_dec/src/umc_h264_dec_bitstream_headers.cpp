@@ -234,7 +234,8 @@ void H264BaseBitstream::Reset(uint8_t * const pb, const uint32_t maxsize)
     m_pbs       = (uint32_t*)pb;
     m_pbsBase   = (uint32_t*)pb;
     m_bitOffset = 31;
-    m_maxBsSize    = maxsize;
+    m_maxBsSize = maxsize;
+    m_tailBsSize = 0;
 
 } // void Reset(uint8_t * const pb, const uint32_t maxsize)
 
@@ -244,6 +245,7 @@ void H264BaseBitstream::Reset(uint8_t * const pb, int32_t offset, const uint32_t
     m_pbsBase   = (uint32_t*)pb;
     m_bitOffset = offset;
     m_maxBsSize = maxsize;
+    m_tailBsSize = 0;
 
 } // void Reset(uint8_t * const pb, int32_t offset, const uint32_t maxsize)
 
@@ -262,6 +264,7 @@ bool H264BaseBitstream::More_RBSP_Data()
         return false;
 
     // get top bit, it can be "rbsp stop" bit
+    CheckBitsLeft(1);
     h264GetBits(m_pbs, m_bitOffset, 1, code);
 
     // get remain bits, which is less then byte
@@ -269,6 +272,7 @@ bool H264BaseBitstream::More_RBSP_Data()
 
     if(tmp)
     {
+        CheckBitsLeft(tmp);
         h264GetBits(m_pbs, m_bitOffset, tmp, code);
         if ((code << (8 - tmp)) & 0x7f)    // most sig bit could be rbsp stop bit
         {
@@ -324,6 +328,10 @@ void H264BaseBitstream::SetDecodedBytes(size_t nBytes)
     m_bitOffset = 31 - ((int32_t) ((nBytes % sizeof(uint32_t)) * 8));
 }
 
+void H264BaseBitstream::SetTailBsSize(const uint32_t nBytes)
+{
+    m_tailBsSize = nBytes;
+}
 
 H264HeadersBitstream::H264HeadersBitstream()
     : H264BaseBitstream()
@@ -2321,6 +2329,7 @@ Status H264HeadersBitstream::GetNALUnitType(NAL_Unit_Type &nal_unit_type, uint32
 {
     uint32_t code;
 
+    CheckBitsLeft(8);
     h264GetBits(m_pbs, m_bitOffset, 8, code);
 
     nal_ref_idc = (uint32_t) ((code & NAL_STORAGE_IDC_BITS)>>5);
@@ -2360,26 +2369,31 @@ int32_t H264HeadersBitstream::sei_message(const Headers & headers, int32_t curre
     uint32_t code;
     int32_t payloadType = 0;
 
+    CheckBitsLeft(8);
     PeakNextBits(m_pbs, m_bitOffset, 8, code);
     while (code  ==  0xFF)
     {
         /* fixed-pattern bit string using 8 bits written equal to 0xFF */
+        CheckBitsLeft(16);
         h264GetBits(m_pbs, m_bitOffset, 8, code);
         payloadType += 255;
         PeakNextBits(m_pbs, m_bitOffset, 8, code);
     }
 
     int32_t last_payload_type_byte;    //uint32_t integer using 8 bits
+    CheckBitsLeft(8);
     h264GetBits(m_pbs, m_bitOffset, 8, last_payload_type_byte);
 
     payloadType += last_payload_type_byte;
 
     int32_t payloadSize = 0;
 
+    CheckBitsLeft(8);
     PeakNextBits(m_pbs, m_bitOffset, 8, code);
     while( code  ==  0xFF )
     {
         /* fixed-pattern bit string using 8 bits written equal to 0xFF */
+        CheckBitsLeft(16);
         h264GetBits(m_pbs, m_bitOffset, 8, code);
         payloadSize += 255;
         PeakNextBits(m_pbs, m_bitOffset, 8, code);
@@ -2387,6 +2401,7 @@ int32_t H264HeadersBitstream::sei_message(const Headers & headers, int32_t curre
 
     int32_t last_payload_size_byte;    //uint32_t integer using 8 bits
 
+    CheckBitsLeft(8);
     h264GetBits(m_pbs, m_bitOffset, 8, last_payload_size_byte);
     payloadSize += last_payload_size_byte;
     spl->Reset();
@@ -2592,6 +2607,8 @@ void H264HeadersBitstream::user_data_registered_itu_t_t35(H264SEIPayLoad *spl)
 {
     H264SEIPayLoad::SEIMessages::UserDataRegistered * user_data = &(spl->SEI_messages.user_data_registered);
     uint32_t code;
+
+    CheckBitsLeft(8);
     h264GetBits(m_pbs, m_bitOffset, 8, code);
     user_data->itu_t_t35_country_code = (uint8_t)code;
 
@@ -2600,6 +2617,7 @@ void H264HeadersBitstream::user_data_registered_itu_t_t35(H264SEIPayLoad *spl)
     user_data->itu_t_t35_country_code_extension_byte = 0;
     if (user_data->itu_t_t35_country_code == 0xff)
     {
+        CheckBitsLeft(8);
         h264GetBits(m_pbs, m_bitOffset, 8, code);
         user_data->itu_t_t35_country_code_extension_byte = (uint8_t)code;
         i++;
@@ -2609,6 +2627,7 @@ void H264HeadersBitstream::user_data_registered_itu_t_t35(H264SEIPayLoad *spl)
 
     for(int32_t k = 0; i < spl->payLoadSize; i++, k++)
     {
+        CheckBitsLeft(8);
         h264GetBits(m_pbs, m_bitOffset, 8, code);
         spl->user_data[k] = (uint8_t) code;
     }
