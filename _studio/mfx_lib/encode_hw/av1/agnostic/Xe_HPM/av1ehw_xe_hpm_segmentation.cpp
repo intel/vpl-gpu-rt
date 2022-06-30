@@ -29,15 +29,15 @@ namespace AV1EHW
 namespace Xe_HPM
 {
 
-static mfxU8 FindUnusedSegmentId(const mfxExtAV1Segmentation& par)
+static mfxU8 FindUnusedSegmentId(const mfxExtAV1Segmentation& segPar)
 {
-    assert(par.SegmentIds);
-    assert(par.NumSegmentIdAlloc);
+    assert(segPar.SegmentIds);
+    assert(segPar.NumSegmentIdAlloc);
 
     std::array<bool, Base::AV1_MAX_NUM_OF_SEGMENTS> usedIDs = {};
 
-    for (mfxU32 i = 0; i < par.NumSegmentIdAlloc; i++)
-        usedIDs.at(par.SegmentIds[i]) = true;
+    for (mfxU32 i = 0; i < segPar.NumSegmentIdAlloc; i++)
+        usedIDs.at(segPar.SegmentIds[i]) = true;
 
     auto unusedId = std::find(usedIDs.begin(), usedIDs.end(), false);
 
@@ -47,7 +47,6 @@ static mfxU8 FindUnusedSegmentId(const mfxExtAV1Segmentation& par)
 void Segmentation::InitTask(const FeatureBlocks& blocks, TPushIT Push)
 {
     Base::Segmentation::InitTask(blocks, Push);
-
     Push(BLK_PatchSegmentParam
         , [this, &blocks](
             mfxEncodeCtrl* /*pCtrl*/
@@ -55,40 +54,39 @@ void Segmentation::InitTask(const FeatureBlocks& blocks, TPushIT Push)
             , mfxBitstream* /*pBs*/
             , StorageW& global
             , StorageW& task) -> mfxStatus
+    {
+        mfxExtAV1Segmentation& segPar = Base::Task::Segment::Get(task);
+        MFX_CHECK(IsSegmentationEnabled(&segPar), MFX_ERR_NONE);
+
+        /* "PatchSegmentParam" does 2 workarounds
+            1) Sets SEG_LVL_SKIP feature for one of segments to force "SegIdPreSkip" to 1.
+               SegIdPreSkip" should be set to 1 to WA HW issue.
+               So far this WA is always applied. The condition could be revised/narrowed in the future.
+            2) Disables temporal_update (HW limitation). */
+
+        const mfxU8 id = FindUnusedSegmentId(segPar);
+
+        if (id >= Base::AV1_MAX_NUM_OF_SEGMENTS)
         {
-            mfxExtAV1Segmentation& segPar = Base::Task::Segment::Get(task);
-            MFX_CHECK(IsSegmentationEnabled(&segPar), MFX_ERR_NONE);
+            // All segment_ids 0-7 are present in segmentation map
+            // WA cannot be applied
+            // Don't apply segmentation for current frame and return warning
+            segPar = mfxExtAV1Segmentation{};
 
-            /* "PatchSegmentParam" does 2 workarounds
-                1) Sets SEG_LVL_SKIP feature for one of segments to force "SegIdPreSkip" to 1.
-                   SegIdPreSkip" should be set to 1 to WA HW issue.
-                   So far this WA is always applied. The condition could be revised/narrowed in the future.
-                2) Disables temporal_update (HW limitation). */
+            MFX_LOG_WARN("Can't apply SegIdPreSkip WA - no unused surfaces in seg map!\n");
 
-            const mfxU8 id = FindUnusedSegmentId(segPar);
+            return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+        }
 
-            if (id >= Base::AV1_MAX_NUM_OF_SEGMENTS)
-            {
-                // All segment_ids 0-7 are present in segmentation map
-                // WA cannot be applied
-                // Don't apply segmentation for current frame and return warning
-                segPar = mfxExtAV1Segmentation{};
+        EnableFeature(segPar.Segment[id].FeatureEnabled, Base::SEG_LVL_SKIP);
+        if (segPar.NumSegments < id + 1)
+            segPar.NumSegments = id + 1;
 
-                MFX_LOG_WARN("Can't apply SegIdPreSkip WA - no unused surfaces in seg map!\n");
-
-                return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-            }
-
-            EnableFeature(segPar.Segment[id].FeatureEnabled, Base::SEG_LVL_SKIP);
-            if (segPar.NumSegments < id + 1)
-                segPar.NumSegments = id + 1;
-
-            auto&             par    = Base::Glob::VideoParam::Get(global);
-            mfxExtAV1AuxData& auxPar = ExtBuffer::Get(par);
-            auxPar.SegmentTemporalUpdate = MFX_CODINGOPTION_OFF;
-
-            return MFX_ERR_NONE;
-        });
+        auto& par = Base::Glob::VideoParam::Get(global);
+        mfxExtAV1AuxData& auxPar = ExtBuffer::Get(par);
+        auxPar.SegmentTemporalUpdate = MFX_CODINGOPTION_OFF;
+        return MFX_ERR_NONE;
+    });
 }
 
 inline bool IsSegBlockSmallerThanSB(mfxU32 segBlock, mfxU32 sb)
@@ -121,10 +119,11 @@ void Segmentation::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push
 
             const Base::SH& sh = Base::Glob::SH::Get(global);
 
-            assert(!dpb.empty());
+            auto &segDpb = Base::Glob::SegDpb::Get(global);
+            assert(!segDpb.empty());
 
             const mfxU8 primaryRefFrameDpbIdx = static_cast<mfxU8>(fh.ref_frame_idx[fh.primary_ref_frame]);
-            const mfxExtAV1Segmentation* pRefPar = dpb.at(primaryRefFrameDpbIdx).get();
+            const mfxExtAV1Segmentation* pRefPar = segDpb.at(primaryRefFrameDpbIdx).get();
             assert(pRefPar);
 
             segPar.SegmentIds = pRefPar->SegmentIds;

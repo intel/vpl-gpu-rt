@@ -346,6 +346,8 @@ namespace Base
         uint32_t FeatureMask[AV1_MAX_NUM_OF_SEGMENTS];
     };
 
+    using SegDpbType = std::vector<std::shared_ptr<mfxExtAV1Segmentation>>;
+
     struct LoopFilterParams
     {
         int32_t loop_filter_level[4];
@@ -1303,6 +1305,7 @@ namespace Base
         using ResetHint           = StorageVar<__LINE__ - _KD, Base::ResetHint>; //available during Reset
         using Reorder             = StorageVar<__LINE__ - _KD, Reorderer>;
         using Defaults            = StorageVar<__LINE__ - _KD, Base::Defaults>;
+        using SegDpb              = StorageVar<__LINE__ - _KD, SegDpbType>;
         static const StorageR::TKey CallChainsKey = __LINE__ - _KD;
         static const StorageR::TKey ReservedKey0    = __LINE__ - _KD;
         static const StorageR::TKey TaskManagerKey  = __LINE__ - _KD;

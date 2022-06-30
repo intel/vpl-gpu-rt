@@ -29,14 +29,14 @@
 namespace AV1EHW
 {
 
-inline bool IsSegmentationEnabled(const mfxExtAV1Segmentation* pSeg)
+inline bool IsSegmentationEnabled(const mfxExtAV1Segmentation* pSegPar)
 {
-    return pSeg && pSeg->NumSegments != 0;
+    return pSegPar && pSegPar->NumSegments != 0;
 }
 
-inline bool IsSegmentationSwitchedOff(const mfxExtAV1Segmentation* pSeg)
+inline bool IsSegmentationSwitchedOff(const mfxExtAV1Segmentation* pSegPar)
 {
-    return pSeg && pSeg->NumSegments == 0;
+    return pSegPar && pSegPar->NumSegments == 0;
 }
 
 inline bool IsFeatureSupported(
@@ -76,6 +76,7 @@ namespace Base
 #define DECL_BLOCK_LIST\
         DECL_BLOCK(CheckAndFix)\
         DECL_BLOCK(SetDefaults)\
+        DECL_BLOCK(SetSegDpb)\
         DECL_BLOCK(AllocTask)\
         DECL_BLOCK(InitTask)\
         DECL_BLOCK(ConfigureTask)
@@ -86,24 +87,28 @@ namespace Base
             : FeatureBase(FeatureId)
         {}
 
-        using SegDpbType = std::vector<std::shared_ptr<mfxExtAV1Segmentation>>;
+        static mfxStatus UpdateSegmentBuffers(mfxExtAV1Segmentation& segPar, const mfxExtAV1Segmentation* extSegPar);
+
+        static mfxStatus PostUpdateSegmentParam(
+            mfxExtAV1Segmentation& segPar
+            , FH& fh
+            , SegDpbType& segDpb
+            , const mfxExtAV1AuxData& auxData
+            , const mfxU16 numRefFrame
+            , const DpbRefreshType refreshFrameFlags);
+
+        static mfxStatus CheckAndFixSegmentBuffers(mfxExtAV1Segmentation* pSegPar, const Defaults::Param& defPar);
 
     protected:
         virtual void SetSupported(ParamSupport& par) override;
         virtual void SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push) override;
+        virtual void InitInternal(const FeatureBlocks& blocks, TPushII Push) override;
         virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
         virtual void AllocTask(const FeatureBlocks& /*blocks*/, TPushAT Push) override;
         virtual void InitTask(const FeatureBlocks& blocks, TPushIT Push) override;
         virtual void PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Push) override;
         virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) override {};
 
-        mfxStatus UpdateFrameHeader(
-            const mfxExtAV1Segmentation& segPar
-            , const mfxExtAV1AuxData& auxData
-            , const FH& fh
-            , SegmentationParams& seg) const;
-
-        SegDpbType dpb;
     };
 
 } //Base
