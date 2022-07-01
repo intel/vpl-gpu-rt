@@ -434,12 +434,12 @@ mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
         if (qpMod == MFX_QP_MODULATION_HIGH || qpMod == BRC_QP_MODULATION_GOP8_FIXED) {
             switch (level) {
             case 3:
-                qp += 2;
+                qp += (codecId == MFX_CODEC_HEVC) ? 1 : 2;
             case 2:
-                qp += (codecId == MFX_CODEC_HEVC) ? 0 : 1;
+                qp += (codecId == MFX_CODEC_HEVC) ? 2 : 1;
             case 1:
             default:
-                qp += (codecId == MFX_CODEC_HEVC) ? 3 : 2;
+                qp += (codecId == MFX_CODEC_HEVC) ? 2 : 2;
                 break;
             }
         }
