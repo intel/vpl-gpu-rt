@@ -97,6 +97,13 @@ namespace VP9ECaps {
 }
 #endif
 
+namespace AV1ECaps {
+    inline bool IsSegmentationHWLimitationNeeded(eMFXHWType platform)
+    {
+        return (platform == MFX_HW_DG2);
+    }
+}
+
 namespace VppCaps
 {
     inline bool IsMctfSupported(eMFXHWType platform)
