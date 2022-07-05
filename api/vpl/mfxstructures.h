@@ -1497,7 +1497,10 @@ enum {
 enum {
     MFX_CONTENT_UNKNOWN              = 0,
     MFX_CONTENT_FULL_SCREEN_VIDEO    = 1,
-    MFX_CONTENT_NON_VIDEO_SCREEN     = 2
+    MFX_CONTENT_NON_VIDEO_SCREEN     = 2,
+#ifdef ONEVPL_EXPERIMENTAL
+    MFX_CONTENT_NOISY_VIDEO          = 3
+#endif
 };
 
 /*! The PRefType enumerator itemizes models of reference list construction and DPB management when GopRefDist=1. */
@@ -2865,7 +2868,8 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
    If the application attaches this
    structure to the mfxVideoParam structure during initialization or reset, the encoder inserts the HDR SEI message based on InsertPayloadToggle.
 
-   If the application attaches this structure for video processing, InsertPayloadToggle will be ignored.
+   If the application attaches this structure for video processing, InsertPayloadToggle will be ignored. And DisplayPrimariesX[3],
+   DisplayPrimariesY[3] specify the color primaries where 0,1,2 specifies Red, Green, Blue respectively.
 
    If the application attaches this structure to the mfxFrameSurface1 structure at runtime
    which will seed to the MFXVideoDECODE_DecodeFrameAsync() as surface_work parameter,
