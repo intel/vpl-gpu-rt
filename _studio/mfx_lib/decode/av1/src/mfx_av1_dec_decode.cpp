@@ -605,10 +605,7 @@ mfxStatus VideoDECODEAV1::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfxFr
 
     mfxStatus sts = MFX_ERR_NONE;
     if (!(par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
-    {
         sts = MFX_VPX_Utility::QueryIOSurfInternal(par, request);
-        request->NumFrameSuggested += 5;
-    }
     else
     {
         request->Info = par->mfx.FrameInfo;
