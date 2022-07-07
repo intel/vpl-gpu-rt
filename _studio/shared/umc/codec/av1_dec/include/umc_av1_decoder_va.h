@@ -53,6 +53,7 @@ namespace UMC_AV1_DECODER
 
     private:
         std::vector<ReportItem> reports;
+        typedef std::vector<ReportItem> Report;
     };
 }
 

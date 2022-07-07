@@ -191,12 +191,21 @@ namespace UMC_AV1_DECODER
 
         // below logic around "wasCompleted" was adopted from AVC/HEVC decoders
         bool wasCompleted = false;
-
+        UMC::Status sts = UMC::UMC_OK;
         // iterate through frames submitted to the driver in decoded order
         for (DPBType::iterator frm = decode_queue.begin(); frm != decode_queue.end(); frm++)
         {
+            wasCompleted = false;
             AV1DecoderFrame& frame = **frm;
             uint32_t index = 0;
+            if (va->IsGPUSyncEventEnable())
+            {
+                auto_guard.unlock();
+                {
+                    sts = packer->SyncTask(frame.GetMemID(), NULL);
+                }
+                auto_guard.lock();
+            }
             VAStatus surfErr = VA_STATUS_SUCCESS;
             index = frame.GetMemID();
             auto_guard.unlock();
