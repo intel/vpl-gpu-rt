@@ -770,6 +770,11 @@ namespace Base
         mfxU32              QPModulaton = 0;
         /* Scene Change parameter */
         mfxU16              SceneChange = 0;
+#if defined(MFX_ENABLE_ENCTOOLS)
+        /* Persistence Map */
+        mfxU16              PersistenceMapNZ;
+        mfxU8               PersistenceMap[MFX_ENCTOOLS_PREENC_MAP_SIZE];
+#endif        
     };
 
     using RepeatedFrames = std::vector<RepeatedFrameInfo>;

@@ -40,6 +40,8 @@ namespace EncToolsBRC
     constexpr mfxF64 MAX_RACA = 361.0;
     constexpr mfxF64 RACA_SCALE = 128.0;
 
+    constexpr mfxU8 TOTAL_NUM_AV1_SEGMENTS_FOR_ENCTOOLS = 7;
+
 /*
 NalHrdConformance | VuiNalHrdParameters   |  Result
 --------------------------------------------------------------

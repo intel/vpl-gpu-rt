@@ -846,6 +846,45 @@ static void IgnoreMoreDataStatus(mfxStatus &sts)
         sts = MFX_ERR_NONE;
 }
 
+// Compute AV1 segmentIDs and AltQIndexes
+// Note: Due to HW limitation, one segment must be reserved for HW use.
+//       PAQ assumes segment 7 is reserved for HW use.  This assumption imposes constraint on segMap file in commandline (ie,  segMap must has all numbers from 0 to 6).
+static mfxStatus ProcessAV1SegmentationData(const mfxEncToolsTaskParam* par, mfxEncToolsHintQPMap* qpMapHint, mfxI32 QpY)
+{
+    MFX_CHECK(par && qpMapHint, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    mfxExtAV1Segmentation* seg = (mfxExtAV1Segmentation *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_AV1_SEGMENTATION);
+    MFX_CHECK(seg, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    // AV1 segment IDs
+    //  - QpY is HEVC QP for frame. qpMapHint.ExtQpMap.QP[] is HEVC QP for blocks/segments.
+    //  - Note SegmentID is derived from HEVC QP
+
+    mfxI16 segQPs[EncToolsBRC::TOTAL_NUM_AV1_SEGMENTS_FOR_ENCTOOLS] = {-1, -1, -1, -1, -1, -1, -1};  //"-1" means feature is disabled
+    mfxU8 maxQpY = *(std::max_element(qpMapHint->ExtQpMap.QP, qpMapHint->ExtQpMap.QP + qpMapHint->ExtQpMap.NumQPAlloc));
+    for(mfxU32 i = 0; i < qpMapHint->ExtQpMap.NumQPAlloc ; i++) {
+        mfxI16 seg_qp = (mfxI16)(qpMapHint->ExtQpMap.QP[i]);
+        mfxU8 id = mfxU8(mfx::clamp((mfxI16)maxQpY - seg_qp, 0, EncToolsBRC::TOTAL_NUM_AV1_SEGMENTS_FOR_ENCTOOLS - 1)); // PAQ uses segments [0..6]
+        segQPs[id] = seg_qp;
+        seg->SegmentIds[i] = id;
+    }
+
+    //Update new AltQIndex (feature_value)
+    //  - Convert from HEVC QP to AV1 q-idx
+    mfxI16 q_idx = mfxI16(EncToolsBRC::HEVC_QP_2_AV1_DC_Q_IDX[QpY]);
+    for (mfxI16 id = 0; id < EncToolsBRC::TOTAL_NUM_AV1_SEGMENTS_FOR_ENCTOOLS; id++) {
+        if (segQPs[id] != -1) {
+            seg->Segment[id].FeatureEnabled |= MFX_VP9_SEGMENT_FEATURE_QINDEX;
+            mfxI16 altQIndex = (mfxI16)EncToolsBRC::HEVC_QP_2_AV1_DC_Q_IDX[segQPs[id]] - q_idx;
+            seg->Segment[id].AltQIndex = mfx::clamp(altQIndex, (mfxI16)-255, (mfxI16)255);
+        } else {
+            seg->Segment[id].FeatureEnabled &= (~MFX_VP9_SEGMENT_FEATURE_QINDEX);
+        }
+    }
+
+    return MFX_ERR_NONE;
+}
+
 mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
 {
     mfxStatus sts = MFX_ERR_NONE;
@@ -1072,6 +1111,13 @@ mfxStatus EncTools::Query(mfxEncToolsTaskParam* par, mfxU32 /*timeOut*/)
     mfxEncToolsBRCQuantControl *pFrameQp = (mfxEncToolsBRCQuantControl *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_BRC_QUANT_CONTROL);
     mfxEncToolsHintQPMap* qpMapHint = (mfxEncToolsHintQPMap*)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_HINT_QPMAP);
 
+    // Sanity check
+    if (qpMapHint && m_ctrl.CodecId == MFX_CODEC_AV1) {
+        mfxU16 w = m_ctrl.FrameInfo.Width;
+        mfxU16 pitch = (w + qpMapHint->ExtQpMap.BlockSize - 1) / qpMapHint->ExtQpMap.BlockSize;
+        MFX_CHECK(qpMapHint->QpMapPitch == pitch, MFX_ERR_UNDEFINED_BEHAVIOR);
+    }
+
     if (pFrameQp && IsOn(m_config.BRC))
     {
         sts = m_brc->ProcessFrame(par->DisplayOrder, pFrameQp, qpMapHint);
@@ -1079,6 +1125,11 @@ mfxStatus EncTools::Query(mfxEncToolsTaskParam* par, mfxU32 /*timeOut*/)
 
         // Note: AV1 BRC is based on HEVC BRC, so need this conversion
         if (m_ctrl.CodecId == MFX_CODEC_AV1) {
+            // Compute segmentIDs and AltQIndexes
+            if (qpMapHint && qpMapHint->QpMapFilled) {
+                ProcessAV1SegmentationData(par, qpMapHint, (mfxI32)(pFrameQp->QpY));
+            }
+
             pFrameQp->QpY =  EncToolsBRC::HEVC_QP_2_AV1_DC_Q_IDX[pFrameQp->QpY];
         }
     }
