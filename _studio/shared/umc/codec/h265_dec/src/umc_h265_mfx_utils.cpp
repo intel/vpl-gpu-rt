@@ -304,13 +304,28 @@ UMC::Status FillVideoParam(const H265VideoParamSet * vps, const H265SeqParamSet 
     par->mfx.FrameInfo.BitDepthLuma = (mfxU16) (seq->bit_depth_luma);
     par->mfx.FrameInfo.BitDepthChroma = (mfxU16) (seq->bit_depth_chroma);
     par->mfx.FrameInfo.Shift = 0;
+    mfxU16 unitX = 1;
+    mfxU16 unitY = 1;
+    mfxU16 chromaArrayType = seq->separate_colour_plane_flag ? 0 : seq->chroma_format_idc;
+    if(chromaArrayType >= 4)
+    {
+        chromaArrayType = 0;
+    }
 
+    if(chromaArrayType == 1 || chromaArrayType == 2)
+    {
+        unitX = 2;
+        if(chromaArrayType == 1)
+        {
+            unitY = 2;
+        }
+    }
     //if (seq->frame_cropping_flag)
     {
-        par->mfx.FrameInfo.CropX = (mfxU16)(seq->conf_win_left_offset + seq->def_disp_win_left_offset);
-        par->mfx.FrameInfo.CropY = (mfxU16)(seq->conf_win_top_offset + seq->def_disp_win_top_offset);
-        par->mfx.FrameInfo.CropH = (mfxU16)(par->mfx.FrameInfo.Height - (seq->conf_win_top_offset + seq->conf_win_bottom_offset + seq->def_disp_win_top_offset + seq->def_disp_win_bottom_offset));
-        par->mfx.FrameInfo.CropW = (mfxU16)(par->mfx.FrameInfo.Width - (seq->conf_win_left_offset + seq->conf_win_right_offset + seq->def_disp_win_left_offset + seq->def_disp_win_right_offset));
+        par->mfx.FrameInfo.CropX = (mfxU16)(seq->conf_win_left_offset * unitX);
+        par->mfx.FrameInfo.CropY = (mfxU16)(seq->conf_win_top_offset * unitY);
+        par->mfx.FrameInfo.CropH = (mfxU16)(par->mfx.FrameInfo.Height - (seq->conf_win_top_offset + seq->conf_win_bottom_offset) * unitY);
+        par->mfx.FrameInfo.CropW = (mfxU16)(par->mfx.FrameInfo.Width - (seq->conf_win_left_offset + seq->conf_win_right_offset) * unitX);
 
         par->mfx.FrameInfo.CropH -= (mfxU16)(par->mfx.FrameInfo.Height - seq->pic_height_in_luma_samples);
         par->mfx.FrameInfo.CropW -= (mfxU16)(par->mfx.FrameInfo.Width - seq->pic_width_in_luma_samples);
