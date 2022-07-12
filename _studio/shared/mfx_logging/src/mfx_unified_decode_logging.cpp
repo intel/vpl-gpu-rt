@@ -25,7 +25,11 @@ bool TraceKeyEnabled(int key)
 {
     const char* EtwlogChar = std::getenv("VPL_RUNTIME_ETW_TRACE");
     char* endPtr = nullptr;
-    auto LogConfig = std::strtol(EtwlogChar, &endPtr, 16);
+    int LogConfig = 0;
+    if (EtwlogChar != nullptr)
+    {
+        LogConfig = std::strtol(EtwlogChar, &endPtr, 16);
+    }
 
     return LogConfig & (1 << key);
 }
