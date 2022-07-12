@@ -444,7 +444,7 @@ void DDI_VA::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         auto& task = Task::Common::Get(s_task);
 
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H265 encode DDISubmitTask");
-        PERF_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, 0, make_event_data(this), [&]() { return make_event_data(sts);});
+        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_INFO, 0, make_event_data(this));
 
         m_callVa = Glob::DDI_Execute::Get(global);
 
@@ -490,7 +490,7 @@ void DDI_VA::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         mfxStatus sts = MFX_ERR_NONE;
 
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H265 encode DDIWaitTaskSync");
-        PERF_EVENT(MFX_TRACE_HOTSPOT_DDI_WAIT_TASK_SYNC, 0, make_event_data(this), [&]() { return make_event_data(sts);});
+        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_WAIT_TASK_SYNC, EVENT_TYPE_INFO, 0, make_event_data(this));
 
         m_callVa = Glob::DDI_Execute::Get(global);
 

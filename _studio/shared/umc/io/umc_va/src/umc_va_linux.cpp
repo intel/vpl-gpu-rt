@@ -1031,7 +1031,7 @@ Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorrupti
 {
     Status umcRes = 0;
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Decode DDIWaitTaskSync");
-    PERF_EVENT(MFX_TRACE_HOTSPOT_DDI_WAIT_TASK_SYNC, 0, make_event_data(), [&]() { return make_event_data(umcRes);});
+    TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_WAIT_TASK_SYNC, EVENT_TYPE_INFO, 0, make_event_data());
 
     if (FrameBufIndex < 0)
         return UMC_ERR_INVALID_PARAMS;
