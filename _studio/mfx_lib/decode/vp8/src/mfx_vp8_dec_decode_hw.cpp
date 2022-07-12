@@ -773,7 +773,6 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VP8 decode DDISubmitTask");
-            PERF_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, 0, make_event_data(this), [&]() { return make_event_data(sts);});
 
             if (m_p_video_accelerator->BeginFrame(memId, 0) == UMC::UMC_OK)
             {

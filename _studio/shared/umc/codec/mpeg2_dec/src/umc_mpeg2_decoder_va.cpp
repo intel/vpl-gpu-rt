@@ -57,7 +57,7 @@ namespace UMC_MPEG2_DECODER
     {
         UMC::Status sts = 0;
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MPEG2 decode DDISubmitTask");
-        PERF_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, 0, make_event_data(this), [&]() { return make_event_data(sts);});
+        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_INFO, 0, make_event_data(this));
         sts = m_va->BeginFrame(frame.GetMemID());
         MFX_CHECK(UMC::UMC_OK == sts, sts);
 

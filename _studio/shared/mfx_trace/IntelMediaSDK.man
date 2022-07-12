@@ -4,130 +4,157 @@
 		<events>
 			<provider name="Intel-MediaSDK" guid="{2D6B112A-D21C-4A40-9BF2-A3EDF212F624}" symbol="IntelMediaSDK" resourceFileName="to_be_set_manually" messageFileName="to_be_set_manually">
 				<events>
-					<event symbol="DecodeQueryEntry" value="5" version="0" task="DecodeQuery" opcode="win:Start" template="DecodeQuery_Entry">
-					</event>
-					<event symbol="DecodeQueryExit" value="6" version="0" task="DecodeQuery" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="DecodeQueryIOSurfEntry" value="9" version="0" task="DecodeQueryIOSurf" opcode="win:Start" template="DecodeQueryIOSurf_Entry">
-					</event>
-					<event symbol="DecodeQueryIOSurfExit" value="10" version="0" task="DecodeQueryIOSurf" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="DecodeHeaderEntry" value="13" version="0" task="DecodeHeader" opcode="win:Start" template="DecodeHeader_Entry">
-					</event>
-					<event symbol="DecodeHeaderExit" value="14" version="0" task="DecodeHeader" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="DecodeInitEntry" value="17" version="0" task="DecodeInit" opcode="win:Start" template="DecodeInit_Entry">
-					</event>
-					<event symbol="DecodeInitExit" value="18" version="0" task="DecodeInit" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="DecodeCloseEntry" value="21" version="0" task="DecodeClose" opcode="win:Start" template="DecodeClose_Entry">
-					</event>
-					<event symbol="DecodeCloseExit" value="22" version="0" task="DecodeClose" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="DecodeFrameAsyncEntry" value="25" version="0" task="DecodeFrameAsync" opcode="win:Start" template="DecodeFrameAsync_Entry">
-					</event>
-					<event symbol="DecodeFrameAsyncExit" value="26" version="0" task="DecodeFrameAsync" opcode="win:Stop" template="DecodeFrameAsync_Exit">
-					</event>
-					<event symbol="EncodeQueryEntry" value="29" version="0" task="EncodeQuery" opcode="win:Start" template="EncodeQuery_Entry">
-					</event>
-					<event symbol="EncodeQueryExit" value="30" version="0" task="EncodeQuery" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="EncodeQueryIOSurfEntry" value="33" version="0" task="EncodeQueryIOSurf" opcode="win:Start" template="EncodeQueryIOSurf_Entry">
-					</event>
-					<event symbol="EncodeQueryIOSurfExit" value="34" version="0" task="EncodeQueryIOSurf" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="EncodeInitEntry" value="37" version="0" task="EncodeInit" opcode="win:Start" template="EncodeInit_Entry">
-					</event>
-					<event symbol="EncodeInitExit" value="38" version="0" task="EncodeInit" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="EncodeCloseEntry" value="41" version="0" task="EncodeClose" opcode="win:Start" template="EncodeClose_Entry">
-					</event>
-					<event symbol="EncodeCloseExit" value="42" version="0" task="EncodeClose" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="EncodeFrameAsyncEntry" value="45" version="0" task="EncodeFrameAsync" opcode="win:Start" template="EncodeFrameAsync_Entry">
-					</event>
-					<event symbol="EncodeFrameAsyncExit" value="46" version="0" task="EncodeFrameAsync" opcode="win:Stop" template="EncodeFrameAsync_Exit">
-					</event>
-					<event symbol="VppQueryEntry" value="49" version="0" task="VppQuery" opcode="win:Start" template="VPPQuery_Entry">
-					</event>
-					<event symbol="VppQueryExit" value="50" version="0" task="VppQuery" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="VppQueryIOSurfEntry" value="53" version="0" task="VppQueryIOSurf" opcode="win:Start" template="VPPQueryIOSurf_Entry">
-					</event>
-					<event symbol="VppQueryIOSurfExit" value="54" version="0" task="VppQueryIOSurf" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="VppInitEntry" value="57" version="0" task="VppInit" opcode="win:Start" template="VPPInit_Entry">
-					</event>
-					<event symbol="VppInitExit" value="58" version="0" task="VppInit" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="VppCloseEntry" value="61" version="0" task="VppClose" opcode="win:Start" template="VPPClose_Entry">
-					</event>
-					<event symbol="VppCloseExit" value="62" version="0" task="VppClose" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="VppLegacyRoutineEntry" value="65" version="0" task="VppLegacyRoutine" opcode="win:Start" template="VppLegacyRoutine_Entry">
-					</event>
-					<event symbol="VppLegacyRoutineExit" value="66" version="0" task="VppLegacyRoutine" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="VppRunFrameAsyncEntry" value="69" version="0" task="VppRunFrameAsync" opcode="win:Start" template="VppRunFrameAsync_Entry">
-					</event>
-					<event symbol="VppRunFrameAsyncExit" value="70" version="0" task="VppRunFrameAsync" opcode="win:Stop" template="VppRunFrameAsync_Exit">
-					</event>
-					<event symbol="VppRunFrameAsyncExEntry" value="73" version="0" task="VppRunFrameAsyncEx" opcode="win:Start" template="VppRunFrameAsyncEx_Entry">
-					</event>
-					<event symbol="VppRunFrameAsyncExExit" value="74" version="0" task="VppRunFrameAsyncEx" opcode="win:Stop" template="VppRunFrameAsyncEx_Exit">
-					</event>
-					<event symbol="MFXInitExEntry" value="77" version="0" task="MFXInitEx" opcode="win:Start" template="MfxInitEx_Entry">
-					</event>
-					<event symbol="MFXInitExExit" value="78" version="0" task="MFXInitEx" opcode="win:Stop" template="MfxInitEx_Exit">
-					</event>
-					<event symbol="MFXCloseEntry" value="81" version="0" task="MFXClose" opcode="win:Start" template="MfxClose_Entry">
-					</event>
-					<event symbol="MFXCloseExit" value="82" version="0" task="MFXClose" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="DoWorkEntry" value="85" version="0" task="DoWork" opcode="win:Start" template="DoWork_Entry">
-					</event>
-					<event symbol="DoWorkExit" value="86" version="0" task="DoWork" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="SyncOperationEntry" value="89" version="0" task="SyncOperation" opcode="win:Start" template="SyncOperation_Entry">
-					</event>
-					<event symbol="SyncOperationExit" value="90" version="0" task="SyncOperation" opcode="win:Stop" template="SyncOperation_Exit">
-					</event>
-					<event symbol="WaitForGlobalEventEntry" value="93" version="0" task="WaitForGlobalEvent" opcode="win:Start" template="WaitForGlobalEvent_Entry">
-					</event>
-					<event symbol="WaitForGlobalEventExit" value="94" version="0" task="WaitForGlobalEvent" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="DDISubmitTaskEntry" value="97" version="0" task="DDISubmitTask" opcode="win:Start" template="DDISubmitTask_Entry">
-					</event>
-					<event symbol="DDISubmitTaskExit" value="98" version="0" task="DDISubmitTask" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="DDIWaitTaskSyncEntry" value="101" version="0" task="DDIWaitTaskSync" opcode="win:Start">
-					</event>
-					<event symbol="DDIWaitTaskSyncExit" value="102" version="0" task="DDIWaitTaskSync" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="DDIQueryTaskEntry" value="105" version="0" task="DDIQueryTask" opcode="win:Start" template="DDIQueryTask_Entry">
-					</event>
-					<event symbol="DDIQueryTaskExit" value="106" version="0" task="DDIQueryTask" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="CmCopyEntry" value="109" version="0" task="CmCopy" opcode="win:Start" template="CmCopy_Entry">
-					</event>
-					<event symbol="CmCopyExit" value="110" version="0" task="CmCopy" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="CopyDX11toDX9Entry" value="113" version="0" task="CopyDX11toDX9" opcode="win:Start">
-					</event>
-					<event symbol="CopyDX11toDX9Exit" value="114" version="0" task="CopyDX11toDX9" opcode="win:Stop">
-					</event>
-					<event symbol="CopyDX9toDX11Entry" value="117" version="0" task="CopyDX9toDX11" opcode="win:Start">
-					</event>
-					<event symbol="CopyDX9toDX11Exit" value="118" version="0" task="CopyDX9toDX11" opcode="win:Stop" template="Entry">
-					</event>
-					<event symbol="SchedulerRoutineEntry" value="121" version="0" task="SchedulerRoutine" opcode="win:Start" template="SchedulerRoutine_Entry">
-					</event>
-					<event symbol="SchedulerRoutineExit" value="122" version="0" task="SchedulerRoutine" opcode="win:Stop" template="MfxStatus_exit">
-					</event>
-					<event symbol="MFXInitializeEntry" value="125" version="0" task="MFXInitialize" opcode="win:Start" template="MFXInitialize_Entry" />
-					<event symbol="MFXInitializeExit" value="126" version="0" task="MFXInitialize" opcode="win:Stop" template="MfxStatus_exit" />
-					<event symbol="MFXQueryImplsDescriptionEntry" value="129" version="0" task="MFXQueryImplsDescription" opcode="win:Start" template="MFXQueryImplsDescription_Entry" />
-					<event symbol="MFXQueryImplsDescriptionExit" value="130" version="0" task="MFXQueryImplsDescription" opcode="win:Stop" template="MFXQueryImplsDescription_Exit" />
+					<event symbol="DecodeQueryEntry" value="5" version="0" task="DecodeQuery" opcode="win:Start" template="DecodeQuery_Entry" />
+					<event symbol="DecodeQueryExit" value="6" version="0" task="DecodeQuery" opcode="win:Stop" template="DecodeQuery_Exit" />
+          <event symbol="DecodeQueryIOSurfInfo" value="8" version="0" task="DecodeQueryIOSurf" opcode="win:Info" template="DecodeQueryIOSurf_Info" />
+					<event symbol="DecodeQueryIOSurfEntry" value="9" version="0" task="DecodeQueryIOSurf" opcode="win:Start" template="DecodeQueryIOSurf_Entry" />
+					<event symbol="DecodeQueryIOSurfExit" value="10" version="0" task="DecodeQueryIOSurf" opcode="win:Stop" template="DecodeQueryIOSurf_Exit" />
+					<event symbol="DecodeHeaderEntry" value="13" version="0" task="DecodeHeader" opcode="win:Start" template="DecodeHeader_Entry" />
+					<event symbol="DecodeHeaderExit" value="14" version="0" task="DecodeHeader" opcode="win:Stop" template="DecodeHeader_Exit" />
+          <event symbol="DecodeInitInfo" value="16" version="0" task="DecodeInit" opcode="win:Info" template="DecodeInit_Info" />
+          <event symbol="DecodeInitEntry" value="17" version="0" task="DecodeInit" opcode="win:Start" template="DecodeInit_Entry" />
+					<event symbol="DecodeInitExit" value="18" version="0" task="DecodeInit" opcode="win:Stop" template="DecodeInit_Exit" />
+					<event symbol="DecodeCloseEntry" value="21" version="0" task="DecodeClose" opcode="win:Start" template="DecodeClose_Entry" />
+					<event symbol="DecodeCloseExit" value="22" version="0" task="DecodeClose" opcode="win:Stop" template="DecodeClose_Exit" />
+					<event symbol="DecodeFrameAsyncEntry" value="25" version="0" task="DecodeFrameAsync" opcode="win:Start" template="DecodeFrameAsync_Entry" />
+					<event symbol="DecodeFrameAsyncExit" value="26" version="0" task="DecodeFrameAsync" opcode="win:Stop" template="DecodeFrameAsync_Exit" />
+					<event symbol="EncodeQueryEntry" value="29" version="0" task="EncodeQuery" opcode="win:Start" template="EncodeQuery_Entry" />
+					<event symbol="EncodeQueryExit" value="30" version="0" task="EncodeQuery" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="EncodeQueryIOSurfEntry" value="33" version="0" task="EncodeQueryIOSurf" opcode="win:Start" template="EncodeQueryIOSurf_Entry" />
+					<event symbol="EncodeQueryIOSurfExit" value="34" version="0" task="EncodeQueryIOSurf" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="EncodeInitEntry" value="37" version="0" task="EncodeInit" opcode="win:Start" template="EncodeInit_Entry" />
+					<event symbol="EncodeInitExit" value="38" version="0" task="EncodeInit" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="EncodeCloseEntry" value="41" version="0" task="EncodeClose" opcode="win:Start" template="EncodeClose_Entry" />
+					<event symbol="EncodeCloseExit" value="42" version="0" task="EncodeClose" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="EncodeFrameAsyncEntry" value="45" version="0" task="EncodeFrameAsync" opcode="win:Start" template="EncodeFrameAsync_Entry" />
+					<event symbol="EncodeFrameAsyncExit" value="46" version="0" task="EncodeFrameAsync" opcode="win:Stop" template="EncodeFrameAsync_Exit" />
+					<event symbol="VppQueryEntry" value="49" version="0" task="VppQuery" opcode="win:Start" template="VPPQuery_Entry" />
+					<event symbol="VppQueryExit" value="50" version="0" task="VppQuery" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="VppQueryIOSurfEntry" value="53" version="0" task="VppQueryIOSurf" opcode="win:Start" template="VPPQueryIOSurf_Entry" />
+					<event symbol="VppQueryIOSurfExit" value="54" version="0" task="VppQueryIOSurf" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="VppInitEntry" value="57" version="0" task="VppInit" opcode="win:Start" template="VPPInit_Entry" />
+					<event symbol="VppInitExit" value="58" version="0" task="VppInit" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="VppCloseEntry" value="61" version="0" task="VppClose" opcode="win:Start" template="VPPClose_Entry" />
+					<event symbol="VppCloseExit" value="62" version="0" task="VppClose" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="VppLegacyRoutineEntry" value="65" version="0" task="VppLegacyRoutine" opcode="win:Start" template="VppLegacyRoutine_Entry" />
+					<event symbol="VppLegacyRoutineExit" value="66" version="0" task="VppLegacyRoutine" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="VppRunFrameAsyncEntry" value="69" version="0" task="VppRunFrameAsync" opcode="win:Start" template="VppRunFrameAsync_Entry" />
+					<event symbol="VppRunFrameAsyncExit" value="70" version="0" task="VppRunFrameAsync" opcode="win:Stop" template="VppRunFrameAsync_Exit" />
+					<event symbol="VppRunFrameAsyncExEntry" value="73" version="0" task="VppRunFrameAsyncEx" opcode="win:Start" template="VppRunFrameAsyncEx_Entry" />
+					<event symbol="VppRunFrameAsyncExExit" value="74" version="0" task="VppRunFrameAsyncEx" opcode="win:Stop" template="VppRunFrameAsyncEx_Exit" />
+					<event symbol="MFXInitExEntry" value="77" version="0" task="MFXInitEx" opcode="win:Start" template="MfxInitEx_Entry" />
+					<event symbol="MFXInitExExit" value="78" version="0" task="MFXInitEx" opcode="win:Stop" template="MfxInitEx_Exit" />
+					<event symbol="MFXCloseEntry" value="81" version="0" task="MFXClose" opcode="win:Start" template="MfxClose_Entry" />
+					<event symbol="MFXCloseExit" value="82" version="0" task="MFXClose" opcode="win:Stop" template="MfxClose_Exit" />
+					<event symbol="DoWorkEntry" value="85" version="0" task="DoWork" opcode="win:Start" template="DoWork_Entry" />
+					<event symbol="DoWorkExit" value="86" version="0" task="DoWork" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="SyncOperationEntry" value="89" version="0" task="SyncOperation" opcode="win:Start" template="SyncOperation_Entry" />
+					<event symbol="SyncOperationExit" value="90" version="0" task="SyncOperation" opcode="win:Stop" template="SyncOperation_Exit" />
+					<event symbol="WaitForGlobalEventEntry" value="93" version="0" task="WaitForGlobalEvent" opcode="win:Start" template="WaitForGlobalEvent_Entry" />
+					<event symbol="WaitForGlobalEventExit" value="94" version="0" task="WaitForGlobalEvent" opcode="win:Stop" template="WaitForGlobalEvent_Exit" />
+					<event symbol="DDIBeginFrameTaskEntry" value="97" version="0" task="DDIBeginFrameTask" opcode="win:Start" template="DDIBeginFrameTask_Entry" />
+					<event symbol="DDIBeginFrameTaskExit" value="98" version="0" task="DDIBeginFrameTask" opcode="win:Stop" template="DDIBeginFrameTask_Exit" />
+          <event symbol="DDIExecuteFrameTaskEntry" value="101" version="0" task="DDIExecuteFrameTask" opcode="win:Start" template="DDIExecuteFrameTask_Entry" />
+          <event symbol="DDIExecuteFrameTaskExit" value="102" version="0" task="DDIExecuteFrameTask" opcode="win:Stop" template="DDIExecuteFrameTask_Exit" />
+          <event symbol="DDIEndFrameTaskEntry" value="105" version="0" task="DDIEndFrameTask" opcode="win:Start" template="DDIEndFrameTask_Entry" />
+          <event symbol="DDIEndFrameTaskExit" value="106" version="0" task="DDIEndFrameTask" opcode="win:Stop" template="DDIEndFrameTask_Exit" />
+					<event symbol="DDIWaitTaskSyncEntry" value="109" version="0" task="DDIWaitTaskSync" opcode="win:Start" template="DDIWaitTaskSync_Entry" />
+					<event symbol="DDIWaitTaskSyncExit" value="110" version="0" task="DDIWaitTaskSync" opcode="win:Stop" template="DDIWaitTaskSync_Exit" />
+					<event symbol="DDIQueryTaskEntry" value="113" version="0" task="DDIQueryTask" opcode="win:Start" template="DDIQueryTask_Entry" />
+					<event symbol="DDIQueryTaskExit" value="114" version="0" task="DDIQueryTask" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="CmCopyEntry" value="117" version="0" task="CmCopy" opcode="win:Start" template="CmCopy_Entry" />
+					<event symbol="CmCopyExit" value="118" version="0" task="CmCopy" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="CopyDX11toDX9Entry" value="121" version="0" task="CopyDX11toDX9" opcode="win:Start" />
+					<event symbol="CopyDX11toDX9Exit" value="122" version="0" task="CopyDX11toDX9" opcode="win:Stop" />
+					<event symbol="CopyDX9toDX11Entry" value="125" version="0" task="CopyDX9toDX11" opcode="win:Start" />
+					<event symbol="CopyDX9toDX11Exit" value="126" version="0" task="CopyDX9toDX11" opcode="win:Stop" template="Entry" />
+					<event symbol="SchedulerRoutineEntry" value="129" version="0" task="SchedulerRoutine" opcode="win:Start" template="SchedulerRoutine_Entry" />
+					<event symbol="SchedulerRoutineExit" value="130" version="0" task="SchedulerRoutine" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="MFXInitializeEntry" value="133" version="0" task="MFXInitialize" opcode="win:Start" template="MFXInitialize_Entry" />
+					<event symbol="MFXInitializeExit" value="134" version="0" task="MFXInitialize" opcode="win:Stop" template="MFXInitialize_Exit" />
+					<event symbol="MFXQueryImplsDescriptionEntry" value="137" version="0" task="MFXQueryImplsDescription" opcode="win:Start" template="MFXQueryImplsDescription_Entry" />
+					<event symbol="MFXQueryImplsDescriptionExit" value="138" version="0" task="MFXQueryImplsDescription" opcode="win:Stop" template="MFXQueryImplsDescription_Exit" />
+          <event symbol="Decode_Info_OutputParam_H265Info" value="140" version="0" task="Decode_Info_OutputParam_H265" opcode="win:Info" template="Decode_Info_OutputParam_H265_Info" />
+          <event symbol="Decode_Info_OutputParam_H265Entry" value="141" version="0" task="Decode_Info_OutputParam_H265" opcode="win:Start" />
+          <event symbol="Decode_Info_OutputParam_H265Exit" value="142" version="0" task="Decode_Info_OutputParam_H265" opcode="win:Stop" />
+          <event symbol="Decode_Info_OutputParam_H264Info" value="144" version="0" task="Decode_Info_OutputParam_H264" opcode="win:Info" template="Decode_Info_OutputParam_H264_Info" />
+          <event symbol="Decode_Info_OutputParam_H264Entry" value="145" version="0" task="Decode_Info_OutputParam_H264" opcode="win:Start" />
+          <event symbol="Decode_Info_OutputParam_H264Exit" value="146" version="0" task="Decode_Info_OutputParam_H264" opcode="win:Stop" />
+          <event symbol="Decode_Info_OutputParam_AV1Info" value="148" version="0" task="Decode_Info_OutputParam_AV1" opcode="win:Info" template="Decode_Info_OutputParam_AV1_Info" />
+          <event symbol="Decode_Info_OutputParam_AV1Entry" value="149" version="0" task="Decode_Info_OutputParam_AV1" opcode="win:Start" />
+          <event symbol="Decode_Info_OutputParam_AV1Exit" value="150" version="0" task="Decode_Info_OutputParam_AV1" opcode="win:Stop" />
+          <event symbol="Decode_Info_OutputParam_VP9Info" value="152" version="0" task="Decode_Info_OutputParam_VP9" opcode="win:Info" template="Decode_Info_OutputParam_VP9_Info" />
+          <event symbol="Decode_Info_OutputParam_VP9Entry" value="153" version="0" task="Decode_Info_OutputParam_VP9" opcode="win:Start" />
+          <event symbol="Decode_Info_OutputParam_VP9Exit" value="154" version="0" task="Decode_Info_OutputParam_VP9" opcode="win:Stop" />
+          <event symbol="Decode_Info_SyncTask_H265Info" value="156" version="0" task="Decode_Info_SyncTask_H265" opcode="win:Info" template="Decode_Info_SyncTask_H265_Info" />
+          <event symbol="Decode_Info_SyncTask_H265Entry" value="157" version="0" task="Decode_Info_SyncTask_H265" opcode="win:Start" />
+          <event symbol="Decode_Info_SyncTask_H265Exit" value="158" version="0" task="Decode_Info_SyncTask_H265" opcode="win:Stop" />
+          <event symbol="Decode_Info_SyncTask_H264Info" value="160" version="0" task="Decode_Info_SyncTask_H264" opcode="win:Info" template="Decode_Info_SyncTask_H264_Info" />
+          <event symbol="Decode_Info_SyncTask_H264Entry" value="161" version="0" task="Decode_Info_SyncTask_H264" opcode="win:Start" />
+          <event symbol="Decode_Info_SyncTask_H264Exit" value="162" version="0" task="Decode_Info_SyncTask_H264" opcode="win:Stop" />
+          <event symbol="Decode_Info_SyncTask_AV1Info" value="164" version="0" task="Decode_Info_SyncTask_AV1" opcode="win:Info" template="Decode_Info_SyncTask_AV1_Info" />
+          <event symbol="Decode_Info_SyncTask_AV1Entry" value="165" version="0" task="Decode_Info_SyncTask_AV1" opcode="win:Start" />
+          <event symbol="Decode_Info_SyncTask_AV1Exit" value="166" version="0" task="Decode_Info_SyncTask_AV1" opcode="win:Stop" />
+          <event symbol="Decode_Info_SyncTask_VP9Info" value="168" version="0" task="Decode_Info_SyncTask_VP9" opcode="win:Info" template="Decode_Info_SyncTask_VP9_Info" />
+          <event symbol="Decode_Info_SyncTask_VP9Entry" value="169" version="0" task="Decode_Info_SyncTask_VP9" opcode="win:Start" />
+          <event symbol="Decode_Info_SyncTask_VP9Exit" value="170" version="0" task="Decode_Info_SyncTask_VP9" opcode="win:Stop" />
+          <event symbol="Decode_Info_Display_H265Info" value="172" version="0" task="Decode_Info_Display_H265" opcode="win:Info" template="Decode_Info_Display_H265_Info" />
+          <event symbol="Decode_Info_Display_H265Entry" value="173" version="0" task="Decode_Info_Display_H265" opcode="win:Start" />
+          <event symbol="Decode_Info_Display_H265Exit" value="174" version="0" task="Decode_Info_Display_H265" opcode="win:Stop" />
+          <event symbol="Decode_Info_Display_H264Info" value="176" version="0" task="Decode_Info_Display_H264" opcode="win:Info" template="Decode_Info_Display_H264_Info" />
+          <event symbol="Decode_Info_Display_H264Entry" value="177" version="0" task="Decode_Info_Display_H264" opcode="win:Start" />
+          <event symbol="Decode_Info_Display_H264Exit" value="178" version="0" task="Decode_Info_Display_H264" opcode="win:Stop" />
+          <event symbol="Decode_Info_Display_AV1Info" value="180" version="0" task="Decode_Info_Display_AV1" opcode="win:Info" template="Decode_Info_Display_AV1_Info" />
+          <event symbol="Decode_Info_Display_AV1Entry" value="181" version="0" task="Decode_Info_Display_AV1" opcode="win:Start" />
+          <event symbol="Decode_Info_Display_AV1Exit" value="182" version="0" task="Decode_Info_Display_AV1" opcode="win:Stop" />
+          <event symbol="Decode_Info_Display_VP9Info" value="184" version="0" task="Decode_Info_Display_VP9" opcode="win:Info" template="Decode_Info_Display_VP9_Info" />
+          <event symbol="Decode_Info_Display_VP9Entry" value="185" version="0" task="Decode_Info_Display_VP9" opcode="win:Start" />
+          <event symbol="Decode_Info_Display_VP9Exit" value="186" version="0" task="Decode_Info_Display_VP9" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_PictureParam_H265Info" value="188" version="0" task="Decode_Buffer_PictureParam_H265" opcode="win:Info" template="Decode_Buffer_PictureParam_H265_Info" />
+          <event symbol="Decode_Buffer_PictureParam_H265Entry" value="189" version="0" task="Decode_Buffer_PictureParam_H265" opcode="win:Start" />
+          <event symbol="Decode_Buffer_PictureParam_H265Exit" value="190" version="0" task="Decode_Buffer_PictureParam_H265" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_SliceParam_H265Info" value="192" version="0" task="Decode_Buffer_SliceParam_H265" opcode="win:Info" template="Decode_Buffer_SliceParam_H265_Info" />
+          <event symbol="Decode_Buffer_SliceParam_H265Entry" value="193" version="0" task="Decode_Buffer_SliceParam_H265" opcode="win:Start" />
+          <event symbol="Decode_Buffer_SliceParam_H265Exit" value="194" version="0" task="Decode_Buffer_SliceParam_H265" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_QmatrixParam_H265Info" value="196" version="0" task="Decode_Buffer_QmatrixParam_H265" opcode="win:Info" template="Decode_Buffer_QmatrixParam_H265_Info" />
+          <event symbol="Decode_Buffer_QmatrixParam_H265Entry" value="197" version="0" task="Decode_Buffer_QmatrixParam_H265" opcode="win:Start" />
+          <event symbol="Decode_Buffer_QmatrixParam_H265Exit" value="198" version="0" task="Decode_Buffer_QmatrixParam_H265" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_PictureParam_H264Info" value="200" version="0" task="Decode_Buffer_PictureParam_H264" opcode="win:Info" template="Decode_Buffer_PictureParam_H264_Info" />
+          <event symbol="Decode_Buffer_PictureParam_H264Entry" value="201" version="0" task="Decode_Buffer_PictureParam_H264" opcode="win:Start" />
+          <event symbol="Decode_Buffer_PictureParam_H264Exit" value="202" version="0" task="Decode_Buffer_PictureParam_H264" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_SliceParam_H264Info" value="204" version="0" task="Decode_Buffer_SliceParam_H264" opcode="win:Info" template="Decode_Buffer_SliceParam_H264_Info" />
+          <event symbol="Decode_Buffer_SliceParam_H264Entry" value="205" version="0" task="Decode_Buffer_SliceParam_H264" opcode="win:Start" />
+          <event symbol="Decode_Buffer_SliceParam_H264Exit" value="206" version="0" task="Decode_Buffer_SliceParam_H264" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_QmatrixParam_H264Info" value="208" version="0" task="Decode_Buffer_QmatrixParam_H264" opcode="win:Info" template="Decode_Buffer_QmatrixParam_H264_Info" />
+          <event symbol="Decode_Buffer_QmatrixParam_H264Entry" value="209" version="0" task="Decode_Buffer_QmatrixParam_H264" opcode="win:Start" />
+          <event symbol="Decode_Buffer_QmatrixParam_H264Exit" value="210" version="0" task="Decode_Buffer_QmatrixParam_H264" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_PictureParam_AV1Info" value="212" version="0" task="Decode_Buffer_PictureParam_AV1" opcode="win:Info" template="Decode_Buffer_PictureParam_AV1_Info" />
+          <event symbol="Decode_Buffer_PictureParam_AV1Entry" value="213" version="0" task="Decode_Buffer_PictureParam_AV1" opcode="win:Start" />
+          <event symbol="Decode_Buffer_PictureParam_AV1Exit" value="214" version="0" task="Decode_Buffer_PictureParam_AV1" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_TileControlParam_AV1Info" value="216" version="0" task="Decode_Buffer_TileControlParam_AV1" opcode="win:Info" template="Decode_Buffer_TileControlParam_AV1_Info" />
+          <event symbol="Decode_Buffer_TileControlParam_AV1Entry" value="217" version="0" task="Decode_Buffer_TileControlParam_AV1" opcode="win:Start" />
+          <event symbol="Decode_Buffer_TileControlParam_AV1Exit" value="218" version="0" task="Decode_Buffer_TileControlParam_AV1" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_PictureParam_VP9Info" value="220" version="0" task="Decode_Buffer_PictureParam_VP9" opcode="win:Info" template="Decode_Buffer_PictureParam_VP9_Info" />
+          <event symbol="Decode_Buffer_PictureParam_VP9Entry" value="221" version="0" task="Decode_Buffer_PictureParam_VP9" opcode="win:Start" />
+          <event symbol="Decode_Buffer_PictureParam_VP9Exit" value="222" version="0" task="Decode_Buffer_PictureParam_VP9" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_SegmentParam_VP9Info" value="224" version="0" task="Decode_Buffer_SegmentParam_VP9" opcode="win:Info" template="Decode_Buffer_SegmentParam_VP9_Info" />
+          <event symbol="Decode_Buffer_SegmentParam_VP9Entry" value="225" version="0" task="Decode_Buffer_SegmentParam_VP9" opcode="win:Start" />
+          <event symbol="Decode_Buffer_SegmentParam_VP9Exit" value="226" version="0" task="Decode_Buffer_SegmentParam_VP9" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_BitstreamInfo" value="228" version="0" task="Decode_Buffer_Bitstream" opcode="win:Info" template="Decode_Buffer_Bitstream_Info" />
+          <event symbol="Decode_Buffer_BitstreamEntry" value="229" version="0" task="Decode_Buffer_Bitstream" opcode="win:Start" />
+          <event symbol="Decode_Buffer_BitstreamExit" value="230" version="0" task="Decode_Buffer_Bitstream" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_DPB_H265Info" value="232" version="0" task="Decode_Buffer_DPB_H265" opcode="win:Info" template="Decode_Buffer_DPB_H265_Info" />
+          <event symbol="Decode_Buffer_DPB_H265Entry" value="233" version="0" task="Decode_Buffer_DPB_H265" opcode="win:Start" />
+          <event symbol="Decode_Buffer_DPB_H265Exit" value="234" version="0" task="Decode_Buffer_DPB_H265" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_DPB_H264Info" value="236" version="0" task="Decode_Buffer_DPB_H264" opcode="win:Info" template="Decode_Buffer_DPB_H264_Info" />
+          <event symbol="Decode_Buffer_DPB_H264Entry" value="237" version="0" task="Decode_Buffer_DPB_H264" opcode="win:Start" />
+          <event symbol="Decode_Buffer_DPB_H264Exit" value="238" version="0" task="Decode_Buffer_DPB_H264" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_DPB_AV1Info" value="240" version="0" task="Decode_Buffer_DPB_AV1" opcode="win:Info" template="Decode_Buffer_DPB_AV1_Info" />
+          <event symbol="Decode_Buffer_DPB_AV1Entry" value="241" version="0" task="Decode_Buffer_DPB_AV1" opcode="win:Start" />
+          <event symbol="Decode_Buffer_DPB_AV1Exit" value="242" version="0" task="Decode_Buffer_DPB_AV1" opcode="win:Stop" />
+          <event symbol="Decode_Buffer_DPB_VP9Info" value="244" version="0" task="Decode_Buffer_DPB_VP9" opcode="win:Info" template="Decode_Buffer_DPB_VP9_Info" />
+          <event symbol="Decode_Buffer_DPB_VP9Entry" value="245" version="0" task="Decode_Buffer_DPB_VP9" opcode="win:Start" />
+          <event symbol="Decode_Buffer_DPB_VP9Exit" value="246" version="0" task="Decode_Buffer_DPB_VP9" opcode="win:Stop" />
 				</events>
 				<tasks>
 					<task name="DecodeQuery" symbol="MFX_TRACE_API_DECODE_QUERY_TASK_ETW" value="1" eventGUID="{00000000-0000-0000-0000-000000000000}">
@@ -176,22 +203,53 @@
 					</task>
 					<task name="WaitForGlobalEvent" symbol="MFX_TRACE_HOTSPOT_SCHED_WAIT_GLOBAL_EVENT_TASK_ETW" value="23" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="DDISubmitTask" symbol="MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK_ETW" value="24" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="DDIBeginFrameTask" symbol="MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK_ETW" value="24" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="DDIWaitTaskSync" symbol="MFX_TRACE_HOTSPOT_DDI_WAIT_TASK_SYNC_ETW" value="25" eventGUID="{00000000-0000-0000-0000-000000000000}">
+          <task name="DDIExecuteFrameTask" symbol="MFX_TRACE_HOTSPOT_DDI_EXECUTE_TASK_ETW" value="25" eventGUID="{00000000-0000-0000-0000-000000000000}">
+          </task>
+          <task name="DDIEndFrameTask" symbol="MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK_ETW" value="26" eventGUID="{00000000-0000-0000-0000-000000000000}">
+          </task>
+					<task name="DDIWaitTaskSync" symbol="MFX_TRACE_HOTSPOT_DDI_WAIT_TASK_SYNC_ETW" value="27" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="DDIQueryTask" symbol="MFX_TRACE_HOTSPOT_DDI_QUERY_TASK_ETW" value="26" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="DDIQueryTask" symbol="MFX_TRACE_HOTSPOT_DDI_QUERY_TASK_ETW" value="28" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="CmCopy" symbol="MFX_TRACE_HOTSPOT_CM_COPY_ETW" value="27" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="CmCopy" symbol="MFX_TRACE_HOTSPOT_CM_COPY_ETW" value="29" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="CopyDX11toDX9" symbol="MFX_TRACE_HOTSPOT_COPY_DX11_TO_DX9_ETW" value="28" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="CopyDX11toDX9" symbol="MFX_TRACE_HOTSPOT_COPY_DX11_TO_DX9_ETW" value="30" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="CopyDX9toDX11" symbol="MFX_TRACE_HOTSPOT_COPY_DX9_TO_DX11_ETW" value="29" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="CopyDX9toDX11" symbol="MFX_TRACE_HOTSPOT_COPY_DX9_TO_DX11_ETW" value="31" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="SchedulerRoutine" symbol="MFX_TRACE_HOTSPOT_SCHED_ROUTINE_ETW" value="30" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="SchedulerRoutine" symbol="MFX_TRACE_HOTSPOT_SCHED_ROUTINE_ETW" value="32" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="MFXInitialize" symbol="MFX_TRACE_API_MFXINITIALIZE_TASK_ETW" value="31" eventGUID="{00000000-0000-0000-0000-000000000000}" />
-					<task name="MFXQueryImplsDescription" symbol="MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK_ETW" value="32" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+					<task name="MFXInitialize" symbol="MFX_TRACE_API_MFXINITIALIZE_TASK_ETW" value="33" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+					<task name="MFXQueryImplsDescription" symbol="MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK_ETW" value="34" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Info_OutputParam_H265" symbol="MFX_TRACE_API_HEVC_OUTPUTINFO_TASK_ETW" value="35" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Info_OutputParam_H264" symbol="MFX_TRACE_API_AVC_OUTPUTINFO_TASK_ETW" value="36" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Info_OutputParam_AV1" symbol="MFX_TRACE_API_AV1_OUTPUTINFO_TASK_ETW" value="37" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Info_OutputParam_VP9" symbol="MFX_TRACE_API_VP9_OUTPUTINFO_TASK_ETW" value="38" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Info_SyncTask_H265" symbol="MFX_TRACE_API_HEVC_SYNCINFO_TASK_ETW" value="39" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Info_SyncTask_H264" symbol="MFX_TRACE_API_AVC_SYNCINFO_TASK_ETW" value="40" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Info_SyncTask_AV1" symbol="MFX_TRACE_API_AV1_SYNCINFO_TASK_ETW" value="41" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Info_SyncTask_VP9" symbol="MFX_TRACE_API_VP9_SYNCINFO_TASK_ETW" value="42" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Info_Display_H265" symbol="MFX_TRACE_API_HEVC_DISPLAYINFO_TASK_ETW" value="43" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Info_Display_H264" symbol="MFX_TRACE_API_AVC_DISPLAYINFO_TASK_ETW" value="44" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Info_Display_AV1" symbol="MFX_TRACE_API_AV1_DISPLAYINFO_TASK_ETW" value="45" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Info_Display_VP9" symbol="MFX_TRACE_API_VP9_DISPLAYINFO_TASK_ETW" value="46" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Buffer_PictureParam_H265" symbol="MFX_TRACE_API_HEVC_PICTUREPARAMETER_TASK_ETW" value="47" eventGUID="{00000000-0000-0000-0000-000000000000}" />          
+          <task name="Decode_Buffer_SliceParam_H265" symbol="MFX_TRACE_API_HEVC_SLICEPARAMETER_TASK_ETW" value="48" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Buffer_QmatrixParam_H265" symbol="MFX_TRACE_API_HEVC_QMATRIXARAMETER_TASK_ETW" value="49" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Buffer_PictureParam_H264" symbol="MFX_TRACE_API_AVC_PICTUREPARAMETER_TASK_ETW" value="50" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Buffer_SliceParam_H264" symbol="MFX_TRACE_API_AVC_SLICEPARAMETER_TASK_ETW" value="51" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Buffer_QmatrixParam_H264" symbol="MFX_TRACE_API_AVC_QMATRIXARAMETER_TASK_ETW" value="52" eventGUID="{00000000-0000-0000-0000-000000000000}" />          
+          <task name="Decode_Buffer_PictureParam_AV1" symbol="MFX_TRACE_API_AV1_PICTUREPARAMETER_TASK_ETW" value="53" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Buffer_TileControlParam_AV1" symbol="MFX_TRACE_API_AV1_TILECONTROLPARAMETER_TASK_ETW" value="54" eventGUID="{00000000-0000-0000-0000-000000000000}" />                  
+          <task name="Decode_Buffer_PictureParam_VP9" symbol="MFX_TRACE_API_VP9_PICTUREPARAMETER_TASK_ETW" value="55" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Buffer_SegmentParam_VP9" symbol="MFX_TRACE_API_VP9_SEGMENTPARAMETER_TASK_ETW" value="56" eventGUID="{00000000-0000-0000-0000-000000000000}" />          
+          <task name="Decode_Buffer_Bitstream" symbol="MFX_TRACE_API_BITSTREAM_TASK_ETW" value="57" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Buffer_DPB_H265" symbol="MFX_TRACE_API_HEVC_DPBPARAMETER_TASK_ETW" value="58" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Buffer_DPB_H264" symbol="MFX_TRACE_API_AVC_DPBPARAMETER_TASK_ETW" value="59" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Buffer_DPB_AV1" symbol="MFX_TRACE_API_AV1_DPBPARAMETER_TASK_ETW" value="60" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="Decode_Buffer_DPB_VP9" symbol="MFX_TRACE_API_VP9_DPBPARAMETER_TASK_ETW" value="61" eventGUID="{00000000-0000-0000-0000-000000000000}" />
 				</tasks>
 				<opcodes>
 				</opcodes>
@@ -251,6 +309,31 @@
 						<map value="12"         message="$(string.Map.mfxStatus.MFX_ERR_NONE_PARTIAL_OUTPUT)" />
 						<map value="55536"      message="$(string.Map.mfxStatus.MFX_ERR_MORE_DATA_SUBMIT_TASK)" />
 					</valueMap>
+          <valueMap name="umcStatus">
+						<map value="0"                message="$(string.Map.umcStatus.UMC_OK)" />
+            <map value="4294966297"       message="$(string.Map.umcStatus.UMC_ERR_FAILED)" />
+            <map value="4294966298"       message="$(string.Map.umcStatus.UMC_ERR_NOT_INITIALIZED)" />
+            <map value="4294966299"       message="$(string.Map.umcStatus.UMC_ERR_TIMEOUT)" />
+            <map value="4294966230"       message="$(string.Map.umcStatus.UMC_ERR_NOT_ENOUGH_DATA)" />
+            <map value="4294966231"       message="$(string.Map.umcStatus.UMC_ERR_NULL_PTR)" />
+            <map value="4294966397"       message="$(string.Map.umcStatus.UMC_ERR_INIT)" />
+            <map value="4294966399"       message="$(string.Map.umcStatus.UMC_ERR_SYNC)" />
+            <map value="4294966400"       message="$(string.Map.umcStatus.UMC_ERR_NOT_ENOUGH_BUFFER)" />
+            <map value="4294966401"       message="$(string.Map.umcStatus.UMC_ERR_END_OF_STREAM)" />
+            <map value="4294966402"       message="$(string.Map.umcStatus.UMC_ERR_OPEN_FAILED)" />
+            <map value="4294966413"       message="$(string.Map.umcStatus.UMC_ERR_ALLOC)" />
+            <map value="4294966414"       message="$(string.Map.umcStatus.UMC_ERR_LOCK)" />
+            <map value="4294966415"       message="$(string.Map.umcStatus.UMC_ERR_INVALID_STREAM)" />
+            <map value="4294966417"       message="$(string.Map.umcStatus.UMC_ERR_UNSUPPORTED)" />
+            <map value="4294966418"       message="$(string.Map.umcStatus.UMC_ERR_NOT_IMPLEMENTED)" />
+            <map value="4294966420"       message="$(string.Map.umcStatus.UMC_ERR_INVALID_PARAMS)" />
+            <map value="4294966421"       message="$(string.Map.umcStatus.UMC_ERR_NEED_FORCE_OUTPUT)" />
+            <map value="4294966422"       message="$(string.Map.umcStatus.UMC_ERR_GPU_HANG)" /> 
+            <map value="1"                message="$(string.Map.umcStatus.UMC_WRN_INVALID_STREAM)" />
+            <map value="2"                message="$(string.Map.umcStatus.UMC_WRN_REPOSITION_INPROGRESS)" />
+            <map value="3"                message="$(string.Map.umcStatus.UMC_WRN_INFO_NOT_READY)" />
+            <map value="7"                message="$(string.Map.umcStatus.UMC_NTF_NEW_RESOLUTION)" />
+					</valueMap>
 					<valueMap name="mfxAccelerationMode">
 						<map value="0"          message="$(string.Map.mfxAccelerationMode.MFX_ACCEL_MODE_NA)" />
 						<map value="0x0200"     message="$(string.Map.mfxAccelerationMode.MFX_ACCEL_MODE_VIA_D3D9)" />
@@ -266,6 +349,121 @@
 						<map value="1"          message="$(string.Map.mfxImplCapsDeliveryFormat.MFX_IMPLCAPS_IMPLDESCSTRUCTURE)" />
 						<map value="2"          message="$(string.Map.mfxImplCapsDeliveryFormat.MFX_IMPLCAPS_IMPLEMENTEDFUNCTIONS)" />
 					</valueMap>
+          <valueMap name="mfxFrameInfoPicStruct">
+            <map value="0x00"       message="$(string.Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_UNKNOWN)" />
+            <map value="0x01"       message="$(string.Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_PROGRESSIVE)" />
+            <map value="0x02"       message="$(string.Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_TFF)" />
+            <map value="0x04"       message="$(string.Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_BFF)" />
+            <map value="0x10"       message="$(string.Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_REPEATED)" />
+            <map value="0x20"       message="$(string.Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FRAME_DOUBLING)" />
+            <map value="0x40"       message="$(string.Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FRAME_TRIPLING)" />
+            <map value="0x100"      message="$(string.Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_SINGLE)" />
+            <map value="0x102"      message="$(string.Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_TOP)" />
+            <map value="0x104"      message="$(string.Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_BOTTOM)" />
+            <map value="0x200"      message="$(string.Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_PAIRED_PREV)" />
+            <map value="0x400"      message="$(string.Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_PAIRED_NEXT)" />
+          </valueMap>
+          <valueMap name="chromaFormat">
+            <map value="0"       message="$(string.Map.chromaFormat.CHROMA_400)" />
+            <map value="1"       message="$(string.Map.chromaFormat.CHROMA_420)" />
+            <map value="2"       message="$(string.Map.chromaFormat.CHROMA_422)" />
+            <map value="3"       message="$(string.Map.chromaFormat.CHROMA_444)" />
+          </valueMap>
+          <valueMap name="hevcProfile">
+            <map value="1"       message="$(string.Map.hevcProfile.H265_PROFILE_MAIN)" />
+            <map value="2"       message="$(string.Map.hevcProfile.H265_PROFILE_MAIN10)" />
+            <map value="3"       message="$(string.Map.hevcProfile.H265_PROFILE_MAINSP)" />
+            <map value="4"       message="$(string.Map.hevcProfile.H265_PROFILE_FREXT)" />
+            <map value="9"       message="$(string.Map.hevcProfile.H265_PROFILE_SCC)" />
+          </valueMap>
+          <valueMap name="frameFourcc">
+            <map value="842094158"       message="$(string.Map.frameFourcc.MFX_FOURCC_NV12)" />
+            <map value="842094169"       message="$(string.Map.frameFourcc.MFX_FOURCC_YV12)" />
+            <map value="909203022"       message="$(string.Map.frameFourcc.MFX_FOURCC_NV16)" />
+            <map value="844715353"       message="$(string.Map.frameFourcc.MFX_FOURCC_YUY2)" />
+            <map value="843204434"       message="$(string.Map.frameFourcc.MFX_FOURCC_RGB565)" />
+            <map value="1346520914"      message="$(string.Map.frameFourcc.MFX_FOURCC_RGBP)" />
+            <map value="41"              message="$(string.Map.frameFourcc.MFX_FOURCC_P8)" />
+            <map value="1112356944"      message="$(string.Map.frameFourcc.MFX_FOURCC_P8_TEXTURE)" />
+            <map value="808530000"       message="$(string.Map.frameFourcc.MFX_FOURCC_P010)" />
+            <map value="909193296"       message="$(string.Map.frameFourcc.MFX_FOURCC_P016)" />
+            <map value="808530512"       message="$(string.Map.frameFourcc.MFX_FOURCC_P210)" />
+            <map value="877807426"       message="$(string.Map.frameFourcc.MFX_FOURCC_BGR4)" />
+            <map value="808535890"       message="$(string.Map.frameFourcc.MFX_FOURCC_A2RGB10)" />
+            <map value="909199186"       message="$(string.Map.frameFourcc.MFX_FOURCC_ARGB16)" />
+            <map value="909199170"       message="$(string.Map.frameFourcc.MFX_FOURCC_ABGR16)" />
+            <map value="1429614930"      message="$(string.Map.frameFourcc.MFX_FOURCC_R16)" />
+            <map value="1448433985"      message="$(string.Map.frameFourcc.MFX_FOURCC_AYUV)" />
+            <map value="1498764865"      message="$(string.Map.frameFourcc.MFX_FOURCC_AYUV_RGB4)" />
+            <map value="1498831189"      message="$(string.Map.frameFourcc.MFX_FOURCC_UYVY)" />
+            <map value="808530521"       message="$(string.Map.frameFourcc.MFX_FOURCC_Y210)" />
+            <map value="808531033"       message="$(string.Map.frameFourcc.MFX_FOURCC_Y410)" />
+            <map value="909193817"       message="$(string.Map.frameFourcc.MFX_FOURCC_Y216)" />
+            <map value="909194329"       message="$(string.Map.frameFourcc.MFX_FOURCC_Y416)" />
+            <map value="825382478"       message="$(string.Map.frameFourcc.MFX_FOURCC_NV21)" />
+            <map value="808529993"       message="$(string.Map.frameFourcc.MFX_FOURCC_I010)" />
+            <map value="808530505"       message="$(string.Map.frameFourcc.MFX_FOURCC_I210)" />
+            <map value="1448433993"      message="$(string.Map.frameFourcc.MFX_FOURCC_I420)" />
+            <map value="842150985"       message="$(string.Map.frameFourcc.MFX_FOURCC_I422)" />
+            <map value="876758866"       message="$(string.Map.frameFourcc.MFX_FOURCC_BGRA)" />
+            <map value="1347569474"      message="$(string.Map.frameFourcc.MFX_FOURCC_BGRP)" />
+            <map value="1448434008"      message="$(string.Map.frameFourcc.MFX_FOURCC_XYUV)" />
+          </valueMap>
+          <valueMap name="nal_unit_type">
+            <map value="0"       message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_TRAIL_N)" />
+            <map value="1"       message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_TRAIL_R)" />
+            <map value="2"       message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_TSA_N)" />
+            <map value="3"       message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_TLA_R)" />
+            <map value="4"       message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_STSA_N)" />
+            <map value="5"       message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_STSA_R)" />
+            <map value="6"       message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_RADL_N)" />
+            <map value="7"       message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_RADL_R)" />
+            <map value="8"       message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_RASL_N)" />
+            <map value="9"       message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_RASL_R)" />
+            <map value="16"      message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_BLA_W_LP)" />
+            <map value="17"      message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_BLA_W_RADL)" />
+            <map value="18"      message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_BLA_N_LP)" />
+            <map value="19"      message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_IDR_W_RADL)" />
+            <map value="20"      message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_IDR_N_LP)" />
+            <map value="21"      message="$(string.Map.nal_unit_type.NAL_UT_CODED_SLICE_CRA)" />
+            <map value="32"      message="$(string.Map.nal_unit_type.NAL_UT_VPS)" />
+            <map value="33"      message="$(string.Map.nal_unit_type.NAL_UT_SPS)" />
+            <map value="34"      message="$(string.Map.nal_unit_type.NAL_UT_PPS)" />
+            <map value="35"      message="$(string.Map.nal_unit_type.NAL_UT_AU_DELIMITER)" />
+            <map value="36"      message="$(string.Map.nal_unit_type.NAL_UT_EOS)" />
+            <map value="37"      message="$(string.Map.nal_unit_type.NAL_UT_EOB)" />
+            <map value="38"      message="$(string.Map.nal_unit_type.NAL_UT_FILLER_DATA)" />
+            <map value="39"      message="$(string.Map.nal_unit_type.NAL_UT_SEI)" />
+            <map value="40"      message="$(string.Map.nal_unit_type.NAL_UT_SEI_SUFFIX)" />
+            <map value="64"      message="$(string.Map.nal_unit_type.NAL_UT_INVALID)" />
+          </valueMap>
+          <valueMap name="sliceType">
+            <map value="0"       message="$(string.Map.sliceType.B_SLICE)" />
+            <map value="1"       message="$(string.Map.sliceType.P_SLICE)" />
+            <map value="2"       message="$(string.Map.sliceType.I_SLICE)" />
+          </valueMap>
+          <valueMap name="avcProfile">
+            <map value="66"       message="$(string.Map.avcProfile.MFX_PROFILE_AVC_BASELINE)" />
+            <map value="77"       message="$(string.Map.avcProfile.MFX_PROFILE_AVC_MAIN)" />
+            <map value="88"       message="$(string.Map.avcProfile.MFX_PROFILE_AVC_EXTENDED)" />
+            <map value="100"       message="$(string.Map.avcProfile.MFX_PROFILE_AVC_HIGH)" />
+            <map value="110"       message="$(string.Map.avcProfile.MFX_PROFILE_AVC_HIGH10)" />
+            <map value="122"       message="$(string.Map.avcProfile.MFX_PROFILE_AVC_HIGH_422)" />
+            <map value="578"       message="$(string.Map.avcProfile.MFX_PROFILE_AVC_CONSTRAINED_BASELINE)" />
+            <map value="12388"       message="$(string.Map.avcProfile.MFX_PROFILE_AVC_CONSTRAINED_HIGH)" />
+            <map value="4196"       message="$(string.Map.avcProfile.MFX_PROFILE_AVC_PROGRESSIVE_HIGH)" />
+          </valueMap>
+          <valueMap name="AV1FrameType">
+            <map value="0"       message="$(string.Map.AV1FrameType.KEY_FRAME)" />
+            <map value="1"       message="$(string.Map.AV1FrameType.INTER_FRAME)" />
+            <map value="2"       message="$(string.Map.AV1FrameType.INTRA_ONLY_FRAME)" />
+            <map value="3"       message="$(string.Map.AV1FrameType.SWITCH_FRAME)" />
+            <map value="4"       message="$(string.Map.AV1FrameType.FRAME_TYPES)" />
+          </valueMap>
+          <valueMap name="VP9FrameType">
+            <map value="0"       message="$(string.Map.VP9FrameType.KEY_FRAME)" />
+            <map value="1"       message="$(string.Map.VP9FrameType.INTER_FRAME)" />
+          </valueMap>
 				</maps>
 				<templates>
 					<template tid="Entry">
@@ -278,20 +476,29 @@
 					</template>
 					<template tid="DecodeQuery_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
-						<data name="in_width" inType="win:UInt16" outType="xs:unsignedShort" />
-						<data name="in_height" inType="win:UInt16" outType="xs:unsignedShort" />
+						<data name="in_width" inType="win:UInt32" outType="xs:unsignedInt" />
+						<data name="in_height" inType="win:UInt32" outType="xs:unsignedInt" />
 						<data name="codec_id" inType="win:UInt32" map="Codec" />
 					</template>
+					<template tid="DecodeQuery_Exit">
+            <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+					</template>          
 					<template tid="DecodeQueryIOSurf_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
-						<data name="in_width" inType="win:UInt16" outType="xs:unsignedShort" />
-						<data name="in_height" inType="win:UInt16" outType="xs:unsignedShort" />
-						<data name="codec_id" inType="win:UInt32" map="Codec" />
+						<data name="in_width" inType="win:UInt32" outType="xs:unsignedInt" />
+						<data name="in_height" inType="win:UInt32" outType="xs:unsignedInt" />
+						<data name="codec_id" inType="win:UInt32" map="mfxStatus" />
+					</template>
+          <template tid="DecodeQueryIOSurf_Exit">
+						<data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
 					</template>
 					<template tid="DecodeHeader_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
 						<data name="bitstream_pointer" inType="win:Pointer" outType="win:HexInt64" />
 						<data name="bitstream_data_length" inType="win:UInt32" outType="xs:unsignedInt" />
+					</template>
+        	<template tid="DecodeHeader_Exit">
+            <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
 					</template>
 					<template tid="DecodeInit_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
@@ -299,8 +506,14 @@
 						<data name="in_height" inType="win:UInt16" outType="xs:unsignedShort" />
 						<data name="codec_id" inType="win:UInt32" map="Codec" />
 					</template>
+          <template tid="DecodeInit_Exit">
+            <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+					</template>
 					<template tid="DecodeClose_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
+					</template>
+          <template tid="DecodeClose_Exit">
+            <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
 					</template>
 					<template tid="DecodeFrameAsync_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
@@ -403,6 +616,9 @@
 					<template tid="MfxClose_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
 					</template>
+          <template tid="MfxClose_Exit">
+						<data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+					</template>
 					<template tid="DoWork_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
 					</template>
@@ -419,12 +635,36 @@
 						<data name="scheduler" inType="win:Pointer" outType="win:HexInt64" />
 					</template>
 					<template tid="DDISubmitTask_Entry">
-						<data name="device_dx" inType="win:Pointer" outType="win:HexInt64">
-						</data>
+						<data name="device_dx" inType="win:Pointer" outType="win:HexInt64" />
+						</template>
+					<template tid="WaitForGlobalEvent_Exit">
+						<data name="vmRes" inType="win:UInt32" outType="xs:unsignedInt" />
+					</template>          
+					<template tid="DDIBeginFrameTask_Entry">
+						<data name="curr_index" inType="win:Int32" outType="xs:int" />
 					</template>
+        	<template tid="DDIBeginFrameTask_Exit">
+						<data name="curr_index" inType="win:Int32" outType="xs:int" />
+            <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
+					</template>
+          <template tid="DDIExecuteFrameTask_Entry">
+            <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
+          </template>
+          <template tid="DDIExecuteFrameTask_Exit">
+            <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
+          </template>
+          <template tid="DDIEndFrameTask_Entry">
+            <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
+          </template>
+          <template tid="DDIEndFrameTask_Exit">
+            <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
+          </template>
 					<template tid="DDIWaitTaskSync_Entry">
-						<data name="device_dx" inType="win:Pointer" outType="win:HexInt64">
-						</data>
+						<data name="curr_index" inType="win:Int32" outType="xs:int" />
+					</template>
+          <template tid="DDIWaitTaskSync_Exit">
+						<data name="curr_index" inType="win:Int32" outType="xs:int" />
+            <data name="EventCount" inType="win:UInt32" outType="xs:unsignedInt" />
 					</template>
 					<template tid="DDIQueryTask_Entry">
 						<data name="device_dx" inType="win:Pointer" outType="win:HexInt64">
@@ -442,7 +682,8 @@
 						<data name="vendorId" inType="win:UInt16" outType="xs:unsignedShort" />
 					</template>
 					<template tid="MFXInitialize_Exit">
-						<data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+						<data name="Implementation" inType="win:UInt32" outType="xs:unsignedInt" />
+						<data name="isSingleThreadMode" inType="win:UInt32" outType="xs:unsignedInt" />
 					</template>
 					<template tid="MFXQueryImplsDescription_Entry">
 						<data name="format" inType="win:UInt32" map="mfxImplCapsDeliveryFormat" />
@@ -450,6 +691,818 @@
 					<template tid="MFXQueryImplsDescription_Exit">
 						<data name="num_impls" inType="win:UInt32" outType="xs:unsignedInt" />
 					</template>
+					<template tid="DecodeInit_Info">
+						<data name="codecId" inType="win:UInt32" map="Codec" />
+						<data name="frameWidth" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameHeight" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameBitDepthLuma" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameBitDepthChroma" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameCropX" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameCropY" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameCropH" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameCropW" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="framePicStruct" inType="win:UInt32" map="mfxFrameInfoPicStruct" />
+            <data name="frameChromaFormat" inType="win:UInt32" map="chromaFormat" />
+            <data name="frameAspectRatioW" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameAspectRatioH" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameFrameRateExtD" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameFrameRateExtN" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="codecProfile" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="codecLevel" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="maxDecFrameBuffering" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameFourCC" inType="win:UInt32" map="frameFourcc" />
+				  </template>
+          <template tid="DecodeQueryIOSurf_Info">
+            <data name="numFrameSuggested" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="numFrameMin" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="type" inType="win:UInt32" outType="xs:unsignedInt" />
+            <struct name="FrameInfo">
+              <data name="ChannelId" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="BitDepthLuma" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="BitDepthChroma" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="Shift" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="FourCC" inType="win:UInt32" map="frameFourcc" />
+              <data name="Width" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="Height" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="CropX" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="CropY" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="CropW" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="CropH" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="BufferSize" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="FrameRateExtN" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="FrameRateExtD" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="AspectRatioW" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="AspectRatioH" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="PicStruct" inType="win:UInt32" map="mfxFrameInfoPicStruct" />
+              <data name="ChromaFormat" inType="win:UInt32" map="chromaFormat" />
+            </struct>
+          </template>
+          <template tid="Decode_Info_OutputParam_H265_Info">
+            <data name="CropH" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CropW" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CropX" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CropY" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="ChromaFormat" inType="win:UInt32" map="chromaFormat" />
+            <data name="AspectRatioH" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="AspectRatioW" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="FrameRateExtD" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="FrameRateExtN" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="PicStruct" inType="win:UInt32" map="mfxFrameInfoPicStruct" />
+            <data name="FrameOrder" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="DataFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="TimeStamp" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Buffer_PictureParam_H265_Info">
+            <data name="log2_max_pic_order_cnt_lsb_minus4" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="noPicReorderingFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="noBiPredFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <struct name="CurrPic">
+              <data name="Index7Bits" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="AssociatedFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <data name="sps_max_dec_pic_buffering_minus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="log2_min_luma_coding_block_size_minus3" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="log2_diff_max_min_transform_block_size" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="log2_min_transform_block_size_minus2" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="log2_diff_max_min_luma_coding_block_size" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="max_transform_hierarchy_depth_intra" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="max_transform_hierarchy_depth_inter" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_short_term_ref_pic_sets" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_long_term_ref_pics_sps" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_ref_idx_l0_default_active_minus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_ref_idx_l1_default_active_minus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="init_qp_minus26" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="ucNumDeltaPocsOfRefRpsIdx" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="wNumBitsForShortTermRPSInSlice" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="scaling_list_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="amp_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="sample_adaptive_offset_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="pcm_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="pcm_sample_bit_depth_luma_minus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="pcm_sample_bit_depth_chroma_minus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="log2_min_pcm_luma_coding_block_size_minus3" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="log2_diff_max_min_pcm_luma_coding_block_size" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="pcm_loop_filter_disabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="long_term_ref_pics_present_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="sps_temporal_mvp_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="strong_intra_smoothing_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="dependent_slice_segments_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="output_flag_present_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_extra_slice_header_bits" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="sign_data_hiding_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="cabac_init_present_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="constrained_intra_pred_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="transform_skip_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="cu_qp_delta_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="pps_slice_chroma_qp_offsets_present_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="weighted_pred_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="weighted_bipred_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="transquant_bypass_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="tiles_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="entropy_coding_sync_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="uniform_spacing_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="loop_filter_across_tiles_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="pps_loop_filter_across_slices_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="deblocking_filter_override_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="pps_deblocking_filter_disabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="lists_modification_present_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_segment_header_extension_present_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="IrapPicFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="IdrPicFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="IntraPicFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="pps_cb_qp_offset" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="pps_cr_qp_offset" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_tile_columns_minus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_tile_rows_minus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="column_width_minus1" inType="win:UInt32" outType="xs:unsignedInt" count="19" />
+            <data name="row_height_minus1" inType="win:UInt32" outType="xs:unsignedInt" count="21" />
+						<data name="diff_cu_qp_delta_depth" inType="win:UInt32" outType="xs:unsignedInt" />
+						<data name="pps_beta_offset_div2" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="pps_tc_offset_div2" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="log2_parallel_merge_level_minus2" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CurrPicOrderCntVal" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="PicOrderCntValList" inType="win:Int32" outType="xs:int" count="15" />
+            <struct name="RefPicList" count="15">
+              <data name="Index7Bits" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="AssociatedFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <data name="RefPicSetStCurrBefore" inType="win:Int32" outType="xs:int" count="8" />
+            <data name="RefPicSetStCurrAfter" inType="win:Int32" outType="xs:int" count="8" />
+            <data name="RefPicSetLtCurr" inType="win:Int32" outType="xs:int" count="8" />
+            <data name="StatusReportFeedbackNumber" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Info_SyncTask_H265_Info">
+            <data name="PicOrderCnt" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="curr_index" inType="win:Int32" outType="xs:int" />
+            <data name="isDecodingCompleted" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="m_isDisplayable" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="m_wasOutputted" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="EventSts" inType="win:UInt32" map="umcStatus" />
+          </template>
+          <template tid="Decode_Buffer_SliceParam_H265_Info">
+            <data name="nal_unit_type" inType="win:UInt32" map="nal_unit_type" />
+            <data name="nuh_temporal_id" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="first_slice_segment_in_pic_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="no_output_of_prior_pics_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_pic_parameter_set_id" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="dependent_slice_segment_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_segment_address" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_type" inType="win:UInt32" map="sliceType" />
+            <data name="pic_output_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="colour_plane_id" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_pic_order_cnt_lsb" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="short_term_ref_pic_set_sps_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_temporal_mvp_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_sao_luma_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_sao_chroma_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_ref_idx_active_override_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_ref_idx_l0_active" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_ref_idx_l1_active" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="mvd_l1_zero_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="cabac_init_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="collocated_from_l0_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="collocated_ref_idx" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="luma_log2_weight_denom" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="chroma_log2_weight_denom" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="max_num_merge_cand" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="use_integer_mv_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_qp_delta" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_cb_qp_offset" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_cr_qp_offset" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_act_y_qp_offset" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_act_cb_qp_offset" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_act_cr_qp_offset" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="cu_chroma_qp_offset_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="deblocking_filter_override_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_deblocking_filter_disabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_beta_offset" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_tc_offset" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_loop_filter_across_slices_enabled_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_entry_point_offsets" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="m_HeaderBitstreamOffset" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="m_sliceSegmentCurStartCUAddr" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="m_sliceSegmentCurEndCUAddr" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="SliceQP" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="SliceCurStartCUAddr" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="m_CheckLDC" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="m_numRefIdx" inType="win:UInt32" outType="xs:unsignedInt" count="3" />
+            <struct name="m_RefPicListModification">
+              <data name="ref_pic_list_modification_flag_l0" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="ref_pic_list_modification_flag_l1" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[2]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[3]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[4]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[5]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[6]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[7]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[8]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[9]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[10]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[11]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[12]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[13]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[14]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[15]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l0[16]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[2]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[3]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[4]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[5]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[6]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[7]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[8]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[9]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[10]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[11]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[12]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[13]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[14]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[15]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="list_entry_l1[16]" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <data name="m_poc" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="m_numPicStCurr0" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="m_numPicStCurr1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="m_numPicLtCurr" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="m_RpsPOCCurrList0" inType="win:UInt32" outType="xs:unsignedInt" count="17" />
+            <data name="m_RefPOCList[0]" inType="win:UInt32" outType="xs:unsignedInt" count="17" />
+            <data name="m_RefPOCList[1]" inType="win:UInt32" outType="xs:unsignedInt" count="17" />
+            <data name="IdrPicFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="wNumBitsForShortTermRPSInSlice" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Buffer_QmatrixParam_H265_Info">
+            <data name="ucScalingLists0[0]" inType="win:UInt32" outType="xs:unsignedInt" count="16" />
+            <data name="ucScalingLists0[1]" inType="win:UInt32" outType="xs:unsignedInt" count="16" />
+            <data name="ucScalingLists0[2]" inType="win:UInt32" outType="xs:unsignedInt" count="16" />
+            <data name="ucScalingLists0[3]" inType="win:UInt32" outType="xs:unsignedInt" count="16" />
+            <data name="ucScalingLists0[4]" inType="win:UInt32" outType="xs:unsignedInt" count="16" />
+            <data name="ucScalingLists0[5]" inType="win:UInt32" outType="xs:unsignedInt" count="16" />
+            <data name="ucScalingLists1[0]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingLists1[1]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingLists1[2]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingLists1[3]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingLists1[4]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingLists1[5]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingLists2[0]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingLists2[1]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingLists2[2]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingLists2[3]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingLists2[4]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingLists2[5]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingLists3[0]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingLists3[1]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="ucScalingListDCCoefSizeID2" inType="win:UInt32" outType="xs:unsignedInt" count="6" />
+            <data name="ucScalingListDCCoefSizeID3" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+          </template>
+          <template tid="Decode_Info_OutputParam_H264_Info">
+            <data name="CropH" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CropW" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CropX" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CropY" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="ChromaFormat" inType="win:UInt32" map="chromaFormat" />
+            <data name="AspectRatioH" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="AspectRatioW" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="FrameRateExtD" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="FrameRateExtN" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="PicStruct" inType="win:UInt32" map="mfxFrameInfoPicStruct" />
+            <data name="FrameOrder" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="DataFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="TimeStamp" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Buffer_PictureParam_H264_Info">
+            <data name="wFrameWidthInMbsMinus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="wFrameHeightInMbsMinus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <struct name="CurrPic">
+              <data name="Index7Bits" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="AssociatedFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <data name="num_ref_frames" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="field_pic_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="MbaffFrameFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="residual_colour_transform_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="sp_for_switch_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="chroma_format_idc" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="RefPicFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="constrained_intra_pred_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="weighted_pred_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="weighted_bipred_idc" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="MbsConsecutiveFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frame_mbs_only_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="transform_8x8_mode_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="MinLumaBipredSize8x8Flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="IntraPicFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="wBitFields" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="bit_depth_luma_minus8" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="bit_depth_chroma_minus8" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="StatusReportFeedbackNumber" inType="win:UInt32" outType="xs:unsignedInt" />
+            <struct name="RefFrameList" count="16">
+              <data name="Index7Bits" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="AssociatedFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <data name="CurrFieldOrderCnt" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[0]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[1]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[2]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[3]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[4]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[5]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[6]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[7]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[8]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[9]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[10]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[11]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[12]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[13]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[14]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="FieldOrderCntList[15]" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+            <data name="pic_init_qs_minus26" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="chroma_qp_index_offset" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="second_chroma_qp_index_offset" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="ContinuationFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="pic_init_qp_minus26" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_ref_idx_l0_active_minus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_ref_idx_l1_active_minus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="FrameNumList" inType="win:UInt32" outType="xs:unsignedInt" count="16" />
+            <data name="UsedForReferenceFlags" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="NonExistingFrameFlags" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frame_num" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="log2_max_frame_num_minus4" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="pic_order_cnt_type" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="log2_max_pic_order_cnt_lsb_minus4" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="delta_pic_order_always_zero_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="direct_8x8_inference_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="entropy_coding_mode_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="pic_order_present_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_slice_groups_minus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_group_map_type" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="deblocking_filter_control_present_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="redundant_pic_cnt_present_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_group_change_rate_minus1" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Buffer_SliceParam_H264_Info">
+            <data name="BSNALunitDataLocation" inType="win:Int32" outType="xs:int" />
+            <data name="SliceBytesInBuffer" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="wBadSliceChopping" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="first_mb_in_slice" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="NumMbsForSlice" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="BitOffsetToSliceData" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_type" inType="win:UInt32" map="sliceType" />
+            <data name="luma_log2_weight_denom" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="chroma_log2_weight_denom" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_ref_idx_l0_active_minus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="num_ref_idx_l1_active_minus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_alpha_c0_offset_div2" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_beta_offset_div2" inType="win:UInt32" outType="xs:unsignedInt" />
+            <struct name="RefPicList[0]" count="32">
+              <data name="Index7Bits" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="AssociatedFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <struct name="RefPicList[1]" count="32">
+              <data name="Index7Bits" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="AssociatedFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>          
+            <data name="slice_qs_delta" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_qp_delta" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="redundant_pic_cnt" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="direct_spatial_mv_pred_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="cabac_init_idc" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="disable_deblocking_filter_idc" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="slice_id" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Buffer_QmatrixParam_H264_Info">
+            <data name="bScalingLists4x4[0]" inType="win:UInt32" outType="xs:unsignedInt" count="16" />
+            <data name="bScalingLists4x4[1]" inType="win:UInt32" outType="xs:unsignedInt" count="16" />
+            <data name="bScalingLists4x4[2]" inType="win:UInt32" outType="xs:unsignedInt" count="16" />
+            <data name="bScalingLists4x4[3]" inType="win:UInt32" outType="xs:unsignedInt" count="16" />
+            <data name="bScalingLists4x4[4]" inType="win:UInt32" outType="xs:unsignedInt" count="16" />
+            <data name="bScalingLists4x4[5]" inType="win:UInt32" outType="xs:unsignedInt" count="16" />
+            <data name="bScalingLists8x8[0]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="bScalingLists8x8[1]" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+          </template>          
+          <template tid="Decode_Info_SyncTask_H264_Info">
+            <data name="PicOrderCnt[0]" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="PicOrderCnt[1]" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="curr_index" inType="win:Int32" outType="xs:int" />
+            <data name="isDecodingCompleted" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="isDisplayed" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="isOutputted" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="EventSts" inType="win:UInt32" map="umcStatus" />
+          </template>
+          <template tid="Decode_Info_OutputParam_AV1_Info">
+            <data name="CropH" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CropW" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CropX" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CropY" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="ChromaFormat" inType="win:UInt32" map="chromaFormat" />
+            <data name="AspectRatioH" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="AspectRatioW" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="FrameRateExtD" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="FrameRateExtN" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="PicStruct" inType="win:UInt32" map="mfxFrameInfoPicStruct" />
+            <data name="DataFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="TimeStamp" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Buffer_PictureParam_AV1_Info">
+            <data name="width" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="height" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="max_width" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="max_height" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CurrPicTextureIndex" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="superres_denom" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="bitdepth" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="seq_profile" inType="win:UInt32" outType="xs:unsignedInt" />
+            <struct name="tiles">
+              <data name="cols" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="rows" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="context_update_id" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <data name="tile widths" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <data name="tile heights" inType="win:UInt32" outType="xs:unsignedInt" count="64" />
+            <struct name="coding">
+              <data name="use_128x128_superblock" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="intra_edge_filter" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="interintra_compound" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="masked_compound" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="warped_motion" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="dual_filter" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="jnt_comp" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="screen_content_tools" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="integer_mv" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="cdef" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="restoration" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="film_grain" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="intrabc" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="high_precision_mv" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="switchable_motion_mode" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="filter_intra" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="disable_frame_end_update_cdf" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="disable_cdf_update" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="reference_mode" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="skip_mode" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="reduced_tx_set" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="superres" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="tx_mode" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="use_ref_frame_mvs" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="enable_ref_frame_mvs" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="reference_frame_update" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <struct name="format">
+              <data name="frame_type" inType="win:UInt32" map="AV1FrameType" />
+              <data name="show_frame" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="showable_frame" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="subsampling_x" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="subsampling_y" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="mono_chrome" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <data name="primary_ref_frame" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="order_hint" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="order_hint_bits" inType="win:UInt32" outType="xs:unsignedInt" />
+            <struct name="frame_refs" count="7">
+              <data name="width" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="height" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="wmmat[0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="wmmat[1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="wmmat[2]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="wmmat[3]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="wmmat[4]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="wmmat[5]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="wminvalid" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="wmtype" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="Index" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <data name="RefFrameMapTextureIndex" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+            <struct name="loop_filter">
+              <data name="filter_level[0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="filter_level[1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="filter_level_u" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="filter_level_v" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="sharpness_level" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="mode_ref_delta_enabled" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="mode_ref_delta_update" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="delta_lf_multi" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="delta_lf_present" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="ref_deltas[0]" inType="win:Int32" outType="xs:int" />
+              <data name="ref_deltas[1]" inType="win:Int32" outType="xs:int" />
+              <data name="ref_deltas[2]" inType="win:Int32" outType="xs:int" />
+              <data name="ref_deltas[3]" inType="win:Int32" outType="xs:int" />
+              <data name="ref_deltas[4]" inType="win:Int32" outType="xs:int" />
+              <data name="ref_deltas[5]" inType="win:Int32" outType="xs:int" />
+              <data name="ref_deltas[6]" inType="win:Int32" outType="xs:int" />
+              <data name="ref_deltas[7]" inType="win:Int32" outType="xs:int" />
+              <data name="mode_deltas[0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="mode_deltas[1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="delta_lf_res" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frame_restoration_type[0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frame_restoration_type[1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frame_restoration_type[2]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="log2_restoration_unit_size[0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="log2_restoration_unit_size[1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="log2_restoration_unit_size[2]" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <struct name="quantization">
+              <data name="delta_q_present" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="delta_q_res" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="base_qindex" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="y_dc_delta_q" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="u_dc_delta_q" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="v_dc_delta_q" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="u_ac_delta_q" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="v_ac_delta_q" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="qm_y" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="qm_u" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="qm_v" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <struct name="cdef">
+              <data name="damping" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="bits" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <struct name="cdef.y_strengths" count="8">
+              <data name="primary" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="secondary" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <struct name="cdef.uv_strengths" count="8">
+              <data name="primary" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="secondary" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <data name="interp_filter" inType="win:UInt32" outType="xs:unsignedInt" />
+            <struct name="segmentation">
+              <data name="enabled" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="update_map" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="update_data" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="temporal_update" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <data name="segmentation.feature_data[0]" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+            <data name="segmentation.feature_data[1]" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+            <data name="segmentation.feature_data[2]" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+            <data name="segmentation.feature_data[3]" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+            <data name="segmentation.feature_data[4]" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+            <data name="segmentation.feature_data[5]" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+            <data name="segmentation.feature_data[6]" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+            <data name="segmentation.feature_data[7]" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+            <struct name="feature_mask" count="8">
+              <data name="alt_q" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="alt_lf_y_v" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="alt_lf_y_h" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="alt_lf_u" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="alt_lf_v" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="ref_frame" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="skip" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="globalmv" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <struct name="film_grain">
+              <data name="apply_grain" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_shift_minus8" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="chroma_scaling_from_luma" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="ar_coeff_lag" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="ar_coeff_shift_minus6" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="grain_scale_shift" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="overlap_flag" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="clip_to_restricted_range" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="matrix_coeff_is_identity" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="grain_seed" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[0][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[0][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[1][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[1][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[2][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[2][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[3][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[3][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[4][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[4][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[5][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[5][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[6][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[6][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[7][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[7][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[8][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[8][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[9][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[9][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[10][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[10][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[11][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[11][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[12][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[12][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[13][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_y[13][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="num_y_points" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[0][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[0][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[1][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[1][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[2][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[2][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[3][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[3][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[4][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[4][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[5][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[5][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[6][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[6][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[7][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[7][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[8][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[8][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[9][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cb[9][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="num_cb_points" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[0][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[0][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[1][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[1][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[2][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[2][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[3][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[3][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[4][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[4][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[5][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[5][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[6][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[6][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[7][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[7][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[8][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[8][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[9][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="scaling_points_cr[9][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="num_cr_points" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="cb_mult" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="cb_luma_mult" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="cr_mult" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="cr_luma_mult" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="cb_offset" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="cr_offset" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+            <data name="ar_coeffs_y" inType="win:UInt32" outType="xs:unsignedInt" count="24" />
+            <data name="ar_coeffs_cb" inType="win:UInt32" outType="xs:unsignedInt" count="25" />
+            <data name="ar_coeffs_cr" inType="win:UInt32" outType="xs:unsignedInt" count="25" />
+            <data name="StatusReportFeedbackNumber" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Buffer_TileControlParam_AV1_Info">
+            <data name="DataOffset" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="DataSize" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="row" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="column" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="anchor_frame" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Info_SyncTask_AV1_Info">
+            <data name="curr_index" inType="win:Int32" outType="xs:int" />
+            <data name="Outputted" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="DecodingCompleted" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="isDisplayable" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="EventSts" inType="win:UInt32" map="umcStatus" />
+          </template>
+          <template tid="Decode_Info_OutputParam_VP9_Info">
+            <data name="CropH" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CropW" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CropX" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="CropY" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="ChromaFormat" inType="win:UInt32" map="chromaFormat" />
+            <data name="AspectRatioH" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="AspectRatioW" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="FrameRateExtD" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="FrameRateExtN" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="PicStruct" inType="win:UInt32" map="mfxFrameInfoPicStruct" />
+            <data name="DataFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="FrameOrder" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="TimeStamp" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Buffer_PictureParam_VP9_Info">
+            <data name="FrameHeightMinus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="FrameWidthMinus1" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frame_type" inType="win:UInt32" map="VP9FrameType" />
+            <data name="show_frame" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="error_resilient_mode" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="intra_only" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="LastRefIdx" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="LastRefSignBias" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="GoldenRefIdx" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="GoldenRefSignBias" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="AltRefIdx" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="AltRefSignBias" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="allow_high_precision_mv" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="mcomp_filter_type" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frame_parallel_decoding_mode" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="segmentation_enabled" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="segmentation_temporal_update" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="segmentation_update_map" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="reset_frame_context" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="refresh_frame_context" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frame_context_idx" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="LosslessFlag" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="ReservedField" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="RefFrameList" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+            <data name="CurrPic" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="filter_level" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="sharpness_level" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="log2_tile_rows" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="log2_tile_columns" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="UncompressedHeaderLengthInBytes" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="FirstPartitionSize" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="mb_segment_tree_probs" inType="win:UInt32" outType="xs:unsignedInt" count="7" />
+            <data name="segment_pred_probs" inType="win:UInt32" outType="xs:unsignedInt" count="3" />
+            <data name="BSBytesInBuffer" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="StatusReportFeedbackNumber" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="profile" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="BitDepthMinus8" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="subsampling_x" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="subsampling_y" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Buffer_SegmentParam_VP9_Info">
+            <struct name="SegData" count="8">
+              <data name="SegmentReferenceEnabled" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="SegmentReference" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="SegmentReferenceSkipped" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="ReservedField3" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="FilterLevel[0][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="FilterLevel[0][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="FilterLevel[1][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="FilterLevel[1][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="FilterLevel[2][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="FilterLevel[2][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="FilterLevel[3][0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="FilterLevel[3][1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="LumaACQuantScale" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="LumaDCQuantScale" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="ChromaACQuantScale" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="ChromaDCQuantScale" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+          </template>
+          <template tid="Decode_Info_SyncTask_VP9_Info">
+            <data name="currFrameId" inType="win:Int32" outType="xs:int" />
+            <data name="copyFromFrame" inType="win:Int32" outType="xs:int" />
+            <data name="index" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="showFrame" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Buffer_Bitstream_Info">
+            <data name="Data" inType="win:UInt8" outType="win:HexInt8" count="32" />
+          </template>
+          <template tid="Decode_Info_Display_H265_Info">
+            <data name="PicOrderCnt" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="wasDisplayed" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="wasOutputted" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Info_Display_H264_Info">
+            <data name="PicOrderCnt[0]" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="PicOrderCnt[1]" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameNum" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="isDisplayed" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="isOutputted" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Info_Display_AV1_Info">
+            <data name="MemID" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="wasDisplayed" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="wasOutputted" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Info_Display_VP9_Info">
+            <data name="MemID" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="wasDisplayed" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
+          <template tid="Decode_Buffer_DPB_H265_Info">
+            <data name="DPBSize" inType="win:UInt32" outType="xs:unsignedInt" />
+            <struct name="DPBInfo" count="DPBSize">
+              <data name="PicOrderCnt" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="MemID" inType="win:Int32" outType="xs:int" />
+              <data name="isShortTermRef" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="isLongTermRef" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="refCounter" inType="win:Int32" outType="xs:int" />
+            </struct>
+          </template>
+          <template tid="Decode_Buffer_DPB_H264_Info">
+            <data name="DPBSize" inType="win:UInt32" outType="xs:unsignedInt" />
+            <struct name="DPBInfo" count="DPBSize">
+              <data name="PicOrderCnt[0]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="PicOrderCnt[1]" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="MemID" inType="win:Int32" outType="xs:int" />
+              <data name="isShortTermRef" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="isLongTermRef" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="refCounter" inType="win:Int32" outType="xs:int" />
+            </struct>
+          </template>
+          <template tid="Decode_Buffer_DPB_AV1_Info">
+            <struct name="DPBInfo" count="6">
+              <data name="MemID" inType="win:Int32" outType="xs:int" />
+              <data name="refvalid" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="refCounter" inType="win:Int32" outType="xs:int" />
+            </struct>
+          </template>
+          <template tid="Decode_Buffer_DPB_VP9_Info">
+            <data name="DPBSize" inType="win:UInt32" outType="xs:unsignedInt" />
+            <struct name="DPBInfo" count="DPBSize">
+              <data name="MemID" inType="win:Int32" outType="xs:int" />
+              <data name="wasDisplayed" inType="win:UInt32" outType="xs:unsignedInt" />
+            </struct>
+          </template>
 			</templates>
 			</provider>
 		</events>
@@ -460,6 +1513,8 @@
 				<string id="opcode.Stop" value="Stop">
 				</string>
 				<string id="opcode.Start" value="Start">
+				</string>
+        <string id="opcode.Info" value="Info">
 				</string>
 				<string id="Intel-MediaSDK.event.2.message" value="Exit">
 				</string>
@@ -515,6 +1570,30 @@
 				<string id="Map.mfxStatus.MFX_ERR_NONE_PARTIAL_OUTPUT" value="MFX_ERR_NONE_PARTIAL_OUTPUT" />
 				<string id="Map.mfxStatus.MFX_ERR_MORE_DATA_SUBMIT_TASK" value="MFX_ERR_MORE_DATA_SUBMIT_TASK" />
 
+        <string id="Map.umcStatus.UMC_OK" value="UMC_OK" />
+        <string id="Map.umcStatus.UMC_ERR_FAILED" value="UMC_ERR_FAILED" />
+        <string id="Map.umcStatus.UMC_ERR_NOT_INITIALIZED" value="UMC_ERR_NOT_INITIALIZED" />
+        <string id="Map.umcStatus.UMC_ERR_TIMEOUT" value="UMC_ERR_TIMEOUT" />
+        <string id="Map.umcStatus.UMC_ERR_NOT_ENOUGH_DATA" value="UMC_ERR_NOT_ENOUGH_DATA" />
+        <string id="Map.umcStatus.UMC_ERR_NULL_PTR" value="UMC_ERR_NULL_PTR" />
+        <string id="Map.umcStatus.UMC_ERR_INIT" value="UMC_ERR_INIT" />
+        <string id="Map.umcStatus.UMC_ERR_SYNC" value="UMC_ERR_SYNC" />
+        <string id="Map.umcStatus.UMC_ERR_NOT_ENOUGH_BUFFER" value="UMC_ERR_NOT_ENOUGH_BUFFER" />
+        <string id="Map.umcStatus.UMC_ERR_END_OF_STREAM" value="UMC_ERR_END_OF_STREAM" />
+        <string id="Map.umcStatus.UMC_ERR_OPEN_FAILED" value="UMC_ERR_OPEN_FAILED" />
+        <string id="Map.umcStatus.UMC_ERR_ALLOC" value="UMC_ERR_ALLOC" />
+        <string id="Map.umcStatus.UMC_ERR_LOCK" value="UMC_ERR_LOCK" />
+        <string id="Map.umcStatus.UMC_ERR_INVALID_STREAM" value="UMC_ERR_INVALID_STREAM" />
+        <string id="Map.umcStatus.UMC_ERR_UNSUPPORTED" value="UMC_ERR_UNSUPPORTED" />
+        <string id="Map.umcStatus.UMC_ERR_NOT_IMPLEMENTED" value="UMC_ERR_NOT_IMPLEMENTED" />
+        <string id="Map.umcStatus.UMC_ERR_INVALID_PARAMS" value="UMC_ERR_INVALID_PARAMS" />
+        <string id="Map.umcStatus.UMC_ERR_NEED_FORCE_OUTPUT" value="UMC_ERR_NEED_FORCE_OUTPUT" />
+        <string id="Map.umcStatus.UMC_ERR_GPU_HANG" value="UMC_ERR_GPU_HANG" />
+        <string id="Map.umcStatus.UMC_WRN_INVALID_STREAM" value="UMC_WRN_INVALID_STREAM" />
+        <string id="Map.umcStatus.UMC_WRN_REPOSITION_INPROGRESS" value="UMC_WRN_REPOSITION_INPROGRESS" />
+        <string id="Map.umcStatus.UMC_WRN_INFO_NOT_READY" value="UMC_WRN_INFO_NOT_READY" />
+        <string id="Map.umcStatus.UMC_NTF_NEW_RESOLUTION" value="UMC_NTF_NEW_RESOLUTION" />
+
 				<string id="Map.mfxAccelerationMode.MFX_ACCEL_MODE_NA" value="MFX_ACCEL_MODE_NA" />
 				<string id="Map.mfxAccelerationMode.MFX_ACCEL_MODE_VIA_D3D9" value="MFX_ACCEL_MODE_VIA_D3D9" />
 				<string id="Map.mfxAccelerationMode.MFX_ACCEL_MODE_VIA_D3D11" value="MFX_ACCEL_MODE_VIA_D3D11" />
@@ -528,6 +1607,112 @@
 
 				<string id="Map.mfxImplCapsDeliveryFormat.MFX_IMPLCAPS_IMPLDESCSTRUCTURE" value="MFX_IMPLCAPS_IMPLDESCSTRUCTURE" />
 				<string id="Map.mfxImplCapsDeliveryFormat.MFX_IMPLCAPS_IMPLEMENTEDFUNCTIONS" value="MFX_IMPLCAPS_IMPLEMENTEDFUNCTIONS" />
+
+        <string id="Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_UNKNOWN" value="MFX_PICSTRUCT_UNKNOWN" />
+        <string id="Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_PROGRESSIVE" value="MFX_PICSTRUCT_PROGRESSIVE" />
+        <string id="Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_TFF" value="MFX_PICSTRUCT_FIELD_TFF" />
+        <string id="Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_BFF" value="MFX_PICSTRUCT_FIELD_BFF" />
+        <string id="Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_REPEATED" value="MFX_PICSTRUCT_FIELD_REPEATED" />
+        <string id="Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FRAME_DOUBLING" value="MFX_PICSTRUCT_FRAME_DOUBLING" />
+        <string id="Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FRAME_TRIPLING" value="MFX_PICSTRUCT_FRAME_TRIPLING" />
+        <string id="Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_SINGLE" value="MFX_PICSTRUCT_FIELD_SINGLE" />
+        <string id="Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_TOP" value="MFX_PICSTRUCT_FIELD_TOP" />
+        <string id="Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_BOTTOM" value="MFX_PICSTRUCT_FIELD_BOTTOM" />
+        <string id="Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_PAIRED_PREV" value="MFX_PICSTRUCT_FIELD_PAIRED_PREV" />
+        <string id="Map.mfxFrameInfoPicStruct.MFX_PICSTRUCT_FIELD_PAIRED_NEXT" value="MFX_PICSTRUCT_FIELD_PAIRED_NEXT" />
+
+        <string id="Map.chromaFormat.CHROMA_400" value="CHROMA_400" />
+        <string id="Map.chromaFormat.CHROMA_420" value="CHROMA_420" />
+        <string id="Map.chromaFormat.CHROMA_422" value="CHROMA_422" />
+        <string id="Map.chromaFormat.CHROMA_444" value="CHROMA_444" />
+
+        <string id="Map.hevcProfile.H265_PROFILE_MAIN" value="H265_PROFILE_MAIN" />
+        <string id="Map.hevcProfile.H265_PROFILE_MAIN10" value="H265_PROFILE_MAIN10" />
+        <string id="Map.hevcProfile.H265_PROFILE_MAINSP" value="H265_PROFILE_MAINSP" />
+        <string id="Map.hevcProfile.H265_PROFILE_FREXT" value="H265_PROFILE_FREXT" />
+        <string id="Map.hevcProfile.H265_PROFILE_SCC" value="H265_PROFILE_SCC" />
+
+        <string id="Map.frameFourcc.MFX_FOURCC_NV12" value="MFX_FOURCC_NV12" />
+        <string id="Map.frameFourcc.MFX_FOURCC_YV12" value="MFX_FOURCC_YV12" />
+        <string id="Map.frameFourcc.MFX_FOURCC_NV16" value="MFX_FOURCC_NV16" />
+        <string id="Map.frameFourcc.MFX_FOURCC_YUY2" value="MFX_FOURCC_YUY2" />
+        <string id="Map.frameFourcc.MFX_FOURCC_RGB565" value="MFX_FOURCC_RGB565" />
+        <string id="Map.frameFourcc.MFX_FOURCC_RGBP" value="MFX_FOURCC_RGBP" />
+        <string id="Map.frameFourcc.MFX_FOURCC_P8" value="MFX_FOURCC_P8" />
+        <string id="Map.frameFourcc.MFX_FOURCC_P8_TEXTURE" value="MFX_FOURCC_P8_TEXTURE" />
+        <string id="Map.frameFourcc.MFX_FOURCC_P010" value="MFX_FOURCC_P010" />
+        <string id="Map.frameFourcc.MFX_FOURCC_P016" value="MFX_FOURCC_P016" />
+        <string id="Map.frameFourcc.MFX_FOURCC_P210" value="MFX_FOURCC_P210" />
+        <string id="Map.frameFourcc.MFX_FOURCC_BGR4" value="MFX_FOURCC_BGR4" />
+        <string id="Map.frameFourcc.MFX_FOURCC_A2RGB10" value="MFX_FOURCC_A2RGB10" />
+        <string id="Map.frameFourcc.MFX_FOURCC_ARGB16" value="MFX_FOURCC_ARGB16" />
+        <string id="Map.frameFourcc.MFX_FOURCC_ABGR16" value="MFX_FOURCC_ABGR16" />
+        <string id="Map.frameFourcc.MFX_FOURCC_R16" value="MFX_FOURCC_R16" />
+        <string id="Map.frameFourcc.MFX_FOURCC_AYUV" value="MFX_FOURCC_AYUV" />
+        <string id="Map.frameFourcc.MFX_FOURCC_AYUV_RGB4" value="MFX_FOURCC_AYUV_RGB4" />
+        <string id="Map.frameFourcc.MFX_FOURCC_UYVY" value="MFX_FOURCC_UYVY" />
+        <string id="Map.frameFourcc.MFX_FOURCC_Y210" value="MFX_FOURCC_Y210" />
+        <string id="Map.frameFourcc.MFX_FOURCC_Y410" value="MFX_FOURCC_Y410" />
+        <string id="Map.frameFourcc.MFX_FOURCC_Y216" value="MFX_FOURCC_Y216" />
+        <string id="Map.frameFourcc.MFX_FOURCC_Y416" value="MFX_FOURCC_Y416" />
+        <string id="Map.frameFourcc.MFX_FOURCC_NV21" value="MFX_FOURCC_NV21" />
+        <string id="Map.frameFourcc.MFX_FOURCC_I010" value="MFX_FOURCC_I010" />
+        <string id="Map.frameFourcc.MFX_FOURCC_I210" value="MFX_FOURCC_I210" />
+        <string id="Map.frameFourcc.MFX_FOURCC_I420" value="MFX_FOURCC_I420" />
+        <string id="Map.frameFourcc.MFX_FOURCC_I422" value="MFX_FOURCC_I422" />
+        <string id="Map.frameFourcc.MFX_FOURCC_BGRA" value="MFX_FOURCC_BGRA" />
+        <string id="Map.frameFourcc.MFX_FOURCC_BGRP" value="MFX_FOURCC_BGRP" />
+        <string id="Map.frameFourcc.MFX_FOURCC_XYUV" value="MFX_FOURCC_XYUV" />
+
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_TRAIL_N" value="NAL_UT_CODED_SLICE_TRAIL_N" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_TRAIL_R" value="NAL_UT_CODED_SLICE_TRAIL_R" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_TSA_N" value="NAL_UT_CODED_SLICE_TSA_N" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_TLA_R" value="NAL_UT_CODED_SLICE_TLA_R" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_STSA_N" value="NAL_UT_CODED_SLICE_STSA_N" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_STSA_R" value="NAL_UT_CODED_SLICE_STSA_R" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_RADL_N" value="NAL_UT_CODED_SLICE_RADL_N" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_RADL_R" value="NAL_UT_CODED_SLICE_RADL_R" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_RASL_N" value="NAL_UT_CODED_SLICE_RASL_N" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_RASL_R" value="NAL_UT_CODED_SLICE_RASL_R" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_BLA_W_LP" value="NAL_UT_CODED_SLICE_BLA_W_LP" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_BLA_W_RADL" value="NAL_UT_CODED_SLICE_BLA_W_RADL" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_BLA_N_LP" value="NAL_UT_CODED_SLICE_BLA_N_LP" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_IDR_W_RADL" value="NAL_UT_CODED_SLICE_IDR_W_RADL" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_IDR_N_LP" value="NAL_UT_CODED_SLICE_IDR_N_LP" />
+        <string id="Map.nal_unit_type.NAL_UT_CODED_SLICE_CRA" value="NAL_UT_CODED_SLICE_CRA" />
+        <string id="Map.nal_unit_type.NAL_UT_VPS" value="NAL_UT_VPS" />
+        <string id="Map.nal_unit_type.NAL_UT_SPS" value="NAL_UT_SPS" />
+        <string id="Map.nal_unit_type.NAL_UT_PPS" value="NAL_UT_PPS" />
+        <string id="Map.nal_unit_type.NAL_UT_AU_DELIMITER" value="NAL_UT_AU_DELIMITER" />
+        <string id="Map.nal_unit_type.NAL_UT_EOS" value="NAL_UT_EOS" />
+        <string id="Map.nal_unit_type.NAL_UT_EOB" value="NAL_UT_EOB" />
+        <string id="Map.nal_unit_type.NAL_UT_FILLER_DATA" value="NAL_UT_FILLER_DATA" />
+        <string id="Map.nal_unit_type.NAL_UT_SEI" value="NAL_UT_SEI" />
+        <string id="Map.nal_unit_type.NAL_UT_SEI_SUFFIX" value="NAL_UT_SEI_SUFFIX" />
+        <string id="Map.nal_unit_type.NAL_UT_INVALID" value="NAL_UT_INVALID" />
+
+        <string id="Map.sliceType.B_SLICE" value="B_SLICE" />
+        <string id="Map.sliceType.P_SLICE" value="P_SLICE" />
+        <string id="Map.sliceType.I_SLICE" value="I_SLICE" />
+
+        <string id="Map.avcProfile.MFX_PROFILE_AVC_BASELINE" value="MFX_PROFILE_AVC_BASELINE" />
+        <string id="Map.avcProfile.MFX_PROFILE_AVC_MAIN" value="MFX_PROFILE_AVC_MAIN" />
+        <string id="Map.avcProfile.MFX_PROFILE_AVC_EXTENDED" value="MFX_PROFILE_AVC_EXTENDED" />
+        <string id="Map.avcProfile.MFX_PROFILE_AVC_HIGH" value="MFX_PROFILE_AVC_HIGH" />
+        <string id="Map.avcProfile.MFX_PROFILE_AVC_HIGH10" value="MFX_PROFILE_AVC_HIGH10" />
+        <string id="Map.avcProfile.MFX_PROFILE_AVC_HIGH_422" value="MFX_PROFILE_AVC_HIGH_422" />
+        <string id="Map.avcProfile.MFX_PROFILE_AVC_CONSTRAINED_BASELINE" value="MFX_PROFILE_AVC_CONSTRAINED_BASELINE" />
+        <string id="Map.avcProfile.MFX_PROFILE_AVC_CONSTRAINED_HIGH" value="MFX_PROFILE_AVC_CONSTRAINED_HIGH" />
+        <string id="Map.avcProfile.MFX_PROFILE_AVC_PROGRESSIVE_HIGH" value="MFX_PROFILE_AVC_PROGRESSIVE_HIGH" />
+
+        <string id="Map.AV1FrameType.KEY_FRAME" value="KEY_FRAME" />
+        <string id="Map.AV1FrameType.INTER_FRAME" value="INTER_FRAME" />
+        <string id="Map.AV1FrameType.INTRA_ONLY_FRAME" value="INTRA_ONLY_FRAME" />
+        <string id="Map.AV1FrameType.SWITCH_FRAME" value="SWITCH_FRAME" />
+        <string id="Map.AV1FrameType.FRAME_TYPES" value="FRAME_TYPES" />
+
+        <string id="Map.VP9FrameType.KEY_FRAME" value="KEY_FRAME" />
+        <string id="Map.VP9FrameType.INTER_FRAME" value="INTER_FRAME" />
 			</stringTable>
 		</resources>
 	</localization>

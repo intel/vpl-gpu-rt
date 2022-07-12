@@ -372,7 +372,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 
     mfxStatus mfxRes = MFX_ERR_NONE;
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoENCODE_Query");
-    PERF_EVENT(MFX_TRACE_API_ENCODE_QUERY_TASK, 0, make_event_data(session, in ? in->mfx.FrameInfo.Width : 0, in ? in->mfx.FrameInfo.Height : 0, in ? in->mfx.CodecId : 0, in ? in->mfx.TargetUsage : 0, in ? in->mfx.LowPower : 0), [&](){ return make_event_data(mfxRes);});
+    TRACE_EVENT(MFX_TRACE_API_ENCODE_QUERY_TASK, EVENT_TYPE_INFO, 0, make_event_data(session, in ? in->mfx.FrameInfo.Width : 0, in ? in->mfx.FrameInfo.Height : 0, in ? in->mfx.CodecId : 0, in ? in->mfx.TargetUsage : 0, in ? in->mfx.LowPower : 0));
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, in);
 
     bool bIsHWENCSupport = false;
@@ -444,7 +444,7 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
     mfxStatus mfxRes = MFX_ERR_NONE;
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoENCODE_QueryIOSurf");
-    PERF_EVENT(MFX_TRACE_API_ENCODE_QUERY_IOSURF_TASK, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId, par->mfx.TargetUsage, par->mfx.LowPower), [&](){ return make_event_data(mfxRes);});
+    TRACE_EVENT(MFX_TRACE_API_ENCODE_QUERY_IOSURF_TASK, EVENT_TYPE_INFO, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId, par->mfx.TargetUsage, par->mfx.LowPower));
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, par);
 
     bool bIsHWENCSupport = false;
@@ -527,7 +527,7 @@ mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoENCODE_Init");
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, par);
 
-    PERF_EVENT(MFX_TRACE_API_ENCODE_INIT_TASK, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId, par->mfx.TargetUsage, par->mfx.LowPower), [&](){ return make_event_data(mfxRes);});
+    TRACE_EVENT(MFX_TRACE_API_ENCODE_INIT_TASK, EVENT_TYPE_INFO, 0, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId, par->mfx.TargetUsage, par->mfx.LowPower));
 
     try
     {
@@ -591,7 +591,7 @@ mfxStatus MFXVideoENCODE_Close(mfxSession session)
     mfxStatus mfxRes = MFX_ERR_NONE;
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoENCODE_Close");
-    PERF_EVENT(MFX_TRACE_API_ENCODE_CLOSE_TASK, 0, make_event_data(session), [&](){ return make_event_data(mfxRes);});
+    TRACE_EVENT(MFX_TRACE_API_ENCODE_CLOSE_TASK, EVENT_TYPE_INFO, 0, make_event_data(session));
 
     MFX_CHECK(session,               MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pScheduler, MFX_ERR_NOT_INITIALIZED);
@@ -656,7 +656,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
     mfxStatus mfxRes;
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoENCODE_EncodeFrameAsync");
-    PERF_EVENT(MFX_TRACE_API_ENCODE_FRAME_ASYNC_TASK, 0, make_event_data(session, surface), [&](){ return make_event_data(mfxRes, syncp ? *syncp : nullptr);});
+    TRACE_EVENT(MFX_TRACE_API_ENCODE_FRAME_ASYNC_TASK, EVENT_TYPE_INFO, 0, make_event_data(session, surface));
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, ctrl);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, surface);
 
