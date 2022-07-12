@@ -261,6 +261,12 @@ static mfxStatus ReallocImpl(VADisplay* va_disp, vaapiMemIdInt *vaapi_mid, mfxFr
     }
     else
     {
+        VASurfaceStatus status = VASurfaceRendering;
+        while(status != VASurfaceReady)
+        {
+            MFX_STS_TRACE(vaQuerySurfaceStatus(va_disp, *vaapi_mid->m_surface, &status));
+        }
+
         va_res = vaDestroySurfaces(va_disp, vaapi_mid->m_surface, 1);
         MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_MEMORY_ALLOC);
         *vaapi_mid->m_surface = VA_INVALID_ID;
@@ -885,6 +891,11 @@ vaapi_surface_wrapper::vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 ty
 
 vaapi_surface_wrapper::~vaapi_surface_wrapper()
 {
+    VASurfaceStatus status = VASurfaceRendering;
+    while(status != VASurfaceReady)
+    {
+        MFX_STS_TRACE(vaQuerySurfaceStatus(*m_pVADisplay, m_resource_id, &status));
+    }
     std::ignore = MFX_STS_TRACE(vaDestroySurfaces(*m_pVADisplay, &m_resource_id, 1));
 }
 
