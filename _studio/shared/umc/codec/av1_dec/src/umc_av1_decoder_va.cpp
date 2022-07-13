@@ -85,9 +85,9 @@ namespace UMC_AV1_DECODER
             // it's first submission for current frame - need to call BeginFrame
             sts = va->BeginFrame(frame.GetMemID(SURFACE_RECON));
 #ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-                {
-                    TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, 0, make_event_data(frame.GetMemID(), sts));
-                }
+            {
+                TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, 0, make_event_data(frame.GetMemID(), sts));
+            }
 #endif
             if (sts != UMC::UMC_OK)
                 return sts;
