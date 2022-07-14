@@ -44,10 +44,6 @@
 #define DEBUG_ADAPT 0
 const char frameType[] = {'U','I','P','U','B'};
 #endif
-#ifdef MFX_ENABLE_ENCODE_STATS
-#include "mfx_utils_extbuf.h"
-#endif
-
 
 using namespace std::chrono_literals;
 using namespace MfxHwH264Encode;
@@ -4109,10 +4105,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 #endif
                 mfxStatus sts = MFX_ERR_NONE;
 
-#ifdef MFX_ENABLE_ENCODE_STATS
-                task->m_bs = m_bs; // Must pass bs to task before execute because EncodeStatsContainer is attached to bs.
-#endif
-
                 //printf("Execute: %d, type %d, qp %d\n", task->m_frameOrder, task->m_type[0], task->m_cqpValue[0]);
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
                 if(task->m_handleMCTF.first)//Intercept encoder so MCTF denoised frame can be fed at the right moment.
@@ -4570,9 +4562,6 @@ mfxStatus ImplementationAvc::EncodeFrameCheckNormalWay(
     if ((stagesToGo & AsyncRoutineEmulator::STG_BIT_WAIT_ENCODE) == 0)
     {
         status = mfxStatus(MFX_ERR_MORE_DATA_SUBMIT_TASK);
-#ifdef MFX_ENABLE_ENCODE_STATS
-        m_bs = bs;
-#endif
         bs = 0; // no output will be generated
     }
 
