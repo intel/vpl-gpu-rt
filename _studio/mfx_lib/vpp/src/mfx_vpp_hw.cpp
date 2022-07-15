@@ -1979,7 +1979,7 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
             MFX_CHECK_NULL_PTR1(bufDT);
             bufDT->DetailFactor = m_executeParams.detailFactorOriginal;
         }
-        else if (MFX_EXTBUFF_VIDEO_SIGNAL_INFO == bufferId)
+        else if (MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO == bufferId)
         {
             mfxExtVPPVideoSignalInfo *bufVSI = reinterpret_cast<mfxExtVPPVideoSignalInfo *>(par->ExtParam[i]);
             MFX_CHECK_NULL_PTR1(bufVSI);
