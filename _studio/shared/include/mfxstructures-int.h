@@ -519,6 +519,8 @@ typedef struct {
     { 0x56A9, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56B0, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56B1, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56B2, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56B3, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56C0, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56C1, MFX_HW_DG2, MFX_GT4 }, // DG2
 
