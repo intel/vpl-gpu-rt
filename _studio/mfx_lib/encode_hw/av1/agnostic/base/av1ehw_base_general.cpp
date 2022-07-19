@@ -2629,13 +2629,16 @@ void SetDefaultGOP(
 void SetDefaultBRC(
     mfxVideoParam& par
     , const Defaults::Param& defPar
-    , mfxExtCodingOption2* /*pCO2*/
+    , mfxExtCodingOption2* pCO2
     , mfxExtCodingOption3* pCO3)
 {
     SetDefault(par.mfx.BRCParamMultiplier, 1);
 
     par.mfx.RateControlMethod = defPar.base.GetRateControlMethod(defPar);
     BufferSizeInKB(par.mfx)   = defPar.base.GetBufferSizeInKB(defPar);
+
+    if(pCO2)
+        pCO2->MBBRC = defPar.base.GetMBBRC(defPar);
 
     bool bSetQP = par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
         && !(par.mfx.QPI && par.mfx.QPP && par.mfx.QPB);
@@ -2714,7 +2717,7 @@ void General::SetDefaults(
     mfxExtCodingOption3*      pCO3   = ExtBuffer::Get(par);
     SetDefaultSize(par, defPar, pRsPar);
     SetDefaultGOP(par, defPar, pCO2, pCO3);
-    SetDefaultBRC(par, defPar, nullptr, pCO3);
+    SetDefaultBRC(par, defPar, pCO2, pCO3);
 
     SetDefault(par.mfx.CodecProfile, defPar.base.GetProfile(defPar));
     SetDefault(par.mfx.CodecLevel, GetDefaultLevel);

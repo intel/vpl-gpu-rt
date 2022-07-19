@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
+#include "mfx_enc_common.h"
 #if defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
 
 #include "av1ehw_base_general.h"
@@ -665,6 +666,26 @@ public:
         return ft;
     }
 
+    static mfxU16 MBBRC(
+        Defaults::TChain<mfxU16>::TExt
+        , const Defaults::Param& par)
+    {
+        const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par.mvp);
+        bool bPassThrough               = pCO2 && pCO2->MBBRC;
+        bool bON                        = bPassThrough && IsOn(pCO2->MBBRC);
+        bool bOFF                       = bPassThrough && IsOff(pCO2->MBBRC);
+
+        bOFF |= !bPassThrough
+            && (   par.base.GetRateControlMethod(par) == MFX_RATECONTROL_CQP
+                || ::IsSWBRCMode(par.mvp)
+                || IsOn(par.mvp.mfx.LowPower));
+
+        return mfxU16(
+            bON * MFX_CODINGOPTION_ON
+            + bOFF * MFX_CODINGOPTION_OFF);
+    }
+
+
     class TemporalLayers
     {
     public:
@@ -914,6 +935,7 @@ public:
         PUSH_DEFAULT(NonStdReordering);
         PUSH_DEFAULT(LoopFilterLevels);
         PUSH_DEFAULT(CDEF);
+        PUSH_DEFAULT(MBBRC);
 
 #undef PUSH_DEFAULT
     }
