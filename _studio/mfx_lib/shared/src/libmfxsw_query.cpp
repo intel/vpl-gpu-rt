@@ -23,6 +23,7 @@
 
 mfxStatus MFXQueryIMPL(mfxSession session, mfxIMPL *impl)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     mfxIMPL currentImpl;
 
     // check error(s)
@@ -55,6 +56,7 @@ mfxStatus MFXQueryIMPL(mfxSession session, mfxIMPL *impl)
 
 mfxStatus MFXQueryVersion(mfxSession session, mfxVersion *pVersion)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     if (0 == session)
     {
         return MFX_ERR_INVALID_HANDLE;

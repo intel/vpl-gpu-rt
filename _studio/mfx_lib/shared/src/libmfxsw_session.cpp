@@ -25,7 +25,7 @@
 
 mfxStatus MFXJoinSession(mfxSession session, mfxSession child_session)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXJoinSession");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     mfxStatus mfxRes;
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pScheduler, MFX_ERR_NOT_INITIALIZED);
@@ -73,7 +73,7 @@ mfxStatus MFXJoinSession(mfxSession session, mfxSession child_session)
 
 mfxStatus MFXDisjoinSession(mfxSession session)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXDisjoinSession");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     mfxStatus mfxRes;
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
@@ -118,6 +118,7 @@ mfxStatus MFXDisjoinSession(mfxSession session)
 
 mfxStatus MFXCloneSession(mfxSession session, mfxSession *clone)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_CHECK_HDL(session);
     MFX_CHECK_NULL_PTR1(clone);
     auto pSessionInt = (_mfxSession*)session;
@@ -160,6 +161,7 @@ enum
 
 mfxStatus MFXSetPriority(mfxSession session, mfxPriority priority)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     // check error(s)
     if (((MFX_PRIORITY_LOW > priority) || (MFX_PRIORITY_HIGH < priority)) &&
         (MFX_PRIORITY_STOP_HW_LISTENING != static_cast<int>(priority)) &&
@@ -205,6 +207,7 @@ mfxStatus MFXSetPriority(mfxSession session, mfxPriority priority)
 
 mfxStatus MFXGetPriority(mfxSession session, mfxPriority *priority)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(priority, MFX_ERR_NULL_PTR);
 
@@ -216,7 +219,7 @@ mfxStatus MFXGetPriority(mfxSession session, mfxPriority *priority)
 
 mfxStatus MFXInternalPseudoJoinSession(mfxSession session, mfxSession child_session)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXInternalPseudoJoinSession");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     mfxStatus mfxRes;
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
@@ -249,7 +252,7 @@ mfxStatus MFXInternalPseudoJoinSession(mfxSession session, mfxSession child_sess
 
 mfxStatus MFXInternalPseudoDisjoinSession(mfxSession session)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXInternalPseudoDisjoinSession");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     mfxStatus mfxRes;
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);

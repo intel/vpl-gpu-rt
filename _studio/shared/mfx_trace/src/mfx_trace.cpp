@@ -195,6 +195,32 @@ mfxTraceU32 MFXTrace_GetRegistryParams(void)
 }
 
 
+mfxTraceU32 MFXTrace_GetEnvParams(void)
+{
+    const char* tracelogChar = std::getenv("VPL_TXT_LOG");
+    char* endPtr = nullptr;
+    int LogConfig = 0;
+    if (tracelogChar != nullptr)
+    {
+        LogConfig = std::strtol(tracelogChar, &endPtr, 10);
+        g_OutputMode = LogConfig;
+    }
+#ifdef  _DEBUG
+    const char* tracelogLevel = std::getenv("VPL_TXT_LEVEL");
+    char* endLogPtr = nullptr;
+    int LevelConfig = 0;
+    if (tracelogLevel != nullptr)
+    {
+        LevelConfig = std::strtol(tracelogLevel, &endLogPtr, 10);
+        g_Level = LevelConfig;
+    }
+#else
+    g_Level = MFX_TRACE_LEVEL_API;
+#endif
+
+    return 0;
+}
+
 /*------------------------------------------------------------------------------*/
 
 mfxTraceU32 mfx_trace_get_category_index(mfxTraceChar* category, mfxTraceU32& index)
@@ -228,10 +254,17 @@ inline bool MFXTrace_IsPrintableCategoryAndLevel(mfxTraceChar* category, mfxTrac
     {
         if (level <= g_mfxTraceCategoriesTable[index].m_level) return true;
     }
+#ifdef _DEBUG
     else if (!g_mfxTraceCategoriesTable)
     {
         if (level <= g_Level) return true;
     }
+#else
+    else if (!g_mfxTraceCategoriesTable)
+    {
+        if (level == g_Level) return true;
+    }
+#endif
     return false;
 }
 
@@ -245,12 +278,6 @@ mfxTraceU32 MFXTrace_Init()
 
 #if defined(MFX_TRACE_ENABLE_TRASH)
     g_OutputMode |= MFX_TRACE_OUTPUT_TRASH;
-#endif
-#if defined(MFX_TRACE_ENABLE_TEXTLOG)
-    g_OutputMode |= MFX_TRACE_OUTPUT_TEXTLOG;
-#endif
-#if defined(MFX_TRACE_ENABLE_STAT)
-    g_OutputMode |= MFX_TRACE_OUTPUT_STAT;
 #endif
 #if defined(MFX_TRACE_ENABLE_STAT)
     g_OutputMode |= MFX_TRACE_OUTPUT_STAT;
@@ -278,6 +305,8 @@ mfxTraceU32 MFXTrace_Init()
     }
 
     sts = MFXTrace_GetRegistryParams();
+
+    sts = MFXTrace_GetEnvParams();
     if (!sts)
     {
         output_mode = g_OutputMode;

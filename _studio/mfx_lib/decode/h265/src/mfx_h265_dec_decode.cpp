@@ -146,7 +146,7 @@ VideoDECODEH265::~VideoDECODEH265(void)
 // Initialize decoder instance
 mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH265::Init");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEH265::Init");
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
     MFX_CHECK(!m_isInit, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -460,7 +460,7 @@ mfxStatus VideoDECODEH265::Reset(mfxVideoParam *par)
 // Free decoder resources
 mfxStatus VideoDECODEH265::Close(void)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH265::Close");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEH265::Close");
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
     MFX_CHECK(m_isInit && m_pH265VideoDecoder.get(), MFX_ERR_NOT_INITIALIZED);
@@ -671,7 +671,7 @@ mfxStatus VideoDECODEH265::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVi
 // MediaSDK DECODE_QueryIOSurf API function
 mfxStatus VideoDECODEH265::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH265::QueryIOSurf");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEH265::QueryIOSurf");
     MFX_CHECK_NULL_PTR2(par, request);
 
     eMFXPlatform platform = MFX_Utility::GetPlatform_H265(core, par);
@@ -791,7 +791,7 @@ mfxStatus VideoDECODEH265::GetDecodeStat(mfxDecodeStat *stat)
 // Decoder threads entry point
 static mfxStatus HEVCDECODERoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "HEVCDECODERoutine");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "HEVCDECODERoutine");
     mfxStatus sts = MFX_ERR_NONE;
 
     try
@@ -804,7 +804,7 @@ static mfxStatus HEVCDECODERoutine(void *pState, void *pParam, mfxU32 threadNumb
     }
     catch(...)
     {
-        MFX_LTRACE_MSG_1(MFX_TRACE_LEVEL_API, "exception handled");
+        MFX_LTRACE_MSG_1(MFX_TRACE_LEVEL_INTERNAL, "exception handled");
         return MFX_ERR_NONE;
     }
     return sts;
@@ -820,7 +820,7 @@ static mfxStatus HEVCCompleteProc(void *, void *pParam, mfxStatus )
 // Decoder instance threads entry point. Do async tasks here
 mfxStatus VideoDECODEH265::RunThread(void * params, mfxU32 threadNumber)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH265::RunThread");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEH265::RunThread");
     ThreadTaskInfo265* info = reinterpret_cast<ThreadTaskInfo265*>(params);
 
     MFX_CHECK_NULL_PTR1(info);
@@ -953,7 +953,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs,
 // Check if there is enough data to start decoding in async mode
 mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH265::DecodeFrameCheck");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEH265::DecodeFrameCheck");
 
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 

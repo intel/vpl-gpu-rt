@@ -45,6 +45,7 @@
 
 mfxStatus MFXInit(mfxIMPL implParam, mfxVersion *ver, mfxSession *session)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     mfxInitParam par = {};
 
     par.Implementation = implParam;
@@ -82,7 +83,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "ThreadName=MSDK app");
     }
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXInitEx");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     TRACE_EVENT(MFX_TRACE_API_MFX_INIT_EX_TASK, EVENT_TYPE_INFO, 0, make_event_data((mfxU32) par.Implementation, par.GPUCopy));
 
     // check the library version
@@ -203,7 +204,7 @@ mfxStatus MFXDoWork(mfxSession session)
 {
     mfxStatus res;
 
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXDoWork");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     TRACE_EVENT(MFX_TRACE_API_DO_WORK_TASK, EVENT_TYPE_INFO, 0, make_event_data(session));
 
     // check error(s)
@@ -256,7 +257,7 @@ mfxStatus MFXClose(mfxSession session)
         // used after it. special care should be taken with MFX_AUTO_TRACE macro
         // since it inserts class variable on stack which calls to trace library in the
         // destructor.
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXClose");
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
 
         // parent session can't be closed,
         // because there is no way to let children know about parent's death.
@@ -300,6 +301,7 @@ mfxStatus MFXClose(mfxSession session)
 
 mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* session)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     mfxStatus mfxRes = MFX_ERR_NONE;
 
     MFX_TRACE_INIT();
@@ -656,7 +658,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
         TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_START, 0, make_event_data((mfxU32)format));
     }
 #endif
-
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     try
     {
         switch (format)
@@ -821,6 +823,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
 mfxStatus MFX_CDECL MFXReleaseImplDescription(mfxHDL hdl)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_CHECK_HDL(hdl);
 
     try

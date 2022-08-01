@@ -2349,7 +2349,7 @@ void ImplementationAvc::BrcPreEnc(
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
 mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoVPPHW::SubmitToMctf");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoVPPHW::SubmitToMctf");
     MFX_CHECK_NULL_PTR1(pTask);
 
     bool isIntraFrame = pTask->GetFrameType() & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR);

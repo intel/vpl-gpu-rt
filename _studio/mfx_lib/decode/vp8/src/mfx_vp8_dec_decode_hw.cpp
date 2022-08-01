@@ -129,7 +129,7 @@ bool VideoDECODEVP8_HW::CheckHardwareSupport(VideoCORE *p_core, mfxVideoParam *p
 
 mfxStatus VideoDECODEVP8_HW::Init(mfxVideoParam *p_video_param)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEVP8_HW::Init");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEVP8_HW::Init");
     mfxStatus sts = MFX_ERR_NONE;
 
     if (m_is_initialized)
@@ -355,7 +355,7 @@ mfxStatus VideoDECODEVP8_HW::Reset(mfxVideoParam *p_video_param)
 
 mfxStatus VideoDECODEVP8_HW::Close()
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEVP8_HW::Close");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEVP8_HW::Close");
     if(m_is_initialized == false)
         MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
@@ -558,7 +558,7 @@ UMC::FrameMemID VideoDECODEVP8_HW::GetMemIdToUnlock()
 
 mfxStatus MFX_CDECL VP8DECODERoutine(void *p_state, void * /*pp_param*/, mfxU32 /*thread_number*/, mfxU32)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VP8DECODERoutine");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VP8DECODERoutine");
     mfxStatus sts = MFX_ERR_NONE;
     VideoDECODEVP8_HW::VP8DECODERoutineData& data = *(VideoDECODEVP8_HW::VP8DECODERoutineData*)p_state;
     VideoDECODEVP8_HW& decoder = *data.decoder;

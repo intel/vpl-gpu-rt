@@ -70,6 +70,7 @@ mfxStatus MFXVideoCORE_QueryPlatform(mfxSession session, mfxPlatform* platform)
 
 mfxStatus MFXMemory_GetSurfaceForDecode(mfxSession session, mfxFrameSurface1** output_surf)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_CHECK_NULL_PTR1(output_surf);
     MFX_CHECK_HDL(session);
     MFX_CHECK(session->m_pCORE.get(), MFX_ERR_NOT_INITIALIZED);

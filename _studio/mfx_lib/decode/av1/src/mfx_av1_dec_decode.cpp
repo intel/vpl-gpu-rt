@@ -1079,7 +1079,7 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
 
 mfxStatus VideoDECODEAV1::DecodeRoutine(void* state, void* param, mfxU32, mfxU32)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "AV1DECODERoutine");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "AV1DECODERoutine");
     mfxStatus sts = MFX_ERR_NONE;
 
     try
@@ -1097,7 +1097,7 @@ mfxStatus VideoDECODEAV1::DecodeRoutine(void* state, void* param, mfxU32, mfxU32
     }
     catch(...)
     {
-        MFX_LTRACE_MSG_1(MFX_TRACE_LEVEL_API, "exception handled");
+        MFX_LTRACE_MSG_1(MFX_TRACE_LEVEL_INTERNAL, "exception handled");
         return MFX_ERR_NONE;
     }
 

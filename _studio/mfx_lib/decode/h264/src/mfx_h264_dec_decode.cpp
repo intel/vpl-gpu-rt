@@ -549,7 +549,7 @@ mfxStatus VideoDECODEH264::SetTargetViewList(mfxVideoParam *par)
 
 mfxStatus VideoDECODEH264::Reset(mfxVideoParam *par)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH264::Reset");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEH264::Reset");
 
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
@@ -653,7 +653,7 @@ mfxTaskThreadingPolicy VideoDECODEH264::GetThreadingPolicy(void)
 
 mfxStatus VideoDECODEH264::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH264::Query");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEH264::Query");
     MFX_CHECK_NULL_PTR1(out);
 
     eMFXPlatform platform = MFX_Utility::GetPlatform(core, in);
@@ -805,7 +805,7 @@ mfxStatus VideoDECODEH264::GetVideoParam(mfxVideoParam *par)
 
 mfxStatus VideoDECODEH264::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVideoParam *par)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH264::DecodeHeader");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEH264::DecodeHeader");
     MFX_CHECK_NULL_PTR2(bs, par);
 
     mfxStatus sts = CheckBitstream(bs);
@@ -870,7 +870,7 @@ mfxStatus VideoDECODEH264::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVi
 
 mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH264::QueryIOSurf");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEH264::QueryIOSurf");
     MFX_CHECK_NULL_PTR2(par, request);
 
     eMFXPlatform platform = MFX_Utility::GetPlatform(core, par);
@@ -993,7 +993,7 @@ mfxStatus VideoDECODEH264::GetDecodeStat(mfxDecodeStat *stat)
 
 static mfxStatus AVCDECODERoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "AVCDECODERoutine");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "AVCDECODERoutine");
     mfxStatus sts = MFX_ERR_NONE;
 
     try
@@ -1009,7 +1009,7 @@ static mfxStatus AVCDECODERoutine(void *pState, void *pParam, mfxU32 threadNumbe
     }
     catch(...)
     {
-        MFX_LTRACE_MSG_1(MFX_TRACE_LEVEL_API, "exception handled");
+        MFX_LTRACE_MSG_1(MFX_TRACE_LEVEL_INTERNAL, "exception handled");
         return MFX_ERR_NONE;
     }
     return sts;
@@ -1023,7 +1023,7 @@ static mfxStatus AVCCompleteProc(void *, void *pParam, mfxStatus )
 
 mfxStatus VideoDECODEH264::RunThread(ThreadTaskInfo264* info, mfxU32 threadNumber)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH264::RunThread");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEH264::RunThread");
 
     MFX_CHECK_NULL_PTR1(info);
 
@@ -1100,7 +1100,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs,
                                               mfxFrameSurface1 **surface_out,
                                               MFX_ENTRY_POINT *pEntryPoint)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH264::DecodeFrameCheck");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEH264::DecodeFrameCheck");
 
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
@@ -1590,7 +1590,7 @@ void VideoDECODEH264::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
 
 mfxStatus VideoDECODEH264::DecodeFrame(mfxFrameSurface1 *surface_out, UMC::H264DecoderFrame * pFrame)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH264::DecodeFrame");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VideoDECODEH264::DecodeFrame");
     MFX_CHECK_NULL_PTR1(surface_out);
 
     mfxI32 index;

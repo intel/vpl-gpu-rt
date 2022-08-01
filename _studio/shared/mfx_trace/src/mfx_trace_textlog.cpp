@@ -79,6 +79,8 @@ mfxTraceU32 MFXTraceTextLog_Init()
 
     sts = MFXTraceTextLog_Close();
     if (!sts) sts = MFXTraceTextLog_GetRegistryParams();
+
+
     if (!sts)
     {
         if (!g_mfxTracePrintfFile)
@@ -147,14 +149,19 @@ mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* /*static_handle*
 
     size_t len = MFX_TRACE_MAX_LINE_LENGTH;
     char str[MFX_TRACE_MAX_LINE_LENGTH] = {0}, *p_str = str;
-
-    if (file_name && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FILE_NAME))
+    char strfile_name[MFX_TRACE_MAX_LINE_LENGTH] = {0};
+    char enterChr[] = ": ENTER";
+    char exitChr[] = ": EXIT";
+    strncpy(strfile_name, file_name, MFX_TRACE_MAX_LINE_LENGTH-1);
+    strfile_name[MFX_TRACE_MAX_LINE_LENGTH - 1] = 0;
+    char* g_fimeName = strrchr(strfile_name, '\\') + 1;
+    if (g_fimeName && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FILE_NAME) && ((strcmp(format, exitChr) == 0) || (strcmp(format, enterChr) == 0)))
     {
-        p_str = mfx_trace_sprintf(p_str, len, "%-60s: ", file_name);
+        p_str = mfx_trace_sprintf(p_str, len, "=====>%s: ", g_fimeName);
     }
-    if (line_num && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_LINE_NUM))
+    if (line_num && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_LINE_NUM) && ((strcmp(format, exitChr) == 0) || (strcmp(format, enterChr) == 0)))
     {
-        p_str = mfx_trace_sprintf(p_str, len, "%4d: ", line_num);
+        p_str = mfx_trace_sprintf(p_str, len, "%-10d: ", line_num);
     }
     if (category && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_CATEGORY))
     {
@@ -164,17 +171,21 @@ mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* /*static_handle*
     {
         p_str = mfx_trace_sprintf(p_str, len, "LEV_%d: ", level);
     }
-    if (function_name && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FUNCTION_NAME))
+    if (function_name && (g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FUNCTION_NAME))
     {
         p_str = mfx_trace_sprintf(p_str, len, "%-40s: ", function_name);
     }
-    if (message)
+    if (strlen(message) != 0)
     {
-        p_str = mfx_trace_sprintf(p_str, len, "%s", message);
+        p_str = mfx_trace_sprintf(p_str, len, "%s: ", message);
     }
     if (format)
     {
         p_str = mfx_trace_vsprintf(p_str, len, format, args);
+        if (strcmp(format, exitChr) == 0)
+        {
+            p_str = mfx_trace_sprintf(p_str, len, "\n");
+        }
     }
     {
         p_str = mfx_trace_sprintf(p_str, len, "\n");

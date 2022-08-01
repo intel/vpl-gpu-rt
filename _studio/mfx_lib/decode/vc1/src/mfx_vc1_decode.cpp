@@ -568,7 +568,7 @@ mfxStatus MFXVideoDECODEVC1::GetVideoParam(mfxVideoParam *par)
 
 mfxStatus MFXVideoDECODEVC1::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_disp)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODEVC1::DecodeFrameCheck");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "MFXVideoDECODEVC1::DecodeFrameCheck");
     mfxStatus MFXSts;
 
     MFX_CHECK(m_bIsDecInit, MFX_ERR_NOT_INITIALIZED);
@@ -1777,7 +1777,7 @@ mfxStatus MFXVideoDECODEVC1::RunThread(mfxFrameSurface1 *surface_work,
                                        mfxU32 threadNumber,
                                        mfxU32 taskID)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODEVC1::RunThread");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "MFXVideoDECODEVC1::RunThread");
 
     (void)threadNumber;
     mfxStatus sts;
