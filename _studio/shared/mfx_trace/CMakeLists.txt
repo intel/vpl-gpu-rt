@@ -17,6 +17,9 @@ target_sources(mfx_trace
     src/mfx_trace_textlog.cpp
     src/mfx_trace_utils.cpp
     src/mfx_trace_utils_linux.cpp
+    src/mfx_trace_dump.cpp
+    src/mfx_trace_dump_common.cpp
+    src/mfx_trace_dump_structures.cpp
     $<$<NOT:$<BOOL:${BUILD_VPL}>>:src/mfx_reflect.cpp>
   )
 
@@ -24,6 +27,7 @@ target_include_directories(mfx_trace
   PUBLIC
     include
     ${MFX_API_HOME}/mediasdk_structures
+    ${MSDK_STUDIO_ROOT}/shared/include
   )
 
 target_link_libraries(mfx_trace
