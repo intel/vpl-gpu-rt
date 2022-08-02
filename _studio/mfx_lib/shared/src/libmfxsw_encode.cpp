@@ -840,7 +840,6 @@ mfxStatus MFXMemory_GetSurfaceForEncode(mfxSession session, mfxFrameSurface1** o
 
 mfxStatus QueryImplsDescription(VideoCORE& core, mfxEncoderDescription& caps, mfx::PODArraysHolder& ah)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     for (auto& c : codecId2Handlers)
     {
         if (!c.second.primary.QueryImplsDescription)
