@@ -42,12 +42,7 @@ namespace UMC_AV1_DECODER
         size_t size = lastTile.offset + lastTile.size;
 
         if (lastTile.tile_location_type == 1)
-            size += OBU_TILE_LIST_HEADER_LENGTH;
-        
-        size_t real_size = size;
-
-        if (size % 128)
-            size += (128 - size % 128);
+            size = mfx::align2_value(size + OBU_TILE_LIST_HEADER_LENGTH, 128);
 
         source.Alloc(size);
         if (source.GetBufferSize() < size)
@@ -55,7 +50,7 @@ namespace UMC_AV1_DECODER
 
         const uint8_t *src = reinterpret_cast <const uint8_t*> (in->GetDataPointer());
         uint8_t *dst = reinterpret_cast <uint8_t*> (source.GetDataPointer());
-        std::copy(src, src + real_size, dst);
+        std::copy(src, src + size, dst);
 
         source.SetDataSize(size);
     }
