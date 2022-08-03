@@ -175,7 +175,7 @@ mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* /*static_handle*
     {
         p_str = mfx_trace_sprintf(p_str, len, "%-40s: ", function_name);
     }
-    if (strlen(message) != 0)
+    if (message && strlen(message) != 0)
     {
         p_str = mfx_trace_sprintf(p_str, len, "%s: ", message);
     }
