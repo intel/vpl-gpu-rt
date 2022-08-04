@@ -130,7 +130,7 @@ namespace UMC_AV1_DECODER
 
                 OBUInfo obuInfo;
                 bs.ReadOBUInfo(obuInfo);
-                if (!CheckOBUType(obuInfo.header.obu_type))
+                if (obuInfo.header.obu_type > OBU_PADDING)
                     return UMC::UMC_ERR_INVALID_PARAMS;
 
                 if (obuInfo.header.obu_type == OBU_SEQUENCE_HEADER)
@@ -604,7 +604,7 @@ namespace UMC_AV1_DECODER
                 bs.ReadOBUInfo(obuInfo);
                 const AV1_OBU_TYPE obuType = obuInfo.header.obu_type;
 
-                if (!CheckOBUType(obuInfo.header.obu_type))
+                if (obuInfo.header.obu_type > OBU_PADDING)
                     return UMC::UMC_ERR_INVALID_PARAMS;
 
                 if (tmp.GetDataSize() < obuInfo.size) // not enough data left in the buffer to hold full OBU unit
