@@ -806,6 +806,10 @@ namespace Base
         Resource          CUQP;
         mfxHDLPair        HDLRaw               = {};
         bool              bCUQPMap             = false;
+#if defined(MFX_ENABLE_ENCTOOLS)
+        mfxLplastatus     LplaStatus           = {};
+        mfxBRCHints      BrcHints             = {};
+#endif
         mfxGopHints       GopHints             = {};
         bool              bForceSync           = false;
         bool              bSkip                = false;
@@ -1274,6 +1278,7 @@ namespace Base
         , FEATURE_ENCODED_FRAME_INFO
         , FEATURE_QMATRIX
         , FEATURE_QUERY_IMPL_DESC
+        , FEATURE_ENCTOOLS
         , FEATURE_MAX_FRAME_SIZE
         , NUM_FEATURES
     };
