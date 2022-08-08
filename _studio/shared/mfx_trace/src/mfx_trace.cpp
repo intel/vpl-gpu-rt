@@ -97,6 +97,8 @@ struct mfxTraceAlgorithm
 
 static mfxTraceU32      g_OutputMode = MFX_TRACE_OUTPUT_TRASH;
 static mfxTraceU32      g_Level      = MFX_TRACE_LEVEL_DEFAULT;
+mfxTraceU32      EnableEventTrace = 0;
+mfxTraceU32      EventCfg = 0;
 static volatile uint32_t  g_refCounter = 0;
 
 static mfxTraceU32           g_mfxTraceCategoriesNum = 0;
@@ -197,13 +199,14 @@ mfxTraceU32 MFXTrace_GetRegistryParams(void)
 
 mfxTraceU32 MFXTrace_GetEnvParams(void)
 {
+    //get VPL TXT log environment variable
     const char* tracelogChar = std::getenv("VPL_TXT_LOG");
     char* endPtr = nullptr;
     int LogConfig = 0;
     if (tracelogChar != nullptr)
     {
         LogConfig = std::strtol(tracelogChar, &endPtr, 10);
-        g_OutputMode = LogConfig;
+        g_OutputMode |= LogConfig;
     }
 #ifdef  _DEBUG
     const char* tracelogLevel = std::getenv("VPL_TXT_LEVEL");
@@ -217,6 +220,21 @@ mfxTraceU32 MFXTrace_GetEnvParams(void)
 #else
     g_Level = MFX_TRACE_LEVEL_API;
 #endif
+    //Enable event capture according to VPL_EVENT_TRACE
+    const char* g_eventTrace = std::getenv("VPL_EVENT_TRACE");
+    char* endEvent = nullptr;
+    if (g_eventTrace != nullptr)
+    {
+        EnableEventTrace = std::strtol(g_eventTrace, &endEvent, 10);
+        g_OutputMode |= MFX_TRACE_OUTPUT_ETW;
+    }
+    //Capture different info according to VPL_EVENT_TRACE_CFG
+    const char* g_eventCfg = std::getenv("VPL_EVENT_TRACE_CFG");
+    char* endEventCfg = nullptr;
+    if (g_eventCfg != nullptr)
+    {
+        EventCfg = std::strtol(g_eventCfg, &endEventCfg, 16);
+    }
 
     return 0;
 }

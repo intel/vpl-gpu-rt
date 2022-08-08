@@ -25,18 +25,17 @@
 #include "libmfx_core_interface.h"
 
 
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
 #include "mfx_unified_decode_logging.h"
-#endif
 
 mfxStatus MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfxU32 wait)
 {
     mfxStatus mfxRes = MFX_ERR_NONE;
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+    if (EnableEventTrace)
     {
         TRACE_EVENT(MFX_TRACE_API_SYNC_OPERATION_TASK, EVENT_TYPE_START, 0, make_event_data(session, syncp, wait));
     }
-#endif
+
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(syncp, MFX_ERR_NULL_PTR);
@@ -48,11 +47,11 @@ mfxStatus MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfx
             // call the function
             mfxRes = session->m_pScheduler->Synchronize(syncp, wait);
         }
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+        if (EnableEventTrace)
         {
             TRACE_EVENT(MFX_TRACE_API_SYNC_OPERATION_TASK, EVENT_TYPE_END, 0, make_event_data(mfxRes, syncp));
         }
-#endif
     } catch(...) {
         // set the default error value
         mfxRes = MFX_ERR_ABORTED;

@@ -20,8 +20,6 @@
 
 #include "mfx_unified_h265d_logging.h"
 
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-
 void DecodeEventDataHEVCSurfaceOutparam(
     DECODE_EVENTDATA_SURFACEOUT_HEVC* pEventData,
     mfxFrameSurface1* surface_out,
@@ -41,4 +39,3 @@ void DecodeEventDataHEVCSurfaceOutparam(
     pEventData->DataFlag = surface_out->Data.DataFlag;
     pEventData->TimeStamp = (uint32_t)surface_out->Data.TimeStamp;
 }
-#endif

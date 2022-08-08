@@ -48,9 +48,7 @@
 #include "libmfx_core_interface.h"
 
 
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
 #include "mfx_unified_av1d_logging.h"
-#endif
 
 namespace MFX_VPX_Utility
 {
@@ -828,7 +826,8 @@ mfxStatus VideoDECODEAV1::DecodeFrame(mfxFrameSurface1 *surface_out, AV1DecoderF
     UMC::FrameMemID id = frame->GetFrameData()->GetFrameMID();
     mfxStatus sts = m_surface_source->PrepareToOutput(surface_out, id, &m_video_par);
     frame->Displayed(true);
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+    if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
     {
         DECODE_EVENTDATA_OUTPUTFRAME_AV1 eventData;
         eventData.MemID = id;
@@ -836,7 +835,7 @@ mfxStatus VideoDECODEAV1::DecodeFrame(mfxFrameSurface1 *surface_out, AV1DecoderF
         eventData.wasOutputted = frame->Outputted();
         TRACE_EVENT(MFX_TRACE_API_AV1_DISPLAYINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
     }
-#endif
+
     return sts;
 }
 
@@ -1330,13 +1329,12 @@ mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFram
     surface_out->Info.FrameRateExtD = isShouldUpdate ? m_init_par.mfx.FrameInfo.FrameRateExtD : m_first_par.mfx.FrameInfo.FrameRateExtD;
     surface_out->Info.FrameRateExtN = isShouldUpdate ? m_init_par.mfx.FrameInfo.FrameRateExtN : m_first_par.mfx.FrameInfo.FrameRateExtN;
 
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+    if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
     {
         DECODE_EVENTDATA_SURFACEOUT_AV1 eventData;
         DecodeEventDataAV1SurfaceOutparam(&eventData, surface_out);
         TRACE_EVENT(MFX_TRACE_API_AV1_OUTPUTINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
     }
-#endif
 
     return MFX_ERR_NONE;
 }

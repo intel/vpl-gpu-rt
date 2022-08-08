@@ -20,8 +20,6 @@
 
 #include "mfx_unified_vp9d_logging.h"
 
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-
 void DecodeEventVP9DataSurfaceOutparam(
     DECODE_EVENTDATA_SURFACEOUT_VP9* pEventData,
     mfxFrameSurface1** surface_out)
@@ -51,4 +49,3 @@ void DecodeEventVP9DpbInfo(
         pEventData->DpbInfo[i].isDecoded = m_submittedFrames[i].isDecoded;
     }
 }
-#endif

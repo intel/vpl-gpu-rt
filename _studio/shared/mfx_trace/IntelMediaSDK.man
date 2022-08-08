@@ -4,20 +4,20 @@
 		<events>
 			<provider name="Intel-MediaSDK" guid="{2D6B112A-D21C-4A40-9BF2-A3EDF212F624}" symbol="IntelMediaSDK" resourceFileName="to_be_set_manually" messageFileName="to_be_set_manually">
 				<events>
-					<event symbol="DecodeQueryEntry" value="5" version="0" task="DecodeQuery" opcode="win:Start" template="DecodeQuery_Entry" />
-					<event symbol="DecodeQueryExit" value="6" version="0" task="DecodeQuery" opcode="win:Stop" template="DecodeQuery_Exit" />
-          <event symbol="DecodeQueryIOSurfInfo" value="8" version="0" task="DecodeQueryIOSurf" opcode="win:Info" template="DecodeQueryIOSurf_Info" />
-					<event symbol="DecodeQueryIOSurfEntry" value="9" version="0" task="DecodeQueryIOSurf" opcode="win:Start" template="DecodeQueryIOSurf_Entry" />
-					<event symbol="DecodeQueryIOSurfExit" value="10" version="0" task="DecodeQueryIOSurf" opcode="win:Stop" template="DecodeQueryIOSurf_Exit" />
-					<event symbol="DecodeHeaderEntry" value="13" version="0" task="DecodeHeader" opcode="win:Start" template="DecodeHeader_Entry" />
-					<event symbol="DecodeHeaderExit" value="14" version="0" task="DecodeHeader" opcode="win:Stop" template="DecodeHeader_Exit" />
-          <event symbol="DecodeInitInfo" value="16" version="0" task="DecodeInit" opcode="win:Info" template="DecodeInit_Info" />
-          <event symbol="DecodeInitEntry" value="17" version="0" task="DecodeInit" opcode="win:Start" template="DecodeInit_Entry" />
-					<event symbol="DecodeInitExit" value="18" version="0" task="DecodeInit" opcode="win:Stop" template="DecodeInit_Exit" />
-					<event symbol="DecodeCloseEntry" value="21" version="0" task="DecodeClose" opcode="win:Start" template="DecodeClose_Entry" />
-					<event symbol="DecodeCloseExit" value="22" version="0" task="DecodeClose" opcode="win:Stop" template="DecodeClose_Exit" />
-					<event symbol="DecodeFrameAsyncEntry" value="25" version="0" task="DecodeFrameAsync" opcode="win:Start" template="DecodeFrameAsync_Entry" />
-					<event symbol="DecodeFrameAsyncExit" value="26" version="0" task="DecodeFrameAsync" opcode="win:Stop" template="DecodeFrameAsync_Exit" />
+					<event symbol="MFX_DecodeQueryEntry" value="5" version="0" task="MFX_DecodeQuery" opcode="win:Start" template="MFX_DecodeQuery_Entry" />
+					<event symbol="MFX_DecodeQueryExit" value="6" version="0" task="MFX_DecodeQuery" opcode="win:Stop" template="MFX_DecodeQuery_Exit" />
+          <event symbol="MFX_DecodeQueryIOSurfInfo" value="8" version="0" task="MFX_DecodeQueryIOSurf" opcode="win:Info" template="MFX_DecodeQueryIOSurf_Info" />
+					<event symbol="MFX_DecodeQueryIOSurfEntry" value="9" version="0" task="MFX_DecodeQueryIOSurf" opcode="win:Start" template="MFX_DecodeQueryIOSurf_Entry" />
+					<event symbol="MFX_DecodeQueryIOSurfExit" value="10" version="0" task="MFX_DecodeQueryIOSurf" opcode="win:Stop" template="MFX_DecodeQueryIOSurf_Exit" />
+					<event symbol="MFX_DecodeHeaderEntry" value="13" version="0" task="MFX_DecodeHeader" opcode="win:Start" template="MFX_DecodeHeader_Entry" />
+					<event symbol="MFX_DecodeHeaderExit" value="14" version="0" task="MFX_DecodeHeader" opcode="win:Stop" template="MFX_DecodeHeader_Exit" />
+          <event symbol="MFX_DecodeInitInfo" value="16" version="0" task="MFX_DecodeInit" opcode="win:Info" template="MFX_DecodeInit_Info" />
+          <event symbol="MFX_DecodeInitEntry" value="17" version="0" task="MFX_DecodeInit" opcode="win:Start" template="MFX_DecodeInit_Entry" />
+					<event symbol="MFX_DecodeInitExit" value="18" version="0" task="MFX_DecodeInit" opcode="win:Stop" template="MFX_DecodeInit_Exit" />
+					<event symbol="MFX_DecodeCloseEntry" value="21" version="0" task="MFX_DecodeClose" opcode="win:Start" template="MFX_DecodeClose_Entry" />
+					<event symbol="MFX_DecodeCloseExit" value="22" version="0" task="MFX_DecodeClose" opcode="win:Stop" template="MFX_DecodeClose_Exit" />
+					<event symbol="MFX_DecodeFrameAsyncEntry" value="25" version="0" task="MFX_DecodeFrameAsync" opcode="win:Start" template="MFX_DecodeFrameAsync_Entry" />
+					<event symbol="MFX_DecodeFrameAsyncExit" value="26" version="0" task="MFX_DecodeFrameAsync" opcode="win:Stop" template="MFX_DecodeFrameAsync_Exit" />
 					<event symbol="EncodeQueryEntry" value="29" version="0" task="EncodeQuery" opcode="win:Start" template="EncodeQuery_Entry" />
 					<event symbol="EncodeQueryExit" value="30" version="0" task="EncodeQuery" opcode="win:Stop" template="MfxStatus_exit" />
 					<event symbol="EncodeQueryIOSurfEntry" value="33" version="0" task="EncodeQueryIOSurf" opcode="win:Start" template="EncodeQueryIOSurf_Entry" />
@@ -47,19 +47,20 @@
 					<event symbol="MFXCloseEntry" value="81" version="0" task="MFXClose" opcode="win:Start" template="MfxClose_Entry" />
 					<event symbol="MFXCloseExit" value="82" version="0" task="MFXClose" opcode="win:Stop" template="MfxClose_Exit" />
 					<event symbol="DoWorkEntry" value="85" version="0" task="DoWork" opcode="win:Start" template="DoWork_Entry" />
-					<event symbol="DoWorkExit" value="86" version="0" task="DoWork" opcode="win:Stop" template="MfxStatus_exit" />
-					<event symbol="SyncOperationEntry" value="89" version="0" task="SyncOperation" opcode="win:Start" template="SyncOperation_Entry" />
-					<event symbol="SyncOperationExit" value="90" version="0" task="SyncOperation" opcode="win:Stop" template="SyncOperation_Exit" />
+					<event symbol="DoWorkExit" value="86" version="0" task="DoWork" opcode="win:Stop" template="DoWork_Exit" />
+					<event symbol="MFXSyncOperationEntry" value="89" version="0" task="MFXSyncOperation" opcode="win:Start" template="MFXSyncOperation_Entry" />
+					<event symbol="MFXSyncOperationExit" value="90" version="0" task="MFXSyncOperation" opcode="win:Stop" template="MFXSyncOperation_Exit" />
 					<event symbol="WaitForGlobalEventEntry" value="93" version="0" task="WaitForGlobalEvent" opcode="win:Start" template="WaitForGlobalEvent_Entry" />
 					<event symbol="WaitForGlobalEventExit" value="94" version="0" task="WaitForGlobalEvent" opcode="win:Stop" template="WaitForGlobalEvent_Exit" />
-					<event symbol="DDIBeginFrameTaskEntry" value="97" version="0" task="DDIBeginFrameTask" opcode="win:Start" template="DDIBeginFrameTask_Entry" />
-					<event symbol="DDIBeginFrameTaskExit" value="98" version="0" task="DDIBeginFrameTask" opcode="win:Stop" template="DDIBeginFrameTask_Exit" />
-          <event symbol="DDIExecuteFrameTaskEntry" value="101" version="0" task="DDIExecuteFrameTask" opcode="win:Start" template="DDIExecuteFrameTask_Entry" />
-          <event symbol="DDIExecuteFrameTaskExit" value="102" version="0" task="DDIExecuteFrameTask" opcode="win:Stop" template="DDIExecuteFrameTask_Exit" />
-          <event symbol="DDIEndFrameTaskEntry" value="105" version="0" task="DDIEndFrameTask" opcode="win:Start" template="DDIEndFrameTask_Entry" />
-          <event symbol="DDIEndFrameTaskExit" value="106" version="0" task="DDIEndFrameTask" opcode="win:Stop" template="DDIEndFrameTask_Exit" />
-					<event symbol="DDIWaitTaskSyncEntry" value="109" version="0" task="DDIWaitTaskSync" opcode="win:Start" template="DDIWaitTaskSync_Entry" />
-					<event symbol="DDIWaitTaskSyncExit" value="110" version="0" task="DDIWaitTaskSync" opcode="win:Stop" template="DDIWaitTaskSync_Exit" />
+					<event symbol="DDI_BeginFrameTaskEntry" value="97" version="0" task="DDI_BeginFrameTask" opcode="win:Start" template="DDI_BeginFrameTask_Entry" />
+					<event symbol="DDI_BeginFrameTaskExit" value="98" version="0" task="DDI_BeginFrameTask" opcode="win:Stop" template="DDI_BeginFrameTask_Exit" />
+          <event symbol="DDI_ExecuteFrameTaskEntry" value="101" version="0" task="DDI_ExecuteFrameTask" opcode="win:Start" template="DDI_ExecuteFrameTask_Entry" />
+          <event symbol="DDI_ExecuteFrameTaskExit" value="102" version="0" task="DDI_ExecuteFrameTask" opcode="win:Stop" template="DDI_ExecuteFrameTask_Exit" />
+          <event symbol="DDI_EndFrameTaskEntry" value="105" version="0" task="DDI_EndFrameTask" opcode="win:Start" template="DDI_EndFrameTask_Entry" />
+          <event symbol="DDI_EndFrameTaskExit" value="106" version="0" task="DDI_EndFrameTask" opcode="win:Stop" template="DDI_EndFrameTask_Exit" />
+          <event symbol="DDIWaitTaskSyncInfo" value="108" version="0" task="DDIWaitTaskSync" opcode="win:Info" template="DDIWaitTaskSync_Info"/>
+          <event symbol="DDIWaitTaskSyncEntry" value="109" version="0" task="DDIWaitTaskSync" opcode="win:Start" />
+					<event symbol="DDIWaitTaskSyncExit" value="110" version="0" task="DDIWaitTaskSync" opcode="win:Stop" />
 					<event symbol="DDIQueryTaskEntry" value="113" version="0" task="DDIQueryTask" opcode="win:Start" template="DDIQueryTask_Entry" />
 					<event symbol="DDIQueryTaskExit" value="114" version="0" task="DDIQueryTask" opcode="win:Stop" template="MfxStatus_exit" />
 					<event symbol="CmCopyEntry" value="117" version="0" task="CmCopy" opcode="win:Start" template="CmCopy_Entry" />
@@ -69,7 +70,7 @@
 					<event symbol="CopyDX9toDX11Entry" value="125" version="0" task="CopyDX9toDX11" opcode="win:Start" />
 					<event symbol="CopyDX9toDX11Exit" value="126" version="0" task="CopyDX9toDX11" opcode="win:Stop" template="Entry" />
 					<event symbol="SchedulerRoutineEntry" value="129" version="0" task="SchedulerRoutine" opcode="win:Start" template="SchedulerRoutine_Entry" />
-					<event symbol="SchedulerRoutineExit" value="130" version="0" task="SchedulerRoutine" opcode="win:Stop" template="MfxStatus_exit" />
+					<event symbol="SchedulerRoutineExit" value="130" version="0" task="SchedulerRoutine" opcode="win:Stop" template="SchedulerRoutine_Exit" />
 					<event symbol="MFXInitializeEntry" value="133" version="0" task="MFXInitialize" opcode="win:Start" template="MFXInitialize_Entry" />
 					<event symbol="MFXInitializeExit" value="134" version="0" task="MFXInitialize" opcode="win:Stop" template="MFXInitialize_Exit" />
 					<event symbol="MFXQueryImplsDescriptionEntry" value="137" version="0" task="MFXQueryImplsDescription" opcode="win:Start" template="MFXQueryImplsDescription_Entry" />
@@ -157,17 +158,17 @@
           <event symbol="Decode_Buffer_DPB_VP9Exit" value="246" version="0" task="Decode_Buffer_DPB_VP9" opcode="win:Stop" />
 				</events>
 				<tasks>
-					<task name="DecodeQuery" symbol="MFX_TRACE_API_DECODE_QUERY_TASK_ETW" value="1" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="MFX_DecodeQuery" symbol="MFX_TRACE_API_DECODE_QUERY_TASK_ETW" value="1" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="DecodeQueryIOSurf" symbol="MFX_TRACE_API_DECODE_QUERY_IOSURF_TASK_ETW" value="2" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="MFX_DecodeQueryIOSurf" symbol="MFX_TRACE_API_DECODE_QUERY_IOSURF_TASK_ETW" value="2" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="DecodeHeader" symbol="MFX_TRACE_API_DECODE_HEADER_TASK_ETW" value="3" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="MFX_DecodeHeader" symbol="MFX_TRACE_API_DECODE_HEADER_TASK_ETW" value="3" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="DecodeInit" symbol="MFX_TRACE_API_DECODE_INIT_TASK_ETW" value="4" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="MFX_DecodeInit" symbol="MFX_TRACE_API_DECODE_INIT_TASK_ETW" value="4" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="DecodeClose" symbol="MFX_TRACE_API_DECODE_CLOSE_TASK_ETW" value="5" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="MFX_DecodeClose" symbol="MFX_TRACE_API_DECODE_CLOSE_TASK_ETW" value="5" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="DecodeFrameAsync" symbol="MFX_TRACE_API_DECODE_FRAME_ASYNC_TASK_ETW" value="6" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="MFX_DecodeFrameAsync" symbol="MFX_TRACE_API_DECODE_FRAME_ASYNC_TASK_ETW" value="6" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
 					<task name="EncodeQuery" symbol="MFX_TRACE_API_ENCODE_QUERY_TASK_ETW" value="7" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
@@ -199,15 +200,15 @@
 					</task>
 					<task name="DoWork" symbol="MFX_TRACE_API_DO_WORK_TASK_ETW" value="21" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="SyncOperation" symbol="MFX_TRACE_API_SYNC_OPERATION_TASK_ETW" value="22" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="MFXSyncOperation" symbol="MFX_TRACE_API_SYNC_OPERATION_TASK_ETW" value="22" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
 					<task name="WaitForGlobalEvent" symbol="MFX_TRACE_HOTSPOT_SCHED_WAIT_GLOBAL_EVENT_TASK_ETW" value="23" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-					<task name="DDIBeginFrameTask" symbol="MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK_ETW" value="24" eventGUID="{00000000-0000-0000-0000-000000000000}">
+					<task name="DDI_BeginFrameTask" symbol="MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK_ETW" value="24" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
-          <task name="DDIExecuteFrameTask" symbol="MFX_TRACE_HOTSPOT_DDI_EXECUTE_TASK_ETW" value="25" eventGUID="{00000000-0000-0000-0000-000000000000}">
+          <task name="DDI_ExecuteFrameTask" symbol="MFX_TRACE_HOTSPOT_DDI_EXECUTE_TASK_ETW" value="25" eventGUID="{00000000-0000-0000-0000-000000000000}">
           </task>
-          <task name="DDIEndFrameTask" symbol="MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK_ETW" value="26" eventGUID="{00000000-0000-0000-0000-000000000000}">
+          <task name="DDI_EndFrameTask" symbol="MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK_ETW" value="26" eventGUID="{00000000-0000-0000-0000-000000000000}">
           </task>
 					<task name="DDIWaitTaskSync" symbol="MFX_TRACE_HOTSPOT_DDI_WAIT_TASK_SYNC_ETW" value="27" eventGUID="{00000000-0000-0000-0000-000000000000}">
 					</task>
@@ -474,53 +475,53 @@
 						<data name="mfxStatus" inType="win:UInt32" map="mfxStatus">
 						</data>
 					</template>
-					<template tid="DecodeQuery_Entry">
+					<template tid="MFX_DecodeQuery_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
 						<data name="in_width" inType="win:UInt32" outType="xs:unsignedInt" />
 						<data name="in_height" inType="win:UInt32" outType="xs:unsignedInt" />
 						<data name="codec_id" inType="win:UInt32" map="Codec" />
 					</template>
-					<template tid="DecodeQuery_Exit">
+					<template tid="MFX_DecodeQuery_Exit">
             <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
 					</template>          
-					<template tid="DecodeQueryIOSurf_Entry">
+					<template tid="MFX_DecodeQueryIOSurf_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
 						<data name="in_width" inType="win:UInt32" outType="xs:unsignedInt" />
 						<data name="in_height" inType="win:UInt32" outType="xs:unsignedInt" />
-						<data name="codec_id" inType="win:UInt32" map="mfxStatus" />
+						<data name="codec_id" inType="win:UInt32" map="Codec" />
 					</template>
-          <template tid="DecodeQueryIOSurf_Exit">
+          <template tid="MFX_DecodeQueryIOSurf_Exit">
 						<data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
 					</template>
-					<template tid="DecodeHeader_Entry">
+					<template tid="MFX_DecodeHeader_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
 						<data name="bitstream_pointer" inType="win:Pointer" outType="win:HexInt64" />
 						<data name="bitstream_data_length" inType="win:UInt32" outType="xs:unsignedInt" />
 					</template>
-        	<template tid="DecodeHeader_Exit">
+        	<template tid="MFX_DecodeHeader_Exit">
             <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
 					</template>
-					<template tid="DecodeInit_Entry">
+					<template tid="MFX_DecodeInit_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
 						<data name="in_width" inType="win:UInt16" outType="xs:unsignedShort" />
 						<data name="in_height" inType="win:UInt16" outType="xs:unsignedShort" />
 						<data name="codec_id" inType="win:UInt32" map="Codec" />
 					</template>
-          <template tid="DecodeInit_Exit">
+          <template tid="MFX_DecodeInit_Exit">
             <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
 					</template>
-					<template tid="DecodeClose_Entry">
+					<template tid="MFX_DecodeClose_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
 					</template>
-          <template tid="DecodeClose_Exit">
+          <template tid="MFX_DecodeClose_Exit">
             <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
 					</template>
-					<template tid="DecodeFrameAsync_Entry">
+					<template tid="MFX_DecodeFrameAsync_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
 						<data name="surface" inType="win:Pointer" outType="win:HexInt64" />
 						<data name="bitstream_data_length" inType="win:UInt32" outType="xs:unsignedInt" />
 					</template>
-					<template tid="DecodeFrameAsync_Exit">
+					<template tid="MFX_DecodeFrameAsync_Exit">
 						<data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
 						<data name="syncp" inType="win:Pointer" outType="win:HexInt64" />
 					</template>
@@ -622,12 +623,15 @@
 					<template tid="DoWork_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
 					</template>
-					<template tid="SyncOperation_Entry">
+          <template tid="DoWork_Exit">
+            <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+          </template>
+					<template tid="MFXSyncOperation_Entry">
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
 						<data name="syncp" inType="win:Pointer" outType="win:HexInt64" />
 						<data name="timeout" inType="win:UInt32" outType="xs:unsignedInt" />
 					</template>
-					<template tid="SyncOperation_Exit">
+					<template tid="MFXSyncOperation_Exit">
 						<data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
 						<data name="syncp" inType="win:Pointer" outType="win:HexInt64" />
 					</template>
@@ -640,31 +644,29 @@
 					<template tid="WaitForGlobalEvent_Exit">
 						<data name="vmRes" inType="win:UInt32" outType="xs:unsignedInt" />
 					</template>          
-					<template tid="DDIBeginFrameTask_Entry">
+					<template tid="DDI_BeginFrameTask_Entry">
 						<data name="curr_index" inType="win:Int32" outType="xs:int" />
 					</template>
-        	<template tid="DDIBeginFrameTask_Exit">
+        	<template tid="DDI_BeginFrameTask_Exit">
 						<data name="curr_index" inType="win:Int32" outType="xs:int" />
             <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
 					</template>
-          <template tid="DDIExecuteFrameTask_Entry">
+          <template tid="DDI_ExecuteFrameTask_Entry">
             <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
           </template>
-          <template tid="DDIExecuteFrameTask_Exit">
+          <template tid="DDI_ExecuteFrameTask_Exit">
             <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
           </template>
-          <template tid="DDIEndFrameTask_Entry">
+          <template tid="DDI_EndFrameTask_Entry">
+            <data name="va" inType="win:Pointer" outType="win:HexInt64" />
+          </template>
+          <template tid="DDI_EndFrameTask_Exit">
             <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
           </template>
-          <template tid="DDIEndFrameTask_Exit">
-            <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
-          </template>
-					<template tid="DDIWaitTaskSync_Entry">
+          <template tid="DDIWaitTaskSync_Info">
 						<data name="curr_index" inType="win:Int32" outType="xs:int" />
-					</template>
-          <template tid="DDIWaitTaskSync_Exit">
-						<data name="curr_index" inType="win:Int32" outType="xs:int" />
-            <data name="EventCount" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="Eventcount" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="Eventsts" inType="win:UInt32" outType="xs:unsignedInt" />
 					</template>
 					<template tid="DDIQueryTask_Entry">
 						<data name="device_dx" inType="win:Pointer" outType="win:HexInt64">
@@ -677,6 +679,9 @@
 					<template tid="SchedulerRoutine_Entry">
 						<data name="ThreadNum" inType="win:UInt32" outType="xs:unsignedInt" />
 					</template>
+          <template tid="SchedulerRoutine_Exit">
+            <data name="sleepTime" inType="win:UInt32" outType="xs:unsignedInt" />
+          </template>
 					<template tid="MFXInitialize_Entry">
 						<data name="mode" inType="win:UInt32" map="mfxAccelerationMode" />
 						<data name="vendorId" inType="win:UInt16" outType="xs:unsignedShort" />
@@ -691,7 +696,7 @@
 					<template tid="MFXQueryImplsDescription_Exit">
 						<data name="num_impls" inType="win:UInt32" outType="xs:unsignedInt" />
 					</template>
-					<template tid="DecodeInit_Info">
+					<template tid="MFX_DecodeInit_Info">
 						<data name="codecId" inType="win:UInt32" map="Codec" />
 						<data name="frameWidth" inType="win:UInt32" outType="xs:unsignedInt" />
             <data name="frameHeight" inType="win:UInt32" outType="xs:unsignedInt" />
@@ -712,7 +717,7 @@
             <data name="maxDecFrameBuffering" inType="win:UInt32" outType="xs:unsignedInt" />
             <data name="frameFourCC" inType="win:UInt32" map="frameFourcc" />
 				  </template>
-          <template tid="DecodeQueryIOSurf_Info">
+          <template tid="MFX_DecodeQueryIOSurf_Info">
             <data name="numFrameSuggested" inType="win:UInt32" outType="xs:unsignedInt" />
             <data name="numFrameMin" inType="win:UInt32" outType="xs:unsignedInt" />
             <data name="type" inType="win:UInt32" outType="xs:unsignedInt" />

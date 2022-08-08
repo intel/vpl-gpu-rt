@@ -21,7 +21,6 @@
 #define _MFX_UNIFIED_AV1D_LOGGING_H_
 
 #include "mfx_config.h"
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
 
 #include "umc_va_base.h"
 #include "umc_av1_frame.h"
@@ -50,14 +49,14 @@ typedef struct _DECODE_EVENTDATA_OUTPUTFRAME_AV1
     uint32_t wasOutputted;
 } DECODE_EVENTDATA_OUTPUTFRAME_AV1;
 
-typedef struct _EVENTDATA_DPBINFO {
+typedef struct _EVENTDATA_AV1DPBINFO {
     int32_t MemID;
     uint32_t Refvalid;
     int32_t RefCounter;
-} EVENTDATA_DPBINFO;
+} EVENTDATA_AV1DPBINFO;
 typedef struct _DECODE_EVENTDATA_DPBINFO_AV1
 {
-    EVENTDATA_DPBINFO DpbInfo[6];
+    EVENTDATA_AV1DPBINFO DpbInfo[6];
 } DECODE_EVENTDATA_DPBINFO_AV1;
 
 typedef struct _DECODE_EVENTDATA_SYNC_AV1
@@ -258,6 +257,5 @@ void DecodeEventDataAV1SurfaceOutparam(DECODE_EVENTDATA_SURFACEOUT_AV1* pEventDa
 void DecodeEventDpbInfoAV1(DECODE_EVENTDATA_DPBINFO_AV1* pEventData, std::vector<UMC_AV1_DECODER::AV1DecoderFrame*> updated_refs);
 
 
-#endif
 #endif
 

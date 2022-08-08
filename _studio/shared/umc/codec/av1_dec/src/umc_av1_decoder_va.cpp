@@ -34,9 +34,7 @@
 
 #include <algorithm>
 
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
 #include "mfx_unified_av1d_logging.h"
-#endif
 
 namespace UMC_AV1_DECODER
 {
@@ -84,11 +82,12 @@ namespace UMC_AV1_DECODER
         {
             // it's first submission for current frame - need to call BeginFrame
             sts = va->BeginFrame(frame.GetMemID(SURFACE_RECON));
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+            if (EnableEventTrace)
             {
                 TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, 0, make_event_data(frame.GetMemID(), sts));
             }
-#endif
+
             if (sts != UMC::UMC_OK)
                 return sts;
 
@@ -117,17 +116,18 @@ namespace UMC_AV1_DECODER
 
         if (lastSubmission) // it's last submission for current frame - need to call EndFrame
         {
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+            if (EnableEventTrace)
             {
                 TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, 0, make_event_data(sts));
             }
-#endif
+
             sts = va->EndFrame();
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+            if (EnableEventTrace)
             {
                 TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, 0, make_event_data(sts));
             }
-#endif
+
         }
         return sts;
     }
@@ -251,7 +251,8 @@ namespace UMC_AV1_DECODER
                         break;
                 }
             }
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+            if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
             {
                 DECODE_EVENTDATA_SYNC_AV1 eventData;
                 eventData.m_index = frame.m_index;
@@ -261,7 +262,6 @@ namespace UMC_AV1_DECODER
                 eventData.event_sts = sts;
                 TRACE_EVENT(MFX_TRACE_API_AV1_SYNCINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
             }
-#endif
         }
 
         return wasCompleted;

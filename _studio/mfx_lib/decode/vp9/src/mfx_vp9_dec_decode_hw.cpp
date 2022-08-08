@@ -43,9 +43,7 @@
 #include "libmfx_core_interface.h"
 using namespace UMC_VP9_DECODER;
 
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
 #include "mfx_unified_vp9d_logging.h"
-#endif
 
 static bool IsSameVideoParam(mfxVideoParam *newPar, mfxVideoParam *oldPar);
 
@@ -250,8 +248,8 @@ public:
         VP9_CHECK_AND_THROW((find_it == m_submittedFrames.end()), MFX_ERR_UNKNOWN);
 
         m_submittedFrames.push_back(frame);
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-        if (TraceKeyEnabled(TR_KEY_DECODE_DPB_INFO))
+
+        if ((EventCfg & (1 << TR_KEY_DECODE_DPB_INFO)) && EnableEventTrace)
         {
             DECODE_EVENTDATA_DPBINFO_VP9 eventDpbData;
             if (!m_submittedFrames.empty())
@@ -260,7 +258,6 @@ public:
                 TRACE_EVENT(MFX_TRACE_API_VP9_DPBPARAMETER_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventDpbData));
             }
         }
-#endif
     }
 
     void DecodeFrame(UMC::FrameMemID frameId)
@@ -272,14 +269,14 @@ public:
         {
             find_it->isDecoded = true;
         }
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+        if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
         {
             DECODE_EVENTDATA_OUTPUTFRAME_VP9 eventData;
             eventData.MemID = find_it->currFrame;
             eventData.wasDisplayed = find_it->isDecoded;
             TRACE_EVENT(MFX_TRACE_API_VP9_DISPLAYINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
         }
-#endif
     }
 
     void CompleteFrames()
@@ -881,7 +878,8 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
 {
     VideoDECODEVP9_HW::VP9DECODERoutineData& data = *(VideoDECODEVP9_HW::VP9DECODERoutineData*)p_state;
     VideoDECODEVP9_HW& decoder = *data.decoder;
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+    if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
     {
         DECODE_EVENTDATA_SYNC_VP9 eventData;
         eventData.copyFromFrame = data.copyFromFrame;
@@ -890,7 +888,7 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
         eventData.showFrame = data.showFrame;
         TRACE_EVENT(MFX_TRACE_API_VP9_SYNCINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
     }
-#endif
+
     if (data.copyFromFrame != UMC::FRAME_MID_INVALID)
     {
         MFX_CHECK(data.surface_work, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -1205,17 +1203,19 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         if (!m_frameInfo.show_existing_frame)
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VP9 decode DDISubmitTask");
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+            if (EnableEventTrace)
             {
                 TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_START, 0, make_event_data(m_frameInfo.currFrame));
             }
-#endif
+
             UMC::Status umcSts = m_va->BeginFrame(m_frameInfo.currFrame, 0);
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+            if (EnableEventTrace)
             {
                 TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, 0, make_event_data(m_frameInfo.currFrame, umcSts));
             }
-#endif
+
             MFX_CHECK(UMC::UMC_OK == umcSts, MFX_ERR_DEVICE_FAILED);
 
             sts = PackHeaders(&m_bs, m_frameInfo);
@@ -1224,17 +1224,18 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
             umcSts = m_va->Execute();
             MFX_CHECK(UMC::UMC_OK == umcSts, MFX_ERR_DEVICE_FAILED);
 
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+            if (EnableEventTrace)
             {
                 TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, 0, make_event_data(umcSts));
             }
-#endif
+
             umcSts = m_va->EndFrame();
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+            if (EnableEventTrace)
             {
                 TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, 0, make_event_data(sts));
             }
-#endif
+
             MFX_CHECK(UMC::UMC_OK == umcSts, MFX_ERR_DEVICE_FAILED);
         }
         else
@@ -1285,13 +1286,13 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
             m_frameOrder++;
             sts = MFX_ERR_NONE;
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+            if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
             {
                 DECODE_EVENTDATA_SURFACEOUT_VP9 eventData;
                 DecodeEventVP9DataSurfaceOutparam(&eventData, surface_out);
                 TRACE_EVENT(MFX_TRACE_API_VP9_OUTPUTINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
             }
-#endif
         }
         else
         {

@@ -20,8 +20,6 @@
 
 #include "mfx_unified_av1d_logging.h"
 
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-
 void DecodeEventDataAV1SurfaceOutparam(
     DECODE_EVENTDATA_SURFACEOUT_AV1* pEventData,
     mfxFrameSurface1* surface_out)
@@ -50,4 +48,3 @@ void DecodeEventDpbInfoAV1(
         pEventData->DpbInfo[i].RefCounter = updated_refs[i]->GetRefCounter();
     }
 }
-#endif

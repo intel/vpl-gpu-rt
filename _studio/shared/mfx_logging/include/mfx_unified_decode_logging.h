@@ -21,7 +21,6 @@
 #define _MFX_UNIFIED_DECODE_LOGGING_H_
 
 #include "mfx_config.h"
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
 
 #include "umc_va_base.h"
 
@@ -83,13 +82,9 @@ typedef struct _DECODE_EVENTDATA_BITSTREAM
     uint8_t Data[32];
 } DECODE_EVENTDATA_BITSTREAM;
 
-bool TraceKeyEnabled(int key);
-
 void DecodeEventDataInitParam(DECODE_EVENTDATA_INIT* pEventData, mfxVideoParam* par);
 
 void DecodeEventDataQueryParam(DECODE_EVENTDATA_QUERY* pEventData, mfxFrameAllocRequest* request);
 
-void DecodeEventBitstreamInfo(DECODE_EVENTDATA_BITSTREAM* pEventData, UMC::UMCVACompBuffer const* pCompBuffer);
-#endif
-#endif
+#endif //_MFX_UNIFIED_DECODE_LOGGING_H_
 

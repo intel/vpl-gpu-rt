@@ -22,7 +22,6 @@
 #define _MFX_UNIFIED_LOGGING_H_
 
 #include "mfx_config.h"
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
 
 #include "umc_va_base.h"
 #include "umc_h265_frame_list.h"
@@ -237,6 +236,5 @@ typedef struct _DECODE_EVENTDATA_DPBINFO_HEVC
 } DECODE_EVENTDATA_DPBINFO_HEVC;
 
 void DecodeEventDataHEVCSurfaceOutparam(DECODE_EVENTDATA_SURFACEOUT_HEVC* pEventData, mfxFrameSurface1* surface_out, UMC_HEVC_DECODER::H265DecoderFrame* pFrame);
-#endif
 #endif
 

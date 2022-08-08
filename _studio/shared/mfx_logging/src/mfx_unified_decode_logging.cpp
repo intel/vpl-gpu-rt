@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Intel Corporation
+// Copyright (c) 2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,21 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #include "mfx_unified_decode_logging.h"
-
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-
-bool TraceKeyEnabled(int key)
-{
-    const char* EtwlogChar = std::getenv("VPL_RUNTIME_ETW_TRACE");
-    char* endPtr = nullptr;
-    int LogConfig = 0;
-    if (EtwlogChar != nullptr)
-    {
-        LogConfig = std::strtol(EtwlogChar, &endPtr, 16);
-    }
-
-    return LogConfig & (1 << key);
-}
 
 void DecodeEventDataInitParam(
     DECODE_EVENTDATA_INIT* pEventData,
@@ -85,13 +70,3 @@ void DecodeEventDataQueryParam(
     pEventData->Info.PicStruct = request->Info.PicStruct;
     pEventData->Info.ChromaFormat = request->Info.ChromaFormat;
 }
-
-void DecodeEventBitstreamInfo(DECODE_EVENTDATA_BITSTREAM* pEventData, UMC::UMCVACompBuffer const* pCompBuffer)
-{
-    PBYTE pDataBuf = (PBYTE)pCompBuffer->GetPtr();
-    for (int i = 0; i < 32; i++)
-    {
-        pEventData->Data[i] = pDataBuf[i];
-    }
-}
-#endif

@@ -37,9 +37,7 @@
 
 
 
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
 #include "mfx_unified_h265d_logging.h"
-#endif
 
 namespace UMC_HEVC_DECODER
 {

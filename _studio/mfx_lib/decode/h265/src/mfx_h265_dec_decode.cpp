@@ -41,9 +41,7 @@
 
 using namespace UMC_HEVC_DECODER;
 
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
 #include "mfx_unified_h265d_logging.h"
-#endif
 
 inline
 bool IsNeedToUseHWBuffering(eMFXHWType /*type*/)
@@ -1278,13 +1276,14 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
     surface_out->Data.FrameOrder = (mfxU32)MFX_FRAMEORDER_UNKNOWN;
 
     surface_out->Data.DataFlag = (mfxU16)(pFrame->m_isOriginalPTS ? MFX_FRAMEDATA_ORIGINAL_TIMESTAMP : 0);
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+    if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
     {
         DECODE_EVENTDATA_SURFACEOUT_HEVC eventData;
         DecodeEventDataHEVCSurfaceOutparam(&eventData, surface_out, pFrame);
         TRACE_EVENT(MFX_TRACE_API_HEVC_OUTPUTINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
     }
-#endif
+
     SEI_Storer_H265 * storer = m_pH265VideoDecoder->GetSEIStorer();
     if (storer)
         storer->SetTimestamp(pFrame);
@@ -1394,7 +1393,8 @@ mfxStatus VideoDECODEH265::DecodeFrame(mfxFrameSurface1 *surface_out, H265Decode
     mfxStatus sts = m_surface_source->PrepareToOutput(surface_out, index, &m_vPar);
 
     pFrame->setWasDisplayed();
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+
+    if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
     {
         DECODE_EVENTDATA_outputFrame_h265 eventData;
         eventData.PicOrderCnt = pFrame->m_PicOrderCnt;
@@ -1402,7 +1402,7 @@ mfxStatus VideoDECODEH265::DecodeFrame(mfxFrameSurface1 *surface_out, H265Decode
         eventData.wasOutputted = pFrame->wasOutputted();
         TRACE_EVENT(MFX_TRACE_API_HEVC_DISPLAYINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
     }
-#endif
+
     return sts;
 }
 
