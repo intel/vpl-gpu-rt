@@ -415,7 +415,7 @@ void AV1EHW::Base::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsCo
 
         bool bIsSegModeUnknown =  !pAuxData || (pAuxData->SegmentationMode == MFX_CODINGOPTION_UNKNOWN);
 
-        SetDefaultOpt(config.AdaptiveMBQP, bMBQPSupport && lplaAssistedBRC && IsOn(pExtOpt2->MBBRC) && bIsSegModeUnknown);
+        SetDefaultOpt(config.AdaptiveMBQP, bMBQPSupport && lplaAssistedBRC && pExtOpt2 && IsOn(pExtOpt2->MBBRC) && bIsSegModeUnknown);
 
         //these features are not supported for now, we will enable them in future
         config.AdaptiveRefP          = MFX_CODINGOPTION_OFF;        
