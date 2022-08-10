@@ -113,6 +113,8 @@ private:
     mfxF64                                       m_in_framerate;
     bool                                         m_is_cscInUse;
     mfxU16                                       m_anchorFramesSource;
+
+    UMC::VideoAccelerator*                       m_va;
 };
 
 #endif // MFX_ENABLE_AV1_VIDEO_DECODE

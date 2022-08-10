@@ -1101,10 +1101,9 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     }
 
 #if defined(MFX_ENABLE_PXP)
-	//Check protect VA is enabled or not
+    //Check protect VA is enabled or not
     if( bs && m_va && m_va->GetProtectedVA())
     {
-        MFX_CHECK(m_va->GetProtectedVA(), MFX_ERR_UNSUPPORTED);
         MFX_CHECK((bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME), MFX_ERR_UNSUPPORTED);
         m_va->GetProtectedVA()->SetBitstream(bs);
     }

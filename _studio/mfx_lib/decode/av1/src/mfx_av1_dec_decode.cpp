@@ -49,6 +49,9 @@
 
 
 #include "mfx_unified_av1d_logging.h"
+#if defined(MFX_ENABLE_PXP)
+#include "umc_va_protected.h"
+#endif // MFX_ENABLE_PXP
 
 namespace MFX_VPX_Utility
 {
@@ -131,6 +134,7 @@ VideoDECODEAV1::VideoDECODEAV1(VideoCORE* core, mfxStatus* sts)
     , m_in_framerate(0)
     , m_is_cscInUse(false)
     , m_anchorFramesSource(0)
+    , m_va(nullptr)
 {
     if (sts)
     {
@@ -270,7 +274,8 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
     sts = m_core->CreateVA(par, &m_request, &m_response, m_surface_source.get());
     MFX_CHECK_STS(sts);
 
-    m_core->GetVA((mfxHDL*)&vp.pVideoAccelerator, MFX_MEMTYPE_FROM_DECODE);
+    m_core->GetVA((mfxHDL*)&m_va, MFX_MEMTYPE_FROM_DECODE);
+    vp.pVideoAccelerator = m_va;
 
     ConvertMFXParamsToUMC(par, &vp);
     vp.info.profile = av1_mfx_profile_to_native_profile(par->mfx.CodecProfile);
@@ -502,6 +507,7 @@ mfxStatus VideoDECODEAV1::Close()
     m_response_alien = {};
 
     m_is_init = false;
+    m_va = nullptr;
 
     return MFX_ERR_NONE;
 }
@@ -746,6 +752,15 @@ mfxStatus VideoDECODEAV1::DecodeFrameCheck(mfxBitstream* bs, mfxFrameSurface1* s
     std::lock_guard<std::mutex> guard(m_guard);
     MFX_CHECK(m_core, MFX_ERR_UNDEFINED_BEHAVIOR);
     MFX_CHECK(m_decoder, MFX_ERR_NOT_INITIALIZED);
+
+#if defined(MFX_ENABLE_PXP)
+    //Check protect VA is enabled or not
+    if( bs && m_va && m_va->GetProtectedVA())
+    {
+        MFX_CHECK((bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME), MFX_ERR_UNSUPPORTED);
+        m_va->GetProtectedVA()->SetBitstream(bs);
+    }
+#endif // MFX_ENABLE_PXP
 
     mfxStatus sts = SubmitFrame(bs, surface_work, surface_out);
 
