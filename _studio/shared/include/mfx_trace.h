@@ -171,6 +171,23 @@ typedef enum
     MFX_TRACE_LEVEL_MAX = 0xFF
 } mfxTraceLevel;
 
+// enumeration of the TXT log levels
+#ifdef _DEBUG
+typedef enum
+{
+    MFX_TXTLOG_LEVEL_MAX = 1,   //include API Func, API PARAMS and internal Func
+    MFX_TXTLOG_LEVEL_API_AND_INTERNAL = 2,  //include API Func and internal Func
+    MFX_TXTLOG_LEVEL_API_AND_PARAMS = 3, //include API Func and API PARAMS
+    MFX_TXTLOG_LEVEL_API = 4,   //include API Func
+} mfxTxtLogLevel;
+#else
+typedef enum
+{
+    MFX_TXTLOG_LEVEL_API_AND_PARAMS = 1,    //include API Func, API PARAMS
+    MFX_TXTLOG_LEVEL_API = 2    //include API Func
+} mfxTxtLogLevel;
+#endif
+
 typedef enum _MEDIA_EVENT_TYPE
 {
     EVENT_TYPE_INFO = 0,           //! function information event
@@ -219,7 +236,7 @@ typedef enum _MEDIA_EVENT_FILTER_KEYID
 /** SCHEDULER level
  * - Media SDK internal scheduler functions calls
  */
-#define MFX_TRACE_LEVEL_SCHEDULER   MFX_TRACE_LEVEL_4
+#define MFX_TRACE_LEVEL_API_PARAMS   MFX_TRACE_LEVEL_4
 
 /** INTERNAL level
  * - Media SDK components function calls. Use this level to get more deeper knowledge of

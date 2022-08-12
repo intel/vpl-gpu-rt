@@ -206,20 +206,12 @@ mfxTraceU32 MFXTrace_GetEnvParams(void)
     if (tracelogChar != nullptr)
     {
         LogConfig = std::strtol(tracelogChar, &endPtr, 10);
-        g_OutputMode |= LogConfig;
+        if (LogConfig > 0 && LogConfig <= MFX_TXTLOG_LEVEL_API)
+        {
+            g_OutputMode |= MFX_TRACE_OUTPUT_TEXTLOG;
+            g_Level = LogConfig;
+        }
     }
-#ifdef  _DEBUG
-    const char* tracelogLevel = std::getenv("VPL_TXT_LEVEL");
-    char* endLogPtr = nullptr;
-    int LevelConfig = 0;
-    if (tracelogLevel != nullptr)
-    {
-        LevelConfig = std::strtol(tracelogLevel, &endLogPtr, 10);
-        g_Level = LevelConfig;
-    }
-#else
-    g_Level = MFX_TRACE_LEVEL_API;
-#endif
     //Enable event capture according to VPL_EVENT_TRACE
     const char* g_eventTrace = std::getenv("VPL_EVENT_TRACE");
     char* endEvent = nullptr;
@@ -272,17 +264,38 @@ inline bool MFXTrace_IsPrintableCategoryAndLevel(mfxTraceChar* category, mfxTrac
     {
         if (level <= g_mfxTraceCategoriesTable[index].m_level) return true;
     }
+    else if (!g_mfxTraceCategoriesTable)
+    {
 #ifdef _DEBUG
-    else if (!g_mfxTraceCategoriesTable)
-    {
-        if (level <= g_Level) return true;
-    }
+        if(g_Level == MFX_TXTLOG_LEVEL_MAX)
+        {
+            return true;
+        }
+        else if (g_Level == MFX_TXTLOG_LEVEL_API_AND_INTERNAL)
+        {
+            if (level != MFX_TRACE_LEVEL_API_PARAMS)
+            {
+                return true;
+            }
+        }
+        else if (g_Level == MFX_TXTLOG_LEVEL_API_AND_PARAMS)
 #else
-    else if (!g_mfxTraceCategoriesTable)
-    {
-        if (level == g_Level) return true;
-    }
+        if (g_Level == MFX_TXTLOG_LEVEL_API_AND_PARAMS)
 #endif
+        {
+            if (level == MFX_TRACE_LEVEL_API_PARAMS || level == MFX_TRACE_LEVEL_API)
+            {
+                return true;
+            }
+        }
+        else if (g_Level == MFX_TXTLOG_LEVEL_API)
+        {
+            if (level == MFX_TRACE_LEVEL_API)
+            {
+                return true;
+            }
+        }
+    }
     return false;
 }
 
