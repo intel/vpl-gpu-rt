@@ -216,7 +216,7 @@ public:
         m_videoProcessingVA(0),
 #endif
         m_allocator(0),
-        m_bShortSlice(false),
+        m_bH264ShortSlice(false),
         m_bH264MVCSupport(false),
         m_isUseStatuReport(true),
         m_H265ScalingListScanOrder(1)
@@ -327,7 +327,7 @@ public:
 #endif
     }
 
-    bool IsLongSliceControl() const { return (!m_bShortSlice); };
+    bool IsLongSliceControl() const { return (!m_bH264ShortSlice); };
     bool IsMVCSupport() const {return m_bH264MVCSupport; };
     bool IsUseStatusReport() const { return m_isUseStatuReport; }
     void SetStatusReportUsing(bool isUseStatuReport) { m_isUseStatuReport = isUseStatuReport; }
@@ -364,7 +364,7 @@ protected:
 
     FrameAllocator    *  m_allocator;
 
-    bool                 m_bShortSlice;
+    bool                 m_bH264ShortSlice;
     bool                 m_bH264MVCSupport;
     bool                 m_isUseStatuReport;
     int32_t              m_H265ScalingListScanOrder; //0 - up-right, 1 - raster . Default is 1 (raster).

@@ -735,7 +735,6 @@ namespace UMC_MPEG2_DECODER
                        const MPEG2PictureHeader& pic, const MPEG2PictureCodingExtension& picExt,
                        const UMC::sVideoStreamInfo& info)
     {
-
         frame.frameType = (FrameType)pic.picture_coding_type;
         frame.isProgressiveSequence = seqExt.progressive_sequence;
         frame.isProgressiveFrame    = picExt.progressive_frame;

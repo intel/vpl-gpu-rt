@@ -132,9 +132,13 @@ namespace mfx
 
     inline
     std::error_code make_error_code(mfxStatus status)
-    { return std::error_code(int(status), category()); }
+    {
+        return std::error_code(int(status), category());
+    }
 
     inline
     std::error_condition make_error_condition(mfxStatus status)
-    { return std::error_condition(int(status), category()); }
+    {
+        return std::error_condition(int(status), category());
+    }
 }

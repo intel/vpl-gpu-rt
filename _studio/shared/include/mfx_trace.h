@@ -32,6 +32,8 @@
 #include <stdarg.h>
 
 #include "mfx_config.h"
+#include "mfx_trace_dump.h"
+#include "mfx_error.h"
 
     #define MAX_PATH 260
 
@@ -522,9 +524,6 @@ extern "C" {
 #define MFX_LTRACE_P(_level, _arg1) \
     MFX_LTRACE_1(_level, #_arg1 " = ", MFX_TRACE_FORMAT_P, _arg1)
 
-#define MFX_LTRACE_I(_level, _arg1) \
-    MFX_LTRACE_1(_level, #_arg1 " = ", MFX_TRACE_FORMAT_I, _arg1)
-
 #define MFX_LTRACE_X(_level, _arg1) \
     MFX_LTRACE_1(_level, #_arg1 " = ", MFX_TRACE_FORMAT_X, _arg1)
 
@@ -542,8 +541,22 @@ extern "C" {
 #define MFX_LTRACE_BUFFER_S(_level, _name, _buffer, _size)
 #endif
 
+#ifdef MFX_TRACE_ENABLE
 #define MFX_LTRACE_BUFFER(_level, _buffer) \
-    MFX_LTRACE_BUFFER_S(_level, #_buffer, _buffer, sizeof(*_buffer)) \
+{ \
+    DumpContext context; \
+    if (_buffer) { \
+        std::string _str = context.dump(#_buffer, *_buffer); \
+        MFX_LTRACE_1(_level, "", "\n%s", _str.c_str()) \
+    } \
+    else { \
+        MFX_LTRACE_BUFFER_S(_level, #_buffer, _buffer, sizeof(*_buffer)) \
+    } \
+}
+#else
+#define MFX_LTRACE_BUFFER(_level, _buffer) \
+    MFX_LTRACE_BUFFER_S(_level, #_buffer, _buffer, sizeof(*_buffer)) 
+#endif
 
 #define MFX_LTRACE_GUID(_level, _guid) \
     MFX_LTRACE((MFX_TRACE_PARAMS, _level, #_guid " = ", \
@@ -664,6 +677,37 @@ private:
 
 #define MFX_AUTO_TRACE_WITHID(_task_name) \
     _MFX_AUTO_LTRACE_(MFX_TRACE_LEVEL, _task_name, MFX_TRACE_DEFAULT_TASK, true)
+
+#ifdef MFX_TRACE_ENABLE
+class MFXLTraceI 
+{
+public:
+    template <typename T>
+    void mfx_ltrace_i(mfxTraceLevel _level, const char* _mesg, T _arg1)
+    {
+        std::stringstream ss;
+        ss << _mesg << " = ";
+        MFX_LTRACE_1(_level, ss.str().c_str(), MFX_TRACE_FORMAT_I, _arg1)
+    }
+
+    void mfx_ltrace_i(mfxTraceLevel _level, const char* _mesg, mfxStatus _arg1)
+    {
+        std::error_code code = mfx::make_error_code(_arg1);
+        std::stringstream ss;
+        ss << _mesg << " = ";
+        MFX_LTRACE_1(_level, ss.str().c_str(), MFX_TRACE_FORMAT_S, code.message().c_str())
+    }
+};
+
+#define MFX_LTRACE_I(_level, _arg1) \
+{ \
+    MFXLTraceI mFXLTraceI; \
+    mFXLTraceI.mfx_ltrace_i(_level, #_arg1, _arg1); \
+}
+#else
+#define MFX_LTRACE_I(_level, _arg1) \
+    MFX_LTRACE_1(_level, #_arg1 " = ", MFX_TRACE_FORMAT_I, _arg1)
+#endif
 
 #endif // ifdef __cplusplus
 

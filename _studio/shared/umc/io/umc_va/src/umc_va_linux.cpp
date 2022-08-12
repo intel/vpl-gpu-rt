@@ -735,7 +735,7 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
                 va_num_elements = size/sizeof(VASliceParameterBufferMPEG2);
                 break;
             case UMC::VA_H264:
-                if (m_bShortSlice)
+                if (m_bH264ShortSlice)
                 {
                     va_size         = sizeof(VASliceParameterBufferBase);
                     va_num_elements = size/sizeof(VASliceParameterBufferBase);
@@ -828,7 +828,7 @@ LinuxVideoAccelerator::Execute()
             pCompBuf = m_pCompBuffers[i];
             id = pCompBuf->GetID();
 
-            if (!m_bShortSlice)
+            if (!m_bH264ShortSlice)
             {
                 if (pCompBuf->GetType() == VASliceParameterBufferType)
                 {

@@ -32,7 +32,7 @@
 #include <string.h>
 
 // defines maximum length of output line
-#define MFX_TRACE_MAX_LINE_LENGTH 1024
+#define MFX_TRACE_MAX_LINE_LENGTH 10240
 
 /*------------------------------------------------------------------------------*/
 
