@@ -76,7 +76,6 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     mfxIMPL impl = par.Implementation & (MFX_IMPL_VIA_ANY - 1);
     mfxIMPL implInterface = par.Implementation & -MFX_IMPL_VIA_ANY;
 
-    MFXTrace_PerfInit();
     MFX_TRACE_INIT();
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "ThreadName=MSDK app");
@@ -237,18 +236,18 @@ mfxStatus MFXDoWork(mfxSession session)
     return res;
 } // mfxStatus MFXDoWork(mfxSession *session)
 
-struct MFXTrace_PerfCloseOnExit
+struct MFXTrace_EventCloseOnExit
 {
-    ~MFXTrace_PerfCloseOnExit()
+    ~MFXTrace_EventCloseOnExit()
     {
-        MFXTrace_PerfClose();
+        MFXTrace_EventClose();
     }
 };
 
 mfxStatus MFXClose(mfxSession session)
 {
     mfxStatus mfxRes = MFX_ERR_NONE;
-    MFXTrace_PerfCloseOnExit MFXTrace_PerfClose;
+    MFXTrace_EventCloseOnExit MFXTrace_EventClose;
     if (EnableEventTrace)
     {
         TRACE_EVENT(MFX_TRACE_API_MFX_CLOSE_TASK, EVENT_TYPE_START, 0, make_event_data(session));
@@ -663,6 +662,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
         return impl;
 
     MFX_TRACE_INIT();
+    MFXTrace_EventInit();
     if (EnableEventTrace)
     {
         TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_START, 0, make_event_data((mfxU32)format));

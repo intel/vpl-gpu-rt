@@ -263,8 +263,8 @@ typedef enum _MEDIA_EVENT_FILTER_KEYID
 #endif
 
 // Perf traces
-mfxTraceU32 MFXTrace_PerfInit();
-mfxTraceU32 MFXTrace_PerfClose();
+mfxTraceU32 MFXTrace_EventInit();
+mfxTraceU32 MFXTrace_EventClose();
 
 /*------------------------------------------------------------------------------*/
 
@@ -355,7 +355,7 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
 /*------------------------------------------------------------------------------*/
 
 // Perf traces
-mfxTraceU32 MFXTrace_PerfEvent(uint16_t task, uint8_t opcode, uint8_t level, uint64_t size, void *ptr);
+mfxTraceU32 MFXTraceEvent(uint16_t task, uint8_t opcode, uint8_t level, uint64_t size, void *ptr);
 
 #ifdef __cplusplus
 }
@@ -427,12 +427,12 @@ public:
     template <typename T>
     static void write(uint16_t task, uint8_t  opcode, uint8_t level, T&& data)
     {
-        MFXTrace_PerfEvent(task, opcode, level, sizeof(data), &data);
+        MFXTraceEvent(task, opcode, level, sizeof(data), &data);
     }
 
     static void write(uint16_t task, uint8_t  opcode, uint8_t level, event_data<>& /*data*/)
     {
-        MFXTrace_PerfEvent(task, opcode, level, 0, nullptr);
+        MFXTraceEvent(task, opcode, level, 0, nullptr);
     }
 
     template <typename T>
