@@ -266,7 +266,7 @@ inline bool MFXTrace_IsPrintableCategoryAndLevel(mfxTraceChar* category, mfxTrac
     }
     else if (!g_mfxTraceCategoriesTable)
     {
-#ifdef _DEBUG
+#ifndef NDEBUG
         if(g_Level == MFX_TXTLOG_LEVEL_MAX)
         {
             return true;

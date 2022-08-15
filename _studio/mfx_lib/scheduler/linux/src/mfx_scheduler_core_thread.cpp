@@ -65,7 +65,7 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
         {
             MFX_CALL_INFO call = {};
 
-            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "SchedulerRoutine");
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "SchedulerRoutine");
             TRACE_EVENT(MFX_TRACE_HOTSPOT_SCHED_ROUTINE, EVENT_TYPE_INFO, 0,
                 make_event_data(threadNum));
             

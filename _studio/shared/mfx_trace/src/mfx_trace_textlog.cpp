@@ -29,6 +29,7 @@ extern "C"
 #include <stdio.h>
 #include "mfx_trace_utils.h"
 #include "mfx_trace_textlog.h"
+#include "unistd.h"
 
 /*------------------------------------------------------------------------------*/
 
@@ -48,7 +49,7 @@ mfxTraceU32 MFXTraceTextLog_GetRegistryParams(void)
     FILE* conf_file = mfx_trace_open_conf_file(MFX_TRACE_CONFIG);
     mfxTraceU32 value = 0;
 
-    if (!conf_file) return 1;
+    if (!conf_file) return 0;
     mfx_trace_get_conf_string(conf_file,
                               MFX_TRACE_TEXTLOG_REG_FILE_NAME,
                               g_mfxTracePrintfFileName,
@@ -80,6 +81,8 @@ mfxTraceU32 MFXTraceTextLog_Init()
     sts = MFXTraceTextLog_Close();
     if (!sts) sts = MFXTraceTextLog_GetRegistryParams();
 
+    std::string filename_path = "/tmp/mfxlib_Pid" + std::to_string(getpid()) + "_Tid" + std::to_string(pthread_self()) + ".log";
+    strcpy(g_mfxTracePrintfFileName,filename_path.c_str()); 
 
     if (!sts)
     {
@@ -154,7 +157,7 @@ mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* /*static_handle*
     char exitChr[] = ": EXIT";
     strncpy(strfile_name, file_name, MFX_TRACE_MAX_LINE_LENGTH-1);
     strfile_name[MFX_TRACE_MAX_LINE_LENGTH - 1] = 0;
-    char* g_fimeName = strrchr(strfile_name, '\\') + 1;
+    char* g_fimeName = strrchr(strfile_name, '/') + 1;
     if (g_fimeName && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FILE_NAME) && ((strcmp(format, exitChr) == 0) || (strcmp(format, enterChr) == 0)))
     {
         p_str = mfx_trace_sprintf(p_str, len, "=====>%s: ", g_fimeName);
