@@ -842,8 +842,8 @@ std::string DumpContext::dump(const std::string structName, const  mfxExtMBQP& E
     str += structName + ".Mode=" + ToString(ExtMBQP.Mode) + "\n";
     str += structName + ".BlockSize=" + ToString(ExtMBQP.BlockSize) + "\n";
     str += structName + ".NumQPAlloc=" + ToString(ExtMBQP.NumQPAlloc) + "\n";
-    str += structName + ".QP=" + ToString(ExtMBQP.QP) + "\n";
-    str += structName + ".DeltaQP=" + ToString(ExtMBQP.DeltaQP) + "\n";
+    str += structName + ".QP=" + ToHexFormatString(ExtMBQP.QP) + "\n";
+    str += structName + ".DeltaQP=" + ToHexFormatString(ExtMBQP.DeltaQP) + "\n";
     str += structName + "reserverd2=" + ToString(ExtMBQP.reserved2) + "\n";
     return str;
 }
