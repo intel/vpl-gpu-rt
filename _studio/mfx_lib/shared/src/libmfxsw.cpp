@@ -81,10 +81,8 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "ThreadName=MSDK app");
     }
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    if(EnableEventTrace)
-    {
-        TRACE_EVENT(MFX_TRACE_API_MFX_INIT_EX_TASK, EVENT_TYPE_START, 0, make_event_data((mfxU32)par.Implementation, par.GPUCopy));
-    }
+    TRACE_EVENT(MFX_TRACE_API_MFX_INIT_EX_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data((mfxU32)par.Implementation, par.GPUCopy));
+
     // check the library version
     if (MakeVersion(par.Version.Major, par.Version.Minor) > MFX_VERSION)
     {
@@ -153,10 +151,9 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         (*session)->m_versionToReport.Major = 1;
         (*session)->m_versionToReport.Minor = 255;
     }
-    if (EnableEventTrace)
-    {
-        TRACE_EVENT(MFX_TRACE_API_MFX_INIT_EX_TASK, EVENT_TYPE_END, 0, make_event_data(mfxRes, session));
-    }
+
+    TRACE_EVENT(MFX_TRACE_API_MFX_INIT_EX_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(mfxRes, session));
+
     return mfxRes;
 
 } // mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
@@ -207,10 +204,8 @@ mfxStatus MFXDoWork(mfxSession session)
     mfxStatus res;
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    if (EnableEventTrace)
-    {
-        TRACE_EVENT(MFX_TRACE_API_DO_WORK_TASK, EVENT_TYPE_START, 0, make_event_data(session));
-    }
+    TRACE_EVENT(MFX_TRACE_API_DO_WORK_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session));
+
     // check error(s)
     if (0 == session)
     {
@@ -228,10 +223,8 @@ mfxStatus MFXDoWork(mfxSession session)
     newScheduler->Release();
 
     res = newScheduler->DoWork();
-    if (EnableEventTrace)
-    {
-        TRACE_EVENT(MFX_TRACE_API_DO_WORK_TASK, EVENT_TYPE_END, 0, make_event_data(res));
-    }
+
+    TRACE_EVENT(MFX_TRACE_API_DO_WORK_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(res));
 
     return res;
 } // mfxStatus MFXDoWork(mfxSession *session)
@@ -298,10 +291,8 @@ mfxStatus MFXClose(mfxSession session)
 #if defined(MFX_TRACE_ENABLE)
     MFX_TRACE_CLOSE();
 #endif
-    if (EnableEventTrace)
-    {
-        TRACE_EVENT(MFX_TRACE_API_MFX_CLOSE_TASK, EVENT_TYPE_END, 0, make_event_data(mfxRes));
-    }
+    TRACE_EVENT(MFX_TRACE_API_MFX_CLOSE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(mfxRes));
+
     return mfxRes;
 
 } // mfxStatus MFXClose(mfxHDL session)
@@ -312,11 +303,7 @@ mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* sess
     mfxStatus mfxRes = MFX_ERR_NONE;
 
     MFX_TRACE_INIT();
-
-    if (EnableEventTrace)
-    {
-        TRACE_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK, EVENT_TYPE_START, 0, make_event_data((mfxU32)param.AccelerationMode, param.VendorImplID));
-    }
+    TRACE_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data((mfxU32)param.AccelerationMode, param.VendorImplID));
 
     mfxInitParam par = {};
 
@@ -375,10 +362,7 @@ mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* sess
     // app. supposed just to copy VendorImplID from mfxImplDescription (returned by MFXQueryImplsDescription) to mfxInitializationParam
     mfxRes = MFXInit_Internal(par, session, par.Implementation, param.VendorImplID, isSingleThreadMode);
 
-    if (EnableEventTrace)
-    {
-        TRACE_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK, EVENT_TYPE_END, 0, make_event_data(par.Implementation, isSingleThreadMode));
-    }
+    TRACE_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(par.Implementation, isSingleThreadMode));
 
     return mfxRes;
 }
@@ -689,10 +673,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
             *num_impls = mfxU32(holder->GetSize());
 
-            if (EnableEventTrace)
-            {
-                TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_END, 0, make_event_data(*num_impls));
-            }
+            TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(*num_impls));
 
             return holder.release()->GetArray();
         }
@@ -737,10 +718,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
             *num_impls = mfxU32(holder->GetSize());
 
-            if (EnableEventTrace)
-            {
-                TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_END, 0, make_event_data(*num_impls));
-            }
+            TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(*num_impls));
 
             holder->Detach();
             impl = holder.release()->GetArray();

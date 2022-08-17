@@ -30,11 +30,7 @@
 mfxStatus MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfxU32 wait)
 {
     mfxStatus mfxRes = MFX_ERR_NONE;
-
-    if (EnableEventTrace)
-    {
-        TRACE_EVENT(MFX_TRACE_API_SYNC_OPERATION_TASK, EVENT_TYPE_START, 0, make_event_data(session, syncp, wait));
-    }
+    TRACE_EVENT(MFX_TRACE_API_SYNC_OPERATION_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session, syncp, wait));
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
@@ -48,10 +44,7 @@ mfxStatus MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfx
             mfxRes = session->m_pScheduler->Synchronize(syncp, wait);
         }
 
-        if (EnableEventTrace)
-        {
-            TRACE_EVENT(MFX_TRACE_API_SYNC_OPERATION_TASK, EVENT_TYPE_END, 0, make_event_data(mfxRes, syncp));
-        }
+        TRACE_EVENT(MFX_TRACE_API_SYNC_OPERATION_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(mfxRes, syncp));
     } catch(...) {
         // set the default error value
         mfxRes = MFX_ERR_ABORTED;

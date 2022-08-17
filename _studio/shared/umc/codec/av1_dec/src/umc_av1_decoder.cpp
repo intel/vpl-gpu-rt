@@ -554,14 +554,10 @@ namespace UMC_AV1_DECODER
             Curr_temp = Curr;
         }
 
-        if ((EventCfg & (1 << TR_KEY_DECODE_DPB_INFO)))
+        if (!updated_refs.empty())
         {
-            DECODE_EVENTDATA_DPBINFO_AV1 eventDpbData;
-            if (!updated_refs.empty() && EnableEventTrace)
-            {
-                DecodeEventDpbInfoAV1(&eventDpbData, updated_refs);
-                TRACE_EVENT(MFX_TRACE_API_AV1_DPBPARAMETER_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventDpbData));
-            }
+            TRACE_BUFFER_EVENT(MFX_TRACE_API_AV1_DPBPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_DPB_INFO,
+                updated_refs, AV1DecodeDpbInfo, DPBINFO_AV1D);
         }
 
         bool gotFullFrame = false;

@@ -27,7 +27,7 @@
 #include "umc_h264_frame_list.h"
 #include "mfx_unified_decode_logging.h"
 
-typedef struct _DECODE_EVENTDATA_SURFACEOUT_AVC
+typedef struct _EVENTDATA_SURFACEOUT_H264
 {
     uint32_t  CropH;
     uint32_t  CropW;
@@ -42,25 +42,7 @@ typedef struct _DECODE_EVENTDATA_SURFACEOUT_AVC
     uint32_t  FrameOrder;
     uint32_t  DataFlag;
     uint32_t  TimeStamp;
-} DECODE_EVENTDATA_SURFACEOUT_AVC;
-
-typedef struct _DECODE_EVENTDATA_OUTPUTFRAME_h264
-{
-    uint32_t PicOrderCnt[2];
-    uint32_t frameNum;
-    uint32_t wasDisplayed;
-    uint32_t wasOutputted;
-} DECODE_EVENTDATA_OUTPUTFRAME_h264;
-
-typedef struct _DECODE_EVENTDATA_SYNC_H264
-{
-    uint32_t PicOrderCnt[2];
-    uint32_t m_index;
-    uint32_t isDecodingCompleted;
-    uint32_t wasDisplayed;
-    uint32_t wasOutputted;
-    uint32_t eventSts;
-} DECODE_EVENTDATA_SYNC_H264;
+} EVENTDATA_SURFACEOUT_H264D;
 
 
 typedef struct _EVENTDATA_H264DPBINFO
@@ -72,19 +54,20 @@ typedef struct _EVENTDATA_H264DPBINFO
     int32_t refCounter;
 } EVENTDATA_H264DPBINFO;
 
-typedef struct _DECODE_EVENTDATA_DPBINFO_AVC
+typedef struct _EVENTDATA_DPBINFO_H264D
 {
     uint32_t eventCount;
     EVENTDATA_H264DPBINFO DpbInfo[16];
-} DECODE_EVENTDATA_DPBINFO_AVC;
+} EVENTDATA_DPBINFO_H264D;
 
-typedef struct _EVENT_Qmatrix_H264 {
+typedef struct _EVENTDATA_QMATRIX_H264D
+{
     uint32_t  bScalingLists4x4[6][16];
     uint32_t  bScalingLists8x8[2][64];
-} EVENT_Qmatrix_H264;
+} EVENTDATA_QMATRIX_H264D;
 
-void DecodeEventDataAVCSurfaceOutparam(DECODE_EVENTDATA_SURFACEOUT_AVC* pEventData, mfxFrameSurface1* surface_out, UMC::H264DecoderFrame* pFrame);
-void DecodeEventH264DpbInfo(DECODE_EVENTDATA_DPBINFO_AVC* pEventData, UMC::H264DBPList* pDPBList);
+void EventH264DecodeSurfaceOutparam(EVENTDATA_SURFACEOUT_H264D* pEventData, mfxFrameSurface1* surface_out);
+void EventH264DecodeDpbInfo(EVENTDATA_DPBINFO_H264D* pEventData, UMC::H264DBPList* pDPBList);
 
 #endif
 

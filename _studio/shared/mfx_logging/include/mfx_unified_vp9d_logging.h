@@ -27,7 +27,7 @@
 #include "umc_vp9_frame.h"
 #include "mfx_unified_decode_logging.h"
 
-typedef struct _DECODE_EVENTDATA_SURFACEOUT_VP9
+typedef struct _EVENTDATA_SURFACEOUT_VP9D
 {
     uint32_t  CropH;
     uint32_t  CropW;
@@ -42,36 +42,28 @@ typedef struct _DECODE_EVENTDATA_SURFACEOUT_VP9
     uint32_t  DataFlag;
     uint32_t  FrameOrder;
     uint32_t  TimeStamp;
-} DECODE_EVENTDATA_SURFACEOUT_VP9;
-
-typedef struct _DECODE_EVENTDATA_SYNC_VP9
-{
-    int32_t currFrameId;
-    int32_t copyFromFrame;
-    uint32_t index;
-    uint32_t showFrame;
-} DECODE_EVENTDATA_SYNC_VP9;
+} EVENTDATA_SURFACEOUT_VP9D;
 
 
-typedef struct _DECODE_EVENTDATA_OUTPUTFRAME_VP9
+typedef struct _EVENTDATA_OUTPUTFRAME_VP9
 {
     uint32_t MemID;
     uint32_t wasDisplayed;
-} DECODE_EVENTDATA_OUTPUTFRAME_VP9;
+} EVENTDATA_OUTPUTFRAME_VP9;
 
-typedef struct _EVENTDATA_DPBINFO_VP9
+typedef struct _EVENTDATA_DPBINFO
 {
     uint32_t FrameId;
     uint32_t isDecoded;
-} EVENTDATA_DPBINFO_VP9;
+} EVENTDATA_DPBINFO;
 
-typedef struct _DECODE_EVENTDATA_DPBINFO_VP9
+typedef struct _EVENTDATA_DPBINFO_VP9D
 {
     uint32_t eventCount;
-    EVENTDATA_DPBINFO_VP9 DpbInfo[16];
-} DECODE_EVENTDATA_DPBINFO_VP9;
+    EVENTDATA_DPBINFO DpbInfo[16];
+} EVENTDATA_DPBINFO_VP9D;
 
-void DecodeEventVP9DataSurfaceOutparam(DECODE_EVENTDATA_SURFACEOUT_VP9* pEventData, mfxFrameSurface1** surface_out);
-void DecodeEventVP9DpbInfo(DECODE_EVENTDATA_DPBINFO_VP9* pEventData, std::vector<UMC_VP9_DECODER::VP9DecoderFrame> m_submittedFrames);
+void EventVP9DecodeSurfaceOutparam(EVENTDATA_SURFACEOUT_VP9D* pEventData, mfxFrameSurface1** surface_out);
+void EventVP9DecodeDpbInfo(EVENTDATA_DPBINFO_VP9D* pEventData, std::vector<UMC_VP9_DECODER::VP9DecoderFrame> m_submittedFrames);
 
 #endif

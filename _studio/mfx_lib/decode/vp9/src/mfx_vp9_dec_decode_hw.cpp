@@ -249,14 +249,10 @@ public:
 
         m_submittedFrames.push_back(frame);
 
-        if ((EventCfg & (1 << TR_KEY_DECODE_DPB_INFO)) && EnableEventTrace)
+        if (!m_submittedFrames.empty())
         {
-            DECODE_EVENTDATA_DPBINFO_VP9 eventDpbData;
-            if (!m_submittedFrames.empty())
-            {
-                DecodeEventVP9DpbInfo(&eventDpbData, m_submittedFrames);
-                TRACE_EVENT(MFX_TRACE_API_VP9_DPBPARAMETER_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventDpbData));
-            }
+            TRACE_BUFFER_EVENT(MFX_TRACE_API_VP9_DPBPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_DPB_INFO,
+                m_submittedFrames, VP9DecodeDpbInfo, DPBINFO_VP9D);
         }
     }
 
@@ -270,13 +266,8 @@ public:
             find_it->isDecoded = true;
         }
 
-        if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
-        {
-            DECODE_EVENTDATA_OUTPUTFRAME_VP9 eventData;
-            eventData.MemID = find_it->currFrame;
-            eventData.wasDisplayed = find_it->isDecoded;
-            TRACE_EVENT(MFX_TRACE_API_VP9_DISPLAYINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
-        }
+        TRACE_EVENT(MFX_TRACE_API_VP9_DISPLAYINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
+            find_it->currFrame, (uint32_t)find_it->isDecoded));
     }
 
     void CompleteFrames()
@@ -879,15 +870,8 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
     VideoDECODEVP9_HW::VP9DECODERoutineData& data = *(VideoDECODEVP9_HW::VP9DECODERoutineData*)p_state;
     VideoDECODEVP9_HW& decoder = *data.decoder;
 
-    if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
-    {
-        DECODE_EVENTDATA_SYNC_VP9 eventData;
-        eventData.copyFromFrame = data.copyFromFrame;
-        eventData.currFrameId = data.currFrameId;
-        eventData.index = data.index;
-        eventData.showFrame = data.showFrame;
-        TRACE_EVENT(MFX_TRACE_API_VP9_SYNCINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
-    }
+    TRACE_EVENT(MFX_TRACE_API_VP9_SYNCINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
+        data.copyFromFrame, data.currFrameId, data.index, data.showFrame));
 
     if (data.copyFromFrame != UMC::FRAME_MID_INVALID)
     {
@@ -1203,17 +1187,11 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VP9 decode DDISubmitTask");
 
-            if (EnableEventTrace)
-            {
-                TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_START, 0, make_event_data(m_frameInfo.currFrame));
-            }
+            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(m_frameInfo.currFrame));
 
             UMC::Status umcSts = m_va->BeginFrame(m_frameInfo.currFrame, 0);
 
-            if (EnableEventTrace)
-            {
-                TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, 0, make_event_data(m_frameInfo.currFrame, umcSts));
-            }
+            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(m_frameInfo.currFrame, umcSts));
 
             MFX_CHECK(UMC::UMC_OK == umcSts, MFX_ERR_DEVICE_FAILED);
 
@@ -1223,17 +1201,11 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
             umcSts = m_va->Execute();
             MFX_CHECK(UMC::UMC_OK == umcSts, MFX_ERR_DEVICE_FAILED);
 
-            if (EnableEventTrace)
-            {
-                TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, 0, make_event_data(umcSts));
-            }
+            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(umcSts));
 
             umcSts = m_va->EndFrame();
 
-            if (EnableEventTrace)
-            {
-                TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, 0, make_event_data(sts));
-            }
+            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(sts));
 
             MFX_CHECK(UMC::UMC_OK == umcSts, MFX_ERR_DEVICE_FAILED);
         }
@@ -1286,12 +1258,8 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
             m_frameOrder++;
             sts = MFX_ERR_NONE;
 
-            if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
-            {
-                DECODE_EVENTDATA_SURFACEOUT_VP9 eventData;
-                DecodeEventVP9DataSurfaceOutparam(&eventData, surface_out);
-                TRACE_EVENT(MFX_TRACE_API_VP9_OUTPUTINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
-            }
+            TRACE_BUFFER_EVENT(MFX_TRACE_API_VP9_OUTPUTINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO,
+                surface_out, VP9DecodeSurfaceOutparam, SURFACEOUT_VP9D);
         }
         else
         {

@@ -20,10 +20,9 @@
 
 #include "mfx_unified_h264d_logging.h"
 
-void DecodeEventDataAVCSurfaceOutparam(
-    DECODE_EVENTDATA_SURFACEOUT_AVC* pEventData,
-    mfxFrameSurface1* surface_out,
-    UMC::H264DecoderFrame* pFrame)
+void EventH264DecodeSurfaceOutparam(
+    EVENTDATA_SURFACEOUT_H264D* pEventData,
+    mfxFrameSurface1* surface_out)
 {
     pEventData->CropH = surface_out->Info.CropH;
     pEventData->CropW = surface_out->Info.CropW;
@@ -34,14 +33,14 @@ void DecodeEventDataAVCSurfaceOutparam(
     pEventData->AspectRatioW = surface_out->Info.AspectRatioW;
     pEventData->FrameRateExtD = surface_out->Info.FrameRateExtD;
     pEventData->FrameRateExtN = surface_out->Info.FrameRateExtN;
+    pEventData->FrameOrder = surface_out->Data.FrameOrder;
     pEventData->PicStruct = surface_out->Info.PicStruct;
-    pEventData->FrameOrder = pFrame->m_frameOrder;
     pEventData->DataFlag = surface_out->Data.DataFlag;
     pEventData->TimeStamp = (uint32_t)surface_out->Data.TimeStamp;
 }
 
-void DecodeEventH264DpbInfo(
-    DECODE_EVENTDATA_DPBINFO_AVC* pEventData,
+void EventH264DecodeDpbInfo(
+    EVENTDATA_DPBINFO_H264D* pEventData,
     UMC::H264DBPList* pDPBList)
 {
     int32_t j = 0;

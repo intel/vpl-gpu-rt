@@ -20,8 +20,8 @@
 
 #include "mfx_unified_vp9d_logging.h"
 
-void DecodeEventVP9DataSurfaceOutparam(
-    DECODE_EVENTDATA_SURFACEOUT_VP9* pEventData,
+void EventVP9DecodeSurfaceOutparam(
+    EVENTDATA_SURFACEOUT_VP9D* pEventData,
     mfxFrameSurface1** surface_out)
 {
     pEventData->CropH = (*surface_out)->Info.CropH;
@@ -38,8 +38,8 @@ void DecodeEventVP9DataSurfaceOutparam(
     pEventData->FrameOrder = (*surface_out)->Data.FrameOrder;
     pEventData->TimeStamp = (uint32_t)(*surface_out)->Data.TimeStamp;
 }
-void DecodeEventVP9DpbInfo(
-    DECODE_EVENTDATA_DPBINFO_VP9* pEventData,
+void EventVP9DecodeDpbInfo(
+    EVENTDATA_DPBINFO_VP9D* pEventData,
     std::vector<UMC_VP9_DECODER::VP9DecoderFrame> m_submittedFrames)
 {
     pEventData->eventCount = m_submittedFrames.size();

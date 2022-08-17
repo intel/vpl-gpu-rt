@@ -83,10 +83,7 @@ namespace UMC_AV1_DECODER
             // it's first submission for current frame - need to call BeginFrame
             sts = va->BeginFrame(frame.GetMemID(SURFACE_RECON));
 
-            if (EnableEventTrace)
-            {
-                TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, 0, make_event_data(frame.GetMemID(), sts));
-            }
+            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(frame.GetMemID(), sts));
 
             if (sts != UMC::UMC_OK)
                 return sts;
@@ -116,18 +113,11 @@ namespace UMC_AV1_DECODER
 
         if (lastSubmission) // it's last submission for current frame - need to call EndFrame
         {
-            if (EnableEventTrace)
-            {
-                TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, 0, make_event_data(sts));
-            }
+            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(sts));
 
             sts = va->EndFrame();
 
-            if (EnableEventTrace)
-            {
-                TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, 0, make_event_data(sts));
-            }
-
+            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(sts));
         }
         return sts;
     }
@@ -252,16 +242,8 @@ namespace UMC_AV1_DECODER
                 }
             }
 
-            if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
-            {
-                DECODE_EVENTDATA_SYNC_AV1 eventData;
-                eventData.m_index = frame.m_index;
-                eventData.isOutputted = frame.Outputted();
-                eventData.isDecodingCompleted = frame.DecodingCompleted();
-                eventData.isDisplayable = frame.Displayed();
-                eventData.event_sts = sts;
-                TRACE_EVENT(MFX_TRACE_API_AV1_SYNCINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
-            }
+            TRACE_EVENT(MFX_TRACE_API_AV1_SYNCINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
+                frame.m_index, (uint32_t)frame.Outputted(), (uint32_t)frame.DecodingCompleted(), (uint32_t)frame.Displayed(), sts));
         }
 
         return wasCompleted;

@@ -1573,12 +1573,8 @@ void VideoDECODEH264::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
 
     surface_out->Data.DataFlag = (mfxU16)(pFrame->m_isOriginalPTS ? MFX_FRAMEDATA_ORIGINAL_TIMESTAMP : 0);
 
-    if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
-    {
-        DECODE_EVENTDATA_SURFACEOUT_AVC eventData;
-        DecodeEventDataAVCSurfaceOutparam(&eventData, surface_out, pFrame);
-        TRACE_EVENT(MFX_TRACE_API_AVC_OUTPUTINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
-    }
+    TRACE_BUFFER_EVENT(MFX_TRACE_API_AVC_OUTPUTINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO,
+        surface_out, H264DecodeSurfaceOutparam, SURFACEOUT_H264D);
 
     UMC::SEI_Storer * storer = m_pH264VideoDecoder->GetSEIStorer();
     if (storer)
@@ -1637,16 +1633,8 @@ mfxStatus VideoDECODEH264::DecodeFrame(mfxFrameSurface1 *surface_out, UMC::H264D
     UMC::AutomaticUMCMutex guard(m_mGuard);
     pFrame->setWasDisplayed();
 
-    if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
-    {
-        DECODE_EVENTDATA_OUTPUTFRAME_h264 eventData;
-        eventData.PicOrderCnt[0] = pFrame->m_PicOrderCnt[0];
-        eventData.PicOrderCnt[1] = pFrame->m_PicOrderCnt[1];
-        eventData.frameNum = pFrame->FrameNum();
-        eventData.wasDisplayed = pFrame->wasDisplayed();
-        eventData.wasOutputted = pFrame->wasOutputted();
-        TRACE_EVENT(MFX_TRACE_API_AVC_DISPLAYINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
-    }
+    TRACE_EVENT(MFX_TRACE_API_AVC_DISPLAYINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
+        pFrame->m_PicOrderCnt[0], pFrame->m_PicOrderCnt[1], pFrame->FrameNum(), pFrame->wasDisplayed(), pFrame->wasOutputted()));
 
     return sts;
 }

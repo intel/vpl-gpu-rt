@@ -1277,12 +1277,8 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
 
     surface_out->Data.DataFlag = (mfxU16)(pFrame->m_isOriginalPTS ? MFX_FRAMEDATA_ORIGINAL_TIMESTAMP : 0);
 
-    if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
-    {
-        DECODE_EVENTDATA_SURFACEOUT_HEVC eventData;
-        DecodeEventDataHEVCSurfaceOutparam(&eventData, surface_out, pFrame);
-        TRACE_EVENT(MFX_TRACE_API_HEVC_OUTPUTINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
-    }
+    TRACE_BUFFER_EVENT(MFX_TRACE_API_HEVC_OUTPUTINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO,
+        surface_out, H265DecodeSurfaceOutparam, SURFACEOUT_H265D);
 
     SEI_Storer_H265 * storer = m_pH265VideoDecoder->GetSEIStorer();
     if (storer)
@@ -1394,14 +1390,8 @@ mfxStatus VideoDECODEH265::DecodeFrame(mfxFrameSurface1 *surface_out, H265Decode
 
     pFrame->setWasDisplayed();
 
-    if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
-    {
-        DECODE_EVENTDATA_outputFrame_h265 eventData;
-        eventData.PicOrderCnt = pFrame->m_PicOrderCnt;
-        eventData.wasDisplayed = pFrame->wasDisplayed();
-        eventData.wasOutputted = pFrame->wasOutputted();
-        TRACE_EVENT(MFX_TRACE_API_HEVC_DISPLAYINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
-    }
+    TRACE_EVENT(MFX_TRACE_API_HEVC_DISPLAYINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
+        pFrame->m_PicOrderCnt, pFrame->wasDisplayed(), pFrame->wasOutputted()));
 
     return sts;
 }

@@ -19,8 +19,8 @@
 // SOFTWARE.
 #include "mfx_unified_decode_logging.h"
 
-void DecodeEventDataInitParam(
-    DECODE_EVENTDATA_INIT* pEventData,
+void EventDecodeInitParam(
+    EVENTDATA_DECODE_INIT* pEventData,
     mfxVideoParam* par)
 {
     pEventData->CodecId = par->mfx.CodecId;
@@ -44,8 +44,8 @@ void DecodeEventDataInitParam(
     pEventData->frameFourCC = par->mfx.FrameInfo.FourCC;
 }
 
-void DecodeEventDataQueryParam(
-    DECODE_EVENTDATA_QUERY* pEventData,
+void EventDecodeQueryParam(
+    EVENTDATA_DECODE_QUERY* pEventData,
     mfxFrameAllocRequest* request)
 {
     pEventData->NumFrameSuggested = request->NumFrameSuggested;

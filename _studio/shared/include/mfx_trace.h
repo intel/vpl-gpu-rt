@@ -198,7 +198,11 @@ typedef enum _MEDIA_EVENT_TYPE
 //!
 typedef enum _MEDIA_EVENT_FILTER_KEYID
 {
-    TR_KEY_DECODE_PICPARAM = 0,
+    //Common key
+    TR_KEY_MFX_API = 0,
+    TR_KEY_DDI_API,
+    //Decode key
+    TR_KEY_DECODE_PICPARAM,
     TR_KEY_DECODE_SLICEPARAM,
     TR_KEY_DECODE_TILEPARAM,
     TR_KEY_DECODE_QMATRIX,
@@ -452,9 +456,23 @@ public:
     }
 };
 
+#define TRACE_CHECK(keyWord)   \
+    (EventCfg & (1 << keyWord) || keyWord == TR_KEY_MFX_API || keyWord == TR_KEY_DDI_API) && EnableEventTrace
+
 // This macro is recommended to use instead creating RT Info ScopedTrace object directly
-#define TRACE_EVENT(task, level, data, at_exit_func) \
-    PerfScopedTrace _info_scoped_trace##__LINE__ (task, level, data, at_exit_func)
+#define TRACE_BUFFER_EVENT(task, level, keyWord, pData, funcName, structType)   \
+    if (TRACE_CHECK(keyWord))                           \
+    {                                                   \
+        EVENTDATA_##structType eventData;               \
+        Event##funcName(&eventData, pData);             \
+        PerfScopedTrace _info_scoped_trace##__LINE__(task, level, 0, make_event_data(eventData));   \
+    }
+
+#define TRACE_EVENT(task, level, keyWord, at_exit_func)         \
+    if (TRACE_CHECK(keyWord))                                   \
+    {                                                           \
+        PerfScopedTrace _info_scoped_trace##__LINE__(task, level, 0, at_exit_func);    \
+    }
 
 #ifdef __cplusplus
 extern "C" {

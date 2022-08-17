@@ -27,7 +27,7 @@
 #include "umc_h265_frame_list.h"
 #include "mfx_unified_decode_logging.h"
 
-typedef struct _DECODE_EVENTDATA_SURFACEOUT_HEVC
+typedef struct _EVENTDATA_SURFACEOUT_H265
 {
     uint32_t  CropH;
     uint32_t  CropW;
@@ -42,24 +42,7 @@ typedef struct _DECODE_EVENTDATA_SURFACEOUT_HEVC
     uint32_t  FrameOrder;
     uint32_t  DataFlag;
     uint32_t  TimeStamp;
-} DECODE_EVENTDATA_SURFACEOUT_HEVC;
-
-typedef struct _DECODE_EVENTDATA_SYNC_H265
-{
-    uint32_t PicOrderCnt;
-    uint32_t m_index;
-    uint32_t isDecodingCompleted;
-    uint32_t m_isDisplayable;
-    uint32_t m_wasOutputted;
-    uint32_t eventSts;
-} DECODE_EVENTDATA_SYNC_H265;
-
-typedef struct _DECODE_EVENTDATA_outputFrame_h265
-{
-    uint32_t PicOrderCnt;
-    uint32_t wasDisplayed;
-    uint32_t wasOutputted;
-} DECODE_EVENTDATA_outputFrame_h265;
+} EVENTDATA_SURFACEOUT_H265D;
 
 typedef struct _EVENT_PicEntry_HEVC
 {
@@ -67,7 +50,7 @@ typedef struct _EVENT_PicEntry_HEVC
     uint32_t m_AssociatedFlag;
 } EVENT_PicEntry_HEVC;
 
-typedef struct _DECODE_EVENTDATA_PICTUREPARAM_HEVC
+typedef struct _EVENTDATA_PICTUREPARAM_HEVC
 {
     uint32_t m_log2_max_pic_order_cnt_lsb_minus4;
     uint32_t m_NoPicReorderingFlag;
@@ -140,7 +123,7 @@ typedef struct _DECODE_EVENTDATA_PICTUREPARAM_HEVC
     uint32_t m_RefPicSetStCurrAfter[8];
     uint32_t m_RefPicSetLtCurr[8];
     uint32_t m_StatusReportFeedbackNumber;
-} DECODE_EVENTDATA_PICTUREPARAM_HEVC;
+} EVENTDATA_PICTUREPARAM_HEVC;
 
 // Reference picture list data structure
 typedef struct _EVENT_RefPicListModification
@@ -151,7 +134,7 @@ typedef struct _EVENT_RefPicListModification
     uint32_t m_list_entry_l1[17];
 } EVENT_RefPicListModification;
 
-typedef struct _DECODE_EVENTDATA_SLICEPARAM_HEVC
+typedef struct _EVENTDATA_SLICEPARAM_HEVC
     {
     uint32_t   m_nal_unit_type;
     uint32_t   m_nuh_temporal_id;
@@ -208,9 +191,9 @@ typedef struct _DECODE_EVENTDATA_SLICEPARAM_HEVC
     uint32_t   RefPOCList[2][17];
     uint32_t   m_IdrPicFlag;
     uint32_t   NumBitsForShortTermRPSInSlice;
-} DECODE_EVENTDATA_SLICEPARAM_HEVC;
+} EVENTDATA_SLICEPARAM_HEVC;
 
-typedef struct _EVENT_Qmatrix_HEVC
+typedef struct _EVENTDATA_Qmatrix_H265D
 {
     uint32_t ScalingLists0[6][16];
     uint32_t ScalingLists1[6][64];
@@ -218,7 +201,7 @@ typedef struct _EVENT_Qmatrix_HEVC
     uint32_t ScalingLists3[2][64];
     uint32_t ScalingListDCCoefSizeID2[6];
     uint32_t ScalingListDCCoefSizeID3[2];
-} EVENT_Qmatrix_HEVC;
+} EVENTDATA_Qmatrix_H265D;
 
 typedef struct _EVENTDATA_DPBINFO_h265
 {
@@ -229,12 +212,12 @@ typedef struct _EVENTDATA_DPBINFO_h265
     uint32_t refCounter;
 } EVENTDATA_DPBINFO_h265;
 
-typedef struct _DECODE_EVENTDATA_DPBINFO_HEVC
+typedef struct _EVENTDATA_DPBINFO_H265D
 {
     uint32_t eventCount;
     EVENTDATA_DPBINFO_h265 DpbInfo[16];
-} DECODE_EVENTDATA_DPBINFO_HEVC;
+} EVENTDATA_DPBINFO_H265D;
 
-void DecodeEventDataHEVCSurfaceOutparam(DECODE_EVENTDATA_SURFACEOUT_HEVC* pEventData, mfxFrameSurface1* surface_out, UMC_HEVC_DECODER::H265DecoderFrame* pFrame);
+void EventH265DecodeSurfaceOutparam(EVENTDATA_SURFACEOUT_H265D* pEventData, mfxFrameSurface1* surface_out);
 #endif
 

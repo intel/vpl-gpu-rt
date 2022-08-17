@@ -842,14 +842,8 @@ mfxStatus VideoDECODEAV1::DecodeFrame(mfxFrameSurface1 *surface_out, AV1DecoderF
     mfxStatus sts = m_surface_source->PrepareToOutput(surface_out, id, &m_video_par);
     frame->Displayed(true);
 
-    if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
-    {
-        DECODE_EVENTDATA_OUTPUTFRAME_AV1 eventData;
-        eventData.MemID = id;
-        eventData.wasDisplayed = frame->Displayed();
-        eventData.wasOutputted = frame->Outputted();
-        TRACE_EVENT(MFX_TRACE_API_AV1_DISPLAYINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
-    }
+    TRACE_EVENT(MFX_TRACE_API_AV1_DISPLAYINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
+        id, frame->Displayed(), frame->Outputted()));
 
     return sts;
 }
@@ -1344,12 +1338,8 @@ mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFram
     surface_out->Info.FrameRateExtD = isShouldUpdate ? m_init_par.mfx.FrameInfo.FrameRateExtD : m_first_par.mfx.FrameInfo.FrameRateExtD;
     surface_out->Info.FrameRateExtN = isShouldUpdate ? m_init_par.mfx.FrameInfo.FrameRateExtN : m_first_par.mfx.FrameInfo.FrameRateExtN;
 
-    if ((EventCfg & (1 << TR_KEY_DECODE_BASIC_INFO)) && EnableEventTrace)
-    {
-        DECODE_EVENTDATA_SURFACEOUT_AV1 eventData;
-        DecodeEventDataAV1SurfaceOutparam(&eventData, surface_out);
-        TRACE_EVENT(MFX_TRACE_API_AV1_OUTPUTINFO_TASK, EVENT_TYPE_INFO, 0, make_event_data(eventData));
-    }
+    TRACE_BUFFER_EVENT(MFX_TRACE_API_AV1_OUTPUTINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO,
+        surface_out, AV1DecodeSurfaceOutparam, SURFACEOUT_AV1D);
 
     return MFX_ERR_NONE;
 }

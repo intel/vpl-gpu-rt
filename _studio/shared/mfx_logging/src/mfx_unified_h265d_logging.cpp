@@ -20,10 +20,9 @@
 
 #include "mfx_unified_h265d_logging.h"
 
-void DecodeEventDataHEVCSurfaceOutparam(
-    DECODE_EVENTDATA_SURFACEOUT_HEVC* pEventData,
-    mfxFrameSurface1* surface_out,
-    UMC_HEVC_DECODER::H265DecoderFrame* pFrame)
+void EventH265DecodeSurfaceOutparam(
+    EVENTDATA_SURFACEOUT_H265D* pEventData,
+    mfxFrameSurface1* surface_out)
 {
     pEventData->CropH = surface_out->Info.CropH;
     pEventData->CropW = surface_out->Info.CropW;
@@ -35,7 +34,7 @@ void DecodeEventDataHEVCSurfaceOutparam(
     pEventData->FrameRateExtD = surface_out->Info.FrameRateExtD;
     pEventData->FrameRateExtN = surface_out->Info.FrameRateExtN;
     pEventData->PicStruct = surface_out->Info.PicStruct;
-    //pEventData->FrameOrder = pFrame->m_frameOrder;
+    pEventData->FrameOrder = surface_out->Data.FrameOrder;
     pEventData->DataFlag = surface_out->Data.DataFlag;
     pEventData->TimeStamp = (uint32_t)surface_out->Data.TimeStamp;
 }

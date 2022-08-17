@@ -26,7 +26,7 @@
 #include "umc_av1_frame.h"
 #include "mfx_unified_decode_logging.h"
 
-typedef struct _DECODE_EVENTDATA_SURFACEOUT_AV1
+typedef struct _EVENTDATA_SURFACEOUT_AV1D
 {
     uint32_t  CropH;
     uint32_t  CropW;
@@ -37,37 +37,23 @@ typedef struct _DECODE_EVENTDATA_SURFACEOUT_AV1
     uint32_t  AspectRatioW;
     uint32_t  FrameRateExtD;
     uint32_t  FrameRateExtN;
+    uint32_t  FrameOrder;
     uint32_t  PicStruct;
     uint32_t  DataFlag;
     uint32_t  TimeStamp;
-} DECODE_EVENTDATA_SURFACEOUT_AV1;
+} EVENTDATA_SURFACEOUT_AV1D;
 
-typedef struct _DECODE_EVENTDATA_OUTPUTFRAME_AV1
+typedef struct _DECODE_EVENTDATA_AV1DPBINFO
 {
-    uint32_t MemID;
-    uint32_t wasDisplayed;
-    uint32_t wasOutputted;
-} DECODE_EVENTDATA_OUTPUTFRAME_AV1;
-
-typedef struct _EVENTDATA_AV1DPBINFO {
     int32_t MemID;
     uint32_t Refvalid;
     int32_t RefCounter;
-} EVENTDATA_AV1DPBINFO;
-typedef struct _DECODE_EVENTDATA_DPBINFO_AV1
-{
-    EVENTDATA_AV1DPBINFO DpbInfo[6];
-} DECODE_EVENTDATA_DPBINFO_AV1;
+} DECODE_EVENTDATA_AV1DPBINFO;
 
-typedef struct _DECODE_EVENTDATA_SYNC_AV1
+typedef struct _EVENTDATA_DPBINFO_AV1D
 {
-    uint32_t m_index;
-    uint32_t isDecodingCompleted;
-    uint32_t isDisplayable;
-    uint32_t isOutputted;
-    uint32_t event_sts;
-
-} DECODE_EVENTDATA_SYNC_AV1;
+    DECODE_EVENTDATA_AV1DPBINFO DpbInfo[6];
+} EVENTDATA_DPBINFO_AV1D;
 
 typedef struct _EVENT_TILE {
     uint32_t m_cols;
@@ -206,7 +192,7 @@ typedef struct _EVENT_FILM_GRAIN {
     uint32_t m_cr_offset;
 } EVENT_FILM_GRAIN;
 
-typedef struct _DECODE_EVENTDATA_PICTUREPARAM_AV1 
+typedef struct _EVENTDATA_PICTUREPARAM_AV1D
 {
     uint32_t m_width;
     uint32_t m_height;
@@ -240,21 +226,21 @@ typedef struct _DECODE_EVENTDATA_PICTUREPARAM_AV1
     uint32_t m_film_grain_ar_coeffs_cb[25];
     uint32_t m_film_grain_ar_coeffs_cr[25];
     uint32_t m_StatusReportFeedbackNumber;
-} DECODE_EVENTDATA_PICTUREPARAM_AV1;
+} EVENTDATA_PICTUREPARAM_AV1D;
 
-typedef struct _DECODE_EVENTDATA_TILECONTROLPARAMS_AV1
+typedef struct _EVENTDATA_TILECONTROLPARAMS_AV1D
 {
     uint32_t m_DataOffset;
     uint32_t m_DataSize;
     uint32_t m_row;
     uint32_t m_column;
     uint32_t m_anchor_frame;
-}DECODE_EVENTDATA_TILECONTROLPARAMS_AV1;
+}EVENTDATA_TILECONTROLPARAMS_AV1D;
 
-void DecodeEventDataAV1SurfaceOutparam(DECODE_EVENTDATA_SURFACEOUT_AV1* pEventData, mfxFrameSurface1* surface_out);
+void EventAV1DecodeSurfaceOutparam(EVENTDATA_SURFACEOUT_AV1D* pEventData, mfxFrameSurface1* surface_out);
 
 
-void DecodeEventDpbInfoAV1(DECODE_EVENTDATA_DPBINFO_AV1* pEventData, std::vector<UMC_AV1_DECODER::AV1DecoderFrame*> updated_refs);
+void EventAV1DecodeDpbInfo(EVENTDATA_DPBINFO_AV1D* pEventData, std::vector<UMC_AV1_DECODER::AV1DecoderFrame*> updated_refs);
 
 
 #endif

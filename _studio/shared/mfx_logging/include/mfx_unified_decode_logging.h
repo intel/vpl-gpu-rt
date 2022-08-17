@@ -24,7 +24,7 @@
 
 #include "umc_va_base.h"
 
-typedef struct _DECODE_EVENTDATA_INIT
+typedef struct _EVENTDATA_DECODE_INIT
 {
     uint32_t CodecId;
     uint32_t frameWidth;
@@ -45,9 +45,9 @@ typedef struct _DECODE_EVENTDATA_INIT
     uint32_t CodecLevel;
     uint32_t MaxDecFrameBuffering;
     uint32_t frameFourCC;
-} DECODE_EVENTDATA_INIT;
+} EVENTDATA_DECODE_INIT;
 
-typedef struct _EventFrameInfo
+typedef struct _EventFrameDecodeInfo
 {
     uint32_t  ChannelId;
     uint32_t  BitDepthLuma;
@@ -67,24 +67,24 @@ typedef struct _EventFrameInfo
     uint32_t  AspectRatioH;
     uint32_t  PicStruct;
     uint32_t  ChromaFormat;
-} EventFrameInfo;
+} EventFrameDecodeInfo;
 
-typedef struct _DECODE_EVENTDATA_QUERY
+typedef struct _EVENTDATA_DECODE_QUERY
 {
     uint32_t  NumFrameSuggested;
     uint32_t  NumFrameMin;
     uint32_t  Type;
-    EventFrameInfo    Info;
-} DECODE_EVENTDATA_QUERY;
+    EventFrameDecodeInfo  Info;
+} EVENTDATA_DECODE_QUERY;
 
-typedef struct _DECODE_EVENTDATA_BITSTREAM
+typedef struct _EVENTDATA_DECODE_BITSTREAM
 {
     uint8_t Data[32];
-} DECODE_EVENTDATA_BITSTREAM;
+} EVENTDATA_DECODE_BITSTREAM;
 
-void DecodeEventDataInitParam(DECODE_EVENTDATA_INIT* pEventData, mfxVideoParam* par);
+void EventDecodeInitParam(EVENTDATA_DECODE_INIT* pEventData, mfxVideoParam* par);
 
-void DecodeEventDataQueryParam(DECODE_EVENTDATA_QUERY* pEventData, mfxFrameAllocRequest* request);
+void EventDecodeQueryParam(EVENTDATA_DECODE_QUERY* pEventData, mfxFrameAllocRequest* request);
 
 #endif //_MFX_UNIFIED_DECODE_LOGGING_H_
 

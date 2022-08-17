@@ -20,8 +20,8 @@
 
 #include "mfx_unified_av1d_logging.h"
 
-void DecodeEventDataAV1SurfaceOutparam(
-    DECODE_EVENTDATA_SURFACEOUT_AV1* pEventData,
+void EventAV1DecodeSurfaceOutparam(
+    EVENTDATA_SURFACEOUT_AV1D* pEventData,
     mfxFrameSurface1* surface_out)
 {
     pEventData->CropH = surface_out->Info.CropH;
@@ -33,12 +33,13 @@ void DecodeEventDataAV1SurfaceOutparam(
     pEventData->AspectRatioW = surface_out->Info.AspectRatioW;
     pEventData->FrameRateExtD = surface_out->Info.FrameRateExtD;
     pEventData->FrameRateExtN = surface_out->Info.FrameRateExtN;
+    pEventData->FrameOrder = surface_out->Data.FrameOrder;
     pEventData->PicStruct = surface_out->Info.PicStruct;
     pEventData->DataFlag = surface_out->Data.DataFlag;
     pEventData->TimeStamp = (uint32_t)surface_out->Data.TimeStamp;
 }
-void DecodeEventDpbInfoAV1(
-    DECODE_EVENTDATA_DPBINFO_AV1* pEventData,
+void EventAV1DecodeDpbInfo(
+    EVENTDATA_DPBINFO_AV1D* pEventData,
     std::vector<UMC_AV1_DECODER::AV1DecoderFrame*> updated_refs)
 {
     for (uint8_t i = 0; i < 6; ++i)
