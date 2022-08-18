@@ -56,6 +56,7 @@ typedef __UINT64 mfxTraceU64;
 /*------------------------------------------------------------------------------*/
 extern mfxTraceU32 EnableEventTrace;
 extern mfxTraceU32 EventCfg;
+extern int32_t FrameIndex;
 
 // C section
 

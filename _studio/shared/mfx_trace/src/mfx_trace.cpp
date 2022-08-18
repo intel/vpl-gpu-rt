@@ -99,6 +99,7 @@ static mfxTraceU32      g_OutputMode = MFX_TRACE_OUTPUT_TRASH;
 static mfxTraceU32      g_Level      = MFX_TRACE_LEVEL_DEFAULT;
 mfxTraceU32      EnableEventTrace = 0;
 mfxTraceU32      EventCfg = 0;
+int32_t FrameIndex = -1;
 static volatile uint32_t  g_refCounter = 0;
 
 static mfxTraceU32           g_mfxTraceCategoriesNum = 0;

@@ -83,7 +83,7 @@ namespace UMC_AV1_DECODER
             // it's first submission for current frame - need to call BeginFrame
             sts = va->BeginFrame(frame.GetMemID(SURFACE_RECON));
 
-            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(frame.GetMemID(), sts));
+            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, frame.GetMemID(), sts));
 
             if (sts != UMC::UMC_OK)
                 return sts;
@@ -113,11 +113,11 @@ namespace UMC_AV1_DECODER
 
         if (lastSubmission) // it's last submission for current frame - need to call EndFrame
         {
-            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(sts));
+            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(FrameIndex, sts));
 
             sts = va->EndFrame();
 
-            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(sts));
+            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, sts));
         }
         return sts;
     }

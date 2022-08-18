@@ -124,11 +124,11 @@ public:
             return;
 
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H265 decode DDISubmitTask begin");
-        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(pFrame->GetFrameMID()));
+        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(++FrameIndex, pFrame->GetFrameMID()));
 
         sts = m_va->BeginFrame(pFrame->GetFrameMID(), 0);
 
-        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(pFrame->GetFrameMID(), sts));
+        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, pFrame->GetFrameMID(), sts));
 
         if (sts != UMC::UMC_OK)
             throw h265_exception(sts);
@@ -147,14 +147,14 @@ public:
     void EndDecodingFrame()
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H265 decode DDISubmitTask end");
-        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(m_va));
+        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(FrameIndex, m_va));
 
         if (!m_va)
             return;
 
         UMC::Status sts = m_va->EndFrame();
 
-        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(sts));
+        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, sts));
 
         if (sts != UMC::UMC_OK)
             throw h265_exception(sts);

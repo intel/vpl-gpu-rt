@@ -127,18 +127,12 @@ public:
             return;
 
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "H264 decode DDISubmitTask");
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-        {
-            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_START, 0, make_event_data(pFrame->GetFrameData()->GetFrameMID()));
-        }
-#endif
+        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(++FrameIndex, pFrame->GetFrameData()->GetFrameMID()));
 
         sts = m_va->BeginFrame(pFrame->GetFrameData()->GetFrameMID(), field);
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-        {
-            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, 0, make_event_data(pFrame->GetFrameData()->GetFrameMID(), sts));
-        }
-#endif
+
+        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, pFrame->GetFrameData()->GetFrameMID(), sts));
+
         if (sts != UMC_OK)
             throw h264_exception(sts);
 
@@ -151,17 +145,13 @@ public:
         }
 
         dxva_sd->PackAllHeaders(pFrame, field);
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-        {
-            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, 0, make_event_data(UMC::UMC_OK));
-        }
-#endif
+
+        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(FrameIndex, m_va));
+
         sts = m_va->EndFrame();
-#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
-        {
-            TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, 0, make_event_data(sts));
-        }
-#endif
+
+        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, sts));
+
         if (sts != UMC_OK)
             throw h264_exception(sts);
     }

@@ -627,11 +627,13 @@
             <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
           </template>
 					<template tid="MFXSyncOperation_Entry">
+            <data name="FrameIndex" inType="win:UInt32" outType="xs:unsignedInt" />
 						<data name="session" inType="win:Pointer" outType="win:HexInt64" />
 						<data name="syncp" inType="win:Pointer" outType="win:HexInt64" />
 						<data name="timeout" inType="win:UInt32" outType="xs:unsignedInt" />
 					</template>
 					<template tid="MFXSyncOperation_Exit">
+            <data name="FrameIndex" inType="win:UInt32" outType="xs:unsignedInt" />
 						<data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
 						<data name="syncp" inType="win:Pointer" outType="win:HexInt64" />
 					</template>
@@ -645,22 +647,28 @@
 						<data name="vmRes" inType="win:UInt32" outType="xs:unsignedInt" />
 					</template>          
 					<template tid="DDI_BeginFrameTask_Entry">
+            <data name="FrameIndex" inType="win:UInt32" outType="xs:unsignedInt" />
 						<data name="curr_index" inType="win:Int32" outType="xs:int" />
 					</template>
         	<template tid="DDI_BeginFrameTask_Exit">
+            <data name="FrameIndex" inType="win:UInt32" outType="xs:unsignedInt" />
 						<data name="curr_index" inType="win:Int32" outType="xs:int" />
             <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
 					</template>
           <template tid="DDI_ExecuteFrameTask_Entry">
+            <data name="FrameIndex" inType="win:UInt32" outType="xs:unsignedInt" />
             <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
           </template>
           <template tid="DDI_ExecuteFrameTask_Exit">
+            <data name="FrameIndex" inType="win:UInt32" outType="xs:unsignedInt" />
             <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
           </template>
           <template tid="DDI_EndFrameTask_Entry">
+            <data name="FrameIndex" inType="win:UInt32" outType="xs:unsignedInt" />
             <data name="va" inType="win:Pointer" outType="win:HexInt64" />
           </template>
           <template tid="DDI_EndFrameTask_Exit">
+            <data name="FrameIndex" inType="win:UInt32" outType="xs:unsignedInt" />
             <data name="umcStatus" inType="win:UInt32" map="umcStatus" />
           </template>
           <template tid="DDIWaitTaskSync_Info">
