@@ -30,9 +30,6 @@
 #include "av1ehw_base_iddi.h"
 #include "av1ehw_base_iddi_packer.h"
 #include "av1ehw_base_segmentation.h"
-#if defined(MFX_ENABLE_ENCTOOLS)
-#include "av1ehw_base_enctools.h"
-#endif
 
 #include <algorithm>
 
@@ -138,39 +135,6 @@ mfxStatus MFXVideoENCODEAV1_HW::QueryImplsDescription(
     return RunBlocks(Check<mfxStatus, MFX_ERR_NONE>, queue, core, caps, ah, m_storage);
 }
 
-//This class is used for temporal modification of mfxVideoParam. Implementation is based on AVC codec.
-#if defined(MFX_ENABLE_ENCTOOLS)
-class ModifiedVideoParamsAV1
-{
-public:
-    void ModifyForDDI(mfxVideoParam & par)
-    {
-        if (!m_bInit)
-            SaveParams(par);
-        if (IsSwEncToolsOn(par))
-            par.mfx.RateControlMethod = MFX_RATECONTROL_CQP;
-    }
-
-    void Restore(mfxVideoParam & par)
-    {
-        if (!m_bInit)
-            return;
-        par.mfx.RateControlMethod = RateControlMethod;
-        m_bInit = false;
-    }
-
-private:
-    void SaveParams(mfxVideoParam & par)
-    {
-        RateControlMethod = par.mfx.RateControlMethod;
-        m_bInit = true;
-    }
-
-    bool    m_bInit = false;
-    mfxU16  RateControlMethod = 0;
-
-};
-#endif
 
 mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
 {
@@ -189,15 +153,7 @@ mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
     MFX_CHECK(!IsErrorSts(sts), sts);
     wrn = GetWorstSts(sts, wrn);
 
-#if defined(MFX_ENABLE_ENCTOOLS)
-    ModifiedVideoParamsAV1 modParams;
-    auto& internalPar = Glob::VideoParam::Get(global);
-    modParams.ModifyForDDI(internalPar);
-#endif
     sts = RunBlocks(CheckGE<mfxStatus, MFX_ERR_NONE>, BQ<BQ_InitAlloc>::Get(*this), global, local);
-#if defined(MFX_ENABLE_ENCTOOLS)
-    modParams.Restore(internalPar);
-#endif
     MFX_CHECK(!IsErrorSts(sts), sts);
     wrn = GetWorstSts(sts, wrn);
 
@@ -219,9 +175,6 @@ mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
         auto& queue = BQ<BQ_SubmitTask>::Get(*this);
         queue.splice(queue.end(), queue, Get(queue, { FEATURE_DDI_PACKER, IDDIPacker::BLK_SubmitTask }));
         queue.splice(queue.end(), queue, Get(queue, { FEATURE_DDI, IDDI::BLK_SubmitTask }));
-#if defined(MFX_ENABLE_ENCTOOLS)
-        Reorder(queue, { FEATURE_PACKER, Packer::BLK_SubmitTask }, { FEATURE_ENCTOOLS, AV1EncTools::BLK_GetFrameCtrl });
-#endif
     }
 
     {
@@ -236,15 +189,6 @@ mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
             , PLACE_AFTER);
         }
     }
-#if defined(MFX_ENABLE_ENCTOOLS)
-    {
-        auto& queue = BQ<BQ_QueryTask>::Get(*this);
-        Reorder(queue
-            , { FEATURE_DDI_PACKER, IDDIPacker::BLK_QueryTask }
-            , { FEATURE_ENCTOOLS, AV1EncTools::BLK_Update }
-        , PLACE_AFTER);
-    }
-#endif
 
     {
         auto& queue = BQ<BQ_QueryTask>::Get(*this);
