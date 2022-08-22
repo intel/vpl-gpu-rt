@@ -32,6 +32,9 @@
 #include "av1ehw_base_tile.h"
 #include "av1ehw_base_query_impl_desc.h"
 #include "av1ehw_base_qmatrix_lin.h"
+#if defined(MFX_ENABLE_ENCTOOLS)
+#include "av1ehw_base_enctools.h"
+#endif
 using namespace AV1EHW;
 using namespace AV1EHW::Base;
 
@@ -63,6 +66,9 @@ Linux::Base::MFXVideoENCODEAV1_HW::MFXVideoENCODEAV1_HW(
     m_features.emplace_back(new Tile(FEATURE_TILE));
     m_features.emplace_back(new QueryImplDesc(FEATURE_QUERY_IMPL_DESC));
     m_features.emplace_back(new QMatrix(FEATURE_QMATRIX));
+#if defined(MFX_ENABLE_ENCTOOLS)
+    m_features.emplace_back(new AV1EncTools(FEATURE_ENCTOOLS));
+#endif
 
     InternalInitFeatures(status, mode);
 }
