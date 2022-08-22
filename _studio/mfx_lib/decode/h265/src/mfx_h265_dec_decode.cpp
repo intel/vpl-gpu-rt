@@ -400,25 +400,6 @@ mfxStatus VideoDECODEH265::Reset(mfxVideoParam *par)
 
     eMFXHWType type = m_core->GetHWType();
 
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
-    mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(m_vFirstPar.ExtParam, m_vFirstPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
-
-    if (videoProcessing != nullptr)
-    {
-        // hardware resize is enabled
-        bool hardwareUpscale =
-            videoProcessing->Out.Width >= par->mfx.FrameInfo.Width ||
-            videoProcessing->Out.Height >= par->mfx.FrameInfo.Height;
-
-        if (hardwareUpscale)
-        {
-            // for now only downscale is supported
-            // at least Windows DirectX 11 provides only downscale interface
-            // ID3D11VideoContext1->DecoderEnableDownsampling()
-            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
-        }
-    }
-#endif
     eMFXPlatform platform = MFX_Utility::GetPlatform_H265(m_core, par);
     MFX_CHECK(platform == MFX_PLATFORM_HARDWARE, MFX_ERR_UNSUPPORTED);
 
@@ -715,7 +696,25 @@ mfxStatus VideoDECODEH265::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
     }
 
     request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+    mfxExtDecVideoProcessing* videoProcessing = (mfxExtDecVideoProcessing*)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
+    if (videoProcessing)
+    {
+        // need to substitute output format
+        // number of surfaces is same
+        request->Info.FourCC = videoProcessing->Out.FourCC;
+        request->Info.ChromaFormat = videoProcessing->Out.ChromaFormat;
+        sts = UpdateCscOutputFormat(par, request);
+        MFX_CHECK_STS(sts);
 
+        request->Info.Width = videoProcessing->Out.Width;
+        request->Info.Height = videoProcessing->Out.Height;
+        request->Info.CropX = videoProcessing->Out.CropX;
+        request->Info.CropY = videoProcessing->Out.CropY;
+        request->Info.CropW = videoProcessing->Out.CropW;
+        request->Info.CropH = videoProcessing->Out.CropH;
+    }
+#endif
     MFX_CHECK(platform == core->GetPlatformType(), MFX_ERR_UNSUPPORTED);
 
     MFX_CHECK(!isNeedChangeVideoParamWarning, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
