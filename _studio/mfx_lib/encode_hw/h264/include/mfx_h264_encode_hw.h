@@ -26,7 +26,7 @@
 
 #ifndef _MFX_H264_ENCODE_HW_H_
 #define _MFX_H264_ENCODE_HW_H_
-
+//Test
 class MFXHWVideoENCODEH264 : public VideoENCODE
 {
 public:
