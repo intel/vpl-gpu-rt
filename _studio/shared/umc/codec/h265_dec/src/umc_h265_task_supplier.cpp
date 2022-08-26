@@ -204,6 +204,18 @@ UMC::Status DecReferencePictureMarking_H265::UpdateRefPicMarking(ViewItem_H265 &
     return umcRes;
 }
 
+void DecReferencePictureMarking_H265::ResetUnusedFrames(ViewItem_H265 &view)
+{
+    for (H265DecoderFrame *pTmp = view.pDPB->head(); pTmp; pTmp = pTmp->future())
+    {
+        if(!pTmp->isShortTermRef() && !pTmp->isLongTermRef() && pTmp->GetRefCounter() == 0 && 
+            pTmp->m_wasOutputted && pTmp->m_wasDisplayed && pTmp->m_isDisplayable)
+        {
+            pTmp->Reset();
+        }
+    }
+}
+
 // Check if bitstream resolution has changed
 static
 bool IsNeedSPSInvalidate(const H265SeqParamSet *old_sps, const H265SeqParamSet *new_sps)
@@ -2585,6 +2597,7 @@ void TaskSupplier_H265::DPBUpdate(const H265Slice * slice)
 {
     ViewItem_H265 &view = *GetView();
     DecReferencePictureMarking_H265::UpdateRefPicMarking(view, slice);
+    DecReferencePictureMarking_H265::ResetUnusedFrames(view);
 }
 
 // Find a decoder frame instance with specified surface ID

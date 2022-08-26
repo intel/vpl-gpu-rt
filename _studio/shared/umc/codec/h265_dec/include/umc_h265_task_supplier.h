@@ -260,6 +260,7 @@ public:
 
     // Update DPB contents marking frames for reuse
     UMC::Status UpdateRefPicMarking(ViewItem_H265 &view, const H265Slice * pSlice);
+    void ResetUnusedFrames(ViewItem_H265 &view);
 
     void Reset();
 
