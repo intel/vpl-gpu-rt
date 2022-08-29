@@ -55,190 +55,134 @@ typedef struct _EVENTDATA_DPBINFO_AV1D
     DECODE_EVENTDATA_AV1DPBINFO DpbInfo[6];
 } EVENTDATA_DPBINFO_AV1D;
 
-typedef struct _EVENT_TILE {
-    uint32_t m_cols;
-    uint32_t m_rows;
-    uint32_t m_context_update_id;
-} EVENT_TILE;
+typedef struct _EVENT_SEG_INFO_FIELDS
+{
+    uint32_t still_picture;
+    uint32_t use_128x128_superblock;
+    uint32_t enable_filter_intra;
+    uint32_t enable_intra_edge_filter;
+    uint32_t enable_interintra_compound;
+    uint32_t enable_masked_compound;
+    uint32_t enable_cdef;
+    uint32_t enable_dual_filter;
+    uint32_t enable_order_hint;
+    uint32_t enable_jnt_comp;
+    uint32_t mono_chrome;
+    uint32_t color_range;
+    uint32_t subsampling_x;
+    uint32_t subsampling_y;
+    uint32_t chroma_sample_position;
+    uint32_t film_grain_params_present;
+} EVENT_SEG_INFO_FIELDS;
 
-typedef struct _EVENT_CODING {
-    uint32_t m_use_128x128_superblock;
-    uint32_t m_intra_edge_filter;
-    uint32_t m_interintra_compound;
-    uint32_t m_masked_compound;
-    uint32_t m_warped_motion;
-    uint32_t m_dual_filter;
-    uint32_t m_jnt_comp;
-    uint32_t m_screen_content_tools;
-    uint32_t m_integer_mv;
-    uint32_t m_cdef;
-    uint32_t m_restoration;
-    uint32_t m_film_grain;
-    uint32_t m_intrabc;
-    uint32_t m_high_precision_mv;
-    uint32_t m_switchable_motion_mode;
-    uint32_t m_filter_intra;
-    uint32_t m_disable_frame_end_update_cdf;
-    uint32_t m_disable_cdf_update;
-    uint32_t m_reference_mode;
-    uint32_t m_skip_mode;
-    uint32_t m_reduced_tx_set;
-    uint32_t m_superres;
-    uint32_t m_tx_mode;
-    uint32_t m_use_ref_frame_mvs;
-    uint32_t m_enable_ref_frame_mvs;
-    uint32_t m_reference_frame_update;
-} EVENT_CODING;
+typedef struct _EVENT_PIC_INFO_FIELDS
+{
+    uint32_t frame_type;
+    uint32_t show_frame;
+    uint32_t showable_frame;
+    uint32_t error_resilient_mode;
+    uint32_t disable_cdf_update;
+    uint32_t allow_screen_content_tools;
+    uint32_t force_integer_mv;
+    uint32_t allow_intrabc;
+    uint32_t use_superres;
+    uint32_t allow_high_precision_mv;
+    uint32_t is_motion_mode_switchable;
+    uint32_t disable_frame_end_update_cdf;
+    uint32_t uniform_tile_spacing_flag;
+    uint32_t allow_warped_motion;
+    uint32_t large_scale_tile;
+} EVENT_PIC_INFO_FIELDS;
 
-typedef struct _EVENT_FORMAT {
-    uint32_t m_frame_type;
-    uint32_t m_show_frame;
-    uint32_t m_showable_frame;
-    uint32_t m_subsampling_x;
-    uint32_t m_subsampling_y;
-    uint32_t m_mono_chrome;
-} EVENT_FORMAT;
-
-typedef struct _EVENT_PicEntry_AV1_MSFT {
-
-    uint32_t m_width;
-    uint32_t m_height;
-    uint32_t m_wmmat[6];
-    uint32_t m_wminvalid;
-    uint32_t m_wmtype;
-    uint32_t m_Index;
-} EVENT_PicEntry_AV1_MSFT;
-
-typedef struct _EVENT_LOOP_FILTER {
-    uint32_t m_filter_level[2];
-    uint32_t m_filter_level_u;
-    uint32_t m_filter_level_v;
-    uint32_t m_sharpness_level;
-    uint32_t m_mode_ref_delta_enabled;
-    uint32_t m_mode_ref_delta_update;
-    uint32_t m_delta_lf_multi;
-    uint32_t m_delta_lf_present;
-    int32_t  m_ref_deltas[8];
-    uint32_t m_mode_deltas[2];
-    uint32_t m_delta_lf_res;
-    uint32_t m_frame_restoration_type[3];
-    uint32_t m_log2_restoration_unit_size[3];
-} EVENT_LOOP_FILTER;
-
-typedef struct _EVENT_QUANTIZATION {
-    uint32_t m_delta_q_present;
-    uint32_t m_delta_q_res;
-    uint32_t m_base_qindex;
-    uint32_t m_y_dc_delta_q;
-    uint32_t m_u_dc_delta_q;
-    uint32_t m_v_dc_delta_q;
-    uint32_t m_u_ac_delta_q;
-    uint32_t m_v_ac_delta_q;
-    uint32_t m_qm_y;
-    uint32_t m_qm_u;
-    uint32_t m_qm_v;
-} EVENT_QUANTIZATION;
-
-typedef struct __EVENT_Y_STRENGTH {
-    uint32_t m_primary;
-    uint32_t m_secondary;
-} EVENT_STRENGTH;
-// Cdef parameters
-typedef struct _EVENT_CDEF {
-    uint32_t m_damping;
-    uint32_t m_bits;
-} EVENT_CDEF;
-
-typedef struct _EVENT_FEATURE_MASK {
-    uint32_t m_alt_q;
-    uint32_t m_alt_lf_y_v;
-    uint32_t m_alt_lf_y_h;
-    uint32_t m_alt_lf_u;
-    uint32_t m_alt_lf_v;
-    uint32_t m_ref_frame;
-    uint32_t m_skip;
-    uint32_t m_globalmv;
-} EVENT_FEATURE_MASK;
-
-typedef struct _EVENT_SEGMENTATION {
-    uint32_t m_enabled;
-    uint32_t m_update_map;
-    uint32_t m_update_data;
-    uint32_t m_temporal_update;
+typedef struct _EVENT_SEGMENTATION
+{
+    uint32_t enabled;
+    uint32_t update_map;
+    uint32_t temporal_update;
+    uint32_t update_data;
+    uint32_t feature_mask[8];
 } EVENT_SEGMENTATION;
 
-typedef struct _EVENT_FILM_GRAIN {
-    uint32_t m_apply_grain;
-    uint32_t m_scaling_shift_minus8;
-    uint32_t m_chroma_scaling_from_luma;
-    uint32_t m_ar_coeff_lag;
-    uint32_t m_ar_coeff_shift_minus6;
-    uint32_t m_grain_scale_shift;
-    uint32_t m_overlap_flag;
-    uint32_t m_clip_to_restricted_range;
-    uint32_t m_matrix_coeff_is_identity;
-    uint32_t m_grain_seed;
-    uint32_t m_scaling_points_y[14][2];
-    uint32_t m_num_y_points;
-    uint32_t m_scaling_points_cb[10][2];
-    uint32_t m_num_cb_points;
-    uint32_t m_scaling_points_cr[10][2];
-    uint32_t m_num_cr_points;
-    uint32_t m_cb_mult;
-    uint32_t m_cb_luma_mult;
-    uint32_t m_cr_mult;
-    uint32_t m_cr_luma_mult;
-    uint32_t m_cb_offset;
-    uint32_t m_cr_offset;
-} EVENT_FILM_GRAIN;
+typedef struct _EVENT_LOOP_FILTER
+{
+    uint32_t sharpness_level;
+    uint32_t mode_ref_delta_enabled;
+    uint32_t mode_ref_delta_update;
+} EVENT_LOOP_FILTER;
+
+typedef struct _EVENT_PicEntry_AV1
+{
+    uint32_t wmtype;
+    int32_t wmmat[8];
+    uint32_t invalid;
+} EVENT_PicEntry_AV1;
 
 typedef struct _EVENTDATA_PICTUREPARAM_AV1D
 {
-    uint32_t m_width;
-    uint32_t m_height;
-    uint32_t m_max_width;
-    uint32_t m_max_height;
-    uint32_t m_CurrPicTextureIndex;
-    uint32_t m_superres_denom;
-    uint32_t m_bitdepth;
-    uint32_t m_seq_profile;
-    EVENT_TILE m_tiles;
-    uint32_t m_tile_widths[64];
-    uint32_t m_tile_heights[64];
-    EVENT_CODING m_coding;
-    EVENT_FORMAT m_format;
-    uint32_t m_primary_ref_frame;
-    uint32_t m_order_hint;
-    uint32_t m_order_hint_bits;
-    EVENT_PicEntry_AV1_MSFT m_frame_refs[7];
-    uint32_t m_RefFrameMapTextureIndex[8];
-    EVENT_LOOP_FILTER m_loop_filter;
-    EVENT_QUANTIZATION m_quantization;
-    EVENT_CDEF m_cdef;
-    EVENT_STRENGTH m_y_strengths[8];
-    EVENT_STRENGTH m_uv_strengths[8];
-    uint32_t m_interp_filter;
-    EVENT_SEGMENTATION m_segmentation;
-    uint32_t m_segmentation_feature_data[8][8];
-    EVENT_FEATURE_MASK m_feature_mask[8];
-    EVENT_FILM_GRAIN m_film_grain;
-    uint32_t m_film_grain_ar_coeffs_y[24];
-    uint32_t m_film_grain_ar_coeffs_cb[25];
-    uint32_t m_film_grain_ar_coeffs_cr[25];
-    uint32_t m_StatusReportFeedbackNumber;
+    uint32_t frame_width_minus1;
+    uint32_t frame_height_minus1;
+    uint32_t output_frame_width_in_tiles_minus_1;
+    uint32_t output_frame_height_in_tiles_minus_1;
+    uint32_t profile;
+    EVENT_SEG_INFO_FIELDS seqInfo;
+    uint32_t matrix_coefficients;
+    uint32_t bit_depth_idx;
+    uint32_t order_hint_bits_minus_1;
+    EVENT_PIC_INFO_FIELDS picInfo;
+    uint32_t tile_count_minus_1;
+    uint32_t anchor_frames_num;
+    uint32_t order_hint;
+    uint32_t superres_scale_denominator;
+    uint32_t interp_filter;
+    EVENT_SEGMENTATION seg;
+    uint32_t seg_feature_data[8][8];
+    uint32_t current_frame;
+    uint32_t current_display_picture;
+    uint32_t ref_frame_map[8];
+    uint32_t ref_frame_idx[7];
+    uint32_t primary_ref_frame;
+    uint32_t filter_level[2];
+    uint32_t filter_level_u;
+    uint32_t filter_level_v;
+    EVENT_LOOP_FILTER lfInfo;
+    int32_t ref_deltas[8];
+    int32_t mode_deltas[2];
+    uint32_t base_qindex;
+    int32_t y_dc_delta_q;
+    int32_t u_dc_delta_q;
+    int32_t v_dc_delta_q;
+    int32_t u_ac_delta_q;
+    int32_t v_ac_delta_q;
+    uint32_t cdef_damping_minus_3;
+    uint32_t cdef_bits;
+    uint32_t cdef_y_strengths[8];
+    uint32_t cdef_uv_strengths[8];
+    EVENT_PicEntry_AV1 wm[7];
+    uint32_t tile_cols;
+    uint32_t tile_rows;
+    uint32_t width_in_sbs_minus_1[63];
+    uint32_t height_in_sbs_minus_1[63];
+    uint32_t context_update_tile_id;
 } EVENTDATA_PICTUREPARAM_AV1D;
 
 typedef struct _EVENTDATA_TILECONTROLPARAMS_AV1D
 {
-    uint32_t m_DataOffset;
-    uint32_t m_DataSize;
-    uint32_t m_row;
-    uint32_t m_column;
-    uint32_t m_anchor_frame;
-}EVENTDATA_TILECONTROLPARAMS_AV1D;
+    uint32_t slice_data_offset;
+    uint32_t slice_data_size;
+    uint32_t slice_data_flag;
+    uint32_t tile_row;
+    uint32_t tile_column;
+    uint32_t tg_start;
+    uint32_t tg_end;
+    uint32_t anchor_frame_idx;
+    uint32_t tile_idx_in_tile_list;
+} EVENTDATA_TILECONTROLPARAMS_AV1D;
 
 void EventAV1DecodeSurfaceOutparam(EVENTDATA_SURFACEOUT_AV1D* pEventData, mfxFrameSurface1* surface_out);
 
+void EventAV1DecodePicparam(EVENTDATA_PICTUREPARAM_AV1D* pEventData, VADecPictureParameterBufferAV1& picParam);
+
+void EventAV1DecodeTileControlparam(EVENTDATA_TILECONTROLPARAMS_AV1D* pEventData, VASliceParameterBufferAV1& tileControlParam);
 
 void EventAV1DecodeDpbInfo(EVENTDATA_DPBINFO_AV1D* pEventData, std::vector<UMC_AV1_DECODER::AV1DecoderFrame*> updated_refs);
 

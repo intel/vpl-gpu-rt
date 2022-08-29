@@ -28,7 +28,7 @@
 extern "C"
 {
 
-static const int MFX_PERF_TRACE_BUFFER_SIZE = 1024;
+static const int MFX_PERF_TRACE_BUFFER_SIZE = 3072;
 static char *perf_trace_var = nullptr;
 
 static struct PerfTraceCtx {

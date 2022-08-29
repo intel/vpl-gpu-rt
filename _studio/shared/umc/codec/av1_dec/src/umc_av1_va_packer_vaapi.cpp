@@ -33,6 +33,7 @@
 
 #include "umc_av1_frame.h"
 #include "umc_av1_va_packer_vaapi.h"
+#include "mfx_unified_av1d_logging.h"
 
 using namespace UMC;
 
@@ -407,6 +408,9 @@ namespace UMC_AV1_DECODER
         }
 
         picParam.context_update_tile_id = (uint16_t)info.tile_info.context_update_tile_id;
+
+        TRACE_BUFFER_EVENT(VA_TRACE_API_AV1_PICTUREPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_PICPARAM,
+            picParam, AV1DecodePicparam, PICTUREPARAM_AV1D);
     }
 
     void PackerVA::PackTileControlParams(VASliceParameterBufferAV1& tileControlParam, TileLocation const& loc)
@@ -435,6 +439,9 @@ namespace UMC_AV1_DECODER
             tileControlParam.anchor_frame_idx = loc.anchorFrameIdx;
             tileControlParam.tile_idx_in_tile_list = loc.tileIdxInTileList;
         }
+
+        TRACE_BUFFER_EVENT(VA_TRACE_API_AV1_TILECONTROLPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_TILEPARAM,
+            tileControlParam, AV1DecodeTileControlparam, TILECONTROLPARAMS_AV1D);
     }
 
 } // namespace UMC_AV1_DECODER

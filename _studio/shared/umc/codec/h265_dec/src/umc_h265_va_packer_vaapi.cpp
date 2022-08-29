@@ -38,6 +38,7 @@
 #include "mfx_ext_buffers.h"
 #include "vaapi_ext_interface.h"
 #endif
+#include "mfx_unified_h265d_logging.h"
 
 namespace UMC_HEVC_DECODER
 {
@@ -138,6 +139,8 @@ namespace UMC_HEVC_DECODER
                     qmatrix->ScalingListDC32x32[listId] = (uint8_t)scalingList->getScalingListDC(sizeId, listId);
             }
         }
+        TRACE_BUFFER_EVENT(VA_TRACE_API_HEVC_QMATRIXARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_QMATRIX,
+            qmatrix, H265DecodeQmatrixParam, Qmatrix_HEVC);
     }
     void PackerVAAPI::PackProcessingInfo(H265DecoderFrameInfo * sliceInfo)
     {

@@ -283,6 +283,10 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
             if (sts != UMC_OK)
                 throw h264_exception(sts);
         }
+
+        TRACE_EVENT(MFX_TRACE_API_AVC_SYNCINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
+            au->m_pFrame->m_PicOrderCnt[0], au->m_pFrame->m_PicOrderCnt[1], au->m_pFrame->m_index,
+            (uint32_t)au->m_pFrame->IsDecodingCompleted(), (uint32_t)au->m_pFrame->wasDisplayed(), (uint32_t)au->m_pFrame->wasOutputted(), sts));
     }
 
     SwitchCurrentAU();

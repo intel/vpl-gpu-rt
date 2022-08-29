@@ -24,6 +24,8 @@
 #ifndef _UMC_VA_H265_PACKER_G9_H_
 #define _UMC_VA_H265_PACKER_G9_H_
 
+#include "mfx_unified_h265d_logging.h"
+
 namespace UMC_HEVC_DECODER
 {
     namespace G9
@@ -87,7 +89,8 @@ namespace UMC_HEVC_DECODER
                 pp->ReferenceFrames[n].picture_id = VA_INVALID_SURFACE;
                 pp->ReferenceFrames[n].flags = VA_PICTURE_HEVC_INVALID;
             }
-
+            TRACE_BUFFER_EVENT(VA_TRACE_API_HEVC_DPBPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_DPB_INFO,
+                pp, H265DecodeDpbInfo, DPBINFO_HEVC);
             ReferencePictureSet *rps = slice->getRPS();
             int32_t pocList[3*8] {};
 
@@ -236,6 +239,8 @@ namespace UMC_HEVC_DECODER
             pp->num_extra_slice_header_bits                                  = (uint8_t)pps->num_extra_slice_header_bits;
 
             pp->st_rps_bits =                                                slice->GetSliceHeader()->wNumBitsForShortTermRPSInSlice;
+            TRACE_BUFFER_EVENT(VA_TRACE_API_HEVC_PICTUREPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_PICPARAM,
+            pp, H265DecodePicparam, PICTUREPARAM_HEVC);
         }
 
         template <EnumRefPicList ListX>
@@ -366,7 +371,8 @@ namespace UMC_HEVC_DECODER
             }
 
             sp->five_minus_max_num_merge_cand = (uint8_t)(5 - sh->max_num_merge_cand);
-
+            TRACE_BUFFER_EVENT(VA_TRACE_API_HEVC_SLICEPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_SLICEPARAM,
+                sp, H265DecodeSliceparam, SLICEPARAM_HEVC);
             } while (0);
         }
 

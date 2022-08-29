@@ -179,6 +179,8 @@ void PackerVA::PackPicParams(VADecPictureParameterBufferVP9* picParam, VP9Decode
     // We need to set bit_depth directly to structure VADecPictureParameterBufferVP9
     // Calculating to (bit_depth - 8) performs on driver side (to variable BitDepthMinus8)
     picParam->bit_depth = info->bit_depth;
+    TRACE_BUFFER_EVENT(VA_TRACE_API_VP9_PICTUREPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_PICPARAM,
+        picParam, VP9DecodePicparam, PICTUREPARAM_VP9);
 }
 
 void PackerVA::PackSliceParams(VASliceParameterBufferVP9* sliceParam, VP9DecoderFrame const* info)
@@ -212,6 +214,8 @@ void PackerVA::PackSliceParams(VASliceParameterBufferVP9* sliceParam, VP9Decoder
         sliceParam->seg_param[segmentId].chroma_ac_quant_scale = info->uvDequant[qIndex][1];
         sliceParam->seg_param[segmentId].chroma_dc_quant_scale = info->uvDequant[qIndex][0];
     }
+    TRACE_BUFFER_EVENT(VA_TRACE_API_VP9_SLICEPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_SLICEPARAM,
+        sliceParam, VP9DecodeSegmentParam, SLICEPARAM_VP9);
 }
 
 

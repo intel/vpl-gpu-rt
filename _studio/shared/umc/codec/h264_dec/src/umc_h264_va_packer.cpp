@@ -319,7 +319,8 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
         int32_t dpbSize = pDPBList->GetDPBSize();
 
         int32_t start = j;
-
+        TRACE_BUFFER_EVENT(MFX_TRACE_API_AVC_DPBPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_DPB_INFO,
+                pDPBList, H264DecodeDpbInfo, DPBINFO_H264D);
         for (H264DecoderFrame * pFrm = pDPBList->head(); pFrm && (j < dpbSize + start); pFrm = pFrm->future())
         {
             if (j >= 16)
@@ -366,6 +367,8 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
     }
 
     picParamBuf->SetDataSize(sizeof(VAPictureParameterBufferH264));
+    TRACE_BUFFER_EVENT(VA_TRACE_API_AVC_PICTUREPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_PICPARAM,
+            pPicParams_H264, H264DecodePicparam, PICTUREPARAM_AVC);
 }
 
 
@@ -684,7 +687,8 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
             FillFrameAsInvalid(&(pSlice_H264->RefPicList1[i]));
         }
     }
-
+    TRACE_BUFFER_EVENT(VA_TRACE_API_AVC_SLICEPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_SLICEPARAM,
+            pSlice_H264, H264DecodeSliceParam, SLICEPARAM_AVC);
     return partial_data;
 }
 
@@ -729,6 +733,8 @@ void PackerVA::PackQmatrix(const UMC_H264_DECODER::H264ScalingPicParams * scalin
     {
         std::copy(std::begin(scaling->ScalingLists8x8[j].ScalingListCoeffs), std::end(scaling->ScalingLists8x8[j].ScalingListCoeffs), std::begin(pQmatrix_H264->ScalingList8x8[j]));
     }
+    TRACE_BUFFER_EVENT(VA_TRACE_API_AVC_QMATRIXARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_QMATRIX,
+            pQmatrix_H264, H264DecodeQmatrixParam, QMATRIX_H264D);
 }
 
 void PackerVA::BeginFrame(H264DecoderFrame* pFrame, int32_t field)
