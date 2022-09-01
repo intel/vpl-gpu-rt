@@ -207,7 +207,7 @@ typedef struct {
     mfxU16            SceneChangeFlag;
     mfxU16            RepeatedFrameFlag;
     mfxU32            TemporalComplexity;
-    mfxU16            reserved1;
+    mfxU16            SpatialComplexity;    // Frame Spatial Complexity (RsCs) computed at low res
     /* Persistence Parameters */
     /* Persistence of a block = number of frames the blk persists without much change */
     mfxU16            PersistenceMapNZ; // If !0, Peristence Map has some Non Zero values
@@ -336,7 +336,7 @@ typedef struct {
     mfxU32            EncodeOrder;     /* Frame number in a sequence of reordered frames starting from encoder Init() */
     mfxU16            SceneChange;     // Frame is Scene Chg frame
     mfxU16            LongTerm;        // Frame is long term refrence
-    mfxU16            reserved0;
+    mfxU16            SpatialComplexity; // Frame Spatial Complexity (RsCs) computed at low res
     /* Persistence Parameters */
     /* Persistence of a block = number of frames the blk persists without much change */
     mfxU16            PersistenceMapNZ; // If !0, Peristence Map has some Non Zero values
