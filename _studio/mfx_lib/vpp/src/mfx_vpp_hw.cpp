@@ -51,6 +51,12 @@
 
 #include "mfx_common_int.h"
 
+
+#define MFX_FOURCC_R16_BGGR MFX_MAKEFOURCC('I','R','W','0')
+#define MFX_FOURCC_R16_RGGB MFX_MAKEFOURCC('I','R','W','1')
+#define MFX_FOURCC_R16_GRBG MFX_MAKEFOURCC('I','R','W','2')
+#define MFX_FOURCC_R16_GBRG MFX_MAKEFOURCC('I','R','W','3')
+
 using namespace std::chrono_literals;
 using namespace MfxHwVideoProcessing;
 enum
@@ -144,7 +150,13 @@ static void MemSetZero4mfxExecuteParams (mfxExecuteParams *pMfxExecuteParams )
     pMfxExecuteParams->bFieldSplittingExt = false;
     pMfxExecuteParams->mirroringExt = false;
     pMfxExecuteParams->iFieldProcessingMode = 0;
-
+    pMfxExecuteParams->bCameraPipeEnabled = false;
+    pMfxExecuteParams->bCameraBlackLevelCorrection = false;
+    pMfxExecuteParams->bCameraGammaCorrection = false;
+    pMfxExecuteParams->bCameraHotPixelRemoval = false;
+    pMfxExecuteParams->bCameraWhiteBalaceCorrection = false;
+    pMfxExecuteParams->bCCM = false;
+    pMfxExecuteParams->bCameraLensCorrection = false;
     pMfxExecuteParams->rotation = 0;
     pMfxExecuteParams->scalingMode = MFX_SCALING_MODE_DEFAULT;
     pMfxExecuteParams->interpolationMethod = MFX_INTERPOLATION_DEFAULT;
@@ -2300,6 +2312,17 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
                 formatSupport = MFX_FORMAT_SUPPORT_INPUT | MFX_FORMAT_SUPPORT_OUTPUT;
             }
             break;
+        case MFX_EXTBUF_CAM_3DLUT:
+        case MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION:
+            if (format == MFX_FOURCC_R16_BGGR ||
+                format == MFX_FOURCC_R16_RGGB ||
+                format == MFX_FOURCC_R16_GRBG ||
+                format == MFX_FOURCC_R16_GBRG ||
+                format == MFX_FOURCC_R16)
+            {
+                formatSupport = MFX_FORMAT_SUPPORT_INPUT | MFX_FORMAT_SUPPORT_OUTPUT;
+            }
+            break;
         default:
             break;
     }
@@ -2395,6 +2418,39 @@ mfxStatus  VideoVPPHW::Init(
         sts = MFX_ERR_NONE;
     }
     MFX_CHECK_STS(sts);
+
+    for (mfxU32 i = 0; i < m_params.NumExtParam; i++)
+    {
+        if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_3DLUT)
+        {
+            mfxExtCam3DLut *ext3DLut = (mfxExtCam3DLut*)m_params.ExtParam[i];
+            m_executeParams.Camera3DLUT.Header.BufferId = ext3DLut->Header.BufferId;
+            m_executeParams.Camera3DLUT.Size = ext3DLut->Size;
+            m_executeParams.Camera3DLUT.Table = ext3DLut->Table;
+
+            m_executeParams.bCamera3DLUT = TRUE;
+        }
+
+        if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION)
+        {
+            mfxExtCamFwdGamma *extFGC = (mfxExtCamFwdGamma*)m_params.ExtParam[i];
+            m_executeParams.CameraForwardGammaCorrection.Header.BufferId = extFGC->Header.BufferId;
+            m_executeParams.CameraForwardGammaCorrection.NumSegments = extFGC->NumSegments;
+            m_executeParams.CameraForwardGammaCorrection.Segment = extFGC->Segment;
+
+            m_executeParams.bCameraGammaCorrection = TRUE;
+        }
+
+        if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_PIPECONTROL)
+        {
+            mfxExtCamPipeControl *extCPC = (mfxExtCamPipeControl*)m_params.ExtParam[i];
+            m_executeParams.CameraPipeControl.Header.BufferId = extCPC->Header.BufferId;
+            m_executeParams.CameraPipeControl.RawFormat       = extCPC->RawFormat;
+
+            m_executeParams.bCameraPipeEnabled = TRUE;
+            m_executeParams.bCameraPipeControl = TRUE;
+        }
+    }
 
     m_config.m_IOPattern = 0;
     sts = ConfigureExecuteParams(
@@ -5469,6 +5525,7 @@ mfxStatus ConfigureExecuteParams(
 
     mfxF64 inDNRatio = 0, outDNRatio = 0;
     bool bIsFilterSkipped = false;
+    bool bitmodeflag = 0;
 
     // default
     config.m_extConfig.frcRational[VPP_IN].FrameRateExtN = videoParam.vpp.In.FrameRateExtN;
@@ -5481,10 +5538,20 @@ mfxStatus ConfigureExecuteParams(
 
     executeParams.iBackgroundColor = get_background_color(videoParam);
 
-    // 16 Bit modes are not currently supported by MSDK
-    if(videoParam.vpp.In.BitDepthLuma == 16 || videoParam.vpp.In.BitDepthChroma == 16 ||
+    for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
+    {
+        if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_PIPECONTROL)
+        {
+            bitmodeflag = TRUE;
+        }
+    }
+
+    if (!bitmodeflag)
+    {
+        if(videoParam.vpp.In.BitDepthLuma == 16 || videoParam.vpp.In.BitDepthChroma == 16 ||
         videoParam.vpp.Out.BitDepthLuma==16 || videoParam.vpp.Out.BitDepthChroma == 16)
         return MFX_ERR_INVALID_VIDEO_PARAM;
+    }
 
     //-----------------------------------------------------
     for (mfxU32 j = 0; j < pipelineList.size(); j += 1)

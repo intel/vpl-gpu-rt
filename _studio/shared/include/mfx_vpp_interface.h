@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
+#include "mfxcamera.h"
 
 #if defined (MFX_ENABLE_VPP)
 
@@ -142,6 +143,22 @@ namespace MfxHwVideoProcessing
         mfxU32 TileId;
     };
 
+    typedef struct _CameraCaps
+    {
+        mfxU32 uBlackLevelCorrection;
+        mfxU32 uHotPixelCheck;
+        mfxU32 uWhiteBalance;
+        mfxU32 uColorCorrectionMatrix;
+        mfxU32 uGammaCorrection;
+        mfxU32 uVignetteCorrection;
+        mfxU32 u3DLUT;
+        mfxU32 uCscYuvRgb;
+        mfxU32 uTotalColorControl;
+        mfxU32 uLensGeomDistCorrection;
+        mfxU32 uPadding;
+        mfxU32 uBayerDenoise;
+    } CameraCaps;
+
     struct mfxVppCaps
     {
         mfxU32 uAdvancedDI;
@@ -154,6 +171,8 @@ namespace MfxHwVideoProcessing
         mfxU32 uDetailFilter;
         mfxU32 uProcampFilter;
         mfxU32 uSceneChangeDetection;
+
+        CameraCaps cameraCaps;
 
         mfxU32 uFrameRateConversion;
         mfxU32 uDeinterlacing;
@@ -229,6 +248,7 @@ namespace MfxHwVideoProcessing
             , u3DLut(0)
             , uDenoise2Filter(0)
         {
+            memset(&cameraCaps, 0, sizeof(CameraCaps));
         };
     };
 
@@ -342,6 +362,33 @@ namespace MfxHwVideoProcessing
                ,bFieldWeavingExt(false)
                ,bFieldSplittingExt(false)
                ,iFieldProcessingMode(0)
+               ,bCameraPipeEnabled(false)
+               ,bCameraPipeControl(0)
+               ,CameraPipeControl()
+               ,bCameraBlackLevelCorrection(false)
+               ,CameraBlackLevel()
+               ,bCameraWhiteBalaceCorrection(false)
+               ,CameraWhiteBalance()
+               ,bCameraHotPixelRemoval(false)
+               ,CameraHotPixel()
+               ,bCCM(false)
+               ,CCMParams()
+               ,bCameraTCC(false)
+               ,CameraTCC()
+               ,bCameraRGBtoYUV(false)
+               ,CameraRGBToYUV()               
+               ,bCameraGammaCorrection(false)
+               ,CameraForwardGammaCorrection()
+               ,bCameraVignetteCorrection(false)
+               ,CameraVignetteCorrection()
+               ,bCameraLensCorrection(false)
+               ,CameraLensCorrection()
+               ,bCamera3DLUT(false)
+               ,Camera3DLUT()
+               ,bCameraPadding(false)
+               ,CameraPadding()
+               ,bCameraBayerDenoise(false)
+               ,CameraBayerDenoise()
                ,rotation(0)
                ,scalingMode(MFX_SCALING_MODE_DEFAULT)
                ,interpolationMethod(MFX_INTERPOLATION_DEFAULT)
@@ -404,6 +451,13 @@ namespace MfxHwVideoProcessing
                     bFieldWeaving != false ||
                     bFieldSplittingExt != false ||
                     iFieldProcessingMode != 0 ||
+                    bCameraPipeEnabled != false ||
+                    bCameraBlackLevelCorrection != false ||
+                    bCameraGammaCorrection != false ||
+                    bCameraHotPixelRemoval != false ||
+                    bCameraWhiteBalaceCorrection != false ||
+                    bCCM != false ||
+                    bCameraLensCorrection != false ||
                     rotation != 0 ||
                     scalingMode != MFX_SCALING_MODE_DEFAULT ||
                     mirroring != 0 ||
@@ -479,6 +533,35 @@ namespace MfxHwVideoProcessing
         bool           bFieldSplittingExt;
 
         mfxU32         iFieldProcessingMode;
+
+        //  Camera Pipe specific params
+        bool                            bCameraPipeEnabled;
+        bool                            bCameraPipeControl;
+        mfxExtCamPipeControl            CameraPipeControl;
+        bool                            bCameraBlackLevelCorrection;
+        mfxExtCamBlackLevelCorrection   CameraBlackLevel;
+        bool                            bCameraWhiteBalaceCorrection;
+        mfxExtCamWhiteBalance           CameraWhiteBalance;
+        bool                            bCameraHotPixelRemoval;
+        mfxExtCamHotPixelRemoval        CameraHotPixel;
+        bool                            bCCM;
+        mfxExtCamColorCorrection3x3     CCMParams;
+        bool                            bCameraTCC;
+        mfxExtCamTotalColorControl      CameraTCC;
+        bool                            bCameraRGBtoYUV;
+        mfxExtCamCscYuvRgb              CameraRGBToYUV;
+        bool                            bCameraGammaCorrection;
+        mfxExtCamFwdGamma               CameraForwardGammaCorrection;
+        bool                            bCameraVignetteCorrection;
+        mfxExtCamVignetteCorrection     CameraVignetteCorrection;
+        bool                            bCameraLensCorrection;
+        mfxExtCamLensGeomDistCorrection CameraLensCorrection;
+        bool                            bCamera3DLUT;
+        mfxExtCam3DLut                  Camera3DLUT;
+        bool                            bCameraPadding;
+        mfxExtCamPadding                CameraPadding;
+        bool                            bCameraBayerDenoise;
+        mfxExtCamBayerDenoise           CameraBayerDenoise;
 
         int         rotation;
 

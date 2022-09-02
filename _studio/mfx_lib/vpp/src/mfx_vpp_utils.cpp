@@ -146,7 +146,10 @@ const mfxU32 g_TABLE_EXT_PARAM [] =
     MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT,
     MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO,
     MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN,
-    MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT
+    MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT,
+    MFX_EXTBUF_CAM_PIPECONTROL,
+    MFX_EXTBUF_CAM_3DLUT,
+    MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION
 };
 
 PicStructMode GetPicStructMode(mfxU16 inPicStruct, mfxU16 outPicStruct)
@@ -1444,6 +1447,10 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request)
         case MFX_FOURCC_I420:
         case MFX_FOURCC_UYVY:
             break;
+        case MFX_FOURCC_ARGB16:
+            break;
+        case MFX_FOURCC_R16:
+            break;
         case MFX_FOURCC_IMC3:
         case MFX_FOURCC_YUV400:
         case MFX_FOURCC_YUV411:
@@ -2306,6 +2313,16 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
     if (caps.uFieldProcessing)
     {
         list.push_back(MFX_EXTBUFF_VPP_FIELD_PROCESSING);
+    }
+
+    if (caps.cameraCaps.uGammaCorrection)
+    {
+        list.push_back(MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION);
+    }
+
+    if (caps.cameraCaps.u3DLUT)
+    {
+        list.push_back(MFX_EXTBUF_CAM_3DLUT);
     }
 
     /*ColorFill is always present*/
