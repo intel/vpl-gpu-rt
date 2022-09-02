@@ -830,6 +830,7 @@ mfxStatus HevcEncTools::BRCGetCtrl(StorageW& global , StorageW& s_task,
         extFrameData.FrameType = task.FrameType;
         extFrameData.PyramidLayer = (mfxU16) task.PyramidLevel;
         extFrameData.SceneChange = task.GopHints.SceneChange;
+        extFrameData.SpatialComplexity = task.GopHints.SpatialComplexity;
         extFrameData.PersistenceMapNZ = task.GopHints.PersistenceMapNZ;
         memcpy(extFrameData.PersistenceMap, task.GopHints.PersistenceMap, sizeof(extFrameData.PersistenceMap));
 
@@ -1009,8 +1010,8 @@ mfxStatus HevcEncTools::QueryPreEncTask(StorageW&  global, StorageW& s_task)
     task.GopHints.MiniGopSize = preEncodeGOP.MiniGopSize;
     task.GopHints.FrameType = preEncodeGOP.FrameType;
     task.GopHints.SceneChange = preEncodeSChg.SceneChangeFlag;
+    task.GopHints.SpatialComplexity = preEncodeSChg.SpatialComplexity;
     task.GopHints.PersistenceMapNZ = preEncodeSChg.PersistenceMapNZ;
-
     if (qpMapHint.QpMapFilled)
         task.bCUQPMap = true;
     memcpy(task.GopHints.PersistenceMap, preEncodeSChg.PersistenceMap, sizeof(task.GopHints.PersistenceMap));

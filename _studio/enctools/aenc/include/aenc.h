@@ -63,7 +63,7 @@ extern "C" {
         mfxU32 Type; //FrameType, e.g. MFX_FRAMETYPE_I
         mfxI32 DeltaQP;
         mfxU32 ClassAPQ;
-        mfxU32 ClassCmplx;
+        mfxU32 SpatialComplexity;
         mfxU32 KeepInDPB;
         mfxU32 RemoveFromDPBSize;
         mfxU32 RemoveFromDPB[32];
@@ -79,7 +79,7 @@ extern "C" {
     mfxStatus MFX_CDECL AEncProcessFrame(mfxHDL pthis, mfxU32 POC, mfxU8* InFrame, mfxI32 pitch, AEncFrame* OutFrame);
     mfxU16    MFX_CDECL AEncGetIntraDecision(mfxHDL pthis, mfxU32 displayOrder);
     mfxU16    MFX_CDECL AEncGetPersistenceMap(mfxHDL pthis, mfxU32 displayOrder, mfxU8 PMap[AENC_MAP_SIZE]);
-    void      MFX_CDECL AEncUpdateFrame(mfxHDL pthis, mfxU32 displayOrder, mfxU32 bits, mfxU32 QpY, mfxU32 ClassCmplx);
+    void      MFX_CDECL AEncUpdateFrame(mfxHDL pthis, mfxU32 displayOrder, mfxU32 bits, mfxU32 QpY);
 
 #ifdef __cplusplus
 } // extern "C"

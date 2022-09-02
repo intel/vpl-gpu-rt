@@ -753,9 +753,12 @@ namespace Base
         mfxU32              QPModulaton = 0;
         /* Scene Change parameter */
         mfxU16              SceneChange = 0;
+#if defined(MFX_ENABLE_ENCTOOLS)
+        mfxU16              SpatialComplexity = 0;
         /* Maps */
         mfxU16              PersistenceMapNZ;
         mfxU8               PersistenceMap[128];
+#endif
     };
 
     struct mfxBRCHints {

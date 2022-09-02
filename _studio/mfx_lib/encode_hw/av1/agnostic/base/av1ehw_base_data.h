@@ -771,10 +771,11 @@ namespace Base
         /* Scene Change parameter */
         mfxU16              SceneChange = 0;
 #if defined(MFX_ENABLE_ENCTOOLS)
+        mfxU16              SpatialComplexity = 0;
         /* Persistence Map */
         mfxU16              PersistenceMapNZ;
         mfxU8               PersistenceMap[MFX_ENCTOOLS_PREENC_MAP_SIZE];
-#endif        
+#endif
     };
 
     using RepeatedFrames = std::vector<RepeatedFrameInfo>;

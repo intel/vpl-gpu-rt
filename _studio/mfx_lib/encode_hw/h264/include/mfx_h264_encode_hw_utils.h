@@ -1062,8 +1062,11 @@ namespace MfxHwH264Encode
 #endif
             , m_TCBRCTargetFrameSize(0)
             , m_SceneChange(0)
+#if defined(MFX_ENABLE_ENCTOOLS)
+            , m_SpatialComplexity(0)
             , m_PersistenceMapNZ(0)
-            , m_PersistenceMap{}            
+            , m_PersistenceMap{}
+#endif
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
             , m_doMCTFIntraFiltering(0)
 #endif
@@ -1362,8 +1365,11 @@ namespace MfxHwH264Encode
 #endif
         mfxU32 m_TCBRCTargetFrameSize;
         mfxU32 m_SceneChange;
+#if defined(MFX_ENABLE_ENCTOOLS)
+        mfxU16 m_SpatialComplexity;
         mfxU16 m_PersistenceMapNZ;
-        mfxU8  m_PersistenceMap[128];        
+        mfxU8  m_PersistenceMap[128];
+#endif
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
         mfxU32 m_doMCTFIntraFiltering;
 #endif
@@ -2268,7 +2274,8 @@ public:
     {
         MFX_CHECK(m_pEncTools != 0, MFX_ERR_NOT_INITIALIZED);
         MFX_CHECK(IsOn(m_EncToolConfig.AdaptiveI) ||
-            IsOn(m_EncToolConfig.AdaptiveLTR), MFX_ERR_NOT_INITIALIZED);
+            IsOn(m_EncToolConfig.AdaptiveLTR) ||
+            IsOn(m_EncToolConfig.BRC), MFX_ERR_NOT_INITIALIZED);
 
         mfxEncToolsTaskParam par = {};
         par.DisplayOrder = displayOrder;
@@ -2354,9 +2361,10 @@ public:
         extFrameStruct.PyramidLayer = frame_par->PyramidLayer;
         extFrameStruct.LongTerm = frame_par->LongTerm;
         extFrameStruct.SceneChange = frame_par->SceneChange;
+        extFrameStruct.SpatialComplexity = task.m_SpatialComplexity;
         extFrameStruct.PersistenceMapNZ = task.m_PersistenceMapNZ;
         if (task.m_PersistenceMapNZ)
-            memcpy(extFrameStruct.PersistenceMap, task.m_PersistenceMap, sizeof(task.m_PersistenceMap));        
+            memcpy(extFrameStruct.PersistenceMap, task.m_PersistenceMap, sizeof(task.m_PersistenceMap));
         extParams.push_back((mfxExtBuffer *)&extFrameStruct);
 
         if (frame_par->OptimalFrameSizeInBytes | frame_par->LaAvgEncodedSize)

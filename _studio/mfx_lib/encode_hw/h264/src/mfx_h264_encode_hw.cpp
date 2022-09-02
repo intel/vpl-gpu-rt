@@ -3219,14 +3219,15 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
             }
         }
 
-        if (m_encTools.IsAdaptiveI() || m_encTools.IsAdaptiveLTR()) {
+        if (m_encTools.IsAdaptiveI() || m_encTools.IsAdaptiveLTR() || m_encTools.IsBRC()) {
             mfxEncToolsHintPreEncodeSceneChange schg = {};
             sts = m_encTools.QueryPreEncSChg(task.m_frameOrder, schg);
             MFX_CHECK_STS(sts);
             task.m_SceneChange = schg.SceneChangeFlag;
+            task.m_SpatialComplexity = schg.SpatialComplexity;
             task.m_PersistenceMapNZ = schg.PersistenceMapNZ;
             if(task.m_PersistenceMapNZ)
-                memcpy(task.m_PersistenceMap, schg.PersistenceMap, sizeof(task.m_PersistenceMap));            
+                memcpy(task.m_PersistenceMap, schg.PersistenceMap, sizeof(task.m_PersistenceMap));
         }
 
         if (m_encTools.IsAdaptiveLTR() || m_encTools.IsAdaptiveRef())
