@@ -232,7 +232,7 @@ inline bool IsEncToolsImplicit(const mfxVideoParam &video)
         const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
         etOn = (IsGameStreaming(video) && IsOn(video.mfx.LowPower)); // LPLA
         etOn = etOn ||
-            ((video.mfx.GopRefDist == 2 || video.mfx.GopRefDist == 8) && IsOn(pExtOpt2->ExtBRC) // SW EncTools
+            ((video.mfx.GopRefDist == 2 || video.mfx.GopRefDist == 4 || video.mfx.GopRefDist == 8) && IsOn(pExtOpt2->ExtBRC) // SW EncTools
                 && !(pExtOpt3 && pExtOpt3->ScenarioInfo != MFX_SCENARIO_UNKNOWN));
     }
     return etOn;

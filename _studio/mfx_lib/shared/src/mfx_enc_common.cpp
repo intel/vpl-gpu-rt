@@ -757,7 +757,7 @@ bool IsEnctoolsLABRC(const mfxVideoParam& par)
 
     if (
         (
-            ((par.mfx.GopRefDist == 2 || par.mfx.GopRefDist == 8)
+            ((par.mfx.GopRefDist == 2 || par.mfx.GopRefDist == 4 || par.mfx.GopRefDist == 8)
                 && pCO2 && pCO2->ExtBRC == MFX_CODINGOPTION_ON && pCO2->LookAheadDepth > par.mfx.GopRefDist
                 && !(pCO3 && pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING)
                 )
