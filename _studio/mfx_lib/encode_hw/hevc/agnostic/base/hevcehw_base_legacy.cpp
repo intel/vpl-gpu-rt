@@ -48,7 +48,7 @@ void Legacy::SetSupported(ParamSupport& blocks)
     auto CopyRawBuffer = [](mfxU8* pSrcBuf, mfxU16 szSrcBuf, mfxU8* pDstBuf, mfxU16& szDstBuf)
     {
         bool bCopy = pSrcBuf && pDstBuf;
-        ThrowIf(bCopy && szSrcBuf > szDstBuf, MFX_ERR_NOT_ENOUGH_BUFFER);
+        MFX_CHECK_WITH_THROW_STS(!(bCopy && szSrcBuf > szDstBuf), MFX_ERR_NOT_ENOUGH_BUFFER);
 
         if (bCopy)
         {
