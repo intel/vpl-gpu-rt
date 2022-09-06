@@ -1053,62 +1053,6 @@ struct surface_cache_controller
 
     mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
     {
-        // Use temporal copy for possible IOPattern adjustment. Hitorically Init doesn't require setting of IOPatter, but QueryIOSurf does.
-        // This function is invoked during Init
-        mfxVideoParam tmp_par = par;
-
-        switch (m_type)
-        {
-        case ComponentType::DECODE:
-        {
-            mfxFrameAllocRequest req = {};
-
-            if (!tmp_par.IOPattern)
-                tmp_par.IOPattern = MFX_IOPATTERN_OUT_VIDEO_MEMORY;
-
-            mfxStatus sts = MFX_STS_TRACE(MFXVideoDECODE_QueryIOSurf(session, &tmp_par, &req));
-            MFX_CHECK(sts >= MFX_ERR_NONE, sts);
-
-            m_required_num_surf = req.NumFrameSuggested;
-        }
-        break;
-
-        case ComponentType::ENCODE:
-        {
-            mfxFrameAllocRequest req = {};
-
-            if (!tmp_par.IOPattern)
-                tmp_par.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY;
-
-            mfxStatus sts = MFX_STS_TRACE(MFXVideoENCODE_QueryIOSurf(session, &tmp_par, &req));
-            MFX_CHECK(sts >= MFX_ERR_NONE, sts);
-
-            m_required_num_surf = req.NumFrameSuggested;
-        }
-        break;
-
-        case ComponentType::VPP:
-        {
-            mfxFrameAllocRequest req[2] = {};
-
-            if (!tmp_par.IOPattern)
-                tmp_par.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
-
-            mfxStatus sts = MFX_STS_TRACE(MFXVideoVPP_QueryIOSurf(session, &tmp_par, req));
-            MFX_CHECK(sts >= MFX_ERR_NONE, sts);
-
-            MFX_CHECK(m_vpp_pool == MFX_VPP_POOL_IN || m_vpp_pool == MFX_VPP_POOL_OUT, MFX_ERR_INVALID_VIDEO_PARAM);
-
-            m_required_num_surf = req[m_vpp_pool].NumFrameSuggested;
-        }
-        break;
-
-        default:
-            MFX_RETURN(MFX_ERR_NOT_IMPLEMENTED);
-        }
-
-        MFX_CHECK(m_cache, MFX_ERR_NOT_INITIALIZED);
-
         auto it = std::find_if(par.ExtParam, par.ExtParam + par.NumExtParam,
             [this](mfxExtBuffer* buffer)
             {
@@ -1116,15 +1060,82 @@ struct surface_cache_controller
                     (m_type != ComponentType::VPP || reinterpret_cast<mfxExtAllocationHints*>(buffer)->VPPPoolType == m_vpp_pool);
             });
 
-        if (it == par.ExtParam + par.NumExtParam)
-            return MFX_ERR_NONE;
+        mfxExtAllocationHints* allocation_hints = nullptr;
 
-        mfxExtAllocationHints* allocation_hints = reinterpret_cast<mfxExtAllocationHints*>(*it);
+        bool optimal_caching_policy_requested = false;
+
+        if (it != par.ExtParam + par.NumExtParam)
+        {
+            allocation_hints = reinterpret_cast<mfxExtAllocationHints*>(*it);
+            optimal_caching_policy_requested = allocation_hints->AllocationPolicy == MFX_ALLOCATION_OPTIMAL;
+        }
+
+        if (optimal_caching_policy_requested)
+        {
+            // Use temporal copy for possible IOPattern adjustment. Hitorically Init doesn't require setting of IOPatter, but QueryIOSurf does.
+            // This function is invoked during Init
+            mfxVideoParam tmp_par = par;
+
+            switch (m_type)
+            {
+            case ComponentType::DECODE:
+            {
+                mfxFrameAllocRequest req = {};
+
+                if (!tmp_par.IOPattern)
+                    tmp_par.IOPattern = MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+
+                mfxStatus sts = MFX_STS_TRACE(MFXVideoDECODE_QueryIOSurf(session, &tmp_par, &req));
+                MFX_CHECK(sts >= MFX_ERR_NONE, sts);
+
+                m_required_num_surf = req.NumFrameSuggested;
+            }
+            break;
+
+            case ComponentType::ENCODE:
+            {
+                mfxFrameAllocRequest req = {};
+
+                if (!tmp_par.IOPattern)
+                    tmp_par.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY;
+
+                mfxStatus sts = MFX_STS_TRACE(MFXVideoENCODE_QueryIOSurf(session, &tmp_par, &req));
+                MFX_CHECK(sts >= MFX_ERR_NONE, sts);
+
+                m_required_num_surf = req.NumFrameSuggested;
+            }
+            break;
+
+            case ComponentType::VPP:
+            {
+                mfxFrameAllocRequest req[2] = {};
+
+                if (!tmp_par.IOPattern)
+                    tmp_par.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+
+                mfxStatus sts = MFX_STS_TRACE(MFXVideoVPP_QueryIOSurf(session, &tmp_par, req));
+                MFX_CHECK(sts >= MFX_ERR_NONE, sts);
+
+                MFX_CHECK(m_vpp_pool == MFX_VPP_POOL_IN || m_vpp_pool == MFX_VPP_POOL_OUT, MFX_ERR_INVALID_VIDEO_PARAM);
+
+                m_required_num_surf = req[m_vpp_pool].NumFrameSuggested;
+            }
+            break;
+
+            default:
+                MFX_RETURN(MFX_ERR_NOT_IMPLEMENTED);
+            }
+        }
+
+        MFX_CHECK(m_cache, MFX_ERR_NOT_INITIALIZED);
+
+        if (!allocation_hints)
+            return MFX_ERR_NONE;
 
         MFX_SAFE_CALL(CheckAllocationHintsBuffer(*allocation_hints, m_type == ComponentType::VPP));
         MFX_SAFE_CALL(m_cache->SetupPolicy(*allocation_hints));
 
-        if (allocation_hints->AllocationPolicy == MFX_ALLOCATION_OPTIMAL)
+        if (optimal_caching_policy_requested)
         {
             unique_ptr_refcountable<mfxSurfacePoolInterface> scoped_surface_lock(m_cache.get());
             // AddRef here because m_cache is also a smart pointer, so will be decremented twice
