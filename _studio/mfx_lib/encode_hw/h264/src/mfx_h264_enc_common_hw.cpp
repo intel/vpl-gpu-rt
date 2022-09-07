@@ -2274,9 +2274,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     if (IsOn(par.mfx.LowPower))
     {
 #if defined(MFX_ENABLE_AVCE_VDENC_B_FRAMES)
-        // VDEnc B frame supported from XeHP_SDV
         if (par.mfx.GopRefDist > 1
-            && platform < MFX_HW_XE_HP_SDV
+            && !H264ECaps::IsVDEncBFrameSupported(platform)
             )
 #else
         if (par.mfx.GopRefDist > 1)
@@ -5467,10 +5466,8 @@ void MfxHwH264Encode::SetDefaults(
     {
         if (par.mfx.GopRefDist == 0)
         {
-            if (platform >= MFX_HW_DG2)
-                par.mfx.GopRefDist = 4; // on DG2+ 3 B-frames with B-pyramid is default
-            else
-                par.mfx.GopRefDist = 1;
+            // on DG2+ 3 B-frames with B-pyramid is default
+            par.mfx.GopRefDist = H264ECaps::IsVDEncBFrameSupported(platform) ? 4 : 1;
         }
 
         if (par.mfx.FrameInfo.PicStruct == 0)

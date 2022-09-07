@@ -85,6 +85,12 @@ namespace H264ECaps {
     {
         return (platform >= MFX_HW_DG2);
     }
+
+    inline bool IsVDEncBFrameSupported(eMFXHWType platform)
+    {
+        // VDEnc B frame supported from DG2
+        return (platform >= MFX_HW_DG2);
+    }
 }
 #endif //MFX_ENABLE_H264_VIDEO_ENCODE
 

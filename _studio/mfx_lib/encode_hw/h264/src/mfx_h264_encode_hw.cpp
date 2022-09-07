@@ -174,7 +174,7 @@ mfxStatus MFXHWVideoENCODEH264::QueryImplsDescription(
     caps.BiDirectionalPrediction =
         !IsOn(tmp.mfx.LowPower)
 #if defined(MFX_ENABLE_AVCE_VDENC_B_FRAMES)
-        ||  (platform >= MFX_HW_XE_HP_SDV)
+        ||  H264ECaps::IsVDEncBFrameSupported(platform)
 #endif
         ;
 
