@@ -81,8 +81,7 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
                 , const Base::Defaults::Param& dpar
                 , mfxVideoParam& par)
         {
-            if(!IsRextFourCC(par.mfx.FrameInfo.FourCC))
-                return prev(dpar, par);
+            MFX_CHECK(IsRextFourCC(par.mfx.FrameInfo.FourCC), prev(dpar, par));
             return MFX_ERR_NONE;
         });
 
@@ -91,8 +90,7 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
                 , const Base::Defaults::Param& dpar
                 , mfxVideoParam& par)
         {
-            if(!IsRextFourCC(par.mfx.FrameInfo.FourCC))
-                return prev(dpar, par);
+            MFX_CHECK(IsRextFourCC(par.mfx.FrameInfo.FourCC), prev(dpar, par));
 
             auto&  fi      = par.mfx.FrameInfo; 
             mfxU32 invalid = 0;
@@ -114,8 +112,7 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         {
             mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
 
-            if(!(pCO3 && IsRextFourCC(par.mfx.FrameInfo.FourCC)))
-                return prev(dpar, par);
+            MFX_CHECK(pCO3 && IsRextFourCC(par.mfx.FrameInfo.FourCC), prev(dpar, par));
 
             mfxU32 invalid = 0;
 
@@ -139,8 +136,7 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
                 , const Base::Defaults::Param& dpar
                 , mfxVideoParam& par)
         {
-            if (!IsRextFourCC(par.mfx.FrameInfo.FourCC))
-                return prev(dpar, par);
+            MFX_CHECK(IsRextFourCC(par.mfx.FrameInfo.FourCC), prev(dpar, par));
 
             auto   tcf = dpar.base.GetTargetChromaFormat(dpar);
             auto&  fi = par.mfx.FrameInfo;
@@ -163,8 +159,7 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
                 , const Base::Defaults::Param& dpar
                 , mfxVideoParam& par)
         {
-            if (!IsRextFourCC(par.mfx.FrameInfo.FourCC))
-                return prev(dpar, par);
+            MFX_CHECK(IsRextFourCC(par.mfx.FrameInfo.FourCC), prev(dpar, par));
 
             bool bInvalid = CheckOrZero<mfxU16, 0, MFX_PROFILE_HEVC_REXT>(par.mfx.CodecProfile);
 
@@ -176,8 +171,7 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
             [](Base::Defaults::TChain<mfxU16>::TExt prev
                 , const Base::Defaults::Param& dpar)
         {
-            if(!IsRextFourCC(dpar.mvp.mfx.FrameInfo.FourCC))
-                return prev(dpar);
+            MFX_CHECK(IsRextFourCC(dpar.mvp.mfx.FrameInfo.FourCC), prev(dpar));
             auto fcc = dpar.mvp.mfx.FrameInfo.FourCC;
             return mfxU16(
                   (fcc == MFX_FOURCC_P016) * MFX_CHROMAFORMAT_YUV420
@@ -189,8 +183,7 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
             [](Base::Defaults::TChain<mfxU16>::TExt prev
                 , const Base::Defaults::Param& dpar)
         {
-            if(!IsRextFourCC(dpar.mvp.mfx.FrameInfo.FourCC))
-                return prev(dpar);
+            MFX_CHECK(IsRextFourCC(dpar.mvp.mfx.FrameInfo.FourCC), prev(dpar));
             return mfxU16(12);
         });
 
