@@ -71,5 +71,22 @@ Status PXPH264Supplier::UpdatePXPParams(MediaData const* pSource)
     return UMC_OK;
 }
 
+bool PXPH264Supplier::ProcessNonPairedField(H264DecoderFrame * pFrame)
+{
+    if (pFrame)
+    {
+        H264Slice * pSlice = pFrame->GetAU(0)->GetSlice(0);
+        if (pSlice && pSlice->GetSliceHeader()->field_pic_flag)
+        {
+            // accelerator will submit decode parameter twice to decode top and bottom field data
+            // return false to re-use output surface
+            // it will allocate new surface when decoded bottom field data
+            return false;
+        }
+    }
+
+    return VATaskSupplier::ProcessNonPairedField(pFrame);
+}
+
 }
 #endif // MFX_ENABLE_PXP

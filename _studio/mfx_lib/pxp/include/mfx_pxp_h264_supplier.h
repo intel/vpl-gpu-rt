@@ -43,6 +43,7 @@ public:
 
     virtual Status Init(VideoDecoderParams* pInit) override;
     virtual Status AddOneFrame(MediaData* pSource) override;
+    virtual bool ProcessNonPairedField(H264DecoderFrame * pFrame) override;
     Status UpdatePXPParams(MediaData const* pSource);
 };
 
