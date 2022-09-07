@@ -41,6 +41,7 @@ namespace EncToolsBRC
     constexpr mfxF64 RACA_SCALE = 128.0;
 
     constexpr mfxU8 TOTAL_NUM_AV1_SEGMENTS_FOR_ENCTOOLS = 7;
+
 /*
 NalHrdConformance | VuiNalHrdParameters   |  Result
 --------------------------------------------------------------
@@ -149,7 +150,6 @@ public:
     mfxU16   mHasALTR; // When mHasALTR, LTR marking decision (on/off) based on content.
     mfxU32   codecId;
     bool     mMBBRC;    // Enable Macroblock-CU level QP control (true/false)
-    bool     lowPower;
 
 public:
     cBRCParams() :
@@ -205,8 +205,7 @@ public:
         mLaScale(0),
         mHasALTR(0),
         codecId(0),
-        mMBBRC(false),
-        lowPower(0)
+        mMBBRC(false)
     {}
 
     mfxStatus Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool bFieldMode);
