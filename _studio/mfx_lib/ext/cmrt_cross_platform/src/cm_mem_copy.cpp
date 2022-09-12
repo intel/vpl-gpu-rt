@@ -172,6 +172,21 @@ CmBufferUPWrapper* CmCopyWrapper::CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize, mf
 
     if (m_tableSysRelations.end() != it)
     {
+        // Code below temporary disables CM-cache
+        if (it->second.IsFree())
+        {
+            CmBufferUP* pCmUserBuffer;
+            cmStatus cmSts = m_pCmDevice->CreateBufferUP(memSize, pDst, pCmUserBuffer);
+            CHECK_CM_STATUS_RET_NULL(cmSts);
+
+            SurfaceIndex* pCmDstIndex;
+            cmSts = pCmUserBuffer->GetIndex(pCmDstIndex);
+            CHECK_CM_STATUS_RET_NULL(cmSts);
+
+            CmBufferUPWrapper tmp_buf_to_destroy = std::move(it->second);
+            it->second = CmBufferUPWrapper(pCmUserBuffer, pCmDstIndex, m_pCmDevice);
+        }
+
         it->second.AddRef();
         return &(it->second);
     }

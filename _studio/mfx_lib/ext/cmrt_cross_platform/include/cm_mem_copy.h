@@ -86,13 +86,24 @@ public:
     {}
 
     CmSurfBufferBase(const CmSurfBufferBase&) = delete;
-    CmSurfBufferBase(CmSurfBufferBase&& other)
-        : surfacebuffer(other.surfacebuffer)
-        , cm_device(other.cm_device)
+    CmSurfBufferBase(CmSurfBufferBase&& other) noexcept
     {
-        use_count.exchange(other.use_count, std::memory_order_relaxed);
-        other.surfacebuffer = nullptr;
-        other.cm_device = nullptr;
+        *this = std::move(other);
+    }
+
+    CmSurfBufferBase& operator= (const CmSurfBufferBase&) = delete;
+    CmSurfBufferBase& operator= (CmSurfBufferBase&& other) noexcept
+    {
+        if (this != &other)
+        {
+            surfacebuffer = other.surfacebuffer;
+            cm_device     = other.cm_device;
+            use_count.exchange(other.use_count, std::memory_order_relaxed);
+
+            other.surfacebuffer = nullptr;
+            other.cm_device     = nullptr;
+        }
+        return *this;
     }
 
     void AddRef()
@@ -128,15 +139,21 @@ public:
         : CmSurfBufferBase(surf, device)
     {}
     CmSurface2DWrapper(const CmSurface2DWrapper&) = delete;
-    CmSurface2DWrapper(CmSurface2DWrapper&& other)
-        : CmSurfBufferBase((CmSurface2DWrapper&&)other)
-    {}
+    CmSurface2DWrapper(CmSurface2DWrapper&& other) noexcept
+        : CmSurfBufferBase(nullptr, nullptr)
+    {
+        *this = std::move(other);
+    }
 
     CmSurface2DWrapper& operator= (const CmSurface2DWrapper&) = delete;
-    CmSurface2DWrapper& operator= (CmSurface2DWrapper&& other)
+    CmSurface2DWrapper& operator= (CmSurface2DWrapper&& other) noexcept
     {
-        CmSurface2DWrapper tmp = std::move(other);
-        std::swap(tmp, *this);
+        if (this != &other)
+        {
+            DestroySurface();
+
+            static_cast<CmSurfBufferBase&>(*this) = std::move(static_cast<CmSurfBufferBase&>(other));
+        }
         return *this;
     }
 
@@ -164,18 +181,24 @@ public:
         , pIndex(pindx)
     {}
     CmBufferUPWrapper(const CmBufferUPWrapper&) = delete;
-    CmBufferUPWrapper(CmBufferUPWrapper&& other)
-        : CmSurfBufferBase((CmSurfBufferBase&&) other)
-        , pIndex(other.pIndex)
+    CmBufferUPWrapper(CmBufferUPWrapper&& other) noexcept
+        : CmSurfBufferBase(nullptr, nullptr)
     {
-        other.pIndex = nullptr;
+        *this = std::move(other);
     }
 
     CmBufferUPWrapper& operator= (const CmBufferUPWrapper&) = delete;
-    CmBufferUPWrapper& operator= (CmBufferUPWrapper&& other)
+    CmBufferUPWrapper& operator= (CmBufferUPWrapper&& other) noexcept
     {
-        CmBufferUPWrapper tmp = std::move(other);
-        std::swap(tmp, *this);
+        if (this != &other)
+        {
+            DestroyBuffer();
+
+            static_cast<CmSurfBufferBase&>(*this) = std::move(static_cast<CmSurfBufferBase&>(other));
+            pIndex = other.pIndex;
+
+            other.pIndex = nullptr;
+        }
         return *this;
     }
 
