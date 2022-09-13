@@ -56,6 +56,7 @@ typedef __UINT64 mfxTraceU64;
 /*------------------------------------------------------------------------------*/
 extern mfxTraceU32 EnableEventTrace;
 extern mfxTraceU32 EventCfg;
+extern mfxTraceU32 LogConfig;
 extern int32_t FrameIndex;
 
 // C section
@@ -588,8 +589,9 @@ extern "C" {
 #ifdef MFX_TRACE_ENABLE
 #define MFX_LTRACE_BUFFER(_level, _buffer) \
 { \
-    DumpContext context; \
-    if (_buffer) { \
+    if (0 != LogConfig && _buffer) \
+    { \
+        DumpContext context; \
         std::string _str = context.dump(#_buffer, *_buffer); \
         MFX_LTRACE_1(_level, "", "\n%s", _str.c_str()) \
     } \

@@ -180,7 +180,7 @@ std::string DumpContext::dump(const std::string structName, const mfxFrameId& fr
 std::string DumpContext::dump(const std::string structName, const mfxFrameSurface1& frameSurface1)
 {
     std::string str = "mfxFrameSurface1 " + structName + " : addr[" + ToHexFormatString(&frameSurface1) + "]" + " size[" + ToString(sizeof(frameSurface1)) + "]" + "\n";
-    str += structName + ".FrameInterface=" + ToString(frameSurface1.FrameInterface) + "\n";
+    str += structName + ".FrameInterface=" + ToHexFormatString(frameSurface1.FrameInterface) + "\n";
     str += structName + ".reserved[]=" + DUMP_RESERVED_ARRAY(frameSurface1.reserved) + "\n";
     str += structName + ".reserved1[]=" + DUMP_RESERVED_ARRAY(frameSurface1.reserved1) + "\n";
     str += dump(structName + ".Info", frameSurface1.Info) + "\n";
