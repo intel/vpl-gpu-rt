@@ -497,6 +497,12 @@ static inline mfxU32 SupportedVAfourccToMFXfourcc(mfxU32 va_fourcc)
         return MFX_FOURCC_P8;
     case VA_FOURCC_I420:
         return MFX_FOURCC_I420;
+    case VA_FOURCC_P012:
+        return VA_FOURCC_P016;
+    case VA_FOURCC_Y212:
+        return VA_FOURCC_Y216;
+    case VA_FOURCC_Y412:
+        return VA_FOURCC_Y416;
     default:
         return va_fourcc;
     }
@@ -587,6 +593,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         break;
 
     case VA_FOURCC_P010:
+    case VA_FOURCC_P012:
     case VA_FOURCC_P016:
         frame_data.Y = p_buffer + va_image.offsets[0];
         frame_data.U = p_buffer + va_image.offsets[1];
@@ -601,6 +608,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         break;
 
     case VA_FOURCC_Y210:
+    case VA_FOURCC_Y212:
     case VA_FOURCC_Y216:
         frame_data.Y16 = (mfxU16 *) (p_buffer + va_image.offsets[0]);
         frame_data.U16 = frame_data.Y16 + 1;
@@ -612,6 +620,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         frame_data.Y410 = (mfxY410*)(p_buffer + va_image.offsets[0]);
         break;
 
+    case VA_FOURCC_Y412:
     case VA_FOURCC_Y416:
         frame_data.U16 = (mfxU16 *) (p_buffer + va_image.offsets[0]);
         frame_data.Y16 = frame_data.U16 + 1;
