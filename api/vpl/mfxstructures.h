@@ -722,6 +722,9 @@ typedef struct {
                 mfxU16  InitialDelayInKB;
                 /*! Quantization Parameter (QP) for I-frames for constant QP mode (CQP). Zero QP is not valid and means that the default value is assigned by the library.
                     Non-zero QPI might be clipped to supported QPI range.
+                    @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
+                    Adjusted QPI value = QPI - (6 * (bitDepthLuma - 8)) for bitDepthLuma in the range [8,14].
+                    For HEVC_MAIN10, we minus (6*(10-8)=12) on our side and continue.
                     @note Default QPI value is implementation dependent and subject to change without additional notice in this document. */
                 mfxU16  QPI;
                 mfxU16  Accuracy; /*!< Specifies accuracy range in the unit of tenth of percent. */
@@ -732,6 +735,9 @@ typedef struct {
                 mfxU16  TargetKbps;
                 /*! Quantization Parameter (QP) for P-frames for constant QP mode (CQP). Zero QP is not valid and means that the default value is assigned by the library.
                     Non-zero QPP might be clipped to supported QPI range.
+                    @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
+                    Adjusted QPP value = QPP - (6 * (bitDepthLuma - 8)) for bitDepthLuma in the range [8,14].
+                    For HEVC_MAIN10, we minus (6*(10-8)=12) on our side and continue.
                     @note Default QPP value is implementation dependent and subject to change without additional notice in this document. */
                 mfxU16  QPP;
                 mfxU16  ICQQuality; /*!< Used by the Intelligent Constant Quality (ICQ) bitrate control algorithm. Values are in the 1 to 51 range, where 1 corresponds the best quality. */
@@ -741,6 +747,9 @@ typedef struct {
                 mfxU16  MaxKbps;
                 /*! Quantization Parameter (QP) for B-frames for constant QP mode (CQP). Zero QP is not valid and means that the default value is assigned by the library.
                     Non-zero QPI might be clipped to supported QPB range.
+                    @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
+                    Adjusted QPB value = QPB - (6 * (bitDepthLuma - 8)) for bitDepthLuma in the range [8,14].
+                    For HEVC_MAIN10, we minus (6*(10-8)=12) on our side and continue.
                     @note Default QPB value is implementation dependent and subject to change without additional notice in this document. */
                 mfxU16  QPB;
                 mfxU16  Convergence; /*!< Convergence period in the unit of 100 frames. */
