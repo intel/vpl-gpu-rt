@@ -52,12 +52,19 @@ mfxExtBuffer* GetExtendedBufferInternal(mfxExtBuffer** extBuf, mfxU32 numExtBuf,
     return result;
 }
 
-mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
+mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 codecId)
 {
     MFX_CHECK_NULL_PTR1(info);
 
     MFX_CHECK(info->Width && info->Width % 16 == 0, MFX_ERR_INVALID_VIDEO_PARAM);
-    MFX_CHECK(info->Height && info->Height % 16 == 0, MFX_ERR_INVALID_VIDEO_PARAM);
+    if (codecId == MFX_CODEC_JPEG)
+    {
+        MFX_CHECK(info->Height && info->Height % 8 == 0, MFX_ERR_INVALID_VIDEO_PARAM);
+    }
+    else
+    {
+        MFX_CHECK(info->Height && info->Height % 16 == 0, MFX_ERR_INVALID_VIDEO_PARAM);
+    }
 
     switch (info->FourCC)
     {
