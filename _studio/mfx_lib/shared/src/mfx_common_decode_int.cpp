@@ -310,8 +310,9 @@ void ConvertUMCParamsToMFX(UMC::VideoStreamInfo const* si, mfxVideoParam* par)
             par->mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_UNKNOWN;
     }
 
-    // si->framerate
-    par->mfx.FrameInfo.FrameRateExtN = par->mfx.FrameInfo.FrameRateExtD = 1;
+    // set default framerate 30 if si->framerate == 0
+    par->mfx.FrameInfo.FrameRateExtN = si->framerate < 1e-15 ? 30 : (mfxU32)(si->framerate);
+    par->mfx.FrameInfo.FrameRateExtD = 1;
 
     par->mfx.FrameInfo.AspectRatioW =  mfxU16(si->aspect_ratio_width);
     par->mfx.FrameInfo.AspectRatioH =  mfxU16(si->aspect_ratio_height);
