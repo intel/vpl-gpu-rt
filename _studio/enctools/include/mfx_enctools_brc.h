@@ -60,6 +60,7 @@ struct BRC_FrameStruct
     mfxU32 encOrder         = 0;
     mfxU32 dispOrder        = 0;
     mfxI32 qp               = 0;
+    mfxI32 origSeqQp        = 0;
     mfxI32 frameSize        = 0;
     mfxI32 numRecode        = 0;
     mfxU16 sceneChange      = 0;
