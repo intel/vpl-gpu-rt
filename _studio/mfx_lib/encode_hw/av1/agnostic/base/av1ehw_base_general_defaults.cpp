@@ -318,7 +318,7 @@ public:
             return pCO2->BRefType;
 
         // In the future it might be turned on by default
-        const mfxU16 BPyrCand[2] = { mfxU16(MFX_B_REF_OFF), mfxU16(MFX_B_REF_OFF) };
+        const mfxU16 BPyrCand[2] = { mfxU16(MFX_B_REF_OFF), mfxU16(MFX_B_REF_PYRAMID) };
         bool bValid =
             par.base.GetGopRefDist(par) > 3
             && (par.mvp.mfx.NumRefFrame == 0
