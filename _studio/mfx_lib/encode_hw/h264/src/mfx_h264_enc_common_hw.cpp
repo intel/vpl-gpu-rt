@@ -3576,7 +3576,9 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         {
             par.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
             par.mfx.Accuracy = 0;
+            par.calcParam.initialDelayInKB = 0;
             par.mfx.Convergence = 0;
+            par.calcParam.maxKbps = 0;
 
             changed = true;
         }
