@@ -2313,6 +2313,26 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
             }
             break;
         case MFX_EXTBUF_CAM_3DLUT:
+            if (format == MFX_FOURCC_R16_BGGR ||
+                format == MFX_FOURCC_R16_RGGB ||
+                format == MFX_FOURCC_R16_GRBG ||
+                format == MFX_FOURCC_R16_GBRG ||
+                format == MFX_FOURCC_R16)
+            {
+                formatSupport = MFX_FORMAT_SUPPORT_INPUT;
+            }
+            
+            if (format == MFX_FOURCC_NV12 ||
+                format == MFX_FOURCC_RGB4)
+            {
+                formatSupport = MFX_FORMAT_SUPPORT_OUTPUT;
+            }
+            
+            if (format == MFX_FOURCC_ARGB16)
+            {
+                formatSupport = MFX_FORMAT_SUPPORT_INPUT | MFX_FORMAT_SUPPORT_OUTPUT;
+            }
+            break;
         case MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION:
             if (format == MFX_FOURCC_R16_BGGR ||
                 format == MFX_FOURCC_R16_RGGB ||
@@ -2320,7 +2340,13 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
                 format == MFX_FOURCC_R16_GBRG ||
                 format == MFX_FOURCC_R16)
             {
-                formatSupport = MFX_FORMAT_SUPPORT_INPUT | MFX_FORMAT_SUPPORT_OUTPUT;
+                formatSupport = MFX_FORMAT_SUPPORT_INPUT;
+            }
+
+            if (format == MFX_FOURCC_ARGB16 ||
+                format == MFX_FOURCC_RGB4)
+            {
+                formatSupport = MFX_FORMAT_SUPPORT_OUTPUT;
             }
             break;
         default:

@@ -940,6 +940,12 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
 
     switch (dst.Info.FourCC)
     {
+    case MFX_FOURCC_R16:
+        roi.width *= 2;
+
+        MFX_SAFE_CALL(FastCopy::Copy(dst.Data.R, dstPitch, src.Data.R, srcPitch, roi, copyFlag));
+        return MFX_ERR_NONE;
+
     case MFX_FOURCC_P010:
     case MFX_FOURCC_P016:
 
