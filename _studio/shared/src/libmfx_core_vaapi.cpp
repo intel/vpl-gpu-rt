@@ -1299,6 +1299,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
+        // At First try to copy with CM
         if (canUseCMCopy)
         {
             // If CM copy failed, fallback to VA copy
@@ -1306,6 +1307,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
             // Remove CM adapter in case of failed copy
             this->SetCmCopyStatus(false);
         }
+        // Fallback to VA copy in case of failed CM copy
 
         VASurfaceID *va_surf_src = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
         VASurfaceID *va_surf_dst = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
@@ -1330,6 +1332,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
 
     if (NULL != pSrc->Data.MemId && NULL != dstPtr)
     {
+        // At First try to copy with CM
         if (canUseCMCopy)
         {
             // If CM copy failed, fallback to VA copy
@@ -1337,6 +1340,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
             // Remove CM adapter in case of failed copy
             this->SetCmCopyStatus(false);
         }
+        // Fallback to SW copy in case of failed CM copy
 
         VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
         MFX_CHECK_HDL(va_surface);
@@ -1380,6 +1384,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
 
     if (NULL != srcPtr && NULL != pDst->Data.MemId)
     {
+        // At First try to copy with CM
         if (canUseCMCopy)
         {
             // If CM copy failed, fallback to VA copy
@@ -1387,6 +1392,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
             // Remove CM adapter in case of failed copy
             this->SetCmCopyStatus(false);
         }
+        // Fallback to SW copy in case of failed CM copy
 
         VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pDst->Data.MemId)->first);
         MFX_CHECK_HDL(va_surface);
