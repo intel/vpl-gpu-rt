@@ -100,7 +100,7 @@ Status MJPEGVideoDecoderBaseMFX::Close(void)
 void MJPEGVideoDecoderBaseMFX::AdjustFrameSize(mfxSize & size)
 {
     size.width  = mfx::align2_value(size.width, 16);
-    size.height = mfx::align2_value(size.height, m_interleaved ? 16 : 8);
+    size.height = mfx::align2_value(size.height, m_interleaved ? 32 : 16);
 }
 
 std::pair<ChromaType, Status> MJPEGVideoDecoderBaseMFX::GetChromaType()
