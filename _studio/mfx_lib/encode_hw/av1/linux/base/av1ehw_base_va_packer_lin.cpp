@@ -86,7 +86,12 @@ void InitSPS(
     sps.seq_fields.bits.enable_restoration         = bs_sh.enable_restoration;
 
     const mfxExtCodingOption2& CO2 = ExtBuffer::Get(par);
+#if VA_CHECK_VERSION(1, 16, 0)
+    sps.hierarchical_flag = CO2.BRefType == MFX_B_REF_PYRAMID;
+#else
     sps.reserved8b = CO2.BRefType == MFX_B_REF_PYRAMID;
+#endif
+
 }
 
 void InitPPS(
@@ -451,7 +456,12 @@ void UpdatePPS(
     pps.qmatrix_flags.bits.qm_u = bs_fh.quantization_params.qm_u;
     pps.qmatrix_flags.bits.qm_v = bs_fh.quantization_params.qm_v;
 
+#if VA_CHECK_VERSION(1, 16, 0)
+    pps.hierarchical_level_plus1 = static_cast<mfxU8>(task.PyramidLevel + 1);
+#else
     pps.reserved8bits0 = static_cast<mfxU8>(task.PyramidLevel + 1);
+#endif
+
     pps.skip_frames_reduced_size = static_cast<mfxI32>(task.PrevRepeatedFrameBytes);
 }
 
