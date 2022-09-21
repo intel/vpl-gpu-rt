@@ -1339,7 +1339,7 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
     }
     else if(content_light)
     {
-        display_colour->InsertPayloadToggle = MFX_PAYLOAD_OFF;
+        content_light->InsertPayloadToggle = MFX_PAYLOAD_OFF;
     }
 
 }
