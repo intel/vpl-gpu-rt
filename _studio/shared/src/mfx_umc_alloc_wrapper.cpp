@@ -373,7 +373,7 @@ void mfx_UMC_FrameAllocator::SetExternalFramesResponse(mfxFrameAllocResponse *re
 {
     m_externalFramesResponse = 0;
 
-    if (!response || !response->NumFrameActual)
+    if (!response)
         return;
 
     m_externalFramesResponse = response;
@@ -775,8 +775,30 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
             }
         }
 
+        for (size_t i = 0; i < m_frameDataInternal.GetSize(); i++)
+        {
+            auto internal_surf = m_frameDataInternal.GetSurface(i);
+            if (internal_surf.Data.MemId == surf->Data.MemId)
+            {
+                isFound = true;
+                break;
+            }
+        }
+
         if (!isFound)
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+        {
+            mfxFrameSurface1 * surface = new mfxFrameSurface1();
+            surface->Data.MemId = surf->Data.MemId;
+            surface->Data.MemType = surf->Data.MemType;
+            surface->Info = surf->Info;
+            // UMC::VideoDataInfo data_info;
+
+            m_frameDataInternal.AddNewFrame(this, surface, &m_info);
+            m_extSurfaces.push_back(surf_descr(surface, false));
+            printf("------ SetCurrentMFXSurface, not found, surf: %p, surf->Data.MemId: %p, m_frameDataInternal.size: %d\n", 
+                                                surf, surf->Data.MemId, m_frameDataInternal.GetSize());
+        }
+            // return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
     m_curIndex = -1;

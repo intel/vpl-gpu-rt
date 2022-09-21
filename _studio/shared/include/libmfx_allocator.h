@@ -265,14 +265,19 @@ public:
                 // Some possible forcing of external allocator
                 || ext_alloc_hint))
             {
-
-               MFX_SAFE_CALL(allocator_ext->Alloc(request, response));
-
                if (response.NumFrameActual < request.NumFrameMin)
                {
-                   std::ignore = MFX_STS_TRACE(allocator_ext->Free(response));
-                   MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
+                    // lazy realloca
+                    return MFX_ERR_NONE;
                }
+ 
+               MFX_SAFE_CALL(allocator_ext->Alloc(request, response));
+
+            //    if (response.NumFrameActual < request.NumFrameMin)
+            //    {
+            //        std::ignore = MFX_STS_TRACE(allocator_ext->Free(response));
+            //        MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
+            //    }
 
                CacheMids(response, *allocator_ext);
                return MFX_ERR_NONE;
