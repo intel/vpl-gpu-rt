@@ -2861,29 +2861,34 @@ typedef struct {
 MFX_PACK_END()
 
 
-/*! The InsertHDRPayload enumerator itemizes HDR payloads insertion rules. */
+/*!
+    The InsertHDRPayload enumerator itemizes HDR payloads insertion rules in the encoder,
+    and indicates if there is valid HDR SEI message in the clip in the decoder.
+*/
 enum {
-    MFX_PAYLOAD_OFF = 0, /*!< Do not insert payload. */
-    MFX_PAYLOAD_IDR = 1  /*!< Insert payload on IDR frames. */
+    MFX_PAYLOAD_OFF = 0, /*!< Do not insert payload when encoding;
+                              Clip does not have valid HDE SEI when decoding. */
+    MFX_PAYLOAD_IDR = 1  /*!< Insert payload on IDR frames when encoding;
+                              Clip has valid HDE SEI when decoding. */
 };
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
    Handle the HDR SEI message.
 
-   If the application attaches this structure to the mfxEncodeCtrl structure
-   at runtime, the encoder inserts the HDR SEI message for the current frame and ignores InsertPayloadToggle.
-
-   If the application attaches this
+   During encoding: If the application attaches this structure to the mfxEncodeCtrl structure at runtime,
+   the encoder inserts the HDR SEI message for the current frame and ignores InsertPayloadToggle. If the application attaches this
    structure to the mfxVideoParam structure during initialization or reset, the encoder inserts the HDR SEI message based on InsertPayloadToggle.
 
-   If the application attaches this structure for video processing, InsertPayloadToggle will be ignored. And DisplayPrimariesX[3],
-   DisplayPrimariesY[3] specify the color primaries where 0,1,2 specifies Red, Green, Blue respectively.
+   During video processing: If the application attaches this structure for video processing, InsertPayloadToggle will be ignored.
+   And DisplayPrimariesX[3], DisplayPrimariesY[3] specify the color primaries where 0,1,2 specifies Red, Green, Blue respectively.
 
-   If the application attaches this structure to the mfxFrameSurface1 structure at runtime
+   During decoding: If the application attaches this structure to the mfxFrameSurface1 structure at runtime
    which will seed to the MFXVideoDECODE_DecodeFrameAsync() as surface_work parameter,
    the decoder will parse the HDR SEI message if the bitstream include HDR SEI message per frame.
-   The parsed HDR SEI will be attached to the ExtendBuffer of surface_out parameter of MFXVideoDECODE_DecodeFrameAsync().
+   The parsed HDR SEI will be attached to the ExtendBuffer of surface_out parameter of MFXVideoDECODE_DecodeFrameAsync()
+   with flag `InsertPayloadToggle` to indicate if there is valid HDR SEI message in the clip.
+   `InsertPayloadToggle` will be set to `MFX_PAYLOAD_IDR` if OneVPL get valid HDR SEI, otherwise it will be set to `MFX_PAYLOAD_OFF`.
    This function is support for HEVC only now.
 
    Field semantics are defined in ITU-T* H.265 Annex D.
@@ -2912,19 +2917,19 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
    Handle the HDR SEI message.
 
-   If the application attaches this structure to the mfxEncodeCtrl
-   structure at runtime, the encoder inserts the HDR SEI message for the current frame and ignores InsertPayloadToggle.
+   During encoding: If the application attaches this structure to the mfxEncodeCtrl structure at runtime,
+   the encoder inserts the HDR SEI message for the current frame and ignores InsertPayloadToggle. If the application
+   attaches this structure to the mfxVideoParam structure during initialization or reset, the encoder inserts
+   the HDR SEI message based on InsertPayloadToggle.
 
-   If the application
-   attaches this structure to the mfxVideoParam structure during initialization or reset, the encoder inserts the HDR SEI message based on
-   InsertPayloadToggle.
+   During video processing: If the application attaches this structure for video processing, InsertPayloadToggle will be ignored.
 
-   If the application attaches this structure for video processing, InsertPayloadToggle will be ignored.
-
-   If the application attaches this structure to the mfxFrameSurface1 structure at runtime
+   During decoding: If the application attaches this structure to the mfxFrameSurface1 structure at runtime
    which will seed to the MFXVideoDECODE_DecodeFrameAsync() as surface_work parameter,
    the decoder will parse the HDR SEI message if the bitstream include HDR SEI message per frame.
-   The parsed HDR SEI will be attached to the ExtendBuffer of surface_out parameter of MFXVideoDECODE_DecodeFrameAsync().
+   The parsed HDR SEI will be attached to the ExtendBuffer of surface_out parameter of MFXVideoDECODE_DecodeFrameAsync()
+   with flag `InsertPayloadToggle` to indicate if there is valid HDR SEI message in the clip.
+   `InsertPayloadToggle` will be set to `MFX_PAYLOAD_IDR` if OneVPL get valid HDR SEI, otherwise it will be set to `MFX_PAYLOAD_OFF`.
    This function is support for HEVC only now.
 
    Field semantics are defined in ITU-T* H.265 Annex D.
