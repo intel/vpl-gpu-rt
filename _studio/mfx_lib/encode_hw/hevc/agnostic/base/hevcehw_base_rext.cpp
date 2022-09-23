@@ -95,8 +95,17 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
             auto&  fi      = par.mfx.FrameInfo; 
             mfxU32 invalid = 0;
 
-            invalid += CheckOrZero<mfxU16, 12, 0>(fi.BitDepthLuma);
-            invalid += CheckOrZero<mfxU16, 12, 0>(fi.BitDepthChroma);
+            if (IsOn(par.mfx.LowPower))
+            {
+                invalid += Check<mfxU16, 10 >(fi.BitDepthLuma);
+                invalid += Check<mfxU16, 10 >(fi.BitDepthChroma);
+            }
+            else
+            {
+                invalid += CheckOrZero<mfxU16, 12, 0>(fi.BitDepthLuma);
+                invalid += CheckOrZero<mfxU16, 12, 0>(fi.BitDepthChroma);
+            }
+
             invalid += (fi.FourCC == MFX_FOURCC_P016) && CheckOrZero<mfxU16, MFX_CHROMAFORMAT_YUV420>(fi.ChromaFormat);
             invalid += (fi.FourCC == MFX_FOURCC_Y216) && CheckOrZero<mfxU16, MFX_CHROMAFORMAT_YUV422>(fi.ChromaFormat);
             invalid += (fi.FourCC == MFX_FOURCC_Y416) && CheckOrZero<mfxU16, MFX_CHROMAFORMAT_YUV444>(fi.ChromaFormat);
