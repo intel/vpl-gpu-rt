@@ -81,7 +81,7 @@ namespace Base
 
     const uint16_t DEFAULT_TARGET_USAGE  = MFX_TARGETUSAGE_BALANCED;
     const uint16_t DEFAULT_GOP_PIC_SIZE  = 248;
-    const uint16_t DEFAULT_GOP_REF_DIST  = 4;
+    const uint16_t DEFAULT_GOP_REF_DIST  = 8;
     const mfxU8    IDX_INVALID           = 0xff;
 
     const int16_t  DEFAULT_BPYR_QP_OFFSETS[8] = {32, 40, 48, 48, 48, 48, 48, 48};
