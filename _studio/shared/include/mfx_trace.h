@@ -141,7 +141,8 @@ enum mfxTraceTaskType
     VA_TRACE_API_HEVC_QMATRIXARAMETER_TASK,
     VA_TRACE_API_VP9_PICTUREPARAMETER_TASK,
     VA_TRACE_API_VP9_SLICEPARAMETER_TASK,
-    VA_TRACE_API_HEVC_DPBPARAMETER_TASK
+    VA_TRACE_API_HEVC_DPBPARAMETER_TASK,
+    MFX_TRACE_PIPELINE_STICKER_TASK,
 };
 
 // list of output modes
@@ -222,7 +223,8 @@ typedef enum _MEDIA_EVENT_FILTER_KEYID
     TR_KEY_DECODE_SEGMENT,
     TR_KEY_DECODE_BITSTREAM_INFO,
     TR_KEY_DECODE_DPB_INFO,
-    TR_KEY_DECODE_BASIC_INFO
+    TR_KEY_DECODE_BASIC_INFO,
+    TR_KEY_PIPELINE_STICKER,
 } MEDIA_EVENT_FILTER_KEYID;
 
 // delete the following levels completely
@@ -372,7 +374,7 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
 /*------------------------------------------------------------------------------*/
 
 // Perf traces
-mfxTraceU32 MFXTraceEvent(uint16_t task, uint8_t opcode, uint8_t level, uint64_t size, void *ptr);
+mfxTraceU32 MFXTraceEvent(uint16_t task, uint8_t opcode, uint8_t level, uint64_t size, const void *ptr);
 
 #ifdef __cplusplus
 }

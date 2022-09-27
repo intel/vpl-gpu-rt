@@ -61,7 +61,7 @@ mfxTraceU32 MFXTrace_EventInit()
 }
 
 // It dumps traces to binary format (internal representation) for future offline processing
-mfxTraceU32 MFXTraceEvent(uint16_t task, uint8_t opcode, uint8_t level, uint64_t size, void *ptr)
+mfxTraceU32 MFXTraceEvent(uint16_t task, uint8_t opcode, uint8_t level, uint64_t size, const void *ptr)
 {
     if (!EnableEventTrace || (perf_ctx.ftrace_fd == -1)) {
         return 0;

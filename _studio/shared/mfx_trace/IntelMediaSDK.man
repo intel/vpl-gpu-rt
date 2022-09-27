@@ -189,6 +189,8 @@
           <event symbol="Decode_Buffer_DPB_H265Info_VA" value="288" version="0" task="Decode_Buffer_DPB_H265_VA" opcode="win:Info" template="Decode_Buffer_DPB_H265_Info_VA" />
           <event symbol="Decode_Buffer_DPB_H265Entry_VA" value="289" version="0" task="Decode_Buffer_DPB_H265_VA" opcode="win:Start" />
           <event symbol="Decode_Buffer_DPB_H265Exit_VA" value="290" version="0" task="Decode_Buffer_DPB_H265_VA" opcode="win:Stop" />
+					<event symbol="MFX_Pipeline_Sticker_Start" value="293" version="0" task="MFX_Pipeline_Sticker" opcode="win:Start" template="t_MFX_Pipeline_Sticker_Start"></event>
+					<event symbol="MFX_Pipeline_Sticker_Stop" value="294" version="0" task="MFX_Pipeline_Sticker" opcode="win:Stop" template="t_MFX_Pipeline_Sticker_Stop"></event>
 				</events>
 				<tasks>
 					<task name="MFX_DecodeQuery" symbol="MFX_TRACE_API_DECODE_QUERY_TASK_ETW" value="1" eventGUID="{00000000-0000-0000-0000-000000000000}">
@@ -295,6 +297,7 @@
           <task name="Decode_Buffer_PictureParam_VP9_VA" symbol="VA_TRACE_API_VP9_PICTUREPARAMETER_TASK" value="70" eventGUID="{00000000-0000-0000-0000-000000000000}" />
 		      <task name="Decode_Buffer_SliceParam_VP9_VA" symbol="VA_TRACE_API_VP9_SLICEPARAMETER_TASK" value="71" eventGUID="{00000000-0000-0000-0000-000000000000}" />
           <task name="Decode_Buffer_DPB_H265_VA" symbol="VA_TRACE_API_HEVC_DPBPARAMETER_TASK" value="72" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+					<task name="MFX_Pipeline_Sticker" symbol="MFX_Pipeline_Sticker" value="73" eventGUID="{00000000-0000-0000-0000-000000000000}"></task>
 				</tasks>
 				<opcodes>
 				</opcodes>
@@ -2003,6 +2006,13 @@
               <data name="wasDisplayed" inType="win:UInt32" outType="xs:unsignedInt" />
             </struct>
           </template>
+					<template tid="t_MFX_Pipeline_Sticker_Start">
+						<data name="[Pipeline Enter]" inType="win:AnsiString" outType="xs:string"></data>
+					</template>
+					<template tid="t_MFX_Pipeline_Sticker_Stop">
+						<data name="[Pipeline Exit]" inType="win:AnsiString" outType="xs:string"></data>
+						<data name="[Pipeline Return]" inType="win:UInt32" outType="win:unsignedInt" map="mfxStatus"></data>
+					</template>
 			</templates>
 			</provider>
 		</events>
