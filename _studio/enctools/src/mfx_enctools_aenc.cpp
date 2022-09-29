@@ -173,7 +173,7 @@ mfxStatus AEnc_EncTool::ReportEncResult(mfxU32 displayOrder, mfxEncToolsBRCEncod
      mfxStatus sts = FindOutFrame(displayOrder);
      MFX_CHECK_STS(sts);
 
-    AEncUpdateFrame(m_aenc, displayOrder, pEncRes.CodedFrameSize*8, pEncRes.QpY);
+    AEncUpdateFrame(m_aenc, displayOrder, pEncRes.CodedFrameSize*8, pEncRes.QpY, (*m_frameIt).ClassCmplx);
 
      return MFX_ERR_NONE;
 }
@@ -187,7 +187,6 @@ mfxStatus AEnc_EncTool::GetSCDecision(mfxU32 displayOrder, mfxEncToolsHintPreEnc
     pPreEncSC->SceneChangeFlag = static_cast<mfxU16>((*m_frameIt).SceneChanged);
     pPreEncSC->RepeatedFrameFlag = static_cast<mfxU16>((*m_frameIt).RepeatedFrame);
     pPreEncSC->TemporalComplexity = static_cast<mfxU16>((*m_frameIt).TemporalComplexity);
-    pPreEncSC->SpatialComplexity = static_cast<mfxU16>((*m_frameIt).SpatialComplexity);
 
     return sts;
 }

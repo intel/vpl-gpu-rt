@@ -126,7 +126,6 @@ mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool field
 
     bFieldMode= fieldMode;
     codecId   = ctrl.CodecId;
-    lowPower  = IsOn(ctrl.LowPower);
     targetbps = ctrl.TargetKbps * 1000;
     maxbps    = ctrl.MaxKbps * 1000;
 
@@ -1042,9 +1041,10 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
     mfxU16 isIntra = frameStruct.frameType & (MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_I);
     bool bIdr = (picType ==  MFX_FRAMETYPE_IDR);
     mfxF64 qstep = QP2Qstep(qpY, m_par.quantOffset);
-    mfxU32 ParFrameCmplx = 0; 
-    mfxU16 ParSceneChange = (ParFrameCmplx || frameStruct.LaAvgEncodedSize) ? frameStruct.sceneChange : 0;
 
+    mfxU16 ParSceneChange = (frameStruct.frameCmplx || frameStruct.LaAvgEncodedSize) ? frameStruct.sceneChange : 0;
+    mfxU32 ParFrameCmplx = frameStruct.frameCmplx;
+    if (isIntra && !ParFrameCmplx) ParFrameCmplx = frameStruct.LaAvgEncodedSize;
     mfxU16 ParQpModulation = frameStruct.qpModulation;
     mfxU16 miniGoPSize = frameStruct.miniGopSize == 0 ? m_par.gopRefDist : frameStruct.miniGopSize;
     if (ParQpModulation == MFX_QP_MODULATION_NOT_DEFINED
@@ -1145,8 +1145,8 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
         pFrameSts->FrameStatus.MinFrameSize = (m_hrdSpec->GetMinFrameSizeInBits(frameStruct.encOrder,bIdr) + 7) >> 3;
         //printf("%d: poc %d, size %d QP %d (%d %d), HRD sts %d, maxFrameSize %d, type %d \n",frame_par->EncodedOrder, frame_par->DisplayOrder, bitsEncoded, m_ctx.Quant, m_ctx.QuantMin, m_ctx.QuantMax, brcSts,  m_hrd.GetMaxFrameSize(), frame_par->FrameType);
     }
-    bool bCalcSetI = (isIntra && (ParFrameCmplx > 0 || frameStruct.LaAvgEncodedSize) && frameStruct.encOrder == m_ctx.LastIEncOrder         // We could set Qp
-                    && ((ParSceneChange > 0 || frameStruct.encOrder == 0) && m_ctx.LastIQpSet == m_ctx.LastIQpMin));                        // We did set Qp and/or was SceneChange
+    bool bCalcSetI = (isIntra && ParFrameCmplx > 0 && frameStruct.encOrder == m_ctx.LastIEncOrder                           // We could set Qp
+                    && ((ParSceneChange > 0 || frameStruct.encOrder == 0) && m_ctx.LastIQpSet == m_ctx.LastIQpMin));        // We did set Qp and/or was SceneChange
     if ((e2pe > BRC_SCENE_CHANGE_RATIO2  && bitsEncoded > 4 * m_par.inputBitsPerFrame) ||
         bCalcSetI
         )
@@ -1267,9 +1267,9 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
         mfxF64 lFR = std::min(m_par.gopPicSize - 1, 4);
         mfxF64 lowFrameSizeI = std::min(maxFrameSize, lFR *(mfxF64)m_par.inputBitsPerFrame);
         // Did we set the qp?
-        if (isIntra && (ParFrameCmplx > 0 || frameStruct.LaAvgEncodedSize)                              // We could set Qp
+        if (isIntra && ParFrameCmplx > 0                                                     // We could set Qp
             && frameStruct.encOrder == m_ctx.LastIEncOrder && m_ctx.LastIQpSet == m_ctx.LastIQpMin      // We did set Qp
-            && frameStruct.numRecode == 0 && bitsEncoded <  (lowFrameSizeI / 2.0) && quant > quantMin)  // We can & should recode
+            && frameStruct.numRecode == 0 && bitsEncoded <  (lowFrameSizeI / 2.0) && quant > quantMin)    // We can & should recode
         {
             // too small; do something
             mfxI32 quant_new = GetNewQP(bitsEncoded, (mfxU32)lowFrameSizeI, quantMin, quantMax, quant, m_par.quantOffset, 0.78, false, true);
@@ -1422,7 +1422,7 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
 
         m_ctx.totalDeviation += ((mfxF64)bitsEncoded - m_par.inputBitsPerFrame);
 
-        //printf("------------------ %d (%d)) Total deviation %f, old scene %d, bNeedUpdateQP %d, m_ctx.Quant %d, type %d, m_ctx.fAbLong %f m_par.inputBitsPerFrame %f\n", frameStruct.encOrder, frameStruct.dispOrder,m_ctx.totalDeviation, oldScene , bNeedUpdateQP, m_ctx.Quant,picType, m_ctx.fAbLong, m_par.inputBitsPerFrame);
+        //printf("------------------ %d (%d)) Total deviation %f, old scene %d, bNeedUpdateQP %d, m_ctx.Quant %d, type %d, m_ctx.fAbLong %f m_par.inputBitsPerFrame %f\n", frame_par->EncodedOrder, frame_par->DisplayOrder,m_ctx.totalDeviation, oldScene , bNeedUpdateQP, m_ctx.Quant,picType, m_ctx.fAbLong, m_par.inputBitsPerFrame);
         if (m_par.HRDConformance != MFX_BRC_NO_HRD)
         {
             m_hrdSpec->Update(bitsEncoded, frameStruct.encOrder, bIdr);
@@ -1609,35 +1609,11 @@ mfxI32 BRC_EncToolBase::GetLaQpEst(mfxU32 LaAvgEncodedSize, mfxF64 inputBitsPerF
         {
             if (m_par.codecId == MFX_CODEC_AVC) 
             {
-                if(m_par.mLaQp != 26 || !frameStruct.frameCmplx || !m_par.lowPower) {
-                    laQp = (mfxI32)(0.679f*laQ + 0.465f); // NN V L
-                } else {
-                   mfxF32 R = (mfxF32) ((1.5 * m_par.width * m_par.height) / (inputBitsPerFrame * m_par.frameRate / 1000.0));
-                   mfxF32 SC = (mfxF32) frameStruct.frameCmplx;
-                   mfxF32 C  = std::max(SC  / (128*64), 0.03f);
-                   mfxF32 B = (mfxF32)laScaledSize / (mfxF32) (1.5 * m_par.width * m_par.height);
-                   mfxF32 F  = (mfxF32) (std::max(std::min(m_par.frameRate, 61.0), 23.0));
-                   const mfxF32 Alpha=0.094160103f, Beta=0.70605035f, Gamma=0.551621897f, Delta=0.042768353f, Epsilon=0.457860107f;
-                   mfxF32 Q = Alpha * powf(R, Beta) * powf(F, Epsilon) * powf(B, Gamma) * powf(C, Delta);
-                   mfxF32 Qp = 6.f * (logf(Q)/logf(2.f)) + 2.f;
-                   laQp = (mfxI32) (Qp);
-                }
+                laQp = (mfxI32)(0.679f*laQ + 0.465f); // NN V L
             }
             else 
             {
-                if(m_par.mLaQp != 26 || !frameStruct.frameCmplx || !m_par.lowPower) {
-                    laQp = (mfxI32)(0.6634f*laQ - 0.035f); // NN V L
-                } else {
-                   mfxF32 R = (mfxF32) ((1.5 * m_par.width * m_par.height) / (inputBitsPerFrame * m_par.frameRate / 1000.0));
-                   mfxF32 SC = (mfxF32) frameStruct.frameCmplx;
-                   mfxF32 C  = std::max(SC  / (128*64), 0.03f);
-                   mfxF32 B = (mfxF32)laScaledSize / (mfxF32) (1.5 * m_par.width * m_par.height);
-                   mfxF32 F  = (mfxF32) (std::max(std::min(m_par.frameRate, 61.0), 23.0));
-                   const mfxF32 Alpha=0.095227005f, Beta=0.661596921f, Gamma=0.486806893f, Delta=0.078518546f, Epsilon=0.446383738f;
-                   mfxF32 Q = Alpha * powf(R, Beta) * powf(F, Epsilon) * powf(B, Gamma) * powf(C, Delta);
-                   mfxF32 Qp = 6.f * (logf(Q)/logf(2.f)) + 3.f;
-                   laQp = (mfxI32) (Qp);
-                }
+                laQp = (mfxI32)(0.6634f*laQ - 0.035f); // NN V L
             }
         }
         else 
@@ -1667,7 +1643,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
     mfxU16 ParSceneChange = frameStruct.sceneChange;
     mfxU16 ParLongTerm = frameStruct.longTerm;
 
-    mfxU32 ParFrameCmplx = 0; // Used only for LA models for now
+    mfxU32 ParFrameCmplx = frameStruct.frameCmplx;
     mfxU16 ParQpModulation = frameStruct.qpModulation;
     mfxI32 ParQpDeltaP = 0;
     mfxU16 miniGoPSize = frameStruct.miniGopSize == 0 ? m_par.gopRefDist : frameStruct.miniGopSize;
@@ -2060,10 +2036,9 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
     }
     frameStruct.qp = qp - m_par.quantOffset;
 
-    //printf("EncOrder %d recode %d type %d ctrl->QpY %d, qp %d PyrLayer %d QpMod %d quantOffset %d 
-    //        Cmplx %ld LaCurEncodedSize %d LaAvgEncodedSize %d Deviation %f\n",
-    //        frameStruct.encOrder, frameStruct.numRecode, type, frameStruct.qp, qp, frameStruct.pyrLayer, ParQpModulation, m_par.quantOffset,
-    //        ParFrameCmplx, frameStruct.LaCurEncodedSize, frameStruct.LaAvgEncodedSize, m_ctx.totalDeviation);
+    //printf("EncOrder %d type %d ctrl->QpY %d, qp %d PyrLayer %d QpMod %d quantOffset %d Cmplx %ld LaCurEncodedSize %d LaAvgEncodedSize %d\n",
+    //        frameStruct.encOrder, type, frameStruct.qp, qp, frameStruct.pyrLayer, ParQpModulation, m_par.quantOffset, 
+    //        ParFrameCmplx, frameStruct.LaCurEncodedSize, frameStruct.LaAvgEncodedSize);
 
     if (isIntra) {
         m_ctx.LastIQpSetOrder = frameStruct.encOrder;
@@ -2119,7 +2094,6 @@ mfxStatus BRC_EncToolBase::SetFrameStruct(mfxU32 dispOrder, mfxEncToolsBRCFrameP
         frStruct.encOrder = pFrameStruct.EncodeOrder;
         frStruct.longTerm = pFrameStruct.LongTerm;
         frStruct.sceneChange = pFrameStruct.SceneChange;
-        frStruct.frameCmplx = pFrameStruct.SpatialComplexity;
         frStruct.PersistenceMapNZ = pFrameStruct.PersistenceMapNZ;
         memcpy(frStruct.PersistenceMap, pFrameStruct.PersistenceMap, sizeof(frStruct.PersistenceMap));
         m_FrameStruct.push_back(frStruct);
@@ -2133,7 +2107,6 @@ mfxStatus BRC_EncToolBase::SetFrameStruct(mfxU32 dispOrder, mfxEncToolsBRCFrameP
         (*frameStruct).numRecode++;  // ??? check
         (*frameStruct).longTerm = pFrameStruct.LongTerm;
         (*frameStruct).sceneChange = pFrameStruct.SceneChange;
-        (*frameStruct).frameCmplx = pFrameStruct.SpatialComplexity;
         (*frameStruct).PersistenceMapNZ = pFrameStruct.PersistenceMapNZ;
         memcpy((*frameStruct).PersistenceMap, pFrameStruct.PersistenceMap, sizeof((*frameStruct).PersistenceMap));
 
