@@ -182,7 +182,7 @@ mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool field
     if (gopRefDist <= 3) {
         fAbPeriodShort = 6;
     } else {
-        fAbPeriodShort = 16;
+        fAbPeriodShort = std::max(16, gopRefDist*2);
     }
     // P update, future deviation control, only for LA NO HRD
     mfxU32 CodecId = ctrl.CodecId;
@@ -194,7 +194,7 @@ mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool field
     fAbPeriodLong = 120 * reaction_mult;
     dqAbPeriod = 120 * reaction_mult;
     bAbPeriod = 120 * reaction_mult;
-    fAbPeriodLA = 16;
+    fAbPeriodLA = std::max(16, gopRefDist*2);
     mRawFrameSizeInBits = GetRawFrameSize(width * height, chromaFormat, IsOn(ctrl.LowPower) ? 8 : bitDepthLuma);
     mRawFrameSizeInPixs = mRawFrameSizeInBits / (IsOn(ctrl.LowPower) ? 8 : bitDepthLuma);
 
@@ -430,10 +430,13 @@ static
 mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
 {
     mfxI32 qp = 0;
-    level = std::max(mfxI32(1), std::min(mfxI32(3), level));
+    level = std::max(mfxI32(1), std::min(mfxI32(4), level));
+
     if (codecId == MFX_CODEC_HEVC || codecId == MFX_CODEC_AV1) {
         if (qpMod == MFX_QP_MODULATION_HIGH || qpMod == BRC_QP_MODULATION_GOP8_FIXED) {
             switch (level) {
+            case 4:
+                qp += 1;
             case 3:
                 qp += (codecId == MFX_CODEC_HEVC) ? 1 : 2;
             case 2:
@@ -446,6 +449,8 @@ mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
         }
         else if (qpMod == MFX_QP_MODULATION_MIXED) {
             switch (level) {
+            case 4:
+                qp += 1;
             case 3:
                 qp += 2;
             case 2:
@@ -458,6 +463,8 @@ mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
         }
         else if (qpMod == MFX_QP_MODULATION_MEDIUM) {
             switch (level) {
+            case 4:
+                qp += 1;
             case 3:
                 qp += 1;
             case 2:
@@ -470,6 +477,8 @@ mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
         }
         else if (qpMod == MFX_QP_MODULATION_LOW) {
             switch (level) {
+            case 4:
+                qp += 1;
             case 3:
                 qp += 1;
             case 2:
@@ -488,6 +497,8 @@ mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
     else if (codecId == MFX_CODEC_AVC) {
         if (qpMod == MFX_QP_MODULATION_HIGH) {
             switch (level) {
+            case 4:
+                qp += 1;
             case 3:
                 qp += 2;
             case 2:
@@ -500,6 +511,8 @@ mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
         }
         else if (qpMod == MFX_QP_MODULATION_MEDIUM) {
             switch (level) {
+            case 4:
+                qp += 1;
             case 3:
                 qp += 2;
             case 2:
@@ -512,6 +525,8 @@ mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
         }
         else if (qpMod == MFX_QP_MODULATION_LOW) {
             switch (level) {
+            case 4:
+                qp += 1;
             case 3:
                 qp += 1;
             case 2:
@@ -1048,7 +1063,7 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
     mfxU16 ParQpModulation = frameStruct.qpModulation;
     mfxU16 miniGoPSize = frameStruct.miniGopSize == 0 ? m_par.gopRefDist : frameStruct.miniGopSize;
     if (ParQpModulation == MFX_QP_MODULATION_NOT_DEFINED
-        && miniGoPSize == 8 && m_par.bPyr
+        && miniGoPSize >= 8 && m_par.bPyr
         && (m_par.codecId == MFX_CODEC_HEVC || m_par.codecId == MFX_CODEC_AV1)) {
         ParQpModulation = BRC_QP_MODULATION_GOP8_FIXED;
     }
@@ -1672,7 +1687,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
     mfxI32 ParQpDeltaP = 0;
     mfxU16 miniGoPSize = frameStruct.miniGopSize == 0 ? m_par.gopRefDist : frameStruct.miniGopSize;
     if (ParQpModulation == MFX_QP_MODULATION_NOT_DEFINED
-        && miniGoPSize == 8 && m_par.bPyr
+        && miniGoPSize >= 8 && m_par.bPyr
         && (m_par.codecId == MFX_CODEC_HEVC || m_par.codecId == MFX_CODEC_AV1)) {        
         ParQpModulation = BRC_QP_MODULATION_GOP8_FIXED;
     }
@@ -1937,7 +1952,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
             }
 
             mfxF64 targetFrameSize = FRM_RATIO(ltype, frameStruct.encOrder, 0, m_par.bPyr) * m_par.inputBitsPerFrame;
-            if (m_par.bPyr && m_par.gopRefDist == 8)
+            if (m_par.bPyr && m_par.gopRefDist >= 8)
                 targetFrameSize *= ((ParQpModulation == MFX_QP_MODULATION_HIGH
                                     || ParQpModulation == BRC_QP_MODULATION_GOP8_FIXED) ? 2.0 :
                                     (( ParQpModulation != MFX_QP_MODULATION_LOW) ? 1.66 : 1.0));

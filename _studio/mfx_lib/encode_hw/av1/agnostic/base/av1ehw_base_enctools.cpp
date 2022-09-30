@@ -260,7 +260,7 @@ inline bool IsSwEncToolsImplicit(const mfxVideoParam &video)
     {
         const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
         if(
-            (video.mfx.GopRefDist == 2 || video.mfx.GopRefDist == 8) 
+            (video.mfx.GopRefDist == 2 || video.mfx.GopRefDist == 4 || video.mfx.GopRefDist == 8 || video.mfx.GopRefDist == 16)
             && IsOn(pExtOpt2->ExtBRC)
             && !(pExtOpt3 && pExtOpt3->ScenarioInfo != MFX_SCENARIO_UNKNOWN)
         )
@@ -313,7 +313,8 @@ inline bool IsSwEncToolsSupported(const mfxVideoParam &video)
         || video.mfx.GopRefDist == 1
         || video.mfx.GopRefDist == 2
         || video.mfx.GopRefDist == 4
-        || video.mfx.GopRefDist == 8;
+        || video.mfx.GopRefDist == 8
+        || video.mfx.GopRefDist == 16;
 }
 
 inline mfxEncTools *GetEncTools(const mfxVideoParam &video)

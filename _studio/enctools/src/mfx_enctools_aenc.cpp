@@ -62,7 +62,7 @@ mfxStatus AEnc_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig 
     m_aencPar.ColorFormat = MFX_FOURCC_NV12;
     m_aencPar.MaxMiniGopSize = ctrl.MaxGopRefDist;
     m_aencPar.MaxGopSize = m_aencPar.GopPicSize = (ctrl.MaxGopSize!= 0) ? ctrl.MaxGopSize : 65000;
-    m_aencPar.MinGopSize = std::max(m_aencPar.MaxMiniGopSize*2, m_aencPar.MaxGopSize/16); // to prevent close I frames
+    m_aencPar.MinGopSize = std::max(m_aencPar.MaxMiniGopSize*2, 16u); // to prevent close I frames
     m_aencPar.StrictIFrame = IsOff(pConfig.AdaptiveI);
     m_aencPar.MaxIDRDist = ctrl.MaxIDRDist;
     m_aencPar.AGOP = !IsOff(pConfig.AdaptiveB) && (doDownScaling || m_aencPar.MaxMiniGopSize == 2); // ML AGOP tuned only for downscale path.
@@ -266,13 +266,13 @@ mfxStatus AEnc_EncTool::GetGOPDecision(mfxU32 displayOrder, mfxEncToolsHintPreEn
     pPreEncGOP->QPDelta = (mfxI16)(*m_frameIt).DeltaQP;
     if (m_aencPar.APQ) {
         if (m_aencPar.CodecId == MFX_CODEC_HEVC || m_aencPar.CodecId == MFX_CODEC_AV1) {
-            if (miniGOP == 8)
+            if (miniGOP >= 8)
                 pPreEncGOP->QPModulation = MFX_QP_MODULATION_LOW + (mfxI16)(*m_frameIt).ClassAPQ;
             else
                 pPreEncGOP->QPModulation = (miniGOP == 4) ? 2 : 1;
         }
         else if (m_aencPar.CodecId == MFX_CODEC_AVC) {
-            if (miniGOP == 8) {
+            if (miniGOP >= 8) {
                 switch ((mfxI16)(*m_frameIt).ClassAPQ)
                 {
                 case 1:

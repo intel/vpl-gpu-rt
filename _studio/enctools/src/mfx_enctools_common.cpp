@@ -253,7 +253,8 @@ mfxStatus EncTools::GetSupportedConfig(mfxExtEncToolsConfig* config, mfxEncTools
             ctrl->RateControlMethod == MFX_RATECONTROL_VBR) ?
             MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
 
-        if (ctrl->MaxGopRefDist == 8 ||
+        if (ctrl->MaxGopRefDist == 16 ||
+            ctrl->MaxGopRefDist == 8 ||
             ctrl->MaxGopRefDist == 4 ||
             ctrl->MaxGopRefDist == 2 ||
             ctrl->MaxGopRefDist == 1)
