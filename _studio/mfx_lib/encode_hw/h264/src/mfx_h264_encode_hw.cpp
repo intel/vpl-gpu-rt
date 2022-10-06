@@ -3056,6 +3056,9 @@ mfxStatus ImplementationAvc::CheckBRCStatus(DdiTask &task, bool &bToRecode, mfxU
     mfxExtCodingOption2    const & extOpt2 = GetExtBufferRef(m_video);
     task.m_brcFrameParams.CodedFrameSize = bsDataLength;
     mfxU32 res;
+    // Pre-Emptive Skip padding
+    if(task.m_panicMode && task.m_isSkipped)
+        task.m_brcFrameParams.CodedFrameSize = std::max(bsDataLength, task.m_minFrameSize);
 
 #if defined(MFX_ENABLE_ENCTOOLS)
     mfxBRCFrameStatus frame_sts = {};
@@ -3105,6 +3108,10 @@ mfxStatus ImplementationAvc::CheckBRCStatus(DdiTask &task, bool &bToRecode, mfxU
             task.m_repack = 100;
             task.m_isSkipped = true;
             bToRecode = true;
+            // Pre-Empt Min Bs for Skip Frame
+            {
+                task.m_minFrameSize =(mfxU32)( (m_brc.GetMinFrameSize() + 7) >> 3 );
+            }
         }
         else if (((res & UMC::BRC_NOT_ENOUGH_BUFFER) || (task.m_repack > 2)) && (res & UMC::BRC_ERR_SMALL_FRAME))
         {
