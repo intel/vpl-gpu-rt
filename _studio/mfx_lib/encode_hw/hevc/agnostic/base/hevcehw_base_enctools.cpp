@@ -493,9 +493,9 @@ static mfxStatus InitEncToolsCtrl(
         else
             ctrl->HRDConformance = MFX_BRC_HRD_STRONG;
 
+        ctrl->BufferSizeInKB   = par.mfx.BufferSizeInKB*mult;          //Bitstream size
         if (ctrl->HRDConformance)
         {
-            ctrl->BufferSizeInKB   = par.mfx.BufferSizeInKB*mult;      //if HRDConformance is ON
             ctrl->InitialDelayInKB = par.mfx.InitialDelayInKB*mult;    //if HRDConformance is ON
         }
         else

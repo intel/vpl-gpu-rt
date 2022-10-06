@@ -87,9 +87,9 @@ mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
         else if (IsOn(CO->NalHrdConformance) && IsOff(CO->VuiNalHrdParameters))
             ctrl->HRDConformance = MFX_BRC_HRD_WEAK;
 
+        ctrl->BufferSizeInKB = par.mfx.BufferSizeInKB*mult;            //Bitstream size
         if (ctrl->HRDConformance)
         {
-            ctrl->BufferSizeInKB = par.mfx.BufferSizeInKB*mult;      //if HRDConformance is ON
             ctrl->InitialDelayInKB = par.mfx.InitialDelayInKB*mult;    //if HRDConformance is ON
         }
         else
