@@ -187,6 +187,7 @@ mfxStatus cBRCParams::Init(mfxVideoParam* par, bool bField)
             HRDConformance = MFX_BRC_HRD_WEAK;
     }
 
+    bufferSizeInBytes  = (k*par->mfx.BufferSizeInKB*1000); // Bitstream size is Buffer size if specified
     if (HRDConformance != MFX_BRC_NO_HRD)
     {
         bufferSizeInBytes  = ((k*par->mfx.BufferSizeInKB*1000) >> (cpb_size_scale + 1)) << (cpb_size_scale + 1);
@@ -982,6 +983,12 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
         e2pe = (m_ctx.eRate == 0) ? (BRC_SCENE_CHANGE_RATIO2 + 1) : eRate / m_ctx.eRate;
     }
     mfxU32 frameSizeLim    = 0xfffffff ; // sliding window limitation or external frame size limitation
+    // HEVC / AV1 do not have external re-encode loop to prevent bitstream copy size violation.
+    // For NO_HRD this will ensure encoded picture fits in bitstream memory.
+    // Bitstsream size is bufferSize if specified.
+    mfxU32 bitstreamSizeLim = frameSizeLim;
+    if(m_par.codecId != MFX_CODEC_AVC && m_par.HRDConformance == MFX_BRC_NO_HRD && m_par.bufferSizeInBytes)
+        bitstreamSizeLim = m_par.bufferSizeInBytes * 8;
 
     bool  bSHStart = false;
     bool  bNeedUpdateQP = false;
@@ -1228,7 +1235,8 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
             }
         }//m_par.HRDConformance
     }
-    if (((m_par.HRDConformance != MFX_BRC_NO_HRD && brcSts != MFX_BRC_OK) || (bitsEncoded > (mfxI32)frameSizeLim)) && m_par.bRec)
+    if ((((m_par.HRDConformance != MFX_BRC_NO_HRD && brcSts != MFX_BRC_OK) || (bitsEncoded > (mfxI32)frameSizeLim)) && m_par.bRec)
+        || (bitsEncoded > (mfxI32)bitstreamSizeLim))
     {
         mfxI32 quant = qpY;
         mfxI32 quant_new = quant;
@@ -1236,6 +1244,11 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
         {
             brcSts = MFX_BRC_BIG_FRAME;
             quant_new = GetNewQP(bitsEncoded, frameSizeLim, m_ctx.QuantMin , m_ctx.QuantMax,quant,m_par.quantOffset, 1, true);
+        }
+        else if (bitsEncoded > (mfxI32)bitstreamSizeLim)
+        {
+            brcSts = MFX_BRC_BIG_FRAME;
+            quant_new = GetNewQP(bitsEncoded, bitstreamSizeLim, m_ctx.QuantMin , m_ctx.QuantMax,quant,m_par.quantOffset, 1, true);
         }
         else if (brcSts == MFX_BRC_BIG_FRAME || brcSts == MFX_BRC_SMALL_FRAME)
         {
