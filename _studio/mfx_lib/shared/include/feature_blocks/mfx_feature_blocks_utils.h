@@ -29,6 +29,7 @@
 #include <exception>
 #include <functional>
 #include <algorithm>
+#include <cstring>
 #include <assert.h>
 
 namespace MfxFeatureBlocks
