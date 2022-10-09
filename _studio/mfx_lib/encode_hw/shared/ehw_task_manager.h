@@ -22,15 +22,39 @@
 #include <mutex>
 #include <condition_variable>
 #include <vector>
+#include <deque>
+#include <map>
 #include <algorithm>
 #include "feature_blocks/mfx_feature_blocks_utils.h"
 
 namespace MfxEncodeHW
 {
+    class CachedBitstream
+    {
+    public:
+        mfxU32  DisplayOrder = 0;
+        mfxU32  BsDataLength = 0;
+        std::shared_ptr<mfxU8*> Data;
+        bool isHiden = true;
+        CachedBitstream(mfxU32 length, mfxU8* pData=nullptr)
+        {
+            Data = std::make_shared<mfxU8*>(new mfxU8[length]);
+            BsDataLength = length;
+            if (pData != nullptr)
+            {
+                std::copy(pData, pData + length, *Data.get());
+            }
+        }
+    };
+
     using namespace MfxFeatureBlocks;
 
     class TaskManager
     {
+    private:
+        std::map<mfxU32, std::deque<CachedBitstream>> m_cachedBitstream  = {};
+        std::map<mfxU32, bool>                        m_outputReady      = {};
+
     public:
         using TTaskList  = std::list<StorageRW>;
         using TTaskIt    = TTaskList::iterator;
@@ -55,6 +79,13 @@ namespace MfxEncodeHW
         virtual mfxU32        GetBsDataLength      (const StorageR& /*task*/) const = 0;
         virtual void          SetBsDataLength      (StorageW& /*task*/, mfxU32) const = 0;
         virtual void          AddNumRecode         (StorageW& /*task*/, mfxU16) const = 0;
+
+        virtual TTaskIt GetDestToPushQuery(TTaskIt begin, TTaskIt /*end*/, StorageW& /*task*/) { return begin; }
+
+        virtual bool IsFirstQuery(StorageW& /*task*/) const { return true; }
+
+        virtual void SetFirstQuery(StorageW& /*task*/, bool) const { }
+        virtual void ClearBRCUpdateFlag(StorageW& /*task*/) const { }
 
         virtual mfxStatus RunQueueTaskAlloc(StorageRW& /*task*/) = 0;
         virtual mfxStatus RunQueueTaskInit(
@@ -151,5 +182,45 @@ namespace MfxEncodeHW
             return MoveTask(from, from + 1, which, where);
         }
         StorageRW* GetTask(mfxU16 stage, TFnGetTask which = FirstTask);
+
+        bool IsCacheReady(mfxU32 order)
+        {
+            return m_outputReady[order];
+        }
+
+        void PushBitstream(mfxU32 order, CachedBitstream&& bs)
+        {
+            assert(!m_outputReady[order]);
+
+            m_cachedBitstream[order].push_back(bs);
+            if (!bs.isHiden)
+                m_outputReady[order] = true;
+        }
+
+        std::deque<CachedBitstream>& GetBitstreams(mfxU32 order)
+        {
+           return m_cachedBitstream[order];
+        }
+
+        void ClearBitstreams(mfxU32 order)
+        {
+            m_cachedBitstream.erase(order);
+            m_outputReady.erase(order);
+        }
+
+        mfxU32 PeekCachedSize(mfxU32 order) const
+        {
+            auto it = m_cachedBitstream.find(order);
+            if (it == m_cachedBitstream.end())
+                return 0;
+
+            mfxU32 size = 0;
+            for (const auto& bs : it->second)
+            {
+                size += bs.BsDataLength;
+            }
+
+            return size;
+        }
     };
 }

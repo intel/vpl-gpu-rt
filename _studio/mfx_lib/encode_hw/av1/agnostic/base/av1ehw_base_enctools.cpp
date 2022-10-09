@@ -1487,8 +1487,9 @@ void AV1EncTools::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         MFX_CHECK(IsOn(m_EncToolConfig.BRC) && m_pEncTools && m_pEncTools->Query, MFX_ERR_NONE);
 
         auto& task = Task::Common::Get(s_task);
-        mfxEncToolsBRCStatus brcSts = {};
+        MFX_CHECK(!task.bBRCUpdated && task.BsDataLength, MFX_ERR_NONE);
 
+        mfxEncToolsBRCStatus brcSts = {};
         auto sts = BRCUpdate(global, s_task, brcSts);
         MFX_CHECK_STS(sts);
         task.bSkip = false;
@@ -1516,6 +1517,7 @@ void AV1EncTools::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         }
 
         task.bForceSync |= task.bSkip;
+        task.bBRCUpdated = !task.bRecode;
 
         return MFX_ERR_NONE;
     });

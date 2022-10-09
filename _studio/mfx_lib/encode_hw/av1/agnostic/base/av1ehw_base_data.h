@@ -27,6 +27,7 @@
 #include "av1ehw_ddi.h"
 #include "ehw_device.h"
 #include <vector>
+#include <set>
 
 namespace AV1EHW
 {
@@ -713,7 +714,6 @@ namespace Base
         mfxU32   EncodedOrder   = mfxU32(-1);
         bool     isLTR          = false; // is "long-term"
         bool     isRejected     = false; // rejected ref frame should be refreshed asap
-        bool     wasShown       = false;
         mfxU8    CodingType     = 0;
         Resource Raw;
         Resource Rec;
@@ -746,8 +746,7 @@ namespace Base
         , INSERT_TD             = (1 << 2)
         , INSERT_SPS            = (1 << 3)
         , INSERT_PPS            = (1 << 4)
-        , INSERT_REPEATED       = (1 << 5)
-        , INSERT_FRM_OBU        = (1 << 6)
+        , INSERT_FRM_OBU        = (1 << 5)
     };
 
     using DpbType = std::vector<std::shared_ptr<DpbFrame>>;
@@ -764,6 +763,7 @@ namespace Base
         mfxU8  FrameToShowMapIdx = 0;
         mfxU32 DisplayOrder      = 0;
     };
+
     struct mfxGopHints {
         mfxU32              MiniGopSize = 0;
         mfxU16              FrameType   = 0;
@@ -778,59 +778,59 @@ namespace Base
 #endif
     };
 
-    using RepeatedFrames = std::vector<RepeatedFrameInfo>;
-
-    using TileSizeType = decltype(mfxExtAV1AuxData::TileWidthInSB[0]);
+    using RepeatedFrames    = std::vector<RepeatedFrameInfo>;
+    using TileSizeType      = decltype(mfxExtAV1AuxData::TileWidthInSB[0]);
     using TileSizeArrayType = decltype(mfxExtAV1AuxData::TileWidthInSB);
 
     struct mfxBRCHints {
         /* Look ahead parameters */
         mfxU32              LaAvgEncodedBits = 0;         /* Average size of encoded Lookahead frames in bits */
         mfxU32              LaCurEncodedBits = 0;         /* Size of encoded Lookahead frame at current frame location in bits */
-        mfxU16              LaDistToNextI = 0;            /* First I Frame in Lookahead frames (0 if not found) */
+        mfxU16              LaDistToNextI    = 0;         /* First I Frame in Lookahead frames (0 if not found) */
     };
 
     struct TaskCommonPar
         : DpbFrame
     {
-        mfxU32            stage                = 0;
-        mfxU32            MinFrameSize         = 0;
-        mfxU32            BsDataLength         = 0;
-        mfxU32            BsBytesAvailable     = 0;
-        mfxU8*            pBsData              = nullptr;
-        mfxU32*           pBsDataLength        = nullptr;
-        mfxBitstream*     pBsOut               = nullptr;
-        mfxFrameSurface1* pSurfReal            = nullptr;
-        mfxEncodeCtrl     ctrl                 = {};
-        mfxU32            SkipCMD              = SKIPCMD_NeedDriverCall;
+        mfxU32            stage                  = 0;
+        mfxU32            MinFrameSize           = 0;
+        mfxU32            BsDataLength           = 0;
+        mfxU32            BsBytesAvailable       = 0;
+        mfxU8*            pBsData                = nullptr;
+        mfxU32*           pBsDataLength          = nullptr;
+        mfxBitstream*     pBsOut                 = nullptr;
+        mfxFrameSurface1* pSurfReal              = nullptr;
+        mfxEncodeCtrl     ctrl                   = {};
+        mfxU32            SkipCMD                = SKIPCMD_NeedDriverCall;
         Resource          BS;
         Resource          CUQP;
-        mfxHDLPair        HDLRaw               = {};
-        bool              bCUQPMap             = false;
+        mfxHDLPair        HDLRaw                 = {};
+        bool              bCUQPMap               = false;
 #if defined(MFX_ENABLE_ENCTOOLS)
         mfxLplastatus     LplaStatus           = {};
         mfxBRCHints      BrcHints             = {};
+        bool             bBRCUpdated          = false;
 #endif
-        mfxGopHints       GopHints             = {};
-        bool              bForceSync           = false;
-        bool              bSkip                = false;
-        bool              bResetBRC            = false;
-        bool              bRecode              = false;
-        mfxI32            PrevRAP              = -1;
-        mfxU16            NumRecode            = 0;
-        mfxU8             QpY                  = 0;
-        mfxU32            InsertHeaders        = 0;
-        mfxU32            StatusReportId       = mfxU32(-1);
-        DpbRefreshType    RefreshFrameFlags    = {};
-        BitOffsets        Offsets              = {};
-        mfxU8             MinBaseQIndex        = 0;
-        mfxU8             MaxBaseQIndex        = 0;
+        mfxGopHints       GopHints               = {};
+        bool              bForceSync             = false;
+        bool              bSkip                  = false;
+        bool              bResetBRC              = false;
+        bool              bRecode                = false;
+        bool              bFirstQuery            = true;
+        mfxI32            PrevRAP                = -1;
+        mfxU16            NumRecode              = 0;
+        mfxU8             QpY                    = 0;
+        mfxU32            InsertHeaders          = 0;
+        mfxU32            StatusReportId         = mfxU32(-1);
+        DpbRefreshType    RefreshFrameFlags      = {};
+        BitOffsets        Offsets                = {};
+        mfxU8             MinBaseQIndex          = 0;
+        mfxU8             MaxBaseQIndex          = 0;
 
-        RefListType       RefList              = {};
+        RefListType       RefList                = {};
         DpbType           DPB;
-        RepeatedFrames    FramesToShow         = {};
-        mfxU16            RepeatedFrameBytes   = 0;
-        mfxU16            PrevRepeatedFrameBytes = 0;
+        RepeatedFrames    FramesToShow           = {};
+        mfxU16            RepeatedFrameBytes     = 0;
         mfxU32            TCBRCTargetFrameSize   = 0;
     };
 
@@ -838,6 +838,13 @@ namespace Base
     {
         par = TaskCommonPar();
     }
+
+    inline bool IsHiddenFrame(const TaskCommonPar& frame)
+    {
+        return frame.NextBufferedDisplayOrder != -1 &&
+            frame.DisplayOrderInGOP > frame.NextBufferedDisplayOrder;
+    }
+
     inline bool isValid(DpbFrame const & frame) { return IDX_INVALID != frame.Rec.Idx; }
 
     inline std::tuple<mfxU32, mfxU32> GetRealResolution(const mfxVideoParam& vp)
@@ -1294,6 +1301,8 @@ namespace Base
         , NUM_STAGES
     };
 
+    using TFramesToShowInfo    = std::set<mfxU32>;
+    using TRepeatFrameSizeInfo = std::map<mfxU32, mfxU32>;
     struct Glob
     {
         static const StorageR::TKey _KD = __LINE__ + 1;
@@ -1303,6 +1312,8 @@ namespace Base
         using VideoParam          = StorageVar<__LINE__ - _KD, ExtBuffer::Param<mfxVideoParam>>;
         using SH                  = StorageVar<__LINE__ - _KD, Base::SH>;
         using FH                  = StorageVar<__LINE__ - _KD, Base::FH>;
+        using FramesToShowInfo    = StorageVar<__LINE__ - _KD, TFramesToShowInfo>;
+        using RepeatFrameSizeInfo = StorageVar<__LINE__ - _KD, TRepeatFrameSizeInfo>;
         using TileGroups          = StorageVar<__LINE__ - _KD, TileGroupInfos>;
         using AllocRaw            = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocRec            = StorageVar<__LINE__ - _KD, IAllocation>;
@@ -1347,6 +1358,14 @@ namespace Base
         static const StorageR::TKey TaskEventKey = __LINE__ - _KD;
         static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;
     };
+
+    inline Defaults::Param GetRTDefaults(StorageR& strg)
+    {
+        return Defaults::Param(
+            Glob::VideoParam::Get(strg)
+            , Glob::EncodeCaps::Get(strg)
+            , Glob::Defaults::Get(strg));
+    }
 
 } //namespace Base
 } //namespace AV1EHW

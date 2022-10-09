@@ -24,6 +24,7 @@
 #include "av1ehw_base_general.h"
 #include "av1ehw_base_data.h"
 #include "av1ehw_base_constraints.h"
+#include "av1ehw_base_task.h"
 #include "fast_copy.h"
 #include "mfx_common_int.h"
 #include <algorithm>
@@ -862,6 +863,15 @@ void General::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         return MFX_ERR_NONE;
     });
 
+    Push(BLK_SetRepeat
+        , [this](StorageRW& strg, StorageRW&) -> mfxStatus
+    {
+        strg.Insert(Glob::FramesToShowInfo::Key, make_storable<TFramesToShowInfo>());
+        strg.Insert(Glob::RepeatFrameSizeInfo::Key, make_storable<TRepeatFrameSizeInfo>());
+
+        return MFX_ERR_NONE;
+    });
+
     Push(BLK_SetSH
         , [this](StorageRW& strg, StorageRW&) -> mfxStatus
     {
@@ -908,7 +918,7 @@ void General::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         if (GetRecInfo(par, CO3, Glob::VideoCore::Get(strg).GetHWType(), rec.Info))
         {
             auto& recInfo = Tmp::RecInfo::GetOrConstruct(local, rec);
-            SetDefault(recInfo.NumFrameMin, GetMaxRec(par));
+            SetDefault(recInfo.NumFrameMin, GetMaxRec(strg, par));
         }
 
         raw.Info = par.mfx.FrameInfo;
@@ -964,7 +974,7 @@ void General::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         MFX_CHECK(local.Contains(Tmp::RecInfo::Key), MFX_ERR_UNDEFINED_BEHAVIOR);
         auto& req = Tmp::RecInfo::Get(local);
 
-        SetDefault(req.NumFrameMin, GetMaxRec(par));
+        SetDefault(req.NumFrameMin, GetMaxRec(strg, par));
         SetDefault(req.Type
             , mfxU16(MFX_MEMTYPE_FROM_ENCODE
             | MFX_MEMTYPE_DXVA2_DECODER_TARGET
@@ -989,7 +999,7 @@ void General::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         MFX_CHECK(local.Contains(Tmp::BSAllocInfo::Key), MFX_ERR_UNDEFINED_BEHAVIOR);
         auto& req = Tmp::BSAllocInfo::Get(local);
 
-        SetDefault(req.NumFrameMin, GetMaxBS(par));
+        SetDefault(req.NumFrameMin, GetMaxBS(strg, par));
         SetDefault(req.Type
             , mfxU16(MFX_MEMTYPE_FROM_ENCODE
             | MFX_MEMTYPE_DXVA2_DECODER_TARGET
@@ -1276,6 +1286,9 @@ void General::InitTask(const FeatureBlocks& blocks, TPushIT Push)
 
         MFX_CHECK(pSurf, MFX_ERR_NONE);
 
+        tpar.DisplayOrder = m_frameOrder;
+        ++m_frameOrder;
+
         tpar.pSurfIn = pSurf;
 
         bool changed = 0;
@@ -1285,12 +1298,9 @@ void General::InitTask(const FeatureBlocks& blocks, TPushIT Push)
             if (mfxExtRefListCtrl* refListCtrl = ExtBuffer::Get(tpar.ctrl))
                 changed = CheckRefListCtrl(refListCtrl);
         }
-            tpar.pSurfReal = tpar.pSurfIn;
+        tpar.pSurfReal = tpar.pSurfIn;
 
         core.IncreaseReference(*tpar.pSurfIn);
-
-        tpar.DisplayOrder = m_frameOrder;
-        ++m_frameOrder;
 
         tpar.DPB.resize(par.mfx.NumRefFrame);
 
@@ -1312,8 +1322,7 @@ void General::PreReorderTask(const FeatureBlocks& blocks, TPushPreRT Push)
             dflts, task, task.pSurfIn, &task.ctrl, m_lastKeyFrame, task.DisplayOrder, task.GopHints);
         MFX_CHECK_STS(sts);
 
-
-        SetIf(m_lastKeyFrame, IsI(task.FrameType), task.DisplayOrder);        
+        SetIf(m_lastKeyFrame, IsI(task.FrameType), task.DisplayOrder);
 
         return MFX_ERR_NONE;
     });
@@ -1323,6 +1332,49 @@ inline bool IsLossless(FH& fh)
 {
     return (fh.quantization_params.base_q_idx == 0 && fh.quantization_params.DeltaQYDc == 0 && fh.quantization_params.DeltaQUAc == 0
         && fh.quantization_params.DeltaQUDc == 0 && fh.quantization_params.DeltaQVAc == 0 && fh.quantization_params.DeltaQVDc == 0);
+}
+
+inline void SetTaskFramesToShow(TaskCommonPar& task, TFramesToShowInfo& info)
+{
+    if (IsHiddenFrame(task))
+    {
+        info.insert(task.DisplayOrder);
+    }
+
+    const mfxU32 nextDisplayOrder = task.DisplayOrder + 1;
+    if (info.find(nextDisplayOrder) == info.end())
+        return;
+
+    for (mfxU8 refIdx = 0; refIdx < task.DPB.size(); refIdx++)
+    {
+        if (task.RefreshFrameFlags[refIdx] == 1)
+            continue;
+
+        auto& refFrm = task.DPB.at(refIdx);
+        if (refFrm->DisplayOrder != nextDisplayOrder)
+            continue;
+
+        RepeatedFrameInfo repfrm;
+        repfrm.FrameToShowMapIdx = refIdx;
+        repfrm.DisplayOrder      = refFrm->DisplayOrder;
+        task.FramesToShow.push_back(std::move(repfrm));
+
+        info.erase(nextDisplayOrder);
+        return;
+    }
+}
+
+inline void SetTaskRepeatedFramesSize(TaskCommonPar& task, TRepeatFrameSizeInfo& info)
+{
+    const mfxU32 prevEncodedOrder = task.EncodedOrder - 1;
+    if (info.find(prevEncodedOrder) == info.end())
+        return;
+
+    if (info[prevEncodedOrder] != 0)
+    {
+        task.RepeatedFrameBytes = mfxU8(info[prevEncodedOrder]);
+        info.erase(prevEncodedOrder);
+    }
 }
 
 void General::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
@@ -1347,12 +1399,17 @@ void General::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
         MFX_CHECK(task.Rec.Idx != IDX_INVALID, MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(task.Rec.Mid && task.BS.Mid, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-        auto& sh = Glob::SH::Get(global);
         auto& fh = Glob::FH::Get(global);
         auto  def = GetRTDefaults(global);
+        ConfigureTask(task, def, recPool);
 
-        ConfigureTask(task, def, sh, recPool);
+        auto& framesToShowInfo = Glob::FramesToShowInfo::Get(global);
+        SetTaskFramesToShow(task, framesToShowInfo);
 
+        auto& repeatFrameSizeInfo = Glob::RepeatFrameSizeInfo::Get(global);
+        SetTaskRepeatedFramesSize(task, repeatFrameSizeInfo);
+
+        auto& sh = Glob::SH::Get(global);
         auto sts = GetCurrentFrameHeader(task, def, sh, fh, Task::FH::Get(s_task));
         MFX_CHECK_STS(sts);
 
@@ -1419,7 +1476,6 @@ void General::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         , [this](StorageW& global, StorageW& s_task) -> mfxStatus
     {
         auto& task = Task::Common::Get(s_task);
-
         if (!task.pBsData)
         {
             auto& bs              = *task.pBsOut;
@@ -1428,62 +1484,101 @@ void General::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
             task.BsBytesAvailable = bs.MaxLength - bs.DataOffset - bs.DataLength;
         }
 
-        MFX_CHECK(task.BsDataLength, MFX_ERR_NONE);
-
-        mfxStatus sts = MFX_ERR_NONE;
-
-        MFX_CHECK(task.BsBytesAvailable >= task.BsDataLength, MFX_ERR_NOT_ENOUGH_BUFFER);
-
-        FrameLocker codedFrame(Glob::VideoCore::Get(global), task.BS.Mid);
-        MFX_CHECK(codedFrame.Y, MFX_ERR_LOCK_MEMORY);
-
-        sts = FastCopy::Copy(
-            task.pBsData
-            , task.BsDataLength
-            , codedFrame.Y
-            , codedFrame.Pitch
-            , { int(task.BsDataLength), 1 }
+        mfxStatus sts             = MFX_ERR_NONE;
+        auto&     taskMgrIface    = TaskManager::TMInterface::Get(global);
+        auto&     tm              = taskMgrIface.m_Manager;
+        bool      bNeedCacheFrame = task.BsDataLength > 0 && (IsHiddenFrame(task) || task.DisplayOrder != m_temporalUnitOrder);
+        if (bNeedCacheFrame)
+        {
+            FrameLocker codedFrame(Glob::VideoCore::Get(global), task.BS.Mid);
+            MFX_CHECK(codedFrame.Y, MFX_ERR_LOCK_MEMORY);
+            MfxEncodeHW::CachedBitstream cachedBs(task.BsDataLength);
+            sts = FastCopy::Copy(
+                *cachedBs.Data.get()
+                , task.BsDataLength
+                , codedFrame.Y
+                , codedFrame.Pitch
+                , { int(task.BsDataLength), 1 }
             , COPY_VIDEO_TO_SYS);
+
+            cachedBs.isHiden = IsHiddenFrame(task);
+            cachedBs.DisplayOrder = task.DisplayOrder;
+            tm.PushBitstream(m_temporalUnitOrder, std::move(cachedBs));
+            // Dont output hidden frame immediately
+            task.BsDataLength = 0;
+        }
+
+        bool bNeedOutputFrame = (task.DisplayOrder == m_temporalUnitOrder)
+            && ((!IsHiddenFrame(task) && task.BsDataLength > 0) || tm.IsCacheReady(m_temporalUnitOrder));
+        if (bNeedOutputFrame)
+        {
+            mfxU32 cacheSize = tm.PeekCachedSize(m_temporalUnitOrder);
+            MFX_CHECK(task.BsBytesAvailable >= task.BsDataLength + cacheSize, MFX_ERR_NOT_ENOUGH_BUFFER);
+
+            mfxU32 offset = 0;
+            if (cacheSize > 0)
+            {
+                auto& bss = tm.GetBitstreams(m_temporalUnitOrder);
+                for (auto& bs : bss)
+                {
+                    std::copy_n(*bs.Data.get(), bs.BsDataLength, task.pBsData + offset);
+                    offset += bs.BsDataLength;
+                }
+                tm.ClearBitstreams(m_temporalUnitOrder);
+            }
+
+            if (task.BsDataLength)
+            {
+                FrameLocker codedFrame(Glob::VideoCore::Get(global), task.BS.Mid);
+                MFX_CHECK(codedFrame.Y, MFX_ERR_LOCK_MEMORY);
+                sts = FastCopy::Copy(
+                    task.pBsData + offset
+                    , task.BsDataLength
+                    , codedFrame.Y
+                    , codedFrame.Pitch
+                    , { int(task.BsDataLength), 1 }
+                , COPY_VIDEO_TO_SYS);
+            }
+            task.BsDataLength += cacheSize;
+
+            task.pBsOut->TimeStamp = task.pSurfIn ? task.pSurfIn->Data.TimeStamp : 0;
+            task.BsBytesAvailable -= task.BsDataLength;
+            *task.pBsDataLength   += task.BsDataLength;
+        }
+
         MFX_CHECK_STS(sts);
 
-        task.BsBytesAvailable -= task.BsDataLength;
+        if (task.BsDataLength == 0)
+        {
+            task.pBsData = nullptr;
+            task.pBsDataLength = nullptr;
+            task.BsBytesAvailable = 0;
+
+            task.SkipCMD &= ~SKIPCMD_NeedDriverCall;
+            return MFX_TASK_WORKING;
+        }
+        else
+        {
+            ++m_temporalUnitOrder;
+        }
 
         return MFX_ERR_NONE;
     });
 
     Push(BLK_UpdateBsInfo
-        , [this](StorageW& global, StorageW& s_task) -> mfxStatus
+        , [this](StorageW& /*global*/, StorageW& s_task) -> mfxStatus
     {
-        auto& task         = Task::Common::Get(s_task);
+        auto& task = Task::Common::Get(s_task);
+        MFX_CHECK(task.BsDataLength > 0, MFX_ERR_NONE);
+
         auto& bs           = *task.pBsOut;
-        bs.TimeStamp       = task.pSurfIn->Data.TimeStamp;
-        bs.DecodeTimeStamp = MFX_TIMESTAMP_UNKNOWN;
+        bs.TimeStamp       = task.pSurfIn ? task.pSurfIn->Data.TimeStamp : 0;
+        bs.DecodeTimeStamp = bs.TimeStamp;
 
-        if (bs.TimeStamp != mfxU64(MFX_TIMESTAMP_UNKNOWN))
-        {
-            const auto&  par              = Glob::VideoParam::Get(global);
-            const auto   dflts            = GetRTDefaults(global);
-            const auto   numReorderFrames = dflts.base.GetNumReorderFrames(dflts);
-            const mfxI32 dpbOutputDelay   = task.DisplayOrder + numReorderFrames - task.EncodedOrder;
-            const mfxF64 tcDuration90KHz  = (mfxF64)par.mfx.FrameInfo.FrameRateExtD / par.mfx.FrameInfo.FrameRateExtN * 90000;
-            bs.DecodeTimeStamp = mfxI64(bs.TimeStamp - tcDuration90KHz * dpbOutputDelay);
-        }
-
-        bs.PicStruct = task.pSurfIn->Info.PicStruct;
+        bs.PicStruct = task.pSurfIn ? task.pSurfIn->Info.PicStruct : 0;
         bs.FrameType = task.FrameType;
         bs.FrameType &= ~(task.isLDB * MFX_FRAMETYPE_B);
         bs.FrameType |= task.isLDB * MFX_FRAMETYPE_P;
-
-        *task.pBsDataLength += task.BsDataLength;
-
-        return MFX_ERR_NONE;
-    });
-
-    Push(BLK_UpdateRepframeInfo
-        , [this](StorageW& /*global*/, StorageW& s_task) -> mfxStatus
-    {
-        auto& task         = Task::Common::Get(s_task);
-        m_prevTask.RepeatedFrameBytes = task.RepeatedFrameBytes;
 
         return MFX_ERR_NONE;
     });
@@ -1542,9 +1637,18 @@ void General::GetVideoParam(const FeatureBlocks& blocks, TPushGVP Push)
     });
 
     Push(BLK_FixParam
-        , [this, &blocks](mfxVideoParam& out, StorageR& /*global*/) -> mfxStatus
+        , [this, &blocks](mfxVideoParam& out, StorageR& global) -> mfxStatus
     {
         out.mfx.LowPower = MFX_CODINGOPTION_ON;
+
+        const bool isRAB = out.mfx.GopPicSize > 2 && out.mfx.GopRefDist > 1;
+        if (isRAB)
+        {
+            auto defPar = GetRTDefaults(global);
+            const mfxU32 numCacheFrames = (defPar.base.GetBRefType(defPar) != MFX_B_REF_PYRAMID) ? mfxU32(2)
+                : mfxU32(defPar.base.GetNumBPyramidLayers(defPar)) + 1;
+            BufferSizeInKB(out.mfx) = BufferSizeInKB(out.mfx) * numCacheFrames;
+        }
 
         return MFX_ERR_NONE;
     });
@@ -2013,43 +2117,14 @@ public:
     }
 };
 
-inline bool IsHidden(const FrameBaseInfo& frame)
-{
-    return frame.NextBufferedDisplayOrder != -1 &&
-        frame.DisplayOrderInGOP > frame.NextBufferedDisplayOrder;
-}
-
-inline void SetTaskRepeatedFrames(
-    TaskCommonPar& task,
-    const TaskCommonPar& prevTask)
-{
-    task.FramesToShow.clear();
-    task.PrevRepeatedFrameBytes = prevTask.RepeatedFrameBytes;
-    if (task.NextBufferedDisplayOrder == -1)
-        return;
-
-    DpbIndexes bwd;
-    FillSortedFwdBwd(task, nullptr, &bwd);
-
-    for (auto refIdx : bwd)
-    {
-        auto& refFrm = task.DPB.at(refIdx);
-        if (refFrm->DisplayOrderInGOP < task.NextBufferedDisplayOrder && !refFrm->wasShown)
-        {
-            RepeatedFrameInfo repfrm;
-            repfrm.FrameToShowMapIdx = refIdx;
-            repfrm.DisplayOrder = refFrm->DisplayOrder;
-
-            task.FramesToShow.push_back(repfrm);
-            refFrm->wasShown = true;
-        }
-    }
-}
-
 inline void SetTaskIVFHeaderInsert(
     TaskCommonPar& task
+    , const TaskCommonPar& prevTask
     , bool& insertIVFSeq)
 {
+    if (IsHiddenFrame(prevTask))
+        return;
+
     if (insertIVFSeq)
     {
         task.InsertHeaders |= INSERT_IVF_SEQ;
@@ -2064,7 +2139,7 @@ inline void SetTaskTDHeaderInsert(
     , const TaskCommonPar& prevTask
     , const mfxVideoParam& par)
 {
-    if (IsHidden(prevTask))
+    if (IsHiddenFrame(prevTask))
         return;
 
     const mfxExtAV1AuxData& auxPar = ExtBuffer::Get(par);
@@ -2090,7 +2165,7 @@ inline void SetTaskInsertHeaders(
 {
     const mfxExtAV1BitstreamParam& bsPar = ExtBuffer::Get(par);
     if (IsOn(bsPar.WriteIVFHeaders))
-        SetTaskIVFHeaderInsert(task, insertIVFSeq);
+        SetTaskIVFHeaderInsert(task, prevTask, insertIVFSeq);
 
     SetTaskTDHeaderInsert(task, prevTask, par);
 
@@ -2098,9 +2173,6 @@ inline void SetTaskInsertHeaders(
         task.InsertHeaders |= INSERT_SPS;
 
     task.InsertHeaders |= INSERT_PPS;
-
-    if (!task.FramesToShow.empty())
-        task.InsertHeaders |= INSERT_REPEATED;
 
     const mfxExtAV1AuxData& auxPar = ExtBuffer::Get(par);
     if (IsOn(auxPar.PackOBUFrame))
@@ -2120,7 +2192,6 @@ inline void SetTaskTCBRC(
 void General::ConfigureTask(
     TaskCommonPar& task
     , const Defaults::Param& dflts
-    , const SH& /*sh*/
     , IAllocation& recPool)
 {
     task.StatusReportId = std::max<mfxU32>(1, m_prevTask.StatusReportId + 1);
@@ -2134,9 +2205,6 @@ void General::ConfigureTask(
 
     SetTaskRefList(task, par);
     SetTaskDPBRefresh(task, par);
-
-    SetTaskRepeatedFrames(task, m_prevTask);
-
     SetTaskInsertHeaders(task, m_prevTask, par, m_insertIVFSeq);
 
     const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
@@ -2144,9 +2212,6 @@ void General::ConfigureTask(
     {
         SetTaskTCBRC(task, par);
     }
-
-    if (!IsHidden(task))
-        task.wasShown = true;
 
     m_prevTask = task;
 
@@ -3827,7 +3892,7 @@ mfxStatus General::GetCurrentFrameHeader(
     currFH = fh;
 
     currFH.frame_type     = MapMfxFrameTypeToSpec(task.FrameType);
-    currFH.show_frame     = IsHidden(task) ? 0 : 1;
+    currFH.show_frame     = IsHiddenFrame(task) ? 0 : 1;
     if (currFH.show_frame)
     {
         currFH.showable_frame = currFH.frame_type != KEY_FRAME;

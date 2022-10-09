@@ -40,6 +40,8 @@ mfxStatus TaskManager::ManagerInit()
     m_bufferSize         = GetBufferSize();
     m_maxParallelSubmits = GetMaxParallelSubmits();
     m_nTasksInExecution  = 0;
+    m_cachedBitstream    = {};
+    m_outputReady        = {};
 
     return sts;
 }
@@ -52,7 +54,7 @@ mfxStatus TaskManager::TaskNew(
     MFX_CHECK(pSurf || m_nPicBuffered, MFX_ERR_MORE_DATA);
 
     auto pBs = &bs;
-    auto pTask = MoveTaskForward(Stage(S_NEW));
+    auto pTask = GetTask(Stage(S_NEW));
     MFX_CHECK(pTask, MFX_WRN_DEVICE_BUSY);
 
     SetActiveTask(*pTask);
@@ -67,6 +69,8 @@ mfxStatus TaskManager::TaskNew(
     m_nPicBuffered -= !pSurf && m_nPicBuffered;
 
     auto sts = RunQueueTaskInit(pCtrl, pSurf, pBs, *pTask);
+    MoveTaskForward(Stage(S_NEW), FixedTask(*pTask));
+
     MFX_CHECK(sts >= MFX_ERR_NONE, sts);
     MFX_CHECK(pBs, MFX_ERR_MORE_DATA_SUBMIT_TASK);
 
@@ -131,6 +135,7 @@ mfxStatus TaskManager::TaskSubmit(StorageW& /*task*/)
         MFX_CHECK_STS(sts);
 
         MoveTaskForward(Stage(S_SUBMIT), FixedTask(*pTask));
+        SetFirstQuery(*pTask, true);
         ++m_nTasksInExecution;
         m_nRecodeTasks -= !!m_nRecodeTasks;
     }
@@ -149,9 +154,13 @@ mfxStatus TaskManager::TaskQuery(StorageW& inTask)
         return MFX_ERR_NONE;
     }
 
-    StorageRW* pTask        = nullptr;
-    StorageRW* pPrevRecode  = nullptr;
-    bool       bCallAgain   = false;
+    StorageRW* pTask            = nullptr;
+    StorageRW* pPrevRecode      = nullptr;
+    bool       bCallAgain       = false;
+    bool       bWaitForCache    = false;
+
+    TFnGetTask GetDestForWait = [&](TTaskIt b, TTaskIt e) { return GetDestToPushQuery(b, e, *pTask); };
+
     mfxStatus  NoTaskErr[2] = { MFX_ERR_UNDEFINED_BEHAVIOR, MFX_TASK_BUSY };
     auto       NeedRecode   = [&](mfxStatus sts)
     {
@@ -162,6 +171,13 @@ mfxStatus TaskManager::TaskQuery(StorageW& inTask)
             std::this_thread::sleep_for(1ms);
             return true;
         }
+
+        if (sts == MFX_TASK_WORKING)
+        {
+            bWaitForCache = true;
+            return false;
+        }
+
         ThrowIf(!!sts, sts);
 
         return (GetRecode(*pTask) && GetBsDataLength(*pTask));
@@ -191,21 +207,36 @@ mfxStatus TaskManager::TaskQuery(StorageW& inTask)
 
         AddNumRecode(task, bRecode && !pPrevRecode);
 
+        if (IsFirstQuery(task))
+            --m_nTasksInExecution;
+
         if (!!pPrevRecode)
         {
+            ClearBRCUpdateFlag(task);
             pPrevRecode = MoveTask(Stage(S_QUERY), Stage(S_SUBMIT), FixedTask(*pTask), NextToPrevRecode);
+        }
+
+        if (bWaitForCache)
+        {
+            SetFirstQuery(task, false);
+            MoveTask(Stage(S_QUERY), Stage(S_QUERY), FixedTask(*pTask), GetDestForWait);
         }
 
         if (bRecode && !pPrevRecode)
         {
+            ClearBRCUpdateFlag(task);
             pPrevRecode = MoveTask(Stage(S_QUERY), Stage(S_SUBMIT), FixedTask(*pTask), FirstTask);
         }
 
-        --m_nTasksInExecution;
         m_nRecodeTasks += bRecode;
     } while (pPrevRecode);
 
     ThrowIf(pPrevRecode, std::logic_error("For recode must exit by \"no task for query\" condition"));
+
+    if (bWaitForCache)
+    {
+        return MFX_TASK_WORKING;
+    }
 
     auto sts = RunQueueTaskFree(*pTask);
     MFX_CHECK_STS(sts);
@@ -245,6 +276,8 @@ void TaskManager::CancelTasks()
     m_nTasksInExecution = 0;
     m_nPicBuffered      = 0;
     m_nRecodeTasks      = 0;
+    m_cachedBitstream   = {};
+    m_outputReady       = {};
 }
 
 mfxStatus TaskManager::ManagerReset(mfxU32 numTask)

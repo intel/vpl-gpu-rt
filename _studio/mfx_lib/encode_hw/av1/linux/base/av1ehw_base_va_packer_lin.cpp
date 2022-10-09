@@ -462,7 +462,7 @@ void UpdatePPS(
     pps.reserved8bits0 = static_cast<mfxU8>(task.PyramidLevel + 1);
 #endif
 
-    pps.skip_frames_reduced_size = static_cast<mfxI32>(task.PrevRepeatedFrameBytes);
+    pps.skip_frames_reduced_size = static_cast<mfxI32>(task.RepeatedFrameBytes);
 }
 
 inline void AddVaMiscHRD(

@@ -83,6 +83,7 @@ namespace Base
     DECL_BLOCK(SetSH                )\
     DECL_BLOCK(SetFH                )\
     DECL_BLOCK(SetReorder           )\
+    DECL_BLOCK(SetRepeat            )\
     DECL_BLOCK(AllocRaw             )\
     DECL_BLOCK(AllocRec             )\
     DECL_BLOCK(AllocBS              )\
@@ -99,7 +100,6 @@ namespace Base
     DECL_BLOCK(CopySysToRaw         )\
     DECL_BLOCK(CopyBS               )\
     DECL_BLOCK(UpdateBsInfo         )\
-    DECL_BLOCK(UpdateRepframeInfo   )\
     DECL_BLOCK(SetRecInfo           )\
     DECL_BLOCK(FreeTask             )\
     DECL_BLOCK(Close                )
@@ -113,10 +113,10 @@ namespace Base
 
     protected:
         TaskCommonPar m_prevTask;
-        mfxU32
-            m_frameOrder = 0
-            , m_lastKeyFrame = 0;
-        bool m_insertIVFSeq  = true;
+        mfxU32 m_frameOrder             = 0
+               , m_lastKeyFrame         = 0
+               , m_temporalUnitOrder    = 0;
+        bool   m_insertIVFSeq           = true;
 
         std::function<std::tuple<mfxU16, mfxU16>(const mfxVideoParam&)> m_GetMaxRef;
         std::unique_ptr<Defaults::Param> m_pQWCDefaults;
@@ -125,8 +125,9 @@ namespace Base
 
         void ResetState()
         {
-            m_frameOrder = 0;
-            m_lastKeyFrame = 0;
+            m_frameOrder        = 0;
+            m_lastKeyFrame      = 0;
+            m_temporalUnitOrder = 0;
             Invalidate(m_prevTask);
         }
 
@@ -201,14 +202,15 @@ namespace Base
         void ConfigureTask(
             TaskCommonPar & task
             , const Defaults::Param& dflts
-            , const SH& sh
             , IAllocation& recPool);
+
         mfxStatus GetCurrentFrameHeader(
             const TaskCommonPar& task
             , const Defaults::Param& dflts
             , const SH& sps
             , const FH& pps
             , FH & s) const;
+
         TTaskIt ReorderWrap(const ExtBuffer::Param<mfxVideoParam> & par, TTaskIt begin, TTaskIt end, bool flush);
         static mfxU32 GetRawBytes(const Defaults::Param& par);
         static bool IsInVideoMem(const mfxVideoParam& par);
@@ -220,13 +222,15 @@ namespace Base
             mfxU16 extRaw = pCO2 ? pCO2->LookAheadDepth : 0;
             return par.AsyncDepth + (par.mfx.GopRefDist - 1) + (par.AsyncDepth > 1) + extRaw;
         }
-        mfxU16 GetMaxRec(mfxVideoParam const & par)
+        mfxU16 GetMaxRec(StorageR& strg, const mfxVideoParam& par)
         {
-            return par.AsyncDepth + par.mfx.NumRefFrame + (par.AsyncDepth > 1);
+            auto dflts = GetRTDefaults(strg);
+            return par.AsyncDepth + dflts.base.GetNumBPyramidLayers(dflts) + par.mfx.NumRefFrame + 2;
         }
-        mfxU16 GetMaxBS(mfxVideoParam const & par)
+        mfxU16 GetMaxBS(StorageR& strg, const mfxVideoParam& par)
         {
-            return par.AsyncDepth + (par.AsyncDepth > 1);
+            auto dflts = GetRTDefaults(strg);
+            return par.AsyncDepth + dflts.base.GetNumBPyramidLayers(dflts) + 2;
         }
         bool GetRecInfo(
             const mfxVideoParam& par
@@ -237,14 +241,6 @@ namespace Base
             const mfxVideoParam & par
             , const mfxExtAV1ResolutionParam& rsPar
             , const mfxExtCodingOption3& CO3);
-
-        Defaults::Param GetRTDefaults(StorageR& strg)
-        {
-            return Defaults::Param(
-                Glob::VideoParam::Get(strg)
-                , Glob::EncodeCaps::Get(strg)
-                , Glob::Defaults::Get(strg));
-        }
     };
 
     inline void SetDefaultFrameInfo(mfxU32& frameWidth, mfxU32& frameHeight, mfxFrameInfo& fi)

@@ -469,8 +469,8 @@ public:
         bool bUseMaxKbps =
             mfx.RateControlMethod == MFX_RATECONTROL_CBR
             || mfx.RateControlMethod == MFX_RATECONTROL_VBR;
-        mfxU32 minSize            = bUseMaxKbps * InitialDelayInKB(mfx);
-        mfxU32 defaultSize        = 0;
+        mfxU32 minSize         = bUseMaxKbps * InitialDelayInKB(mfx);
+        mfxU32 defaultSize     = 0;
         auto   GetFromMaxKbps  = [&]() { return defPar.base.GetMaxKbps(defPar) / 4; };
         auto   GetFromRawBytes = [&]()
         {

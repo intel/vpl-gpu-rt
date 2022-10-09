@@ -246,15 +246,6 @@ mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
     }
 #endif
 
-    {
-        auto& queue = BQ<BQ_QueryTask>::Get(*this);
-
-        Reorder(queue
-            , { FEATURE_PACKER,  Packer::BLK_AddRepeatedFrames }
-            , { FEATURE_GENERAL, General::BLK_UpdateRepframeInfo }
-        , PLACE_AFTER);
-    }
-
     return wrn;
 }
 
@@ -271,7 +262,7 @@ mfxStatus MFXVideoENCODEAV1_HW::EncodeFrameCheck(
     MFX_CHECK_STS(m_runtimeErr);
 
     mfxStatus sts = MFX_ERR_NONE;
-    StorageRW local;
+    StorageRW local = {};
 
     auto BreakAtSts = [](mfxStatus x)
     {

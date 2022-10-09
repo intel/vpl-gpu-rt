@@ -101,7 +101,11 @@ public:
     {
         auto it = m_map.find(key);
         if (it == m_map.end())
-            throw std::logic_error("Requested object was not found in storage");
+        {
+            std::stringstream ss;
+            ss << "Requested object with Key " << key << " was not found in storage";
+            throw std::logic_error(ss.str());
+        }
         return dynamic_cast<T&>(*it->second);
     }
 
@@ -127,7 +131,11 @@ public:
     {
         auto it = m_map.find(key);
         if (it == m_map.end())
-            throw std::logic_error("Requested object was not found in storage");
+        {
+            std::stringstream ss;
+            ss << "Requested object with Key " << key << " was not found in storage";
+            throw std::logic_error(ss.str());
+        }
         return dynamic_cast<T&>(*it->second);
     }
 };

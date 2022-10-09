@@ -98,10 +98,10 @@ namespace Base
 #define DECL_BLOCK_LIST\
     DECL_BLOCK(Init             )\
     DECL_BLOCK(Reset            )\
+    DECL_BLOCK(AddRepeatedFrames)\
     DECL_BLOCK(GenerateSPS      )\
     DECL_BLOCK(SubmitTask       )\
-    DECL_BLOCK(UpdateHeader     )\
-    DECL_BLOCK(AddRepeatedFrames)
+    DECL_BLOCK(UpdateHeader     )
 #define DECL_FEATURE_NAME "Base_Packer"
 #include "av1ehw_decl_blocks.h"
 
@@ -125,6 +125,7 @@ namespace Base
         virtual void SetSupported(ParamSupport& par) override;
         virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override;
         virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
+        virtual void PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push) override;
         virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override;
         virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
         virtual void GetVideoParam(const FeatureBlocks& blocks, TPushGVP Push) override;

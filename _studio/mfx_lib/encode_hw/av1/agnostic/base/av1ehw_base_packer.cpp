@@ -22,6 +22,7 @@
 #if defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
 
 #include "av1ehw_base_packer.h"
+#include "av1ehw_base_task.h"
 #include <numeric>
 
 using namespace AV1EHW::Base;
@@ -1147,88 +1148,102 @@ void Packer::GetVideoParam(const FeatureBlocks& blocks, TPushGVP Push)
 
 inline void PatchIVFFrameInfo(mfxU8* IVFHeaderStart, mfxU32 frameSize, mfxU64 pts, mfxU32 insertHeaders)
 {
-    if (insertHeaders & INSERT_IVF_FRM)
+    const bool insertIvfSeqHeader = insertHeaders & INSERT_IVF_SEQ;
+    mfxU32 frameLen = frameSize - IVF_PIC_HEADER_SIZE_BYTES - ((insertIvfSeqHeader) ? IVF_SEQ_HEADER_SIZE_BYTES : 0);
+
+    // IVF is a simple file format that transports raw data and multi-byte numbers of little-endian
+    MFX_PACK_BEGIN_USUAL_STRUCT()
+    struct IVF
     {
-        const bool insertIvfSeqHeader = insertHeaders & INSERT_IVF_SEQ;
-        mfxU32 frameLen = frameSize - IVF_PIC_HEADER_SIZE_BYTES - ((insertIvfSeqHeader) ? IVF_SEQ_HEADER_SIZE_BYTES : 0);
+        mfxU32 len;
+        mfxU64 pts;
+    } ivf = {frameLen, pts};
+    MFX_PACK_END()
+    auto begin = (mfxU8*)&ivf;
 
-        // IVF is a simple file format that transports raw data and multi-byte numbers of little-endian
-        MFX_PACK_BEGIN_USUAL_STRUCT()
-        struct IVF
+    mfxU8 * pIVFPicHeader = insertIvfSeqHeader ? (IVFHeaderStart + IVF_SEQ_HEADER_SIZE_BYTES) : IVFHeaderStart;
+    std::copy(begin, begin + sizeof(ivf), pIVFPicHeader);
+}
+
+void Packer::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
+{
+    Push(BLK_AddRepeatedFrames
+        , [this, &blocks](
+            StorageW& global
+            , StorageW& s_task) -> mfxStatus
+    {
+        // Add more bytes to encoded bitstream will make BRC statistics to diverge with real bitstream size.
+        // BRC should be notified about additional bytes, probably Skip frame DDI interface can help.
+        auto& task = Task::Common::Get(s_task);
+        MFX_CHECK(!task.FramesToShow.empty(), MFX_ERR_NONE);
+
+        const SH& sh = Glob::SH::Get(global);
+        mfxVideoParam& vp = Glob::VideoParam::Get(global);
+        ObuExtensionHeader oeh = { task.TemporalID, 0 };
+        FH                 tempFh = {};
+        tempFh.show_existing_frame = 1;
+
+        auto& taskMgrIface = TaskManager::TMInterface::Get(global);
+        auto& tm = taskMgrIface.m_Manager;
+        for (const auto& frame : task.FramesToShow)
         {
-            mfxU32 len;
-            mfxU64 pts;
-        } ivf = {frameLen, pts};
-        MFX_PACK_END()
-        auto begin = (mfxU8*)&ivf;
+            mfxU8 tempData[64];
+            mfxU8* dst = tempData;
+            BitstreamWriter bitstream(dst, sizeof(tempData));
+            mfxU32 insertHeaders = INSERT_PPS;
+            tempFh.frame_to_show_map_idx = frame.FrameToShowMapIdx;
+            const mfxExtAV1BitstreamParam& bsPar = ExtBuffer::Get(vp);
+            if (IsOn(bsPar.WriteIVFHeaders))
+            {
+                insertHeaders |= INSERT_IVF_FRM;
+                PackIVF(bitstream, tempFh, insertHeaders, vp);
+            }
 
-        mfxU8 * pIVFPicHeader = insertIvfSeqHeader ? (IVFHeaderStart + IVF_SEQ_HEADER_SIZE_BYTES) : IVFHeaderStart;
-        std::copy(begin, begin + sizeof(ivf), pIVFPicHeader);
-    }
+            const mfxExtAV1AuxData& auxPar = ExtBuffer::Get(vp);
+            if (IsOn(auxPar.InsertTemporalDelimiter))
+            {
+                // Add temporal delimiter for shown frame
+                mfxU32 ext = sh.operating_points_cnt_minus_1 ? 1 : 0;
+                PackOBUHeader(bitstream, OBU_TEMPORAL_DELIMITER, ext, oeh);
+                PackOBUHeaderSize(bitstream, 0);
+            }
+
+            PackPPS(bitstream, task.Offsets, sh, tempFh, oeh, insertHeaders);
+            const mfxU32 repeatedFrameSize = (bitstream.GetOffset() + 7) / 8;
+
+            if (IsOn(bsPar.WriteIVFHeaders))
+                PatchIVFFrameInfo(dst, repeatedFrameSize, frame.DisplayOrder, insertHeaders);
+
+            MfxEncodeHW::CachedBitstream cachedBs(repeatedFrameSize, dst);
+            cachedBs.isHiden = false;
+            cachedBs.DisplayOrder = frame.DisplayOrder;
+            tm.PushBitstream(frame.DisplayOrder, std::move(cachedBs));
+
+            auto& repeatFrameSizesInfo = Glob::RepeatFrameSizeInfo::Get(global);
+            repeatFrameSizesInfo[task.EncodedOrder] += repeatedFrameSize; // currently repeat frame size is maximum to 3(frame_header) + 2(TD) + 12(IVF frame) bytes
+        }
+
+        return MFX_ERR_NONE;
+    });
 }
 
 void Packer::QueryTask(const FeatureBlocks&, TPushQT Push)
 {
     Push(BLK_UpdateHeader
-        , [this](StorageW& /*global*/, StorageW& s_task) -> mfxStatus
+        , [this](StorageW& global, StorageW& s_task) -> mfxStatus
     {
         //NB: currently this block is being called after all General Feature blocks, it means
         //that only bits overwritten are possible, bit shifting and deleting will break the stream!
+        mfxVideoParam&                 vp    = Glob::VideoParam::Get(global);
+        const mfxExtAV1BitstreamParam& bsPar = ExtBuffer::Get(vp);
+        MFX_CHECK(IsOn(bsPar.WriteIVFHeaders), MFX_ERR_NONE);
+
         auto& task = Task::Common::Get(s_task);
-        PatchIVFFrameInfo(task.pBsData, task.BsDataLength, task.DisplayOrder, task.InsertHeaders);
+        MFX_CHECK(task.BsDataLength > 0, MFX_ERR_NONE);
+        PatchIVFFrameInfo(task.pBsData, *task.pBsDataLength, task.DisplayOrder, task.InsertHeaders);
 
         return MFX_ERR_NONE;
     });
-
-    Push(BLK_AddRepeatedFrames
-        , [this](StorageW& global, StorageW& s_task) -> mfxStatus
-        {
-            // Add more bytes to encoded bitstream will make BRC statistics to diverge with real bitstream size.
-            // BRC should be notified about additional bytes, probably Skip frame DDI interface can help.
-            auto& task = Task::Common::Get(s_task);
-            if (!(task.InsertHeaders & INSERT_REPEATED))
-                return MFX_ERR_NONE;
-
-            const SH           &sh    = Glob::SH::Get(global);
-            mfxVideoParam      &vp    = Glob::VideoParam::Get(global);
-            ObuExtensionHeader oeh    = {task.TemporalID, 0};
-            FH                 tempFh = {};
-            tempFh.show_existing_frame = 1;
-
-            mfxU8 *dst            = task.pBsData + task.BsDataLength;
-            mfxU32 bytesAvailable = task.BsBytesAvailable;
-            for (const auto &frame : task.FramesToShow)
-            {
-                BitstreamWriter bitstream(dst, bytesAvailable);
-                mfxU32 insertHeaders = INSERT_PPS;
-                tempFh.frame_to_show_map_idx = frame.FrameToShowMapIdx;
-                const mfxExtAV1BitstreamParam& bsPar = ExtBuffer::Get(vp);
-                if (IsOn(bsPar.WriteIVFHeaders))
-                {
-                    insertHeaders |= INSERT_IVF_FRM;
-                    PackIVF(bitstream, tempFh, insertHeaders, vp);
-                }
-
-                const mfxExtAV1AuxData& auxPar = ExtBuffer::Get(vp);
-                if (IsOn(auxPar.InsertTemporalDelimiter))
-                {
-                    // Add temporal delimiter for shown frame
-                    mfxU32 ext = sh.operating_points_cnt_minus_1 ? 1 : 0;
-                    PackOBUHeader(bitstream, OBU_TEMPORAL_DELIMITER, ext, oeh);
-                    PackOBUHeaderSize(bitstream, 0);
-                }
-
-                PackPPS(bitstream, task.Offsets, sh, tempFh, oeh, insertHeaders);
-                const mfxU32 repeatedFrameSize = (bitstream.GetOffset() + 7) / 8;
-                PatchIVFFrameInfo(dst, repeatedFrameSize, frame.DisplayOrder, insertHeaders);
-                dst += repeatedFrameSize;
-                *task.pBsDataLength += repeatedFrameSize;
-                bytesAvailable -= repeatedFrameSize;
-                task.RepeatedFrameBytes += static_cast<mfxU8>(repeatedFrameSize); // currently repeat frame size is maximum to 3(frame_header) + 2(TD) + 12(IVF frame) bytes
-            }
-
-            return MFX_ERR_NONE;
-        });
 }
 
 }

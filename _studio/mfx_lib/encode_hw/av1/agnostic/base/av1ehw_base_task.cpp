@@ -26,6 +26,8 @@
 using namespace AV1EHW;
 using namespace AV1EHW::Base;
 
+typedef TaskItWrap<DpbFrame, Task::Common::Key> TItWrap;
+
 mfxU32 TaskManager::GetNumTask() const
 {
     return m_pPar->AsyncDepth + m_pReorder->BufferSize + (m_pPar->AsyncDepth > 1) + TMInterface::Get(*m_pGlob).m_ResourceExtra;
@@ -98,8 +100,6 @@ static T GetFirstFrameToDisplay(
 
 TTaskIt TaskManager::GetNextTaskToEncode(TTaskIt begin, TTaskIt end, bool bFlush)
 {
-    typedef TaskItWrap<FrameBaseInfo, Task::Common::Key> TItWrap;
-
     auto IsIdrTask = [](const StorageR& rTask) { return IsIdr(Task::Common::Get(rTask).FrameType); };
     auto stopIt = std::find_if(begin, end, IsIdrTask);
     bFlush |= (stopIt != end);
@@ -116,6 +116,11 @@ TTaskIt TaskManager::GetNextTaskToEncode(TTaskIt begin, TTaskIt end, bool bFlush
     {
         task->NextBufferedDisplayOrder = firstToDisplay->DisplayOrderInGOP;
     }
+    else if (std::distance(begin, end) < 2)
+    {
+        // need to show all hidden frames in minGop
+        task->NextBufferedDisplayOrder = std::numeric_limits<mfxI32>::max();
+    }
     else if (bFlush)
     {
         // need to show all hidden frames before end of GOP or end of sequence
@@ -123,6 +128,34 @@ TTaskIt TaskManager::GetNextTaskToEncode(TTaskIt begin, TTaskIt end, bool bFlush
     }
 
     return taskIt;
+}
+
+TTaskIt TaskManager::GetDestToPushQuery(TTaskIt begin, TTaskIt end, StorageW& task)
+{
+    auto taskPar = Task::Common::Get(task);
+    // Move current task to some location after first shown frame
+    TTaskIt it = begin;
+    for (; it != end; it++)
+    {
+        auto tempPar = Task::Common::Get(*it);
+        if (tempPar.DisplayOrder == taskPar.DisplayOrder)
+            continue;
+
+        if (!IsHiddenFrame(tempPar))
+        {
+            it++;
+            break;
+        }
+    }
+
+    for (; it != end; it++)
+    {
+        auto tempPar = Task::Common::Get(*it);
+        if (tempPar.DisplayOrder > taskPar.DisplayOrder)
+            break;
+    }
+
+    return it;
 }
 
 bool TaskManager::IsForceSync(const StorageR& task) const
@@ -163,6 +196,25 @@ void TaskManager::SetBsDataLength(StorageW& task, mfxU32 len) const
 void TaskManager::AddNumRecode(StorageW& task, mfxU16 n) const
 {
     Task::Common::Get(task).NumRecode += n;
+}
+
+bool TaskManager::IsFirstQuery(StorageW& task) const
+{
+    return Task::Common::Get(task).bFirstQuery;
+}
+
+void TaskManager::SetFirstQuery(StorageW& task, bool val) const
+{
+    Task::Common::Get(task).bFirstQuery = val;
+}
+
+void TaskManager::ClearBRCUpdateFlag(StorageW& task) const
+{
+#if defined(MFX_ENABLE_ENCTOOLS)
+    Task::Common::Get(task).bBRCUpdated = false;
+#else
+    std::ignore = task;
+#endif
 }
 
 mfxStatus TaskManager::RunQueueTaskAlloc(StorageRW& task)
@@ -268,6 +320,7 @@ void TaskManager::FrameSubmit(const FeatureBlocks& /*blocks*/, TPushFS Push)
         {
             m_pGlob = &global;
             m_pFrameCheckLocal = &local;
+
             return TaskNew(pCtrl, pSurf, bs);
         });
 }
@@ -308,7 +361,6 @@ mfxStatus TaskManager::TaskSubmit(StorageW& task)
     {
         TMInterface::Get(*m_pGlob).UpdateTask(*m_pGlob, GetTask(Stage(S_SUBMIT)));
     }
-
     return MfxEncodeHW::TaskManager::TaskSubmit(task);
 }
 
