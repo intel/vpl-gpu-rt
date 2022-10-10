@@ -52,7 +52,7 @@ enum {
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
-   The structure can be used by application to specify diffrent modes of content analysis which are used
+   The structure can be used by application to specify different modes of content analysis which are used
    by BRC. The control is a tradeoff between encoding latency and efficiency of how BRC 
    distributes bits between compressed frames. 
 */

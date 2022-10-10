@@ -347,7 +347,7 @@ typedef struct {
         mfxU8   *B;     /*!< B channel. */
         mfxA2RGB10 *A2RGB10; /*!< A2RGB10 channel for A2RGB10 format (merged ARGB). */
 #ifdef ONEVPL_EXPERIMENTAL
-        mfxABGR16FP* ABGRFP16; /*!< ABGRFP16 channel for half float ARGB format (use this merged one due to no seperate FP16 Alpha Channel). */
+        mfxABGR16FP* ABGRFP16; /*!< ABGRFP16 channel for half float ARGB format (use this merged one due to no separate FP16 Alpha Channel). */
 #endif
     };
     mfxU8       *A;     /*!< A channel. */
@@ -723,7 +723,7 @@ typedef struct {
                 /*! Quantization Parameter (QP) for I-frames for constant QP mode (CQP). Zero QP is not valid and means that the default value is assigned by the library.
                     Non-zero QPI might be clipped to supported QPI range.
                     @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
-                    Adjusted QPI value = QPI - (6 * (bitDepthLuma - 8)) for bitDepthLuma in the range [8,14].
+                    Adjusted QPI value = QPI - (6 * (BitDepthLuma - 8)) for BitDepthLuma in the range [8,14].
                     For HEVC_MAIN10, we minus (6*(10-8)=12) on our side and continue.
                     @note Default QPI value is implementation dependent and subject to change without additional notice in this document. */
                 mfxU16  QPI;
@@ -736,7 +736,7 @@ typedef struct {
                 /*! Quantization Parameter (QP) for P-frames for constant QP mode (CQP). Zero QP is not valid and means that the default value is assigned by the library.
                     Non-zero QPP might be clipped to supported QPI range.
                     @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
-                    Adjusted QPP value = QPP - (6 * (bitDepthLuma - 8)) for bitDepthLuma in the range [8,14].
+                    Adjusted QPP value = QPP - (6 * (BitDepthLuma - 8)) for BitDepthLuma in the range [8,14].
                     For HEVC_MAIN10, we minus (6*(10-8)=12) on our side and continue.
                     @note Default QPP value is implementation dependent and subject to change without additional notice in this document. */
                 mfxU16  QPP;
@@ -748,7 +748,7 @@ typedef struct {
                 /*! Quantization Parameter (QP) for B-frames for constant QP mode (CQP). Zero QP is not valid and means that the default value is assigned by the library.
                     Non-zero QPI might be clipped to supported QPB range.
                     @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
-                    Adjusted QPB value = QPB - (6 * (bitDepthLuma - 8)) for bitDepthLuma in the range [8,14].
+                    Adjusted QPB value = QPB - (6 * (BitDepthLuma - 8)) for BitDepthLuma in the range [8,14].
                     For HEVC_MAIN10, we minus (6*(10-8)=12) on our side and continue.
                     @note Default QPB value is implementation dependent and subject to change without additional notice in this document. */
                 mfxU16  QPB;
@@ -1430,7 +1430,7 @@ typedef struct {
     */
     mfxU16      NumMbPerSlice;
     /*!
-       Enables usage of mfxEncodeCtrl::SkipFrameparameter. See the SkipFrame enumerator for values of this option.
+       Enables usage of mfxEncodeCtrl::SkipFrame parameter. See the SkipFrame enumerator for values of this option.
        @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported.
     */
     mfxU16      SkipFrame;
@@ -1748,7 +1748,7 @@ typedef struct {
     */
     mfxU16      AdaptiveCQM;
     /*!
-       If this flag is set to ON, encoder adaptively selects list of reference frames to imrove encoding quality.
+       If this flag is set to ON, encoder adaptively selects list of reference frames to improve encoding quality.
        Enabling of the flag can increase computation complexity and introduce additional delay.
        If this flag is set to OFF, regular reference frames are used for encoding.
     */
@@ -2010,7 +2010,7 @@ enum {
     */
     MFX_EXTBUFF_PRED_WEIGHT_TABLE               = MFX_MAKEFOURCC('E','P','W','T'),
     /*!
-       See the mfxExtDitrtyRect structure for details.
+       See the mfxExtDirtyRect structure for details.
     */
     MFX_EXTBUFF_DIRTY_RECTANGLES                = MFX_MAKEFOURCC('D','R','O','I'),
     /*!
@@ -2074,22 +2074,22 @@ enum {
     */
     MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO        = MFX_MAKEFOURCC('L', 'L', 'I', 'S'),
     /*!
-       This extended buffer configures HDR SEI message. See the mfxExtMasteringDisplayColourVolume structure for details. If colour volume changes
+       This extended buffer configures HDR SEI message. See the mfxExtMasteringDisplayColourVolume structure for details. If color volume changes
        per frame, the application can attach this buffer to the mfxFrameData structure for video processing.
     */
     MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME = MFX_MAKEFOURCC('D', 'C', 'V', 'S'),
     /*!
        This extended buffer configures HDR SEI message. See the mfxExtMasteringDisplayColourVolume structure for details. The application can
-       attach this buffer to the mfxVideoParam structure for the input of video processing if the mastering display colour volume changes per
+       attach this buffer to the mfxVideoParam structure for the input of video processing if the mastering display color volume changes per
        sequence. In this case, this buffer should be together with MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO to indicate the light level and mastering
-       colour volume of the input of video processing. If colour Volume changes per frame instead of per sequence, the application can attach
+       color volume of the input of video processing. If color Volume changes per frame instead of per sequence, the application can attach
        MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME to mfxFrameData for frame based processing.
     */
     MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN         = MFX_MAKEFOURCC('D', 'C', 'V', 'I'),
     /*!
        This extended buffer configures HDR SEI message. See the mfxExtMasteringDisplayColourVolume structure for details. The application can
-       attach this buffer to the mfxVideoParam structure for the output of video processing if the mastering display colour volume changes per
-       sequence. If colour volume changes per frame instead of per sequence, the application can attach the buffer with MFX_EXTBUFF_MASTERING_
+       attach this buffer to the mfxVideoParam structure for the output of video processing if the mastering display color volume changes per
+       sequence. If color volume changes per frame instead of per sequence, the application can attach the buffer with MFX_EXTBUFF_MASTERING_
        DISPLAY_COLOUR_VOLUME to mfxFrameData for frame based processing.
     */
     MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT        = MFX_MAKEFOURCC('D', 'C', 'V', 'O'),
@@ -2245,7 +2245,7 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer    Header; /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_VPP_DENOISE2. */
     mfxDenoiseMode  Mode;   /*!< Indicates the mode of denoise. mfxDenoiseMode enumerator.  */
-    mfxU16  Strength;       /*!< Denoise strength in manaul mode. Value of 0-100 (inclusive) indicates the strength of denoise.
+    mfxU16  Strength;       /*!< Denoise strength in manual mode. Value of 0-100 (inclusive) indicates the strength of denoise.
                                  The strength of denoise controls degree of possible changes of pixel values; the bigger the strength
                                  the larger the change is.  */
     mfxU16  reserved[15];
@@ -3503,7 +3503,7 @@ enum {
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
-   Specifies per-MB or per-CU mode and QP or deltaQP value depending on the mode type.
+   Specifies per-MB or per-CU mode and QP or DeltaQP value depending on the mode type.
  */
 typedef struct{
     union {
@@ -4490,7 +4490,7 @@ typedef struct {
 
     mfxU16 NumTileRows;    /*!< Number of tile rows, default value is 1. */
     mfxU16 NumTileColumns; /*!< Number of tile columns, default value is 1. */
-    mfxU16 NumTileGroups;  /*!< Number of tile groups, it will be ingored if the tile groups num is invalid, default value is 1. */
+    mfxU16 NumTileGroups;  /*!< Number of tile groups, it will be ignored if the tile groups num is invalid, default value is 1. */
 
     mfxU16 reserved[5];
 } mfxExtAV1TileParam;
@@ -4712,7 +4712,7 @@ typedef struct mfxSurfaceArray
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-/*! The structure is used for VPP channels initializtion in Decode_VPP component.  */
+/*! The structure is used for VPP channels initialization in Decode_VPP component.  */
 typedef struct {
     mfxFrameInfo  VPP; /*!< The configuration parameters of VPP filters per each channel. */
     mfxU16  Protected; /*!< Specifies the content protection mechanism. */
@@ -4724,7 +4724,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-/*! The structure describes rectangle coordinates wat can bse used for ROI or for Cropping. */
+/*! The structure describes rectangle coordinates that can be used for ROI or for Cropping. */
     typedef struct {
         mfxU16  Left;   /*!< X coordinate of region of top-left corner of rectangle. */
         mfxU16  Top;    /*!< Y coordinate of region of top-left corner of rectangle. */
