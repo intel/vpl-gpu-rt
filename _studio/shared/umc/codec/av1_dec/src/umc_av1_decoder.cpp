@@ -776,6 +776,9 @@ namespace UMC_AV1_DECODER
                 }
             }
 
+            if (!sequence_header.get())
+                return UMC::UMC_ERR_NOT_ENOUGH_DATA;
+
             if (anchor_decode)
             {
                 // For anchor frame decoding in ext-tile mode, no need to update DPB since they could be treated as
