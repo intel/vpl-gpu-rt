@@ -3109,13 +3109,6 @@ mfxStatus ImplementationAvc::CheckBRCStatus(DdiTask &task, bool &bToRecode, mfxU
             task.m_isSkipped = true;
             bToRecode = true;
             // Pre-Empt Min Bs for Skip Frame
-#if defined(MFX_ENABLE_ENCTOOLS)
-            if (m_enabledEncTools)
-            {
-                task.m_minFrameSize = frame_sts.MinFrameSize;
-            }
-            else
-#endif
             {
                 task.m_minFrameSize =(mfxU32)( (m_brc.GetMinFrameSize() + 7) >> 3 );
             }
