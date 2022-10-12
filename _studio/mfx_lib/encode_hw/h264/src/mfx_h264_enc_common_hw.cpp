@@ -5877,16 +5877,12 @@ void MfxHwH264Encode::SetDefaults(
     if (IsOff(extOpt3->EnableQPOffset))
         Zero(extOpt3->QPOffset);
 
-    if (extOpt2->MinQPI || extOpt2->MinQPP || extOpt2->MinQPB ||
-        extOpt2->MaxQPI || extOpt2->MaxQPP || extOpt2->MaxQPB)
-    {
-        if (!extOpt2->MaxQPI)
-           extOpt2->MaxQPI = 51;
-        if (!extOpt2->MaxQPP)
-           extOpt2->MaxQPP = 51;
-        if (!extOpt2->MaxQPB)
-            extOpt2->MaxQPB = 51;
-    }
+    if (extOpt2->MinQPI && !extOpt2->MaxQPI)
+        extOpt2->MaxQPI = 51;
+    if (extOpt2->MinQPP && !extOpt2->MaxQPP)
+        extOpt2->MaxQPP = 51;
+    if (extOpt2->MinQPB && !extOpt2->MaxQPB)
+        extOpt2->MaxQPB = 51;
 
     extDdi->MaxMVs = 32;
     extDdi->SkipCheck = 1;
