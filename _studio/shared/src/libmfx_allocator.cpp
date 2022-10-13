@@ -38,9 +38,6 @@
 
 #define DEFAULT_ALIGNMENT_SIZE 32
 
-static const size_t BASE_ADDR_ALIGN = 0x1000; // 4k page size alignment
-static const size_t BASE_SIZE_ALIGN = 0x1000; // 4k page size alignment
-
 // Implementation of Internal allocators
 mfxStatus mfxDefaultAllocator::AllocBuffer(mfxHDL pthis, mfxU32 nbytes, mfxU16 type, mfxHDL *mid)
 {
@@ -155,7 +152,7 @@ mfxStatus mfxDefaultAllocator::FreeBuffer(mfxHDL pthis, mfxMemId mid)
     }
 }
 
-inline static mfxStatus GetNumBytesRequired(const mfxFrameInfo & Info, mfxU32& nbytes, size_t power_of_2_alignment = BASE_SIZE_ALIGN)
+mfxStatus mfxDefaultAllocator::GetNumBytesRequired(const mfxFrameInfo & Info, mfxU32& nbytes, size_t power_of_2_alignment)
 {
     mfxU32 Pitch = mfx::align2_value(Info.Width, 32), Height2 = mfx::align2_value(Info.Height, 32);
 
@@ -261,7 +258,7 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
     }
 
     mfxU32 nbytes = 0;
-    mfxStatus sts = GetNumBytesRequired(request->Info, nbytes);
+    mfxStatus sts = mfxDefaultAllocator::GetNumBytesRequired(request->Info, nbytes);
     MFX_CHECK_STS(sts);
 
     // allocate frames in cycle
@@ -616,7 +613,7 @@ mfxFrameSurface1_sw::mfxFrameSurface1_sw(const mfxFrameInfo & info, mfxU16 type,
     MFX_CHECK_WITH_THROW_STS(m_internal_surface.Data.MemType & MFX_MEMTYPE_SYSTEM_MEMORY, MFX_ERR_UNSUPPORTED);
 
     mfxU32 nbytes = 0;
-    mfxStatus sts = GetNumBytesRequired(info, nbytes, BASE_SIZE_ALIGN);
+    mfxStatus sts = mfxDefaultAllocator::GetNumBytesRequired(info, nbytes, BASE_SIZE_ALIGN);
     MFX_CHECK_WITH_THROW_STS(sts == MFX_ERR_NONE, sts);
 
     m_data.reset(reinterpret_cast<mfxU8*>(aligned_alloc(BASE_ADDR_ALIGN, nbytes)));
@@ -672,7 +669,7 @@ mfxStatus mfxFrameSurface1_sw::Realloc(const mfxFrameInfo & info)
     MFX_CHECK(!Locked(), MFX_ERR_LOCK_MEMORY);
 
     mfxU32 nbytes = 0;
-    MFX_SAFE_CALL(GetNumBytesRequired(info, nbytes, BASE_SIZE_ALIGN));
+    MFX_SAFE_CALL(mfxDefaultAllocator::GetNumBytesRequired(info, nbytes, BASE_SIZE_ALIGN));
 
     m_data.reset(reinterpret_cast<mfxU8*>(aligned_alloc(BASE_ADDR_ALIGN, nbytes)));
 

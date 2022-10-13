@@ -41,6 +41,9 @@
 #include "mfxencodestats.h"
 #endif // MFX_ENABLE_ENCODE_STATS
 
+static const size_t BASE_ADDR_ALIGN = 0x1000; // 4k page size alignment
+static const size_t BASE_SIZE_ALIGN = 0x1000; // 4k page size alignment
+
 // Internal Allocators
 namespace mfxDefaultAllocator
 {
@@ -54,6 +57,8 @@ namespace mfxDefaultAllocator
     mfxStatus GetHDL(mfxHDL pthis, mfxMemId mid, mfxHDL *handle);
     mfxStatus UnlockFrame(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr=0);
     mfxStatus FreeFrames(mfxHDL pthis, mfxFrameAllocResponse *response);
+
+    mfxStatus GetNumBytesRequired(const mfxFrameInfo& Info, mfxU32& nbytes, size_t power_of_2_alignment = BASE_SIZE_ALIGN);
 
     struct BufferStruct
     {
