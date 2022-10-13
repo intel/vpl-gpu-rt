@@ -288,7 +288,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm()
     if (m_pCmCopy)
         return MFX_ERR_NONE;
 
-    // Return immidiately if user requested to turn OFF GPU copy
+    // Return immediately if user requested to turn OFF GPU copy
     if (m_ForcedCmState == MFX_GPUCOPY_OFF)
     {
         return MFX_ERR_NONE;
