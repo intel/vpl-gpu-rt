@@ -45,6 +45,19 @@ namespace Base
         {(mfxU16)MFX_LEVEL_AV1_6 , (mfxU16)10},
     };
 
+    // Level 2.2/2.3/3.2/3.3/4.2/4.3 are not defined yet in av1 spec. 
+    // Here remap such level to a lower level which is defined in spec.
+    // And use the same MaxPicSize/MaxHSize/etc.
+    const std::map<mfxU16, mfxU16> LevelsRemap =
+    {
+        {MFX_LEVEL_AV1_22, MFX_LEVEL_AV1_21},
+        {MFX_LEVEL_AV1_23, MFX_LEVEL_AV1_21},
+        {MFX_LEVEL_AV1_32, MFX_LEVEL_AV1_31},
+        {MFX_LEVEL_AV1_33, MFX_LEVEL_AV1_31},
+        {MFX_LEVEL_AV1_42, MFX_LEVEL_AV1_41},
+        {MFX_LEVEL_AV1_43, MFX_LEVEL_AV1_41},
+    };
+
     inline bool isValidCodecLevel(mfxU16 CodecLevel)
     {
         return LevelIndexInTable.find(CodecLevel) != LevelIndexInTable.end();

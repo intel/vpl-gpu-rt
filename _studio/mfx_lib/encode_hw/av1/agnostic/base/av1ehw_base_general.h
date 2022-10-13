@@ -179,6 +179,7 @@ namespace Base
         mfxStatus CheckFrameRate(mfxVideoParam& par);
         mfxStatus CheckNumRefFrame(mfxVideoParam& par, const Defaults::Param& defPar);
         mfxStatus CheckColorConfig(mfxVideoParam& par);
+        mfxStatus MapLevel(mfxVideoParam& par);
         mfxStatus CheckLevelConstraints(mfxVideoParam& par, const Defaults::Param& defPar);
         mfxStatus CheckTCBRC(mfxVideoParam& par, const ENCODE_CAPS_AV1& caps);
 
@@ -241,8 +242,10 @@ namespace Base
             const mfxVideoParam & par
             , const mfxExtAV1ResolutionParam& rsPar
             , const mfxExtCodingOption3& CO3);
+
     };
 
+    bool MapToDefinedLevel(mfxU16& level);
     inline void SetDefaultFrameInfo(mfxU32& frameWidth, mfxU32& frameHeight, mfxFrameInfo& fi)
     {
         if (frameWidth)

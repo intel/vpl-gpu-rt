@@ -461,6 +461,19 @@ void General::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
     });
 }
 
+mfxStatus General::MapLevel(mfxVideoParam& par)
+{
+    MFX_CHECK(par.mfx.CodecLevel, MFX_ERR_NONE);
+
+    mfxU32 changed = 0;
+
+    // Map undefined level to defined level
+    changed += MapToDefinedLevel(par.mfx.CodecLevel);
+
+    MFX_CHECK(!changed, MFX_WRN_VIDEO_PARAM_CHANGED);
+    return MFX_ERR_NONE;
+}
+
 inline mfxStatus CheckPicStruct(mfxVideoParam & par)
 {
     mfxU32 invalid = 0;
@@ -516,7 +529,13 @@ void General::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     Push(BLK_CheckLevel
         , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
     {
-        return m_pQWCDefaults->base.CheckLevel(*m_pQWCDefaults, out);
+        mfxStatus stsMap = MapLevel(out);
+        mfxStatus stsCheckValid = m_pQWCDefaults->base.CheckLevel(*m_pQWCDefaults, out);
+        // invalid level error code should override mapped level error code
+        MFX_CHECK_STS(stsCheckValid);
+        MFX_CHECK_STS(stsMap);
+        return MFX_ERR_NONE;
+
     });
 
     Push(BLK_CheckPicStruct
@@ -3542,6 +3561,20 @@ mfxStatus General::CheckCodedPicSize(
     MFX_CHECK(!CheckMaxOrZero(pRsPar->FrameHeight, par.mfx.FrameInfo.Height), MFX_ERR_UNSUPPORTED);
 
     return MFX_ERR_NONE;
+}
+
+bool Base::MapToDefinedLevel(mfxU16& level)
+{
+    auto levelIt = LevelsRemap.find(level);
+    if(levelIt != LevelsRemap.end())
+    {
+        level = levelIt->second;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 mfxStatus General::CheckLevelConstraints(
