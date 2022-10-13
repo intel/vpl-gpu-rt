@@ -294,6 +294,12 @@ mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm()
         return MFX_ERR_NONE;
     }
 
+    // Check if CM copy should be enabled by default
+    if (m_ForcedCmState == MFX_GPUCOPY_DEFAULT && !IsCmCopyEnabledByDefault())
+    {
+        return MFX_ERR_NONE;
+    }
+
     MFX_CHECK(IsCmSupported(), MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
     std::unique_ptr<CmCopyWrapper> tmp_cm(new CmCopyWrapper);
@@ -801,8 +807,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    // For Linux, if CM copy is forced to be used, or if choose to use default copy method and CM copy is enabled by default, use CM copy.
-    bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && (m_ForcedCmState == MFX_GPUCOPY_ON || (m_ForcedCmState == MFX_GPUCOPY_DEFAULT && IsCmCopyEnabledByDefault())) && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+    // Check if requested copy backend is CM and CM is capable to perform copy
+    bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && (m_ForcedCmState != MFX_GPUCOPY_OFF) && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
@@ -1294,8 +1300,8 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     // check that region of interest is valid
     MFX_CHECK(roi.width && roi.height, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    // For Linux, if CM copy is forced to be used, or if choose to use default copy method and CM copy is enabled by default, use CM copy.
-    bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && (m_ForcedCmState == MFX_GPUCOPY_ON || (m_ForcedCmState == MFX_GPUCOPY_DEFAULT && IsCmCopyEnabledByDefault())) && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+    // Check if requested copy backend is CM and CM is capable to perform copy
+    bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && (m_ForcedCmState != MFX_GPUCOPY_OFF) && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
