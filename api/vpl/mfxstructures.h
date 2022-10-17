@@ -2174,13 +2174,13 @@ enum {
        See the mfxExtTemporalLayers structure for more details.
     */
     MFX_EXTBUFF_UNIVERSAL_TEMPORAL_LAYERS = MFX_MAKEFOURCC('U', 'T', 'M', 'P'),
-#ifdef ONEVPL_EXPERIMENTAL    
     /*!
        This extended buffer defines additional encoding controls for reference list. See the mfxExtRefListCtrl structure for details.
        The application can attach this buffer to the mfxVideoParam structure for encoding & decoding initialization, or
        the mfxEncodeCtrl structure for per-frame encoding configuration.
     */
     MFX_EXTBUFF_UNIVERSAL_REFLIST_CTRL = MFX_EXTBUFF_AVC_REFLIST_CTRL,
+#ifdef ONEVPL_EXPERIMENTAL    
     /*!
        See the mfxExtEncodeStats structure for details.
     */
@@ -3536,7 +3536,12 @@ MFX_PACK_BEGIN_STRUCT_W_L_TYPE()
 typedef struct {
     mfxExtBuffer    Header; /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_MBQP. */
 
+#ifdef ONEVPL_EXPERIMENTAL
+    mfxU32 reserved[9];
+    mfxU32 Pitch;       /*!< Distance in bytes between the start of two consecutive rows in the QP array. */
+#else
     mfxU32 reserved[10];
+#endif
     mfxU16 Mode;        /*!< Defines QP update mode. See MBQPMode enumerator for more details. */
     mfxU16 BlockSize;   /*!< QP block size, valid for HEVC only during Init and Runtime. */
     mfxU32 NumQPAlloc;  /*!< Size of allocated by application QP or DeltaQP array. */
@@ -3991,9 +3996,7 @@ typedef mfxExtAVCRefListCtrl mfxExtHEVCRefListCtrl;
 typedef mfxExtAVCRefLists mfxExtHEVCRefLists;
 typedef mfxExtAvcTemporalLayers mfxExtHEVCTemporalLayers;
 
-#ifdef ONEVPL_EXPERIMENTAL
 typedef mfxExtAVCRefListCtrl mfxExtRefListCtrl;
-#endif
 
 /* The MirroringType enumerator itemizes mirroring types. */
 enum
