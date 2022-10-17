@@ -26,8 +26,7 @@
 namespace CommonCaps {
     inline bool IsPreSiPlatform(eMFXHWType platform)
     {
-        return
-            false;
+        return platform >= MFX_HW_MTL;
     }
 
     inline bool HasNativeDX9Support(eMFXHWType platform)
@@ -42,9 +41,7 @@ namespace CommonCaps {
 
     inline bool CapsQueryOptimizationSupport(eMFXHWType platform)
     {
-        return
-            true
-            ;
+        return platform < MFX_HW_MTL;
     }
     inline bool IsCmSupported(eMFXHWType platform)
     {
@@ -149,9 +146,7 @@ namespace VP8DCaps {
 namespace AV1DCaps {
     inline bool IsPostProcessSupported(eMFXHWType platform)
     {
-        return
-            false
-            ;
+        return platform >= MFX_HW_MTL;
     }
 }
 #endif // MFX_ENABLE_AV1_VIDEO_DECODE
@@ -162,6 +157,7 @@ namespace H264DCaps {
     inline bool IsOnlyProgressivePicStructSupported(eMFXHWType platform)
     {
         return
+            platform != MFX_HW_MTL &&
             platform != MFX_HW_DG2;
     }
 }

@@ -84,6 +84,9 @@ enum eMFXHWType
     MFX_HW_DG2       = MFX_HW_TGL_LP + 8,
 
 
+
+    MFX_HW_MTL       = 0x1700000,
+
 };
 
 enum eMFXGTConfig
@@ -526,6 +529,21 @@ typedef struct {
     { 0x56B3, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56C0, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56C1, MFX_HW_DG2, MFX_GT4 }, // DG2
+
+
+    /* MTL */
+    { 0x7D40, MFX_HW_MTL, MFX_GT2 },
+    { 0x7D50, MFX_HW_MTL, MFX_GT2 },
+    { 0x7D55, MFX_HW_MTL, MFX_GT2 },
+    { 0x7D60, MFX_HW_MTL, MFX_GT2 },
+    { 0x7D70, MFX_HW_MTL, MFX_GT2 },
+    { 0x7D75, MFX_HW_MTL, MFX_GT2 },
+    { 0x7D79, MFX_HW_MTL, MFX_GT2 },
+    { 0x7D76, MFX_HW_MTL, MFX_GT2 },
+    { 0x7D66, MFX_HW_MTL, MFX_GT2 },
+    { 0x7DD5, MFX_HW_MTL, MFX_GT2 },
+    { 0x7D45, MFX_HW_MTL, MFX_GT2 },
+    { 0x7DE0, MFX_HW_MTL, MFX_GT2 },
 
 };
 
