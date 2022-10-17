@@ -31,6 +31,10 @@
 #include <algorithm>
 #include <assert.h>
 
+#if defined(MFX_ENABLE_LOG_UTILITY)
+#include <cstring>
+#endif
+
 namespace MfxFeatureBlocks
 {
 struct Storable
