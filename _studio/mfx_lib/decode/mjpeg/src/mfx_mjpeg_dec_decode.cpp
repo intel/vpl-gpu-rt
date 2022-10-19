@@ -594,7 +594,7 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurfInternal(VideoCORE *core, mfxVideoParam *
 
     request->Info.Width  = mfx::align2_value(request->Info.Width, 0x10);
     request->Info.Height = mfx::align2_value(request->Info.Height,
-        (request->Info.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) ? 0x8 : 0x10);
+        (request->Info.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) ? 0x10 : 0x20);
 
     if (MFX_PLATFORM_SOFTWARE == platform)
     {
@@ -1428,7 +1428,7 @@ bool MFX_JPEG_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType )
     if (in->mfx.FrameInfo.Width % 16)
         return false;
 
-    if (in->mfx.FrameInfo.Height % 8)
+    if (in->mfx.FrameInfo.Height % 16)
         return false;
 
     // both zero or not zero
