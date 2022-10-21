@@ -36,6 +36,7 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux
     hevc/linux/g9
     hevc/linux/g12
+    hevc/linux/xe_lpm_plus
     hevc/linux/base
     hevc/linux/xe_hpm
   )
@@ -93,6 +94,7 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux/g12/hevcehw_g12_caps_lin.h
     hevc/linux/g12/hevcehw_g12_lin.h
     hevc/linux/xe_hpm/hevcehw_xe_hpm_lin.h
+    hevc/linux/xe_lpm_plus/hevcehw_xe_lpm_plus_lin.h
 
     hevc/hevcehw_disp.cpp
     hevc/agnostic/hevcehw_base.cpp
@@ -134,6 +136,7 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux/base/hevcehw_base_qp_modulation_lin.cpp
     hevc/linux/g12/hevcehw_g12_lin.cpp
     hevc/linux/xe_hpm/hevcehw_xe_hpm_lin.cpp
+    hevc/linux/xe_lpm_plus/hevcehw_xe_lpm_plus_lin.cpp
   )
 
   custom_source_group("hevc" ${HEVC_VIDEO_ENCODE_SRC})
@@ -145,9 +148,10 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_LPM_plus
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus
   )
 
   set(AV1_VIDEO_ENCODE_SRC
@@ -176,6 +180,11 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
 
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM/av1ehw_xe_hpm_lin.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM/av1ehw_xe_hpm_lin.h
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus/av1ehw_xe_lpm_plus_lin.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus/av1ehw_xe_lpm_plus_lin.h
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_LPM_plus/av1ehw_xe_lpm_plus.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_alloc.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_alloc.h

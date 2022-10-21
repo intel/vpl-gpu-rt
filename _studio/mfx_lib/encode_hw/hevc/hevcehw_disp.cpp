@@ -37,6 +37,13 @@ namespace HEVCEHWDisp
     namespace Xe_HPM { using namespace HEVCEHW::Linux::Xe_HPM; };
 };
 
+#include "hevcehw_xe_lpm_plus_lin.h"
+namespace HEVCEHWDisp
+{
+    namespace Xe_LPM_Plus { using namespace HEVCEHW::Linux::Xe_LPM_Plus; };
+};
+
+
 
 namespace HEVCEHW
 {
@@ -47,6 +54,8 @@ static ImplBase* CreateSpecific(
     , mfxStatus& status
     , eFeatureMode mode)
 {
+    if (HW >= MFX_HW_MTL)
+        return new HEVCEHWDisp::Xe_LPM_Plus::MFXVideoENCODEH265_HW(core, status, mode);
     if (HW >= MFX_HW_DG2)
         return new HEVCEHWDisp::Xe_HPM::MFXVideoENCODEH265_HW(core, status, mode);
     if (HW == MFX_HW_DG1)
