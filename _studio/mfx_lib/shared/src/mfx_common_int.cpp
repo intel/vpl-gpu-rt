@@ -422,10 +422,6 @@ mfxStatus CheckVideoParamDecoders(mfxVideoParam *in, eMFXHWType type)
     MFX_CHECK(!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) || !(in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
         , MFX_ERR_INVALID_VIDEO_PARAM);
 
-    MFX_CHECK(!in->mfx.DecodedOrder || in->mfx.CodecId == MFX_CODEC_JPEG
-                                    || in->mfx.CodecId == MFX_CODEC_AVC
-                                    || in->mfx.CodecId == MFX_CODEC_HEVC, MFX_ERR_UNSUPPORTED);
-
 
     sts = CheckDecodersExtendedBuffers(in);
     MFX_CHECK(sts >= MFX_ERR_NONE, sts);
