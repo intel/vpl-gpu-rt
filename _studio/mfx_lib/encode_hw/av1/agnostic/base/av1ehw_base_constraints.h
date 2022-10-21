@@ -50,12 +50,12 @@ namespace Base
     // And use the same MaxPicSize/MaxHSize/etc.
     const std::map<mfxU16, mfxU16> LevelsRemap =
     {
-        {MFX_LEVEL_AV1_22, MFX_LEVEL_AV1_21},
-        {MFX_LEVEL_AV1_23, MFX_LEVEL_AV1_21},
-        {MFX_LEVEL_AV1_32, MFX_LEVEL_AV1_31},
-        {MFX_LEVEL_AV1_33, MFX_LEVEL_AV1_31},
-        {MFX_LEVEL_AV1_42, MFX_LEVEL_AV1_41},
-        {MFX_LEVEL_AV1_43, MFX_LEVEL_AV1_41},
+        {(mfxU16)MFX_LEVEL_AV1_22, (mfxU16)MFX_LEVEL_AV1_21},
+        {(mfxU16)MFX_LEVEL_AV1_23, (mfxU16)MFX_LEVEL_AV1_21},
+        {(mfxU16)MFX_LEVEL_AV1_32, (mfxU16)MFX_LEVEL_AV1_31},
+        {(mfxU16)MFX_LEVEL_AV1_33, (mfxU16)MFX_LEVEL_AV1_31},
+        {(mfxU16)MFX_LEVEL_AV1_42, (mfxU16)MFX_LEVEL_AV1_41},
+        {(mfxU16)MFX_LEVEL_AV1_43, (mfxU16)MFX_LEVEL_AV1_41},
     };
 
     inline bool isValidCodecLevel(mfxU16 CodecLevel)
