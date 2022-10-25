@@ -478,32 +478,32 @@ void Packer::PackNALU(BitstreamWriter& bs, NALU const & h)
     bs.PutBits(3, h.nuh_temporal_id_plus1);
 }
 
-void Packer::PackPTL(BitstreamWriter& bs, LayersInfo const & ptl, mfxU16 max_sub_layers_minus1)
+void Packer::PackPTL(BitstreamWriter& bs, LayersInfo const & profile_tier_level, mfxU16 max_sub_layers_minus1)
 {
-    bs.PutBits(2, ptl.general.profile_space);
-    bs.PutBit(ptl.general.tier_flag);
-    bs.PutBits(5, ptl.general.profile_idc);
-    bs.PutBits(24,(ptl.general.profile_compatibility_flags >> 8));
-    bs.PutBits(8 ,(ptl.general.profile_compatibility_flags & 0xFF));
-    bs.PutBit(ptl.general.progressive_source_flag);
-    bs.PutBit(ptl.general.interlaced_source_flag);
-    bs.PutBit(ptl.general.non_packed_constraint_flag);
-    bs.PutBit(ptl.general.frame_only_constraint_flag);
-    bs.PutBit(ptl.general.constraint.max_12bit       );
-    bs.PutBit(ptl.general.constraint.max_10bit       );
-    bs.PutBit(ptl.general.constraint.max_8bit        );
-    bs.PutBit(ptl.general.constraint.max_422chroma   );
-    bs.PutBit(ptl.general.constraint.max_420chroma   );
-    bs.PutBit(ptl.general.constraint.max_monochrome  );
-    bs.PutBit(ptl.general.constraint.intra           );
-    bs.PutBit(ptl.general.constraint.one_picture_only);
-    bs.PutBit(ptl.general.constraint.lower_bit_rate  );
+    bs.PutBits(2, profile_tier_level.general.profile_space);
+    bs.PutBit(profile_tier_level.general.tier_flag);
+    bs.PutBits(5, profile_tier_level.general.profile_idc);
+    bs.PutBits(24,(profile_tier_level.general.profile_compatibility_flags >> 8));
+    bs.PutBits(8 ,(profile_tier_level.general.profile_compatibility_flags & 0xFF));
+    bs.PutBit(profile_tier_level.general.progressive_source_flag);
+    bs.PutBit(profile_tier_level.general.interlaced_source_flag);
+    bs.PutBit(profile_tier_level.general.non_packed_constraint_flag);
+    bs.PutBit(profile_tier_level.general.frame_only_constraint_flag);
+    bs.PutBit(profile_tier_level.general.constraint.max_12bit       );
+    bs.PutBit(profile_tier_level.general.constraint.max_10bit       );
+    bs.PutBit(profile_tier_level.general.constraint.max_8bit        );
+    bs.PutBit(profile_tier_level.general.constraint.max_422chroma   );
+    bs.PutBit(profile_tier_level.general.constraint.max_420chroma   );
+    bs.PutBit(profile_tier_level.general.constraint.max_monochrome  );
+    bs.PutBit(profile_tier_level.general.constraint.intra           );
+    bs.PutBit(profile_tier_level.general.constraint.one_picture_only);
+    bs.PutBit(profile_tier_level.general.constraint.lower_bit_rate  );
     bs.PutBits(23, 0);
     bs.PutBits(11, 0);
-    bs.PutBit(ptl.general.inbld_flag);
-    bs.PutBits(8, ptl.general.level_idc);
+    bs.PutBit(profile_tier_level.general.inbld_flag);
+    bs.PutBits(8, profile_tier_level.general.level_idc);
 
-    std::for_each(ptl.sub_layer, ptl.sub_layer + max_sub_layers_minus1
+    std::for_each(profile_tier_level.sub_layer, profile_tier_level.sub_layer + max_sub_layers_minus1
         , [&](const LayersInfo::SubLayer& sl)
     {
         bs.PutBit(sl.profile_present_flag);
@@ -513,7 +513,7 @@ void Packer::PackPTL(BitstreamWriter& bs, LayersInfo const & ptl, mfxU16 max_sub
     if (max_sub_layers_minus1 > 0)
         bs.PutBits(2 * (8 - max_sub_layers_minus1), 0); // reserved_zero_2bits[ i ]
 
-    std::for_each(ptl.sub_layer, ptl.sub_layer + max_sub_layers_minus1
+    std::for_each(profile_tier_level.sub_layer, profile_tier_level.sub_layer + max_sub_layers_minus1
         , [&](const LayersInfo::SubLayer& sl)
     {
         if (sl.profile_present_flag)
@@ -527,15 +527,15 @@ void Packer::PackPTL(BitstreamWriter& bs, LayersInfo const & ptl, mfxU16 max_sub
             bs.PutBit(sl.interlaced_source_flag);
             bs.PutBit(sl.non_packed_constraint_flag);
             bs.PutBit(sl.frame_only_constraint_flag);
-            bs.PutBit(ptl.general.constraint.max_12bit);
-            bs.PutBit(ptl.general.constraint.max_10bit);
-            bs.PutBit(ptl.general.constraint.max_8bit);
-            bs.PutBit(ptl.general.constraint.max_422chroma);
-            bs.PutBit(ptl.general.constraint.max_420chroma);
-            bs.PutBit(ptl.general.constraint.max_monochrome);
-            bs.PutBit(ptl.general.constraint.intra);
-            bs.PutBit(ptl.general.constraint.one_picture_only);
-            bs.PutBit(ptl.general.constraint.lower_bit_rate);
+            bs.PutBit(profile_tier_level.general.constraint.max_12bit);
+            bs.PutBit(profile_tier_level.general.constraint.max_10bit);
+            bs.PutBit(profile_tier_level.general.constraint.max_8bit);
+            bs.PutBit(profile_tier_level.general.constraint.max_422chroma);
+            bs.PutBit(profile_tier_level.general.constraint.max_420chroma);
+            bs.PutBit(profile_tier_level.general.constraint.max_monochrome);
+            bs.PutBit(profile_tier_level.general.constraint.intra);
+            bs.PutBit(profile_tier_level.general.constraint.one_picture_only);
+            bs.PutBit(profile_tier_level.general.constraint.lower_bit_rate);
             bs.PutBits(23, 0);
             bs.PutBits(11, 0);
             bs.PutBit(sl.inbld_flag);

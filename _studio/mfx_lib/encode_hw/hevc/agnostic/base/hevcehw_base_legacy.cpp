@@ -3416,14 +3416,14 @@ void Legacy::SetDefaults(
     , const Defaults::Param& defPar
     , bool bExternalFrameAllocator)
 {
-    auto&                    fi            = par.mfx.FrameInfo;
-    mfxExtHEVCParam*         pHEVC         = ExtBuffer::Get(par);
-    mfxExtHEVCTiles*         pTile         = ExtBuffer::Get(par);
-    mfxExtAvcTemporalLayers* pTL           = ExtBuffer::Get(par);
-    mfxExtCodingOption*      pCO           = ExtBuffer::Get(par);
-    mfxExtCodingOption2*     pCO2          = ExtBuffer::Get(par);
-    mfxExtCodingOption3*     pCO3          = ExtBuffer::Get(par);
-    mfxU16                   IOPByAlctr[2] = { MFX_IOPATTERN_IN_SYSTEM_MEMORY, MFX_IOPATTERN_IN_VIDEO_MEMORY };
+    auto&                    fi                 = par.mfx.FrameInfo;
+    mfxExtHEVCParam*         pHEVC              = ExtBuffer::Get(par);
+    mfxExtHEVCTiles*         pTile              = ExtBuffer::Get(par);
+    mfxExtAvcTemporalLayers* pTemporalLayers    = ExtBuffer::Get(par);
+    mfxExtCodingOption*      pCO                = ExtBuffer::Get(par);
+    mfxExtCodingOption2*     pCO2               = ExtBuffer::Get(par);
+    mfxExtCodingOption3*     pCO3               = ExtBuffer::Get(par);
+    mfxU16                   IOPByAlctr[2]      = { MFX_IOPATTERN_IN_SYSTEM_MEMORY, MFX_IOPATTERN_IN_VIDEO_MEMORY };
     auto GetNumSlices = [&]()
     {
         std::vector<SliceInfo> slices;
@@ -3470,9 +3470,9 @@ void Legacy::SetDefaults(
     SetDefaultGOP(par, defPar, pCO2, pCO3);
     SetDefaultBRC(par, defPar, pCO2, pCO3);
 
-    if (pTL)
+    if (pTemporalLayers)
     {
-        SetDefault(pTL->Layer[0].Scale, mfxU16(1));
+        SetDefault(pTemporalLayers->Layer[0].Scale, mfxU16(1));
     }
 
     SetDefault(par.mfx.CodecLevel, GetDefaultLevel);
@@ -3723,21 +3723,21 @@ mfxStatus Legacy::CheckIntraRefresh(
 mfxStatus Legacy::CheckTemporalLayers(mfxVideoParam & par)
 {
     mfxU32 changed = 0;
-    mfxExtAvcTemporalLayers* pTL = ExtBuffer::Get(par);
+    mfxExtAvcTemporalLayers* pTemporalLayers = ExtBuffer::Get(par);
 
-    MFX_CHECK(pTL, MFX_ERR_NONE);
-    MFX_CHECK(!CheckOrZero<mfxU16>(pTL->Layer[0].Scale, 0, 1), MFX_ERR_UNSUPPORTED);
-    MFX_CHECK(!CheckOrZero<mfxU16>(pTL->Layer[7].Scale, 0), MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(pTemporalLayers, MFX_ERR_NONE);
+    MFX_CHECK(!CheckOrZero<mfxU16>(pTemporalLayers->Layer[0].Scale, 0, 1), MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(!CheckOrZero<mfxU16>(pTemporalLayers->Layer[7].Scale, 0), MFX_ERR_UNSUPPORTED);
 
     mfxU16 nTL = 1;
 
     for (mfxU16 i = 1, prev = 0; i < 7; ++i)
     {
-        if (!pTL->Layer[i].Scale)
+        if (!pTemporalLayers->Layer[i].Scale)
             continue;
 
-        auto& scaleCurr = pTL->Layer[i].Scale;
-        auto  scalePrev = pTL->Layer[prev].Scale;
+        auto& scaleCurr = pTemporalLayers->Layer[i].Scale;
+        auto  scalePrev = pTemporalLayers->Layer[prev].Scale;
 
         MFX_CHECK(!CheckMinOrZero(scaleCurr, scalePrev + 1), MFX_ERR_UNSUPPORTED);
         MFX_CHECK(scalePrev, MFX_ERR_UNSUPPORTED);

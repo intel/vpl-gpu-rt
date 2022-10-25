@@ -507,62 +507,62 @@ void H265HeadersBitstream::parsePTL(H265ProfileTierLevel *rpcPTL, int32_t maxNum
 }
 
 // Parse one profile tier layer
-void H265HeadersBitstream::parseProfileTier(H265PTL *ptl)
+void H265HeadersBitstream::parseProfileTier(H265PTL *profileTierLevel)
 {
-    assert(ptl);
+    assert(profileTierLevel);
 
-    ptl->profile_space = GetBits(2);
-    if (ptl->profile_space)
+    profileTierLevel->profile_space = GetBits(2);
+    if (profileTierLevel->profile_space)
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-    ptl->tier_flag = Get1Bit();
-    ptl->profile_idc = GetBits(5);
+    profileTierLevel->tier_flag = Get1Bit();
+    profileTierLevel->profile_idc = GetBits(5);
 
     for(int32_t j = 0; j < 32; j++)
     {
         if (Get1Bit())
-            ptl->profile_compatibility_flags |= 1 << j;
+            profileTierLevel->profile_compatibility_flags |= 1 << j;
     }
 
-    if (!ptl->profile_idc)
+    if (!profileTierLevel->profile_idc)
     {
-        ptl->profile_idc = H265_PROFILE_MAIN;
+        profileTierLevel->profile_idc = H265_PROFILE_MAIN;
         for(int32_t j = 1; j < 32; j++)
         {
-            if (ptl->profile_compatibility_flags & (1 << j))
+            if (profileTierLevel->profile_compatibility_flags & (1 << j))
             {
-                ptl->profile_idc = j;
+                profileTierLevel->profile_idc = j;
                 break;
             }
         }
     }
 
-    if (ptl->profile_idc > H265_PROFILE_FREXT &&
-        ptl->profile_idc != H265_PROFILE_SCC)
+    if (profileTierLevel->profile_idc > H265_PROFILE_FREXT &&
+        profileTierLevel->profile_idc != H265_PROFILE_SCC)
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-    ptl->progressive_source_flag    = Get1Bit();
-    ptl->interlaced_source_flag     = Get1Bit();
-    ptl->non_packed_constraint_flag = Get1Bit();
-    ptl->frame_only_constraint_flag = Get1Bit();
+    profileTierLevel->progressive_source_flag    = Get1Bit();
+    profileTierLevel->interlaced_source_flag     = Get1Bit();
+    profileTierLevel->non_packed_constraint_flag = Get1Bit();
+    profileTierLevel->frame_only_constraint_flag = Get1Bit();
 
     uint8_t reserved_zero_bits_num = 44; //incl. general_inbld_flag
-    if (ptl->profile_idc == H265_PROFILE_FREXT || (ptl->profile_compatibility_flags & (1 << 4)) ||
-        ptl->profile_idc == H265_PROFILE_SCC   || (ptl->profile_compatibility_flags & (1 << 9)))
+    if (profileTierLevel->profile_idc == H265_PROFILE_FREXT || (profileTierLevel->profile_compatibility_flags & (1 << 4)) ||
+        profileTierLevel->profile_idc == H265_PROFILE_SCC   || (profileTierLevel->profile_compatibility_flags & (1 << 9)))
     {
-        ptl->max_12bit_constraint_flag = Get1Bit();
-        ptl->max_10bit_constraint_flag = Get1Bit();
-        ptl->max_8bit_constraint_flag = Get1Bit();
-        ptl->max_422chroma_constraint_flag = Get1Bit();
-        ptl->max_420chroma_constraint_flag = Get1Bit();
-        ptl->max_monochrome_constraint_flag = Get1Bit();
-        ptl->intra_constraint_flag = Get1Bit();
-        ptl->one_picture_only_constraint_flag = Get1Bit();
-        ptl->lower_bit_rate_constraint_flag = Get1Bit();
+        profileTierLevel->max_12bit_constraint_flag = Get1Bit();
+        profileTierLevel->max_10bit_constraint_flag = Get1Bit();
+        profileTierLevel->max_8bit_constraint_flag = Get1Bit();
+        profileTierLevel->max_422chroma_constraint_flag = Get1Bit();
+        profileTierLevel->max_420chroma_constraint_flag = Get1Bit();
+        profileTierLevel->max_monochrome_constraint_flag = Get1Bit();
+        profileTierLevel->intra_constraint_flag = Get1Bit();
+        profileTierLevel->one_picture_only_constraint_flag = Get1Bit();
+        profileTierLevel->lower_bit_rate_constraint_flag = Get1Bit();
 
-        if (ptl->profile_idc == H265_PROFILE_SCC   || (ptl->profile_compatibility_flags & (1 << 9)))
+        if (profileTierLevel->profile_idc == H265_PROFILE_SCC   || (profileTierLevel->profile_compatibility_flags & (1 << 9)))
         {
-            ptl->max_14bit_constraint_flag = Get1Bit();
+            profileTierLevel->max_14bit_constraint_flag = Get1Bit();
             reserved_zero_bits_num = 34;
         }
         else

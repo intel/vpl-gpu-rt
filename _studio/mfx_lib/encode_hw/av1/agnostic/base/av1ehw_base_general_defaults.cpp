@@ -748,34 +748,34 @@ public:
         const Defaults::Param& par
         , mfxU32 fo)
     {
-        const mfxExtTemporalLayers* pTL = ExtBuffer::Get(par.mvp);
-        if (!pTL)
+        const mfxExtTemporalLayers* pTemporalLayers = ExtBuffer::Get(par.mvp);
+        if (!pTemporalLayers)
             return 0;
 
-        return TemporalLayers(*pTL).GetTId(fo);
+        return TemporalLayers(*pTemporalLayers).GetTId(fo);
     }
 
     static mfxU16 NumTemporalLayers(
         Defaults::TChain<mfxU16>::TExt
         , const Defaults::Param& par)
     {
-        const mfxExtTemporalLayers* pTL = ExtBuffer::Get(par.mvp);
-        if (!pTL)
+        const mfxExtTemporalLayers* pTemporalLayers = ExtBuffer::Get(par.mvp);
+        if (!pTemporalLayers)
         {
             return 1;
         }
 
-        return CountTL(*pTL);
+        return CountTL(*pTemporalLayers);
     }
 
     static mfxU8 GetHighestTId(
         const Defaults::Param& par)
     {
-        const mfxExtTemporalLayers* pTL = ExtBuffer::Get(par.mvp);
-        if (!pTL)
+        const mfxExtTemporalLayers* pTemporalLayers = ExtBuffer::Get(par.mvp);
+        if (!pTemporalLayers)
             return mfxU8(-1);
 
-        return TemporalLayers(*pTL).HighestTId();
+        return TemporalLayers(*pTemporalLayers).HighestTId();
     }
 
     static mfxStatus PreReorderInfo(

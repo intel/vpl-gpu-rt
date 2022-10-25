@@ -941,30 +941,30 @@ public:
         , mfxU32 fo
         , mfxGopHints)
     {
-        const mfxExtAvcTemporalLayers* pTL = ExtBuffer::Get(par.mvp);
-        if (!pTL)
+        const mfxExtAvcTemporalLayers* pTemporalLayers = ExtBuffer::Get(par.mvp);
+        if (!pTemporalLayers)
             return 0;
-        return TemporalLayers(*pTL).GetTId(fo);
+        return TemporalLayers(*pTemporalLayers).GetTId(fo);
     }
 
     static mfxU16 NumTemporalLayers(
         Defaults::TChain<mfxU16>::TExt
         , const Defaults::Param& par)
     {
-        const mfxExtAvcTemporalLayers* pTL = ExtBuffer::Get(par.mvp);
-        if (!pTL)
+        const mfxExtAvcTemporalLayers* pTemporalLayers = ExtBuffer::Get(par.mvp);
+        if (!pTemporalLayers)
             return 1;
-        return TemporalLayers::CountTL(*pTL);
+        return TemporalLayers::CountTL(*pTemporalLayers);
     }
 
     static mfxU8 HighestTId(
         Defaults::TChain<mfxU8>::TExt
         , const Defaults::Param& par)
     {
-        const mfxExtAvcTemporalLayers* pTL = ExtBuffer::Get(par.mvp);
-        if (!pTL)
+        const mfxExtAvcTemporalLayers* pTemporalLayers = ExtBuffer::Get(par.mvp);
+        if (!pTemporalLayers)
             return mfxU8(-1);
-        return TemporalLayers(*pTL).HighestTId();
+        return TemporalLayers(*pTemporalLayers).HighestTId();
     }
 
     static mfxU8 NumReorderFrames(
@@ -1738,7 +1738,7 @@ public:
         auto&                  par       = dflts.mvp;
         const mfxExtHEVCParam& HEVCParam = ExtBuffer::Get(par);
         mfxU16                 NumTL     = dflts.base.GetNumTemporalLayers(dflts);
-        PTL&                   general   = vps.general;
+        ProfileTierLevel&      general   = vps.general;
         SubLayerOrdering&      slo       = vps.sub_layer[NumTL - 1];
 
         vps = Base::VPS{};

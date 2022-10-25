@@ -220,34 +220,34 @@ mfxStatus Parser::ParseNALU(BitstreamReader& bs, NALU & nalu)
 
 mfxStatus ParsePTL(
     BitstreamReader& bs
-    , PTL& ptl
-    , std::function<bool(const PTL&)> NeedRextConstraints)
+    , ProfileTierLevel& profile_tier_level
+    , std::function<bool(const ProfileTierLevel&)> NeedRextConstraints)
 {
-    if (ptl.profile_present_flag)
+    if (profile_tier_level.profile_present_flag)
     {
-        ptl.profile_space               = bs.GetBits(2);
-        ptl.tier_flag                   = bs.GetBit();
-        ptl.profile_idc                 = bs.GetBits(5);
-        ptl.profile_compatibility_flags = bs.GetBits(32);
-        ptl.progressive_source_flag     = bs.GetBit();
-        ptl.interlaced_source_flag      = bs.GetBit();
-        ptl.non_packed_constraint_flag  = bs.GetBit();
-        ptl.frame_only_constraint_flag  = bs.GetBit();
+        profile_tier_level.profile_space               = bs.GetBits(2);
+        profile_tier_level.tier_flag                   = bs.GetBit();
+        profile_tier_level.profile_idc                 = bs.GetBits(5);
+        profile_tier_level.profile_compatibility_flags = bs.GetBits(32);
+        profile_tier_level.progressive_source_flag     = bs.GetBit();
+        profile_tier_level.interlaced_source_flag      = bs.GetBit();
+        profile_tier_level.non_packed_constraint_flag  = bs.GetBit();
+        profile_tier_level.frame_only_constraint_flag  = bs.GetBit();
 
         bool bREXT =
-            ((ptl.profile_idc >= 4) && (ptl.profile_idc <= 7))
-            || (ptl.profile_compatibility_flags & 0xf0)
-            || (NeedRextConstraints && NeedRextConstraints(ptl));
+            ((profile_tier_level.profile_idc >= 4) && (profile_tier_level.profile_idc <= 7))
+            || (profile_tier_level.profile_compatibility_flags & 0xf0)
+            || (NeedRextConstraints && NeedRextConstraints(profile_tier_level));
         
-        ptl.constraint.max_12bit        = bs.CondBit(bREXT, 0);
-        ptl.constraint.max_10bit        = bs.CondBit(bREXT, 0);
-        ptl.constraint.max_8bit         = bs.CondBit(bREXT, 0);
-        ptl.constraint.max_422chroma    = bs.CondBit(bREXT, 0);
-        ptl.constraint.max_420chroma    = bs.CondBit(bREXT, 0);
-        ptl.constraint.max_monochrome   = bs.CondBit(bREXT, 0);
-        ptl.constraint.intra            = bs.CondBit(bREXT, 0);
-        ptl.constraint.one_picture_only = bs.CondBit(bREXT, 0);
-        ptl.constraint.lower_bit_rate   = bs.CondBit(bREXT, 0);
+        profile_tier_level.constraint.max_12bit        = bs.CondBit(bREXT, 0);
+        profile_tier_level.constraint.max_10bit        = bs.CondBit(bREXT, 0);
+        profile_tier_level.constraint.max_8bit         = bs.CondBit(bREXT, 0);
+        profile_tier_level.constraint.max_422chroma    = bs.CondBit(bREXT, 0);
+        profile_tier_level.constraint.max_420chroma    = bs.CondBit(bREXT, 0);
+        profile_tier_level.constraint.max_monochrome   = bs.CondBit(bREXT, 0);
+        profile_tier_level.constraint.intra            = bs.CondBit(bREXT, 0);
+        profile_tier_level.constraint.one_picture_only = bs.CondBit(bREXT, 0);
+        profile_tier_level.constraint.lower_bit_rate   = bs.CondBit(bREXT, 0);
 
         //general_reserved_zero_34bits
         MFX_CHECK(!bs.GetBits(24), MFX_ERR_UNSUPPORTED);
@@ -255,16 +255,16 @@ mfxStatus ParsePTL(
         //general_reserved_zero_43bits
         MFX_CHECK(bREXT || !bs.GetBits(9), MFX_ERR_UNSUPPORTED);
 
-        /*if (   ptl.profile_idc >= 1 && ptl.profile_idc <= 5
-            || (ptl.profile_compatibility_flags & 0x3e))
+        /*if (   profile_tier_level.profile_idc >= 1 && profile_tier_level.profile_idc <= 5
+            || (profile_tier_level.profile_compatibility_flags & 0x3e))
         {
-            ptl.inbld_flag = bs.GetBit();
+            profile_tier_level.inbld_flag = bs.GetBit();
         }
         else*/
         MFX_CHECK(!bs.GetBit(), MFX_ERR_UNSUPPORTED);//general_reserved_zero_bit
     }
 
-    ptl.level_idc = (mfxU8)bs.CondBits(ptl.level_present_flag, 8, 0);
+    profile_tier_level.level_idc = (mfxU8)bs.CondBits(profile_tier_level.level_present_flag, 8, 0);
 
     return MFX_ERR_NONE;
 }
@@ -517,7 +517,7 @@ mfxStatus Parser::ParseSPS(BitstreamReader& bs, SPS & sps)
         MFX_CHECK(!(sps.max_sub_layers_minus1 && bs.GetBits(2 * 8)) // reserved_zero_2bits[ i ]
             , MFX_ERR_INVALID_VIDEO_PARAM);
 
-        auto ParsePTLWrap = [&](PTL& ptl) { return Res2Bool(sts, ParsePTL(bs, ptl, m_needRextConstraints)); };
+        auto ParsePTLWrap = [&](ProfileTierLevel& profile_tier_level) { return Res2Bool(sts, ParsePTL(bs, profile_tier_level, m_needRextConstraints)); };
         bool bErr = std::any_of(sps.sub_layer, sps.sub_layer + sps.max_sub_layers_minus1, ParsePTLWrap);
         MFX_CHECK(!bErr, sts);
 

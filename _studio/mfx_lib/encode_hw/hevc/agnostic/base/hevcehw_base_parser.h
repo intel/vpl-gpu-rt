@@ -73,7 +73,7 @@ namespace Base
         {}
 
     protected:
-        std::function<bool(const PTL&)> m_needRextConstraints;
+        std::function<bool(const ProfileTierLevel&)> m_needRextConstraints;
         std::function<bool(const SPS&, mfxU8, IBsReader&)> m_readSpsExt;
         std::function<bool(const PPS&, mfxU8, IBsReader&)> m_readPpsExt;
 

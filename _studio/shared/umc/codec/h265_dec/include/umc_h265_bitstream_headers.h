@@ -352,7 +352,7 @@ protected:
     // Parse profile tier layers header part in VPS or SPS
     void  parsePTL(H265ProfileTierLevel *rpcPTL, int maxNumSubLayersMinus1);
     // Parse one profile tier layer
-    void  parseProfileTier(H265PTL *ptl);
+    void  parseProfileTier(H265PTL *profileTierLevel);
 
     // Decoding SEI message functions
     int32_t sei_message(const HeaderSet<H265SeqParamSet> & sps,int32_t current_sps,H265SEIPayLoad *spl);

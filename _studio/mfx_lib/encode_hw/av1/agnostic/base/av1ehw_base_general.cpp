@@ -2837,10 +2837,10 @@ void General::SetDefaults(
 
     SetDefaultOrderHint(pAuxPar);
 
-    mfxExtTemporalLayers* pTL = ExtBuffer::Get(par);
-    if (pTL && pTL->NumLayers && pTL->Layers)
+    mfxExtTemporalLayers* pTemporalLayers = ExtBuffer::Get(par);
+    if (pTemporalLayers && pTemporalLayers->NumLayers && pTemporalLayers->Layers)
     {
-        SetDefault(pTL->Layers[0].FrameRateScale, mfxU16(1));
+        SetDefault(pTemporalLayers->Layers[0].FrameRateScale, mfxU16(1));
     }
 
 }
@@ -3153,31 +3153,31 @@ mfxStatus General::CheckIOPattern(mfxVideoParam & par)
 
 mfxStatus General::CheckTemporalLayers(mfxVideoParam & par)
 {
-    mfxExtTemporalLayers* pTL = ExtBuffer::Get(par);
-    MFX_CHECK(pTL && pTL->NumLayers != 0, MFX_ERR_NONE);
+    mfxExtTemporalLayers* pTemporalLayers = ExtBuffer::Get(par);
+    MFX_CHECK(pTemporalLayers && pTemporalLayers->NumLayers != 0, MFX_ERR_NONE);
 
     mfxU32 invalid = 0;
-    invalid += SetIf(pTL->NumLayers, pTL->Layers == nullptr, 0);
+    invalid += SetIf(pTemporalLayers->NumLayers, pTemporalLayers->Layers == nullptr, 0);
     MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
 
-    invalid += CheckOrZero<mfxU16>(pTL->Layers[0].FrameRateScale, 0, 1);
+    invalid += CheckOrZero<mfxU16>(pTemporalLayers->Layers[0].FrameRateScale, 0, 1);
     MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
 
-    mfxU16 nTL = pTL->NumLayers;
+    mfxU16 nTL = pTemporalLayers->NumLayers;
     // Strip tailing zeros, except for the first
-    while (nTL > 1 && pTL->Layers[nTL - 1].FrameRateScale == 0)
+    while (nTL > 1 && pTemporalLayers->Layers[nTL - 1].FrameRateScale == 0)
     {
         nTL--;
     }
 
     mfxU32 changed = 0;
-    changed += CheckMaxOrClip(pTL->NumLayers, nTL);
+    changed += CheckMaxOrClip(pTemporalLayers->NumLayers, nTL);
 
     // FrameScale 0 not allowd in the middle except for the first and trailing layers, the latter have been stripped
-    mfxU16 scalePrev = std::max(mfxU16(1), pTL->Layers[0].FrameRateScale);
-    for (mfxU16 idx = 1; idx < pTL->NumLayers; ++idx)
+    mfxU16 scalePrev = std::max(mfxU16(1), pTemporalLayers->Layers[0].FrameRateScale);
+    for (mfxU16 idx = 1; idx < pTemporalLayers->NumLayers; ++idx)
     {
-        mfxU16 scaleCurr = pTL->Layers[idx].FrameRateScale;
+        mfxU16 scaleCurr = pTemporalLayers->Layers[idx].FrameRateScale;
         MFX_CHECK(scaleCurr != 0, MFX_ERR_INVALID_VIDEO_PARAM);
 
         MFX_CHECK(!CheckMinOrZero(scaleCurr, scalePrev + 1), MFX_ERR_UNSUPPORTED);

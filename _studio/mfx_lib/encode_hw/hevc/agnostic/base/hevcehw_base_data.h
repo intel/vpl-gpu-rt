@@ -82,7 +82,7 @@ namespace Base
         num_NALU_TYPE
     };
 
-    struct PTL
+    struct ProfileTierLevel
     {
         mfxU8  profile_space : 2;
         mfxU8  tier_flag     : 1;
@@ -173,8 +173,8 @@ namespace Base
     struct LayersInfo
     {
         mfxU8 sub_layer_ordering_info_present_flag : 1;
-        PTL general;
-        struct SubLayer : PTL, SubLayerOrdering {} sub_layer[8];
+        ProfileTierLevel general;
+        struct SubLayer : ProfileTierLevel, SubLayerOrdering {} sub_layer[8];
     };
 
 
@@ -1399,7 +1399,7 @@ namespace Base
         using RealState           = StorageVar<__LINE__ - _KD, StorageW>;//available during Reset
         using ResetHint           = StorageVar<__LINE__ - _KD, Base::ResetHint>; //available during Reset
         using Reorder             = StorageVar<__LINE__ - _KD, Reorderer>;
-        using NeedRextConstraints = StorageVar<__LINE__ - _KD, std::function<bool(const Base::PTL&)>>;
+        using NeedRextConstraints = StorageVar<__LINE__ - _KD, std::function<bool(const Base::ProfileTierLevel&)>>;
         using ReadSpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::SPS&, mfxU8, IBsReader&)>>;
         using ReadPpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::PPS&, mfxU8, IBsReader&)>>;
         using PackSpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::SPS&, mfxU8, IBsWriter&)>>;

@@ -218,9 +218,9 @@ void SCC::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     Push(BLK_LoadSPSPPS
         , [](const mfxVideoParam&, mfxVideoParam&, StorageRW& strg) -> mfxStatus
     {
-        Glob::NeedRextConstraints::GetOrConstruct(strg) = [](const Base::PTL& ptl)
+        Glob::NeedRextConstraints::GetOrConstruct(strg) = [](const Base::ProfileTierLevel& profile_tier_level)
         {
-            return ((ptl.profile_idc == 9) || (ptl.profile_compatibility_flags & (0x1 << 9)));
+            return ((profile_tier_level.profile_idc == 9) || (profile_tier_level.profile_compatibility_flags & (0x1 << 9)));
         };
         auto& sccflags = Glob::SCCFlags::GetOrConstruct(strg);
 

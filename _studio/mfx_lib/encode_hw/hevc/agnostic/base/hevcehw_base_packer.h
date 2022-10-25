@@ -191,7 +191,7 @@ namespace Base
         void PackPPS  (BitstreamWriter& bs, PPS const & pps);
         void PackVUI  (BitstreamWriter& bs, VUI        const & vui, mfxU16 max_sub_layers_minus1);
         void PackHRD  (BitstreamWriter& bs, HRDInfo    const & hrd, bool commonInfPresentFlag, mfxU16 maxNumSubLayersMinus1);
-        void PackPTL  (BitstreamWriter& bs, LayersInfo const & ptl, mfxU16 max_sub_layers_minus1);
+        void PackPTL  (BitstreamWriter& bs, LayersInfo const & profile_tier_level, mfxU16 max_sub_layers_minus1);
         void PackSLO  (BitstreamWriter& bs, LayersInfo const & slo, mfxU16 max_sub_layers_minus1);
         mfxU32 PackSLD(BitstreamWriter& bs, ScalingList const & scl);
 
