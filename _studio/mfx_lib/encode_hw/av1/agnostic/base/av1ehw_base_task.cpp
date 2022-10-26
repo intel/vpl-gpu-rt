@@ -40,6 +40,12 @@ mfxU16 TaskManager::GetBufferSize() const
 
 mfxU16 TaskManager::GetMaxParallelSubmits() const
 {
+    const auto& vp = Glob::VideoParam::Get(*m_pGlob);
+    if (vp.AsyncDepth == 1)
+    {
+        return mfxU16(1);
+    }
+
     return std::min<mfxU16>(2, Glob::AllocBS::Get(*m_pGlob).GetResponse().NumFrameActual);
 }
 
