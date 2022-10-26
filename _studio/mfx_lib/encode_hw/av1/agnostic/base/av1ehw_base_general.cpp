@@ -1659,9 +1659,7 @@ void General::GetVideoParam(const FeatureBlocks& blocks, TPushGVP Push)
         , [this, &blocks](mfxVideoParam& out, StorageR& global) -> mfxStatus
     {
         out.mfx.LowPower = MFX_CODINGOPTION_ON;
-
-        const bool isRAB = out.mfx.GopPicSize > 2 && out.mfx.GopRefDist > 1;
-        if (isRAB)
+        if (HaveRABFrames(out))
         {
             auto defPar = GetRTDefaults(global);
             const mfxU32 numCacheFrames = (defPar.base.GetBRefType(defPar) != MFX_B_REF_PYRAMID) ? mfxU32(2)
@@ -2697,7 +2695,7 @@ void SetDefaultGOP(
         SetIf(pCO3->PRefType, !pCO3->PRefType, [&]() { return defPar.base.GetPRefType(defPar); });
         
         // change default to LDB when RAB
-        if (par.mfx.GopPicSize > 2 && par.mfx.GopRefDist > 1)
+        if (General::HaveRABFrames(par))
             SetDefault<mfxU16>(pCO3->GPB, MFX_CODINGOPTION_ON);
         else
             SetDefault<mfxU16>(pCO3->GPB, MFX_CODINGOPTION_OFF);

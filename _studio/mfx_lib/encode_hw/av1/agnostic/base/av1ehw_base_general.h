@@ -215,8 +215,12 @@ namespace Base
         TTaskIt ReorderWrap(const ExtBuffer::Param<mfxVideoParam> & par, TTaskIt begin, TTaskIt end, bool flush);
         static mfxU32 GetRawBytes(const Defaults::Param& par);
         static bool IsInVideoMem(const mfxVideoParam& par);
+        static bool HaveRABFrames(const mfxVideoParam& par)
+        {
+            return par.mfx.GopPicSize > 2 && par.mfx.GopRefDist > 1;
+        }
 
-        mfxU16 GetMaxRaw(const mfxVideoParam & par)
+        mfxU16 GetMaxRaw(const mfxVideoParam& par)
         {
             // Extend extra Raw for frames buffered between LA submit and LA Query stage
             const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
@@ -225,11 +229,17 @@ namespace Base
         }
         mfxU16 GetMaxRec(StorageR& strg, const mfxVideoParam& par)
         {
+            if (!HaveRABFrames(par))
+                return par.AsyncDepth + par.mfx.NumRefFrame + (par.AsyncDepth > 1);
+
             auto dflts = GetRTDefaults(strg);
             return par.AsyncDepth + dflts.base.GetNumBPyramidLayers(dflts) + par.mfx.NumRefFrame + 2;
         }
         mfxU16 GetMaxBS(StorageR& strg, const mfxVideoParam& par)
         {
+            if (!HaveRABFrames(par))
+                return par.AsyncDepth + (par.AsyncDepth > 1);
+
             auto dflts = GetRTDefaults(strg);
             return par.AsyncDepth + dflts.base.GetNumBPyramidLayers(dflts) + 2;
         }
