@@ -156,9 +156,7 @@ namespace H264DCaps {
     // Progressive only for Platforms Before Tgllp.
     inline bool IsOnlyProgressivePicStructSupported(eMFXHWType platform)
     {
-        return
-            platform != MFX_HW_MTL &&
-            platform != MFX_HW_DG2;
+        return platform < MFX_HW_XE_HP_SDV;
     }
 }
 #endif // MFX_ENABLE_H264_VIDEO_DECODE
