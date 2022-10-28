@@ -216,6 +216,7 @@ public:
             startCodeSize1 = 0;
             source += size;
             size = 0;
+            MFX_LOG_ERROR("Incomplete bitstream will be sent to driver in completeframe mode \n");
         }
 
         if (iCodeNext == -1)
