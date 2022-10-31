@@ -128,8 +128,7 @@ namespace VppCaps
 
     inline bool IsFieldProcessingSupported(eMFXHWType platform)
     {
-        return platform != MFX_HW_DG2
-        ;
+        return platform < MFX_HW_MTL && platform != MFX_HW_DG2;
     }
 }
 
