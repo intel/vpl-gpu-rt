@@ -92,7 +92,7 @@ void BitstreamWriter::PutBitsBuffer(mfxU32 n, void* bb, mfxU32 o)
         N = n / 8;
         n &= 7;
 
-        assert(N + !!n < (m_bsEnd - m_bs));
+        assert(std::ptrdiff_t(N + !!n) < std::ptrdiff_t(m_bsEnd - m_bs));
         std::copy(b, b + N, m_bs);
 
         m_bs += N;
@@ -108,7 +108,7 @@ void BitstreamWriter::PutBitsBuffer(mfxU32 n, void* bb, mfxU32 o)
     };
     auto CopyAlignedToUnaligned = [&]()
     {
-        assert((n + 7 - m_bitOffset) / 8 < (m_bsEnd - m_bs));
+        assert(std::ptrdiff_t(n + 7 - m_bitOffset) / 8 < std::ptrdiff_t(m_bsEnd - m_bs));
 
         while (n >= 24)
         {
