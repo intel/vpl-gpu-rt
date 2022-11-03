@@ -1350,6 +1350,9 @@ namespace Base
         , FEATURE_SCC
         , FEATURE_SCCMODE
         , FEATURE_CAPS
+#ifdef MFX_ENABLE_PXP
+        , FEATURE_PXP
+#endif
         , NUM_FEATURES
     };
 
