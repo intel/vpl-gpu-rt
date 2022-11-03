@@ -260,7 +260,7 @@ inline bool IsSwEncToolsImplicit(const mfxVideoParam &video)
     {
         const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
         if(
-            (video.mfx.GopRefDist == 1 || video.mfx.GopRefDist == 2 || video.mfx.GopRefDist == 4 || video.mfx.GopRefDist == 8 || video.mfx.GopRefDist == 16)
+            (video.mfx.GopRefDist == 2 || video.mfx.GopRefDist == 4 || video.mfx.GopRefDist == 8 || video.mfx.GopRefDist == 16)
             && IsOn(pExtOpt2->ExtBRC)
             && !(pExtOpt3 && pExtOpt3->ScenarioInfo != MFX_SCENARIO_UNKNOWN)
         )
@@ -401,13 +401,12 @@ void AV1EHW::Base::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsCo
         if (IsSwEncToolsSupported(video))
         {
             bool bAdaptiveI = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveI)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
-            bool bHasB = video.mfx.GopRefDist > 1;
-            bool bAdaptiveB = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveB)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT) && bHasB;
+            bool bAdaptiveB = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveB)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
         
             SetDefaultOpt(config.AdaptiveI, bAdaptiveI);
             SetDefaultOpt(config.AdaptiveB, bAdaptiveB);
             SetDefaultOpt(config.AdaptivePyramidQuantP, false);
-            SetDefaultOpt(config.AdaptivePyramidQuantB, bHasB);
+            SetDefaultOpt(config.AdaptivePyramidQuantB, true);
         }
         SetDefaultOpt(config.BRC, (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
             video.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
@@ -420,8 +419,8 @@ void AV1EHW::Base::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsCo
         SetDefaultOpt(config.AdaptiveMBQP, bMBQPSupport && lplaAssistedBRC && pExtOpt2 && IsOn(pExtOpt2->MBBRC) && bIsSegModeUnknown);
 
         //these features are not supported for now, we will enable them in future
-        config.AdaptiveRefP          = MFX_CODINGOPTION_OFF;
-        config.AdaptiveRefB          = MFX_CODINGOPTION_OFF;
+        config.AdaptiveRefP          = MFX_CODINGOPTION_OFF;        
+        config.AdaptiveRefB          = MFX_CODINGOPTION_OFF;  
         config.AdaptiveLTR           = MFX_CODINGOPTION_OFF;
         config.AdaptiveQuantMatrices = MFX_CODINGOPTION_OFF;
     }
@@ -469,13 +468,12 @@ static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & s
         bIsEncToolsEnabled = IsEncToolsOn(video);
 
         bool bAdaptiveI = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveI)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
-        bool bHasB = video.mfx.GopRefDist > 1;
-        bool bAdaptiveB = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveB)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT) && bHasB;
+        bool bAdaptiveB = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveB)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
         bool bAdaptiveRef = false;
 
         changed += CheckFlag(pConfig->AdaptiveI, bIsEncToolsEnabled && bAdaptiveI);
         changed += CheckFlag(pConfig->AdaptiveB, bIsEncToolsEnabled && bAdaptiveB);
-        changed += CheckFlag(pConfig->AdaptivePyramidQuantB, bIsEncToolsEnabled && bHasB);
+        changed += CheckFlag(pConfig->AdaptivePyramidQuantB, bIsEncToolsEnabled);
         changed += CheckFlag(pConfig->AdaptivePyramidQuantP, bIsEncToolsEnabled);
 
         changed += CheckFlag(pConfig->AdaptiveRefP, bIsEncToolsEnabled  && bAdaptiveRef);
