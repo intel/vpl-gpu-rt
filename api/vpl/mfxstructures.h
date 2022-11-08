@@ -2891,25 +2891,25 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
    `InsertPayloadToggle` will be set to `MFX_PAYLOAD_IDR` if OneVPL get valid HDR SEI, otherwise it will be set to `MFX_PAYLOAD_OFF`.
    This function is support for HEVC only now.
 
-   Field semantics are defined in ITU-T* H.265 Annex D.
+   Encoding or Decoding, Field semantics are defined in ITU-T* H.265 Annex D, AV1 6.7.4 Metadata OBU semantics.
+
+   Video processing, `DisplayPrimariesX[3]` and `WhitePointX` are in increments of 0.00002, in the range of [5, 37000]. `DisplayPrimariesY[3]`
+   and `WhitePointY` are in increments of 0.00002, in the range of [5, 42000]. `MaxDisplayMasteringLuminance` is in units of 1 candela per square meter.
+   `MinDisplayMasteringLuminance` is in units of 0.0001 candela per square meter.
 */
 typedef struct {
     mfxExtBuffer    Header; /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME. */
     mfxU16      reserved[15];
 
     mfxU16 InsertPayloadToggle;  /*!< InsertHDRPayload enumerator value. */
-    mfxU16 DisplayPrimariesX[3]; /*!< Color primaries for a video source in increments of 0.00002. Consist of RGB x coordinates and
-                                       define how to convert colors from RGB color space to CIE XYZ color space. Fields range is
-                                       0 to 50000. */
-    mfxU16 DisplayPrimariesY[3]; /*!< Color primaries for a video source in increments of 0.00002. Consists of RGB y coordinates and
-                                       defines how to convert colors from RGB color space to CIE XYZ color space. Field range is
-                                       0 to 50000. */
+    mfxU16 DisplayPrimariesX[3]; /*!< Color primaries for a video source. Consist of RGB x coordinates and
+                                       define how to convert colors from RGB color space to CIE XYZ color space. */
+    mfxU16 DisplayPrimariesY[3]; /*!< Color primaries for a video source. Consists of RGB y coordinates and
+                                       defines how to convert colors from RGB color space to CIE XYZ color space.*/
     mfxU16 WhitePointX;          /*!< White point X coordinate. */
     mfxU16 WhitePointY;          /*!< White point Y coordinate. */
-    mfxU32 MaxDisplayMasteringLuminance; /*!< Specify maximum luminance of the display on which the content was authored in units of 0.00001
-                                              candelas per square meter. Field range is 1 to 65535. */
-    mfxU32 MinDisplayMasteringLuminance; /*!< Specify minimum luminance of the display on which the content was authored in units of 0.00001
-                                              candelas per square meter. Field range is 1 to 65535. */
+    mfxU32 MaxDisplayMasteringLuminance; /*!< Specify maximum luminance of the display on which the content was authored.*/
+    mfxU32 MinDisplayMasteringLuminance; /*!< Specify minimum luminance of the display on which the content was authored. */
 } mfxExtMasteringDisplayColourVolume;
 MFX_PACK_END()
 
@@ -2932,7 +2932,7 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
    `InsertPayloadToggle` will be set to `MFX_PAYLOAD_IDR` if OneVPL get valid HDR SEI, otherwise it will be set to `MFX_PAYLOAD_OFF`.
    This function is support for HEVC only now.
 
-   Field semantics are defined in ITU-T* H.265 Annex D.
+   Field semantics are defined in ITU-T* H.265 Annex D, AV1 6.7.3 Metadata high dynamic range content light level semantics.
 */
 typedef struct {
     mfxExtBuffer    Header; /*!< Extension buffer header. Header.BufferId must be equal to EXTBUFF_CONTENT_LIGHT_LEVEL_INFO. */
