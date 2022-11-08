@@ -130,6 +130,11 @@ namespace VppCaps
     {
         return platform < MFX_HW_MTL && platform != MFX_HW_DG2;
     }
+
+    inline bool IsScalingModeSupportEU(eMFXHWType platform)
+    {
+        return platform >= MFX_HW_DG2;
+    }
 }
 
 #ifdef MFX_ENABLE_VP8_VIDEO_DECODE
