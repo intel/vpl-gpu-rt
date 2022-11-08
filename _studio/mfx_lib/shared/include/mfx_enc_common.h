@@ -95,8 +95,10 @@ mfxU32 TranslateMfxFRCodeMPEG2(mfxFrameInfo *info, mfxU32 *codeN, mfxU32* codeD)
 mfxExtBuffer*       GetExtBuffer       (mfxExtBuffer** ebuffers, mfxU32 nbuffers, mfxU32 BufferId);
 mfxExtCodingOption* GetExtCodingOptions(mfxExtBuffer** ebuffers, mfxU32 nbuffers);
 mfxExtVideoSignalInfo* GetExtVideoSignalInfo(mfxExtBuffer** ebuffers, mfxU32 nbuffers);
+mfxExtChromaLocInfo* GetExtChromaLocInfo(mfxExtBuffer** ebuffers, mfxU32 nbuffers);
 
 mfxStatus CheckExtVideoSignalInfo(mfxExtVideoSignalInfo * videoSignalInfo);
+mfxStatus CheckExtChromaLocInfo(mfxExtChromaLocInfo* chromaLocInfo);
 
 inline mfxI32 min4(mfxI32 a, mfxI32 b,mfxI32 c,mfxI32 d)
 {

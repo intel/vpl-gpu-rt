@@ -1877,6 +1877,11 @@ public:
         sps.vui.sar_width                       = fi.AspectRatioW;
         sps.vui.sar_height                      = fi.AspectRatioH;
 
+        const mfxExtChromaLocInfo& CLI = ExtBuffer::Get(defPar.mvp);
+        sps.vui.chroma_loc_info_present_flag        = mfxU8(CLI.ChromaLocInfoPresentFlag);
+        sps.vui.chroma_sample_loc_type_top_field    = mfxU8(CLI.ChromaSampleLocTypeTopField);
+        sps.vui.chroma_sample_loc_type_bottom_field = mfxU8(CLI.ChromaSampleLocTypeBottomField);
+
         const mfxExtVideoSignalInfo& VSI = ExtBuffer::Get(defPar.mvp);
         sps.vui.video_format                    = mfxU8(VSI.VideoFormat);
         sps.vui.video_full_range_flag           = VSI.VideoFullRange;

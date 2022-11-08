@@ -830,6 +830,10 @@ bool mfxVideoParamWrapper::CreateExtendedBuffer(mfxU32 bufferId)
         m_buffers.AddTypedBuffer<mfxExtCodingOption>(bufferId);
         break;
 
+    case MFX_EXTBUFF_CHROMA_LOC_INFO:
+        m_buffers.AddTypedBuffer<mfxExtChromaLocInfo>(bufferId);
+        break;
+
     default:
         assert(false);
         return false;

@@ -284,6 +284,14 @@ void Legacy::SetSupported(ParamSupport& blocks)
     {
         /* Just allow this buffer to be present at Init */
     });
+
+    blocks.m_ebCopySupported[MFX_EXTBUFF_CHROMA_LOC_INFO].emplace_back(
+        [](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
+    {
+        const auto& buf_src = *(const mfxExtChromaLocInfo*)pSrc;
+        auto& buf_dst = *(mfxExtChromaLocInfo*)pDst;
+        buf_dst = buf_src;
+    });
 }
 
 bool Legacy::IsTCBRC(const mfxVideoParam& par, mfxU16 tcbrcSupport)
@@ -532,6 +540,18 @@ void Legacy::SetInherited(ParamInheritance& par)
         INHERIT_OPT(VideoFullRange);
         INHERIT_OPT(ColourDescriptionPresent);
     });
+
+    par.m_ebInheritDefault[MFX_EXTBUFF_CHROMA_LOC_INFO].emplace_back(
+        [](const mfxVideoParam& /*parInit*/
+            , const mfxExtBuffer* pSrc
+            , const mfxVideoParam& /*parReset*/
+            , mfxExtBuffer* pDst)
+        {
+            INIT_EB(mfxExtChromaLocInfo);
+            INHERIT_OPT(ChromaLocInfoPresentFlag);
+            INHERIT_OPT(ChromaSampleLocTypeTopField);
+            INHERIT_OPT(ChromaSampleLocTypeBottomField);
+        });
 #undef INIT_EB
 #undef INHERIT_OPT
 }
@@ -3558,6 +3578,7 @@ mfxStatus Legacy::CheckESPackParam(mfxVideoParam & par, eMFXHWType hw)
     mfxExtCodingOption*     pCO = ExtBuffer::Get(par);
     mfxExtCodingOption2*    pCO2 = ExtBuffer::Get(par);
     mfxExtCodingOption3*    pCO3 = ExtBuffer::Get(par);
+    mfxExtChromaLocInfo*    pCLI = ExtBuffer::Get(par);
     mfxExtVideoSignalInfo*  pVSI = ExtBuffer::Get(par);
 
     if (pCO)
@@ -3596,6 +3617,13 @@ mfxStatus Legacy::CheckESPackParam(mfxVideoParam & par, eMFXHWType hw)
         changed += CheckRangeOrSetDefault<mfxU16>(pVSI->MatrixCoefficients, 0, 255, 2);
         changed += CheckOrZero<mfxU16, 0, 1>(pVSI->VideoFullRange);
         changed += CheckOrZero<mfxU16, 0, 1>(pVSI->ColourDescriptionPresent);
+    }
+
+    if (pCLI)
+    {
+        changed += CheckOrZero<mfxU16, 0, 1>(pCLI->ChromaLocInfoPresentFlag);
+        changed += CheckRangeOrSetDefault<mfxU16>(pCLI->ChromaSampleLocTypeTopField, 0, 255, 0);
+        changed += CheckRangeOrSetDefault<mfxU16>(pCLI->ChromaSampleLocTypeBottomField, 0, 255, 0);
     }
 
     if (pCO3)

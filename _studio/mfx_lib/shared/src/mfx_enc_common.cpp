@@ -267,6 +267,11 @@ mfxExtVideoSignalInfo* GetExtVideoSignalInfo(mfxExtBuffer** ebuffers, mfxU32 nbu
     return (mfxExtVideoSignalInfo *)mfx::GetExtBuffer(ebuffers, nbuffers, MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
 }
 
+mfxExtChromaLocInfo* GetExtChromaLocInfo(mfxExtBuffer** ebuffers, mfxU32 nbuffers)
+{
+    return (mfxExtChromaLocInfo*)mfx::GetExtBuffer(ebuffers, nbuffers, MFX_EXTBUFF_CHROMA_LOC_INFO);
+}
+
 //----------work with marker-----------------------------
 mfxStatus SetFrameLockMarker(mfxFrameData* pFrame, mfxU8 LockMarker)
 {
@@ -612,6 +617,28 @@ mfxStatus CheckExtVideoSignalInfo(mfxExtVideoSignalInfo * videoSignalInfo)
         if (videoSignalInfo->MatrixCoefficients > 255)
         {
             videoSignalInfo->MatrixCoefficients = 2; // unspecified image characteristics
+            sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+        }
+    }
+
+    return sts;
+}
+
+mfxStatus CheckExtChromaLocInfo(mfxExtChromaLocInfo* chromaLocInfo)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+
+    if (chromaLocInfo->ChromaLocInfoPresentFlag)
+    {
+        if (chromaLocInfo->ChromaSampleLocTypeTopField > 255)
+        {
+            chromaLocInfo->ChromaSampleLocTypeTopField = 0;
+            sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+        }
+
+        if (chromaLocInfo->ChromaSampleLocTypeBottomField > 255)
+        {
+            chromaLocInfo->ChromaSampleLocTypeBottomField = 0;
             sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
         }
     }
