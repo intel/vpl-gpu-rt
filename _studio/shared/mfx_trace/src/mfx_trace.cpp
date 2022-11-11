@@ -253,30 +253,20 @@ mfxTraceU32 mfx_trace_get_category_index(mfxTraceChar* category, mfxTraceU32& in
 
 /*------------------------------------------------------------------------------*/
 
-inline bool MFXTrace_IsPrintableCategoryAndLevel(mfxTraceChar* category, mfxTraceU32 level)
+inline bool MFXTrace_IsPrintableCategoryAndLevel(mfxTraceU32 m_OutputInitilized, mfxTraceU32 level)
 {
-    mfxTraceU32 index = 0;
-
-    if (!g_OutputMode)
-    {
-        return false;
-    }
-    if (!mfx_trace_get_category_index(category, index))
-    {
-        if (level <= g_mfxTraceCategoriesTable[index].m_level) return true;
-    }
-    else if (!g_mfxTraceCategoriesTable)
-    {
+    bool logFlag = false;
+    if (m_OutputInitilized == MFX_TRACE_OUTPUT_TEXTLOG) {
 #ifndef NDEBUG
-        if(g_Level == MFX_TXTLOG_LEVEL_MAX)
+        if (g_Level == MFX_TXTLOG_LEVEL_MAX)
         {
-            return true;
+            logFlag = true;
         }
         else if (g_Level == MFX_TXTLOG_LEVEL_API_AND_INTERNAL)
         {
             if (level != MFX_TRACE_LEVEL_API_PARAMS)
             {
-                return true;
+                logFlag = true;
             }
         }
         else if (g_Level == MFX_TXTLOG_LEVEL_API_AND_PARAMS)
@@ -286,18 +276,33 @@ inline bool MFXTrace_IsPrintableCategoryAndLevel(mfxTraceChar* category, mfxTrac
         {
             if (level == MFX_TRACE_LEVEL_API_PARAMS || level == MFX_TRACE_LEVEL_API)
             {
-                return true;
+                logFlag = true;
             }
         }
         else if (g_Level == MFX_TXTLOG_LEVEL_API)
         {
             if (level == MFX_TRACE_LEVEL_API)
             {
-                return true;
+                logFlag = true;
             }
         }
     }
-    return false;
+    else if(m_OutputInitilized == MFX_TRACE_OUTPUT_ETW)
+    {
+        if (EventCfg & (1 << MFX_ETWLOG_LEVEL_MAX))
+        {
+            logFlag = true;
+        }
+        else if (EventCfg & (1 << MFX_ETWLOG_LEVEL_API))
+        {
+            if (level == MFX_TRACE_LEVEL_API)
+            {
+                logFlag = true;
+            }
+        }
+    }
+
+    return logFlag;
 }
 
 /*------------------------------------------------------------------------------*/
@@ -422,8 +427,6 @@ mfxTraceU32 MFXTrace_DebugMessage(mfxTraceStaticHandle *static_handle,
                              mfxTraceChar* category, mfxTraceLevel level,
                              const char *message, const char *format, ...)
 {
-    if (!MFXTrace_IsPrintableCategoryAndLevel(category, level)) return 0;
-
     mfxTraceU32 sts = 0, res = 0;
     mfxTraceU32 i = 0;
     va_list args;
@@ -433,6 +436,8 @@ mfxTraceU32 MFXTrace_DebugMessage(mfxTraceStaticHandle *static_handle,
     {
         if (g_OutputMode & g_TraceAlgorithms[i].m_OutputInitilized)
         {
+            if (!MFXTrace_IsPrintableCategoryAndLevel(g_TraceAlgorithms[i].m_OutputInitilized, level)) continue;
+
             res = g_TraceAlgorithms[i].m_vDebugMessageFn(static_handle,
                                                          file_name, line_num,
                                                          function_name,
@@ -454,7 +459,6 @@ mfxTraceU32 MFXTrace_vDebugMessage(mfxTraceStaticHandle *static_handle,
                               const char *message,
                               const char *format, va_list args)
 {
-    if (!MFXTrace_IsPrintableCategoryAndLevel(category, level)) return 0;
 
     mfxTraceU32 sts = 0, res = 0;
     mfxTraceU32 i = 0;
@@ -463,6 +467,8 @@ mfxTraceU32 MFXTrace_vDebugMessage(mfxTraceStaticHandle *static_handle,
     {
         if (g_OutputMode & g_TraceAlgorithms[i].m_OutputInitilized)
         {
+            if (!MFXTrace_IsPrintableCategoryAndLevel(g_TraceAlgorithms[i].m_OutputInitilized, level)) continue;
+
             res = g_TraceAlgorithms[i].m_vDebugMessageFn(static_handle,
                                                          file_name, line_num,
                                                          function_name,
@@ -491,8 +497,6 @@ mfxTraceU32 MFXTrace_BeginTask(mfxTraceStaticHandle *static_handle,
         static_handle->level    = level;
     }
 
-    if (!MFXTrace_IsPrintableCategoryAndLevel(category, level)) return 0;
-
     mfxTraceU32 sts = 0, res = 0;
     mfxTraceU32 i = 0;
 
@@ -500,6 +504,8 @@ mfxTraceU32 MFXTrace_BeginTask(mfxTraceStaticHandle *static_handle,
     {
         if (g_OutputMode & g_TraceAlgorithms[i].m_OutputInitilized)
         {
+            if (!MFXTrace_IsPrintableCategoryAndLevel(g_TraceAlgorithms[i].m_OutputInitilized, level)) continue;
+
             res = g_TraceAlgorithms[i].m_BeginTaskFn(static_handle,
                                                      file_name, line_num,
                                                      function_name,
@@ -528,8 +534,6 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
         level    = static_handle->level;
     }
 
-    if (!MFXTrace_IsPrintableCategoryAndLevel(category, level)) return 0;
-
     mfxTraceU32 sts = 0, res = 0;
     mfxTraceU32 i = 0;
 
@@ -537,6 +541,8 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
     {
         if (g_OutputMode & g_TraceAlgorithms[i].m_OutputInitilized)
         {
+            if (!MFXTrace_IsPrintableCategoryAndLevel(g_TraceAlgorithms[i].m_OutputInitilized, level)) continue;
+
             res = g_TraceAlgorithms[i].m_EndTaskFn(static_handle, task_handle);
             if (!sts && res) sts = res;
         }

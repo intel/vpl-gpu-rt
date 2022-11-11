@@ -191,6 +191,9 @@
           <event symbol="Decode_Buffer_DPB_H265Exit_VA" value="290" version="0" task="Decode_Buffer_DPB_H265_VA" opcode="win:Stop" />
 					<event symbol="MFX_Pipeline_Sticker_Start" value="293" version="0" task="MFX_Pipeline_Sticker" opcode="win:Start" template="t_MFX_Pipeline_Sticker_Start"></event>
 					<event symbol="MFX_Pipeline_Sticker_Stop" value="294" version="0" task="MFX_Pipeline_Sticker" opcode="win:Stop" template="t_MFX_Pipeline_Sticker_Stop"></event>
+          <event symbol="VPLMessageInfo" value="296" version="0" task="VPLMessage" opcode="win:Info" template="t_VPLMessage_Info"></event>
+          <event symbol="VPLMessageEntry" value="297" version="0" task="VPLMessage" opcode="win:Start" template="t_VPLMessage_Entry"></event>
+          <event symbol="VPLMessageExit" value="298" version="0" task="VPLMessage" opcode="win:Stop" template="t_VPLMessage_Exit"></event>
 				</events>
 				<tasks>
 					<task name="MFX_DecodeQuery" symbol="MFX_TRACE_API_DECODE_QUERY_TASK_ETW" value="1" eventGUID="{00000000-0000-0000-0000-000000000000}">
@@ -298,6 +301,7 @@
 		      <task name="Decode_Buffer_SliceParam_VP9_VA" symbol="VA_TRACE_API_VP9_SLICEPARAMETER_TASK" value="71" eventGUID="{00000000-0000-0000-0000-000000000000}" />
           <task name="Decode_Buffer_DPB_H265_VA" symbol="VA_TRACE_API_HEVC_DPBPARAMETER_TASK" value="72" eventGUID="{00000000-0000-0000-0000-000000000000}" />
 					<task name="MFX_Pipeline_Sticker" symbol="MFX_Pipeline_Sticker" value="73" eventGUID="{00000000-0000-0000-0000-000000000000}"></task>
+          <task name="VPLMessage" symbol="VPLMessage_TASK" value="74" eventGUID="{00000000-0000-0000-0000-000000000000}" />
 				</tasks>
 				<opcodes>
 				</opcodes>
@@ -2013,7 +2017,23 @@
 						<data name="[Pipeline Exit]" inType="win:AnsiString" outType="xs:string"></data>
 						<data name="[Pipeline Return]" inType="win:UInt32" outType="win:unsignedInt" map="mfxStatus"></data>
 					</template>
-			</templates>
+          <template tid="t_VPLMessage_Info">
+            <data name="line" inType="win:UInt32" outType="xs:unsignedInt"></data>
+            <data name="level" inType="win:UInt32" outType="xs:unsignedInt"></data>
+            <data name="functionName" inType="win:AnsiString" outType="xs:string"></data>
+            <data name="message" inType="win:AnsiString" outType="xs:string"></data>
+          </template>          
+          <template tid="t_VPLMessage_Entry">
+            <data name="level" inType="win:UInt8" outType="xs:unsignedByte"></data>
+            <data name="functionName" inType="win:AnsiString" outType="xs:string"></data>
+            <data name="lineNum" inType="win:UInt32" outType="xs:unsignedInt"></data>            
+          </template>
+          <template tid="t_VPLMessage_Exit">
+            <data name="level" inType="win:UInt8" outType="xs:unsignedByte"></data>
+            <data name="functionName" inType="win:AnsiString" outType="xs:string"></data>
+            <data name="lineNum" inType="win:UInt32" outType="xs:unsignedInt"></data>
+          </template>
+        </templates>
 			</provider>
 		</events>
 	</instrumentation>

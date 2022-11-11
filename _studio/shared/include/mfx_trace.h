@@ -143,6 +143,7 @@ enum mfxTraceTaskType
     VA_TRACE_API_VP9_SLICEPARAMETER_TASK,
     VA_TRACE_API_HEVC_DPBPARAMETER_TASK,
     MFX_TRACE_PIPELINE_STICKER_TASK,
+    VPLMessage_TASK,
 };
 
 // list of output modes
@@ -226,6 +227,12 @@ typedef enum _MEDIA_EVENT_FILTER_KEYID
     TR_KEY_DECODE_BASIC_INFO,
     TR_KEY_PIPELINE_STICKER,
 } MEDIA_EVENT_FILTER_KEYID;
+
+typedef enum _MEDIA_EVENT_LOG_KEYID
+{
+    MFX_ETWLOG_LEVEL_MAX = 16,   //include API Func, API PARAMS and internal Func
+    MFX_ETWLOG_LEVEL_API,   //include API Func
+} MEDIA_EVENT_LOG_KEYID;
 
 // delete the following levels completely
 #define MFX_TRACE_LEVEL_SCHED       MFX_TRACE_LEVEL_10
