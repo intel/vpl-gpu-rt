@@ -273,7 +273,7 @@ public:
     };
 
     // initialize available functionality
-    mfxStatus Initialize(eMFXHWType hwtype = MFX_HW_UNKNOWN);
+    mfxStatus Initialize(mfxU16 hwDeviceId, eMFXHWType hwtype = MFX_HW_UNKNOWN);
     mfxStatus InitializeSwapKernels(eMFXHWType hwtype = MFX_HW_UNKNOWN);
 
     // release all resources

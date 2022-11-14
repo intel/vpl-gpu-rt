@@ -121,6 +121,8 @@ public:
     virtual bool IsExternalFrameAllocator() const override;
     virtual eMFXHWType GetHWType()                override { return MFX_HW_UNKNOWN; }
 
+    virtual mfxU16    GetHWDeviceId()             override { return 0; }
+
     virtual mfxStatus CopyFrame(mfxFrameSurface1 *dst, mfxFrameSurface1 *src) override;
 
     virtual mfxStatus CopyBuffer(mfxU8 *, mfxU32, mfxFrameSurface1 *)         override { MFX_RETURN(MFX_ERR_UNKNOWN); }

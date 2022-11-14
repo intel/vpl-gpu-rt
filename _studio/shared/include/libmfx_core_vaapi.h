@@ -173,6 +173,7 @@ public:
 
 
     virtual eMFXHWType   GetHWType() override;
+    virtual mfxU16       GetHWDeviceId() override;
 
     virtual mfxStatus    CreateVA(mfxVideoParam * param, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, UMC::FrameAllocator *allocator) override;
     // to check HW capabilities

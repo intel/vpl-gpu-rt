@@ -81,9 +81,10 @@ public:
         MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
-    mfxStatus Initialize(eMFXHWType hwtype = MFX_HW_UNKNOWN)
+    mfxStatus Initialize(mfxU16 hwDeviceId, eMFXHWType hwtype = MFX_HW_UNKNOWN)
     {
         (void)hwtype;
+        (void)hwDeviceId;
         MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
     

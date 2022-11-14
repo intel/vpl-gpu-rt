@@ -210,6 +210,14 @@ eMFXHWType VAAPIVideoCORE_T<Base>::GetHWType()
 }
 
 template <class Base>
+mfxU16 VAAPIVideoCORE_T<Base>::GetHWDeviceId()
+{
+    std::ignore = MFX_STS_TRACE(this->CheckOrInitDisplay());
+
+    return this->m_deviceId;
+}
+
+template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::GetHandle(
     mfxHandleType type,
     mfxHDL *handle)
@@ -300,7 +308,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm()
 
     MFX_CHECK_NULL_PTR1(tmp_cm->GetCmDevice(*m_p_display_wrapper));
 
-    MFX_SAFE_CALL(tmp_cm->Initialize(GetHWType()));
+    MFX_SAFE_CALL(tmp_cm->Initialize(GetHWDeviceId(), GetHWType()));
 
     m_pCmCopy = std::move(tmp_cm);
 
