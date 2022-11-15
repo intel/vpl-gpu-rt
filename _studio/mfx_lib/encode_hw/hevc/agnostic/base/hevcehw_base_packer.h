@@ -118,7 +118,7 @@ namespace Base
         {}
 
     //protected:
-        static const mfxU32 RBSP_SIZE = 1024;
+        static const mfxU32 RBSP_SIZE = 4096;
         static const mfxU32 AUD_ES_SIZE = 8;
         static const mfxU32 VPS_ES_SIZE = 256;
         static const mfxU32 SPS_ES_SIZE = 1024;
