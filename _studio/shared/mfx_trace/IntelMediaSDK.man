@@ -1884,67 +1884,64 @@
             <data name="FrameOrder" inType="win:UInt32" outType="xs:unsignedInt" />
             <data name="TimeStamp" inType="win:UInt32" outType="xs:unsignedInt" />
           </template>
-          <template tid="Decode_Buffer_PictureParam_VP9_Info">
-            <data name="FrameHeightMinus1" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="FrameWidthMinus1" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="frame_type" inType="win:UInt32" map="VP9FrameType" />
-            <data name="show_frame" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="error_resilient_mode" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="intra_only" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="LastRefIdx" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="LastRefSignBias" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="GoldenRefIdx" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="GoldenRefSignBias" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="AltRefIdx" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="AltRefSignBias" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="allow_high_precision_mv" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="mcomp_filter_type" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="frame_parallel_decoding_mode" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="segmentation_enabled" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="segmentation_temporal_update" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="segmentation_update_map" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="reset_frame_context" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="refresh_frame_context" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="frame_context_idx" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="LosslessFlag" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="ReservedField" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="RefFrameList" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
-            <data name="CurrPic" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="filter_level" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="sharpness_level" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="log2_tile_rows" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="log2_tile_columns" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="UncompressedHeaderLengthInBytes" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="FirstPartitionSize" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="mb_segment_tree_probs" inType="win:UInt32" outType="xs:unsignedInt" count="7" />
-            <data name="segment_pred_probs" inType="win:UInt32" outType="xs:unsignedInt" count="3" />
-            <data name="BSBytesInBuffer" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="StatusReportFeedbackNumber" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="profile" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="BitDepthMinus8" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="subsampling_x" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="subsampling_y" inType="win:UInt32" outType="xs:unsignedInt" />
-          </template>
-          <template tid="Decode_Buffer_SegmentParam_VP9_Info">
-            <struct name="SegData" count="8">
-              <data name="SegmentReferenceEnabled" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="SegmentReference" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="SegmentReferenceSkipped" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="ReservedField3" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="FilterLevel[0][0]" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="FilterLevel[0][1]" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="FilterLevel[1][0]" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="FilterLevel[1][1]" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="FilterLevel[2][0]" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="FilterLevel[2][1]" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="FilterLevel[3][0]" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="FilterLevel[3][1]" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="LumaACQuantScale" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="LumaDCQuantScale" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="ChromaACQuantScale" inType="win:UInt32" outType="xs:unsignedInt" />
-              <data name="ChromaDCQuantScale" inType="win:UInt32" outType="xs:unsignedInt" />
-            </struct>
-          </template>
+		  <template tid="Decode_Buffer_PictureParam_VP9_Info">
+			<data name="CurrPic" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="profile" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="frame_type" inType="win:UInt32" map="VP9FrameType" />
+			<data name="show_frame" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="error_resilient_mode" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="subsampling_x" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="subsampling_y" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="refresh_frame_context" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="frame_parallel_decoding_mode" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="intra_only" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="frame_context_idx" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="reset_frame_context" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="allow_high_precision_mv" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="width" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="height" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="BitDepthMinus8Luma" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="BitDepthMinus8Chroma" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="interp_filter" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="ref_frame_map" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+			<data name="ref_frame_coded_width" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+			<data name="ref_frame_coded_height" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+			<data name="frame_refs" inType="win:UInt32" outType="xs:unsignedInt" count="3" />
+			<data name="ref_frame_sign_bias" inType="win:UInt32" outType="xs:unsignedInt" count="4" />
+			<data name="filter_level" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="sharpness_level" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="mode_ref_delta_enabled" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="mode_ref_delta_update" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="use_prev_in_find_mv_refs" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="ref_deltas" inType="win:UInt32" outType="xs:unsignedInt" count="4" />
+			<data name="mode_deltas" inType="win:UInt32" outType="xs:unsignedInt" count="2" />
+			<data name="base_qindex" inType="win:UInt32" outType="xs:unsignedInt" count="3" />
+			<data name="y_dc_delta_q" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="uv_dc_delta_q" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="uv_ac_delta_q" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="log2_tile_cols" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="log2_tile_rows" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="uncompressed_header_size_byte_aligned" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="first_partition_size" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="StatusReportFeedbackNumber" inType="win:UInt32" outType="xs:unsignedInt" />
+		  </template>
+		  <template tid="Decode_Buffer_SegmentParam_VP9_Info">
+			<data name="segmentation_enabled" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="segmentation_update_map" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="segmentation_temporal_update" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="segmentation_abs_delta" inType="win:UInt32" outType="xs:unsignedInt" />
+			<data name="tree_probs" inType="win:UInt32" outType="xs:unsignedInt" count="7" />
+			<data name="pred_probs" inType="win:UInt32" outType="xs:unsignedInt" count="3" />
+			<data name="feature_mask" inType="win:UInt32" outType="xs:unsignedInt" count="8" />
+			<data name="feature_data[0]" inType="win:UInt32" outType="xs:unsignedInt" count="4" />
+			<data name="feature_data[1]" inType="win:UInt32" outType="xs:unsignedInt" count="4" />
+			<data name="feature_data[2]" inType="win:UInt32" outType="xs:unsignedInt" count="4" />
+			<data name="feature_data[3]" inType="win:UInt32" outType="xs:unsignedInt" count="4" />
+			<data name="feature_data[4]" inType="win:UInt32" outType="xs:unsignedInt" count="4" />
+			<data name="feature_data[5]" inType="win:UInt32" outType="xs:unsignedInt" count="4" />
+			<data name="feature_data[6]" inType="win:UInt32" outType="xs:unsignedInt" count="4" />
+			<data name="feature_data[7]" inType="win:UInt32" outType="xs:unsignedInt" count="4" />
+		  </template>
           <template tid="Decode_Info_SyncTask_VP9_Info">
             <data name="currFrameId" inType="win:Int32" outType="xs:int" />
             <data name="copyFromFrame" inType="win:Int32" outType="xs:int" />
