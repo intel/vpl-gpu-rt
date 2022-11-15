@@ -288,16 +288,21 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId)
         break;
     }
 
-    // HEVC HW supports both kind of shifts
-    if ((codecId != MFX_CODEC_HEVC) && (
-           info->FourCC == MFX_FOURCC_P010
-        || info->FourCC == MFX_FOURCC_P210
-        || info->FourCC == MFX_FOURCC_Y210
-        || info->FourCC == MFX_FOURCC_P016
-        || info->FourCC == MFX_FOURCC_Y216
-        || info->FourCC == MFX_FOURCC_Y416))
+    switch (codecId) 
     {
-        MFX_CHECK(info->Shift == 1, MFX_ERR_INVALID_VIDEO_PARAM);
+    case MFX_CODEC_HEVC:
+        break;
+    default:
+        if (info->FourCC == MFX_FOURCC_P010
+            || info->FourCC == MFX_FOURCC_P210
+            || info->FourCC == MFX_FOURCC_Y210
+            || info->FourCC == MFX_FOURCC_P016
+            || info->FourCC == MFX_FOURCC_Y216
+            || info->FourCC == MFX_FOURCC_Y416) 
+        {
+            MFX_CHECK(info->Shift == 1, MFX_ERR_INVALID_VIDEO_PARAM);
+        }
+        break;
     }
 
     return MFX_ERR_NONE;
