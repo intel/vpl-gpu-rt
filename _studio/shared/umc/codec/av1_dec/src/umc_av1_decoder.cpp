@@ -914,6 +914,27 @@ namespace UMC_AV1_DECODER
         return UMC::UMC_OK;
     }
 
+    bool AV1Decoder::IsFreeSlotInDPB(){
+        int emptyCounter = 0;
+        int readyCounter = 0;
+        for(AV1DecoderFrame* fr : dpb){
+            if(fr->Empty()){
+                emptyCounter++;
+            }
+            if(fr->Outputted() && fr->Displayed() && !fr->RefValid()){
+                readyCounter++;
+            }
+        }
+
+        //this is temporary workaround for parallel encoding use case, that uses
+        //big value of async depth >= 20 and as a result big DPB
+        if(emptyCounter == 2 && readyCounter == 0 && dpb.size() > 20){
+            return false;
+        }
+
+        return true;
+    }
+
     AV1DecoderFrame* AV1Decoder::FindFrameByMemID(UMC::FrameMemID id)
     {
         return FindFrame(
@@ -1067,22 +1088,7 @@ namespace UMC_AV1_DECODER
                 {
                     // For no display case, decrease reference here which is increased
                     // in pFrame->IncrementReference() in show_existing_frame case.
-                    if(pCurrFrame)
-                    {
-                        Curr->DecrementReference();
-                    }else{
-                        for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
-                        {
-                            AV1DecoderFrame* temp = *iter;
-                            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated())
-                            {
-                                temp->DecrementReference();
-                                iter = outputed_frames.erase(iter);
-                            }
-                            else
-                                iter++;
-                        }
-                    }
+                    Curr->DecrementReference();
                 }
             }
         }

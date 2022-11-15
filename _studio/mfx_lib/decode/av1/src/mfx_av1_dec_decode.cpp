@@ -957,6 +957,10 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
 
         for (;;)
         {
+            if (!m_decoder->IsFreeSlotInDPB()){
+                return MFX_WRN_DEVICE_BUSY;
+            }
+
             sts = m_surface_source->SetCurrentMFXSurface(surface_work);
             MFX_CHECK_STS(sts);
 
