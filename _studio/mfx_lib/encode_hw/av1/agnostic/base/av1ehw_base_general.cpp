@@ -1741,6 +1741,35 @@ static void FillSortedFwdBwd(
         if (bwd->empty() && firstBwd != uniqueRefs.end())
             bwd->push_back(firstBwd->second);
     }
+
+    // Enctools: Prefer LTR (if any) to be used for P frame
+    if (task.InternalListCtrlPresent) {
+        if ((IsP(task.FrameType)) && (fwd && !fwd->empty())) {
+            DpbIndexes::iterator it = fwd->begin();
+            int idx = -1;
+            for(it; it != fwd->end(); it++) {
+                auto& refFrm = task.DPB.at(*it);
+                if (refFrm->isLTR) {
+                    idx = *it;
+                    fwd->erase(it);
+                    break;
+                }
+            }
+
+            if (idx != -1) {
+                fwd->push_back((mfxU8)idx);
+
+                // Set LTR to be the 2nd preferred ref frame in the list 
+                if (fwd->size() > 1) {
+                    int lastIdx = (int) fwd->size() - 1;
+                    mfxU8 lastRef = (*fwd)[lastIdx];
+                    (*fwd)[lastIdx] = (*fwd)[lastIdx - 1];
+                    (*fwd)[lastIdx-1] = lastRef;
+                }
+            }
+        }
+    }
+
 }
 
 namespace RefListRules
@@ -1962,6 +1991,12 @@ inline void SetTaskEncodeOrders(
 inline void MarkLTR(TaskCommonPar& task)
 {
     const mfxExtRefListCtrl* refListCtrl = ExtBuffer::Get(task.ctrl);
+
+    // If external reflist is not used, check for internal reflist
+    if (!refListCtrl && task.InternalListCtrlPresent) {
+        refListCtrl = &task.InternalListCtrl;
+    }
+
     if (!refListCtrl)
         return;
 
@@ -2001,6 +2036,12 @@ inline void MarkLTR(TaskCommonPar& task)
 inline void MarkRejected(TaskCommonPar& task)
 {
     const mfxExtRefListCtrl* refListCtrl = ExtBuffer::Get(task.ctrl);
+
+    // If external reflist is not used, check for internal reflist
+    if (!refListCtrl && task.InternalListCtrlPresent) {
+        refListCtrl = &task.InternalListCtrl;
+    }
+
     if (!refListCtrl)
         return;
 

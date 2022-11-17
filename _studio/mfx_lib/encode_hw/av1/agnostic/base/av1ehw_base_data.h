@@ -832,6 +832,9 @@ namespace Base
         RepeatedFrames    FramesToShow           = {};
         mfxU16            RepeatedFrameBytes     = 0;
         mfxU32            TCBRCTargetFrameSize   = 0;
+
+        mfxExtRefListCtrl InternalListCtrl       = {};
+        bool              InternalListCtrlPresent = false;
     };
 
     inline void Invalidate(TaskCommonPar& par)
