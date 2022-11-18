@@ -2888,7 +2888,7 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
    the decoder will parse the HDR SEI message if the bitstream include HDR SEI message per frame.
    The parsed HDR SEI will be attached to the ExtendBuffer of surface_out parameter of MFXVideoDECODE_DecodeFrameAsync()
    with flag `InsertPayloadToggle` to indicate if there is valid HDR SEI message in the clip.
-   `InsertPayloadToggle` will be set to `MFX_PAYLOAD_IDR` if OneVPL get valid HDR SEI, otherwise it will be set to `MFX_PAYLOAD_OFF`.
+   `InsertPayloadToggle` will be set to `MFX_PAYLOAD_IDR` if oneVPL gets valid HDR SEI, otherwise it will be set to `MFX_PAYLOAD_OFF`.
    This function is support for HEVC only now.
 
    Encoding or Decoding, Field semantics are defined in ITU-T* H.265 Annex D, AV1 6.7.4 Metadata OBU semantics.
@@ -2929,7 +2929,7 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
    the decoder will parse the HDR SEI message if the bitstream include HDR SEI message per frame.
    The parsed HDR SEI will be attached to the ExtendBuffer of surface_out parameter of MFXVideoDECODE_DecodeFrameAsync()
    with flag `InsertPayloadToggle` to indicate if there is valid HDR SEI message in the clip.
-   `InsertPayloadToggle` will be set to `MFX_PAYLOAD_IDR` if OneVPL get valid HDR SEI, otherwise it will be set to `MFX_PAYLOAD_OFF`.
+   `InsertPayloadToggle` will be set to `MFX_PAYLOAD_IDR` if oneVPL gets valid HDR SEI, otherwise it will be set to `MFX_PAYLOAD_OFF`.
    This function is support for HEVC only now.
 
    Field semantics are defined in ITU-T* H.265 Annex D, AV1 6.7.3 Metadata high dynamic range content light level semantics.
