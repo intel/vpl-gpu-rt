@@ -1066,34 +1066,8 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             VAProcFilterParameterBuffer3DLUT lut3d_param = {};
 
             lut3d_param.type            = VAProcFilter3DLUT;
-            lut3d_param.lut_surface     = *((VASurfaceID*)pParams->lut3DInfo.MemId);
             lut3d_param.bit_depth       = 16;
             lut3d_param.num_channel     = 4;
-            switch(pParams->lut3DInfo.MemLayout)
-            {
-            case MFX_3DLUT_MEMORY_LAYOUT_INTEL_17LUT:
-                lut3d_param.lut_size      = lut17_seg_size;
-                lut3d_param.lut_stride[0] = lut17_seg_size;
-                lut3d_param.lut_stride[1] = lut17_seg_size;
-                lut3d_param.lut_stride[2] = lut17_mul_size;
-                break;
-            case MFX_3DLUT_MEMORY_LAYOUT_INTEL_33LUT:
-            case MFX_3DLUT_MEMORY_LAYOUT_DEFAULT:
-                lut3d_param.lut_size      = lut33_seg_size;
-                lut3d_param.lut_stride[0] = lut33_seg_size;
-                lut3d_param.lut_stride[1] = lut33_seg_size;
-                lut3d_param.lut_stride[2] = lut33_mul_size;
-                break;
-            case MFX_3DLUT_MEMORY_LAYOUT_INTEL_65LUT:
-                lut3d_param.lut_size      = lut65_seg_size;
-                lut3d_param.lut_stride[0] = lut65_seg_size;
-                lut3d_param.lut_stride[1] = lut65_seg_size;
-                lut3d_param.lut_stride[2] = lut65_mul_size;
-                break;
-            default:
-                break;
-            }
-
             switch(pParams->lut3DInfo.ChannelMapping)
             {
             case MFX_3DLUT_CHANNEL_MAPPING_RGB_RGB:
@@ -1110,6 +1084,96 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
                 break;
             }
 
+            if(pParams->lut3DInfo.BufferType == MFX_RESOURCE_VA_SURFACE)
+            {
+                lut3d_param.lut_surface     = *((VASurfaceID*)pParams->lut3DInfo.MemId);
+                switch(pParams->lut3DInfo.MemLayout)
+                {
+                case MFX_3DLUT_MEMORY_LAYOUT_INTEL_17LUT:
+                    lut3d_param.lut_size      = lut17_seg_size;
+                    lut3d_param.lut_stride[0] = lut17_seg_size;
+                    lut3d_param.lut_stride[1] = lut17_seg_size;
+                    lut3d_param.lut_stride[2] = lut17_mul_size;
+                    break;
+                case MFX_3DLUT_MEMORY_LAYOUT_INTEL_33LUT:
+                    lut3d_param.lut_size      = lut33_seg_size;
+                    lut3d_param.lut_stride[0] = lut33_seg_size;
+                    lut3d_param.lut_stride[1] = lut33_seg_size;
+                    lut3d_param.lut_stride[2] = lut33_mul_size;
+                    break;
+                case MFX_3DLUT_MEMORY_LAYOUT_INTEL_65LUT:
+                case MFX_3DLUT_MEMORY_LAYOUT_DEFAULT:
+                    lut3d_param.lut_size      = lut65_seg_size;
+                    lut3d_param.lut_stride[0] = lut65_seg_size;
+                    lut3d_param.lut_stride[1] = lut65_seg_size;
+                    lut3d_param.lut_stride[2] = lut65_mul_size;
+                    break;
+                default:
+                    break;
+                }
+            }
+            else if(pParams->lut3DInfo.BufferType == MFX_RESOURCE_SYSTEM_SURFACE)
+            {
+                mfxU16 seg_size, mul_size;
+                switch(pParams->lut3DInfo.Channel[0].Size)
+                {
+                case lut17_seg_size:
+                    seg_size = lut17_seg_size;
+                    mul_size = lut17_mul_size;
+                    break;
+                case lut33_seg_size:
+                    seg_size = lut33_seg_size;
+                    mul_size = lut33_mul_size;
+                    break;
+                case lut65_seg_size:
+                default:
+                    seg_size = lut65_seg_size;
+                    mul_size = lut65_mul_size;
+                    break;
+                }
+                lut3d_param.lut_size = seg_size;
+
+                // create VA surface
+                VASurfaceAttrib surface_attrib = {};
+                surface_attrib.type            = VASurfaceAttribPixelFormat;
+                surface_attrib.flags           = VA_SURFACE_ATTRIB_SETTABLE;
+                surface_attrib.value.type      = VAGenericValueTypeInteger;
+                surface_attrib.value.value.i   = VA_FOURCC_RGBA;
+
+                VASurfaceID surface_id = VA_INVALID_ID;
+                vaSts = vaCreateSurfaces(m_vaDisplay,
+                                          VA_RT_FORMAT_RGB32,
+                                          seg_size * mul_size,
+                                          seg_size * 2,
+                                          &surface_id,
+                                          1,
+                                          &surface_attrib,
+                                          1);
+                MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+                vaSts = vaSyncSurface(m_vaDisplay, surface_id);
+                MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+                VAImage surface_image = {};
+                vaSts = vaDeriveImage(m_vaDisplay, surface_id, &surface_image);
+                MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+                void* surface_p = nullptr;
+                vaSts = vaMapBuffer(m_vaDisplay, surface_image.buf, &surface_p);
+                MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+                memcpy((char*)surface_p,                                                                           pParams->lut3DInfo.Channel[0].Data, pParams->lut3DInfo.Channel[0].Size);
+                memcpy((char*)surface_p + pParams->lut3DInfo.Channel[0].Size,                                      pParams->lut3DInfo.Channel[1].Data, pParams->lut3DInfo.Channel[1].Size);
+                memcpy((char*)surface_p + pParams->lut3DInfo.Channel[0].Size + pParams->lut3DInfo.Channel[1].Size, pParams->lut3DInfo.Channel[2].Data, pParams->lut3DInfo.Channel[2].Size);
+
+                vaSts = vaUnmapBuffer(m_vaDisplay, surface_image.buf);
+                MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+                vaSts = vaDestroyImage(m_vaDisplay, surface_image.image_id);
+                MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+                lut3d_param.lut_surface     = surface_id;
+            }
             /* create 3dlut fitler buffer */
             vaSts = vaCreateBuffer((void*)m_vaDisplay,
                                     m_vaContextVPP,
@@ -1118,6 +1182,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
                                     1,
                                     &lut3d_param,
                                     &m_3dlutFilterID);
+            MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
             m_filterBufs[m_numFilterBufs++] = m_3dlutFilterID;
         }
     }

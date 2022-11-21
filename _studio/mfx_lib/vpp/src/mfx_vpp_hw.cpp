@@ -2086,6 +2086,18 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
                 bufSc->VideoBuffer.MemLayout        = m_executeParams.lut3DInfo.MemLayout;
                 bufSc->VideoBuffer.MemId            = m_executeParams.lut3DInfo.MemId;
             }
+            else if (bufSc->BufferType == MFX_RESOURCE_SYSTEM_SURFACE)
+            {
+                bufSc->SystemBuffer.Channel[0].Data     = m_executeParams.lut3DInfo.Channel[0].Data;
+                bufSc->SystemBuffer.Channel[0].DataType = m_executeParams.lut3DInfo.Channel[0].DataType;
+                bufSc->SystemBuffer.Channel[0].Size     = m_executeParams.lut3DInfo.Channel[0].Size;
+                bufSc->SystemBuffer.Channel[1].Data     = m_executeParams.lut3DInfo.Channel[1].Data;
+                bufSc->SystemBuffer.Channel[1].DataType = m_executeParams.lut3DInfo.Channel[1].DataType;
+                bufSc->SystemBuffer.Channel[1].Size     = m_executeParams.lut3DInfo.Channel[1].Size;
+                bufSc->SystemBuffer.Channel[2].Data     = m_executeParams.lut3DInfo.Channel[2].Data;
+                bufSc->SystemBuffer.Channel[2].DataType = m_executeParams.lut3DInfo.Channel[2].DataType;
+                bufSc->SystemBuffer.Channel[2].Size     = m_executeParams.lut3DInfo.Channel[2].Size;
+            }
         }
         else if (MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN == bufferId)
         {
@@ -5851,6 +5863,18 @@ mfxStatus ConfigureExecuteParams(
                                     executeParams.lut3DInfo.DataType              = ext3DLUT->VideoBuffer.DataType;
                                     executeParams.lut3DInfo.MemLayout             = ext3DLUT->VideoBuffer.MemLayout;
                                     executeParams.lut3DInfo.MemId                 = ext3DLUT->VideoBuffer.MemId;
+                                }
+                                else if(ext3DLUT->BufferType == MFX_RESOURCE_SYSTEM_SURFACE)
+                                {
+                                    executeParams.lut3DInfo.Channel[0].Data     = ext3DLUT->SystemBuffer.Channel[0].Data;
+                                    executeParams.lut3DInfo.Channel[0].DataType = ext3DLUT->SystemBuffer.Channel[0].DataType;
+                                    executeParams.lut3DInfo.Channel[0].Size     = ext3DLUT->SystemBuffer.Channel[0].Size;
+                                    executeParams.lut3DInfo.Channel[1].Data     = ext3DLUT->SystemBuffer.Channel[1].Data;
+                                    executeParams.lut3DInfo.Channel[1].DataType = ext3DLUT->SystemBuffer.Channel[1].DataType;
+                                    executeParams.lut3DInfo.Channel[1].Size     = ext3DLUT->SystemBuffer.Channel[1].Size;
+                                    executeParams.lut3DInfo.Channel[2].Data     = ext3DLUT->SystemBuffer.Channel[2].Data;
+                                    executeParams.lut3DInfo.Channel[2].DataType = ext3DLUT->SystemBuffer.Channel[2].DataType;
+                                    executeParams.lut3DInfo.Channel[2].Size     = ext3DLUT->SystemBuffer.Channel[2].Size;
                                 }
                                 else
                                 {
