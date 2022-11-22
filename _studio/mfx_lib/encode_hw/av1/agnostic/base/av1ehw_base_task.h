@@ -112,8 +112,8 @@ namespace Base
         virtual void SetBsDataLength(StorageW& task, mfxU32 len) const override;
         virtual void AddNumRecode(StorageW& task, mfxU16 n) const override;
         virtual TTaskIt GetDestToPushQuery(TTaskIt begin, TTaskIt end, StorageW& task ) override;
-        virtual bool IsFirstQuery(StorageW& /*task*/) const override;
-        virtual void SetFirstQuery(StorageW& /*task*/, bool) const override;
+        virtual bool IsCachedTask(StorageW& /*task*/) const override;
+        virtual void SetCachedTask(StorageW& /*task*/, bool) const override;
         virtual void ClearBRCUpdateFlag(StorageW& /*task*/) const override;
 
         virtual mfxStatus RunQueueTaskAlloc(StorageRW& task) override;

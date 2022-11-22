@@ -204,14 +204,14 @@ void TaskManager::AddNumRecode(StorageW& task, mfxU16 n) const
     Task::Common::Get(task).NumRecode += n;
 }
 
-bool TaskManager::IsFirstQuery(StorageW& task) const
+bool TaskManager::IsCachedTask(StorageW& task) const
 {
-    return Task::Common::Get(task).bFirstQuery;
+    return Task::Common::Get(task).bCachedTask;
 }
 
-void TaskManager::SetFirstQuery(StorageW& task, bool val) const
+void TaskManager::SetCachedTask(StorageW& task, bool val) const
 {
-    Task::Common::Get(task).bFirstQuery = val;
+    Task::Common::Get(task).bCachedTask = val;
 }
 
 void TaskManager::ClearBRCUpdateFlag(StorageW& task) const
