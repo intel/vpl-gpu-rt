@@ -1953,20 +1953,20 @@
           </template>
           <template tid="Decode_Info_Display_H265_Info">
             <data name="PicOrderCnt" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="wasDisplayed" inType="win:Boolean" outType="xs:boolean" />
-            <data name="wasOutputted" inType="win:Boolean" outType="xs:boolean" />
+            <data name="wasDisplayed" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="wasOutputted" inType="win:UInt32" outType="xs:unsignedInt" />
           </template>
           <template tid="Decode_Info_Display_H264_Info">
             <data name="PicOrderCnt[0]" inType="win:UInt32" outType="xs:unsignedInt" />
             <data name="PicOrderCnt[1]" inType="win:UInt32" outType="xs:unsignedInt" />
             <data name="frameNum" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="isDisplayed" inType="win:Boolean" outType="xs:boolean" />
-            <data name="isOutputted" inType="win:Boolean" outType="xs:boolean" />
+            <data name="isDisplayed" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="isOutputted" inType="win:UInt32" outType="xs:unsignedInt" />
           </template>
           <template tid="Decode_Info_Display_AV1_Info">
             <data name="MemID" inType="win:UInt32" outType="xs:unsignedInt" />
-            <data name="wasDisplayed" inType="win:Boolean" outType="xs:boolean" />
-            <data name="wasOutputted" inType="win:Boolean" outType="xs:boolean" />
+            <data name="wasDisplayed" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="wasOutputted" inType="win:UInt32" outType="xs:unsignedInt" />
           </template>
           <template tid="Decode_Info_Display_VP9_Info">
             <data name="MemID" inType="win:UInt32" outType="xs:unsignedInt" />

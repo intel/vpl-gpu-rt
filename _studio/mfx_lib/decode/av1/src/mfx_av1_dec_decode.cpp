@@ -843,7 +843,7 @@ mfxStatus VideoDECODEAV1::DecodeFrame(mfxFrameSurface1 *surface_out, AV1DecoderF
     frame->Displayed(true);
 
     TRACE_EVENT(MFX_TRACE_API_AV1_DISPLAYINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
-        id, frame->Displayed(), frame->Outputted()));
+        id, (uint32_t)frame->Displayed(), (uint32_t)frame->Outputted()));
 
     return sts;
 }

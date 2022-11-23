@@ -1400,7 +1400,7 @@ mfxStatus VideoDECODEH265::DecodeFrame(mfxFrameSurface1 *surface_out, H265Decode
     pFrame->setWasDisplayed();
 
     TRACE_EVENT(MFX_TRACE_API_HEVC_DISPLAYINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
-        pFrame->m_PicOrderCnt, pFrame->wasDisplayed(), pFrame->wasOutputted()));
+        pFrame->m_PicOrderCnt, (uint32_t)pFrame->wasDisplayed(), (uint32_t)pFrame->wasOutputted()));
 
     return sts;
 }
