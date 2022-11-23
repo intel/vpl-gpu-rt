@@ -44,11 +44,7 @@ mfxTraceU32 MFXTrace_EventInit()
     {
         return 1;
     }
-    else
-    {
-        char* endEvent = nullptr;
-        EnableEventTrace = std::strtol(perf_trace_var, &endEvent, 10);
-    }
+
     std::lock_guard <std::mutex> lock(perf_ctx.perf_mutex);
     if (perf_ctx.ftrace_fd == -1) {
         perf_ctx.ftrace_fd = open("/sys/kernel/debug/tracing/trace_marker_raw", O_WRONLY);
@@ -63,7 +59,7 @@ mfxTraceU32 MFXTrace_EventInit()
 // It dumps traces to binary format (internal representation) for future offline processing
 mfxTraceU32 MFXTraceEvent(uint16_t task, uint8_t opcode, uint8_t level, uint64_t size, const void *ptr)
 {
-    if (!EnableEventTrace || (perf_ctx.ftrace_fd == -1)) {
+    if (perf_ctx.ftrace_fd == -1) {
         return 0;
     }
     uint64_t thread_id = syscall(SYS_gettid);
