@@ -151,6 +151,8 @@ private:
     mfxBitstream m_bs;
 
     mfxI32 m_baseQIndex;
+    
+    bool m_skipParseSuperFrameIndex;
 };
 
 #endif // MFX_ENABLE_VP9_VIDEO_DECODE

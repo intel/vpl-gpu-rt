@@ -310,7 +310,8 @@ VideoDECODEVP9_HW::VideoDECODEVP9_HW(VideoCORE *p_core, mfxStatus *sts)
       m_completedList(),
       m_firstSizes(),
       m_bs(),
-      m_baseQIndex(0)
+      m_baseQIndex(0),
+      m_skipParseSuperFrameIndex(false)
 {
     memset(&m_sizesOfRefFrame, 0, sizeof(m_sizesOfRefFrame));
     memset(&m_frameInfo.ref_frame_map, VP9_INVALID_REF_FRAME, sizeof(m_frameInfo.ref_frame_map)); // move to another place
@@ -1088,6 +1089,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     //Check protect VA is enabled or not
     if( bs && m_va && m_va->GetProtectedVA())
     {
+        m_skipParseSuperFrameIndex = true;
         MFX_CHECK((bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME), MFX_ERR_UNSUPPORTED);
         m_va->GetProtectedVA()->SetBitstream(bs);
     }
@@ -1308,8 +1310,10 @@ mfxStatus VideoDECODEVP9_HW::DecodeSuperFrame(mfxBitstream *in, VP9DecoderFrame 
     mfxU32 frameCount = 0;
 
     m_bs = *in;
-
-    MfxVP9Decode::ParseSuperFrameIndex(in->Data + in->DataOffset, in->DataLength, frameSizes, &frameCount);
+    if (!m_skipParseSuperFrameIndex)
+    {
+        MfxVP9Decode::ParseSuperFrameIndex(in->Data + in->DataOffset, in->DataLength, frameSizes, &frameCount);
+    }
 
     if (frameCount > 1)
     {
