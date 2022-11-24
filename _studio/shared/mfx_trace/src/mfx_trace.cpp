@@ -97,7 +97,8 @@ struct mfxTraceAlgorithm
 
 static mfxTraceU32      g_OutputMode = MFX_TRACE_OUTPUT_TRASH;
 static mfxTraceU32      g_Level      = MFX_TRACE_LEVEL_DEFAULT;
-mfxTraceU64      EventCfg = 0;
+mfxTraceU32      EnableEventTrace = 0;
+mfxTraceU32      EventCfg = 0;
 mfxTraceU32      LogConfig = 0;
 int32_t FrameIndex = -1;
 static volatile uint32_t  g_refCounter = 0;
@@ -212,7 +213,14 @@ mfxTraceU32 MFXTrace_GetEnvParams(void)
             g_Level = LogConfig;
         }
     }
-
+    //Enable event capture according to VPL_EVENT_TRACE
+    const char* g_eventTrace = std::getenv("VPL_EVENT_TRACE");
+    char* endEvent = nullptr;
+    if (g_eventTrace != nullptr)
+    {
+        EnableEventTrace = std::strtol(g_eventTrace, &endEvent, 10);
+        g_OutputMode |= MFX_TRACE_OUTPUT_ETW;
+    }
     //Capture different info according to VPL_EVENT_TRACE_CFG
     const char* g_eventCfg = std::getenv("VPL_EVENT_TRACE_CFG");
     char* endEventCfg = nullptr;

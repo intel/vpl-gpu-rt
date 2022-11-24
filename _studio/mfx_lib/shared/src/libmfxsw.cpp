@@ -241,8 +241,10 @@ mfxStatus MFXClose(mfxSession session)
 {
     mfxStatus mfxRes = MFX_ERR_NONE;
     MFXTrace_EventCloseOnExit MFXTrace_EventClose;
-
-    TRACE_EVENT(MFX_TRACE_API_MFX_CLOSE_TASK, EVENT_TYPE_START, 0, make_event_data(session));
+    if (EnableEventTrace)
+    {
+        TRACE_EVENT(MFX_TRACE_API_MFX_CLOSE_TASK, EVENT_TYPE_START, 0, make_event_data(session));
+    }
     // check error(s)
     if (0 == session)
     {
@@ -645,7 +647,10 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
     MFX_TRACE_INIT();
     MFXTrace_EventInit();
-    TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_START, 0, make_event_data((mfxU32)format));
+    if (EnableEventTrace)
+    {
+        TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_START, 0, make_event_data((mfxU32)format));
+    }
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     try

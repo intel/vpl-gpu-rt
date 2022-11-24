@@ -54,7 +54,8 @@ typedef unsigned int mfxTraceU32;
 typedef __UINT64 mfxTraceU64;
 
 /*------------------------------------------------------------------------------*/
-extern mfxTraceU64 EventCfg;
+extern mfxTraceU32 EnableEventTrace;
+extern mfxTraceU32 EventCfg;
 extern mfxTraceU32 LogConfig;
 extern int32_t FrameIndex;
 
@@ -478,7 +479,7 @@ public:
 };
 
 #define TRACE_CHECK(keyWord)   \
-    (EventCfg & (1 << keyWord)) || keyWord == TR_KEY_MFX_API || keyWord == TR_KEY_DDI_API
+    (EventCfg & (1 << keyWord) || keyWord == TR_KEY_MFX_API || keyWord == TR_KEY_DDI_API) && EnableEventTrace
 
 // This macro is recommended to use instead creating RT Info ScopedTrace object directly
 #define TRACE_BUFFER_EVENT(task, level, keyWord, pData, funcName, structType)   \
@@ -737,42 +738,26 @@ class MFXLTraceI
 {
 public:
     template <typename T>
-    void mfx_ltrace_i(mfxTraceLevel _level, const char* _mesg, const char* _function, const char* _filename, mfxTraceU32 _line, T _arg1)
+    void mfx_ltrace_i(mfxTraceLevel _level, const char* _mesg, const char* _function, T _arg1)
     {
         std::stringstream ss;
-        if (_arg1 > 0)
-        {
-            ss << "[warning]  ";
-        }
-        else if (_arg1 < 0)
-        {
-            ss << "[critical]  ";
-        }
         ss << _mesg << " = ";
-        MFX_LTRACE((&_trace_static_handle, _filename, _line, _function, MFX_TRACE_CATEGORY, _level, ss.str().c_str(), MFX_TRACE_FORMAT_I, _arg1))
+        MFX_LTRACE((&_trace_static_handle, __FILE__, __LINE__, _function, MFX_TRACE_CATEGORY, _level, ss.str().c_str(), MFX_TRACE_FORMAT_I, _arg1))
     }
 
-    void mfx_ltrace_i(mfxTraceLevel _level, const char* _mesg, const char* _function, const char* _filename, mfxTraceU32 _line, mfxStatus _arg1)
+    void mfx_ltrace_i(mfxTraceLevel _level, const char* _mesg, const char* _function, mfxStatus _arg1)
     {
         std::error_code code = mfx::make_error_code(_arg1);
         std::stringstream ss;
-        if (_arg1 > 0) 
-        {
-            ss << "[warning]  ";
-        }
-        else if (_arg1 < 0) 
-        {
-            ss << "[critical]  ";
-        }
         ss << _mesg << " = ";
-        MFX_LTRACE((&_trace_static_handle, _filename, _line, _function, MFX_TRACE_CATEGORY, _level, ss.str().c_str(), MFX_TRACE_FORMAT_S, code.message().c_str()))
+        MFX_LTRACE((&_trace_static_handle, __FILE__, __LINE__, _function, MFX_TRACE_CATEGORY, _level, ss.str().c_str(), MFX_TRACE_FORMAT_S, code.message().c_str()))
     }
 };
 
 #define MFX_LTRACE_I(_level, _arg1) \
 { \
     MFXLTraceI mFXLTraceI; \
-    mFXLTraceI.mfx_ltrace_i(_level, #_arg1, __FUNCTION__, __FILE__, __LINE__,_arg1); \
+    mFXLTraceI.mfx_ltrace_i(_level, #_arg1, __FUNCTION__, _arg1); \
 }
 #else
 #define MFX_LTRACE_I(_level, _arg1) \
