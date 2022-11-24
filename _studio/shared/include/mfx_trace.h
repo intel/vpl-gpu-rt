@@ -229,8 +229,8 @@ typedef enum _MEDIA_EVENT_FILTER_KEYID
 
 typedef enum _MEDIA_EVENT_LOG_KEYID
 {
-    MFX_ETWLOG_LEVEL_MAX = 16,   //include API Func, API PARAMS and internal Func
-    MFX_ETWLOG_LEVEL_API,   //include API Func
+    MFX_ETWLOG_ALL_LEVEL = 16,   //include API Func, API PARAMS and internal Func
+    MFX_ETWLOG_API_LEVEL,   //include API Func
 } MEDIA_EVENT_LOG_KEYID;
 
 // delete the following levels completely
