@@ -427,7 +427,7 @@ public:
     Status UpdateRefPicMarking(ViewItem &view, H264DecoderFrame * pFrame, H264Slice * pSlice, int32_t field_index);
 
     void SlideWindow(ViewItem &view, H264Slice * pSlice, int32_t field_index);
-
+    void ResetUnusedFrames(ViewItem &view);
     void Reset();
 
     void CheckSEIRepetition(ViewItem &view, H264DecoderFrame * frame);

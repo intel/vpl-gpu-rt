@@ -836,6 +836,18 @@ Status DecReferencePictureMarking::UpdateRefPicMarking(ViewItem &view, H264Decod
     return umcRes;
 }
 
+void DecReferencePictureMarking::ResetUnusedFrames(ViewItem &view)
+{
+    for (H264DecoderFrame *pTmp = view.GetDPBList(0)->head(); pTmp; pTmp = pTmp->future())
+    {
+        if(!pTmp->isShortTermRef() && !pTmp->isLongTermRef() && pTmp->GetRefCounter() == 0 &&
+            pTmp->m_wasOutputted && pTmp->m_wasDisplayed)
+        {
+            pTmp->Reset();
+        }
+    }
+}
+
 /****************************************************************************************************/
 //
 /****************************************************************************************************/
@@ -4094,6 +4106,7 @@ void TaskSupplier::DBPUpdate(H264DecoderFrame * pFrame, int32_t field)
         ViewItem &view = GetView(slice->GetSliceHeader()->nal_ext.mvc.view_id);
 
         DecReferencePictureMarking::UpdateRefPicMarking(view, pFrame, slice, field);
+        DecReferencePictureMarking::ResetUnusedFrames(view);
         break;
     }
 }
