@@ -594,7 +594,7 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurfInternal(VideoCORE *core, mfxVideoParam *
 
     request->Info.Width  = mfx::align2_value(request->Info.Width, 0x10);
     request->Info.Height = mfx::align2_value(request->Info.Height,
-        (request->Info.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) ? 0x10 : 0x20);
+        (request->Info.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) ? 0x8 : 0x10);
 
     if (MFX_PLATFORM_SOFTWARE == platform)
     {
@@ -1225,7 +1225,7 @@ mfxStatus MFX_JPEG_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPa
 
         out->mfx.FrameInfo.Width  = mfx::align2_value(in->mfx.FrameInfo.Width, 0x10);
         out->mfx.FrameInfo.Height = mfx::align2_value(in->mfx.FrameInfo.Height,
-            (in->mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) ? 0x10 : 0x20);
+            (in->mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) ? 0x8 : 0x10);
 
         if (in->mfx.FrameInfo.CropX <= out->mfx.FrameInfo.Width)
             out->mfx.FrameInfo.CropX = in->mfx.FrameInfo.CropX;
@@ -1428,7 +1428,7 @@ bool MFX_JPEG_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType )
     if (in->mfx.FrameInfo.Width % 16)
         return false;
 
-    if (in->mfx.FrameInfo.Height % 16)
+    if (in->mfx.FrameInfo.Height % 8)
         return false;
 
     // both zero or not zero
