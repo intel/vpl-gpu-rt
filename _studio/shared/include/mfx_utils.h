@@ -56,15 +56,17 @@ template <
 static inline T mfx_sts_trace(const char* fileName, const uint32_t lineNum, const char* funcName, T sts)
 {
     const std::string stsString = GetMFXStatusInString(sts);
+    std::string mfxSts;
     if (sts < MFX_ERR_NONE)
     {
         MFX_LOG(LEVEL_ERROR, fileName, lineNum, "%s: returns %s\n", funcName, stsString.c_str());
+        mfxSts = "[critical]  mfxRes = ";
     }
     else if (sts > MFX_ERR_NONE)
     {
         MFX_LOG(LEVEL_WARN, fileName, lineNum, "%s: returns %s\n", funcName, stsString.c_str());
+        mfxSts = "[warning]  mfxRes = ";
     }
-
     return sts;
 }
 template <

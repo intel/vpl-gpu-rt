@@ -1045,10 +1045,9 @@ Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorrupti
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncSurface");
         va_sts = vaSyncSurface(m_dpy, *surface);
     }
-    if (EnableEventTrace)
-    {
-        TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_WAIT_TASK_SYNC, EVENT_TYPE_INFO, 0, make_event_data(FrameBufIndex, 0, va_sts));
-    }
+
+    TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_WAIT_TASK_SYNC, EVENT_TYPE_INFO, 0, make_event_data(FrameBufIndex, 0, va_sts));
+
     if (VA_STATUS_ERROR_DECODING_ERROR == va_sts)
     {
         if (surfCorruption) *(uint16_t*)surfCorruption = GetDecodingError();

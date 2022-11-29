@@ -241,7 +241,7 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(par, MFX_ERR_NULL_PTR);
     MFX_CHECK(request, MFX_ERR_NULL_PTR);
-    TRACE_EVENT(MFX_TRACE_API_DECODE_QUERY_IOSURF_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session, (uint32_t)par->mfx.FrameInfo.Width, (uint32_t)par->mfx.FrameInfo.Height, par->mfx.CodecId));
+    TRACE_EVENT(MFX_TRACE_API_DECODE_QUERY_IOSURF_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session, par ? (uint32_t)par->mfx.FrameInfo.Width : 0, par ? (uint32_t)par->mfx.FrameInfo.Height : 0, par ? par->mfx.CodecId : 0));
 
     mfxStatus mfxRes;
 
@@ -404,7 +404,8 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
 mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
 {
     InitMfxLogging();
-    TRACE_EVENT(MFX_TRACE_API_DECODE_INIT_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.CodecId));
+    TRACE_EVENT(MFX_TRACE_API_DECODE_INIT_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session, par ? par->mfx.FrameInfo.Width : 0, 
+        par ? par->mfx.FrameInfo.Height : 0, par ? par->mfx.CodecId : 0));
 
     mfxStatus mfxRes;
 
