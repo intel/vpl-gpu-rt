@@ -947,8 +947,8 @@ mfxStatus VAAPIEncoder::QueryCompBufferInfo(D3DDDIFORMAT type, mfxFrameAllocRequ
         // driver seg map is always in 16x16 blocks because of HW limitation
         constexpr mfxU16 blockSize = 16;
         request.Info.FourCC = MFX_FOURCC_VP9_SEGMAP;
-        // requirement from driver: seg map width has to be 64 aligned for buffer creation
-        request.Info.Width  = mfx::align2_value(frameWidth / blockSize, 64);
+        // requirement from driver: seg map width has to be 128 aligned for buffer creation
+        request.Info.Width  = mfx::align2_value(frameWidth / blockSize, 128);
         request.Info.Height = frameHeight / blockSize;
     }
 
