@@ -48,8 +48,6 @@ namespace Base
         virtual void SetSupported(ParamSupport& par) override;
         virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
         virtual void QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push) override;
-
-        virtual mfxStatus GetDdiInfo(const void* pDdiFeedback, mfxExtAVCEncodedFrameInfo& info) = 0;
     };
 
 } //Base

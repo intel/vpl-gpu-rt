@@ -827,6 +827,7 @@ namespace Base
         mfxI32            PrevRAP                = -1;
         mfxU16            NumRecode              = 0;
         mfxU8             QpY                    = 0;
+        mfxU16            ReportedQpY            = 0;
         mfxU32            InsertHeaders          = 0;
         mfxU32            StatusReportId         = mfxU32(-1);
         DpbRefreshType    RefreshFrameFlags      = {};

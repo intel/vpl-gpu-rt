@@ -62,7 +62,7 @@ void EncodedFrameInfo::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
 {
     Push(BLK_QueryTask
         , [this](
-            StorageW& global
+            StorageW& /* global */
             , StorageW& s_task) -> mfxStatus
     {
         auto& task = Task::Common::Get(s_task);
@@ -107,11 +107,11 @@ void EncodedFrameInfo::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         pInfo->FrameOrder   = (task.pSurfIn->Data.FrameOrder == mfxU32(-1)) ? task.DisplayOrder : task.pSurfIn->Data.FrameOrder;
         pInfo->LongTermIdx  = mfxU16(MFX_LONGTERM_IDX_NO_IDX * !task.isLTR);
         pInfo->PicStruct    = MFX_PICSTRUCT_PROGRESSIVE;
-        pInfo->QP           = 0;
+        pInfo->QP           = task.ReportedQpY;
         pInfo->BRCPanicMode = 0;
         pInfo->MAD          = 0;
 
-        return GetDdiInfo(Glob::DDI_Feedback::Get(global).Get(task.StatusReportId), *pInfo);
+        return MFX_ERR_NONE;
     });
 }
 
