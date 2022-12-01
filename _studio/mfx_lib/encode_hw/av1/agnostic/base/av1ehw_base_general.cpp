@@ -1513,7 +1513,7 @@ void General::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
             MFX_CHECK(codedFrame.Y, MFX_ERR_LOCK_MEMORY);
             MfxEncodeHW::CachedBitstream cachedBs(task.BsDataLength);
             sts = FastCopy::Copy(
-                *cachedBs.Data.get()
+                cachedBs.Data.get()
                 , task.BsDataLength
                 , codedFrame.Y
                 , codedFrame.Pitch
@@ -1540,7 +1540,7 @@ void General::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
                 auto& bss = tm.GetBitstreams(m_temporalUnitOrder);
                 for (auto& bs : bss)
                 {
-                    std::copy_n(*bs.Data.get(), bs.BsDataLength, task.pBsData + offset);
+                    std::copy_n(bs.Data.get(), bs.BsDataLength, task.pBsData + offset);
                     offset += bs.BsDataLength;
                 }
                 tm.ClearBitstreams(m_temporalUnitOrder);
