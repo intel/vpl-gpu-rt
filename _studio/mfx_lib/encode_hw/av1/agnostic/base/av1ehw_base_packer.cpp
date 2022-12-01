@@ -273,45 +273,6 @@ void Packer::PackOBUHeader(BitstreamWriter& bs, AV1_OBU_TYPE obu_type, mfxU32 ob
     }
 }
 
-// leb128 - [in] Leb128Data to hold encoded data
-// value - [in] integer value to encoded as leb128
-// fixed_output_len - [optional in] fixed len for the output, WA for driver part (value = len, 0 - not used)
-// return - N/A
-inline void EncodeLeb128(Leb128Data& leb128, uint64_t value, const mfxU8 fixed_output_len = 0) {
-    mfxU8 *buf = reinterpret_cast<mfxU8 *>(&(leb128.buf));
-    mfxU8 &cnt = leb128.size;
-
-    cnt = 0;
-    if (!fixed_output_len)
-    {
-        // general encoding
-        do {
-            buf[cnt] = value & 0x7fU;
-            if (value >>= 7)
-            {
-                buf[cnt] |= 0x80U;
-            }
-            cnt++;
-        } while (value);
-    }
-    else
-    {
-        // WA to get fixed len of output
-        mfxU8 value_byte_count = 0;
-        do {
-            buf[value_byte_count++] = value & 0x7fU;
-            value >>= 7;
-        } while (value);
-
-        for (int i = 0; i < fixed_output_len - 1; i++)
-        {
-            buf[i] |= 0x80U;
-            cnt++;
-        }
-        cnt++;
-    }
-}
-
 void Packer::PackOBUHeaderSize(BitstreamWriter& bs, mfxU32 const obu_size_in_bytes, mfxU8 const fixed_output_len)
 {
     Leb128Data leb128 = {};
@@ -991,18 +952,22 @@ void Packer::PackPPS(
     const mfxU32 obu_header_offset  = bs.GetOffset();
     if (insertHeaders & INSERT_FRM_OBU)
     {
-        tmp_offsets.FrameHdrOBUSizeInBits = tmpBitstream.GetOffset();
+        tmp_offsets.FrameHeaderOBUSizeInBits = tmpBitstream.GetOffset();
         tmpBitstream.PutAlignmentBits();
         PackOBUHeader(bs, OBU_FRAME, obu_extension_flag, oeh);
     }
     else
     {
-        tmp_offsets.FrameHdrOBUSizeInBits = tmpBitstream.GetOffset() + 1;  // trailing 1 bit is included
+        tmp_offsets.FrameHeaderOBUSizeInBits = tmpBitstream.GetOffset() + 1;  // trailing 1 bit is included
         tmpBitstream.PutTrailingBits(); //Trailing bit
         PackOBUHeader(bs, OBU_FRAME_HEADER, obu_extension_flag, oeh);
     }
 
-    offsets.FrameHdrOBUSizeByteOffset = (bs.GetOffset() >> 3);
+    offsets.FrameHeaderOBUSizeByteOffset = (bs.GetOffset() >> 3);
+    if (insertHeaders & INSERT_HDR)
+    {
+        offsets.FrameHeaderOBUSizeByteOffset += offsets.HDRHeaderByteOffset;
+    }
 
     const mfxU32 obu_size_in_bytes = (tmpBitstream.GetOffset() + 7) / 8;
     PackOBUHeaderSize(bs, obu_size_in_bytes, fh.show_existing_frame? 0: 4);
@@ -1016,7 +981,7 @@ void Packer::PackPPS(
         offsets.LoopFilterParamsBitOffset = obuPayloadOffset + tmp_offsets.LoopFilterParamsBitOffset;
         offsets.CDEFParamsBitOffset       = obuPayloadOffset + tmp_offsets.CDEFParamsBitOffset;
         offsets.CDEFParamsSizeInBits      = tmp_offsets.CDEFParamsSizeInBits;
-        offsets.FrameHdrOBUSizeInBits     = obuPayloadOffset + tmp_offsets.FrameHdrOBUSizeInBits;
+        offsets.FrameHeaderOBUSizeInBits  = obuPayloadOffset + tmp_offsets.FrameHeaderOBUSizeInBits;
     }
 
     bs.PutBitsBuffer(tmpBitstream.GetOffset(), tmpBitstream.GetStart());

@@ -442,8 +442,8 @@ void UpdatePPS(
 
     //offsets
     auto& offsets = task.Offsets;
-    pps.size_in_bits_frame_hdr_obu     = offsets.FrameHdrOBUSizeInBits;
-    pps.byte_offset_frame_hdr_obu_size = offsets.FrameHdrOBUSizeByteOffset;
+    pps.size_in_bits_frame_hdr_obu     = offsets.FrameHeaderOBUSizeInBits;
+    pps.byte_offset_frame_hdr_obu_size = offsets.FrameHeaderOBUSizeByteOffset;
     pps.bit_offset_loopfilter_params   = offsets.LoopFilterParamsBitOffset;
     pps.bit_offset_qindex              = offsets.QIndexBitOffset;
     pps.bit_offset_segmentation        = offsets.SegmentationBitOffset;

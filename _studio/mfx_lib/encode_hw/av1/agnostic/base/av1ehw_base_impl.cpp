@@ -30,6 +30,7 @@
 #include "av1ehw_base_iddi.h"
 #include "av1ehw_base_iddi_packer.h"
 #include "av1ehw_base_segmentation.h"
+#include "av1ehw_base_hdr.h"
 #if defined(MFX_ENABLE_ENCTOOLS)
 #include "av1ehw_base_enctools.h"
 #endif
@@ -219,6 +220,8 @@ mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
         auto& queue = BQ<BQ_SubmitTask>::Get(*this);
         queue.splice(queue.end(), queue, Get(queue, { FEATURE_DDI_PACKER, IDDIPacker::BLK_SubmitTask }));
         queue.splice(queue.end(), queue, Get(queue, { FEATURE_DDI, IDDI::BLK_SubmitTask }));
+        // FEATURE_HDR is to submit header info named OBU_METADATA and it should be inserted before PPS 
+        Reorder(queue, { FEATURE_PACKER, Packer::BLK_SubmitTask }, { FEATURE_HDR, Hdr::BLK_InsertPayloads });
 #if defined(MFX_ENABLE_ENCTOOLS)
         Reorder(queue, { FEATURE_PACKER, Packer::BLK_SubmitTask }, { FEATURE_ENCTOOLS, AV1EncTools::BLK_GetFrameCtrl });
 #endif

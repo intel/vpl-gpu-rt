@@ -486,9 +486,10 @@ namespace Base
         mfxU32 SegmentationBitOffset;
         mfxU32 SegmentationBitSize;
         mfxU32 LoopFilterParamsBitOffset;
-        mfxU32 FrameHdrOBUSizeInBits;
-        mfxU32 FrameHdrOBUSizeByteOffset;
+        mfxU32 FrameHeaderOBUSizeInBits;
+        mfxU32 FrameHeaderOBUSizeByteOffset;
         mfxU32 UncompressedHeaderByteOffset;
+        mfxU32 HDRHeaderByteOffset;
         mfxU32 CDEFParamsBitOffset;
         mfxU32 CDEFParamsSizeInBits;
     };
@@ -754,6 +755,7 @@ namespace Base
         , INSERT_SPS            = (1 << 3)
         , INSERT_PPS            = (1 << 4)
         , INSERT_FRM_OBU        = (1 << 5)
+        , INSERT_HDR            = (1 << 6)
     };
 
     using DpbType = std::vector<std::shared_ptr<DpbFrame>>;
@@ -1024,6 +1026,7 @@ namespace Base
         PackedData SPS;
         PackedData PPS;
         PackedData TD;
+        PackedData HDR;
     };
 
     using DDIExecParam     = MfxEncodeHW::DDIExecParam;
@@ -1299,6 +1302,7 @@ namespace Base
         , FEATURE_QUERY_IMPL_DESC
         , FEATURE_ENCTOOLS
         , FEATURE_MAX_FRAME_SIZE
+        , FEATURE_HDR
         , NUM_FEATURES
     };
 

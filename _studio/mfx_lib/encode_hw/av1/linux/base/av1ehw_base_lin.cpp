@@ -35,6 +35,7 @@
 #if defined(MFX_ENABLE_ENCTOOLS)
 #include "av1ehw_base_enctools.h"
 #endif
+#include "av1ehw_base_hdr.h"
 using namespace AV1EHW;
 using namespace AV1EHW::Base;
 
@@ -69,6 +70,7 @@ Linux::Base::MFXVideoENCODEAV1_HW::MFXVideoENCODEAV1_HW(
 #if defined(MFX_ENABLE_ENCTOOLS)
     m_features.emplace_back(new AV1EncTools(FEATURE_ENCTOOLS));
 #endif
+    m_features.emplace_back(new Hdr(FEATURE_HDR));
 
     InternalInitFeatures(status, mode);
 }
