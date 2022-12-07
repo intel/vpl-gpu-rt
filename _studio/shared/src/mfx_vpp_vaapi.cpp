@@ -1613,14 +1613,16 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
 
     auto SetHdrMetaData = [](const mfxExecuteParams::HDR10MetaData& data)
     {
+        mfxU32 kLuminanceFixedPoint = 10000;
+        //In VAAPI, maxMasteringLuminance and minMasteringLuminance are in the unit of 0.0001 nits.
         VAHdrMetaDataHDR10 retHDR10MetaData =
         {
             {data.displayPrimariesX[0], data.displayPrimariesX[1], data.displayPrimariesX[2]},
             {data.displayPrimariesY[0], data.displayPrimariesY[1], data.displayPrimariesY[2]},
             data.whitePoint[0], 
             data.whitePoint[1],
-            data.maxMasteringLuminance,
-            data.minMasteringLuminance,
+            data.maxMasteringLuminance * kLuminanceFixedPoint,
+            data.minMasteringLuminance * kLuminanceFixedPoint,
             data.maxContentLightLevel,
             data.maxFrameAverageLightLevel
         };
