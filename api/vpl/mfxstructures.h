@@ -2195,6 +2195,11 @@ enum {
        See the mfxExtAllocationHints structure for more details.
     */
     MFX_EXTBUFF_ALLOCATION_HINTS = MFX_MAKEFOURCC('A','L','C','H'),
+    
+    /*!
+       See the mfxExtSyncSubmission structure for more details.
+    */
+    MFX_EXTBUFF_SYNCSUBMISSION = MFX_MAKEFOURCC('S','Y','N','C'),
 };
 
 /* VPP Conf: Do not use certain algorithms  */
@@ -4815,6 +4820,18 @@ typedef struct {
     mfxU16 reserved1[8]; /*!< Reserved for future use. */
 } mfxExtTemporalLayers;
 MFX_PACK_END()
+
+#ifdef ONEVPL_EXPERIMENTAL
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+/*! The structure is used to get a synchronization object which signalizes about submission of a task to GPU.  */
+typedef struct {
+    mfxExtBuffer     Header;     /*! Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_SYNCSUBMISSION. */
+    mfxSyncPoint     *SubmissionSyncPoint; /*!< SyncPoint object to get a moment of a submission task to GPU.  */
+    mfxU32 reserved1[8]; /*!< Reserved for future use. */
+} mfxExtSyncSubmission;
+MFX_PACK_END()
+#endif
+
 
 #ifdef __cplusplus
 } // extern "C"
