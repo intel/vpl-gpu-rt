@@ -1632,6 +1632,12 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     VAHdrMetaDataHDR10 inHDR10MetaData = {};
     if(pParams->inHDR10MetaData.enabled)
     {
+        if (m_hdrtmFilterID != VA_INVALID_ID)
+        {
+            mfxSts = RemoveBufferFromPipe(m_hdrtmFilterID);
+            MFX_CHECK_STS(mfxSts);
+        }
+
         inHDR10MetaData = SetHdrMetaData(pParams->inHDR10MetaData);
         VAProcFilterParameterBufferHDRToneMapping hdrtm_param = {};
         hdrtm_param.type                                      = VAProcFilterHighDynamicRangeToneMapping;
