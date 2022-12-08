@@ -2468,7 +2468,8 @@ mfxStatus  VideoVPPHW::Init(
 
             m_executeParams.bCamera3DLUT = TRUE;
         }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION)
+
+        if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION)
         {
             mfxExtCamFwdGamma *extFGC = (mfxExtCamFwdGamma*)m_params.ExtParam[i];
             m_executeParams.CameraForwardGammaCorrection.Header.BufferId = extFGC->Header.BufferId;
@@ -2477,7 +2478,8 @@ mfxStatus  VideoVPPHW::Init(
 
             m_executeParams.bCameraGammaCorrection = TRUE;
         }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_PIPECONTROL)
+
+        if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_PIPECONTROL)
         {
             mfxExtCamPipeControl *extCPC = (mfxExtCamPipeControl*)m_params.ExtParam[i];
             m_executeParams.CameraPipeControl.Header.BufferId = extCPC->Header.BufferId;
@@ -2485,167 +2487,6 @@ mfxStatus  VideoVPPHW::Init(
 
             m_executeParams.bCameraPipeEnabled = TRUE;
             m_executeParams.bCameraPipeControl = TRUE;
-        }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_WHITE_BALANCE)
-        {
-            //m_Caps.bWhiteBalance = 1;
-            mfxExtCamWhiteBalance* whiteBalanceExtBufParams = (mfxExtCamWhiteBalance*)par->ExtParam[i];
-            if ( whiteBalanceExtBufParams )
-            {
-                m_executeParams.bCameraWhiteBalaceCorrection = TRUE;
-                m_executeParams.CameraWhiteBalance.Header.BufferId = whiteBalanceExtBufParams->Header.BufferId;
-                m_executeParams.CameraWhiteBalance.Mode                  = whiteBalanceExtBufParams->Mode;
-                m_executeParams.CameraWhiteBalance.B        = whiteBalanceExtBufParams->B;
-                m_executeParams.CameraWhiteBalance.G0       = whiteBalanceExtBufParams->G0;
-                m_executeParams.CameraWhiteBalance.G1       = whiteBalanceExtBufParams->G1;
-                m_executeParams.CameraWhiteBalance.R        = whiteBalanceExtBufParams->R;
-            }
-        }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_BLACK_LEVEL_CORRECTION)
-        {
-            mfxExtCamBlackLevelCorrection* blackLevelExtBufParams = (mfxExtCamBlackLevelCorrection*)par->ExtParam[i];
-            if ( blackLevelExtBufParams )
-            {
-                m_executeParams.bCameraBlackLevelCorrection = true;
-                m_executeParams.CameraBlackLevel.Header.BufferId = blackLevelExtBufParams->Header.BufferId;
-                m_executeParams.CameraBlackLevel.B        = blackLevelExtBufParams->B;
-                m_executeParams.CameraBlackLevel.G0       = blackLevelExtBufParams->G0;
-                m_executeParams.CameraBlackLevel.G1       = blackLevelExtBufParams->G1;
-                m_executeParams.CameraBlackLevel.R        = blackLevelExtBufParams->R;
-            }
-        }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_BAYER_DENOISE)
-        {
-            mfxExtCamBayerDenoise* denoiseExtBufParams = (mfxExtCamBayerDenoise*)par->ExtParam[i];
-            if (denoiseExtBufParams)
-            {
-                m_executeParams.bCameraBayerDenoise = TRUE;
-                m_executeParams.CameraBayerDenoise.Header.BufferId = denoiseExtBufParams->Header.BufferId;
-                m_executeParams.CameraBayerDenoise.Threshold       = denoiseExtBufParams->Threshold;
-            }
-        }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_HOT_PIXEL_REMOVAL)
-        {
-            mfxExtCamHotPixelRemoval* hotpixelExtBufParams = (mfxExtCamHotPixelRemoval*)par->ExtParam[i];
-            if (hotpixelExtBufParams)
-            {
-                m_executeParams.bCameraHotPixelRemoval = TRUE;
-                m_executeParams.CameraHotPixel.Header.BufferId          = hotpixelExtBufParams->Header.BufferId;
-                m_executeParams.CameraHotPixel.PixelCountThreshold      = hotpixelExtBufParams->PixelCountThreshold;
-                m_executeParams.CameraHotPixel.PixelThresholdDifference = hotpixelExtBufParams->PixelThresholdDifference;
-            }
-        }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_VIGNETTE_CORRECTION)
-        {
-            mfxExtCamVignetteCorrection* VignetteExtBufParams = (mfxExtCamVignetteCorrection*)par->ExtParam[i];
-            if ( VignetteExtBufParams )
-            {
-                m_executeParams.bCameraVignetteCorrection = TRUE;
-                m_executeParams.CameraVignetteCorrection.Height  = VignetteExtBufParams->Height;
-                m_executeParams.CameraVignetteCorrection.Width   = VignetteExtBufParams->Width;
-                m_executeParams.CameraVignetteCorrection.Pitch   = VignetteExtBufParams->Pitch;
-                m_executeParams.CameraVignetteCorrection.Header.BufferId  = VignetteExtBufParams->Header.BufferId;
-                m_executeParams.CameraVignetteCorrection.CorrectionMap  = VignetteExtBufParams->CorrectionMap;
-                /*if ( m_VignetteParams.pCmCorrectionMap )
-                    delete [] m_VignetteParams.pCmCorrectionMap;
-                m_VignetteParams.pCmCorrectionMap = (CameraPipeVignetteCorrectionElem *)new mfxU8[m_VignetteParams.Height *  m_VignetteParams.CmStride];
-                MFX_CHECK_NULL_PTR1(m_VignetteParams.pCorrectionMap);
-                MFX_CHECK_NULL_PTR1(m_VignetteParams.pCmCorrectionMap)
-                IppiSize size = {2, m_VignetteParams.CmWidth*m_VignetteParams.Height / 2  };
-                IppStatus ippSts;
-                ippSts = ippiCopy_8u_C1R((mfxU8*)m_VignetteParams.pCorrectionMap, 8, (mfxU8*)m_VignetteParams.pCmCorrectionMap, 2, size);
-                MFX_CHECK_STS((mfxStatus)ippSts);*/
-            }
-        }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_COLOR_CORRECTION_3X3)
-        {
-            mfxExtCamColorCorrection3x3* CCMExtBufParams = (mfxExtCamColorCorrection3x3*)par->ExtParam[i];
-            if ( CCMExtBufParams )
-            {
-                m_executeParams.CCMParams.Header.BufferId = CCMExtBufParams->Header.BufferId;
-                m_executeParams.bCCM = TRUE;
-                m_executeParams.CCMParams.CCM[0][0]  = CCMExtBufParams->CCM[0][0];
-                m_executeParams.CCMParams.CCM[0][1]  = CCMExtBufParams->CCM[0][1];
-                m_executeParams.CCMParams.CCM[0][2]  = CCMExtBufParams->CCM[0][2];
-                m_executeParams.CCMParams.CCM[1][0]  = CCMExtBufParams->CCM[1][0];
-                m_executeParams.CCMParams.CCM[1][1]  = CCMExtBufParams->CCM[1][1];
-                m_executeParams.CCMParams.CCM[1][2]   = CCMExtBufParams->CCM[1][2];
-                m_executeParams.CCMParams.CCM[2][0]  = CCMExtBufParams->CCM[2][0];
-                m_executeParams.CCMParams.CCM[2][1]  = CCMExtBufParams->CCM[2][1];
-                m_executeParams.CCMParams.CCM[2][2]  = CCMExtBufParams->CCM[2][2];
-            }
-        }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_PADDING)
-        {
-        // Need Refine the padding offsets
-            mfxExtCamPadding* PaddingParams = (mfxExtCamPadding*)par->ExtParam[i];
-
-            if (PaddingParams)
-            {
-                m_executeParams.bCameraPadding = TRUE;
-                m_executeParams.CameraPadding.Header.BufferId = PaddingParams->Header.BufferId;
-                m_executeParams.CameraPadding.Top    = PaddingParams->Top;
-                m_executeParams.CameraPadding.Bottom = PaddingParams->Bottom;
-                m_executeParams.CameraPadding.Left   = PaddingParams->Left;
-                m_executeParams.CameraPadding.Right  = PaddingParams->Right;
-            }
-        }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_LENS_GEOM_DIST_CORRECTION)
-        {
-            mfxExtCamLensGeomDistCorrection* LensExtBufParams = (mfxExtCamLensGeomDistCorrection*)par->ExtParam[i];
-            if ( LensExtBufParams )
-            {
-                m_executeParams.bCameraLensCorrection = true;
-                m_executeParams.CameraLensCorrection.Header.BufferId = LensExtBufParams->Header.BufferId;
-                m_executeParams.CameraLensCorrection.a[0] = LensExtBufParams->a[0];
-                m_executeParams.CameraLensCorrection.a[1] = LensExtBufParams->a[1];
-                m_executeParams.CameraLensCorrection.a[2] = LensExtBufParams->a[2];
-                m_executeParams.CameraLensCorrection.b[0] = LensExtBufParams->b[0];
-                m_executeParams.CameraLensCorrection.b[1] = LensExtBufParams->b[1];
-                m_executeParams.CameraLensCorrection.b[2] = LensExtBufParams->b[2];
-                m_executeParams.CameraLensCorrection.c[0] = LensExtBufParams->c[0];
-                m_executeParams.CameraLensCorrection.c[1] = LensExtBufParams->c[1];
-                m_executeParams.CameraLensCorrection.c[2] = LensExtBufParams->c[2];
-                m_executeParams.CameraLensCorrection.d[0] = LensExtBufParams->d[0];
-                m_executeParams.CameraLensCorrection.d[1] = LensExtBufParams->d[1];
-                m_executeParams.CameraLensCorrection.d[2] = LensExtBufParams->d[2];
-            }
-        }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_TOTAL_COLOR_CONTROL)
-        {
-            mfxExtCamTotalColorControl* tccExtBufParams = (mfxExtCamTotalColorControl*)par->ExtParam[i];
-            if (tccExtBufParams)
-            {
-                m_executeParams.bCameraTCC = TRUE;
-                m_executeParams.CameraTCC.Header.BufferId = tccExtBufParams->Header.BufferId;
-
-                m_executeParams.CameraTCC.R = tccExtBufParams->R;
-                m_executeParams.CameraTCC.G = tccExtBufParams->G;
-                m_executeParams.CameraTCC.B = tccExtBufParams->B;
-                m_executeParams.CameraTCC.C = tccExtBufParams->C;
-                m_executeParams.CameraTCC.M = tccExtBufParams->M;
-                m_executeParams.CameraTCC.Y = tccExtBufParams->Y;
-            }
-        }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_CSC_YUV_RGB)
-        {
-            mfxExtCamCscYuvRgb* rgbToYuvExtBufParams = (mfxExtCamCscYuvRgb*)par->ExtParam[i];
-            if (rgbToYuvExtBufParams)
-            {
-                m_executeParams.bCameraRGBtoYUV = TRUE;
-                m_executeParams.CameraRGBToYUV.Header.BufferId = rgbToYuvExtBufParams->Header.BufferId;
-                for (int k = 0; k < 3; k++) {
-                    m_executeParams.CameraRGBToYUV.PreOffset[k] = rgbToYuvExtBufParams->PreOffset[k];
-                    m_executeParams.CameraRGBToYUV.PostOffset[k] = rgbToYuvExtBufParams->PostOffset[k];
-                }
-                for (int k = 0; k < 3; k++)
-                {
-                    for (int m = 0; m < 3; m++)
-                    {
-                        m_executeParams.CameraRGBToYUV.Matrix[k][m] = rgbToYuvExtBufParams->Matrix[k][m];
-                    }
-                }
-            }
         }
     }
 
