@@ -113,7 +113,17 @@ const mfxU32 g_TABLE_CONFIG [] =
     MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT,
     MFX_EXTBUF_CAM_PIPECONTROL,
     MFX_EXTBUF_CAM_3DLUT,
-    MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION
+    MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION,
+    MFX_EXTBUF_CAM_WHITE_BALANCE,
+    MFX_EXTBUF_CAM_BLACK_LEVEL_CORRECTION,
+    MFX_EXTBUF_CAM_BAYER_DENOISE,
+    MFX_EXTBUF_CAM_HOT_PIXEL_REMOVAL,
+    MFX_EXTBUF_CAM_VIGNETTE_CORRECTION,
+    MFX_EXTBUF_CAM_COLOR_CORRECTION_3X3,
+    MFX_EXTBUF_CAM_PADDING,
+    MFX_EXTBUF_CAM_LENS_GEOM_DIST_CORRECTION,
+    MFX_EXTBUF_CAM_TOTAL_COLOR_CONTROL,
+    MFX_EXTBUF_CAM_CSC_YUV_RGB
 };
 
 
@@ -152,7 +162,17 @@ const mfxU32 g_TABLE_EXT_PARAM [] =
     MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT,
     MFX_EXTBUF_CAM_PIPECONTROL,
     MFX_EXTBUF_CAM_3DLUT,
-    MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION
+    MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION,
+    MFX_EXTBUF_CAM_WHITE_BALANCE,
+    MFX_EXTBUF_CAM_BLACK_LEVEL_CORRECTION,
+    MFX_EXTBUF_CAM_BAYER_DENOISE,
+    MFX_EXTBUF_CAM_HOT_PIXEL_REMOVAL,
+    MFX_EXTBUF_CAM_VIGNETTE_CORRECTION,
+    MFX_EXTBUF_CAM_COLOR_CORRECTION_3X3,
+    MFX_EXTBUF_CAM_PADDING,
+    MFX_EXTBUF_CAM_LENS_GEOM_DIST_CORRECTION,
+    MFX_EXTBUF_CAM_TOTAL_COLOR_CONTROL,
+    MFX_EXTBUF_CAM_CSC_YUV_RGB
 };
 
 PicStructMode GetPicStructMode(mfxU16 inPicStruct, mfxU16 outPicStruct)
@@ -2326,6 +2346,56 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
     if (caps.cameraCaps.u3DLUT)
     {
         list.push_back(MFX_EXTBUF_CAM_3DLUT);
+    }
+
+    if (caps.cameraCaps.uWhiteBalance)
+    {
+        list.push_back(MFX_EXTBUF_CAM_WHITE_BALANCE);
+    }
+
+    if (caps.cameraCaps.uBlackLevelCorrection)
+    {
+        list.push_back(MFX_EXTBUF_CAM_BLACK_LEVEL_CORRECTION);
+    }
+
+    if (caps.cameraCaps.uBayerDenoise)
+    {
+        list.push_back(MFX_EXTBUF_CAM_BAYER_DENOISE);
+    }
+
+    if (caps.cameraCaps.uHotPixelCheck)
+    {
+        list.push_back(MFX_EXTBUF_CAM_HOT_PIXEL_REMOVAL);
+    }
+
+    if (caps.cameraCaps.uVignetteCorrection)
+    {
+        list.push_back(MFX_EXTBUF_CAM_VIGNETTE_CORRECTION);
+    }
+
+    if (caps.cameraCaps.uColorCorrectionMatrix)
+    {
+        list.push_back(MFX_EXTBUF_CAM_COLOR_CORRECTION_3X3);
+    }
+
+    if (caps.cameraCaps.uPadding)
+    {
+        list.push_back(MFX_EXTBUF_CAM_PADDING);
+    }
+
+    if (caps.cameraCaps.uLensGeomDistCorrection)
+    {
+        list.push_back(MFX_EXTBUF_CAM_LENS_GEOM_DIST_CORRECTION);
+    }
+
+    if (caps.cameraCaps.uTotalColorControl)
+    {
+        list.push_back(MFX_EXTBUF_CAM_TOTAL_COLOR_CONTROL);
+    }
+
+    if (caps.cameraCaps.uCscYuvRgb)
+    {
+        list.push_back(MFX_EXTBUF_CAM_CSC_YUV_RGB);
     }
 
     /*ColorFill is always present*/
