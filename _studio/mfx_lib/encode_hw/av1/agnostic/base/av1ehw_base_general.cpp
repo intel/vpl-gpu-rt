@@ -1065,8 +1065,6 @@ void General::Reset(const FeatureBlocks& blocks, TPushR Push)
             , std::end(blocks.m_ebCopySupported)
             , [&](decltype(*std::begin(blocks.m_ebCopySupported)) eb) { parNew.NewEB(eb.first, false); });
 
-        parNew.NewEB(MFX_EXTBUFF_AV1_AUXDATA, false);
-
         std::for_each(std::begin(blocks.m_mvpInheritDefault)
             , std::end(blocks.m_mvpInheritDefault)
             , [&](decltype(*std::begin(blocks.m_mvpInheritDefault)) inherit) { inherit(&parOld, &parNew); });
