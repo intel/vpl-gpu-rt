@@ -38,6 +38,8 @@
     return MFXIPtr<MFXISession_##verMax##_##verMin>(static_cast<_mfxVersionedSessionImpl *>(session)->QueryInterface(MFXISession_##verMax##_##verMin##_GUID)); \
 }
 
+constexpr mfxU32 default_threads_limit = 16;
+
 TRY_GET_SESSION(1,10)
 TRY_GET_SESSION(2,1)
 
@@ -156,7 +158,7 @@ mfxStatus _mfxSession::Init(mfxIMPL implInterface, mfxVersion *ver)
     }
 
     // get the number of available threads
-    maxNumThreads = std::thread::hardware_concurrency();
+    maxNumThreads = std::min((mfxU32)default_threads_limit, (mfxU32)std::thread::hardware_concurrency());
     if (maxNumThreads == 1) {
         maxNumThreads = 2;
     }
@@ -357,7 +359,7 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par, bool isSingleThrea
     maxNumThreads = 0;
     if (par.ExternalThreads == 0)
     {
-        maxNumThreads = std::thread::hardware_concurrency();
+        maxNumThreads = std::min((mfxU32)default_threads_limit, (mfxU32)std::thread::hardware_concurrency());
         if (maxNumThreads == 1)
         {
             maxNumThreads = 2;
