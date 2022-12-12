@@ -31,25 +31,6 @@ using namespace AV1EHW;
 using namespace AV1EHW::Base;
 using namespace AV1EHW::Linux::Base;
 
-void VAPacker::Query1WithCaps(const FeatureBlocks&/*blocks*/, TPushQ1 Push)
-{
-    Push(BLK_HardcodeCaps
-        , [this](const mfxVideoParam&, mfxVideoParam&, StorageRW& strg) -> mfxStatus
-    {
-        eMFXHWType hw = Glob::VideoCore::Get(strg).GetHWType();
-        auto& caps    = Glob::EncodeCaps::Get(strg);
-
-        caps.msdk.CQPSupport = true;
-        caps.msdk.CBRSupport = true;
-        caps.msdk.VBRSupport = true;
-        caps.msdk.ICQSupport = true;
-
-        m_hwType = hw;
-
-        return MFX_ERR_NONE;
-    });
-}
-
 void InitSPS(
     const ExtBuffer::Param<mfxVideoParam>& par
     , const SH& bs_sh

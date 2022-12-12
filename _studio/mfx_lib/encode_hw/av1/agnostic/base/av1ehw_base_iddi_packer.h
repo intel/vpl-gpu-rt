@@ -40,7 +40,7 @@ public:
     DECL_BLOCK(Reset) \
     DECL_BLOCK(SubmitTask) \
     DECL_BLOCK(QueryTask) \
-    DECL_BLOCK(HardcodeCaps) \
+    DECL_BLOCK(QueryCaps) \
     DECL_BLOCK(SetCallChains)
 #define DECL_FEATURE_NAME "Base_IDDIPacker"
 #include "av1ehw_decl_blocks.h"
@@ -50,7 +50,6 @@ public:
     {}
 
 protected:
-    virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override = 0;
     virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override = 0;
     virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override = 0;
     virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override = 0;

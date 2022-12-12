@@ -84,9 +84,7 @@ public:
     using CC = StorageVar<Base::Glob::CallChainsKey, CallChains>;
 
 protected:
-    eMFXHWType      m_hwType            = MFX_HW_UNKNOWN;
 
-    virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
     virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override;
     virtual void InitInternal(const FeatureBlocks& blocks, TPushII Push) override;
     virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override;
