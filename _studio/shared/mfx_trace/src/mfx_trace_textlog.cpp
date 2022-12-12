@@ -41,6 +41,27 @@ static mfxTraceU32 g_PrintfSuppress =
     MFX_TRACE_TEXTLOG_SUPPRESS_LINE_NUM |
     MFX_TRACE_TEXTLOG_SUPPRESS_LEVEL;
 
+typedef mfxTraceU64 mfxTraceTick;
+
+#include <sys/time.h>
+
+#define MFX_TRACE_TIME_MHZ 1000000
+
+static mfxTraceTick mfx_trace_get_frequency(void)
+{
+    return (mfxTraceTick)MFX_TRACE_TIME_MHZ;
+}
+
+static mfxTraceTick mfx_trace_get_tick(void)
+{
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
+    return (mfxTraceTick)tv.tv_sec * (mfxTraceTick)MFX_TRACE_TIME_MHZ + (mfxTraceTick)tv.tv_usec;
+}
+
+#define mfx_trace_get_time(T,S,F) ((double)(__INT64)((T)-(S))/(double)(__INT64)(F))
+
 /*------------------------------------------------------------------------------*/
 
 
@@ -141,7 +162,7 @@ mfxTraceU32 MFXTraceTextLog_DebugMessage(mfxTraceStaticHandle* static_handle,
 
 /*------------------------------------------------------------------------------*/
 
-mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* /*static_handle*/,
+mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* static_handle,
                                     const char *file_name, mfxTraceU32 line_num,
                                     const char *function_name,
                                     mfxTraceChar* category, mfxTraceLevel level,
@@ -158,11 +179,11 @@ mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* /*static_handle*
     strncpy(strfile_name, file_name, MFX_TRACE_MAX_LINE_LENGTH-1);
     strfile_name[MFX_TRACE_MAX_LINE_LENGTH - 1] = 0;
     char* g_fimeName = strrchr(strfile_name, '/') + 1;
-    if (g_fimeName && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FILE_NAME) && ((strcmp(format, exitChr) == 0) || (strcmp(format, enterChr) == 0)))
+    if (g_fimeName && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FILE_NAME))
     {
         p_str = mfx_trace_sprintf(p_str, len, "=====>%s: ", g_fimeName);
     }
-    if (line_num && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_LINE_NUM) && ((strcmp(format, exitChr) == 0) || (strcmp(format, enterChr) == 0)))
+    if (line_num && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_LINE_NUM))
     {
         p_str = mfx_trace_sprintf(p_str, len, "%-10d: ", line_num);
     }
@@ -174,19 +195,28 @@ mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* /*static_handle*
     {
         p_str = mfx_trace_sprintf(p_str, len, "LEV_%d: ", level);
     }
-    if (function_name && (g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FUNCTION_NAME))
+    if (function_name && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FUNCTION_NAME) && !((strcmp(format, exitChr) == 0) || (strcmp(format, enterChr) == 0)))
     {
         p_str = mfx_trace_sprintf(p_str, len, "%-40s: ", function_name);
     }
     if (message && strlen(message) != 0)
     {
-        p_str = mfx_trace_sprintf(p_str, len, "%s: ", message);
+        p_str = mfx_trace_sprintf(p_str, len, "%s", message);
     }
     if (format)
     {
         p_str = mfx_trace_vsprintf(p_str, len, format, args);
         if (strcmp(format, exitChr) == 0)
         {
+            mfxTraceTick trace_frequency = mfx_trace_get_frequency();
+            double total_time = mfx_trace_get_time(static_handle->sd2.tick, 0, trace_frequency);
+            if (total_time)
+            {
+                p_str = mfx_trace_sprintf(p_str, len, "\t\tExec Time: %5.6fus\t\t", total_time);
+            }
+
+            p_str = mfx_trace_sprintf(p_str, len, "Call Count: %d", static_handle->sd5.uint32);
+
             p_str = mfx_trace_sprintf(p_str, len, "\n");
         }
     }
@@ -214,6 +244,9 @@ mfxTraceU32 MFXTraceTextLog_BeginTask(mfxTraceStaticHandle *static_handle,
         handle->fd3.str    = (char*)function_name;
         handle->fd4.str    = (char*)task_name;
     }
+
+    static_handle->sd1.tick = mfx_trace_get_tick();
+
     return MFXTraceTextLog_DebugMessage(static_handle,
                                        file_name, line_num,
                                        function_name,
@@ -243,6 +276,10 @@ mfxTraceU32 MFXTraceTextLog_EndTask(mfxTraceStaticHandle *static_handle,
         function_name = handle->fd3.str;
         task_name     = handle->fd4.str;
     }
+
+    ++(static_handle->sd5.uint32);
+    static_handle->sd2.tick = mfx_trace_get_tick() - static_handle->sd1.tick;
+
     return MFXTraceTextLog_DebugMessage(static_handle,
                                        file_name, line_num,
                                        function_name,

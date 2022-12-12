@@ -46,6 +46,9 @@ FUNCTION_IMPL(CORE, GetHandle, (mfxSession session, mfxHandleType type, mfxHDL *
 
 mfxStatus MFXVideoCORE_QueryPlatform(mfxSession session, mfxPlatform* platform)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
+    MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, session);
+
     MFX_CHECK(session,                MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pCORE.get(), MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK_NULL_PTR1(platform);

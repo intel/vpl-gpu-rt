@@ -44,6 +44,9 @@
 mfxStatus MFXInit(mfxIMPL implParam, mfxVersion *ver, mfxSession *session)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
+    MFX_LTRACE_D(MFX_TRACE_LEVEL_API_PARAMS, implParam);
+    MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, session);
+
     mfxInitParam par = {};
 
     par.Implementation = implParam;
@@ -57,6 +60,8 @@ mfxStatus MFXInit(mfxIMPL implParam, mfxVersion *ver, mfxSession *session)
         par.Version.Minor = 255;
     }
     par.ExternalThreads = 0;
+
+    MFX_TRACE_2("MFX_API version = ", "%d.%d", par.Version.Major, par.Version.Minor);
 
     return MFXInitEx(par, session);
 
@@ -81,6 +86,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "ThreadName=MSDK app");
     }
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
+    MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, session);
     TRACE_EVENT(MFX_TRACE_API_MFX_INIT_EX_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data((mfxU32)par.Implementation, par.GPUCopy));
 
     // check the library version
@@ -153,7 +159,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     }
 
     TRACE_EVENT(MFX_TRACE_API_MFX_INIT_EX_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(mfxRes, session));
-
+    MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
     return mfxRes;
 
 } // mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
@@ -256,7 +262,7 @@ mfxStatus MFXClose(mfxSession session)
         // since it inserts class variable on stack which calls to trace library in the
         // destructor.
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-
+        MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, session);
         // parent session can't be closed,
         // because there is no way to let children know about parent's death.
 
@@ -290,7 +296,7 @@ mfxStatus MFXClose(mfxSession session)
     MFX_TRACE_CLOSE();
 #endif
     TRACE_EVENT(MFX_TRACE_API_MFX_CLOSE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(mfxRes));
-
+    MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
     return mfxRes;
 
 } // mfxStatus MFXClose(mfxHDL session)
@@ -298,6 +304,7 @@ mfxStatus MFXClose(mfxSession session)
 mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* session)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
+    MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, session);
     mfxStatus mfxRes = MFX_ERR_NONE;
 
     MFX_TRACE_INIT();
@@ -361,7 +368,7 @@ mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* sess
     mfxRes = MFXInit_Internal(par, session, par.Implementation, param.VendorImplID, isSingleThreadMode);
 
     TRACE_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(par.Implementation, isSingleThreadMode));
-
+    MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
     return mfxRes;
 }
 
@@ -648,6 +655,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
     TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_START, 0, make_event_data((mfxU32)format));
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
+    MFX_LTRACE_D(MFX_TRACE_LEVEL_API_PARAMS, format);
     try
     {
         switch (format)
@@ -669,7 +677,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
             *num_impls = mfxU32(holder->GetSize());
 
             TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(*num_impls));
-
+            MFX_LTRACE_D(MFX_TRACE_LEVEL_API_PARAMS, *num_impls);
             return holder.release()->GetArray();
         }
 #if defined(ONEVPL_EXPERIMENTAL)
@@ -714,6 +722,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
             *num_impls = mfxU32(holder->GetSize());
 
             TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(*num_impls));
+            MFX_LTRACE_D(MFX_TRACE_LEVEL_API_PARAMS, *num_impls);
 
             holder->Detach();
             impl = holder.release()->GetArray();
