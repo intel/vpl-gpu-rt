@@ -345,6 +345,8 @@ H264HeadersBitstream::H264HeadersBitstream(uint8_t * const pb, const uint32_t ma
 
 inline bool CheckLevel(uint8_t level_idc, bool ignore_level_constrain = false)
 {
+    (void)(ignore_level_constrain); //UNREFERENCED_PARAMETER
+
     switch(level_idc)
     {
     case H264VideoDecoderParams::H264_LEVEL_1:
@@ -369,12 +371,10 @@ inline bool CheckLevel(uint8_t level_idc, bool ignore_level_constrain = false)
     case H264VideoDecoderParams::H264_LEVEL_52:
 
     case H264VideoDecoderParams::H264_LEVEL_9:
-        return true;
-
     case H264VideoDecoderParams::H264_LEVEL_6:
     case H264VideoDecoderParams::H264_LEVEL_61:
     case H264VideoDecoderParams::H264_LEVEL_62:
-        return ignore_level_constrain;
+        return true;
 
     default:
         return false;
