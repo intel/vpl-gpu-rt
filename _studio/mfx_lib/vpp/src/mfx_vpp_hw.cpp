@@ -5068,6 +5068,16 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
 
         switch(par->ExtParam[i]->BufferId)
         {
+        case MFX_EXTBUFF_VPP_SCALING:
+        {
+            mfxExtVPPScaling *extScaling = (mfxExtVPPScaling*)data;
+            // MFX_SCALING_MODE_INTEL_GEN_COMPUTE is only supported on DG2+. If this flag is set on older platforms, return an error message.
+            if (extScaling->ScalingMode == MFX_SCALING_MODE_INTEL_GEN_COMPUTE && !VppCaps::IsScalingModeSupportEU(core->GetHWType()))
+            {
+                sts = GetWorstSts(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+            }
+            break;
+        }
         case MFX_EXTBUFF_VPP_MIRRORING:
         {
             mfxExtVPPMirroring* extMir = (mfxExtVPPMirroring*)data;
