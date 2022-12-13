@@ -32,6 +32,7 @@
 #include "av1ehw_base_tile.h"
 #include "av1ehw_base_query_impl_desc.h"
 #include "av1ehw_base_qmatrix_lin.h"
+#include "av1ehw_base_max_frame_size_lin.h"
 #if defined(MFX_ENABLE_ENCTOOLS)
 #include "av1ehw_base_enctools.h"
 #endif
@@ -64,6 +65,7 @@ Linux::Base::MFXVideoENCODEAV1_HW::MFXVideoENCODEAV1_HW(
     m_features.emplace_back(new General(FEATURE_GENERAL));
     m_features.emplace_back(new TaskManager(FEATURE_TASK_MANAGER));
     m_features.emplace_back(new Packer(FEATURE_PACKER));
+    m_features.emplace_back(new MaxFrameSize(FEATURE_MAX_FRAME_SIZE));
     m_features.emplace_back(new Tile(FEATURE_TILE));
     m_features.emplace_back(new QueryImplDesc(FEATURE_QUERY_IMPL_DESC));
     m_features.emplace_back(new QMatrix(FEATURE_QMATRIX));

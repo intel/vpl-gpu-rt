@@ -95,10 +95,10 @@ void MaxFrameSize::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
 
         MFX_CHECK(pCO2 && pCO3 && IsOn(pCO3->LowDelayBRC), MFX_ERR_NONE);
 
-        mfxU32 avgFrameSizeInBytes = GetAvgFrameSizeInBytes(par);
-
         // Default vaule suggested by arch.
-        pCO2->MaxFrameSize = 6 * avgFrameSizeInBytes / 5;
+        mfxU32 avgFrameSizeInBytes = GetAvgFrameSizeInBytes(par);
+        SetDefault<mfxU32>(pCO2->MaxFrameSize, mfxU32(6.0 * avgFrameSizeInBytes / 5.0));
+
         return MFX_ERR_NONE;
     });
 }

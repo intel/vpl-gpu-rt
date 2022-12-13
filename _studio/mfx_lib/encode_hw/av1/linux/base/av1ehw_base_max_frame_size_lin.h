@@ -23,42 +23,28 @@
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
 
-#include "av1ehw_base.h"
-#include "av1ehw_base_data.h"
+#include "av1ehw_base_max_frame_size.h"
 
 namespace AV1EHW
+{
+namespace Linux
 {
 namespace Base
 {
     class MaxFrameSize
-        : public FeatureBase
+        : public AV1EHW::Base::MaxFrameSize
     {
     public:
-#define DECL_BLOCK_LIST\
-    DECL_BLOCK(CheckAndFix)\
-    DECL_BLOCK(SetDefaults)\
-    DECL_BLOCK(Init)\
-    DECL_BLOCK(Reset)\
-    DECL_BLOCK(PatchDDITask)
-#define DECL_FEATURE_NAME "Base_MaxFrameSize"
-#include "av1ehw_decl_blocks.h"
-
         MaxFrameSize(mfxU32 FeatureId)
-            : FeatureBase(FeatureId)
+            : AV1EHW::Base::MaxFrameSize(FeatureId)
         {}
 
     protected:
-        virtual void SetSupported(ParamSupport& par) override;
-        virtual void SetInherited(ParamInheritance& par) override;
-        virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII /*Push*/) override {};
-        virtual void Reset(const FeatureBlocks& blocks, TPushR Push) override;
-        virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-        virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
-        virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST /*Push*/) override {};
-
+        virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
     };
 
 } //Base
+} //Linux
 } //namespace AV1EHW
 
-#endif //defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
+#endif // defined(MFX_ENABLE_AV1_VIDEO_ENCODE)

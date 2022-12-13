@@ -149,6 +149,7 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_LPM_plus
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus
@@ -166,6 +167,8 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/av1ehw_utils.h
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/av1ehw_base.cpp
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/av1ehw_struct_vaapi.h
+
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_lin.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_lin.h
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_va_lin.cpp
@@ -173,6 +176,8 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_va_packer_lin.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_va_packer_lin.h
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_qmatrix_lin.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_max_frame_size_lin.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_max_frame_size_lin.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm.h
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm_segmentation.cpp

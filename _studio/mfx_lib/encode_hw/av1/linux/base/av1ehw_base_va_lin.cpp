@@ -345,6 +345,7 @@ mfxStatus DDI_VA::QueryCaps()
         , VAConfigAttribEncMaxRefFrames
         , VAConfigAttribEncTileSupport
         , VAConfigAttribEncDynamicScaling
+        , VAConfigAttribMaxFrameSize
         , (VAConfigAttribType)VAConfigAttribEncAV1
         , (VAConfigAttribType)VAConfigAttribEncAV1Ext1
         , (VAConfigAttribType)VAConfigAttribEncAV1Ext2
@@ -373,6 +374,12 @@ mfxStatus DDI_VA::QueryCaps()
     m_caps.msdk.VBRSupport   = !!(AV(VAConfigAttribRateControl) & VA_RC_VBR);
     m_caps.msdk.CQPSupport   = !!(AV(VAConfigAttribRateControl) & VA_RC_CQP);
     m_caps.msdk.ICQSupport   = !!(AV(VAConfigAttribRateControl) & VA_RC_ICQ);
+
+    m_caps.UserMaxFrameSizeSupport = !!(AV(VAConfigAttribMaxFrameSize));
+
+#if VA_CHECK_VERSION(1, 10, 0)
+    m_caps.SupportedRateControlMethods.fields.TCBRCSupport = !!(AV(VAConfigAttribRateControl) & VA_RC_TCBRC);
+#endif
 
     MFX_CHECK(AV(VAConfigAttribMaxPictureWidth) != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
     MFX_CHECK(AV(VAConfigAttribMaxPictureHeight) != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);

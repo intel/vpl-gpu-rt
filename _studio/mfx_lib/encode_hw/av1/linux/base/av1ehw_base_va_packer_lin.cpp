@@ -26,6 +26,7 @@
 #include "av1ehw_ddi.h"
 #include "av1ehw_base_va_lin.h"
 #include "av1ehw_base_va_packer_lin.h"
+#include "av1ehw_struct_vaapi.h"
 
 using namespace AV1EHW;
 using namespace AV1EHW::Base;
@@ -481,6 +482,7 @@ inline void AddVaMiscFR(
 inline void AddVaMiscRC(
     const Glob::VideoParam::TRef& par
     , const Glob::FH::TRef& bs_fh
+    , const Task::Common::TRef& task
     , std::list<std::vector<mfxU8>>& buf
     , bool bResetBRC = false)
 {
@@ -504,6 +506,18 @@ inline void AddVaMiscRC(
         //MBBRC control
         //Control VA_RC_MB 0: default, 1: enable, 2: disable, other: reserved
         rc.rc_flags.bits.mb_rate_control = IsOn(CO2->MBBRC) +IsOff(CO2->MBBRC) * 2;
+    }
+
+    // TCBRC control
+#if VA_CHECK_VERSION(1, 10, 0)
+    rc.target_frame_size = task.TCBRCTargetFrameSize;
+#endif
+
+    const mfxExtCodingOption3* CO3 = ExtBuffer::Get(par);
+    if (CO3)
+    {
+        rc.rc_flags.bits.frame_tolerance_mode =
+            IsOn(CO3->LowDelayBRC) ? eFrameSizeTolerance_ExtremelyLow : eFrameSizeTolerance_Normal;
     }
 
     rc.ICQ_quality_factor = 0;
@@ -597,13 +611,17 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             AddVaMiscTemporalLayer(par, data);
             return true;
         });
-        cc.AddPerSeqMiscData[VAEncMiscParameterTypeRateControl].Push([this, &par, &bs_fh](
+        cc.AddPerPicMiscData[VAEncMiscParameterTypeRateControl].Push([this](
             VAPacker::CallChains::TAddMiscData::TExt
             , const StorageR& strg
-            , const StorageR& local
+            , const StorageR& s_task
             , std::list<std::vector<mfxU8>>& data)
         {
-            AddVaMiscRC(par, bs_fh, data);
+            const auto& par   = Glob::VideoParam::Get(strg);
+            const auto& bs_fh = Glob::FH::Get(strg);
+            const auto& task  = Task::Common::Get(s_task);
+
+            AddVaMiscRC(par, bs_fh, task, data);
             return true;
         });
         cc.AddPerSeqMiscData[VAEncMiscParameterTypeFrameRate].Push([this, &par](
@@ -715,13 +733,17 @@ void VAPacker::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
             AddVaMiscTemporalLayer(par, data);
             return true;
         });
-        cc.AddPerSeqMiscData[VAEncMiscParameterTypeRateControl].Push([this, &par, &bs_fh](
+        cc.AddPerPicMiscData[VAEncMiscParameterTypeRateControl].Push([this](
             VAPacker::CallChains::TAddMiscData::TExt
             , const StorageR& strg
-            , const StorageR& local
+            , const StorageR& s_task
             , std::list<std::vector<mfxU8>>& data)
         {
-            AddVaMiscRC(par, bs_fh, data, !!(Glob::ResetHint::Get(strg).Flags & RF_BRC_RESET));
+            const auto& par   = Glob::VideoParam::Get(strg);
+            const auto& bs_fh = Glob::FH::Get(strg);
+            const auto& task  = Task::Common::Get(s_task);
+
+            AddVaMiscRC(par, bs_fh, task, data, !!(Glob::ResetHint::Get(strg).Flags & RF_BRC_RESET));
             return true;
         });
         cc.AddPerSeqMiscData[VAEncMiscParameterTypeFrameRate].Push([this, &par](
@@ -826,6 +848,15 @@ void VAPacker::SubmitTask(const FeatureBlocks& blocks, TPushST Push)
 
         AddPackedHeaderIf(!!(task.InsertHeaders & INSERT_PPS)
             , ph.PPS, par, VAEncPackedHeaderAV1_PPS);
+
+        for (auto& AddMisc : cc.AddPerPicMiscData)
+        {
+            if (AddMisc.second(global, s_task, m_vaPerPicMiscData))
+            {
+                auto& misc = m_vaPerPicMiscData.back();
+                par.push_back(PackVaBuffer(VAEncMiscParameterBufferType, misc.data(), (mfxU32)misc.size()));
+            }
+        }
 
         SetFeedback(task.StatusReportId, *(VASurfaceID*)task.HDLRaw.first, GetResources(RES_BS).at(task.BS.Idx));
 
