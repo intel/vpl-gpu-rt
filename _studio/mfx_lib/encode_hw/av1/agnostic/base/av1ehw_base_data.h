@@ -825,7 +825,7 @@ namespace Base
         bool              bSkip                  = false;
         bool              bResetBRC              = false;
         bool              bRecode                = false;
-        bool              bCachedTask            = false;
+        bool              bCached                = false;
         mfxI32            PrevRAP                = -1;
         mfxU16            NumRecode              = 0;
         mfxU8             QpY                    = 0;

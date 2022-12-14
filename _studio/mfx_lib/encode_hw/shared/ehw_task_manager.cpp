@@ -135,7 +135,7 @@ mfxStatus TaskManager::TaskSubmit(StorageW& /*task*/)
         MFX_CHECK_STS(sts);
 
         MoveTaskForward(Stage(S_SUBMIT), FixedTask(*pTask));
-        SetCachedTask(*pTask, false);
+        SetCached(*pTask, false);
         ++m_nTasksInExecution;
         m_nRecodeTasks -= !!m_nRecodeTasks;
     }
@@ -192,7 +192,7 @@ mfxStatus TaskManager::TaskQuery(StorageW& inTask)
     {
         pTask = GetTask(Stage(S_QUERY));
         MFX_CHECK(pTask, NoTaskErr[!!pPrevRecode]);
-        if (pPrevRecode && IsCachedTask(*pTask))
+        if (pPrevRecode && IsCached(*pTask))
         {
             StorageRW* pTaskFirst = pTask;
             while (true)
@@ -201,7 +201,7 @@ mfxStatus TaskManager::TaskQuery(StorageW& inTask)
                 pTask = GetTask(Stage(S_QUERY));
                 MFX_CHECK(pTask, MFX_ERR_UNDEFINED_BEHAVIOR);
                 MFX_CHECK(pTask != pTaskFirst, MFX_TASK_BUSY);
-                if (!IsCachedTask(*pTask))
+                if (!IsCached(*pTask))
                     break;
             }
         }
@@ -220,7 +220,7 @@ mfxStatus TaskManager::TaskQuery(StorageW& inTask)
 
         AddNumRecode(task, bRecode && !pPrevRecode);
 
-        if (!IsCachedTask(task))
+        if (!IsCached(task))
             --m_nTasksInExecution;
 
         if (!!pPrevRecode)
@@ -231,7 +231,7 @@ mfxStatus TaskManager::TaskQuery(StorageW& inTask)
 
         if (bWaitForCache)
         {
-            SetCachedTask(task, true);
+            SetCached(task, true);
             MoveTask(Stage(S_QUERY), Stage(S_QUERY), FixedTask(*pTask), GetDestForWait);
         }
 

@@ -82,8 +82,8 @@ namespace MfxEncodeHW
 
         virtual TTaskIt GetDestToPushQuery(TTaskIt begin, TTaskIt /*end*/, StorageW& /*task*/) { return begin; }
 
-        virtual bool IsCachedTask(StorageW& /*task*/) const { return false; }
-        virtual void SetCachedTask(StorageW& /*task*/, bool) const { }
+        virtual bool IsCached(StorageW& /*task*/) const { return false; }
+        virtual void SetCached(StorageW& /*task*/, bool) const { }
         virtual void ClearBRCUpdateFlag(StorageW& /*task*/) const { }
 
         virtual mfxStatus RunQueueTaskAlloc(StorageRW& /*task*/) = 0;
