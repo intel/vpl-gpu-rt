@@ -2200,6 +2200,12 @@ enum {
        See the mfxExtSyncSubmission structure for more details.
     */
     MFX_EXTBUFF_SYNCSUBMISSION = MFX_MAKEFOURCC('S','Y','N','C'),
+#ifdef ONEVPL_EXPERIMENTAL    
+    /*!
+       See the mfxExtVPPPercEncPrefilter structure for details.
+    */
+    MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER        = MFX_MAKEFOURCC('V','P','E','F'),
+#endif
 };
 
 /* VPP Conf: Do not use certain algorithms  */
@@ -4832,6 +4838,15 @@ typedef struct {
 MFX_PACK_END()
 #endif
 
+#ifdef ONEVPL_EXPERIMENTAL
+MFX_PACK_BEGIN_USUAL_STRUCT()
+/*! The structure is used to configure perceptual encoding prefilter in VPP. */
+typedef struct {
+    mfxExtBuffer Header;         /*! Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER. */
+    mfxU16       reserved[252];
+}mfxExtVPPPercEncPrefilter;
+MFX_PACK_END()
+#endif
 
 #ifdef __cplusplus
 } // extern "C"
