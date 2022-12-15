@@ -34,15 +34,15 @@ namespace MfxEncodeHW
     public:
         mfxU32  DisplayOrder = 0;
         mfxU32  BsDataLength = 0;
-        std::shared_ptr<mfxU8[]> Data;
+        std::shared_ptr<std::vector<mfxU8>> Data;
         bool isHiden = true;
         CachedBitstream(mfxU32 length, mfxU8* pData=nullptr)
         {
-            Data.reset(new mfxU8[length]);
+            Data = std::make_shared<std::vector<mfxU8>>(std::vector<mfxU8>(length));
             BsDataLength = length;
             if (pData != nullptr)
             {
-                std::copy(pData, pData + length, Data.get());
+                std::copy(pData, pData + length, Data->data());
             }
         }
     };
