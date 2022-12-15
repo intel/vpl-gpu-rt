@@ -3605,8 +3605,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                     mfxF64 frameRate = mfxF64(par.mfx.FrameInfo.FrameRateExtN) / par.mfx.FrameInfo.FrameRateExtD;
                     avgFrameSizeInKB = par.calcParam.targetKbps / frameRate / 8;
 
-                    // Align with HEVC/AV1 as 2*ceil(avgFrameSizeInKB)+1
-                    if (par.calcParam.bufferSizeInKB < mfxU32(2 * std::ceil(avgFrameSizeInKB) + 1))
+                    if (par.calcParam.bufferSizeInKB < 2 * avgFrameSizeInKB)
                     {
                         if (extBits->SPSBuffer && (
                             extSps->vui.flags.nalHrdParametersPresent ||
@@ -3614,7 +3613,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                             return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
                         changed = true;
-                        par.calcParam.bufferSizeInKB = mfxU32(2 * std::ceil(avgFrameSizeInKB) + 1);
+                        par.calcParam.bufferSizeInKB = mfxU32(2 * avgFrameSizeInKB + 1);
                     }
                 }
 
