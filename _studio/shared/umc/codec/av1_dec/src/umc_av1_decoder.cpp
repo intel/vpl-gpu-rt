@@ -309,7 +309,7 @@ namespace UMC_AV1_DECODER
         if (prevNumTiles + tgInfo.numTiles > NumTiles(fh.tile_info))
             return false;
 
-        if (tgInfo.numTiles == 0)
+        if (tgInfo.numTiles == 0 || tgInfo.startTileIdx > tgInfo.endTileIdx)
             return false;
 
         return true;
