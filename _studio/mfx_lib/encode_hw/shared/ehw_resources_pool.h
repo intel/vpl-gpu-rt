@@ -39,7 +39,7 @@ public:
 
     ResPool(VideoCORE& core);
 
-    ~ResPool();
+    virtual ~ResPool();
 
     virtual mfxStatus Alloc(
          const mfxFrameAllocRequest & req
