@@ -111,6 +111,11 @@ namespace UMC_AV1_DECODER
             return true;
         }
 
+        if (old_sps->film_grain_param_present != new_sps->film_grain_param_present)
+        {
+            return true;
+        }
+
         return false;
     }
 
