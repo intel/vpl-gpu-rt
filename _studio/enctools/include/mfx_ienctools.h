@@ -46,8 +46,8 @@ struct IEncToolsBRC
 {
     virtual ~IEncToolsBRC() {}
 
-    virtual mfxStatus Init(mfxEncToolsCtrl const&, bool /*bMBBRC*/) = 0;
-    virtual mfxStatus Reset(mfxEncToolsCtrl const&, bool /*bMBBRC*/) = 0;
+    virtual mfxStatus Init(mfxEncToolsCtrl const&, bool /*bMBBRC*/, bool) = 0;
+    virtual mfxStatus Reset(mfxEncToolsCtrl const&, bool /*bMBBRC*/, bool) = 0;
     virtual void Close() = 0;
 
     virtual mfxStatus ReportEncResult(mfxU32 /*dispOrder*/, mfxEncToolsBRCEncodeResult const&) = 0;

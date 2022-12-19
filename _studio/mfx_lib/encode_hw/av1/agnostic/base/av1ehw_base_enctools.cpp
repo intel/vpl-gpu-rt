@@ -154,6 +154,26 @@ static void CDEF(FH& bs_fh)
 
     cdef.cdef_damping = (qp >> 6) + 3;
 }
+
+template<class T> struct ExtBufTypeToId {};
+#define BIND_EXTBUF_TYPE_TO_ID(TYPE, ID) template<> struct ExtBufTypeToId<TYPE> { enum { id = ID }; }
+BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCRefListCtrl, MFX_EXTBUFF_AVC_REFLIST_CTRL);
+
+static void InitExtBufHeader_AV1(mfxExtRefListCtrl& extBuf)
+{
+    
+    extBuf = {};
+    extBuf.Header.BufferId = ExtBufTypeToId<mfxExtAVCRefListCtrl>::id;    
+    extBuf.Header.BufferSz = sizeof(mfxExtRefListCtrl);
+
+    for (mfxU32 i = 0; i < 32; i++)
+        extBuf.PreferredRefList[i].FrameOrder = mfxU32(MFX_FRAMEORDER_UNKNOWN);
+    for (mfxU32 i = 0; i < 16; i++)
+        extBuf.RejectedRefList[i].FrameOrder = mfxU32(MFX_FRAMEORDER_UNKNOWN);
+    for (mfxU32 i = 0; i < 16; i++)
+        extBuf.LongTermRefList[i].FrameOrder = mfxU32(MFX_FRAMEORDER_UNKNOWN);
+        
+}
  
 void AV1EncTools::SetSupported(ParamSupport& blocks)
 {
@@ -198,6 +218,7 @@ void AV1EncTools::SetSupported(ParamSupport& blocks)
 
         MFX_COPY_FIELD(AdaptiveCQM);
         MFX_COPY_FIELD(ScenarioInfo);
+        MFX_COPY_FIELD(ExtBrcAdaptiveLTR);
     });
 }
 
@@ -354,7 +375,7 @@ void AV1EHW::Base::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsCo
     const mfxExtCodingOption3  *pExtOpt3 = ExtBuffer::Get(video);
     const mfxExtEncToolsConfig *pExtConfig = ExtBuffer::Get(video);
     const mfxExtAV1AuxData *pAuxData = ExtBuffer::Get(video);
-
+    const mfxExtCodingOptionDDI *pExtDdi = ExtBuffer::Get(video);
     bool bGameStreaming = pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING;
 
     if (!IsEncToolsConfigDefined(pExtConfig))
@@ -403,11 +424,13 @@ void AV1EHW::Base::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsCo
             bool bAdaptiveI = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveI)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
             bool bHasB = video.mfx.GopRefDist > 1;
             bool bAdaptiveB = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveB)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT) && bHasB;
-        
+            bool bAdaptiveLTR = !(pExtDdi && pExtDdi->NumActiveRefP < 2) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT) && (pExtOpt3 && IsOn(pExtOpt3->ExtBrcAdaptiveLTR));
+
             SetDefaultOpt(config.AdaptiveI, bAdaptiveI);
             SetDefaultOpt(config.AdaptiveB, bAdaptiveB);
             SetDefaultOpt(config.AdaptivePyramidQuantP, false);
             SetDefaultOpt(config.AdaptivePyramidQuantB, bHasB);
+            SetDefaultOpt(config.AdaptiveLTR, bAdaptiveLTR);
         }
         SetDefaultOpt(config.BRC, (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
             video.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
@@ -422,7 +445,6 @@ void AV1EHW::Base::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsCo
         //these features are not supported for now, we will enable them in future
         config.AdaptiveRefP          = MFX_CODINGOPTION_OFF;
         config.AdaptiveRefB          = MFX_CODINGOPTION_OFF;
-        config.AdaptiveLTR           = MFX_CODINGOPTION_OFF;
         config.AdaptiveQuantMatrices = MFX_CODINGOPTION_OFF;
     }
 #ifdef MFX_ENABLE_ENCTOOLS_LPLA
@@ -461,7 +483,8 @@ static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & s
     mfxExtCodingOption3   *pExtOpt3 = ExtBuffer::Get(video);
     mfxExtBRC             *pBRC = ExtBuffer::Get(video);
     mfxExtEncToolsConfig  *pConfig = ExtBuffer::Get(video);
-
+    mfxExtCodingOptionDDI *pExtDdi = ExtBuffer::Get(video);
+    
     mfxU32 changed = 0;
     bool bIsEncToolsEnabled = false;
 
@@ -473,6 +496,7 @@ static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & s
         bool bHasB = video.mfx.GopRefDist > 1;
         bool bAdaptiveB = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveB)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT) && bHasB;
         bool bAdaptiveRef = false;
+        bool bAdaptiveLTR = !(pExtDdi && pExtDdi->NumActiveRefP < 2) && !(pExtOpt3 && IsOff(pExtOpt3->ExtBrcAdaptiveLTR)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);        
 
         changed += CheckFlag(pConfig->AdaptiveI, bIsEncToolsEnabled && bAdaptiveI);
         changed += CheckFlag(pConfig->AdaptiveB, bIsEncToolsEnabled && bAdaptiveB);
@@ -481,7 +505,7 @@ static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & s
 
         changed += CheckFlag(pConfig->AdaptiveRefP, bIsEncToolsEnabled  && bAdaptiveRef);
         changed += CheckFlag(pConfig->AdaptiveRefB, bIsEncToolsEnabled  && bAdaptiveRef);
-        changed += CheckFlag(pConfig->AdaptiveLTR, bIsEncToolsEnabled  && bAdaptiveRef);
+        changed += CheckFlag(pConfig->AdaptiveLTR, bIsEncToolsEnabled  && bAdaptiveLTR);
         changed += CheckFlag(pConfig->SceneChange, bIsEncToolsEnabled);
         changed += CheckFlag(pConfig->BRCBufferHints, bIsEncToolsEnabled);
         changed += CheckFlag(pConfig->AdaptiveQuantMatrices, bIsEncToolsEnabled);
@@ -1054,6 +1078,7 @@ mfxStatus AV1EncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
     mfxEncToolsBRCBufferHint bufHint = {};
     mfxEncToolsHintQuantMatrix cqmHint = {};
     mfxEncToolsHintQPMap qpMapHint = {};
+    mfxEncToolsHintPreEncodeARefFrames aRef = {};
 
     bool isLABRC = (m_EncToolCtrl.ScenarioInfo == MFX_SCENARIO_UNKNOWN &&
                      IsOn(m_EncToolConfig.BRCBufferHints) &&
@@ -1096,6 +1121,13 @@ mfxStatus AV1EncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
         bufHint.Header.BufferSz = sizeof(bufHint);
         bufHint.OutputMode = mfxU16(isLABRC ? MFX_BUFFERHINT_OUTPUT_DISPORDER : MFX_BUFFERHINT_OUTPUT_ENCORDER);
         extParams.push_back(&bufHint.Header);
+    }
+
+    if (IsOn(m_EncToolConfig.AdaptiveLTR))
+    {
+        aRef.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_AREF;
+        aRef.Header.BufferSz = sizeof(aRef);
+        extParams.push_back(&aRef.Header);
     }
 
     task_par.ExtParam = extParams.data();
@@ -1158,6 +1190,36 @@ mfxStatus AV1EncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
             task.BrcHints.LaCurEncodedBits = bufHint.CurEncodedSizeInBits;
             task.BrcHints.LaDistToNextI = bufHint.DistToNextI;
         }
+
+
+        if (IsOn(m_EncToolConfig.AdaptiveLTR))
+        {
+            InitExtBufHeader_AV1(task.InternalListCtrl);
+            task.InternalListCtrlPresent = true;
+            if (aRef.CurrFrameType == MFX_REF_FRAME_TYPE_LTR)
+            {
+                task.InternalListCtrl.LongTermRefList[0].FrameOrder = task.DisplayOrder;
+                task.InternalListCtrl.LongTermRefList[0].PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+            }
+
+            for (mfxU32 i = (aRef.CurrFrameType == MFX_REF_FRAME_TYPE_LTR) ? 1 : 0; i < std::min(aRef.LongTermRefListSize, (mfxU16)16); i++)
+            {
+                task.InternalListCtrl.LongTermRefList[i].FrameOrder = aRef.LongTermRefList[i];
+                task.InternalListCtrl.LongTermRefList[i].PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+            }
+            
+            for (mfxU32 i = 0; i < std::min(aRef.PreferredRefListSize, (mfxU16)32); i++)
+            {
+                task.InternalListCtrl.PreferredRefList[i].FrameOrder = aRef.PreferredRefList[i];
+                task.InternalListCtrl.PreferredRefList[i].PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+            }
+
+            for (mfxU32 i = 0; i < std::min(aRef.RejectedRefListSize, (mfxU16)16); i++)
+            {
+                task.InternalListCtrl.RejectedRefList[i].FrameOrder = aRef.RejectedRefList[i];
+                task.InternalListCtrl.RejectedRefList[i].PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+            }
+        }           
      }
     return sts;
 }

@@ -716,7 +716,7 @@ mfxStatus EncTools::Init(mfxExtEncToolsConfig const * pConfig, mfxEncToolsCtrl c
     SetToolsStatus(&m_config, false);
     if (IsOn(pConfig->BRC))
     {
-        sts = m_brc->Init(*ctrl, IsOn(pConfig->AdaptiveMBQP));
+        sts = m_brc->Init(*ctrl, IsOn(pConfig->AdaptiveMBQP), IsOn(pConfig->AdaptiveLTR));
         MFX_CHECK_STS(sts);
         m_config.BRC = MFX_CODINGOPTION_ON;
     }
@@ -802,7 +802,7 @@ mfxStatus EncTools::Reset(mfxExtEncToolsConfig const * config, mfxEncToolsCtrl c
     if (IsOn(config->BRC))
     {
         MFX_CHECK(m_config.BRC, MFX_ERR_UNSUPPORTED);
-        sts = m_brc->Reset(*ctrl, IsOn(config->AdaptiveMBQP));
+        sts = m_brc->Reset(*ctrl, IsOn(config->AdaptiveMBQP), IsOn(config->AdaptiveLTR));
         MFX_CHECK_STS(sts);
     }
     if (isPreEncSCD(*config, *ctrl))

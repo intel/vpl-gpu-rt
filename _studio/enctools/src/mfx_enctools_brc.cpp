@@ -118,7 +118,7 @@ mfxI32 GetRawFrameSize(mfxU32 lumaSize, mfxU16 chromaFormat, mfxU16 bitDepthLuma
     return frameSize * 8; //frame size in bits
 }
 
-mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool fieldMode)
+mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool fieldMode, bool bALTR)
 {
     MFX_CHECK(ctrl.RateControlMethod == MFX_RATECONTROL_CBR ||
               ctrl.RateControlMethod == MFX_RATECONTROL_VBR,
@@ -263,12 +263,12 @@ mfxStatus cBRCParams::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool field
     mLaQp = ctrl.LaQp;
     mLaScale = ctrl.LaScale;
     mLaDepth = ctrl.MaxDelayInFrames;
-    mHasALTR = (ctrl.CodecId == MFX_CODEC_AVC);   // check if codec support ALTR
+    mHasALTR = ((ctrl.CodecId == MFX_CODEC_AVC) || (ctrl.CodecId == MFX_CODEC_AV1)) && bALTR;   // check if codec support ALTR
     mMBBRC = (CodecId == MFX_CODEC_HEVC || CodecId == MFX_CODEC_AVC || CodecId == MFX_CODEC_AV1) && bMBBRC;
     return MFX_ERR_NONE;
 }
 
-mfxStatus   cBRCParams::GetBRCResetType(mfxEncToolsCtrl const &  ctrl,  bool bNewSequence, bool bMBBRC, bool &bBRCReset, bool &bSlidingWindowReset)
+mfxStatus   cBRCParams::GetBRCResetType(mfxEncToolsCtrl const &  ctrl,  bool bNewSequence, bool bMBBRC, bool &bBRCReset, bool &bSlidingWindowReset, bool bALTR)
 {
     bBRCReset = false;
     bSlidingWindowReset = false;
@@ -277,7 +277,7 @@ mfxStatus   cBRCParams::GetBRCResetType(mfxEncToolsCtrl const &  ctrl,  bool bNe
         return MFX_ERR_NONE;
 
     cBRCParams new_par;
-    mfxStatus sts = new_par.Init(ctrl, bMBBRC,false);
+    mfxStatus sts = new_par.Init(ctrl, bMBBRC,false, bALTR);
     MFX_CHECK_STS(sts);
 
     MFX_CHECK(new_par.rateControlMethod == rateControlMethod, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM) ;
@@ -947,12 +947,12 @@ mfxI32 BRC_EncToolBase::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 i
 }
 
 
-mfxStatus BRC_EncToolBase::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
+mfxStatus BRC_EncToolBase::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool bALTR)
 {
     MFX_CHECK(!m_bInit, MFX_ERR_UNDEFINED_BEHAVIOR);
     mfxStatus sts = MFX_ERR_NONE;
 
-    sts = m_par.Init(ctrl, bMBBRC, isFieldMode(ctrl));
+    sts = m_par.Init(ctrl, bMBBRC, isFieldMode(ctrl), bALTR);
     MFX_CHECK_STS(sts);
 
     if (m_par.HRDConformance != MFX_BRC_NO_HRD)
@@ -987,7 +987,7 @@ mfxStatus BRC_EncToolBase::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
     return sts;
 }
 
-mfxStatus BRC_EncToolBase::Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
+mfxStatus BRC_EncToolBase::Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool bALTR)
 {
     mfxStatus sts = MFX_ERR_NONE;
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
@@ -996,19 +996,19 @@ mfxStatus BRC_EncToolBase::Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC)
     if (pRO && pRO->StartNewSequence == MFX_CODINGOPTION_ON)
     {
         Close();
-        sts = Init(ctrl, bMBBRC);
+        sts = Init(ctrl, bMBBRC, bALTR);
     }
     else
     {
         bool brcReset = false;
         bool slidingWindowReset = false;
 
-        sts = m_par.GetBRCResetType(ctrl, false, bMBBRC, brcReset, slidingWindowReset);
+        sts = m_par.GetBRCResetType(ctrl, false, bMBBRC, brcReset, slidingWindowReset, bALTR);
         MFX_CHECK_STS(sts);
 
         if (brcReset)
         {
-            sts = m_par.Init(ctrl, bMBBRC, isFieldMode(ctrl));
+            sts = m_par.Init(ctrl, bMBBRC, isFieldMode(ctrl), bALTR);
             MFX_CHECK_STS(sts);
 
             m_ctx.Quant = (mfxI32)(1. / m_ctx.dQuantAb * pow(m_ctx.fAbLong / m_par.inputBitsPerFrame, 0.32) + 0.5);

@@ -210,8 +210,8 @@ public:
         lowPower(0)
     {}
 
-    mfxStatus Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool bFieldMode);
-    mfxStatus GetBRCResetType(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool bNewSequence, bool &bReset, bool &bSlidingWindowReset);
+    mfxStatus Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool bFieldMode, bool bALTR);
+    mfxStatus GetBRCResetType(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool bNewSequence, bool &bReset, bool &bSlidingWindowReset, bool bALTR);
 };
 
 struct sHrdInput
@@ -585,8 +585,8 @@ public:
 
     ~BRC_EncToolBase() override { Close(); }
 
-    mfxStatus Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC) override;
-    mfxStatus Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC) override;
+    mfxStatus Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool bALTR) override;
+    mfxStatus Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool bALTR) override;
     void Close() override
     {
         m_bInit = false;
