@@ -99,6 +99,16 @@ void TaskManager::SetRecode(StorageW& task, bool bRecode) const
     Task::Common::Get(task).bRecode = bRecode;
 }
 
+bool TaskManager::GetFreed(const StorageR& task) const
+{
+    return Task::Common::Get(task).bFreed;
+}
+
+void TaskManager::SetFreed(StorageW& task, bool bFreed) const
+{
+    Task::Common::Get(task).bFreed = bFreed;
+}
+
 mfxU32 TaskManager::GetBsDataLength(const StorageR& task) const
 {
     return Task::Common::Get(task).BsDataLength;
