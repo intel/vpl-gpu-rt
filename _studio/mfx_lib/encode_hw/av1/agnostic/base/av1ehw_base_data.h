@@ -718,11 +718,14 @@ namespace Base
     typedef struct _DpbFrame
         : FrameBaseInfo
     {
-        mfxU32   DisplayOrder   = mfxU32(-1);
-        mfxU32   EncodedOrder   = mfxU32(-1);
-        bool     isLTR          = false; // is "long-term"
-        bool     isRejected     = false; // rejected ref frame should be refreshed asap
-        mfxU8    CodingType     = 0;
+        mfxU32   DisplayOrder = mfxU32(-1);
+        mfxU32   EncodedOrder = mfxU32(-1);
+        mfxU64   TimestampIn  = 0;
+        mfxU16   PicStructIn  = 0;
+        mfxU32   FrameOrderIn = mfxU32(-1);
+        bool     isLTR        = false; // is "long-term"
+        bool     isRejected   = false; // rejected ref frame should be refreshed asap
+        mfxU8    CodingType   = 0;
         Resource Raw;
         Resource Rec;
         mfxFrameSurface1* pSurfIn = nullptr; //input surface, may be opaque
