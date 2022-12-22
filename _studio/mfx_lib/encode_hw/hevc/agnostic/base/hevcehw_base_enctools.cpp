@@ -139,15 +139,6 @@ inline bool IsBRC(const mfxExtEncToolsConfig &config)
         IsOn(config.BRC);
 }
 
-
-inline bool IsEncToolsOptSet(const mfxExtEncToolsConfig& config)
-{
-    return
-        (config.AdaptiveB | config.AdaptiveI | config.AdaptiveLTR | config.AdaptivePyramidQuantB
-            | config.AdaptivePyramidQuantP | config.AdaptiveQuantMatrices | config.AdaptiveRefB
-            | config.AdaptiveRefP | config.BRC | config.BRCBufferHints | config.SceneChange);
-}
-
 bool HEVCEHW::Base::IsEncToolsOptOn(const mfxExtEncToolsConfig &config, bool bGameStreaming)
 {
     return
@@ -312,7 +303,14 @@ static void SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsConfig &c
         bool lplaAssistedBRC = IsOn(config.BRC) && isSWLACondition(video);
         SetDefaultOpt(config.BRCBufferHints, lplaAssistedBRC);
         SetDefaultOpt(config.AdaptiveMBQP,  bMBQPSupport && lplaAssistedBRC && IsOn(pExtOpt2->MBBRC));
+#ifdef ONEVPL_EXPERIMENTAL
+        if (IsEncToolsOptSet(config) && pExtOpt3->ContentInfo == MFX_CONTENT_NOISY_VIDEO)
+            SetDefaultOpt(config.AdaptiveQuantMatrices, true);
+        else
+            SetDefaultOpt(config.AdaptiveQuantMatrices, false);
+#else
         SetDefaultOpt(config.AdaptiveQuantMatrices, false);
+#endif
     }
 #ifdef MFX_ENABLE_ENCTOOLS_LPLA
     else
