@@ -436,6 +436,9 @@ mfxStatus VideoVPPBase::GetVideoParam(mfxVideoParam *par)
 #ifdef MFX_ENABLE_MCTF
                     case MFX_EXTBUFF_VPP_MCTF:
 #endif
+#ifdef ONEVPL_EXPERIMENTAL
+                    case MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER:
+#endif
                     {
                         if(numUsedFilters + 1 > pVPPHint->NumAlg)
                             return MFX_ERR_UNDEFINED_BEHAVIOR;

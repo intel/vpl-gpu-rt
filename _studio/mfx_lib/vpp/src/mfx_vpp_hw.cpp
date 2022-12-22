@@ -47,6 +47,10 @@
 #include "mctf_common.h"
 #endif
 
+#if defined (ONEVPL_EXPERIMENTAL)
+#include "mfx_perc_enc_vpp.h"
+#endif
+
 #include "umc_defs.h"
 
 #include "mfx_common_int.h"
@@ -2371,6 +2375,14 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
                 formatSupport = MFX_FORMAT_SUPPORT_OUTPUT;
             }
             break;
+#if defined (ONEVPL_EXPERIMENTAL)
+        case MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER:
+            if (format == MFX_FOURCC_NV12)
+            {
+                formatSupport = MFX_FORMAT_SUPPORT_INPUT | MFX_FORMAT_SUPPORT_OUTPUT;
+            }
+            break;
+#endif
         default:
             break;
     }
@@ -2812,6 +2824,13 @@ mfxStatus  VideoVPPHW::Init(
                 sts = InitMCTF(par->vpp.Out, MctfConfig);
             MFX_CHECK_STS(sts);
         }
+    }
+#endif
+
+#if defined (ONEVPL_EXPERIMENTAL)
+    if (m_executeParams.bEnablePercEncFilter){
+        m_PercEncFilter = std::make_unique<PercEncPrefilter::PercEncFilter>(m_pCore, *par);
+        m_PercEncFilter->Init(&par->vpp.In, &par->vpp.Out);
     }
 #endif
 
@@ -3846,9 +3865,16 @@ mfxStatus VideoVPPHW::PostWorkOutSurface(ExtSurface & output)
 
     if (SYS_TO_SYS == m_ioMode || D3D_TO_SYS == m_ioMode || m_isD3D9SimWithVideoMemOut)
     {
+        bool copy = true
 #ifdef MFX_ENABLE_MCTF
-        if (!m_pMCTFilter)
+            && !m_pMCTFilter
 #endif
+#if defined (ONEVPL_EXPERIMENTAL)
+            && !m_PercEncFilter
+#endif
+            ;
+
+        if (copy)
         {
              // the reason for this is as follows:
              // in case of sys output surface, vpp allocates internal surfaces and use them
@@ -4879,6 +4905,15 @@ mfxStatus VideoVPPHW::QueryTaskRoutine(void *pState, void *pParam, mfxU32 thread
         }
         }
 #endif
+
+#if defined (ONEVPL_EXPERIMENTAL)
+    if (pHwVpp->m_PercEncFilter)
+    {
+        sts = pHwVpp->m_PercEncFilter->RunFrameVPPTask(pTask->input.pSurf, pTask->output.pSurf, nullptr);
+        MFX_CHECK_STS(sts);
+    }
+#endif
+
     // [4] Complete task
     sts = pHwVpp->m_taskMngr.CompleteTask(pTask);
     return sts;
@@ -5443,6 +5478,19 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
                 bool bHasFrameDelay(true);
                 if (bHasFrameDelay)
                     sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+            }
+        }
+    }
+#endif
+
+#if defined (ONEVPL_EXPERIMENTAL)
+    {
+        // perceptual encoding filter cannot work with CC others than NV12; also interlace is not supported
+        if (par->vpp.Out.FourCC != MFX_FOURCC_NV12 || par->vpp.Out.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
+        {
+            if (IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER))
+            {
+                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
             }
         }
     }
@@ -6684,6 +6732,20 @@ mfxStatus ConfigureExecuteParams(
             }
 #endif
 
+#if defined (ONEVPL_EXPERIMENTAL)
+            case MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER:
+                //perceptual encoding prefilter is compatible only with resize filter
+                if( pipelineList.size() == 2 && (
+                    pipelineList[0]==MFX_EXTBUFF_VPP_RESIZE || 
+                    pipelineList[1]==MFX_EXTBUFF_VPP_RESIZE )){
+                    executeParams.bEnablePercEncFilter = true;
+                }
+                else
+                {
+                    bIsFilterSkipped = true;
+                }
+                break;
+#endif
             default:
             {
                 // there is no such capabilities

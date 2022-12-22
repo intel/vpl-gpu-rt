@@ -5,6 +5,7 @@ set(sources
     src/mfx_denoise_vpp.cpp
     src/mfx_detail_enhancement_vpp.cpp
     src/mfx_frame_rate_conversion_vpp.cpp
+    src/mfx_perc_enc_vpp.cpp
     src/mfx_procamp_vpp.cpp
     src/mfx_vpp_factory.cpp
     src/mfx_vpp_hw.cpp

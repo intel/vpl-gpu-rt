@@ -54,6 +54,13 @@
 #include "asc.h"
 #endif
 
+#if defined (ONEVPL_EXPERIMENTAL)
+namespace PercEncPrefilter
+{
+    class PercEncFilter;
+}
+#endif
+
 namespace MfxHwVideoProcessing
 {
     enum WorkloadMode
@@ -1008,6 +1015,7 @@ namespace MfxHwVideoProcessing
         std::map<mfxHDLPair, CmSurface2D *> m_MCTFtableCmRelations2;
         std::map<CmSurface2D *, SurfaceIndex *> m_MCTFtableCmIndex2;
 #endif
+
         CmCopyWrapper *m_pCmCopy;
 
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
@@ -1022,6 +1030,11 @@ namespace MfxHwVideoProcessing
         public:
             void SetCmDevice(CmDevice * device) { m_pCmDevice = device; }
 #endif
+
+#if defined (ONEVPL_EXPERIMENTAL)
+        std::unique_ptr<PercEncPrefilter::PercEncFilter> m_PercEncFilter;
+#endif
+
     };
 
 }; // namespace MfxHwVideoProcessing

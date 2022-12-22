@@ -40,6 +40,10 @@
 #include "mfx_procamp_vpp.h"
 #include "mfx_detail_enhancement_vpp.h"
 
+#if defined (ONEVPL_EXPERIMENTAL)
+#include "mfx_perc_enc_vpp.h"
+#endif
+
 //-----------------------------------------------------------------------------
 //            independent functions
 //-----------------------------------------------------------------------------
@@ -108,6 +112,14 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
                     return MFX_ERR_INVALID_VIDEO_PARAM;
 
                 }
+                break;
+            }
+#endif
+#ifdef ONEVPL_EXPERIMENTAL
+            case (mfxU32)MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER:
+            {
+                inputFramesCount[filterIndex]  = 1;
+                outputFramesCount[filterIndex] = 1;
                 break;
             }
 #endif
@@ -364,6 +376,12 @@ mfxStatus ExtendedQuery(VideoCORE *, mfxU32 filterName, mfxExtBuffer* pHint)
     else if (MFX_EXTBUFF_VPP_MCTF == filterName)
     {
         MFX_RETURN(CMC::CheckAndFixParams((mfxExtVppMctf*)pHint));
+    }
+#endif
+#ifdef ONEVPL_EXPERIMENTAL
+    else if (MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER == filterName)
+    {
+        MFX_RETURN(PercEncPrefilter::PercEncFilter::Query(pHint));
     }
 #endif
     else if( MFX_EXTBUFF_VPP_DETAIL == filterName )

@@ -407,6 +407,9 @@ namespace MfxHwVideoProcessing
                , bEnableMctf(false)
                , MctfFilterStrength(0)
 #endif
+#if defined (ONEVPL_EXPERIMENTAL)
+               , bEnablePercEncFilter(false)
+#endif
                , reset(0)
             {
                    memset(&targetSurface, 0, sizeof(mfxDrvSurface));
@@ -468,6 +471,9 @@ namespace MfxHwVideoProcessing
                     chromaSiting != MFX_CHROMA_SITING_UNKNOWN
 #ifdef MFX_ENABLE_MCTF
                     || bEnableMctf != false
+#endif
+#if defined (ONEVPL_EXPERIMENTAL)
+                    || bEnablePercEncFilter
 #endif
                     || lut3DInfo.Enabled != false
                 )
@@ -594,6 +600,10 @@ namespace MfxHwVideoProcessing
         bool         bEnableMctf;
         mfxU16       MctfFilterStrength;
 #endif
+#if defined (ONEVPL_EXPERIMENTAL)
+        bool         bEnablePercEncFilter;
+#endif
+
         bool reset;
         Lut3DInfo    lut3DInfo;
 

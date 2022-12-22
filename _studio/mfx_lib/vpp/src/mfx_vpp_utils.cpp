@@ -124,6 +124,9 @@ const mfxU32 g_TABLE_CONFIG [] =
     MFX_EXTBUF_CAM_LENS_GEOM_DIST_CORRECTION,
     MFX_EXTBUF_CAM_TOTAL_COLOR_CONTROL,
     MFX_EXTBUF_CAM_CSC_YUV_RGB
+#if defined (ONEVPL_EXPERIMENTAL)
+    , MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER
+#endif
 };
 
 
@@ -173,6 +176,9 @@ const mfxU32 g_TABLE_EXT_PARAM [] =
     MFX_EXTBUF_CAM_LENS_GEOM_DIST_CORRECTION,
     MFX_EXTBUF_CAM_TOTAL_COLOR_CONTROL,
     MFX_EXTBUF_CAM_CSC_YUV_RGB
+#if defined (ONEVPL_EXPERIMENTAL)
+    , MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER
+#endif
 };
 
 PicStructMode GetPicStructMode(mfxU16 inPicStruct, mfxU16 outPicStruct)
@@ -715,6 +721,13 @@ void ShowPipeline( std::vector<mfxU32> pipelineList )
                 break;
             }
 #endif
+#if defined (ONEVPL_EXPERIMENTAL)
+            case MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER:
+            {
+                fprintf(stderr, "VPP_PERC_ENC_PREFILTER\n");
+                break;
+            }
+#endif
             case (mfxU32)MFX_EXTBUFF_VPP_3DLUT:
             {
                 fprintf(stderr, "MFX_EXTBUFF_VPP_3DLUT\n");
@@ -958,6 +971,15 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
         index++;
     }
 #endif
+
+#if defined (ONEVPL_EXPERIMENTAL)
+    if (IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER))
+    {
+        newList[index] = MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER;
+        index++;
+    }
+#endif
+
     // [1] update
     pipelineList.resize(index);
     for( index = 0; index < (mfxU32)pipelineList.size(); index++ )
@@ -1363,6 +1385,14 @@ mfxStatus GetPipelineList(
             pipelineList.push_back(MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO);
         }
     }
+
+#if defined (ONEVPL_EXPERIMENTAL)
+    if (    IsFilterFound(&configList[0], configCount, MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER)
+        && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER))
+    {
+        pipelineList.push_back(MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER);
+    }
+#endif
 
     searchCount = sizeof(g_TABLE_CONFIG) / sizeof(*g_TABLE_CONFIG);
     fCount      = configCount;
