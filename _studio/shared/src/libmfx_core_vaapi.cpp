@@ -106,6 +106,503 @@ mfx_device_item getDeviceItem(VADisplay pVaDisplay)
     return retDeviceItem;
 } // eMFXHWType getDeviceItem (VADisplay pVaDisplay)
 
+class VACopyWrapper
+{
+public:
+    enum eMode
+    {
+        VACOPY_UNSUPPORTED = -1
+        , VACOPY_VIDEO_TO_VIDEO
+        , VACOPY_SYSTEM_TO_VIDEO
+        , VACOPY_VIDEO_TO_SYSTEM
+    };
+
+    enum eEngine
+    {
+        INVALID = uint32_t(-1)
+        , BLT = VA_EXEC_MODE_POWER_SAVING
+        , VE = VA_EXEC_MODE_DEFAULT
+        , EU = VA_EXEC_MODE_PERFORMANCE
+        , DEFAULT = 0xff
+    };
+
+    struct FCCDesc
+    {
+        uint32_t VAFourcc;
+        std::function<void(const mfxFrameSurface1&, VASurfaceAttribExternalBuffers&, bool)> SetBuffers;
+        std::function<bool(const mfxFrameSurface1&)> CheckPlanes;
+    };
+
+    struct Buffer
+    {
+        bool bLocked = false;
+        std::vector<uint8_t> Buffer;
+    };
+
+    class SurfaceWrapper
+    {
+    public:
+        SurfaceWrapper(VADisplay dpy, const mfxFrameSurface1& surf, Buffer* pStagingBuffer, uint32_t copyEngine)
+            : m_dpy(dpy)
+        {
+            if (copyEngine == EU || copyEngine == BLT)
+                m_pitchAlign = 16;
+            else if(copyEngine == VE)
+                m_pitchAlign = 64;
+
+            if (pStagingBuffer)
+            {
+                m_pBuffer = &pStagingBuffer->Buffer;
+                AcquireSurface(surf);
+            }
+            else
+            {
+                m_id = *(VASurfaceID*)((mfxHDLPair*)surf.Data.MemId)->first;
+            }
+        }
+
+        ~SurfaceWrapper()
+        {
+            if (m_id != VA_INVALID_SURFACE && m_bDestroySurface)
+                std::ignore = MFX_STS_TRACE(vaDestroySurfaces(m_dpy, &m_id, 1));
+        }
+
+        VASurfaceID GetId() const
+        {
+            return m_id;
+        }
+
+        void CopyUserToStaging()
+        {
+            if (m_bUseStaging)
+                Copy(m_user, m_staging);
+        }
+
+        void CopyStagingToUser()
+        {
+            if (m_bUseStaging)
+                Copy(m_staging, m_user);
+        }
+
+    protected:
+        void AcquireSurface(const mfxFrameSurface1& surf)
+        {
+            auto& fcc = FccMap.at(surf.Info.FourCC);
+            VASurfaceAttrib attrib[3] = {};
+            VASurfaceAttribExternalBuffers eb = {};
+
+            attrib[0].flags         = VA_SURFACE_ATTRIB_SETTABLE;
+            attrib[0].type          = VASurfaceAttribPixelFormat;
+            attrib[0].value.type    = VAGenericValueTypeInteger;
+            attrib[0].value.value.i = fcc.VAFourcc;
+
+            attrib[1].flags         = VA_SURFACE_ATTRIB_SETTABLE;
+            attrib[1].type          = VASurfaceAttribMemoryType;
+            attrib[1].value.type    = VAGenericValueTypeInteger;
+            attrib[1].value.value.i = VA_SURFACE_ATTRIB_MEM_TYPE_USER_PTR;
+
+            attrib[2].flags         = VA_SURFACE_ATTRIB_SETTABLE;
+            attrib[2].type          = VASurfaceAttribExternalBufferDescriptor;
+            attrib[2].value.type    = VAGenericValueTypePointer;
+            attrib[2].value.value.p = (void*)&eb;
+
+            eb = SetBuffers(surf, fcc);
+
+            auto vaSts = vaCreateSurfaces(m_dpy, eb.pixel_format, eb.width, eb.height, &m_id, 1, attrib, 3);
+
+            if (vaSts != VA_STATUS_SUCCESS)
+                m_id = VA_INVALID_SURFACE;
+            else
+                m_bDestroySurface = true;
+        }
+
+        VASurfaceAttribExternalBuffers SetBuffers(const mfxFrameSurface1& surf, const VACopyWrapper::FCCDesc& fcc)
+        {
+            auto GetPlane0Size = [](const VASurfaceAttribExternalBuffers& eb)
+            {
+                return (eb.num_planes > 1 ? eb.offsets[1] : eb.data_size) - eb.offsets[0];
+            };
+            auto upBase        = uintptr_t(GetFramePointer(surf));
+            m_user.pixel_format = fcc.VAFourcc;
+            m_user.width        = surf.Info.Width;
+            m_user.height       = surf.Info.Height;
+            m_user.flags        = VA_SURFACE_ATTRIB_MEM_TYPE_USER_PTR;
+            m_user.buffers      = m_buffersUser;
+            m_user.buffers[0]   = (upBase - (upBase % BASE_ADDR_ALIGN));
+            m_user.offsets[0]   = (upBase - m_user.buffers[0]);
+
+            m_user.pitches[0]   = VACopyWrapper::GetPitch(surf);
+            m_user.num_buffers  = 1;
+
+            m_staging = m_user;
+
+            fcc.SetBuffers(surf, m_user, true);
+
+            m_bUseStaging =
+                   (!m_bOffsetSupported && m_user.offsets[0])                       // data offset from mem page start
+                || (!m_bOffsetSupported && (m_user.data_size % BASE_ADDR_ALIGN))    // data size alignment
+                || (m_user.pitches[0] % m_pitchAlign)                               // H-pitch
+                || ((GetPlane0Size(m_user) / m_user.pitches[0]) % m_pitchAlign)     // V-pitch
+                || !fcc.CheckPlanes(surf);                                          // continuous planes allocation
+
+            if (!m_bUseStaging)
+            {
+                m_staging = {};
+                return m_user;
+            }
+
+            m_staging.offsets[0] = 0;
+            m_staging.pitches[0] = mfx::align2_value(m_user.pitches[0], m_pitchAlign);
+
+            fcc.SetBuffers(surf, m_staging, false);
+
+            if(m_pBuffer->size() < (m_staging.data_size + BASE_ADDR_ALIGN))
+                m_pBuffer->resize(m_staging.data_size + BASE_ADDR_ALIGN);
+
+            m_staging.buffers    = m_buffersStaging;
+            m_staging.buffers[0] = uintptr_t(mfx::align2_value(uintptr_t(m_pBuffer->data()), BASE_ADDR_ALIGN));
+            m_staging.data_size  = mfx::align2_value(m_staging.data_size, BASE_ADDR_ALIGN);
+
+            return m_staging;
+        }
+
+        void Copy(const VASurfaceAttribExternalBuffers& src, VASurfaceAttribExternalBuffers& dst)
+        {
+            for (uint32_t plane = 0; plane < dst.num_planes; ++plane)
+            {
+                auto pSrc = (uint8_t*)(src.buffers[0] + src.offsets[plane]);
+                auto pDst = (uint8_t*)(dst.buffers[0] + dst.offsets[plane]);
+                auto hpitchSrc = src.pitches[plane];
+                auto hpitchDst = dst.pitches[plane];
+                auto vpitchSrc = (src.num_planes > (plane + 1))
+                    ? (src.offsets[plane + 1] - src.offsets[plane]) / hpitchSrc
+                    : (src.data_size - src.offsets[plane]) / hpitchSrc;
+                auto vpitchDst = (dst.num_planes > (plane + 1))
+                    ? (dst.offsets[plane + 1] - dst.offsets[plane]) / hpitchDst
+                    : (dst.data_size - dst.offsets[plane]) / hpitchDst;
+                auto roiW = std::min(hpitchSrc, hpitchDst);
+                auto roiH = std::min(vpitchSrc, vpitchDst);
+
+                for (uint32_t y = 0; y < roiH; ++y)
+                {
+                    std::copy(pSrc, pSrc + roiW, pDst);
+                    pSrc += hpitchSrc;
+                    pDst += hpitchDst;
+                }
+            }
+        }
+
+        static const uint32_t BASE_ADDR_ALIGN = 0x1000; // vaCreateSurfaces requires user ptr data to be aligned to memory page
+        bool m_bOffsetSupported = false; // is copy engine supports data offset from mem page start
+                                         // it looks like is unsupported by vaCreateSurfaces atm
+        uint32_t m_pitchAlign = 64; // copy engine requirements to both h-pitch and v-pitch
+        VADisplay m_dpy = nullptr;
+        VASurfaceID m_id = VA_INVALID_SURFACE;
+        VASurfaceAttribExternalBuffers m_user = {}, m_staging = {};
+        uintptr_t m_buffersUser[1] = {}, m_buffersStaging[1] = {};
+        bool m_bUseStaging = false;
+        std::vector<uint8_t>* m_pBuffer = nullptr;
+        bool m_bDestroySurface = false;
+    };
+
+    static const std::map<mfxU32, FCCDesc> FccMap;
+    VADisplay  m_dpy = nullptr;
+    uint32_t   m_copyEngine = INVALID;
+    uint32_t   m_copyEngineSupported = 0;
+
+    VACopyWrapper(VADisplay dpy)
+        : m_dpy(dpy)
+    {
+        int nAttr = vaMaxNumDisplayAttributes(m_dpy);
+
+        std::vector<VADisplayAttribute> attrs(nAttr);
+
+        if (VA_STATUS_SUCCESS != vaQueryDisplayAttributes(m_dpy, attrs.data(), &nAttr))
+            nAttr = 0;
+
+        auto itEnd = std::next(attrs.begin(), nAttr);
+        auto it = std::find_if(attrs.begin(), itEnd
+            , [](const VADisplayAttribute& attr) { return attr.type == VADisplayAttribCopy; });
+
+        if (it != itEnd)
+        {
+            m_copyEngineSupported = it->value;
+
+            if (m_copyEngineSupported & (1 << EU))
+                m_copyEngine = EU;
+            else if (m_copyEngineSupported & (1 << BLT))
+                m_copyEngine = BLT;
+            else if (m_copyEngineSupported & (1 << VE))
+                m_copyEngine = VE;
+        }
+    }
+
+    bool IsSupported() const
+    {
+        return m_dpy && m_copyEngine != INVALID;
+    }
+
+    eMode GetMode(const mfxFrameSurface1& src, const mfxFrameSurface1& dst) const
+    {
+        bool bSupported =
+               IsSupported()
+            && dst.Info.FourCC == src.Info.FourCC
+            && !dst.Info.Shift == !src.Info.Shift
+            && FccMap.count(dst.Info.FourCC)
+            ;
+
+        if (bSupported)
+        {
+            auto pSrc   = GetFramePointer(src);
+            auto pDst   = GetFramePointer(dst);
+            auto midSrc = src.Data.MemId;
+            auto midDst = dst.Data.MemId;
+
+            if (midSrc && midDst)
+                return VACOPY_VIDEO_TO_VIDEO;
+
+            if (pSrc && midDst)
+                return VACOPY_SYSTEM_TO_VIDEO;
+
+            if (midSrc && pDst)
+                return VACOPY_VIDEO_TO_SYSTEM;
+        }
+
+        return VACOPY_UNSUPPORTED;
+    }
+
+    mfxStatus Copy(const mfxFrameSurface1& src, const mfxFrameSurface1& dst, eEngine forceEngine = DEFAULT)
+    {
+        uint32_t copyEngine = (forceEngine == DEFAULT) ? m_copyEngine : uint32_t(forceEngine);
+
+        auto copyMode = GetMode(src, dst);
+        MFX_CHECK(copyMode != VACOPY_UNSUPPORTED, MFX_ERR_UNSUPPORTED);
+        MFX_CHECK(forceEngine == DEFAULT || ((1 << forceEngine) & m_copyEngineSupported), MFX_ERR_UNSUPPORTED);
+
+        if (   src.Info.Width != dst.Info.Width
+            || src.Info.Height != dst.Info.Height)
+            copyEngine = BLT;
+
+        auto pSrcBuffer = GetSrcBuffer(copyMode);
+        mfx::OnExit releaseSrc([&] { Release(pSrcBuffer); });
+
+        auto pDstBuffer = GetDstBuffer(copyMode);
+        mfx::OnExit releaseDst([&] { Release(pDstBuffer); });
+
+        SurfaceWrapper surfSrc(m_dpy, src, pSrcBuffer, copyEngine);
+        MFX_CHECK(surfSrc.GetId() != VA_INVALID_SURFACE, MFX_ERR_DEVICE_FAILED);
+
+        SurfaceWrapper surfDst(m_dpy, dst, pDstBuffer, copyEngine);
+        MFX_CHECK(surfDst.GetId() != VA_INVALID_SURFACE, MFX_ERR_DEVICE_FAILED);
+
+        surfSrc.CopyUserToStaging();
+
+        VACopyObject objSrc = {}, objDst = {};
+        VACopyOption opt = {};
+
+        objSrc.obj_type          = VACopyObjectSurface;
+        objSrc.object.surface_id = surfSrc.GetId();
+
+        objDst.obj_type          = VACopyObjectSurface;
+        objDst.object.surface_id = surfDst.GetId();
+
+        opt.bits.va_copy_mode = copyEngine;
+        opt.bits.va_copy_sync = VA_EXEC_SYNC;
+
+        auto vaCopySts = vaCopy(m_dpy, &objDst, &objSrc, opt);
+        MFX_CHECK(vaCopySts == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
+
+        surfDst.CopyStagingToUser();
+
+        return MFX_ERR_NONE;
+    }
+
+    static void SetBuffersNV12(const mfxFrameSurface1& surf, VASurfaceAttribExternalBuffers& eb, bool bUsePtrs)
+    {
+        eb.offsets[1] =
+            bUsePtrs
+            ? uint32_t(uintptr_t(surf.Data.UV) - eb.buffers[0])
+            : uint32_t(eb.pitches[0] * eb.height);
+        eb.pitches[1] = eb.pitches[0];
+        eb.num_planes = 2;
+        eb.data_size = eb.offsets[1] + (eb.height * eb.pitches[1] / 2);
+    }
+
+    static void SetBuffersYV12(const mfxFrameSurface1& surf, VASurfaceAttribExternalBuffers& eb, bool bUsePtrs)
+    {
+        eb.pitches[1] = eb.pitches[0] / 2;
+        eb.pitches[2] = eb.pitches[0] / 2;
+        if (bUsePtrs)
+        {
+            eb.offsets[1] = uint32_t(uintptr_t(surf.Data.V) - eb.buffers[0]);
+            eb.offsets[2] = uint32_t(uintptr_t(surf.Data.U) - eb.buffers[0]);
+        }
+        else
+        {
+            eb.offsets[1] = eb.offsets[0] + uint32_t(eb.height * eb.pitches[1] / 2);
+            eb.offsets[2] = eb.offsets[1] + uint32_t(eb.height * eb.pitches[2] / 2);
+        }
+        eb.num_planes = 3;
+        eb.data_size = eb.offsets[2] + (eb.height * eb.pitches[2] / 2);
+    }
+
+    static void SetBuffersOnePlane(const mfxFrameSurface1& surf, VASurfaceAttribExternalBuffers& eb, bool /*bUsePtrs*/)
+    {
+        eb.num_planes = 1;
+        eb.data_size = eb.offsets[0] + (eb.height * eb.pitches[0]);
+    }
+
+    template<uint32_t N>
+    static void SetBuffersNPlanes444(const mfxFrameSurface1& surf, VASurfaceAttribExternalBuffers& eb, bool bUsePtrs)
+    {
+        eb.num_planes = N;
+        if (bUsePtrs)
+        {
+            std::list<uintptr_t> ptrs({ uintptr_t(surf.Data.A), uintptr_t(surf.Data.B), uintptr_t(surf.Data.G), uintptr_t(surf.Data.R) });
+
+            ptrs.sort();
+            while (ptrs.size() >= N)
+                ptrs.pop_front();
+
+            for (uint32_t plane = 1; plane < eb.num_planes; ++plane)
+            {
+                eb.pitches[plane] = eb.pitches[0];
+                eb.offsets[plane] = uint32_t(ptrs.front() - eb.buffers[0]);
+                ptrs.pop_front();
+            }
+        }
+        else
+        {
+            for (uint32_t plane = 1; plane < eb.num_planes; ++plane)
+            {
+                eb.pitches[plane] = eb.pitches[0];
+                eb.offsets[plane] = uint32_t(eb.pitches[0] * eb.height);
+            }
+        }
+
+        eb.data_size = eb.offsets[N - 1] + (eb.height * eb.pitches[0]);
+    }
+
+    static uint32_t GetPitch(const mfxFrameSurface1& surf)
+    {
+        return (surf.Data.PitchHigh << 16) + surf.Data.PitchLow;
+    }
+
+    static bool CheckPlanesNV12(const mfxFrameSurface1& surf)
+    {
+        uint32_t  pitch = GetPitch(surf);
+        ptrdiff_t offset = surf.Data.UV - (surf.Data.Y + surf.Info.Height * pitch);
+        return offset == 0;
+    }
+
+    static bool CheckPlanesYV12(const mfxFrameSurface1& surf)
+    {
+        uint32_t  pitch   = GetPitch(surf);
+        ptrdiff_t offsetV = surf.Data.V - (surf.Data.Y + surf.Info.Height * pitch);
+        ptrdiff_t offsetU = surf.Data.U - (surf.Data.V + surf.Info.Height * pitch / 4);
+        return offsetV == 0 && offsetU == 0;
+    }
+
+    static bool CheckPlanes444(const mfxFrameSurface1& surf)
+    {
+        uint32_t pitch = GetPitch(surf);
+        std::list<uintptr_t> ptrs({ uintptr_t(surf.Data.A), uintptr_t(surf.Data.B), uintptr_t(surf.Data.G), uintptr_t(surf.Data.R) });
+        ptrs.sort();
+        ptrs.remove(0);
+
+        while (ptrs.size() >= 2)
+        {
+            uintptr_t ptr0 = ptrs.front();
+            ptrs.pop_front();
+
+            if (ptrs.front() != (ptr0 + pitch * surf.Info.Height))
+                return false;
+        }
+
+        return true;
+    }
+
+    static bool CheckPlanesOne(const mfxFrameSurface1&)
+    {
+        return true;
+    }
+
+protected:
+    static const uint32_t VACOPY_CACHE_SIZE    = 3;
+    static const uint32_t VACOPY_CACHE_WAIT_MS = 2000;
+    std::mutex m_mtx;
+    std::condition_variable m_cv;
+    Buffer m_buffer[VACOPY_CACHE_SIZE];
+
+    Buffer* GetBuffer()
+    {
+        std::unique_lock<std::mutex> lock(m_mtx);
+        Buffer* pBuffer = nullptr;
+        auto FindFreeBuffer = [&]()
+        {
+            for (auto& buf : m_buffer)
+            {
+                if (!buf.bLocked)
+                {
+                    buf.bLocked = true;
+                    pBuffer = &buf;
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        auto waitTime = std::chrono::milliseconds(VACOPY_CACHE_WAIT_MS);
+        MFX_CHECK_WITH_THROW_STS(m_cv.wait_for(lock, waitTime, FindFreeBuffer), MFX_ERR_UNKNOWN);
+
+        return pBuffer;
+    }
+
+    Buffer* GetSrcBuffer(eMode mode)
+    {
+        if (mode == VACOPY_SYSTEM_TO_VIDEO)
+            return GetBuffer();
+        return nullptr;
+    }
+
+    Buffer* GetDstBuffer(eMode mode)
+    {
+        if (mode == VACOPY_VIDEO_TO_SYSTEM)
+            return GetBuffer();
+        return nullptr;
+    }
+
+    void Release(Buffer* pBuffer)
+    {
+        if (pBuffer)
+        {
+            {
+                std::unique_lock<std::mutex> lock(m_mtx);
+                pBuffer->bLocked = false;
+            }
+            m_cv.notify_one();
+        }
+    }
+};
+
+const std::map<mfxU32, VACopyWrapper::FCCDesc> VACopyWrapper::FccMap =
+{
+      { MFX_FOURCC_NV12,    { VA_FOURCC_NV12,        SetBuffersNV12,          CheckPlanesNV12 } }
+    , { MFX_FOURCC_YV12,    { VA_FOURCC_YV12,        SetBuffersYV12,          CheckPlanesYV12 } }
+    , { MFX_FOURCC_P010,    { VA_FOURCC_P010,        SetBuffersNV12,          CheckPlanesNV12 } }
+    , { MFX_FOURCC_P016,    { VA_FOURCC_P016,        SetBuffersNV12,          CheckPlanesNV12 } }
+    , { MFX_FOURCC_YUY2,    { VA_FOURCC_YUY2,        SetBuffersOnePlane,      CheckPlanesOne } }
+    , { MFX_FOURCC_RGB565,  { VA_FOURCC_RGB565,      SetBuffersOnePlane,      CheckPlanesOne } }
+    , { MFX_FOURCC_RGBP,    { VA_FOURCC_RGBP,        SetBuffersNPlanes444<3>, CheckPlanes444 } }
+    , { MFX_FOURCC_BGRP,    { VA_FOURCC_BGRP,        SetBuffersNPlanes444<3>, CheckPlanes444 } }
+    , { MFX_FOURCC_A2RGB10, { VA_FOURCC_A2R10G10B10, SetBuffersOnePlane,      CheckPlanesOne } }
+    , { MFX_FOURCC_AYUV,    { VA_FOURCC_AYUV,        SetBuffersOnePlane,      CheckPlanesOne } }
+    , { MFX_FOURCC_Y210,    { VA_FOURCC_Y210,        SetBuffersOnePlane,      CheckPlanesOne } }
+    , { MFX_FOURCC_Y216,    { VA_FOURCC_Y216,        SetBuffersOnePlane,      CheckPlanesOne } }
+    , { MFX_FOURCC_Y410,    { VA_FOURCC_Y410,        SetBuffersOnePlane,      CheckPlanesOne } }
+    , { MFX_FOURCC_Y416,    { VA_FOURCC_Y416,        SetBuffersOnePlane,      CheckPlanesOne } }
+};
+
 template <class Base>
 VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(
     const mfxU32 adapterNum,
@@ -263,6 +760,15 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
             this->m_deviceId = mfxU16(devItem.device_id);
 
             std::ignore = MFX_STS_TRACE(TryInitializeCm());
+
+            if (m_HWType == MFX_HW_PVC || m_HWType == MFX_HW_MTL)
+            {
+                this->m_pVaCopy.reset(new VACopyWrapper(*m_p_display_wrapper));
+                if (!this->m_pVaCopy->IsSupported())
+                {
+                    this->m_pVaCopy.reset();
+                }
+            }
         }
             break;
 
@@ -1304,6 +1810,24 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
 
     // For Linux, if CM copy is forced to be used, or if choose to use default copy method and CM copy is enabled by default, use CM copy.
     bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && (m_ForcedCmState == MFX_GPUCOPY_ON || (m_ForcedCmState == MFX_GPUCOPY_DEFAULT && IsCmCopyEnabledByDefault())) && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+
+    if (m_pVaCopy && (gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) && (m_ForcedCmState != MFX_GPUCOPY_OFF))
+    {
+        auto vacopyMode =
+            ((gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) == MFX_COPY_USE_VACOPY_ANY) ? VACopyWrapper::DEFAULT
+            : (gpuCopyMode & MFX_COPY_USE_VACOPY_EU) ? VACopyWrapper::EU
+            : (gpuCopyMode & MFX_COPY_USE_VACOPY_BLT) ? VACopyWrapper::BLT
+            : VACopyWrapper::VE
+            ;
+        auto vaCopySts = m_pVaCopy->Copy(*pSrc, *pDst, vacopyMode);
+        MFX_RETURN_IF_ERR_NONE(vaCopySts);
+
+        if (vaCopySts == MFX_ERR_DEVICE_FAILED)
+        {
+            UMC::AutomaticUMCMutex guard(this->m_guard);
+            m_pVaCopy.reset(); //once failed, don't try to use it anymore
+        }
+    }
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
