@@ -273,8 +273,11 @@ public:
 
                MFX_SAFE_CALL(allocator_ext->Alloc(request, response));
 
-               if (response.NumFrameActual == 0)
-                   return MFX_ERR_NONE;
+               if (response.NumFrameActual < request.NumFrameMin)
+               {
+                   std::ignore = MFX_STS_TRACE(allocator_ext->Free(response));
+                   MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
+               }
 
                CacheMids(response, *allocator_ext);
                return MFX_ERR_NONE;
