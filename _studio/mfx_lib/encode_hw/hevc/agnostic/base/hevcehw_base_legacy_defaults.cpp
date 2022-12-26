@@ -27,10 +27,6 @@
 #include <numeric>
 #include <set>
 
-#ifdef MFX_ENABLE_ENCTOOLS
-#include "hevcehw_base_enctools.h"
-#endif
-
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
 
@@ -2024,19 +2020,6 @@ public:
         pps.deblocking_filter_control_present_flag  = 1;
         pps.deblocking_filter_disabled_flag         = !!CO2.DisableDeblockingIdc;
         pps.deblocking_filter_override_enabled_flag = 1; // to disable deblocking per frame
-
-#if defined(MFX_ENABLE_ENCTOOLS)
-#if defined(ONEVPL_EXPERIMENTAL)
-        const mfxExtEncToolsConfig* pConfig = ExtBuffer::Get(par);
-        bool bEncTools = IsEncToolsOptSet(*pConfig);
-
-        if (bEncTools && CO3.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING && CO3.ContentInfo == MFX_CONTENT_NOISY_VIDEO) {
-            pps.beta_offset_div2                        = mfxI8(EncToolsDeblockingBetaOffset() * 0.5 * !pps.deblocking_filter_disabled_flag);
-            pps.tc_offset_div2                          = mfxI8(EncToolsDeblockingAlphaTcOffset() * 0.5 * !pps.deblocking_filter_disabled_flag);
-        }
-#endif
-#endif
-
         pps.scaling_list_data_present_flag              = 0;
         pps.lists_modification_present_flag             = 1;
         pps.log2_parallel_merge_level_minus2            = 0;

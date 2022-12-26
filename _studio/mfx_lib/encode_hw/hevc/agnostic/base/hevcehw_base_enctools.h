@@ -100,24 +100,6 @@ namespace Base
     bool IsEncToolsOptOn(const mfxExtEncToolsConfig &config, bool bGameStreaming);
     bool IsLPLAEncToolsOn(const mfxExtEncToolsConfig &config, bool bGameStreaming);
 
-    inline bool IsEncToolsOptSet(const mfxExtEncToolsConfig& config)
-    {
-        return
-            (config.AdaptiveB | config.AdaptiveI | config.AdaptiveLTR | config.AdaptivePyramidQuantB
-                | config.AdaptivePyramidQuantP | config.AdaptiveQuantMatrices | config.AdaptiveRefB
-                | config.AdaptiveRefP | config.BRC | config.BRCBufferHints | config.SceneChange);
-    }
-
-    inline int EncToolsDeblockingBetaOffset()
-    {
-        return 4;  // Currently hard coded to best tested value when using enctools
-    }
-
-    inline int EncToolsDeblockingAlphaTcOffset()
-    {
-        return 2;  // Currently hard coded to best tested value when using enctools
-    }
-
 } //Base
 } //namespace HEVCEHW
 
