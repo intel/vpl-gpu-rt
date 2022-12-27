@@ -455,9 +455,26 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par, bool isSingleThrea
 
     m_pOperatorCore = new OperatorCORE(m_pCORE.get());
 
-    if (MFX_PLATFORM_SOFTWARE == m_currentPlatform && MFX_GPUCOPY_ON == par.GPUCopy)
+    auto IsGPUcopyValid = [](mfxU16 gpu_copy) -> bool
     {
-        return MFX_ERR_UNSUPPORTED;
+        return gpu_copy == MFX_GPUCOPY_DEFAULT
+            || gpu_copy == MFX_GPUCOPY_ON
+            || gpu_copy == MFX_GPUCOPY_OFF
+#ifdef ONEVPL_EXPERIMENTAL
+            || gpu_copy == MFX_GPUCOPY_SAFE
+#endif
+            ;
+    };
+
+    MFX_CHECK(IsGPUcopyValid(par.GPUCopy), MFX_ERR_UNSUPPORTED);
+
+    if (MFX_PLATFORM_SOFTWARE == m_currentPlatform && (MFX_GPUCOPY_ON == par.GPUCopy
+#ifdef ONEVPL_EXPERIMENTAL
+                                                    || MFX_GPUCOPY_SAFE == par.GPUCopy
+#endif
+    ))
+    {
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     if (par.GPUCopy != MFX_GPUCOPY_DEFAULT)
