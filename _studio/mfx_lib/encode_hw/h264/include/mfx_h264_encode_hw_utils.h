@@ -1271,6 +1271,11 @@ namespace MfxHwH264Encode
         IntraRefreshState m_IRState;
         mfxU32            m_minFrameSize;
 
+#ifdef MFX_ENABLE_ENCODE_STATS
+        mfxExtEncodeStatsOutput* m_encodeStats;
+        bool                     m_frameLevelQueryEn;
+        bool                     m_blockLevelQueryEn;
+#endif
         char   m_FrameName[32];
 
         bool m_notProtected;             // Driver returns not protected data
@@ -3224,6 +3229,10 @@ private:
         mfxI32      m_LtrOrder;
         mfxI32      m_RefQp;
         mfxI32      m_RefOrder;
+#ifdef MFX_ENABLE_ENCODE_STATS
+        bool        m_frameLevelQueryEn;
+        bool        m_blockLevelQueryEn;
+#endif
     };
 
 

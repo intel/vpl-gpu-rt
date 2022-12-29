@@ -35,6 +35,9 @@
 #include "mfx_h264_enc_common_hw.h"
 #include "mfx_h264_encode_hw_utils.h"
 #include "mfx_enc_common.h"
+#ifdef MFX_ENABLE_ENCODE_STATS
+#include "mfx_utils_extbuf.h"
+#endif //MFX_ENABLE_ENCODE_STATS
 #ifdef MFX_ENABLE_EXT
 #include "cmrt_cross_platform.h"
 #include "mfx_h264_encode_cm.h"
@@ -4120,6 +4123,11 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 #endif
                 mfxStatus sts = MFX_ERR_NONE;
 
+#ifdef MFX_ENABLE_ENCODE_STATS
+                task->m_frameLevelQueryEn = m_frameLevelQueryEn;
+                task->m_blockLevelQueryEn = m_blockLevelQueryEn;
+#endif
+
                 //printf("Execute: %d, type %d, qp %d\n", task->m_frameOrder, task->m_type[0], task->m_cqpValue[0]);
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
                 if(task->m_handleMCTF.first)//Intercept encoder so MCTF denoised frame can be fed at the right moment.
@@ -4377,6 +4385,12 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 else
                 {
 #endif
+#ifdef MFX_ENABLE_ENCODE_STATS
+                    if (bs)
+                        task->m_encodeStats = MfxExtBuffer::Get(*bs);
+                    else
+                        task->m_encodeStats = nullptr;
+#endif //MFX_ENABLE_ENCODE_STATS
                     for(f = f_start; f <= f_end; f++)
                     {
                         if((sts = QueryStatus(*task, task->m_fid[f])) != MFX_ERR_NONE)
@@ -4573,6 +4587,20 @@ mfxStatus ImplementationAvc::EncodeFrameCheckNormalWay(
 
     if (stagesToGo == AsyncRoutineEmulator::STG_BIT_CALL_EMULATOR)
         MFX_RETURN(MFX_ERR_MORE_DATA); // end of encoding session
+
+#ifdef MFX_ENABLE_ENCODE_STATS
+    if (bs)
+    {
+        mfxExtEncodeStatsOutput* pStats = MfxExtBuffer::Get(*bs);
+        m_frameLevelQueryEn = pStats == nullptr ? false : !!(pStats->EncodeStatsFlags & MFX_ENCODESTATS_LEVEL_FRAME);
+        m_blockLevelQueryEn = pStats == nullptr ? false : !!(pStats->EncodeStatsFlags & MFX_ENCODESTATS_LEVEL_BLK);
+    }
+    else
+    {
+        m_frameLevelQueryEn = false;
+        m_blockLevelQueryEn = false;
+    }
+#endif
 
     if ((stagesToGo & AsyncRoutineEmulator::STG_BIT_WAIT_ENCODE) == 0)
     {
