@@ -4844,7 +4844,7 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer Header;         /*! Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER. */
     mfxU16       reserved[252];
-}mfxExtVPPPercEncPrefilter;
+} mfxExtVPPPercEncPrefilter;
 MFX_PACK_END()
 #endif
 
