@@ -1732,9 +1732,9 @@ typedef struct {
 
     union {
         MFX_DEPRECATED mfxU16      ExtBrcAdaptiveLTR; /* Deprecated */
-        
+
         /*!
-            If this flag is set to ON, encoder will mark, modify, or remove LTR frames based on encoding parameters and content          
+            If this flag is set to ON, encoder will mark, modify, or remove LTR frames based on encoding parameters and content
             properties. Turn OFF to prevent Adaptive marking of Long Term Reference Frames. 
         */
         mfxU16      AdaptiveLTR;
