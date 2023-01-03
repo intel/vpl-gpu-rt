@@ -3014,6 +3014,12 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.CodecLevel = MFX_LEVEL_UNKNOWN;
     }
 
+    if (par.mfx.NumRefFrame > 16)
+    {
+        par.mfx.NumRefFrame = 16;
+        changed = true;
+    }
+
     if (par.mfx.NumRefFrame != 0)
     {
         if ((par.mfx.NumRefFrame & 1) &&
