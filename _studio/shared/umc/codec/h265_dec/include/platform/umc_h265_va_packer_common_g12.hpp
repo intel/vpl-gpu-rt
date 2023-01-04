@@ -159,7 +159,7 @@ namespace UMC_HEVC_DECODER
                     *begin++ = entry - (position  + 1);
                     position  = entry;
 
-                    if (begin > end)
+                    if (begin >= end)
                         //provided buffer for entry points is too small
                         throw h265_exception(UMC::UMC_ERR_FAILED);
 
