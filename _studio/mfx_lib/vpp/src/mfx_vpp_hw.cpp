@@ -6459,7 +6459,7 @@ mfxStatus ConfigureExecuteParams(
                             mfxI32 y2 = mid((mfxU32)0, executeParams.dstRects[i].DstY + executeParams.dstRects[i].DstH, tCropW);
 
                             t_rect = cRect<mfxU32>(x1, y1, x2, y2, 0, i);
-                            if (t_rect.area() > 0)
+                            if ((t_rect.area() > 0) && (!executeParams.dstRects[i].PixelAlphaEnable))
                                     rects.push_back(t_rect);
                     }
 
