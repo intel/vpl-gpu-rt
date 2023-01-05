@@ -33,8 +33,8 @@ namespace PercEncPrefilter
 template <class T>
 struct Raster
 {
-    T *p;
-    intptr_t stride;
+    T *p{};
+    intptr_t stride{};
     T &operator()(int x, int y)
     {
         return this->p[x + y * stride];
@@ -54,7 +54,7 @@ struct Plane : Raster<T>
     }
 
     std::vector<T> v;
-    int width, height;
+    int width{}, height{};
 };
 
 template <class T>
@@ -113,15 +113,15 @@ struct Picture
 
 struct PEConfig
 {
-    int pivot;
-    int slope;
-    int limitSoft;
-    int limitSharp;
-    int spatialPasses;
-    bool temporal;
-    int temporalPivot;
-    int temporalSlope;
-    int temporalLimitSoft;
+    int pivot{};
+    int slope{};
+    int limitSoft{};
+    int limitSharp{};
+    int spatialPasses{};
+    bool temporal{};
+    int temporalPivot{};
+    int temporalSlope{};
+    int temporalLimitSoft{};
 
     PEConfig()
     {
@@ -162,7 +162,7 @@ struct ParamsOff
 struct ParamsSharpening
     : Params
 {
-    PEConfig *config;
+    PEConfig *config{};
 
     int coeff(int neighbour, int current, int modulation) const override
     {
@@ -180,7 +180,7 @@ struct ParamsSharpening
 struct ParamsTemporal
     : Params
 {
-    PEConfig *config;
+    PEConfig *config{};
 
     int coeff(int neighbour, int current, int modulation) const override
     {
@@ -198,9 +198,9 @@ struct ParamsTemporal
 template <int bpp>
 struct Filter
 {
-    const Params *spatial[2];
-    const Params *temporal;
-    int iterations;
+    const Params *spatial[2]{};
+    const Params *temporal{};
+    int iterations{};
 
     typedef uint16_t T;
     static unsigned const shift = 12;
@@ -282,7 +282,7 @@ struct Filter
 
     void filter(Raster<T> &dst, Raster<T> &src, Raster<T> &previous, Raster<uint8_t> &modulation, int width, int height, PEConfig const &config, bool first)
     {
-        Plane<T> intermediate;
+        Plane<T> intermediate{};
 
         intermediate.resize(width, height);
 
@@ -346,11 +346,11 @@ private:
     bool m_initialized = false;
 
     bool m_first = true;
-    Filter<10> m_filter;
-    PEConfig m_config;
-    ParamsSharpening m_paramsSharpening;
-    ParamsTemporal m_paramsTemporal;
-    Picture<uint8_t> m_modulation;
+    Filter<10> m_filter{};
+    PEConfig m_config{};
+    ParamsSharpening m_paramsSharpening{};
+    ParamsTemporal m_paramsTemporal{};
+    Picture<uint8_t> m_modulation{};
 
 };
 
