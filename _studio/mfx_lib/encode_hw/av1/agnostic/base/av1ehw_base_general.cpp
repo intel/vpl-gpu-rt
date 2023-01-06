@@ -3588,6 +3588,11 @@ mfxStatus General::CopyConfigurable(const ParamSupport& sprt, const mfxVideoPara
             CopyEB(copyIt->second, pEbIn, pEbTmp);
         }
 
+        if(pEbOut->BufferId == MFX_EXTBUFF_AV1_AUXDATA)
+        {
+            std::copy_n((mfxU8*)pEbIn, pEbIn->BufferSz, ebTmp.data());
+        }
+
         std::copy_n(ebTmp.data(), ebTmp.size(), (mfxU8*)pEbOut);
     });
 
