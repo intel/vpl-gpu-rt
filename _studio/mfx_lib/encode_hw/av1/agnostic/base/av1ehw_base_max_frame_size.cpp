@@ -38,21 +38,6 @@ void MaxFrameSize::SetSupported(ParamSupport& blocks)
     });
 }
 
-void MaxFrameSize::SetInherited(ParamInheritance& par)
-{
-    par.m_ebInheritDefault[MFX_EXTBUFF_CODING_OPTION2].emplace_back(
-        [](const mfxVideoParam& /*parInit*/
-            , const mfxExtBuffer* pSrc
-            , const mfxVideoParam& /*parReset*/
-            , mfxExtBuffer* pDst)
-    {
-        const auto& src = *(const mfxExtCodingOption2*)pSrc;
-        auto& dst = *(mfxExtCodingOption2*)pDst;
-
-        InheritOption(src.MaxFrameSize, dst.MaxFrameSize);
-    });
-}
-
 void MaxFrameSize::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 {
     Push(BLK_CheckAndFix
