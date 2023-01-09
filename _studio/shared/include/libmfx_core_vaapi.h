@@ -241,8 +241,6 @@ private:
     std::unique_ptr<CMEnabledCoreAdapter>       m_pCmAdapter;
 };
 
-using VAAPIVideoCORE = VAAPIVideoCORE_T<CommonCORE>;
-
 
 // Refactored MSDK 2.0 core
 

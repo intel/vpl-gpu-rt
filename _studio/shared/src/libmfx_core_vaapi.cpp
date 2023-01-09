@@ -1973,7 +1973,6 @@ mfxStatus VAAPIVideoCORE_VPL::CreateSurface(mfxU16 type, const mfxFrameInfo& inf
     return m_frame_allocator_wrapper.CreateSurface(type, info, surf);
 }
 
-template class VAAPIVideoCORE_T<CommonCORE  >;
 template class VAAPIVideoCORE_T<CommonCORE_VPL>;
 
 /* EOF */
