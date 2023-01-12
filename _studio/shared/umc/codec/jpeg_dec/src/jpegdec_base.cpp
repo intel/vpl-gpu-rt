@@ -1,4 +1,4 @@
-// Copyright (c) 2001-2019 Intel Corporation
+// Copyright (c) 2001-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,7 @@
 #include "ippj.h"
 #include "jpegbase.h"
 #include "jpegdec_base.h"
+#include "mfx_trace.h"
 
 CJPEGDecoderBase::CJPEGDecoderBase(void)
 {
@@ -1327,6 +1328,7 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
     case JM_SOFD:
     case JM_SOFE:
     case JM_SOFF:
+      MFX_LTRACE_MSG(MFX_TRACE_LEVEL_PARAMS, "Error: JPEGd only support Huffman-coding Baseline DCT now.");
       return JPEG_NOT_IMPLEMENTED;
 
     case JM_DHT:

@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2020 Intel Corporation
+// Copyright (c) 2010-2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -195,7 +195,7 @@ mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* static_handle,
     {
         p_str = mfx_trace_sprintf(p_str, len, "LEV_%d: ", level);
     }
-    if (function_name && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FUNCTION_NAME) && !((strcmp(format, exitChr) == 0) || (strcmp(format, enterChr) == 0)))
+    if (function_name && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FUNCTION_NAME) && !(format && ((strcmp(format, exitChr) == 0) || (strcmp(format, enterChr) == 0))))
     {
         p_str = mfx_trace_sprintf(p_str, len, "%-40s: ", function_name);
     }
