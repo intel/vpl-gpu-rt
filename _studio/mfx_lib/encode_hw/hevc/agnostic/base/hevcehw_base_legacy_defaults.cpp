@@ -645,7 +645,9 @@ public:
             return Legacy::GetRawBytes(W, H, cf, bd) / 1000;
         };
 
-        SetIf(maxCPB, !!mfx.CodecLevel, GetMaxCPBByLevel);
+        bool bCqpOrIcq = mfx.RateControlMethod == MFX_RATECONTROL_CQP
+                        || mfx.RateControlMethod == MFX_RATECONTROL_ICQ;
+        SetIf(maxCPB, !!mfx.CodecLevel && !bCqpOrIcq, GetMaxCPBByLevel);
         SetIf(defaultCPB, bUseMaxKbps, GetCPBFromMaxKbps);
         SetDefault(defaultCPB, GetCPBFromRawBytes);
 
