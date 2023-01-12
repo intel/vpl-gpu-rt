@@ -613,14 +613,7 @@ mfxStatus VideoDECODEAV1::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfxFr
 
     mfxStatus sts = MFX_ERR_NONE;
     if (!(par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
-    {
         sts = MFX_VPX_Utility::QueryIOSurfInternal(par, request);
-        uint32_t dpb_size = 8 + par->AsyncDepth + 1;
-        if (dpb_size >=  request->NumFrameSuggested)
-        {
-            request->NumFrameSuggested = mfxU16(dpb_size + 1);
-        }
-    }
     else
     {
         request->Info = par->mfx.FrameInfo;

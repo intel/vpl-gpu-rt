@@ -1093,22 +1093,7 @@ namespace UMC_AV1_DECODER
                 {
                     // For no display case, decrease reference here which is increased
                     // in pFrame->IncrementReference() in show_existing_frame case.
-                    if(pCurrFrame)
-                    {
-                        Curr->DecrementReference();
-                    }else{
-                        for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
-                        {
-                            AV1DecoderFrame* temp = *iter;
-                            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated())
-                            {
-                                temp->DecrementReference();
-                                iter = outputed_frames.erase(iter);
-                            }
-                            else
-                                iter++;
-                        }
-                    }
+                    Curr->DecrementReference();
                 }
             }
         }
