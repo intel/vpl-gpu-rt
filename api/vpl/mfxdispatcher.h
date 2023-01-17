@@ -147,6 +147,32 @@ mfxStatus MFX_CDECL MFXCreateSession(mfxLoader loader, mfxU32 i, mfxSession* ses
 */
 mfxStatus MFX_CDECL MFXDispReleaseImplDescription(mfxLoader loader, mfxHDL hdl);
 
+#ifdef ONEVPL_EXPERIMENTAL
+/*!
+   @brief
+      Macro help to return UUID in the common oneAPI format. 
+
+   @param[in]  devinfo Handle to mfxExtendedDeviceId.
+   @param[in]  sub_device_id SubDevice number. Can be obtained from mfxDeviceDescription::SubDevices::Index. Set to zero if no SubDevices.
+   @param[out] uuid    Pointer to UUID.
+
+*/
+#define MFX_UUID_COMPUTE_DEVICE_ID(devinfo, sub_device_id, uuid)              \
+{                                                                             \
+   extDeviceUUID t_uuid = { 0 };                                              \
+   extDeviceUUID* shared_uuid = (extDeviceUUID*)uuid;                         \
+   t_uuid.vendor_id   = devinfo->VendorID;                                    \
+   t_uuid.device_id   = devinfo->DeviceID;                                    \
+   t_uuid.revision_id = devinfo->RevisionID;                                  \
+   t_uuid.pci_domain  = devinfo->PCIDomain;                                   \
+   t_uuid.pci_bus     = (mfxU8)devinfo->PCIBus;                               \
+   t_uuid.pci_dev     = (mfxU8)devinfo->PCIDevice;                            \
+   t_uuid.pci_func    = (mfxU8)devinfo->PCIFunction;                          \
+   t_uuid.sub_device_id = (mfxU8)sub_device_id;                               \
+   *shared_uuid = t_uuid;                                                     \
+}                                                                             
+#endif
+
 /* Helper macro definitions to add config filter properties. */
 
 /*! Adds single property of mfxU32 type.
