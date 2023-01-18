@@ -71,7 +71,7 @@ mfxStatus PercEncFilter::Init(mfxFrameInfo* in, mfxFrameInfo* out)
 
     m_modulation.Resize(in->CropW, in->CropH);
     auto &v = m_modulation.planes[0].v;
-    std::fill(v.begin(), v.end(), 128);
+    std::fill(v.begin(), v.end(), uint8_t(128));
 
     m_initialized = true;
 
