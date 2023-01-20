@@ -980,6 +980,11 @@ STRUCT(mfxExtPartialBitstreamParam,
     FIELD_T(mfxU16, reserved)
 )
 
+STRUCT(mfxExtVPPPercEncPrefilter,
+    FIELD_S(mfxExtBuffer, Header)
+    FIELD_T(mfxU16, reserved)
+)
+
 #if defined(MFX_ENABLE_ENCTOOLS)
 STRUCT(mfxExtEncToolsConfig,
     FIELD_S(mfxExtBuffer, Header)

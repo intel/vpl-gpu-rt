@@ -77,6 +77,9 @@ EXTBUF(mfxExtAV1BitstreamParam           , MFX_EXTBUFF_AV1_BITSTREAM_PARAM)
 EXTBUF(mfxExtAV1ResolutionParam          , MFX_EXTBUFF_AV1_RESOLUTION_PARAM)
 EXTBUF(mfxExtAV1TileParam                , MFX_EXTBUFF_AV1_TILE_PARAM)
 EXTBUF(mfxExtAV1Segmentation             , MFX_EXTBUFF_AV1_SEGMENTATION)
+
+EXTBUF(mfxExtVPPPercEncPrefilter         , MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER)
+
 #endif //defined(__MFXSTRUCTURES_H__)
 
 #if defined(__MFXAV1_H__)
