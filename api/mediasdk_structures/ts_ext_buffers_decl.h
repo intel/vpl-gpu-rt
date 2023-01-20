@@ -86,6 +86,24 @@ EXTBUF(mfxExtVPPPercEncPrefilter         , MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER)
 EXTBUF(mfxExtAV1AuxData                  , MFX_EXTBUFF_AV1_AUXDATA)
 #endif
 
+#if defined(__MFXCAMERA_H__)
+// Camera
+EXTBUF(mfxExtCamTotalColorControl        , MFX_EXTBUF_CAM_TOTAL_COLOR_CONTROL    )
+EXTBUF(mfxExtCamCscYuvRgb                , MFX_EXTBUF_CAM_CSC_YUV_RGB            )
+EXTBUF(mfxExtCamGammaCorrection          , MFX_EXTBUF_CAM_GAMMA_CORRECTION       )
+EXTBUF(mfxExtCamWhiteBalance             , MFX_EXTBUF_CAM_WHITE_BALANCE          )
+EXTBUF(mfxExtCamHotPixelRemoval          , MFX_EXTBUF_CAM_HOT_PIXEL_REMOVAL      )
+EXTBUF(mfxExtCamBlackLevelCorrection     , MFX_EXTBUF_CAM_BLACK_LEVEL_CORRECTION )
+EXTBUF(mfxExtCamVignetteCorrection       , MFX_EXTBUF_CAM_VIGNETTE_CORRECTION    )
+EXTBUF(mfxExtCamBayerDenoise             , MFX_EXTBUF_CAM_BAYER_DENOISE          )
+EXTBUF(mfxExtCamColorCorrection3x3       , MFX_EXTBUF_CAM_COLOR_CORRECTION_3X3   )
+EXTBUF(mfxExtCamPadding                  , MFX_EXTBUF_CAM_PADDING                )
+EXTBUF(mfxExtCamPipeControl              , MFX_EXTBUF_CAM_PIPECONTROL            )
+EXTBUF(mfxExtCamFwdGamma                 , MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION)
+EXTBUF(mfxExtCam3DLut                    , MFX_EXTBUF_CAM_3DLUT                  )
+
+// end of Camera
+#endif //__MFXCAMERA_H__
 #if defined(__MFXCOMMON_H__)
 // Threading API
 EXTBUF(mfxExtThreadsParam                , MFX_EXTBUFF_THREADS_PARAM)
@@ -134,3 +152,7 @@ EXTBUF(mfxExtEncToolsConfig              , MFX_EXTBUFF_ENCTOOLS_CONFIG          
 EXTBUF(mfxExtAllocationHints, MFX_EXTBUFF_ALLOCATION_HINTS)
 #endif
 
+#ifdef MFX_ENABLE_ENCODE_STATS
+#include "mfxencodestats.h"
+EXTBUF(mfxExtEncodeStatsOutput, MFX_EXTBUFF_ENCODESTATS)
+#endif

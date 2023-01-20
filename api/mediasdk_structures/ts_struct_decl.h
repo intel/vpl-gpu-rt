@@ -1003,3 +1003,9 @@ STRUCT(mfxExtEncToolsConfig,
     FIELD_T(mfxU16, reserved) /* Fixed size array */
 )
 #endif
+
+#ifdef MFX_ENABLE_ENCODE_STATS
+STRUCT(mfxExtEncodeStatsOutput,
+    FIELD_S(mfxExtBuffer, Header)
+)
+#endif
