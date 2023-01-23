@@ -264,6 +264,7 @@ inline bool IsHwLookAhead(const mfxExtEncToolsConfig &config, bool bGameStreamin
 
 bool AV1EHW::Base::IsHwEncToolsOn(const mfxVideoParam& video)
 {
+
     const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
     const mfxExtCodingOption2* pExtOpt2 = ExtBuffer::Get(video);
     const mfxExtEncToolsConfig* pExtConfig = ExtBuffer::Get(video);
@@ -935,6 +936,10 @@ mfxStatus AV1EncTools::BRCGetCtrl(StorageW& global, StorageW& s_task,
         extFrameData.PersistenceMapNZ = task.GopHints.PersistenceMapNZ;
         if (extFrameData.PersistenceMapNZ)
             memcpy(extFrameData.PersistenceMap, task.GopHints.PersistenceMap, sizeof(extFrameData.PersistenceMap));
+
+        if (task.InternalListCtrlPresent && task.InternalListCtrl.LongTermRefList[0].FrameOrder == task.DisplayOrder) {
+            extFrameData.LongTerm = 1;
+        }
 
         extParams.push_back(&extFrameData.Header);
 
