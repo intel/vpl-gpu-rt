@@ -242,7 +242,7 @@ inline bool IsEncToolsImplicit(const mfxVideoParam &video)
 bool isSWLACondition(const mfxVideoParam& video)
 {
     const mfxExtCodingOption2* pExtOpt2 = ExtBuffer::Get(video);
-    return (pExtOpt2 &&
+    return (pExtOpt2 && 
         (pExtOpt2->LookAheadDepth > video.mfx.GopRefDist));
 }
 
