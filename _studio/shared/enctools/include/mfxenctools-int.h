@@ -250,6 +250,9 @@ enum
     MFX_QP_MODULATION_MEDIUM,           /* Use medium pyramid delta QP for this frame. This type of content prefers medium delta QP between P/B Layers. */
     MFX_QP_MODULATION_HIGH,             /* Use high pyramid delta QP for this frame. This type of content prefers high delta QP between P/B Layers. */
     MFX_QP_MODULATION_MIXED,            /* Use pyramid delta QP appropriate for mixed content. */
+#if defined(MFX_ENABLE_ENCTOOLS)
+    MFX_QP_MODULATION_EXPLICIT,         /* Use explicit pyramid delta QP. */
+#endif
     MFX_QP_MODULATION_RESERVED0
 };
 MFX_PACK_BEGIN_USUAL_STRUCT()
@@ -273,6 +276,10 @@ typedef struct {
     mfxI16            QPDelta;
     mfxU16            QPModulation;    /* enum */
     mfxU16            MiniGopSize;     /* Adaptive GOP decision for the frame */
+#if defined(MFX_ENABLE_ENCTOOLS)
+    mfxI8             QPDeltaExplicitModulation;     /* Explicit adaptive QP offset */
+    mfxU8             reserved8bits;
+#endif
     mfxU16            reserved2[5];
 } mfxEncToolsHintPreEncodeGOP;
 MFX_PACK_END()

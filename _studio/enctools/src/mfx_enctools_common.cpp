@@ -1014,7 +1014,7 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
 
     // Since AV1 BRC uses HEVC BRC, so need this conversion
     if(pEncRes && m_ctrl.CodecId == MFX_CODEC_AV1) {
-        pEncRes->QpY = EncToolsBRC::AV1_DC_Q_IDX_2_HEVC_QP[pEncRes->QpY];        
+        pEncRes->QpY = EncToolsBRC::AV1_DC_Q_IDX_2_HEVC_QP[pEncRes->QpY];
     }
 
     if (pEncRes && isPreEncSCD(m_config, m_ctrl)) {
@@ -1042,6 +1042,11 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
     mfxEncToolsHintPreEncodeGOP *pPreEncGOP = (mfxEncToolsHintPreEncodeGOP *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_HINT_GOP);
     if (pPreEncGOP && IsOn(m_config.BRC))
     {
+        if (pPreEncGOP->QPModulation == MFX_QP_MODULATION_EXPLICIT) {
+            //MLAPQ Inference is only done when explicit modulation is used
+            sts = m_scd.GetMLApqDeltaQp(par->DisplayOrder, pPreEncGOP->QPDeltaExplicitModulation);
+            MFX_CHECK_STS(sts);
+        }
         return m_brc->ReportGopHints(par->DisplayOrder, *pPreEncGOP);
     }
 

@@ -71,6 +71,7 @@ struct BRC_FrameStruct
     mfxU32 LaIDist          = 0;
     mfxI16 qpDelta          = MFX_QP_UNDEFINED;
     mfxU16 qpModulation     = MFX_QP_MODULATION_NOT_DEFINED;
+    mfxI8  QPDeltaExplicitModulation      = 0;
     mfxU16 miniGopSize      = 0;
     mfxU16 QpMapNZ          = 0;
     mfxU16 PersistenceMapNZ = 0;
@@ -614,10 +615,10 @@ protected:
 
     virtual mfxU16 FillQpMap(const BRC_FrameStruct&, mfxU32 /*frameQp*/, mfxEncToolsHintQPMap*, mfxI16&) = 0;
 
-    mfxI32 GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
-    mfxI32 GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
-    mfxI32 GetPicQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const;
-    mfxF64 ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong, mfxU32 eo, bool bIdr, mfxU16 qpMod, mfxI32 qpDeltaP, bool bNoNewQp) const;
+    mfxI32 GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI8 qpExp, mfxI32 qpDeltaP) const;
+    mfxI32 GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI8 qpExp, mfxI32 qpDeltaP) const;
+    mfxI32 GetPicQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI8 qpExp, mfxI32 qpDeltaP) const;
+    mfxF64 ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong, mfxU32 eo, bool bIdr, mfxU16 qpMod, mfxI8 qpExp, mfxI32 qpDeltaP, bool bNoNewQp) const;
     mfxI32 GetLaQpEst(mfxU32 LaAvgEncodedSize, mfxF64 inputBitsPerFrame, const BRC_FrameStruct& frameStruct, bool updateState);
 };
 

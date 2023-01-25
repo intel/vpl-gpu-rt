@@ -169,13 +169,31 @@ mfxStatus AEnc_EncTool::SubmitFrame(mfxFrameSurface1 *surface)
 
 mfxStatus AEnc_EncTool::ReportEncResult(mfxU32 displayOrder, mfxEncToolsBRCEncodeResult const & pEncRes)
 {
-     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
-     mfxStatus sts = FindOutFrame(displayOrder);
-     MFX_CHECK_STS(sts);
+    MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
+    mfxStatus sts = FindOutFrame(displayOrder);
+    MFX_CHECK_STS(sts);
 
     AEncUpdateFrame(m_aenc, displayOrder, pEncRes.CodedFrameSize*8, pEncRes.QpY);
 
-     return MFX_ERR_NONE;
+    return MFX_ERR_NONE;
+}
+
+mfxStatus AEnc_EncTool::GetMLApqDeltaQp(mfxU32 displayOrder, mfxI8 & QPDeltaExplicitModulation)
+{
+    MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
+    mfxStatus sts = FindOutFrame(displayOrder);
+    MFX_CHECK_STS(sts);
+
+    mfxU32 SC = (*m_frameIt).FeaturesAPQ[0];
+    mfxU32 TSC = (*m_frameIt).FeaturesAPQ[1];
+    mfxU32 MVSize = (*m_frameIt).FeaturesAPQ[2];
+    mfxU32 Contrast = (*m_frameIt).FeaturesAPQ[3];
+    mfxU32 PyramidLayer = (*m_frameIt).PyramidLayer;
+    mfxU32 BaseQp = AEncGetLastPQp(m_aenc);
+
+    QPDeltaExplicitModulation = AEncAPQSelect(m_aenc, SC, TSC, MVSize, Contrast, PyramidLayer, BaseQp);
+
+    return MFX_ERR_NONE;
 }
 
 mfxStatus AEnc_EncTool::GetSCDecision(mfxU32 displayOrder, mfxEncToolsHintPreEncodeSceneChange *pPreEncSC)

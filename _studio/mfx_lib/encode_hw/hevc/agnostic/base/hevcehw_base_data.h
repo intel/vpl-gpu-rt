@@ -755,6 +755,7 @@ namespace Base
         mfxU16              SceneChange = 0;
 #if defined(MFX_ENABLE_ENCTOOLS)
         mfxU16              SpatialComplexity = 0;
+        mfxI8               QPDeltaExplicitModulation = 0;
         /* Maps */
         mfxU16              PersistenceMapNZ;
         mfxU8               PersistenceMap[128];

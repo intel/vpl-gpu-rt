@@ -242,7 +242,7 @@ inline bool IsEncToolsImplicit(const mfxVideoParam &video)
 bool isSWLACondition(const mfxVideoParam& video)
 {
     const mfxExtCodingOption2* pExtOpt2 = ExtBuffer::Get(video);
-    return (pExtOpt2 && 
+    return (pExtOpt2 &&
         (pExtOpt2->LookAheadDepth > video.mfx.GopRefDist));
 }
 
@@ -853,6 +853,7 @@ mfxStatus HevcEncTools::BRCGetCtrl(StorageW& global , StorageW& s_task,
             extPreGop.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_GOP;
             extPreGop.Header.BufferSz = sizeof(extPreGop);
             extPreGop.QPModulation = (mfxU16)task.GopHints.QPModulaton;
+            extPreGop.QPDeltaExplicitModulation = (mfxI8)task.GopHints.QPDeltaExplicitModulation;
             extPreGop.MiniGopSize = (mfxU16)task.GopHints.MiniGopSize;
             extParams.push_back(&extPreGop.Header);
         }
@@ -1053,8 +1054,15 @@ mfxStatus HevcEncTools::QueryPreEncTask(StorageW&  global, StorageW& s_task)
     else
 #endif
     {
-        if (IsOn(m_EncToolConfig.AdaptivePyramidQuantB) || IsOn(m_EncToolConfig.AdaptivePyramidQuantP))
-            task.GopHints.QPModulaton = (mfxU8)preEncodeGOP.QPModulation;
+        if (IsOn(m_EncToolConfig.AdaptivePyramidQuantB)) {
+            if (preEncodeGOP.MiniGopSize <= 8) {
+                task.GopHints.QPModulaton = MFX_QP_MODULATION_EXPLICIT;
+                task.GopHints.QPDeltaExplicitModulation = (mfxI8)preEncodeGOP.QPDeltaExplicitModulation;
+            }
+            else {
+                task.GopHints.QPModulaton = (mfxU8)preEncodeGOP.QPModulation;
+            }
+        }
 
         if (isLABRC)
         {

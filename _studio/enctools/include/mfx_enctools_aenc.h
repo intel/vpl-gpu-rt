@@ -51,6 +51,7 @@ public:
     mfxStatus GetPersistenceMap(mfxU32 displayOrder, mfxEncToolsHintPreEncodeSceneChange *pPreEncSC);
     mfxStatus GetGOPDecision(mfxU32 displayOrder, mfxEncToolsHintPreEncodeGOP *pPreEncGOP);
     mfxStatus GetARefDecision(mfxU32 displayOrder, mfxEncToolsHintPreEncodeARefFrames *pPreEncARef);
+    mfxStatus GetMLApqDeltaQp(mfxU32 displayOrder, mfxI8 & QPDeltaExplicitModulation);
     mfxStatus CompleteFrame(mfxU32 displayOrder);
     bool DoDownScaling(mfxFrameInfo const & frameInfo);
 

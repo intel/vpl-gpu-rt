@@ -427,130 +427,135 @@ mfxI32 GetNewQP(mfxF64 totalFrameBits, mfxF64 targetFrameSizeInBits, mfxI32 minQ
 // QuantB = QuantP+1
 // qpMod=0, can be for used non 8GOP and/or non Pyramid cases.
 static
-mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxU32 codecId)
+mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 qpMod, mfxI8 qpQPDeltaExplicitModulation, mfxU32 codecId)
 {
     mfxI32 qp = 0;
     level = std::max(mfxI32(1), std::min(mfxI32(4), level));
 
-    if (codecId == MFX_CODEC_HEVC || codecId == MFX_CODEC_AV1) {
-        if (qpMod == MFX_QP_MODULATION_HIGH || qpMod == BRC_QP_MODULATION_GOP8_FIXED) {
-            switch (level) {
-            case 4:
-                qp += 1;
-            case 3:
-                qp += (codecId == MFX_CODEC_HEVC) ? 1 : 2;
-            case 2:
-                qp += (codecId == MFX_CODEC_HEVC) ? 2 : 1;
-            case 1:
-            default:
-                qp += (codecId == MFX_CODEC_HEVC) ? 2 : 2;
-                break;
-            }
-        }
-        else if (qpMod == MFX_QP_MODULATION_MIXED) {
-            switch (level) {
-            case 4:
-                qp += 1;
-            case 3:
-                qp += 2;
-            case 2:
-                qp += 1;
-            case 1:
-            default:
-                qp += 4;
-                break;
-            }
-        }
-        else if (qpMod == MFX_QP_MODULATION_MEDIUM) {
-            switch (level) {
-            case 4:
-                qp += 1;
-            case 3:
-                qp += 1;
-            case 2:
-                qp += 1;
-            case 1:
-            default:
-                qp += 2;
-                break;
-            }
-        }
-        else if (qpMod == MFX_QP_MODULATION_LOW) {
-            switch (level) {
-            case 4:
-                qp += 1;
-            case 3:
-                qp += 1;
-            case 2:
-                qp += 1;
-            case 1:
-            default:
-                qp += 1;
-                break;
-            }
-        }
-        else {
-            qp += (level > 0 ? level - 1 : 0);
-            if (level && !isRef) qp += 1;
-        }
-    }
-    else if (codecId == MFX_CODEC_AVC) {
-        if (qpMod == MFX_QP_MODULATION_HIGH) {
-            switch (level) {
-            case 4:
-                qp += 1;
-            case 3:
-                qp += 2;
-            case 2:
-                qp += 1;
-            case 1:
-            default:
-                qp += 3;
-                break;
-            }
-        }
-        else if (qpMod == MFX_QP_MODULATION_MEDIUM) {
-            switch (level) {
-            case 4:
-                qp += 1;
-            case 3:
-                qp += 2;
-            case 2:
-                qp += 1;
-            case 1:
-            default:
-                qp += 2;
-                break;
-            }
-        }
-        else if (qpMod == MFX_QP_MODULATION_LOW) {
-            switch (level) {
-            case 4:
-                qp += 1;
-            case 3:
-                qp += 1;
-            case 2:
-                qp += 1;
-            case 1:
-            default:
-                qp += 1;
-                break;
-            }
-        }
-        else {
-            qp += (level > 0 ? level - 1 : 0);
-            if (level && !isRef) qp += 1;
-        }
+    if (qpMod == MFX_QP_MODULATION_EXPLICIT) {
+        qp = (int)qpQPDeltaExplicitModulation;
     }
     else {
-        qp += (level > 0 ? level - 1 : 0);
-        if (level && !isRef) qp += 1;
+        if (codecId == MFX_CODEC_HEVC || codecId == MFX_CODEC_AV1) {
+            if (qpMod == MFX_QP_MODULATION_HIGH || qpMod == BRC_QP_MODULATION_GOP8_FIXED) {
+                switch (level) {
+                case 4:
+                    qp += 1;
+                case 3:
+                    qp += (codecId == MFX_CODEC_HEVC) ? 1 : 2;
+                case 2:
+                    qp += (codecId == MFX_CODEC_HEVC) ? 2 : 1;
+                case 1:
+                default:
+                    qp += (codecId == MFX_CODEC_HEVC) ? 2 : 2;
+                    break;
+                }
+            }
+            else if (qpMod == MFX_QP_MODULATION_MIXED) {
+                switch (level) {
+                case 4:
+                    qp += 1;
+                case 3:
+                    qp += 2;
+                case 2:
+                    qp += 1;
+                case 1:
+                default:
+                    qp += 4;
+                    break;
+                }
+            }
+            else if (qpMod == MFX_QP_MODULATION_MEDIUM) {
+                switch (level) {
+                case 4:
+                    qp += 1;
+                case 3:
+                    qp += 1;
+                case 2:
+                    qp += 1;
+                case 1:
+                default:
+                    qp += 2;
+                    break;
+                }
+            }
+            else if (qpMod == MFX_QP_MODULATION_LOW) {
+                switch (level) {
+                case 4:
+                    qp += 1;
+                case 3:
+                    qp += 1;
+                case 2:
+                    qp += 1;
+                case 1:
+                default:
+                    qp += 1;
+                    break;
+                }
+            }
+            else {
+                qp += (level > 0 ? level - 1 : 0);
+                if (level && !isRef) qp += 1;
+            }
+        }
+        else if (codecId == MFX_CODEC_AVC) {
+            if (qpMod == MFX_QP_MODULATION_HIGH) {
+                switch (level) {
+                case 4:
+                    qp += 1;
+                case 3:
+                    qp += 2;
+                case 2:
+                    qp += 1;
+                case 1:
+                default:
+                    qp += 3;
+                    break;
+                }
+            }
+            else if (qpMod == MFX_QP_MODULATION_MEDIUM) {
+                switch (level) {
+                case 4:
+                    qp += 1;
+                case 3:
+                    qp += 2;
+                case 2:
+                    qp += 1;
+                case 1:
+                default:
+                    qp += 2;
+                    break;
+                }
+            }
+            else if (qpMod == MFX_QP_MODULATION_LOW) {
+                switch (level) {
+                case 4:
+                    qp += 1;
+                case 3:
+                    qp += 1;
+                case 2:
+                    qp += 1;
+                case 1:
+                default:
+                    qp += 1;
+                    break;
+                }
+            }
+            else {
+                qp += (level > 0 ? level - 1 : 0);
+                if (level && !isRef) qp += 1;
+            }
+        }
+        else {
+            qp += (level > 0 ? level - 1 : 0);
+            if (level && !isRef) qp += 1;
+        }
     }
     return qp;
 }
 
 static
-void SetQPParams(mfxI32 qp, mfxU32 type, BRC_Ctx& ctx, mfxU32 /* rec_num */, mfxI32 minQuant, mfxI32 maxQuant, mfxU32 level, mfxU32 iDQp, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP, mfxU32 codecId)
+void SetQPParams(mfxI32 qp, mfxU32 type, BRC_Ctx& ctx, mfxU32 /* rec_num */, mfxI32 minQuant, mfxI32 maxQuant, mfxU32 level, mfxU32 iDQp, mfxU16 isRef, mfxU16 qpMod, mfxI8 qpExp, mfxI32 qpDeltaP, mfxU32 codecId)
 {
     if (type == MFX_FRAMETYPE_IDR)
     {
@@ -577,7 +582,7 @@ void SetQPParams(mfxI32 qp, mfxU32 type, BRC_Ctx& ctx, mfxU32 /* rec_num */, mfx
     }
     else if (type == MFX_FRAMETYPE_B)
     {
-        qp -= GetOffsetAPQ(level, isRef, qpMod, codecId);
+        qp -= GetOffsetAPQ(level, isRef, qpMod, qpExp, codecId);
         ctx.QuantIDR = qp - 2 - iDQp;
         ctx.QuantI = qp - 2;
         ctx.QuantP = qp - 1;
@@ -591,13 +596,13 @@ void SetQPParams(mfxI32 qp, mfxU32 type, BRC_Ctx& ctx, mfxU32 /* rec_num */, mfx
 }
 
 inline
-void UpdateQPParams(mfxI32 qp, mfxU32 type , BRC_Ctx  &ctx, mfxU32 rec_num, mfxI32 minQuant, mfxI32 maxQuant, mfxU32 level, mfxU32 iDQp, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP, mfxU32 codecId)
+void UpdateQPParams(mfxI32 qp, mfxU32 type , BRC_Ctx  &ctx, mfxU32 rec_num, mfxI32 minQuant, mfxI32 maxQuant, mfxU32 level, mfxU32 iDQp, mfxU16 isRef, mfxU16 qpMod, mfxI8 qpExp, mfxI32 qpDeltaP, mfxU32 codecId)
 {
     ctx.Quant = qp;
     if (ctx.LastIQpSetOrder > ctx.encOrder) return;
     if (ctx.LastQpUpdateOrder > ctx.encOrder) return;
     ctx.LastQpUpdateOrder = ctx.encOrder;
-    SetQPParams(qp, type, ctx, rec_num, minQuant, maxQuant, level, iDQp, isRef, qpMod, qpDeltaP, codecId);
+    SetQPParams(qp, type, ctx, rec_num, minQuant, maxQuant, level, iDQp, isRef, qpMod, qpExp, qpDeltaP, codecId);
 }
 
 inline
@@ -827,7 +832,7 @@ void UpdateMinQForMaxFrameSize(cBRCParams* par, mfxI32 bits, mfxI32 qp, const BR
     }
 }
 
-mfxI32 BRC_EncToolBase::GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const
+mfxI32 BRC_EncToolBase::GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI8 qpExp, mfxI32 qpDeltaP) const
 {
     mfxI32 qp = 0;
     if (type == MFX_FRAMETYPE_IDR)
@@ -849,7 +854,7 @@ mfxI32 BRC_EncToolBase::GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16
     else
     {
         qp = m_ctx.QuantB;
-        qp += GetOffsetAPQ(layer, isRef, qpMod, m_par.codecId);
+        qp += GetOffsetAPQ(layer, isRef, qpMod, qpExp, m_par.codecId);
         qp = mfx::clamp(qp, m_par.quantMinB, m_par.quantMaxB);
     }
     //printf("GetCurQP IDR %d I %d P %d B %d, min %d max %d type %d \n", m_ctx.QuantIDR, m_ctx.QuantI, m_ctx.QuantP, m_ctx.QuantB, m_par.quantMinI, m_par.quantMaxI, type);
@@ -857,9 +862,9 @@ mfxI32 BRC_EncToolBase::GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16
     return qp;
 }
 
-mfxF64 BRC_EncToolBase::ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong, mfxU32 eo, bool bIdr, mfxU16 qpMod, mfxI32 qpDeltaP, bool bNoNewQp) const
+mfxF64 BRC_EncToolBase::ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong, mfxU32 eo, bool bIdr, mfxU16 qpMod, mfxI8 qpExp, mfxI32 qpDeltaP, bool bNoNewQp) const
 {
-    mfxI32 seqQP_new = GetSeqQP(qp, type, layer, isRef, qpMod, qpDeltaP);
+    mfxI32 seqQP_new = GetSeqQP(qp, type, layer, isRef, qpMod, qpExp, qpDeltaP);
     mfxF64 dQuantAb_new = 1.0 / seqQP_new;
     mfxF64 bAbPreriod = m_par.bAbPeriod;
 
@@ -898,7 +903,7 @@ mfxF64 BRC_EncToolBase::ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU1
     return dQuantAb;
 }
 
-mfxI32 BRC_EncToolBase::GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const
+mfxI32 BRC_EncToolBase::GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI8 qpExp, mfxI32 qpDeltaP) const
 {
     mfxI32 pqp = 0;
     if (type == MFX_FRAMETYPE_IDR) {
@@ -908,7 +913,7 @@ mfxI32 BRC_EncToolBase::GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 is
     } else if (type == MFX_FRAMETYPE_P) {
         pqp = qp - layer - qpDeltaP;
     } else {
-        qp -= GetOffsetAPQ(layer, isRef, qpMod, m_par.codecId);
+        qp -= GetOffsetAPQ(layer, isRef, qpMod, qpExp, m_par.codecId);
         pqp = qp - 1;
     }
     pqp = mfx::clamp(pqp, m_par.quantMinP, m_par.quantMaxP);
@@ -916,7 +921,7 @@ mfxI32 BRC_EncToolBase::GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 is
     return pqp;
 }
 
-mfxI32 BRC_EncToolBase::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI32 qpDeltaP) const
+mfxI32 BRC_EncToolBase::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 qpMod, mfxI8 qpExp, mfxI32 qpDeltaP) const
 {
     mfxI32 qp = 0;
 
@@ -939,7 +944,7 @@ mfxI32 BRC_EncToolBase::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 i
     else
     {
         qp = pqp + 1;
-        qp += GetOffsetAPQ(layer, isRef, qpMod, m_par.codecId);
+        qp += GetOffsetAPQ(layer, isRef, qpMod, qpExp, m_par.codecId);
         qp = mfx::clamp(qp, m_par.quantMinB, m_par.quantMaxB);
     }
 
@@ -973,7 +978,7 @@ mfxStatus BRC_EncToolBase::Init(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool 
     mfxI32 rawSize = GetRawFrameSize(m_par.width * m_par.height, m_par.chromaFormat, m_par.quantOffset ? m_par.bitDepthLuma : 8);
     mfxI32 qp = GetNewQP(rawSize, m_par.inputBitsPerFrame, m_par.quantMinI, m_par.quantMaxI, 1, m_par.quantOffset, 0.5, false, false);
 
-    UpdateQPParams(qp, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, MFX_FRAMETYPE_REF, 0, 0, m_par.codecId);
+    UpdateQPParams(qp, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, MFX_FRAMETYPE_REF, 0, 0, 0, m_par.codecId);
 
     m_ctx.dQuantAb = qp > 0 ? 1.0 / qp : 1.0; //kw
 
@@ -1014,7 +1019,7 @@ mfxStatus BRC_EncToolBase::Reset(mfxEncToolsCtrl const & ctrl, bool bMBBRC, bool
             m_ctx.Quant = (mfxI32)(1. / m_ctx.dQuantAb * pow(m_ctx.fAbLong / m_par.inputBitsPerFrame, 0.32) + 0.5);
             m_ctx.Quant = mfx::clamp(m_ctx.Quant, m_par.quantMinI, m_par.quantMaxI);
 
-            UpdateQPParams(m_ctx.Quant, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, MFX_FRAMETYPE_REF, 0, 0, m_par.codecId);
+            UpdateQPParams(m_ctx.Quant, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, MFX_FRAMETYPE_REF, 0, 0, 0, m_par.codecId);
 
             m_ctx.dQuantAb = 1. / m_ctx.Quant;
             m_ctx.fAbLong = m_par.inputBitsPerFrame;
@@ -1182,7 +1187,7 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
         {
             bSHStart = true;
             bool bNoNewQp = false;
-            m_ctx.dQuantAb = ResetQuantAb(qpY, picType, layer, isRef, fAbLong, frameStruct.encOrder, bIdr, ParQpModulation, ParQpDeltaP, bNoNewQp);
+            m_ctx.dQuantAb = ResetQuantAb(qpY, picType, layer, isRef, fAbLong, frameStruct.encOrder, bIdr, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, bNoNewQp);
             m_ctx.SceneChange |= 16;
             m_ctx.eRateSH = eRate;
             m_ctx.SChPoc = frameStruct.dispOrder;
@@ -1268,12 +1273,12 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
                 bNeedUpdateQP = false;
                 //printf("    recode 1-0: %d:  k %5f bitsEncoded %d maxFrameSize %d (%d, %d), targetSize %d, fAbLong %f, inputBitsPerFrame %f, qp %d new %d, layer %d\n", 
                 //    frameStruct.encOrder, bitsEncoded/maxFrameSize, (int)bitsEncoded, (int)maxFrameSize,(int) maxFrameSizeByRatio, (int) frameSizeLim, (int)targetFrameSize, fAbLong, m_par.inputBitsPerFrame, quant, quant_new, layer);
-                if (quant_new > GetCurQP(picType, layer, isRef, ParQpModulation, ParQpDeltaP))
+                if (quant_new > GetCurQP(picType, layer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP))
                 {
-                    UpdateQPParams(bMaxFrameSizeMode ? quant_new - 1 : quant_new, picType, m_ctx, 0, quantMin, quantMax, layer, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
+                    UpdateQPParams(bMaxFrameSizeMode ? quant_new - 1 : quant_new, picType, m_ctx, 0, quantMin, quantMax, layer, m_par.iDQp, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, m_par.codecId);
                     fAbLong = m_ctx.fAbLong = m_par.inputBitsPerFrame;
                     fAbShort = m_ctx.fAbShort = m_par.inputBitsPerFrame;
-                    m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, isRef, fAbLong, frameStruct.encOrder, bIdr, ParQpModulation, ParQpDeltaP, false);
+                    m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, isRef, fAbLong, frameStruct.encOrder, bIdr, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, false);
                 }
 
                 if (m_par.bRec)
@@ -1297,12 +1302,12 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
             if (quant_new < quant)
             {
                 bNeedUpdateQP = false;
-                if (quant_new < GetCurQP(picType, layer, isRef, ParQpModulation, ParQpDeltaP))
+                if (quant_new < GetCurQP(picType, layer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP))
                 {
-                    UpdateQPParams(bMaxFrameSizeMode ? quant_new - 1 : quant_new, picType, m_ctx, 0, quantMin, quantMax, layer, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
+                    UpdateQPParams(bMaxFrameSizeMode ? quant_new - 1 : quant_new, picType, m_ctx, 0, quantMin, quantMax, layer, m_par.iDQp, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, m_par.codecId);
                     fAbLong = m_ctx.fAbLong = m_par.inputBitsPerFrame;
                     fAbShort = m_ctx.fAbShort = m_par.inputBitsPerFrame;
-                    m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, isRef, fAbLong, frameStruct.encOrder, bIdr, ParQpModulation, ParQpDeltaP, false);
+                    m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, isRef, fAbLong, frameStruct.encOrder, bIdr, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, false);
                 }
 
                 if (m_par.bRec)
@@ -1336,12 +1341,12 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
                 if (quant_new > quant)
                 {
                     bNeedUpdateQP = false;
-                    if (quant_new > GetCurQP(picType, layer, isRef, ParQpModulation, ParQpDeltaP))
+                    if (quant_new > GetCurQP(picType, layer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP))
                     {
-                        UpdateQPParams(quant_new, picType, m_ctx, 0, quantMin, quantMax, layer, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
+                        UpdateQPParams(quant_new, picType, m_ctx, 0, quantMin, quantMax, layer, m_par.iDQp, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, m_par.codecId);
                         fAbLong = m_ctx.fAbLong = m_par.inputBitsPerFrame;
                         fAbShort = m_ctx.fAbShort = m_par.inputBitsPerFrame;
-                        m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, isRef, fAbLong, frameStruct.encOrder, bIdr, ParQpModulation, ParQpDeltaP, false);
+                        m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, isRef, fAbLong, frameStruct.encOrder, bIdr, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, false);
                     }
                     if (m_par.bRec)
                     {
@@ -1383,10 +1388,10 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
                 brcSts = MFX_BRC_PANIC_SMALL_FRAME;
             }
             // Idea is to check a sign mismatch, 'true' if both are negative or positive
-            if ((quant_new - qpY) * (quant_new - GetCurQP(picType, layer, isRef, ParQpModulation, ParQpDeltaP)) > 0)
+            if ((quant_new - qpY) * (quant_new - GetCurQP(picType, layer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP)) > 0)
             {
-                UpdateQPParams(quant_new, picType, m_ctx, 0, m_ctx.QuantMin, m_ctx.QuantMax, layer, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
-                m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, isRef, fAbLong, frameStruct.encOrder, bIdr, ParQpModulation, ParQpDeltaP, false);
+                UpdateQPParams(quant_new, picType, m_ctx, 0, m_ctx.QuantMin, m_ctx.QuantMax, layer, m_par.iDQp, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, m_par.codecId);
+                m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, isRef, fAbLong, frameStruct.encOrder, bIdr, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, false);
             }
             bNeedUpdateQP = false;
         }
@@ -1397,7 +1402,7 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
     {
         // no recoding is needed. Save context params
 
-        mfxF64 k = 1. / GetSeqQP(qpY, picType, layer, isRef, ParQpModulation, ParQpDeltaP);
+        mfxF64 k = 1. / GetSeqQP(qpY, picType, layer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP);
         mfxF64 dqAbPeriod = m_par.dqAbPeriod;
         if (m_ctx.bToRecode)
             dqAbPeriod = (k < m_ctx.dQuantAb) ? 16 : 25;
@@ -1426,7 +1431,7 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
                 {
                     m_ctx.eRateSH = eRate;
                     if (ParSceneChange)
-                        m_ctx.eRate = m_par.inputBitsPerFrame * sqrt(QP2Qstep(GetCurQP(MFX_FRAMETYPE_P, 0, MFX_FRAMETYPE_REF, ParQpModulation, ParQpDeltaP), m_par.quantOffset));
+                        m_ctx.eRate = m_par.inputBitsPerFrame * sqrt(QP2Qstep(GetCurQP(MFX_FRAMETYPE_P, 0, MFX_FRAMETYPE_REF, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP), m_par.quantOffset));
                 }
                 else
                 {
@@ -1503,8 +1508,8 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
                 //    frameStruct.encOrder, totDev, futureDev, laRatio, frameStruct.LaAvgEncodedSize, m_ctx.LastLaPBitsAvg[0]);
                 totDev = totDev + futureDev;
             }
-            quant_new = GetNewQPTotal(totDev / bAbPreriod / (mfxF64)m_par.inputBitsPerFrame, dequant_new, m_ctx.QuantMin, m_ctx.QuantMax, GetSeqQP(qpY, picType, layer, isRef, ParQpModulation, ParQpDeltaP), m_par.bPyr && m_par.bRec, bSHStart && m_ctx.bToRecode == 0);
-            quant_new = GetPicQP(quant_new, picType, layer, isRef,ParQpModulation, ParQpDeltaP);
+            quant_new = GetNewQPTotal(totDev / bAbPreriod / (mfxF64)m_par.inputBitsPerFrame, dequant_new, m_ctx.QuantMin, m_ctx.QuantMax, GetSeqQP(qpY, picType, layer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP), m_par.bPyr && m_par.bRec, bSHStart && m_ctx.bToRecode == 0);
+            quant_new = GetPicQP(quant_new, picType, layer, isRef,ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP);
             //printf("    ===%d quant old %d quant_new %d, bitsEncoded %d m_ctx.QuantMin %d m_ctx.QuantMax %d\n", frameStruct.encOrder, m_ctx.Quant, quant_new, bitsEncoded, m_ctx.QuantMin, m_ctx.QuantMax);
 
             if (bMaxFrameSizeMode)
@@ -1529,11 +1534,11 @@ mfxStatus BRC_EncToolBase::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *p
                 quant_new = mfx::clamp(quant_corrected, m_ctx.QuantMin, m_ctx.QuantMax);
             }
 
-            if ((quant_new - qpY)* (quant_new - GetCurQP(picType, layer, isRef, ParQpModulation, ParQpDeltaP)) > 0) // this check is actual for async scheme
+            if ((quant_new - qpY)* (quant_new - GetCurQP(picType, layer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP)) > 0) // this check is actual for async scheme
             {
                 //printf("   +++ Update QP %d: totalDeviation %f, bAbPreriod %f (%f), QP %d (%d %d), qp_new %d (qpY %d), type %d, dequant_new %f (%f) , m_ctx.fAbLong %f, m_par.inputBitsPerFrame %f\n",
                 //    frameStruct.encOrder, totDev, bAbPreriod, GetAbPeriodCoeff(m_ctx.encOrder - m_ctx.LastIEncOrder, m_par.gopPicSize, m_ctx.LastIDRSceneChange), m_ctx.Quant, m_ctx.QuantMin, m_ctx.QuantMax,quant_new, qpY, picType, 1.0/dequant_new, 1.0/m_ctx.dQuantAb, m_ctx.fAbLong, m_par.inputBitsPerFrame);
-                UpdateQPParams(quant_new, picType, m_ctx, 0, m_ctx.QuantMin, m_ctx.QuantMax, layer, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
+                UpdateQPParams(quant_new, picType, m_ctx, 0, m_ctx.QuantMin, m_ctx.QuantMax, layer, m_par.iDQp, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, m_par.codecId);
             }
         }
         m_ctx.bToRecode = 0;
@@ -1700,7 +1705,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
     mfxU16 miniGoPSize = frameStruct.miniGopSize == 0 ? m_par.gopRefDist : frameStruct.miniGopSize;
     if (ParQpModulation == MFX_QP_MODULATION_NOT_DEFINED
         && miniGoPSize >= 8 && m_par.bPyr
-        && (m_par.codecId == MFX_CODEC_HEVC || m_par.codecId == MFX_CODEC_AV1)) {        
+        && (m_par.codecId == MFX_CODEC_HEVC || m_par.codecId == MFX_CODEC_AV1)) {
         ParQpModulation = BRC_QP_MODULATION_GOP8_FIXED;
     }
 
@@ -1724,7 +1729,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
         HRDDev = m_hrdSpec->GetBufferDeviation(frameStruct.encOrder);
         maxFrameSizeHrd = m_hrdSpec->GetMaxFrameSizeInBits(frameStruct.encOrder, bIdr);
     }
-    frameStructItr->origSeqQp = GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, ParQpDeltaP);
+    frameStructItr->origSeqQp = GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP);
     if (!m_bDynamicInit) {
         if (isIntra) {
             // Init DQP
@@ -1761,12 +1766,12 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
                     qp0 -= 3; // uncertainty; use re-encoding for best results
                 qp0 = mfx::clamp(qp0, m_par.quantMinI, m_par.quantMaxI);
                 ltrprintf("Qp0 %d\n", qp0);
-                UpdateQPParams(qp0, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
+                UpdateQPParams(qp0, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, m_par.codecId);
                 qpMin = qp0;
             }
             else if (ParLongTerm) {
                 mfxI32 qp0 = m_ctx.QuantIDR;
-                UpdateQPParams(qp0, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
+                UpdateQPParams(qp0, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, m_par.codecId);
                 qpMin = qp0;
             }
         }
@@ -1776,7 +1781,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
             laQp = std::max(laQp, m_ctx.QuantP - (m_ctx.QuantP/2));
             mfxI32 qp0 = mfx::clamp(std::max(laQp - 1 - (mfxI32)m_par.iDQp, 1), m_par.quantMinI, m_par.quantMaxI);
             ltrprintf("Dynamic Init LA %d Qp %d P Qp %d\n", frameStruct.LaAvgEncodedSize, laQp, m_ctx.QuantP);
-            UpdateQPParams(qp0, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
+            UpdateQPParams(qp0, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, m_par.codecId);
             qpMin = m_ctx.QuantIDR;
             m_ctx.la.SetLaQpUpdateOrder(frameStruct.encOrder, frameStruct.dispOrder);
         }
@@ -1875,7 +1880,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
                     else if (raca == MIN_RACA && qpMin > 3)
                         qpMin -= 3; // uncertainty; use re-encoding for best results
                 }
-                mfxI32 curQp = GetCurQP(type, frameStruct.pyrLayer, isRef, ParQpModulation, ParQpDeltaP);
+                mfxI32 curQp = GetCurQP(type, frameStruct.pyrLayer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP);
                 qpMin = std::min(qpMin, curQp + 6);
                 ltrprintf("Min QpI %d Schg %d\n", qpMin, ParSceneChange);
             }
@@ -1919,7 +1924,7 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
                 mfxI32 minlaQp = SelectQp(EstRate, targetFrameSize);
                 ltrprintf("Selected LA MinQp %d iDQp %d IQ %d, PQ %d modelScale %lf\n", minlaQp, m_par.iDQp, m_ctx.QuantIDR, m_ctx.QuantP, modelScale);
                 qpMin = minlaQp;
-                mfxI32 curQp = GetCurQP(type, frameStruct.pyrLayer, isRef, ParQpModulation, ParQpDeltaP);
+                mfxI32 curQp = GetCurQP(type, frameStruct.pyrLayer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP);
                 qpMin = std::min(qpMin, curQp + 6);
                 ltrprintf("Min QpI %d Schg %d\n", qpMin, ParSceneChange);
             }
@@ -1937,12 +1942,12 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
                 mfxF64 inputBitsPerFrameAdj = (m_par.inputBitsPerFrame * m_par.mLaDepth - dev) / m_par.mLaDepth;
                 mfxI32 laQp = GetLaQpEst(frameStruct.LaAvgEncodedSize, inputBitsPerFrameAdj, frameStruct, true);
 
-                mfxI32 curPQp = GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, ParQpDeltaP);
+                mfxI32 curPQp = GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP);
                 {
                     laQp = std::max(laQp, curPQp - (curPQp / 4));
                     laQp = std::min(curPQp + 6, laQp); // for quality
                     ltrprintf("Dynamic SChg %d LA Qp %d P Qp %d\n", frameStruct.dispOrder, laQp, curPQp);
-                    UpdateQPParams(laQp, MFX_FRAMETYPE_P, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
+                    UpdateQPParams(laQp, MFX_FRAMETYPE_P, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, m_par.codecId);
                     qpMin = m_ctx.QuantIDR;
                     m_ctx.la.SetLaQpUpdateOrder(frameStruct.encOrder, frameStruct.dispOrder);
                 }
@@ -1999,16 +2004,16 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
                     mfxF64 inputBitsPerFrameAdj = (m_par.inputBitsPerFrame * m_par.mLaDepth - dev) / m_par.mLaDepth;
                     mfxI32 lastLaQp = m_ctx.la.LastLaQpCalc;
                     mfxI32 laQp = GetLaQpEst(frameStruct.LaAvgEncodedSize, inputBitsPerFrameAdj, frameStruct, true);
-                    mfxI32 curPQp = GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, ParQpDeltaP);
+                    mfxI32 curPQp = GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP);
                     mfxI32 diffQp = laQp - (lastLaQp ? lastLaQp : laQp);
                     laQp = curPQp + diffQp;
                     laQp = std::max(laQp, curPQp - (curPQp / 4));
                     laQp = std::min(curPQp + 6, laQp); // for quality
                     if(laQp != curPQp)
                     {
-                        UpdateQPParams(laQp, MFX_FRAMETYPE_P, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
+                        UpdateQPParams(laQp, MFX_FRAMETYPE_P, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, m_par.codecId);
                         qpMin = m_ctx.QuantIDR;
-                        if(curPQp != GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, ParQpDeltaP))
+                        if(curPQp != GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP))
                             m_ctx.la.SetLaQpUpdateOrder(frameStruct.encOrder, frameStruct.dispOrder);
                     }
                 }
@@ -2022,15 +2027,15 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
                     if (m_ctx.la.IsUpdateLaQpDist(frameStruct.dispOrder))
                     {
                         mfxF64 devTh = m_par.inputBitsPerFrame * -2.0;
-                        mfxI32 curPQp = GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, ParQpDeltaP);
+                        mfxI32 curPQp = GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP);
                         mfxI32 diffQp = laQp - (lastLaQp ? lastLaQp : laQp);
                         laQp = curPQp + diffQp;
                         laQp = std::max(laQp, curPQp); // inc
                         laQp = std::min(curPQp + (dev < devTh ? 1: 6), laQp); // for quality
                         if(laQp != curPQp)
                         {
-                            UpdateQPParams(laQp, MFX_FRAMETYPE_P, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
-                            if(curPQp != GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, ParQpDeltaP))
+                            UpdateQPParams(laQp, MFX_FRAMETYPE_P, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, m_par.codecId);
+                            if(curPQp != GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP))
                                 m_ctx.la.SetLaQpUpdateOrder(frameStruct.encOrder, frameStruct.dispOrder);
                         }
                     }
@@ -2045,15 +2050,15 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
                     if (m_ctx.la.IsUpdateLaQpDist(frameStruct.dispOrder))
                     {
                         mfxF64 devTh = m_par.inputBitsPerFrame * 2.0;
-                        mfxI32 curPQp = GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, ParQpDeltaP);
+                        mfxI32 curPQp = GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP);
                         mfxI32 diffQp = laQp - (lastLaQp ? lastLaQp : laQp);
                         laQp = curPQp + diffQp;
                         laQp = std::max(laQp, std::max(curPQp - (curPQp / 4), curPQp - (dev > devTh ? 1: 6)));
                         laQp = std::min(curPQp, laQp); // dec
                         if(laQp != curPQp)
                         {
-                            UpdateQPParams(laQp, MFX_FRAMETYPE_P, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
-                            if(curPQp != GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, ParQpDeltaP))
+                            UpdateQPParams(laQp, MFX_FRAMETYPE_P, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, m_par.codecId);
+                            if(curPQp != GetCurQP(MFX_FRAMETYPE_P, frameStruct.pyrLayer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP))
                                 m_ctx.la.SetLaQpUpdateOrder(frameStruct.encOrder, frameStruct.dispOrder);
                         }
                     }
@@ -2067,15 +2072,15 @@ mfxStatus BRC_EncToolBase::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantCon
             }
         }
 
-        qp = GetCurQP(type, frameStruct.pyrLayer, isRef, ParQpModulation, ParQpDeltaP);
+        qp = GetCurQP(type, frameStruct.pyrLayer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP);
 
         // Max Frame Size recode prevention
         if (qp < qpMin)
         {
             if (type != MFX_FRAMETYPE_B)
             {
-                SetQPParams(qpMin, type, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, ParQpDeltaP, m_par.codecId);
-                qp = GetCurQP(type, frameStruct.pyrLayer, isRef, ParQpModulation, ParQpDeltaP);
+                SetQPParams(qpMin, type, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP, m_par.codecId);
+                qp = GetCurQP(type, frameStruct.pyrLayer, isRef, ParQpModulation, frameStruct.QPDeltaExplicitModulation, ParQpDeltaP);
             }
             else
             {
@@ -2199,6 +2204,7 @@ mfxStatus BRC_EncToolBase::ReportGopHints(mfxU32 dispOrder, mfxEncToolsHintPreEn
         frStruct.dispOrder = dispOrder;
         frStruct.qpDelta = pGopHints.QPDelta;
         frStruct.qpModulation = pGopHints.QPModulation;
+        frStruct.QPDeltaExplicitModulation = pGopHints.QPDeltaExplicitModulation;
         (*frameStruct).miniGopSize = pGopHints.MiniGopSize;
         m_FrameStruct.push_back(frStruct);
         frameStruct = m_FrameStruct.end() - 1;
@@ -2207,6 +2213,7 @@ mfxStatus BRC_EncToolBase::ReportGopHints(mfxU32 dispOrder, mfxEncToolsHintPreEn
     {
         (*frameStruct).qpDelta = pGopHints.QPDelta;
         (*frameStruct).qpModulation = pGopHints.QPModulation;
+        (*frameStruct).QPDeltaExplicitModulation = pGopHints.QPDeltaExplicitModulation;
         (*frameStruct).miniGopSize = pGopHints.MiniGopSize;
     }
     return MFX_ERR_NONE;
