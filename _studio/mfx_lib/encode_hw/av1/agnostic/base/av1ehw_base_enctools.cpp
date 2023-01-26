@@ -66,7 +66,7 @@ void ApplyHWLimitation_XeHpm(StorageW& global, StorageW& s_task, mfxExtAV1Segmen
         {
             // force map update if SegmentIdBlockSize is smaller than SB size
             fh.segmentation_params.segmentation_update_map = 1;
-        }                
+        }
     }
 }
 
@@ -161,9 +161,8 @@ BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCRefListCtrl, MFX_EXTBUFF_AVC_REFLIST_CTRL);
 
 static void InitExtBufHeader_AV1(mfxExtRefListCtrl& extBuf)
 {
-    
     extBuf = {};
-    extBuf.Header.BufferId = ExtBufTypeToId<mfxExtAVCRefListCtrl>::id;    
+    extBuf.Header.BufferId = ExtBufTypeToId<mfxExtAVCRefListCtrl>::id;
     extBuf.Header.BufferSz = sizeof(mfxExtRefListCtrl);
 
     for (mfxU32 i = 0; i < 32; i++)
@@ -172,9 +171,8 @@ static void InitExtBufHeader_AV1(mfxExtRefListCtrl& extBuf)
         extBuf.RejectedRefList[i].FrameOrder = mfxU32(MFX_FRAMEORDER_UNKNOWN);
     for (mfxU32 i = 0; i < 16; i++)
         extBuf.LongTermRefList[i].FrameOrder = mfxU32(MFX_FRAMEORDER_UNKNOWN);
-        
 }
- 
+
 void AV1EncTools::SetSupported(ParamSupport& blocks)
 {
     blocks.m_ebCopySupported[MFX_EXTBUFF_ENCTOOLS_CONFIG].emplace_back(
@@ -483,7 +481,7 @@ static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & s
     mfxExtBRC             *pBRC = ExtBuffer::Get(video);
     mfxExtEncToolsConfig  *pConfig = ExtBuffer::Get(video);
     mfxExtCodingOptionDDI *pExtDdi = ExtBuffer::Get(video);
-    
+
     mfxU32 changed = 0;
     bool bIsEncToolsEnabled = false;
 
@@ -576,7 +574,7 @@ static mfxStatus InitEncToolsCtrl(
     ctrl->MaxGopSize = par.mfx.GopPicSize;
     ctrl->MaxGopRefDist = par.mfx.GopRefDist;
     ctrl->MaxIDRDist = par.mfx.GopPicSize;
- 
+
     ctrl->BRefType = pCO2 ? pCO2->BRefType : 0;
 
     ctrl->ScenarioInfo = pCO3 ? pCO3->ScenarioInfo : 0;
@@ -628,19 +626,19 @@ static mfxStatus InitEncToolsCtrl(
     // LaScale here
     ctrl->LaScale = 0;
     ctrl->LaQp = 30;
-    if (ctrl->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING) 
+    if (ctrl->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING)
     {
         mfxU16 crW = par.mfx.FrameInfo.CropW ? par.mfx.FrameInfo.CropW : par.mfx.FrameInfo.Width;
         if (crW >= 720) ctrl->LaScale = 2;
     }
-    else 
+    else
     {
         mfxU16 crH = par.mfx.FrameInfo.CropH ? par.mfx.FrameInfo.CropH : par.mfx.FrameInfo.Height;
         mfxU16 crW = par.mfx.FrameInfo.CropW ? par.mfx.FrameInfo.CropW : par.mfx.FrameInfo.Width;
         mfxU16 maxDim = std::max(crH, crW);
         mfxU16 minDim = std::min(crH, crW);
         constexpr mfxU16 LaScale = 2;
-        if (maxDim >= 720 && 
+        if (maxDim >= 720 &&
             minDim >= (128 << LaScale)) //encoder limitation, 128 and up is fine
         {
             ctrl->LaScale = LaScale;
@@ -674,9 +672,9 @@ void AV1EncTools::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
                             pCO2->MBBRC :
                             bDisableMBQP ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_ON);
                     }
-                    
+
                     return mfxU16(prev(par));
-                    
+
                 });
             return MFX_ERR_NONE;
         });
@@ -870,7 +868,7 @@ void AV1EncTools::QueryIOSurf(const FeatureBlocks&, TPushQIS Push)
 
         mfxU32 maxDelay = 0;
         pEncTools->GetDelayInFrames(pEncTools->Context, &config, &ctrl, &maxDelay);
-        
+
         mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
         if (pCO2)
             maxDelay = (mfxU32)std::max<mfxI32>(0, maxDelay - pCO2->LookAheadDepth); //LA is used in base_legacy
@@ -992,7 +990,7 @@ mfxStatus AV1EncTools::BRCGetCtrl(StorageW& global, StorageW& s_task,
             // Allocate memory for segmentation, if not allocated yet
             if (m_pSegmentQPMap == nullptr)
                 AllocSegmentationData(par.mfx.FrameInfo.Width, par.mfx.FrameInfo.Height, caps.MinSegIdBlockSizeAccepted);
-            
+
             // Get QP map
             qpMapHint.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_QPMAP;
             qpMapHint.Header.BufferSz = sizeof(qpMapHint);
@@ -1012,14 +1010,14 @@ mfxStatus AV1EncTools::BRCGetCtrl(StorageW& global, StorageW& s_task,
             seg_enctools.SegmentIds = m_pSegmentIDMap;
             extParams.push_back(&seg_enctools.Header);
         }
- 
+
         task_par.NumExtParam = (mfxU16)extParams.size();
         task_par.ExtParam = extParams.data();
 
         auto sts = m_pEncTools->Query(m_pEncTools->Context, &task_par, ENCTOOLS_QUERY_TIMEOUT);
         MFX_CHECK_STS(sts);
 
-        task.bCUQPMap = qpMapHint.QpMapFilled ? true : false;  
+        task.bCUQPMap = qpMapHint.QpMapFilled ? true : false;
 
         mfxExtAV1Segmentation& seg_task = Task::Segment::Get(s_task);
 
@@ -1138,7 +1136,6 @@ mfxStatus AV1EncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
     task_par.NumExtParam = (mfxU16)extParams.size();
     MFX_CHECK(task_par.NumExtParam, MFX_ERR_NONE);
 
-    
     auto sts = m_pEncTools->Query(m_pEncTools->Context, &task_par, ENCTOOLS_QUERY_TIMEOUT);
     if (sts == MFX_ERR_MORE_DATA) sts = MFX_ERR_NONE;
     MFX_CHECK_STS(sts);
@@ -1214,7 +1211,7 @@ mfxStatus AV1EncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
                 task.InternalListCtrl.LongTermRefList[i].FrameOrder = aRef.LongTermRefList[i];
                 task.InternalListCtrl.LongTermRefList[i].PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
             }
-            
+
             for (mfxU32 i = 0; i < std::min(aRef.PreferredRefListSize, (mfxU16)32); i++)
             {
                 task.InternalListCtrl.PreferredRefList[i].FrameOrder = aRef.PreferredRefList[i];
@@ -1226,7 +1223,7 @@ mfxStatus AV1EncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
                 task.InternalListCtrl.RejectedRefList[i].FrameOrder = aRef.RejectedRefList[i];
                 task.InternalListCtrl.RejectedRefList[i].PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
             }
-        }           
+        }
      }
     return sts;
 }
@@ -1281,7 +1278,7 @@ void AV1EncTools::AllocSegmentationData(mfxU16 frame_width, mfxU16 frame_height,
     m_SegmentationInfo.NumSegmentIdAlloc = numSegBlksInWidth * numSegBlksIHeight;
     m_SegmentationInfo.SegmentIdBlockSize = blockSize;
     m_SegmentationInfo.NumSegments = 8;   //enctools needs all 8 segments
-    
+
     m_pSegmentQPMap = new mfxU8[m_SegmentationInfo.NumSegmentIdAlloc];
     m_pSegmentIDMap = new mfxU8[m_SegmentationInfo.NumSegmentIdAlloc];
 }
@@ -1532,7 +1529,7 @@ void AV1EncTools::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         // Report BRC results to encoder
         auto&      task = Task::Common::Get(s_task);
         task.QpY = (mfxU8)quantCtrl.QpY;
-        
+
         auto&      fh = Task::FH::Get(s_task);
         fh.quantization_params.base_q_idx = task.QpY;
 
