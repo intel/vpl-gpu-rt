@@ -536,10 +536,10 @@ mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription&, mfx::PODArra
 mfxStatus QueryImplsDescription(VideoCORE&, mfxVPPDescription&, mfx::PODArraysHolder&);
 
 inline
-std::tuple<mfxU32 /*Domain*/, mfxU32 /*Bus*/, mfxU32 /*Device*/, mfxU32 /*Function*/>
+std::tuple<mfxU32 /*Domain*/, mfxU32 /*Bus*/, mfxU32 /*Device*/, mfxU32 /*Function*/, mfxU16 /*RevisionID*/>
 GetAdapterInfo(mfxU64 adapterId)
 {
-    auto result = std::make_tuple(-1, -1, -1, -1);
+    auto result = std::make_tuple(-1, -1, -1, -1, -1);
 
     auto fd = static_cast<int>(adapterId);
     drmDevicePtr pd;
@@ -557,7 +557,8 @@ GetAdapterInfo(mfxU64 adapterId)
         (*dev)->businfo.pci->domain,
         (*dev)->businfo.pci->bus,
         (*dev)->businfo.pci->dev,
-        (*dev)->businfo.pci->func
+        (*dev)->businfo.pci->func,
+        (*dev)->deviceinfo.pci->revision_id
     );
 
     return result;
@@ -705,7 +706,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
                 device.DRMPrimaryNodeNum = adapterNum;
                 device.DRMRenderNodeNum = 128 + adapterNum;
 
-                std::tie(device.PCIDomain, device.PCIBus, device.PCIDevice, device.PCIFunction)
+                std::tie(device.PCIDomain, device.PCIBus, device.PCIDevice, device.PCIFunction, device.RevisionID)
                     = GetAdapterInfo(adapterId);
 
                 snprintf(device.DeviceName, sizeof(device.DeviceName), "mfx-gen");
