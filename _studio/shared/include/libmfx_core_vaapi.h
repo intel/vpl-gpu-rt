@@ -211,7 +211,7 @@ protected:
 
     bool                   IsCmSupported();
     bool                   IsCmCopyEnabledByDefault();
-    mfxStatus              TryInitializeCm();
+    mfxStatus              TryInitializeCm(bool force_cm_device_creation);
 
     std::unique_ptr<UMC::LinuxVideoAccelerator> m_pVA;
     std::shared_ptr<VADisplayWrapper>           m_p_display_wrapper;
@@ -227,7 +227,7 @@ protected:
     eMFXHWType                                  m_HWType;
     eMFXGTConfig                                m_GTConfig;
 
-    mfxU32                                      m_ForcedCmState = MFX_GPUCOPY_DEFAULT;
+    mfxU32                                      m_ForcedGpuCopyState = MFX_GPUCOPY_DEFAULT;
     std::unique_ptr<CmCopyWrapper>              m_pCmCopy;
     std::unique_ptr<VACopyWrapper>              m_pVaCopy;
 

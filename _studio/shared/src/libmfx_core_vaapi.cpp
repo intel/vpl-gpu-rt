@@ -759,7 +759,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
             m_GTConfig       = devItem.config;
             this->m_deviceId = mfxU16(devItem.device_id);
 
-            std::ignore = MFX_STS_TRACE(TryInitializeCm());
+            std::ignore = MFX_STS_TRACE(TryInitializeCm(false));
 
             if (m_HWType == MFX_HW_PVC || m_HWType == MFX_HW_MTL)
             {
@@ -797,18 +797,27 @@ bool VAAPIVideoCORE_T<Base>::IsCmCopyEnabledByDefault()
 }
 
 template <class Base>
-mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm()
+mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm(bool force_cm_device_creation)
 {
     if (m_pCmCopy)
         return MFX_ERR_NONE;
 
-    // Return immediately if user requested to turn OFF GPU copy
-    if (m_ForcedCmState == MFX_GPUCOPY_OFF)
+    // Return immediately if user requested to turn OFF GPU copy.
+    // Device creation may be forced, since other components may need the device for non-copy kernels
+    if (m_ForcedGpuCopyState == MFX_GPUCOPY_OFF && !force_cm_device_creation)
     {
         return MFX_ERR_NONE;
     }
 
     MFX_CHECK(IsCmSupported(), MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+
+    // Copy wrapper creation can be forced, since CM device depends on copy wrapper. Other component may require CM device.
+    // VPP is calling QueryCoreInterface<CmDevice>, if copy wrapper isn't created, then CM device cannot be obtained.
+    // If copy force state is default and CM copy disabled by default, set copy force state as off.
+    if (m_ForcedGpuCopyState == MFX_GPUCOPY_DEFAULT && !IsCmCopyEnabledByDefault())
+    {
+        m_ForcedGpuCopyState = MFX_GPUCOPY_OFF;
+    }
 
     std::unique_ptr<CmCopyWrapper> tmp_cm(new CmCopyWrapper);
 
@@ -1035,7 +1044,7 @@ void VAAPIVideoCORE_T<Base>::SetCmCopyStatus(bool enable)
 {
     UMC::AutomaticUMCMutex guard(this->m_guard);
 
-    m_ForcedCmState = enable ? MFX_GPUCOPY_ON : MFX_GPUCOPY_OFF;
+    m_ForcedGpuCopyState = enable ? MFX_GPUCOPY_ON : MFX_GPUCOPY_OFF;
 } // void VAAPIVideoCORE_T<Base>::SetCmCopyStatus(...)
 
 template <class Base>
@@ -1315,8 +1324,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    // For Linux, if CM copy is forced to be used, or if choose to use default copy method and CM copy is enabled by default, use CM copy.
-    bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && (m_ForcedCmState == MFX_GPUCOPY_ON || (m_ForcedCmState == MFX_GPUCOPY_DEFAULT && IsCmCopyEnabledByDefault())) && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+    // Check if requested copy backend is CM and CM is capable to perform copy
+    bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF) && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
@@ -1604,7 +1613,7 @@ void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
         if (!m_pCmCopy)
         {
             UMC::AutomaticUMCMutex guard(this->m_guard);
-            MFX_CHECK_STS_RET_NULL(TryInitializeCm());
+            MFX_CHECK_STS_RET_NULL(TryInitializeCm(true));
         }
 
         return m_pCmCopy ? (void*)m_pCmCopy->GetCmDevice(*m_p_display_wrapper) : nullptr;
@@ -1615,7 +1624,7 @@ void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
         if (!m_pCmCopy)
         {
             UMC::AutomaticUMCMutex guard(this->m_guard);
-            MFX_CHECK_STS_RET_NULL(TryInitializeCm());
+            MFX_CHECK_STS_RET_NULL(TryInitializeCm(false));
         }
 
         return (void*)m_pCmCopy.get();
@@ -1808,10 +1817,10 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     // check that region of interest is valid
     MFX_CHECK(roi.width && roi.height, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    // For Linux, if CM copy is forced to be used, or if choose to use default copy method and CM copy is enabled by default, use CM copy.
-    bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && (m_ForcedCmState == MFX_GPUCOPY_ON || (m_ForcedCmState == MFX_GPUCOPY_DEFAULT && IsCmCopyEnabledByDefault())) && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
+    // Check if requested copy backend is CM and CM is capable to perform copy
+    bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF) && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
-    if (m_pVaCopy && (gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) && (m_ForcedCmState != MFX_GPUCOPY_OFF))
+    if (m_pVaCopy && (gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF))
     {
         auto vacopyMode =
             ((gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) == MFX_COPY_USE_VACOPY_ANY) ? VACopyWrapper::DEFAULT
