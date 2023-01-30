@@ -539,7 +539,7 @@ inline
 std::tuple<mfxU32 /*Domain*/, mfxU32 /*Bus*/, mfxU32 /*Device*/, mfxU32 /*Function*/, mfxU16 /*RevisionID*/>
 GetAdapterInfo(mfxU64 adapterId)
 {
-    auto result = std::make_tuple(-1, -1, -1, -1, -1);
+    auto result = std::make_tuple(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, mfxU16(0xffff));
 
     auto fd = static_cast<int>(adapterId);
     drmDevicePtr pd;
