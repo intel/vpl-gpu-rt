@@ -927,8 +927,8 @@ UMC::Status TaskSupplier_H265::GetInfo(UMC::VideoDecoderParams *lpInfo)
         return UMC::UMC_ERR_NOT_ENOUGH_DATA;
     }
 
-    lpInfo->info.clip_info.height = sps->pic_height_in_luma_samples - (sps->conf_win_top_offset + sps->conf_win_bottom_offset);
-    lpInfo->info.clip_info.width = sps->pic_width_in_luma_samples - (sps->conf_win_left_offset + sps->conf_win_right_offset);
+    lpInfo->info.clip_info.height = sps->pic_height_in_luma_samples - sps->SubWidthC() * (sps->conf_win_top_offset + sps->conf_win_bottom_offset);
+    lpInfo->info.clip_info.width = sps->pic_width_in_luma_samples - sps->SubHeightC() * (sps->conf_win_left_offset + sps->conf_win_right_offset);
 
     if (0.0 < m_local_delta_frame_time)
     {
@@ -2413,10 +2413,10 @@ UMC::Status TaskSupplier_H265::InitFreeFrame(H265DecoderFrame * pFrame, const H2
 
     pFrame->m_FrameType = SliceTypeToFrameType(pSlice->GetSliceHeader()->slice_type);
     pFrame->m_dFrameTime = pSlice->m_source.GetTime();
-    pFrame->m_crop_left = pSeqParam->conf_win_left_offset + pSeqParam->def_disp_win_left_offset;
-    pFrame->m_crop_right = pSeqParam->conf_win_right_offset + pSeqParam->def_disp_win_right_offset;
-    pFrame->m_crop_top = pSeqParam->conf_win_top_offset + pSeqParam->def_disp_win_top_offset;
-    pFrame->m_crop_bottom = pSeqParam->conf_win_bottom_offset + pSeqParam->def_disp_win_bottom_offset;
+    pFrame->m_crop_left = pSeqParam->SubWidthC() * pSeqParam->conf_win_left_offset;
+    pFrame->m_crop_right = pSeqParam->SubWidthC() * pSeqParam->conf_win_right_offset;
+    pFrame->m_crop_top = pSeqParam->SubHeightC() * pSeqParam->conf_win_top_offset;
+    pFrame->m_crop_bottom = pSeqParam->SubHeightC() * pSeqParam->conf_win_bottom_offset;
     pFrame->m_crop_flag = pSeqParam->conformance_window_flag;
 
     pFrame->m_aspect_width  = pSeqParam->sar_width;
