@@ -32,6 +32,9 @@ void AEncUpdateFrame(mfxHDL, mfxU32, mfxU32, mfxU32) {}
 void AEncClose(mfxHDL) {}
 mfxU16 AEncGetIntraDecision(mfxHDL, mfxU32) { return 0; }
 mfxU16 AEncGetPersistenceMap(mfxHDL, mfxU32, mfxU8[]) { return 0; }
+mfxU16 AEncGetLastPQp(mfxHDL) { return 0; }
+mfxI8  AEncAPQSelect(mfxHDL, mfxU32, mfxU32, mfxU32, mfxU32, mfxU32, mfxU32) { return 0; }
+
 
 #endif
 mfxStatus AEnc_EncTool::Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig const & pConfig)
