@@ -1501,13 +1501,6 @@ void General::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
             task.BsBytesAvailable = bs.MaxLength - bs.DataOffset - bs.DataLength;
         }
 
-        if (task.pSurfIn)
-        {
-            task.TimestampIn  = task.pSurfIn->Data.TimeStamp;
-            task.PicStructIn  = task.pSurfIn->Info.PicStruct;
-            task.FrameOrderIn = task.pSurfIn->Data.FrameOrder;
-        }
-
         mfxStatus sts             = MFX_ERR_NONE;
         auto&     taskMgrIface    = TaskManager::TMInterface::Get(global);
         auto&     tm              = taskMgrIface.m_Manager;
@@ -1596,10 +1589,10 @@ void General::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         MFX_CHECK(task.BsDataLength > 0, MFX_ERR_NONE);
 
         auto& bs           = *task.pBsOut;
-        bs.TimeStamp       = task.TimestampIn;
-        bs.DecodeTimeStamp = task.TimestampIn;
+        bs.TimeStamp       = task.pSurfIn ? task.pSurfIn->Data.TimeStamp : 0;
+        bs.DecodeTimeStamp = bs.TimeStamp;
 
-        bs.PicStruct = task.PicStructIn;
+        bs.PicStruct = task.pSurfIn ? task.pSurfIn->Info.PicStruct : 0;
         bs.FrameType = task.FrameType;
         bs.FrameType &= ~(task.isLDB * MFX_FRAMETYPE_B);
         bs.FrameType |= task.isLDB * MFX_FRAMETYPE_P;

@@ -76,8 +76,6 @@ namespace MfxEncodeHW
         virtual void          SetBS                (StorageW& /*task*/, mfxBitstream* /*pBS*/) const = 0;
         virtual bool          GetRecode            (const StorageR& /*task*/) const = 0;
         virtual void          SetRecode            (StorageW& /*task*/, bool) const = 0;
-        virtual bool          GetFreed             (const StorageR& /*task*/) const = 0;
-        virtual void          SetFreed             (StorageW& /*task*/, bool) const = 0;
         virtual mfxU32        GetBsDataLength      (const StorageR& /*task*/) const = 0;
         virtual void          SetBsDataLength      (StorageW& /*task*/, mfxU32) const = 0;
         virtual void          AddNumRecode         (StorageW& /*task*/, mfxU16) const = 0;

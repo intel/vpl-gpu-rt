@@ -104,7 +104,7 @@ void EncodedFrameInfo::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
             std::transform(bwdStartIt, task.RefList.end(), pInfo->UsedRefListL1, GetUsedRef);
         }
 
-        pInfo->FrameOrder   = (task.FrameOrderIn == mfxU32(-1)) ? task.DisplayOrder : task.FrameOrderIn;
+        pInfo->FrameOrder   = (task.pSurfIn->Data.FrameOrder == mfxU32(-1)) ? task.DisplayOrder : task.pSurfIn->Data.FrameOrder;
         pInfo->LongTermIdx  = mfxU16(MFX_LONGTERM_IDX_NO_IDX * !task.isLTR);
         pInfo->PicStruct    = MFX_PICSTRUCT_PROGRESSIVE;
         pInfo->QP           = task.ReportedQpY;

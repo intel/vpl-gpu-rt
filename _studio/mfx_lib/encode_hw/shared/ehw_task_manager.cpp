@@ -246,17 +246,13 @@ mfxStatus TaskManager::TaskQuery(StorageW& inTask)
 
     ThrowIf(pPrevRecode, std::logic_error("For recode must exit by \"no task for query\" condition"));
 
-    if (!GetFreed(*pTask))
-    {
-        SetFreed(*pTask, true);
-        auto sts = RunQueueTaskFree(*pTask);
-        MFX_CHECK_STS(sts);
-    }
-
     if (bWaitForCache)
     {
         return MFX_TASK_WORKING;
     }
+
+    auto sts = RunQueueTaskFree(*pTask);
+    MFX_CHECK_STS(sts);
 
     if (!IsInputTask(inTask))
     {

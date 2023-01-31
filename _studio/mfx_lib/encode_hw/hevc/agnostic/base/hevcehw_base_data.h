@@ -798,7 +798,6 @@ namespace Base
         bool                bResetBRC           = false;
         bool                bDontPatchBS        = false;
         bool                bRecode             = false;
-        bool                bFreed              = false;
         bool                bForceLongStartCode = false;
         IntraRefreshState   IRState             = {};
         mfxLastKeyFrameInfo LastKeyFrameInfo    = {};
