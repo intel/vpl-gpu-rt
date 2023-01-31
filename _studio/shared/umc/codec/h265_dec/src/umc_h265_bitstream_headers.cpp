@@ -630,15 +630,15 @@ UMC::Status H265HeadersBitstream::GetSequenceParamSet(H265SeqParamSet *pcSPS)
 
     if (pcSPS->conformance_window_flag)
     {
-        pcSPS->conf_win_left_offset  = GetVLCElementU();
-        pcSPS->conf_win_right_offset = GetVLCElementU();
-        pcSPS->conf_win_top_offset   = GetVLCElementU();
-        pcSPS->conf_win_bottom_offset = GetVLCElementU();
+        pcSPS->conf_win_left_offset  = GetVLCElementU()*pcSPS->SubWidthC();
+        pcSPS->conf_win_right_offset = GetVLCElementU()*pcSPS->SubWidthC();
+        pcSPS->conf_win_top_offset   = GetVLCElementU()*pcSPS->SubHeightC();
+        pcSPS->conf_win_bottom_offset = GetVLCElementU()*pcSPS->SubHeightC();
 
-        if (pcSPS->SubWidthC()*(pcSPS->conf_win_left_offset + pcSPS->conf_win_right_offset) >= pcSPS->pic_width_in_luma_samples)
+        if (pcSPS->conf_win_left_offset + pcSPS->conf_win_right_offset >= pcSPS->pic_width_in_luma_samples)
             throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-        if (pcSPS->SubHeightC()*(pcSPS->conf_win_top_offset + pcSPS->conf_win_bottom_offset) >= pcSPS->pic_height_in_luma_samples)
+        if (pcSPS->conf_win_top_offset + pcSPS->conf_win_bottom_offset >= pcSPS->pic_height_in_luma_samples)
             throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
     }
 
@@ -988,15 +988,15 @@ void H265HeadersBitstream::parseVUI(H265SeqParamSet *pSPS)
     pSPS->default_display_window_flag = Get1Bit();
     if (pSPS->default_display_window_flag)
     {
-        pSPS->def_disp_win_left_offset   = GetVLCElementU();
-        pSPS->def_disp_win_right_offset  = GetVLCElementU();
-        pSPS->def_disp_win_top_offset    = GetVLCElementU();
-        pSPS->def_disp_win_bottom_offset = GetVLCElementU();
+        pSPS->def_disp_win_left_offset   = GetVLCElementU()*pSPS->SubWidthC();
+        pSPS->def_disp_win_right_offset  = GetVLCElementU()*pSPS->SubWidthC();
+        pSPS->def_disp_win_top_offset    = GetVLCElementU()*pSPS->SubHeightC();
+        pSPS->def_disp_win_bottom_offset = GetVLCElementU()*pSPS->SubHeightC();
 
-        if (pSPS->SubWidthC()*(pSPS->conf_win_left_offset + pSPS->def_disp_win_left_offset + pSPS->conf_win_right_offset + pSPS->def_disp_win_right_offset) >= pSPS->pic_width_in_luma_samples)
+        if (pSPS->def_disp_win_left_offset + pSPS->def_disp_win_right_offset >= pSPS->pic_width_in_luma_samples)
             throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-        if (pSPS->SubHeightC()*(pSPS->conf_win_top_offset + pSPS->def_disp_win_top_offset + pSPS->conf_win_bottom_offset + pSPS->def_disp_win_bottom_offset) >= pSPS->pic_height_in_luma_samples)
+        if (pSPS->def_disp_win_top_offset + pSPS->def_disp_win_bottom_offset >= pSPS->pic_height_in_luma_samples)
             throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
     }
 
