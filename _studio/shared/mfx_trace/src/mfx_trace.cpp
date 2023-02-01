@@ -279,16 +279,9 @@ inline bool MFXTrace_IsPrintableCategoryAndLevel(mfxTraceU32 m_OutputInitilized,
     }
     else if(m_OutputInitilized == MFX_TRACE_OUTPUT_ETW)
     {
-        if (EventCfg & (1 << MFX_ETWLOG_ALL_LEVEL))
+        if (EventCfg & (1 << MFX_ETWLOG_ENABLE))
         {
             logFlag = true;
-        }
-        else if (EventCfg & (1 << MFX_ETWLOG_API_LEVEL))
-        {
-            if (level == MFX_TRACE_LEVEL_API)
-            {
-                logFlag = true;
-            }
         }
     }
 

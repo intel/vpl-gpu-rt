@@ -374,6 +374,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     TRACE_EVENT(MFX_TRACE_API_ENCODE_QUERY_TASK, EVENT_TYPE_INFO, 0, make_event_data(session, in ? in->mfx.FrameInfo.Width : 0, in ? in->mfx.FrameInfo.Height : 0, in ? in->mfx.CodecId : 0, in ? in->mfx.TargetUsage : 0, in ? in->mfx.LowPower : 0));
     MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, session);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, in);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, out);
 

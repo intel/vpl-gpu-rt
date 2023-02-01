@@ -227,11 +227,7 @@ typedef enum _MEDIA_EVENT_FILTER_KEYID
     TR_KEY_PIPELINE_STICKER,
 } MEDIA_EVENT_FILTER_KEYID;
 
-typedef enum _MEDIA_EVENT_LOG_KEYID
-{
-    MFX_ETWLOG_ALL_LEVEL = 16,   //include API Func, API PARAMS and internal Func
-    MFX_ETWLOG_API_LEVEL,   //include API Func
-} MEDIA_EVENT_LOG_KEYID;
+#define MFX_ETWLOG_ENABLE 16
 
 // delete the following levels completely
 #define MFX_TRACE_LEVEL_SCHED       MFX_TRACE_LEVEL_10

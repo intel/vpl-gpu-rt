@@ -44,8 +44,8 @@
 mfxStatus MFXInit(mfxIMPL implParam, mfxVersion *ver, mfxSession *session)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    MFX_LTRACE_D(MFX_TRACE_LEVEL_API_PARAMS, implParam);
-    MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, session);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  implParam = ", MFX_TRACE_FORMAT_D, implParam);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
 
     mfxInitParam par = {};
 
@@ -61,7 +61,7 @@ mfxStatus MFXInit(mfxIMPL implParam, mfxVersion *ver, mfxSession *session)
     }
     par.ExternalThreads = 0;
 
-    MFX_TRACE_2("MFX_API version = ", "%d.%d", par.Version.Major, par.Version.Minor);
+    MFX_TRACE_2("Out:  MFX_API version = ", "%d.%d", par.Version.Major, par.Version.Minor);
 
     return MFXInitEx(par, session);
 
@@ -76,6 +76,10 @@ static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession* session, mfxIMPL
 
 mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  Implementation = ", MFX_TRACE_FORMAT_D, par.Implementation);
+    MFX_TRACE_2("In:  MFX_API version = ", "%d.%d", par.Version.Major, par.Version.Minor);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
     mfxStatus mfxRes = MFX_ERR_NONE;
     int adapterNum = 0;
     mfxIMPL impl = par.Implementation & (MFX_IMPL_VIA_ANY - 1);
@@ -85,8 +89,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "ThreadName=MSDK app");
     }
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, session);
+
     TRACE_EVENT(MFX_TRACE_API_MFX_INIT_EX_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data((mfxU32)par.Implementation, par.GPUCopy));
 
     // check the library version
@@ -262,7 +265,7 @@ mfxStatus MFXClose(mfxSession session)
         // since it inserts class variable on stack which calls to trace library in the
         // destructor.
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-        MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, session);
+        MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
         // parent session can't be closed,
         // because there is no way to let children know about parent's death.
 
@@ -304,7 +307,7 @@ mfxStatus MFXClose(mfxSession session)
 mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* session)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, session);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
     mfxStatus mfxRes = MFX_ERR_NONE;
 
     MFX_TRACE_INIT();
@@ -656,7 +659,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
     TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_START, 0, make_event_data((mfxU32)format));
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    MFX_LTRACE_D(MFX_TRACE_LEVEL_API_PARAMS, format);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  format = ", MFX_TRACE_FORMAT_P, format);
     try
     {
         switch (format)
@@ -678,7 +681,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
             *num_impls = mfxU32(holder->GetSize());
 
             TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(*num_impls));
-            MFX_LTRACE_D(MFX_TRACE_LEVEL_API_PARAMS, *num_impls);
+            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_D, *num_impls);
             return holder.release()->GetArray();
         }
 #if defined(ONEVPL_EXPERIMENTAL)
@@ -723,7 +726,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
             *num_impls = mfxU32(holder->GetSize());
 
             TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(*num_impls));
-            MFX_LTRACE_D(MFX_TRACE_LEVEL_API_PARAMS, *num_impls);
+            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_D, *num_impls);
 
             holder->Detach();
             impl = holder.release()->GetArray();
@@ -804,6 +807,8 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
                 return impl;
 
             *num_impls = mfxU32(holder->GetSize());
+
+            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_D, *num_impls);
 
             holder->Detach();
             impl = holder.release()->GetArray();

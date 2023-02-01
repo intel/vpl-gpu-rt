@@ -33,12 +33,12 @@ mfxStatus MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfx
     TRACE_EVENT(MFX_TRACE_API_SYNC_OPERATION_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(FrameIndex, session, syncp, wait));
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, session);
-    MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, syncp);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  syncp = ", MFX_TRACE_FORMAT_P, syncp);
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(syncp, MFX_ERR_NULL_PTR);
 
-    MFX_LTRACE_D(MFX_TRACE_LEVEL_API_PARAMS, wait);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  wait = ", MFX_TRACE_FORMAT_D, wait);
 
     try {
         {

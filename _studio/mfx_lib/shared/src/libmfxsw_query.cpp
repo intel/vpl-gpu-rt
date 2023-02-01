@@ -24,8 +24,7 @@
 mfxStatus MFXQueryIMPL(mfxSession session, mfxIMPL *impl)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, session);
-    MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, impl);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
     mfxIMPL currentImpl;
 
     // check error(s)
@@ -51,7 +50,7 @@ mfxStatus MFXQueryIMPL(mfxSession session, mfxIMPL *impl)
 
     // save the current implementation type
     *impl = currentImpl;
-    MFX_LTRACE_D(MFX_TRACE_LEVEL_API_PARAMS, *impl);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  impl = ", MFX_TRACE_FORMAT_D, *impl);
     return MFX_ERR_NONE;
 
 } // mfxStatus MFXQueryIMPL(mfxSession session, mfxIMPL *impl)
@@ -59,8 +58,7 @@ mfxStatus MFXQueryIMPL(mfxSession session, mfxIMPL *impl)
 mfxStatus MFXQueryVersion(mfxSession session, mfxVersion *pVersion)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, pVersion);
-    MFX_LTRACE_P(MFX_TRACE_LEVEL_API_PARAMS, session);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
     if (0 == session)
     {
         return MFX_ERR_INVALID_HANDLE;
@@ -72,7 +70,7 @@ mfxStatus MFXQueryVersion(mfxSession session, mfxVersion *pVersion)
 
     // set the library's version
     *pVersion = session->m_versionToReport;
-    MFX_TRACE_2("MFX_API version = ", "%d.%d", pVersion->Major, pVersion->Minor);
+    MFX_TRACE_2("Out:  MFX_API version = ", "%d.%d", pVersion->Major, pVersion->Minor);
 
     return MFX_ERR_NONE;
 
