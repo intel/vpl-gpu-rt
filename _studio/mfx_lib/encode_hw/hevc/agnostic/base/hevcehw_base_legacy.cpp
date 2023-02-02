@@ -3543,12 +3543,16 @@ mfxStatus Legacy::CheckLevelConstraints(
     mfxU16 PicHeightInLumaSamples   = defPar.base.GetCodedPicHeight(defPar);
     mfxU16 MinRef                   = defPar.base.GetNumRefFrames(defPar);
     mfxU32 NumSlice                 = defPar.base.GetNumSlices(defPar);
-    mfxU32 BufferSizeInKB           = defPar.base.GetBufferSizeInKB(defPar);
+    mfxU32 BufferSizeInKB           = 0;
     mfxU32 MaxKbps                  = 0;
     mfxU16 rc                       = defPar.base.GetRateControlMethod(defPar);
     auto   tiles                    = defPar.base.GetNumTiles(defPar);
     auto   frND                     = defPar.base.GetFrameRate(defPar);
 
+    // ICQ&CQP don't require BufferSizeInKB and MaxKbps
+    SetIf(BufferSizeInKB
+        , rc != MFX_RATECONTROL_CQP && rc != MFX_RATECONTROL_ICQ
+        , [&]() { return defPar.base.GetBufferSizeInKB(defPar); });
     SetIf(MaxKbps
         , rc != MFX_RATECONTROL_CQP && rc != MFX_RATECONTROL_ICQ
         , [&]() { return defPar.base.GetMaxKbps(defPar); });
