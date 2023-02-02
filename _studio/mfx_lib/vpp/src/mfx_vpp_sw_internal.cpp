@@ -378,7 +378,7 @@ mfxStatus ExtendedQuery(VideoCORE *, mfxU32 filterName, mfxExtBuffer* pHint)
         MFX_RETURN(CMC::CheckAndFixParams((mfxExtVppMctf*)pHint));
     }
 #endif
-#ifdef ONEVPL_EXPERIMENTAL
+#if defined(ONEVPL_EXPERIMENTAL)
     else if (MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER == filterName)
     {
         MFX_RETURN(PercEncPrefilter::PercEncFilter::Query(pHint));
