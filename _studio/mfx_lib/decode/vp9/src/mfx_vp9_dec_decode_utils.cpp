@@ -45,23 +45,25 @@ namespace MfxVP9Decode
             const mfxU32 mag = ((marker >> 3) & 0x3) + 1;
             const size_t index_sz = 2 + mag * frames;
 
-            mfxU8 marker2 = ReadMarker(data + data_sz - index_sz);
-
-            if (data_sz >= index_sz && marker2 == marker)
+            if (data_sz >= index_sz)
             {
-                // found a valid superframe index
-                const mfxU8 *x = &data[data_sz - index_sz + 1];
-
-                for (mfxU32 i = 0; i < frames; i++)
+                mfxU8 marker2 = ReadMarker(data + data_sz - index_sz);
+                if (marker2 == marker)
                 {
-                    mfxU32 this_sz = 0;
+                    // found a valid superframe index
+                    const mfxU8* x = &data[data_sz - index_sz + 1];
 
-                    for (mfxU32 j = 0; j < mag; j++)
-                        this_sz |= (*x++) << (j * 8);
-                    sizes[i] = this_sz;
+                    for (mfxU32 i = 0; i < frames; i++)
+                    {
+                        mfxU32 this_sz = 0;
+
+                        for (mfxU32 j = 0; j < mag; j++)
+                            this_sz |= (*x++) << (j * 8);
+                        sizes[i] = this_sz;
+                    }
+
+                    *count = frames;
                 }
-
-                *count = frames;
             }
         }
     }
