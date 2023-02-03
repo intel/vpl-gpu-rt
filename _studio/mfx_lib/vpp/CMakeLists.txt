@@ -28,7 +28,6 @@ target_link_libraries(vpp_hw
     mfx_static_lib umc_va_hw asc $<$<BOOL:${MFX_ENABLE_PXP}>:pxp_hw>
   PRIVATE
     mfx_sdl_properties
-    mfx_require_avx2_properties
     $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
   )
 
