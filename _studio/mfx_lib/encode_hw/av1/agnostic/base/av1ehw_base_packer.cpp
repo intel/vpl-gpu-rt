@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Intel Corporation
+// Copyright (c) 2019-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1083,28 +1083,43 @@ void Packer::SubmitTask(const FeatureBlocks& blocks, TPushST Push)
     });
 }
 
-inline void Packer::GenerateSPS(mfxVideoParam& out, const StorageR& global)
+inline mfxStatus Packer::GenerateSPS(mfxVideoParam& out, const StorageR& global)
 {
     mfxExtCodingOptionSPSPPS* dst = ExtBuffer::Get(out);
-    if (dst && dst->SPSBuffer)
+    MFX_CHECK(dst, MFX_ERR_NONE);
+
+    dst->PPSBufSize = 0;
+
+    if (dst->SPSBuffer)
     {
-        BitstreamWriter bs(dst->SPSBuffer, dst->SPSBufSize);
+        const mfxU16 tmpSize = 128;
+        std::vector<mfxU8> tmpBuf(tmpSize);
+        BitstreamWriter bs(tmpBuf.data(), tmpSize);
 
         const SH& sh = Glob::SH::Get(global);
         const FH& fh = Glob::FH::Get(global);
         ObuExtensionHeader oeh = {0};
 
         PackSPS(bs, sh, fh, oeh);
-        dst->SPSBufSize = mfxU16((bs.GetOffset() + 7) / 8);
+        const mfxU16 spsBufSize = mfxU16((bs.GetOffset() + 7) / 8);
+
+        // Only thrown status could be returned from GetVideoParam() which ignores return value
+        // (Check MFXVideoENCODEAV1_HW::GetVideoParam in av1ehw_base_impl.cpp)
+        ThrowIf(dst->SPSBufSize < spsBufSize, MFX_ERR_NOT_ENOUGH_BUFFER);
+
+        std::copy_n(tmpBuf.begin(), spsBufSize, dst->SPSBuffer);
+        dst->SPSBufSize = spsBufSize;
     }
+
+    return MFX_ERR_NONE;
 }
 
 void Packer::GetVideoParam(const FeatureBlocks& blocks, TPushGVP Push)
 {
     Push(BLK_GenerateSPS
-        , [this, &blocks](mfxVideoParam& out, StorageR& global) -> void
+        , [this, &blocks](mfxVideoParam& out, StorageR& global) -> mfxStatus
     {
-        GenerateSPS(out, global);
+        return GenerateSPS(out, global);
     });
 }
 

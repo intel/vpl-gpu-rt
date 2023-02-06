@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -169,10 +169,10 @@ namespace Base
         virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
         virtual void GetVideoParam(const FeatureBlocks& blocks, TPushGVP Push) override;
 
-        void PackIVF          (BitstreamWriter& bs, const FH& fh, mfxU32 insertHeaders, const mfxVideoParam& vp);
-        void PackSPS          (BitstreamWriter& bs, const SH& sh, const FH& fh, const ObuExtensionHeader& oeh);
-        void PackPPS          (BitstreamWriter& bs, BitOffsets& offsets, const SH& sh, const FH& fh, const ObuExtensionHeader& oeh, mfxU32 insertHeaders);
-        void GenerateSPS      (mfxVideoParam& out,  const StorageR& global);
+        void      PackIVF(BitstreamWriter& bs, const FH& fh, mfxU32 insertHeaders, const mfxVideoParam& vp);
+        void      PackSPS(BitstreamWriter& bs, const SH& sh, const FH& fh, const ObuExtensionHeader& oeh);
+        void      PackPPS(BitstreamWriter& bs, BitOffsets& offsets, const SH& sh, const FH& fh, const ObuExtensionHeader& oeh, mfxU32 insertHeaders);
+        mfxStatus GenerateSPS(mfxVideoParam& out,  const StorageR& global);
 
         static void PackOBUHeader(BitstreamWriter& bs, AV1_OBU_TYPE obu_type, mfxU32 obu_extension_flag, const ObuExtensionHeader& oeh);
         static void PackOBUHeaderSize(BitstreamWriter& bs, const mfxU32 obu_size_in_bytes, const mfxU8 fixed_output_len = 0);
