@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 Intel Corporation
+// Copyright (c) 2021-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -58,7 +58,10 @@ protected:
     virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
     virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
 
-    virtual mfxStatus SetDDIID(const mfxU16 bitDepth, const mfxU16 chromFormat) override;
+    virtual mfxStatus SetDDIID(const mfxU16 bitDepth
+        , const mfxU16 chromFormat
+        , const mfxU32 fourCC
+        , const mfxU16 targetChromaFormat) override;
 
     mfxStatus CreateVABuffers(
         const std::list<DDIExecParam>& par

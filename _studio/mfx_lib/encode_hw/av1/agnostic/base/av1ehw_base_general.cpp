@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Intel Corporation
+// Copyright (c) 2019-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2453,6 +2453,18 @@ bool General::GetRecInfo(
                 {
                     rec.FourCC = MFX_FOURCC_NV12;
                 }
+            },
+            {
+                mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
+                , [](mfxFrameInfo& rec, eMFXHWType)
+                {
+                    rec.FourCC = MFX_FOURCC_AYUV;
+                    /* Pitch = 4*W for AYUV format
+                       Pitch need to align on 512
+                       So, width aligment is 512/4 = 128 */
+                    rec.Width  = mfx::align2_value<mfxU16>(rec.Width, 512 / 4);
+                    rec.Height = mfx::align2_value<mfxU16>(rec.Height * 3 / 4, 8);
+                }
             }
         }
         , { //10b
@@ -2463,6 +2475,18 @@ bool General::GetRecInfo(
                     //P010
                     rec.FourCC = MFX_FOURCC_NV12;
                     rec.Width = mfx::align2_value(rec.Width, 32) * 2; //This is require by HW and MMC, which is same as TGL.
+                }
+            },
+            {
+                mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
+                , [](mfxFrameInfo& rec, eMFXHWType)
+                {
+                    rec.FourCC = MFX_FOURCC_Y410;
+                    /* Pitch = 4*W for Y410 format
+                       Pitch need to align on 256
+                       So, width aligment is 256/4 = 64 */
+                    rec.Width = mfx::align2_value<mfxU16>(rec.Width, 256 / 4);
+                    rec.Height = mfx::align2_value<mfxU16>(rec.Height * 3 / 2, 8);
                 }
             }
         }

@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 Intel Corporation
+// Copyright (c) 2021-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@ using namespace AV1EHW;
 using namespace AV1EHW::Base;
 using namespace AV1EHW::Linux::Base;
 
-mfxStatus DDI_VA::SetDDIID(const mfxU16 bitDepth, const mfxU16 chromFormat)
+mfxStatus DDI_VA::SetDDIID(const mfxU16 bitDepth, const mfxU16 chromFormat, const mfxU32 /*fourCC*/, const mfxU16/* targetChromaFormat*/)
 {
     MFX_CHECK(!m_vaid, MFX_ERR_NONE);
 
@@ -93,8 +93,18 @@ void DDI_VA::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 
         const mfxU16 bitDepth     = m_pDefaults->base.GetBitDepthLuma(*m_pDefaults);
         const mfxU16 chromaFormat = par.mfx.FrameInfo.ChromaFormat;
+        const mfxU32 fourCC       = par.mfx.FrameInfo.FourCC;
+        const mfxU16 profile      = par.mfx.CodecProfile;
+        const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(m_pDefaults->mvp);
+        mfxU16 targetChromaFormat = MFX_CHROMAFORMAT_YUV420;
 
-        MFX_SAFE_CALL(SetDDIID(bitDepth, chromaFormat));
+        SetIf(targetChromaFormat, profile == MFX_PROFILE_AV1_HIGH, MFX_CHROMAFORMAT_YUV444);
+        if (pCO3)
+        {
+            SetIf(targetChromaFormat, !pCO3->TargetChromaFormatPlus1, pCO3->TargetChromaFormatPlus1 - 1);
+        }
+
+        MFX_SAFE_CALL(SetDDIID(bitDepth, chromaFormat, fourCC, targetChromaFormat));
 
         return MFX_ERR_NONE;
     });

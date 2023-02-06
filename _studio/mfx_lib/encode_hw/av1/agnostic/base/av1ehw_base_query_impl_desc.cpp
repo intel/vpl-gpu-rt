@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 Intel Corporation
+// Copyright (c) 2020-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -73,6 +73,8 @@ void QueryImplDesc::QueryImplsDescription(const FeatureBlocks& blocks, TPushQID 
         {
               {MFX_PROFILE_AV1_MAIN, MFX_FOURCC_NV12,  8, 0, MFX_CHROMAFORMAT_YUV420}
             , {MFX_PROFILE_AV1_MAIN, MFX_FOURCC_P010, 10, 1, MFX_CHROMAFORMAT_YUV420}
+            , {MFX_PROFILE_AV1_HIGH, MFX_FOURCC_AYUV,  8, 0, MFX_CHROMAFORMAT_YUV444}
+            , {MFX_PROFILE_AV1_HIGH, MFX_FOURCC_Y410, 10, 0, MFX_CHROMAFORMAT_YUV444}
         };
 
         auto& queryNC = FeatureBlocks::BQ<FeatureBlocks::BQ_Query1NoCaps>::Get(blocks);

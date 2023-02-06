@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Intel Corporation
+// Copyright (c) 2019-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -375,6 +375,7 @@ public:
             || FourCC == MFX_FOURCC_P210
             || FourCC == MFX_FOURCC_Y210
             || FourCC == MFX_FOURCC_Y410;
+
         return mfxU16(8 + 2 * b4CCMax10);
     }
 
@@ -583,11 +584,13 @@ public:
         SetIf(bd, !bPassThrough, [&]() { return par.base.GetTargetBitDepthLuma(par); });
         SetIf(cf, !bPassThrough, [&]() { return mfxU16(par.base.GetTargetChromaFormatPlus1(par) - 1); });
 
-        bool bMain10 = !bPassThrough && bd == 10;
-        bool bMain = !bPassThrough && !bMain10;
+        bool bRext444 = !bPassThrough && (cf == MFX_CHROMAFORMAT_YUV444);
+        bool bMain10  = !bPassThrough && !bRext444 && bd == 10;
+        bool bMain    = !bPassThrough && !bRext444 && !bMain10;
 
         return
             bPassThrough * par.mvp.mfx.CodecProfile
+            + bRext444 * MFX_PROFILE_AV1_HIGH
             + bMain10 * MFX_PROFILE_AV1_MAIN
             + bMain * MFX_PROFILE_AV1_MAIN;
     }
@@ -1027,7 +1030,8 @@ public:
     {
         bool bInvalid = CheckOrZero<mfxU16
             , 0
-            , MFX_PROFILE_AV1_MAIN>
+            , MFX_PROFILE_AV1_MAIN
+            , MFX_PROFILE_AV1_HIGH>
             (par.mfx.CodecProfile);
 
         MFX_CHECK(!bInvalid, MFX_ERR_UNSUPPORTED);
@@ -1044,7 +1048,9 @@ public:
             , MFX_FOURCC_NV12
             , MFX_FOURCC_P010
             , MFX_FOURCC_RGB4
-            , MFX_FOURCC_BGR4>
+            , MFX_FOURCC_BGR4
+            , MFX_FOURCC_AYUV
+            , MFX_FOURCC_Y410>
             (par.mfx.FrameInfo.FourCC);
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
@@ -1059,6 +1065,10 @@ public:
             && (!csf.fields.i420 || !bsf.fields.ten_bits));
         invalid += ((fourCC == MFX_FOURCC_RGB4 || fourCC == MFX_FOURCC_BGR4)
             && (!csf.fields.RGB || !bsf.fields.eight_bits));
+        invalid += (fourCC == MFX_FOURCC_AYUV
+            && (!csf.fields.i444 || !bsf.fields.eight_bits));
+        invalid += (fourCC == MFX_FOURCC_Y410
+            && (!csf.fields.i444 || !bsf.fields.ten_bits));
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
 
@@ -1077,6 +1087,8 @@ public:
             , {mfxU32(MFX_FOURCC_P010),   {mfxU16(MFX_CHROMAFORMAT_YUV420), BITDEPTH_10}}
             , {mfxU32(MFX_FOURCC_RGB4),   {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_8}}
             , {mfxU32(MFX_FOURCC_BGR4),   {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_8}}
+            , {mfxU32(MFX_FOURCC_AYUV),   {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_8}}
+            , {mfxU32(MFX_FOURCC_Y410),   {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_10}}
         };
 
         auto itFourCCPar = FourCCPar.find(par.mfx.FrameInfo.FourCC);
@@ -1100,16 +1112,58 @@ public:
 
     static mfxStatus TargetChromaFormat(
         Defaults::TCheckAndFix::TExt
-        , const Defaults::Param&
+        , const Defaults::Param& defPar
         , mfxVideoParam& par)
     {
+        mfxU32 invalid = 0;
         mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
+
         MFX_CHECK(pCO3, MFX_ERR_NONE);
 
-        bool b420 = (pCO3->TargetChromaFormatPlus1 == (MFX_CHROMAFORMAT_YUV420 + 1));
+        if (!pCO3->TargetChromaFormatPlus1)
+        {
+            pCO3->TargetChromaFormatPlus1 = defPar.base.GetTargetChromaFormatPlus1(defPar);
+        }
 
-        // range check - only 420 recon is supported
-        mfxU32 invalid = (pCO3->TargetChromaFormatPlus1 > 0) && (!b420);
+        invalid = pCO3->TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422);
+
+        MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
+
+        //check targetChromaFormat By FourCC and profile
+        mfxU16 profile = defPar.base.GetProfile(defPar);
+        mfxU32 fourCC = par.mfx.FrameInfo.FourCC;
+
+        static const std::map <mfxU16, std::map<mfxU16, std::vector<mfxU32>>> compatible =
+        {
+            {mfxU16(MFX_CHROMAFORMAT_YUV420 + 1)
+            ,{
+                {
+                    mfxU16(MFX_PROFILE_AV1_MAIN),
+                    {mfxU32(MFX_FOURCC_NV12), mfxU32(MFX_FOURCC_P010), mfxU32(MFX_FOURCC_RGB4), mfxU32(MFX_FOURCC_BGR4)}}
+                }
+            },
+            {mfxU16(MFX_CHROMAFORMAT_YUV444 + 1)
+            ,{
+                {
+                    mfxU16(MFX_PROFILE_AV1_HIGH),
+                    {mfxU32(MFX_FOURCC_AYUV), mfxU32(MFX_FOURCC_Y410), mfxU32(MFX_FOURCC_RGB4), mfxU32(MFX_FOURCC_BGR4)}}
+                }
+            }
+        };
+
+        invalid += !compatible.count(pCO3->TargetChromaFormatPlus1)
+            || !compatible.at(pCO3->TargetChromaFormatPlus1).count(profile);
+
+        std::vector<mfxU32> supportFourCC = compatible.at(pCO3->TargetChromaFormatPlus1).at(profile);
+        invalid += (std::find(supportFourCC.begin(), supportFourCC.end(), fourCC) == supportFourCC.end());
+
+        MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
+
+        //check targetChromaFormat by caps
+        const auto& csf = defPar.caps.ChromaSupportFlags;
+        invalid += (pCO3->TargetChromaFormatPlus1 == (MFX_CHROMAFORMAT_YUV420 + 1) && (!csf.fields.i420));
+        invalid += (pCO3->TargetChromaFormatPlus1 == (MFX_CHROMAFORMAT_YUV444 + 1) && (!csf.fields.i444));
+
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
 
         return MFX_ERR_NONE;
@@ -1117,7 +1171,7 @@ public:
 
     static mfxStatus TargetBitDepth(
         Defaults::TCheckAndFix::TExt
-        , const Defaults::Param&
+        , const Defaults::Param& defPar
         , mfxVideoParam& par)
     {
         mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
@@ -1126,8 +1180,12 @@ public:
         bool b8bit  = (pCO3->TargetBitDepthLuma == BITDEPTH_8);
         bool b10bit = (pCO3->TargetBitDepthLuma == BITDEPTH_10);
 
-        // range check - only 420 recon is supported
         mfxU32 invalid = (pCO3->TargetBitDepthLuma > 0) && (!(b8bit || b10bit));
+        MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
+
+        //check TargetBitDepth by caps
+        invalid += (b8bit && !defPar.caps.BitDepthSupportFlags.fields.eight_bits);
+        invalid += (b10bit && !defPar.caps.BitDepthSupportFlags.fields.ten_bits);
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
 
         if (pCO3->TargetBitDepthLuma != pCO3->TargetBitDepthChroma)
@@ -1147,8 +1205,48 @@ public:
         , const Defaults::Param& dpar
         , mfxVideoParam& par)
     {
-        dpar;
-        par;
+        auto tbdl = dpar.base.GetTargetBitDepthLuma(dpar);
+        auto tcf = dpar.base.GetTargetChromaFormatPlus1(dpar);
+
+        static const std::map<mfxU16, std::set<mfxU32>> Compatible[2] =
+        {
+            //8
+            {
+                {
+                    mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
+                    , {MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_RGB4
+                    , MFX_FOURCC_BGR4, MFX_FOURCC_A2RGB10}
+                }
+                ,{
+                    mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
+                    , {MFX_FOURCC_NV12, MFX_FOURCC_P010
+                    , MFX_FOURCC_AYUV, MFX_FOURCC_Y410
+                    , MFX_FOURCC_RGB4, MFX_FOURCC_BGR4, MFX_FOURCC_A2RGB10}
+                }
+            },
+            //10
+            {
+                {
+                    mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
+                    , {MFX_FOURCC_Y410, MFX_FOURCC_A2RGB10}
+                }
+                ,{
+                    mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
+                    , {MFX_FOURCC_P010, MFX_FOURCC_Y410, MFX_FOURCC_A2RGB10}
+                }
+            },
+        };
+
+        bool bUndefinedTargetFormat =
+            (tbdl != 8 && tbdl != 10)
+            || !Compatible[tbdl == 10].count(tcf)
+            || !Compatible[tbdl == 10].at(tcf).count(par.mfx.FrameInfo.FourCC);
+
+        assert(!bUndefinedTargetFormat);
+
+        par.mfx.FrameInfo.FourCC *= !bUndefinedTargetFormat;
+
+        MFX_CHECK(!bUndefinedTargetFormat, MFX_ERR_UNSUPPORTED);
         return MFX_ERR_NONE;
     }
 
