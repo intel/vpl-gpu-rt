@@ -328,7 +328,10 @@ static void InitSegMap(
 {
     const mfxExtAV1Segmentation& segPar = ExtBuffer::Get(par);
     if (segPar.NumSegments == 0)
+    {
+        segment_map.clear();
         return;
+    }
 
     InitSegMap(segPar, segment_map);
 }
