@@ -152,52 +152,6 @@ mfxStatus mfxDefaultAllocator::FreeBuffer(mfxHDL pthis, mfxMemId mid)
     }
 }
 
-mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height, mfxU32 fourCC, mfxU32& nBytes)
-{
-    switch (fourCC)
-    {
-    case MFX_FOURCC_YV12:
-    case MFX_FOURCC_NV12:
-    case MFX_FOURCC_P010:
-    case MFX_FOURCC_P016:
-        nBytes = pitch * height + (pitch >> 1) * (height >> 1) + (pitch >> 1) * (height >> 1);
-        break;
-    case MFX_FOURCC_P210:
-    case MFX_FOURCC_YUY2:
-    case MFX_FOURCC_Y210:
-    case MFX_FOURCC_Y216:
-        nBytes = pitch * height + (pitch >> 1) * height + (pitch >> 1) * height;
-        break;
-    case MFX_FOURCC_RGB3:
-    case MFX_FOURCC_RGBP:
-    case MFX_FOURCC_BGRP:
-        nBytes = pitch * height + pitch * height + pitch * height;
-        break;
-    case MFX_FOURCC_RGB565:
-        nBytes = 2 * pitch * height;
-        break;
-    case MFX_FOURCC_BGR4:
-    case MFX_FOURCC_RGB4:
-    case MFX_FOURCC_AYUV:
-    case MFX_FOURCC_A2RGB10:
-        nBytes = pitch * height + pitch * height + pitch * height + pitch * height;
-        break;
-    case MFX_FOURCC_Y410:
-    case MFX_FOURCC_Y416:
-    case MFX_FOURCC_P8:
-    case MFX_FOURCC_P8_TEXTURE:
-        nBytes = pitch * height;
-        break;
-    case MFX_FOURCC_IMC3:
-        nBytes = pitch * height + pitch * (height >> 1) + pitch * (height >> 1);
-        break;
-    default:
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
-        break;
-    }
-    return MFX_ERR_NONE;
-}
-
 mfxStatus mfxDefaultAllocator::GetNumBytesRequired(const mfxFrameInfo & Info, mfxU32& nbytes, size_t power_of_2_alignment)
 {
     mfxU32 Pitch = mfx::align2_value(Info.Width, 32), Height2 = mfx::align2_value(Info.Height, 32);
@@ -206,26 +160,76 @@ mfxStatus mfxDefaultAllocator::GetNumBytesRequired(const mfxFrameInfo & Info, mf
     MFX_CHECK(Height2, MFX_ERR_MEMORY_ALLOC);
 
     // Decoders and Encoders use YV12 and NV12 only
-    switch (Info.FourCC) 
+    switch (Info.FourCC)
     {
+    case MFX_FOURCC_YV12:
+        nbytes = Pitch * Height2 + (Pitch >> 1) * (Height2 >> 1) + (Pitch >> 1) * (Height2 >> 1);
+        break;
+    case MFX_FOURCC_NV12:
+        nbytes = Pitch * Height2 + (Pitch >> 1) * (Height2 >> 1) + (Pitch >> 1) * (Height2 >> 1);
+        break;
     case MFX_FOURCC_P010:
     case MFX_FOURCC_P016:
+        Pitch  = mfx::align2_value(Info.Width * 2, 32);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * (Height2 >> 1) + (Pitch >> 1) * (Height2 >> 1);
+        break;
     case MFX_FOURCC_P210:
+        Pitch  = mfx::align2_value(Info.Width * 2, 32);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * Height2 + (Pitch >> 1) * Height2;
+        break;
+    case MFX_FOURCC_YUY2:
+        nbytes = Pitch * Height2 + (Pitch >> 1) * Height2 + (Pitch >> 1) * Height2;
+        break;
+    case MFX_FOURCC_RGB3:
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+#endif
+    case MFX_FOURCC_BGRP:
+        nbytes = Pitch * Height2 + Pitch * Height2 + Pitch * Height2;
+        break;
+
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+    case MFX_FOURCC_RGB565:
+        nbytes = 2 * Pitch * Height2;
+        break;
+#endif // MFX_ENABLE_FOURCC_RGB565
+    case MFX_FOURCC_BGR4:
+    case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_AYUV:
+        nbytes = Pitch * Height2 + Pitch * Height2 + Pitch * Height2 + Pitch * Height2;
+        break;
+    case MFX_FOURCC_A2RGB10:
+        nbytes = Pitch * Height2 + Pitch * Height2 + Pitch * Height2 + Pitch * Height2;
+        break;
+    case MFX_FOURCC_IMC3:
+        nbytes = Pitch * Height2 + Pitch * (Height2 >> 1) + Pitch * (Height2 >> 1);
+        break;
+
+    case MFX_FOURCC_P8:
+    case MFX_FOURCC_P8_TEXTURE:
+        nbytes = Pitch * Height2;
+        break;
+
     case MFX_FOURCC_Y210:
     case MFX_FOURCC_Y216:
-        Pitch = mfx::align2_value(Info.Width * 2, 32);
+        Pitch  = mfx::align2_value(Info.Width * 2, 32);
+        nbytes = Pitch * Height2 + (Pitch >> 1) * Height2 + (Pitch >> 1) * Height2;
         break;
+
     case MFX_FOURCC_Y410:
-        Pitch = mfx::align2_value(Info.Width * 4, 32);
+        Pitch  = mfx::align2_value(Info.Width * 4, 32);
+        nbytes = Pitch * Height2;
         break;
+
     case MFX_FOURCC_Y416:
-        Pitch = mfx::align2_value(Info.Width * 8, 32);
+        Pitch  = mfx::align2_value(Info.Width * 8, 32);
+        nbytes = Pitch * Height2;
         break;
+
     default:
-        break;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
-    MFX_SAFE_CALL(mfxDefaultAllocator::GetSurfaceSizeInBytes(Pitch, Height2, Info.FourCC, nbytes));
     // Allocate SW memmory with page aligned size
     nbytes = mfx::align2_value(nbytes, power_of_2_alignment);
 
