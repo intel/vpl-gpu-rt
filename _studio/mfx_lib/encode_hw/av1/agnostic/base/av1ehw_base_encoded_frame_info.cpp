@@ -36,6 +36,12 @@ void EncodedFrameInfo::SetSupported(ParamSupport& blocks)
 
         MFX_COPY_FIELD(EnableMAD);
     });
+
+    // This is to enable Query for mfxExtAVCEncodedFrameInfo
+    blocks.m_ebCopySupported[MFX_EXTBUFF_ENCODED_FRAME_INFO].emplace_back(
+        [](const mfxExtBuffer* /* pSrc */, mfxExtBuffer* /* pDst */) -> void
+    {
+    });
 }
 
 void EncodedFrameInfo::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
