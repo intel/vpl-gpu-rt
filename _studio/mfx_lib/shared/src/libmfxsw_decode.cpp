@@ -164,7 +164,7 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
-    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, in);
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", in);
 
     try
     {
@@ -230,7 +230,7 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
         mfxRes = MFX_ERR_UNKNOWN;
     }
 
-    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, out);
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "Out:  ", out);
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
     return mfxRes;
 }
@@ -248,7 +248,7 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
-    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, par);
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", par);
 
     try
     {
@@ -317,7 +317,7 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
     TRACE_BUFFER_EVENT(MFX_TRACE_API_DECODE_QUERY_IOSURF_TASK, EVENT_TYPE_INFO, TR_KEY_MFX_API,
         request, DecodeQueryParam, DECODE_QUERY);
 
-    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, request);
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "Out:  ", request);
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
     return mfxRes;
 }
@@ -333,8 +333,8 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
-    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, bs);
-    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, par);
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", bs);
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", par);
 
     try
     {
@@ -417,7 +417,7 @@ mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
-    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, par);
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", par);
 
     try
     {
@@ -491,8 +491,8 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
-    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, bs);
-    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, surface_work);
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", bs);
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", surface_work);
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pScheduler, MFX_ERR_NOT_INITIALIZED);
@@ -575,7 +575,7 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
     {
         if (surface_out && *surface_out)
         {
-            MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, *surface_out);
+            MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "Out:  " , *surface_out);
         }
         if (syncp)
         {
