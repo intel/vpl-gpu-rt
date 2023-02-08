@@ -2205,6 +2205,10 @@ enum {
        See the mfxExtVPPPercEncPrefilter structure for details.
     */
     MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER        = MFX_MAKEFOURCC('V','P','E','F'),
+    /*!
+       See the mfxExtTuneEncodeQuality structure for details.
+    */
+    MFX_EXTBUFF_TUNE_ENCODE_QUALITY           = MFX_MAKEFOURCC('T','U','N','E'),
 #endif
 };
 
@@ -4845,6 +4849,29 @@ typedef struct {
     mfxExtBuffer Header;         /*! Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER. */
     mfxU16       reserved[252];
 } mfxExtVPPPercEncPrefilter;
+MFX_PACK_END()
+#endif
+
+#ifdef ONEVPL_EXPERIMENTAL
+/*! The TuneQuality enumerator specifies tuning option for encode. Multiple tuning options can be combined using bit mask. */
+enum {
+    MFX_ENCODE_TUNE_DEFAULT = 0,   /*!< The balanced option to keep quality balanced across all metrics.  */
+    MFX_ENCODE_TUNE_PSNR    = 0x1, /*!< The encoder optimizes quality according to Peak Signal-to-Noise Ratio (PSNR) metric. */
+    MFX_ENCODE_TUNE_SSIM    = 0x2, /*!< The encoder optimizes quality according to Structural Similarity Index Measure (SSIM) metric. */
+    MFX_ENCODE_TUNE_MS_SSIM = 0x4, /*!< The encoder optimizes quality according to Multi-Scale Structural Similarity Index Measure (MS-SSIM) metric. */
+    MFX_ENCODE_TUNE_VMAF    = 0x8, /*!< The encoder optimizes quality according to Video Multi-Method Assessment Fusion (VMAF) metric. */
+    MFX_ENCODE_TUNE_PERCEPTUAL    = 0x10, /*!< The encoder makes perceptual quality optimization. */
+};
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+/*! The structure specifies type of quality optimization used by the encoder. The buffer can also be attached for VPP functions to make correspondent pre-filtering. */
+typedef struct {
+    mfxExtBuffer   Header;         /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_TUNE_ENCODE_QUALITY. */
+    mfxU32         TuneQuality;    /*!< The control to specify type of encode quality metric(s) to optimize; See correspondent enum. */
+    mfxExtBuffer** ExtParam;       /*!< Points to an array of pointers to the extra configuration structures; see the ExtendedBufferID enumerator for a list of extended configurations. */
+    mfxU16         NumExtParam;    /*!< The number of extra configuration structures attached to the structure. */
+    mfxU16         reserved[11];
+} mfxExtTuneEncodeQuality;
 MFX_PACK_END()
 #endif
 
