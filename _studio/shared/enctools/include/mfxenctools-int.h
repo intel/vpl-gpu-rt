@@ -58,7 +58,8 @@ enum {
     MFX_EXTBUFF_ENCTOOLS_BRC_ENCODE_RESULT = MFX_MAKEFOURCC('E', 'B', 'E', 'R'),
     MFX_EXTBUFF_ENCTOOLS_BRC_STATUS = MFX_MAKEFOURCC('E', 'B', 'S', 'T'),
     MFX_EXTBUFF_ENCTOOLS_HINT_MATRIX = MFX_MAKEFOURCC('E', 'H', 'Q', 'M'),
-    MFX_EXTBUFF_ENCTOOLS_HINT_QPMAP  = MFX_MAKEFOURCC('E', 'H', 'Q', 'P')
+    MFX_EXTBUFF_ENCTOOLS_HINT_QPMAP  = MFX_MAKEFOURCC('E', 'H', 'Q', 'P'),
+    MFX_EXTBUFF_ENCTOOLS_HINT_SALIENCY_MAP  = MFX_MAKEFOURCC('E', 'H', 'S', 'M')
 };
 
 enum
@@ -265,6 +266,19 @@ typedef struct {
     mfxU16            QpMapPitch;      /* Additional parameter for ExtQpMap, number QPs per MB line */
     mfxU16            reserved2[9];
 } mfxEncToolsHintQPMap;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+typedef struct {
+    mfxExtBuffer      Header;        /* MFX_EXTBUFF_ENCTOOLS_HINT_SALIENCY_MAP */
+    mfxStructVersion  Version;
+    mfxU32            Width;         /* width of the map, set by enctools */
+    mfxU32            Height;        /* height of the map, set by enctools */
+    mfxU32            BlockSize;     /* block size of the saliency map, in pixels, set by enctools */
+    mfxU32            AllocatedSize; /* number of elements allocated in "Map" array, set by encoder */
+    mfxF32*           SaliencyMap;   /* saliency map, in 0..1 range, allocated by encoder */
+    mfxU32            reserved[64];
+} mfxEncToolsHintSaliencyMap;
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
