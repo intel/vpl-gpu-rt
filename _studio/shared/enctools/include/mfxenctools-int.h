@@ -269,13 +269,21 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
+/*
+This buffer can be used by encoder to get saliency map from enctools. Encoder should allocate 
+sufficient "SaliencyMap" buffer and set its size in "AllocatedSize" before calling enctools. 
+Enctools fill this buffer with saliency map and set "Width", "Height" and "BlockSize". If buffer
+size is not sufficient, enctools do not modify "SaliencyMap", but set "Width", "Height", 
+"BlockSize" and return MFX_ERR_NOT_ENOUGH_BUFFER. Encoder should reallocate buffer and 
+call enctools one more time.
+*/ 
 typedef struct {
     mfxExtBuffer      Header;        /* MFX_EXTBUFF_ENCTOOLS_HINT_SALIENCY_MAP */
     mfxStructVersion  Version;
-    mfxU32            Width;         /* width of the map, set by enctools */
-    mfxU32            Height;        /* height of the map, set by enctools */
-    mfxU32            BlockSize;     /* block size of the saliency map, in pixels, set by enctools */
-    mfxU32            AllocatedSize; /* number of elements allocated in "Map" array, set by encoder */
+    mfxU32            Width;         /* width of the map in blocks, set by enctools */
+    mfxU32            Height;        /* height of the map in blocks, set by enctools */
+    mfxU32            BlockSize;     /* block size of the saliency map in pixels, set by enctools */
+    mfxU32            AllocatedSize; /* number of elements (blocks) allocated in "SaliencyMap" array, set by encoder */
     mfxF32*           SaliencyMap;   /* saliency map, in 0..1 range, allocated by encoder */
     mfxU32            reserved[64];
 } mfxEncToolsHintSaliencyMap;
