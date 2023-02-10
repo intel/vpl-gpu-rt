@@ -761,7 +761,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
 
             std::ignore = MFX_STS_TRACE(TryInitializeCm(false));
 
-            if (m_HWType == MFX_HW_PVC || m_HWType == MFX_HW_MTL || m_HWType == MFX_HW_DG2)
+            if (m_HWType == MFX_HW_PVC || m_HWType == MFX_HW_MTL)
             {
                 this->m_pVaCopy.reset(new VACopyWrapper(*m_p_display_wrapper));
                 if (!this->m_pVaCopy->IsSupported())
