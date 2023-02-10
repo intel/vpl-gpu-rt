@@ -6085,7 +6085,7 @@ mfxStatus ConfigureExecuteParams(
                                 executeParams.lut3DInfo.Enabled               = true;
                                 executeParams.lut3DInfo.ChannelMapping        = ext3DLUT->ChannelMapping;
                                 executeParams.lut3DInfo.BufferType            = ext3DLUT->BufferType;
-                                if (ext3DLUT->BufferType == MFX_RESOURCE_VA_SURFACE)
+                                if (ext3DLUT->BufferType == MFX_RESOURCE_VA_SURFACE || ext3DLUT->BufferType == MFX_RESOURCE_DX11_TEXTURE)
                                 {
                                     executeParams.lut3DInfo.DataType              = ext3DLUT->VideoBuffer.DataType;
                                     executeParams.lut3DInfo.MemLayout             = ext3DLUT->VideoBuffer.MemLayout;
