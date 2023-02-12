@@ -6329,16 +6329,16 @@ mfxStatus ConfigureExecuteParams(
                 if(caps.uDetailFilter)
                 {
                     executeParams.bDetailAutoAdjust = TRUE;
+                    executeParams.detailFactor = 32;// default
                     for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
                     {
-                        executeParams.detailFactor = 32;// default
                         if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_DETAIL)
                         {
                             mfxExtVPPDetail *extDetail = (mfxExtVPPDetail*) videoParam.ExtParam[i];
                             executeParams.detailFactor = MapDNFactor(extDetail->DetailFactor);
                             executeParams.detailFactorOriginal = extDetail->DetailFactor;
+                            executeParams.bDetailAutoAdjust = FALSE;
                         }
-                        executeParams.bDetailAutoAdjust = FALSE;
                     }
                 }
                 else
