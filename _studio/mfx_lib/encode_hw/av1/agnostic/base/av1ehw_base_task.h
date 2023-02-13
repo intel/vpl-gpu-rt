@@ -108,6 +108,8 @@ namespace Base
         virtual void SetBS(StorageW& task, mfxBitstream* pBS) const override;
         virtual bool GetRecode(const StorageR& task) const override;
         virtual void SetRecode(StorageW& task, bool bRecode) const override;
+        virtual bool GetFreed(const StorageR& task) const override;
+        virtual void SetFreed(StorageW& task, bool bFreed) const override;
         virtual mfxU32 GetBsDataLength(const StorageR& task) const override;
         virtual void SetBsDataLength(StorageW& task, mfxU32 len) const override;
         virtual void AddNumRecode(StorageW& task, mfxU16 n) const override;

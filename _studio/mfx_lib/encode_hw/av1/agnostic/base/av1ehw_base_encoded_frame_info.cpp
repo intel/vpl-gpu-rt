@@ -64,9 +64,21 @@ void EncodedFrameInfo::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 P
     });
 }
 
+void EncodedFrameInfo::AllocTask(const FeatureBlocks& blocks, TPushAT Push)
+{
+    Push(BLK_AllocTask
+        , [this, &blocks](
+            StorageR& /*global*/
+            , StorageRW& task) -> mfxStatus
+    {
+        task.Insert(Task::EncodedInfo::Key, new MakeStorable<Task::EncodedInfo::TRef>);
+        return MFX_ERR_NONE;
+    });
+}
+
 void EncodedFrameInfo::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
 {
-    Push(BLK_QueryTask
+    Push(BLK_QueryInfo
         , [this](
             StorageW& /* global */
             , StorageW& s_task) -> mfxStatus
@@ -76,6 +88,7 @@ void EncodedFrameInfo::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
 
         mfxExtAVCEncodedFrameInfo* pInfo = ExtBuffer::Get(*task.pBsOut);
         MFX_CHECK(pInfo, MFX_ERR_NONE);
+        MFX_CHECK(!task.bFreed, MFX_ERR_NONE);
 
         using TUsedRef = std::remove_reference<decltype(pInfo->UsedRefListL0[0])>::type;
 
@@ -84,8 +97,9 @@ void EncodedFrameInfo::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         unused.LongTermIdx = mfxU16(MFX_LONGTERM_IDX_NO_IDX);
         unused.PicStruct   = mfxU16(MFX_PICSTRUCT_UNKNOWN);
 
-        std::fill(std::begin(pInfo->UsedRefListL0), std::end(pInfo->UsedRefListL0), unused);
-        std::fill(std::begin(pInfo->UsedRefListL1), std::end(pInfo->UsedRefListL1), unused);
+        auto& encodedInfo = Task::EncodedInfo::Get(s_task);
+        std::fill(std::begin(encodedInfo.UsedRefListL0), std::end(encodedInfo.UsedRefListL0), unused);
+        std::fill(std::begin(encodedInfo.UsedRefListL1), std::end(encodedInfo.UsedRefListL1), unused);
 
         auto GetUsedRef = [&](mfxU8 idx)
         {
@@ -106,14 +120,36 @@ void EncodedFrameInfo::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         {
             const mfxU8 bwdStartIdx = BWDREF_FRAME - LAST_FRAME;
             const auto bwdStartIt = task.RefList.begin() + bwdStartIdx;
-            std::transform(task.RefList.begin(), bwdStartIt, pInfo->UsedRefListL0, GetUsedRef);
-            std::transform(bwdStartIt, task.RefList.end(), pInfo->UsedRefListL1, GetUsedRef);
+            std::transform(task.RefList.begin(), bwdStartIt, encodedInfo.UsedRefListL0, GetUsedRef);
+            std::transform(bwdStartIt, task.RefList.end(), encodedInfo.UsedRefListL1, GetUsedRef);
         }
 
-        pInfo->FrameOrder   = (task.pSurfIn->Data.FrameOrder == mfxU32(-1)) ? task.DisplayOrder : task.pSurfIn->Data.FrameOrder;
+        return MFX_ERR_NONE;
+    });
+
+    Push(BLK_ReportInfo
+        , [this](
+            StorageW& /* global */
+            , StorageW& s_task) -> mfxStatus
+    {
+        auto& task = Task::Common::Get(s_task);
+        MFX_CHECK(task.pBsOut, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+        // Make sure task is ready for output
+        MFX_CHECK(task.BsDataLength > 0, MFX_ERR_NONE);
+
+        mfxExtAVCEncodedFrameInfo* pInfo = ExtBuffer::Get(*task.pBsOut);
+        MFX_CHECK(pInfo, MFX_ERR_NONE);
+
+        auto& encodedInfo = Task::EncodedInfo::Get(s_task);
+        std::copy(std::begin(encodedInfo.UsedRefListL0), std::end(encodedInfo.UsedRefListL0),
+            std::begin(pInfo->UsedRefListL0));
+        std::copy(std::begin(encodedInfo.UsedRefListL1), std::end(encodedInfo.UsedRefListL1),
+            std::begin(pInfo->UsedRefListL1));
+        pInfo->FrameOrder   = (task.FrameOrderIn == mfxU32(-1)) ? task.DisplayOrder : task.FrameOrderIn;
         pInfo->LongTermIdx  = mfxU16(MFX_LONGTERM_IDX_NO_IDX * !task.isLTR);
         pInfo->PicStruct    = MFX_PICSTRUCT_PROGRESSIVE;
-        pInfo->QP           = task.ReportedQpY;
+        pInfo->QP           = encodedInfo.QpY;
         pInfo->BRCPanicMode = 0;
         pInfo->MAD          = 0;
 

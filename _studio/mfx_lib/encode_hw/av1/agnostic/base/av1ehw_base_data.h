@@ -718,11 +718,14 @@ namespace Base
     typedef struct _DpbFrame
         : FrameBaseInfo
     {
-        mfxU32   DisplayOrder   = mfxU32(-1);
-        mfxU32   EncodedOrder   = mfxU32(-1);
-        bool     isLTR          = false; // is "long-term"
-        bool     isRejected     = false; // rejected ref frame should be refreshed asap
-        mfxU8    CodingType     = 0;
+        mfxU32   DisplayOrder = mfxU32(-1);
+        mfxU32   EncodedOrder = mfxU32(-1);
+        mfxU64   TimestampIn  = 0;
+        mfxU16   PicStructIn  = 0;
+        mfxU32   FrameOrderIn = mfxU32(-1);
+        bool     isLTR        = false; // is "long-term"
+        bool     isRejected   = false; // rejected ref frame should be refreshed asap
+        mfxU8    CodingType   = 0;
         Resource Raw;
         Resource Rec;
         mfxFrameSurface1* pSurfIn = nullptr; //input surface, may be opaque
@@ -826,11 +829,11 @@ namespace Base
         bool              bSkip                  = false;
         bool              bResetBRC              = false;
         bool              bRecode                = false;
+        bool              bFreed                 = false;
         bool              bCached                = false;
         mfxI32            PrevRAP                = -1;
         mfxU16            NumRecode              = 0;
         mfxU8             QpY                    = 0;
-        mfxU16            ReportedQpY            = 0;
         mfxU32            InsertHeaders          = 0;
         mfxU32            StatusReportId         = mfxU32(-1);
         DpbRefreshType    RefreshFrameFlags      = {};
@@ -1363,14 +1366,23 @@ namespace Base
         static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;
     };
 
+    using TUsedRefList = std::remove_reference<decltype(mfxExtAVCEncodedFrameInfo::UsedRefListL0)>::type;
+    struct EncodedInfoAv1
+    {
+        TUsedRefList UsedRefListL0 = {};
+        TUsedRefList UsedRefListL1 = {};
+        mfxU16       QpY           = 0;
+    };
+
     struct Task
     {
         static const  StorageR::TKey _KD = __LINE__ + 1;
-        using Common     = StorageVar<__LINE__ - _KD, TaskCommonPar>;
-        using FH         = StorageVar<__LINE__ - _KD, Base::FH>;
-        using Segment    = StorageVar<__LINE__ - _KD, mfxExtAV1Segmentation>;
-        using TileInfo   = StorageVar<__LINE__ - _KD, TileInfoAv1>;
-        using TileGroups = StorageVar<__LINE__ - _KD, TileGroupInfos>;
+        using Common      = StorageVar<__LINE__ - _KD, TaskCommonPar>;
+        using FH          = StorageVar<__LINE__ - _KD, Base::FH>;
+        using Segment     = StorageVar<__LINE__ - _KD, mfxExtAV1Segmentation>;
+        using EncodedInfo = StorageVar<__LINE__ - _KD, EncodedInfoAv1>;
+        using TileInfo    = StorageVar<__LINE__ - _KD, TileInfoAv1>;
+        using TileGroups  = StorageVar<__LINE__ - _KD, TileGroupInfos>;
         static const StorageR::TKey TaskEventKey = __LINE__ - _KD;
         static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;
     };
