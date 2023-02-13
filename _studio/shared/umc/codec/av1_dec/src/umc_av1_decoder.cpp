@@ -931,8 +931,9 @@ namespace UMC_AV1_DECODER
             }
         }
 
-        //this is temporary workaround for parallel encoding use case
-        if(emptyCounter == 2 && readyCounter == 0){
+        //this is temporary workaround for parallel encoding use case, that uses
+        //big value of async depth >= 20 and as a result big DPB
+        if(emptyCounter == 2 && readyCounter == 0 && dpb.size() > 20){
             return false;
         }
 
@@ -1061,21 +1062,6 @@ namespace UMC_AV1_DECODER
         );
     }
 
-    void AV1Decoder::updateOutputFrameList()
-    {
-        for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
-        {
-            AV1DecoderFrame* temp = *iter;
-            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated())
-            {
-                temp->DecrementReference();
-                iter = outputed_frames.erase(iter);
-            }
-            else
-                iter++;
-        }
-    }
-
     void AV1Decoder::CompleteDecodedFrames(FrameHeader const& fh, AV1DecoderFrame* pCurrFrame, AV1DecoderFrame* pPrevFrame)
     {
         if (pPrevFrame && Curr)
@@ -1110,6 +1096,18 @@ namespace UMC_AV1_DECODER
                     if(pCurrFrame)
                     {
                         Curr->DecrementReference();
+                    }else{
+                        for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
+                        {
+                            AV1DecoderFrame* temp = *iter;
+                            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated())
+                            {
+                                temp->DecrementReference();
+                                iter = outputed_frames.erase(iter);
+                            }
+                            else
+                                iter++;
+                        }
                     }
                 }
             }

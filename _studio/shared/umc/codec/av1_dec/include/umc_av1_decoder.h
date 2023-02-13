@@ -113,7 +113,6 @@ namespace UMC_AV1_DECODER
         UMC::Status Init(UMC::BaseCodecParams*) override;
         UMC::Status GetFrame(UMC::MediaData* in, UMC::MediaData* out) override;
         bool IsFreeSlotInDPB();
-        void updateOutputFrameList();
 
         virtual UMC::Status Reset() override
         { return UMC::UMC_ERR_NOT_IMPLEMENTED; }
