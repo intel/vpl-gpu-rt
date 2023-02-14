@@ -361,3 +361,4 @@ jobs:
         cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DMFX_ENABLE_PXP=ON -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" ..
         ninja
         sudo ninja install
+
