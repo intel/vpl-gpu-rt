@@ -60,7 +60,8 @@ typedef struct
     mfxU16            AdaptiveMBQP;
     mfxU16            BRCBufferHints;
     mfxU16            BRC;
-    mfxU16            reserved[20];
+    mfxU16            SaliencyMapHint;
+    mfxU16            reserved[19];
 } mfxExtEncToolsConfig;
 MFX_PACK_END()
 
@@ -69,5 +70,6 @@ MFX_PACK_END()
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
+
 #endif
 

@@ -27,6 +27,9 @@
 #include "mfx_vpp_base.h"
 #include "libmfx_core.h"
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#include "mfxenctools-int.h"
+#endif
 namespace PercEncPrefilter
 {
 
@@ -352,6 +355,12 @@ private:
     ParamsTemporal m_paramsTemporal{};
     Picture<uint8_t> m_modulation{};
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+    //modulation map support
+    mfxU32 m_frameCounter = 0;
+    bool m_saliencyMapSupported = false;
+    mfxEncTools *m_encTools = nullptr;
+#endif
 };
 
 }//namespace

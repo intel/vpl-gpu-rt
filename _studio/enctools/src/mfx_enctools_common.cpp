@@ -156,7 +156,8 @@ inline void SetToolsStatus(mfxExtEncToolsConfig* conf, bool bOn)
         conf->AdaptiveQuantMatrices =
         conf->BRCBufferHints =
         conf->AdaptiveMBQP =
-        conf->BRC = mfxU16(bOn ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
+        conf->BRC =
+        conf->SaliencyMapHint = mfxU16(bOn ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
 }
 
 inline void CopyPreEncSCTools(mfxExtEncToolsConfig const & confIn, mfxExtEncToolsConfig* confOut)
@@ -740,6 +741,11 @@ mfxStatus EncTools::Init(mfxExtEncToolsConfig const * pConfig, mfxEncToolsCtrl c
     {
         sts = InitVPP(*ctrl);
         MFX_CHECK_STS(sts);
+    }
+
+    if(IsOn(pConfig->SaliencyMapHint))
+    {
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     m_bInit = true;

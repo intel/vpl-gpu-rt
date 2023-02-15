@@ -73,6 +73,43 @@ mfxStatus PercEncFilter::Init(mfxFrameInfo* in, mfxFrameInfo* out)
     auto &v = m_modulation.planes[0].v;
     std::fill(v.begin(), v.end(), uint8_t(128));
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+    //modulation map
+    m_frameCounter = 0;
+    m_saliencyMapSupported = false;
+
+    mfxVideoParam par{};
+    m_encTools = MFXVideoENCODE_CreateEncTools(par);
+
+    if(m_encTools)
+    {
+        mfxExtEncToolsConfig config{};
+        mfxEncToolsCtrl ctrl{};
+
+        config.SaliencyMapHint = MFX_CODINGOPTION_ON;
+        ctrl.CodecId = MFX_CODEC_AVC;
+
+        mfxEncToolsCtrlExtAllocator extAllocBut{};
+        extAllocBut.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_ALLOCATOR;
+        extAllocBut.Header.BufferSz = sizeof(mfxEncToolsCtrlExtAllocator);
+
+        mfxFrameAllocator* pFrameAlloc = QueryCoreInterface<mfxFrameAllocator>(m_core, MFXIEXTERNALLOC_GUID);
+        MFX_CHECK_NULL_PTR1(pFrameAlloc);
+        extAllocBut.pAllocator = pFrameAlloc;
+
+        std::vector<mfxExtBuffer*> extParams;
+        extParams.push_back(&extAllocBut.Header);
+
+        ctrl.ExtParam = extParams.data();
+        ctrl.NumExtParam = (mfxU16)extParams.size();
+
+        ctrl.FrameInfo.CropH = in->CropH;
+        ctrl.FrameInfo.CropW = in->CropW;
+
+        mfxStatus sts = m_encTools->Init(m_encTools->Context, &config, &ctrl);
+        m_saliencyMapSupported = (sts == MFX_ERR_NONE);
+    }
+#endif
     m_initialized = true;
 
     return MFX_ERR_NONE;
@@ -80,6 +117,13 @@ mfxStatus PercEncFilter::Init(mfxFrameInfo* in, mfxFrameInfo* out)
 
 mfxStatus PercEncFilter::Close()
 {
+#if defined(MFX_ENABLE_ENCTOOLS)
+    if(m_encTools)
+    {
+        m_encTools->Close(m_encTools->Context);
+        MFXVideoENCODE_DestroyEncTools(m_encTools);
+    }
+#endif
     return MFX_ERR_NONE;
 }
 
@@ -117,6 +161,54 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
     ){
         return MFX_ERR_NONE;
     }
+#if defined(MFX_ENABLE_ENCTOOLS)
+    //get modulation map
+    mfxStatus sts = MFX_ERR_NONE;
+
+    if(m_saliencyMapSupported)
+    {
+        {   mfxEncToolsFrameToAnalyze extFrameData = {};
+            extFrameData.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_FRAME_TO_ANALYZE;
+            extFrameData.Header.BufferSz = sizeof(extFrameData);
+            extFrameData.Surface = in;
+
+            std::vector<mfxExtBuffer*> extParams;
+            extParams.push_back(&extFrameData.Header);
+
+            mfxEncToolsTaskParam param{};
+            param.ExtParam = extParams.data();
+            param.NumExtParam = (mfxU16)extParams.size();
+            param.DisplayOrder = m_frameCounter;
+
+            sts = m_encTools->Submit(m_encTools->Context, &param);
+            MFX_CHECK_STS(sts);
+        }
+
+        {   mfxEncToolsHintSaliencyMap extSM = {};
+            extSM.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_SALIENCY_MAP;
+            extSM.Header.BufferSz = sizeof(extSM);
+
+            mfxU32 blockSize = 8;
+            mfxU32 numOfBlocks = in->Info.Width * in->Info.Height / (blockSize * blockSize);
+            std::unique_ptr<mfxF32[]> smBuffer(new mfxF32[numOfBlocks]);
+
+            extSM.AllocatedSize = numOfBlocks;
+            extSM.SaliencyMap = smBuffer.get();
+
+            std::vector<mfxExtBuffer*> extParams;
+            extParams.push_back(&extSM.Header);
+
+            mfxEncToolsTaskParam param{};
+            param.ExtParam = extParams.data();
+            param.NumExtParam = (mfxU16)extParams.size();
+            param.DisplayOrder = m_frameCounter;
+            m_frameCounter++;
+
+            sts = m_encTools->Query(m_encTools->Context, &param, 0 /*timeout*/);
+            MFX_CHECK_STS(sts);
+        }
+    }
+#endif
 
     mfxFrameSurface1_scoped_lock inLock(in, m_core), outLock(out, m_core);
     MFX_SAFE_CALL(inLock.lock(MFX_MAP_READ));
