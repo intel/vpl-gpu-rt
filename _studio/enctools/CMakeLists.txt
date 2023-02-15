@@ -19,6 +19,7 @@ set(sources
     src/dll_main.cpp
   )
 
+
   if (MFX_ENABLE_AENC)
     find_library( AENC_LIBRARY libaenc.a PATHS ${CMAKE_HOME_DIRECTORY}/contrib/aenc/ )
     if(NOT ${AENC_LIBRARY} MATCHES NOTFOUND)
@@ -56,6 +57,7 @@ target_compile_definitions(${enctools_name}
     $<$<BOOL:${MFX_ENABLE_AENC}>:MFX_ENABLE_AENC>
   )
 
+
 target_include_directories(${enctools_name}
   PUBLIC
     include
@@ -74,11 +76,13 @@ target_link_libraries(${enctools_name}
     $<$<BOOL:${MFX_ENABLE_AENC}>:aenc>
   )
 
+
 target_link_options(${enctools_name}
   PRIVATE
     $<$<PLATFORM_ID:Linux>:LINKER:--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libenctools.map>
 )
 install(TARGETS ${enctools_name} LIBRARY DESTINATION ${MFX_MODULES_DIR}/libmfx-gen)
+
 
 include(sources_ext.cmake OPTIONAL)
 

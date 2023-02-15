@@ -117,6 +117,7 @@ option( MFX_ENABLE_ENCTOOLS "Enable encoding tools?" ON)
     MFX_ENABLE_AENC "Enabled AENC extension?" OFF
     "MFX_ENABLE_ENCTOOLS" OFF)
 
+
   option( MFX_ENABLE_MVC_VIDEO_ENCODE "Enable MVC encoder?" OFF)
 
 # Now we will include config file which may overwrite default values of the

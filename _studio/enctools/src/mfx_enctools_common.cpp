@@ -777,6 +777,7 @@ mfxStatus EncTools::Close()
         m_brc->Close();
         m_config.BRC = false;
     }
+    
 
     m_bInit = false;
 
@@ -1013,6 +1014,7 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
                 return MFX_ERR_UNDEFINED_BEHAVIOR;
             }
         }
+
     }
 
 
@@ -1151,6 +1153,7 @@ mfxStatus EncTools::Query(mfxEncToolsTaskParam* par, mfxU32 /*timeOut*/)
         sts = m_brc->GetHRDPos(par->DisplayOrder, pHRDPos);
         MFX_CHECK_STS(sts);
     }
+
 
     return sts;
 }

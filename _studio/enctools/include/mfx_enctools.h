@@ -34,6 +34,7 @@
 #include <assert.h>
 #include <algorithm>
 
+
 using namespace EncToolsUtils;
 
 mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl);
@@ -69,6 +70,7 @@ private:
     mfxFrameSurface1 m_IntSurfaces_SCD;                 // internal surface for SCD
 
     void* m_hRTModule = nullptr;
+
 
 public:
     EncTools(void* rtmodule, void* etmodule);
