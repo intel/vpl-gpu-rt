@@ -2196,11 +2196,12 @@ enum {
     */
     MFX_EXTBUFF_ALLOCATION_HINTS = MFX_MAKEFOURCC('A','L','C','H'),
     
+#ifdef ONEVPL_EXPERIMENTAL    
     /*!
        See the mfxExtSyncSubmission structure for more details.
     */
     MFX_EXTBUFF_SYNCSUBMISSION = MFX_MAKEFOURCC('S','Y','N','C'),
-#ifdef ONEVPL_EXPERIMENTAL    
+
     /*!
        See the mfxExtVPPPercEncPrefilter structure for details.
     */
