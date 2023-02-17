@@ -174,10 +174,11 @@ mfxStatus ASC_Cm::InitGPUsurf(CmDevice* pCmDevice) {
     case PLATFORM_INTEL_ICL:
     case PLATFORM_INTEL_ICLLP:
         return MFX_ERR_UNSUPPORTED;
-    case PLATFORM_INTEL_ADL_S:
     case PLATFORM_INTEL_TGLLP:
     case PLATFORM_INTEL_RKL:
     case PLATFORM_INTEL_DG1:
+    case PLATFORM_INTEL_ADL_S:
+    case PLATFORM_INTEL_ADL_P:
     case PLATFORM_INTEL_ADL_N:
 
         res = m_device->LoadProgram((void *)genx_scd_gen12lp, sizeof(genx_scd_gen12lp), m_program, "nojitter");
