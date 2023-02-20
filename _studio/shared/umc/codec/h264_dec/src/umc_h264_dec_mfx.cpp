@@ -130,7 +130,7 @@ Status FillVideoParam(const UMC_H264_DECODER::H264SeqParamSet * seq, mfxVideoPar
 
     if (seq->bit_depth_luma > 8 || seq->bit_depth_chroma > 8)
     {
-        par->mfx.FrameInfo.FourCC = seq->chroma_format_idc == 2 ? MFX_FOURCC_P210 : MFX_FOURCC_P010;
+        par->mfx.FrameInfo.FourCC = seq->chroma_format_idc == 2 ? MFX_FOURCC_Y210 : MFX_FOURCC_P010;
     }
     else
     {
