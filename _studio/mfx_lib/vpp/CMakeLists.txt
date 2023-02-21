@@ -27,8 +27,24 @@ target_link_libraries(vpp_hw
   PUBLIC
     mfx_static_lib umc_va_hw asc $<$<BOOL:${MFX_ENABLE_PXP}>:pxp_hw>
   PRIVATE
+    vpp_hw_avx2
     mfx_sdl_properties
     $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
+  )
+
+add_library(vpp_hw_avx2
+  STATIC
+    src/mfx_perc_enc_vpp_avx2.cpp)
+
+target_include_directories(vpp_hw_avx2
+  PUBLIC
+    include)
+
+target_link_libraries(vpp_hw_avx2
+  PRIVATE
+    mfx_require_avx2_properties
+    mfx_static_lib
+    mfx_sdl_properties
   )
 
 include(sources_ext.cmake OPTIONAL)

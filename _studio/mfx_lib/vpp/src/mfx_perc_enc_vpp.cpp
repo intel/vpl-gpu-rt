@@ -49,6 +49,9 @@ PercEncFilter::~PercEncFilter()
 
 mfxStatus PercEncFilter::Init(mfxFrameInfo* in, mfxFrameInfo* out)
 {
+    const bool cpuHasAvx2 = __builtin_cpu_supports("avx2");
+    MFX_CHECK(cpuHasAvx2, MFX_ERR_UNSUPPORTED)
+
     MFX_CHECK_NULL_PTR1(in);
     MFX_CHECK_NULL_PTR1(out);
 
@@ -63,15 +66,13 @@ mfxStatus PercEncFilter::Init(mfxFrameInfo* in, mfxFrameInfo* out)
     MFX_CHECK(in->ChromaFormat   == out->ChromaFormat,   MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(in->Shift          == out->Shift,          MFX_ERR_INVALID_VIDEO_PARAM);
 
-    m_paramsSharpening.config = &m_config;
-    m_paramsTemporal.config = &m_config;
-    m_filter.spatial[0] = &m_paramsSharpening;
-    m_filter.spatial[1] = &m_paramsSharpening;
-    m_filter.temporal = &m_paramsTemporal;
+    MFX_CHECK(in->CropW >= 16, MFX_ERR_INVALID_VIDEO_PARAM);
+    MFX_CHECK(in->CropH >= 2, MFX_ERR_INVALID_VIDEO_PARAM);
 
-    m_modulation.Resize(in->CropW, in->CropH);
-    auto &v = m_modulation.planes[0].v;
-    std::fill(v.begin(), v.end(), uint8_t(128));
+    width = in->CropW;
+    height = in->CropH;
+    previousOutput.resize(width * height);
+    filter = std::make_unique<Filter>(parametersFrame, parametersBlock, width);
 
 #if defined(MFX_ENABLE_ENCTOOLS)
     //modulation map
@@ -157,7 +158,8 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
     if( in->Info.CropX != out->Info.CropX || in->Info.CropX != 0 ||
         in->Info.CropY != out->Info.CropY || in->Info.CropY != 0 ||
         in->Info.CropW != out->Info.CropW ||
-        in->Info.CropH != out->Info.CropH
+        in->Info.CropH != out->Info.CropH ||
+        in->Data.Pitch != out->Data.Pitch
     ){
         return MFX_ERR_NONE;
     }
@@ -214,27 +216,31 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
     MFX_SAFE_CALL(inLock.lock(MFX_MAP_READ));
     MFX_SAFE_CALL(outLock.lock(MFX_MAP_WRITE));
 
-    Picture<uint8_t> in8(in->Info.CropW, in->Info.CropH);
-    for(uint32_t i=0; i<in->Info.CropH; i++){
-        mfxU8 *first = in->Data.Y + i*in->Data.Pitch;
-        mfxU8* last = first + in->Info.CropW;
-        mfxU8* d_first = in8.planes[0].v.data() + i*in->Info.CropW;
-        std::copy(first, last, d_first);
+    if (filter)
+    {
+        filter->processFrame(in->Data.Y, in->Data.Pitch, modulation.data(), modulationStride, previousOutput.data(), width, out->Data.Y, out->Data.Pitch, width, height);
+    }
+    else
+    {
+        for (int y = 0; y < height; ++y)
+            std::copy(
+                &in->Data.Y[out->Data.Pitch * y],
+                &in->Data.Y[out->Data.Pitch * y + width],
+                &out->Data.Y[out->Data.Pitch * y]);
     }
 
-    Picture<uint16_t> in10(in8, 2);
-    Picture<uint16_t> out10(in->Info.CropW, in->Info.CropH);
-    m_filter.filter(out10.planes[0], in10.planes[0], out10.planes[0], m_modulation.planes[0],
-        in10.planes[0].width, in10.planes[0].height, m_config, m_first);
-    m_first = false;
+    // retain a copy of the output for next time... (it would be nice to avoid this copy)
+    for (int y = 0; y < height; ++y)
+        std::copy(
+            &out->Data.Y[out->Data.Pitch * y],
+            &out->Data.Y[out->Data.Pitch * y + width],
+            &previousOutput[width * y]);
 
-    Picture<uint8_t> out8(out10, -2);
-    for(uint32_t i=0; i<in->Info.CropH; i++){
-        mfxU8 *first = out8.planes[0].v.data() + i*in->Info.CropW;
-        mfxU8* last = first + in->Info.CropW;
-        mfxU8* d_first = out->Data.Y + i*out->Data.Pitch;
-        std::copy(first, last, d_first);
-    }
+    // copy chroma
+    std::copy(
+        &in->Data.UV[0],
+        &in->Data.UV[in->Data.Pitch * height / 2],
+        &out->Data.UV[0]);
 
     return MFX_ERR_NONE;
 }
