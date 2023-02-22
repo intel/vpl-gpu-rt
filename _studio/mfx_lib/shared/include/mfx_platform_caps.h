@@ -105,6 +105,16 @@ namespace VP9ECaps {
     {
         return (platform >= MFX_HW_DG2);
     }
+
+    inline bool IsTableBasedLfLevelUsed(eMFXHWType platform) 
+    {
+        return (platform >= MFX_HW_MTL);
+    }
+
+    inline bool IsDefaultMultiRefUsed(eMFXHWType platform) 
+    {
+        return (platform >= MFX_HW_MTL);
+    }
 }
 #endif
 
