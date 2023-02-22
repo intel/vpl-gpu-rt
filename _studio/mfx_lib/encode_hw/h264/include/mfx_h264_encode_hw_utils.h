@@ -1001,6 +1001,9 @@ namespace MfxHwH264Encode
             , m_qpY(0, 0)
             , m_mad(0, 0)
             , m_minFrameSize (0)
+#ifdef MFX_ENABLE_ENCODE_STATS
+            , m_encodeStats(0)
+#endif
             , m_notProtected(false)
             , m_nextLayerTask(0)
             , m_repack(0)

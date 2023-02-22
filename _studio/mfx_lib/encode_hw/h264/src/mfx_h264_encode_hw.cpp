@@ -4188,6 +4188,14 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         DdiTaskIter task = FindFrameToWaitEncode(m_encoding.begin(), m_encoding.end());
 
         mfxStatus sts = MFX_ERR_NONE;
+
+#ifdef MFX_ENABLE_ENCODE_STATS
+        if (bs)
+            task->m_encodeStats = MfxExtBuffer::Get(*bs);
+        else
+            task->m_encodeStats = nullptr;
+#endif //MFX_ENABLE_ENCODE_STATS
+
         if (m_enabledSwBrc)
         {
             for (;; ++task->m_repack)
@@ -4385,12 +4393,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 else
                 {
 #endif
-#ifdef MFX_ENABLE_ENCODE_STATS
-                    if (bs)
-                        task->m_encodeStats = MfxExtBuffer::Get(*bs);
-                    else
-                        task->m_encodeStats = nullptr;
-#endif //MFX_ENABLE_ENCODE_STATS
                     for(f = f_start; f <= f_end; f++)
                     {
                         if((sts = QueryStatus(*task, task->m_fid[f])) != MFX_ERR_NONE)
@@ -4477,6 +4479,7 @@ mfxStatus ImplementationAvc::AsyncRoutineHelper(void * state, void * param, mfxU
     }
     catch (...)
     {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Exception on AsyncRoutine!");
         impl.m_failedStatus = MFX_ERR_DEVICE_FAILED;
         sts = MFX_ERR_DEVICE_FAILED;
     }
