@@ -214,6 +214,7 @@ enum // usual int
     MAX_NUM_REF_FRAMES  = 32,
     MAX_NUM_REF_FIELDS  = 32,
 
+    MAX_NUM_MMCO_ENTRIES = 35,
     MAX_REF_FRAMES_IN_POC_CYCLE = 256,
 
     MAX_NUM_SLICE_GROUPS        = 8,

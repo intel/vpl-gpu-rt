@@ -1879,7 +1879,7 @@ Status H264HeadersBitstream::DecRefBasePicMarking(AdaptiveMarkingInfo *pAdaptive
             pAdaptiveMarkingInfo->value[num_entries*2+1] = GetVLCElement(false);
 
         num_entries++;
-        if (num_entries >= MAX_NUM_REF_FRAMES) {
+        if (num_entries >= MAX_NUM_MMCO_ENTRIES) {
             return UMC_ERR_INVALID_STREAM;
         }
     }    // while
