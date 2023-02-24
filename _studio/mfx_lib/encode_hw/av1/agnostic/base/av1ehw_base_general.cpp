@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2023 Intel Corporation
+﻿// Copyright (c) 2019-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1312,6 +1312,19 @@ void General::InitTask(const FeatureBlocks& blocks, TPushIT Push)
         if (pCtrl)
         {
             tpar.ctrl = *pCtrl;
+            if(pCtrl->NumExtParam)
+            {
+                mfxExtBuffer** tEB = new mfxExtBuffer*[pCtrl->NumExtParam];
+                for(mfxU32 i = 0;i < pCtrl->NumExtParam;i++)
+                {
+                    tEB[i] = (mfxExtBuffer*) new mfxU8[pCtrl->ExtParam[i]->BufferSz];
+                    memcpy(tEB[i], pCtrl->ExtParam[i], pCtrl->ExtParam[i]->BufferSz);
+                }
+                tpar.ctrl.ExtParam = tEB;
+            }
+            else
+                tpar.ctrl.ExtParam = nullptr;
+            
             if (mfxExtRefListCtrl* refListCtrl = ExtBuffer::Get(tpar.ctrl))
                 changed = CheckRefListCtrl(refListCtrl);
         }
@@ -1647,6 +1660,12 @@ void General::FreeTask(const FeatureBlocks& /*blocks*/, TPushFT Push)
             , "task.Rec resource is invalid");
 
         task.DPB.clear();
+
+        for(mfxU32 i = 0;i < task.ctrl.NumExtParam;i++)
+            delete[] task.ctrl.ExtParam[i];
+
+        if(task.ctrl.NumExtParam)
+            delete[] task.ctrl.ExtParam;
 
         return MFX_ERR_NONE;
     });
