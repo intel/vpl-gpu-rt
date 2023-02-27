@@ -160,7 +160,6 @@ namespace MfxHwVP9Encode
         pps.pic_flags.bits.refresh_frame_context    = framePar.refreshFrameContext;
         pps.pic_flags.bits.frame_context_idx        = framePar.frameContextIdx;
         pps.pic_flags.bits.allow_high_precision_mv  = framePar.allowHighPrecisionMV;
-        pps.pic_flags.bits.mcomp_filter_type        = framePar.interpFilter;
 
         if (pps.pic_flags.bits.show_frame == 0)
                 pps.pic_flags.bits.super_frame_flag = 1;

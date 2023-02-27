@@ -967,35 +967,6 @@ bool CheckAndFixCTQIdxDeltasQPBased(mfxExtVP9Param& extPar, mfxU16 qIndex)
     return isOk;
 }
 
-template <typename T>
-inline bool SetDefault(T &par, int defaultValue)
-{
-    bool defaultSet = false;
-
-    if (par == 0)
-    {
-        par = (T)defaultValue;
-        defaultSet = true;
-    }
-
-    return defaultSet;
-}
-
-template <typename T>
-inline bool SetTwoDefaults(T &par1, T &par2, int defaultValue1, int defaultValue2)
-{
-    bool defaultsSet = false;
-
-    if (par1 == 0 && par2 == 0)
-    {
-        par1 = (T)defaultValue1;
-        par2 = (T)defaultValue2;
-        defaultsSet = true;
-    }
-
-    return defaultsSet;
-}
-
 mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
 {
     Bool changed = false;
@@ -1343,8 +1314,6 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
             par.mfx.NumRefFrame = RefActiveP;
             changed = true;
         }
-
-        SetDefault(par.mfx.NumRefFrame, std::min<mfxU16>(maxSupportedNumRef, RefActiveP));
     }
     else
     {
@@ -1540,6 +1509,35 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
 
 
     MFX_RETURN(GetCheckStatus(changed, unsupported));
+}
+
+template <typename T>
+inline bool SetDefault(T &par, int defaultValue)
+{
+    bool defaultSet = false;
+
+    if (par == 0)
+    {
+        par = (T)defaultValue;
+        defaultSet = true;
+    }
+
+    return defaultSet;
+}
+
+template <typename T>
+inline bool SetTwoDefaults(T &par1, T &par2, int defaultValue1, int defaultValue2)
+{
+    bool defaultsSet = false;
+
+    if (par1 == 0 && par2 == 0)
+    {
+        par1 = (T)defaultValue1;
+        par2 = (T)defaultValue2;
+        defaultsSet = true;
+    }
+
+    return defaultsSet;
 }
 
 inline mfxU32 GetDefaultBufferSize(VP9MfxVideoParam const &par)

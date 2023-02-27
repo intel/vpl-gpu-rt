@@ -820,13 +820,7 @@ mfxStatus MFXVideoENCODEVP9_HW::ConfigTask(Task &task)
         mfxU8 idxGold = task.m_frameParam.refList[REF_GOLD];
         mfxU8 idxAlt = task.m_frameParam.refList[REF_ALT];
         task.m_pRecRefFrames[REF_LAST] = m_dpb[idxLast];
-        if (VP9ECaps::IsDefaultMultiRefUsed(platform)) {
-            bool multiref = m_dpb.size() > 1;
-            task.m_pRecRefFrames[REF_GOLD] = m_dpb[idxGold] != m_dpb[idxLast] || multiref ? m_dpb[idxGold] : 0;
-        }
-        else {
-            task.m_pRecRefFrames[REF_GOLD] = m_dpb[idxGold] != m_dpb[idxLast] ? m_dpb[idxGold] : 0;
-        }
+        task.m_pRecRefFrames[REF_GOLD] = m_dpb[idxGold] != m_dpb[idxLast] ? m_dpb[idxGold] : 0;
         task.m_pRecRefFrames[REF_ALT] = m_dpb[idxAlt] != m_dpb[idxLast] && m_dpb[idxAlt] != m_dpb[idxGold] ? m_dpb[idxAlt] : 0;
     }
 
