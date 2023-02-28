@@ -373,7 +373,7 @@ void mfx_UMC_FrameAllocator::SetExternalFramesResponse(mfxFrameAllocResponse *re
 {
     m_externalFramesResponse = 0;
 
-    if (!response || !response->NumFrameActual)
+    if (!response || (!m_pCore->IsSupportedDelayAlloc() && !response->NumFrameActual))
         return;
 
     m_externalFramesResponse = response;
@@ -775,8 +775,28 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
             }
         }
 
+        // in delay allocate mode, the m_externalFramesResponse->mids maybe not filled in the MFXInit
+        // surface will be added into m_frameDataInternal on the fly
+        // Delay allocate mode not work with D3D9, D3D9 will use legacy allocator logical
         if (!isFound)
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+        {
+            MFX_CHECK(m_pCore->IsSupportedDelayAlloc(), MFX_ERR_UNDEFINED_BEHAVIOR);
+            for (mfxU32 i = 0; i < m_frameDataInternal.GetSize(); i++)
+            {
+                auto internal_surf = m_frameDataInternal.GetSurface(i);
+                if (internal_surf.Data.MemId == surf->Data.MemId)
+                {
+                    isFound = true;
+                    break;
+                }
+            }
+        }
+        // add the new APP surface on the fly
+        if (m_pCore->IsSupportedDelayAlloc() && !isFound)
+        {
+            m_frameDataInternal.AddNewFrame(this, surf, &m_info);
+            m_extSurfaces.push_back(surf_descr(surf, false));
+        }
     }
 
     m_curIndex = -1;
@@ -1281,21 +1301,22 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         // allocates internal surfaces:
         if (useInternal)
         {
-            m_response_alien = m_response;
-            m_umc_allocator_adapter->SetExternalFramesResponse(&m_response_alien);
             request = request_internal;
             bool useSystem = needVppJPEG ? video_param.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY : true;
             mfxSts = m_core->AllocFrames(&request_internal, &m_response, useSystem);
 
             MFX_CHECK_WITH_THROW_STS(mfxSts >= MFX_ERR_NONE, mfxSts);
+
+            UMC::Status umcSts = m_umc_allocator_adapter->InitMfx(0, m_core, &video_param, &request, &m_response, !useInternal, platform == MFX_PLATFORM_SOFTWARE);
+            MFX_CHECK_WITH_THROW_STS(umcSts == UMC::UMC_OK, MFX_ERR_MEMORY_ALLOC);
         }
         else
         {
+            UMC::Status umcSts = m_umc_allocator_adapter->InitMfx(0, m_core, &video_param, &request, &m_response, !useInternal, platform == MFX_PLATFORM_SOFTWARE);
+            MFX_CHECK_WITH_THROW_STS(umcSts == UMC::UMC_OK, MFX_ERR_MEMORY_ALLOC);
+
             m_umc_allocator_adapter->SetExternalFramesResponse(&m_response);
         }
-
-        UMC::Status umcSts = m_umc_allocator_adapter->InitMfx(0, m_core, &video_param, &request, &m_response, !useInternal, platform == MFX_PLATFORM_SOFTWARE);
-        MFX_CHECK_WITH_THROW_STS(umcSts == UMC::UMC_OK, MFX_ERR_MEMORY_ALLOC);
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
         if ((mfxExtDecVideoProcessing *)GetExtendedBuffer(video_param.ExtParam, video_param.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING))

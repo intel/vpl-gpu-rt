@@ -200,6 +200,7 @@ public:
     virtual mfxSession GetSession() = 0;
 
     virtual mfxU16 GetAutoAsyncDepth() = 0;
+    virtual bool IsSupportedDelayAlloc() const { return true; }
 
     mfxStatus GetFrameHDL(mfxFrameSurface1& surf, mfxHDLPair& handle, bool ExtendedSearch = true)
     {

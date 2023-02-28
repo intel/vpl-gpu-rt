@@ -1438,6 +1438,8 @@ mfxStatus CommonCORE_VPL::UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr, b
 
 CommonCORE_VPL::CommonCORE_VPL(const mfxU32 numThreadsAvailable, const mfxSession session)
     : deprecate_from_base<CommonCORE>(numThreadsAvailable, session)
+    // At this point only object of CommonCORE_VPL exists, so it is CommonCORE_VPL::IsSupportedDelayAlloc being called
+    , m_frame_allocator_wrapper(IsSupportedDelayAlloc())
 {
     m_frame_allocator_wrapper.allocator_sw.reset(new FlexibleFrameAllocatorSW(nullptr, m_session));
 }

@@ -256,6 +256,9 @@ static bool RequiredHWallocator(mfxU16 memtype)
 class FrameAllocatorWrapper
 {
 public:
+    FrameAllocatorWrapper(bool delayed_allocation)
+        : m_delayed_allocation(delayed_allocation)
+    {}
 
     mfxStatus Alloc(mfxFrameAllocRequest& request, mfxFrameAllocResponse& response, bool ext_alloc_hint = false)
     {
@@ -272,12 +275,13 @@ public:
             {
 
                MFX_SAFE_CALL(allocator_ext->Alloc(request, response));
-
-               if (response.NumFrameActual < request.NumFrameMin)
-               {
-                   std::ignore = MFX_STS_TRACE(allocator_ext->Free(response));
-                   MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
-               }
+               // In delay allocate mode, response frame num only need >= 0.
+               // Delay allocate mode not work with D3D9, D3D9 will use legacy allocator logical
+                if(!m_delayed_allocation && (response.NumFrameActual < request.NumFrameMin))
+                {
+                    std::ignore = MFX_STS_TRACE(allocator_ext->Free(response));
+                    MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
+                }
 
                CacheMids(response, *allocator_ext);
                return MFX_ERR_NONE;
@@ -458,6 +462,7 @@ private:
 
     std::shared_timed_mutex                 m_mutex;
     std::map<mfxMemId, FrameAllocatorBase*> m_mid_to_allocator;
+    bool                                    m_delayed_allocation;
 };
 
 inline mfxU16 AdjustTypeInternal(mfxU16 type)
