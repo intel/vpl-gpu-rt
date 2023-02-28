@@ -790,8 +790,8 @@ struct RefPicListReorderInfo
 struct AdaptiveMarkingInfo
 {
     uint32_t       num_entries;                 // number of currently valid mmco,value pairs
-    uint8_t        mmco[UMC::MAX_NUM_REF_FRAMES];    // memory management control operation id
-    uint32_t       value[UMC::MAX_NUM_REF_FRAMES*2]; // operation-dependent data, max 2 per operation
+    uint8_t        mmco[UMC::MAX_NUM_MMCO_ENTRIES];    // memory management control operation id
+    uint32_t       value[UMC::MAX_NUM_MMCO_ENTRIES *2]; // operation-dependent data, max 2 per operation
 };
 
 struct PredWeightTable
