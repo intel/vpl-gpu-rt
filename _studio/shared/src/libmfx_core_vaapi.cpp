@@ -761,7 +761,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
 
             std::ignore = MFX_STS_TRACE(TryInitializeCm(false));
 
-            if (m_HWType == MFX_HW_PVC || m_HWType == MFX_HW_MTL)
+            if (m_HWType == MFX_HW_PVC || m_HWType == MFX_HW_MTL || m_HWType == MFX_HW_DG2)
             {
                 this->m_pVaCopy.reset(new VACopyWrapper(*m_p_display_wrapper));
                 if (!this->m_pVaCopy->IsSupported())
@@ -1828,6 +1828,12 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
             : (gpuCopyMode & MFX_COPY_USE_VACOPY_BLT) ? VACopyWrapper::BLT
             : VACopyWrapper::VE
             ;
+
+        if (m_HWType == MFX_HW_DG2)
+        {
+             vacopyMode = VACopyWrapper::BLT;
+        }
+
         auto vaCopySts = m_pVaCopy->Copy(*pSrc, *pDst, vacopyMode);
         MFX_RETURN_IF_ERR_NONE(vaCopySts);
 
