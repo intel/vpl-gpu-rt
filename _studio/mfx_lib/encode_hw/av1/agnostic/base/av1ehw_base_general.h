@@ -225,7 +225,11 @@ namespace Base
             // Extend extra Raw for frames buffered between LA submit and LA Query stage
             const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
             mfxU16 extRaw = pCO2 ? pCO2->LookAheadDepth : 0;
-            return par.AsyncDepth + (par.mfx.GopRefDist - 1) + (par.AsyncDepth > 1) + extRaw;
+            mfxU16 numRaw = par.AsyncDepth + par.mfx.GopRefDist + (par.AsyncDepth > 1) + extRaw;
+            if (par.mfx.GopRefDist > 0)
+                numRaw--;
+
+            return numRaw;
         }
         mfxU16 GetMaxRec(StorageR& strg, const mfxVideoParam& par)
         {
