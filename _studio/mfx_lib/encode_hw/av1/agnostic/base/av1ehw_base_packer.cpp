@@ -447,12 +447,12 @@ inline void PackShowFrame(BitstreamWriter& bs, FH const& fh)
         bs.PutBit(fh.showable_frame); //showable_frame
 }
 
-inline void PackErrorResilientMode(BitstreamWriter& bs, FH const& fh, mfxU8 error_resilient_mode)
+inline void PackErrorResilientMode(BitstreamWriter& bs, FH const& fh)
 {
     if (fh.frame_type == SWITCH_FRAME || (fh.frame_type == KEY_FRAME && fh.show_frame))
-        error_resilient_mode = 1;
+        return;
     else
-        bs.PutBit(0); //error_resilient_mode
+        bs.PutBit(fh.error_resilient_mode); //error_resilient_mode
 }
 
 inline void PackOrderHint(BitstreamWriter& bs, SH const& sh, FH const& fh)
@@ -463,14 +463,11 @@ inline void PackOrderHint(BitstreamWriter& bs, SH const& sh, FH const& fh)
     bs.PutBits(sh.order_hint_bits_minus1 + 1, fh.order_hint); //order_hint
 }
 
-inline void PackRefFrameFlags(BitstreamWriter& bs, FH const& fh, mfxU8 const error_resilient_mode)
+inline void PackRefFrameFlags(BitstreamWriter& bs, FH const& fh)
 {
     const mfxU8 frameIsIntra = FrameIsIntra(fh);
 
-    mfxU8 primary_ref_frame = PRIMARY_REF_NONE;
-    if (frameIsIntra || error_resilient_mode)
-        primary_ref_frame = PRIMARY_REF_NONE;
-    else
+    if (!(frameIsIntra || fh.error_resilient_mode))
         bs.PutBits(3, 0); //primary_ref_frame
 
     if (!(fh.frame_type == SWITCH_FRAME || (fh.frame_type == KEY_FRAME && fh.show_frame)))
@@ -549,7 +546,7 @@ inline void PackFrameSizeWithRefs(
     }
 }
 
-static void PackFrameRefInfo(BitstreamWriter& bs, SH const& sh, FH const& fh, mfxU8 const error_resilient_mode)
+static void PackFrameRefInfo(BitstreamWriter& bs, SH const& sh, FH const& fh)
 {
     if (sh.enable_order_hint)
         bs.PutBit(0); //frame_refs_short_signaling
@@ -557,7 +554,7 @@ static void PackFrameRefInfo(BitstreamWriter& bs, SH const& sh, FH const& fh, mf
     for (mfxU8 ref = 0; ref < REFS_PER_FRAME; ref++)
         bs.PutBits(REF_FRAMES_LOG2, fh.ref_frame_idx[ref]);
 
-    if (fh.frame_size_override_flag && !error_resilient_mode)
+    if (fh.frame_size_override_flag && !fh.error_resilient_mode)
     {
         PackFrameSizeWithRefs(bs, sh, fh);
     }
@@ -575,6 +572,18 @@ static void PackFrameRefInfo(BitstreamWriter& bs, SH const& sh, FH const& fh, mf
 
     if (fh.use_ref_frame_mvs)
         bs.PutBit(1); //use_ref_frame_mvs
+}
+
+static void PackRefOrderHint(BitstreamWriter& bs, SH const& sh, FH const& fh)
+{
+    if(fh.error_resilient_mode && sh.enable_order_hint)
+    {
+        for (mfxU8 ref = 0; ref < NUM_REF_FRAMES; ref++)
+        {
+            bs.PutBits(sh.order_hint_bits_minus1 + 1, fh.ref_order_hint[ref]); //ref_order_hint[i]
+        }
+
+    }
 }
 
 inline void PackUniformTile(BitstreamWriter& bs, TileInfoAv1 const& tileInfo)
@@ -866,8 +875,7 @@ inline void PackFrameHeader(
 
     PackShowFrame(bs, fh);
 
-    mfxU8 error_resilient_mode = 0;
-    PackErrorResilientMode(bs, fh, error_resilient_mode);
+    PackErrorResilientMode(bs, fh);
 
     bs.PutBit(fh.disable_cdf_update);
     bs.PutBit(fh.allow_screen_content_tools);
@@ -875,10 +883,14 @@ inline void PackFrameHeader(
 
     PackOrderHint(bs, sh, fh);
 
-    PackRefFrameFlags(bs, fh, error_resilient_mode);
+    PackRefFrameFlags(bs, fh);
+
+    const int allFrames = (1 << NUM_REF_FRAMES) - 1;
+    if(!frameIsIntra || fh.refresh_frame_flags != allFrames)
+        PackRefOrderHint(bs, sh, fh);
 
     if (!frameIsIntra)
-        PackFrameRefInfo(bs, sh, fh, error_resilient_mode);
+        PackFrameRefInfo(bs, sh, fh);
     else
     {
         PackFrameSize(bs, sh, fh);

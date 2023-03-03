@@ -3873,7 +3873,7 @@ inline void SetRefFrameFlags(
     , FH& fh
     , const bool frameIsIntra)
 {
-    if (frameIsIntra)
+    if (frameIsIntra || fh.error_resilient_mode)
         fh.primary_ref_frame = PRIMARY_REF_NONE;
 
     const int allFrames = (1 << NUM_REF_FRAMES) - 1;
@@ -4027,6 +4027,7 @@ mfxStatus General::GetCurrentFrameHeader(
          currFH.showable_frame = 1; // for now, all hiden frame will be show in later.
     }
 
+    // could affect basic usage without explictly set error_resilient_mode = 1
     if (currFH.frame_type == SWITCH_FRAME ||
         (currFH.frame_type == KEY_FRAME && currFH.show_frame))
     {
@@ -4034,6 +4035,14 @@ mfxStatus General::GetCurrentFrameHeader(
     }
 
     currFH.order_hint = task.DisplayOrderInGOP;
+
+    // ref_order_hint
+    for (auto iter = task.DPB.begin(); iter != task.DPB.end(); iter++)
+    {
+        if(*iter != nullptr)
+            currFH.ref_order_hint[std::distance(task.DPB.begin(), iter)] = (*iter)->DisplayOrderInGOP;
+
+    }
 
     const bool frameIsIntra = FrameIsIntra(currFH);
     SetRefFrameFlags(task, currFH, frameIsIntra);
