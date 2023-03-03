@@ -3499,6 +3499,8 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
    Members of this structure define the location of chroma samples information.
 
    See Annex E of the ISO*\/IEC* 14496-10 specification for the definition of these parameters.
+
+   @note Not all implementations of the encoder support this structure. The application must use the Query API function to determine if it is supported.
 */
 typedef struct {
     mfxExtBuffer Header; /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_CHROMA_LOC_INFO. */
@@ -3805,6 +3807,8 @@ enum {
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
    Attached to the mfxVideoParam structure during HEVC encoder initialization. Specifies the region to encode.
+
+   @note Not all implementations of the encoder support this structure. The application must use the Query API function to determine if it is supported.
 */
 typedef struct {
     mfxExtBuffer Header; /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_HEVC_REGION. */
