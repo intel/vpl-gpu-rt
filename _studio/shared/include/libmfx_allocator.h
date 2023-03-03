@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2020 Intel Corporation
+﻿// Copyright (c) 2007-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -58,6 +58,7 @@ namespace mfxDefaultAllocator
     mfxStatus UnlockFrame(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr=0);
     mfxStatus FreeFrames(mfxHDL pthis, mfxFrameAllocResponse *response);
 
+    mfxStatus GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height, mfxU32 fourCC, mfxU32& nBytes);
     mfxStatus GetNumBytesRequired(const mfxFrameInfo& Info, mfxU32& nbytes, size_t power_of_2_alignment = BASE_SIZE_ALIGN);
 
     struct BufferStruct
