@@ -1919,6 +1919,8 @@ VideoVPPHW::VideoVPPHW(IOMode mode, VideoCORE *core)
     m_config.m_surfCount[VPP_OUT]  = 1;
     m_config.m_IOPattern = 0;
     m_config.m_multiBlt = false;
+    m_config.m_bDisSkipQuery = false;
+    m_config.m_bSupportLPLA = false;
 
     MemSetZero4mfxExecuteParams(&m_executeParams);
     memset(&m_params, 0, sizeof(mfxVideoParam));
@@ -4310,6 +4312,14 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
         }
     }
 
+    if (CommonCaps::IsVppSkipQuerySupported(m_pCore->GetHWType(), m_pCore->GetHWDeviceId()) &&
+        (m_ioMode == D3D_TO_D3D || m_ioMode == SYS_TO_D3D) &&
+        !m_config.m_bDisSkipQuery &&
+        m_config.m_bSupportLPLA)
+    {
+        pTask->skipQueryStatus = true;
+    }
+
 #ifdef MFX_ENABLE_EXT
     if ((m_executeParams.iFieldProcessingMode != 0)   /* If Mode is enabled*/
         && ((imfxFPMode - 1) != (mfxU32)FRAME2FRAME)  /* And we don't do copy frame to frame lets call our FieldCopy*/
@@ -5881,7 +5891,7 @@ mfxStatus ConfigureExecuteParams(
                 {
                     bIsFilterSkipped = true;
                 }
-
+                config.m_bDisSkipQuery = true;
 
                 break;
             }
@@ -5916,6 +5926,7 @@ mfxStatus ConfigureExecuteParams(
                     executeParams.iDeinterlacingAlgorithm = 0;
                     bIsFilterSkipped = true;
                 }
+                config.m_bDisSkipQuery = true;
 
                 break;
             }
@@ -5930,7 +5941,7 @@ mfxStatus ConfigureExecuteParams(
                      * Something wrong. User requested DI but MSDK can't do it */
                     return MFX_ERR_UNKNOWN;
                 }
-
+                config.m_bDisSkipQuery = true;
                 config.m_bMode30i60pEnable = true;
                 if(MFX_DEINTERLACING_ADVANCED     == executeParams.iDeinterlacingAlgorithm
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
@@ -5996,6 +6007,7 @@ mfxStatus ConfigureExecuteParams(
                 {
                     bIsFilterSkipped = true;
                 }
+                config.m_bDisSkipQuery = true;
 
                 break;
             }
@@ -6016,6 +6028,7 @@ mfxStatus ConfigureExecuteParams(
                 {
                     bIsFilterSkipped = true;
                 }
+                config.m_bDisSkipQuery = true;
 
                 break;
             }
@@ -6068,6 +6081,7 @@ mfxStatus ConfigureExecuteParams(
                 {
                     bIsFilterSkipped = true;
                 }
+                config.m_bSupportLPLA = true;
 
                 break;
             }
@@ -6279,6 +6293,7 @@ mfxStatus ConfigureExecuteParams(
                 {
                     bIsFilterSkipped = true;
                 }
+                config.m_bDisSkipQuery = true;
 
                 break;
             }
@@ -6409,6 +6424,8 @@ mfxStatus ConfigureExecuteParams(
                 inDNRatio = (mfxF64) videoParam.vpp.In.FrameRateExtD / videoParam.vpp.In.FrameRateExtN;
                 outDNRatio = (mfxF64) videoParam.vpp.Out.FrameRateExtD / videoParam.vpp.Out.FrameRateExtN;
 
+                config.m_bDisSkipQuery = true;
+
                 break;
             }
 
@@ -6428,6 +6445,8 @@ mfxStatus ConfigureExecuteParams(
                 executeParams.iDeinterlacingAlgorithm = MFX_DEINTERLACING_BOB;
                 config.m_surfCount[VPP_IN]  = std::max<mfxU16>(2, config.m_surfCount[VPP_IN]);
                 config.m_surfCount[VPP_OUT] = std::max<mfxU16>(2, config.m_surfCount[VPP_OUT]);
+
+                config.m_bDisSkipQuery = true;
 
                 break;
             }
@@ -6612,6 +6631,7 @@ mfxStatus ConfigureExecuteParams(
                         break;
                     }
                 }
+                config.m_bDisSkipQuery = true;
 
                 break;
 

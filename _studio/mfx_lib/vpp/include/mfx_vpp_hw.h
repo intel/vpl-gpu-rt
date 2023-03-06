@@ -336,6 +336,9 @@ namespace MfxHwVideoProcessing
         ExtendedConfig m_extConfig;
         mfxU16 m_IOPattern;
         mfxU16 m_surfCount[2];
+
+        bool   m_bDisSkipQuery;
+        bool   m_bSupportLPLA;
     };
 
     class ResMngr

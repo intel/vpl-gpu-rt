@@ -37,6 +37,14 @@ namespace CommonCaps {
         return platform >= MFX_HW_MTL;
     }
 
+    inline bool IsVppSkipQuerySupported(eMFXHWType platform, mfxU16 deviceId)
+    {
+
+        return (!CommonCaps::IsPreSiPlatform(platform, deviceId) || MFX_HW_MTL == platform) &&
+            MFX_HW_MTL >= platform &&
+            MFX_HW_DG2 <= platform;
+    }
+
     inline bool HasNativeDX9Support(eMFXHWType platform)
     {
         return platform < MFX_HW_ADL_S;
