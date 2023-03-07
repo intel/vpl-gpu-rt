@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_vp9_encode_hw_utils.h"
+#include "mfx_platform_caps.h"
 
 #include "umc_defs.h"
 
@@ -220,15 +221,49 @@ void VP9MfxVideoParam::Construct(mfxVideoParam const & par)
     CalculateInternalParams();
 }
 
-mfxU32 ModifyLoopFilterLevelQPBased(mfxU32 QP, mfxU32 loopFilterLevel)
-{
-    if (loopFilterLevel)
-        return loopFilterLevel;
+const mfxI32 acScaleFactors[256] = { 4, 8, 9, 10, 11, 12, 13, 14, 15,
+       16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+       33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+       50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66,
+       67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83,
+       84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
+       100, 101, 102, 104, 106, 108, 110, 112, 114, 116, 118, 120, 122,
+       124, 126, 128, 130, 132, 134, 136, 138, 140, 142, 144, 146, 148,
+       150, 152, 155, 158, 161, 164, 167, 170, 173, 176, 179, 182, 185,
+       188, 191, 194, 197, 200, 203, 207, 211, 215, 219, 223, 227, 231,
+       235, 239, 243, 247, 251, 255, 260, 265, 270, 275, 280, 285, 290,
+       295, 300, 305, 311, 317, 323, 329, 335, 341, 347, 353, 359, 366,
+       373, 380, 387, 394, 401, 408, 416, 424, 432, 440, 448, 456, 465,
+       474, 483, 492, 501, 510, 520, 530, 540, 550, 560, 571, 582, 593,
+       604, 615, 627, 639, 651, 663, 676, 689, 702, 715, 729, 743, 757,
+       771, 786, 801, 816, 832, 848, 864, 881, 898, 915, 933, 951, 969,
+       988, 1007, 1026, 1046, 1066, 1087, 1108, 1129, 1151, 1173, 1196,
+       1219, 1243, 1267, 1292, 1317, 1343, 1369, 1396, 1423, 1451, 1479,
+       1508, 1537, 1567, 1597, 1628, 1660, 1692, 1725, 1759, 1793, 1828
+};
 
-    if(QP >= 40) {
-        return (int)(-18.98682 + 0.3967082*(float) QP + 0.0005054*pow((float) QP-127.5, 2) - 9.692e-6*pow((float) QP-127.5, 3));
-    } else {
-        return  QP/4;
+mfxU32 ModifyLoopFilterLevelQPBased(mfxU32 QP, eMFXHWType platform)
+{
+
+    if (VP9ECaps::IsTableBasedLfLevelUsed(platform)) {
+        // notice mfxI32, mis-use unsigned here would lead to overflow further wrong LFlevel
+        mfxI32 level = 0;
+        const mfxI32 q = acScaleFactors[QP];
+        double qnorm = q / (double)acScaleFactors[255];
+        double qnorm2 = qnorm * qnorm;
+        double qnorm3 = qnorm * qnorm2;
+        level = mfxI32((20.095 * qnorm3 - 15.371 * qnorm2 + 5.5294 * qnorm - 0.166) * 63 /*MAX_LOOP_FILTER*/ + 0.5);
+        level = level < 0 ? 0 : level > 63 ? 63 : level;
+        if (level > 63) level = 63;
+        return (mfxU8)level;
+    }
+    else {
+        if (QP >= 40) {
+            return (mfxU8)(-18.98682 + 0.3967082 * (float)QP + 0.0005054 * pow((float)QP - 127.5, 2) - 9.692e-6 * pow((float)QP - 127.5, 3));
+        }
+        else {
+            return  QP / 4;
+        }
     }
 }
 
@@ -274,7 +309,24 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
             par.mfx.QPI : par.mfx.QPP);
     }
 
-    frameParam.lfLevel   = (mfxU8)ModifyLoopFilterLevelQPBased(frameParam.baseQIndex, 0); // always 0 is passes since at the moment there is no LF level in MSDK API
+    frameParam.lfLevel   = (mfxU8)ModifyLoopFilterLevelQPBased(frameParam.baseQIndex, platform);
+    if (VP9ECaps::IsTableBasedLfLevelUsed(platform))
+    {
+        frameParam.interpFilter = 4;
+
+        frameParam.lfRefDelta[0] = 1;
+        frameParam.lfRefDelta[1] = 0;
+        frameParam.lfRefDelta[2] = -1;
+        frameParam.lfRefDelta[3] = -1;
+        frameParam.modeRefDeltaEnabled = 1;
+
+        if (frameParam.lfLevel > 31) {
+            frameParam.lfRefDelta[0] = frameParam.lfRefDelta[0] * 2;
+            frameParam.lfRefDelta[1] = frameParam.lfRefDelta[1] * 2;
+            frameParam.lfRefDelta[2] = frameParam.lfRefDelta[2] * 2;
+            frameParam.lfRefDelta[3] = frameParam.lfRefDelta[3] * 2;
+        }
+    }
 
     frameParam.width  = frameParam.renderWidth = extPar.FrameWidth;
     frameParam.height = frameParam.renderHeight = extPar.FrameHeight;
