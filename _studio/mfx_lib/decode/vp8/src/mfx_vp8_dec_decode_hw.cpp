@@ -1176,6 +1176,9 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameHeader(mfxBitstream *in)
     {
         m_frame_info.partitionStart[0] = pTokenPartition + (partitions - 1) * 3;
 
+        if (m_frame_info.partitionStart[0] > data_in_end)
+            MFX_RETURN(MFX_ERR_MORE_DATA);
+
         for (uint32_t i = 0; i < partitions - 1; i++)
         {
             m_frame_info.partitionSize[i] = (int32_t)(pTokenPartition[0]) |
