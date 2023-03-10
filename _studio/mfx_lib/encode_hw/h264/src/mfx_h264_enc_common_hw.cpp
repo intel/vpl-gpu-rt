@@ -3437,6 +3437,14 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         changed = true;
     }
 
+    // Keep the behavior on VME and set to OFF from DG2 since we decided to deprecate this parameter on VDEnc.
+    if (H264ECaps::IsVmeSupported(platform)) {
+        if (extOpt2->BitrateLimit == MFX_CODINGOPTION_UNKNOWN)
+            extOpt2->BitrateLimit = MFX_CODINGOPTION_ON;
+    } else {
+        extOpt2->BitrateLimit = MFX_CODINGOPTION_OFF;
+    }
+
     if (par.calcParam.cqpHrdMode == 0)
     {
         // regular check for compatibility of profile/level and BRC parameters
@@ -5837,9 +5845,6 @@ void MfxHwH264Encode::SetDefaults(
 
     if (extDdi->RegressionWindow == 0)
         extDdi->RegressionWindow = 20;
-
-    if (extOpt2->BitrateLimit == MFX_CODINGOPTION_UNKNOWN)
-        extOpt2->BitrateLimit = MFX_CODINGOPTION_ON;
 
     if (extOpt2->RepeatPPS == MFX_CODINGOPTION_UNKNOWN)
         extOpt2->RepeatPPS = MFX_CODINGOPTION_ON;
