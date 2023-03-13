@@ -109,6 +109,9 @@ mfxStatus PercEncFilter::Init(mfxFrameInfo* in, mfxFrameInfo* out)
 
         mfxStatus sts = m_encTools->Init(m_encTools->Context, &config, &ctrl);
         m_saliencyMapSupported = (sts == MFX_ERR_NONE);
+
+        modulationStride = (width + blockSizeFilter - 1) / blockSizeFilter;
+        modulation.resize(modulationStride * ((height + blockSizeFilter - 1) / blockSizeFilter));
     }
 #endif
     m_initialized = true;
@@ -190,7 +193,8 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
             extSM.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_SALIENCY_MAP;
             extSM.Header.BufferSz = sizeof(extSM);
 
-            mfxU32 blockSize = 8;
+            const mfxU32 blockSize = 8; // source saliency is on 8x8 block granularity
+
             mfxU32 numOfBlocks = in->Info.Width * in->Info.Height / (blockSize * blockSize);
             std::unique_ptr<mfxF32[]> smBuffer(new mfxF32[numOfBlocks]);
 
@@ -208,6 +212,29 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
 
             sts = m_encTools->Query(m_encTools->Context, &param, 0 /*timeout*/);
             MFX_CHECK_STS(sts);
+
+            if (extSM.BlockSize != blockSize)
+                MFX_RETURN(MFX_ERR_UNKNOWN);
+
+            for (int y = 0; y < height; y += blockSizeFilter)
+                for (int x = 0; x < width; x += blockSizeFilter)
+                {
+                    float m = 0.f;
+                    int count = 0;
+
+                    for (int dy = 0; dy < std::min<int>(blockSizeFilter, height - y); dy += blockSize)
+                        for (int dx = 0; dx <  std::min<int>(blockSizeFilter, width - x); dx +=blockSize)
+                        {
+                            m += smBuffer[(x + dx) / blockSize + (y + dy) / blockSize * (in->Info.Width / blockSize)];
+                            ++count;
+                        }
+
+                    count = count ? count : 1;
+                    int mod = int(256.f * m /count);
+                    mod = std::max(mod, 0);
+                    mod = std::min(mod, 255);
+                    modulation[x / blockSizeFilter + y / blockSizeFilter * modulationStride] = (uint8_t)mod;
+                }
         }
     }
 #endif

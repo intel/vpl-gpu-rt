@@ -159,6 +159,8 @@ private:
     int modulationStride{};
 
 #if defined(MFX_ENABLE_ENCTOOLS)
+    static const mfxU32 blockSizeFilter = 16;
+
     //modulation map support
     mfxU32 m_frameCounter = 0;
     bool m_saliencyMapSupported = false;
