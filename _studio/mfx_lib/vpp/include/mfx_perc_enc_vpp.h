@@ -148,7 +148,8 @@ private:
     std::unique_ptr<Filter> filter;
 
     std::vector<uint8_t> previousOutput;
-    int width, height;
+    int width = 0;
+    int height = 0;
 
     void Setup(const Parameters &parameters);
 
