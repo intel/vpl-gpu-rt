@@ -1697,6 +1697,7 @@ namespace UMC_AV1_DECODER
 
         AV1D_LOG("[+]: %d", (uint32_t)BitsDecoded());
 
+        fh.current_frame_id = PreFrame_id;
         if (sh.reduced_still_picture_header)
         {
             fh.frame_type = KEY_FRAME;
@@ -1722,11 +1723,11 @@ namespace UMC_AV1_DECODER
                         assert("Frame_to_show is absent in DPB or invalid!");
                     }
 
-                    fh.current_frame_id = fh.display_frame_id;
                 }
 
                 if (refHdr.frame_type == KEY_FRAME)
                 {
+                    fh.current_frame_id = refHdr.current_frame_id;
                     refHdr.refresh_frame_flags = 255;
                 }
 
@@ -1735,7 +1736,7 @@ namespace UMC_AV1_DECODER
                 fh.FrameHeight = refHdr.FrameHeight;
 
                 fh.show_frame = 1;
-
+                PreFrame_id = fh.current_frame_id;
                 AV1D_LOG("[-]: %d", (uint32_t)BitsDecoded());
 
                 return;

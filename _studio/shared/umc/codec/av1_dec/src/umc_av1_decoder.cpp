@@ -731,7 +731,10 @@ namespace UMC_AV1_DECODER
                     if (obuType != OBU_FRAME)
                     {
                         if (fh.show_existing_frame)
+                        {
                             repeatedFrame = true;
+                            gotFullFrame = true;
+                        }
                         break;
                     }
                     bs.ReadByteAlignment();
