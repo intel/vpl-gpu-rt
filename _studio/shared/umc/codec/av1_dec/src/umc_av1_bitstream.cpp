@@ -1762,7 +1762,10 @@ namespace UMC_AV1_DECODER
         if (fh.frame_type == KEY_FRAME && !frameDpb.empty())
         {
             for (int i = 0; i < NUM_REF_FRAMES; i++)
-                frameDpb[i]->SetRefValid(false);
+                if (frameDpb[i] != nullptr)
+                {
+                    frameDpb[i]->SetRefValid(false);
+                }                
         }
 
         if (fh.frame_type != KEY_FRAME)

@@ -250,7 +250,12 @@ namespace UMC_AV1_DECODER
         }
 
         for (uint8_t ref = 0; ref < NUM_REF_FRAMES; ++ref)
-            picParam.ref_frame_map[ref] = (VASurfaceID)m_va->GetSurfaceID(frame.frame_dpb[ref]->GetMemID(SURFACE_RECON));
+        {
+            if (frame.frame_dpb[ref] != nullptr)
+            {
+                picParam.ref_frame_map[ref] = (VASurfaceID)m_va->GetSurfaceID(frame.frame_dpb[ref]->GetMemID(SURFACE_RECON));
+            }
+        }            
 
         for (uint8_t ref_idx = 0; ref_idx < INTER_REFS; ref_idx++)
         {

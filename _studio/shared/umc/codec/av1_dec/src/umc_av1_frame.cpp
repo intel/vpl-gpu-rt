@@ -113,8 +113,8 @@ namespace UMC_AV1_DECODER
         data[SURFACE_RECON].reset();
         tile_sets.resize(0);
 
-        *seq_header.get() = SequenceHeader{};
-        *header.get() = FrameHeader{};
+        seq_header.reset(new SequenceHeader{});
+        header.reset(new FrameHeader{});
         header->display_frame_id = (std::numeric_limits<uint32_t>::max)();
 
         ResetRefCounter();

@@ -39,8 +39,8 @@ namespace UMC_AV1_DECODER
         : allocator(nullptr)
         , sequence_header(nullptr)
         , counter(0)
-        , Curr(new AV1DecoderFrame{})
-        , Curr_temp(new AV1DecoderFrame{})
+        , Curr(nullptr)
+        , Curr_temp(nullptr)
         , Repeat_show(0)
         , PreFrame_id(0)
         , OldPreFrame_id(0)
@@ -559,7 +559,7 @@ namespace UMC_AV1_DECODER
             Curr_temp = Curr;
         }
 
-        if (!updated_refs.empty())
+        if ((!updated_refs.empty())&& (updated_refs[0] != nullptr))
         {
             TRACE_BUFFER_EVENT(MFX_TRACE_API_AV1_DPBPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_DPB_INFO,
                 updated_refs, AV1DecodeDpbInfo, DPBINFO_AV1D);
@@ -1058,11 +1058,8 @@ namespace UMC_AV1_DECODER
     {
         assert(size > 0);
         assert(size <= MAX_EXTERNAL_REFS);
-
+        
         refs_temp.resize(size);
-        std::generate(std::begin(refs_temp), std::end(refs_temp),
-           [] { return new AV1DecoderFrame{}; }
-        );
     }
 
     void AV1Decoder::CompleteDecodedFrames(FrameHeader const& fh, AV1DecoderFrame* pCurrFrame, AV1DecoderFrame* pPrevFrame)
