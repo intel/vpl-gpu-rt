@@ -172,7 +172,8 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
 
     if(m_saliencyMapSupported)
     {
-        {   mfxEncToolsFrameToAnalyze extFrameData = {};
+        {
+            mfxEncToolsFrameToAnalyze extFrameData = {};
             extFrameData.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_FRAME_TO_ANALYZE;
             extFrameData.Header.BufferSz = sizeof(extFrameData);
             extFrameData.Surface = in;
@@ -189,7 +190,8 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
             MFX_CHECK_STS(sts);
         }
 
-        {   mfxEncToolsHintSaliencyMap extSM = {};
+        {
+            mfxEncToolsHintSaliencyMap extSM = {};
             extSM.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_SALIENCY_MAP;
             extSM.Header.BufferSz = sizeof(extSM);
 
@@ -213,17 +215,16 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
             sts = m_encTools->Query(m_encTools->Context, &param, 0 /*timeout*/);
             MFX_CHECK_STS(sts);
 
-            if (extSM.BlockSize != blockSize)
-                MFX_RETURN(MFX_ERR_UNKNOWN);
+            MFX_CHECK(extSM.BlockSize == blockSize, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
-            for (int y = 0; y < height; y += blockSizeFilter)
-                for (int x = 0; x < width; x += blockSizeFilter)
+            for (size_t y = 0; y < size_t(height); y += blockSizeFilter)
+                for (size_t x = 0; x < size_t(width); x += blockSizeFilter)
                 {
                     float m = 0.f;
                     int count = 0;
 
-                    for (int dy = 0; dy < std::min<int>(blockSizeFilter, height - y); dy += blockSize)
-                        for (int dx = 0; dx <  std::min<int>(blockSizeFilter, width - x); dx +=blockSize)
+                    for (size_t dy = 0; dy < std::min<size_t>(blockSizeFilter, height - y); dy += blockSize)
+                        for (size_t dx = 0; dx <  std::min<size_t>(blockSizeFilter, width - x); dx +=blockSize)
                         {
                             m += smBuffer[(x + dx) / blockSize + (y + dy) / blockSize * (in->Info.Width / blockSize)];
                             ++count;
