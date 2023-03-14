@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Intel Corporation
+// Copyright (c) 2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -71,7 +71,7 @@ mfxStatus PercEncFilter::Init(mfxFrameInfo* in, mfxFrameInfo* out)
 
     width = in->CropW;
     height = in->CropH;
-    previousOutput.resize(width * height);
+    previousOutput.resize(size_t(width) * height);
     filter = std::make_unique<Filter>(parametersFrame, parametersBlock, width);
 
 #if defined(MFX_ENABLE_ENCTOOLS)
@@ -249,7 +249,7 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
     }
     else
     {
-        for (int y = 0; y < height; ++y)
+        for (size_t y = 0; y < size_t(height); ++y)
             std::copy(
                 &in->Data.Y[out->Data.Pitch * y],
                 &in->Data.Y[out->Data.Pitch * y + width],
@@ -257,7 +257,7 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
     }
 
     // retain a copy of the output for next time... (it would be nice to avoid this copy)
-    for (int y = 0; y < height; ++y)
+    for (size_t y = 0; y < size_t(height); ++y)
         std::copy(
             &out->Data.Y[out->Data.Pitch * y],
             &out->Data.Y[out->Data.Pitch * y + width],
