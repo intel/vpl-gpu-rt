@@ -161,8 +161,7 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
     if( in->Info.CropX != out->Info.CropX || in->Info.CropX != 0 ||
         in->Info.CropY != out->Info.CropY || in->Info.CropY != 0 ||
         in->Info.CropW != out->Info.CropW ||
-        in->Info.CropH != out->Info.CropH ||
-        in->Data.Pitch != out->Data.Pitch
+        in->Info.CropH != out->Info.CropH
     ){
         return MFX_ERR_NONE;
     }
