@@ -45,9 +45,10 @@ namespace CommonCaps {
             MFX_HW_DG2 <= platform;
     }
 
-    inline bool HasNativeDX9Support(eMFXHWType platform)
+    inline bool HasNativeDX9Support(eMFXHWType platform, int deviceId)
     {
-        return platform < MFX_HW_ADL_S;
+        // Enable native DX9 for ATSM
+        return platform < MFX_HW_ADL_S || deviceId == 0x56C0 || deviceId == 0x56C1;
     }
 
     inline bool IsVplHW(eMFXHWType hw, mfxU32 deviceId)
