@@ -502,6 +502,7 @@ mfxStatus CheckFramePointers(mfxFrameInfo const& info, mfxFrameData const& data)
         case MFX_FOURCC_AYUV_RGB4:
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_BGR4:
+        case MFX_FOURCC_ABGR16F:
         case MFX_FOURCC_ARGB16:
         case MFX_FOURCC_ABGR16:      MFX_CHECK(data.R && data.G && data.B && data.A, MFX_ERR_UNDEFINED_BEHAVIOR); break;
 
