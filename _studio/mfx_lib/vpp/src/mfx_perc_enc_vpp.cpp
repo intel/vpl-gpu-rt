@@ -69,6 +69,9 @@ mfxStatus PercEncFilter::Init(mfxFrameInfo* in, mfxFrameInfo* out)
     MFX_CHECK(in->CropW >= 16, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(in->CropH >= 2, MFX_ERR_INVALID_VIDEO_PARAM);
 
+    MFX_CHECK(in->FourCC         == MFX_FOURCC_NV12,         MFX_ERR_INVALID_VIDEO_PARAM);
+    MFX_CHECK(in->ChromaFormat   == MFX_CHROMAFORMAT_YUV420, MFX_ERR_INVALID_VIDEO_PARAM);
+
     width = in->CropW;
     height = in->CropH;
     previousOutput.resize(size_t(width) * height);
@@ -273,24 +276,31 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
     else
     {
         for (size_t y = 0; y < size_t(height); ++y)
+        {
             std::copy(
-                &in->Data.Y[out->Data.Pitch * y],
-                &in->Data.Y[out->Data.Pitch * y + width],
+                &in->Data.Y[in->Data.Pitch * y],
+                &in->Data.Y[in->Data.Pitch * y + width],
                 &out->Data.Y[out->Data.Pitch * y]);
+        }
     }
 
     // retain a copy of the output for next time... (it would be nice to avoid this copy)
     for (size_t y = 0; y < size_t(height); ++y)
+    {
         std::copy(
             &out->Data.Y[out->Data.Pitch * y],
             &out->Data.Y[out->Data.Pitch * y + width],
             &previousOutput[width * y]);
+    }
 
     // copy chroma
-    std::copy(
-        &in->Data.UV[0],
-        &in->Data.UV[in->Data.Pitch * height / 2],
-        &out->Data.UV[0]);
+    for (int y = 0; y < height / 2; ++y)
+    {
+        std::copy(
+            &in->Data.UV[in->Data.Pitch * y],
+            &in->Data.UV[in->Data.Pitch * y + width],
+            &out->Data.UV[out->Data.Pitch * y]);
+    }
 
     return MFX_ERR_NONE;
 }
