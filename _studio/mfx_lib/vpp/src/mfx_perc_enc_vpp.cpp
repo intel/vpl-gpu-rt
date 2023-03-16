@@ -196,10 +196,8 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
 
             const mfxU32 blockSize = 8; // source saliency is on 8x8 block granularity
 
-            mfxU32 numOfBlocks = in->Info.Width * in->Info.Height / (blockSize * blockSize);
-            std::unique_ptr<mfxF32[]> smBuffer(new mfxF32[numOfBlocks]);
-
-            extSM.AllocatedSize = numOfBlocks;
+            extSM.AllocatedSize = in->Info.Width * in->Info.Height / (blockSize * blockSize);
+            std::unique_ptr<mfxF32[]> smBuffer(new mfxF32[extSM.AllocatedSize]);
             extSM.SaliencyMap = smBuffer.get();
 
             std::vector<mfxExtBuffer*> extParams;
@@ -212,6 +210,14 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
             m_frameCounter++;
 
             sts = m_encTools->Query(m_encTools->Context, &param, 0 /*timeout*/);
+            if (sts == MFX_ERR_NOT_ENOUGH_BUFFER)
+            {
+                extSM.AllocatedSize = extSM.Width * extSM.Height;
+                smBuffer.reset(new mfxF32[extSM.AllocatedSize]);
+                extSM.SaliencyMap = smBuffer.get();
+                sts = m_encTools->Query(m_encTools->Context, &param, 0 /*timeout*/);
+            }
+
             MFX_CHECK_STS(sts);
 
             MFX_CHECK(extSM.BlockSize == blockSize, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
@@ -225,7 +231,7 @@ mfxStatus PercEncFilter::RunFrameVPP(mfxFrameSurface1* in, mfxFrameSurface1* out
                     for (size_t dy = 0; dy < std::min<size_t>(blockSizeFilter, height - y); dy += blockSize)
                         for (size_t dx = 0; dx <  std::min<size_t>(blockSizeFilter, width - x); dx +=blockSize)
                         {
-                            m += smBuffer[(x + dx) / blockSize + (y + dy) / blockSize * (in->Info.Width / blockSize)];
+                            m += smBuffer[(x + dx) / blockSize + (y + dy) / blockSize * extSM.Width];
                             ++count;
                         }
 
