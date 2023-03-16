@@ -128,7 +128,7 @@ mfxStatus PercEncFilter::Init(mfxFrameInfo* in, mfxFrameInfo* out)
         m_saliencyMapSupported = (sts == MFX_ERR_NONE);
 
         modulationStride = (width + blockSizeFilter - 1) / blockSizeFilter;
-        modulation.resize(modulationStride * ((height + blockSizeFilter - 1) / blockSizeFilter));
+        modulation.resize(size_t(modulationStride) * ((height + blockSizeFilter - 1) / blockSizeFilter));
     }
 #endif
     m_initialized = true;
