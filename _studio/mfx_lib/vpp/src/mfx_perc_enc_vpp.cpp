@@ -72,6 +72,23 @@ mfxStatus PercEncFilter::Init(mfxFrameInfo* in, mfxFrameInfo* out)
     width = in->CropW;
     height = in->CropH;
     previousOutput.resize(size_t(width) * height);
+
+    parametersFrame.spatialSlope = 2;
+    parametersFrame.temporalSlope = 5;
+
+    parametersBlock[0].spatial.pivot = -0.07341831502140751f;
+    parametersBlock[1].spatial.pivot = -0.03532511563181591f;
+    parametersBlock[0].spatial.minimum = -0.050962246349792066f;
+    parametersBlock[1].spatial.minimum = -0.10323143411360197f;
+    parametersBlock[0].spatial.maximum = 0.06901369121442401f;
+    parametersBlock[1].spatial.maximum = 0.06436164002690078f;
+    parametersBlock[0].temporal.pivot = 0.f;
+    parametersBlock[1].temporal.pivot = 0.f;
+    parametersBlock[0].temporal.minimum = 0.f;
+    parametersBlock[1].temporal.minimum = 0.f;
+    parametersBlock[0].temporal.maximum = 0.f;
+    parametersBlock[1].temporal.maximum = 0.f;
+
     filter = std::make_unique<Filter>(parametersFrame, parametersBlock, width);
 
 #if defined(MFX_ENABLE_ENCTOOLS)
