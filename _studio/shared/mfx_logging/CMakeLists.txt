@@ -3,12 +3,14 @@ add_library(mfx_logging STATIC)
 target_sources(mfx_logging 
   PRIVATE
     include/mfx_utils_logging.h
+    include/mfx_utils_perf.h
     include/mfx_unified_decode_logging.h
     include/mfx_unified_h265d_logging.h
     include/mfx_unified_h264d_logging.h
     include/mfx_unified_av1d_logging.h
     include/mfx_unified_vp9d_logging.h
     src/mfx_utils_logging.cpp
+    src/mfx_utils_perf.cpp
     src/mfx_unified_decode_logging.cpp
     src/mfx_unified_h265d_logging.cpp
     src/mfx_unified_h264d_logging.cpp

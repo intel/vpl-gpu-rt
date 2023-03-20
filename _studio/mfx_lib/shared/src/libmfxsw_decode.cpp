@@ -141,6 +141,7 @@ VideoDECODE* _mfxSession::Create<VideoDECODE>(mfxVideoParam& par)
 
 mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     InitMfxLogging();
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
@@ -237,6 +238,7 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 
 mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     InitMfxLogging();
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
@@ -324,6 +326,7 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
 
 mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxVideoParam *par)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(bs, MFX_ERR_NULL_PTR);
     MFX_CHECK(par, MFX_ERR_NULL_PTR);
@@ -406,6 +409,7 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
 
 mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     InitMfxLogging();
     TRACE_EVENT(MFX_TRACE_API_DECODE_INIT_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session, par ? par->mfx.FrameInfo.Width : 0, 
         par ? par->mfx.FrameInfo.Height : 0, par ? par->mfx.CodecId : 0));
@@ -448,6 +452,7 @@ mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
 
 mfxStatus MFXVideoDECODE_Close(mfxSession session)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     mfxStatus mfxRes = MFX_ERR_NONE;
     TRACE_EVENT(MFX_TRACE_API_DECODE_CLOSE_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session));
 
@@ -487,6 +492,7 @@ mfxStatus MFXVideoDECODE_Close(mfxSession session)
 mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, mfxSyncPoint *syncp)
 {
     mfxStatus mfxRes;
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     TRACE_EVENT(MFX_TRACE_API_DECODE_FRAME_ASYNC_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session, surface_work, bs ? bs->DataLength : 0));
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);

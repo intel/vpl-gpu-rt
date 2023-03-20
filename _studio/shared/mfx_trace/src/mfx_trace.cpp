@@ -20,6 +20,7 @@
 
 #include "mfxdefs.h"
 #include "mfx_trace.h"
+#include "mfx_utils_perf.h"
 
 static mfx_reflect::AccessibleTypesCollection g_Reflection;
 
@@ -212,6 +213,14 @@ mfxTraceU32 MFXTrace_GetEnvParams(void)
             g_Level = LogConfig;
         }
     }
+    //get VPL perf log environment variable
+    const char* PerflogChar = std::getenv("VPL_PERF_LOG");
+    char* pEndPerf = nullptr;
+    if (PerflogChar != nullptr)
+    {
+        g_perfutility->dwPerfUtilityIsEnabled = std::strtol(PerflogChar, &pEndPerf, 10);
+    }
+
     //Capture different info according to VPL_EVENT_TRACE_CFG
     const char* g_eventCfg = std::getenv("VPL_EVENT_TRACE_CFG");
     char* endEventCfg = nullptr;
