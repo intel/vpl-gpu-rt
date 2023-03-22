@@ -225,6 +225,7 @@ protected:
 #define FUNCTION_IMPL(component, func_name, formal_param_list, actual_param_list) \
 mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
 { \
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API); \
     MFX_LOG_API_TRACE("----------------MFXVideo" #component "_" #func_name "----------------\n"); \
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE); \
     MFX_CHECK(session->m_p##component.get(), MFX_ERR_NOT_INITIALIZED); \
@@ -255,6 +256,7 @@ mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
 #define FUNCTION_RESET_IMPL(component, func_name, formal_param_list, actual_param_list) \
 mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
 { \
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API); \
     MFX_LOG_API_TRACE("----------------MFXVideo" #component "_" #func_name "----------------\n"); \
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE); \
     MFX_CHECK(session->m_p##component.get(), MFX_ERR_NOT_INITIALIZED); \

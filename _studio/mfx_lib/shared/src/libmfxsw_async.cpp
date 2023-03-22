@@ -29,6 +29,7 @@
 
 mfxStatus MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfxU32 wait)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     mfxStatus mfxRes = MFX_ERR_NONE;
     TRACE_EVENT(MFX_TRACE_API_SYNC_OPERATION_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(FrameIndex, session, syncp, wait));
 

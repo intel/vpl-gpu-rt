@@ -542,6 +542,7 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
 #endif
 
             // register input and call the task
+            PERF_UTILITY_SET_ASYNC_TASK_ID(task.nTaskId);
             mfxAddRes = session->m_pScheduler->AddTask(task, &syncPoint);
             MFX_CHECK_STS(mfxAddRes);
 

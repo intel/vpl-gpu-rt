@@ -352,6 +352,7 @@ VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
 
 mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     InitMfxLogging();
     MFX_LOG_API_TRACE("----------------MFXVideoENCODE_Query----------------\n");
 
@@ -437,6 +438,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 
 mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     InitMfxLogging();
     MFX_LOG_API_TRACE("----------------MFXVideoENCODE_QueryIOSurf----------------\n");
 
@@ -520,6 +522,7 @@ static mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
 
 mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     InitMfxLogging();
     MFX_LOG_API_TRACE("----------------MFXVideoENCODE_Init----------------\n");
 
@@ -593,6 +596,7 @@ mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
 
 mfxStatus MFXVideoENCODE_Close(mfxSession session)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     mfxStatus mfxRes = MFX_ERR_NONE;
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
@@ -659,6 +663,7 @@ enum
 
 mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs, mfxSyncPoint *syncp)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     mfxStatus mfxRes;
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
@@ -736,6 +741,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
 #endif // MFX_TRACE_ENABLE
 
                     // register input and call the task
+                    PERF_UTILITY_SET_ASYNC_TASK_ID(task.nTaskId);
                     MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
                 }
                 else if (1 == numEntryPoints)
@@ -759,6 +765,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
                     task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_ENCODE;
 #endif
                     // register input and call the task
+                    PERF_UTILITY_SET_ASYNC_TASK_ID(task.nTaskId);
                     MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
                 }
                 else
@@ -780,6 +787,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
                     task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_ENCODE;
 #endif
                     // register input and call the task
+                    PERF_UTILITY_SET_ASYNC_TASK_ID(task.nTaskId);
                     MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
 
                     memset(&task, 0, sizeof(task));
@@ -796,6 +804,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
                     task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_ENCODE2;
 #endif
                     // register input and call the task
+                    PERF_UTILITY_SET_ASYNC_TASK_ID(task.nTaskId);
                     MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
                 }
 
@@ -830,6 +839,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
 
 mfxStatus MFXMemory_GetSurfaceForEncode(mfxSession session, mfxFrameSurface1** output_surf)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     MFX_CHECK_NULL_PTR1(output_surf);
     MFX_CHECK_HDL(session);
     MFX_CHECK(session->m_pENCODE,                  MFX_ERR_NOT_INITIALIZED);
