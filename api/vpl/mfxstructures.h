@@ -1374,8 +1374,10 @@ typedef struct {
        This parameter is valid only during initialization. Flag works with MFX_CODEC_AVC only, it is ignored with other codecs.
        See the CodingOptionValue
        enumerator for values of this option.
+
+       @deprecated Deprecated in API version 2.9
     */
-    mfxU16      BitrateLimit;
+    MFX_DEPRECATED mfxU16      BitrateLimit; /* Deprecated */
     /*!
        Setting this flag enables macroblock level bitrate control that generally improves subjective visual quality. Enabling this flag may
        have negative impact on performance and objective visual quality metric. See the CodingOptionValue enumerator for values of this option.
