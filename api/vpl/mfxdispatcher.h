@@ -81,11 +81,13 @@ mfxStatus MFX_CDECL MFXSetConfigFilterProperty(mfxConfig config, const mfxU8* na
 
 /*!
    @brief Iterates over filtered out implementations to gather their details. This function allocates memory to store
-          mfxImplDescription structure instance. Use the MFXDispReleaseImplDescription function to free memory allocated to the mfxImplDescription structure.
+          a structure or string corresponding to the type specified by format. For example, if format is set to
+          MFX_IMPLCAPS_IMPLDESCSTRUCTURE, then idesc will return a pointer to a structure of type mfxImplDescription.
+          Use the MFXDispReleaseImplDescription function to free memory allocated to this structure or string.
    @param[in] loader Loader handle.
    @param[in] i Index of the implementation.
    @param[in] format Format in which capabilities need to be delivered. See the mfxImplCapsDeliveryFormat enumerator for more details.
-   @param[out] idesc Pointer to the mfxImplDescription structure.
+   @param[out] idesc Pointer to the structure or string corresponding to the requested format.
    @return
       MFX_ERR_NONE        The function completed successfully. The idesc contains valid information.\n
       MFX_ERR_NULL_PTR    If loader is NULL. \n
