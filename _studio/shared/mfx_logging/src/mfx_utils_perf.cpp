@@ -3,10 +3,9 @@
 #include <stdarg.h>
 #include <pthread.h>
 #include "unistd.h"
+#include <sys/stat.h> 
 
 #include "mfx_utils_perf.h"
-
-std::string perfFilePath = "C:\\Temp\\";
 
 int32_t MfxSecureStringPrint(char* buffer, size_t bufSize, size_t length, const char* const format, ...)
 {
@@ -89,7 +88,16 @@ bool PerfUtility::setupFilePath(std::fstream& pTimeStampFile)
     int32_t pid = getpid();
     int32_t tid = pthread_self();
     MFX_SecureStringPrint(sDetailsFileName, MFX_MAX_PATH_LENGTH + 1, MFX_MAX_PATH_LENGTH + 1,
-        "%sperf_details_pid%d_tid%d.txt", perfFilePath.c_str(), pid, tid);
+        "%s\\perf_details_pid%d_tid%d.txt", perfFilePath.c_str(), pid, tid);
+
+    if (access(perfFilePath.c_str(), 0) == -1)
+    {
+        int folder_exist_status = mkdir(perfFilePath.c_str(), S_IRWXU);
+        if (folder_exist_status == -1)
+        {
+            return false;
+        }
+    }
     pTimeStampFile.open(sDetailsFileName, std::ios::app);
     if (pTimeStampFile.good() == false)
     {

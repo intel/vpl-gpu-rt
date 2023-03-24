@@ -215,10 +215,19 @@ mfxTraceU32 MFXTrace_GetEnvParams(void)
     }
     //get VPL perf log environment variable
     const char* PerflogChar = std::getenv("VPL_PERF_LOG");
+    const char* PerfPathChar = std::getenv("VPL_PERF_PATH");
     char* pEndPerf = nullptr;
     if (PerflogChar != nullptr)
     {
         g_perfutility->dwPerfUtilityIsEnabled = std::strtol(PerflogChar, &pEndPerf, 10);
+        if (PerfPathChar != nullptr)
+        {
+            g_perfutility->perfFilePath = PerfPathChar;
+        }
+        else
+        {
+            g_perfutility->perfFilePath = "C:\\Temp";
+        }
     }
 
     //Capture different info according to VPL_EVENT_TRACE_CFG

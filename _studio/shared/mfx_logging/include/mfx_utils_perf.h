@@ -32,6 +32,7 @@ public:
     void closeFile() {};
     char sDetailsFileName[MFX_MAX_PERF_FILENAME_LEN + 1] = { '\0' };
     int32_t dwPerfUtilityIsEnabled = false;
+    std::string perfFilePath;
     static std::mutex perfMutex;
 
 private:
