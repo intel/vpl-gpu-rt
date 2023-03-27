@@ -498,7 +498,8 @@ void Packer::PackPTL(BitstreamWriter& bs, LayersInfo const & profile_tier_level,
     bs.PutBit(profile_tier_level.general.constraint.intra           );
     bs.PutBit(profile_tier_level.general.constraint.one_picture_only);
     bs.PutBit(profile_tier_level.general.constraint.lower_bit_rate  );
-    bs.PutBits(23, 0);
+    bs.PutBit(profile_tier_level.general.constraint.max_14bit       );
+    bs.PutBits(22, 0);
     bs.PutBits(11, 0);
     bs.PutBit(profile_tier_level.general.inbld_flag);
     bs.PutBits(8, profile_tier_level.general.level_idc);
@@ -536,7 +537,8 @@ void Packer::PackPTL(BitstreamWriter& bs, LayersInfo const & profile_tier_level,
             bs.PutBit(profile_tier_level.general.constraint.intra);
             bs.PutBit(profile_tier_level.general.constraint.one_picture_only);
             bs.PutBit(profile_tier_level.general.constraint.lower_bit_rate);
-            bs.PutBits(23, 0);
+            bs.PutBit(profile_tier_level.general.constraint.max_14bit);
+            bs.PutBits(22, 0);
             bs.PutBits(11, 0);
             bs.PutBit(sl.inbld_flag);
         }
