@@ -78,13 +78,12 @@ mfxStatus PercEncFilter::Init(mfxFrameInfo* in, mfxFrameInfo* out)
 
     parametersFrame.spatialSlope = 2;
     parametersFrame.temporalSlope = 5;
-
-    parametersBlock[0].spatial.pivot = -0.07341831502140751f;
-    parametersBlock[1].spatial.pivot = -0.03532511563181591f;
-    parametersBlock[0].spatial.minimum = -0.050962246349792066f;
-    parametersBlock[1].spatial.minimum = -0.10323143411360197f;
-    parametersBlock[0].spatial.maximum = 0.06901369121442401f;
-    parametersBlock[1].spatial.maximum = 0.06436164002690078f;
+    parametersBlock[0].spatial.pivot = -0.04919726181967239f;
+    parametersBlock[1].spatial.pivot = -0.0644213041181315f;
+    parametersBlock[0].spatial.minimum = -0.03801339913516113f;
+    parametersBlock[1].spatial.minimum = -0.015238062310868572f;
+    parametersBlock[0].spatial.maximum = 0.030073371552246993f;
+    parametersBlock[1].spatial.maximum = 0.01967648971505743f;
     parametersBlock[0].temporal.pivot = 0.f;
     parametersBlock[1].temporal.pivot = 0.f;
     parametersBlock[0].temporal.minimum = 0.f;
