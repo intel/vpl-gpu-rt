@@ -4882,6 +4882,27 @@ typedef struct {
 MFX_PACK_END()
 #endif
 
+#ifdef ONEVPL_EXPERIMENTAL
+/* The mfxAutoSelectImplType enumerator specifies the method for automatically selecting an implementation. */
+typedef enum {
+    MFX_AUTO_SELECT_IMPL_TYPE_UNKNOWN = 0,         /*!< Unspecified automatic implementation selection. */
+    MFX_AUTO_SELECT_IMPL_TYPE_DEVICE_HANDLE = 1,   /*!< Select implementation corresponding to device handle. */
+} mfxAutoSelectImplType;
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+/*! Specifies that an implementation should be selected which matches the device handle provided by the application. */
+typedef struct {
+    mfxAutoSelectImplType AutoSelectImplType;      /*!< Must be set to MFX_AUTO_SELECT_IMPL_TYPE_DEVICE_HANDLE. */
+
+    mfxAccelerationMode   AccelMode;               /*!< Hardware acceleration mode of provided device handle. */
+    mfxHandleType         DeviceHandleType;        /*!< Type of provided device handle. */
+    mfxHDL                DeviceHandle;            /*!< System handle to hardware device. */
+
+    mfxU16                reserved[8];             /*!< Reserved for future use. */
+} mfxAutoSelectImplDeviceHandle;
+MFX_PACK_END()
+#endif
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
