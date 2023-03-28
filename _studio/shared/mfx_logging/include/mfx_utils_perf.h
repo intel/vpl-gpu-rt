@@ -27,12 +27,18 @@ public:
     static PerfUtility* getInstance();
     ~PerfUtility() {};
     PerfUtility() {};
+    int32_t getPid();
+    int32_t getTid();
     void timeStampTick(std::string tag, std::string level, std::string flag, const std::vector<uint32_t> &taskIds);
     bool setupFilePath(std::fstream& pTimeStampFile);
+    void savePerfData();
     void closeFile() {};
     char sDetailsFileName[MFX_MAX_PERF_FILENAME_LEN + 1] = { '\0' };
     int32_t dwPerfUtilityIsEnabled = false;
     std::string perfFilePath;
+    std::stringstream ss;
+    bool routine_flag = false;
+    int32_t mainTid;
     static std::mutex perfMutex;
 
 private:
@@ -61,6 +67,15 @@ extern PerfUtility* g_perfutility;
         {                                                                            \
             g_perfutility->timeStampTick(TAG, LEVEL, FLAG, std::vector<uint32_t>()); \
         }                                                                            \
+    } while(0)
+
+#define PERF_UTILITY_PRINT                         \
+    do                                             \
+    {                                              \
+        if (g_perfutility->dwPerfUtilityIsEnabled) \
+        {                                          \
+            g_perfutility->savePerfData();         \
+        }                                          \
     } while(0)
 
 #define PERF_UTILITY_AUTO(TAG,LEVEL) AutoPerfUtility apu(TAG,LEVEL)

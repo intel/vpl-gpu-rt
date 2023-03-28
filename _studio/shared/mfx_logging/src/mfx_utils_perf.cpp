@@ -83,10 +83,23 @@ PerfUtility* PerfUtility::getInstance()
     return instance.get();
 }
 
-bool PerfUtility::setupFilePath(std::fstream& pTimeStampFile)
+int32_t PerfUtility::getPid()
 {
     int32_t pid = getpid();
+    return pid;
+}
+
+int32_t PerfUtility::getTid()
+{
     int32_t tid = pthread_self();
+    return tid;
+}
+
+bool PerfUtility::setupFilePath(std::fstream& pTimeStampFile)
+{
+    int32_t pid = getPid();
+    int32_t tid = getTid();
+
     MFX_SecureStringPrint(sDetailsFileName, MFX_MAX_PATH_LENGTH + 1, MFX_MAX_PATH_LENGTH + 1,
         "%s\\perf_details_pid%d_tid%d.txt", perfFilePath.c_str(), pid, tid);
 
@@ -118,29 +131,85 @@ void PerfUtility::timeStampTick(std::string tag, std::string level, std::string 
 
 void PerfUtility::printPerfTimeStamp(Tick *newTick, const std::vector<uint32_t>& taskIds)
 {
+    if (mainTid != getTid())
+    {
+        routine_flag = true;
+    }
+    else
+    {
+        routine_flag = false;
+    }
+
+    if (routine_flag == true)
+    {
+        std::fstream pSchedulerFile;
+        bool fileStatus = setupFilePath(pSchedulerFile);
+        if (fileStatus == true)
+        {
+            if (newTick->level == PERF_LEVEL_DDI || newTick->level == PERF_LEVEL_HW)
+            {
+                pSchedulerFile << "    ";
+            }
+            else if(newTick->level == PERF_LEVEL_ROUTINE)
+            {
+                pSchedulerFile << "  ";
+            }
+            pSchedulerFile << newTick->tag << newTick->functionType << "\tTimeStamp: " << newTick->timestamp << "\tFreq: " << newTick->freq;
+            if (!taskIds.empty())
+            {
+                pSchedulerFile << "\tAsync Task ID: ";
+                for (auto id : taskIds)
+                {
+                    pSchedulerFile << id << ",";
+                }
+                pSchedulerFile.unget();
+            }
+            pSchedulerFile << std::endl;
+            pSchedulerFile.close();
+        }
+    }
+    else
+    {
+        if (newTick->level == PERF_LEVEL_DDI)
+        {
+            ss << "    ";
+            ss << newTick->tag << newTick->functionType << "\tTimeStamp: " << newTick->timestamp << "\tFreq: " << newTick->freq;
+            if (!taskIds.empty())
+            {
+                ss << "\tAsync Task ID: ";
+                for (auto id : taskIds)
+                {
+                    ss << id << ",";
+                }
+            }
+            ss << std::endl;
+        }
+        else
+        {
+            ss << newTick->tag << newTick->functionType << "\tTimeStamp: " << newTick->timestamp << "\tFreq: " << newTick->freq;
+            if (!taskIds.empty())
+            {
+                ss << "\tAsync Task ID: ";
+                for (auto id : taskIds)
+                {
+                    ss << id << ",";
+                }
+            }
+            ss << std::endl;
+        }
+    }
+}
+
+void PerfUtility::savePerfData()
+{
     std::fstream pTimeStampFile;
     bool fileStatus = setupFilePath(pTimeStampFile);
     if (fileStatus == true)
     {
-        if (newTick->level == PERF_LEVEL_DDI || newTick->level == PERF_LEVEL_HW)
+        if (routine_flag == false)
         {
-            pTimeStampFile << "    ";
+            pTimeStampFile << ss.str();
         }
-        else if (newTick->level == PERF_LEVEL_ROUTINE)
-        {
-            pTimeStampFile << "  ";
-        }
-        pTimeStampFile << newTick->tag << newTick->functionType << "\tTimeStamp: " << newTick->timestamp << "\tFreq: " << newTick->freq;
-        if (!taskIds.empty())
-        {
-            pTimeStampFile << "\tAsync Task ID: ";
-            for (auto id : taskIds)
-            {
-                pTimeStampFile << id << ",";
-            }
-            pTimeStampFile.unget();
-        }
-        pTimeStampFile << std::endl;
         pTimeStampFile.close();
     }
 }

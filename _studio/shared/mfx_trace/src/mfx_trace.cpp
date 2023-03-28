@@ -219,6 +219,7 @@ mfxTraceU32 MFXTrace_GetEnvParams(void)
     char* pEndPerf = nullptr;
     if (PerflogChar != nullptr)
     {
+        g_perfutility->mainTid = g_perfutility->getTid();
         g_perfutility->dwPerfUtilityIsEnabled = std::strtol(PerflogChar, &pEndPerf, 10);
         if (PerfPathChar != nullptr)
         {
