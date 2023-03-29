@@ -534,35 +534,50 @@ public:
             || fourcc == MFX_FOURCC_P016;
     }
 
-    static bool IsVaCopySupportSurface(mfxFrameSurface1* pDst, mfxFrameSurface1* pSrc)
+    static bool IsVaCopySupportSurface(const mfxFrameSurface1& dst_surface, const mfxFrameSurface1& src_surface)
     {
-        if (!pDst || !pSrc)
+        auto CheckOneSurface = [](const mfxFrameSurface1& sw_surface)
         {
+            // Only start addresses with 4k aligment for UsrPtr surface are supported, refer: https://dri.freedesktop.org/docs/drm/gpu/driver-uapi.html#c.drm_i915_gem_userptr
+            if ((size_t)sw_surface.Data.Y % BASE_ADDR_ALIGN)
+                return false;
+
+            // Pitch should be 16-aligned
+            if (sw_surface.Data.Pitch % 16)
+                return false;
+
+            // Pixel data is stored continuously for chroma and Luma for multiplane format.
+            if (!IsTwoPlanesFormat(sw_surface.Info.FourCC))
+                return true;
+
+            // Two planes format
+            size_t luma_size_in_bytes_aligned = sw_surface.Data.Pitch * mfx::align2_value(sw_surface.Info.Height, 32);
+            size_t luma_size_in_bytes         = sw_surface.Data.Pitch * mfx::align2_value(sw_surface.Info.Height, 1);
+            // Assume that frame data is stored in continuous chunk (Chroma right after Luma)
+            // use relative offset between UV and Y, not pitch * height
+            // Two cases need to be checked:
+            // 1. Height 32 aligned, e.g, internal allocator need this path
+            // 2. Height not aligned, i.e., app uses specific allocator without alignment.
+            // vaCopy can't support the two planes' formats which are not stored continuously.
+            // App need copy each plane as 1 plane format if it still keep Luma/ chroma plan using noncontinuous chunk.
+
+            return (sw_surface.Data.Y + luma_size_in_bytes_aligned == sw_surface.Data.UV)
+                || (sw_surface.Data.Y + luma_size_in_bytes         == sw_surface.Data.UV);
+        };
+
+        // SW to SW copy is not supported
+        if (dst_surface.Data.Y && src_surface.Data.Y)
             return false;
-        }
-        // just support start address 4k aligment for UsrPtr surface, refer: https://dri.freedesktop.org/docs/drm/gpu/driver-uapi.html#c.drm_i915_gem_userptr
-        // pitch 16 aligmment;
-        // Frame data is stored continuously for chroma and Luma for multiplane format.
-        mfxFrameSurface1* chunkSurface  = pSrc->Data.Y ? pSrc:pDst;
-        bool CanvaCopysupport = (((size_t)chunkSurface->Data.Y % BASE_ADDR_ALIGN) == 0 && (chunkSurface->Data.Pitch % 16 == 0));
-        if (IsTwoPlanesFormat(chunkSurface->Info.FourCC) && CanvaCopysupport)
-        {
-                size_t luma_size_in_bytes_aligned = chunkSurface->Data.Pitch * mfx::align2_value(chunkSurface->Info.Height, 32);
-                size_t luma_size_in_bytes         = chunkSurface->Data.Pitch * mfx::align2_value(chunkSurface->Info.Height, 1);
-                // assume that frame data is stored in continuous chunk (Chroma right after Luma)
-                // use relative offset between UV and Y, not pitch * height
-                // Two cases need to be checked:
-                // 1. Height 32 aligned, e.g, internal allocator need this path
-                // 2. Height not aligned, i.e., app uses specific allocator without alignment.
-                // vaCopy can't support the two planes' formats which are not stored continuously.
-                // App need copy each plane as 1 plane format if it still keep Luma/ chroma plan using uncontinous chunck.
-                if (chunkSurface->Data.Y + luma_size_in_bytes_aligned != chunkSurface->Data.UV
-                    || (chunkSurface->Data.Y + luma_size_in_bytes != chunkSurface->Data.UV))
-                {
-                    CanvaCopysupport = false;
-                }
-        }
-        return CanvaCopysupport;
+
+        // If dst surface is in SW memory, check it's data layout
+        if (dst_surface.Data.Y && !CheckOneSurface(dst_surface))
+            return false;
+
+        // If src surface is in SW memory, check it's data layout
+        if (src_surface.Data.Y && !CheckOneSurface(src_surface))
+            return false;
+
+        return true;
     }
 
 protected:
@@ -1858,7 +1873,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     // Check if requested copy backend is CM and CM is capable to perform copy
     bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF) && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
-    if (m_pVaCopy && (VACopyWrapper::IsVaCopySupportSurface(pDst, pSrc)) && (gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF))
+    if (m_pVaCopy && (VACopyWrapper::IsVaCopySupportSurface(*pDst, *pSrc)) && (gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF))
     {
         auto vacopyMode =
             ((gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) == MFX_COPY_USE_VACOPY_ANY) ? VACopyWrapper::DEFAULT
