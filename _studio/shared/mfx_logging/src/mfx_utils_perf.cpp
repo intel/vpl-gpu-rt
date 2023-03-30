@@ -129,6 +129,14 @@ void PerfUtility::timeStampTick(std::string tag, std::string level, std::string 
     printPerfTimeStamp(&newTick, taskIds);
 }
 
+void PerfUtility::startTick(std::string tag)
+{
+}
+
+void PerfUtility::stopTick(std::string tag)
+{
+}
+
 void PerfUtility::printPerfTimeStamp(Tick *newTick, const std::vector<uint32_t>& taskIds)
 {
     if (mainTid != getTid())

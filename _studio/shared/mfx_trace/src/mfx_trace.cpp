@@ -578,6 +578,7 @@ MFXTraceTask::MFXTraceTask(mfxTraceStaticHandle *static_handle,
     m_pStaticHandle = static_handle;
     memset(&m_TraceTaskHandle, 0, sizeof(m_TraceTaskHandle));
     m_TaskID = (bCreateID) ? CreateUniqTaskId() : 0;
+
     sts = MFXTrace_BeginTask(static_handle,
                        file_name, line_num,
                        function_name,
