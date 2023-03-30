@@ -28,9 +28,10 @@
 #include <numeric>
 #include <set>
 
-using namespace AV1EHW::Base;
-
 namespace AV1EHW
+{
+
+namespace Base
 {
 
 class GetDefault
@@ -1308,4 +1309,5 @@ void General::PushDefaults(Defaults& df)
 
 }
 
+}
 #endif //defined(MFX_ENABLE_AV1_VIDEO_ENCODE)

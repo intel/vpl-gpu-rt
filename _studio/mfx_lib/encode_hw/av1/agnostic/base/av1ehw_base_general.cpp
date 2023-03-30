@@ -34,9 +34,11 @@
 #include <set>
 #include <iterator>
 
-using namespace AV1EHW::Base;
 
 namespace AV1EHW
+{
+
+namespace Base
 {
 
 void General::SetSupported(ParamSupport& blocks)
@@ -3655,7 +3657,7 @@ mfxStatus General::CheckCodedPicSize(
     return MFX_ERR_NONE;
 }
 
-bool Base::MapToDefinedLevel(mfxU16& level)
+bool MapToDefinedLevel(mfxU16& level)
 {
     auto levelIt = LevelsRemap.find(level);
     if(levelIt != LevelsRemap.end())
@@ -3921,7 +3923,6 @@ inline mfxU32 GetReferenceMode(const TaskCommonPar& task)
 inline int av1_get_relative_dist(const SH& sh, const uint32_t a, const uint32_t b)
 {
     // the logic is from AV1 spec 5.9.3
-
     if (!sh.enable_order_hint)
         return 0;
 
@@ -4072,5 +4073,5 @@ mfxStatus General::GetCurrentFrameHeader(
 }
 
 }
-
+}
 #endif

@@ -25,11 +25,11 @@
 #include "av1ehw_base_task.h"
 #include <numeric>
 
-using namespace AV1EHW::Base;
-
 namespace AV1EHW
 {
 
+    namespace Base
+    {
 BitstreamWriter::BitstreamWriter(mfxU8* bs, mfxU32 size, mfxU8 bitOffset)
     : m_bsStart(bs)
     , m_bsEnd(bs + size)
@@ -1236,6 +1236,8 @@ void Packer::QueryTask(const FeatureBlocks&, TPushQT Push)
 
         return MFX_ERR_NONE;
     });
+}
+
 }
 
 }

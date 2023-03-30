@@ -26,9 +26,10 @@
 #include <algorithm>
 #include <numeric>
 
-using namespace AV1EHW::Base;
-
 namespace AV1EHW
+{
+
+namespace Base
 {
 
 inline bool IsValidTilesSize(
@@ -209,7 +210,7 @@ inline mfxU16 GetMinTileCols(const mfxU16 sbCols)
     return  mfx::CeilDiv(sbCols, mfxU16(AV1_MAX_TILE_WIDTH_SB));
 }
 
-inline mfxU16 GetMaxTileCols(const mfxU16 sbCols)
+inline mfxU16 GetMaxNumTileCols(const mfxU16 sbCols)
 {
     return std::min(sbCols, mfxU16(AV1_MAX_NUM_TILE_COLS));
 }
@@ -375,7 +376,7 @@ mfxStatus CheckAndFixBuffers(
     }
 
     // Check number of tile columns
-    const mfxU16 maxTileCols = std::min(GetMaxTileCols(sbCols), maxTileColsByLevel);
+    const mfxU16 maxTileCols = std::min(GetMaxNumTileCols(sbCols), maxTileColsByLevel);
     const mfxU16 minTileCols = GetMinTileCols(sbCols);
     changed += CheckRangeOrClip(tilePar.NumTileColumns, minTileCols, maxTileCols);
 
@@ -748,6 +749,8 @@ void Tile::ResetState(const FeatureBlocks& blocks, TPushRS Push)
 
         return MFX_ERR_NONE;
     });
+}
+
 }
 
 } //namespace AV1EHW
