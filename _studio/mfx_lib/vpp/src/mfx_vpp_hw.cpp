@@ -5119,6 +5119,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             // MFX_SCALING_MODE_INTEL_GEN_COMPUTE is only supported on DG2+. If this flag is set on older platforms, return an error message.
             if (extScaling->ScalingMode == MFX_SCALING_MODE_INTEL_GEN_COMPUTE && !VppCaps::IsScalingModeSupportEU(core->GetHWType()))
             {
+                extScaling->ScalingMode = MFX_SCALING_MODE_DEFAULT;
                 sts = GetWorstSts(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
             }
             break;
