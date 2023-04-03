@@ -304,12 +304,6 @@ typedef union
 
 typedef struct
 {
-    uint64_t callCount;
-    double   totalTime;
-}TimeStampInfo;
-
-typedef struct
-{
     mfxTraceChar* category;
     mfxTraceLevel level;
     // reserved for stat dump:
@@ -322,8 +316,6 @@ typedef struct
     mfxTraceHandle sd7;
     // reserved for itt
     mfxTraceHandle itt1;
-    //timeStamp
-    TimeStampInfo  tick;
 } mfxTraceStaticHandle;
 
 typedef struct
@@ -700,9 +692,6 @@ private:
     mfxTraceU32             m_TaskID;
     mfxTraceStaticHandle    *m_pStaticHandle;
     mfxTraceTaskHandle      m_TraceTaskHandle;
-    bool bEnable = false;
-    double timeStamp;
-    std::string autotag = "intialized";
 };
 #endif // #ifdef MFX_TRACE_ENABLE
 

@@ -24,21 +24,12 @@ typedef struct _Tick
 class PerfUtility
 {
 public:
-    struct TickTime
-    {
-        double freq;
-        int64_t start;
-        int64_t stop;
-    };
-public:
     static PerfUtility* getInstance();
     ~PerfUtility() {};
     PerfUtility() {};
     int32_t getPid();
     int32_t getTid();
     void timeStampTick(std::string tag, std::string level, std::string flag, const std::vector<uint32_t> &taskIds);
-    void startTick(std::string tag);
-    void stopTick(std::string tag);
     bool setupFilePath(std::fstream& pTimeStampFile);
     void savePerfData();
     void closeFile() {};
@@ -48,7 +39,6 @@ public:
     std::stringstream ss;
     bool routine_flag = false;
     int32_t mainTid;
-    double timeStamp;
     static std::mutex perfMutex;
 
 private:
@@ -57,7 +47,6 @@ private:
 private:
     static std::shared_ptr<PerfUtility> instance;
     Tick newTick;
-    std::map<std::string, std::vector<TickTime>*> records{};
 };
 
 
