@@ -511,7 +511,6 @@ typedef struct {
     { 0x5695, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x5696, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x5697, MFX_HW_DG2, MFX_GT4 }, // DG2
-    { 0x5698, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56A0, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56A1, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56A2, MFX_HW_DG2, MFX_GT4 }, // DG2
@@ -519,9 +518,6 @@ typedef struct {
     { 0x56A4, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56A5, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56A6, MFX_HW_DG2, MFX_GT4 }, // DG2
-    { 0x56A7, MFX_HW_DG2, MFX_GT4 }, // DG2
-    { 0x56A8, MFX_HW_DG2, MFX_GT4 }, // DG2
-    { 0x56A9, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56B0, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56B1, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56B2, MFX_HW_DG2, MFX_GT4 }, // DG2
