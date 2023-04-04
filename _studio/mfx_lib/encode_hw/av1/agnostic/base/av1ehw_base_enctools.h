@@ -88,7 +88,6 @@ namespace Base
         mfxExtEncToolsConfig    m_EncToolConfig = {};
         bool                    m_bEncToolsInner = false;
         mfxU32                  m_maxDelay = 0;
-        mfxU32                  m_numPicBuffered = 0;
 
         mfxU16        S_ET_SUBMIT = mfxU16(-1);
         mfxU16        S_ET_QUERY = mfxU16(-1);

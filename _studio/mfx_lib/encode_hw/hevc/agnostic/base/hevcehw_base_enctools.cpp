@@ -793,31 +793,19 @@ mfxStatus HevcEncTools::SubmitPreEncTask(StorageW&  /*global*/, StorageW& s_task
     auto&      task = Task::Common::Get(s_task);
     std::vector<mfxExtBuffer*> extParams;
     mfxEncToolsFrameToAnalyze extFrameData = {};
-
-    //"m_numPicBuffered > 0" indicates: there are some PreEnc frames buffered for async_depth > 1 case, while not queried
-    if (task.pSurfIn || m_numPicBuffered > 0)
+    if (task.pSurfIn)
     {
         extFrameData.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_FRAME_TO_ANALYZE;
         extFrameData.Header.BufferSz = sizeof(extFrameData);
         extFrameData.Surface = task.pSurfIn;
         extParams.push_back(&extFrameData.Header);
         task_par.ExtParam = extParams.data();
-
-        if (!task.pSurfIn)
-        {
-            m_numPicBuffered--;
-        }
     }
     task_par.DisplayOrder = task.DisplayOrder;
     task_par.NumExtParam = (mfxU16)extParams.size();
 
     auto sts = m_pEncTools->Submit(m_pEncTools->Context, &task_par);
-    if (sts == MFX_ERR_MORE_DATA)
-    {
-        m_numPicBuffered++; // current PreEnc frame buffered, while not queried
-        sts = MFX_ERR_NONE;
-    }
-
+    if (sts == MFX_ERR_MORE_DATA) sts = MFX_ERR_NONE;
     return (sts);
 }
 
