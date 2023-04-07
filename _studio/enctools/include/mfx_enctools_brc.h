@@ -591,6 +591,8 @@ public:
     void Close() override
     {
         m_bInit = false;
+        m_bDynamicInit = false;
+        m_FrameStruct.resize(0);
     }
 
     mfxStatus ReportEncResult(mfxU32 dispOrder, mfxEncToolsBRCEncodeResult const & pEncRes) override;

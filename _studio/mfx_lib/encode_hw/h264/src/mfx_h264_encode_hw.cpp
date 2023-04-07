@@ -1862,7 +1862,7 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
 #if defined(MFX_ENABLE_ENCTOOLS)
     if (H264EncTools::isEncToolNeeded(m_video))
     {
-        sts = m_encTools.Reset(m_video);
+        sts = m_encTools.Reset(newPar);
         MFX_CHECK_STS(sts);
     }
     else

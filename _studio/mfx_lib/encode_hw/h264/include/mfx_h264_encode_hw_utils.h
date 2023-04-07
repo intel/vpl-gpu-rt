@@ -2184,6 +2184,14 @@ public:
         MFX_CHECK(m_pEncTools != 0, MFX_ERR_NOT_INITIALIZED);
 
         mfxEncToolsCtrl newCtrl = {};
+        mfxExtBuffer* ExtParam;
+        mfxExtEncoderResetOption* pRO = (mfxExtEncoderResetOption*)mfx::GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCODER_RESET_OPTION);
+        if (pRO && pRO->StartNewSequence == MFX_CODINGOPTION_ON)
+        {
+            ExtParam = &(pRO->Header);
+            newCtrl.NumExtParam = 1;
+            newCtrl.ExtParam = &ExtParam;
+        }
         mfxStatus sts = InitCtrl(video, &newCtrl);
         MFX_CHECK_STS(sts);
 
