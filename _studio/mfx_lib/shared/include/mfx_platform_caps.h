@@ -24,15 +24,8 @@
 #define __MFX_PLATFORM_CAPS_H__
 
 namespace CommonCaps {
-    inline bool IsPreSiPlatform(eMFXHWType platform, mfxU16 deviceId)
+    inline bool IsPreSiPlatform(eMFXHWType platform, mfxU16)
     {
-
-        //Add the additional device id judgement codes for derivative platforms which reuse the same 
-        //platform name with leading platform. Need to delete it when changed to be post-si platform.
-        if(deviceId == 0x4F89 || deviceId == 0x4F8C)
-        {
-            return true;
-        }
 
         return platform >= MFX_HW_MTL;
     }
