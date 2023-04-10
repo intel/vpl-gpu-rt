@@ -391,8 +391,8 @@ void Packer::PackSPS(BitstreamWriter& bs, SH const& sh, FH const& fh, ObuExtensi
 
     tmpBitstream.PutTrailingBits();
 
-    const mfxU32 obu_extension_flag = sh.operating_points_cnt_minus_1 ? 1 : 0;
-    PackOBUHeader(bs, OBU_SEQUENCE_HEADER, obu_extension_flag, oeh);
+    const bool ext = oeh.temporal_id | oeh.spatial_id;
+    PackOBUHeader(bs, OBU_SEQUENCE_HEADER, ext, oeh);
 
     mfxU32 const obu_size_in_bytes = (tmpBitstream.GetOffset() + 7) / 8;
     PackOBUHeaderSize(bs, obu_size_in_bytes);
@@ -960,7 +960,7 @@ void Packer::PackPPS(
     else
         PackFrameHeader(tmpBitstream, tmp_offsets, sh, fh);
 
-    const mfxU32 obu_extension_flag = sh.operating_points_cnt_minus_1 ? 1 : 0;
+    const bool obu_extension_flag = oeh.temporal_id | oeh.spatial_id;
     const mfxU32 obu_header_offset  = bs.GetOffset();
     if (insertHeaders & INSERT_FRM_OBU)
     {
@@ -1067,7 +1067,7 @@ void Packer::SubmitTask(const FeatureBlocks& blocks, TPushST Push)
         headerOffset = bitstream.GetOffset();
         if (task.InsertHeaders & INSERT_TD)
         {
-            mfxU32 ext   = sh.operating_points_cnt_minus_1 ? 1 : 0;
+            const bool ext = oeh.temporal_id | oeh.spatial_id;
             PackOBUHeader(bitstream, OBU_TEMPORAL_DELIMITER, ext, oeh);
             PackOBUHeaderSize(bitstream, 0);
         }
@@ -1195,7 +1195,7 @@ void Packer::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
             if (IsOn(auxPar.InsertTemporalDelimiter))
             {
                 // Add temporal delimiter for shown frame
-                mfxU32 ext = sh.operating_points_cnt_minus_1 ? 1 : 0;
+                const bool ext = oeh.temporal_id | oeh.spatial_id;
                 PackOBUHeader(bitstream, OBU_TEMPORAL_DELIMITER, ext, oeh);
                 PackOBUHeaderSize(bitstream, 0);
             }
