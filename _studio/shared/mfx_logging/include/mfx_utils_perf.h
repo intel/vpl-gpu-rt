@@ -16,7 +16,7 @@ typedef struct _Tick
 {
     std::string tag;
     int64_t timestamp;
-    double freq;
+    int64_t freq;
     std::string functionType;
     std::string level;
 }Tick;
@@ -30,23 +30,17 @@ public:
     int32_t getPid();
     int32_t getTid();
     void timeStampTick(std::string tag, std::string level, std::string flag, const std::vector<uint32_t> &taskIds);
-    bool setupFilePath(std::fstream& pTimeStampFile);
     void savePerfData();
-    void closeFile() {};
-    char sDetailsFileName[MFX_MAX_PERF_FILENAME_LEN + 1] = { '\0' };
     int32_t dwPerfUtilityIsEnabled = false;
     std::string perfFilePath;
-    std::stringstream ss;
-    bool routine_flag = false;
-    int32_t mainTid;
-    static std::mutex perfMutex;
 
 private:
     void printPerfTimeStamp(Tick* newTick, const std::vector<uint32_t>& taskIds);
 
 private:
     static std::shared_ptr<PerfUtility> instance;
-    Tick newTick;
+    char sDetailsFileName[MFX_MAX_PERF_FILENAME_LEN + 1] = { '\0' };
+    std::map<int32_t, std::string> log_buffer{};
 };
 
 
