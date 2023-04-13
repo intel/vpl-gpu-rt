@@ -18,6 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+
 add_subdirectory(shared/mfx_trace)
 add_subdirectory(shared/IntelMediaSDK)
 add_subdirectory(shared/mfx_logging)
