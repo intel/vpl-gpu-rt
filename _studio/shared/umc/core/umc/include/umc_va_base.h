@@ -209,6 +209,7 @@ public:
         m_Profile(UNKNOWN),
         m_Platform(VA_UNKNOWN_PLATFORM),
         m_HWPlatform(MFX_HW_UNKNOWN),
+        m_HWDeviceID(0),
 #if defined(MFX_ENABLE_PROTECT)
         m_protectedVA(nullptr),
 #endif
@@ -351,6 +352,7 @@ public:
     VideoAccelerationProfile    m_Profile;          // entry point
     VideoAccelerationPlatform   m_Platform;         // DXVA, LinuxVA, etc
     eMFXHWType                  m_HWPlatform;
+    mfxU16                      m_HWDeviceID;
 
 protected:
 

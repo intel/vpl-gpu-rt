@@ -1158,6 +1158,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
     m_pVA->m_Platform   = UMC::VA_LINUX;
     m_pVA->m_Profile    = (VideoAccelerationProfile)profile;
     m_pVA->m_HWPlatform = m_HWType;
+    m_pVA->m_HWDeviceID = this->m_deviceId;
 
     Status st = m_pVA->Init(&params);
     MFX_CHECK(st == UMC_OK, MFX_ERR_UNSUPPORTED);
