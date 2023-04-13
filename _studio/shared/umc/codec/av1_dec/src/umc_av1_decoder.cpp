@@ -199,10 +199,11 @@ namespace UMC_AV1_DECODER
         return UMC::UMC_OK;
     }
 
-    DPBType DPBUpdate(AV1DecoderFrame const * prevFrame)
+    DPBType AV1Decoder::DPBUpdate(AV1DecoderFrame * prevFrame)
     {
         assert(prevFrame);
 
+        std::unique_lock<std::mutex> l(guard);
         DPBType updatedFrameDPB;
 
         DPBType const& prevFrameDPB = prevFrame->frame_dpb;
@@ -212,6 +213,11 @@ namespace UMC_AV1_DECODER
             updatedFrameDPB = prevFrameDPB;
 
         const FrameHeader& fh = prevFrame->GetFrameHeader();
+
+        prevFrame->DpbUpdated(true);
+
+        if (fh.refresh_frame_flags == 0)
+            return updatedFrameDPB;
 
         for (uint8_t i = 0; i < NUM_REF_FRAMES; i++)
         {
@@ -328,6 +334,10 @@ namespace UMC_AV1_DECODER
         {
             std::unique_lock<std::mutex> l(guard);
             pFrame = frameDPB[fh.frame_to_show_map_idx];
+
+            if (pFrame->Repeated())
+                return nullptr;
+
             //Increase referernce here, and will be decreased when
             //CompleteDecodedFrames not show_frame case.
             pFrame->IncrementReference();
@@ -371,7 +381,21 @@ namespace UMC_AV1_DECODER
             return pFrame;
         }
         else
-            pFrame = GetFrameBuffer(fh);
+	{
+            AV1DecoderFrame *pExFrame = nullptr;
+	    if (fh.refresh_frame_flags != 0)
+	    {
+                for (uint8_t i = 0; i < NUM_REF_FRAMES; i++)
+                {
+                    if ((fh.refresh_frame_flags >> i) & 1)
+                    {
+                        pExFrame = frameDPB[i];
+		        break;
+		    }
+	        }
+	    }
+            pFrame = GetFrameBuffer(fh, pExFrame);
+	}
 
         if (!pFrame)
             return nullptr;
@@ -501,7 +525,7 @@ namespace UMC_AV1_DECODER
         // frame preparation to decoding is in progress
         // i.e. SDK decoder still getting tiles of the frame from application (has both arrived and missing tiles)
         //      or it got all tiles and waits for output surface to start decoding
-        if (GetNumArrivedTiles(frame) == 0)
+        if (GetNumArrivedTiles(frame) == 0 || frame.UID == -1)
             return false;
 
         return GetNumMissingTiles(frame) || !AllocComplete(frame);
@@ -534,7 +558,7 @@ namespace UMC_AV1_DECODER
         {
             if (!Repeat_show)
             {
-                if (Curr_temp != Curr)
+                if (!pPrevFrame->DpbUpdated())
                 {
                     updated_refs = DPBUpdate(pPrevFrame);
                     refs_temp = updated_refs;
@@ -557,6 +581,7 @@ namespace UMC_AV1_DECODER
         {
             updated_refs = refs_temp;
             Curr_temp = Curr;
+            Repeat_show = 0;
         }
 
         if ((!updated_refs.empty())&& (updated_refs[0] != nullptr))
@@ -1062,55 +1087,51 @@ namespace UMC_AV1_DECODER
         refs_temp.resize(size);
     }
 
-    void AV1Decoder::CompleteDecodedFrames(FrameHeader const& fh, AV1DecoderFrame* pCurrFrame, AV1DecoderFrame* pPrevFrame)
+    void AV1Decoder::CompleteDecodedFrames(FrameHeader const& fh, AV1DecoderFrame* pCurrFrame, AV1DecoderFrame*)
     {
-        if (pPrevFrame && Curr)
+        std::unique_lock<std::mutex> l(guard);
+        if (Curr)
         {
-            std::unique_lock<std::mutex> l(guard);
             FrameHeader const& FH_OutTemp = Curr->GetFrameHeader();
-            if (outputed_frames.size() == 0)
+            if (Repeat_show || FH_OutTemp.show_frame)
             {
-                outputed_frames.push_back(pPrevFrame);
+                bool bAdded = false;
+                for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); iter++)
+                {
+                    AV1DecoderFrame* temp = *iter;
+                    if (Curr->UID == temp->UID)
+                    {
+                        bAdded = true;
+                        break;
+                    }
+                }
+                if (!bAdded)
+                    outputed_frames.push_back(Curr);
             }
             else
             {
-                if (Repeat_show || FH_OutTemp.show_frame)
+                // For no display case, decrease reference here which is increased
+                // in pFrame->IncrementReference() in show_existing_frame case.
+                if(pCurrFrame)
                 {
-                    for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
-                    {
-                        AV1DecoderFrame* temp = *iter;
-                        if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated())
-                        {
-                            temp->DecrementReference();
-                            iter = outputed_frames.erase(iter);
-                        }
-                        else
-                            iter++;
-                    }
-                    outputed_frames.push_back(Curr);
-                }
-                else
-                {
-                    // For no display case, decrease reference here which is increased
-                    // in pFrame->IncrementReference() in show_existing_frame case.
-                    if(pCurrFrame)
-                    {
+                    if (Curr->UID == -1)
+                        Curr = nullptr;
+                    else
                         Curr->DecrementReference();
-                    }else{
-                        for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
-                        {
-                            AV1DecoderFrame* temp = *iter;
-                            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated())
-                            {
-                                temp->DecrementReference();
-                                iter = outputed_frames.erase(iter);
-                            }
-                            else
-                                iter++;
-                        }
-                    }
                 }
             }
+        }
+
+        for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
+        {
+            AV1DecoderFrame* temp = *iter;
+            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated() && temp->DpbUpdated())
+            {
+                temp->DecrementReference();
+                iter = outputed_frames.erase(iter);
+            }
+            else
+                iter++;
         }
 
         // When no available buffer, don't update Curr buffer to avoid update DPB duplicated.
@@ -1127,13 +1148,29 @@ namespace UMC_AV1_DECODER
         }
     }
 
-    AV1DecoderFrame* AV1Decoder::GetFreeFrame()
+    void AV1Decoder::Flush()
+    {
+        std::unique_lock<std::mutex> l(guard);
+        for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
+        {
+            AV1DecoderFrame* temp = *iter;
+            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated() && temp->DpbUpdated())
+            {
+                temp->DecrementReference();
+                iter = outputed_frames.erase(iter);
+            }
+            else
+                iter++;
+        }
+    }
+
+    AV1DecoderFrame* AV1Decoder::GetFreeFrame(AV1DecoderFrame* excepted)
     {
         std::unique_lock<std::mutex> l(guard);
 
         auto i = std::find_if(std::begin(dpb), std::end(dpb),
-            [](AV1DecoderFrame const* frame)
-            { return frame->Empty(); }
+            [excepted](AV1DecoderFrame const* frame)
+            { return frame->Empty() && frame != excepted; }
         );
 
         AV1DecoderFrame* frame =
@@ -1145,9 +1182,9 @@ namespace UMC_AV1_DECODER
         return frame;
     }
 
-    AV1DecoderFrame* AV1Decoder::GetFrameBuffer(FrameHeader const& fh)
+    AV1DecoderFrame* AV1Decoder::GetFrameBuffer(FrameHeader const& fh, AV1DecoderFrame* excepted)
     {
-        AV1DecoderFrame* frame = GetFreeFrame();
+        AV1DecoderFrame* frame = GetFreeFrame(excepted);
         if (!frame)
         {
            return nullptr;

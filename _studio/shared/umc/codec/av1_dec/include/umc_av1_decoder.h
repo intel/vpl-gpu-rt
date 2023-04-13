@@ -147,14 +147,16 @@ namespace UMC_AV1_DECODER
 
         virtual bool QueryFrames() = 0;
 
+        void Flush();
+
     protected:
 
         static UMC::Status FillVideoParam(SequenceHeader const&, UMC_AV1_DECODER::AV1DecoderParams&);
 
         virtual void SetDPBSize(uint32_t);
         virtual void SetRefSize(uint32_t);
-        virtual AV1DecoderFrame* GetFreeFrame();
-        virtual AV1DecoderFrame* GetFrameBuffer(FrameHeader const&);
+        virtual AV1DecoderFrame* GetFreeFrame(AV1DecoderFrame*);
+        virtual AV1DecoderFrame* GetFrameBuffer(FrameHeader const&, AV1DecoderFrame*);
         virtual void AddFrameData(AV1DecoderFrame&);
         virtual void AddFrameDataByIdx(AV1DecoderFrame& frame, uint32_t idx);
 
@@ -175,6 +177,8 @@ namespace UMC_AV1_DECODER
 
         AV1DecoderFrame* GetFrameBufferByIdx(FrameHeader const& fh, UMC::FrameMemID id);
         AV1DecoderFrame* StartAnchorFrame(FrameHeader const& fh, DPBType const& frameDPB, uint32_t idx);
+        DPBType DPBUpdate(AV1DecoderFrame * prevFrame);
+
 
     protected:
 

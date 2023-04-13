@@ -193,7 +193,7 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
     m_response_alien = {};
 
     mfxStatus sts = MFX_VPX_Utility::QueryIOSurfInternal(par, &m_request);
-    uint32_t dpb_size = 8 + (par->AsyncDepth ? par->AsyncDepth : MFX_AUTO_ASYNC_DEPTH_VALUE) + 1;
+    uint32_t dpb_size = std::max(8 + par->AsyncDepth, 8);
     if (dpb_size >= m_request.NumFrameSuggested)
     {
         m_request.NumFrameSuggested = mfxU16(dpb_size + 1);
@@ -621,7 +621,7 @@ mfxStatus VideoDECODEAV1::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfxFr
     if (!(par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
     {
         sts = MFX_VPX_Utility::QueryIOSurfInternal(par, request);
-        uint32_t dpb_size = 8 + par->AsyncDepth + 1;
+        uint32_t dpb_size = std::max(8 + par->AsyncDepth, 8);
         if (dpb_size >= request->NumFrameSuggested)
         {
             request->NumFrameSuggested = mfxU16(dpb_size + 1);
@@ -897,6 +897,8 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
     }
     mfxStatus sts = DecodeFrame(surface_out, frame);
 
+    m_decoder->Flush();
+
     MFX_CHECK_STS(sts);
     return MFX_TASK_DONE;
 }
@@ -970,10 +972,6 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
 
         for (;;)
         {
-            if (!m_decoder->IsFreeSlotInDPB()){
-                return MFX_WRN_DEVICE_BUSY;
-            }
-
             sts = m_surface_source->SetCurrentMFXSurface(surface_work);
             MFX_CHECK_STS(sts);
 

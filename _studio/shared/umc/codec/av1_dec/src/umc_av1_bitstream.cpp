@@ -499,7 +499,11 @@ namespace UMC_AV1_DECODER
         // Identify the nearest forward and backward references.
         for (int32_t i = 0; i < INTER_REFS; ++i)
         {
-            FrameHeader const& refHdr = frameDpb[fh.ref_frame_idx[i]]->GetFrameHeader();
+            AV1DecoderFrame *pFrame = frameDpb[fh.ref_frame_idx[i]];
+            if (!pFrame || pFrame->UID == -1)
+                continue;
+
+            FrameHeader const& refHdr = pFrame->GetFrameHeader();
             const uint32_t refOrderHint = refHdr.order_hint;
 
             if (av1_get_relative_dist(sh, refOrderHint, fh.order_hint) < 0)

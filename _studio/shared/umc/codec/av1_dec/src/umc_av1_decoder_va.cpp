@@ -58,7 +58,7 @@ namespace UMC_AV1_DECODER
         va = dp->pVideoAccelerator;
         packer.reset(Packer::CreatePacker(va));
 
-        uint32_t dpb_size = params.async_depth + TOTAL_REFS + 1;
+        uint32_t dpb_size = std::max(params.async_depth + TOTAL_REFS, 8u);
 
         if (dp->lst_mode)
         {
