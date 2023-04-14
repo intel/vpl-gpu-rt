@@ -5345,11 +5345,24 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
     /* 3. Check single field cases */
     if ( (par->vpp.In.PicStruct & MFX_PICSTRUCT_FIELD_SINGLE) && !(par->vpp.Out.PicStruct & MFX_PICSTRUCT_FIELD_SINGLE) )
     {
-        if (!IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_FIELD_WEAVING) || // FIELD_WEAVING filter must be there
-            (IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_RESIZE) &&
-             pLen > 2) ) // there is another filter except implicit RESIZE
+        if (!IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_FIELD_WEAVING)) // FIELD_WEAVING filter must be there
         {
             sts = (MFX_ERR_UNSUPPORTED < sts) ? MFX_ERR_UNSUPPORTED : sts;
+        }
+
+        if (IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_RESIZE) && pLen > 2)
+        {
+            mfxU32 maxNum = 2;
+            if (IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_CSC))
+                ++maxNum;
+            if (IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_RSHIFT_IN))
+                ++maxNum;
+            if (IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_LSHIFT_OUT))
+                ++maxNum;
+            if (pLen > maxNum)
+            {
+                sts = (MFX_ERR_UNSUPPORTED < sts) ? MFX_ERR_UNSUPPORTED : sts;
+            }
         }
 
         // VPP SyncTaskSubmission returns MFX_ERR_UNSUPPORTED when output picstructure has no parity
