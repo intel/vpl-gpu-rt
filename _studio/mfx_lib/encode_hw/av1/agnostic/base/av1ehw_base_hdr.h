@@ -59,8 +59,8 @@ namespace AV1EHW
             virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
             virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) override;
 
-            void PackHDR(BitstreamWriter& bs, const SH& sh, const ObuExtensionHeader& oeh, const mfxExtContentLightLevelInfo& LightLevel);
-            void PackHDR(BitstreamWriter& bs, const SH& sh, const ObuExtensionHeader& oeh, const mfxExtMasteringDisplayColourVolume& DisplayColour);
+            void PackHDR(BitstreamWriter& bs, const ObuExtensionHeader& oeh, const mfxExtContentLightLevelInfo& LightLevel);
+            void PackHDR(BitstreamWriter& bs, const ObuExtensionHeader& oeh, const mfxExtMasteringDisplayColourVolume& DisplayColour);
             void MetadataType(BitstreamWriter& bs, mfxU32 const value);
 
             std::array<mfxU8, HDR_SIZE> m_buf;
