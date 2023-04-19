@@ -11,7 +11,7 @@
 
 #define MFX_MAX_PERF_FILENAME_LEN 260
 #define MFX_MAX_PATH_LENGTH       256
-
+//For perf log
 typedef struct _Tick
 {
     std::string tag;
@@ -20,19 +20,29 @@ typedef struct _Tick
     std::string functionType;
     std::string level;
 }Tick;
+//For TXT trace
+typedef struct _TickTime
+{
+    double freq;
+    int64_t start;
+    int64_t stop;
+}TickTime;
 
 class PerfUtility
 {
 public:
     static PerfUtility* getInstance();
-    ~PerfUtility() {};
-    PerfUtility() {};
+    ~PerfUtility();
+    PerfUtility();
     int32_t getPid();
     int32_t getTid();
     void timeStampTick(std::string tag, std::string level, std::string flag, const std::vector<uint32_t> &taskIds);
+    void startTick(std::string tag);
+    void stopTick(std::string tag);
     void savePerfData();
-    int32_t dwPerfUtilityIsEnabled = false;
+    int32_t dwPerfUtilityIsEnabled;
     std::string perfFilePath;
+    double timeStamp;
 
 private:
     void printPerfTimeStamp(Tick* newTick, const std::vector<uint32_t>& taskIds);
@@ -40,7 +50,9 @@ private:
 private:
     static std::shared_ptr<PerfUtility> instance;
     char sDetailsFileName[MFX_MAX_PERF_FILENAME_LEN + 1] = { '\0' };
+    static std::mutex perfMutex;
     std::map<int32_t, std::string> log_buffer{};
+    std::map<std::string, std::vector<TickTime>*> records{};
 };
 
 

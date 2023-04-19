@@ -24,6 +24,7 @@ int32_t MfxSecureStringPrint(char* buffer, size_t bufSize, size_t length, const 
 
 PerfUtility* g_perfutility = PerfUtility::getInstance();
 std::shared_ptr<PerfUtility> PerfUtility::instance = nullptr;
+std::mutex PerfUtility::perfMutex;
 std::mutex AutoPerfUtility::map_guard;
 std::map<uint64_t, std::vector<uint32_t>> AutoPerfUtility::tid2taskIds;
 
@@ -82,6 +83,16 @@ PerfUtility* PerfUtility::getInstance()
     return instance.get();
 }
 
+PerfUtility::PerfUtility()
+{
+    int32_t dwPerfUtilityIsEnabled = 0;
+    double timeStamp = 0;
+}
+
+PerfUtility::~PerfUtility()
+{
+}
+
 int32_t PerfUtility::getPid()
 {
     int32_t pid = getpid();
@@ -131,6 +142,14 @@ void PerfUtility::timeStampTick(std::string tag, std::string level, std::string 
     newTick.functionType = flag;
     newTick.level = level;
     printPerfTimeStamp(&newTick, taskIds);
+}
+
+void PerfUtility::startTick(std::string tag)
+{
+}
+
+void PerfUtility::stopTick(std::string tag)
+{
 }
 
 void PerfUtility::printPerfTimeStamp(Tick *newTick, const std::vector<uint32_t>& taskIds)

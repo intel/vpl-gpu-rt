@@ -304,6 +304,12 @@ typedef union
 
 typedef struct
 {
+    uint64_t callCount;
+    double   totalTime;
+}TimeStampInfo;
+
+typedef struct
+{
     mfxTraceChar* category;
     mfxTraceLevel level;
     // reserved for stat dump:
@@ -316,6 +322,8 @@ typedef struct
     mfxTraceHandle sd7;
     // reserved for itt
     mfxTraceHandle itt1;
+    //timeStamp
+    TimeStampInfo  tick;
 } mfxTraceStaticHandle;
 
 typedef struct
