@@ -173,6 +173,10 @@ void PerfUtility::printPerfTimeStamp(Tick *newTick, const std::vector<uint32_t>&
     {
         log_buffer[current_tid].append("  ");
     }
+    else if (newTick->level == PERF_LEVEL_INTERNAL)
+    {
+        log_buffer[current_tid].append("   ");
+    }
     
     log_buffer[current_tid].append(newTick->tag);
     log_buffer[current_tid].append(newTick->functionType);

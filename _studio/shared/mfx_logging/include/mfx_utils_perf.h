@@ -62,6 +62,7 @@ extern PerfUtility* g_perfutility;
 #define PERF_LEVEL_DDI "DDI"
 #define PERF_LEVEL_HW "HW"
 #define PERF_LEVEL_ROUTINE "Routine"
+#define PERF_LEVEL_INTERNAL "INTERNAL"
 
 #define MFX_FLAG_ENTER ": ENTER"
 #define MFX_FLAG_EXIT  ": EXIT"
