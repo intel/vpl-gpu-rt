@@ -140,9 +140,9 @@ public:
         CMEnabledCoreAdapter(VAAPIVideoCORE_T *pVAAPICore): m_pVAAPICore(pVAAPICore)
         {
         }
-        virtual void SetCmCopyStatus(bool enable) override
+        virtual void SetCmCopyMode(mfxU16 cm_copy_mode) override
         {
-            m_pVAAPICore->SetCmCopyStatus(enable);
+            m_pVAAPICore->SetCmCopyMode(cm_copy_mode);
         }
     protected:
         VAAPIVideoCORE_T *m_pVAAPICore;
@@ -195,7 +195,7 @@ public:
 
     mfxStatus            GetVAService(VADisplay *pVADisplay);
 
-    void                 SetCmCopyStatus(bool enable);
+    void                 SetCmCopyMode(mfxU16 cm_copy_mode);
 
 protected:
     VAAPIVideoCORE_T(const mfxU32 adapterNum, const AffinityMaskType& affinityMask, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);

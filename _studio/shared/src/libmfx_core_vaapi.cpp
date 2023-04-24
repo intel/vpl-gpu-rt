@@ -871,8 +871,16 @@ mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm(bool force_cm_device_creation)
     {
         m_ForcedGpuCopyState = MFX_GPUCOPY_OFF;
     }
-
-    std::unique_ptr<CmCopyWrapper> tmp_cm(new CmCopyWrapper);
+/*
+// Uncomment after additional changes
+#ifdef ONEVPL_EXPERIMENTAL
+    bool use_cm_buffer_cache = m_ForcedGpuCopyState != MFX_GPUCOPY_SAFE;
+#else
+    bool use_cm_buffer_cache = true;
+#endif
+*/
+    bool use_cm_buffer_cache = false;
+    std::unique_ptr<CmCopyWrapper> tmp_cm(new CmCopyWrapper(use_cm_buffer_cache));
 
     MFX_CHECK_NULL_PTR1(tmp_cm->GetCmDevice(*m_p_display_wrapper));
 
@@ -1093,12 +1101,12 @@ mfxStatus VAAPIVideoCORE_T<Base>::GetVAService(
 } // mfxStatus VAAPIVideoCORE_T<Base>::GetVAService(...)
 
 template <class Base>
-void VAAPIVideoCORE_T<Base>::SetCmCopyStatus(bool enable)
+void VAAPIVideoCORE_T<Base>::SetCmCopyMode(mfxU16 cm_copy_mode)
 {
     UMC::AutomaticUMCMutex guard(this->m_guard);
 
-    m_ForcedGpuCopyState = enable ? MFX_GPUCOPY_ON : MFX_GPUCOPY_OFF;
-} // void VAAPIVideoCORE_T<Base>::SetCmCopyStatus(...)
+    m_ForcedGpuCopyState = cm_copy_mode;
+} // void VAAPIVideoCORE_T<Base>::SetCmCopyMode(...)
 
 template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
@@ -1388,7 +1396,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
             // If CM copy failed, fallback to VA copy
             MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopyVideoToVideo(pDst, pSrc));
             // Remove CM adapter in case of failed copy
-            this->SetCmCopyStatus(false);
+            this->SetCmCopyMode(MFX_GPUCOPY_OFF);
         }
 
         VASurfaceID *va_surf_src = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
@@ -1421,7 +1429,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
                 // If CM copy failed, fallback to VA copy
                 MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopyVideoToSys(pDst, pSrc));
                 // Remove CM adapter in case of failed copy
-                this->SetCmCopyStatus(false);
+                this->SetCmCopyMode(MFX_GPUCOPY_OFF);
             }
 
             VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
@@ -1480,7 +1488,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
             // If CM copy failed, fallback to VA copy
             MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopySysToVideo(pDst, pSrc));
             // Remove CM adapter in case of failed copy
-            this->SetCmCopyStatus(false);
+            this->SetCmCopyMode(MFX_GPUCOPY_OFF);
         }
 
         VAStatus va_sts = VA_STATUS_SUCCESS;
@@ -1906,7 +1914,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
             // If CM copy failed, fallback to VA copy
             MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopyVideoToVideo(pDst, pSrc));
             // Remove CM adapter in case of failed copy
-            this->SetCmCopyStatus(false);
+            this->SetCmCopyMode(MFX_GPUCOPY_OFF);
         }
         // Fallback to VA copy in case of failed CM copy
 
@@ -1939,7 +1947,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
             // If CM copy failed, fallback to VA copy
             MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopyVideoToSys(pDst, pSrc));
             // Remove CM adapter in case of failed copy
-            this->SetCmCopyStatus(false);
+            this->SetCmCopyMode(MFX_GPUCOPY_OFF);
         }
         // Fallback to SW copy in case of failed CM copy
 
@@ -1991,7 +1999,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
             // If CM copy failed, fallback to VA copy
             MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopySysToVideo(pDst, pSrc));
             // Remove CM adapter in case of failed copy
-            this->SetCmCopyStatus(false);
+            this->SetCmCopyMode(MFX_GPUCOPY_OFF);
         }
         // Fallback to SW copy in case of failed CM copy
 

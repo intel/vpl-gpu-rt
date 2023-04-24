@@ -482,7 +482,7 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par, bool isSingleThrea
         CMEnabledCoreInterface* pCmCore = QueryCoreInterface<CMEnabledCoreInterface>(m_pCORE.get());
         if (pCmCore)
         {
-            pCmCore->SetCmCopyStatus(MFX_GPUCOPY_ON == par.GPUCopy);
+            pCmCore->SetCmCopyMode(par.GPUCopy);
         }
     }
 
