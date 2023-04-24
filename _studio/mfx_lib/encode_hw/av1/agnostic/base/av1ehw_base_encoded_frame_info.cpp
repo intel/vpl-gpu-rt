@@ -138,10 +138,12 @@ void EncodedFrameInfo::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         // Make sure task is ready for output
         MFX_CHECK(task.BsDataLength > 0, MFX_ERR_NONE);
 
+        auto& encodedInfo = Task::EncodedInfo::Get(s_task);
+
+
         mfxExtAVCEncodedFrameInfo* pInfo = ExtBuffer::Get(*task.pBsOut);
         MFX_CHECK(pInfo, MFX_ERR_NONE);
 
-        auto& encodedInfo = Task::EncodedInfo::Get(s_task);
         std::copy(std::begin(encodedInfo.UsedRefListL0), std::end(encodedInfo.UsedRefListL0),
             std::begin(pInfo->UsedRefListL0));
         std::copy(std::begin(encodedInfo.UsedRefListL1), std::end(encodedInfo.UsedRefListL1),
