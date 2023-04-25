@@ -76,15 +76,6 @@ extern PerfUtility* g_perfutility;
         }                                                                            \
     } while(0)
 
-#define PERF_UTILITY_PRINT                         \
-    do                                             \
-    {                                              \
-        if (g_perfutility->dwPerfUtilityIsEnabled) \
-        {                                          \
-            g_perfutility->savePerfData();         \
-        }                                          \
-    } while(0)
-
 #define PERF_UTILITY_AUTO(TAG,LEVEL) AutoPerfUtility apu(TAG,LEVEL)
 #define PERF_UTILITY_SET_ASYNC_TASK_ID(id) AutoPerfUtility::SetTaskId(id)
 

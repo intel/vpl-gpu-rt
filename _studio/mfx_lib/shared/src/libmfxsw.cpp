@@ -248,6 +248,7 @@ struct MFXTrace_EventCloseOnExit
 
 mfxStatus MFXClose(mfxSession session)
 {
+    PERF_UTILITY_AUTO("MFXClose", PERF_LEVEL_API);
     mfxStatus mfxRes = MFX_ERR_NONE;
     MFXTrace_EventCloseOnExit MFXTrace_EventClose;
 
@@ -828,7 +829,6 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
 mfxStatus MFX_CDECL MFXReleaseImplDescription(mfxHDL hdl)
 {
-    PERF_UTILITY_PRINT;
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_CHECK_HDL(hdl);
 

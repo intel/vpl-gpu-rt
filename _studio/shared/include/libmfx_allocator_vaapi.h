@@ -84,9 +84,11 @@ public:
     mfxStatus DeriveImage()
     {
         MFX_CHECK(!m_image_created, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-        VAStatus va_sts = vaDeriveImage(m_display, m_surface_id, &m_image);
-        MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+        {
+            PERF_UTILITY_AUTO("vaDeriveImage", PERF_LEVEL_DDI);
+            VAStatus va_sts = vaDeriveImage(m_display, m_surface_id, &m_image);
+            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+        }
 
         m_image_created = true;
 
@@ -102,6 +104,7 @@ public:
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+            PERF_UTILITY_AUTO("vaMapBuffer", PERF_LEVEL_DDI);
             VAStatus va_sts = vaMapBuffer(m_display, m_image.buf, (void **)&ptr);
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
         }
@@ -118,6 +121,7 @@ public:
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+            PERF_UTILITY_AUTO("vaUnmapBuffer", PERF_LEVEL_DDI);
             VAStatus va_sts = vaUnmapBuffer(m_display, m_image.buf);
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
         }
@@ -131,9 +135,11 @@ public:
     {
         MFX_CHECK(m_image_created, MFX_ERR_NOT_INITIALIZED);
         MFX_CHECK(!m_mapped, MFX_ERR_UNKNOWN);
-
-        VAStatus va_sts = vaDestroyImage(m_display, m_image.image_id);
-        MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+        {
+            PERF_UTILITY_AUTO("vaUnmapBuffer", PERF_LEVEL_DDI);
+            VAStatus va_sts = vaDestroyImage(m_display, m_image.image_id);
+            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+        }
 
         m_image_created = false;
 

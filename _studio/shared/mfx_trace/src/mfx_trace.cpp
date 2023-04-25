@@ -226,7 +226,7 @@ mfxTraceU32 MFXTrace_GetEnvParams(void)
         }
         else
         {
-            g_perfutility->perfFilePath = "C:\\Temp";
+            g_perfutility->perfFilePath = "/tmp/";
         }
     }
 

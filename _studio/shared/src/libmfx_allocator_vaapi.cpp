@@ -662,6 +662,7 @@ mfxDefaultAllocatorVAAPI::LockFrameHW(
             mfxU8* p_buffer = nullptr;
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+                PERF_UTILITY_AUTO("vaMapBuffer", PERF_LEVEL_DDI);
                 va_res = vaMapBuffer(self->m_pVADisplay, *(vaapi_mids->m_surface), (void **)(&p_buffer));
                 MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
             }
@@ -673,6 +674,7 @@ mfxDefaultAllocatorVAAPI::LockFrameHW(
             VACodedBufferSegment *coded_buffer_segment;
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+                PERF_UTILITY_AUTO("vaMapBuffer", PERF_LEVEL_DDI);
                 va_res =  vaMapBuffer(self->m_pVADisplay, *(vaapi_mids->m_surface), (void **)(&coded_buffer_segment));
                 MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
             }
@@ -682,12 +684,16 @@ mfxDefaultAllocatorVAAPI::LockFrameHW(
     }
     else
     {
-        va_res = vaDeriveImage(self->m_pVADisplay, *(vaapi_mids->m_surface), &(vaapi_mids->m_image));
-        MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
+        {
+            PERF_UTILITY_AUTO("vaDeriveImage", PERF_LEVEL_DDI);
+            va_res = vaDeriveImage(self->m_pVADisplay, *(vaapi_mids->m_surface), &(vaapi_mids->m_image));
+            MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
+        }
 
         mfxU8* p_buffer = nullptr;
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+            PERF_UTILITY_AUTO("vaMapBuffer", PERF_LEVEL_DDI);
             va_res = vaMapBuffer(self->m_pVADisplay, vaapi_mids->m_image.buf, (void **) &p_buffer);
             MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
         }
@@ -718,6 +724,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::UnlockFrameHW(
     if (MFX_FOURCC_P8 == mfx_fourcc)   // bitstream processing
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+        PERF_UTILITY_AUTO("vaUnmapBuffer", PERF_LEVEL_DDI);
         va_res = vaUnmapBuffer(self->m_pVADisplay, *(vaapi_mids->m_surface));
         MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
     }
@@ -725,11 +732,15 @@ mfxStatus mfxDefaultAllocatorVAAPI::UnlockFrameHW(
     {
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+            PERF_UTILITY_AUTO("vaUnmapBuffer", PERF_LEVEL_DDI);
             va_res = vaUnmapBuffer(self->m_pVADisplay, vaapi_mids->m_image.buf);
             MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
         }
-        va_res = vaDestroyImage(self->m_pVADisplay, vaapi_mids->m_image.image_id);
-        MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
+        {
+            PERF_UTILITY_AUTO("vaDestroyImage", PERF_LEVEL_DDI);
+            va_res = vaDestroyImage(self->m_pVADisplay, vaapi_mids->m_image.image_id);
+            MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
+        }
 
         if (ptr)
         {
@@ -801,6 +812,7 @@ vaapi_buffer_wrapper::vaapi_buffer_wrapper(const mfxFrameInfo &info, VADisplayWr
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer");
+        PERF_UTILITY_AUTO("vaCreateBuffer", PERF_LEVEL_DDI);
         VAStatus va_res = vaCreateBuffer(*m_pVADisplay,
             context,
             codedbuf_type,
@@ -829,6 +841,7 @@ mfxStatus vaapi_buffer_wrapper::Lock(mfxFrameData& frame_data, mfxU32 flags)
         mfxU8* p_buffer;
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+            PERF_UTILITY_AUTO("vaMapBuffer", PERF_LEVEL_DDI);
             VAStatus va_res = vaMapBuffer(*m_pVADisplay, m_resource_id, (void **)(&p_buffer));
             MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_LOCK_MEMORY);
         }
@@ -840,6 +853,7 @@ mfxStatus vaapi_buffer_wrapper::Lock(mfxFrameData& frame_data, mfxU32 flags)
         VACodedBufferSegment *coded_buffer_segment;
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+            PERF_UTILITY_AUTO("vaMapBuffer", PERF_LEVEL_DDI);
             VAStatus va_res = vaMapBuffer(*m_pVADisplay, m_resource_id, (void **)(&coded_buffer_segment));
             MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_LOCK_MEMORY);
         }
@@ -857,6 +871,7 @@ mfxStatus vaapi_buffer_wrapper::Unlock()
 {
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+        PERF_UTILITY_AUTO("vaUnmapBuffer", PERF_LEVEL_DDI);
         VAStatus va_res = vaUnmapBuffer(*m_pVADisplay, m_resource_id);
         MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
     }
@@ -879,6 +894,7 @@ vaapi_surface_wrapper::vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 ty
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateSurfaces");
 
+        PERF_UTILITY_AUTO("vaCreateSurfaces", PERF_LEVEL_DDI);
         VAStatus va_res = vaCreateSurfaces(*m_pVADisplay,
             format,
             info.Width, info.Height,

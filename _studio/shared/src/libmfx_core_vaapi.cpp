@@ -1405,19 +1405,25 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
         VAImage va_img_src = {};
         VAStatus va_sts;
-
-        va_sts = vaDeriveImage(*m_p_display_wrapper, *va_surf_src, &va_img_src);
+        {
+            PERF_UTILITY_AUTO("vaDeriveImage", PERF_LEVEL_DDI);
+            va_sts = vaDeriveImage(*m_p_display_wrapper, *va_surf_src, &va_img_src);
+        }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaPutImage");
+            PERF_UTILITY_AUTO("vaPutImage", PERF_LEVEL_DDI);
             va_sts = vaPutImage(*m_p_display_wrapper, *va_surf_dst, va_img_src.image_id,
                                 0, 0, roi.width, roi.height,
                                 0, 0, roi.width, roi.height);
         }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
-        va_sts = vaDestroyImage(*m_p_display_wrapper, va_img_src.image_id);
+        {
+            PERF_UTILITY_AUTO("vaDestroyImage", PERF_LEVEL_DDI);
+            va_sts = vaDestroyImage(*m_p_display_wrapper, va_img_src.image_id);
+        }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
     }
     else if (nullptr != pSrc->Data.MemId && nullptr != dstPtr)
@@ -1442,6 +1448,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+                PERF_UTILITY_AUTO("vaMapBuffer", PERF_LEVEL_DDI);
                 va_sts = vaMapBuffer(*m_p_display_wrapper, va_image.buf, (void **) &pBits);
             }
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
@@ -1464,11 +1471,14 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+                PERF_UTILITY_AUTO("vaUnmapBuffer", PERF_LEVEL_DDI);
                 va_sts = vaUnmapBuffer(*m_p_display_wrapper, va_image.buf);
             }
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
-
-            va_sts = vaDestroyImage(*m_p_display_wrapper, va_image.image_id);
+            {
+                PERF_UTILITY_AUTO("vaDestroyImage", PERF_LEVEL_DDI);
+                va_sts = vaDestroyImage(*m_p_display_wrapper, va_image.image_id);
+            }
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
         }
 
@@ -1501,6 +1511,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+            PERF_UTILITY_AUTO("vaMapBuffer", PERF_LEVEL_DDI);
             va_sts = vaMapBuffer(*m_p_display_wrapper, va_image.buf, (void **) &pBits);
         }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
@@ -1524,12 +1535,16 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+            PERF_UTILITY_AUTO("vaUnmapBuffer", PERF_LEVEL_DDI);
             va_sts = vaUnmapBuffer(*m_p_display_wrapper, va_image.buf);
         }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
         // vaDestroyImage
-        va_sts = vaDestroyImage(*m_p_display_wrapper, va_image.image_id);
+        {
+            PERF_UTILITY_AUTO("vaDestroyImage", PERF_LEVEL_DDI);
+            va_sts = vaDestroyImage(*m_p_display_wrapper, va_image.image_id);
+        }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
     }
     else
@@ -1930,6 +1945,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaPutImage");
+            PERF_UTILITY_AUTO("vaPutImage", PERF_LEVEL_DDI);
             VAStatus va_sts = vaPutImage(*m_p_display_wrapper, *va_surf_dst, src_lock.m_image.image_id,
                 0, 0, roi.width, roi.height,
                 0, 0, roi.width, roi.height);

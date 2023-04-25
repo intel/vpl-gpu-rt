@@ -73,6 +73,8 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
                 pContext->state = MFX_SCHEDULER_THREAD_CONTEXT::Running;
                 guard.unlock();
                 {
+                    PERF_UTILITY_SET_ASYNC_TASK_ID(call.pTask->nTaskId);
+                    PERF_UTILITY_AUTO("SchedulerRoutine", PERF_LEVEL_ROUTINE);
                     // perform asynchronous operation
                     call_pRoutine(call);
                 }

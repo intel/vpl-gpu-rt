@@ -7,6 +7,47 @@
 
 #include "mfx_utils_perf.h"
 
+int32_t QueryPerformanceFrequency(int64_t & frequency)
+{
+    struct timespec  res;
+
+    if ( clock_getres(CLOCK_MONOTONIC, &res) != 0 )
+    {
+        return -1;
+    }
+
+    // resolution (precision) can't be in seconds for current machine and OS
+    if (res.tv_sec != 0)
+    {
+        return -1;
+    }
+    frequency = (1000000000LL) / res.tv_nsec;
+
+    return 0;
+}
+
+int32_t QueryPerformanceCounter(int64_t & performanceCount)
+{
+    struct timespec     res;
+    struct timespec     t;
+
+    if ( clock_getres (CLOCK_MONOTONIC, &res) != 0 )
+    {
+        return -1;
+    }
+    if (res.tv_sec != 0)
+    { // resolution (precision) can't be in seconds for current machine and OS
+        return -1;
+    }
+    if( clock_gettime(CLOCK_MONOTONIC, &t) != 0)
+    {
+        return -1;
+    }
+    performanceCount = (1000000000LL * t.tv_sec + t.tv_nsec) / res.tv_nsec;
+
+    return 0;
+}
+
 int32_t MfxSecureStringPrint(char* buffer, size_t bufSize, size_t length, const char* const format, ...)
 {
     int32_t   iRet = 0;
@@ -91,6 +132,11 @@ PerfUtility::PerfUtility()
 
 PerfUtility::~PerfUtility()
 {
+    // save perf data here
+    if (instance->dwPerfUtilityIsEnabled)
+    {
+        instance->savePerfData();
+    }
 }
 
 int32_t PerfUtility::getPid()
@@ -110,10 +156,12 @@ void PerfUtility::savePerfData()
     std::fstream pTimeStampFile;
     int32_t pid = getPid();
 
+        const char* const perf_log_path_fmt = "%s/perf_details_pid%d_tid%d.txt";
     for (auto it : log_buffer)
     {
+
         MFX_SecureStringPrint(sDetailsFileName, MFX_MAX_PATH_LENGTH + 1, MFX_MAX_PATH_LENGTH + 1,
-            "%s\\perf_details_pid%d_tid%d.txt", perfFilePath.c_str(), pid, it.first);
+                              perf_log_path_fmt, perfFilePath.c_str(), pid, it.first);
 
         if (access(perfFilePath.c_str(), 0) == -1)
         {
@@ -139,6 +187,10 @@ void PerfUtility::timeStampTick(std::string tag, std::string level, std::string 
 {
     Tick newTick;
     newTick.tag = tag;
+    int64_t _freq = 0;
+    QueryPerformanceFrequency(_freq);
+    newTick.freq = _freq / 1000;     // ms
+    QueryPerformanceCounter(newTick.timestamp);
     newTick.functionType = flag;
     newTick.level = level;
     printPerfTimeStamp(&newTick, taskIds);
