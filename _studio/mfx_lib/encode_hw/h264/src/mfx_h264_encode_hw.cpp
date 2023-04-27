@@ -3201,7 +3201,7 @@ mfxStatus ImplementationAvc::FillPreEncParams(DdiTask &task)
     mfxStatus sts = MFX_ERR_NONE;
     mfxEncToolsHintPreEncodeGOP st = {};
 
-    if (m_encTools.IsAdaptiveGOP() || m_encTools.IsAdaptiveQP() || m_encTools.IsAdaptiveLTR() || m_encTools.IsAdaptiveRef())
+    if (m_encTools.IsAdaptiveI() || m_encTools.IsAdaptiveGOP() || m_encTools.IsAdaptiveQP() || m_encTools.IsAdaptiveLTR() || m_encTools.IsAdaptiveRef())
     {
         if (m_encTools.IsAdaptiveGOP() || m_encTools.IsAdaptiveQP())
         {
