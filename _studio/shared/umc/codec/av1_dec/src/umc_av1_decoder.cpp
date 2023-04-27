@@ -1095,7 +1095,7 @@ namespace UMC_AV1_DECODER
                 {
                     if (Curr->UID == -1)
                         Curr = nullptr;
-                    else
+                    else if(Curr != pCurrFrame)
                         Curr->DecrementReference();
                 }
             }
