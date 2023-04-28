@@ -73,11 +73,17 @@ void AutoPerfUtility::SetTaskId(uint32_t id)
 {
     uint64_t tid = pthread_self();
 
-    std::lock_guard<std::mutex> lg(map_guard);
-    tid2taskIds[tid].push_back(id);
+    decltype(tid2taskIds)::iterator it;
+    if ((it = tid2taskIds.find(tid)) == tid2taskIds.end())
+    {
+        std::lock_guard<std::mutex> lg(map_guard);
+        tid2taskIds[tid] = {};
+        it = tid2taskIds.find(tid);
+    }
+    it->second.push_back(id);
 }
 
-AutoPerfUtility::AutoPerfUtility(std::string tag, std::string level)
+AutoPerfUtility::AutoPerfUtility(const std::string& tag, const std::string& level)
 {
     if (g_perfutility->dwPerfUtilityIsEnabled)
     {
@@ -101,13 +107,9 @@ AutoPerfUtility::~AutoPerfUtility()
         std::vector<uint32_t> ids;
         uint64_t tid = pthread_self();
 
-        if (bPrintTaskIds)
+        if (bPrintTaskIds && tid2taskIds.find(tid) != tid2taskIds.end())
         {
-            std::lock_guard<std::mutex> lg(map_guard);
-            if (tid2taskIds.find(tid) != tid2taskIds.end())
-            {
-                tid2taskIds[tid].swap(ids);
-            }
+            tid2taskIds[tid].swap(ids);
         }
 
         g_perfutility->timeStampTick(autotag, autolevel, flag, ids);
@@ -159,7 +161,7 @@ void PerfUtility::savePerfData()
         const char* const perf_log_path_fmt = "%s/perf_details_pid%d_tid%d.txt";
     for (auto it : log_buffer)
     {
-
+        char sDetailsFileName[MFX_MAX_PERF_FILENAME_LEN + 1] = { '\0' };
         MFX_SecureStringPrint(sDetailsFileName, MFX_MAX_PATH_LENGTH + 1, MFX_MAX_PATH_LENGTH + 1,
                               perf_log_path_fmt, perfFilePath.c_str(), pid, it.first);
 
@@ -183,7 +185,7 @@ void PerfUtility::savePerfData()
     }
 }
 
-void PerfUtility::timeStampTick(std::string tag, std::string level, std::string flag, const std::vector<uint32_t>& taskIds)
+void PerfUtility::timeStampTick(const std::string &tag, const std::string &level, const std::string &flag, const std::vector<uint32_t>& taskIds)
 {
     Tick newTick;
     newTick.tag = tag;
@@ -196,11 +198,11 @@ void PerfUtility::timeStampTick(std::string tag, std::string level, std::string 
     printPerfTimeStamp(&newTick, taskIds);
 }
 
-void PerfUtility::startTick(std::string tag)
+void PerfUtility::startTick(const std::string &tag)
 {
 }
 
-void PerfUtility::stopTick(std::string tag)
+void PerfUtility::stopTick(const std::string &tag)
 {
 }
 
@@ -213,36 +215,37 @@ void PerfUtility::printPerfTimeStamp(Tick *newTick, const std::vector<uint32_t>&
     it = log_buffer.find(current_tid);
     if (it == log_buffer.end()) 
     {
-        std::string ss;
-        log_buffer[current_tid] = ss;
+        std::lock_guard<std::mutex> lock(perfMutex);
+        log_buffer[current_tid] = {};
+        it = log_buffer.find(current_tid);
     }
 
     if (newTick->level == PERF_LEVEL_DDI || newTick->level == PERF_LEVEL_HW)
     {
-        log_buffer[current_tid].append("    ");
+        it->second.append("    ");
     }
     else if(newTick->level == PERF_LEVEL_ROUTINE)
     {
-        log_buffer[current_tid].append("  ");
+        it->second.append("  ");
     }
     else if (newTick->level == PERF_LEVEL_INTERNAL)
     {
         log_buffer[current_tid].append("   ");
     }
     
-    log_buffer[current_tid].append(newTick->tag);
-    log_buffer[current_tid].append(newTick->functionType);
-    log_buffer[current_tid].append("\tTimeStamp: ");
-    log_buffer[current_tid].append(std::to_string(newTick->timestamp));
-    log_buffer[current_tid].append("\tFreq: ");
-    log_buffer[current_tid].append(std::to_string(newTick->freq));
+    it->second.append(newTick->tag);
+    it->second.append(newTick->functionType);
+    it->second.append("\tTimeStamp: ");
+    it->second.append(std::to_string(newTick->timestamp));
+    it->second.append("\tFreq: ");
+    it->second.append(std::to_string(newTick->freq));
     if (!taskIds.empty())
     {
-        log_buffer[current_tid].append("\tAsync Task ID: ");
+        it->second.append("\tAsync Task ID: ");
         for (auto id : taskIds)
         {
-            log_buffer[current_tid].append(std::to_string(id));
+            it->second.append(std::to_string(id));
         }
     }
-    log_buffer[current_tid].append("\n");
+    it->second.append("\n");
 }

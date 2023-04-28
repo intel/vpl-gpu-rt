@@ -1839,6 +1839,8 @@ void Legacy::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
     Push(BLK_CopyBS
         , [](StorageW& global, StorageW& s_task) -> mfxStatus
     {
+        PERF_UTILITY_AUTO("BLK_CopyBS", PERF_LEVEL_INTERNAL);
+
         auto& task = Task::Common::Get(s_task);
 
         if (!task.pBsData)
@@ -1875,6 +1877,8 @@ void Legacy::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
     Push(BLK_DoPadding
         , [](StorageW& /*global*/, StorageW& s_task) -> mfxStatus
     {
+        PERF_UTILITY_AUTO("BLK_DoPadding", PERF_LEVEL_INTERNAL);
+
         auto& task = Task::Common::Get(s_task);
 
         MFX_CHECK(task.MinFrameSize >= task.BsDataLength, MFX_ERR_NONE);

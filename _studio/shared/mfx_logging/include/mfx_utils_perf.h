@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <stdint.h>
 #include <string>
 #include <map>
@@ -36,20 +37,19 @@ public:
     PerfUtility();
     int32_t getPid();
     int32_t getTid();
-    void timeStampTick(std::string tag, std::string level, std::string flag, const std::vector<uint32_t> &taskIds);
-    void startTick(std::string tag);
-    void stopTick(std::string tag);
+    void timeStampTick(const std::string &tag, const std::string &level, const std::string &flag, const std::vector<uint32_t> &taskIds);
+    void startTick(const std::string &tag);
+    void stopTick(const std::string &tag);
     void savePerfData();
     int32_t dwPerfUtilityIsEnabled;
     std::string perfFilePath;
-    double timeStamp;
+    std::atomic<double> timeStamp;
 
 private:
     void printPerfTimeStamp(Tick* newTick, const std::vector<uint32_t>& taskIds);
 
 private:
     static std::shared_ptr<PerfUtility> instance;
-    char sDetailsFileName[MFX_MAX_PERF_FILENAME_LEN + 1] = { '\0' };
     static std::mutex perfMutex;
     std::map<int32_t, std::string> log_buffer{};
     std::map<std::string, std::vector<TickTime>*> records{};
@@ -83,7 +83,7 @@ class AutoPerfUtility
 {
 public:
     static void SetTaskId(uint32_t id);
-    AutoPerfUtility(std::string tag, std::string level);
+    AutoPerfUtility(const std::string &tag, const std::string &level);
     ~AutoPerfUtility();
 
 private:

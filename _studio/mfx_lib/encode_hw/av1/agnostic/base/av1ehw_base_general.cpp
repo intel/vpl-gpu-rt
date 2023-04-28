@@ -1507,6 +1507,8 @@ void General::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
     Push(BLK_CopyBS
         , [this](StorageW& global, StorageW& s_task) -> mfxStatus
     {
+        PERF_UTILITY_AUTO("BLK_CopyBS", PERF_LEVEL_INTERNAL);
+
         auto& task = Task::Common::Get(s_task);
         if (!task.pBsData)
         {

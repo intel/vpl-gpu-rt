@@ -270,14 +270,20 @@ inline mfxStatus CallAndGetMfxSts(TBlock&& blk, TArgs&&... args)
 #if defined(MFX_ENABLE_LOG_UTILITY)
     typename std::remove_reference<TBlock>::type::TTracer tr(blk, blk.m_featureName, blk.m_blockName);
 
-    std::string str = std::string("Feature: ") + blk.m_featureName + ", Block: " + blk.m_blockName;
+    std::string str = blk.m_featureName + std::string("__") + blk.m_blockName;
     if (TRACE_CHECK(TR_KEY_PIPELINE_STICKER))
     {
         MFXTraceEvent(MFX_TRACE_PIPELINE_STICKER_TASK, EVENT_TYPE_START, 0, str.size() + 1, str.c_str());
     }
 #endif // MFX_ENABLE_LOG_UTILITY
 
-    mfxStatus sts = blk.Call(std::forward<TArgs>(args)...);
+    mfxStatus sts = MFX_ERR_NONE;
+    {
+#if defined(MFX_ENABLE_LOG_UTILITY)
+        PERF_UTILITY_AUTO(str, PERF_LEVEL_INTERNAL);
+#endif // MFX_ENABLE_LOG_UTILITY
+        sts = blk.Call(std::forward<TArgs>(args)...);
+    }
 
 #if defined(MFX_ENABLE_LOG_UTILITY)
     if (TRACE_CHECK(TR_KEY_PIPELINE_STICKER))
