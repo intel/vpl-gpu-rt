@@ -635,7 +635,24 @@ public:
         mfxU32 minCPB             = bUseMaxKbps * InitialDelayInKB(par.mvp.mfx);
         mfxU32 defaultCPB         = 0;
         auto   GetMaxCPBByLevel   = [&]() { return GetMaxCpbInKBByLevel(par.mvp); };
-        auto   GetCPBFromMaxKbps  = [&]() { return par.base.GetMaxKbps(par) / 4; };
+        auto   GetCPBFromMaxKbps = [&]()
+        {
+            mfxU32 defaultBufferSizeInKB = par.base.GetMaxKbps(par) / 4;
+
+            // Check BufferSizeInKB at extremely low bitrate to ensure there is enough space to write bitstream
+            if (mfx.FrameInfo.Width != 0 &&
+                mfx.FrameInfo.Height != 0 &&
+                mfx.FrameInfo.FrameRateExtN != 0 &&
+                mfx.FrameInfo.FrameRateExtD != 0)
+            {
+                mfxF64 rawDataBitrate = 12.0 * mfx.FrameInfo.Width * mfx.FrameInfo.Height * mfx.FrameInfo.FrameRateExtN / mfx.FrameInfo.FrameRateExtD;
+                mfxU32 minBufferSizeInKB = mfxU32(std::min<mfxF64>(0xffffffff, rawDataBitrate / 8 / 1000.0 / 1400.0));
+                if (defaultBufferSizeInKB < minBufferSizeInKB) {
+                    defaultBufferSizeInKB = minBufferSizeInKB;
+                }
+            }
+            return defaultBufferSizeInKB;
+        };
         auto   GetCPBFromRawBytes = [&]()
         {
             mfxU16 bd = par.base.GetTargetBitDepthLuma(par);

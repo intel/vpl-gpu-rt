@@ -3437,11 +3437,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         changed = true;
     }
 
-    // Keep the behavior on VME and set to OFF from DG2 since we decided to deprecate this parameter on VDEnc.
+    // Keep the behavior on VME and set to OFF from ACM since we decided to deprecate this parameter on VDEnc.
     if (H264ECaps::IsVmeSupported(platform)) {
         if (extOpt2->BitrateLimit == MFX_CODINGOPTION_UNKNOWN)
             extOpt2->BitrateLimit = MFX_CODINGOPTION_ON;
     } else {
+        if (extOpt2->BitrateLimit == MFX_CODINGOPTION_ON)
+            changed = true;
         extOpt2->BitrateLimit = MFX_CODINGOPTION_OFF;
     }
 
@@ -6170,6 +6172,24 @@ void MfxHwH264Encode::SetDefaults(
             par.calcParam.initialDelayInKB = (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR && isSWBRC(par)) ?
                 3*par.calcParam.bufferSizeInKB / 4:
                 par.calcParam.bufferSizeInKB / 2;
+        }
+
+        // Check BufferSizeInKB and InitialDelayInKB at extremely low bitrate to ensure there is enough space to write bitstream
+        if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
+            par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ &&
+            !isSWBRC(par) &&
+            par.mfx.FrameInfo.Width != 0 &&
+            par.mfx.FrameInfo.Height != 0 &&
+            par.mfx.FrameInfo.FrameRateExtN != 0 &&
+            par.mfx.FrameInfo.FrameRateExtD != 0)
+        {
+            mfxF64 rawDataBitrate = 12.0 * par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height *
+                par.mfx.FrameInfo.FrameRateExtN / par.mfx.FrameInfo.FrameRateExtD;
+            mfxU32 minBufferSizeInKB = mfxU32(std::min<mfxF64>(0xffffffff, rawDataBitrate / 8 / 1000.0 / 1400.0));
+            if (par.calcParam.bufferSizeInKB < minBufferSizeInKB) {
+                par.calcParam.bufferSizeInKB = minBufferSizeInKB;
+                par.calcParam.initialDelayInKB = minBufferSizeInKB / 2;
+            }
         }
     }
 
