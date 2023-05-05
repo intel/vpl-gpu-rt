@@ -783,7 +783,7 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
             MFX_CHECK(m_pCore->IsSupportedDelayAlloc(), MFX_ERR_UNDEFINED_BEHAVIOR);
             for (mfxU32 i = 0; i < m_frameDataInternal.GetSize(); i++)
             {
-                auto internal_surf = m_frameDataInternal.GetSurface(i);
+                auto& internal_surf = m_frameDataInternal.GetSurface(i);
                 if (internal_surf.Data.MemId == surf->Data.MemId)
                 {
                     isFound = true;
