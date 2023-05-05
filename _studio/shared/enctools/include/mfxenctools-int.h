@@ -429,6 +429,7 @@ MFX_PACK_END()
 
 #define MFX_ENCTOOLS_BRCSTATUS_VERSION MFX_STRUCT_VERSION(1, 0)
 
+
 MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer      Header;

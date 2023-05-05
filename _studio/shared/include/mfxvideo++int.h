@@ -299,6 +299,8 @@ public:
         }
         return UnlockExternalFrame(surf.Data.MemId, &surf.Data, ExtendedSearch);
     }
+
+
 };
 
 
