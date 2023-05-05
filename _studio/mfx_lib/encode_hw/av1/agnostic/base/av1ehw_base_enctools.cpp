@@ -262,6 +262,8 @@ inline bool IsHwLookAhead(const mfxExtEncToolsConfig &config, bool bGameStreamin
 
 bool AV1EHW::Base::IsHwEncToolsOn(const mfxVideoParam& video)
 {
+
+
     const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
     const mfxExtCodingOption2* pExtOpt2 = ExtBuffer::Get(video);
     const mfxExtEncToolsConfig* pExtConfig = ExtBuffer::Get(video);
@@ -291,6 +293,8 @@ inline bool IsSwEncToolsImplicit(const mfxVideoParam &video)
 }
 
 bool AV1EHW::Base::IsSwEncToolsOn(const mfxVideoParam& video){
+
+
     if(IsHwEncToolsOn(video))
     {
         return false;
@@ -368,6 +372,8 @@ static bool isSWLACondition(const mfxVideoParam& video)
 
 void AV1EHW::Base::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsConfig &config, bool bMBQPSupport)
 {
+
+
     const mfxExtCodingOption2  *pExtOpt2 = ExtBuffer::Get(video);
     const mfxExtCodingOption3  *pExtOpt3 = ExtBuffer::Get(video);
     const mfxExtEncToolsConfig *pExtConfig = ExtBuffer::Get(video);
@@ -476,6 +482,8 @@ inline mfxU32 CheckFlag(mfxU16 & flag, bool bCond)
 
 static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & supportedConfig)
 {
+
+
     mfxExtCodingOption2   *pExtOpt2 = ExtBuffer::Get(video);
     mfxExtCodingOption3   *pExtOpt3 = ExtBuffer::Get(video);
     mfxExtBRC             *pBRC = ExtBuffer::Get(video);
@@ -622,6 +630,7 @@ static mfxStatus InitEncToolsCtrl(
 
         ctrl->PanicMode = pCO3 ? pCO3->BRCPanicMode : 0;
     }
+
 
     // LaScale here
     ctrl->LaScale = 0;

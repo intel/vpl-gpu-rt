@@ -2126,23 +2126,33 @@ public:
         mfxExtEncToolsConfig requiredConf = {};
         mfxExtEncToolsConfig supportedConf = {};
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
         memset(&m_EncToolCtrl, 0, sizeof(mfxEncToolsCtrl));
         m_EncToolCtrl.ExtParam = m_ExtParam;
         m_EncToolCtrl.NumExtParam = 2;
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
         mfxStatus sts = InitCtrl(video, &m_EncToolCtrl);
         MFX_CHECK_STS(sts);
 
         sts = CreateEncTools(video, m_pEncTools, m_bEncToolsCreated);
         MFX_CHECK_STS(sts);
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
         m_pEncTools->GetSupportedConfig(m_pEncTools->Context, &supportedConf, &m_EncToolCtrl);
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
         if (CorrectVideoParams(video, supportedConf))
             MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
         GetRequiredFunc(video, requiredConf);
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
         sts = m_pEncTools->Init(m_pEncTools->Context, &requiredConf, &m_EncToolCtrl);
         MFX_CHECK_STS(sts);
 
@@ -2159,6 +2169,8 @@ public:
         m_LAHWBRC = IsEnctoolsLAGS(video);
         m_LASWBRC = IsEnctoolsLABRC(video);
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
         return MFX_ERR_NONE;
     }
 
@@ -2710,6 +2722,8 @@ protected:
 public:
     inline bool isLASWBRC() { return m_LASWBRC; }
     inline bool isLAHWBRC() { return m_LAHWBRC; }
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
 
 private:
     mfxEncTools*            m_pEncTools = nullptr;
@@ -2719,6 +2733,8 @@ private:
     mfxExtBuffer*           m_ExtParam[2] = {};
     bool                    m_LASWBRC = false;
     bool                    m_LAHWBRC = false;
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
 
 };
 #endif
