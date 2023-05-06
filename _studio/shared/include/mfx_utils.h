@@ -131,6 +131,8 @@ mfxStatus ConvertStatusUmc2Mfx(UMC::Status umcStatus)
     case UMC::UMC_ERR_UNSUPPORTED:       return MFX_ERR_UNSUPPORTED;
     case UMC::UMC_ERR_ALLOC:             return MFX_ERR_MEMORY_ALLOC;
     case UMC::UMC_ERR_LOCK:              return MFX_ERR_LOCK_MEMORY;
+    case UMC::UMC_ERR_NOT_IMPLEMENTED:   return MFX_ERR_NOT_IMPLEMENTED;
+    case UMC::UMC_ERR_GPU_HANG:          return MFX_ERR_GPU_HANG;
     case UMC::UMC_ERR_NOT_ENOUGH_BUFFER: return MFX_ERR_NOT_ENOUGH_BUFFER;
     case UMC::UMC_ERR_NOT_ENOUGH_DATA:   return MFX_ERR_MORE_DATA;
     case UMC::UMC_ERR_SYNC:              return MFX_ERR_MORE_DATA; // need to skip bad frames
@@ -138,6 +140,25 @@ mfxStatus ConvertStatusUmc2Mfx(UMC::Status umcStatus)
     }
 }
 
+inline
+UMC::Status ConvertStatusMfx2Umc(mfxStatus mfxStatus)
+{
+    switch (mfxStatus)
+    {
+    case MFX_ERR_NONE:              return UMC::UMC_OK;
+    case MFX_ERR_NULL_PTR:          return UMC::UMC_ERR_NULL_PTR;
+    case MFX_ERR_UNSUPPORTED:       return UMC::UMC_ERR_UNSUPPORTED;
+    case MFX_ERR_MEMORY_ALLOC:      return UMC::UMC_ERR_ALLOC;
+    case MFX_ERR_LOCK_MEMORY:       return UMC::UMC_ERR_LOCK;
+    case MFX_ERR_NOT_ENOUGH_BUFFER: return UMC::UMC_ERR_NOT_ENOUGH_BUFFER;
+    case MFX_ERR_MORE_DATA:         return UMC::UMC_ERR_NOT_ENOUGH_DATA;
+    case MFX_ERR_NOT_IMPLEMENTED:   return UMC::UMC_ERR_NOT_IMPLEMENTED;
+    case MFX_ERR_GPU_HANG:          return UMC::UMC_ERR_GPU_HANG;
+    case MFX_ERR_UNKNOWN:
+    default:
+        return UMC::UMC_ERR_FAILED;
+    }
+}
 
 inline
 mfxF64 GetUmcTimeStamp(mfxU64 ts)
