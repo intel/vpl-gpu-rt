@@ -52,7 +52,7 @@ private:
     static std::shared_ptr<PerfUtility> instance;
     static std::mutex perfMutex;
     std::map<int32_t, std::string> log_buffer{};
-    std::map<std::string, std::vector<TickTime>*> records{};
+    std::map<std::pair<uint64_t, std::string>, std::vector<TickTime>*> records{};
 };
 
 
