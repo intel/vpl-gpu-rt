@@ -538,10 +538,6 @@ public:
     {
         auto CheckOneSurface = [](const mfxFrameSurface1& sw_surface)
         {
-            // Only start addresses with 4k aligment for UsrPtr surface are supported, refer: https://dri.freedesktop.org/docs/drm/gpu/driver-uapi.html#c.drm_i915_gem_userptr
-            if ((size_t)sw_surface.Data.Y % BASE_ADDR_ALIGN)
-                return false;
-
             // Pitch should be 16-aligned
             if (sw_surface.Data.Pitch % 16)
                 return false;
