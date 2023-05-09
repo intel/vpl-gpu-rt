@@ -651,6 +651,7 @@ static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfx
 
 mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfxU32* num_impls)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     mfxHDL* impl = nullptr;
     if (!num_impls)
         return impl;
@@ -829,6 +830,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
 mfxStatus MFX_CDECL MFXReleaseImplDescription(mfxHDL hdl)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_CHECK_HDL(hdl);
 
