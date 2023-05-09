@@ -594,6 +594,7 @@ static mfxStatus InitEncToolsCtrl(
     bool   BRC = (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
         par.mfx.RateControlMethod == MFX_RATECONTROL_VBR);
 
+
     ctrl->RateControlMethod = par.mfx.RateControlMethod;  //CBR, VBR, CRF,CQP
 
     if (!BRC)
