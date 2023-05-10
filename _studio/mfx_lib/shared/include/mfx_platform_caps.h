@@ -143,8 +143,7 @@ namespace VppCaps
 
     inline bool IsVideoSignalSupported(eMFXHWType platform)
     {
-        return 
-        platform >= MFX_HW_DG2;
+        return platform >= MFX_HW_ADL_S;
     }
 
     inline bool IsSwFieldProcessingSupported(eMFXHWType platform)
