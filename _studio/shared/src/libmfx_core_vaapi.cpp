@@ -417,6 +417,19 @@ public:
         return MFX_ERR_NONE;
     }
 
+    static bool IsSupportedByPlatform(eMFXHWType hw_type)
+    {
+        switch (hw_type)
+        {
+        case MFX_HW_PVC:
+        case MFX_HW_MTL:
+        case MFX_HW_DG2:
+            return true;
+        default:
+            return false;
+        }
+    }
+
     static void SetBuffersNV12(const mfxFrameSurface1& surf, VASurfaceAttribExternalBuffers& eb, bool bUsePtrs)
     {
         eb.offsets[1] =
@@ -814,7 +827,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
 
             std::ignore = MFX_STS_TRACE(TryInitializeCm(false));
 
-            if (m_HWType == MFX_HW_PVC || m_HWType == MFX_HW_MTL || m_HWType == MFX_HW_DG2)
+            if (VACopyWrapper::IsSupportedByPlatform(m_HWType))
             {
                 this->m_pVaCopy.reset(new VACopyWrapper(*m_p_display_wrapper));
                 if (!this->m_pVaCopy->IsSupported())
