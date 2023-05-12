@@ -108,6 +108,9 @@ VideoDECODEMJPEG::VideoDECODEMJPEG(VideoCORE *core, mfxStatus * sts)
 
     m_skipRate = 0;
     m_skipCount = 0;
+
+    m_maxCropW = 0;
+    m_maxCropH = 0;
 }
 
 VideoDECODEMJPEG::~VideoDECODEMJPEG(void)
@@ -247,6 +250,9 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
     }
 
     MFX_CHECK(!isNeedChangeVideoParamWarning, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+
+    m_maxCropW = m_vPar.mfx.FrameInfo.CropW;
+    m_maxCropH = m_vPar.mfx.FrameInfo.CropH;
 
     return MFX_ERR_NONE;
 }
@@ -814,18 +820,16 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
             mfxVideoParam temp;
             pMJPEGVideoDecoder->FillVideoParam(&temp, false);
 
-            if(m_vPar.mfx.FrameInfo.CropW < temp.mfx.FrameInfo.CropW ||
-                m_vPar.mfx.FrameInfo.CropH < temp.mfx.FrameInfo.CropH)
+            if(m_maxCropW < temp.mfx.FrameInfo.CropW ||
+                m_maxCropH < temp.mfx.FrameInfo.CropH)
             {
                 decoder->ReleaseReservedTask();
                 MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
             }
-            else if (m_vPar.mfx.FrameInfo.CropW > temp.mfx.FrameInfo.CropW ||
-                m_vPar.mfx.FrameInfo.CropH > temp.mfx.FrameInfo.CropH)
-            {
-                m_vPar.mfx.FrameInfo.CropW = temp.mfx.FrameInfo.CropW;
-                m_vPar.mfx.FrameInfo.CropH = temp.mfx.FrameInfo.CropH;
-            }
+
+            m_vPar.mfx.FrameInfo.CropW = temp.mfx.FrameInfo.CropW;
+            m_vPar.mfx.FrameInfo.CropH = temp.mfx.FrameInfo.CropH;
+
             m_isHeaderParsed = true;
         }
 
