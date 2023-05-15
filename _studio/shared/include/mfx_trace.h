@@ -56,7 +56,6 @@ typedef __UINT64 mfxTraceU64;
 /*------------------------------------------------------------------------------*/
 extern mfxTraceU64 EventCfg;
 extern mfxTraceU32 LogConfig;
-extern std::string LogPath;
 extern int32_t FrameIndex;
 
 // C section
