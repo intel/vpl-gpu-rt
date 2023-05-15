@@ -201,9 +201,6 @@ protected:
     mfxVideoParamWrapper m_vFirstPar;
     mfxVideoParamWrapper m_vPar;
 
-    mfxU16 m_maxCropW;
-    mfxU16 m_maxCropH;
-
     VideoCORE * m_core;
 
     bool    m_isInit;
