@@ -107,6 +107,7 @@ function(disable_werror)
     set(CMAKE_CXX_FLAGS_RELEASE "${TMP_CXX_RELEASE}" PARENT_SCOPE)
 endfunction()
 
+
 macro (PushOption)
   foreach(arg IN ITEMS ${ARGN})
     if (NOT DEFINED ${arg})
