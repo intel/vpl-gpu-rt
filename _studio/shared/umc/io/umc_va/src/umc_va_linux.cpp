@@ -944,7 +944,10 @@ uint16_t LinuxVideoAccelerator::GetDecodingError()
             {
                 for (int i = 0; pVaDecErr[i].status != -1; ++i)
                 {
-                    error = MFX_CORRUPTION_MAJOR;
+                    {
+                        error = MFX_CORRUPTION_MAJOR;
+                    }
+
                 }
             }
             else

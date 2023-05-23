@@ -29,6 +29,7 @@
 extern "C" {
 #endif
 
+
 enum eMFXPlatform
 {
     MFX_PLATFORM_SOFTWARE      = 0,
