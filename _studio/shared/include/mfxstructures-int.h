@@ -544,6 +544,7 @@ typedef struct {
     { 0x7D40, MFX_HW_MTL, MFX_GT2 },
     { 0x7D50, MFX_HW_MTL, MFX_GT2 },
     { 0x7D55, MFX_HW_MTL, MFX_GT2 },
+    { 0x7D57, MFX_HW_MTL, MFX_GT2 },
     { 0x7D60, MFX_HW_MTL, MFX_GT2 },
     { 0x7D70, MFX_HW_MTL, MFX_GT2 },
     { 0x7D75, MFX_HW_MTL, MFX_GT2 },
@@ -551,6 +552,7 @@ typedef struct {
     { 0x7D76, MFX_HW_MTL, MFX_GT2 },
     { 0x7D66, MFX_HW_MTL, MFX_GT2 },
     { 0x7DD5, MFX_HW_MTL, MFX_GT2 },
+    { 0x7DD7, MFX_HW_MTL, MFX_GT2 },
     { 0x7D45, MFX_HW_MTL, MFX_GT2 },
     { 0x7DE0, MFX_HW_MTL, MFX_GT2 },
 
