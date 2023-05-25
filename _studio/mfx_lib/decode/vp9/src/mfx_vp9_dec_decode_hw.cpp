@@ -1269,6 +1269,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
             if (surface_work) // for model 3 we don't need to zero surface_out because we can alloc next frame inside decoder
             {
                 surface_out = nullptr;
+                sts = MFX_ERR_MORE_SURFACE;
             }
             else // for model 3 if we need more surface we can alloc it inside decoder
             {
