@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -67,8 +67,8 @@ namespace Base
     mfxU32 GetMaxVSizeByLevel(mfxU16 CodecLevel);
     mfxU32 GetMaxKbpsByLevel(mfxU16 CodecLevel, mfxU16 CodecProfile, mfxU16 seqTier = 0);
     mfxF64 GetMaxFrameRateByLevel(mfxU16 CodecLevel, mfxU32 width, mfxU32 height);
-    mfxU32 GetMaxTiles(mfxU16 CodecLevel);
-    mfxU16 GetMaxTileCols(mfxU16 CodecLevel);
+    mfxU32 GetMaxTilesByLevel(mfxU16 CodecLevel);
+    mfxU16 GetMaxTileColsByLevel(mfxU16 CodecLevel);
 
     mfxU16 GetMinLevel(
         mfxU32 frN

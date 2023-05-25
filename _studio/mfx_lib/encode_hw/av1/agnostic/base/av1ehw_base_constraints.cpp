@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -152,13 +152,13 @@ namespace Base
         return maxDisplayRate / width / height;
     }
 
-    mfxU32 GetMaxTiles(mfxU16 CodecLevel)
+    mfxU32 GetMaxTilesByLevel(mfxU16 CodecLevel)
     {
         const mfxU16 levelIndex = GetLevelIndexInTable(CodecLevel);
         return mfxU32(TableA2[levelIndex][MAX_TILES_INDEX]);
     }
 
-    mfxU16 GetMaxTileCols(mfxU16 CodecLevel)
+    mfxU16 GetMaxTileColsByLevel(mfxU16 CodecLevel)
     {
         const mfxU16 levelIndex = GetLevelIndexInTable(CodecLevel);
         return mfxU16(TableA2[levelIndex][MAX_TILE_COLS_INDEX]);

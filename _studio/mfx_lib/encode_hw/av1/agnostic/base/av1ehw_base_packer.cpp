@@ -620,7 +620,7 @@ inline void PackNonUniformTile(BitstreamWriter& bs, mfxU32 sbCols, mfxU32 sbRows
     for (mfxU16 i = 0; i < tileInfo.TileRows; i++)
     {
         sizeSb = tileInfo.TileHeightInSB[i];
-        WriteUniform(bs, std::min<mfxU32>(sbRows, tileInfo.tileLimits.MaxTileHeightSb), sizeSb - 1);
+        WriteUniform(bs, std::min<mfxU32>(sbRows, tileInfo.tileLimits.MaxTileHeightSbNonUniform), sizeSb - 1);
         sbRows -= sizeSb;
     }
 }

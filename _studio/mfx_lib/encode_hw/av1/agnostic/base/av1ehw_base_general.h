@@ -47,8 +47,8 @@ namespace Base
     DECL_BLOCK(CopyConfigurable     )\
     DECL_BLOCK(FixParam             )\
     DECL_BLOCK(CheckAndFixLowPower  )\
+    DECL_BLOCK(CheckAndFixLevel     )\
     DECL_BLOCK(CheckFormat          )\
-    DECL_BLOCK(CheckLevel           )\
     DECL_BLOCK(CheckPicStruct       )\
     DECL_BLOCK(CheckSurfSize        )\
     DECL_BLOCK(CheckCodedPicSize    )\
@@ -180,6 +180,7 @@ namespace Base
         mfxStatus CheckNumRefFrame(mfxVideoParam& par, const Defaults::Param& defPar);
         mfxStatus CheckColorConfig(mfxVideoParam& par);
         mfxStatus MapLevel(mfxVideoParam& par);
+        mfxStatus CheckAndFixLevel(mfxVideoParam& par);
         mfxStatus CheckLevelConstraints(mfxVideoParam& par, const Defaults::Param& defPar);
         mfxStatus CheckTCBRC(mfxVideoParam& par, const ENCODE_CAPS_AV1& caps);
 

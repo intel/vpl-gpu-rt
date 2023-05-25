@@ -461,6 +461,18 @@ void General::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
 
         return MFX_ERR_NONE;
     });
+
+    // Level will be used to set default Tile structures
+    Push(BLK_CheckAndFixLevel
+        , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
+    {
+        mfxStatus stsMap = MapLevel(out);
+        mfxStatus stsCheckValid = CheckAndFixLevel(out);
+        // invalid level error code should override mapped level error code
+        MFX_CHECK_STS(stsCheckValid);
+        MFX_CHECK_STS(stsMap);
+        return MFX_ERR_NONE;
+    });
 }
 
 mfxStatus General::MapLevel(mfxVideoParam& par)
@@ -473,6 +485,17 @@ mfxStatus General::MapLevel(mfxVideoParam& par)
     changed += MapToDefinedLevel(par.mfx.CodecLevel);
 
     MFX_CHECK(!changed, MFX_WRN_VIDEO_PARAM_CHANGED);
+    return MFX_ERR_NONE;
+}
+
+mfxStatus General::CheckAndFixLevel(mfxVideoParam& par)
+{
+    MFX_CHECK(par.mfx.CodecLevel, MFX_ERR_NONE);
+
+    mfxU32 invalid = 0;
+    invalid += SetIf(par.mfx.CodecLevel, !isValidCodecLevel(par.mfx.CodecLevel), 0);
+    MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
+
     return MFX_ERR_NONE;
 }
 
@@ -526,18 +549,6 @@ void General::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         sts = m_pQWCDefaults->base.CheckTargetBitDepth(*m_pQWCDefaults, out);
         MFX_CHECK_STS(sts);
         return m_pQWCDefaults->base.CheckFourCCByTargetFormat(*m_pQWCDefaults, out);
-    });
-
-    Push(BLK_CheckLevel
-        , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
-    {
-        mfxStatus stsMap = MapLevel(out);
-        mfxStatus stsCheckValid = m_pQWCDefaults->base.CheckLevel(*m_pQWCDefaults, out);
-        // invalid level error code should override mapped level error code
-        MFX_CHECK_STS(stsCheckValid);
-        MFX_CHECK_STS(stsMap);
-        return MFX_ERR_NONE;
-
     });
 
     Push(BLK_CheckPicStruct

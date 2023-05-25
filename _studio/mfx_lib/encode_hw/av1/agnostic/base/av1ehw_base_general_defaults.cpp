@@ -984,21 +984,6 @@ public:
 class CheckAndFix
 {
 public:
-    static mfxStatus Level(
-        Defaults::TCheckAndFix::TExt
-        , const Defaults::Param& /*dpar*/
-        , mfxVideoParam& par)
-    {
-        MFX_CHECK(par.mfx.CodecLevel, MFX_ERR_NONE);
-
-        mfxU32 invalid = 0;
-        invalid += SetIf(par.mfx.CodecLevel, !isValidCodecLevel(par.mfx.CodecLevel), 0);
-
-        MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
-
-        return MFX_ERR_NONE;
-    }
-
     static mfxStatus SurfSize(
         Defaults::TCheckAndFix::TExt
         , const Defaults::Param& dpar
@@ -1286,7 +1271,6 @@ public:
     {
 #define PUSH_DEFAULT(X) df.Check##X.Push(X);
 
-        PUSH_DEFAULT(Level);
         PUSH_DEFAULT(SurfSize);
         PUSH_DEFAULT(Profile);
         PUSH_DEFAULT(FourCC);

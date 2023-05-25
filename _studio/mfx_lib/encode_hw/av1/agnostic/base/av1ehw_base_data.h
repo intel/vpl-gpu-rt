@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Intel Corporation
+// Copyright (c) 2019-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -305,10 +305,20 @@ namespace Base
         BLOCK_8x8   = 3
     };
 
+    struct TileSizeParams
+    {
+        mfxU16 UniformTileSpacing         = 0;
+        mfxU16 NumTileRows                = 0;
+        mfxU16 NumTileColumns             = 0;
+        mfxU16 TileWidthInSB[128]         = { 0 };
+        mfxU16 TileHeightInSB[128]        = { 0 };
+    };
+
     struct TileLimits
     {
         uint32_t MaxTileWidthSb;
-        uint32_t MaxTileHeightSb;
+        uint32_t MaxTileHeightSbNonUniform;
+        uint32_t MaxTileHeightSbUniform;
         uint32_t MinLog2TileCols;
         uint32_t MaxLog2TileCols;
         uint32_t MinLog2TileRows;
@@ -1279,7 +1289,6 @@ namespace Base
 
         //for Query w/caps (check + fix)
         using TCheckAndFix = CallChain<mfxStatus, const Defaults::Param&, mfxVideoParam&>;
-        TCheckAndFix CheckLevel;
         TCheckAndFix CheckSurfSize;
         TCheckAndFix CheckProfile;
         TCheckAndFix CheckFourCC;
