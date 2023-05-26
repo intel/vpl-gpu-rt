@@ -237,21 +237,6 @@ mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
     } \
 }
 
-#undef FUNCTION_AUDIO_IMPL
-#define FUNCTION_AUDIO_IMPL(component, func_name, formal_param_list, actual_param_list) \
-    mfxStatus MFXAudio##component##_##func_name formal_param_list \
-{ \
-    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE); \
-    MFX_CHECK(session->m_pAudio##component.get(), MFX_ERR_NOT_INITIALIZED); \
-    try { \
-        /* call the codec's method */ \
-        return session->m_pAudio##component->func_name actual_param_list; \
-    } catch(...) { \
-        return MFX_ERR_NULL_PTR; \
-    } \
-}
-
-
 #undef FUNCTION_RESET_IMPL
 #define FUNCTION_RESET_IMPL(component, func_name, formal_param_list, actual_param_list) \
 mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
@@ -267,22 +252,6 @@ mfxStatus APIImpl_MFXVideo##component##_##func_name formal_param_list \
         session->m_pScheduler->WaitForAllTasksCompletion(session->m_p##component.get()); \
         /* call the codec's method */ \
         return session->m_p##component->func_name actual_param_list; \
-    } catch(...) { \
-        return MFX_ERR_NULL_PTR; \
-    } \
-}
-
-#undef FUNCTION_AUDIO_RESET_IMPL
-#define FUNCTION_AUDIO_RESET_IMPL(component, func_name, formal_param_list, actual_param_list) \
-    mfxStatus MFXAudio##component##_##func_name formal_param_list \
-{ \
-    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE); \
-    MFX_CHECK(session->m_pAudio##component.get(), MFX_ERR_NOT_INITIALIZED); \
-    try { \
-        /* wait until all tasks are processed */ \
-        session->m_pScheduler->WaitForAllTasksCompletion(session->m_pAudio##component.get()); \
-        /* call the codec's method */ \
-        return session->m_pAudio##component->func_name actual_param_list; \
     } catch(...) { \
         return MFX_ERR_NULL_PTR; \
     } \
