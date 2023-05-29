@@ -72,7 +72,19 @@ mfx_device_item getDeviceItem(VADisplay pVaDisplay)
 {
     /* This is value by default */
     mfx_device_item retDeviceItem = { 0x0000, MFX_HW_UNKNOWN, MFX_GT_UNKNOWN };
-
+    int devID = 0;
+    int ret = -1;
+#if VA_CHECK_VERSION(1, 15, 0)
+    VADisplayAttribute attr = {};
+    attr.type = VADisplayPCIID;
+    auto sts = vaGetDisplayAttributes(pVaDisplay, &attr, 1);
+    if (VA_STATUS_SUCCESS == sts &&
+        VA_DISPLAY_ATTRIB_GETTABLE == attr.flags)
+    {
+        devID = attr.value & 0xffff;
+        ret = 0;
+    }
+#else
     VADisplayContextP pDisplayContext_test = reinterpret_cast<VADisplayContextP>(pVaDisplay);
     VADriverContextP  pDriverContext_test  = pDisplayContext_test->pDriverContext;
 
@@ -82,13 +94,11 @@ mfx_device_item getDeviceItem(VADisplay pVaDisplay)
     * we can call ioctl() to kernel mode driver,
     * get device ID and find out platform type
     * */
-    int devID = 0;
     drm_i915_getparam_t gp;
     gp.param = I915_PARAM_CHIPSET_ID;
     gp.value = &devID;
-
-    int ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
-
+    ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
+#endif
     if (!ret)
     {
         mfxU32 listSize = (sizeof(listLegalDevIDs) / sizeof(mfx_device_item));
