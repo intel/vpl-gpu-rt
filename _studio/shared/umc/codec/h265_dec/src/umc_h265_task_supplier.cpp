@@ -1098,7 +1098,7 @@ UMC::Status TaskSupplier_H265::xDecodeSPS(H265HeadersBitstream *bs)
     for (uint32_t i = 0; i <= HighestTid; i++)
     {
         if (sps.sps_max_dec_pic_buffering[i] > newDPBsize)
-            sps.sps_max_dec_pic_buffering[i] = newDPBsize;
+            newDPBsize = (uint8_t)sps.sps_max_dec_pic_buffering[i];
     }
 
     HighestTid = sps.sps_max_sub_layers - 1;
@@ -2730,6 +2730,9 @@ int32_t CalculateDPBSize(uint32_t profile_idc, uint32_t &level_idc, int32_t widt
         level_idc = levelIndexArray[index + 1];
 
     }
+
+    if (num_ref_frames > MaxDpbSize)
+        MaxDpbSize = num_ref_frames;
 
     return MaxDpbSize;
 }
