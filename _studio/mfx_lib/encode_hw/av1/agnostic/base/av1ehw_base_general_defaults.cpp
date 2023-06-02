@@ -1125,7 +1125,8 @@ public:
             ,{
                 {
                     mfxU16(MFX_PROFILE_AV1_MAIN),
-                    {mfxU32(MFX_FOURCC_NV12), mfxU32(MFX_FOURCC_P010), mfxU32(MFX_FOURCC_RGB4), mfxU32(MFX_FOURCC_BGR4)}}
+                    {mfxU32(MFX_FOURCC_NV12), mfxU32(MFX_FOURCC_P010), mfxU32(MFX_FOURCC_RGB4), mfxU32(MFX_FOURCC_BGR4),
+                        mfxU32(MFX_FOURCC_AYUV), mfxU32(MFX_FOURCC_Y410)}}
                 }
             },
             {mfxU16(MFX_CHROMAFORMAT_YUV444 + 1)
