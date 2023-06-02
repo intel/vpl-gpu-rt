@@ -4865,7 +4865,7 @@ MFX_PACK_END()
 #ifdef ONEVPL_EXPERIMENTAL
 /*! The TuneQuality enumerator specifies tuning option for encode. Multiple tuning options can be combined using bit mask. */
 enum {
-    MFX_ENCODE_TUNE_DEFAULT = 0,   /*!< The balanced option to keep quality balanced across all metrics.  */
+    MFX_ENCODE_TUNE_OFF = 0,  /*!< Tuning quality is disabled.  */
     MFX_ENCODE_TUNE_PSNR    = 0x1, /*!< The encoder optimizes quality according to Peak Signal-to-Noise Ratio (PSNR) metric. */
     MFX_ENCODE_TUNE_SSIM    = 0x2, /*!< The encoder optimizes quality according to Structural Similarity Index Measure (SSIM) metric. */
     MFX_ENCODE_TUNE_MS_SSIM = 0x4, /*!< The encoder optimizes quality according to Multi-Scale Structural Similarity Index Measure (MS-SSIM) metric. */
