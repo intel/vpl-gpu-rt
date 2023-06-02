@@ -234,8 +234,11 @@ enum {
     MFX_CORRUPTION_REFERENCE_FRAME = 0x0010, /*!< Decoding used a corrupted reference frame. A corrupted reference frame was used for decoding this
                                                 frame. For example, if the frame uses a reference frame that was decoded with minor/major corruption flag, then this
                                                 frame is also marked with a reference corruption flag. */
-    MFX_CORRUPTION_REFERENCE_LIST  = 0x0020  /*!< The reference list information of this frame does not match what is specified in the Reference Picture Marking
+    MFX_CORRUPTION_REFERENCE_LIST  = 0x0020, /*!< The reference list information of this frame does not match what is specified in the Reference Picture Marking
                                                   Repetition SEI message. (ITU-T H.264 D.1.8 dec_ref_pic_marking_repetition) */
+#ifdef ONEVPL_EXPERIMENTAL
+    MFX_CORRUPTION_HW_RESET        = 0x0040  /*!< The hardware reset is reported from media driver. */
+#endif
 };
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
