@@ -5970,6 +5970,76 @@ void MfxHwH264Encode::SetDefaults(
             par.mfx.CodecProfile = MFX_PROFILE_AVC_HIGH;
     }
 
+    if (par.calcParam.cqpHrdMode == 0)
+    {
+        if (par.calcParam.maxKbps == 0)
+        {
+            if (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
+                par.mfx.RateControlMethod == MFX_RATECONTROL_WIDI_VBR ||
+                par.mfx.RateControlMethod == MFX_RATECONTROL_VCM ||
+                par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR ||
+                par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD)
+            {
+                mfxU32 maxBps = par.calcParam.targetKbps * MAX_BITRATE_RATIO;
+                if (IsOn(extOpt->NalHrdConformance) ||
+                    IsOn(extOpt->VuiVclHrdParameters))
+                    maxBps = std::min(maxBps, GetMaxBitrate(par));
+
+                par.calcParam.maxKbps = maxBps / 1000;
+                assert(par.calcParam.maxKbps >= par.calcParam.targetKbps);
+            }
+            else if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR)
+            {
+                par.calcParam.maxKbps = par.calcParam.targetKbps;
+            }
+        }
+
+        if (par.calcParam.bufferSizeInKB == 0)
+        {
+            if (bRateControlLA(par.mfx.RateControlMethod) && (par.mfx.RateControlMethod != MFX_RATECONTROL_LA_HRD))
+            {
+                par.calcParam.bufferSizeInKB = GetMaxCodedFrameSizeInKB(par);
+            }
+            else
+            {
+                mfxU32 bufferSizeInBits = std::min(
+                    GetMaxBufferSize(par),                           // limit by spec
+                    par.calcParam.maxKbps * DEFAULT_CPB_IN_SECONDS); // limit by common sense
+
+                par.calcParam.bufferSizeInKB = !IsHRDBasedBRCMethod(par.mfx.RateControlMethod)
+                    ? GetMaxCodedFrameSizeInKB(par)
+                    : bufferSizeInBits / 8000;
+            }
+            par.calcParam.bufferSizeInKB = std::max(par.calcParam.bufferSizeInKB, par.calcParam.initialDelayInKB);
+
+        }
+
+        if (par.calcParam.initialDelayInKB == 0 && IsHRDBasedBRCMethod(par.mfx.RateControlMethod))
+        {
+            par.calcParam.initialDelayInKB = (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR && isSWBRC(par)) ?
+                3 * par.calcParam.bufferSizeInKB / 4 :
+                par.calcParam.bufferSizeInKB / 2;
+        }
+
+        // Check BufferSizeInKB and InitialDelayInKB at extremely low bitrate to ensure there is enough space to write bitstream
+        if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
+            par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ &&
+            !isSWBRC(par) &&
+            par.mfx.FrameInfo.Width != 0 &&
+            par.mfx.FrameInfo.Height != 0 &&
+            par.mfx.FrameInfo.FrameRateExtN != 0 &&
+            par.mfx.FrameInfo.FrameRateExtD != 0)
+        {
+            mfxF64 rawDataBitrate = 12.0 * par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height *
+                par.mfx.FrameInfo.FrameRateExtN / par.mfx.FrameInfo.FrameRateExtD;
+            mfxU32 minBufferSizeInKB = mfxU32(std::min<mfxF64>(0xffffffff, rawDataBitrate / 8 / 1000.0 / 1400.0));
+            if (par.calcParam.bufferSizeInKB < minBufferSizeInKB) {
+                par.calcParam.bufferSizeInKB = minBufferSizeInKB;
+                par.calcParam.initialDelayInKB = minBufferSizeInKB / 2;
+            }
+        }
+    }
+
     if (par.mfx.CodecLevel == MFX_LEVEL_UNKNOWN)
         par.mfx.CodecLevel = GetMinLevelForAllParameters(par);
 
@@ -6122,76 +6192,6 @@ void MfxHwH264Encode::SetDefaults(
 
     if (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_UNKNOWN)
         extOpt3->EnableMBForceIntra = MFX_CODINGOPTION_OFF;
-
-    if (par.calcParam.cqpHrdMode == 0)
-    {
-        if (par.calcParam.maxKbps == 0)
-        {
-            if (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
-                par.mfx.RateControlMethod == MFX_RATECONTROL_WIDI_VBR ||
-                par.mfx.RateControlMethod == MFX_RATECONTROL_VCM ||
-                par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR ||
-                par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD)
-            {
-                mfxU32 maxBps = par.calcParam.targetKbps * MAX_BITRATE_RATIO;
-                if (IsOn(extOpt->NalHrdConformance) ||
-                    IsOn(extOpt->VuiVclHrdParameters))
-                    maxBps = std::min(maxBps, GetMaxBitrate(par));
-
-                par.calcParam.maxKbps = maxBps / 1000;
-                assert(par.calcParam.maxKbps >= par.calcParam.targetKbps);
-            }
-            else if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR)
-            {
-                par.calcParam.maxKbps = par.calcParam.targetKbps;
-            }
-        }
-
-        if (par.calcParam.bufferSizeInKB == 0)
-        {
-            if (bRateControlLA(par.mfx.RateControlMethod) && (par.mfx.RateControlMethod != MFX_RATECONTROL_LA_HRD))
-            {
-                par.calcParam.bufferSizeInKB = GetMaxCodedFrameSizeInKB(par);
-            }
-            else
-            {
-                mfxU32 bufferSizeInBits = std::min(
-                    GetMaxBufferSize(par),                           // limit by spec
-                    par.calcParam.maxKbps * DEFAULT_CPB_IN_SECONDS); // limit by common sense
-
-                par.calcParam.bufferSizeInKB = !IsHRDBasedBRCMethod(par.mfx.RateControlMethod)
-                        ? GetMaxCodedFrameSizeInKB(par)
-                        : bufferSizeInBits / 8000;
-            }
-            par.calcParam.bufferSizeInKB = std::max(par.calcParam.bufferSizeInKB, par.calcParam.initialDelayInKB);
-
-        }
-
-        if (par.calcParam.initialDelayInKB == 0 && IsHRDBasedBRCMethod(par.mfx.RateControlMethod))
-        {
-            par.calcParam.initialDelayInKB = (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR && isSWBRC(par)) ?
-                3*par.calcParam.bufferSizeInKB / 4:
-                par.calcParam.bufferSizeInKB / 2;
-        }
-
-        // Check BufferSizeInKB and InitialDelayInKB at extremely low bitrate to ensure there is enough space to write bitstream
-        if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
-            par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ &&
-            !isSWBRC(par) &&
-            par.mfx.FrameInfo.Width != 0 &&
-            par.mfx.FrameInfo.Height != 0 &&
-            par.mfx.FrameInfo.FrameRateExtN != 0 &&
-            par.mfx.FrameInfo.FrameRateExtD != 0)
-        {
-            mfxF64 rawDataBitrate = 12.0 * par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height *
-                par.mfx.FrameInfo.FrameRateExtN / par.mfx.FrameInfo.FrameRateExtD;
-            mfxU32 minBufferSizeInKB = mfxU32(std::min<mfxF64>(0xffffffff, rawDataBitrate / 8 / 1000.0 / 1400.0));
-            if (par.calcParam.bufferSizeInKB < minBufferSizeInKB) {
-                par.calcParam.bufferSizeInKB = minBufferSizeInKB;
-                par.calcParam.initialDelayInKB = minBufferSizeInKB / 2;
-            }
-        }
-    }
 
     if (IsMvcProfile(par.mfx.CodecProfile))
     {
