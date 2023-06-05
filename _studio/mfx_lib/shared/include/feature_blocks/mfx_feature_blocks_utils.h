@@ -29,6 +29,7 @@
 #include <exception>
 #include <functional>
 #include <algorithm>
+#include <cstring>
 #include <assert.h>
 
 #if defined(MFX_ENABLE_LOG_UTILITY)
