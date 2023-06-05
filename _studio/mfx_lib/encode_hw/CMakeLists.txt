@@ -75,6 +75,8 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/agnostic/base/hevcehw_base_rext.h
     hevc/agnostic/base/hevcehw_base_extddi.h
     hevc/agnostic/base/hevcehw_base_caps.h
+    hevc/agnostic/base/hevcehw_base_recon422.h
+    hevc/agnostic/base/hevcehw_base_recon422_ext.h
     hevc/agnostic/g12/hevcehw_g12_caps.h
     hevc/agnostic/g12/hevcehw_g12_data.h
 

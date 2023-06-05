@@ -32,6 +32,11 @@ namespace Linux
 {
 namespace Xe_HPM
 {
+    enum eFeatureId
+    {
+        FEATURE_RECON422EXT = HEVCEHW::Gen12::eFeatureId::NUM_FEATURES
+        , NUM_FEATURES
+    };
     class MFXVideoENCODEH265_HW
         : public Linux::Gen12::MFXVideoENCODEH265_HW
     {
