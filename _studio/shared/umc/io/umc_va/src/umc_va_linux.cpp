@@ -922,7 +922,7 @@ int32_t LinuxVideoAccelerator::GetSurfaceID(int32_t idx) const
     return *surface;
 }
 
-uint16_t LinuxVideoAccelerator::GetDecodingError()
+uint16_t LinuxVideoAccelerator::GetDecodingError(VASurfaceID *surface)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "GetDecodingError");
     uint16_t error = 0;
@@ -931,29 +931,27 @@ uint16_t LinuxVideoAccelerator::GetDecodingError()
     // NOTE: at the moment there is no such support for Android, so no need to execute...
     VAStatus va_sts;
 
-    for(VASurfaceID surface : m_associatedIds)
+    VASurfaceDecodeMBErrors* pVaDecErr = NULL;
     {
-        VASurfaceDecodeMBErrors* pVaDecErr = NULL;
+        PERF_UTILITY_AUTO("vaQuerySurfaceError", PERF_LEVEL_DDI);
+        MFX_CHECK(surface != nullptr, UMC_ERR_INVALID_PARAMS);
+        va_sts = vaQuerySurfaceError(m_dpy, *surface, VA_STATUS_ERROR_DECODING_ERROR, (void**)&pVaDecErr);
+    }
+    if (VA_STATUS_SUCCESS == va_sts)
+    {
+        if (NULL != pVaDecErr)
         {
-            PERF_UTILITY_AUTO("vaQuerySurfaceError", PERF_LEVEL_DDI);
-            va_sts = vaQuerySurfaceError(m_dpy, surface, VA_STATUS_ERROR_DECODING_ERROR, (void**)&pVaDecErr);
-        }
-        if (VA_STATUS_SUCCESS == va_sts)
-        {
-            if (NULL != pVaDecErr)
+            for (int i = 0; pVaDecErr[i].status != -1; ++i)
             {
-                for (int i = 0; pVaDecErr[i].status != -1; ++i)
                 {
-                    {
-                        error = MFX_CORRUPTION_MAJOR;
-                    }
-
+                    error = MFX_CORRUPTION_MAJOR;
                 }
+
             }
-            else
-            {
-                error = MFX_CORRUPTION_MAJOR;
-            }
+        }
+        else
+        {
+            error = MFX_CORRUPTION_MAJOR;
         }
     }
 #endif
@@ -1031,7 +1029,7 @@ Status LinuxVideoAccelerator::QueryTaskStatus(int32_t FrameBufIndex, void * stat
             switch (va_sts)
             {
                 case VA_STATUS_ERROR_DECODING_ERROR:
-                    *(uint16_t*)error = GetDecodingError();
+                    *(uint16_t*)error = GetDecodingError(surface);
                     break;
 
                 case VA_STATUS_ERROR_HW_BUSY:
@@ -1075,7 +1073,7 @@ Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorrupti
 
     if (VA_STATUS_ERROR_DECODING_ERROR == va_sts)
     {
-        if (surfCorruption) *(uint16_t*)surfCorruption = GetDecodingError();
+        if (surfCorruption) *(uint16_t*)surfCorruption = GetDecodingError(surface);
         return UMC_OK;
     }
     if (VA_STATUS_ERROR_OPERATION_FAILED == va_sts)
