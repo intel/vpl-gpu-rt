@@ -160,6 +160,8 @@ private:
 } g_global_registry;
 #endif
 
+class FrameAllocatorWrapper;
+
 class FrameAllocatorBase
 {
 public:
@@ -174,7 +176,7 @@ public:
     virtual mfxStatus ReallocSurface(const mfxFrameInfo& info, mfxMemId id)                                 = 0;
     virtual void      SetDevice(mfxHDL device)                                                              = 0;
 
-    // this is actually a WA, which should be removed after Synchronize will be implemented through dependency manager
+    // Currently Synchronize implemented through mfxSyncPoint mechanism
     mfxStatus Synchronize(mfxSyncPoint, mfxU32 /*timeout*/);
 
     static bool CheckMemoryFlags(mfxU32 flags)
@@ -198,9 +200,16 @@ protected:
 
     // Surface need access to Remove method from destructor, for allocator state update
     friend class mfxFrameSurfaceBaseInterface;
-
     virtual void Remove(mfxMemId mid) = 0;
 
+    friend class FrameAllocatorWrapper;
+    void SetWrapper(FrameAllocatorWrapper* wrapper)
+    {
+        // It is assumed that there is only one possible wrapper, so it is ok to reassign without a check here
+        m_frame_allocator_wrapper = wrapper;
+    }
+
+    FrameAllocatorWrapper*            m_frame_allocator_wrapper = nullptr;
     mfxSession                        m_session;
 };
 
@@ -358,6 +367,8 @@ public:
         MFX_SAFE_CALL(allocator->CreateSurface(type, info, output_surf));
 
         CacheMid(output_surf->Data.MemId, *allocator);
+        // it is required to clean up m_mid_to_allocator when output_surf will be completely deleted
+        allocator->SetWrapper(this);
 
         return MFX_ERR_NONE;
     }
@@ -459,6 +470,17 @@ private:
         std::lock_guard<std::shared_timed_mutex> guard(m_mutex);
 
         m_mid_to_allocator[mid] = &allocator;
+    }
+
+    // To allow access to Remove function
+    template <class T, class U> friend class FlexibleFrameAllocator;
+
+    // This function is called when surface is deleted by reducing refcount to zero
+    void Remove(mfxMemId mid)
+    {
+        std::unique_lock<std::shared_timed_mutex> lock(m_mutex);
+
+        m_mid_to_allocator.erase(mid);
     }
 
     std::shared_timed_mutex                 m_mutex;
@@ -709,6 +731,10 @@ protected:
 
         // Surface is being deleted after decreasing refcount to zero, no need decrease refcount in destructor of holder
         it->release();
+
+        // Remove surface from mid <-> allocator binding table
+        if (m_frame_allocator_wrapper)
+            m_frame_allocator_wrapper->Remove(mid);
 
         m_allocated_pool.erase(it);
 
