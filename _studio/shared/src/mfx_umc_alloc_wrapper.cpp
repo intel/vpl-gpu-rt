@@ -1860,7 +1860,7 @@ UMC::Status SurfaceSource::DecreaseReference(UMC::FrameMemID MID)
             mfxU32 counter = 0;
             MFX_CHECK(surf->FrameInterface->GetRefCounter(surf, &counter) == MFX_ERR_NONE, UMC::UMC_ERR_FAILED);
 
-            if (counter == 2)
+            if (counter == 1)
                 RemoveCorrespondence(*surf);
         }
 

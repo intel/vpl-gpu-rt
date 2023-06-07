@@ -59,6 +59,10 @@ struct _mfxSession
     mfxStatus ReleaseScheduler(void);
 
     // Declare session's components
+
+    // It's important to keep VideoCORE object preceding components objects,
+    // so it will guarantee correct destruction of surfaces: cache first, then allocator:
+    // allocator is kept in CORE and each component have it's own SurfaceCache object
     std::shared_ptr<VideoCORE>   m_pCORE;
 
     std::unique_ptr<VideoENCODE> m_pENCODE;

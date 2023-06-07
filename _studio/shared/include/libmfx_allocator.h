@@ -676,8 +676,6 @@ public:
 
             // Fill mfxFrameSurface1 object and return to user
             output_surf = &(m_allocated_pool.back()->m_exported_surface);
-
-            return output_surf->FrameInterface->AddRef(output_surf);
         }
         catch (const std::system_error& ex)
         {

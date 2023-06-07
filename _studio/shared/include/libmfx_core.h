@@ -850,7 +850,7 @@ private:
 
             m_surface_interface.Release = original_release;
 
-            MFX_STS_TRACE(m_surface_interface.Release(this));
+            std::ignore = MFX_STS_TRACE(m_surface_interface.Release(this));
         }
 
         void RefreshParentPool()
@@ -882,7 +882,7 @@ private:
 
             mfxU32 ref_counter = reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->GetRefCounter();
 
-            if (ref_counter > 2)
+            if (ref_counter > 1)
             {
                 // Bypass to original release function
                 return reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->Release();
