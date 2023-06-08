@@ -510,12 +510,11 @@ public:
     FlexibleFrameAllocator(mfxHDL device = nullptr, mfxSession session = nullptr)
         // ids across different allocators (SW / HW in one core and in different cores (for simplicity)) shouldn't overlap
         : FrameAllocatorBase(session)
-        , m_pow2_bits_n_surf(16)
-        // fetch_add returns value prior the increment
-        , m_mid_high_part(size_t(m_allocator_num.fetch_add(1, std::memory_order_relaxed) + 1) << m_pow2_bits_n_surf)
+        , m_last_created_mid(m_allocator_num << 16)
         , m_device(device)
         , m_staging_adapter(std::make_shared<U>(device))
     {
+        std::ignore = m_allocator_num.fetch_add(1, std::memory_order_relaxed);
     }
 
     mfxStatus Alloc(mfxFrameAllocRequest& request, mfxFrameAllocResponse& response) override
@@ -751,9 +750,7 @@ protected:
     }
 
 private:
-    const size_t                           m_pow2_bits_n_surf;
-    const size_t                           m_mid_high_part;
-    std::atomic<size_t>                    m_mid_low_part     = { 0 };
+    std::atomic<size_t>                    m_last_created_mid = { 0 };
     mfxHDL                                 m_device           = nullptr;
 
     mutable std::shared_timed_mutex        m_mutex;
@@ -769,8 +766,7 @@ private:
 
     mfxMemId GenerateMid()
     {
-        // fetch_add returns value prior the increment
-        return mfxMemId(m_mid_high_part | ((m_mid_low_part.fetch_add(1, std::memory_order_relaxed) + 1) & (m_pow2_bits_n_surf - 1)));
+        return mfxMemId(m_last_created_mid.fetch_add(1, std::memory_order_relaxed) + 1);
     }
 
 #undef MFX_DETACH_FRAME
