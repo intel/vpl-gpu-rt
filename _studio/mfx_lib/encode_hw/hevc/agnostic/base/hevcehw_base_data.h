@@ -1106,6 +1106,7 @@ namespace Base
         TChain<mfxU16> GetNumTemporalLayers;
         TChain<mfxU16> GetGopPicSize;
         TChain<mfxU16> GetGopRefDist;
+        TChain<mfxU16> GetTargetUsage;
         TChain<mfxU16> GetNumBPyramidLayers;
         TChain<mfxU16> GetNumRefFrames;
         TChain<mfxU16> GetNumRefBPyramid;
@@ -1134,7 +1135,6 @@ namespace Base
         TChain<mfxU32> GetMaxKbps;
         TChain<mfxU32> GetBufferSizeInKB;
         TChain<mfxU32> GetPreSetBufferSizeInKB;
-        TChain<std::tuple<mfxU16, mfxU16>> GetNumTiles; // (NumTileColumns, NumTileRows)
         TChain<std::tuple<mfxU16, mfxU16, mfxU16>> GetMaxNumRef;
         TChain<std::tuple<mfxU32, mfxU32>> GetFrameRate;
         TChain<std::tuple<mfxU16, mfxU16, mfxU16>> GetQPMFX; //I,P,B
@@ -1143,6 +1143,11 @@ namespace Base
         TChain<mfxU8> GetHighestTId;
         TChain<mfxU8> GetNumReorderFrames;
         TChain<bool>  GetNonStdReordering;
+
+        using TGetNumTiles = CallChain<
+            std::tuple<mfxU16, mfxU16>
+            , const Param&>;
+        TGetNumTiles GetNumTiles; // (NumTileColumns, NumTileRows)
 
         using TGetNumRefActive = CallChain<
             bool //bExternal

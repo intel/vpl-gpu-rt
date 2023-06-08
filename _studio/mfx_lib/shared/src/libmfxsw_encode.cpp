@@ -61,6 +61,7 @@
 
 #include "libmfx_core.h"
 
+bool VideoENCODE::m_singleEncodeMode = true;
 struct CodecKey {
     const mfxU32 codecId;
 

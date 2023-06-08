@@ -444,6 +444,7 @@ public:
     }
 
     std::unique_ptr<surface_cache_controller<SurfaceCache>, std::function<void(surface_cache_controller<SurfaceCache>*)>> m_pSurfaceCache;
+    static bool m_singleEncodeMode;
 };
 
 class VideoDECODE

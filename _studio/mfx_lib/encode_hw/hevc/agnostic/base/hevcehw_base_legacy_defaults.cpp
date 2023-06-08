@@ -208,6 +208,20 @@ public:
         return std::min<mfxU16>(GopPicSize - 1, 4 * (1 + bCQP));
     }
 
+    static mfxU16 TargetUsage(
+        Defaults::TChain<mfxU16>::TExt
+        , const Defaults::Param& par)
+    {
+        mfxU16 tu = 0;
+        if (par.mvp.mfx.TargetUsage)
+        {
+            tu = par.mvp.mfx.TargetUsage;
+        }
+        SetDefault(tu, mfxU16(4)) && Legacy::CheckTU(par.caps, tu);
+
+        return tu;
+    }
+
     static mfxU16 NumBPyramidLayers(
         Defaults::TChain<mfxU16>::TExt
         , const Defaults::Param& par)
@@ -2117,6 +2131,7 @@ public:
         PUSH_DEFAULT(MaxDPB);
         PUSH_DEFAULT(GopPicSize);
         PUSH_DEFAULT(GopRefDist);
+        PUSH_DEFAULT(TargetUsage);
         PUSH_DEFAULT(NumBPyramidLayers);
         PUSH_DEFAULT(NumRefBPyramid);
         PUSH_DEFAULT(NumRefPPyramid);

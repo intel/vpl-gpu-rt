@@ -712,7 +712,7 @@ void Legacy::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     Push(BLK_CheckTU
         , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
     {
-        return CheckTU(out, m_pQWCDefaults->caps);
+        return CheckTU(m_pQWCDefaults->caps, out.mfx.TargetUsage);
     });
 
     Push(BLK_CheckTemporalLayers
@@ -3481,7 +3481,7 @@ void Legacy::SetDefaults(
     SetDefault(par.mfx.CodecProfile, defPar.base.GetProfile(defPar));
     SetDefault(par.AsyncDepth, defPar.base.GetAsyncDepth(defPar));
     SetDefault(par.IOPattern, IOPByAlctr[!!bExternalFrameAllocator]);
-    SetDefault(par.mfx.TargetUsage, mfxU16(4)) && CheckTU(par, defPar.caps);
+    SetDefault(par.mfx.TargetUsage, defPar.base.GetTargetUsage(defPar));
 
     if (pTile)
     {
@@ -4159,10 +4159,8 @@ mfxStatus Legacy::CheckGopRefDist(mfxVideoParam & par, const ENCODE_CAPS_HEVC& c
     return MFX_ERR_NONE;
 }
 
-mfxStatus Legacy::CheckTU(mfxVideoParam & par, const ENCODE_CAPS_HEVC& caps)
+mfxStatus Legacy::CheckTU(const ENCODE_CAPS_HEVC& caps, mfxU16& tu)
 {
-    auto& tu = par.mfx.TargetUsage;
-
     if (CheckMaxOrZero(tu, 7u))
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
 
@@ -4188,7 +4186,6 @@ mfxStatus Legacy::CheckTU(mfxVideoParam & par, const ENCODE_CAPS_HEVC& caps)
     }
 
     return MFX_ERR_NONE;
-
 }
 
 mfxStatus Legacy::CheckTiles(
