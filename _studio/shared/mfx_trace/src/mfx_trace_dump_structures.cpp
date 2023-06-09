@@ -355,12 +355,8 @@ std::string DumpContext::dump(const std::string structName, const mfxExtCodingOp
     DUMP_FIELD(AdaptiveLTR);
     DUMP_FIELD(AdaptiveCQM);
     DUMP_FIELD(AdaptiveRef);
-#ifdef ONEVPL_EXPERIMENTAL
-    DUMP_FIELD(CPUEncToolsProcessing);
     DUMP_FIELD_RESERVED(reserved);
-#else
-    DUMP_FIELD_RESERVED(reserved);
-#endif  
+
     return str;
 }
 

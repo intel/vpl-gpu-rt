@@ -1758,18 +1758,8 @@ typedef struct {
        If this flag is set to OFF, regular reference frames are used for encoding.
     */
     mfxU16      AdaptiveRef;
-  
-#ifdef ONEVPL_EXPERIMENTAL
-    /*!
-       The tri-state option specifies hint for the library to execute encoding tools processing on CPU. 
-       It may give better encoding quality, but leads to higher CPU utilization. 
-       The library can ignore MFX_CODINGOPTION_ON if processing on CPU is not supported.
-    */
-    mfxU16      CPUEncToolsProcessing;
-    mfxU16      reserved[160];
-#else
+ 
     mfxU16      reserved[161];
-#endif     
   
 } mfxExtCodingOption3;
 MFX_PACK_END()
