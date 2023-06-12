@@ -71,6 +71,11 @@ std::map<uint64_t, std::vector<uint32_t>> AutoPerfUtility::tid2taskIds;
 
 void AutoPerfUtility::SetTaskId(uint32_t id)
 {
+    if (!g_perfutility->dwPerfUtilityIsEnabled)
+    {
+        return;
+    }
+
     uint64_t tid = pthread_self();
 
     decltype(tid2taskIds)::iterator it;
