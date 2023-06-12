@@ -101,6 +101,7 @@ static mfxTraceU32      g_Level      = MFX_TRACE_LEVEL_DEFAULT;
 mfxTraceU64      EventCfg = 0;
 mfxTraceU32      LogConfig = 0;
 int32_t FrameIndex = -1;
+const char *VplLogPath = nullptr;
 static volatile uint32_t  g_refCounter = 0;
 
 static mfxTraceU32           g_mfxTraceCategoriesNum = 0;
@@ -203,9 +204,18 @@ mfxTraceU32 MFXTrace_GetEnvParams(void)
 {
     //get VPL TXT log environment variable
     const char* tracelogChar = std::getenv("VPL_TXT_LOG");
+    char* tracelogPath = std::getenv("VPL_LOG_PATH");
     char* endPtr = nullptr;
     if (tracelogChar != nullptr)
     {
+        if (tracelogPath != nullptr)
+        {
+            VplLogPath = tracelogPath;
+        }
+        else
+        {
+            VplLogPath = "/tmp";
+        }
         LogConfig = std::strtol(tracelogChar, &endPtr, 10);
         if (LogConfig > 0 && LogConfig <= MFX_TXTLOG_LEVEL_API)
         {

@@ -57,7 +57,7 @@ typedef __UINT64 mfxTraceU64;
 extern mfxTraceU64 EventCfg;
 extern mfxTraceU32 LogConfig;
 extern int32_t FrameIndex;
-
+extern const char *VplLogPath;
 // C section
 
 #ifdef __cplusplus
