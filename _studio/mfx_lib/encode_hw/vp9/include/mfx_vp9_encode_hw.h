@@ -39,6 +39,7 @@ public:
     MFXVideoENCODEVP9_HW(VideoCORE *core, mfxStatus *status)
         : m_bStartIVFSequence(false)
         , m_maxBsSize(0)
+        , m_pCore(nullptr)
         , m_initialized(false)
         , m_frameArrivalOrder(0)
         , m_drainState(false)
