@@ -571,6 +571,7 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
         picParams = (VAPictureParameterBufferJPEGBaseline*)m_va->GetCompBuffer(VAPictureParameterBufferType,
                                                                             &compBufPic,
                                                                             sizeof(VAPictureParameterBufferJPEGBaseline));
+        memset(picParams, 0, sizeof(VAPictureParameterBufferJPEGBaseline));
         if(!picParams)
             return UMC_ERR_DEVICE_FAILED;
         picParams->picture_width  = (uint16_t)m_decBase->m_jpeg_width;
