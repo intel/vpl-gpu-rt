@@ -405,6 +405,8 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
     buffersForUpdate = (1 << 5) - 1;
     m_decBase->m_num_scans = GetNumScans(in);
     m_decBase->m_curr_scan = &m_decBase->m_scans[0];
+    m_decBase->m_curr_comp_no = 0;
+    m_decBase->m_curr_comp_no_pre = -1;
 
     for (uint32_t i = 0; i < pAuxData->count; i += 1)
     {
@@ -445,8 +447,6 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
                 return UMC_ERR_FAILED;
 
             jerr = m_decBase->ParseSOS(JO_READ_HEADER);
-            if (m_decBase->m_curr_comp_no != m_decBase->m_curr_scan->ncomps-1)
-                return UMC_ERR_INVALID_STREAM;
             if(JPEG_OK != jerr)
             {
                 if (JPEG_ERR_BUFF == jerr)
