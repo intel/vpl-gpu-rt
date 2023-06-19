@@ -133,7 +133,6 @@ void CJPEGDecoder::Reset(void)
   m_next_restart_num       = 0;
   m_sos_len                = 0;
   m_curr_comp_no           = 0;
-  m_curr_comp_no_pre       = -1;
   m_num_scans              = 0;
   for(int i = 0; i < MAX_SCANS_PER_FRAME; i++)
   {

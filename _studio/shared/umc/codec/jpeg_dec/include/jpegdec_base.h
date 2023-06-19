@@ -115,7 +115,6 @@ public:
   // Number of MCU remain in the current VLC unit
   int      m_sos_len;
   int      m_curr_comp_no;
-  int      m_curr_comp_no_pre = -1;
   int      m_num_scans;
   JSCAN    m_scans[MAX_SCANS_PER_FRAME];
   JSCAN*   m_curr_scan;
