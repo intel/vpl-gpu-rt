@@ -134,14 +134,14 @@ EXTBUF(mfxExtLAFrameStatistics           , MFX_EXTBUFF_LOOKAHEAD_STAT           
 
 #if defined(__MFX_EXT_BUFFERS_H__)
 EXTBUF(mfxExtCodingOptionDDI             , MFX_EXTBUFF_DDI                       )
-#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+#if defined(MFX_ENABLE_LPLA_BASE)
 EXTBUF(mfxExtLplaParam                   , MFX_EXTBUFF_LP_LOOKAHEAD              )
 EXTBUF(mfxExtLpLaStatus                  , MFX_EXTBUFF_LPLA_STATUS               )
 #endif
 
 EXTBUF(mfxExtHyperModeParam               , MFX_EXTBUFF_HYPER_MODE_PARAM         )
 
-#if defined(MFX_ENABLE_ENCTOOLS)
+#if defined(MFX_ENABLE_ENCTOOLS_BASE)
 EXTBUF(mfxExtEncToolsConfig              , MFX_EXTBUFF_ENCTOOLS_CONFIG           )
 #endif
 

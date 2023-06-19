@@ -455,7 +455,7 @@ MFX_PACK_END()
 MFX_PACK_BEGIN_USUAL_STRUCT()
 struct mfxLplastatus
 {
-#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+#if defined(MFX_ENABLE_LPLA_BASE)
     mfxU8 ValidInfo = 0;
     mfxU8 CqmHint = 0xFF;
     mfxU32 TargetFrameSize = 0;

@@ -960,7 +960,7 @@ void VAPacker::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         auto sts = CC::Get(global).ReadFeedback(global, s_task, *(const VACodedBufferSegment*)pFB);
         SetIf(rtErr, sts < MFX_ERR_NONE, sts);
 
-#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+#if defined(MFX_ENABLE_LPLA_BASE)
         auto& cc = CC::Get(global);
         if (cc.UpdateCqmHint)
         {

@@ -54,6 +54,8 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/agnostic/base/hevcehw_base_encoded_frame_info.h
     hevc/agnostic/base/hevcehw_base_enctools.cpp
     hevc/agnostic/base/hevcehw_base_enctools.h
+    hevc/agnostic/base/hevcehw_base_enctools_com.cpp
+    hevc/agnostic/base/hevcehw_base_enctools_com.h
     hevc/agnostic/base/hevcehw_base_ext_brc.h
     hevc/agnostic/base/hevcehw_base_hdr_sei.h
     hevc/agnostic/base/hevcehw_base_hrd.h
@@ -301,12 +303,7 @@ target_include_directories(encode_hw
 
     ${MSDK_UMC_ROOT}/codec/brc/include
     ${MSDK_UMC_ROOT}/codec/color_space_converter/include
-    $<$<BOOL:${MFX_ENABLE_ENCTOOLS}>:
-      ${MSDK_STUDIO_ROOT}/shared/enctools/include
-    >
 )
-
-set(ENCTOOLS_LIB $<$<BOOL:${MFX_ENABLE_ENCTOOLS}>:enctools_base>)
 
 target_link_libraries(encode_hw
   PUBLIC
@@ -318,7 +315,17 @@ target_link_libraries(encode_hw
   PRIVATE
     mfx_sdl_properties
     bitrate_control
-    ${ENCTOOLS_LIB}
   )
+
+if (MFX_ENABLE_ENCTOOLS OR MFX_ENABLE_HW_LPLA)
+  target_include_directories(encode_hw
+    PUBLIC
+      ${MSDK_STUDIO_ROOT}/shared/enctools/include
+    )
+  target_link_libraries(encode_hw
+    PRIVATE
+      enctools_base
+    )
+endif()
 
 include(sources_ext.cmake OPTIONAL)
