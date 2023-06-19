@@ -31,7 +31,7 @@
 #include "mfxvp8.h"
 #include "mfxmvc.h"
 
-#if defined(MFX_ENABLE_ENCTOOLS_BASE)
+#if defined(MFX_ENABLE_ENCTOOLS)
 #include "mfxenctools.h"
 #endif
 

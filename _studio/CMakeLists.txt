@@ -38,11 +38,8 @@ if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/mfx_config_trace")
 add_subdirectory(mfx_config_trace)
 endif()
 
-if (MFX_ENABLE_ENCTOOLS OR MFX_ENABLE_HW_LPLA)
-  add_subdirectory(shared/enctools)
-endif()
-
 if (MFX_ENABLE_ENCTOOLS)
+  add_subdirectory(shared/enctools)
   add_subdirectory(enctools)
 endif()
 

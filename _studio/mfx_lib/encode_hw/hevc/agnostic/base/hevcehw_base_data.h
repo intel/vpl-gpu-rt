@@ -27,9 +27,6 @@
 #include "hevcehw_ddi.h"
 #include "ehw_resources_pool.h"
 #include "ehw_device.h"
-#if defined(MFX_ENABLE_ENCTOOLS_BASE)
-#include "mfxenctools-int.h"
-#endif
 #include <vector>
 
 namespace HEVCEHW
@@ -789,7 +786,7 @@ namespace Base
         Resource            CUQP;
         mfxHDLPair          HDLRaw              = {};
         bool                bCUQPMap            = false;
-#if defined(MFX_ENABLE_ENCTOOLS_BASE)
+#if defined(MFX_ENABLE_ENCTOOLS)
         mfxLplastatus       LplaStatus          = {};
 #endif
         mfxGopHints         GopHints            = {};

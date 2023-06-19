@@ -104,6 +104,7 @@ Linux::Base::MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
     m_features.emplace_back(new HevcEncTools(FEATURE_ENCTOOLS));
 #endif
 
+
     InternalInitFeatures(status, mode);
 
     if (mode & INIT)
