@@ -575,7 +575,7 @@ mfxStatus EncTools::InitMfxVppParams(mfxEncToolsCtrl const & ctrl)
     if (!mfxVppParams_Common.vpp.In.CropH)
         mfxVppParams_Common.vpp.In.CropH = mfxVppParams_Common.vpp.In.Height;
 
-    if(ctrl.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING && mfxVppParams_Common.vpp.Out.BitDepthLuma == 10){
+    if(ctrl.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING && (mfxVppParams_Common.vpp.Out.BitDepthLuma == 10 || mfxVppParams_Common.vpp.Out.FourCC == MFX_FOURCC_YUY2)){
         mfxVppParams_Common.vpp.Out.FourCC = MFX_FOURCC_NV12;
         mfxVppParams_Common.vpp.Out.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
         mfxVppParams_Common.vpp.Out.BitDepthLuma = 8;
