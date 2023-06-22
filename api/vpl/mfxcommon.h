@@ -293,9 +293,9 @@ typedef enum {
     MFX_RESOURCE_VA_SURFACE                      = MFX_RESOURCE_VA_SURFACE_PTR, /*!< Pointer to VA surface index. */
     MFX_RESOURCE_VA_BUFFER_PTR                   = 3, /*!< Pointer to VA buffer index. */
     MFX_RESOURCE_VA_BUFFER                       = MFX_RESOURCE_VA_BUFFER_PTR, /*!< Pointer to VA buffer index. */
-    MFX_RESOURCE_DX9_SURFACE                     = 4, /*!< IDirect3DSurface9. */
-    MFX_RESOURCE_DX11_TEXTURE                    = 5, /*!< ID3D11Texture2D. */
-    MFX_RESOURCE_DX12_RESOURCE                   = 6, /*!< ID3D12Resource. */
+    MFX_RESOURCE_DX9_SURFACE                     = 4, /*!< Pointer to IDirect3DSurface9. */
+    MFX_RESOURCE_DX11_TEXTURE                    = 5, /*!< Pointer to ID3D11Texture2D. */
+    MFX_RESOURCE_DX12_RESOURCE                   = 6, /*!< Pointer to ID3D12Resource. */
     MFX_RESOURCE_DMA_RESOURCE                    = 7, /*!< DMA resource. */
     MFX_RESOURCE_HDDLUNITE_REMOTE_MEMORY         = 8, /*!< HDDL Unite Remote memory handle. */
 } mfxResourceType;
