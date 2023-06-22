@@ -80,6 +80,7 @@ EXTBUF(mfxExtAV1Segmentation             , MFX_EXTBUFF_AV1_SEGMENTATION)
 
 EXTBUF(mfxExtVPPPercEncPrefilter         , MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER)
 
+EXTBUF(mfxExtTuneEncodeQuality           , MFX_EXTBUFF_TUNE_ENCODE_QUALITY)
 #endif //defined(__MFXSTRUCTURES_H__)
 
 #if defined(__MFXAV1_H__)

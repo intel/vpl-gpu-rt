@@ -1009,3 +1009,10 @@ STRUCT(mfxExtEncodeStatsOutput,
     FIELD_S(mfxExtBuffer, Header)
 )
 #endif
+
+STRUCT(mfxExtTuneEncodeQuality,
+    FIELD_S(mfxExtBuffer,   Header)
+    FIELD_T(mfxU32,         TuneQuality)
+    FIELD_T(mfxExtBuffer**, ExtParam)
+    FIELD_T(mfxU16        , NumExtParam)
+)
