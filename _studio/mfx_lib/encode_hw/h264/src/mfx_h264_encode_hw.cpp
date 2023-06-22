@@ -4413,6 +4413,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         else
         {
             std::pair<mfxBitstream *, mfxU32> * pair = reinterpret_cast<std::pair<mfxBitstream *, mfxU32> *>(bs);
+            MFX_CHECK_NULL_PTR1(pair);
             assert(pair->second < 2);
             task->m_bs = pair->first;
             mfxU32 fid = task->m_fid[pair->second & 1];
