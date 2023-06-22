@@ -59,7 +59,8 @@ enum {
     MFX_EXTBUFF_ENCTOOLS_BRC_STATUS = MFX_MAKEFOURCC('E', 'B', 'S', 'T'),
     MFX_EXTBUFF_ENCTOOLS_HINT_MATRIX = MFX_MAKEFOURCC('E', 'H', 'Q', 'M'),
     MFX_EXTBUFF_ENCTOOLS_HINT_QPMAP  = MFX_MAKEFOURCC('E', 'H', 'Q', 'P'),
-    MFX_EXTBUFF_ENCTOOLS_HINT_SALIENCY_MAP  = MFX_MAKEFOURCC('E', 'H', 'S', 'M')
+    MFX_EXTBUFF_ENCTOOLS_HINT_SALIENCY_MAP  = MFX_MAKEFOURCC('E', 'H', 'S', 'M'),
+    MFX_EXTBUFF_ENCTOOLS_PREFILTER_PARAM  = MFX_MAKEFOURCC('E', 'P', 'R', 'P')
 };
 
 enum
@@ -429,6 +430,16 @@ MFX_PACK_END()
 
 #define MFX_ENCTOOLS_BRCSTATUS_VERSION MFX_STRUCT_VERSION(1, 0)
 
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+typedef struct
+{
+    mfxExtBuffer      Header;
+    mfxFrameSurface1 *InSurface;
+    mfxFrameSurface1 *OutSurface;
+    mfxU32            reserved[59];
+} mfxEncToolsPrefilterParam;
+MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
