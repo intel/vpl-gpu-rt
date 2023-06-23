@@ -2100,8 +2100,6 @@ mfxStatus VideoDECODEMJPEGBase_SW::Reset(mfxVideoParam *par)
 
 mfxStatus VideoDECODEMJPEGBase_SW::Close()
 {
-    UMC::Status umcSts = m_surface_source->Close();
-
     m_tasksCount = 0;
     pLastTask = nullptr;
     memset(&m_stat, 0, sizeof(mfxDecodeStat));
@@ -2115,6 +2113,7 @@ mfxStatus VideoDECODEMJPEGBase_SW::Close()
         }
     }
 
+    UMC::Status umcSts = m_surface_source->Close();
     MFX_CHECK(umcSts == UMC::UMC_OK, ConvertUMCStatusToMfx(umcSts));
 
     return MFX_ERR_NONE;
