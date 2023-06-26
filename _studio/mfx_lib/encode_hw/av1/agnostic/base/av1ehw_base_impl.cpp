@@ -73,8 +73,9 @@ void MFXVideoENCODEAV1_HW::InternalInitFeatures(
 
         Reorder(
             BQ<BQ_InitExternal>::Get(*this)
+            , { FEATURE_GENERAL, General::BLK_Query1WithCaps }
             , { FEATURE_DDI, IDDI::BLK_CreateDevice }
-            , { FEATURE_GENERAL, General::BLK_Query1NoCaps });
+            , PLACE_AFTER);
 
         auto& qIA = BQ<BQ_InitAlloc>::Get(*this);
         Reorder(qIA

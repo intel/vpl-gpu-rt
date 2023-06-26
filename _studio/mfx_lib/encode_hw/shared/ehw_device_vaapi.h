@@ -56,7 +56,7 @@ public:
         TVAGUID guid = {};
         guid.va.profile = profile;
         guid.va.entrypoint = entrypoint;
-        return Create(core, guid.guid, 0, 0, false);
+        return Create(core, guid.guid, 0, 0, false, false);
     }
     mfxStatus Init(
         int width
@@ -72,7 +72,8 @@ public:
         , GUID        guid
         , mfxU32      width
         , mfxU32      height
-        , bool        isTemporal) override;
+        , bool        isTemporal
+        , bool) override;
 
     virtual bool      IsValid() const override { return m_pCore && m_vaDisplay; }
     virtual mfxStatus QueryCaps(void* pCaps /*VAConfigAttrib*/, mfxU32 size) override;

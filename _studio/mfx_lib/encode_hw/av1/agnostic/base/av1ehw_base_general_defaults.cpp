@@ -138,6 +138,18 @@ public:
         return std::min<mfxU16>(DEFAULT_GOP_REF_DIST, par.base.GetGopPicSize(par) - 1);
     }
 
+    static mfxU16 TargetUsage(
+        Defaults::TChain<mfxU16>::TExt
+        , const Defaults::Param& par)
+    {
+        if (par.mvp.mfx.TargetUsage)
+        {
+            return par.mvp.mfx.TargetUsage;
+        }
+
+        return DEFAULT_TARGET_USAGE;
+    }
+
     static mfxU16 NumBPyramidLayers(
         Defaults::TChain<mfxU16>::TExt
         , const Defaults::Param& par)
@@ -908,6 +920,7 @@ public:
         PUSH_DEFAULT(CodedPicAlignment);
         PUSH_DEFAULT(GopPicSize);
         PUSH_DEFAULT(GopRefDist);
+        PUSH_DEFAULT(TargetUsage);
         PUSH_DEFAULT(NumBPyramidLayers);
         PUSH_DEFAULT(NumRefFrames);
         PUSH_DEFAULT(NumRefBPyramid);

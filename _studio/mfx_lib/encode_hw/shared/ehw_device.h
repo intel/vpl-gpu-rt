@@ -83,7 +83,8 @@ public:
         , GUID        guid
         , mfxU32      width
         , mfxU32      height
-        , bool        isTemporal) = 0;
+        , bool        isTemporal
+        , bool        reserved=false) = 0;
 
     virtual bool      IsValid() const = 0;
     virtual mfxStatus QueryCaps(void* pCaps, mfxU32 size) = 0;
@@ -96,6 +97,7 @@ public:
     virtual mfxStatus EndPicture() = 0;
     virtual mfxU32    GetLastErr() const = 0;
     virtual void      Trace(const DDIExecParam&, bool /*bAfterExec*/, mfxU32 /*res*/) {}
+
 };
 
 } //namespace MfxEncodeHW

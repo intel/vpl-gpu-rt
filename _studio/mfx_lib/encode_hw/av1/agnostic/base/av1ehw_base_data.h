@@ -1210,6 +1210,7 @@ namespace Base
         TChain<mfxU16> GetCodedPicAlignment;
         TChain<mfxU16> GetGopPicSize;
         TChain<mfxU16> GetGopRefDist;
+        TChain<mfxU16> GetTargetUsage;
         TChain<mfxU16> GetNumBPyramidLayers;
         TChain<mfxU16> GetNumRefFrames;
         TChain<mfxU16> GetNumRefBPyramid;

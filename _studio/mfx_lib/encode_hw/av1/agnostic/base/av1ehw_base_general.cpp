@@ -2895,7 +2895,7 @@ void General::SetDefaults(
 
     const mfxU16 IOPByAlctr[2] = { MFX_IOPATTERN_IN_SYSTEM_MEMORY, MFX_IOPATTERN_IN_VIDEO_MEMORY };
     SetDefault(par.IOPattern, IOPByAlctr[!!bExternalFrameAllocator]);
-    SetDefault(par.mfx.TargetUsage, DEFAULT_TARGET_USAGE);
+    SetDefault(par.mfx.TargetUsage, defPar.base.GetTargetUsage(defPar));
     SetDefault(par.mfx.NumThread, 1);
 
     mfxExtAV1ResolutionParam* pRsPar = ExtBuffer::Get(par);
