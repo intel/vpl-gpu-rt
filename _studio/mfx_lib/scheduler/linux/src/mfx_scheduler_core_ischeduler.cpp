@@ -159,22 +159,6 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxSyncPoint syncPoint, mfxU32 timeToWai
 
 } // mfxStatus mfxSchedulerCore::Synchronize(mfxSyncPoint syncPoint, mfxU32 timeToWait)
 
-bool mfxSchedulerCore::IsDecodeSyncPoint(mfxSyncPoint syncPoint)
-{
-    mfxTaskHandle handle;
-
-    // cast the pointer to handle and make syncing
-    handle.handle = (size_t)syncPoint;
-
-    auto it = std::find_if(m_ppTaskLookUpTable.begin(), m_ppTaskLookUpTable.end(), [handle]
-    (MFX_SCHEDULER_TASK* p)->bool {return p == nullptr ? false : p->taskID == handle.taskID; });
-
-    if (it != m_ppTaskLookUpTable.end())
-        return true;
-    else
-        return false;
-} // bool mfxSchedulerCore::IsDecodeSyncPoint(mfxSyncPoint syncPoint)
-
 mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
 {
     // check error(s)

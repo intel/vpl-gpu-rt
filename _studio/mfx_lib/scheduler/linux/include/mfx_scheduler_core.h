@@ -139,11 +139,7 @@ public:
     virtual
     mfxStatus AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoint);
 
-    // Check if sync point from decoder
-    virtual
-    bool IsDecodeSyncPoint(mfxSyncPoint syncPoint);
-
-   // Make synchronization, wait until task is done.
+    // Make synchronization, wait until task is done.
     virtual
     mfxStatus Synchronize(mfxSyncPoint syncPoint, mfxU32 timeToWait);
 
