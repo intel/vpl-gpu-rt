@@ -35,6 +35,32 @@
 #include <algorithm>
 
 
+#include "mfx_perc_enc_vpp_avx2.h"
+
+class PercEncFilterWrapper
+{
+public:
+    mfxStatus Init(const mfxFrameInfo& info);
+    mfxStatus SetModulationMap(const mfxEncToolsHintSaliencyMap &sm);
+    mfxStatus RunFrame(mfxFrameSurface1& in, mfxFrameSurface1& out);
+
+private:
+    static const mfxU32 blockSizeFilter = 16;
+    bool initialized = false;
+    int width = 0;
+    int height = 0;
+
+    std::vector<uint8_t> previousOutput;
+
+    int modulationStride = 0;
+    std::vector<uint8_t> modulation;
+
+    std::array<PercEncPrefilter::Parameters::PerBlock, 2> parametersBlock;
+    PercEncPrefilter::Parameters::PerFrame parametersFrame;
+    std::unique_ptr<PercEncPrefilter::Filter> filter;
+};
+
+
 using namespace EncToolsUtils;
 
 mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl);
@@ -71,6 +97,15 @@ private:
 
     void* m_hRTModule = nullptr;
 
+
+    PercEncFilterWrapper m_PercEncFilter;
+    MFXDLVideoSession m_FFPrefilterSession;
+    std::unique_ptr<MFXDLVideoVPP>m_FFPrefilterVPP;
+    bool m_UseFFPrefilter = false;
+
+    mfxStatus InitFFPrefilter(mfxEncToolsCtrl const & ctrl);
+    mfxStatus RunFFPrefilter(mfxEncToolsPrefilterParam *pPrefilterParam);
+    mfxStatus CloseFFPrefilter();
 
 public:
     EncTools(void* rtmodule, void* etmodule);

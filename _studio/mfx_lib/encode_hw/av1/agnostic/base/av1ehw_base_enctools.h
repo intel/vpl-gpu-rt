@@ -29,6 +29,8 @@
 #include "mfxenctools-int.h"
 #include "mfx_enc_common.h"
 
+#include "libmfx_core.h"            //SurfaceCache
+
 namespace AV1EHW
 {
 namespace Base
@@ -100,6 +102,11 @@ namespace Base
         mfxU8* m_pSegmentQPMap = nullptr;  //Note: QP in this map is HEVC QP
         mfxU8* m_pSegmentIDMap = nullptr;
         mfxExtAV1Segmentation m_SegmentationInfo = {};
+
+        bool m_enablePercEncPrefilter = false;
+        std::unique_ptr<SurfaceCache> m_filteredFrameCache;
+        bool m_saliencyMapSupported = false;
+        size_t m_saliencyMapSize = 0;
 
     protected:
         void AllocSegmentationData(mfxU16 frame_width, mfxU16 frame_height, mfxU8 blockSize);

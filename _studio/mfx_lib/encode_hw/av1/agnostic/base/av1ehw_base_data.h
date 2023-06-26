@@ -831,8 +831,10 @@ namespace Base
         bool              bCUQPMap               = false;
 #if defined(MFX_ENABLE_ENCTOOLS)
         mfxLplastatus     LplaStatus           = {};
-        mfxBRCHints      BrcHints             = {};
-        bool             bBRCUpdated          = false;
+        mfxBRCHints      BrcHints              = {};
+        bool             bBRCUpdated           = false;
+        mfxFrameSurface1* pFilteredSurface     = nullptr;
+        mfxEncToolsHintSaliencyMap saliencyMap = {};
 #endif
         mfxGopHints       GopHints               = {};
         bool              bForceSync             = false;

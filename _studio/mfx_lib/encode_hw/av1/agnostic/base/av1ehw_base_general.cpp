@@ -1682,6 +1682,12 @@ void General::FreeTask(const FeatureBlocks& /*blocks*/, TPushFT Push)
         if(task.ctrl.NumExtParam)
             delete[] task.ctrl.ExtParam;
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+        if(task.saliencyMap.SaliencyMap)
+        {
+            delete[] task.saliencyMap.SaliencyMap;
+        }
+#endif
         return MFX_ERR_NONE;
     });
 }

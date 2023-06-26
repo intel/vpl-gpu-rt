@@ -31,6 +31,8 @@
 #include "av1ehw_base_packer.h"
 #include "av1ehw_base_segmentation.h"
 
+#include "libmfx_core.h"
+
 using namespace AV1EHW;
 using namespace AV1EHW::Base;
 
@@ -216,8 +218,19 @@ void AV1EncTools::SetSupported(ParamSupport& blocks)
 
         MFX_COPY_FIELD(AdaptiveCQM);
         MFX_COPY_FIELD(ScenarioInfo);
+        MFX_COPY_FIELD(ContentInfo);
         MFX_COPY_FIELD(ExtBrcAdaptiveLTR);
     });
+
+#if defined (ONEVPL_EXPERIMENTAL)
+    blocks.m_ebCopySupported[MFX_EXTBUFF_TUNE_ENCODE_QUALITY].emplace_back(
+        [](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
+    {
+        const auto& buf_src = *(const mfxExtTuneEncodeQuality*)pSrc;
+        auto& buf_dst = *(mfxExtTuneEncodeQuality*)pDst;
+        MFX_COPY_FIELD(TuneQuality);
+    });
+#endif
 }
 
 void AV1EncTools::SetInherited(ParamInheritance& par)
@@ -926,6 +939,41 @@ mfxStatus AV1EncTools::SubmitPreEncTask(StorageW&  /*global*/, StorageW& s_task)
         sts = MFX_ERR_NONE;
     }
 
+    if(m_saliencyMapSupported && task.pSurfIn)
+    {
+        if(m_saliencyMapSize == 0)
+        {
+            const mfxU32 blockSize = 8;
+            m_saliencyMapSize = task.pSurfIn->Info.Width * task.pSurfIn->Info.Height / (blockSize * blockSize);
+        }
+
+        task.saliencyMap.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_SALIENCY_MAP;
+        task.saliencyMap.Header.BufferSz = sizeof(mfxEncToolsHintSaliencyMap);
+        task.saliencyMap.AllocatedSize = (mfxU32)m_saliencyMapSize;
+
+        //task should be POD, so we can't use unique_ptr here
+        task.saliencyMap.SaliencyMap = new mfxF32[m_saliencyMapSize];
+
+        std::vector<mfxExtBuffer*> extQueryParams;
+        extQueryParams.push_back(&task.saliencyMap.Header);
+
+        mfxEncToolsTaskParam param{};
+        param.ExtParam = extQueryParams.data();
+        param.NumExtParam = (mfxU16)extQueryParams.size();
+        param.DisplayOrder = task.DisplayOrder;
+
+        sts = m_pEncTools->Query(m_pEncTools->Context, &param, 0 /*timeout*/);
+        if (sts == MFX_ERR_NOT_ENOUGH_BUFFER)
+        {
+            m_saliencyMapSize = task.saliencyMap.Width * task.saliencyMap.Height;
+            task.saliencyMap.AllocatedSize = (mfxU32)m_saliencyMapSize;
+            delete[] task.saliencyMap.SaliencyMap;
+            task.saliencyMap.SaliencyMap = new mfxF32[m_saliencyMapSize];
+            sts = m_pEncTools->Query(m_pEncTools->Context, &param, 0 /*timeout*/);
+        }
+        MFX_CHECK_STS(sts);
+    }
+
     return (sts);
 }
 
@@ -1377,8 +1425,28 @@ void AV1EncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 
             SetDefaultConfig(par, m_EncToolConfig, caps.ForcedSegmentationSupport);
 
+#if defined (ONEVPL_EXPERIMENTAL)
+            const mfxExtTuneEncodeQuality& tuneVQ = ExtBuffer::Get(par);
+            m_enablePercEncPrefilter = 
+                tuneVQ.TuneQuality & MFX_ENCODE_TUNE_VMAF ||
+                tuneVQ.TuneQuality & MFX_ENCODE_TUNE_PERCEPTUAL;
+#endif
+
+            if(m_enablePercEncPrefilter)
+            {
+                m_EncToolConfig.SaliencyMapHint = MFX_CODINGOPTION_ON;
+                m_saliencyMapSupported = false;
+            }
+
             sts = encTools->Init(encTools->Context, &m_EncToolConfig, &m_EncToolCtrl);
+            if(m_enablePercEncPrefilter && sts == MFX_ERR_UNSUPPORTED)
+            {
+                m_EncToolConfig.SaliencyMapHint = MFX_CODINGOPTION_OFF;
+                sts = encTools->Init(encTools->Context, &m_EncToolConfig, &m_EncToolCtrl);
+            }
             MFX_CHECK_STS(sts);
+
+            m_saliencyMapSupported = (m_EncToolConfig.SaliencyMapHint == MFX_CODINGOPTION_ON);
 
             sts = encTools->GetActiveConfig(encTools->Context, &m_EncToolConfig);
             MFX_CHECK_STS(sts);
@@ -1392,6 +1460,16 @@ void AV1EncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
             S_ET_QUERY = tm.AddStage(S_ET_SUBMIT);
 
             m_pEncTools = encTools;
+
+            if(m_enablePercEncPrefilter)
+            {
+                mfxU16 frameType = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET;
+
+                CommonCORE_VPL* core = dynamic_cast <CommonCORE_VPL*>(&Glob::VideoCore::Get(strg));
+                MFX_CHECK(core, MFX_ERR_UNKNOWN);
+
+                m_filteredFrameCache.reset(SurfaceCache::Create(*core, frameType, par.mfx.FrameInfo));
+            }
         }
 
         m_destroy = [this]()
@@ -1564,6 +1642,50 @@ void AV1EncTools::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         // Set CDEF filter
         CDEF(fh);
 
+        //filter input surface if nesessary
+        if(m_enablePercEncPrefilter && task.pSurfIn){
+
+            mfxStatus sts = MFX_ERR_NONE;
+
+            //sanity check
+            if((!task.bRecode && task.pFilteredSurface) || task.DisplayOrder == mfxU32(-1)){
+                MFX_RETURN(MFX_ERR_UNKNOWN);
+            }
+
+            if(!task.pFilteredSurface){
+                sts = m_filteredFrameCache -> GetSurface(task.pFilteredSurface);
+                MFX_CHECK_STS(sts);
+            }
+
+            //do filtering, task.QpY is valid
+            if(task.pFilteredSurface){
+                mfxResourceType resType = {};
+                sts = task.pFilteredSurface -> FrameInterface->GetNativeHandle(task.pFilteredSurface, &task.HDLRaw.first, &resType);
+                MFX_CHECK_STS(sts);
+
+                mfxEncToolsPrefilterParam extPrefilterParam{};
+                extPrefilterParam.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_PREFILTER_PARAM;
+                extPrefilterParam.Header.BufferSz = sizeof(mfxEncToolsPrefilterParam);
+                extPrefilterParam.InSurface = task.pSurfIn;
+                extPrefilterParam.OutSurface = task.pFilteredSurface;
+
+                std::vector<mfxExtBuffer*> extParams;
+                extParams.push_back(&extPrefilterParam.Header);
+
+                if(m_saliencyMapSupported)
+                {
+                    extParams.push_back(&task.saliencyMap.Header);
+                }
+
+                mfxEncToolsTaskParam param{};
+                param.ExtParam = extParams.data();
+                param.NumExtParam = (mfxU16)extParams.size();
+                param.DisplayOrder = task.DisplayOrder;
+                sts = m_pEncTools->Submit(m_pEncTools->Context, &param);
+                MFX_CHECK_STS(sts);
+            }
+        }
+
         return MFX_ERR_NONE;
     });
 }
@@ -1622,6 +1744,13 @@ void AV1EncTools::FreeTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         MFX_CHECK(m_pEncTools && m_pEncTools->Discard, MFX_ERR_NONE);
 
         auto& task = Task::Common::Get(s_task);
+
+        if(task.pFilteredSurface)
+        {
+            mfxStatus sts = task.pFilteredSurface->FrameInterface->Release(task.pFilteredSurface);
+            task.pFilteredSurface = nullptr;
+            std::ignore = MFX_STS_TRACE(sts);
+        }
 
         return m_pEncTools->Discard(m_pEncTools->Context, task.DisplayOrder);
     });

@@ -63,6 +63,7 @@ target_include_directories(${enctools_name}
     include
     aenc/include
     ${MSDK_STUDIO_ROOT}/shared/enctools/include
+    ${MSDK_STUDIO_ROOT}/mfx_lib/vpp/include #for prefilter
   )
 
 target_link_libraries(${enctools_name}
@@ -74,6 +75,7 @@ target_link_libraries(${enctools_name}
   PRIVATE
     mfx_sdl_properties
     $<$<BOOL:${MFX_ENABLE_AENC}>:aenc>
+    vpp_hw_avx2
   )
 
 

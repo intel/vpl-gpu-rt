@@ -25,6 +25,7 @@
 #include <vector>
 #include <memory>
 #include <assert.h>
+#include <functional>
 
 #ifndef MFX_DEBUG_TRACE
 #define MFX_STS_TRACE(sts) sts
@@ -81,5 +82,23 @@ namespace mfx
     {
         return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
     }
+
+    class OnExit
+        : public std::function<void()>
+    {
+    public:
+        OnExit(const OnExit&) = delete;
+
+        template<class... TArg>
+        OnExit(TArg&& ...arg)
+            : std::function<void()>(std::forward<TArg>(arg)...)
+        {}
+
+        ~OnExit()
+        {
+            if (operator bool())
+                operator()();
+        }
+    };
 }
 #endif
