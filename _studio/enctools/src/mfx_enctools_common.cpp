@@ -1234,13 +1234,13 @@ mfxStatus EncTools::Discard(mfxU32 displayOrder)
 
 mfxStatus PercEncFilterWrapper::Init(const mfxFrameInfo& info)
 {
-    const bool cpuHasAvx2 = __builtin_cpu_supports("avx2");
-    MFX_CHECK(cpuHasAvx2, MFX_ERR_UNSUPPORTED)
-
+    if(!AVX2Supported())
+    {
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
 
     if (initialized)
         return MFX_ERR_NONE;
-
 
     MFX_CHECK(info.CropW >= 16, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(info.CropH >= 2, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -1347,6 +1347,37 @@ mfxStatus PercEncFilterWrapper::RunFrame(mfxFrameSurface1& in, mfxFrameSurface1&
     }
 
     return MFX_ERR_NONE;
+}
+
+bool PercEncFilterWrapper::AVX2Supported()
+{
+#if defined(__GNUC__)
+    return __builtin_cpu_supports("avx2") > 0;
+#else
+    int info[4] = {};
+    constexpr int EBX_REGISTER = 1;
+    constexpr int ECX_REGISTER = 2;
+    constexpr int AVX_OSXSAVE_MASK = (1 << 27) | (1 << 28);
+    constexpr int AVX2_MASK = 1 << 5;
+    constexpr int XMM_YMM_STATES_MASK = 0x6;
+
+    //check that AVX is supported and _xgetbv is enabled
+    __cpuidex(info, 0x1, 0);
+    if((info[ECX_REGISTER] & AVX_OSXSAVE_MASK) != AVX_OSXSAVE_MASK)
+    {
+        return false;
+    }
+
+    //check that AVX2 is supported
+    __cpuidex(info, 0x7, 0);
+    if((info[EBX_REGISTER] & AVX2_MASK) != AVX2_MASK)
+    {
+        return false;
+    }
+
+    //check that OS enabled XMM and YMM states support
+    return (_xgetbv(_XCR_XFEATURE_ENABLED_MASK) & XMM_YMM_STATES_MASK) == XMM_YMM_STATES_MASK;
+#endif
 }
 
 mfxStatus EncTools::InitFFPrefilter(mfxEncToolsCtrl const & ctrl)

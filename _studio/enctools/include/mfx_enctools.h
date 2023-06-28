@@ -45,6 +45,8 @@ public:
     mfxStatus RunFrame(mfxFrameSurface1& in, mfxFrameSurface1& out);
 
 private:
+    static bool AVX2Supported();
+
     static const mfxU32 blockSizeFilter = 16;
     bool initialized = false;
     int width = 0;
