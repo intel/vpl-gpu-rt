@@ -28,6 +28,7 @@
 
 #cmakedefine MFX_ENABLE_VPP
 #cmakedefine MFX_ENABLE_ENCTOOLS
+#cmakedefine MFX_ENABLE_AENC
 #cmakedefine MFX_ENABLE_MVC_VIDEO_ENCODE
 #cmakedefine MFX_ENABLE_SVC_VIDEO_ENCODE
 

@@ -423,7 +423,7 @@ mfxStatus LPLA_EncTool::Query(mfxU32 dispOrder, mfxEncToolsHintPreEncodeGOP *pPr
     else if (m_GopRefDist > 1)
     {
         // closed GOP (GopOptFlag or IDR)
-        if ((dispOrder - m_lastIFrameNumber + 1 == (mfxU32)m_encParams.mfx.GopPicSize) && (m_encParams.mfx.GopOptFlag & MFX_GOP_CLOSED)
+        if (((dispOrder - m_lastIFrameNumber + 1 == (mfxU32)m_encParams.mfx.GopPicSize) && (m_encParams.mfx.GopOptFlag & MFX_GOP_CLOSED))
             || (m_encParams.mfx.GopPicSize && (dispOrder - m_lastIDRFrameNumber + 1 == (mfxU32)m_encParams.mfx.GopPicSize * m_IdrInterval)))
         {
             pPreEncGOP->FrameType = MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;

@@ -19,21 +19,6 @@ set(sources
     src/dll_main.cpp
   )
 
-
-  if (MFX_ENABLE_AENC)
-    find_library( AENC_LIBRARY libaenc.a PATHS ${CMAKE_HOME_DIRECTORY}/contrib/aenc/ )
-    if(NOT ${AENC_LIBRARY} MATCHES NOTFOUND)
-      message(STATUS "aenc library was found here ${AENC_LIBRARY}")
-
-      add_library(aenc STATIC IMPORTED GLOBAL)
-      set_target_properties(aenc PROPERTIES IMPORTED_LOCATION "${CMAKE_HOME_DIRECTORY}/contrib/aenc/libaenc.a")
-      target_include_directories(aenc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    else()
-      message(STATUS "aenc library was not found (optional)! mfxlib will be built without aenc")
-      set(MFX_ENABLE_AENC OFF)
-    endif()
-  endif()
-
 function(make_enctools_name name)
   set (enctools_name enctools)
   if( CMAKE_SYSTEM_NAME MATCHES Windows )
@@ -51,12 +36,6 @@ make_enctools_name( enctools_name )
 add_library(${enctools_name} SHARED ${sources})
 
 set_target_properties(${enctools_name} PROPERTIES PREFIX "")
-
-target_compile_definitions(${enctools_name}
-  PRIVATE
-    $<$<BOOL:${MFX_ENABLE_AENC}>:MFX_ENABLE_AENC>
-  )
-
 
 target_include_directories(${enctools_name}
   PUBLIC
@@ -86,5 +65,31 @@ target_link_options(${enctools_name}
 install(TARGETS ${enctools_name} LIBRARY DESTINATION ${MFX_MODULES_DIR}/libmfx-gen)
 
 
-include(sources_ext.cmake OPTIONAL)
+if (MFX_ENABLE_AENC)
+  set(sources
+      aenc/src/aenc.cpp
+      aenc/src/av1_asc_agop_tree.cpp
+      aenc/src/hevc_asc_agop_tree.cpp
+      aenc/src/hevc_asc_apq_tree.cpp
+      aenc/src/av1_asc_tree.cpp
+      aenc/src/av1_asc.cpp
+      aenc/include/aenc++.h
+      aenc/include/asc_cpu_detect.h
+      aenc/include/av1_scd.h
+  )
+
+  add_library(aenc STATIC ${sources})
+
+  target_include_directories(aenc
+    PUBLIC
+      aenc/include
+  )
+
+  target_link_libraries(aenc
+    PRIVATE
+      mfx_require_sse4_properties
+      mfx_static_lib
+      mfx_sdl_properties
+    )
+endif()
 
