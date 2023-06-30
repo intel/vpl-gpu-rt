@@ -1860,7 +1860,7 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
     }
 
 #if defined(MFX_ENABLE_ENCTOOLS)
-    if (H264EncTools::isEncToolNeeded(m_video))
+    if (m_enabledEncTools)
     {
         sts = m_encTools.Reset(newPar);
         MFX_CHECK_STS(sts);
@@ -3957,7 +3957,11 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             {
                 task->InitBRCParams();
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+                if (!m_enabledEncTools && bIntRateControlLA(m_video.mfx.RateControlMethod))
+#else
                 if (bIntRateControlLA(m_video.mfx.RateControlMethod))
+#endif
                     BrcPreEnc(*task);
 
                 if (IsExtBrcSceneChangeSupported(m_video, m_core->GetHWType())
