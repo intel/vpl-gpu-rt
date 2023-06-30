@@ -27,7 +27,7 @@
 #include <map>
 #include <exception>
 #include <algorithm>
-#ifdef MFX_ENABLE_ENCTOOLS
+#ifdef MFX_ENABLE_ENCTOOLS_BASE
 #include "mfxenctools-int.h"
 #endif
 
