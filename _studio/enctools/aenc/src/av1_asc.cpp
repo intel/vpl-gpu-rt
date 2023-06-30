@@ -1121,7 +1121,7 @@ namespace aenc {
                 delete m_support->logic[i];
             delete[] m_support->logic;
         }
-        if (m_support->gainCorrection->Image.data != nullptr)
+        if (m_support->gainCorrection != nullptr)
             delete m_support->gainCorrection;
     }
 
