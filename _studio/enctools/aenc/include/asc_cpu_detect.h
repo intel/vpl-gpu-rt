@@ -23,15 +23,9 @@
 #if defined(MFX_ENABLE_ADAPTIVE_ENCODE)
 
 #include "av1_scd.h"
-#if !defined(_WIN32)
     #include <cpuid.h>
-#endif
 
-#if defined(_WIN32) || defined(_WIN64)
-#define ET_ASC_ALIGN_DECL(X) __declspec(align(X))
-#else // linux
 #define ET_ASC_ALIGN_DECL(X) __attribute__ ((aligned(X)))
-#endif //defined(_WIN32) || defined(_WIN64)
 
 //
 // CPU Dispatcher
@@ -40,13 +34,7 @@
 //
 
 static inline mfxI32 CpuFeature_SSE41() {
-#if defined(_WIN32) || defined(_WIN64)
-    mfxI32 info[4], mask = (1 << 19);    // SSE41
-    __cpuidex(info, 0x1, 0);
-    return ((info[2] & mask) == mask);
-#else
     return((__builtin_cpu_supports("sse4.1")));
-#endif
 }
 
 //

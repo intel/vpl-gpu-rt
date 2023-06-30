@@ -86,46 +86,6 @@ namespace aenc {
         *pSrc = *pDst;
     }
 
-#if (defined( _WIN32 ) || defined ( _WIN64 )) && !defined (__GNUC__)
-    void GainOffset_SSE4(mfxU8** pSrc, mfxU8** pDst, mfxU16 width, mfxU16 height, mfxU16 pitch, mfxI16 gainDiff) {
-        __m128i
-            diff = _mm_set1_epi16(gainDiff);
-        const __m128i
-            minVal = _mm_set1_epi16(-1);
-        mfxU8
-            *ss = *pSrc,
-            *dd = *pDst;
-        for (mfxU16 i = 0; i < height; i++)
-        {
-            // 8 pixels at a time
-            mfxI16 j;
-            for (j = 0; j < width - 7; j += 8)
-            {
-                __m128i
-                    a = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)&ss[j]));
-                a = _mm_sub_epi16(a, diff);
-                __m128i
-                    r = _mm_cmpgt_epi16(a, minVal);
-                a = _mm_and_si128(a, r);
-                // store
-                a = _mm_packus_epi16(a, a);
-                *((mfxU64*)&dd[j]) = ((a).m128i_u64)[0];
-            }
-
-            // remaining blocks
-            for (; j < width; j++)
-            {
-                mfxI16
-                    val = ss[j] - gainDiff;
-                dd[j] = (mfxU8)std::min(std::max(val, mfxI16(0)), mfxI16(255));
-            }
-            ss += pitch;
-            dd += pitch;
-        }
-
-        *pSrc = *pDst;
-    }
-#endif
 
     void RsCsCalc_4x4_C(mfxU8* pSrc, int srcPitch, int wblocks, int hblocks, mfxU16* pRs, mfxU16* pCs)
     {
@@ -490,45 +450,6 @@ namespace aenc {
         *pCsDiff = accCs;
     }
 
-#if (defined( _WIN32 ) || defined ( _WIN64 )) && !defined (__GNUC__)
-    void RsCsCalc_diff_SSE4(mfxU16* pRs0, mfxU16* pCs0, mfxU16* pRs1, mfxU16* pCs1, int wblocks, int hblocks,
-        mfxU32* pRsDiff, mfxU32* pCsDiff)
-    {
-        mfxU32 i, len = wblocks * hblocks;
-        __m128i accRs = _mm_setzero_si128();
-        __m128i accCs = _mm_setzero_si128();
-
-        for (i = 0; i < len - 3; i += 4)
-        {
-            __m128i rs = _mm_sub_epi32(_mm_srai_epi32(_mm_cvtepu16_epi32(_mm_loadu_si128((__m128i*)&pRs0[i])), 5), _mm_srai_epi32(_mm_cvtepu16_epi32(_mm_loadu_si128((__m128i*)&pRs1[i])), 5));
-            __m128i cs = _mm_sub_epi32(_mm_srai_epi32(_mm_cvtepu16_epi32(_mm_loadu_si128((__m128i*)&pCs0[i])), 5), _mm_srai_epi32(_mm_cvtepu16_epi32(_mm_loadu_si128((__m128i*)&pCs1[i])), 5));
-
-            rs = _mm_abs_epi32(rs);
-            cs = _mm_abs_epi32(cs);
-
-            accRs = _mm_add_epi32(accRs, rs);
-            accCs = _mm_add_epi32(accCs, cs);
-        }
-
-        if (i < len)
-        {
-            __m128i rs = _mm_sub_epi32(_mm_srai_epi32(_mm_cvtepu16_epi32(LoadPartialXmm<0>((unsigned char*)&pRs0[i], len & 0x3)), 5), _mm_srai_epi32(_mm_cvtepu16_epi32(LoadPartialXmm<0>((unsigned char*)&pRs1[i], len & 0x3)), 5));
-            __m128i cs = _mm_sub_epi32(_mm_srai_epi32(_mm_cvtepu16_epi32(LoadPartialXmm<0>((unsigned char*)&pCs0[i], len & 0x3)), 5), _mm_srai_epi32(_mm_cvtepu16_epi32(LoadPartialXmm<0>((unsigned char*)&pCs1[i], len & 0x3)), 5));
-
-            rs = _mm_abs_epi32(rs);
-            cs = _mm_abs_epi32(cs);
-
-            accRs = _mm_add_epi32(accRs, rs);
-            accCs = _mm_add_epi32(accCs, cs);
-        }
-
-        // horizontal sum
-        accRs = _mm_hadd_epi32(accRs, accCs);//4 to 2
-        __m128i t = _mm_hadd_epi32(accRs, accRs);//2 to 1
-        *pRsDiff = ((t).m128i_u32)[0];
-        *pCsDiff = ((t).m128i_u32)[1];
-    }
-#endif
 
     void ImageDiffHistogram_C(mfxU8* pSrc, mfxU8* pRef, mfxU32 pitch, mfxU32 width, mfxU32 height, mfxI32 histogram[5], mfxI64 *pSrcDC, mfxI64 *pRefDC)
     {
@@ -1336,15 +1257,6 @@ namespace aenc {
     {
         m_AVX2_available = 0;// CpuFeature_AVX2();
         m_SSE4_available = CpuFeature_SSE41();
-#if defined(_WIN32)
-        ET_ASC_CPU_DISP_INIT_SSE4_C(GainOffset);
-        ET_ASC_CPU_DISP_INIT_SSE4_C(RsCsCalc_4x4);
-        ET_ASC_CPU_DISP_INIT_C(RsCsCalc_bound);
-        ET_ASC_CPU_DISP_INIT_SSE4_C(RsCsCalc_diff);
-        ET_ASC_CPU_DISP_INIT_SSE4_C(ImageDiffHistogram);
-        ET_ASC_CPU_DISP_INIT_SSE4_C(ME_SAD_8x8_Block_Search);
-        ET_ASC_CPU_DISP_INIT_SSE4_C(Calc_RaCa_pic);
-#else
         ET_ASC_CPU_DISP_INIT_C(GainOffset);
         ET_ASC_CPU_DISP_INIT_SSE4_C(RsCsCalc_4x4);
         ET_ASC_CPU_DISP_INIT_C(RsCsCalc_bound);
@@ -1352,7 +1264,6 @@ namespace aenc {
         ET_ASC_CPU_DISP_INIT_SSE4_C(ImageDiffHistogram);
         ET_ASC_CPU_DISP_INIT_SSE4_C(ME_SAD_8x8_Block_Search);
         ET_ASC_CPU_DISP_INIT_SSE4_C(Calc_RaCa_pic);
-#endif
 
         InitStruct();
         try

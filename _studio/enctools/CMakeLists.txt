@@ -19,6 +19,7 @@ set(sources
     src/dll_main.cpp
   )
 
+
 function(make_enctools_name name)
   set (enctools_name enctools)
   if( CMAKE_SYSTEM_NAME MATCHES Windows )
@@ -36,6 +37,7 @@ make_enctools_name( enctools_name )
 add_library(${enctools_name} SHARED ${sources})
 
 set_target_properties(${enctools_name} PROPERTIES PREFIX "")
+
 
 target_include_directories(${enctools_name}
   PUBLIC

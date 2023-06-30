@@ -31,12 +31,7 @@
 #include <functional>
 #include <set>
 
-#if defined(_WIN32) || defined(_WIN64)
-#include <intrin.h>
-#include <smmintrin.h>
-#else
 #include <immintrin.h>
-#endif
 
 #define ASC_SMALL_WIDTH         128
 #define ASC_SMALL_HEIGHT        64
