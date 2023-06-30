@@ -48,7 +48,12 @@ public:
     }
 
     mfxStatus Close(void) override {
-        return ClosePtr(m_session);
+        mfxStatus sts = ClosePtr(m_session);
+
+        if (sts == MFX_ERR_NONE)
+            m_session = nullptr;
+
+        return sts;
     }
 
     mfxStatus QueryIMPL(mfxIMPL*) override {
