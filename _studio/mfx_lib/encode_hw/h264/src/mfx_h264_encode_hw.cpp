@@ -2318,7 +2318,7 @@ namespace
 
         FrameLocker lock(&core, bitstream, task.m_midBit[fid]);
         if (bitstream.Y == 0)
-            return Error(MFX_ERR_LOCK_MEMORY);
+            MFX_RETURN(Error(MFX_ERR_LOCK_MEMORY));
 
         mfxU32 skippedMax = std::min(15u, task.m_bsDataLength[fid]);
         while (*bitstream.Y == 0xff && task.m_numLeadingFF[fid] < skippedMax)
@@ -2955,11 +2955,11 @@ mfxStatus ImplementationAvc::CheckSliceSize(DdiTask &task, bool &bToRecode)
 
 
     if ((sts = CopyBitstream(*m_core, m_video, task, task.m_fid[0], pBS, bsSizeAvail)) != MFX_ERR_NONE)
-        return Error(sts);
+        MFX_RETURN(Error(sts));
 
     sts = UpdateSliceInfo(pBS, pBS + task.m_bsDataLength[task.m_fid[0]], extOpt2.MaxSliceSize, task, bToRecode);
     if (sts != MFX_ERR_NONE)
-        return Error(sts);
+        MFX_RETURN(Error(sts));
 
     if (bToRecode)
     {
@@ -2967,7 +2967,7 @@ mfxStatus ImplementationAvc::CheckSliceSize(DdiTask &task, bool &bToRecode)
         {
             sts = CorrectSliceInfo(task, 70, m_video.calcParam.widthLa, m_video.calcParam.heightLa);
             if (sts != MFX_ERR_NONE && sts != MFX_ERR_UNDEFINED_BEHAVIOR)
-                return Error(sts);
+                MFX_RETURN(Error(sts));
             if (sts == MFX_ERR_UNDEFINED_BEHAVIOR)
                 task.m_repack = 1;
         }
@@ -2977,14 +2977,14 @@ mfxStatus ImplementationAvc::CheckSliceSize(DdiTask &task, bool &bToRecode)
             {
                 sts = CorrectSliceInfo(task, 70, m_video.calcParam.widthLa, m_video.calcParam.heightLa);
                 if (sts != MFX_ERR_NONE && sts != MFX_ERR_UNDEFINED_BEHAVIOR)
-                    return Error(sts);
+                    MFX_RETURN(Error(sts));
             }
             else
             {
                 size_t old_slice_size = task.m_SliceInfo.size();
                 sts = CorrectSliceInfoForsed(task, m_video.calcParam.widthLa, m_video.calcParam.heightLa);
                 if (sts != MFX_ERR_NONE)
-                    return Error(sts);
+                    MFX_RETURN(Error(sts));
                 if (old_slice_size == task.m_SliceInfo.size() && task.m_repack < 4)
                     task.m_repack = 4;
             }
@@ -3009,7 +3009,7 @@ mfxStatus ImplementationAvc::CheckBufferSize(DdiTask &task, bool &bToRecode, mfx
     if ((bsDataLength > (bs->MaxLength - bs->DataOffset - bs->DataLength)))
     {
         if (task.m_cqpValue[0] == 51)
-            return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_RETURN(Error(MFX_ERR_UNDEFINED_BEHAVIOR));
         task.m_cqpValue[0] = task.m_cqpValue[0] + 1;
         task.m_cqpValue[1] = task.m_cqpValue[0];
         // printf("Recoding 0: frame %d, qp %d\n", task.m_frameOrder, task.m_cqpValue[0]);
@@ -3504,7 +3504,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 {
                     mfxStatus sts = FixForcedFrameType(newTask, m_frameOrder - m_frameOrderIdrInDisplayOrder);
                     if (sts != MFX_ERR_NONE)
-                        return Error(sts);
+                        MFX_RETURN(Error(sts));
                 }
 
                 newTask.m_frameOrder = m_frameOrder;
@@ -3645,18 +3645,18 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 #endif
 
         if (task == m_reordering.end())
-            return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_RETURN(Error(MFX_ERR_UNDEFINED_BEHAVIOR));
 
         task->m_idx    = FindFreeResourceIndex(m_raw);
         task->m_midRaw = AcquireResource(m_raw, task->m_idx);
 
         mfxStatus sts = GetNativeHandleToRawSurface(*m_core, m_video, *task, task->m_handleRaw, m_isD3D9SimWithVideoMem);
         if (sts != MFX_ERR_NONE)
-            return Error(sts);
+            MFX_RETURN(Error(sts));
 
         sts = CopyRawSurfaceToVideoMemory(*m_core, m_video, *task, m_isD3D9SimWithVideoMem);
         if (sts != MFX_ERR_NONE)
-            return Error(sts);
+            MFX_RETURN(Error(sts));
 
 #ifdef MFX_ENABLE_EXT
         if (bIntRateControlLA(m_video.mfx.RateControlMethod))
@@ -3669,7 +3669,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             task->m_vmeData = FindUnusedVmeData(m_vmeDataStorage);
             if ((!task->m_cmRawLa && extOpt2.LookAheadDS > MFX_LOOKAHEAD_DS_OFF) || !task->m_cmMb || !task->m_cmCurbe || !task->m_vmeData)
             {
-                return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
+                MFX_RETURN(Error(MFX_ERR_UNDEFINED_BEHAVIOR));
             }
 
             task->m_cmRaw = CreateSurface(m_cmDevice, task->m_handleRaw, m_currentVaType);
@@ -3683,7 +3683,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             task->m_cmHistSys = (mfxU32 *)cmHist.second;
 
             if (!task->m_cmHist)
-                return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
+                MFX_RETURN(Error(MFX_ERR_UNDEFINED_BEHAVIOR));
 
             memset(task->m_cmHistSys, 0, sizeof(uint)* 512);
 
@@ -3788,7 +3788,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             sts = QueryLookahead(m_lookaheadStarted.front());
 #endif
         if(sts != MFX_ERR_NONE)
-            return sts;
+            MFX_RETURN(sts);
 
         //printf("\rLA_SYNCED     do=%4d eo=%4d type=%d\n", m_lookaheadStarted.front().m_frameOrder, m_lookaheadStarted.front().m_encOrder, m_lookaheadStarted.front().m_type[0]); fflush(stdout);
         OnLookaheadQueried();
@@ -3818,7 +3818,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             sts = m_cmCtx->QueryHistogram(task.m_event);
 
         if(sts != MFX_ERR_NONE)
-            return sts;
+            MFX_RETURN(sts);
         CalcPredWeightTable(task, m_caps.ddi_caps.MaxNum_WeightedPredL0, m_caps.ddi_caps.MaxNum_WeightedPredL1);
 
         OnHistogramQueried();
@@ -3891,7 +3891,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             task->m_midRec = AcquireResource(m_rec, task->m_idxRecon);
             task->m_midBit[0] = AcquireResource(m_bit, task->m_idxBs[0]);
             if (!task->m_midRec || !task->m_midBit[0])
-                return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
+                MFX_RETURN(Error(MFX_ERR_UNDEFINED_BEHAVIOR));
 
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
             if(m_isPOut)
@@ -3917,7 +3917,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 task->m_idxBs[1] = FindFreeResourceIndex(m_bit);
                 task->m_midBit[1] = AcquireResource(m_bit, task->m_idxBs[1]);
                 if (!task->m_midBit[1])
-                    return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
+                    MFX_RETURN(Error(MFX_ERR_UNDEFINED_BEHAVIOR));
 
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
                 if(m_isPOut)
@@ -3969,7 +3969,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 {
                     mfxStatus sts = CalculateFrameCmplx(*task, task->m_brcFrameParams.FrameCmplx);
                     if (sts != MFX_ERR_NONE)
-                        return Error(sts);
+                        MFX_RETURN(Error(sts));
                 }
 
 #if defined(MFX_ENABLE_ENCTOOLS)
@@ -4002,7 +4002,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 {
                     mfxStatus sts = FillSliceInfo(*task, extOpt2.MaxSliceSize, extOpt2.MaxSliceSize * m_NumSlices, m_video.calcParam.widthLa, m_video.calcParam.heightLa);
                     if (sts != MFX_ERR_NONE)
-                        return Error(sts);
+                        MFX_RETURN(Error(sts));
                     //printf("EST frameSize %d\n", m_brc.GetDistFrameSize());
                 }
             }
@@ -4023,7 +4023,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     }
                     lock[f].reset(new FrameLocker(m_core, qpMap[f], task->m_midMBQP[f]));
                     MFX_CHECK_NULL_PTR1(qpMap[f].Y);
-                }        
+                }
 
                 mfxExtMBQP const* mbqpExt = GetExtBuffer(task->m_ctrl);
                 mfxExtEncoderROI const* extRoi = GetExtBuffer(task->m_ctrl);
@@ -4055,13 +4055,13 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 else if (mode == MBQPMode_ForALQOffset)
                 {
                     MFX_CHECK(task->m_fieldPicFlag == 0, MFX_ERR_NOT_IMPLEMENTED);
-                    if (task->m_ALQOffset != 0) 
+                    if (task->m_ALQOffset != 0)
                     {
                         bool MBQP_forALQOffset = true;
-                        if (task->m_ALQOffset > 0) 
+                        if (task->m_ALQOffset > 0)
                         {
                             if (task->m_cqpValue[0] > task->m_ALQOffset) 
-                                task->m_cqpValue[0] = (mfxU8)((mfxI32)task->m_cqpValue[0] - task->m_ALQOffset);                                
+                                task->m_cqpValue[0] = (mfxU8)((mfxI32)task->m_cqpValue[0] - task->m_ALQOffset);
                             else 
                             {
                                 task->m_ALQOffset = 0;
@@ -4095,7 +4095,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             {
                 mfxStatus sts = CodeAsSkipFrame(*m_core, m_video, *task, m_rawSkip, m_rec);
                 if (sts != MFX_ERR_NONE)
-                    return Error(sts);
+                    MFX_RETURN(Error(sts));
             }
 
             for (mfxU32 f = 0; f <= task->m_fieldPicFlag; f++)
@@ -4208,7 +4208,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 for (mfxU32 f = 0; f <= task->m_fieldPicFlag; f++)
                 {
                     if ((sts = QueryStatus(*task, task->m_fid[f])) != MFX_ERR_NONE)
-                        return sts;
+                        MFX_RETURN(sts);
                     bsDataLength += task->m_bsDataLength[task->m_fid[f]];
                 }
                 //printf("Real frameSize %d, repack %d\n", bsDataLength, task->m_repack);
@@ -4217,7 +4217,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 {
                     sts = CheckSliceSize(*task, bRecoding);
                     if (sts != MFX_ERR_NONE)
-                        return Error(sts);
+                        MFX_RETURN(Error(sts));
                 }
                 
                 if (!bRecoding)
@@ -4226,7 +4226,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                         task->m_brcFrameCtrl.QpY = task->m_cqpValue[0];
                     sts = CheckBRCStatus(*task, bRecoding, bsDataLength);
                     if (sts != MFX_ERR_NONE)
-                        return Error(sts);
+                        MFX_RETURN(Error(sts));
                 }
 
                 if (!bRecoding)
@@ -4235,7 +4235,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     if (bRecoding)
                         task->m_brcFrameCtrl.QpY = task->m_cqpValue[0];
                     if (sts != MFX_ERR_NONE)
-                        return Error(sts);
+                        MFX_RETURN(Error(sts));
                 }
 
                 if (bRecoding)
@@ -4299,7 +4299,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                                 curTask->m_toRecode = true;
                             }
                             else if (sts != MFX_ERR_NONE)
-                                return Error(sts);
+                                MFX_RETURN(Error(sts));
                         }
                         if (GetMBQPMode(m_caps, m_video) == MBQPMode_ForALQOffset &&
                             curTask->m_ALQOffset && curTask->m_isMBQP[0])
@@ -4311,7 +4311,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                             sts = FillCUQPData((mfxU8)mfx::clamp(curTask->m_ALQOffset + curTask->m_cqpValue[0], 1, 51),
                                 (mfxI8*)qpMap.Y,
                                 m_mbqpInfo.pitch, m_mbqpInfo.height_aligned);
-                            MFX_CHECK_STS(sts);                           
+                            MFX_CHECK_STS(sts);
                         }
                         for (mfxU32 f = 0; f <= curTask->m_fieldPicFlag; f++)
                         {
@@ -4321,7 +4321,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                                 std::this_thread::yield();
                             }
                             if (sts != MFX_ERR_NONE)
-                                return Error(sts);
+                                MFX_RETURN(Error(sts));
                         }
                     } while ((nextTask = FindFrameToWaitEncodeNext(m_encoding.begin(), m_encoding.end(), curTask)) != curTask);
 
@@ -4336,7 +4336,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 //printf("Update bitstream: %d, len %d\n",task->m_encOrder, task->m_bsDataLength[task->m_fid[f]]);
 
                 if ((sts = UpdateBitstream(*task, task->m_fid[f])) != MFX_ERR_NONE)
-                    return Error(sts);
+                    MFX_RETURN(Error(sts));
             }
             m_NumSlices = (mfxU32)task->m_SliceInfo.size();
             if (extOpt2.MaxSliceSize && task->m_repack < 4)
@@ -4373,7 +4373,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                             case MFX_TASK_BUSY:
                                 break;
                             default:
-                                return sts;
+                                MFX_RETURN(sts);
                             }
                         }
 
@@ -4400,13 +4400,13 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     for(f = f_start; f <= f_end; f++)
                     {
                         if((sts = QueryStatus(*task, task->m_fid[f])) != MFX_ERR_NONE)
-                            return sts;
+                            MFX_RETURN(sts);
                     }
                     task->m_bs = bs;
                     for(f = f_start; f <= f_end; f++)
                     {
                         if((sts = UpdateBitstream(*task, task->m_fid[f])) != MFX_ERR_NONE)
-                            return Error(sts);
+                            MFX_RETURN(Error(sts));
                     }
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
                 }
@@ -4423,9 +4423,9 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             mfxU32 fid = task->m_fid[pair->second & 1];
 
             if ((sts = QueryStatus(*task, fid)) != MFX_ERR_NONE)
-                return sts;
+                MFX_RETURN(sts);
             if ((sts = UpdateBitstream(*task, fid)) != MFX_ERR_NONE)
-                return Error(sts);
+                MFX_RETURN(Error(sts));
 
             if (task->m_fieldCounter == 2)
             {
@@ -4440,7 +4440,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
     if (m_stagesToGo & AsyncRoutineEmulator::STG_BIT_RESTART)
     {
         m_stagesToGo = AsyncRoutineEmulator::STG_BIT_CALL_EMULATOR;
-        return MFX_TASK_BUSY;
+        MFX_RETURN(MFX_TASK_BUSY);
     }
 
     return MFX_TASK_DONE;
@@ -4693,10 +4693,10 @@ mfxStatus ImplementationAvc::QueryStatus(
         MFX_TRACE_3("m_ddi->QueryStatus", "Task[field=%d feedback=%d] sts=%d \n", fid, task.m_statusReportNumber[fid], sts);
 
         if (sts == MFX_WRN_DEVICE_BUSY)
-            return MFX_TASK_BUSY;
+            MFX_RETURN(MFX_TASK_BUSY);
 
         if (sts != MFX_ERR_NONE)
-            return Error(sts);
+            MFX_RETURN(Error(sts));
 
         if (m_video.Protected == 0)
             if ((sts = CountLeadingFF(*m_core, task, fid
@@ -4704,7 +4704,7 @@ mfxStatus ImplementationAvc::QueryStatus(
                 , m_isPOut
 #endif
             )) != MFX_ERR_NONE)
-                return Error(sts);
+                MFX_RETURN(Error(sts));
     }
 
     return MFX_ERR_NONE;
@@ -4902,7 +4902,7 @@ mfxStatus ImplementationAvc::UpdateBitstream(
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Too big bitstream surface unlock (bitstream)");
         MFX_LTRACE_S(MFX_TRACE_LEVEL_INTERNAL, task.m_FrameName);
         lock.Unlock();
-        return Error(MFX_ERR_DEVICE_FAILED);
+        MFX_RETURN(Error(MFX_ERR_DEVICE_FAILED));
     }
 
     // Copy compressed picture from d3d surface to buffer in system memory
