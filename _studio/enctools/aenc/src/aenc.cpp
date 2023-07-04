@@ -23,6 +23,7 @@
 #include <cmath>
 #include <string.h>
 #include "aenc++.h"
+#include <memory>
 
 #if defined(MFX_ENABLE_ADAPTIVE_ENCODE)
 
@@ -32,9 +33,11 @@ mfxStatus AEncInit(mfxHDL* pthis, AEncParam param) {
     }
 
     try {
-        *pthis = reinterpret_cast<mfxHDL>(new aenc::AEnc());
-        aenc::AEnc* a = reinterpret_cast<aenc::AEnc*>(*pthis);
+        std::unique_ptr<aenc::AEnc> a(new aenc::AEnc());
+
         a->Init(param);
+
+        *pthis = reinterpret_cast<mfxHDL>(a.release());
         return MFX_ERR_NONE;
     }
     catch (aenc::Error) {
