@@ -70,14 +70,16 @@
 #endif
 
 #define MFX_ENABLE_QVBR
+
 #ifdef MFX_ENABLE_ENCTOOLS
 #ifndef MFX_ENABLE_ENCTOOLS_BASE
     #define MFX_ENABLE_ENCTOOLS_BASE
 #endif
-    #if defined(MFX_ENABLE_AENC)
-        #define MFX_ENABLE_ADAPTIVE_ENCODE
-    #endif
+#if defined(MFX_ENABLE_AENC)
+    #define MFX_ENABLE_ADAPTIVE_ENCODE
 #endif
+#endif
+
 #ifdef MFX_ENABLE_HW_LPLA
 #ifndef MFX_ENABLE_ENCTOOLS_BASE
     #define MFX_ENABLE_ENCTOOLS_BASE
