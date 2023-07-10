@@ -47,6 +47,7 @@ namespace Base
     {
     public:
 #define DECL_BLOCK_LIST\
+        DECL_BLOCK(SetDefaults)\
         DECL_BLOCK(CheckAndFix)\
         DECL_BLOCK(ConfigureTask)\
         DECL_BLOCK(PatchDDITask)\
@@ -60,9 +61,9 @@ namespace Base
 
     protected:
         virtual void SetSupported(ParamSupport& par) override;
-        virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-        virtual void PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Push) override;
-        virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) override {};
+        virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
+        virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
+        virtual void PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push) override;
         virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
 
         virtual mfxStatus GetQPInfo(const void* pDdiFeedback, mfxU16& qp) = 0;
