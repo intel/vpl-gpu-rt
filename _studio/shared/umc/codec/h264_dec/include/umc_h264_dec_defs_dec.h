@@ -1332,6 +1332,11 @@ inline size_t CalculateSuggestedSize(const UMC_H264_DECODER::H264SeqParamSet * s
         break;
     };
 
+    if (sps->bit_depth_chroma > 8 || sps->bit_depth_luma > 8)
+    {
+        size *= 2;
+    }
+
     return size;
 }
 
