@@ -1024,7 +1024,7 @@ public:
 
     static mfxStatus Profile(
         Defaults::TCheckAndFix::TExt
-        , const Defaults::Param& /*dpar*/
+        , const Defaults::Param& dpar
         , mfxVideoParam& par)
     {
         bool bInvalid = CheckOrZero<mfxU16
@@ -1032,6 +1032,13 @@ public:
             , MFX_PROFILE_AV1_MAIN
             , MFX_PROFILE_AV1_HIGH>
             (par.mfx.CodecProfile);
+
+        if (par.mfx.CodecProfile)
+        {
+            mfxU16 ChromaFormat = dpar.base.GetTargetChromaFormatPlus1(dpar) - 1;
+            bInvalid |= (par.mfx.CodecProfile == MFX_PROFILE_AV1_MAIN && ChromaFormat != MFX_CHROMAFORMAT_YUV420)
+                || (par.mfx.CodecProfile == MFX_PROFILE_AV1_HIGH && ChromaFormat != MFX_CHROMAFORMAT_YUV444);
+        }
 
         MFX_CHECK(!bInvalid, MFX_ERR_UNSUPPORTED);
         return MFX_ERR_NONE;
