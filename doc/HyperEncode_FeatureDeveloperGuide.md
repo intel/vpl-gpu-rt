@@ -23,7 +23,7 @@ Intel and the Intel logo are trademarks or registered trademarks of Intel Corpor
 
 \*Other names and brands may be claimed as the property of others.
 
-Copyright © 2020-2022, Intel Corporation. All Rights reserved.
+Copyright © 2020-2023, Intel Corporation. All Rights reserved.
 <div style="page-break-before:always" />
 
 - [Overview](#overview)
@@ -176,15 +176,9 @@ But please pay attention, that these data depend on the system configuration (es
 
 Deep Link Hyper Encode don’t have particular recommendations about GOP size. With gop size increasing, the probability of 2nd adapther wait increases, that may be the reason of performance regression. Also with bigger gop size, async value must be increased to have enough queue of input surfaces for hyper encode, that would be the reason of memory consumption growth.
 
-## CPU and system memory utilization on the 4K streams
+## CPU utilization on the 4K streams
 
-Figure 7,8 shows max CPU and system memory usages on sample_encode application with 4K streams: GOP size 30, async depth 30, input video(dx11) memory, sample_encode `perf_opt` option enabled. Please pay attention, that these data shows usages on clear encoding pipeline and depends on the Deep Link Hyper Encode configuration parameters.
-
-###### Figure 7: Max CPU usage on sample_encode application with 4K streams
-<img src="./pic/4k_max_cpu_usage.png" width="700"/>
-
-###### Figure 8: Max system memory usage on sample_encode application with 4K streams
-<img src="./pic/4k_max_sys_mem_usage.png" width="700"/>
+Typical CPU usage on sample_encode application with 4K streams (GOP size 30, async depth 30, input video(dx11) memory, sample_encode `perf_opt` option enabled) does not exceed 8%. Please pay attention, that these data show usages on clear encoding pipeline and depends on the Deep Link Hyper Encode configuration parameters.
 
 # Release Notes
 
@@ -202,3 +196,6 @@ Figure 7,8 shows max CPU and system memory usages on sample_encode application w
   - if application don't set the number of B-frames Deep Link Hyper Encode will try to set the default value from the primary adapter for both adapters to check if it's supported. If primary adapter supports lower value of B-frames, then encoders will be initialized on both adapters with this value. If primary adapter supports greater value of B-frames, then encoders will be initialized only on primray adapter.
 - For achieving good performance, we recommend using async value not less than GOP size, but this might be not possible to achieve due to memory volume limitation, then we recommend tuning down and share sample based measurement for reference.
 - Possible low performance gain in the case of fast encoder (target usage 7) on transcoding scenarios due to insufficient encoder loading.
+- For achieving the best performance in Hyper Encode mode we recommend to use system memory surfaces (especially in case of P010 and RGB32 formats). Starting from driver version 31.0.101.4314, a number of maximum VDBOX being utilized was increased from 2 to 3 when available (one on primary GPU and two on secondary). Performance depends on format of surfaces and type of memory used: 
+  - Video memory (DX11). Significant performance improvement when using NV12 surface format but slight performance degradation for P010 and RGB32 formats. 
+  - System memory. Performance boost for all supported formats.
