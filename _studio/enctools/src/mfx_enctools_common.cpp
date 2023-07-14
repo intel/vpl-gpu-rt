@@ -1257,8 +1257,8 @@ mfxStatus PercEncFilterWrapper::Init(const mfxFrameInfo& info)
 
     parametersFrame.spatialSlope = 2;
     parametersFrame.temporalSlope = 5;
-    parametersBlock[0].spatial.pivot = -0.005909118892594739f;
-    parametersBlock[1].spatial.pivot = -0.008541855174858726f;
+    parametersBlock[0].spatial.pivot = 0.005909118892594739f;
+    parametersBlock[1].spatial.pivot = 0.008541855174858726f;
     parametersBlock[0].spatial.minimum = -0.02285621848581362f;
     parametersBlock[1].spatial.minimum = -0.04005541977955759f;
     parametersBlock[0].spatial.maximum = 0.041140246241535394f;
