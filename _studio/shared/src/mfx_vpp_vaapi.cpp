@@ -1621,8 +1621,12 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             {data.displayPrimariesY[0], data.displayPrimariesY[1], data.displayPrimariesY[2]},
             data.whitePoint[0], 
             data.whitePoint[1],
+            // According to the description about mfxExtMasteringDisplayColourVolume,
+            // `MaxDisplayMasteringLuminance` is in units of 1 candela per square meter.
+            // `MinDisplayMasteringLuminance` is in units of 0.0001 candela per square meter
+            // so only data.maxMasteringLuminance is multiplied by kLuminanceFixedPoint
             data.maxMasteringLuminance * kLuminanceFixedPoint,
-            data.minMasteringLuminance * kLuminanceFixedPoint,
+            data.minMasteringLuminance,
             data.maxContentLightLevel,
             data.maxFrameAverageLightLevel
         };
