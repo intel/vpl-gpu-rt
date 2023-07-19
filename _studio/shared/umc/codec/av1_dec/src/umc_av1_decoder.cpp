@@ -538,7 +538,9 @@ namespace UMC_AV1_DECODER
 
         frame->SetFrameTime(frame_order * in_framerate);
         frame->SetFrameOrder(frame_order);
-        frame_order++;
+        FrameHeader strFrameHeader = frame->GetFrameHeader();
+        if (strFrameHeader.show_frame || strFrameHeader.show_existing_frame)//add for fix -DecoderdOrder hang issue
+            frame_order++;
     }
 
     UMC::Status AV1Decoder::GetFrame(UMC::MediaData* in, UMC::MediaData*)
