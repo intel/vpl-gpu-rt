@@ -97,20 +97,24 @@ static inline mfxU32 ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_Y410;
     case MFX_FOURCC_YUV400:
         return VA_FOURCC_Y800;
+    case MFX_FOURCC_YUV411:
+        return VA_FOURCC_411P;
+    case MFX_FOURCC_YUV444:
+        return VA_FOURCC_444P;
     case MFX_FOURCC_P016:
         return VA_FOURCC_P016;
     case MFX_FOURCC_Y216:
         return VA_FOURCC_Y216;
     case MFX_FOURCC_Y416:
         return VA_FOURCC_Y416;
-#if defined (DECODE_JPEG_ROTATION)
     case MFX_FOURCC_YUV422H:
         return VA_FOURCC_422H;
     case MFX_FOURCC_YUV422V:
         return VA_FOURCC_422V;
-#endif
     case MFX_FOURCC_I420:
         return VA_FOURCC_I420;
+    case MFX_FOURCC_IMC3:
+        return VA_FOURCC_IMC3;
     default:
         return 0;
     }
@@ -166,6 +170,17 @@ static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int 
                 attrib[1].value.value.i   = VA_SURFACE_ATTRIB_USAGE_HINT_DECODER;
             }
             break;
+        case MFX_FOURCC_YUV411:
+            format = VA_RT_FORMAT_YUV411;
+            break;
+        case MFX_FOURCC_YUV422H:
+        case MFX_FOURCC_YUV422V:
+            format = VA_RT_FORMAT_YUV422;
+            break;
+        case MFX_FOURCC_YUV444:
+            format = VA_RT_FORMAT_YUV444;
+            break;
+        // only Media_Format_RGBP/Media_Format_BGRP and Media_Format_A8R8G8B8 will use this HINT in driver
         case MFX_FOURCC_RGBP:
             format = VA_RT_FORMAT_RGBP;
             //  Enable this hint as required for creating RGBP surface for JPEG.
@@ -229,10 +244,10 @@ static inline bool isFourCCSupported(mfxU32 va_fourcc)
         case VA_FOURCC_P016:
         case VA_FOURCC_Y216:
         case VA_FOURCC_Y416:
-#if defined (DECODE_JPEG_ROTATION)
+        case VA_FOURCC_411P:
+        case VA_FOURCC_444P:
         case VA_FOURCC_422H:
         case VA_FOURCC_422V:
-#endif
         case VA_FOURCC_I420:
             return true;
         default:

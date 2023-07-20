@@ -197,7 +197,8 @@ UMC::ColorFormat ConvertFOURCCToUMCColorFormat(mfxU32 fourcc)
         case MFX_FOURCC_BGR4:
         case MFX_FOURCC_RGB4:    return UMC::RGB32;
         case MFX_FOURCC_RGB565:  return UMC::RGB565;
-        case MFX_FOURCC_RGBP:    return UMC::YUV444;
+        case MFX_FOURCC_RGBP:
+        case MFX_FOURCC_BGRP:    return UMC::YUV444;
         case MFX_FOURCC_NV12:    return UMC::NV12;
         case MFX_FOURCC_YV12:    return UMC::YV12;
         case MFX_FOURCC_P010:    return UMC::P010;

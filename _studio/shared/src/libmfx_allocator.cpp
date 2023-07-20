@@ -160,14 +160,18 @@ mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height
     case MFX_FOURCC_NV12:
     case MFX_FOURCC_P010:
     case MFX_FOURCC_P016:
+    case MFX_FOURCC_YUV411:
+    case MFX_FOURCC_IMC3:
         nBytes = pitch * height + (pitch >> 1) * (height >> 1) + (pitch >> 1) * (height >> 1);
         break;
     case MFX_FOURCC_P210:
     case MFX_FOURCC_YUY2:
     case MFX_FOURCC_Y210:
     case MFX_FOURCC_Y216:
+    case MFX_FOURCC_YUV422H:
         nBytes = pitch * height + (pitch >> 1) * height + (pitch >> 1) * height;
         break;
+    case MFX_FOURCC_YUV444:
     case MFX_FOURCC_RGB3:
     case MFX_FOURCC_RGBP:
     case MFX_FOURCC_BGRP:
@@ -186,9 +190,11 @@ mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height
     case MFX_FOURCC_Y416:
     case MFX_FOURCC_P8:
     case MFX_FOURCC_P8_TEXTURE:
+    case MFX_FOURCC_YUV400:
         nBytes = pitch * height;
         break;
-    case MFX_FOURCC_IMC3:
+    case MFX_FOURCC_YUV422V:
+    case MFX_FOURCC_UYVY:
         nBytes = pitch * height + pitch * (height >> 1) + pitch * (height >> 1);
         break;
     case MFX_FOURCC_ABGR16F:
@@ -682,4 +688,3 @@ mfxStatus mfxFrameSurface1_sw::Realloc(const mfxFrameInfo & info)
 
     return SetPointers(m_internal_surface.Data, m_internal_surface.Info, m_data.get());
 }
-
