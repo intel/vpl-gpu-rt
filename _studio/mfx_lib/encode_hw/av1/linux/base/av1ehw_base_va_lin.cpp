@@ -400,8 +400,8 @@ mfxStatus DDI_VA::QueryCaps()
     if (AV(VAConfigAttribEncMaxRefFrames) != VA_ATTRIB_NOT_SUPPORTED)
     {
         m_caps.MaxNum_ReferenceL0_P = mfxU8(AV(VAConfigAttribEncMaxRefFrames) & 0xFF);
-        m_caps.MaxNum_ReferenceL0_B = 2;
         m_caps.MaxNum_ReferenceL1_B = mfxU8((AV(VAConfigAttribEncMaxRefFrames) >> 16) & 0xFF);
+        m_caps.MaxNum_ReferenceL0_B = m_caps.MaxNum_ReferenceL0_P - m_caps.MaxNum_ReferenceL1_B;
     }
     else
     {
