@@ -484,7 +484,7 @@ mfxStatus General::MapLevel(mfxVideoParam& par)
     // Map undefined level to defined level
     changed += MapToDefinedLevel(par.mfx.CodecLevel);
 
-    MFX_CHECK(!changed, MFX_WRN_VIDEO_PARAM_CHANGED);
+    MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
     return MFX_ERR_NONE;
 }
 
