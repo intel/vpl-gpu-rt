@@ -101,6 +101,7 @@ protected:
 
     virtual Status _DecodeField(MediaDataEx* in);
 
+    Status SyntaxErrorConcealment(uint8_t* buffersForUpdate);
 
     Status PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PARAMETER* obtainedScanParams, uint8_t* buffersForUpdate);
 
