@@ -587,7 +587,7 @@ namespace UMC_MPEG2_DECODER
             uint8_t* picExtBegin = RawHeaderIterator::FindStartCode(data.begin + prefix_size + bitStream.BytesDecoded(), data.end); // Find begining of extension
             MFX_CHECK(picExtBegin, UMC::UMC_ERR_INVALID_STREAM);
 
-            bitStream.Reset(picExtBegin + prefix_size, (uint32_t)(data.end - picExtBegin));
+            bitStream.Reset(picExtBegin + prefix_size, (uint32_t)(data.end - picExtBegin - prefix_size + 1));
             bitStream.Seek(8 + 4); // skip data and extension types
             bitStream.GetPictureExtensionHeader(*picExtHdr.get()); // decode extension
 
