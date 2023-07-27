@@ -444,9 +444,8 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
             if(JPEG_OK != jerr)
                 return UMC_ERR_FAILED;
 
-            jerr = m_decBase->ParseSOS(JO_READ_HEADER);
-            if (m_decBase->m_curr_comp_no != m_decBase->m_curr_scan->ncomps-1)
-                return UMC_ERR_INVALID_STREAM;
+            jerr = m_decBase->ParseSOS(JO_READ_DATA);
+
             if(JPEG_OK != jerr)
             {
                 if (JPEG_ERR_BUFF == jerr)

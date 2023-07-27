@@ -92,6 +92,7 @@ void CJPEGDecoderBase::Reset(void)
   m_max_vsampling          = 0;
   m_sos_len                = 0;
   m_curr_comp_no           = 0;
+  m_curr_comp_no_pre       = -1;
   m_num_scans              = 0;
   for(int i = 0; i < MAX_SCANS_PER_FRAME; i++)
   {
@@ -1092,6 +1093,21 @@ JERRCODE CJPEGDecoderBase::ParseSOS(JOPERATION op)
       if(id == m_ccomp[ci].m_id)
       {
         m_curr_comp_no        = ci;
+        // according to the spec, the ordering of m_curr_comp_no in the scan header 
+        // shall follow the ordering in the frame header
+        if(m_curr_comp_no > m_curr_comp_no_pre)
+        {
+          m_curr_comp_no_pre = m_curr_comp_no;
+        }
+        else
+        {
+          return JPEG_ERR_SOS_DATA;
+        }
+        if(ci == m_jpeg_ncomp - 1 || op == JO_READ_HEADER)
+        {
+          // all sos parse done, reset the two index value
+          m_curr_comp_no_pre = -1;
+        }
         m_ccomp[ci].m_comp_no = ci;
         m_ccomp[ci].m_lastDC = 0;
 
