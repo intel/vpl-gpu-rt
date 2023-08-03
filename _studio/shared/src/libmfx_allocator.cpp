@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2023 Intel Corporation
+// Copyright (c) 2007-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -169,8 +169,6 @@ mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height
     case MFX_FOURCC_Y210:
     case MFX_FOURCC_Y216:
     case MFX_FOURCC_YUV422H:
-    case MFX_FOURCC_YUV422V:
-    case MFX_FOURCC_UYVY:
         nBytes = pitch * height + (pitch >> 1) * height + (pitch >> 1) * height;
         break;
     case MFX_FOURCC_YUV444:
@@ -194,6 +192,10 @@ mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height
     case MFX_FOURCC_P8_TEXTURE:
     case MFX_FOURCC_YUV400:
         nBytes = pitch * height;
+        break;
+    case MFX_FOURCC_YUV422V:
+    case MFX_FOURCC_UYVY:
+        nBytes = pitch * height + pitch * (height >> 1) + pitch * (height >> 1);
         break;
     case MFX_FOURCC_ABGR16F:
         nBytes = (pitch * height + pitch * height + pitch * height + pitch * height) * 2;
