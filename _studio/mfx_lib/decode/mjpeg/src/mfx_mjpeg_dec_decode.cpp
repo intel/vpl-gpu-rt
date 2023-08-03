@@ -1037,10 +1037,6 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
         return true;
 
 
-    /* on Linux in case of multiscan turn off HW support until because some functionality is missed so far */
-    if (par->mfx.InterleavedDec == MFX_SCANTYPE_NONINTERLEAVED)
-        return true;
-
     switch (par->mfx.FrameInfo.FourCC)
     {
         case MFX_FOURCC_NV12:

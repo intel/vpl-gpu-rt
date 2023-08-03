@@ -445,16 +445,19 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
                 return UMC_ERR_FAILED;
 
             jerr = m_decBase->ParseSOS(JO_READ_DATA);
-
-            if(JPEG_OK != jerr)
+            
+	    if(JPEG_OK != jerr)
             {
                 if (JPEG_ERR_BUFF == jerr)
                     return UMC_ERR_NOT_ENOUGH_DATA;
                 else
                     return UMC_ERR_FAILED;
             }
-
+#ifdef UMC_VA
+            buffersForUpdate |= 1 << 3;
+#else
             buffersForUpdate |= 1 << 4;
+#endif
 
             sts = SyntaxErrorConcealment(&buffersForUpdate);
             if (sts != UMC_OK)
@@ -788,15 +791,22 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
         *buffersForUpdate -= 1 << 3;
         UMCVACompBuffer* compBufSlice;
         VASliceParameterBufferJPEGBaseline *sliceParams;
+
+        // create scan parameter buffer , size is scan number * sizeof(VASliceParameterBufferJPEGBaseline)
         sliceParams = (VASliceParameterBufferJPEGBaseline*)m_va->GetCompBuffer(VASliceParameterBufferType,
-                                                                                 &compBufSlice,
-                                                                                 sizeof(VASliceParameterBufferJPEGBaseline));
-        if ((uint32_t)compBufSlice->GetBufferSize() < sizeof(VASliceParameterBufferJPEGBaseline))
-            return UMC_ERR_FAILED;
-        if ( !sliceParams )
+                                                                               &compBufSlice,
+                                                                               m_decBase->m_num_scans*sizeof(VASliceParameterBufferJPEGBaseline));
+       
+        static uint32_t firstSacnOffset = 0;       
+        if(m_decBase->m_curr_scan->scan_no == 0)
+        {
+            // mark first scan parameter offset
+            firstSacnOffset = obtainedScanParams->DataOffset;
+        }
+        sliceParams = sliceParams + m_decBase->m_curr_scan->scan_no;
+        if (!sliceParams)
             MFX_RETURN(MFX_ERR_DEVICE_FAILED);
         sliceParams->slice_data_size           = obtainedScanParams->DataLength;
-        sliceParams->slice_data_offset         = 0;
         sliceParams->slice_data_flag           = VA_SLICE_DATA_FLAG_ALL;
         sliceParams->num_components            = obtainedScanParams->NumComponents;
         sliceParams->restart_interval          = obtainedScanParams->RestartInterval;
@@ -809,7 +819,16 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
             sliceParams->components[i].dc_table_selector  = obtainedScanParams->DcHuffTblSelector[i];
             sliceParams->components[i].ac_table_selector  = obtainedScanParams->AcHuffTblSelector[i];
         }
-        compBufSlice->SetDataSize(sizeof(VASliceParameterBufferJPEGBaseline));
+        
+        if (m_decBase->m_curr_scan->scan_no == m_decBase->m_num_scans - 1)
+        {
+            sliceParams->slice_data_offset = obtainedScanParams->DataOffset - firstSacnOffset;
+            compBufSlice->SetDataSize(sizeof(VASliceParameterBufferJPEGBaseline) * m_decBase->m_num_scans);
+        }
+        else if (m_decBase->m_curr_scan->scan_no < m_decBase->m_num_scans - 1)
+        {
+            sliceParams->slice_data_offset = obtainedScanParams->DataOffset - firstSacnOffset;
+        }
     }
 
     if((*buffersForUpdate & (1 << 4)) != 0)
@@ -817,13 +836,29 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
         *buffersForUpdate -= 1 << 4;
         UMCVACompBuffer* compBufBs;
         uint8_t *ptr   = (uint8_t *)src->GetDataPointer();
-        uint8_t *bistreamData = (uint8_t *)m_va->GetCompBuffer(VASliceDataBufferType, &compBufBs, obtainedScanParams->DataLength);
 
-        if(!bistreamData)
-            return UMC_ERR_DEVICE_FAILED;
-        if (obtainedScanParams->DataLength > (uint32_t)compBufBs->GetBufferSize())
-            return UMC_ERR_INVALID_STREAM;
-        std::copy(ptr + obtainedScanParams->DataOffset, ptr + obtainedScanParams->DataOffset + obtainedScanParams->DataLength, bistreamData);
+        if(m_decBase->m_num_scans > 1)
+        {
+            // if multiple scan, store all scan data
+            uint8_t* bistreamData = (uint8_t*)m_va->GetCompBuffer(VASliceDataBufferType, &compBufBs, (uint32_t)src->GetDataSize());
+
+            if(!bistreamData)
+                return UMC_ERR_DEVICE_FAILED;
+            if (obtainedScanParams->DataLength > (uint32_t)compBufBs->GetBufferSize())
+                return UMC_ERR_INVALID_STREAM;
+
+            std::copy(ptr + obtainedScanParams->DataOffset, ptr + obtainedScanParams->DataOffset+(uint32_t)src->GetDataSize(), bistreamData); 
+        }
+        else
+        {
+            uint8_t *bistreamData = (uint8_t *)m_va->GetCompBuffer(VASliceDataBufferType, &compBufBs, obtainedScanParams->DataLength);
+
+            if(!bistreamData)
+                return UMC_ERR_DEVICE_FAILED;
+            if (obtainedScanParams->DataLength > (uint32_t)compBufBs->GetBufferSize())
+                return UMC_ERR_INVALID_STREAM;
+            std::copy(ptr + obtainedScanParams->DataOffset, ptr + obtainedScanParams->DataOffset + obtainedScanParams->DataLength, bistreamData);
+        }        
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////
