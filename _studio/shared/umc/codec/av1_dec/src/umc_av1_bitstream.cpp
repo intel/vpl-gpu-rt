@@ -1874,9 +1874,12 @@ namespace UMC_AV1_DECODER
                 {
                     const int OrderHintBits = sh.order_hint_bits_minus1 + 1;
                     fh.ref_order_hint[i] = GetBits(OrderHintBits);
-                    FrameHeader const& refHdr = frameDpb[i]->GetFrameHeader();
-                    if (fh.ref_order_hint[i] != refHdr.order_hint)
-                        frameDpb[i]->SetRefValid(false);
+                    if(frameDpb[i])
+                    {
+                        FrameHeader const& refHdr = frameDpb[i]->GetFrameHeader();
+                        if (fh.ref_order_hint[i] != refHdr.order_hint)
+                            frameDpb[i]->SetRefValid(false);
+                    }
                 }
             }
         }
