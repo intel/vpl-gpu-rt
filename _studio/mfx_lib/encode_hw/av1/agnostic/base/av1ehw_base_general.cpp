@@ -2734,8 +2734,8 @@ void General::SetFH(
 
     fh.TxMode = TX_MODE_SELECT;
     fh.reduced_tx_set = 1;
-    fh.delta_lf_present = 1;
-    fh.delta_lf_multi = 1;
+    fh.delta_lf_present = 0;
+    fh.delta_lf_multi = 0;
 
     fh.quantization_params.using_qmatrix = 0;
     fh.quantization_params.qm_y = 15;
