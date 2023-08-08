@@ -55,6 +55,8 @@ static ImplBase* CreateSpecific(
         impl = new AV1EHWDisp::Xe_HPM::MFXVideoENCODEAV1_HW(core, status, mode);
     else if (hw == MFX_HW_MTL)
         impl = new AV1EHWDisp::Xe_LPM_Plus::MFXVideoENCODEAV1_HW(core, status, mode);
+    else if (hw == MFX_HW_ARL)
+        impl = new AV1EHWDisp::Xe_LPM_Plus::MFXVideoENCODEAV1_HW(core, status, mode);
 
 
     if (impl == nullptr)

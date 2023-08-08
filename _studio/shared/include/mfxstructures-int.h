@@ -85,6 +85,7 @@ enum eMFXHWType
 
     MFX_HW_PVC       = MFX_HW_XE_HP_SDV + 2,
     MFX_HW_MTL       = 0x1700000,
+    MFX_HW_ARL       = MFX_HW_MTL + 1,
 
 };
 
@@ -554,6 +555,9 @@ typedef struct {
     { 0x7DD7, MFX_HW_MTL, MFX_GT2 },
     { 0x7D45, MFX_HW_MTL, MFX_GT2 },
     { 0x7DE0, MFX_HW_MTL, MFX_GT2 },
+
+    /* ARL S */
+    { 0x7D67, MFX_HW_ARL, MFX_GT2 },
 
 };
 

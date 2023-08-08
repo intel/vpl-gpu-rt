@@ -31,6 +31,7 @@
 
 
 #define MFX_RT_PLATFORM_METEORLAKE 51
+#define MFX_RT_PLATFORM_ARROWLAKE  54
 
 mfxExtBuffer* GetExtendedBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id)
 {
@@ -1257,6 +1258,7 @@ mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id)
                          platform.CodeName = MFX_PLATFORM_DG2;           break;
     // MFX_PLATFORM_METEORLAKE is not ready in spec, use MFX_RT_PLATFORM_METEORLAKE until spec updated
     case MFX_HW_MTL    : platform.CodeName = MFX_RT_PLATFORM_METEORLAKE; break;
+    case MFX_HW_ARL    : platform.CodeName = MFX_RT_PLATFORM_ARROWLAKE;  break;
     default:
                          platform.MediaAdapterType = MFX_MEDIA_UNKNOWN;
                          platform.CodeName = MFX_PLATFORM_UNKNOWN;       break;
