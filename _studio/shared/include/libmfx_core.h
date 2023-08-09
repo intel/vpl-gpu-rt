@@ -590,7 +590,7 @@ public:
 
         lock.lock();
         m_cached_surfaces.emplace_back(*surf, *this);
-        m_cached_surfaces.back().m_exported = true;
+        m_cached_surfaces.back().m_in_use = true;
 
         if (emulate_zero_refcount_base)
         {
@@ -709,23 +709,6 @@ public:
         return MFX_ERR_NONE;
     }
 
-    // Refresh called when some free surface returned to the pool
-    void Refresh()
-    {
-        if (!m_num_to_revoke)
-        {
-            // If no surfaces to decommit, notify some waiter
-            m_cv_wait_free_surface.notify_one();
-            return;
-        }
-
-        // Decommit current surface
-        std::unique_lock<std::mutex> lock(m_mutex);
-
-        // Here look up repeated, because current surface (which was just returned to cache) may have been already exported again
-        DecomitSurfaces(lock);
-    }
-
     void DecomitSurfaces(std::unique_lock<std::mutex>& outer_lock)
     {
         // Actual delete will happen after mutex unlock
@@ -737,7 +720,7 @@ public:
             [](const SurfaceHolder& surface_holder)
         {
             // Check if surface is still owned by somebody
-            return !surface_holder.m_exported;
+            return !surface_holder.m_in_use;
         };
 
         // splice_if
@@ -770,6 +753,40 @@ public:
         return m_policy;
     }
 
+    mfxStatus MarkSurfaceFree(mfxMemId mid)
+    {
+        // Actual delete will happen after mutex unlock
+        std::list<SurfaceHolder> surface_to_delete;
+
+        std::unique_lock<std::mutex> lock(m_mutex);
+
+        auto p_holder = std::find_if(std::begin(m_cached_surfaces), std::end(m_cached_surfaces), [mid](const SurfaceHolder& surface) { return surface.Data.MemId == mid; });
+        MFX_CHECK(p_holder != std::end(m_cached_surfaces), MFX_ERR_NOT_FOUND);
+
+        // Mark as free
+        p_holder->m_in_use = false;
+
+#ifndef NDEBUG
+        assert(!p_holder->m_was_released);
+        p_holder->m_was_released = true;
+#endif
+
+        // Remove surfaces from pool if required or notify waiters about free surface
+        if (!m_num_to_revoke)
+        {
+            // If no surfaces to decommit, notify some waiter
+            lock.unlock();
+            m_cv_wait_free_surface.notify_one();
+            return MFX_ERR_NONE;
+        }
+
+        // Decommit current surface
+        surface_to_delete.splice(std::end(surface_to_delete), m_cached_surfaces, p_holder);
+        --m_num_to_revoke;
+
+        return MFX_ERR_NONE;
+    }
+
 private:
 
     SurfaceCache(CommonCORE_VPL& core, mfxU16 type, const mfxFrameInfo& frame_info)
@@ -790,12 +807,12 @@ private:
     {
         // This function is called only from thread safe context, so no mutex acquiring here
 
-        auto it = find_if(std::begin(m_cached_surfaces), std::end(m_cached_surfaces), [](SurfaceHolder& surface) { return !surface.m_exported; });
+        auto it = std::find_if(std::begin(m_cached_surfaces), std::end(m_cached_surfaces), [](const SurfaceHolder& surface) { return !surface.m_in_use; });
 
         if (it == std::end(m_cached_surfaces))
             return nullptr;
 
-        it->m_exported = true;
+        it->m_in_use = true;
         if (emulate_zero_refcount_base)
         {
             it->FrameInterface->AddRef = &skip_one_addref;
@@ -820,7 +837,7 @@ private:
     class SurfaceHolder : public mfxFrameSurface1
     {
     public:
-        bool m_exported = false;
+        bool m_in_use                       = false;
 #ifndef NDEBUG
         bool m_was_released = false;
 #endif
@@ -851,11 +868,6 @@ private:
             m_surface_interface.Release = original_release;
 
             std::ignore = MFX_STS_TRACE(m_surface_interface.Release(this));
-        }
-
-        void RefreshParentPool()
-        {
-            m_cache.Refresh();
         }
 
     private:
@@ -889,16 +901,13 @@ private:
             }
 
             // Return back to pool, don't touch ref counter
-            reinterpret_cast<SurfaceHolder*>(surface)->m_exported = false;
+            auto pool = reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->QueryParentPool();
+            MFX_CHECK_HDL(pool);
+            auto cache = reinterpret_cast<SurfaceCache*>(pool->Context);
+            MFX_CHECK_HDL(cache);
+            mfx::OnExit release_cache([cache]() { cache->Release(); });
 
-#ifndef NDEBUG
-            assert(!reinterpret_cast<SurfaceHolder*>(surface)->m_was_released);
-            reinterpret_cast<SurfaceHolder*>(surface)->m_was_released = true;
-#endif
-            // Remove surfaces from pool if required or notify waiters about free surface
-            reinterpret_cast<SurfaceHolder*>(surface)->RefreshParentPool();
-
-            return MFX_ERR_NONE;
+            return cache->MarkSurfaceFree(surface->Data.MemId);
         }
     };
 
