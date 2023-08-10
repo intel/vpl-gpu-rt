@@ -792,7 +792,6 @@ public:
 
     mfxMemId GetMid() const { return m_mid; }
 
-    // this is actually a WA, which should be removed after Synchronize will be implemented through dependency manager
     mfxStatus Synchronize(mfxU32 timeout)
     {
         // If allocator is detached, no need to sychronize surface. It is already synchronized
