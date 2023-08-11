@@ -153,6 +153,15 @@ inline bool IsEncToolsOptSet(const mfxExtEncToolsConfig& config)
             | config.AdaptiveRefP | config.BRC | config.BRCBufferHints | config.SceneChange);
 }
 
+int HEVCEHW::Base::EncToolsDeblockingBetaOffset()
+{
+    return 4;  // Currently hard coded to best tested value when using enctools
+}
+int HEVCEHW::Base::EncToolsDeblockingAlphaTcOffset()
+{
+    return 2;  // Currently hard coded to best tested value when using enctools
+}
+
 bool HEVCEHW::Base::IsEncToolsOptOn(const mfxExtEncToolsConfig &config, bool bGameStreaming)
 {
     return
@@ -284,9 +293,15 @@ void HevcEncTools::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsCo
             video.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
 
         bool lplaAssistedBRC = IsOn(config.BRC) && isSWLACondition(video);
+        bool bLA = (pExtOpt2 && pExtOpt2->LookAheadDepth > 0 &&
+            (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
+                video.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
         SetDefaultOpt(config.BRCBufferHints, lplaAssistedBRC);
         SetDefaultOpt(config.AdaptiveMBQP,  bMBQPSupport && lplaAssistedBRC && pExtOpt2 && IsOn(pExtOpt2->MBBRC));
-        SetDefaultOpt(config.AdaptiveQuantMatrices, false);
+        if (pExtOpt3)
+            SetDefaultOpt(config.AdaptiveQuantMatrices, bLA && (IsOn(pExtOpt3->AdaptiveCQM) || pExtOpt3->ContentInfo == MFX_CONTENT_NOISY_VIDEO));
+        else
+            SetDefaultOpt(config.AdaptiveQuantMatrices, false);
     }
 #ifdef MFX_ENABLE_ENCTOOLS_LPLA
     else

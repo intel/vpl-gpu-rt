@@ -63,6 +63,8 @@ namespace Base
 
     bool IsEncToolsOptOn(const mfxExtEncToolsConfig &config, bool bGameStreaming);
     bool IsLPLAEncToolsOn(const mfxExtEncToolsConfig &config, bool bGameStreaming);
+    int EncToolsDeblockingBetaOffset();
+    int EncToolsDeblockingAlphaTcOffset();
 
 } //Base
 } //namespace HEVCEHW
