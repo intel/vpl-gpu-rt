@@ -176,8 +176,11 @@ MFX_PACK_END()
 
 #define MFX_STRUCT_VERSION(MAJOR, MINOR) (256*(MAJOR) + (MINOR))
 
-
+#ifdef ONEVPL_EXPERIMENTAL
+#define MFX_VARIANT_VERSION MFX_STRUCT_VERSION(1, 1)
+#else
 #define MFX_VARIANT_VERSION MFX_STRUCT_VERSION(1, 0)
+#endif
 
 /*! The mfxDataType enumerates data type for mfxDataType. */
 typedef enum {
