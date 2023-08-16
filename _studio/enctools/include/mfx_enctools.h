@@ -85,7 +85,8 @@ private:
     mfxFrameAllocator *m_pAllocator;
     MFXFrameAllocator *m_pETAllocator;
     mfxAllocatorParams *m_pmfxAllocatorParams;
-    MFXDLVideoSession* m_mfxSession_LA;
+    MFXDLVideoSession* m_mfxSession_LA_ENC;
+    MFXDLVideoSession m_mfxSession_LA_VPP;
     MFXDLVideoSession m_mfxSession_SCD;
 
     std::unique_ptr<MFXDLVideoVPP> m_pmfxVPP_LA;
@@ -94,8 +95,8 @@ private:
     mfxVideoParam m_mfxVppParams_LA;
     mfxVideoParam m_mfxVppParams_AEnc;
     mfxFrameAllocResponse m_VppResponse;
-    std::vector<mfxFrameSurface1> m_pIntSurfaces_LA;    // internal surfaces
-    mfxFrameSurface1 m_IntSurfaces_SCD;                 // internal surface for SCD
+    std::vector<mfxFrameSurface1> m_pIntSurfaces_LA;
+    mfxFrameSurface1 m_IntSurfaces_SCD;
 
     void* m_hRTModule = nullptr;
 
@@ -127,8 +128,10 @@ public:
 protected:
     mfxStatus InitMfxVppParams(mfxEncToolsCtrl const & ctrl);
     mfxStatus InitVPP(mfxEncToolsCtrl const & ctrl);
+    mfxStatus InitVPP_LA(mfxEncToolsCtrl const & ctrl);
     mfxStatus ResetVPP(mfxEncToolsCtrl const& ctrl);
     mfxStatus CloseVPP();
+    mfxStatus CloseVPP_LA();
 
     mfxStatus GetDeviceAllocator(mfxEncToolsCtrl const* ctrl);
     mfxStatus InitVPPSession(MFXDLVideoSession* pmfxSession);

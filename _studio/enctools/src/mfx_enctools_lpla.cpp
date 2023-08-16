@@ -145,12 +145,6 @@ mfxStatus LPLA_EncTool::InitSession()
     sts = m_mfxSession.QueryVersion(&version); // get real API version of the loaded library
     MFX_CHECK_STS(sts);
 
-    if (m_pAllocator)
-    {
-        sts = m_mfxSession.SetFrameAllocator(m_pAllocator);
-        MFX_CHECK_STS(sts);
-    }
-
     sts = m_mfxSession.SetHandle((mfxHandleType)m_deviceType, m_device);
     MFX_CHECK_STS(sts);
 

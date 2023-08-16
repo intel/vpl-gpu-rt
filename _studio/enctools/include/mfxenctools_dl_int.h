@@ -33,6 +33,9 @@ public:
     decltype(MFXVideoCORE_SetFrameAllocator)* SetFrameAllocatorPtr;
     decltype(MFXVideoCORE_SetHandle)* SetHandlePtr;
     decltype(MFXVideoCORE_SyncOperation)* SyncOperationPtr;
+    decltype(MFXMemory_GetSurfaceForEncode)* GetSurfaceForEncodePtr;
+    decltype(MFXJoinSession)* JoinSessionPtr;
+    decltype(MFXDisjoinSession)* DisjoinSessionPtr;
 
     MFXDLVideoSession(void* module);
     virtual ~MFXDLVideoSession(void) {
@@ -63,11 +66,11 @@ public:
         return QueryVersionPtr(m_session, version);
     }
 
-    mfxStatus JoinSession(mfxSession) override {
-        return MFX_ERR_UNSUPPORTED;
+    mfxStatus JoinSession(mfxSession child) override {
+        return JoinSessionPtr(m_session, child);
     }
     mfxStatus DisjoinSession() override {
-        return MFX_ERR_UNSUPPORTED;
+        return DisjoinSessionPtr(m_session);
     }
     mfxStatus CloneSession(mfxSession*) override {
         return MFX_ERR_UNSUPPORTED;
@@ -96,8 +99,8 @@ public:
         return SyncOperationPtr(m_session, syncp, wait);
     }
 
-    mfxStatus GetSurfaceForEncode(mfxFrameSurface1**) override {
-        return MFX_ERR_UNSUPPORTED;
+    mfxStatus GetSurfaceForEncode(mfxFrameSurface1** surface) override {
+        return GetSurfaceForEncodePtr(m_session, surface);
     }
     mfxStatus GetSurfaceForDecode(mfxFrameSurface1**) override {
         return MFX_ERR_UNSUPPORTED;
