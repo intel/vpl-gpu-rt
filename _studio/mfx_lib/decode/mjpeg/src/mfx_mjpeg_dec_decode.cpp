@@ -1118,11 +1118,6 @@ eMFXPlatform MFX_JPEG_Utility::GetPlatform(VideoCORE * core, mfxVideoParam * par
 
     if (platform != MFX_PLATFORM_SOFTWARE)
     {
-        if (IsNeedPartialAcceleration(core, par))
-        {
-            return MFX_PLATFORM_SOFTWARE;
-        }
-
         if (MFX_ERR_NONE != core->IsGuidSupported(sDXVA2_Intel_IVB_ModeJPEG_VLD_NoFGT, par))
         {
             return MFX_PLATFORM_SOFTWARE;
@@ -1170,22 +1165,34 @@ bool MFX_JPEG_Utility::IsFormatSupport(mfxVideoParam * in)
             support = true;
         break;
     case MFX_CHROMAFORMAT_YUV420:
+        if (in->mfx.InterleavedDec == MFX_SCANTYPE_NONINTERLEAVED && fourCC != MFX_FOURCC_IMC3)
+            break;
         if (fourCC == MFX_FOURCC_IMC3 || fourCC == MFX_FOURCC_NV12 || fourCC == MFX_FOURCC_YUY2 || fourCC == MFX_FOURCC_UYVY || fourCC == MFX_FOURCC_RGB4)
             support = true;
         break;
     case MFX_CHROMAFORMAT_YUV411:
+        if (in->mfx.InterleavedDec == MFX_SCANTYPE_NONINTERLEAVED && fourCC != MFX_FOURCC_YUV411)
+            break;
         if (fourCC == MFX_FOURCC_YUV411 || fourCC == MFX_FOURCC_NV12)
             support = true;
         break;
     case MFX_CHROMAFORMAT_YUV422H:
+        if (in->mfx.InterleavedDec == MFX_SCANTYPE_NONINTERLEAVED && fourCC != MFX_FOURCC_YUV422H)
+            break;
         if ((fourCC == MFX_FOURCC_YUY2 || fourCC == MFX_FOURCC_YUV422H || fourCC == MFX_FOURCC_NV12 || fourCC == MFX_FOURCC_UYVY || fourCC == MFX_FOURCC_RGB4))
             support = true;
         break;
     case MFX_CHROMAFORMAT_YUV422V:
+        if (in->mfx.InterleavedDec == MFX_SCANTYPE_NONINTERLEAVED && fourCC != MFX_FOURCC_YUV422V)
+            break;
         if ((fourCC == MFX_FOURCC_YUV422V || fourCC == MFX_FOURCC_NV12 || fourCC == MFX_FOURCC_YUY2 || fourCC == MFX_FOURCC_RGB4))
             support = true;
         break;
     case MFX_CHROMAFORMAT_YUV444:
+        if (in->mfx.InterleavedDec == MFX_SCANTYPE_NONINTERLEAVED &&
+            ((colorFormat == MFX_JPEG_COLORFORMAT_YCbCr && fourCC != MFX_FOURCC_YUV444) ||
+             (colorFormat == MFX_JPEG_COLORFORMAT_RGB && fourCC != MFX_FOURCC_RGBP)))
+            break;
         if (fourCC == MFX_FOURCC_RGB4 || fourCC == MFX_FOURCC_NV12 || fourCC == MFX_FOURCC_YUY2)
             support = true;
         else if (colorFormat == MFX_JPEG_COLORFORMAT_RGB && (fourCC == MFX_FOURCC_RGBP || fourCC == MFX_FOURCC_BGRP))
