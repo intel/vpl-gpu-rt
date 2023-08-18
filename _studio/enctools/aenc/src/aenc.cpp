@@ -161,14 +161,14 @@ mfxI8 AEncAPQSelect(mfxHDL pthis, mfxU32 SC, mfxU32 TSC, mfxU32 MVSize, mfxU32 C
     }
 }
 
-void AEncUpdateFrame(mfxHDL pthis, mfxU32 displayOrder, mfxU32 bits, mfxU32 QpY) {
+void AEncUpdateFrame(mfxHDL pthis, mfxU32 displayOrder, mfxU32 bits, mfxU32 QpY, mfxU32 Type) {
     if (!pthis) {
         return;
     }
 
     try {
         aenc::AEnc* a = reinterpret_cast<aenc::AEnc*>(pthis);
-        return a->UpdateFrame(displayOrder, bits, QpY);
+        return a->UpdateFrame(displayOrder, bits, QpY, Type);
     }
     catch (aenc::Error) {
         return;
@@ -748,7 +748,7 @@ namespace aenc {
         {{ 0,0,0 }, { 0,0,0 }, { 0,0,0 }, { 0,0,0 }, { 0,0,0 }, { 0,0,0 }, { 0,0,0 }, { 0,0,0 }, { 0,0,0 }, { 0,0,0 }}  //9
     };
 
-    void AEnc::UpdateFrame(uint32_t frm, uint32_t /*size*/, uint32_t qp)
+    void AEnc::UpdateFrame(uint32_t frm, uint32_t /*size*/, uint32_t qp, uint32_t Type)
     {
         InternalFrame *fi =  FindInternalFrame(frm);
         if (fi)
@@ -776,9 +776,11 @@ namespace aenc {
                 }
             }
         }
-
-        LastPFrameQp = qp;
-        LastPFramePOC = frm;
+        if(Type == (uint32_t) MFX_FRAMETYPE_P)
+        {
+            LastPFrameQp = qp;
+            LastPFramePOC = frm;
+        }
     }
 
     InternalFrame* AEnc::FindInternalFrame(mfxU32 displayOrder)

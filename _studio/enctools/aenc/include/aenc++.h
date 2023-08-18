@@ -135,7 +135,7 @@ namespace aenc {
         void Close();
 
         mfxStatus ProcessFrame(uint32_t POC, const uint8_t* InFrame, int32_t pitch, AEncFrame* OutFrame);
-        void   UpdateFrame(uint32_t displayOrder, uint32_t bits, uint32_t QpY);
+        void   UpdateFrame(uint32_t displayOrder, uint32_t bits, uint32_t QpY, uint32_t Type);
         mfxU16 GetIntraDecision(mfxU32 displayOrder);
         mfxU16 GetPersistenceMap(mfxU32 displayOrder, mfxU8 PMap[ASC_MAP_SIZE]);
         mfxU16 GetLastPQp();
