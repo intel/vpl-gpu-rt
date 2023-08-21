@@ -50,6 +50,8 @@
     #define ROLLBACK_WARN_HIDE_PREV_LOCAL_DECLARATION \
         _Pragma("GCC diagnostic pop")
 
+#define VPLLOG_BUFFER_SIZE 256
+
 typedef unsigned int mfxTraceU32;
 typedef __UINT64 mfxTraceU64;
 
@@ -57,7 +59,7 @@ typedef __UINT64 mfxTraceU64;
 extern mfxTraceU64 EventCfg;
 extern mfxTraceU32 LogConfig;
 extern int32_t FrameIndex;
-extern const char *VplLogPath;
+extern char VplLogPath[VPLLOG_BUFFER_SIZE];
 // C section
 
 #ifdef __cplusplus
