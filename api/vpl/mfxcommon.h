@@ -589,8 +589,9 @@ typedef enum {
                                                     implementation. String is delivered in a form of buffer of
                                                     mfxChar type. */
 #ifdef ONEVPL_EXPERIMENTAL
-    MFX_IMPLCAPS_DEVICE_ID_EXTENDED      = 4   /*!< Deliver extended device ID information as mfxExtendedDeviceId
+    MFX_IMPLCAPS_DEVICE_ID_EXTENDED      = 4,  /*!< Deliver extended device ID information as mfxExtendedDeviceId
                                                     structure.*/
+    MFX_IMPLCAPS_SURFACE_TYPES           = 5,  /*!< Deliver capabilities as mfxSurfaceTypesSupported structure. */
 #endif
 } mfxImplCapsDeliveryFormat;
 

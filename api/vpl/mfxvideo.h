@@ -8,6 +8,7 @@
 #define __MFXVIDEO_H__
 #include "mfxsession.h"
 #include "mfxstructures.h"
+#include "mfxmemory.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -189,113 +190,6 @@ mfxStatus MFX_CDECL MFXVideoCORE_QueryPlatform(mfxSession session, mfxPlatform* 
    @since This function is available since API version 1.0.
 */
 mfxStatus MFX_CDECL MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfxU32 wait);
-
-/* MFXMemory */
-
-/*!
-   @brief
-      Returns surface which can be used as input for VPP.
-
-      VPP should be initialized before this call.
-      Surface should be released with mfxFrameSurface1::FrameInterface.Release(...) after usage. The value of mfxFrameSurface1::Data.Locked for the returned surface is 0.
-
-
-   @param[in]  session Session handle.
-   @param[out] surface   Pointer is set to valid mfxFrameSurface1 object.
-
-   @return
-   MFX_ERR_NONE The function completed successfully. \n
-   MFX_ERR_NULL_PTR If double-pointer to the @p surface is NULL. \n
-   MFX_ERR_INVALID_HANDLE If @p session was not initialized. \n
-   MFX_ERR_NOT_INITIALIZED If VPP was not initialized (allocator needs to know surface size from somewhere). \n
-   MFX_ERR_MEMORY_ALLOC In case of any other internal allocation error. \n
-   MFX_WRN_ALLOC_TIMEOUT_EXPIRED In case of waiting timeout expired (if set with mfxExtAllocationHints).
-
-   @since This function is available since API version 2.0.
-
-*/
-mfxStatus MFX_CDECL MFXMemory_GetSurfaceForVPP(mfxSession session, mfxFrameSurface1** surface);
-
-/*!
-   @brief
-      Returns surface which can be used as output of VPP.
-
-      VPP should be initialized before this call.
-      Surface should be released with mfxFrameSurface1::FrameInterface.Release(...) after usage. The value of mfxFrameSurface1::Data.Locked for the returned surface is 0.
-
-
-   @param[in]  session Session handle.
-   @param[out] surface   Pointer is set to valid mfxFrameSurface1 object.
-
-   @return
-   MFX_ERR_NONE The function completed successfully. \n
-   MFX_ERR_NULL_PTR If double-pointer to the @p surface is NULL. \n
-   MFX_ERR_INVALID_HANDLE If @p session was not initialized. \n
-   MFX_ERR_NOT_INITIALIZED If VPP was not initialized (allocator needs to know surface size from somewhere). \n
-   MFX_ERR_MEMORY_ALLOC In case of any other internal allocation error. \n
-   MFX_WRN_ALLOC_TIMEOUT_EXPIRED In case of waiting timeout expired (if set with mfxExtAllocationHints).
-
-   @since This function is available since API version 2.1.
-
-*/
-mfxStatus MFX_CDECL MFXMemory_GetSurfaceForVPPOut(mfxSession session, mfxFrameSurface1** surface);
-
-/*! Alias for MFXMemory_GetSurfaceForVPP function. */
-#define MFXMemory_GetSurfaceForVPPIn MFXMemory_GetSurfaceForVPP
-
-/*!
-   @brief
-    Returns a surface which can be used as input for the encoder.
-
-    Encoder should be initialized before this call.
-    Surface should be released with mfxFrameSurface1::FrameInterface.Release(...) after usage. The value of mfxFrameSurface1::Data.Locked for the returned surface is 0.
-
-
-
-   @param[in]  session Session handle.
-   @param[out] surface   Pointer is set to valid mfxFrameSurface1 object.
-
-   @return
-   MFX_ERR_NONE The function completed successfully.\n
-   MFX_ERR_NULL_PTR If surface is NULL.\n
-   MFX_ERR_INVALID_HANDLE If session was not initialized.\n
-   MFX_ERR_NOT_INITIALIZED If the encoder was not initialized (allocator needs to know surface size from somewhere).\n
-   MFX_ERR_MEMORY_ALLOC In case of any other internal allocation error. \n
-   MFX_WRN_ALLOC_TIMEOUT_EXPIRED In case of waiting timeout expired (if set with mfxExtAllocationHints).
-
-   @since This function is available since API version 2.0.
-
-*/
-mfxStatus MFX_CDECL MFXMemory_GetSurfaceForEncode(mfxSession session, mfxFrameSurface1** surface);
-
-/*!
-   @brief
-    Returns a surface which can be used as output of the decoder.
-
-    Decoder should be initialized before this call.
-    Surface should be released with mfxFrameSurface1::FrameInterface.Release(...) after usage. The value of mfxFrameSurface1::Data.Locked for the returned surface is 0.'
-
-    @note This function was added to simplify transition from legacy surface management to the proposed internal allocation approach.
-    Previously, the user allocated surfaces for the working pool and fed them to the decoder using DecodeFrameAsync calls. With MFXMemory_GetSurfaceForDecode
-    it is possible to change the existing pipeline by just changing the source of work surfaces.
-    Newly developed applications should prefer direct usage of DecodeFrameAsync with internal allocation.
-
-
-   @param[in]  session Session handle.
-   @param[out] surface   Pointer is set to valid mfxFrameSurface1 object.
-
-   @return
-   MFX_ERR_NONE The function completed successfully.\n
-   MFX_ERR_NULL_PTR If surface is NULL.\n
-   MFX_ERR_INVALID_HANDLE If session was not initialized.\n
-   MFX_ERR_NOT_INITIALIZED If the decoder was not initialized (allocator needs to know surface size from somewhere).\n
-   MFX_ERR_MEMORY_ALLOC Other internal allocation error. \n
-   MFX_WRN_ALLOC_TIMEOUT_EXPIRED In case of waiting timeout expired (if set with mfxExtAllocationHints).
-
-   @since This function is available since API version 2.0.
-
-*/
-mfxStatus MFX_CDECL MFXMemory_GetSurfaceForDecode(mfxSession session, mfxFrameSurface1** surface);
 
 /* VideoENCODE */
 

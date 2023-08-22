@@ -380,6 +380,10 @@ typedef enum {
     MFX_HANDLE_CM_DEVICE                        = 8,  /*!< Pointer to CmDevice interface ( Intel(r) C for Metal Runtime ). */
     MFX_HANDLE_HDDLUNITE_WORKLOADCONTEXT        = 9,  /*!< Pointer to HddlUnite::WorkloadContext interface. */
     MFX_HANDLE_PXP_CONTEXT                      = 10, /*!< Pointer to PXP context for protected content support. */
+
+#ifdef ONEVPL_EXPERIMENTAL
+    MFX_HANDLE_MEMORY_INTERFACE                 = 1001,  /*!< Pointer to interface of type mfxMemoryInterface. */
+#endif
 } mfxHandleType;
 
 /*! The mfxMemoryFlags enumerator specifies memory access mode. */
@@ -416,8 +420,140 @@ typedef struct {
 } mfxFrameSurface1;
 MFX_PACK_END()
 
+#ifdef ONEVPL_EXPERIMENTAL
 
+/*! The mfxSurfaceType enumerator specifies the surface type described by mfxSurfaceHeader. */
+typedef enum {
+    MFX_SURFACE_TYPE_UNKNOWN               = 0,      /*!< Unknown surface type. */
+
+    MFX_SURFACE_TYPE_D3D11_TEX2D           = 2,      /*!< D3D11 surface of type ID3D11Texture2D. */
+    MFX_SURFACE_TYPE_VAAPI                 = 3,      /*!< VA-API surface. */
+    MFX_SURFACE_TYPE_OPENCL_IMG2D          = 4,      /*!< OpenCL 2D image (cl_mem). */
+} mfxSurfaceType;
+
+/*! This enumerator specifies the sharing modes which are allowed for importing or exporting shared surfaces. */
+enum {
+    MFX_SURFACE_FLAG_DEFAULT          = 0x0000,      /*!< Default is SHARED import or export. */
+
+    MFX_SURFACE_FLAG_IMPORT_SHARED    = 0x0010,      /*!< Import frames directly by mapping a shared native handle from an application-provided surface to an internally-allocated VPL surface. */
+    MFX_SURFACE_FLAG_IMPORT_COPY      = 0x0020,      /*!< Import frames by copying data from an application-provided surface to an internally-allocated VPL surface. */
+
+    MFX_SURFACE_FLAG_EXPORT_SHARED    = 0x0100,      /*!< Export frames directly by mapping a shared native handle from an internally-allocated VPL surface to an application-provided surface. */
+    MFX_SURFACE_FLAG_EXPORT_COPY      = 0x0200,      /*!< Export frames by copying data from an internally-allocated VPL surface to an application-provided surface. */
+};
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+typedef struct {
+    mfxSurfaceType SurfaceType;     /*!< Set to the MFX_SURFACE_TYPE enum corresponding to the specific structure. */
+    mfxU32         SurfaceFlags;    /*!< Set to the MFX_SURFACE_FLAG enum (or combination) corresponding to the allowed import / export mode(s). Multiple flags may be combined with OR. 
+                                         Upon a successful Import or Export operation, this field will indicate the actual mode used.*/
+
+    mfxU32         StructSize;      /*!< Size in bytes of the complete mfxSurfaceXXX structure. */
+
+    mfxU16         NumExtParam;     /*!< The number of extra configuration structures attached to the structure. */
+    mfxExtBuffer** ExtParam;        /*!< Points to an array of pointers to the extra configuration structures; see the ExtendedBufferID enumerator for a list of extended configurations. */
+
+    mfxU32 reserved[6];
+} mfxSurfaceHeader;
+MFX_PACK_END()
+
+
+#define MFX_SURFACEINTERFACE_VERSION MFX_STRUCT_VERSION(1, 0)
+
+/*!
+   Contains mfxSurfaceHeader and the callback functions AddRef, Release and GetRefCounter
+   that the application may use to manage access to exported surfaces.
+   These interfaces are only valid for surfaces obtained by mfxFrameSurfaceInterface::Export.
+   They are not used for surface descriptions passed to function mfxMemoryInterface::ImportFrameSurface.
+*/
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+typedef struct mfxSurfaceInterface {
+    mfxSurfaceHeader Header;  /*!< Exported surface header. Contains description of current surface. */
+
+    mfxStructVersion Version; /*!< The version of the structure. */
+
+    mfxHDL           Context; /*!< The context of the exported surface interface. User should not touch (change, set, null) this pointer. */
+
+    /*! @brief
+    Increments the internal reference counter of the surface. The surface is not destroyed until the surface is released using the mfxSurfaceInterface::Release function.
+    mfxSurfaceInterface::AddRef should be used each time a new link to the surface is created (for example, copy structure) for proper surface management.
+
+    @param[in]  surface  Valid surface.
+
+    @return
+     MFX_ERR_NONE              If no error. \n
+     MFX_ERR_NULL_PTR          If surface is NULL. \n
+     MFX_ERR_INVALID_HANDLE    If mfxSurfaceInterface->Context is invalid (for example NULL). \n
+     MFX_ERR_UNKNOWN           Any internal error.
+
+    */
+    mfxStatus           (MFX_CDECL *AddRef)(struct mfxSurfaceInterface* surface);
+
+    /*! @brief
+    Decrements the internal reference counter of the surface. mfxSurfaceInterface::Release should be called after using the
+    mfxSurfaceInterface::AddRef function to add a surface or when allocation logic requires it. For example, call
+    mfxSurfaceInterface::Release to release a surface obtained with the mfxFrameSurfaceInterface::Export function.
+
+    @param[in]  surface  Valid surface.
+
+    @return
+     MFX_ERR_NONE               If no error. \n
+     MFX_ERR_NULL_PTR           If surface is NULL. \n
+     MFX_ERR_INVALID_HANDLE     If mfxSurfaceInterface->Context is invalid (for example NULL). \n
+     MFX_ERR_UNDEFINED_BEHAVIOR If Reference Counter of surface is zero before call. \n
+     MFX_ERR_UNKNOWN            Any internal error.
+    */
+    mfxStatus           (MFX_CDECL *Release)(struct mfxSurfaceInterface* surface);
+
+    /*! @brief
+    Returns current reference counter of exported surface.
+
+    @param[in]   surface  Valid surface.
+    @param[out]  counter  Sets counter to the current reference counter value.
+
+    @return
+     MFX_ERR_NONE               If no error. \n
+     MFX_ERR_NULL_PTR           If surface or counter is NULL. \n
+     MFX_ERR_INVALID_HANDLE     If mfxSurfaceInterface->Context is invalid (for example NULL). \n
+     MFX_ERR_UNKNOWN            Any internal error.
+    */
+    mfxStatus           (MFX_CDECL *GetRefCounter)(struct mfxSurfaceInterface* surface, mfxU32* counter);
+
+    /*! @brief
+    This function is only valuable for surfaces which were exported in sharing mode (without a copy).
+    Guarantees readiness of both the data (pixels) and any original mfxFrameSurface1 frame's meta information (for example corruption flags) after a function completes.
+
+    Instead of MFXVideoCORE_SyncOperation, users may directly call the mfxSurfaceInterface::Synchronize function after the corresponding
+    Decode or VPP function calls (MFXVideoDECODE_DecodeFrameAsync or MFXVideoVPP_RunFrameVPPAsync).
+    The prerequisites to call the functions are:
+
+    @li The main processing functions return MFX_ERR_NONE.
+    @li A valid surface object.
+
+    @param[in]   surface  Valid surface.
+    @param[out]  wait  Wait time in milliseconds.
+
+    @return
+     MFX_ERR_NONE               If no error. \n
+     MFX_ERR_NULL_PTR           If surface is NULL. \n
+     MFX_ERR_INVALID_HANDLE     If any of surface is not valid object . \n
+     MFX_WRN_IN_EXECUTION       If the given timeout is expired and the surface is not ready. \n
+     MFX_ERR_ABORTED            If the specified asynchronous function aborted due to data dependency on a previous asynchronous function that did not complete. \n
+     MFX_ERR_UNKNOWN            Any internal error.
+    */
+    mfxStatus           (MFX_CDECL *Synchronize)(struct mfxSurfaceInterface* surface, mfxU32 wait);
+
+    mfxHDL reserved[11];
+} mfxSurfaceInterface;
+MFX_PACK_END()
+
+#endif
+
+#ifdef ONEVPL_EXPERIMENTAL
+#define MFX_FRAMESURFACEINTERFACE_VERSION MFX_STRUCT_VERSION(1, 1)
+#else
 #define MFX_FRAMESURFACEINTERFACE_VERSION MFX_STRUCT_VERSION(1, 0)
+#endif
 
 MFX_PACK_BEGIN_STRUCT_W_L_TYPE()
 /* Specifies frame surface interface. */
@@ -425,6 +561,7 @@ typedef struct mfxFrameSurfaceInterface {
     mfxHDL              Context; /*!< The context of the memory interface. User should not touch (change, set, null) this pointer. */
     mfxStructVersion    Version; /*!< The version of the structure. */
     mfxU16              reserved1[3];
+
     /*! @brief
     Increments the internal reference counter of the surface. The surface is not destroyed until the surface is released using the mfxFrameSurfaceInterface::Release function.
     mfxFrameSurfaceInterface::AddRef should be used each time a new link to the surface is created (for example, copy structure) for proper surface management.
@@ -439,6 +576,7 @@ typedef struct mfxFrameSurfaceInterface {
 
     */
     mfxStatus           (MFX_CDECL *AddRef)(mfxFrameSurface1* surface);
+
     /*! @brief
     Decrements the internal reference counter of the surface. mfxFrameSurfaceInterface::Release should be called after using the
     mfxFrameSurfaceInterface::AddRef function to add a surface or when allocation logic requires it. For example, call
@@ -595,7 +733,7 @@ typedef struct mfxFrameSurfaceInterface {
 
     @attention This is callback function and intended to be called by
                the library only.
-    
+
     @note The library calls this callback only when this surface is used as the output surface. 
 
     It is expected that the function is low-intrusive designed otherwise it may
@@ -605,7 +743,7 @@ typedef struct mfxFrameSurfaceInterface {
 
     */
     void               (MFX_CDECL *OnComplete)(mfxStatus sts);
-    
+
    /*! @brief
     Returns an interface defined by the GUID. If the returned interface is a reference 
     counted object the caller should release the obtained interface to avoid memory leaks.
@@ -623,9 +761,35 @@ typedef struct mfxFrameSurfaceInterface {
      MFX_ERR_NOT_INITIALIZED    If requested interface is not available (not created or already deleted). \n
      MFX_ERR_UNKNOWN            Any internal error.
     */
-    mfxStatus           (MFX_CDECL *QueryInterface)(mfxFrameSurface1* surface, mfxGUID guid, mfxHDL* iface); 
+    mfxStatus           (MFX_CDECL *QueryInterface)(mfxFrameSurface1* surface, mfxGUID guid, mfxHDL* iface);
 
+#ifdef ONEVPL_EXPERIMENTAL
+    /*! @brief
+     If successful returns an exported surface, which is a refcounted object allocated by runtime. It could be exported with or without copy, depending
+     on export flags and the possibility of such export. Exported surface is valid throughout the session, as long as the original mfxFrameSurface1 
+     object is not closed and the refcount of exported surface is not zero.
+
+     @param[in]  surface              Valid surface.
+     @param[in]  export_header        Description of export: caller should fill in SurfaceType (type to export to) and SurfaceFlags (allowed export modes).
+     @param[out] exported_surface     Exported surface, allocated by runtime, user needs to decrement refcount after usage for object release.
+                                      After successful export, the value of mfxSurfaceHeader::SurfaceFlags will contain the actual export mode.
+
+
+     @return
+      MFX_ERR_NONE               If no error. \n
+      MFX_ERR_NULL_PTR           If export surface or surface is NULL. \n
+      MFX_ERR_UNSUPPORTED        If requested export is not supported. \n
+      MFX_ERR_NOT_IMPLEMENTED    If requested export is not implemented. \n
+      MFX_ERR_UNKNOWN            Any internal error.
+     */
+
+     /* For reference with Import flow please search for mfxMemoryInterface::ImportFrameSurface. */
+    mfxStatus           (MFX_CDECL *Export)(mfxFrameSurface1* surface, mfxSurfaceHeader export_header, mfxSurfaceHeader** exported_surface);
+
+    mfxHDL              reserved2[1];
+#else
     mfxHDL              reserved2[2];
+#endif
 } mfxFrameSurfaceInterface;
 MFX_PACK_END()
 
@@ -2191,7 +2355,7 @@ enum {
     */
     MFX_EXTBUFF_ALLOCATION_HINTS = MFX_MAKEFOURCC('A','L','C','H'),
     
-#ifdef ONEVPL_EXPERIMENTAL    
+#ifdef ONEVPL_EXPERIMENTAL
     /*!
        See the mfxExtSyncSubmission structure for more details.
     */
@@ -2205,6 +2369,10 @@ enum {
        See the mfxExtTuneEncodeQuality structure for details.
     */
     MFX_EXTBUFF_TUNE_ENCODE_QUALITY           = MFX_MAKEFOURCC('T','U','N','E'),
+    /*!
+    See the mfxExtSurfaceOpenCLImg2DExportDescription structure for more details.
+    */
+    MFX_EXTBUFF_EXPORT_SHARING_DESC_OCL = MFX_MAKEFOURCC('E', 'O', 'C', 'L'),
 #endif
 };
 
