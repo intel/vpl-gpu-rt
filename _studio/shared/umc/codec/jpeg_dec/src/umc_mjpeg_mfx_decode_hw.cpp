@@ -453,11 +453,7 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
                 else
                     return UMC_ERR_FAILED;
             }
-#ifdef UMC_VA
             buffersForUpdate |= 1 << 3;
-#else
-            buffersForUpdate |= 1 << 4;
-#endif
 
             sts = SyntaxErrorConcealment(&buffersForUpdate);
             if (sts != UMC_OK)
