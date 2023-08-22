@@ -6023,10 +6023,11 @@ void MfxHwH264Encode::SetDefaults(
                 par.calcParam.bufferSizeInKB / 2;
         }
 
-        // Check BufferSizeInKB and InitialDelayInKB at extremely low bitrate to ensure there is enough space to write bitstream
+        // Check default value of BufferSizeInKB at extremely low bitrate to ensure there is enough space to write bitstream
         if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
             par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ &&
             !isSWBRC(par) &&
+            par.mfx.BufferSizeInKB == 0 &&
             par.mfx.FrameInfo.Width != 0 &&
             par.mfx.FrameInfo.Height != 0 &&
             par.mfx.FrameInfo.FrameRateExtN != 0 &&
