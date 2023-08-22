@@ -1070,6 +1070,11 @@ namespace Base
         mfxU32 Flags;
     };
 
+    struct DeviceCreationMask
+    {
+        mfxU32 DisableTemporalDevice = 0;
+    };
+
     struct VAID
     {
         mfxU32 Profile;
@@ -1359,6 +1364,7 @@ namespace Base
         using Reorder             = StorageVar<__LINE__ - _KD, Reorderer>;
         using Defaults            = StorageVar<__LINE__ - _KD, Base::Defaults>;
         using SegDpb              = StorageVar<__LINE__ - _KD, SegDpbType>;
+        using DeviceCreation      = StorageVar<__LINE__ - _KD, Base::DeviceCreationMask>;
         static const StorageR::TKey CallChainsKey = __LINE__ - _KD;
         static const StorageR::TKey ReservedKey0    = __LINE__ - _KD;
         static const StorageR::TKey TaskManagerKey  = __LINE__ - _KD;

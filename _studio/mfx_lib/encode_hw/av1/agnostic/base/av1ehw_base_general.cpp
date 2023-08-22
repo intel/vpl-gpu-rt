@@ -838,6 +838,9 @@ void General::InitExternal(const FeatureBlocks& blocks, TPushIE Push)
     Push(BLK_Query1NoCaps
         , [this, &blocks](const mfxVideoParam& in, StorageRW& strg, StorageRW&) -> mfxStatus
     {
+        auto& disableTemporalCreation = Glob::DeviceCreation::GetOrConstruct(strg);
+        disableTemporalCreation.DisableTemporalDevice = true;
+
         return RunQuery1NoCapsQueue(blocks, in, strg);
     });
 
