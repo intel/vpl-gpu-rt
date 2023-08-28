@@ -1659,6 +1659,19 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             bCheckSkip
             && !!(allocRec.GetFlag(task.DPB.Active[task.RefPicList[1][0]].Rec.Idx) & REC_SKIPPED);
 
+        if(IsSWBRC(par) && par.AsyncDepth<2 && task.bSkip && !IsRef(task.FrameType))
+        {
+            task.SkipCMD = SKIPCMD_NeedCurrentFrameSkipping | SKIPCMD_NeedSkipSliceGen;
+            task.bSkip = false;
+            task.bForceSync = true;
+            bool  bL1  = (IsB(task.FrameType) && !task.isLDB && task.NumRefActive[1] && !task.b2ndField);
+            auto  idx  = task.RefPicList[bL1][0];
+            MFX_CHECK(idx < MAX_DPB_SIZE, MFX_ERR_UNDEFINED_BEHAVIOR);
+            auto& ref = task.DPB.Active[idx];
+            allocRec.SetFlag(task.Rec.Idx, REC_SKIPPED);
+            allocRec.SetFlag(ref.Rec.Idx, REC_SKIPPED * !!idx);
+        }
+
         MFX_CHECK(task.bSkip, MFX_ERR_NONE);
 
         task.bForceSync = true;

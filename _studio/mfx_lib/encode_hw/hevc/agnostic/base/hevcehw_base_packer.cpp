@@ -441,7 +441,7 @@ void BitstreamWriter::SliceFinish()
 
     RenormE();
     PutBitC((m_codILow >> 9) & 1);
-    PutBit(m_codILow >> 8);
+    PutBit((m_codILow >> 8) & 1);
     PutTrailingBits();
 
     m_BinCountsInNALunits++;
@@ -1761,14 +1761,16 @@ static void PackSkipCTU(
         (yCtu != y0)
         && ((xCtu >= x0 && yCtu > y0)
             || (xCtu < x0 && yCtu > (y0 + (1 << log2CtuSize))));
+
     bool boundary =
         ((xCtu + (1 << log2CtuSize) > sps.pic_width_in_luma_samples)
             || (yCtu + (1 << log2CtuSize) > sps.pic_height_in_luma_samples))
         && (log2CtuSize > (sps.log2_min_luma_coding_block_size_minus3 + 3));
     mfxU8 split_flag = boundary && (log2CtuSize > (sps.log2_min_luma_coding_block_size_minus3 + 3));
 
-    if (!boundary)
+    if (!boundary && (log2CtuSize > (sps.log2_min_luma_coding_block_size_minus3 + 3))) {
         bs.EncodeBin(ctx.SPLIT_CODING_UNIT_FLAG[0], split_flag);
+    }
 
     if (split_flag)
     {
@@ -2157,6 +2159,7 @@ void Packer::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             mfxStatus sts           = MFX_ERR_NONE;
 
             MFX_CHECK(bsData.Y, MFX_ERR_LOCK_MEMORY);
+            if(task.bRecode) task.BsDataLength=0;
 
             auto BSInsert = [&](const PackedData& d) -> mfxStatus
             {
@@ -2180,8 +2183,12 @@ void Packer::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             MFX_CHECK(!bErr, sts);
 
             // Update Slice header for adaptive cqm.
-            if (global.Contains(CC::Key)) CC::Get(global).UpdateAdaptiveCqmSH(global, s_task);
-
+            if (global.Contains(CC::Key) && CC::Get(global).UpdateAdaptiveCqmSH) CC::Get(global).UpdateAdaptiveCqmSH(global, s_task);
+            // Skip Frame cannot have sao
+            ssh.sao_luma_flag   = 0;
+            ssh.sao_chroma_flag = 0;
+            // No need for merge cands
+            ssh.five_minus_max_num_merge_cand = 4;
             mfxU32 sz = GetPSEIAndSSH(
                 Glob::VideoParam::Get(global)
                 , task
