@@ -910,6 +910,14 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         AddPackedHeaderIf(!!(task.InsertHeaders & INSERT_PPS)
             , ph.PPS, par, VAEncPackedHeaderHEVC_PPS);
 
+        if (cc.PackAdaptiveCqmPPS(global, s_task))
+        {
+            for (mfxU32 i = 0; i < CQM_HINT_NUM_CUST_MATRIX; ++i)
+            {
+                AddPackedHeaderIf(true, ph.CqmPPS.at(i), par, VAEncPackedHeaderHEVC_PPS);
+            }
+        }
+
         AddPackedHeaderIf((!!(task.InsertHeaders & INSERT_SEI) || task.ctrl.NumPayload) && ph.PrefixSEI.BitLen
             , ph.PrefixSEI, par/*, VAEncPackedHeaderHEVC_SEI*/);
 
@@ -959,6 +967,11 @@ void VAPacker::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
 
         auto sts = CC::Get(global).ReadFeedback(global, s_task, *(const VACodedBufferSegment*)pFB);
         SetIf(rtErr, sts < MFX_ERR_NONE, sts);
+
+        if (CC::Get(global).UpdateEncQP)
+        {
+            CC::Get(global).UpdateEncQP(global, task, (((const VACodedBufferSegment*)pFB)->status & VA_CODED_BUF_STATUS_PICTURE_AVE_QP_MASK));
+        }
 
 #if defined(MFX_ENABLE_LPLA_BASE)
         auto& cc = CC::Get(global);
