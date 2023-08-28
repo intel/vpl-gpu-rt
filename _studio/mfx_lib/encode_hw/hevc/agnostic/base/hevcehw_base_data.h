@@ -693,6 +693,7 @@ namespace Base
         bool     isLTR          = false; // is "long-term"
         mfxU8    CodingType     = 0;
         Resource Raw;
+        Resource RawTmp;
         Resource Rec;
         mfxFrameSurface1* pSurfIn = nullptr; //input surface, may be opaque
     } DpbFrame, DpbArray[MAX_DPB_SIZE];
@@ -1399,6 +1400,7 @@ namespace Base
         using CqmPPS              = StorageVar<__LINE__ - _KD, std::vector<Base::PPS>>;
         using SliceInfo           = StorageVar<__LINE__ - _KD, std::vector<Base::SliceInfo>>;
         using AllocRaw            = StorageVar<__LINE__ - _KD, IAllocation>;
+        using AllocRawTmp         = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocOpq            = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocRec            = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocBS             = StorageVar<__LINE__ - _KD, IAllocation>;

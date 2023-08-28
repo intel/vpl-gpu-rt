@@ -43,6 +43,7 @@
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
 
+
 void Legacy::SetSupported(ParamSupport& blocks)
 {
     auto CopyRawBuffer = [](mfxU8* pSrcBuf, mfxU16 szSrcBuf, mfxU8* pDstBuf, mfxU16& szDstBuf)
@@ -1156,6 +1157,23 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             return MFX_ERR_NONE;
         };
 
+        auto AllocRawTmp = [&](mfxU16 NumFrameMin)
+        {
+            std::unique_ptr<IAllocation> pAlloc(Tmp::MakeAlloc::Get(local)(Glob::VideoCore::Get(strg)));
+            mfxFrameAllocRequest req = rawInfo;
+            req.NumFrameMin = NumFrameMin;
+
+            req.Info.FourCC = MFX_FOURCC_P016;
+            req.Type = MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY;
+
+            sts = pAlloc->Alloc(req, true);
+            MFX_CHECK_STS(sts);
+
+            strg.Insert(Glob::AllocRawTmp::Key, std::move(pAlloc));
+
+            return MFX_ERR_NONE;
+        };
+
         bool isD3D9SimWithVideoMem = IsD3D9Simulation(Glob::VideoCore::Get(strg)) && (par.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY);
         if (par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY || isD3D9SimWithVideoMem)
         {
@@ -1173,6 +1191,11 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         {
             sts = AllocRaw(GetMaxBS(par));
             MFX_CHECK_STS(sts);
+            if(rawInfo.Info.BitDepthLuma == 10)
+            {
+                sts = AllocRawTmp(GetMaxBS(par));
+                MFX_CHECK_STS(sts);
+            }
         }
 
         return sts;
@@ -1463,6 +1486,9 @@ void Legacy::ResetState(const FeatureBlocks& blocks, TPushRS Push)
         if (real.Contains(Glob::AllocRaw::Key))
             Glob::AllocRaw::Get(real).UnlockAll();
 
+        if (real.Contains(Glob::AllocRawTmp::Key))
+            Glob::AllocRawTmp::Get(real).UnlockAll();
+
         ResetState();
 
         return MFX_ERR_NONE;
@@ -1616,6 +1642,11 @@ void Legacy::PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Push)
             task.Raw = Glob::AllocRaw::Get(global).Acquire();
             MFX_CHECK(task.Raw.Mid, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
+        if (global.Contains(Glob::AllocRawTmp::Key))
+        {
+            task.RawTmp = Glob::AllocRawTmp::Get(global).Acquire();
+            MFX_CHECK(task.RawTmp.Mid, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
  
         task.Rec = Glob::AllocRec::Get(global).Acquire();
         task.BS = Glob::AllocBS::Get(global).Acquire();
@@ -1644,6 +1675,7 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             StorageW& global
             , StorageW& s_task) -> mfxStatus
     {
+
         auto& par = Glob::VideoParam::Get(global);
         auto& task = Task::Common::Get(s_task);
 
@@ -1674,6 +1706,7 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
         MFX_CHECK(task.bSkip, MFX_ERR_NONE);
 
+        auto& allocRaw = Glob::AllocRaw::Get(global);
         task.bForceSync = true;
 
         if (IsI(task.FrameType))
@@ -1686,7 +1719,7 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             FrameLocker raw(Glob::VideoCore::Get(global), task.Raw.Mid);
 
             mfxU32 size = raw.Pitch * par.mfx.FrameInfo.Height;
-            int UVFiller = (par.mfx.FrameInfo.FourCC == MFX_FOURCC_NV12) * 126;
+            int UVFiller = 126;
 
             memset(raw.Y, 0, size);
             memset(raw.UV, UVFiller, size >> 1);
@@ -1700,13 +1733,19 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         bool  bL1  = (IsB(task.FrameType) && !task.isLDB && task.NumRefActive[1] && !task.b2ndField);
         auto  idx  = task.RefPicList[bL1][0];
 
+        auto raw = task.Raw;
         mfxFrameSurface1 surfSrc = {};
         mfxFrameSurface1 surfDst = {};
 
-        surfSrc.Info = par.mfx.FrameInfo;
-        surfDst.Info = allocRec.GetInfo();
+        surfSrc.Data.MemType = mfxU16(MFX_MEMTYPE_FROM_ENCODE
+                                | MFX_MEMTYPE_DXVA2_DECODER_TARGET
+                                | MFX_MEMTYPE_INTERNAL_FRAME);
+        surfDst.Data.MemType = mfxU16(MFX_MEMTYPE_FROM_ENCODE
+                                | MFX_MEMTYPE_DXVA2_DECODER_TARGET
+                                | MFX_MEMTYPE_INTERNAL_FRAME);
+        surfSrc.Info = allocRec.GetInfo();
+        surfDst.Info = allocRaw.GetInfo();
 
-        MFX_CHECK(!memcmp(&surfSrc.Info, &surfDst.Info, sizeof(mfxFrameInfo)), MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(idx < MAX_DPB_SIZE, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         auto& ref = task.DPB.Active[idx];
@@ -1715,16 +1754,45 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
         MFX_CHECK(allocRec.GetFlag(ref.Rec.Idx) & REC_READY, MFX_ERR_NONE);
 
+        if(par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
+        {
+            raw = task.RawTmp;
+            surfDst.Info.FourCC = MFX_FOURCC_P016;
+            surfDst.Data.MemType = MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY;
+        }
+
         surfSrc.Data.MemId = ref.Rec.Mid;
-        surfDst.Data.MemId = task.Raw.Mid;
+        surfDst.Data.MemId = raw.Mid;
 
         mfxStatus sts = core.DoFastCopyWrapper(
-            &surfDst, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE,
-            &surfSrc, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE);
+            &surfDst, surfDst.Data.MemType,
+            &surfSrc, surfSrc.Data.MemType);
         MFX_CHECK_STS(sts);
 
-        allocRec.SetFlag(ref.Rec.Idx, REC_SKIPPED * !!idx);
+        if(par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
+        {
+            CommonCORE_VPL* ccore = dynamic_cast <CommonCORE_VPL*>(&core);
+            mfxFrameSurface1_scoped_lock inLock(&surfDst, ccore);
+            MFX_SAFE_CALL(inLock.lock(MFX_MAP_READ));
 
+            mfxFrameSurface1 surfInp = {};
+            surfInp.Info = allocRaw.GetInfo();
+            surfInp.Data.MemId = task.Raw.Mid;
+            mfxFrameSurface1_scoped_lock outLock(&surfInp, ccore);
+            MFX_SAFE_CALL(outLock.lock(MFX_MAP_WRITE));
+
+            for (size_t y = 0; y < size_t(par.mfx.FrameInfo.Height); ++y)
+            {
+                copySysVariantToVideo(&surfDst.Data.Y[surfDst.Data.Pitch * y], mfx::align2_value(par.mfx.FrameInfo.Width, 32), &surfInp.Data.Y16[(surfInp.Data.Pitch>>1) * y], par.mfx.FrameInfo.Width);
+            }
+
+            mfxU16* DUV = (mfxU16*) surfInp.Data.UV;
+            for (int y = 0; y < par.mfx.FrameInfo.Height / 2; ++y)
+            {
+                copySysVariantToVideo(&surfDst.Data.UV[surfDst.Data.Pitch * y], mfx::align2_value(par.mfx.FrameInfo.Width, 32), &DUV[(surfInp.Data.Pitch>>1) * y], par.mfx.FrameInfo.Width);
+            }
+        }
+        allocRec.SetFlag(ref.Rec.Idx, REC_SKIPPED * !!idx);
         return MFX_ERR_NONE;
     });
 
@@ -1972,6 +2040,10 @@ void Legacy::FreeTask(const FeatureBlocks& /*blocks*/, TPushFT Push)
             global.Contains(Glob::AllocRaw::Key)
             && !ReleaseResource(Glob::AllocRaw::Get(global), task.Raw)
             , "task.Raw resource is invalid");
+        ThrowAssert(
+            global.Contains(Glob::AllocRawTmp::Key)
+            && !ReleaseResource(Glob::AllocRawTmp::Get(global), task.RawTmp)
+            , "task.RawTmp resource is invalid");
 
         SetIf(task.pSurfIn, task.pSurfIn && !core.DecreaseReference(*task.pSurfIn), nullptr);
         ThrowAssert(!!task.pSurfIn, "failed in core.DecreaseReference");

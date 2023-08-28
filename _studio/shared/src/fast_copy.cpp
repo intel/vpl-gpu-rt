@@ -54,3 +54,12 @@ void copySysToVideoShift(const mfxU16* src, mfxU16* dst, int width, int shift)
 
     copySysToVideoShift_impl(src, dst, width, shift);
 }
+
+void copySysVariantToVideo(const mfxU8* src, int loffset, mfxU16* dst, int width)
+{
+    static const int m_SSE4_available = CpuFeature_SSE41();
+
+    static const t_copySysVariantToVideo copySysVariantToVideo_impl = FAFT_COPY_CPU_DISP_INIT_SSE4_C(copySysVariantToVideo);
+
+    copySysVariantToVideo_impl(src, loffset, dst, width);
+}

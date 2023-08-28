@@ -192,4 +192,69 @@ void copySysToVideoShift_SSE4(const mfxU16* src, mfxU16* dst, int width, int shi
     }
 }
 
+void copySysVariantToVideo_SSE4(const mfxU8* src, int loffset, mfxU16* dst, int width)
+{
+    static const int item_size = 2 * sizeof(__m128i);
+    mfxU8 *src2 = (mfxU8*) src + loffset;
+    int align16 = (0x10 - (reinterpret_cast<size_t>((mfxU8*)src) & 0xf)) & 0xf;
+    for (int i = 0; i < align16; i++) {
+        *dst++ = ((mfxU16)(*src++) << 8) + ((mfxU16)(*src2++)<<6);
+    }
+
+    int w = width*2 - align16;
+    if (w < 0)
+        return;
+
+    int width2 = w & (-item_size);
+
+    __m128i *dst_reg = (__m128i *)dst;
+
+    int i = 0;
+    for (; i < width2; i += item_size)
+    {
+        __m128i xmm0 = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)&src[0]));
+        __m128i xmm1 = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)&src[8]));
+        __m128i xmm2 = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)&src2[0]));
+        __m128i xmm3 = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)&src2[8]));
+
+        __m128i xmm4 = _mm_slli_epi16(xmm0, 8);
+        __m128i xmm5 = _mm_slli_epi16(xmm1, 8);
+        __m128i xmm6 = _mm_slli_epi16(xmm2, 6);
+        __m128i xmm7 = _mm_slli_epi16(xmm3, 6);
+
+        xmm4 = _mm_add_epi16(xmm4, xmm6);
+        xmm5 = _mm_add_epi16(xmm5, xmm7);
+
+        _mm_storeu_si128(dst_reg, xmm4);
+        _mm_storeu_si128(dst_reg + 1, xmm5);
+
+        src += 16;
+        src2 += 16;
+        dst_reg += 2;
+    }
+
+    size_t tail_data_sz = w & (item_size - 1);
+    if (tail_data_sz)
+    {
+        for (; tail_data_sz >= sizeof(__m128i); tail_data_sz -= sizeof(__m128i))
+        {
+            __m128i xmm0 = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)&src[0]));
+            __m128i xmm1 = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i *)&src2[0]));
+            __m128i xmm2 = _mm_slli_epi16(xmm0, 8);
+            __m128i xmm3 = _mm_slli_epi16(xmm1, 6);
+            xmm2 = _mm_add_epi16(xmm2, xmm3);
+            _mm_storeu_si128(dst_reg, xmm2);
+            src += 8;
+            src2 += 8;
+            dst_reg += 1;
+        }
+
+        dst = (mfxU16 *)dst_reg;
+
+        for (; tail_data_sz > 0; tail_data_sz--)
+        {
+            *dst++ = ((mfxU16)(*src++) << 8) + ((mfxU16)(*src2++)<<6);
+        }
+    }
+}
 #endif //MFX_SSE_4_1

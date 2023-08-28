@@ -27,5 +27,6 @@
 void copyVideoToSys_C(const mfxU8* src, mfxU8* dst, int width);
 void copyVideoToSysShift_C(const mfxU16* src, mfxU16* dst, int width, int shift);
 void copySysToVideoShift_C(const mfxU16* src, mfxU16* dst, int width, int shift);
+void copySysVariantToVideo_C(const mfxU8* src, int loffset, mfxU16* dst, int width);
 
 #endif // __FAST_COPY_C_IMPL_H__
