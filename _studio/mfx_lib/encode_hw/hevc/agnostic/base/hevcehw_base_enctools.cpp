@@ -899,6 +899,11 @@ void HevcEncTools::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         }
 
         task.bForceSync |= task.bSkip;
+        if(task.bSkip && !IsRef(task.FrameType))
+        {
+            task.SkipCMD = SKIPCMD_NeedCurrentFrameSkipping | SKIPCMD_NeedSkipSliceGen;
+            task.bSkip = false;
+        }
 
         return MFX_ERR_NONE;
     });
