@@ -543,7 +543,27 @@ public:
         mfxU16 QPB = bCQP * par.mvp.mfx.QPB;
 
         if (bCQP)
-            return std::make_tuple(QPI, QPP, QPB);
+        {
+            const bool isLossless = (QPI == 0) && (QPP == 0) && (QPB == 0);
+            if (!isLossless)
+            {
+                if (QPI)
+                {
+                    SetDefault(QPP, QPI);
+                    SetDefault(QPB, QPP);
+                }
+                else if (QPP)
+                {
+                    SetDefault(QPI, QPP);
+                    SetDefault(QPB, QPP);
+                }
+                else if (QPB)
+                {
+                    SetDefault(QPP, QPB);
+                    SetDefault(QPI, QPP);
+                }
+            }
+        }
         else
         {
             bool bValid = ((QPI) && (QPP) && (QPB));
@@ -556,9 +576,9 @@ public:
             SetDefault(QPI, std::max<mfxU16>(minQP, (maxQP + 1) / 2));
             SetDefault(QPP, std::min<mfxU16>(QPI + 5, maxQP));
             SetDefault(QPB, std::min<mfxU16>(QPP + 5, maxQP));
-
-            return std::make_tuple(QPI, QPP, QPB);
         }
+
+        return std::make_tuple(QPI, QPP, QPB);
     }
 
     static void QPOffset(
