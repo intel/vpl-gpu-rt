@@ -82,17 +82,6 @@ public:
             , const VACodedBufferSegment&>;
         TUpdateCqmHint UpdateCqmHint;
 
-        using TPackAdaptiveCqmPPS = CallChain<bool
-            , const StorageR&   //global
-            , const StorageR&>; //task
-        TPackAdaptiveCqmPPS PackAdaptiveCqmPPS;
-
-        using TUpdateEncQP = CallChain<void
-            , const StorageR&
-            , TaskCommonPar&
-            , uint8_t >;
-        TUpdateEncQP UpdateEncQP;
-
         using TAddMiscData = CallChain<bool
             , const StorageR& //glob
             , const StorageR& //task
