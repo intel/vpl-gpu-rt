@@ -480,35 +480,6 @@ void HevcEncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII P
 
         return MFX_ERR_NONE;
     });
-    Push(BLK_UpdateTask
-        , [this](StorageRW& global, StorageRW&) -> mfxStatus
-    {
-        auto& par = Glob::VideoParam::Get(global);
-        MFX_CHECK(isFeatureEnabled(par), MFX_ERR_NONE);
-
-        MFX_CHECK(m_pEncTools, MFX_ERR_NONE);
-        auto& taskMgrIface = TaskManager::TMInterface::Get(global);
-
-        auto  UpdateTask = [&](
-            TaskManager::ExtTMInterface::TUpdateTask::TExt
-            , StorageW* dstTask) -> mfxStatus
-        {
-
-            if (dstTask)
-            {
-                auto& dst_task = Task::Common::Get(*dstTask);
-                if (LpLaStatus.size() > 0)
-                {
-                    dst_task.LplaStatus = *(LpLaStatus.begin());
-                    LpLaStatus.pop_front();
-                }
-            }
-            return MFX_ERR_NONE;
-        };
-        taskMgrIface.UpdateTask.Push(UpdateTask);
-
-        return MFX_ERR_NONE;
-    });
 }
 
 void HevcEncToolsCommon::FreeTask(const FeatureBlocks& /*blocks*/, TPushQT Push)

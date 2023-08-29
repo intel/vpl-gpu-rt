@@ -264,7 +264,6 @@ mfxStatus TaskManager::TaskReorder(StorageW& task)
 mfxStatus TaskManager::TaskSubmit(StorageW& task)
 {
     MFX_SAFE_CALL(RunExtraStages(NextStage(S_REORDER), Stage(S_SUBMIT), task));
-    if (TMInterface::Get(*m_pGlob).UpdateTask) TMInterface::Get(*m_pGlob).UpdateTask(GetTask(Stage(S_SUBMIT)));
     return MfxEncodeHW::TaskManager::TaskSubmit(task);
 }
 
