@@ -459,6 +459,11 @@ typedef struct {
     { 0xA78D, MFX_HW_ADL_S, MFX_GT1 },//RPL-S
     { 0xA78E, MFX_HW_ADL_S, MFX_GT1 },//RPL-S
 
+    { 0xA7AA, MFX_HW_ADL_S, MFX_GT1 },//RPL 
+    { 0xA7AB, MFX_HW_ADL_S, MFX_GT1 },//RPL 
+    { 0xA7AC, MFX_HW_ADL_S, MFX_GT1 },//RPL 
+    { 0xA7AD, MFX_HW_ADL_S, MFX_GT1 },//RPL
+
     /* ADL-P */
     { 0x46A0, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
     { 0x46A1, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
