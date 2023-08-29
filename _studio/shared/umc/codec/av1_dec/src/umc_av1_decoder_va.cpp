@@ -65,6 +65,7 @@ namespace UMC_AV1_DECODER
             dpb_size = MAX_EXTERNAL_REFS;
         }
 
+
         SetDPBSize(dpb_size);
         SetRefSize(TOTAL_REFS);
         return UMC::UMC_OK;
