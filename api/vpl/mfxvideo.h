@@ -191,6 +191,66 @@ mfxStatus MFX_CDECL MFXVideoCORE_QueryPlatform(mfxSession session, mfxPlatform* 
 */
 mfxStatus MFX_CDECL MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfxU32 wait);
 
+#ifdef ONEVPL_EXPERIMENTAL
+
+/*! Maximum allowed length of parameter key and value strings, in bytes. */
+#define MAX_PARAM_STRING_LENGTH     4096
+
+/*! The mfxStructureType enumerator specifies the structure type for configuration with the string interface. */
+typedef enum {
+    MFX_STRUCTURE_TYPE_UNKNOWN = 0,         /*!< Unknown structure type. */
+
+    MFX_STRUCTURE_TYPE_VIDEO_PARAM = 1,     /*!< Structure of type mfxVideoParam. */
+} mfxStructureType;
+
+#define MFX_CONFIGINTERFACE_VERSION MFX_STRUCT_VERSION(1, 0)
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+/* Specifies config interface. */
+typedef struct mfxConfigInterface {
+    mfxHDL              Context; /*!< The context of the config interface. User should not touch (change, set, null) this pointer. */
+    mfxStructVersion    Version; /*!< The version of the structure. */
+
+    /*! @brief
+       Sets a parameter to specified value in the current session. If a parameter already has a value, 
+       the new value will overwrite the existing value.
+
+       @param[in] config_interface     The valid interface returned by calling MFXQueryInterface().
+       @param[in] key                  Null-terminated string containing parameter to set. The string length must be < MAX_PARAM_STRING_LENGTH bytes.
+       @param[in] value                Null-terminated string containing value to which key should be set. The string length must be < MAX_PARAM_STRING_LENGTH bytes.
+                                       value will be converted from a string to the expected data type for the given key, or return an error if conversion fails.
+       @param[in] struct_type          Type of structure pointed to by structure.
+       @param[out] structure           If and only if SetParameter returns MFX_ERR_NONE, the contents of structure (including any attached extension
+                                       buffers) will be updated according to the provided key and value. If key modifies a field in an extension buffer 
+                                       which is not already attached, the function will return MFX_ERR_MORE_EXTBUFFER and fill ext_buffer with the header for
+                                       the required mfxExtBuffer type.
+       @param[out] ext_buffer          If and only if SetParameter returns MFX_ERR_MORE_EXTBUFFER, ext_buffer will contain the header for a buffer
+                                       of type mfxExtBuffer. The caller should allocate a buffer of the size ext_buffer.BufferSz, copy the header in ext_buffer
+                                       to the start of this new buffer, attach this buffer to videoParam, then call SetParameter again. Otherwise, the 
+                                       contents of ext_buffer will be cleared.
+       @return
+          MFX_ERR_NONE                 The function completed successfully.
+          MFX_ERR_NULL_PTR             If key, value, videoParam, and/or ext_buffer is NULL.
+          MFX_ERR_NOT_FOUND            If key contains an unknown parameter name.
+          MFX_ERR_UNSUPPORTED          If value is of the wrong format for key (for example, a string is provided where an integer is required)
+                                       or if value cannot be converted into any valid data type.
+          MFX_ERR_INVALID_VIDEO_PARAM  If length of key or value is >= MAX_PARAM_STRING_LENGTH or is zero (empty string).
+          MFX_ERR_MORE_EXTBUFFER       If key requires modifying a field in an mfxExtBuffer which is not attached. Caller must allocate and attach
+                                       the buffer type provided in ext_buffer then call the function again.
+
+       @since This function is available since API version 2.10.
+    */
+    mfxStatus (MFX_CDECL *SetParameter)(struct mfxConfigInterface *config_interface, const mfxU8* key, const mfxU8* value, mfxStructureType struct_type, mfxHDL structure, mfxExtBuffer *ext_buffer);
+
+    mfxHDL     reserved[16];
+} mfxConfigInterface;
+MFX_PACK_END()
+
+/*! Alias for returning interface of type mfxConfigInterface. */
+#define MFXGetConfigInterface(session, piface)  MFXVideoCORE_GetHandle((session), MFX_HANDLE_CONFIG_INTERFACE, (mfxHDL *)(piface))
+
+#endif
+
 /* VideoENCODE */
 
 /*!
