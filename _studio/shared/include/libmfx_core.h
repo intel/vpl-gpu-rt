@@ -849,23 +849,24 @@ private:
             , original_release(m_surface_interface.Release)
             , m_locked_count(surf.Data.Locked)
         {
-            m_surface_interface.Release = proxy_release;
+            FrameInterface->Release = m_surface_interface.Release = proxy_release;
 
             std::ignore = vm_interlocked_inc16((volatile Ipp16u*)&m_locked_count);
 
             // Connect surface with it's pool (cache instance)
-            reinterpret_cast<mfxFrameSurfaceBaseInterface*>(FrameInterface->Context)->SetParentPool(&m_cache);
-
+            reinterpret_cast<mfxFrameSurfaceBaseInterface*>(m_surface_interface.Context)->SetParentPool(&m_cache);
         }
 
         ~SurfaceHolder()
         {
             // Untie surface from pool
-            reinterpret_cast<mfxFrameSurfaceBaseInterface*>(FrameInterface->Context)->SetParentPool(nullptr);
+            reinterpret_cast<mfxFrameSurfaceBaseInterface*>(m_surface_interface.Context)->SetParentPool(nullptr);
 
             std::ignore = vm_interlocked_dec16((volatile Ipp16u*)&m_locked_count);
 
             m_surface_interface.Release = original_release;
+
+            *FrameInterface = m_surface_interface;
 
             std::ignore = MFX_STS_TRACE(m_surface_interface.Release(this));
         }
@@ -876,7 +877,7 @@ private:
         SurfaceCache & m_cache;
 
         // Store it to protect against user zeroing this pointer
-        mfxFrameSurfaceInterface & m_surface_interface;
+        mfxFrameSurfaceInterface m_surface_interface;
 
         mfxStatus(MFX_CDECL *original_release)(mfxFrameSurface1* surface);
 
