@@ -254,19 +254,21 @@ typedef struct {
 } mfxRange32U;
 MFX_PACK_END()
 
-
+MFX_PACK_BEGIN_USUAL_STRUCT()
 /*! Represents a pair of numbers of type mfxI16. */
 typedef struct {
     mfxI16  x; /*!< First number. */
     mfxI16  y; /*!< Second number. */
 } mfxI16Pair;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 /*! Represents pair of handles of type mfxHDL. */
 typedef struct {
     mfxHDL first;  /*!< First handle. */
     mfxHDL second; /*!< Second handle. */
 } mfxHDLPair;
-
+MFX_PACK_END()
 
 /*********************************************************************************\
 Error message
