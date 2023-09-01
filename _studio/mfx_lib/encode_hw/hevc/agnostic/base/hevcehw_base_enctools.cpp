@@ -195,6 +195,68 @@ inline bool IsAdaptiveRefAllowed(const mfxVideoParam &video)
     return adaptiveRef;
 }
 
+bool HEVCEHW::Base::IsHwEncToolsOn(const mfxVideoParam& video)
+{
+
+    const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
+    const mfxExtCodingOption2* pExtOpt2 = ExtBuffer::Get(video);
+    const mfxExtEncToolsConfig* pExtConfig = ExtBuffer::Get(video);
+    bool bGameStreaming = pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING;
+    bool bLA = false;
+    if ((bGameStreaming && pExtOpt2 && pExtOpt2->LookAheadDepth > 0) || (pExtConfig && IsLookAhead(*pExtConfig, bGameStreaming)))
+        bLA = true;
+    return  bLA ;
+}
+
+inline bool IsSwEncToolsImplicit(const mfxVideoParam &video)
+{
+    const mfxExtCodingOption2  *pExtOpt2 = ExtBuffer::Get(video);
+    if (pExtOpt2 && pExtOpt2->LookAheadDepth > 0)
+    {
+        const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
+        if(
+            (video.mfx.GopRefDist == 2 || video.mfx.GopRefDist == 4 || video.mfx.GopRefDist == 8 || video.mfx.GopRefDist == 16)
+            && IsOn(pExtOpt2->ExtBRC)
+            && !(pExtOpt3 && pExtOpt3->ScenarioInfo != MFX_SCENARIO_UNKNOWN)
+        )
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool HEVCEHW::Base::IsSwEncToolsOn(const mfxVideoParam& video){
+
+    if(IsHwEncToolsOn(video))
+    {
+        return false;
+    }
+
+    const mfxExtEncToolsConfig *pConfig = ExtBuffer::Get(video);
+    if(pConfig)
+    {
+        mfxExtEncToolsConfig config = {};
+        HevcEncTools et(FEATURE_ENCTOOLS);
+        et.SetDefaultConfig(video, config, true);
+
+        return
+              IsOn(config.AdaptiveI) || IsOn(config.AdaptiveB)
+            || IsOn(config.AdaptiveRefP) || IsOn(config.AdaptiveRefB)
+            || IsOn(config.SceneChange)
+            || IsOn(config.AdaptiveLTR)
+            || IsOn(config.AdaptivePyramidQuantP) || IsOn(config.AdaptivePyramidQuantB)
+            || IsOn(config.AdaptiveQuantMatrices)
+            || IsOn(config.AdaptiveMBQP)
+            || IsOn(config.BRCBufferHints)
+            || IsOn(config.BRC);
+    }
+    else
+    {
+        return IsSwEncToolsImplicit(video);
+    }
+}
+
 inline bool  CheckSWEncCondition(const mfxVideoParam &video)
 {
     return (
@@ -222,6 +284,48 @@ bool HevcEncTools::IsEncToolsImplicit(const mfxVideoParam &video)
     return etOn;
 }
 
+bool HEVCEHW::Base::IsSwEncToolsSpsACQM(const mfxVideoParam &video)
+{
+    bool bETSPSadaptQM = false;
+    const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
+    if (IsSwEncToolsOn(video) && pExtOpt3)
+    {
+        const mfxExtEncToolsConfig *pConfig = ExtBuffer::Get(video);
+        if(pConfig)
+        {
+            bETSPSadaptQM = IsOn(pConfig->AdaptiveQuantMatrices) && pExtOpt3->ContentInfo == MFX_CONTENT_NOISY_VIDEO;
+        }
+        else
+        {
+            bETSPSadaptQM = !IsOff(pExtOpt3->AdaptiveCQM) && pExtOpt3->ContentInfo == MFX_CONTENT_NOISY_VIDEO;
+        }
+    }
+    return bETSPSadaptQM;
+}
+
+bool HEVCEHW::Base::IsSwEncToolsPpsACQM(const mfxVideoParam &video)
+{
+    bool bETPPSadaptQM = false;
+    const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
+    const mfxExtCodingOption *pExtOpt = ExtBuffer::Get(video);
+    if (IsSwEncToolsOn(video) && pExtOpt3 && pExtOpt)
+    {
+        const mfxExtEncToolsConfig *pConfig = ExtBuffer::Get(video);
+        if(pConfig)
+        {
+            bETPPSadaptQM = !IsOff(pConfig->AdaptiveQuantMatrices) && IsOn(pExtOpt3->AdaptiveCQM) && IsOn(pConfig->BRC) && !IsOff(pExtOpt->NalHrdConformance);
+        }
+        else
+        {
+            if (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
+            {
+                bETPPSadaptQM = IsOn(pExtOpt3->AdaptiveCQM) && !IsOff(pExtOpt->NalHrdConformance);
+            }
+        }
+    }
+    return bETPPSadaptQM;
+}
+
 bool isSWLACondition(const mfxVideoParam& video)
 {
     const mfxExtCodingOption2* pExtOpt2 = ExtBuffer::Get(video);
@@ -231,6 +335,7 @@ bool isSWLACondition(const mfxVideoParam& video)
 
 void HevcEncTools::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsConfig &config, bool bMBQPSupport)
 {
+    const mfxExtCodingOption   *pExtOpt = ExtBuffer::Get(video);
     const mfxExtCodingOption2  *pExtOpt2 = ExtBuffer::Get(video);
     const mfxExtCodingOption3  *pExtOpt3 = ExtBuffer::Get(video);
     const mfxExtEncToolsConfig *pExtConfig = ExtBuffer::Get(video);
@@ -299,7 +404,7 @@ void HevcEncTools::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsCo
         SetDefaultOpt(config.BRCBufferHints, lplaAssistedBRC);
         SetDefaultOpt(config.AdaptiveMBQP,  bMBQPSupport && lplaAssistedBRC && pExtOpt2 && IsOn(pExtOpt2->MBBRC));
         if (pExtOpt3)
-            SetDefaultOpt(config.AdaptiveQuantMatrices, bLA && (IsOn(pExtOpt3->AdaptiveCQM) || pExtOpt3->ContentInfo == MFX_CONTENT_NOISY_VIDEO));
+            SetDefaultOpt(config.AdaptiveQuantMatrices, bLA && ((IsOn(pExtOpt3->AdaptiveCQM) && pExtOpt && !IsOff(pExtOpt->NalHrdConformance)) || (!IsOff(pExtOpt3->AdaptiveCQM) && pExtOpt3->ContentInfo == MFX_CONTENT_NOISY_VIDEO)));
         else
             SetDefaultOpt(config.AdaptiveQuantMatrices, false);
     }
@@ -351,6 +456,7 @@ mfxU32 HevcEncTools::CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsCon
         bool bAdaptiveI = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveI)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
         bool bAdaptiveB = !(pExtOpt2 && IsOff(pExtOpt2->AdaptiveB)) && !(video.mfx.GopOptFlag & MFX_GOP_STRICT);
         bool bAdaptiveRef = IsAdaptiveRefAllowed(video);
+        bool bAdaptiveCQM = !(pExtOpt3 && IsOff(pExtOpt3->AdaptiveCQM));
 
         changed += CheckFlag(pConfig->AdaptiveI, bIsEncToolsEnabled && bAdaptiveI);
         changed += CheckFlag(pConfig->AdaptiveB, bIsEncToolsEnabled && bAdaptiveB);
@@ -362,7 +468,7 @@ mfxU32 HevcEncTools::CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsCon
         changed += CheckFlag(pConfig->AdaptiveLTR, bIsEncToolsEnabled  && bAdaptiveRef);
         changed += CheckFlag(pConfig->SceneChange, bIsEncToolsEnabled);
         changed += CheckFlag(pConfig->BRCBufferHints, bIsEncToolsEnabled);
-        changed += CheckFlag(pConfig->AdaptiveQuantMatrices, bIsEncToolsEnabled);
+        changed += CheckFlag(pConfig->AdaptiveQuantMatrices, bIsEncToolsEnabled && bAdaptiveCQM);
         changed += CheckFlag(pConfig->BRC, bIsEncToolsEnabled);
 
         changed += CheckFlag(pConfig->AdaptiveI, IsOn(supportedConfig.AdaptiveI));

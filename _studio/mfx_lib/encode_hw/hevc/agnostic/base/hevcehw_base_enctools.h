@@ -63,6 +63,10 @@ namespace Base
 
     bool IsEncToolsOptOn(const mfxExtEncToolsConfig &config, bool bGameStreaming);
     bool IsLPLAEncToolsOn(const mfxExtEncToolsConfig &config, bool bGameStreaming);
+    bool IsHwEncToolsOn(const mfxVideoParam& video);
+    bool IsSwEncToolsOn(const mfxVideoParam& video);
+    bool IsSwEncToolsSpsACQM(const mfxVideoParam &video);
+    bool IsSwEncToolsPpsACQM(const mfxVideoParam &video);
     int EncToolsDeblockingBetaOffset();
     int EncToolsDeblockingAlphaTcOffset();
 
