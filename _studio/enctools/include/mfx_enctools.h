@@ -42,7 +42,7 @@ class PercEncFilterWrapper
 public:
     mfxStatus Init(const mfxFrameInfo& info);
     mfxStatus SetModulationMap(const mfxEncToolsHintSaliencyMap &sm);
-    mfxStatus RunFrame(mfxFrameSurface1& in, mfxFrameSurface1& out);
+    mfxStatus RunFrame(mfxFrameSurface1& in, mfxFrameSurface1& out, mfxU32 QpY);
 
 private:
     static bool AVX2Supported();

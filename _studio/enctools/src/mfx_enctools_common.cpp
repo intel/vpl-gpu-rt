@@ -1087,7 +1087,7 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
             MFX_CHECK_STS(sts);
         }
 
-        sts = m_PercEncFilter.RunFrame(*in, *out);
+        sts = m_PercEncFilter.RunFrame(*in, *out, pPrefilterParam->QpY);
         MFX_CHECK_STS(sts);
     }
 
@@ -1228,15 +1228,30 @@ mfxStatus PercEncFilterWrapper::Init(const mfxFrameInfo& info)
 
     modulationStride = (width + blockSizeFilter - 1) / blockSizeFilter;
     modulation.resize(size_t(modulationStride) * ((height + blockSizeFilter - 1) / blockSizeFilter));
-
     parametersFrame.spatialSlope = 2;
     parametersFrame.temporalSlope = 5;
-    parametersBlock[0].spatial.pivot = 0.005909118892594739f;
-    parametersBlock[1].spatial.pivot = 0.008541855174858726f;
-    parametersBlock[0].spatial.minimum = -0.02285621848581362f;
-    parametersBlock[1].spatial.minimum = -0.04005541977955759f;
-    parametersBlock[0].spatial.maximum = 0.041140246241535394f;
-    parametersBlock[1].spatial.maximum = 0.f;
+    // Using QP Adaptive as Encoder integration has QP feedback
+    parametersFrame.qpAdaptive = true;
+    if(!parametersFrame.qpAdaptive)
+    {
+        // Orig
+        parametersBlock[0].spatial.pivot = 0.005909118892594739f;
+        parametersBlock[1].spatial.pivot = 0.008541855174858726f;
+        parametersBlock[0].spatial.minimum = -0.02285621848581362f;
+        parametersBlock[1].spatial.minimum = -0.04005541977955759f;
+        parametersBlock[0].spatial.maximum = 0.041140246241535394f;
+        parametersBlock[1].spatial.maximum = 0.f;
+    }
+    else
+    {
+        parametersBlock[0].spatial.pivot = 0.023914614115868146f;
+        parametersBlock[0].spatial.minimum = -0.011074017123454209f;
+        parametersBlock[0].spatial.maximum = 0.06830047767528989f;
+        parametersBlock[1].spatial.pivot = 0.017164396880008734f;
+        parametersBlock[1].spatial.minimum = -0.03023741792966293f;
+        parametersBlock[1].spatial.maximum = 0.0436184808511757f;
+    }
+
     parametersBlock[0].temporal.pivot = 0.f;
     parametersBlock[1].temporal.pivot = 0.f;
     parametersBlock[0].temporal.minimum = 0.f;
@@ -1287,7 +1302,7 @@ mfxStatus PercEncFilterWrapper::SetModulationMap(const mfxEncToolsHintSaliencyMa
 
 }
 
-mfxStatus PercEncFilterWrapper::RunFrame(mfxFrameSurface1& in, mfxFrameSurface1& out)
+mfxStatus PercEncFilterWrapper::RunFrame(mfxFrameSurface1& in, mfxFrameSurface1& out, mfxU32 QpY)
 {
 
     if(!initialized)
@@ -1300,7 +1315,11 @@ mfxStatus PercEncFilterWrapper::RunFrame(mfxFrameSurface1& in, mfxFrameSurface1&
         MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 
-    filter->processFrame(in.Data.Y, in.Data.Pitch, modulation.data(), modulationStride, previousOutput.data(), width, out.Data.Y, out.Data.Pitch, width, height);
+    filter->processFrame(in.Data.Y, in.Data.Pitch,
+                        modulation.data(), modulationStride,
+                        previousOutput.data(), width,
+                        out.Data.Y, out.Data.Pitch,
+                        width, height, QpY);
 
     //retain a copy of the output for next time...
     for (size_t y = 0; y < size_t(height); ++y)
