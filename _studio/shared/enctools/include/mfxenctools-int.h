@@ -437,7 +437,8 @@ typedef struct
     mfxExtBuffer      Header;
     mfxFrameSurface1 *InSurface;
     mfxFrameSurface1 *OutSurface;
-    mfxU32            reserved[59];
+    mfxU32            QpY;             /* Frame-level Luma QP*/
+    mfxU32            reserved[58];
 } mfxEncToolsPrefilterParam;
 MFX_PACK_END()
 
