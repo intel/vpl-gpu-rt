@@ -1427,8 +1427,12 @@ void SurfaceSource::ReleaseCurrentWorkSurface()
 // Closes object and releases all allocated memory
 UMC::Status SurfaceSource::Close()
 {
-    MFX_CHECK( m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
-    MFX_CHECK(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter,      UMC::UMC_ERR_NOT_INITIALIZED);
+    if (m_redirect_to_vpl_path != !!m_vpl_cache_decoder_surfaces
+    || !m_redirect_to_vpl_path != !!m_umc_allocator_adapter)
+    {
+        // Was already Closed, do nothing
+        return UMC::UMC_OK;
+    }
 
     if (m_redirect_to_vpl_path)
     {
