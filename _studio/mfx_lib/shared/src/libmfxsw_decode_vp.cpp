@@ -599,7 +599,7 @@ mfxStatus MFXVideoDECODE_VPP_DecodeFrameAsync(mfxSession session, mfxBitstream* 
                     }
                 }
 
-                if (vppSyncp && vppOut->FrameInterface && !session->m_pCORE->IsExternalFrameAllocator())
+                if (vppSyncp && vppOut->FrameInterface && vppOut->FrameInterface->Synchronize && !session->m_pCORE->IsExternalFrameAllocator())
                 {
                     MFX_CHECK_HDL(vppOut->FrameInterface->Context);
                     static_cast<mfxFrameSurfaceBaseInterface*>(vppOut->FrameInterface->Context)->SetSyncPoint(vppSyncp);

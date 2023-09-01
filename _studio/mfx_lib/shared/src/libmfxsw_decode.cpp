@@ -546,7 +546,7 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
             mfxAddRes = session->m_pScheduler->AddTask(task, &syncPoint);
             MFX_CHECK_STS(mfxAddRes);
 
-            if (syncPoint && *surface_out && (*surface_out)->FrameInterface && !session->m_pCORE->IsExternalFrameAllocator())
+            if (syncPoint && *surface_out && (*surface_out)->FrameInterface && (*surface_out)->FrameInterface->Synchronize && !session->m_pCORE->IsExternalFrameAllocator())
             {
                 MFX_CHECK_HDL((*surface_out)->FrameInterface->Context);
                 static_cast<mfxFrameSurfaceBaseInterface*>((*surface_out)->FrameInterface->Context)->SetSyncPoint(syncPoint);

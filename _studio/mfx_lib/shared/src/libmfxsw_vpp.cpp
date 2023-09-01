@@ -429,7 +429,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
                 syncPoint = NULL;
             }
 
-            if (syncPoint && out && out->FrameInterface && !session->m_pCORE->IsExternalFrameAllocator())
+            if (syncPoint && out && out->FrameInterface && out->FrameInterface->Synchronize && !session->m_pCORE->IsExternalFrameAllocator())
             {
                 MFX_CHECK_HDL(out->FrameInterface->Context);
                 static_cast<mfxFrameSurfaceBaseInterface*>(out->FrameInterface->Context)->SetSyncPoint(syncPoint);
