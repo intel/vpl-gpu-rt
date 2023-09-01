@@ -799,19 +799,19 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
                 &numEntrypoints);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    bool bEncodeEnable = false;
-    for( entrypointsIndx = 0; entrypointsIndx < numEntrypoints; entrypointsIndx++ )
-    {
-        if( VAEntrypointEncSliceLP == pEntrypoints[entrypointsIndx] )
-        {
-            bEncodeEnable = true;
-            break;
-        }
-    }
-    if( !bEncodeEnable )
-    {
-        MFX_RETURN(MFX_ERR_DEVICE_FAILED);
-    }
+    // bool bEncodeEnable = false;
+    // for( entrypointsIndx = 0; entrypointsIndx < numEntrypoints; entrypointsIndx++ )
+    // {
+    //     if( VAEntrypointEncSliceLP == pEntrypoints[entrypointsIndx] )
+    //     {
+    //         bEncodeEnable = true;
+    //         break;
+    //     }
+    // }
+    // if( !bEncodeEnable )
+    // {
+    //     MFX_RETURN(MFX_ERR_DEVICE_FAILED);
+    // }
 
     // Configuration
     VAConfigAttrib attrib[2];

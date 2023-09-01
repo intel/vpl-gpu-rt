@@ -43,7 +43,7 @@ void VAPacker::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 
         HardcodeCapsCommon(caps, par);
 
-        bool bLP   = (vaid-> Entrypoint == VAEntrypointEncSliceLP);
+        bool bLP = IsOn(par.mfx.LowPower);
 
         caps.LCUSizeSupported |=
               (32 >> 4) * (!bLP)

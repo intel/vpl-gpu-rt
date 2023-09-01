@@ -1622,8 +1622,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
     MFX_CHECK(va_sts == VA_STATUS_SUCCESS, MFX_ERR_UNSUPPORTED);
 
     //check entrypoint support
-    auto it_entrypoint = find(va_entrypoints.begin(), va_entrypoints.end(), req_entrypoint);
-    MFX_CHECK(it_entrypoint != va_entrypoints.end(), MFX_ERR_UNSUPPORTED);
+    // auto it_entrypoint = find(va_entrypoints.begin(), va_entrypoints.end(), req_entrypoint);
+    // MFX_CHECK(it_entrypoint != va_entrypoints.end(), MFX_ERR_UNSUPPORTED);
 
     VAConfigAttrib attr[] = {{VAConfigAttribMaxPictureWidth,  0},
                              {VAConfigAttribMaxPictureHeight, 0}};

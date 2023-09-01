@@ -1707,22 +1707,22 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     VAEntrypoint entryPoint = IsOn(par.mfx.LowPower) ? VAEntrypointEncSliceLP : VAEntrypointEncSlice;
-    if( !m_isENCPAK )
-    {
-        bool bEncodeEnable = false;
-        for( entrypointsIndx = 0; entrypointsIndx < numEntrypoints; entrypointsIndx++ )
-        {
-            if( entryPoint == pEntrypoints[entrypointsIndx] )
-            {
-                bEncodeEnable = true;
-                break;
-            }
-        }
-        if( !bEncodeEnable )
-        {
-            MFX_RETURN(MFX_ERR_DEVICE_FAILED);
-        }
-    }
+    // if( !m_isENCPAK )
+    // {
+    //     bool bEncodeEnable = false;
+    //     for( entrypointsIndx = 0; entrypointsIndx < numEntrypoints; entrypointsIndx++ )
+    //     {
+    //         if( entryPoint == pEntrypoints[entrypointsIndx] )
+    //         {
+    //             bEncodeEnable = true;
+    //             break;
+    //         }
+    //     }
+    //     if( !bEncodeEnable )
+    //     {
+    //         MFX_RETURN(MFX_ERR_DEVICE_FAILED);
+    //     }
+    // }
 
     // Configuration
     VAConfigAttrib attrib[3];

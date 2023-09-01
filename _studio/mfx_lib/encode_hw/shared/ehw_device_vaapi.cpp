@@ -136,7 +136,7 @@ mfxStatus DeviceVAAPI::Init(const std::list<DDIExecParam>* pPar)
         , ep_list.data()
         , &numEntrypoints);
     MFX_CHECK_STS(sts);
-    MFX_CHECK(std::find(ep_list.begin(), ep_list.end(), m_entrypoint) != ep_list.end(), MFX_ERR_DEVICE_FAILED);
+    // MFX_CHECK(std::find(ep_list.begin(), ep_list.end(), m_entrypoint) != ep_list.end(), MFX_ERR_DEVICE_FAILED);
 
     auto& cfgPar = GetArgs(itCreateConfig->In, vaCreateConfig);
     std::get<0>(cfgPar) = m_vaDisplay;
