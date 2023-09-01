@@ -847,11 +847,8 @@ private:
             , m_cache(cache)
             , m_surface_interface(*FrameInterface)
             , original_release(m_surface_interface.Release)
-            , m_locked_count(surf.Data.Locked)
         {
             FrameInterface->Release = m_surface_interface.Release = proxy_release;
-
-            std::ignore = vm_interlocked_inc16((volatile Ipp16u*)&m_locked_count);
 
             // Connect surface with it's pool (cache instance)
             reinterpret_cast<mfxFrameSurfaceBaseInterface*>(m_surface_interface.Context)->SetParentPool(&m_cache);
@@ -861,8 +858,6 @@ private:
         {
             // Untie surface from pool
             reinterpret_cast<mfxFrameSurfaceBaseInterface*>(m_surface_interface.Context)->SetParentPool(nullptr);
-
-            std::ignore = vm_interlocked_dec16((volatile Ipp16u*)&m_locked_count);
 
             m_surface_interface.Release = original_release;
 
@@ -880,9 +875,6 @@ private:
         mfxFrameSurfaceInterface m_surface_interface;
 
         mfxStatus(MFX_CDECL *original_release)(mfxFrameSurface1* surface);
-
-        // To mimic legacy behavior
-        mfxU16 & m_locked_count;
 
         static mfxStatus proxy_release(mfxFrameSurface1* surface)
         {
