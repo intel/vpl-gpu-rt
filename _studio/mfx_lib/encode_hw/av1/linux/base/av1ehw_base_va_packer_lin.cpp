@@ -861,7 +861,7 @@ void VAPacker::SubmitTask(const FeatureBlocks& blocks, TPushST Push)
             }
         }
 
-        SetFeedback(task.StatusReportId, *(VASurfaceID*)task.HDLRaw.first, GetResources(RES_BS).at(task.BS.Idx));
+        SetFeedback(task.StatusReportId, task.Rec.Idx, GetResources(RES_BS).at(task.BS.Idx));
 
         return MFX_ERR_NONE;
     });
