@@ -193,6 +193,7 @@ void Legacy::SetSupported(ParamSupport& blocks)
         MFX_COPY_FIELD(LowDelayBRC);
         MFX_COPY_FIELD(BRCPanicMode);
         MFX_COPY_FIELD(ScenarioInfo);
+        MFX_COPY_FIELD(ContentInfo);
         MFX_COPY_FIELD(AdaptiveCQM);
     });
     blocks.m_ebCopyPtrs[MFX_EXTBUFF_CODING_OPTION_SPSPPS].emplace_back(

@@ -1984,12 +1984,14 @@ mfxStatus Packer::Reset(
     sts = PackHeader(rbsp, pESBegin, pESEnd, ph.PPS);
     MFX_CHECK_STS(sts);
     pESBegin += ph.PPS.BitLen / 8;
+    bool bPackedCqmPPS = false;
 
     // Pack cqm PPS header for adaptive cqm.
-    if (m_pGlob->Contains(CC::Key) &&
+    if (!bPackedCqmPPS && m_pGlob->Contains(CC::Key) &&
         CC::Get(*m_pGlob).PackAdaptiveCqmHeader &&
         CC::Get(*m_pGlob).PackAdaptiveCqmHeader(m_pGlob))
     {
+        bPackedCqmPPS = true;
         ph.CqmPPS.resize(CQM_HINT_NUM_CUST_MATRIX);
         for (mfxU8 idx = 0; idx < CQM_HINT_NUM_CUST_MATRIX && idx < cqmpps.size(); idx++)
         {

@@ -910,14 +910,6 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         AddPackedHeaderIf(!!(task.InsertHeaders & INSERT_PPS)
             , ph.PPS, par, VAEncPackedHeaderHEVC_PPS);
 
-        if (cc.PackAdaptiveCqmPPS && cc.PackAdaptiveCqmPPS(global, s_task))
-        {
-            for (mfxU32 i = 0; i < CQM_HINT_NUM_CUST_MATRIX; ++i)
-            {
-                AddPackedHeaderIf(true, ph.CqmPPS.at(i), par, VAEncPackedHeaderHEVC_PPS);
-            }
-        }
-
         AddPackedHeaderIf((!!(task.InsertHeaders & INSERT_SEI) || task.ctrl.NumPayload) && ph.PrefixSEI.BitLen
             , ph.PrefixSEI, par/*, VAEncPackedHeaderHEVC_SEI*/);
 

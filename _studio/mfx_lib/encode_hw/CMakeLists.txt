@@ -88,6 +88,7 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux/base/hevcehw_base_roi_lin.h
     hevc/linux/base/hevcehw_base_va_lin.h
     hevc/linux/base/hevcehw_base_va_packer_lin.h
+    hevc/linux/base/hevcehw_base_enctools_qmatrix_lin.h
     hevc/linux/base/hevcehw_base_weighted_prediction_lin.h
     hevc/linux/base/hevcehw_base_max_frame_size_lin.h
     hevc/linux/base/hevcehw_base_dirty_rect_lin.h
@@ -134,6 +135,7 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux/base/hevcehw_base_va_lin.cpp
     hevc/linux/base/hevcehw_base_va_packer_lin.cpp
     hevc/linux/base/hevcehw_base_weighted_prediction_lin.cpp
+    hevc/linux/base/hevcehw_base_enctools_qmatrix_lin.cpp
     hevc/linux/base/hevcehw_base_max_frame_size_lin.cpp
     hevc/linux/base/hevcehw_base_dirty_rect_lin.cpp
     hevc/linux/base/hevcehw_base_rext_lin.cpp
