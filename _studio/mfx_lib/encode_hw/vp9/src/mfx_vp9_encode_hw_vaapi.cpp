@@ -23,6 +23,7 @@
 #include "mfx_vp9_encode_hw_par.h"
 #include "mfx_vp9_encode_hw_vaapi.h"
 #include "mfx_common_int.h"
+#include "mfx_platform_caps.h"
 #include <map>
 
 namespace MfxHwVP9Encode
@@ -698,7 +699,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     VAStatus vaSts = vaGetConfigAttributes(m_vaDisplay,
                           vaapipr,
-                          VAEntrypointEncSliceLP,
+                          CommonCaps::IsVAEncSliceLPSupported(m_pmfxCore->GetHWType()) ? VAEntrypointEncSliceLP : VAEntrypointEncSlice,
                           attrs.data(),
                           (int)attrs.size());
 
@@ -799,19 +800,21 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
                 &numEntrypoints);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    // bool bEncodeEnable = false;
-    // for( entrypointsIndx = 0; entrypointsIndx < numEntrypoints; entrypointsIndx++ )
-    // {
-    //     if( VAEntrypointEncSliceLP == pEntrypoints[entrypointsIndx] )
-    //     {
-    //         bEncodeEnable = true;
-    //         break;
-    //     }
-    // }
-    // if( !bEncodeEnable )
-    // {
-    //     MFX_RETURN(MFX_ERR_DEVICE_FAILED);
-    // }
+    VAEntrypoint entrypoint = CommonCaps::IsVAEncSliceLPSupported(m_pmfxCore->GetHWType()) ? VAEntrypointEncSliceLP : VAEntrypointEncSlice;
+
+    bool bEncodeEnable = false;
+    for( entrypointsIndx = 0; entrypointsIndx < numEntrypoints; entrypointsIndx++ )
+    {
+        if( entrypoint == pEntrypoints[entrypointsIndx] )
+        {
+            bEncodeEnable = true;
+            break;
+        }
+    }
+    if( !bEncodeEnable )
+    {
+        MFX_RETURN(MFX_ERR_DEVICE_FAILED);
+    }
 
     // Configuration
     VAConfigAttrib attrib[2];
@@ -820,7 +823,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
     attrib[1].type = VAConfigAttribRateControl;
     vaSts = vaGetConfigAttributes(m_vaDisplay,
                           va_profile,
-                          VAEntrypointEncSliceLP,
+                          entrypoint,
                           &attrib[0], 2);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
@@ -839,7 +842,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
     vaSts = vaCreateConfig(
         m_vaDisplay,
         va_profile,
-        VAEntrypointEncSliceLP,
+        entrypoint,
         attrib,
         2,
         &m_vaConfig);

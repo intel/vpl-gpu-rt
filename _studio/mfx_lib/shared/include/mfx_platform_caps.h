@@ -57,6 +57,12 @@ namespace CommonCaps {
     {
         return platform <= MFX_HW_XE_HP_SDV;
     }
+
+    inline bool IsVAEncSliceLPSupported(eMFXHWType platform)
+    {
+        return (platform < MFX_HW_MTL);
+    }
+
 }
 
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE

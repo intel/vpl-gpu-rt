@@ -79,6 +79,7 @@ protected:
     std::vector<VABufferID> m_perPicPar;
     std::vector<VABufferID> m_bs;
     VAID* m_vaid = nullptr;
+    eMFXHWType m_hw = MFX_HW_UNKNOWN;
 };
 
 } //Base

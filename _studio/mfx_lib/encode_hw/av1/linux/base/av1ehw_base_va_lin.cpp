@@ -20,6 +20,7 @@
 
 #include "mfx_common.h"
 #include "mfx_enc_common.h"
+#include "mfx_platform_caps.h"
 #if defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
 
 #include "av1ehw_base_va_lin.h"
@@ -32,31 +33,51 @@ mfxStatus DDI_VA::SetDDIID(const mfxU16 bitDepth, const mfxU16 chromFormat, cons
 {
     MFX_CHECK(!m_vaid, MFX_ERR_NONE);
 
-    static const std::map<mfxU16, std::map<mfxU16, VAID>> VAIDSupported =
+    static const std::map<mfxU16, std::map<mfxU16, VAID>> VAIDSupported[2] =
     {
+        // EncSlice Support
         {
-            mfxU16(BITDEPTH_8),
             {
-                {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileAV1Profile0, VAEntrypointEncSliceLP}}
+                mfxU16(BITDEPTH_8),
+                {
+                    {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileAV1Profile0, VAEntrypointEncSlice}}
+                }
+            }
+            , {
+                mfxU16(BITDEPTH_10),
+                {
+                    {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileAV1Profile0, VAEntrypointEncSlice}}
+                }
             }
         }
-        , {
-            mfxU16(BITDEPTH_10),
+        // EncSliceLP Support
+        ,{
             {
-                {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileAV1Profile0, VAEntrypointEncSliceLP}}
+                mfxU16(BITDEPTH_8),
+                {
+                    {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileAV1Profile0, VAEntrypointEncSliceLP}}
+                }
+            }
+            , {
+                mfxU16(BITDEPTH_10),
+                {
+                    {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileAV1Profile0, VAEntrypointEncSliceLP}}
+                }
             }
         }
     };
 
+    bool bEncSliceLPSupported = CommonCaps::IsVAEncSliceLPSupported(m_hw);
+
     // Check that list of VAIDs contains VAID for resulting BitDepth, ChromaFormat
     bool bSupported =
-        VAIDSupported.count(bitDepth)
-        && VAIDSupported.at(bitDepth).count(chromFormat);
+        VAIDSupported[bEncSliceLPSupported].count(bitDepth)
+        && VAIDSupported[bEncSliceLPSupported].at(bitDepth).count(chromFormat);
 
     MFX_CHECK(bSupported, MFX_ERR_UNSUPPORTED);
 
     // Choose and return VAID
-    m_vaid = const_cast<VAID *>(&VAIDSupported.at(bitDepth).at(chromFormat));
+    m_vaid = const_cast<VAID *>(&VAIDSupported[bEncSliceLPSupported].at(bitDepth).at(chromFormat));
 
     return MFX_ERR_NONE;
 }
@@ -91,6 +112,7 @@ void DDI_VA::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
                 , Glob::Defaults::Get(strg)));
         MFX_CHECK_NULL_PTR1(m_pDefaults);
 
+        m_hw = Glob::VideoCore::Get(strg).GetHWType();
         const mfxU16 bitDepth     = m_pDefaults->base.GetBitDepthLuma(*m_pDefaults);
         const mfxU16 chromaFormat = par.mfx.FrameInfo.ChromaFormat;
         const mfxU32 fourCC       = par.mfx.FrameInfo.FourCC;

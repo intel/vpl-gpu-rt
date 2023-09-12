@@ -1509,6 +1509,11 @@ void VAAPIEncoder::FillSps(
 
 } // void FillSps(...)
 
+VAEntrypoint GetVAEntrypointType(bool lowPower, VideoCORE* core)
+{
+    return lowPower && CommonCaps::IsVAEncSliceLPSupported(core->GetHWType()) ? VAEntrypointEncSliceLP : VAEntrypointEncSlice;
+}
+
 mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     VideoCORE* core,
     GUID guid,
@@ -1567,13 +1572,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         ++i;
     });
 
-    VAEntrypoint entrypoint = VAEntrypointEncSlice;
-
-    if ((MSDK_Private_Guid_Encode_AVC_LowPower_Query == guid) ||
-        (DXVA2_INTEL_LOWPOWERENCODE_AVC == guid))
-    {
-        entrypoint = VAEntrypointEncSliceLP;
-    }
+    bool lowPower = (MSDK_Private_Guid_Encode_AVC_LowPower_Query == guid) || (DXVA2_INTEL_LOWPOWERENCODE_AVC == guid);
+    VAEntrypoint entrypoint = GetVAEntrypointType(lowPower, m_core);
 
     VAStatus vaSts = vaGetConfigAttributes(m_vaDisplay,
                           ConvertProfileTypeMFX2VAAPI(m_videoParam.mfx.CodecProfile),
@@ -1706,23 +1706,23 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
                 &numEntrypoints);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    VAEntrypoint entryPoint = IsOn(par.mfx.LowPower) ? VAEntrypointEncSliceLP : VAEntrypointEncSlice;
-    // if( !m_isENCPAK )
-    // {
-    //     bool bEncodeEnable = false;
-    //     for( entrypointsIndx = 0; entrypointsIndx < numEntrypoints; entrypointsIndx++ )
-    //     {
-    //         if( entryPoint == pEntrypoints[entrypointsIndx] )
-    //         {
-    //             bEncodeEnable = true;
-    //             break;
-    //         }
-    //     }
-    //     if( !bEncodeEnable )
-    //     {
-    //         MFX_RETURN(MFX_ERR_DEVICE_FAILED);
-    //     }
-    // }
+    VAEntrypoint entryPoint = GetVAEntrypointType(IsOn(par.mfx.LowPower), m_core);
+    if( !m_isENCPAK )
+    {
+        bool bEncodeEnable = false;
+        for( entrypointsIndx = 0; entrypointsIndx < numEntrypoints; entrypointsIndx++ )
+        {
+            if( entryPoint == pEntrypoints[entrypointsIndx] )
+            {
+                bEncodeEnable = true;
+                break;
+            }
+        }
+        if( !bEncodeEnable )
+        {
+            MFX_RETURN(MFX_ERR_DEVICE_FAILED);
+        }
+    }
 
     // Configuration
     VAConfigAttrib attrib[3];
@@ -1968,7 +1968,7 @@ mfxStatus VAAPIEncoder::QueryMbPerSec(mfxVideoParam const & par, mfxU32 (&mbPerS
     VAStatus vaSts = vaCreateConfig(
         m_vaDisplay,
         ConvertProfileTypeMFX2VAAPI(par.mfx.CodecProfile),
-        IsOn(par.mfx.LowPower) ? VAEntrypointEncSliceLP : VAEntrypointEncSlice,
+        GetVAEntrypointType(IsOn(par.mfx.LowPower), m_core),
         attrib,
         2,
         &config);
