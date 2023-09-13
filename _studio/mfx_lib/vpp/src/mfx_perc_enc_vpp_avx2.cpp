@@ -289,15 +289,15 @@ namespace PercEncPrefilter
             temporalLeftShift = _mm_set1_epi64x(log2(parametersFrame.temporalSlope));
 
         // don't filter top and bottom picture lines to avoid out-of-bounds read access
-        fill(coefficientsHorizontal.begin(), coefficientsHorizontal.end(), 0);
-        fill(coefficientsVertical[0].begin(), coefficientsVertical[0].end(), 0);
-        fill(coefficientsVertical[1].begin(), coefficientsVertical[1].end(), 0);
+        fill(coefficientsHorizontal.begin(),  coefficientsHorizontal.end(),  int16_t(0));
+        fill(coefficientsVertical[0].begin(), coefficientsVertical[0].end(), int16_t(0));
+        fill(coefficientsVertical[1].begin(), coefficientsVertical[1].end(), int16_t(0));
         if(parametersFrame.qpAdaptive)
         {
-            fill(coefficientsVerticalULDR[0].begin(), coefficientsVerticalULDR[0].end(), 0);
-            fill(coefficientsVerticalULDR[1].begin(), coefficientsVerticalULDR[1].end(), 0);
-            fill(coefficientsVerticalURDL[0].begin(), coefficientsVerticalURDL[0].end(), 0);
-            fill(coefficientsVerticalURDL[1].begin(), coefficientsVerticalURDL[1].end(), 0);
+            fill(coefficientsVerticalULDR[0].begin(), coefficientsVerticalULDR[0].end(), int16_t(0));
+            fill(coefficientsVerticalULDR[1].begin(), coefficientsVerticalULDR[1].end(), int16_t(0));
+            fill(coefficientsVerticalURDL[0].begin(), coefficientsVerticalURDL[0].end(), int16_t(0));
+            fill(coefficientsVerticalURDL[1].begin(), coefficientsVerticalURDL[1].end(), int16_t(0));
         }
         int16_t clamp = 255;
         if(parametersFrame.qpAdaptive)
