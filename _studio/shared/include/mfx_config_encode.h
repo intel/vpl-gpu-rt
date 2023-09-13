@@ -78,6 +78,9 @@
 #if defined(MFX_ENABLE_AENC)
     #define MFX_ENABLE_ADAPTIVE_ENCODE
 #endif
+#if (defined(MFX_VA_LINUX))
+    #define MFX_ENABLE_ENCTOOLS_SW
+#endif
 #endif
 
 #ifdef MFX_ENABLE_HW_LPLA

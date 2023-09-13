@@ -81,6 +81,12 @@ public:
             , TaskCommonPar&
             , const VACodedBufferSegment&>;
         TUpdateCqmHint UpdateCqmHint;
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+        using TPackETSWAdaptiveCqmPPS = CallChain<bool
+            , const StorageR&   //global
+            , const StorageR&>; //task
+        TPackETSWAdaptiveCqmPPS PackETSWAdaptiveCqmPPS;
+#endif
 
         using TUpdateEncQP = CallChain<void
             , const StorageR&

@@ -25,6 +25,9 @@
 #include <iterator>
 #include <numeric>
 #include <iterator>
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+#include "hevcehw_base_enctools_qmatrix_lin.h"
+#endif
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
@@ -1985,6 +1988,26 @@ mfxStatus Packer::Reset(
     MFX_CHECK_STS(sts);
     pESBegin += ph.PPS.BitLen / 8;
     bool bPackedCqmPPS = false;
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+    // Pack cqm PPS header for ETSW adaptive cqm
+    if (!bPackedCqmPPS &&m_pGlob->Contains(CC::Key) &&
+        CC::Get(*m_pGlob).PackSWETAdaptiveCqmHeader &&
+        CC::Get(*m_pGlob).PackSWETAdaptiveCqmHeader(m_pGlob))
+    {
+        bPackedCqmPPS = true;
+        ph.CqmPPS.resize(HEVCEHW::Linux::Base::ET_CQM_NUM_CUST_MATRIX);
+        for (mfxU8 idx = 0; idx < HEVCEHW::Linux::Base::ET_CQM_NUM_CUST_MATRIX && idx < cqmpps.size(); idx++)
+        {
+            if (cqmpps[idx].scaling_list_data_present_flag)
+            {
+                PackPPS(rbsp, cqmpps[idx]);
+                sts = PackHeader(rbsp, pESBegin, pESEnd, ph.CqmPPS[idx]);
+                MFX_CHECK_STS(sts);
+                pESBegin += ph.CqmPPS[idx].BitLen / 8;
+            }
+        }
+    }
+#endif
 
     // Pack cqm PPS header for adaptive cqm.
     if (!bPackedCqmPPS && m_pGlob->Contains(CC::Key) &&

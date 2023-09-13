@@ -2059,11 +2059,10 @@ public:
         pps.deblocking_filter_disabled_flag         = !!CO2.DisableDeblockingIdc;
         pps.deblocking_filter_override_enabled_flag = 1; // to disable deblocking per frame
 
-        #if defined(MFX_ENABLE_ENCTOOLS)
+        #if defined(MFX_ENABLE_ENCTOOLS_SW)
         #if defined(ONEVPL_EXPERIMENTAL)
-                auto& EtConfig = (const mfxExtEncToolsConfig&)ExtBuffer::Get(par);
-                bool bEncTools = IsEncToolsOptOn(EtConfig, true);
-                if (bEncTools && CO3.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING && EtConfig.AdaptiveQuantMatrices && CO3.ContentInfo == MFX_CONTENT_NOISY_VIDEO) {
+                bool bSWEncTools = IsSwEncToolsOn(par);
+                if (bSWEncTools && CO3.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING && CO3.ContentInfo == MFX_CONTENT_NOISY_VIDEO) {
                     pps.beta_offset_div2                        = mfxI8(EncToolsDeblockingBetaOffset() * 0.5 * !pps.deblocking_filter_disabled_flag);
                     pps.tc_offset_div2                          = mfxI8(EncToolsDeblockingAlphaTcOffset() * 0.5 * !pps.deblocking_filter_disabled_flag);
                 }

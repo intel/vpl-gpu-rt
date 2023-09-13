@@ -262,6 +262,11 @@ namespace Base
             using TPackAdaptiveCqmHeader = CallChain<bool
                 , StorageW*>;
             TPackAdaptiveCqmHeader PackAdaptiveCqmHeader;
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+            using TPackSWETAdaptiveCqmHeader = CallChain<bool
+                , StorageW*>;
+            TPackSWETAdaptiveCqmHeader PackSWETAdaptiveCqmHeader;
+#endif
 
             using TUpdateLPLAAnalysisSPSBS = CallChain<void
                 , const StorageR& //global

@@ -40,6 +40,9 @@
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
 #include "hevcehw_base_weighted_prediction_lin.h"
 #endif
+#if defined (MFX_ENABLE_ENCTOOLS_SW)
+#include "hevcehw_base_enctools_qmatrix_lin.h"
+#endif
 #if defined(MFX_ENABLE_HEVCE_ROI)
 #include "hevcehw_base_roi_lin.h"
 #endif
@@ -89,6 +92,9 @@ Linux::Base::MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
     m_features.emplace_back(new WeightPred(FEATURE_WEIGHTPRED));
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+#if defined (MFX_ENABLE_ENCTOOLS_SW)
+    m_features.emplace_back(new EncToolsSwQMatrix(FEATURE_ENTOOLS_QMATRIX));
+#endif // defined (MFX_ENABLE_ENCTOOLS_SW)
 #if defined(MFX_ENABLE_HEVCE_ROI)
     m_features.emplace_back(new ROI(FEATURE_ROI));
 #endif
@@ -131,6 +137,11 @@ mfxStatus Linux::Base::MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)
     }
     {
         auto& queue = BQ<BQ_SubmitTask>::Get(*this);
+#if defined (MFX_ENABLE_ENCTOOLS_SW)
+        Reorder(queue
+            , { FEATURE_DDI, IDDI::BLK_SubmitTask }
+            , { FEATURE_ENTOOLS_QMATRIX, EncToolsSwQMatrix::BLK_PatchDDITask });
+#endif // defined(MFX_ENABLE_ENCTOOLS)
     }
 
 

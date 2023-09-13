@@ -25,6 +25,9 @@
 #include "mfx_common_int.h"
 #include "hevcehw_base_va_lin.h"
 #include "hevcehw_base_legacy.h"
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+#include "hevcehw_base_enctools_qmatrix_lin.h"
+#endif
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
@@ -909,6 +912,15 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
         AddPackedHeaderIf(!!(task.InsertHeaders & INSERT_PPS)
             , ph.PPS, par, VAEncPackedHeaderHEVC_PPS);
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+        if (cc.PackETSWAdaptiveCqmPPS && cc.PackETSWAdaptiveCqmPPS(global, s_task))
+        {
+            for (mfxU32 i = 0; i < ET_CQM_NUM_CUST_MATRIX; ++i)
+            {
+                AddPackedHeaderIf(true, ph.CqmPPS.at(i), par, VAEncPackedHeaderHEVC_PPS);
+            }
+        }
+#endif
 
         AddPackedHeaderIf((!!(task.InsertHeaders & INSERT_SEI) || task.ctrl.NumPayload) && ph.PrefixSEI.BitLen
             , ph.PrefixSEI, par/*, VAEncPackedHeaderHEVC_SEI*/);

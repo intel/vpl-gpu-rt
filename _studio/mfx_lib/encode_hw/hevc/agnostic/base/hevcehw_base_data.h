@@ -1355,6 +1355,9 @@ namespace Base
         , FEATURE_LPLA_STATUS
         , FEATURE_QUERY_IMPL_DESC
         , FEATURE_ENCTOOLS
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+        , FEATURE_ENTOOLS_QMATRIX
+#endif
         , FEATURE_REXT
         , FEATURE_SAO
         , FEATURE_QP_MODULATION
