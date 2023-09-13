@@ -259,16 +259,15 @@ mfxTraceU32 MFXTrace_GetRegistryParams(void)
                         strcpy(VplLogPath, "/tmp");
                     }
                 }
-                else if (iter->first == "VPL PERF LOG")
+                else if (iter->first == "VPL PERF LOG" && stoi(iter->second))
                 {
-                    g_perfutility->dwPerfUtilityIsEnabled = stoi(iter->second);
+                    g_perfutility = PerfUtility::getInstance();
                 }
-
                 else if (iter->first == "VPL PERF PATH")
                 {
                     if (!iter->second.empty())
                     {
-                        g_perfutility->perfFilePath = iter->second;
+                        PerfUtility::perfFilePath = iter->second;
                     }
                 }
             }

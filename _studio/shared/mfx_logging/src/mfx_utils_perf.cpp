@@ -63,15 +63,18 @@ int32_t MfxSecureStringPrint(char* buffer, size_t bufSize, size_t length, const 
 #define MFX_SecureStringPrint(buffer, bufSize, length, format, ...)                                 \
     MfxSecureStringPrint(buffer, bufSize, length, format, ##__VA_ARGS__)
 
-PerfUtility* g_perfutility = PerfUtility::getInstance();
+PerfUtility* g_perfutility = nullptr;
+std::string PerfUtility::perfFilePath = "Initialize";
+std::atomic<double> PerfUtility::timeStamp;
 std::shared_ptr<PerfUtility> PerfUtility::instance = nullptr;
 std::mutex PerfUtility::perfMutex;
+std::map<std::pair<uint64_t, std::string>, std::vector<TickTime>*> PerfUtility::records;
 std::mutex AutoPerfUtility::map_guard;
 std::map<uint64_t, std::vector<uint32_t>> AutoPerfUtility::tid2taskIds;
 
 void AutoPerfUtility::SetTaskId(uint32_t id)
 {
-    if (!g_perfutility->dwPerfUtilityIsEnabled)
+    if (!g_perfutility)
     {
         return;
     }
@@ -90,35 +93,38 @@ void AutoPerfUtility::SetTaskId(uint32_t id)
 
 AutoPerfUtility::AutoPerfUtility(const std::string& tag, const std::string& level)
 {
-    if (g_perfutility->dwPerfUtilityIsEnabled)
+    if (!g_perfutility)
     {
-        std::string flag = MFX_FLAG_ENTER;
-        g_perfutility->timeStampTick(tag, level, flag, std::vector<uint32_t>());
-        autotag = tag;
-        autolevel = level;
-        bEnable = true;
-        if (level == PERF_LEVEL_API || level == PERF_LEVEL_ROUTINE)
-        {
-            bPrintTaskIds = true;
-        }
+        return;
+    }
+
+    std::string flag = MFX_FLAG_ENTER;
+    g_perfutility->timeStampTick(tag, level, flag, std::vector<uint32_t>());
+    autotag = tag;
+    autolevel = level;
+    if (level == PERF_LEVEL_API || level == PERF_LEVEL_ROUTINE)
+    {
+        bPrintTaskIds = true;
     }
 }
 
 AutoPerfUtility::~AutoPerfUtility()
 {
-    if (bEnable)
+    if (!g_perfutility)
     {
-        std::string flag = MFX_FLAG_EXIT;
-        std::vector<uint32_t> ids;
-        uint64_t tid = pthread_self();
-
-        if (bPrintTaskIds && tid2taskIds.find(tid) != tid2taskIds.end())
-        {
-            tid2taskIds[tid].swap(ids);
-        }
-
-        g_perfutility->timeStampTick(autotag, autolevel, flag, ids);
+        return;
     }
+
+    std::string flag = MFX_FLAG_EXIT;
+    std::vector<uint32_t> ids;
+    uint64_t tid = pthread_self();
+
+    if (bPrintTaskIds && tid2taskIds.find(tid) != tid2taskIds.end())
+    {
+        tid2taskIds[tid].swap(ids);
+    }
+
+    g_perfutility->timeStampTick(autotag, autolevel, flag, ids);
 }
 
 PerfUtility* PerfUtility::getInstance()
@@ -131,17 +137,10 @@ PerfUtility* PerfUtility::getInstance()
     return instance.get();
 }
 
-PerfUtility::PerfUtility()
-{
-    dwPerfUtilityIsEnabled = 0;
-    timeStamp = 0;
-    perfFilePath = "Initialize";
-}
-
 PerfUtility::~PerfUtility()
 {
     // save perf data here
-    if (instance->dwPerfUtilityIsEnabled)
+    if (instance)
     {
         instance->savePerfData();
     }

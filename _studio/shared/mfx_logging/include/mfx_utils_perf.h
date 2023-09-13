@@ -34,16 +34,15 @@ class PerfUtility
 public:
     static PerfUtility* getInstance();
     ~PerfUtility();
-    PerfUtility();
+    PerfUtility() = default;
     int32_t getPid();
     int32_t getTid();
     void timeStampTick(const std::string &tag, const std::string &level, const std::string &flag, const std::vector<uint32_t> &taskIds);
-    void startTick(const std::string &tag);
-    void stopTick(const std::string &tag);
+    static void startTick(const std::string &tag);
+    static void stopTick(const std::string &tag);
     void savePerfData();
-    int32_t dwPerfUtilityIsEnabled;
-    std::string perfFilePath;
-    std::atomic<double> timeStamp;
+    static std::string perfFilePath;
+    static std::atomic<double> timeStamp;
 
 private:
     void printPerfTimeStamp(Tick* newTick, const std::vector<uint32_t>& taskIds);
@@ -52,7 +51,7 @@ private:
     static std::shared_ptr<PerfUtility> instance;
     static std::mutex perfMutex;
     std::map<int32_t, std::string> log_buffer{};
-    std::map<std::pair<uint64_t, std::string>, std::vector<TickTime>*> records{};
+    static std::map<std::pair<uint64_t, std::string>, std::vector<TickTime>*> records;
 };
 
 
@@ -70,7 +69,7 @@ extern PerfUtility* g_perfutility;
 #define PERF_UTILITY_TIMESTAMP(TAG,LEVEL,FLAG)                                       \
     do                                                                               \
     {                                                                                \
-        if (g_perfutility->dwPerfUtilityIsEnabled)                                   \
+        if (g_perfutility)                                                           \
         {                                                                            \
             g_perfutility->timeStampTick(TAG, LEVEL, FLAG, std::vector<uint32_t>()); \
         }                                                                            \
@@ -89,7 +88,6 @@ public:
 private:
     static std::mutex map_guard;
     static std::map<uint64_t, std::vector<uint32_t>> tid2taskIds;
-    bool bEnable = false;
     bool bPrintTaskIds = false;
     std::string autotag = "intialized";
     std::string autolevel = "intialized";
