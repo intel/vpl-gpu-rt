@@ -45,11 +45,11 @@ void InitSPS(
     sps.intra_period = par.mfx.GopPicSize;
     sps.ip_period    = par.mfx.GopRefDist;
 
-    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
-    {
-        sps.bits_per_second = TargetKbps(par.mfx) * 1000;
-    }
+    mfxU32 bNeedRateParam =
+        par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
+        || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR;
+
+    sps.bits_per_second = bNeedRateParam * TargetKbps(par.mfx) * 1000;
 
     sps.order_hint_bits_minus_1 = static_cast<mfxU8>(bs_sh.order_hint_bits_minus1);
 
@@ -501,6 +501,7 @@ inline void AddVaMiscRC(
         rc.target_percentage = mfxU32(100.0 * (mfxF64)TargetKbps(par.mfx) / (mfxF64)MaxKbps(par.mfx));
 
     rc.rc_flags.bits.reset = bNeedRateParam && bResetBRC;
+    rc.quality_factor = par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ ? par.mfx.ICQQuality : 0;
 
     const mfxExtCodingOption2* CO2 = ExtBuffer::Get(par);
 
@@ -523,7 +524,6 @@ inline void AddVaMiscRC(
             IsOn(CO3->LowDelayBRC) ? eFrameSizeTolerance_ExtremelyLow : eFrameSizeTolerance_Normal;
     }
 
-    rc.ICQ_quality_factor = 0;
     rc.initial_qp         = bs_fh.quantization_params.base_q_idx;
 }
 

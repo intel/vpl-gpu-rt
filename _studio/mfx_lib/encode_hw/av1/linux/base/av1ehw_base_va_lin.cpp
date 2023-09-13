@@ -458,6 +458,7 @@ uint32_t DDI_VA::ConvertRateControlMFX2VAAPI(mfxU16 rateControl)
         { mfxU16(MFX_RATECONTROL_CQP)   , uint32_t(VA_RC_CQP) },
         { mfxU16(MFX_RATECONTROL_CBR)   , uint32_t(VA_RC_CBR) },
         { mfxU16(MFX_RATECONTROL_VBR)   , uint32_t(VA_RC_VBR) },
+        { mfxU16(MFX_RATECONTROL_ICQ)   , uint32_t(VA_RC_ICQ) },
     };
 
     auto itRC = RCMFX2VAAPI.find(rateControl);
