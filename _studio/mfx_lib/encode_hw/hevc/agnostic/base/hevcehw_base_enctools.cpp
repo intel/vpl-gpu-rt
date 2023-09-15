@@ -313,13 +313,13 @@ bool HEVCEHW::Base::IsSwEncToolsPpsACQM(const mfxVideoParam &video)
         const mfxExtEncToolsConfig *pConfig = ExtBuffer::Get(video);
         if(pConfig)
         {
-            bETPPSadaptQM = !IsOff(pConfig->AdaptiveQuantMatrices) && IsOn(pExtOpt3->AdaptiveCQM) && IsOn(pConfig->BRC) && !IsOff(pExtOpt->NalHrdConformance);
+            bETPPSadaptQM = IsOn(pConfig->AdaptiveQuantMatrices) && IsOn(pConfig->BRC) && !IsOff(pExtOpt->NalHrdConformance);
         }
         else
         {
             if (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
             {
-                bETPPSadaptQM = IsOn(pExtOpt3->AdaptiveCQM) && !IsOff(pExtOpt->NalHrdConformance);
+                bETPPSadaptQM = !IsOff(pExtOpt3->AdaptiveCQM) && !IsOff(pExtOpt->NalHrdConformance);
             }
         }
     }
@@ -398,13 +398,11 @@ void HevcEncTools::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsCo
             video.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
 
         bool lplaAssistedBRC = IsOn(config.BRC) && isSWLACondition(video);
-        bool bLA = (pExtOpt2 && pExtOpt2->LookAheadDepth > 0 &&
-            (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
-                video.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
+        bool bLA = pExtOpt2 && pExtOpt2->LookAheadDepth > 0 && IsOn(config.BRC);
         SetDefaultOpt(config.BRCBufferHints, lplaAssistedBRC);
         SetDefaultOpt(config.AdaptiveMBQP,  bMBQPSupport && lplaAssistedBRC && pExtOpt2 && IsOn(pExtOpt2->MBBRC));
         if (pExtOpt3)
-            SetDefaultOpt(config.AdaptiveQuantMatrices, bLA && ((IsOn(pExtOpt3->AdaptiveCQM) && pExtOpt && !IsOff(pExtOpt->NalHrdConformance)) || (!IsOff(pExtOpt3->AdaptiveCQM) && pExtOpt3->ContentInfo == MFX_CONTENT_NOISY_VIDEO)));
+            SetDefaultOpt(config.AdaptiveQuantMatrices, bLA && ((!IsOff(pExtOpt3->AdaptiveCQM) && pExtOpt && !IsOff(pExtOpt->NalHrdConformance)) || (!IsOff(pExtOpt3->AdaptiveCQM) && pExtOpt3->ContentInfo == MFX_CONTENT_NOISY_VIDEO)));
         else
             SetDefaultOpt(config.AdaptiveQuantMatrices, false);
     }

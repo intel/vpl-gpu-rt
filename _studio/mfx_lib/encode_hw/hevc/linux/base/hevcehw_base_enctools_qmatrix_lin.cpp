@@ -35,6 +35,26 @@ using namespace HEVCEHW::Base;
 using namespace HEVCEHW::Linux;
 using namespace HEVCEHW::Linux::Base;
 
+const uint8_t scalingList0_flat[16] =
+{
+    16, 16, 16, 16,
+    16, 16, 16, 16,
+    16, 16, 16, 16,
+    16, 16, 16, 16
+};
+
+const uint8_t scalingList_flat[64] =
+{
+    16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16
+};
+
 const uint8_t scalingList0_intraET_ForNoisy[16] =
 {
     16, 20, 26, 40,
@@ -276,14 +296,21 @@ void Linux::Base::EncToolsSwQMatrix::InitInternal(const FeatureBlocks& , TPushII
         auto& sps = Glob::SPS::Get(global);
         sps.scaling_list_enabled_flag = 1; // Scaling List Enabled Flag Must Be Set if SPS or PPS is used
 
-        if(bETSpsACQM) {
+        if(bETadaptQM) {
             sps.scaling_list_data_present_flag = 1; // Only Set SPS Scaling List Present Flag if SPS is used
 
-            // EncTools Currently only uses SPS for Noisy Content
-            const uint8_t* scalingList0Ptr = scalingList0_intraET_ForNoisy;
-            const uint8_t* scalingList0_interPtr = scalingList0_interET_ForNoisy;
-            const uint8_t* scalingList_intraPtr = scalingList_intraET_ForNoisy;
-            const uint8_t* scalingList_interPtr = scalingList_interET_ForNoisy;
+            const uint8_t* scalingList0Ptr = scalingList0_flat;
+            const uint8_t* scalingList0_interPtr = scalingList0_flat;
+            const uint8_t* scalingList_intraPtr = scalingList_flat;
+            const uint8_t* scalingList_interPtr = scalingList_flat;
+
+            if (bETSpsACQM)
+            {
+                scalingList0Ptr = scalingList0_intraET_ForNoisy;
+                scalingList0_interPtr = scalingList0_interET_ForNoisy;
+                scalingList_intraPtr = scalingList_intraET_ForNoisy;
+                scalingList_interPtr = scalingList_interET_ForNoisy;
+            }
 
             UpRightToPlane(scalingList0Ptr, 4, sps.scl.scalingLists0[0]);
             UpRightToPlane(scalingList_intraPtr, 8, sps.scl.scalingLists1[0]);
@@ -504,11 +531,9 @@ void Linux::Base::EncToolsSwQMatrix::SubmitTask(const FeatureBlocks& /*blocks*/,
         bool bETSpsACQM = IsSwEncToolsSpsACQM(par);
         bool bETPpsACQM = IsSwEncToolsPpsACQM(par);
         MFX_CHECK(bETSpsACQM || bETPpsACQM, MFX_ERR_NONE);
-        if (bETSpsACQM) {
-            auto& sps = Glob::SPS::Get(global);
-
-            MFX_CHECK(sps.scaling_list_data_present_flag && sps.scaling_list_enabled_flag, MFX_ERR_NONE);
-
+        auto& sps = Glob::SPS::Get(global);
+        MFX_CHECK(sps.scaling_list_enabled_flag, MFX_ERR_NONE);
+        if (sps.scaling_list_data_present_flag) {
             auto& par    = Glob::DDI_SubmitParam::Get(global);
             auto itPPS    = std::find_if(std::begin(par), std::end(par)
                 , [](DDIExecParam& ep) {return (ep.Function == VAEncPictureParameterBufferType);});
@@ -543,8 +568,6 @@ void Linux::Base::EncToolsSwQMatrix::SubmitTask(const FeatureBlocks& /*blocks*/,
 
         if(bETPpsACQM)
         {
-            auto& sps = Glob::SPS::Get(global);
-            MFX_CHECK(sps.scaling_list_enabled_flag, MFX_ERR_NONE);
             MFX_CHECK(task.Contains(Task::SSH::Key), MFX_ERR_NONE);
             auto& slice = Task::SSH::Get(task);
             mfxU8 idx = slice.pic_parameter_set_id;
@@ -555,7 +578,7 @@ void Linux::Base::EncToolsSwQMatrix::SubmitTask(const FeatureBlocks& /*blocks*/,
             MFX_CHECK(itPPS != std::end(par) && itPPS->In.pData, MFX_ERR_UNKNOWN);
 
             auto& pps = *(VAEncPictureParameterBufferHEVC *)itPPS->In.pData;
-            pps.pic_fields.bits.scaling_list_data_present_flag = sps.scaling_list_enabled_flag && IsCustETMatrix(idx);
+            pps.pic_fields.bits.scaling_list_data_present_flag = pps.pic_fields.bits.scaling_list_data_present_flag || (sps.scaling_list_enabled_flag && IsCustETMatrix(idx));
 
             MFX_CHECK(IsCustETMatrix(idx), MFX_ERR_NONE);
             auto itQMatrix = std::find_if(std::begin(par), std::end(par)
