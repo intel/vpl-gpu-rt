@@ -168,6 +168,12 @@ private:
         m_bInit = true;
     }
 
+    bool IsSwEncToolsOn(const mfxVideoParam & video)
+    {
+        std::unique_ptr<AV1EncTools> pEncTools(new AV1EncTools(0));
+        return pEncTools->IsSwEncToolsOn(video);
+    }
+
     bool    m_bInit = false;
     mfxU16  RateControlMethod = 0;
 

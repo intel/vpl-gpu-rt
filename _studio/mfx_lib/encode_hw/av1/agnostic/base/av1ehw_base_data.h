@@ -821,7 +821,7 @@ namespace Base
         Resource          CUQP;
         mfxHDLPair        HDLRaw                 = {};
         bool              bCUQPMap               = false;
-#if defined(MFX_ENABLE_ENCTOOLS)
+#if defined(MFX_ENABLE_ENCTOOLS_BASE)
         mfxLplastatus     LplaStatus           = {};
         mfxBRCHints      BrcHints              = {};
         bool             bBRCUpdated           = false;

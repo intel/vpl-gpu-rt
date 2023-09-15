@@ -259,122 +259,6 @@ void AV1EncTools::SetInherited(ParamInheritance& par)
     });
 }
 
-inline bool IsHwLookAhead(const mfxExtEncToolsConfig &config, bool bGameStreaming)
-{
-    if (!bGameStreaming)
-        return false;
-    return
-        (IsOn(config.AdaptiveI)
-        || IsOn(config.AdaptiveB)
-        || IsOn(config.SceneChange)
-        || IsOn(config.AdaptivePyramidQuantP)
-        || IsOn(config.AdaptivePyramidQuantB)
-        || IsOn(config.BRCBufferHints)
-        || IsOn(config.AdaptiveQuantMatrices));
-}
-
-bool AV1EHW::Base::IsHwEncToolsOn(const mfxVideoParam& video)
-{
-
-
-    const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
-    const mfxExtCodingOption2* pExtOpt2 = ExtBuffer::Get(video);
-    const mfxExtEncToolsConfig* pExtConfig = ExtBuffer::Get(video);
-    bool bGameStreaming = pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING;
-    bool bLA = false;
-    if ((bGameStreaming && pExtOpt2 && pExtOpt2->LookAheadDepth > 0) || (pExtConfig && IsHwLookAhead(*pExtConfig, bGameStreaming)))
-        bLA = true;
-    return  bLA ;
-}
-
-inline bool IsSwEncToolsImplicit(const mfxVideoParam &video)
-{
-    const mfxExtCodingOption2  *pExtOpt2 = ExtBuffer::Get(video);
-    if (pExtOpt2 && pExtOpt2->LookAheadDepth > 0)
-    {
-        const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
-        if(
-            (video.mfx.GopRefDist == 1 || video.mfx.GopRefDist == 2 || video.mfx.GopRefDist == 4 || video.mfx.GopRefDist == 8 || video.mfx.GopRefDist == 16)
-            && IsOn(pExtOpt2->ExtBRC)
-            && !(pExtOpt3 && pExtOpt3->ScenarioInfo != MFX_SCENARIO_UNKNOWN)
-        )
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool AV1EHW::Base::IsSwEncToolsOn(const mfxVideoParam& video){
-
-
-    if(IsHwEncToolsOn(video))
-    {
-        return false;
-    }
-
-    const mfxExtEncToolsConfig *pConfig = ExtBuffer::Get(video);
-    if(pConfig)
-    {
-        mfxExtEncToolsConfig config = {};
-        SetDefaultConfig(video, config, true);
-
-        return
-              IsOn(config.AdaptiveI) || IsOn(config.AdaptiveB)
-            || IsOn(config.AdaptiveRefP) || IsOn(config.AdaptiveRefB)
-            || IsOn(config.SceneChange)
-            || IsOn(config.AdaptiveLTR)
-            || IsOn(config.AdaptivePyramidQuantP) || IsOn(config.AdaptivePyramidQuantB)
-            || IsOn(config.AdaptiveQuantMatrices)
-            || IsOn(config.AdaptiveMBQP)
-            || IsOn(config.BRCBufferHints)
-            || IsOn(config.BRC);
-    }
-    else
-    {
-        return IsSwEncToolsImplicit(video);
-    }
-}
-
-bool AV1EHW::Base::IsEncToolsOn(const mfxVideoParam& video)
-{
-    return IsHwEncToolsOn(video) || IsSwEncToolsOn(video);
-}
-
-inline bool IsSwEncToolsSupported(const mfxVideoParam &video)
-{
-   return
-           video.mfx.GopRefDist == 0
-        || video.mfx.GopRefDist == 1
-        || video.mfx.GopRefDist == 2
-        || video.mfx.GopRefDist == 4
-        || video.mfx.GopRefDist == 8
-        || video.mfx.GopRefDist == 16;
-}
-
-inline mfxEncTools *GetEncTools(const mfxVideoParam &video)
-{
-    return (mfxEncTools *)mfx::GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCTOOLS);
-}
-
-
-bool IsEncToolsConfigDefined(const mfxExtEncToolsConfig *config){
-    //this code is based on definition of MFX_CODINGOPTION_UNKNOWN=0 
-    if(!config)
-        return false;
-
-    return
-          config->AdaptiveI | config->AdaptiveB
-        | config->AdaptiveRefP | config->AdaptiveRefB
-        | config->SceneChange
-        | config->AdaptiveLTR
-        | config->AdaptivePyramidQuantP | config->AdaptivePyramidQuantB
-        | config->AdaptiveQuantMatrices
-        | config->AdaptiveMBQP
-        | config->BRCBufferHints
-        | config->BRC;
-}
-
 static bool isSWLACondition(const mfxVideoParam& video)
 {
     const mfxExtCodingOption2* pExtOpt2 = ExtBuffer::Get(video);
@@ -382,8 +266,7 @@ static bool isSWLACondition(const mfxVideoParam& video)
         (pExtOpt2->LookAheadDepth > video.mfx.GopRefDist));
 }
 
-
-void AV1EHW::Base::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsConfig &config, bool bMBQPSupport)
+void AV1EncTools::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsConfig &config, bool bMBQPSupport)
 {
 
 
@@ -485,15 +368,7 @@ void AV1EHW::Base::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsCo
 #endif
 }
 
-inline mfxU32 CheckFlag(mfxU16 & flag, bool bCond)
-{
-    return CheckOrZero<mfxU16>(flag
-        , mfxU16(MFX_CODINGOPTION_UNKNOWN)
-        , mfxU16(MFX_CODINGOPTION_OFF)
-        , mfxU16(MFX_CODINGOPTION_ON * (bCond)));
-}
-
-static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & supportedConfig)
+mfxU32 AV1EncTools::CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & supportedConfig)
 {
 
 
@@ -575,80 +450,13 @@ static mfxU32 CorrectVideoParams(mfxVideoParam & video, mfxExtEncToolsConfig & s
     return changed;
 }
 
-static mfxStatus InitEncToolsCtrl(
+mfxStatus AV1EncTools::InitEncToolsCtrl(
     mfxVideoParam const & par
     , mfxEncToolsCtrl *ctrl)
 {
-    MFX_CHECK_NULL_PTR1(ctrl);
+    mfxStatus sts = AV1EncToolsCommon::InitEncToolsCtrl(par, ctrl);
+    MFX_CHECK_STS(sts);
 
-    const mfxExtCodingOption2 *pCO2 = ExtBuffer::Get(par);
-    const mfxExtCodingOption3 *pCO3 = ExtBuffer::Get(par);
-
-    ctrl->CodecId = par.mfx.CodecId;
-    ctrl->CodecProfile = par.mfx.CodecProfile;
-    ctrl->CodecLevel = par.mfx.CodecLevel;
-    ctrl->LowPower = par.mfx.LowPower;
-    ctrl->FrameInfo = par.mfx.FrameInfo;
-    ctrl->IOPattern = par.IOPattern;
-    ctrl->MaxDelayInFrames = pCO2 ? pCO2->LookAheadDepth : 0 ;
-
-    ctrl->MaxGopSize = par.mfx.GopPicSize;
-    ctrl->MaxGopRefDist = par.mfx.GopRefDist;
-    ctrl->MaxIDRDist = par.mfx.GopPicSize;
-
-    ctrl->BRefType = pCO2 ? pCO2->BRefType : 0;
-
-    ctrl->ScenarioInfo = pCO3 ? pCO3->ScenarioInfo : 0;
-
-    ctrl->GopOptFlag = (mfxU8)par.mfx.GopOptFlag;
-
-    // Rate control info
-    mfxU32 mult = par.mfx.BRCParamMultiplier ? par.mfx.BRCParamMultiplier : 1;
-    bool   BRC = (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
-        par.mfx.RateControlMethod == MFX_RATECONTROL_VBR);
-
-
-    ctrl->RateControlMethod = par.mfx.RateControlMethod;  //CBR, VBR, CRF,CQP
-
-    if (!BRC)
-    {
-        ctrl->QPLevel[0] = par.mfx.QPI;
-        ctrl->QPLevel[1] = par.mfx.QPP;
-        ctrl->QPLevel[2] = par.mfx.QPB;
-    }
-    else
-    {
-        ctrl->TargetKbps = par.mfx.TargetKbps * mult;
-        ctrl->MaxKbps = par.mfx.MaxKbps * mult;
-
-        ctrl->HRDConformance = MFX_BRC_NO_HRD;
-		ctrl->ConvergencePeriod = 0;     //if HRDConformance is OFF, 0 - the period is whole stream,
-        ctrl->Accuracy = 10;              //if HRDConformance is OFF
-        ctrl->BufferSizeInKB   = par.mfx.BufferSizeInKB*mult;
-        ctrl->InitialDelayInKB = par.mfx.InitialDelayInKB*mult;
-
-        mfxU32 maxFrameSize = pCO2 ? pCO2->MaxFrameSize : 0;
-        ctrl->WinBRCMaxAvgKbps = pCO3 ? pCO3->WinBRCMaxAvgKbps*mult : 0;
-        ctrl->WinBRCSize = pCO3 ? pCO3->WinBRCSize : 0;
-        ctrl->MaxFrameSizeInBytes[0] = (pCO3 && pCO3->MaxFrameSizeI) ? pCO3->MaxFrameSizeI : maxFrameSize;     // MaxFrameSize limitation
-        ctrl->MaxFrameSizeInBytes[1] = (pCO3 && pCO3->MaxFrameSizeP) ? pCO3->MaxFrameSizeP : maxFrameSize;
-        ctrl->MaxFrameSizeInBytes[2] = maxFrameSize;
-
-        ctrl->MinQPLevel[0] = pCO2 ? pCO2->MinQPI : 0;       //QP range  limitations
-        ctrl->MinQPLevel[1] = pCO2 ? pCO2->MinQPP : 0;
-        ctrl->MinQPLevel[2] = pCO2 ? pCO2->MinQPB : 0;
-
-        ctrl->MaxQPLevel[0] = pCO2 ? pCO2->MaxQPI : 0;       //QP range limitations
-        ctrl->MaxQPLevel[1] = pCO2 ? pCO2->MaxQPP : 0;
-        ctrl->MaxQPLevel[2] = pCO2 ? pCO2->MaxQPB : 0;
-
-        ctrl->PanicMode = pCO3 ? pCO3->BRCPanicMode : 0;
-    }
-
-
-    // LaScale here
-    ctrl->LaScale = 0;
-    ctrl->LaQp = 30;
     if (ctrl->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING)
     {
         mfxU16 crW = par.mfx.FrameInfo.CropW ? par.mfx.FrameInfo.CropW : par.mfx.FrameInfo.Width;
@@ -676,13 +484,15 @@ void AV1EncTools::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
 {
     // This "Push" sets CO2.MBBRC to ON if it is not specified in cmdline
     Push(BLK_SetDefaultsCallChain,
-        [this](const mfxVideoParam&, mfxVideoParam&, StorageRW& strg) -> mfxStatus
+        [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus
         {
+            MFX_CHECK(IsFeatureEnabled(par), MFX_ERR_NONE);
+
             auto& defaults = Glob::Defaults::GetOrConstruct(strg);
             auto& bSet = defaults.SetForFeature[GetID()];
             MFX_CHECK(!bSet, MFX_ERR_NONE);
             defaults.GetMBBRC.Push(
-                [](Defaults::TChain<mfxU16>::TExt prev
+                [this](Defaults::TChain<mfxU16>::TExt prev
                     , const Defaults::Param& par)
                 {
                     bool bEncTools = IsSwEncToolsOn(par.mvp);
@@ -702,53 +512,7 @@ void AV1EncTools::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
             return MFX_ERR_NONE;
         });
 
-    Push(BLK_Check,
-        [&blocks](const mfxVideoParam&, mfxVideoParam& par, StorageW&) -> mfxStatus
-    {
-        mfxU32 changed = 0;
-        bool bEncTools = IsEncToolsOn(par);
-        MFX_CHECK(bEncTools, MFX_ERR_NONE);
-
-        mfxEncTools *pEncTools = GetEncTools(par);
-        bool bCreated = false;
-
-        if (!pEncTools)
-        {
-            pEncTools = MFXVideoENCODE_CreateEncTools(par);
-            bCreated = !!pEncTools;
-        }
-
-        mfxEncToolsCtrl ctrl = {};
-        mfxExtEncToolsConfig supportedConfig = {};
-
-        mfxStatus sts = InitEncToolsCtrl(par, &ctrl);
-        MFX_CHECK_STS(sts);
-
-        pEncTools->GetSupportedConfig(pEncTools->Context, &supportedConfig, &ctrl);
-
-        changed += CorrectVideoParams(par, supportedConfig);
-        if (bCreated)
-            MFXVideoENCODE_DestroyEncTools(pEncTools);
-
-        MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
-        return MFX_ERR_NONE;
-    });
-}
-
-void AV1EncTools::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
-{
-    Push(BLK_SetDefaults
-        , [](mfxVideoParam& par, StorageW& global, StorageRW&)
-    {
-        if (IsHwEncToolsOn(par))
-            SetDefault(par.mfx.GopOptFlag, MFX_GOP_CLOSED);
-
-        mfxExtEncToolsConfig *pConfig = ExtBuffer::Get(par);
-        auto& caps = Glob::EncodeCaps::Get(global);
-
-        if (pConfig)
-            SetDefaultConfig(par, *pConfig, caps.ForcedSegmentationSupport);
-    });
+    AV1EncToolsCommon::Query1NoCaps(blocks, Push);
 }
 
 void AV1EncTools::Reset(const FeatureBlocks& /*blocks*/, TPushR Push)
@@ -764,6 +528,8 @@ void AV1EncTools::Reset(const FeatureBlocks& /*blocks*/, TPushR Push)
         auto& init = Glob::RealState::Get(global);
         auto& parOld = Glob::VideoParam::Get(init);
         auto& parNew = Glob::VideoParam::Get(global);
+
+        MFX_CHECK(IsFeatureEnabled(parNew), MFX_ERR_NONE);
 
         mfxExtEncToolsConfig *pConfigOld = ExtBuffer::Get(parOld);
         mfxExtEncToolsConfig *pConfigNew = ExtBuffer::Get(parNew);
@@ -788,157 +554,10 @@ void AV1EncTools::Reset(const FeatureBlocks& /*blocks*/, TPushR Push)
     });
 }
 
-void AV1EncTools::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
+mfxStatus AV1EncTools::SubmitPreEncTask(StorageW& global, StorageW& s_task)
 {
-    Push(BLK_Reset
-        , [this](
-            StorageRW& global
-            , StorageRW&) -> mfxStatus
-    {
-        auto& par = Glob::VideoParam::Get(global);
-
-        if (m_pEncTools && m_pEncTools->Reset)
-        {
-            m_EncToolCtrl = {};
-            mfxExtBuffer* ExtParam;
-            mfxExtEncoderResetOption rOpt = {};
-
-            if (Glob::ResetHint::Get(global).Flags & RF_IDR_REQUIRED)
-            {
-                rOpt.Header.BufferId = MFX_EXTBUFF_ENCODER_RESET_OPTION;
-                rOpt.Header.BufferSz = sizeof(rOpt);
-                rOpt.StartNewSequence = MFX_CODINGOPTION_ON;
-                ExtParam = &rOpt.Header;
-                m_EncToolCtrl.NumExtParam = 1;
-                m_EncToolCtrl.ExtParam = &ExtParam;
-            }
-
-            auto sts = InitEncToolsCtrl(par, &m_EncToolCtrl);
-            MFX_CHECK_STS(sts);
-
-            sts = m_pEncTools->Reset(m_pEncTools->Context, &m_EncToolConfig, &m_EncToolCtrl);
-            MFX_CHECK_STS(sts);
-        }
-
-        return MFX_ERR_NONE;
-    });
-}
-
-inline void InitEncToolsCtrlExtDevice(mfxEncToolsCtrlExtDevice & extDevice
-                            , mfxHandleType h_type
-                            , mfxHDL device_handle)
-{
-    extDevice.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_DEVICE;
-    extDevice.Header.BufferSz = sizeof(mfxEncToolsCtrlExtDevice);
-    extDevice.HdlType = h_type;
-    extDevice.DeviceHdl = device_handle;
-}
-
-inline void InitEncToolsCtrlExtAllocator(mfxEncToolsCtrlExtAllocator & extAllocator
-                            , mfxFrameAllocator &allocator)
-{
-    extAllocator.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_ALLOCATOR;
-    extAllocator.Header.BufferSz = sizeof(mfxEncToolsCtrlExtAllocator);
-    extAllocator.pAllocator = &allocator;
-}
-
-inline mfxHandleType GetHandleType(eMFXVAType vaType)
-{
-    switch (vaType)
-    {
-    case MFX_HW_D3D9:  return MFX_HANDLE_D3D9_DEVICE_MANAGER;
-    case MFX_HW_VAAPI: return MFX_HANDLE_VA_DISPLAY;
-    default:
-      break;
-    }
-    return MFX_HANDLE_D3D11_DEVICE;
-}
-
-void AV1EncTools::QueryIOSurf(const FeatureBlocks&, TPushQIS Push)
-{
-    Push(BLK_QueryIOSurf
-        , [](const mfxVideoParam& parInput, mfxFrameAllocRequest& req, StorageRW& strg) -> mfxStatus
-    {
-        ExtBuffer::Param<mfxVideoParam> par = parInput;
-        auto& caps = Glob::EncodeCaps::Get(strg);
-
-        bool bEncTools = IsEncToolsOn(par);
-        mfxU32 changed = 0;
-        MFX_CHECK(bEncTools, MFX_ERR_NONE);
-
-        mfxEncTools* pEncTools = GetEncTools(par);
-        bool bCreated = false;
-
-        if (!pEncTools)
-        {
-            pEncTools = MFXVideoENCODE_CreateEncTools(par);
-            bCreated = !!pEncTools;
-        }
-        MFX_CHECK_NULL_PTR1(pEncTools);
-
-        mfxEncToolsCtrl ctrl = {};
-        mfxExtEncToolsConfig supportedConfig = {};
-
-        mfxStatus sts = InitEncToolsCtrl(par, &ctrl);
-        MFX_CHECK_STS(sts);
-
-        pEncTools->GetSupportedConfig(pEncTools->Context, &supportedConfig, &ctrl);
-
-        changed += CorrectVideoParams(par, supportedConfig);
-
-        mfxExtEncToolsConfig config = {};
-        SetDefaultConfig(par, config, caps.ForcedSegmentationSupport);
-
-        mfxU32 maxDelay = 0;
-        pEncTools->GetDelayInFrames(pEncTools->Context, &config, &ctrl, &maxDelay);
-
-        mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
-        if (pCO2)
-            maxDelay = (mfxU32)std::max<mfxI32>(0, maxDelay - pCO2->LookAheadDepth); //LA is used in base_legacy
-        req.NumFrameMin += (mfxU16)maxDelay;
-        req.NumFrameSuggested += (mfxU16)maxDelay;
-
-        if (bCreated)
-            MFXVideoENCODE_DestroyEncTools(pEncTools);
-
-        MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
-        return MFX_ERR_NONE;
-    });
-}
-
-mfxStatus AV1EncTools::SubmitPreEncTask(StorageW&  /*global*/, StorageW& s_task)
-{
-    MFX_CHECK(m_pEncTools && m_pEncTools->Submit, MFX_ERR_NONE);
-
-    mfxEncToolsTaskParam task_par = {};
-    auto&      task = Task::Common::Get(s_task);
-    std::vector<mfxExtBuffer*> extParams;
-    mfxEncToolsFrameToAnalyze extFrameData = {};
-
-    //"m_numPicBuffered > 0" indicates: there are some PreEnc frames buffered for async_depth > 1 case, while not queried
-    if (task.pSurfIn || m_numPicBuffered > 0)
-    {
-        extFrameData.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_FRAME_TO_ANALYZE;
-        extFrameData.Header.BufferSz = sizeof(extFrameData);
-        extFrameData.Surface = task.pSurfIn;
-        extParams.push_back(&extFrameData.Header);
-        task_par.ExtParam = extParams.data();
-
-        if (!task.pSurfIn)
-        {
-            m_numPicBuffered--;
-        }
-    }
-    task_par.DisplayOrder = task.DisplayOrder;
-    task_par.NumExtParam = (mfxU16)extParams.size();
-
-    auto sts = m_pEncTools->Submit(m_pEncTools->Context, &task_par);
-    if (sts == MFX_ERR_MORE_DATA)
-    {
-        m_numPicBuffered++; // current PreEnc frame buffered, while not queried
-        sts = MFX_ERR_NONE;
-    }
-
+    auto sts = AV1EncToolsCommon::SubmitPreEncTask(global, s_task);
+    auto& task = Task::Common::Get(s_task);
     if(m_saliencyMapSupported && task.pSurfIn)
     {
         if(m_saliencyMapSize == 0)
@@ -973,11 +592,9 @@ mfxStatus AV1EncTools::SubmitPreEncTask(StorageW&  /*global*/, StorageW& s_task)
         }
         MFX_CHECK_STS(sts);
     }
-
     return (sts);
 }
 
-constexpr mfxU32 ENCTOOLS_QUERY_TIMEOUT = 5000;
 mfxStatus AV1EncTools::BRCGetCtrl(StorageW& global, StorageW& s_task,
     mfxEncToolsBRCQuantControl &extQuantCtrl, mfxEncToolsBRCHRDPos &extHRDPos)
 {
@@ -1338,8 +955,6 @@ mfxStatus AV1EncTools::BRCUpdate(StorageW&  , StorageW& s_task, mfxEncToolsBRCSt
     return MFX_ERR_NONE;
 }
 
-#define IS_CUST_MATRIX(CqmHint)  ((CqmHint) >= CQM_HINT_USE_CUST_MATRIX1 && (CqmHint) < CQM_HINT_USE_CUST_MATRIX1 + CQM_HINT_NUM_CUST_MATRIX)
-
 void AV1EncTools::AllocSegmentationData(mfxU16 frame_width, mfxU16 frame_height, mfxU8 blockSize)
 {
     mfxU16 numSegBlksInWidth = (mfxU16)((frame_width + blockSize - 1) / blockSize);
@@ -1373,6 +988,8 @@ void AV1EncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         , [this](StorageRW& strg, StorageRW&) -> mfxStatus
     {
         auto& par = Glob::VideoParam::Get(strg);
+        MFX_CHECK(IsFeatureEnabled(par), MFX_ERR_NONE);
+
         auto& caps = Glob::EncodeCaps::Get(strg);
         bool bEncTools = IsEncToolsOn(par);
         MFX_CHECK(bEncTools, MFX_ERR_NONE);
@@ -1489,6 +1106,9 @@ void AV1EncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
     Push(BLK_AddTask
         , [this](StorageRW& global, StorageRW&) -> mfxStatus
     {
+        auto& par = Glob::VideoParam::Get(global);
+        MFX_CHECK(IsFeatureEnabled(par), MFX_ERR_NONE);
+
         MFX_CHECK(S_ET_SUBMIT != mfxU16(-1) && S_ET_QUERY != mfxU16(-1), MFX_ERR_NONE);
         auto& taskMgrIface = TaskManager::TMInterface::Get(global);
         auto& tm = taskMgrIface.m_Manager;
@@ -1536,7 +1156,6 @@ void AV1EncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
             MFX_CHECK_STS(sts);
 
             tm.MoveTaskForward(tm.Stage(S_ET_QUERY), tm.FixedTask(*pTask));
-
             return MFX_ERR_NONE;
         };
 
@@ -1554,6 +1173,9 @@ void AV1EncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         , [this](StorageRW& global, StorageRW&) -> mfxStatus
     {
         MFX_CHECK(m_pEncTools, MFX_ERR_NONE);
+        auto& par = Glob::VideoParam::Get(global);
+        MFX_CHECK(IsFeatureEnabled(par), MFX_ERR_NONE);
+
         auto& taskMgrIface = TaskManager::TMInterface::Get(global);
 
         auto  UpdateTask = [&](
@@ -1604,7 +1226,9 @@ void AV1EncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
     Push(BLK_SetCallChains
         , [this](StorageRW& global, StorageRW&) -> mfxStatus
         {
-            global;
+            auto& par = Glob::VideoParam::Get(global);
+            MFX_CHECK(IsFeatureEnabled(par), MFX_ERR_NONE);
+
  #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
 #endif
             return MFX_ERR_NONE;
@@ -1718,6 +1342,9 @@ void AV1EncTools::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
             StorageW& global
             , StorageW& s_task) -> mfxStatus
     {
+        auto& par = Glob::VideoParam::Get(global);
+        MFX_CHECK(IsFeatureEnabled(par), MFX_ERR_NONE);
+
         MFX_CHECK(IsOn(m_EncToolConfig.BRC) && m_pEncTools && m_pEncTools->Query, MFX_ERR_NONE);
 
         auto& task = Task::Common::Get(s_task);
@@ -1777,14 +1404,9 @@ void AV1EncTools::FreeTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
     });
 }
 
-void AV1EncTools::Close(const FeatureBlocks& /*blocks*/, TPushCLS Push)
+bool AV1EncTools::IsFeatureEnabled(const mfxVideoParam& par)
 {
-    Push(BLK_Close
-        , [this](StorageW& /*global*/)
-    {
-        if (m_pEncTools && m_pEncTools->Close)
-            m_pEncTools->Close(m_pEncTools->Context);
-    });
+    return true;
 }
 
 #endif //defined(MFX_ENABLE_ENCTOOLS)
