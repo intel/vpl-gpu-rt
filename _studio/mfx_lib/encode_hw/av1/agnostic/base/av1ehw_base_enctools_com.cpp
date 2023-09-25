@@ -358,7 +358,7 @@ void AV1EncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Pu
         MFX_CHECK(bEncTools, MFX_ERR_NONE);
         MFX_CHECK(!m_pEncTools, MFX_ERR_NONE);
 
-        mfxEncTools*                encTools = GetEncTools(par);
+        m_pEncTools = GetEncTools(par);
         mfxEncToolsCtrlExtDevice    extBufDevice = {};
         mfxEncToolsCtrlExtAllocator extBufAlloc = {};
         mfxExtBuffer* ExtParam[2] = {};
@@ -389,37 +389,10 @@ void AV1EncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Pu
         MFX_CHECK_STS(sts);
 
         m_bEncToolsInner = false;
-        if (!(encTools && encTools->Context))
+        if (!(m_pEncTools && m_pEncTools->Context))
         {
-            encTools = MFXVideoENCODE_CreateEncTools(par);
-            m_bEncToolsInner = !!encTools;
-        }
-        if (encTools)
-        {
-            mfxExtEncToolsConfig supportedConfig = {};
-
-            encTools->GetSupportedConfig(encTools->Context, &supportedConfig, &m_EncToolCtrl);
-
-            if (CorrectVideoParams(par, supportedConfig))
-                MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-
-            SetDefaultConfig(par, m_EncToolConfig, caps.ForcedSegmentationSupport);
-
-            sts = encTools->Init(encTools->Context, &m_EncToolConfig, &m_EncToolCtrl);
-            MFX_CHECK_STS(sts);
-
-            sts = encTools->GetActiveConfig(encTools->Context, &m_EncToolConfig);
-            MFX_CHECK_STS(sts);
-
-            encTools->GetDelayInFrames(encTools->Context, &m_EncToolConfig, &m_EncToolCtrl, &m_maxDelay);
-
-            auto& taskMgrIface = TaskManager::TMInterface::Get(strg);
-            auto& tm = taskMgrIface.m_Manager;
-
-            S_ET_SUBMIT = tm.AddStage(tm.S_NEW);
-            S_ET_QUERY = tm.AddStage(S_ET_SUBMIT);
-
-            m_pEncTools = encTools;
+            m_pEncTools = MFXVideoENCODE_CreateEncTools(par);
+            m_bEncToolsInner = !!m_pEncTools;
         }
 
         m_destroy = [this]()
@@ -429,6 +402,33 @@ void AV1EncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Pu
             m_bEncToolsInner = false;
 
         };
+
+        if (m_pEncTools)
+        {           
+            mfxExtEncToolsConfig supportedConfig = {};
+
+            m_pEncTools->GetSupportedConfig(m_pEncTools->Context, &supportedConfig, &m_EncToolCtrl);
+
+            if (CorrectVideoParams(par, supportedConfig))
+                MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+
+            SetDefaultConfig(par, m_EncToolConfig, caps.ForcedSegmentationSupport);
+
+            sts = m_pEncTools->Init(m_pEncTools->Context, &m_EncToolConfig, &m_EncToolCtrl);
+            MFX_CHECK_STS(sts);
+
+            sts = m_pEncTools->GetActiveConfig(m_pEncTools->Context, &m_EncToolConfig);
+            MFX_CHECK_STS(sts);
+
+            m_pEncTools->GetDelayInFrames(m_pEncTools->Context, &m_EncToolConfig, &m_EncToolCtrl, &m_maxDelay);
+
+            auto& taskMgrIface = TaskManager::TMInterface::Get(strg);
+            auto& tm = taskMgrIface.m_Manager;
+
+            S_ET_SUBMIT = tm.AddStage(tm.S_NEW);
+            S_ET_QUERY = tm.AddStage(S_ET_SUBMIT);
+
+        }
 
         return MFX_ERR_NONE;
     });
