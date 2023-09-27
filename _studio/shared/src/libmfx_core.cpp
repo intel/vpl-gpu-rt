@@ -77,10 +77,10 @@ mfxStatus MFXMemory_GetSurfaceForDecode(mfxSession session, mfxFrameSurface1** o
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_CHECK_NULL_PTR1(output_surf);
     MFX_CHECK_HDL(session);
-    MFX_CHECK(session->m_pCORE.get(), MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(session->m_pCORE,       MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK(session->m_pDECODE,     MFX_ERR_NOT_INITIALIZED);
 
-    return session->m_pDECODE->GetSurface(*output_surf);
+    return session->m_pDECODE->GetSurface(*output_surf, nullptr);
 }
 
 mfxStatus CommonCORE::API_1_19_Adapter::QueryPlatform(mfxPlatform* platform)
@@ -502,7 +502,8 @@ CommonCORE::CommonCORE(const mfxU32 numThreadsAvailable, const mfxSession sessio
 #if defined(MFX_ENABLE_PXP)
     m_pPXPCtxHdl(nullptr),
 #endif // MFX_ENABLE_PXP
-    m_deviceId(0)
+    m_deviceId(0),
+    m_memory_interface(session)
 {
     m_bufferAllocator.bufferAllocator.pthis = &m_bufferAllocator;
 }
@@ -520,6 +521,10 @@ mfxStatus CommonCORE::GetHandle(mfxHandleType type, mfxHDL *handle)
 
     switch (type)
     {
+
+    case MFX_HANDLE_MEMORY_INTERFACE:
+        *handle = static_cast<mfxMemoryInterface*>(&m_memory_interface);
+        break;
 
     case MFX_HANDLE_VA_DISPLAY:
         MFX_CHECK(m_hdl, MFX_ERR_NOT_FOUND);
@@ -1698,9 +1703,9 @@ void* CommonCORE_VPL::QueryCoreInterface(const MFX_GUID &guid)
     return CommonCORE::QueryCoreInterface(guid);
 }
 
-mfxStatus CommonCORE_VPL::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* & surf)
+mfxStatus CommonCORE_VPL::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* & surf, mfxSurfaceHeader* import_surface)
 {
-    return m_frame_allocator_wrapper.CreateSurface(type, info, surf);
+    return m_frame_allocator_wrapper.CreateSurface(type, info, surf, import_surface);
 }
 
 

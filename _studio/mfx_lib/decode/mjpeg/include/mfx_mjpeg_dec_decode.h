@@ -190,7 +190,7 @@ public:
     virtual mfxStatus GetUserData(mfxU8 *ud, mfxU32 *sz, mfxU64 *ts);
     virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload) override;
     virtual mfxStatus SetSkipMode(mfxSkipMode mode) override;
-    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface) override;
+    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface) override;
 
 protected:
     static mfxStatus QueryIOSurfInternal(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);

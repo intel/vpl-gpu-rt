@@ -329,5 +329,7 @@ mfxStatus ImplementationMvc::Close(void)
 
 } // mfxStatus ImplementationMvc::Close( void )
 
+MFX_PROPAGATE_GetSurface_VideoVPP_Impl(ImplementationMvc)
+
 #endif // MFX_ENABLE_VPP
 /* EOF */

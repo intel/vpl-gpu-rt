@@ -1193,4 +1193,6 @@ mfxStatus MFXVideoENCODEMJPEG_HW::CheckDevice()
         : MFX_ERR_NONE;
 }
 
+MFX_PROPAGATE_GetSurface_VideoENCODE_Impl(MFXVideoENCODEMJPEG_HW)
+
 #endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)

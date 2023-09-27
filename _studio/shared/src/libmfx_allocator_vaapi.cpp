@@ -120,7 +120,7 @@ static inline mfxU32 ConvertMfxFourccToVAFormat(mfxU32 fourcc)
     }
 }
 
-static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int &format,  const mfxU32 fourcc, const mfxU32 va_fourcc, const mfxU32 memType)
+static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int &format, const mfxU32 fourcc, const mfxU32 va_fourcc, const mfxU32 memType)
 {
     attrib.clear();
     attrib.reserve(2);
@@ -894,12 +894,26 @@ mfxStatus vaapi_buffer_wrapper::Unlock()
     return MFX_ERR_NONE;
 }
 
-vaapi_surface_wrapper::vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 type, VADisplayWrapper& display)
+vaapi_surface_wrapper::vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 type, VADisplayWrapper& display, mfxSurfaceHeader* import_surface)
     : vaapi_resource_wrapper(display)
     , m_surface_lock(*m_pVADisplay, m_resource_id)
+    , m_imported(false)
     , m_type(type)
     , m_fourcc(info.FourCC)
 {
+    bool should_copy = false;
+
+    if (import_surface)
+    {
+        // First try no-copy import
+        mfxStatus sts;
+        std::tie(sts, should_copy) = TryImportSurface(info, import_surface);
+        MFX_CHECK_WITH_THROW_STS(sts == MFX_ERR_NONE, MFX_ERR_MEMORY_ALLOC);
+
+        if (!should_copy)
+            return;
+    }
+
     mfxU32 format;
     std::vector<VASurfaceAttrib> attrib;
 
@@ -920,11 +934,127 @@ vaapi_surface_wrapper::vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 ty
 
         MFX_CHECK_WITH_THROW_STS(MFX_STS_TRACE(va_res) == VA_STATUS_SUCCESS, MFX_ERR_MEMORY_ALLOC);
     }
+
+    // We've just created VA surface so should destroy it in destructor
+    m_imported = false;
+
+    if (should_copy)
+    {
+        // We only get here if MFX_SURFACE_FLAG_IMPORT_COPY flag was set. Also in case of failed import if MFX_SURFACE_FLAG_IMPORT_SHARED was set as well
+        mfxStatus sts = CopyImportSurface(info, import_surface);
+        MFX_CHECK_WITH_THROW_STS(sts == MFX_ERR_NONE, MFX_ERR_MEMORY_ALLOC);
+    }
+}
+
+// Returns overall status and copy flag (if true import failed, but need to try to copy import surface)
+std::pair<mfxStatus, bool> vaapi_surface_wrapper::TryImportSurface(const mfxFrameInfo& info, mfxSurfaceHeader* import_surface)
+{
+    if (!import_surface)
+        return { MFX_ERR_NONE, false };
+
+    switch (import_surface->SurfaceType)
+    {
+    case MFX_SURFACE_TYPE_VAAPI:
+        return TryImportSurfaceVAAPI(info, *(reinterpret_cast<mfxSurfaceVAAPI*>(import_surface)));
+
+    default:
+        return { MFX_STS_TRACE(MFX_ERR_UNSUPPORTED), false };
+    }
+}
+
+// Returns overall status and copy flag (if true import failed, but need to try to copy import surface)
+std::pair<mfxStatus, bool> vaapi_surface_wrapper::TryImportSurfaceVAAPI(const mfxFrameInfo& info, mfxSurfaceVAAPI& import_surface)
+{
+    if (!check_import_flags(import_surface.SurfaceInterface.Header.SurfaceFlags))
+        return { MFX_STS_TRACE(MFX_ERR_INVALID_VIDEO_PARAM), false };
+
+    if (import_surface.SurfaceInterface.Header.StructSize != sizeof(mfxSurfaceVAAPI))
+        return { MFX_STS_TRACE(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM), false };
+
+    if (!import_surface.vaDisplay)
+        return { MFX_STS_TRACE(MFX_ERR_INVALID_HANDLE), false };
+
+    if (import_surface.vaSurfaceID == VA_INVALID_ID)
+        return { MFX_STS_TRACE(MFX_ERR_INVALID_HANDLE), false };
+
+    // Check compatibility of passed surface
+    bool can_import = (import_surface.SurfaceInterface.Header.SurfaceFlags & MFX_SURFACE_FLAG_IMPORT_SHARED)
+        || (import_surface.SurfaceInterface.Header.SurfaceFlags == MFX_SURFACE_FLAG_DEFAULT);
+
+    bool can_copy = (import_surface.SurfaceInterface.Header.SurfaceFlags & MFX_SURFACE_FLAG_IMPORT_COPY);
+
+    // We can't import surface from another display
+    can_import = can_import && import_surface.vaDisplay == (VADisplay)(*m_pVADisplay);
+    // If copies between displays are supported, the followinf restriction can be removed
+    can_copy   = can_copy   && import_surface.vaDisplay == (VADisplay)(*m_pVADisplay);
+
+    SurfaceScopedLock src_surface_lock(import_surface.vaDisplay, import_surface.vaSurfaceID);
+    mfxStatus sts = src_surface_lock.DeriveImage();
+    if (sts != MFX_ERR_NONE)
+        return { MFX_STS_TRACE(sts), false };
+
+    // We can import surface if it's not smaller than size passed on component init
+    can_import = can_import && src_surface_lock.m_image.width >= info.Width && src_surface_lock.m_image.height >= info.Height;
+
+    // We can copy surface if it's not bigger than size passed on component init
+    can_copy = can_copy && src_surface_lock.m_image.width <= info.Width && src_surface_lock.m_image.height <= info.Height;
+
+    can_import = can_import && src_surface_lock.m_image.format.fourcc == ConvertMfxFourccToVAFormat(info.FourCC);
+    can_copy   = can_copy   && src_surface_lock.m_image.format.fourcc == ConvertMfxFourccToVAFormat(info.FourCC);
+
+    if (can_import)
+    {
+        m_resource_id = import_surface.vaSurfaceID;
+        m_imported = true;
+
+        import_surface.SurfaceInterface.Header.SurfaceFlags = MFX_SURFACE_FLAG_IMPORT_SHARED;
+
+        return { MFX_ERR_NONE, false };
+    }
+
+    // If we get here, we cannot import this surface without a copy
+    if (!can_copy)
+        return { MFX_STS_TRACE(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM), false };
+
+    // Can't import, but can copy
+    return { MFX_ERR_NONE, true };
+}
+
+mfxStatus vaapi_surface_wrapper::CopyImportSurface(const mfxFrameInfo& info, mfxSurfaceHeader* import_surface)
+{
+    MFX_CHECK_NULL_PTR1(import_surface);
+
+    switch (import_surface->SurfaceType)
+    {
+    case MFX_SURFACE_TYPE_VAAPI:
+        MFX_RETURN(CopyImportSurfaceVAAPI(info, *(reinterpret_cast<mfxSurfaceVAAPI*>(import_surface))));
+
+    default:
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
+}
+
+mfxStatus vaapi_surface_wrapper::CopyImportSurfaceVAAPI(const mfxFrameInfo& info, mfxSurfaceVAAPI& import_surface)
+{
+    SurfaceScopedLock src_surface_lock(import_surface.vaDisplay, import_surface.vaSurfaceID);
+    MFX_SAFE_CALL(src_surface_lock.DeriveImage());
+
+    VAStatus va_sts = vaPutImage(*m_pVADisplay, m_resource_id, src_surface_lock.m_image.image_id,
+        0, 0, src_surface_lock.m_image.width, src_surface_lock.m_image.height,
+        0, 0, src_surface_lock.m_image.width, src_surface_lock.m_image.height);
+    MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+
+    import_surface.SurfaceInterface.Header.SurfaceFlags = MFX_SURFACE_FLAG_IMPORT_COPY;
+
+    return MFX_ERR_NONE;
 }
 
 vaapi_surface_wrapper::~vaapi_surface_wrapper()
 {
-    std::ignore = MFX_STS_TRACE(vaDestroySurfaces(*m_pVADisplay, &m_resource_id, 1));
+    if (!m_imported)
+    {
+        std::ignore = MFX_STS_TRACE(vaDestroySurfaces(*m_pVADisplay, &m_resource_id, 1));
+    }
 }
 
 mfxStatus vaapi_surface_wrapper::Lock(mfxFrameData& frame_data, mfxU32 flags)
@@ -952,7 +1082,22 @@ mfxStatus vaapi_surface_wrapper::Unlock()
     return MFX_ERR_NONE;
 }
 
-mfxFrameSurface1_hw_vaapi::mfxFrameSurface1_hw_vaapi(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>&, mfxHDL display, mfxU32 context, FrameAllocatorBase& allocator)
+mfxStatus vaapi_surface_wrapper::Export(const mfxSurfaceHeader& export_header, mfxSurfaceBase*& exported_surface, mfxFrameSurfaceInterfaceImpl* p_base_surface)
+{
+    switch (export_header.SurfaceType)
+    {
+    case MFX_SURFACE_TYPE_VAAPI:
+        exported_surface = mfxSurfaceVAAPIImpl::Create(export_header, p_base_surface, m_pVADisplay, m_resource_id);
+        break;
+    default:
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
+
+    return MFX_ERR_NONE;
+}
+
+mfxFrameSurface1_hw_vaapi::mfxFrameSurface1_hw_vaapi(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>&, mfxHDL display, mfxU32 context, FrameAllocatorBase& allocator,
+                                                     mfxSurfaceHeader* import_surface)
     : RWAcessSurface(info, type, mid, allocator)
     , m_type(type)
     , m_context(VAContextID(context))
@@ -967,11 +1112,13 @@ mfxFrameSurface1_hw_vaapi::mfxFrameSurface1_hw_vaapi(const mfxFrameInfo & info, 
 
     if (vp8_fourcc == MFX_FOURCC_P8)
     {
+        // Import of plain buffers is not supported
+        MFX_CHECK_WITH_THROW_STS(!import_surface, MFX_ERR_UNSUPPORTED);
         m_resource_wrapper.reset(new vaapi_buffer_wrapper(info, *p_va_display_wrapper, m_context));
     }
     else
     {
-        m_resource_wrapper.reset(new vaapi_surface_wrapper(info, m_type, *p_va_display_wrapper));
+        m_resource_wrapper.reset(new vaapi_surface_wrapper(info, m_type, *p_va_display_wrapper, import_surface));
     }
 }
 
@@ -1055,7 +1202,7 @@ mfxStatus mfxFrameSurface1_hw_vaapi::Realloc(const mfxFrameInfo & info)
     }
     else
     {
-        m_resource_wrapper.reset(new vaapi_surface_wrapper(info, m_type, m_resource_wrapper->GetDevice()));
+        m_resource_wrapper.reset(new vaapi_surface_wrapper(info, m_type, m_resource_wrapper->GetDevice(), nullptr));
     }
 
     return MFX_ERR_NONE;
@@ -1081,6 +1228,73 @@ void FlexibleFrameAllocatorHW_VAAPI::SetDevice(mfxHDL device)
     m_device = device;
 
     m_staging_adapter->SetDevice(device);
+}
+
+mfxSurfaceVAAPIImpl::mfxSurfaceVAAPIImpl(const mfxSurfaceHeader& export_header, mfxFrameSurfaceInterfaceImpl* p_base_surface, std::shared_ptr<VADisplayWrapper>& display, VASurfaceID surface_id)
+    : mfxSurfaceImpl<mfxSurfaceVAAPI>(export_header, p_base_surface)
+    , m_pVADisplay(display)
+{
+    MFX_CHECK_WITH_THROW_STS(check_export_flags(export_header.SurfaceFlags), MFX_ERR_INVALID_VIDEO_PARAM);
+    MFX_CHECK_WITH_THROW_STS(m_pVADisplay,                                   MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK_WITH_THROW_STS(surface_id != VA_INVALID_ID,                    MFX_ERR_INVALID_HANDLE);
+
+    bool default_set = export_header.SurfaceFlags == MFX_SURFACE_FLAG_DEFAULT;
+    if ((export_header.SurfaceFlags & MFX_SURFACE_FLAG_EXPORT_SHARED) || default_set)
+    {
+        m_surface_id = surface_id;
+        mfxSurfaceVAAPI::vaDisplay   = (VADisplay)(*m_pVADisplay);
+        mfxSurfaceVAAPI::vaSurfaceID = m_surface_id;
+
+        // Hold original surface to keep VASurfaceID
+        GetParentSurface()->AddRef();
+
+        SetResultedExportType(MFX_SURFACE_FLAG_EXPORT_SHARED);
+        return;
+    }
+
+    if (export_header.SurfaceFlags & MFX_SURFACE_FLAG_EXPORT_COPY)
+    {
+        SurfaceScopedLock orig_surface_lock(*m_pVADisplay, surface_id);
+        mfxStatus sts = orig_surface_lock.DeriveImage();
+        MFX_CHECK_WITH_THROW_STS(sts == MFX_ERR_NONE, sts);
+
+        mfxU32 format;
+        std::vector<VASurfaceAttrib> attrib;
+        FillSurfaceAttrs(attrib, format, orig_surface_lock.m_image.format.fourcc, orig_surface_lock.m_image.format.fourcc, GetParentSurface()->m_exported_surface.Data.MemType);
+
+        VAStatus va_sts = vaCreateSurfaces(*m_pVADisplay,
+            format,
+            orig_surface_lock.m_image.width, orig_surface_lock.m_image.height,
+            &m_surface_id,
+            1,
+            attrib.data(), attrib.size());
+        MFX_CHECK_WITH_THROW_STS(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+
+        va_sts = vaPutImage(*m_pVADisplay, m_surface_id, orig_surface_lock.m_image.image_id,
+            0, 0, orig_surface_lock.m_image.width, orig_surface_lock.m_image.height,
+            0, 0, orig_surface_lock.m_image.width, orig_surface_lock.m_image.height);
+        MFX_CHECK_WITH_THROW_STS(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+
+        mfxSurfaceVAAPI::vaDisplay   = (VADisplay)(*m_pVADisplay);
+        mfxSurfaceVAAPI::vaSurfaceID = m_surface_id;
+
+        SetResultedExportType(MFX_SURFACE_FLAG_EXPORT_COPY);
+        return;
+    }
+}
+
+mfxSurfaceVAAPIImpl::~mfxSurfaceVAAPIImpl()
+{
+    if (mfxSurfaceInterface::Header.SurfaceFlags & MFX_SURFACE_FLAG_EXPORT_COPY)
+    {
+        std::ignore = MFX_STS_TRACE(vaDestroySurfaces(*m_pVADisplay, &m_surface_id, 1));
+    }
+    // In reality excessive check, with correct refmanagement original surface should be alive
+    else if (GetParentSurface())
+    {
+        // Release original surface, VASurfaceID can be destroyed now
+        GetParentSurface()->Release();
+    }
 }
 
 /* EOF */

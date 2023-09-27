@@ -90,6 +90,8 @@ namespace MfxVideoProcessing
 
         mfxStatus ResetTaskCounters();
 
+        MFX_PROPAGATE_GetSurface_VideoVPP_Definition;
+
     private:
 
         bool       m_bInit;

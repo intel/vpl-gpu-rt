@@ -1410,11 +1410,11 @@ mfxStatus VideoDECODEVP8_HW::SetSkipMode(mfxSkipMode /*mode*/)
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoDECODEVP8_HW::GetSurface(mfxFrameSurface1* & surface)
+mfxStatus VideoDECODEVP8_HW::GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface)
 {
     MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface(surface);
+    return m_surface_source->GetSurface(surface, import_surface);
 }
 
 //////////////////////////////////////////////////////////////////////////////

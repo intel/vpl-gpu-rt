@@ -435,10 +435,7 @@ namespace mfx
     };
 
     class ImplDescription;
-    class ExtendedDeviceID;
-
     using ImplDescriptionHolder = DescriptionHolder<ImplDescription>;
-    using ExtendedDeviceIDHolder = DescriptionHolder<ExtendedDeviceID>;
 
     class ImplDescription
         : public ImplCapsCommon
@@ -463,6 +460,8 @@ namespace mfx
     }
 
 #ifdef ONEVPL_EXPERIMENTAL
+    class ExtendedDeviceID;
+    using ExtendedDeviceIDHolder = DescriptionHolder<ExtendedDeviceID>;
 
     class ExtendedDeviceID
         : public ImplCapsCommon
@@ -485,6 +484,29 @@ namespace mfx
         if (m_pHolder)
             m_pHolder->Release();
     }
+
+    class SurfaceTypesSupported
+        : public ImplCapsCommon
+        , public mfxSurfaceTypesSupported
+        , public PODArraysHolder
+    {
+    public:
+        SurfaceTypesSupported()
+            : mfxSurfaceTypesSupported()
+        {
+            Version.Version = MFX_SURFACETYPESSUPPORTED_VERSION;
+
+            m_pthis = ImplCapsCommon::GetHDL(*this);
+        }
+
+        mfxHDL* GetHDL()
+        {
+            return &m_pthis;
+        }
+
+    private:
+        mfxHDL m_pthis = nullptr;
+    };
 #endif // ONEVPL_EXPERIMENTAL
 
     class ImplFunctions
@@ -736,6 +758,46 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
             holder->Detach();
             impl = holder.release()->GetArray();
+
+            return impl;
+        }
+
+        case MFX_IMPLCAPS_SURFACE_TYPES:
+        {
+            std::unique_ptr<mfx::SurfaceTypesSupported> holder(new mfx::SurfaceTypesSupported);
+
+            auto get_sharing_mode_flags = [](mfxSurfaceType type) -> mfxU32
+            {
+                switch (type)
+                {
+                case MFX_SURFACE_TYPE_VAAPI:
+                    return MFX_SURFACE_FLAG_IMPORT_SHARED | MFX_SURFACE_FLAG_IMPORT_COPY | MFX_SURFACE_FLAG_EXPORT_SHARED | MFX_SURFACE_FLAG_EXPORT_COPY;
+                default:
+                    return MFX_SURFACE_FLAG_DEFAULT;
+                }
+            };
+
+            for (auto type : { MFX_SURFACE_TYPE_VAAPI })
+            {
+                auto& surface_type = holder->PushBack(holder->SurfaceTypes);
+                holder->NumSurfaceTypes++;
+
+                surface_type = {};
+                surface_type.SurfaceType = type;
+
+                for (auto comp : { MFX_SURFACE_COMPONENT_ENCODE, MFX_SURFACE_COMPONENT_DECODE, MFX_SURFACE_COMPONENT_VPP_INPUT, MFX_SURFACE_COMPONENT_VPP_OUTPUT })
+                {
+                    auto& surface_component = holder->PushBack(surface_type.SurfaceComponents);
+                    surface_type.NumSurfaceComponents++;
+
+                    surface_component = {};
+                    surface_component.SurfaceComponent = comp;
+                    surface_component.SurfaceFlags     = get_sharing_mode_flags(type);
+                }
+            }
+
+            *num_impls = 1;
+            impl = holder.release()->GetHDL();
 
             return impl;
         }

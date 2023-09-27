@@ -2182,12 +2182,12 @@ mfxFrameSurface1 * SurfaceSource::GetInternalSurface(UMC::FrameMemID index)
     }
 }
 
-mfxStatus SurfaceSource::GetSurface(mfxFrameSurface1* & surface)
+mfxStatus SurfaceSource::GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface)
 {
-    MFX_CHECK(m_redirect_to_vpl_path,              MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(m_redirect_to_vpl_path,      MFX_ERR_UNSUPPORTED);
     MFX_CHECK(m_vpl_cache_output_surfaces, MFX_ERR_NOT_INITIALIZED);
 
-    return (*m_vpl_cache_output_surfaces)->GetSurface(surface);
+    return (*m_vpl_cache_output_surfaces)->GetSurface(surface, false, import_surface);
 }
 
 mfxFrameSurface1 * SurfaceSource::GetSurfaceByIndex(UMC::FrameMemID index)

@@ -158,6 +158,8 @@ public:
         return m_initialized;
     }
 
+    MFX_PROPAGATE_GetSurface_VideoENCODE_Definition;
+
 protected:
     VP9MfxVideoParam              m_video;
     std::list<VP9MfxVideoParam>   m_videoForParamChange; // encoder keeps several versions of encoding parameters

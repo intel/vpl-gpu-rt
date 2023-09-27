@@ -34,7 +34,7 @@ class MFXVideoENCODEMPEG2_HW : public VideoENCODE
 {
 public:
     static mfxStatus Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
-    {   
+    {
         return MPEG2EncoderHW::ControllerBase::Query(core,in,out);
     }
     static mfxStatus QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request)
@@ -179,11 +179,15 @@ public:
         return pEncoder->GetThreadingPolicy();
     }
 
+    MFX_PROPAGATE_GetSurface_VideoENCODE_Definition;
+
 private:
     VideoCORE*                      m_pCore;
     MPEG2EncoderHW::EncoderBase*    pEncoder;
 
 };
+
+MFX_PROPAGATE_GetSurface_VideoENCODE_Impl(MFXVideoENCODEMPEG2_HW);
 
 #endif // MFX_ENABLE_MPEG2_VIDEO_ENCODE
 #endif

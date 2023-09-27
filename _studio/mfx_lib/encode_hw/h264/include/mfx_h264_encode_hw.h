@@ -135,6 +135,8 @@ public:
             : MFX_ERR_NOT_INITIALIZED;
     }
 
+    MFX_PROPAGATE_GetSurface_VideoENCODE_Definition;
+
 protected:
     VideoCORE*                 m_core;
     std::unique_ptr<VideoENCODE> m_impl;

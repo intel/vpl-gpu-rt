@@ -118,6 +118,7 @@ target_compile_definitions(mfxcore
 target_include_directories(mfxcore
   PUBLIC
     scheduler/include
+    ${OPENCL_INCLUDE}
   )
   
 if (CMAKE_SYSTEM_NAME MATCHES Linux)

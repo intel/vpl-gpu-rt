@@ -460,11 +460,11 @@ mfxStatus VideoDECODEH264::QueryImplsDescription(
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoDECODEH264::GetSurface(mfxFrameSurface1* & surface)
+mfxStatus VideoDECODEH264::GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface)
 {
     MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface(surface);
+    return m_surface_source->GetSurface(surface, import_surface);
 }
 
 mfxU16 VideoDECODEH264::GetChangedProfile(mfxVideoParam *par)

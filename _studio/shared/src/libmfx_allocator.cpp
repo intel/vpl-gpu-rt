@@ -613,6 +613,20 @@ mfxStatus RWAcessSurface::UnlockRW()
     return MFX_ERR_NONE;
 }
 
+void mfxSurfaceBase::Close()
+{
+    if (m_p_base_surface)
+        m_p_base_surface->DetachExported(this);
+}
+
+mfxStatus mfxSurfaceBase::Synchronize(mfxU32 timeout)
+{
+    if (!m_p_base_surface)
+        return MFX_ERR_NONE;
+
+    return m_p_base_surface->Synchronize(timeout);
+}
+
 mfxFrameSurface1_sw::mfxFrameSurface1_sw(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>&, mfxHDL, mfxU32, FrameAllocatorBase& allocator)
     : RWAcessSurface(info, type, mid, allocator)
     , m_data(nullptr, free)
@@ -685,4 +699,39 @@ mfxStatus mfxFrameSurface1_sw::Realloc(const mfxFrameInfo & info)
     m_internal_surface.Info = info;
 
     return SetPointers(m_internal_surface.Data, m_internal_surface.Info, m_data.get());
+}
+
+mfx::mfx_shared_lib_holder* ImportExportHelper::GetHelper(mfxSurfaceType shared_library_type)
+{
+    std::unique_lock<std::mutex> lock(m_mutex);
+
+    // Check if requested library was already loaded
+    auto it = find(shared_library_type);
+    if (it != end())
+        return (it->second).get();
+
+    lock.unlock();
+    mfx::mfx_shared_lib_holder* ret = nullptr;
+    uniq_ptr_mfx_shared_lib_holder loaded_lib;
+#ifdef MFX_ENABLE_SHARING_OPENCL
+    switch (shared_library_type)
+    {
+//#ifdef MFX_ENABLE_SHARING_OPENCL
+    case MFX_SURFACE_TYPE_OPENCL_IMG2D:
+        loaded_lib = LoadAndInit<MFX_SURFACE_TYPE_OPENCL_IMG2D>();
+        break;
+//#endif
+    default:
+        break;
+    }
+#endif
+
+    if (loaded_lib)
+    {
+        lock.lock();
+        ret = loaded_lib.get();
+        operator[](shared_library_type) = std::move(loaded_lib);
+    }
+
+    return ret;
 }

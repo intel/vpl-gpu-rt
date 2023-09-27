@@ -93,7 +93,7 @@ public:
 
     // Decoder instance threads entry point. Do async tasks here
     mfxStatus RunThread(void * params, mfxU32 threadNumber);
-    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface) override;
+    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface) override;
 
 protected:
     // Actually calculate needed frames number

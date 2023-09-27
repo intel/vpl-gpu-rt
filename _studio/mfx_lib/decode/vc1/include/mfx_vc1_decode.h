@@ -98,7 +98,7 @@ public:
                         mfxU32 threadNumber,
                         mfxU32 taskID);
 
-    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface) override;
+    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface) override;
 
 protected:
 

@@ -498,13 +498,11 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *i
 #define FUNCTION_GET_SURFACE_IMPL_VPP(FUNCTION_NAME, TYPE)                         \
 mfxStatus FUNCTION_NAME##TYPE (mfxSession session, mfxFrameSurface1** output_surf) \
 {                                                                                  \
-    MFX_CHECK_NULL_PTR1(output_surf);                                              \
     MFX_CHECK_HDL(session);                                                        \
-    MFX_CHECK(session->m_pCORE.get(),                 MFX_ERR_NOT_INITIALIZED);    \
+    MFX_CHECK(session->m_pCORE,                       MFX_ERR_NOT_INITIALIZED);    \
     MFX_CHECK(session->m_pVPP,                        MFX_ERR_NOT_INITIALIZED);    \
-    MFX_CHECK(session->m_pVPP->m_pSurfaceCache##TYPE, MFX_ERR_NOT_INITIALIZED);    \
                                                                                    \
-    return (*session->m_pVPP->m_pSurfaceCache##TYPE )->GetSurface(*output_surf);   \
+    return session->m_pVPP->GetSurfaceFrom##TYPE (output_surf, nullptr);           \
 }
 
 FUNCTION_GET_SURFACE_IMPL_VPP(MFXMemory_GetSurfaceForVPP, In)
@@ -518,10 +516,9 @@ mfxStatus MFXVideoVPP_ProcessFrameAsync(mfxSession session, mfxFrameSurface1 *in
 
     MFX_CHECK_HDL(session);
     MFX_CHECK(session->m_pVPP,                     MFX_ERR_NOT_INITIALIZED);
-    MFX_CHECK(session->m_pVPP->m_pSurfaceCacheOut, MFX_ERR_NOT_INITIALIZED);
 
     mfxFrameSurface1* surf;
-    MFX_SAFE_CALL((*session->m_pVPP->m_pSurfaceCacheOut)->GetSurface(surf));
+    MFX_SAFE_CALL(session->m_pVPP->GetSurfaceFromOut(&surf, nullptr));
     surface_refcount_scoped_lock surf_out(surf);
     MFX_CHECK(surf_out, MFX_ERR_MEMORY_ALLOC);
 

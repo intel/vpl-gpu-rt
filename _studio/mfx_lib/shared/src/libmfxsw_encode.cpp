@@ -841,19 +841,11 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
 mfxStatus MFXMemory_GetSurfaceForEncode(mfxSession session, mfxFrameSurface1** output_surf)
 {
     PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
-    MFX_CHECK_NULL_PTR1(output_surf);
     MFX_CHECK_HDL(session);
+    MFX_CHECK(session->m_pCORE,                    MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK(session->m_pENCODE,                  MFX_ERR_NOT_INITIALIZED);
-    MFX_CHECK(session->m_pENCODE->m_pSurfaceCache, MFX_ERR_NOT_INITIALIZED);
 
-    try
-    {
-        MFX_RETURN((*session->m_pENCODE->m_pSurfaceCache)->GetSurface(*output_surf));
-    }
-    catch (...)
-    {
-        MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
-    }
+    MFX_RETURN(session->m_pENCODE->GetSurface(output_surf, nullptr));
 }
 
 mfxStatus QueryImplsDescription(VideoCORE& core, mfxEncoderDescription& caps, mfx::PODArraysHolder& ah)

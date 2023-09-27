@@ -80,6 +80,7 @@ if (MFX_ENABLE_MJPEG_VIDEO_DECODE)
     ${MSDK_LIB_ROOT}/vpp/include
     ${MSDK_UMC_ROOT}/codec/color_space_converter/include
     mjpeg/include
+    ${OPENCL_INCLUDE}
   )
 
   set(MJPEG_VIDEO_DECODE_SRC

@@ -443,9 +443,30 @@ public:
         return MFX_ERR_NONE;
     }
 
+    virtual mfxStatus GetSurface(mfxFrameSurface1** output_surf, mfxSurfaceHeader* import_surface) = 0;
+
     std::unique_ptr<surface_cache_controller<SurfaceCache>, std::function<void(surface_cache_controller<SurfaceCache>*)>> m_pSurfaceCache;
     static bool m_singleEncodeMode;
 };
+
+#define MFX_PROPAGATE_GetSurface_VideoENCODE_Definition \
+mfxStatus GetSurface(mfxFrameSurface1** output_surf, mfxSurfaceHeader* import_surface) override
+
+#define MFX_PROPAGATE_GetSurface_VideoENCODE_Impl(ClassName)                                          \
+mfxStatus ClassName::GetSurface(mfxFrameSurface1** output_surf, mfxSurfaceHeader* import_surface)     \
+{                                                                                                     \
+    MFX_CHECK_NULL_PTR1(output_surf);                                                                 \
+    MFX_CHECK(m_pSurfaceCache, MFX_ERR_NOT_INITIALIZED);                                              \
+                                                                                                      \
+    try                                                                                               \
+    {                                                                                                 \
+        MFX_RETURN(m_pSurfaceCache->GetSurface(*output_surf, import_surface));                        \
+    }                                                                                                 \
+    catch (...)                                                                                       \
+    {                                                                                                 \
+        MFX_RETURN(MFX_ERR_MEMORY_ALLOC);                                                             \
+    }                                                                                                 \
+}
 
 class VideoDECODE
 {
@@ -478,7 +499,7 @@ public:
     }
     virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload) = 0;
 
-    virtual mfxStatus         GetSurface(mfxFrameSurface1* & surface) { surface = nullptr; return MFX_ERR_UNSUPPORTED; }
+    virtual mfxStatus         GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* /*import_surface*/) { surface = nullptr; return MFX_ERR_UNSUPPORTED; }
     virtual mfxFrameSurface1* GetInternalSurface(mfxFrameSurface1 * /*surface*/) { return nullptr; }
 
     mfxStatus ResetCache(mfxVideoParam*) { return MFX_ERR_NONE; }
@@ -549,9 +570,42 @@ public:
         return MFX_ERR_NONE;
     }
 
-    std::unique_ptr<surface_cache_controller<SurfaceCache>, std::function<void(surface_cache_controller<SurfaceCache>*)>> m_pSurfaceCacheIn;
-    std::unique_ptr<surface_cache_controller<SurfaceCache>, std::function<void(surface_cache_controller<SurfaceCache>*)>> m_pSurfaceCacheOut;
+    mfxStatus GetSurfaceFromIn(mfxFrameSurface1** output_surf, mfxSurfaceHeader* import_surface)
+    {
+        return GetSurface(m_pSurfaceCacheIn, output_surf, import_surface);
+    }
+
+    mfxStatus GetSurfaceFromOut(mfxFrameSurface1** output_surf, mfxSurfaceHeader* import_surface)
+    {
+        return GetSurface(m_pSurfaceCacheOut, output_surf, import_surface);
+    }
+
+    using cache_type = std::unique_ptr<surface_cache_controller<SurfaceCache>, std::function<void(surface_cache_controller<SurfaceCache>*)>>;
+    cache_type m_pSurfaceCacheIn;
+    cache_type m_pSurfaceCacheOut;
+
+    virtual mfxStatus GetSurface(cache_type& cache, mfxFrameSurface1** output_surf, mfxSurfaceHeader* import_surface) = 0;
+
 };
+
+#define MFX_PROPAGATE_GetSurface_VideoVPP_Definition \
+mfxStatus GetSurface(cache_type& cache, mfxFrameSurface1** output_surf, mfxSurfaceHeader* import_surface) override
+
+#define MFX_PROPAGATE_GetSurface_VideoVPP_Impl(ClassName)                                                               \
+mfxStatus ClassName::GetSurface(cache_type& cache, mfxFrameSurface1** output_surf, mfxSurfaceHeader* import_surface)    \
+{                                                                                                                       \
+    MFX_CHECK_NULL_PTR1(output_surf);                                                                                   \
+    MFX_CHECK(cache, MFX_ERR_NOT_INITIALIZED);                                                                          \
+                                                                                                                        \
+    try                                                                                                                 \
+    {                                                                                                                   \
+        MFX_RETURN(cache->GetSurface(*output_surf, import_surface));                                                    \
+    }                                                                                                                   \
+    catch (...)                                                                                                         \
+    {                                                                                                                   \
+        MFX_RETURN(MFX_ERR_MEMORY_ALLOC);                                                                               \
+    }                                                                                                                   \
+}
 
 #ifdef _MSVC_LANG
 #pragma warning(pop)

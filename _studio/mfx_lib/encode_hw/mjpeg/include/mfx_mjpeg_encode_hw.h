@@ -101,6 +101,9 @@ public:
     {
         MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
+
+    MFX_PROPAGATE_GetSurface_VideoENCODE_Definition;
+
 protected:
     // callbacks to work with scheduler
     static mfxStatus TaskRoutineSubmitFrame(void * state,

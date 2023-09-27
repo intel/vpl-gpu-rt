@@ -2077,7 +2077,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 } // mfxStatus VAAPIVideoCORE_VPL::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 
-mfxStatus VAAPIVideoCORE_VPL::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)
+mfxStatus VAAPIVideoCORE_VPL::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf, mfxSurfaceHeader* import_surface)
 {
     {
         UMC::AutomaticUMCMutex guard(m_guard);
@@ -2086,7 +2086,7 @@ mfxStatus VAAPIVideoCORE_VPL::CreateSurface(mfxU16 type, const mfxFrameInfo& inf
         m_frame_allocator_wrapper.SetDevice(m_p_display_wrapper.get());
     }
 
-    return m_frame_allocator_wrapper.CreateSurface(type, info, surf);
+    return m_frame_allocator_wrapper.CreateSurface(type, info, surf, import_surface);
 }
 
 template class VAAPIVideoCORE_T<CommonCORE_VPL>;

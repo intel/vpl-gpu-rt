@@ -37,6 +37,7 @@
 #include "mfx_error.h"
 
 #include <va/va.h>
+#include <dlfcn.h>
 
 
 #include <cassert>
@@ -771,6 +772,129 @@ inline mfxExtBuffer* GetExtBuffer(mfxExtBuffer** ExtParam, mfxU32 NumExtParam, m
 
     return nullptr;
 }
+using mfx_shared_lib_path_string = std::string;
+
+inline mfxHDL shared_lib_load(const mfx_shared_lib_path_string& shared_lib_file_name)
+{
+
+    if (shared_lib_file_name.empty())
+        return nullptr;
+
+    return dlopen(shared_lib_file_name.c_str(), RTLD_LAZY);
+}
+
+inline mfxHDL shared_lib_get_addr(mfxHDL shared_lib_handle, const std::string & shared_lib_func_name)
+{
+
+    if (!shared_lib_handle)
+        return nullptr;
+
+    return dlsym(shared_lib_handle, shared_lib_func_name.c_str());
+}
+
+inline void shared_lib_free(mfxHDL shared_lib_handle)
+{
+
+    if (!shared_lib_handle)
+        return;
+
+    std::ignore = dlclose(shared_lib_handle);
+}
+
+class mfx_shared_lib_holder
+{
+public:
+
+    mfx_shared_lib_holder(const mfx_shared_lib_path_string& path, const char** functions_to_load, size_t n_functions_to_load)
+        : m_handle(shared_lib_load(path))
+    {
+        MFX_CHECK_WITH_THROW_STS(m_handle, MFX_ERR_INVALID_HANDLE);
+
+        // We can optionally load some functions from shared library
+        if (!n_functions_to_load)
+            return;
+
+        MFX_CHECK_WITH_THROW_STS(functions_to_load, MFX_ERR_INVALID_HANDLE);
+
+        for (size_t idx = 0; idx < n_functions_to_load; ++idx)
+        {
+            mfxHDL loaded_hdl = mfx::shared_lib_get_addr(m_handle, functions_to_load[idx]);
+            MFX_CHECK_WITH_THROW_STS(loaded_hdl, MFX_ERR_INVALID_HANDLE);
+
+            m_loaded_functions[functions_to_load[idx]] = loaded_hdl;
+        }
+    }
+
+    virtual ~mfx_shared_lib_holder()
+    {
+        shared_lib_free(m_handle);
+    }
+
+    mfxHDL get_function_hdl(const std::string& fname)
+    {
+        auto it = m_loaded_functions.find(fname);
+
+        return it != m_loaded_functions.end() ? it->second : nullptr;
+    }
+
+protected:
+    mfxHDL m_handle = nullptr;
+
+    std::map<std::string, mfxHDL> m_loaded_functions;
+
+};
+
+inline mfxU32 GetNumDataPlanesFromFourcc(mfxU32 fourcc)
+{
+
+    switch (fourcc)
+    {
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+    case MFX_FOURCC_RGB565:
+#endif
+    case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_BGR4:
+    case MFX_FOURCC_A2RGB10:
+    case MFX_FOURCC_ARGB16:
+    case MFX_FOURCC_ABGR16:
+    case MFX_FOURCC_R16:
+    case MFX_FOURCC_P8:
+    case MFX_FOURCC_P8_TEXTURE:
+    case MFX_FOURCC_AYUV:
+    case MFX_FOURCC_AYUV_RGB4:
+    case MFX_FOURCC_Y210:
+    case MFX_FOURCC_Y216:
+    case MFX_FOURCC_Y410:
+    case MFX_FOURCC_Y416:
+    case MFX_FOURCC_ABGR16F:
+    case MFX_FOURCC_XYUV:
+        return 1u;
+
+    case MFX_FOURCC_NV12:
+    case MFX_FOURCC_NV16:
+    case MFX_FOURCC_NV21:
+    case MFX_FOURCC_P010:
+    case MFX_FOURCC_P016:
+    case MFX_FOURCC_P210:
+    case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_UYVY:
+        return 2u;
+
+    case MFX_FOURCC_YV12:
+    case MFX_FOURCC_IYUV:
+    case MFX_FOURCC_I010:
+    case MFX_FOURCC_I210:
+    case MFX_FOURCC_I422:
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+#endif
+    case MFX_FOURCC_BGRP:
+        return 3u;
+
+    default:
+        return 0u;
+    }
+}
 
 } //namespace mfx
 
@@ -1258,6 +1382,13 @@ struct surface_cache_controller
         return m_cache.get();
     }
 
+    mfxStatus GetSurface(mfxFrameSurface1*& output_surf, mfxSurfaceHeader* import_surface)
+    {
+        MFX_CHECK(m_cache, MFX_ERR_NOT_INITIALIZED);
+
+        MFX_RETURN(m_cache->GetSurface(output_surf, false, import_surface));
+    }
+
 private:
     unique_ptr_refcountable<CacheType>         m_cache;
 
@@ -1330,5 +1461,32 @@ inline void AlignedFree(void* memory)
     free(memory);
 }
 
+inline bool check_import_flags(size_t flags)
+{
+    switch (flags)
+    {
+    case MFX_SURFACE_FLAG_DEFAULT:
+    case MFX_SURFACE_FLAG_IMPORT_SHARED:
+    case MFX_SURFACE_FLAG_IMPORT_COPY:
+    case (MFX_SURFACE_FLAG_IMPORT_SHARED | MFX_SURFACE_FLAG_IMPORT_COPY):
+        return true;
+    default:
+        return false;
+    }
+}
+
+inline bool check_export_flags(size_t flags)
+{
+    switch (flags)
+    {
+    case MFX_SURFACE_FLAG_DEFAULT:
+    case MFX_SURFACE_FLAG_EXPORT_SHARED:
+    case MFX_SURFACE_FLAG_EXPORT_COPY:
+    case (MFX_SURFACE_FLAG_EXPORT_SHARED | MFX_SURFACE_FLAG_EXPORT_COPY):
+        return true;
+    default:
+        return false;
+    }
+}
 
 #endif // __MFXUTILS_H__

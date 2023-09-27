@@ -21,7 +21,8 @@ add_library(vpp_hw STATIC ${sources})
 
 target_include_directories(vpp_hw
   PUBLIC
-    include)
+    include
+    ${OPENCL_INCLUDE})
 
 target_link_libraries(vpp_hw
   PUBLIC

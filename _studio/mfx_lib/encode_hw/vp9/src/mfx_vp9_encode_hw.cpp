@@ -1159,5 +1159,6 @@ mfxStatus MFXVideoENCODEVP9_HW::UpdateBitstream(
     return MFX_ERR_NONE;
 }
 
+MFX_PROPAGATE_GetSurface_VideoENCODE_Impl(MFXVideoENCODEVP9_HW)
 
 } // MfxHwVP9Encode

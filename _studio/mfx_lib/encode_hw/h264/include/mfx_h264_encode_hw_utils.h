@@ -2985,6 +2985,8 @@ private:
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
+        MFX_PROPAGATE_GetSurface_VideoENCODE_Definition;
+
     protected:
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
         std::unique_ptr<CMC>
@@ -3433,6 +3435,8 @@ private:
         {
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
+
+        MFX_PROPAGATE_GetSurface_VideoENCODE_Definition;
 
     protected:
         ImplementationMvc(ImplementationMvc const &);

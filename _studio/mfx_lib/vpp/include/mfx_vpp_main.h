@@ -102,6 +102,8 @@ public:
 
     mfxStatus ResetTaskCounters();
 
+    MFX_PROPAGATE_GetSurface_VideoVPP_Definition;
+
 private:
 
     VideoCORE* m_core;

@@ -24,6 +24,7 @@
 #include "av1ehw_base.h"
 #include <thread>
 #include <sstream>
+#include "libmfx_core.h"
 
 namespace AV1EHW
 {
@@ -110,5 +111,7 @@ void FeatureBase::Init(
 }
 
 }; //namespace AV1EHW
+
+MFX_PROPAGATE_GetSurface_VideoENCODE_Impl(ImplBase)
 
 #endif

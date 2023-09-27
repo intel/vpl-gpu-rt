@@ -307,6 +307,7 @@ target_include_directories(encode_hw
 
     ${MSDK_UMC_ROOT}/codec/brc/include
     ${MSDK_UMC_ROOT}/codec/color_space_converter/include
+    ${OPENCL_INCLUDE}
 )
 
 target_link_libraries(encode_hw

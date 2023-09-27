@@ -196,7 +196,7 @@ public:
     virtual mfxStatus GetPayload(mfxU64 *pTimeStamp, mfxPayload *pPayload) override;
     virtual mfxStatus SetSkipMode(mfxSkipMode mode) override;
 
-    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface) override;
+    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface) override;
 
 private:
     mfxStatus GetOutputSurface(mfxFrameSurface1 **, mfxFrameSurface1 *, UMC::FrameMemID);

@@ -281,6 +281,8 @@ mfxStatus MFXHWVideoENCODEH264::QueryIOSurf(
     return ImplementationAvc::QueryIOSurf(core, par, request);
 }
 
+MFX_PROPAGATE_GetSurface_VideoENCODE_Impl(MFXHWVideoENCODEH264);
+
 void QpHistory::Add(mfxU32 qp)
 {
     std::copy_n(history, HIST_SIZE - 1, history + 1);
@@ -5215,5 +5217,7 @@ void ImplementationAvc::addPartialOutputOffset(DdiTask & task, mfxU64 offset, bo
     }
 }
 #endif
+
+MFX_PROPAGATE_GetSurface_VideoENCODE_Impl(ImplementationAvc)
 
 #endif // MFX_ENABLE_H264_VIDEO_ENCODE

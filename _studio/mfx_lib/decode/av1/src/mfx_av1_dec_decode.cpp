@@ -1353,11 +1353,11 @@ mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFram
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoDECODEAV1::GetSurface(mfxFrameSurface1* & surface)
+mfxStatus VideoDECODEAV1::GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface)
 {
     MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface(surface);
+    return m_surface_source->GetSurface(surface, import_surface);
 }
 
 #endif

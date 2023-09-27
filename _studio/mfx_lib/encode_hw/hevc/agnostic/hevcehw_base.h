@@ -120,6 +120,9 @@ public:
     {
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
+
+    MFX_PROPAGATE_GetSurface_VideoENCODE_Definition;
+
 };
 
 }; //namespace HEVCEHW

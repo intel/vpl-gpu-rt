@@ -252,7 +252,7 @@ public:
     mfxFrameSurface1 * GetSurface(UMC::FrameMemID index, mfxFrameSurface1 *surface, const mfxVideoParam * videoPar);
     mfxFrameSurface1 * GetInternalSurface(UMC::FrameMemID index);
 
-    mfxStatus GetSurface(mfxFrameSurface1* & surf);
+    mfxStatus GetSurface(mfxFrameSurface1* & surf, mfxSurfaceHeader* import_surface);
     mfxFrameSurface1 * GetInternalSurface(mfxFrameSurface1 *sfc_surf);
 
     mfxFrameSurface1 * GetSurfaceByIndex(UMC::FrameMemID index);
