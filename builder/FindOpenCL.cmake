@@ -18,15 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-set( OPENCL_INCLUDE "${MFX_HOME}/contrib/OCL/include" CACHE STRING "Intel OpenCL SDK headers directory" )
+set( OPENCL_INCLUDE "${MFX_HOME}/contrib/OCL/include" CACHE STRING "OpenCL header files" )
 
-if ( NOT OPENCL_INCLUDE MATCHES NOTFOUND )
-    set ( OPENCL_FOUND TRUE )
-endif()
-
-if ( NOT DEFINED OPENCL_FOUND )
-    message( STATUS "Intel OpenCL SDK was not found. The OpenCL surface sharing will be not available." )
-    set( MFX_ENABLE_SHARING_OPENCL OFF )
-else ()
-    message( STATUS "Intel OpenCL SDK was found here: ${OPENCL_INCLUDE}" )
-endif()
+message( STATUS "OpenCL header files were found here: ${OPENCL_INCLUDE}" )
