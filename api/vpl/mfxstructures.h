@@ -63,16 +63,28 @@ typedef struct {
     mfxU32  FourCC;     /*!< FourCC code of the color format. See the ColorFourCC enumerator for details. */
     union {
         struct { /* Frame parameters */
-            mfxU16  Width;  /*!< Width of the video frame in pixels. Must be a multiple of 16. */
-            mfxU16  Height; /*!< Height of the video frame in pixels. Must be a multiple of 16 for progressive frame sequence and a multiple of 32 otherwise. */
+            /*! Width of the video frame in pixels. Must be a multiple of 16. 
+                In case of fused operation of decode plus VPP it can be set to zero to signalize that scaling operation is not requested. */
+            mfxU16  Width;  
+            /*! Height of the video frame in pixels. Must be a multiple of 16 for progressive frame sequence and a multiple of 32 otherwise. 
+                In case of fused operation of decode plus VPP it can be set to zero to signalize that scaling operation is not requested. */
+            mfxU16  Height; 
 
             /*! @{
              @name ROI
              The region of interest of the frame. Specify the display width and height in mfxVideoParam. */
-            mfxU16  CropX; /*!< X coordinate. */
-            mfxU16  CropY; /*!< Y coordinate. */
-            mfxU16  CropW; /*!< Width in pixels. */
-            mfxU16  CropH; /*!< Height in pixels. */
+            /*! X coordinate.
+                In case of fused operation of decode plus VPP it can be set to zero to signalize that cropping operation is not requested. */
+            mfxU16  CropX; 
+            /*! Y coordinate.
+                In case of fused operation of decode plus VPP it can be set to zero to signalize that cropping operation is not requested. */
+            mfxU16  CropY; 
+            /*! Width in pixels. 
+                In case of fused operation of decode plus VPP it can be set to zero to signalize that cropping operation is not requested. */
+            mfxU16  CropW; 
+            /*! Height in pixels. 
+                In case of fused operation of decode plus VPP it can be set to zero to signalize that cropping operation is not requested. */
+            mfxU16  CropH; 
             /*! @} */
         };
         struct { /* Buffer parameters (for plain formats like P8) */
@@ -4181,6 +4193,7 @@ typedef mfxExtAVCRefLists mfxExtHEVCRefLists;
 typedef mfxExtAvcTemporalLayers mfxExtHEVCTemporalLayers;
 
 typedef mfxExtAVCRefListCtrl mfxExtRefListCtrl;
+typedef mfxExtAVCEncodedFrameInfo mfxExtEncodedFrameInfo;
 
 /* The MirroringType enumerator itemizes mirroring types. */
 enum
