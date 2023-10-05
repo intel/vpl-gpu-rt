@@ -61,9 +61,7 @@ mfxConfig MFX_CDECL MFXCreateConfig(mfxLoader loader);
 
 /*!
    @brief Adds additional filter properties (any fields of the mfxImplDescription structure) to the configuration of the loader object.
-          One mfxConfig properties can hold only single filter property.
           @note Each new call with the same parameter name will overwrite the previously set value. This may invalidate other properties.
-          @note Each new call with another parameter name will delete the previous property and create a new property based on new name's value.
 
    @param[in] config Config handle.
    @param[in] name Name of the parameter (see mfxImplDescription structure and example).
