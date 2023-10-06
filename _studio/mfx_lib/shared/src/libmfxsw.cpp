@@ -38,6 +38,7 @@
 #include "mfx_interface_scheduler.h"
 #include "libmfx_core_interface.h"
 #include "mfx_platform_caps.h"
+#include "mfx_common_int.h"
 
 #include "mfx_unified_decode_logging.h"
 
@@ -820,6 +821,8 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
                 // use adapterNum as VendorImplID, app. supposed just to copy it from mfxImplDescription to mfxInitializationParam
                 impl.VendorImplID = adapterNum;
                 impl.AccelerationMode = core.GetVAType() == MFX_HW_VAAPI ? MFX_ACCEL_MODE_VIA_VAAPI : MFX_ACCEL_MODE_VIA_D3D11;
+                mfxPlatform platform = MakePlatform(core.GetHWType(), (mfxU16)deviceId);
+                impl.Dev.MediaAdapterType = platform.MediaAdapterType;
 
                 impl.AccelerationModeDescription.Version.Version = MFX_STRUCT_VERSION(1, 0);
                 mfx::PODArraysHolder& ah = impl;
