@@ -188,12 +188,24 @@ namespace UMC_AV1_DECODER
         bool DecodingStarted() const
         { return decoding_started; }
         void StartDecoding()
-        { decoding_started = true; }
+        {
+            if (!decoding_started)
+            {
+                decoding_started = true;
+                IncrementReference();
+            }
+        }
 
         bool DecodingCompleted() const
         { return decoding_completed; }
         void CompleteDecoding()
-        { decoding_completed = true; }
+        {
+            if (!decoding_completed)
+            {
+                decoding_completed = true;
+                DecrementReference();
+            }
+        }
 
         bool ShowAsExisting() const
         { return show_as_existing; }
