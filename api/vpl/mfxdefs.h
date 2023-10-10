@@ -148,9 +148,7 @@ typedef void*               mfxHDL;        /*!< Handle type. */
 typedef mfxHDL              mfxMemId;      /*!< Memory ID type. */
 typedef void*               mfxThreadTask; /*!< Thread task type. */
 typedef char                mfxChar;       /*!< UTF-8 byte. */
-#ifdef ONEVPL_EXPERIMENTAL
 typedef unsigned short      mfxFP16;       /*!< Half precision floating point, 16 bit type. */
-#endif
 
 /* MFX structures version info */
 MFX_PACK_BEGIN_USUAL_STRUCT()
@@ -237,9 +235,7 @@ typedef struct {
         mfxI64 I64; /*!< mfxI64 data. */
         mfxF32 F32; /*!< mfxF32 data. */
         mfxF64 F64; /*!< mfxF64 data. */
-#ifdef ONEVPL_EXPERIMENTAL
         mfxFP16 FP16; /*!< mfxFP16 data. */
-#endif
         mfxHDL Ptr; /*!< Pointer. When this points to a string the string must be null terminated. */
     } Data;         /*!< Value data member. */
 } mfxVariant;
