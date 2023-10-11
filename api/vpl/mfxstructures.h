@@ -1033,13 +1033,13 @@ typedef struct {
         This parameter is a mandated input for QueryIOSurf and Init API functions. The output pattern must be specified for DECODE.
         The input pattern must be specified for ENCODE. Both input and output pattern must be specified for VPP. */
     mfxU16  IOPattern;
-    mfxExtBuffer** ExtParam; /*!< The number of extra configuration structures attached to this structure. */
-    mfxU16  NumExtParam;     /*!< Points to an array of pointers to the extra configuration structures. See the ExtendedBufferID enumerator
+    mfxExtBuffer** ExtParam; /*!< Points to an array of pointers to the extra configuration structures. See the ExtendedBufferID enumerator
                                   for a list of extended configurations.
                                   The list of extended buffers should not contain duplicated entries, such as entries of the same type.
                                   If the  mfxVideoParam structure is used to query library capability, then the list of extended buffers attached to the input
                                   and output mfxVideoParam structure should be equal, that is, it should contain the same number of extended
                                   buffers of the same type. */
+    mfxU16  NumExtParam;     /*!< The number of extra configuration structures attached to this structure. */
     mfxU16  reserved2;
 } mfxVideoParam;
 MFX_PACK_END()
