@@ -39,7 +39,7 @@ namespace UMC
         Status MergeEncryptedNalUnit(NalUnit* nalUnit, MediaData* pSource);
         void SetVA(VideoAccelerator* va) { m_va = va; }
     private:
-        VideoAccelerator* m_va;
+        VideoAccelerator* m_va = nullptr;
     };
 
 }
