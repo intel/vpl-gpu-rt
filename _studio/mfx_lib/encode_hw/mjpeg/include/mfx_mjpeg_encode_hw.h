@@ -141,7 +141,7 @@ protected:
     mfxExtJPEGQuantTables    m_checkedJpegQT;
     mfxExtJPEGHuffmanTables  m_checkedJpegHT;
 
-    mfxExtBuffer*            m_pCheckedExt[3];
+    mfxExtBuffer*            m_pCheckedExt[3] = {};
 
     bool                     m_bUseInternalMem;
 };

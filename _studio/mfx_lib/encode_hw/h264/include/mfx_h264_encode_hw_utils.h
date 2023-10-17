@@ -612,8 +612,8 @@ namespace MfxHwH264Encode
         }
 
     private:
-        T      m_arr[N];
-        mfxU32 m_numElem;
+        T      m_arr[N]  = {};
+        mfxU32 m_numElem = 0;
     };
 
     struct BiFrameLocation
@@ -1276,8 +1276,8 @@ namespace MfxHwH264Encode
 
 #ifdef MFX_ENABLE_ENCODE_STATS
         mfxExtEncodeStatsOutput* m_encodeStats;
-        bool                     m_frameLevelQueryEn;
-        bool                     m_blockLevelQueryEn;
+        bool                     m_frameLevelQueryEn = false;
+        bool                     m_blockLevelQueryEn = false;
 #endif
         char   m_FrameName[32];
 
@@ -1454,10 +1454,10 @@ namespace MfxHwH264Encode
     public: // temporary for debugging and dumping
         mfxF64 x[N];
         mfxF64 y[N];
-        mfxU32 windowSize;
-        mfxF64 normX;
-        mfxF64 sumxy;
-        mfxF64 sumxx;
+        mfxU32 windowSize = 0;
+        mfxF64 normX = 0;
+        mfxF64 sumxy = 0;
+        mfxF64 sumxx = 0;
     };
 
     class BrcIface
@@ -1562,7 +1562,7 @@ namespace MfxHwH264Encode
 
     private:
         UMC::H264BRC m_impl;
-        mfxU32 m_lookAhead;
+        mfxU32 m_lookAhead = 0;
     };
 
     class Hrd
@@ -2078,7 +2078,11 @@ public:
 
         sts = InitCtrl(video, &ctrl);
         if (MFX_FAILED(sts))
+        {
+            if (bCreated)
+                MFXVideoENCODE_DestroyEncTools(encTools);
             return 0;
+        }
 
         encTools->GetSupportedConfig(encTools->Context, &supportedConfig,&ctrl);
 
@@ -2107,7 +2111,12 @@ public:
         mfxStatus sts = CreateEncTools(video, encTools, bCreated);
         MFX_CHECK_STS(sts);
         sts = InitCtrl(video, &ctrl);
-        MFX_CHECK_STS(sts);
+        if (MFX_FAILED(sts))
+        {
+            if (bCreated)
+                MFXVideoENCODE_DestroyEncTools(encTools);
+            return sts;
+        }
 
         encTools->GetSupportedConfig(encTools->Context, &supportedConfig,&ctrl);
 
@@ -2496,7 +2505,7 @@ public:
         par.DisplayOrder = dispOrder;
 
         std::vector<mfxExtBuffer*> extParams;
-        mfxEncToolsBRCStatus extSts;
+        mfxEncToolsBRCStatus extSts = {};
         extSts.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_STATUS;
         extSts.Header.BufferSz = sizeof(extSts);
         extParams.push_back((mfxExtBuffer *)&extSts);
@@ -4251,7 +4260,7 @@ private:
         (void)outSize;
 
         uint64_t y = 0, x = 0;
-        for (uint64_t i = 0, pos = 0, size = inSize * inSize; i < inSize; ++i)
+        for (uint64_t i = 0, pos = 0, size = (uint64_t)inSize * (uint64_t)inSize; i < inSize; ++i)
         {
             if (y <= x)
             {
@@ -4297,7 +4306,7 @@ private:
         (void)outSize;
 
         uint64_t y = 0, x = 0;
-        for (uint64_t i = 0, pos = 0, size = inSize * inSize; i < inSize; ++i)
+        for (uint64_t i = 0, pos = 0, size = (uint64_t)inSize * (uint64_t)inSize; i < inSize; ++i)
         {
             if (y <= x)
             {

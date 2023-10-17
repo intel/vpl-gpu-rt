@@ -900,7 +900,11 @@ namespace
 
         if (par.calcParam.numTemporalLayer > 0 || par.calcParam.tempScalabilityMode)
         {
-            mfxU32 maxScale = par.calcParam.scale[par.calcParam.numTemporalLayer - 1];
+            mfxU32 maxScale = 0;
+
+            if (par.calcParam.numTemporalLayer > 0 && par.calcParam.numTemporalLayer <= 8)
+                maxScale = par.calcParam.scale[par.calcParam.numTemporalLayer - 1];
+
             // for tempScalabilityMode number of temporal layers should be changed dynamically w/o IDR insertion
             // to assure this first SPS in bitstream should contain maximum possible log2_max_frame_num_minus4
             if (par.calcParam.tempScalabilityMode)
@@ -1045,8 +1049,8 @@ namespace
             if (extOpt.ViewOutput != MFX_CODINGOPTION_ON) // in case of ViewOutput bitstream should contain one view (not all views)
                 mvcMultiplier = extMvc.NumView ? extMvc.NumView : 1;
         }
-
-        return mfxU32(std::min<size_t>(UINT_MAX, size_t(par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height * mvcMultiplier / (16u * 16u) * maxMBBytes + 999u) / 1000u));
+        mfxU32 frameSize = par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height;
+        return mfxU32(std::min<size_t>(UINT_MAX, size_t(frameSize * mvcMultiplier / (16u * 16u) * maxMBBytes + 999u) / 1000u));
     }
 
     mfxU32 CheckAgreementOfFrameRate(

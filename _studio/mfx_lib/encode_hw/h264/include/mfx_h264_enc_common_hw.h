@@ -656,10 +656,10 @@ namespace MfxHwH264Encode
         mfxEncToolsCtrlExtDevice        m_extDevice;
         mfxEncToolsCtrlExtAllocator     m_extAllocator;
 #endif
-        mfxExtVPPDenoise2               m_extVppHVS;
+        mfxExtVPPDenoise2               m_extVppHVS = {};
 
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
-        mfxExtLplaParam            m_extLowpowerLA;
+        mfxExtLplaParam            m_extLowpowerLA = {};
 #endif
 #if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
         std::vector<mfxExtPpsHeader>  m_extCqmPps;
