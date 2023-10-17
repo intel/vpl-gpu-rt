@@ -1540,8 +1540,7 @@ void General::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         }
 
         mfxStatus sts             = MFX_ERR_NONE;
-        auto&     taskMgrIface    = TaskManager::TMInterface::Get(global);
-        auto&     tm              = taskMgrIface.m_Manager;
+        auto&     tm              = Glob::TaskManager::Get(global).m_tm;
         bool      bNeedCacheFrame = task.BsDataLength > 0 && (IsHiddenFrame(task) || task.DisplayOrder != m_temporalUnitOrder);
         if (bNeedCacheFrame)
         {

@@ -30,12 +30,12 @@ typedef TaskItWrap<DpbFrame, Task::Common::Key> TItWrap;
 
 mfxU32 TaskManager::GetNumTask() const
 {
-    return m_pPar->AsyncDepth + m_pReorder->BufferSize + (m_pPar->AsyncDepth > 1) + TMInterface::Get(*m_pGlob).m_ResourceExtra;
+    return m_pPar->AsyncDepth + m_pReorder->BufferSize + (m_pPar->AsyncDepth > 1) + m_ResourceExtra;
 }
 
 mfxU16 TaskManager::GetBufferSize() const
 {
-    return !m_pPar->mfx.EncodedOrder * (m_pReorder->BufferSize + (m_pPar->AsyncDepth > 1) + TMInterface::Get(*m_pGlob).m_ResourceExtra);
+    return !m_pPar->mfx.EncodedOrder * (m_pReorder->BufferSize + (m_pPar->AsyncDepth > 1) + m_ResourceExtra);
 }
 
 mfxU16 TaskManager::GetMaxParallelSubmits() const
@@ -303,16 +303,17 @@ mfxStatus TaskManager::RunQueueTaskFree(StorageW& task)
 
 void TaskManager::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 {
-    Push(BLK_SetTMInterface
+    Push(BLK_Init
         , [this](StorageRW& strg, StorageRW&) -> mfxStatus
     {
-        TMInterface::GetOrConstruct(strg, ExtTMInterface(*this));
+        Glob::TaskManager::GetOrConstruct(strg, TMRefWrapper(*this));
         return MFX_ERR_NONE;
     });
 }
+
 void TaskManager::InitAlloc(const FeatureBlocks& blocks, TPushIA Push)
 {
-    Push(BLK_Init
+    Push(BLK_InitAlloc
         , [this, &blocks](StorageRW& strg, StorageRW&) -> mfxStatus
         {
             m_pBlocks = &blocks;
@@ -321,6 +322,23 @@ void TaskManager::InitAlloc(const FeatureBlocks& blocks, TPushIA Push)
             m_pReorder = &Glob::Reorder::Get(strg);
 
             return ManagerInit();
+        });
+}
+
+void TaskManager::SubmitTask(const FeatureBlocks& blocks, TPushST Push)
+{
+    Push(BLK_UpdateTask
+        , [this, &blocks](
+            StorageW& global
+            , StorageW& s_task) -> mfxStatus
+        {
+            auto& tm = Glob::TaskManager::Get(global).m_tm;
+            if (tm.UpdateTask)
+            {
+                return tm.UpdateTask(global, &s_task);
+            }
+
+            return MFX_ERR_NONE;
         });
 }
 
@@ -339,51 +357,6 @@ void TaskManager::FrameSubmit(const FeatureBlocks& /*blocks*/, TPushFS Push)
 
             return TaskNew(pCtrl, pSurf, bs);
         });
-}
-
-mfxStatus TaskManager::RunExtraStages(mfxU16 beginStageID, mfxU16 endStageID, StorageW& task)
-{
-    MFX_CHECK(!m_pGlob.isNull(), MFX_ERR_NONE);
-    auto& stages = TMInterface::Get(*m_pGlob).m_AsyncStages;
-    auto itStage = stages.find(beginStageID);
-    auto itEnd   = stages.find(endStageID);
-
-    MFX_CHECK(itStage != stages.end(), MFX_ERR_NONE);
-
-    for (; itStage != itEnd; ++itStage)
-    {
-        MFX_SAFE_CALL(itStage->second(*m_pGlob, task));
-    }
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus TaskManager::TaskPrepare(StorageW& task)
-{
-    RunExtraStages(NextStage(S_NEW), Stage(S_PREPARE), task);
-    return MfxEncodeHW::TaskManager::TaskPrepare(task);
-}
-
-mfxStatus TaskManager::TaskReorder(StorageW& task)
-{
-    MFX_SAFE_CALL(RunExtraStages(NextStage(S_PREPARE), Stage(S_REORDER), task));
-    return MfxEncodeHW::TaskManager::TaskReorder(task);
-}
-
-mfxStatus TaskManager::TaskSubmit(StorageW& task)
-{
-    MFX_SAFE_CALL(RunExtraStages(NextStage(S_REORDER), Stage(S_SUBMIT), task));
-    if (TMInterface::Get(*m_pGlob).UpdateTask)
-    {
-        TMInterface::Get(*m_pGlob).UpdateTask(*m_pGlob, GetTask(Stage(S_SUBMIT)));
-    }
-    return MfxEncodeHW::TaskManager::TaskSubmit(task);
-}
-
-mfxStatus TaskManager::TaskQuery(StorageW& task)
-{
-    MFX_SAFE_CALL(RunExtraStages(NextStage(S_SUBMIT), Stage(S_QUERY), task));
-    return MfxEncodeHW::TaskManager::TaskQuery(task);
 }
 
 void TaskManager::AsyncRoutine(const FeatureBlocks& /*blocks*/, TPushAR Push)

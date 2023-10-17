@@ -234,6 +234,8 @@ mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
 #if defined(MFX_ENABLE_ENCTOOLS)
         Reorder(queue, { FEATURE_PACKER, Packer::BLK_SubmitTask }, { FEATURE_ENCTOOLS, AV1EncTools::BLK_GetFrameCtrl });
 #endif
+
+        queue.splice(queue.begin(), queue, Get(queue, { FEATURE_TASK_MANAGER, TaskManager::BLK_UpdateTask }));
     }
 
     {

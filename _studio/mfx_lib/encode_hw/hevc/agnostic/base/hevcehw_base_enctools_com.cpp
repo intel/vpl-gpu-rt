@@ -396,8 +396,7 @@ void HevcEncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII P
 
             encTools->GetDelayInFrames(encTools->Context, &m_EncToolConfig, &m_EncToolCtrl, &m_maxDelay);
 
-            auto& taskMgrIface = TaskManager::TMInterface::Get(strg);
-            auto& tm = taskMgrIface.Manager;
+            auto& tm = Glob::TaskManager::Get(strg).m_tm;
 
             S_ET_SUBMIT = tm.AddStage(tm.S_NEW);
             S_ET_QUERY = tm.AddStage(S_ET_SUBMIT);
@@ -422,16 +421,13 @@ void HevcEncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII P
         MFX_CHECK(isFeatureEnabled(par), MFX_ERR_NONE);
 
         MFX_CHECK(S_ET_SUBMIT != mfxU16(-1) && S_ET_QUERY != mfxU16(-1), MFX_ERR_NONE);
-        auto& taskMgrIface = TaskManager::TMInterface::Get(global);
-        auto& tm = taskMgrIface.Manager;
+        auto& tm = Glob::TaskManager::Get(global).m_tm;
 
         auto  ETSubmit = [&](
-            TaskManager::ExtTMInterface::TAsyncStage::TExt
+            MfxEncodeHW::TaskManager::TAsyncStage::TExt
             , StorageW& global
             , StorageW& /*s_task*/) -> mfxStatus
         {
-            std::unique_lock<std::mutex> closeGuard(tm.m_closeMtx);
-
             if(tm.m_nRecodeTasks)
             {
                 return MFX_ERR_NONE;
@@ -447,18 +443,16 @@ void HevcEncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII P
         };
 
         auto  ETQuery = [&](
-            TaskManager::ExtTMInterface::TAsyncStage::TExt
+            MfxEncodeHW::TaskManager::TAsyncStage::TExt
             , StorageW&  global
             , StorageW&  s_task) -> mfxStatus
         {
-            std::unique_lock<std::mutex> closeGuard(tm.m_closeMtx);
-            bool       bFlush = !tm.IsInputTask(s_task);
-
             if(tm.m_nRecodeTasks)
             {
                 return MFX_ERR_NONE;
             }
 
+            bool bFlush = !tm.IsInputTask(s_task);
             // Delay For LookAhead Depth
             MFX_CHECK(tm.m_stages.at(tm.Stage(S_ET_QUERY)).size() >= std::max(m_maxDelay,1U)  || bFlush,MFX_ERR_NONE);
 
@@ -472,11 +466,11 @@ void HevcEncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII P
             return MFX_ERR_NONE;
         };
 
-        taskMgrIface.AsyncStages[tm.Stage(S_ET_SUBMIT)].Push(ETSubmit);
-        taskMgrIface.AsyncStages[tm.Stage(S_ET_QUERY)].Push(ETQuery);
+        tm.m_AsyncStages[tm.Stage(S_ET_SUBMIT)].Push(ETSubmit);
+        tm.m_AsyncStages[tm.Stage(S_ET_QUERY)].Push(ETQuery);
 
         // Extend Num of tasks and size of buffer.
-        taskMgrIface.ResourceExtra += (mfxU16)m_maxDelay;
+        tm.m_ResourceExtra += (mfxU16)m_maxDelay;
 
         return MFX_ERR_NONE;
     });

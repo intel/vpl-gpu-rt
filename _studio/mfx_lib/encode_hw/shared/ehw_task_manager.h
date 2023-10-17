@@ -25,6 +25,8 @@
 #include <deque>
 #include <map>
 #include <algorithm>
+
+#include "ehw_utils.h"
 #include "feature_blocks/mfx_feature_blocks_utils.h"
 
 namespace MfxEncodeHW
@@ -54,8 +56,21 @@ namespace MfxEncodeHW
     private:
         std::map<mfxU32, std::deque<CachedBitstream>> m_cachedBitstream  = {};
         std::map<mfxU32, bool>                        m_outputReady      = {};
+        std::mutex                                    m_mtx, m_closeMtx;
+        std::condition_variable                       m_cv;
 
     public:
+
+        class TMRefWrapper
+        {
+        public:
+            TMRefWrapper(TaskManager& tm)
+                : m_tm(tm)
+            {}
+
+            TaskManager& m_tm;
+        };
+
         using TTaskList  = std::list<StorageRW>;
         using TTaskIt    = TTaskList::iterator;
         using TFnGetTask = std::function<TTaskIt(TTaskIt, TTaskIt)>;
@@ -101,17 +116,29 @@ namespace MfxEncodeHW
             StorageW& /*task*/
             , std::function<bool(const mfxStatus&)> /*stopAt*/) = 0;
         virtual mfxStatus RunQueueTaskFree(StorageW& /*task*/) = 0;
-
         virtual mfxStatus ManagerInit();
-        virtual mfxStatus TaskNew(
+
+        mfxStatus TaskNew(
             mfxEncodeCtrl* /*pCtrl*/
             , mfxFrameSurface1* /*pSurf*/
             , mfxBitstream& /*bs*/);
-        virtual mfxStatus TaskPrepare(StorageW& /*task*/);
-        virtual mfxStatus TaskReorder(StorageW& /*task*/);
-        virtual mfxStatus TaskSubmit(StorageW& /*task*/);
-        virtual mfxStatus TaskQuery(StorageW& /*task*/);
+        mfxStatus TaskPrepare(StorageW& task);
+        mfxStatus TaskReorder(StorageW& task);
+        mfxStatus TaskSubmit(StorageW& task);
+        mfxStatus TaskQuery(StorageW& task);
+
+        mfxStatus RunExtraStages(mfxU16 beginStageID, mfxU16 endStageID, StorageW& task);
+        mfxStatus TaskPrepareInner(StorageW& task);
+        mfxStatus TaskReorderInner(StorageW& task);
+        mfxStatus TaskSubmitInner(StorageW& task);
+        mfxStatus TaskQueryInner(StorageW& task);
+
         virtual void CancelTasks();
+
+        using TUpdateTask = CallChain<mfxStatus
+            , StorageW& /*glob*/
+            , StorageW* /*dstTask*/>;
+        TUpdateTask UpdateTask = {};
 
         static constexpr mfxU16 S_NEW      = 0;
         static constexpr mfxU16 S_PREPARE  = 1;
@@ -136,8 +163,13 @@ namespace MfxEncodeHW
         mfxU16                  m_nTasksInExecution  = 0;
         mfxU16                  m_nRecodeTasks       = 0;
         bool                    m_bPostponeQuery     = false;
-        std::mutex              m_mtx, m_closeMtx;
-        std::condition_variable m_cv;
+
+        using TAsyncStage = CallChain<mfxStatus
+            , StorageW& /*glob*/
+            , StorageW& /*task*/>;
+        std::map<mfxU16, TAsyncStage> m_AsyncStages;
+        MfxEncodeHW::Utils::NotNull<StorageW*> m_pGlob;
+        mfxU16 m_ResourceExtra = 0;
 
         mfxU16 AddStage(mfxU16 stageBefore)
         {
@@ -223,5 +255,6 @@ namespace MfxEncodeHW
 
             return size;
         }
+
     };
 }

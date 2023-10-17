@@ -1175,8 +1175,7 @@ void Packer::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
         FH                 tempFh = {};
         tempFh.show_existing_frame = 1;
 
-        auto& taskMgrIface = TaskManager::TMInterface::Get(global);
-        auto& tm = taskMgrIface.m_Manager;
+        auto& tm = Glob::TaskManager::Get(global).m_tm;
         for (const auto& frame : task.FramesToShow)
         {
             mfxU8 tempData[64];

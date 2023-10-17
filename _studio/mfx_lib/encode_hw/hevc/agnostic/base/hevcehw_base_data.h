@@ -27,6 +27,7 @@
 #include "hevcehw_ddi.h"
 #include "ehw_resources_pool.h"
 #include "ehw_device.h"
+#include "ehw_task_manager.h"
 #if defined(MFX_ENABLE_ENCTOOLS_BASE)
 #include "mfxenctools-int.h"
 #endif
@@ -1425,9 +1426,9 @@ namespace Base
         using Defaults            = StorageVar<__LINE__ - _KD, Base::Defaults>;
         using SCCFlags            = StorageVar<__LINE__ - _KD, Base::SCCFlags>;
         using DDIIDSetting        = StorageVar<__LINE__ - _KD, Base::DDIIDSetting>;
+        using TaskManager         = StorageVar<__LINE__ - _KD, MakeStorable<MfxEncodeHW::TaskManager::TMRefWrapper>>;
         static const StorageR::TKey ReservedKey0 = __LINE__ - _KD;
         static const StorageR::TKey BasePackerKey = __LINE__ - _KD;
-        static const StorageR::TKey TaskManagerKey = __LINE__ - _KD;
         static const StorageR::TKey SccSpsKey = __LINE__ - _KD;
         static const StorageR::TKey SccPpsKey = __LINE__ - _KD;
         static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;
