@@ -704,6 +704,12 @@ void General::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         const auto& caps = Glob::EncodeCaps::Get(strg);
         return CheckTCBRC(out, caps);
     });
+
+    Push(BLK_CheckCdfUpdate
+        ,[this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
+    {
+        return CheckCdfUpdate(out);
+    });
 }
 
 static mfxStatus RunQuery1NoCapsQueue(const FeatureBlocks& blocks, const mfxVideoParam& in, StorageRW& strg)
@@ -2938,7 +2944,8 @@ void General::SetDefaults(
         SetDefault(pAuxPar->EnableLoopFilter, MFX_CODINGOPTION_ON);
         SetDefault(pAuxPar->InterpFilter, MFX_AV1_INTERP_EIGHTTAP);
         SetDefault(pAuxPar->DisableCdfUpdate, MFX_CODINGOPTION_OFF);
-        SetDefault(pAuxPar->DisableFrameEndUpdateCdf, MFX_CODINGOPTION_OFF);
+        // DisableFrameEndUpdateCdf has to be ON if DisableCdfUpdate is ON.
+        SetDefault(pAuxPar->DisableFrameEndUpdateCdf, pAuxPar->DisableCdfUpdate);
         SetDefault(pAuxPar->LoopFilter.ModeRefDeltaEnabled, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->LoopFilter.ModeRefDeltaUpdate, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->DisplayFormatSwizzle, MFX_CODINGOPTION_OFF);
@@ -3779,6 +3786,20 @@ mfxStatus General::CheckTCBRC(mfxVideoParam& par, const ENCODE_CAPS_AV1& caps)
     bool isVBR = par.mfx.RateControlMethod  ==  MFX_RATECONTROL_VBR;
     mfxU32 changed = 0;
     changed += SetIf(CO3->LowDelayBRC, !(caps.SupportedRateControlMethods.fields.TCBRCSupport && isVBR), MFX_CODINGOPTION_OFF);
+
+    MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+    return MFX_ERR_NONE;
+}
+
+mfxStatus General::CheckCdfUpdate(mfxVideoParam& par)
+{
+    mfxExtAV1AuxData* auxPar = ExtBuffer::Get(par);
+    MFX_CHECK(auxPar, MFX_ERR_NONE);
+
+    mfxU32 changed = 0;
+    changed += SetIf(auxPar->DisableFrameEndUpdateCdf, 
+                    CO2Flag(auxPar->DisableCdfUpdate) && !CO2Flag(auxPar->DisableFrameEndUpdateCdf), 
+                    MFX_CODINGOPTION_ON);
 
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
     return MFX_ERR_NONE;

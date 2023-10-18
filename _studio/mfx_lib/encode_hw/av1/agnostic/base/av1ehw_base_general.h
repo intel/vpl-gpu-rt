@@ -73,6 +73,7 @@ namespace Base
     DECL_BLOCK(CheckEncodedOrder    )\
     DECL_BLOCK(CheckLevelConstraints)\
     DECL_BLOCK(CheckTCBRC           )\
+    DECL_BLOCK(CheckCdfUpdate       )\
     DECL_BLOCK(Query1NoCaps         )\
     DECL_BLOCK(CheckColorConfig     )\
     DECL_BLOCK(Query1WithCaps       )\
@@ -183,6 +184,7 @@ namespace Base
         mfxStatus CheckAndFixLevel(mfxVideoParam& par);
         mfxStatus CheckLevelConstraints(mfxVideoParam& par, const Defaults::Param& defPar);
         mfxStatus CheckTCBRC(mfxVideoParam& par, const ENCODE_CAPS_AV1& caps);
+        mfxStatus CheckCdfUpdate(mfxVideoParam& par);
 
         void SetDefaults(
             mfxVideoParam& par
