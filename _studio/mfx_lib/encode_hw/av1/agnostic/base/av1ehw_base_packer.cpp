@@ -511,18 +511,11 @@ inline void PackFrameSize(
 }
 
 inline void PackRenderSize(
-    BitstreamWriter& bs,
-    FH const& fh)
+    BitstreamWriter& bs)
 {
     mfxU32 render_and_frame_size_different = 0;
 
     bs.PutBit(render_and_frame_size_different); //render_and_frame_size_different
-
-    if (render_and_frame_size_different == 1)
-    {
-        bs.PutBits(16, fh.RenderWidth - 1); //render_width_minus_1
-        bs.PutBits(16, fh.RenderHeight - 1); //render_height_minus_1
-    }
 }
 
 inline void PackFrameSizeWithRefs(
@@ -535,15 +528,8 @@ inline void PackFrameSizeWithRefs(
     for (mfxI8 ref = 0; ref < REFS_PER_FRAME; ref++)
         bs.PutBit(found_ref); //found_ref
 
-    if (found_ref == 0)
-    {
-        PackFrameSize(bs, sh, fh);
-        PackRenderSize(bs, fh);
-    }
-    else
-    {
-        PackSuperresParams(bs, sh, fh);
-    }
+    PackFrameSize(bs, sh, fh);
+    PackRenderSize(bs);
 }
 
 static void PackFrameRefInfo(BitstreamWriter& bs, SH const& sh, FH const& fh)
@@ -561,7 +547,7 @@ static void PackFrameRefInfo(BitstreamWriter& bs, SH const& sh, FH const& fh)
     else
     {
         PackFrameSize(bs, sh, fh);
-        PackRenderSize(bs, fh);
+        PackRenderSize(bs);
     }
 
     bs.PutBit(fh.allow_high_precision_mv); //allow_high_precision_mv
@@ -894,7 +880,7 @@ inline void PackFrameHeader(
     else
     {
         PackFrameSize(bs, sh, fh);
-        PackRenderSize(bs, fh);
+        PackRenderSize(bs);
         if (fh.allow_screen_content_tools && fh.UpscaledWidth == fh.FrameWidth)
             bs.PutBit(fh.allow_intrabc);
     }

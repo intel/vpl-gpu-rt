@@ -3137,7 +3137,8 @@ void MfxHwH264Encode::Copy(mfxExtMVCSeqDesc & dst, mfxExtMVCSeqDesc const & src)
             dst.OP[i].LevelIdc       = src.OP[i].LevelIdc;
             dst.OP[i].NumViews       = src.OP[i].NumViews;
             dst.OP[i].NumTargetViews = src.OP[i].NumTargetViews;
-            dst.OP[i].TargetViewId   = &dst.ViewId[src.OP[i].TargetViewId - src.ViewId];
+            if (dst.ViewId)
+                dst.OP[i].TargetViewId   = &dst.ViewId[src.OP[i].TargetViewId - src.ViewId];
         }
     }
 

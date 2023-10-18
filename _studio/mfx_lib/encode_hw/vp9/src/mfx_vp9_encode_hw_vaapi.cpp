@@ -630,7 +630,6 @@ VAProfile ConvertGuidToVAAPIProfile(const GUID& guid)
 void HardcodeCaps(ENCODE_CAPS_VP9& caps)
 {
     caps.CodingLimitSet = 1;
-    caps.Color420Only =  1;
 
     caps.Color420Only = 0;
     caps.MaxEncodedBitDepth = 1; //0: 8bit, 1: 8 and 10 bit;
@@ -1189,7 +1188,7 @@ mfxStatus VAAPIEncoder::Execute(
     // Rendering
     //------------------------------------------------------------------
     {
-        MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|ENCODE|VP9|PACKET_START|", "%p|%d", m_vaContextEncode, task.m_taskIdForDriver);
+        MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|ENCODE|VP9|PACKET_START|", "%p|%d", reinterpret_cast<void*>(m_vaContextEncode), task.m_taskIdForDriver);
         vaSts = vaBeginPicture(
             m_vaDisplay,
             m_vaContextEncode,

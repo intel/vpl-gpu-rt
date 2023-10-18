@@ -91,14 +91,14 @@ protected:
     virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
     virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
 
-    VAEncSequenceParameterBufferAV1      m_sps;
-    VAEncPictureParameterBufferAV1       m_pps;
-    VAEncSegMapBufferAV1                 m_segment;
-    std::vector<VAEncTileGroupBufferAV1> m_tile_groups_global;
-    std::vector<VAEncTileGroupBufferAV1> m_tile_groups_task;
-    std::vector<mfxU8>                   m_segment_map;
-    std::list<std::vector<mfxU8>>        m_vaPerSeqMiscData;
-    std::list<std::vector<mfxU8>>        m_vaPerPicMiscData;
+    VAEncSequenceParameterBufferAV1      m_sps                = {};
+    VAEncPictureParameterBufferAV1       m_pps                = {};
+    VAEncSegMapBufferAV1                 m_segment            = {};
+    std::vector<VAEncTileGroupBufferAV1> m_tile_groups_global = {};
+    std::vector<VAEncTileGroupBufferAV1> m_tile_groups_task   = {};
+    std::vector<mfxU8>                   m_segment_map        = {};
+    std::list<std::vector<mfxU8>>        m_vaPerSeqMiscData   = {};
+    std::list<std::vector<mfxU8>>        m_vaPerPicMiscData   = {};
 };
 
 } //Base

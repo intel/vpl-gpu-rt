@@ -865,22 +865,8 @@ public:
         if (par.mvp.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
         {
             const int32_t qp = bs_fh.quantization_params.base_q_idx;
-            int32_t loopFilterLevelFormulaType = 2; // 0 for old formula, 2 for new formula
-            if (loopFilterLevelFormulaType == 2)
-            {
-                levelY = LoopFilterLevelsLuma[qp];
-                levelUV = LoopFilterLevelsChroma[qp];
-            }
-            else
-            {
-                if (qp < 150)
-                    levelY = qp / 6;
-                else
-                    levelY = (int32_t)(qp * 0.38 - 32);
-
-                levelY = std::min(levelY, 63);
-                levelUV = levelY;
-            }
+            levelY = LoopFilterLevelsLuma[qp];
+            levelUV = LoopFilterLevelsChroma[qp];
         }
 
         auto& lp = bs_fh.loop_filter_params;

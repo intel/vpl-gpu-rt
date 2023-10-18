@@ -563,7 +563,7 @@ mfxStatus ImplementationAvc::Query(
         mfxExtEncoderResetOption * extResetOptIn = GetExtBuffer(*in);
         mfxExtEncoderResetOption * extResetOptOut = GetExtBuffer(*out);
 
-        if (extResetOptOut != 0)
+        if (extResetOptOut != 0 && extResetOptIn != 0)
         {
             extResetOptOut->StartNewSequence = extResetOptIn->StartNewSequence;
             if (extResetOptIn->StartNewSequence == MFX_CODINGOPTION_UNKNOWN)
@@ -732,7 +732,7 @@ ImplementationAvc::ImplementationAvc(VideoCORE * core)
     memset(&m_mbqpInfo, 0, sizeof(m_mbqpInfo));
 }
 
-ImplementationAvc::~ImplementationAvc()
+ImplementationAvc::~ImplementationAvc() noexcept
 {
     amtScd.Close();
 #ifdef MFX_ENABLE_EXT
@@ -1260,7 +1260,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         MFX_CHECK(!doPatch, MFX_ERR_INVALID_VIDEO_PARAM);
         m_modePOut = bo->Granularity;
 
-        MFX_CHECK((bo->Granularity >= MFX_PARTIAL_BITSTREAM_NONE && bo->Granularity <= MFX_PARTIAL_BITSTREAM_ANY), MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(bo->Granularity <= MFX_PARTIAL_BITSTREAM_ANY, MFX_ERR_INVALID_VIDEO_PARAM);
 
         if (m_modePOut == MFX_PARTIAL_BITSTREAM_NONE ||
             (m_modePOut == MFX_PARTIAL_BITSTREAM_SLICE && par->mfx.NumSlice < 2)) { //No sense to use PO for 1 slice
@@ -1494,7 +1494,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         m_tmpBsBuf.resize(m_maxBsSize);
 
     const size_t MAX_SEI_SIZE    = 10 * 1024;
-    const size_t MAX_FILLER_SIZE = m_video.mfx.FrameInfo.Width * m_video.mfx.FrameInfo.Height;
+    const size_t MAX_FILLER_SIZE = static_cast<size_t>(m_video.mfx.FrameInfo.Width) * static_cast<size_t>(m_video.mfx.FrameInfo.Height);
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Preallocated Vector Alloc");
         m_sei.Alloc(mfxU32(MAX_SEI_SIZE + MAX_FILLER_SIZE));
@@ -1506,8 +1506,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
     // init slice divider
     bool fieldCoding = (m_video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
-    bool isSliceSizeConformanceEnabled = extOpt2.MaxSliceSize && (IsDriverSliceSizeControlEnabled(m_video, m_caps) ||
-        (SliceDividerType(m_caps.ddi_caps.SliceLevelRateCtrl) == SliceDividerType::ARBITRARY_MB_SLICE && H264ECaps::IsVmeSupported(platform)));
+    bool isSliceSizeConformanceEnabled = extOpt2.MaxSliceSize && IsDriverSliceSizeControlEnabled(m_video, m_caps);
 
     m_sliceDivider = MakeSliceDivider(
         (isSliceSizeConformanceEnabled) ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(m_caps.ddi_caps.SliceStructure),
@@ -1704,8 +1703,7 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
         || ((extOpt2New.IntRefType != extOpt2Old.IntRefType) && (extOpt2New.IntRefType != 0))) // reset slice divider
     {
         bool fieldCoding = (newPar.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
-        bool isSliceSizeConformanceEnabled = extOpt2New.MaxSliceSize && (IsDriverSliceSizeControlEnabled(m_video, m_caps) ||
-            (SliceDividerType(m_caps.ddi_caps.SliceLevelRateCtrl) == SliceDividerType::ARBITRARY_MB_SLICE && H264ECaps::IsVmeSupported(m_core->GetHWType())));
+        bool isSliceSizeConformanceEnabled = extOpt2New.MaxSliceSize && IsDriverSliceSizeControlEnabled(m_video, m_caps);
 
         m_sliceDivider = MakeSliceDivider(
             isSliceSizeConformanceEnabled ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(m_caps.ddi_caps.SliceStructure),
@@ -1890,7 +1888,7 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
         m_isPOut = true;
         m_modePOut = bo->Granularity;
 
-        MFX_CHECK((bo->Granularity >= MFX_PARTIAL_BITSTREAM_NONE && bo->Granularity <= MFX_PARTIAL_BITSTREAM_ANY), MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(bo->Granularity <= MFX_PARTIAL_BITSTREAM_ANY, MFX_ERR_INVALID_VIDEO_PARAM);
 
         if(m_modePOut == MFX_PARTIAL_BITSTREAM_NONE ||
             (m_modePOut == MFX_PARTIAL_BITSTREAM_SLICE && par->mfx.NumSlice < 2)) { //No sense to use PO for 1 slice

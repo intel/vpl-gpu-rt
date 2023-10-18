@@ -421,7 +421,7 @@ namespace MfxHwH264Encode
         static void DestroySurface    (CmDevice * device, void * p);
         static void DestroySurface2DUP(CmDevice * device, void * p);
         static void DestroyBufferUp   (CmDevice * device, void * p);
-        void (*m_cmDestroy)(CmDevice *, void *);
+        void (*m_cmDestroy)(CmDevice *, void *) = 0;
 
         CmDevice *  m_cmDevice = nullptr;
 #endif

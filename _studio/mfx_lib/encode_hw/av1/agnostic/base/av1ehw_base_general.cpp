@@ -1754,7 +1754,7 @@ static void FillSortedFwdBwd(
     using DisplayOrderToDPBIndex = std::map<mfxI32, mfxU8>;
     using Ref = DisplayOrderToDPBIndex::const_reference;
     auto GetIdx = [](Ref ref) {return ref.second; };
-    auto IsBwd = [=](Ref ref) {return ref.first > task.DisplayOrderInGOP; };
+    auto IsBwd = [=](Ref ref) noexcept {return ref.first > task.DisplayOrderInGOP; };
 
     DisplayOrderToDPBIndex uniqueRefs;
     for (mfxU8 refIdx = 0; refIdx < task.DPB.size(); refIdx++)

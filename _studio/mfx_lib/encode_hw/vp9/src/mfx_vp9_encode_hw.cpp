@@ -435,7 +435,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
     MFX_CHECK_STS(sts);
     sts = m_ddi->Register(m_outBitstreams.GetFrameAllocReponse(), D3DDDIFMT_INTELENCODE_BITSTREAMDATA);
     MFX_CHECK_STS(sts);
-    m_maxBsSize = request.Info.Width * request.Info.Height;
+    m_maxBsSize = static_cast<mfxU64>(request.Info.Width) * static_cast<mfxU64>(request.Info.Height);
 
     // allocate and register surfaces for segmentation map
     sts = m_ddi->QueryCompBufferInfo(D3DDDIFMT_INTELENCODE_MBSEGMENTMAP, request, m_video.mfx.FrameInfo.Width, m_video.mfx.FrameInfo.Height);

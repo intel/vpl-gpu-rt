@@ -955,7 +955,7 @@ namespace Base
         if (par.mfx.FrameInfo.FrameRateExtN && par.mfx.FrameInfo.FrameRateExtD)
         {
             // Use type mfxU64 to avoid value overflow with most value precise obtained.
-            mfxU64 targetbps    = TargetKbps(par.mfx) * 1000;
+            mfxU64 targetbps    = mfxU64(TargetKbps(par.mfx)) * 1000;
             avgFrameSizeInBytes = mfxU32(targetbps * par.mfx.FrameInfo.FrameRateExtD / par.mfx.FrameInfo.FrameRateExtN / 8);
         }
 

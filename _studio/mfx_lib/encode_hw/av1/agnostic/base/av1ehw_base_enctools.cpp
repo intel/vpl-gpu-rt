@@ -712,8 +712,7 @@ mfxStatus AV1EncTools::BRCGetCtrl(StorageW& global, StorageW& s_task,
         if (IsOn(m_EncToolConfig.AdaptiveMBQP)) {
             if (task.bCUQPMap) {
                 mfxU8 max_id = *(std::max_element(seg_enctools.SegmentIds, seg_enctools.SegmentIds + seg_enctools.NumSegmentIdAlloc ));
-                mfxU8 min_id = *(std::min_element(seg_enctools.SegmentIds, seg_enctools.SegmentIds + seg_enctools.NumSegmentIdAlloc ));
-                MFX_CHECK(max_id <= 6 && min_id >= 0, MFX_ERR_UNDEFINED_BEHAVIOR);
+                MFX_CHECK(max_id <= 6, MFX_ERR_UNDEFINED_BEHAVIOR);
 
                 // Enctools does not modify segment 7.  So copy segment 7
                 seg_enctools.Segment[7].FeatureEnabled = seg_task.Segment[7].FeatureEnabled;
@@ -995,7 +994,7 @@ void AV1EncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         MFX_CHECK(bEncTools, MFX_ERR_NONE);
         MFX_CHECK(!m_pEncTools, MFX_ERR_NONE);
 
-        mfxEncTools*                encTools = GetEncTools(par);
+        m_pEncTools = GetEncTools(par);
         mfxEncToolsCtrlExtDevice    extBufDevice = {};
         mfxEncToolsCtrlExtAllocator extBufAlloc = {};
         mfxExtBuffer* ExtParam[2] = {};
@@ -1026,16 +1025,26 @@ void AV1EncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         MFX_CHECK_STS(sts);
 
         m_bEncToolsInner = false;
-        if (!(encTools && encTools->Context))
+        if (!(m_pEncTools && m_pEncTools->Context))
         {
-            encTools = MFXVideoENCODE_CreateEncTools(par);
-            m_bEncToolsInner = !!encTools;
+            m_pEncTools = MFXVideoENCODE_CreateEncTools(par);
+            m_bEncToolsInner = !!m_pEncTools;
         }
-        if (encTools)
+
+        m_destroy = [this]()
+        {
+            if (m_bEncToolsInner)
+                MFXVideoENCODE_DestroyEncTools(m_pEncTools);
+            m_bEncToolsInner = false;
+
+            ReleaseSegmentationData();
+        };
+
+        if (m_pEncTools)
         {
             mfxExtEncToolsConfig supportedConfig = {};
 
-            encTools->GetSupportedConfig(encTools->Context, &supportedConfig, &m_EncToolCtrl);
+            m_pEncTools->GetSupportedConfig(m_pEncTools->Context, &supportedConfig, &m_EncToolCtrl);
 
             if (CorrectVideoParams(par, supportedConfig))
                 MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
@@ -1055,27 +1064,25 @@ void AV1EncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
                 m_saliencyMapSupported = false;
             }
 
-            sts = encTools->Init(encTools->Context, &m_EncToolConfig, &m_EncToolCtrl);
+            sts = m_pEncTools->Init(m_pEncTools->Context, &m_EncToolConfig, &m_EncToolCtrl);
             if(m_enablePercEncPrefilter && sts == MFX_ERR_UNSUPPORTED)
             {
                 m_EncToolConfig.SaliencyMapHint = MFX_CODINGOPTION_OFF;
-                sts = encTools->Init(encTools->Context, &m_EncToolConfig, &m_EncToolCtrl);
+                sts = m_pEncTools->Init(m_pEncTools->Context, &m_EncToolConfig, &m_EncToolCtrl);
             }
             MFX_CHECK_STS(sts);
 
             m_saliencyMapSupported = (m_EncToolConfig.SaliencyMapHint == MFX_CODINGOPTION_ON);
 
-            sts = encTools->GetActiveConfig(encTools->Context, &m_EncToolConfig);
+            sts = m_pEncTools->GetActiveConfig(m_pEncTools->Context, &m_EncToolConfig);
             MFX_CHECK_STS(sts);
 
-            encTools->GetDelayInFrames(encTools->Context, &m_EncToolConfig, &m_EncToolCtrl, &m_maxDelay);
+            m_pEncTools->GetDelayInFrames(m_pEncTools->Context, &m_EncToolConfig, &m_EncToolCtrl, &m_maxDelay);
 
             auto& tm = Glob::TaskManager::Get(strg).m_tm;
 
             S_ET_SUBMIT = tm.AddStage(S_NEW);
             S_ET_QUERY = tm.AddStage(S_ET_SUBMIT);
-
-            m_pEncTools = encTools;
 
             if(m_enablePercEncPrefilter)
             {
@@ -1087,15 +1094,6 @@ void AV1EncTools::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
                 m_filteredFrameCache.reset(SurfaceCache::Create(*core, frameType, par.mfx.FrameInfo));
             }
         }
-
-        m_destroy = [this]()
-        {
-            if (m_bEncToolsInner)
-                MFXVideoENCODE_DestroyEncTools(m_pEncTools);
-            m_bEncToolsInner = false;
-
-            ReleaseSegmentationData();
-        };
 
         return MFX_ERR_NONE;
     });

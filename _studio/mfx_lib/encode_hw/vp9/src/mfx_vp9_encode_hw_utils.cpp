@@ -254,7 +254,6 @@ mfxU32 ModifyLoopFilterLevelQPBased(mfxU32 QP, eMFXHWType platform)
         double qnorm3 = qnorm * qnorm2;
         level = mfxI32((20.095 * qnorm3 - 15.371 * qnorm2 + 5.5294 * qnorm - 0.166) * 63 /*MAX_LOOP_FILTER*/ + 0.5);
         level = level < 0 ? 0 : level > 63 ? 63 : level;
-        if (level > 63) level = 63;
         return (mfxU8)level;
     }
     else {
