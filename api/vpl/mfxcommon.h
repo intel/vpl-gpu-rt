@@ -29,7 +29,6 @@ typedef struct {
 } mfxExtBuffer;
 MFX_PACK_END()
 
-#ifdef ONEVPL_EXPERIMENTAL
 
 #define MFX_REFINTERFACE_VERSION MFX_STRUCT_VERSION(1, 0)
 
@@ -87,7 +86,6 @@ typedef struct mfxRefInterface {
 
 }mfxRefInterface;
 MFX_PACK_END()
-#endif
 
 /* Library initialization and deinitialization */
 /*!
@@ -531,7 +529,6 @@ typedef struct {
 } mfxImplementedFunctions;
 MFX_PACK_END()
 
-#ifdef ONEVPL_EXPERIMENTAL
 
 #define MFX_EXTENDEDDEVICEID_VERSION MFX_STRUCT_VERSION(1, 0)
 
@@ -579,7 +576,6 @@ typedef struct {
 } extDeviceUUID;
 MFX_PACK_END()
 
-#endif
 
 /* The mfxImplCapsDeliveryFormat enumerator specifies delivery format of the implementation capability. */
 typedef enum {
