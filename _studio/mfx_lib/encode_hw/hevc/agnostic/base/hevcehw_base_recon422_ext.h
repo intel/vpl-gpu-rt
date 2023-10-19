@@ -40,6 +40,17 @@ public:
     {}
 
 protected:
+    virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override
+    {
+        Push(BLK_HardcodeCaps
+            , [this](const mfxVideoParam&, mfxVideoParam&, StorageRW& strg) -> mfxStatus
+        {
+            auto& caps = HEVCEHW::Base::Glob::EncodeCaps::Get(strg);
+            caps.YUV422ReconSupport = !caps.Color420Only;
+            return MFX_ERR_NONE;
+        });
+    }
+
     virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override
     {
         using Base::Glob;

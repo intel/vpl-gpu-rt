@@ -36,7 +36,9 @@ class Recon422
 public:
 #define DECL_BLOCK_LIST\
         DECL_BLOCK(SetCallChain)\
-        DECL_BLOCK(SetRecon422Caps)
+        DECL_BLOCK(SetRecon422Caps)\
+        DECL_BLOCK(HardcodeCaps)\
+        DECL_BLOCK(HardcodeCapsExt)
 #define DECL_FEATURE_NAME "Base_RECON422"
 #include "hevcehw_decl_blocks.h"
 
