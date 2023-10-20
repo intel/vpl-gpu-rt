@@ -46,27 +46,27 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer Header;
 
-    mfxU8   StillPictureMode;         /* tri-state option */
-    mfxU8   UseAnnexB;                /* tri-state option */
-    mfxU8   PackOBUFrame;             /* tri-state option */
-    mfxU8   InsertTemporalDelimiter;  /* tri-state option */
+    mfxU16  StillPictureMode;         /* tri-state option */
+    mfxU16  UseAnnexB;                /* tri-state option */
+    mfxU16  PackOBUFrame;             /* tri-state option */
+    mfxU16  InsertTemporalDelimiter;  /* tri-state option */
 
-    mfxU8   EnableCdef;               /* tri-state option */
-    mfxU8   EnableRestoration;        /* tri-state option */
+    mfxU16  EnableCdef;               /* tri-state option */
+    mfxU16  EnableRestoration;        /* tri-state option */
 
-    mfxU8   EnableLoopFilter;         /* tri-state option */
+    mfxU16  EnableLoopFilter;         /* tri-state option */
     mfxU8   LoopFilterSharpness;      /* 0..8, 0 = default, map to bitstream: [1..8] => [0..7] */
 
-    mfxU8   EnableSuperres;           /* tri-state option */
+    mfxU16  EnableSuperres;           /* tri-state option */
     mfxU8   SuperresScaleDenominator; /* 9..16, 0 = default */
 
     mfxU8   SegmentationMode;         /* see enum AV1SegmentMode*/
     mfxU8   InterpFilter;             /* see enum AV1InterpolationMode */
 
-    mfxU8   DisableCdfUpdate;         /* tri-state option */
-    mfxU8   DisableFrameEndUpdateCdf; /* tri-state option */
+    mfxU16  DisableCdfUpdate;         /* tri-state option */
+    mfxU16  DisableFrameEndUpdateCdf; /* tri-state option */
 
-    mfxU8   UniformTileSpacing;       /* tri-state option */
+    mfxU16  UniformTileSpacing;       /* tri-state option */
     mfxU8   ContextUpdateTileIdPlus1; /* Minus 1 specifies context_update_tile_id */
 
     mfxU16  SwitchInterval;           /* interval, 0 - disabled */
@@ -106,15 +106,15 @@ typedef struct {
         mfxU8  reserved[25];
     } QP;
 
-    mfxU8  ErrorResilientMode;          /* tri-state option */
-    mfxU8  EnableOrderHint;             /* tri-state option */
+    mfxU16 ErrorResilientMode;          /* tri-state option */
+    mfxU16 EnableOrderHint;             /* tri-state option */
     mfxU8  OrderHintBits;               /* 0..8, 0 = default */
-    mfxU8  DisplayFormatSwizzle;        /* 0, 1 */
+    mfxU16 DisplayFormatSwizzle;        /* tri-state option */
     mfxU16 Palette;                     /* tri-state option */
     mfxU16 IBC;                         /* tri-state option */
     mfxU16 SegmentTemporalUpdate;       /* tri-state option */
 
-    mfxU8  reserved[52];
+    mfxU8  reserved[34];
 } mfxExtAV1AuxData;
 MFX_PACK_END()
 
