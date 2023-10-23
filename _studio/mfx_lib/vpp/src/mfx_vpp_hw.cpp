@@ -1624,6 +1624,7 @@ mfxStatus TaskManager::FillTask(
 
     if( m_mode30i60p.IsEnabled() )
     {
+        MFX_CHECK_NULL_PTR1(pInSurface);
         FillTask_Mode30i60p(
             pTask,
             pInSurface,
@@ -1635,6 +1636,7 @@ mfxStatus TaskManager::FillTask(
     }
     else if(pTask->bAdvGfxEnable)
     {
+        MFX_CHECK_NULL_PTR1(pInSurface);
         FillTask_AdvGfxMode(
             pTask,
             pInSurface,
@@ -3253,7 +3255,7 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
         if (m_executeParams.bEnableMctf)
         {
             // create "Default" MCTF settings.
-            IntMctfParams MctfConfig;
+            IntMctfParams MctfConfig = {};
             CMC::QueryDefaultParams(&MctfConfig);
 
             // create default MCTF control

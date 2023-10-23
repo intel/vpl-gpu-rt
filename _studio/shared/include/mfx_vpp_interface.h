@@ -431,6 +431,7 @@ namespace MfxHwVideoProcessing
 
                    inHDR10MetaData = {};
                    outHDR10MetaData = {};
+                   denoiseStrength = 0;
             };
 
             bool IsDoNothing()
