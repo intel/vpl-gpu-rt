@@ -831,6 +831,15 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
                 ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_UNLIMITED;
                 ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_LIMITED;
 
+                impl.Dev.Version.Version = MFX_STRUCT_VERSION(1, 1);
+                impl.Dev.MediaAdapterType = MFX_MEDIA_UNKNOWN;
+
+                if (auto pCore1_19 = QueryCoreInterface<IVideoCore_API_1_19>(&core, MFXICORE_API_1_19_GUID))
+                {
+                    mfxPlatform platform = {};
+                    if (MFX_ERR_NONE == pCore1_19->QueryPlatform(&platform))
+                        impl.Dev.MediaAdapterType = platform.MediaAdapterType;
+                }
 
                 snprintf(impl.Dev.DeviceID, sizeof(impl.Dev.DeviceID), "%x/%d", deviceId, adapterNum);
                 snprintf(impl.ImplName, sizeof(impl.ImplName), "mfx-gen");
