@@ -2785,6 +2785,11 @@ mfxU16 Legacy::UpdateDPB(
             , [&](const TLCtrlRLE& lt)
         {
             mfxU16 idx = GetDPBIdxByFO(dpb, lt.FrameOrder);
+            if (idx >= MAX_DPB_SIZE)
+            {
+                MFX_STS_TRACE(MFX_ERR_INVALID_VIDEO_PARAM);
+                return static_cast<mfxU16>(MAX_DPB_SIZE);
+            }
             idx += !!dpb[idx].isLTR * MAX_DPB_SIZE;
             return std::min<mfxU16>(idx, MAX_DPB_SIZE);
         });
@@ -4263,7 +4268,7 @@ mfxStatus Legacy::CheckTU(const ENCODE_CAPS_HEVC& caps, mfxU16& tu)
         newtu = tu + (1 - 2 * sign) * abs_diff;
         abs_diff += !sign;
         sign = !sign;
-    } while (!(support & (1 << (newtu - 1))) && newtu > 0);
+    } while (newtu > 0 && !(support & (1 << (newtu - 1))));
 
     if (tu != newtu)
     {

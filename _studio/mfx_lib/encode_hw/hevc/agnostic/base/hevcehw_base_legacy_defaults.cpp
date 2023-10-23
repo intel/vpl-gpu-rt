@@ -1506,6 +1506,11 @@ public:
             if (SliceStructure == POW2ROW)
             {
                 mfxU32 nRowLog2     = mfx::CeilLog2(nRowsPerSlice);
+                if (nRowLog2 > 31)
+                {
+                    MFX_STS_TRACE(MFX_ERR_INVALID_VIDEO_PARAM);
+                    return (mfxU16)nSlice;
+                }
                 mfxU32 nRowsCand[2] = { mfxU32(1 << (nRowLog2 - 1)), mfxU32(1 << nRowLog2) };
                 mfxI32 dC0          = nRowsPerSlice - nRowsCand[0];
                 mfxI32 dC1          = nRowsCand[1] - nRowsPerSlice;
@@ -2472,7 +2477,7 @@ public:
         invalid += (itFourCCPar == FourCCPar.end() && Res2Bool(par.mfx.FrameInfo.FourCC, mfxU32(MFX_FOURCC_NV12)));
 
         itFourCCPar = FourCCPar.find(par.mfx.FrameInfo.FourCC);
-        assert(itFourCCPar != FourCCPar.end());
+        MFX_CHECK(itFourCCPar != FourCCPar.end(), MFX_ERR_INVALID_VIDEO_PARAM);
 
         invalid += CheckOrZero(par.mfx.FrameInfo.ChromaFormat,   mfxU16(itFourCCPar->second[0]));
         invalid += CheckOrZero(par.mfx.FrameInfo.BitDepthLuma,   mfxU16(itFourCCPar->second[1]), 0);

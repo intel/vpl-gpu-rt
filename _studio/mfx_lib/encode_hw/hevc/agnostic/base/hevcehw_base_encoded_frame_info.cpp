@@ -92,6 +92,7 @@ void EncodedFrameInfo::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         auto GetUsedRef = [&](mfxU8 idx)
         {
             TUsedRef dst = {};
+            if (idx % 16 == 15) return dst;
             auto& src = task.DPB.Active[idx % 16];
 
             dst.FrameOrder  = src.DisplayOrder;

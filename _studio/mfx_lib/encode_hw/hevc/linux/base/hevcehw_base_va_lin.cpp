@@ -481,7 +481,7 @@ void DDI_VA::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
         MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS
             , "A|ENCODE|AVC|PACKET_START|", "%p|%d"
-            , m_vaContextEncode, task.StatusReportId);
+            , reinterpret_cast<void*>(m_vaContextEncode), task.StatusReportId);
 
         sts = BeginPicture(task.HDLRaw.first);
         MFX_CHECK_STS(sts);

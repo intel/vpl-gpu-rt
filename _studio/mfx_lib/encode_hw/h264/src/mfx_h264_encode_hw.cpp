@@ -450,7 +450,7 @@ mfxStatus ImplementationAvc::Query(
 #ifdef MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT
         if(mfxExtPartialBitstreamParam* po = GetExtBuffer(*out))
         {
-            if(po->Granularity < MFX_PARTIAL_BITSTREAM_NONE || po->Granularity > MFX_PARTIAL_BITSTREAM_ANY) {
+            if(po->Granularity > MFX_PARTIAL_BITSTREAM_ANY) {
                 checkSts = MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
             }
 
@@ -1493,11 +1493,11 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     if (isBitstreamUpdateRequired(m_video, m_caps, m_currentPlatform))
         m_tmpBsBuf.resize(m_maxBsSize);
 
-    const size_t MAX_SEI_SIZE    = 10 * 1024;
-    const size_t MAX_FILLER_SIZE = static_cast<size_t>(m_video.mfx.FrameInfo.Width) * static_cast<size_t>(m_video.mfx.FrameInfo.Height);
+    const mfxU32 MAX_SEI_SIZE    = 10 * 1024;
+    const mfxU32 MAX_FILLER_SIZE = static_cast<mfxU32>(m_video.mfx.FrameInfo.Width) * static_cast<mfxU32>(m_video.mfx.FrameInfo.Height);
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Preallocated Vector Alloc");
-        m_sei.Alloc(mfxU32(MAX_SEI_SIZE + MAX_FILLER_SIZE));
+        m_sei.Alloc(MAX_SEI_SIZE + MAX_FILLER_SIZE);
     }
 
     #ifndef MFX_ENABLE_H264_REPARTITION_CHECK
