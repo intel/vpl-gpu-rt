@@ -1624,7 +1624,6 @@ mfxStatus TaskManager::FillTask(
 
     if( m_mode30i60p.IsEnabled() )
     {
-        MFX_CHECK_NULL_PTR1(pInSurface);
         FillTask_Mode30i60p(
             pTask,
             pInSurface,
@@ -1636,7 +1635,6 @@ mfxStatus TaskManager::FillTask(
     }
     else if(pTask->bAdvGfxEnable)
     {
-        MFX_CHECK_NULL_PTR1(pInSurface);
         FillTask_AdvGfxMode(
             pTask,
             pInSurface,
@@ -1661,7 +1659,7 @@ mfxStatus TaskManager::FillTask(
     }
 
     m_actualNumber += 1; // make sense for simple mode only
-
+    MFX_CHECK_NULL_PTR1(pTask->input.pSurf);
     mfxStatus sts = m_core->IncreaseReference(*pTask->input.pSurf);
     MFX_CHECK_STS(sts);
 
@@ -2803,7 +2801,7 @@ mfxStatus  VideoVPPHW::Init(
             }
 
             // create "Default" MCTF settings.
-            IntMctfParams MctfConfig;
+            IntMctfParams MctfConfig = {};
             CMC::QueryDefaultParams(&MctfConfig);
 
             // create default MCTF control
