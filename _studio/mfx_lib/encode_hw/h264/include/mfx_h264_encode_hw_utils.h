@@ -1253,7 +1253,7 @@ namespace MfxHwH264Encode
 
         ArrayRoi        m_roi;
         mfxU16          m_numRoi;
-        mfxI8           m_NonRectROIDeltaQpList[16];
+        mfxI8           m_NonRectROIDeltaQpList[16] = {};
         mfxU8           m_NumDeltaQpForNonRectROI;
         mfxU16          m_roiMode;
         ArrayRect       m_dirtyRect;
@@ -3268,8 +3268,8 @@ private:
         mfxI32      m_RefQp;
         mfxI32      m_RefOrder;
 #ifdef MFX_ENABLE_ENCODE_STATS
-        bool        m_frameLevelQueryEn;
-        bool        m_blockLevelQueryEn;
+        bool        m_frameLevelQueryEn = false;
+        bool        m_blockLevelQueryEn = false;
 #endif
     };
 
