@@ -428,13 +428,13 @@ typedef struct {
     { 0x4C9A, MFX_HW_RKL, MFX_GT1 }, // RKL-S
 
     /* ADL-S */
-    { 0x4600, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4680, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4681, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4682, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4683, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4688, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x468A, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x468B, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4690, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4691, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4692, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
