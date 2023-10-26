@@ -1234,7 +1234,7 @@ void General::FrameSubmit(const FeatureBlocks& blocks, TPushFS Push)
             const mfxEncodeCtrl* /*pCtrl*/
             , const mfxFrameSurface1* pSurf
             , mfxBitstream& /*bs*/
-            , StorageW& global
+            , StorageRW& global
             , StorageRW& /*local*/) -> mfxStatus
     {
         MFX_CHECK(pSurf, MFX_ERR_NONE);
@@ -1252,7 +1252,7 @@ void General::FrameSubmit(const FeatureBlocks& blocks, TPushFS Push)
             const mfxEncodeCtrl* /*pCtrl*/
             , const mfxFrameSurface1* /*pSurf*/
             , mfxBitstream& bs
-            , StorageW& global
+            , StorageRW& global
             , StorageRW& local) -> mfxStatus
     {
         auto& par = Glob::VideoParam::Get(global);

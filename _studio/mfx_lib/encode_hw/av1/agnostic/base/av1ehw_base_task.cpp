@@ -349,7 +349,7 @@ void TaskManager::FrameSubmit(const FeatureBlocks& /*blocks*/, TPushFS Push)
             mfxEncodeCtrl* pCtrl
             , mfxFrameSurface1* pSurf
             , mfxBitstream& bs
-            , StorageW& global
+            , StorageRW& global
             , StorageRW& local) -> mfxStatus
         {
             m_pGlob = &global;
