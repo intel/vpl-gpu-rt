@@ -148,13 +148,10 @@ static mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
             const mfxFrameInfo& frame_info = input_pool ? par.vpp.In : par.vpp.Out;
 
             std::unique_ptr<SurfaceCache> scoped_cache_ptr(SurfaceCache::Create(*base_core_vpl, memory_type, frame_info));
-
             using cache_controller = surface_cache_controller<SurfaceCache>;
             using TCachePtr = std::remove_reference<decltype(pCache)>::type;
 
-            pCache = TCachePtr(new cache_controller(scoped_cache_ptr.get(), ComponentType::VPP, pool_type), std::default_delete<cache_controller>());
-
-            scoped_cache_ptr.release();
+            pCache = TCachePtr(new cache_controller(scoped_cache_ptr.release(), ComponentType::VPP, pool_type), std::default_delete<cache_controller>());
         }
 
         // Setup cache limits
