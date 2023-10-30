@@ -1506,7 +1506,7 @@ public:
             if (SliceStructure == POW2ROW)
             {
                 mfxU32 nRowLog2     = mfx::CeilLog2(nRowsPerSlice);
-                if (nRowLog2 > 31)
+                if (nRowLog2 > 31 || nRowLog2 == 0)
                 {
                     MFX_STS_TRACE(MFX_ERR_INVALID_VIDEO_PARAM);
                     return (mfxU16)nSlice;

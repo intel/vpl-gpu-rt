@@ -3330,12 +3330,10 @@ mfxStatus Legacy::CheckSPS(const SPS& sps, const ENCODE_CAPS_HEVC& caps, eMFXHWT
       !(   caps.MaxEncodedBitDepth == 3
         && ( !(sps.bit_depth_luma_minus8 == 0
             || sps.bit_depth_luma_minus8 == 2
-            || sps.bit_depth_luma_minus8 == 4
-            || sps.bit_depth_luma_minus8 == 8)
+            || sps.bit_depth_luma_minus8 == 4)
           || !(sps.bit_depth_chroma_minus8 == 0
             || sps.bit_depth_chroma_minus8 == 2
-            || sps.bit_depth_chroma_minus8 == 4
-            || sps.bit_depth_chroma_minus8 == 8))));
+            || sps.bit_depth_chroma_minus8 == 4))));
 
     return MFX_ERR_NONE;
 }
