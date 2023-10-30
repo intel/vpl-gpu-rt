@@ -673,13 +673,6 @@ UMC::Status H265Slice::UpdateReferenceList(H265DBPList *pDecoderFrameList, H265D
             pFrm->SetisLongTermRef(true);
             RefPicSetLtCurr[NumPicLtCurr] = pFrm;
             NumPicLtCurr++;
-            if (!pFrm)
-            {
-                /* Reporting about missed reference */
-                m_pCurrentFrame->SetErrorFlagged(UMC::ERROR_FRAME_REFERENCE_FRAME);
-                /* And because frame can not be decoded properly set flag "ERROR_FRAME_MAJOR" too*/
-                m_pCurrentFrame->SetErrorFlagged(UMC::ERROR_FRAME_MAJOR);
-            }
         }
         // pFrm->setCheckLTMSBPresent(getRPS()->getCheckLTMSBPresent(i));
     }
