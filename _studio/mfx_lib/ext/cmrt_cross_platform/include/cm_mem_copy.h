@@ -193,9 +193,9 @@ public:
         if (this != &other)
         {
             DestroyBuffer();
+            pIndex = other.pIndex;
 
             static_cast<CmSurfBufferBase&>(*this) = std::move(static_cast<CmSurfBufferBase&>(other));
-            pIndex = other.pIndex;
 
             other.pIndex = nullptr;
         }

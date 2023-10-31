@@ -150,7 +150,7 @@ mfxStatus VideoDECODEVP9_HW::CleanRefList()
 {
     for (mfxI32 ref_index = 0; ref_index < NUM_REF_FRAMES; ++ref_index)
     {
-        if (m_frameInfo.ref_frame_map[ref_index] >= 0)
+        if (m_frameInfo.ref_frame_map[ref_index] >= 0 && m_surface_source)
             MFX_CHECK((m_surface_source->DecreaseReference(m_frameInfo.ref_frame_map[ref_index]) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
 
         m_frameInfo.ref_frame_map[ref_index] = -1;
@@ -227,12 +227,18 @@ public:
         }
         catch (vp9_exception const& e)
         {
-            m_submittedFrames.shrink_to_fit();
-            m_submittedFrames.clear();
             assert(0);
         }
-        m_submittedFrames.shrink_to_fit();
-        m_submittedFrames.clear();
+
+        try
+        {
+            m_submittedFrames.shrink_to_fit();
+            m_submittedFrames.clear();
+        }
+        catch(...)
+        {
+            assert(0);
+        }
     }
 
     void Add(UMC_VP9_DECODER::VP9DecoderFrame & frame)
@@ -264,10 +270,10 @@ public:
         if (find_it != m_submittedFrames.end())
         {
             find_it->isDecoded = true;
-        }
 
-        TRACE_EVENT(MFX_TRACE_API_VP9_DISPLAYINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
-            find_it->currFrame, (uint32_t)find_it->isDecoded));
+            TRACE_EVENT(MFX_TRACE_API_VP9_DISPLAYINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
+                find_it->currFrame, (uint32_t)find_it->isDecoded));
+        }
     }
 
     void CompleteFrames()
