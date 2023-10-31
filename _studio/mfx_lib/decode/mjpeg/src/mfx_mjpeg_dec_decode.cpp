@@ -462,7 +462,7 @@ mfxStatus VideoDECODEMJPEG::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxV
     UMC::Status umcRes = decoder.Init(&umcVideoParams);
     MFX_CHECK_INIT(umcRes == UMC::UMC_OK);
 
-    mfxExtBuffer* extbuf = (bs) ? GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
+    mfxExtBuffer* extbuf = GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT);
 
     if (extbuf)
     {

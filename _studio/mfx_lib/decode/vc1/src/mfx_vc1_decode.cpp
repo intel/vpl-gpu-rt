@@ -540,8 +540,6 @@ mfxStatus MFXVideoDECODEVC1::GetVideoParam(mfxVideoParam *par)
     MFX_CHECK(m_bIsDecInit, MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK_NULL_PTR1(par);
 
-    mfxStatus       MFXSts = MFX_ERR_NONE;
-
     par->mfx = m_par.mfx;
     par->Protected = m_par.Protected;
     par->IOPattern = m_par.IOPattern;
@@ -562,8 +560,8 @@ mfxStatus MFXVideoDECODEVC1::GetVideoParam(mfxVideoParam *par)
         std::copy(std::begin(m_RawSeq), std::end(m_RawSeq), pSPS->SPSBuffer);
         pSPS->SPSBufSize = (mfxU16)m_RawSeq.size();
     }
-    MFX_CHECK(MFXSts < MFX_ERR_NONE, MFXSts);
-    return MFXSts;
+
+    return MFX_ERR_NONE;
 }
 
 mfxStatus MFXVideoDECODEVC1::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_disp)
@@ -1792,10 +1790,10 @@ mfxStatus MFXVideoDECODEVC1::RunThread(mfxFrameSurface1 *surface_work,
             {
                 sts = GetStatusReport();
             }
-
-            MFX_CHECK_STS(sts);
             if (MFX_TASK_BUSY == sts)
                 return sts;
+
+            MFX_CHECK_STS(sts);
         }
 
         UMC::AutomaticUMCMutex guard(m_guard);
@@ -1902,7 +1900,7 @@ mfxStatus MFXVideoDECODEVC1::GetStatusReport()
 
     UMC::VC1FrameDescriptor *pCurrDescriptor = m_pVC1VideoDecoder->m_pStore->GetFirstDS();
 
-    if (pCurrDescriptor)
+    if (pCurrDescriptor && va)
     {
         Status sts = va->SyncTask(pCurrDescriptor->m_pContext->m_frmBuff.m_iCurrIndex);
         if (sts != UMC::UMC_OK)

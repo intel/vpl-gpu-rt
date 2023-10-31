@@ -651,8 +651,6 @@ Status MJPEGVideoDecoderMFX_HW::SyntaxErrorConcealment(uint8_t* buffersForUpdate
 // Linux/Android version
 Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PARAMETER* obtainedScanParams, uint8_t* buffersForUpdate)
 {
-    uint32_t bitstreamTile = 0;
-
     /////////////////////////////////////////////////////////////////////////////////////////
     if((*buffersForUpdate & 1) != 0)
     {
@@ -855,15 +853,6 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
                 return UMC_ERR_INVALID_STREAM;
             std::copy(ptr + obtainedScanParams->DataOffset, ptr + obtainedScanParams->DataOffset + obtainedScanParams->DataLength, bistreamData);
         }        
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////
-    while(bitstreamTile != 0)
-    {
-        UMCVACompBuffer* compBufBs;
-        uint8_t *bistreamData = (uint8_t *)m_va->GetCompBuffer(VASliceDataBufferType, &compBufBs, bitstreamTile);
-        MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset + obtainedScanParams->DataLength - bitstreamTile, bitstreamTile);
-        bitstreamTile = 0;
     }
 
     return UMC_OK;

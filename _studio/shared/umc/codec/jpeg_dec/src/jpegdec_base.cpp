@@ -119,6 +119,8 @@ void CJPEGDecoderBase::Reset(void)
   m_nblock                 = 0;
 
   m_stream_in.Close();
+  m_pDecodeErrorReport     = nullptr;
+
   return;
 } // CJPEGDecoderBase::Reset(void)
 
@@ -558,9 +560,6 @@ JERRCODE CJPEGDecoderBase::ParseAPP0(void)
       return jerr;
 
     len -= 1;
-
-    if(len == 7) // old MJPEG AVI
-      len -= 7;
 
     if(len == 9) // ODML MJPEG AVI
     {
