@@ -63,6 +63,10 @@ namespace CommonCaps {
         return (platform < MFX_HW_MTL);
     }
 
+    inline bool IsLastLookaheadWindowSupported(eMFXHWType platform)
+    {
+        return (platform >= MFX_HW_DG2);
+    }
 }
 
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE
