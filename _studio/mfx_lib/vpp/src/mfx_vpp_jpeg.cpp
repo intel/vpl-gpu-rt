@@ -278,10 +278,10 @@ mfxStatus VideoVppJpeg::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface,
     m_pExecuteSurface.frameInfo = pInputSurface->Info;
 
     // prepare the primary video sample
-    m_pExecuteSurface.startTimeStamp = m_taskId * CURRENT_TIME_STAMP;
-    m_pExecuteSurface.endTimeStamp  = m_taskId * CURRENT_TIME_STAMP + FRAME_INTERVAL;
+    m_pExecuteSurface.startTimeStamp = (mfxU64)m_taskId * CURRENT_TIME_STAMP;
+    m_pExecuteSurface.endTimeStamp  = (mfxU64)m_taskId * CURRENT_TIME_STAMP + FRAME_INTERVAL;
     
-    m_executeParams.targetTimeStamp = m_taskId * CURRENT_TIME_STAMP;
+    m_executeParams.targetTimeStamp = (mfxU64)m_taskId * CURRENT_TIME_STAMP;
 
     m_executeParams.targetSurface.memId = pOutputSurface->Data.MemId;
     m_executeParams.targetSurface.hdl = static_cast<mfxHDLPair>(out);

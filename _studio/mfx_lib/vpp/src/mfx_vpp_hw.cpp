@@ -968,7 +968,7 @@ mfxStatus ResMngr::FillTaskForMode30i60p(
 
     // MARKER: last frame in current Task Slot
     // after resource are filled we can update generall container and state
-    if( m_outputIndex == 0 )
+    if( m_outputIndex == 0 && m_pSubResource)
     {
         size_t numFramesToRemove = m_pSubResource->surfaceListForRelease.size();
 
@@ -1105,7 +1105,7 @@ mfxStatus ResMngr::FillTask(
 
     // MARKER: last frame in current Task Slot
     // after resource are filled we can update generall container and state
-    if( m_outputIndex == 0 )
+    if( m_outputIndex == 0 && m_pSubResource)
     {
         size_t numFramesToRemove = m_pSubResource->surfaceListForRelease.size();
 
@@ -2884,7 +2884,7 @@ mfxStatus VideoVPPHW::InitMCTF(const mfxFrameInfo& info, const IntMctfParams& Mc
         m_MctfMfxAlocResponse.mids = &(m_MctfMids[0]);
 
         if (D3D_TO_SYS == m_ioMode || SYS_TO_SYS == m_ioMode) // [OUT == SYSTEM_MEMORY]
-            sts = m_pCore->AllocFrames(&request, &m_MctfMfxAlocResponse, false);
+            sts = m_pCore->AllocFrames(&request, &m_MctfMfxAlocResponse, true);
         else
             sts = m_pCore->AllocFrames(&request, &m_MctfMfxAlocResponse, false);
 
@@ -5642,7 +5642,7 @@ template <class T> void add_unique_fragments(const cRect<T> &r, std::vector< cRe
     stack.push_back(r);
 
     while(!stack.empty()) {
-        cRect<T> &cr = stack.back();
+        cRect<T> cr = stack.back();
 
         if(cr.m_frag_lvl == frag_cnt) {
             stack.pop_back();
@@ -5654,7 +5654,7 @@ template <class T> void add_unique_fragments(const cRect<T> &r, std::vector< cRe
                 fragment(cr, cf, stack);
             }
             else {
-                cr.m_frag_lvl++;
+                stack.back().m_frag_lvl++;
             }
         }
     }
@@ -5683,7 +5683,7 @@ mfxU64 make_back_color_yuv(mfxU16 bit_depth, mfxU16 Y, mfxU16 U, mfxU16 V)
     assert(bit_depth);
 
     mfxU64 const shift = bit_depth - 8;
-    mfxU64 const max_val = (1 << bit_depth) - 1;
+    mfxU64 const max_val = ((mfxU64)1 << bit_depth) - 1;
 
     return
         ((mfxU64) max_val << 48) |
@@ -5695,7 +5695,7 @@ mfxU64 make_back_color_yuv(mfxU16 bit_depth, mfxU16 Y, mfxU16 U, mfxU16 V)
 inline
 mfxU64 make_back_color_argb(mfxU16 bit_depth, mfxU16 R, mfxU16 G, mfxU16 B)
 {
-    mfxU64 const max_val = (1 << bit_depth) - 1;
+    mfxU64 const max_val = ((mfxU64)1 << bit_depth) - 1;
 
     return ((mfxU64)max_val << 48) |
         (mfx::clamp<mfxU64>(R, 0, max_val) << 32) |
