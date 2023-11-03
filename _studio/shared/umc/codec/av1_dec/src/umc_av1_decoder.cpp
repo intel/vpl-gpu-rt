@@ -38,6 +38,7 @@ namespace UMC_AV1_DECODER
     AV1Decoder::AV1Decoder()
         : allocator(nullptr)
         , sequence_header(nullptr)
+        , old_seqHdr(nullptr)
         , counter(0)
         , Curr(nullptr)
         , Curr_temp(nullptr)
@@ -64,6 +65,10 @@ namespace UMC_AV1_DECODER
             std::default_delete<AV1DecoderFrame>()
         );
         outputed_frames.clear();
+
+        // release unique_ptr resource
+        sequence_header.reset();
+        old_seqHdr.reset();
     }
 
     inline bool CheckOBUType(AV1_OBU_TYPE type)
@@ -93,7 +98,7 @@ namespace UMC_AV1_DECODER
             return MFX_LEVEL_UNKNOWN;
     }
 
-    static bool IsNeedSPSInvalidate(const SequenceHeader *old_sps, const SequenceHeader *new_sps)
+    static bool IsNeedSPSInvalidate(SequenceHeader *old_sps, const SequenceHeader *new_sps)
     {
         if (!old_sps || !new_sps)
         {
@@ -103,16 +108,20 @@ namespace UMC_AV1_DECODER
         if ((old_sps->max_frame_width != new_sps->max_frame_width) ||
             (old_sps->max_frame_height != new_sps->max_frame_height))
         {
+            old_sps->max_frame_width = new_sps->max_frame_width;
+            old_sps->max_frame_height = new_sps->max_frame_height;
             return true;
         }
 
         if (old_sps->seq_profile != new_sps->seq_profile)
         {
+            old_sps->seq_profile = new_sps->seq_profile;
             return true;
         }
 
         if (old_sps->film_grain_param_present != new_sps->film_grain_param_present)
         {
+            old_sps->film_grain_param_present = new_sps->film_grain_param_present;
             return true;
         }
 
@@ -185,6 +194,18 @@ namespace UMC_AV1_DECODER
         params = *dp;
         frame_order = 0;
         return SetParams(vp);
+    }
+
+    UMC::Status AV1Decoder::Update_drc(SequenceHeader* seq)
+    {
+        if (!seq)
+            return UMC::UMC_ERR_NULL_PTR;
+
+        params.info.clip_info.height = seq->max_frame_height;
+        params.info.clip_info.width = seq->max_frame_width;
+        params.info.disp_clip_info = params.info.clip_info;
+        m_ClipInfo = params.info;
+        return UMC::UMC_OK;
     }
 
     UMC::Status AV1Decoder::GetInfo(UMC::BaseCodecParams* info)
@@ -653,15 +674,20 @@ namespace UMC_AV1_DECODER
                     *sequence_header = SequenceHeader{};
                     bs.ReadSequenceHeader(*sequence_header);
 
-                    SequenceHeader const *old_seqHdr = nullptr;
-                    if (pPrevFrame)
+                    if (!old_seqHdr && pPrevFrame)
                     {
-                        old_seqHdr= &pPrevFrame->GetSeqHeader();
+                        old_seqHdr.reset(new SequenceHeader());
+                        auto prev_seqHdr = &pPrevFrame->GetSeqHeader();
+                        old_seqHdr->max_frame_width = prev_seqHdr->max_frame_width;
+                        old_seqHdr->max_frame_height = prev_seqHdr->max_frame_height;
+                        old_seqHdr->seq_profile = prev_seqHdr->seq_profile;
+                        old_seqHdr->film_grain_param_present = prev_seqHdr->film_grain_param_present;
                     }
 
                     // check if sequence header has been changed
-                    if (IsNeedSPSInvalidate(old_seqHdr, sequence_header.get()))
+                    if (IsNeedSPSInvalidate(old_seqHdr.get(), sequence_header.get()))
                     {
+                        Update_drc(sequence_header.get());
                         // new resolution required
                         return UMC::UMC_NTF_NEW_RESOLUTION;
                     }

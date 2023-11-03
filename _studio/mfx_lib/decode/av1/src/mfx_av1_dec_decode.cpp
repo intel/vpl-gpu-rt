@@ -987,10 +987,11 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
                  UMC_AV1_DECODER::AV1DecoderParams vp;
                  umcRes = m_decoder->GetInfo(&vp);
                  FillVideoParam(&vp, &m_video_par);
-                 if (m_video_par.mfx.FrameInfo.Width != surface_work->Info.Width ||
-                     m_video_par.mfx.FrameInfo.Height != surface_work->Info.Height)
+                 if (surface_work &&
+                     (m_video_par.mfx.FrameInfo.Width >= surface_work->Info.Width ||
+                      m_video_par.mfx.FrameInfo.Height >= surface_work->Info.Height))
                  {
-                     MFX_RETURN(MFX_ERR_REALLOC_SURFACE);
+                     MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
                  }
                  m_video_par.AsyncDepth = static_cast<mfxU16>(vp.async_depth);
             }

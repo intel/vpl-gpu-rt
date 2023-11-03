@@ -111,6 +111,7 @@ namespace UMC_AV1_DECODER
 
         /* UMC::BaseCodec interface */
         UMC::Status Init(UMC::BaseCodecParams*) override;
+        UMC::Status Update_drc(SequenceHeader* seq);
         UMC::Status GetFrame(UMC::MediaData* in, UMC::MediaData* out) override;
 
         virtual UMC::Status Reset() override
@@ -186,6 +187,8 @@ namespace UMC_AV1_DECODER
         UMC::FrameAllocator*            allocator;
 
         std::unique_ptr<SequenceHeader> sequence_header;
+        std::unique_ptr<SequenceHeader> old_seqHdr;
+
         DPBType                         dpb;     // store of decoded frames
 
         uint32_t                        counter;
