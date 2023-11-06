@@ -206,6 +206,7 @@ protected:
 
     mfxExtVP9Segmentation m_prevSegment;
     VP9FrameLevelParam m_prevFrameParam;
+    bool m_isPrevFrameKeyFrame = false;
 
     bool m_bUseInternalMem;
     bool m_isD3D9SimWithVideoMem;

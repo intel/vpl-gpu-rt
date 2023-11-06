@@ -780,7 +780,7 @@ mfxStatus MFXVideoENCODEVP9_HW::ConfigTask(Task &task)
     task.m_frameOrderInRefStructure = m_frameOrderInRefStructure;
 
     eMFXHWType platform = m_pCore->GetHWType();
-    mfxStatus sts = SetFramesParams(curMfxPar, task, frameType, frameParam, platform);
+    mfxStatus sts = SetFramesParams(curMfxPar, task, frameType, frameParam, platform, m_isPrevFrameKeyFrame);
 
     task.m_pRecFrame = 0;
     task.m_pOutBs = 0;
@@ -842,6 +842,8 @@ mfxStatus MFXVideoENCODEVP9_HW::ConfigTask(Task &task)
     UpdateDpb(frameParam, task.m_pRecFrame, m_dpb, m_pCore);
 
     m_prevFrameParam = task.m_frameParam;
+
+    m_isPrevFrameKeyFrame = (frameType == KEY_FRAME);
 
     MFX_RETURN(sts);
 }

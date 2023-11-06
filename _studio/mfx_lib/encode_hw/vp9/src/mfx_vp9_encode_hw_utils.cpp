@@ -292,7 +292,8 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
                           Task const & task,
                           mfxU8 frameType,
                           VP9FrameLevelParam &frameParam,
-                          eMFXHWType platform)
+                          eMFXHWType platform,
+                          bool isLastFrameKeyFrame)
 {
     (void)platform;
 
@@ -383,6 +384,12 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
     {
         // context switching isn't supported by driver now. So refresh_frame_context is disabled for temporal scalability
         frameParam.refreshFrameContext = par.m_numLayers ? 0 : 1;
+    }
+
+    //overwriting refreshFrameContext to 0 for consecutive key frames
+    if (frameParam.frameType == KEY_FRAME && isLastFrameKeyFrame)
+    {
+        frameParam.refreshFrameContext = 0;
     }
 
     frameParam.allowHighPrecisionMV = 1;
