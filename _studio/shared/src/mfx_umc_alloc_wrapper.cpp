@@ -2302,6 +2302,7 @@ void SurfaceSource::SetFreeSurfaceAllowedFlag(bool flag)
     if (!m_redirect_to_vpl_path != !!m_umc_allocator_adapter)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
+        return;
     }
 
     if (m_redirect_to_vpl_path)

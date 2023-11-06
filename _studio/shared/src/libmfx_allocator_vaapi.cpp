@@ -418,10 +418,12 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
         self->m_frameHandles.clear();
         self->m_frameHandles.reserve(request->NumFrameSuggested);
 
+        self->m_allocatedSurfaces = std::move(allocated_surfaces);
+
         // Push new frames
         for (mfxU32 i = 0; i < request->NumFrameSuggested; ++i)
         {
-            allocated_mids[i].m_surface = &allocated_surfaces[i];
+            allocated_mids[i].m_surface = &self->m_allocatedSurfaces[i];
             allocated_mids[i].m_fourcc  = request->Info.FourCC;
 
             self->m_frameHandles.push_back(&allocated_mids[i]);
@@ -433,7 +435,6 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
         self->NumFrames = self->m_frameHandles.size();
 
         // Save new frames in internal state
-        self->m_allocatedSurfaces = std::move(allocated_surfaces);
         self->m_allocatedMids     = std::move(allocated_mids);
     }
     else
