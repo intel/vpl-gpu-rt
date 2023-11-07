@@ -2014,7 +2014,6 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
 
     mfxStatus sts;
     VAStatus vaSts = VA_STATUS_SUCCESS;
-    std::vector<VABlendState> blend_state;
 
     MFX_CHECK_NULL_PTR1( pParams );
     MFX_CHECK_NULL_PTR1( pParams->targetSurface.hdl.first );
@@ -2037,12 +2036,10 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
 
     m_pipelineParam.resize(pParams->refCount + 1);
     m_pipelineParamID.resize(pParams->refCount + 1, VA_INVALID_ID);
-    blend_state.resize(pParams->refCount + 1);
+    m_blend_state.resize(pParams->refCount + 1);
 
-    std::vector<VARectangle> input_region;
-    input_region.resize(pParams->refCount + 1);
-    std::vector<VARectangle> output_region;
-    output_region.resize(pParams->refCount + 1);
+    m_input_region.resize(pParams->refCount + 1);
+    m_output_region.resize(pParams->refCount + 1);
 
     /* Initial set up for layers */
     for ( unsigned int i = 0; i < layerCount; i++)
@@ -2106,19 +2103,19 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
         /* to process input parameters of sub stream:
          * crop info and original size*/
         mfxFrameInfo *inInfo              = &(pRefSurf->frameInfo);
-        input_region[i].y                 = inInfo->CropY;
-        input_region[i].x                 = inInfo->CropX;
-        input_region[i].height            = inInfo->CropH;
-        input_region[i].width             = inInfo->CropW;
-        m_pipelineParam[i].surface_region = &input_region[i];
+        m_input_region[i].y                 = inInfo->CropY;
+        m_input_region[i].x                 = inInfo->CropX;
+        m_input_region[i].height            = inInfo->CropH;
+        m_input_region[i].width             = inInfo->CropW;
+        m_pipelineParam[i].surface_region = &m_input_region[i];
 
         /* to process output parameters of sub stream:
          *  position and destination size */
-        output_region[i].y               = pParams->dstRects[i].DstY;
-        output_region[i].x               = pParams->dstRects[i].DstX;
-        output_region[i].height          = pParams->dstRects[i].DstH;
-        output_region[i].width           = pParams->dstRects[i].DstW;
-        m_pipelineParam[i].output_region = &output_region[i];
+        m_output_region[i].y               = pParams->dstRects[i].DstY;
+        m_output_region[i].x               = pParams->dstRects[i].DstX;
+        m_output_region[i].height          = pParams->dstRects[i].DstH;
+        m_output_region[i].width           = pParams->dstRects[i].DstW;
+        m_pipelineParam[i].output_region = &m_output_region[i];
 
         mfxU32 currTileId = pParams->dstRects[i].TileId;
 
@@ -2134,23 +2131,23 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
             tilingParams[currTileId].channelIds[tilingParams[currTileId].numChannels] = i;
             tilingParams[currTileId].numChannels++;
             /* lets define tiles working rectangle */
-            if (tilingParams[currTileId].targerRect.x > output_region[i].x)
-                tilingParams[currTileId].targerRect.x =  output_region[i].x;
-            if (tilingParams[currTileId].targerRect.y > output_region[i].y)
-                tilingParams[currTileId].targerRect.y =  output_region[i].y;
+            if (tilingParams[currTileId].targerRect.x > m_output_region[i].x)
+                tilingParams[currTileId].targerRect.x = m_output_region[i].x;
+            if (tilingParams[currTileId].targerRect.y > m_output_region[i].y)
+                tilingParams[currTileId].targerRect.y = m_output_region[i].y;
             if (tilingParams[currTileId].targerRect.width <
-                    (output_region[i].x + output_region[i].width) )
-                tilingParams[currTileId].targerRect.width =  output_region[i].x + output_region[i].width;
+                    (m_output_region[i].x + m_output_region[i].width) )
+                tilingParams[currTileId].targerRect.width = m_output_region[i].x + m_output_region[i].width;
             if (tilingParams[currTileId].targerRect.height <
-                    (output_region[i].y + output_region[i].height) )
-                tilingParams[currTileId].targerRect.height =  output_region[i].y + output_region[i].height;
+                    (m_output_region[i].y + m_output_region[i].height) )
+                tilingParams[currTileId].targerRect.height = m_output_region[i].y + m_output_region[i].height;
         }
 
         /* Global alpha and luma key can not be enabled together*/
         if (pParams->dstRects[i].GlobalAlphaEnable !=0)
         {
-            blend_state[i].flags = VA_BLEND_GLOBAL_ALPHA;
-            blend_state[i].global_alpha = ((float)pParams->dstRects[i].GlobalAlpha) /255;
+            m_blend_state[i].flags = VA_BLEND_GLOBAL_ALPHA;
+            m_blend_state[i].global_alpha = ((float)pParams->dstRects[i].GlobalAlpha) /255;
         }
         /* Luma color key  for YUV surfaces only.
          * And Premultiplied alpha blending for RGBA surfaces only.
@@ -2158,20 +2155,20 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
         if ((pParams->dstRects[i].LumaKeyEnable    != 0) &&
             (pParams->dstRects[i].PixelAlphaEnable == 0) )
         {
-            blend_state[i].flags |= VA_BLEND_LUMA_KEY;
-            blend_state[i].min_luma = ((float)pParams->dstRects[i].LumaKeyMin/255);
-            blend_state[i].max_luma = ((float)pParams->dstRects[i].LumaKeyMax/255);
+            m_blend_state[i].flags |= VA_BLEND_LUMA_KEY;
+            m_blend_state[i].min_luma = ((float)pParams->dstRects[i].LumaKeyMin/255);
+            m_blend_state[i].max_luma = ((float)pParams->dstRects[i].LumaKeyMax/255);
         }
         if ((pParams->dstRects[i].LumaKeyEnable    == 0 ) &&
             (pParams->dstRects[i].PixelAlphaEnable != 0 ) )
         {
-            blend_state[i].flags |= VA_BLEND_PREMULTIPLIED_ALPHA;
+            m_blend_state[i].flags |= VA_BLEND_PREMULTIPLIED_ALPHA;
         }
         if ((pParams->dstRects[i].GlobalAlphaEnable != 0) ||
             (pParams->dstRects[i].LumaKeyEnable     != 0) ||
             (pParams->dstRects[i].PixelAlphaEnable  != 0))
         {
-            m_pipelineParam[i].blend_state = &blend_state[i];
+            m_pipelineParam[i].blend_state = &m_blend_state[i];
         }
 
         m_pipelineParam[i].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
@@ -2272,7 +2269,6 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 
     VAStatus vaSts = VA_STATUS_SUCCESS;
     VASurfaceAttrib attrib;
-    std::vector<VABlendState> blend_state;
     VAImage imagePrimarySurface;
     mfxU8* pPrimarySurfaceBuffer;
 
@@ -2453,12 +2449,10 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 
     m_pipelineParam.resize(pParams->refCount + 1);
     m_pipelineParamID.resize(pParams->refCount + 1, VA_INVALID_ID);
-    blend_state.resize(pParams->refCount + 1);
+    m_blend_state.resize(pParams->refCount + 1);
 
-    std::vector<VARectangle> input_region;
-    input_region.resize(pParams->refCount + 1);
-    std::vector<VARectangle> output_region;
-    output_region.resize(pParams->refCount + 1);
+    m_input_region.resize(pParams->refCount + 1);
+    m_output_region.resize(pParams->refCount + 1);
     VASurfaceID *outputSurface = (VASurfaceID*)(pParams->targetSurface.hdl.first);
 
     for( refIdx = 0; refIdx < SampleCount; refIdx++ )
@@ -2478,19 +2472,19 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
         // source cropping
         //mfxFrameInfo *inInfo = &(pRefSurf->frameInfo);
         mfxFrameInfo *outInfo = &(pParams->targetSurface.frameInfo);
-        input_region[refIdx].y   = 0;
-        input_region[refIdx].x   = 0;
-        input_region[refIdx].height = outInfo->CropH;
-        input_region[refIdx].width  = outInfo->CropW;
-        m_pipelineParam[refIdx].surface_region = &input_region[refIdx];
+        m_input_region[refIdx].y   = 0;
+        m_input_region[refIdx].x   = 0;
+        m_input_region[refIdx].height = outInfo->CropH;
+        m_input_region[refIdx].width  = outInfo->CropW;
+        m_pipelineParam[refIdx].surface_region = &m_input_region[refIdx];
 
         // destination cropping
         //mfxFrameInfo *outInfo = &(pParams->targetSurface.frameInfo);
-        output_region[refIdx].y  = 0; //outInfo->CropY;
-        output_region[refIdx].x   = 0; //outInfo->CropX;
-        output_region[refIdx].height= outInfo->CropH;
-        output_region[refIdx].width  = outInfo->CropW;
-        m_pipelineParam[refIdx].output_region = &output_region[refIdx];
+        m_output_region[refIdx].y  = 0; //outInfo->CropY;
+        m_output_region[refIdx].x   = 0; //outInfo->CropX;
+        m_output_region[refIdx].height= outInfo->CropH;
+        m_output_region[refIdx].width  = outInfo->CropW;
+        m_pipelineParam[refIdx].output_region = &m_output_region[refIdx];
 
         /* Actually as background color managed by "m_primarySurface4Composition" surface
          * this param will not make sense */
@@ -2752,26 +2746,26 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
         /* to process input parameters of sub stream:
          * crop info and original size*/
         mfxFrameInfo *inInfo = &(pRefSurf->frameInfo);
-        input_region[refIdx].y   = inInfo->CropY;
-        input_region[refIdx].x   = inInfo->CropX;
-        input_region[refIdx].height = inInfo->CropH;
-        input_region[refIdx].width  = inInfo->CropW;
-        m_pipelineParam[refIdx].surface_region = &input_region[refIdx];
+        m_input_region[refIdx].y   = inInfo->CropY;
+        m_input_region[refIdx].x   = inInfo->CropX;
+        m_input_region[refIdx].height = inInfo->CropH;
+        m_input_region[refIdx].width  = inInfo->CropW;
+        m_pipelineParam[refIdx].surface_region = &m_input_region[refIdx];
 
         /* to process output parameters of sub stream:
          *  position and destination size */
-        output_region[refIdx].y  = pParams->dstRects[refIdx-1].DstY;
-        output_region[refIdx].x   = pParams->dstRects[refIdx-1].DstX;
-        output_region[refIdx].height= pParams->dstRects[refIdx-1].DstH;
-        output_region[refIdx].width  = pParams->dstRects[refIdx-1].DstW;
-        m_pipelineParam[refIdx].output_region = &output_region[refIdx];
+        m_output_region[refIdx].y  = pParams->dstRects[refIdx-1].DstY;
+        m_output_region[refIdx].x   = pParams->dstRects[refIdx-1].DstX;
+        m_output_region[refIdx].height= pParams->dstRects[refIdx-1].DstH;
+        m_output_region[refIdx].width  = pParams->dstRects[refIdx-1].DstW;
+        m_pipelineParam[refIdx].output_region = &m_output_region[refIdx];
 
         /* Global alpha and luma key can not be enabled together*/
         /* Global alpha and luma key can not be enabled together*/
         if (pParams->dstRects[refIdx-1].GlobalAlphaEnable !=0)
         {
-            blend_state[refIdx].flags = VA_BLEND_GLOBAL_ALPHA;
-            blend_state[refIdx].global_alpha = ((float)pParams->dstRects[refIdx-1].GlobalAlpha) /255;
+            m_blend_state[refIdx].flags = VA_BLEND_GLOBAL_ALPHA;
+            m_blend_state[refIdx].global_alpha = ((float)pParams->dstRects[refIdx-1].GlobalAlpha) /255;
         }
         /* Luma color key  for YUV surfaces only.
          * And Premultiplied alpha blending for RGBA surfaces only.
@@ -2779,9 +2773,9 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
         if ((pParams->dstRects[refIdx-1].LumaKeyEnable != 0) &&
             (pParams->dstRects[refIdx-1].PixelAlphaEnable == 0) )
         {
-            blend_state[refIdx].flags |= VA_BLEND_LUMA_KEY;
-            blend_state[refIdx].min_luma = ((float)pParams->dstRects[refIdx-1].LumaKeyMin/255);
-            blend_state[refIdx].max_luma = ((float)pParams->dstRects[refIdx-1].LumaKeyMax/255);
+            m_blend_state[refIdx].flags |= VA_BLEND_LUMA_KEY;
+            m_blend_state[refIdx].min_luma = ((float)pParams->dstRects[refIdx-1].LumaKeyMin/255);
+            m_blend_state[refIdx].max_luma = ((float)pParams->dstRects[refIdx-1].LumaKeyMax/255);
         }
         if ((pParams->dstRects[refIdx-1].LumaKeyEnable == 0 ) &&
             (pParams->dstRects[refIdx-1].PixelAlphaEnable != 0 ) )
@@ -2791,13 +2785,13 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
              * "white line"-like artifacts on transparent-opaque borders.
              * Setting nothing here triggers using a BLEND_SOURCE approach that is used on
              * Windows and looks to be free of such kind of artifacts */
-            blend_state[refIdx].flags |= 0;
+            m_blend_state[refIdx].flags |= 0;
         }
         if ((pParams->dstRects[refIdx-1].GlobalAlphaEnable != 0) ||
                 (pParams->dstRects[refIdx-1].LumaKeyEnable != 0) ||
                 (pParams->dstRects[refIdx-1].PixelAlphaEnable != 0))
         {
-            m_pipelineParam[refIdx].blend_state = &blend_state[refIdx];
+            m_pipelineParam[refIdx].blend_state = &m_blend_state[refIdx];
         }
 
         //m_pipelineParam[refIdx].pipeline_flags = ?? //VA_PROC_PIPELINE_FAST or VA_PROC_PIPELINE_SUBPICTURES

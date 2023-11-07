@@ -595,7 +595,7 @@ extern "C" {
 #ifdef MFX_TRACE_ENABLE
 #define MFX_LTRACE_BUFFER_S(_level, _name, _buffer, _size)  \
     if (_buffer)                                            \
-    MFX_LTRACE_2(_level, _name, "%p[%u]", _buffer, _size)
+    MFX_LTRACE_2(_level, _name, "%p[%lu]", _buffer, _size)
 #else
 #define MFX_LTRACE_BUFFER_S(_level, _name, _buffer, _size)
 #endif

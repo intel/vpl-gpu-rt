@@ -144,6 +144,9 @@ namespace MfxHwVideoProcessing
         mfxU32 m_numFilterBufs;
 
         std::vector<VAProcPipelineParameterBuffer> m_pipelineParam;
+        std::vector<VARectangle> m_input_region;
+        std::vector<VARectangle> m_output_region;
+        std::vector<VABlendState> m_blend_state;
         std::vector<VABufferID> m_pipelineParamID;
 
         std::set<mfxU32> m_cachedReadyTaskIndex;
