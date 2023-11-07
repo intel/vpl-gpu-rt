@@ -58,6 +58,7 @@ namespace UMC_AV1_DECODER
             , anchors_num(0)
             , anchors_loaded(false)
             , skip_first_frames(0)
+            , pre_loaded_anchors(nullptr)
         {}
 
     public:

@@ -55,6 +55,7 @@ namespace UMC_AV1_DECODER
         , saved_clip_info_height(0)
         , clip_info_size_saved(false)
         , m_prev_frame_header_exist(false)
+        , m_isAnchor(false)
     {
         outputed_frames.clear();
     }
