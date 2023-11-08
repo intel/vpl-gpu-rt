@@ -174,11 +174,7 @@ MFX_PACK_END()
 
 #define MFX_STRUCT_VERSION(MAJOR, MINOR) (256*(MAJOR) + (MINOR))
 
-#ifdef ONEVPL_EXPERIMENTAL
 #define MFX_VARIANT_VERSION MFX_STRUCT_VERSION(1, 1)
-#else
-#define MFX_VARIANT_VERSION MFX_STRUCT_VERSION(1, 0)
-#endif
 
 /*! The mfxDataType enumerates data type for mfxDataType. */
 typedef enum {
@@ -194,9 +190,7 @@ typedef enum {
     MFX_DATA_TYPE_F32,                    /*!< 32-bit single precision floating point. */
     MFX_DATA_TYPE_F64,                    /*!< 64-bit double precision floating point. */
     MFX_DATA_TYPE_PTR,                    /*!< Generic type pointer. */
-#ifdef ONEVPL_EXPERIMENTAL
     MFX_DATA_TYPE_FP16,                   /*!< 16-bit half precision floating point. */
-#endif
 }mfxDataType;
 
 /*! The mfxVariantType enumerator data types for mfxVariantType. */
@@ -213,9 +207,7 @@ typedef enum {
     MFX_VARIANT_TYPE_F32   = MFX_DATA_TYPE_F32,                          /*!< 32-bit single precision floating point. */
     MFX_VARIANT_TYPE_F64   = MFX_DATA_TYPE_F64,                          /*!< 64-bit double precision floating point. */
     MFX_VARIANT_TYPE_PTR   = MFX_DATA_TYPE_PTR,                          /*!< Generic type pointer. */
-#ifdef ONEVPL_EXPERIMENTAL
     MFX_VARIANT_TYPE_FP16  = MFX_DATA_TYPE_FP16,                         /*!< 16-bit half precision floating point. */
-#endif
 } mfxVariantType;
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()

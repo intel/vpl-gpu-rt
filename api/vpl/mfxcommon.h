@@ -189,10 +189,8 @@ enum {
     MFX_GPUCOPY_DEFAULT = 0, /*!< Use default mode for the legacy Intel(r) Media SDK implementation. */
     MFX_GPUCOPY_ON      = 1, /*!< The hint to enable GPU accelerated copying when it is supported by the library. 
                                   If the library doesn't support GPU accelerated copy the operation will be made by CPU. */
-    MFX_GPUCOPY_OFF     = 2,  /*!< Disable GPU accelerated copying. */
-#ifdef ONEVPL_EXPERIMENTAL
+    MFX_GPUCOPY_OFF     = 2, /*!< Disable GPU accelerated copying. */
     MFX_GPUCOPY_SAFE    = 3  /*!< The hint to disable buffer caching for GPU accelerated copying. Actual when GPU accelerated copying is supported by the library. */
-#endif
 };
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
@@ -584,9 +582,9 @@ typedef enum {
     MFX_IMPLCAPS_IMPLPATH                = 3,  /*!< Deliver pointer to the null-terminated string with the path to the
                                                     implementation. String is delivered in a form of buffer of
                                                     mfxChar type. */
-#ifdef ONEVPL_EXPERIMENTAL
     MFX_IMPLCAPS_DEVICE_ID_EXTENDED      = 4,  /*!< Deliver extended device ID information as mfxExtendedDeviceId
                                                     structure.*/
+#ifdef ONEVPL_EXPERIMENTAL
     MFX_IMPLCAPS_SURFACE_TYPES           = 5,  /*!< Deliver capabilities as mfxSurfaceTypesSupported structure. */
 #endif
 } mfxImplCapsDeliveryFormat;
