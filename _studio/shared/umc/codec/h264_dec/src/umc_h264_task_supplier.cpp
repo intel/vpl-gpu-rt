@@ -1798,6 +1798,7 @@ ViewItem::ViewItem()
     viewId = 0;
     maxDecFrameBuffering = 0;
     maxNumReorderFrames  = 16; // Max DPB size
+    memset(MaxLongTermFrameIdx, 0, sizeof(MaxLongTermFrameIdx));
 
     Reset();
 
@@ -3296,8 +3297,6 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
         {
             if (!pSource)
                 return AddSlice(0, true);
-
-            return UMC_ERR_NOT_ENOUGH_DATA;
         }
 
         if ((NAL_UT_IDR_SLICE != nalUnit->GetNalUnitType()) &&

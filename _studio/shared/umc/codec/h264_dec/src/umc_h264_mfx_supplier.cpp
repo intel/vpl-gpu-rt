@@ -1078,7 +1078,7 @@ void CheckCrops(const mfxFrameInfo &in, mfxFrameInfo &out, mfxStatus & sts)
 {
     mfxU32 maskW = 1;
     mfxU32 maskH = 1;
-    if (in.ChromaFormat >= MFX_CHROMAFORMAT_MONOCHROME && in.ChromaFormat <= MFX_CHROMAFORMAT_YUV444)
+    if (in.ChromaFormat <= MFX_CHROMAFORMAT_YUV444)
     {
         maskW = UMC::SubWidthC[in.ChromaFormat];
         maskH = UMC::SubHeightC[in.ChromaFormat];

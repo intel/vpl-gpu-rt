@@ -32,6 +32,7 @@ H264Slice::H264Slice(MemoryAllocator *pMemoryAllocator)
     : m_pSeqParamSet(0)
     , m_bInited(false)
     , m_pMemoryAllocator(pMemoryAllocator)
+    , m_pObjHeap(nullptr)
 {
     Reset();
 } // H264Slice::H264Slice()

@@ -45,6 +45,7 @@ void Trace(vm_char const* format, ...)
     //OutputDebugString(cStr);
     vm_string_printf(VM_STRING("%s"), cStr);
     //fflush(stdout);
+    va_end(arglist);
 }
 
 #ifdef USE_DETAILED_H264_TIMING
