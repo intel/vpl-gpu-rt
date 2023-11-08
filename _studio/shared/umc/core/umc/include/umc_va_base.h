@@ -239,6 +239,8 @@ public:
     // By default just calls BeginFrame(index). must be overridden by child class
     virtual Status BeginFrame(int32_t  index, uint32_t fieldId )
     {
+        MFX_CHECK(index >= 0, UMC_ERR_INVALID_PARAMS);
+
         // by default just calls BeginFrame(index)
         (void)fieldId;
         return BeginFrame(index);

@@ -910,6 +910,7 @@ int32_t LinuxVideoAccelerator::GetSurfaceID(int32_t idx) const
 {
     VASurfaceID *surface;
     Status sts = UMC_OK;
+    MFX_CHECK(idx >= 0, UMC_ERR_INVALID_PARAMS);
 
     try {
         sts = m_allocator->GetFrameHandle(idx, &surface);
