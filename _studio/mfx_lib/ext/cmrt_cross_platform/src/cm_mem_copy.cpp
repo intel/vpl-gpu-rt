@@ -2521,7 +2521,7 @@ mfxStatus CmCopyWrapper::IsCmCopySupported(mfxFrameSurface1 *pSurface, IppiSize 
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if(pSurface->Data.UV - pSurface->Data.Y != (mfxI32)pSurface->Data.Pitch * (mfxI32)pSurface->Info.Height)
+    if(pSurface->Data.UV <= pSurface->Data.Y || size_t(pSurface->Data.UV - pSurface->Data.Y) != size_t(pSurface->Data.Pitch) * pSurface->Info.Height)
     {
         return MFX_ERR_UNSUPPORTED;
     }
