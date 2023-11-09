@@ -653,8 +653,6 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
         supported_buffers = g_commonSupportedExtBuffers;
         numberOfSupported = sizeof(g_commonSupportedExtBuffers) / sizeof(g_commonSupportedExtBuffers[0]);
     }
-    if (!supported_buffers)
-        return MFX_ERR_NONE;
 
     const mfxU32 *common_supported_buffers = g_commonSupportedExtBuffers;
     mfxU32 common_numberOfSupported = sizeof(g_commonSupportedExtBuffers) / sizeof(g_commonSupportedExtBuffers[0]);

@@ -972,10 +972,6 @@ std::string DumpContext::dump(const std::string structName, const  mfxExtVP9Segm
     {
         str += dump_array_with_cast<mfxU8, mfxU16>(_struct.SegmentId, _struct.NumSegmentIdAlloc);
     }
-    else
-    {
-        DUMP_FIELD(SegmentId);
-    }
 
     return str;
 }

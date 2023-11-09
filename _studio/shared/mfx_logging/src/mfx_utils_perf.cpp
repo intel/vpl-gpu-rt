@@ -124,7 +124,14 @@ AutoPerfUtility::~AutoPerfUtility()
         tid2taskIds[tid].swap(ids);
     }
 
-    g_perfutility->timeStampTick(autotag, autolevel, flag, ids);
+    try
+    {
+        g_perfutility->timeStampTick(autotag, autolevel, flag, ids);
+    }
+    catch (std::bad_array_new_length&)
+    {
+
+    }
 }
 
 PerfUtility* PerfUtility::getInstance()
@@ -142,7 +149,14 @@ PerfUtility::~PerfUtility()
     // save perf data here
     if (instance)
     {
-        instance->savePerfData();
+        try
+        {
+            instance->savePerfData();
+        }
+        catch (...)
+        {
+
+        }
     }
 }
 

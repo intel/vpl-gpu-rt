@@ -172,7 +172,7 @@ namespace MfxExtBuffer
             return pEB;
         }
     protected:
-        std::array<mfxExtBuffer*, 64> m_ExtParam;
+        std::array<mfxExtBuffer*, 64> m_ExtParam = {};
     };
 
     class CastExtractor

@@ -172,7 +172,7 @@ mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* static_handle,
     }
     if (category && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_CATEGORY))
     {
-        p_str = mfx_trace_sprintf(p_str, len, "%S: ", category);
+        p_str = mfx_trace_sprintf(p_str, len, "%s: ", category);
     }
     if (!(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_LEVEL))
     {
@@ -198,14 +198,17 @@ mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* static_handle,
         p_str = mfx_trace_vsprintf(p_str, len, format, args);
         if (strcmp(format, exitChr) == 0)
         {
-            if (static_handle->tick.totalTime)
+            if (static_handle)
             {
-                p_str = mfx_trace_sprintf(p_str, len, "\t\tExec Time: %5.4fms\t\t", static_handle->tick.totalTime);
-            }
+                if (static_handle->tick.totalTime)
+                {
+                    p_str = mfx_trace_sprintf(p_str, len, "\t\tExec Time: %5.4fms\t\t", static_handle->tick.totalTime);
+                }
 
-            if (static_handle->tick.callCount)
-            {
-                p_str = mfx_trace_sprintf(p_str, len, "\tCall Count: %-d", static_handle->tick.callCount);
+                if (static_handle->tick.callCount)
+                {
+                    p_str = mfx_trace_sprintf(p_str, len, "\tCall Count: %I64d", static_handle->tick.callCount);
+                }
             }
 
             p_str = mfx_trace_sprintf(p_str, len, "\n");

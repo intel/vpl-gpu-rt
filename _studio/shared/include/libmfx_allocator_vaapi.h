@@ -190,7 +190,7 @@ class vaapi_resource_wrapper
 {
 public:
     vaapi_resource_wrapper(VADisplayWrapper& display)
-        : m_pVADisplay(display.shared_from_this())
+        : m_resource_id(VA_INVALID_ID), m_pVADisplay(display.shared_from_this())
     {}
 
     virtual mfxStatus Lock(mfxFrameData& frame_data, mfxU32 flags) = 0;

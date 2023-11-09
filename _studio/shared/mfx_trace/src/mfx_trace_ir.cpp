@@ -71,7 +71,7 @@ mfxTraceU32 MFXTraceEvent(uint16_t task, uint8_t opcode, uint8_t level, uint64_t
     const char *tag = "FTMI"; // IMTE + 1 = IMTF (IntelMediaTraceEvent + 1) value is used as ftrace raw marker tag
     // It is reversed due to endianness
     memcpy(&header[0], tag, sizeof(header[0]));
-    header[1] = task << 16 | size;
+    header[1] = (uint32_t)task << 16 | size;
     header[2] = opcode;
     size_t buf_len = sizeof(uint32_t) * 3;
     if (buf_len + size >= MFX_PERF_TRACE_BUFFER_SIZE) {
