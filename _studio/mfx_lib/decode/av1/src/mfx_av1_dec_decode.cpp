@@ -911,22 +911,15 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo &info)
     switch (info.FourCC)
     {
     case MFX_FOURCC_NV12:
+        MFX_CHECK(info.ChromaFormat == MFX_CHROMAFORMAT_YUV420, MFX_ERR_INVALID_VIDEO_PARAM);
         break;
     case MFX_FOURCC_P010:
+        MFX_CHECK(info.ChromaFormat == MFX_CHROMAFORMAT_YUV420, MFX_ERR_INVALID_VIDEO_PARAM);
         MFX_CHECK(info.Shift == 1, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
         break;
     default:
         MFX_CHECK_STS(MFX_ERR_INVALID_VIDEO_PARAM);
     }
-
-    switch (info.ChromaFormat)
-    {
-    case MFX_CHROMAFORMAT_YUV420:
-        break;
-    default:
-        MFX_CHECK_STS(MFX_ERR_INVALID_VIDEO_PARAM);
-    }
-
 
     return MFX_ERR_NONE;
 }
