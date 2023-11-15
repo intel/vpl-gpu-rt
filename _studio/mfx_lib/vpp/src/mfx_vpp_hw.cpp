@@ -7185,6 +7185,7 @@ mfxStatus MfxFrameAllocResponse::Free( void )
         {
             NumFrameActual = m_numFrameActualReturnedByAllocFrames;
             m_core->FreeFrames(this);
+            mids = NULL;
         }
     }
 
