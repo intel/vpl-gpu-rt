@@ -68,6 +68,8 @@ mfxSchedulerCore::mfxSchedulerCore(void)
     // set number of free tasks
     m_freeTasksCount = MFX_MAX_NUMBER_TASK;
 
+    m_bQuitWakeUpThread = false;
+
 } // mfxSchedulerCore::mfxSchedulerCore(void)
 
 mfxSchedulerCore::~mfxSchedulerCore(void)

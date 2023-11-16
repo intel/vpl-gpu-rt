@@ -227,13 +227,19 @@ mfxStatus MFXDoWork(mfxSession session)
 
     if (!newScheduler)
     {
+        if(!session->m_pScheduler && pInt) // if created in QueryInterface
+        {
+            pInt->Release();
+            pInt = NULL;
+        }
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
-    newScheduler->Release();
 
     res = newScheduler->DoWork();
 
     TRACE_EVENT(MFX_TRACE_API_DO_WORK_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(res));
+
+    newScheduler->Release();
 
     return res;
 } // mfxStatus MFXDoWork(mfxSession *session)
@@ -300,7 +306,16 @@ mfxStatus MFXClose(mfxSession session)
     MFX_TRACE_CLOSE();
 #endif
     TRACE_EVENT(MFX_TRACE_API_MFX_CLOSE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(mfxRes));
-    MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
+
+    try
+    {
+        MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
+    }
+    catch(const std::ios_base::failure &ex)
+    {
+        MFX_RETURN(mfxStatus(ex.code().value()));
+    }
+
     return mfxRes;
 
 } // mfxStatus MFXClose(mfxHDL session)

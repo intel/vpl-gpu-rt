@@ -86,7 +86,8 @@ mfxTraceU32 MFXTraceTextLog_Init()
     if (!sts) sts = MFXTraceTextLog_GetRegistryParams();
     std::string StrPid = "/mfxlib_Pid";
     std::string filename_path = VplLogPath + StrPid + std::to_string(getpid()) + "_Tid" + std::to_string(pthread_self()) + ".log";
-    strcpy(g_mfxTracePrintfFileName,filename_path.c_str()); 
+    strncpy(g_mfxTracePrintfFileName,filename_path.c_str(), MAX_PATH - 1);
+    g_mfxTracePrintfFileName[MAX_PATH - 1] = 0;
 
     if (!sts)
     {
