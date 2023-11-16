@@ -29,11 +29,26 @@ namespace UMC
 {
 
 H264Slice::H264Slice(MemoryAllocator *pMemoryAllocator)
-    : m_pSeqParamSet(0)
+    : m_PredWeight()
+    , m_pSeqParamSet(0)
+    , m_iNumber(0)
+    , m_iFirstMB(0)
+    , m_iMaxMB(0)
+    , m_iFirstMBFld(0)
+    , m_iAvailableMB(0)
+    , m_bFirstDebThreadedCall(false)
+    , m_bPermanentTurnOffDeblocking(false)
+    , m_bError(false)
+    , m_isInitialized(false)
+    , m_bDecoded(false)
+    , m_bPrevDeblocked(false)
+    , m_bDeblocked(false)
     , m_bInited(false)
     , m_pMemoryAllocator(pMemoryAllocator)
     , m_pObjHeap(nullptr)
 {
+    m_SliceHeader = {};
+    m_BaseAdaptiveMarkingInfo = {};
     Reset();
 } // H264Slice::H264Slice()
 

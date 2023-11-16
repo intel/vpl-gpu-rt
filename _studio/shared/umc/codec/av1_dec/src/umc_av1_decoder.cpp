@@ -55,9 +55,11 @@ namespace UMC_AV1_DECODER
         , saved_clip_info_height(0)
         , clip_info_size_saved(false)
         , m_prev_frame_header_exist(false)
+        , m_specified_anchor_Idx(0)
         , m_isAnchor(false)
     {
         outputed_frames.clear();
+        m_prev_frame_header = {};
     }
 
     AV1Decoder::~AV1Decoder()

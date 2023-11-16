@@ -1285,7 +1285,7 @@ namespace UMC_AV1_DECODER
         {
             if (BytesLeft() <= 0)
                 throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
-            t += (uint64_t)((*m_pbs++) << (i * 8));
+            t += (*m_pbs++) << (uint32_t)(i * 8);
         }
 
         return t;

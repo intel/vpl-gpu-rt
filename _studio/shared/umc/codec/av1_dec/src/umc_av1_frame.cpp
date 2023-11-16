@@ -87,7 +87,8 @@ namespace UMC_AV1_DECODER
     }
 
     AV1DecoderFrame::AV1DecoderFrame()
-        : m_anchorFrameIdx(0)
+        : m_index(0)
+        , m_anchorFrameIdx(0)
         , seq_header(new SequenceHeader{})
         , header(new FrameHeader{})
     {
