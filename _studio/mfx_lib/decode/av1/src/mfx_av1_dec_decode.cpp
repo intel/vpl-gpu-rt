@@ -982,8 +982,8 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
                  umcRes = m_decoder->GetInfo(&vp);
                  FillVideoParam(&vp, &m_video_par);
                  if (surface_work &&
-                     (m_video_par.mfx.FrameInfo.Width >= surface_work->Info.Width ||
-                      m_video_par.mfx.FrameInfo.Height >= surface_work->Info.Height))
+                     (m_video_par.mfx.FrameInfo.Width > surface_work->Info.Width ||
+                      m_video_par.mfx.FrameInfo.Height > surface_work->Info.Height))
                  {
                      MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
                  }
