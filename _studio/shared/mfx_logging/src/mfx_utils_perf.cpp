@@ -99,7 +99,15 @@ AutoPerfUtility::AutoPerfUtility(const std::string& tag, const std::string& leve
     }
 
     std::string flag = MFX_FLAG_ENTER;
-    g_perfutility->timeStampTick(tag, level, flag, std::vector<uint32_t>());
+    try
+    {
+        g_perfutility->timeStampTick(tag, level, flag, std::vector<uint32_t>());
+    }
+    catch(...)
+    {
+        return;
+    }
+
     autotag = tag;
     autolevel = level;
     if (level == PERF_LEVEL_API || level == PERF_LEVEL_ROUTINE)
