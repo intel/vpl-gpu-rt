@@ -60,14 +60,14 @@ public:
     static mfxStatus QueryImplsDescription(VideoCORE& core, mfxEncoderDescription::encoder& caps, mfx::PODArraysHolder& ah);
 
     MFXVideoENCODEMJPEG_HW(VideoCORE *core, mfxStatus *sts);
-    virtual ~MFXVideoENCODEMJPEG_HW();
-    virtual mfxStatus Init(mfxVideoParam *par);
-    virtual mfxStatus Reset(mfxVideoParam *par);
-    virtual mfxStatus Close(void);
+    virtual ~MFXVideoENCODEMJPEG_HW() override;
+    virtual mfxStatus Init(mfxVideoParam *par) override;
+    virtual mfxStatus Reset(mfxVideoParam *par) override;
+    virtual mfxStatus Close(void) override;
 
-    virtual mfxStatus GetVideoParam(mfxVideoParam *par);
-    virtual mfxStatus GetFrameParam(mfxFrameParam *par);
-    virtual mfxStatus GetEncodeStat(mfxEncodeStat *stat);
+    virtual mfxStatus GetVideoParam(mfxVideoParam *par) override;
+    virtual mfxStatus GetFrameParam(mfxFrameParam *par) override;
+    virtual mfxStatus GetEncodeStat(mfxEncodeStat *stat) override;
 
     virtual
     mfxStatus EncodeFrameCheck(mfxEncodeCtrl *ctrl,
@@ -76,28 +76,28 @@ public:
                                mfxFrameSurface1 **reordered_surface,
                                mfxEncodeInternalParams *pInternalParams,
                                MFX_ENTRY_POINT pEntryPoints[],
-                               mfxU32 &numEntryPoints);
+                               mfxU32 &numEntryPoints) override;
 
    // previous scheduling model - functions are not need to be implemented, only to be compatible
     virtual mfxStatus EncodeFrameCheck(mfxEncodeCtrl *,
                                        mfxFrameSurface1 *,
                                        mfxBitstream *,
                                        mfxFrameSurface1 **,
-                                       mfxEncodeInternalParams *)
+                                       mfxEncodeInternalParams *) override
     {
         MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
     virtual mfxStatus EncodeFrame(mfxEncodeCtrl *,
                                   mfxEncodeInternalParams *,
                                   mfxFrameSurface1 *,
-                                  mfxBitstream *)
+                                  mfxBitstream *) override
     {
         MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
     virtual mfxStatus CancelFrame(mfxEncodeCtrl *,
                                   mfxEncodeInternalParams *,
                                   mfxFrameSurface1 *,
-                                  mfxBitstream *)
+                                  mfxBitstream *) override
     {
         MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
