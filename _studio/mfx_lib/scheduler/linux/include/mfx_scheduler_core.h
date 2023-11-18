@@ -321,7 +321,7 @@ protected:
                 // run over the tasks with particular priority
                 while (task)
                 {
-                    if (false == std::forward<F>(f)(task))
+                    if (false == f(task))
                         return;
                     // advance the task pointer
                     task = task->pNext;
