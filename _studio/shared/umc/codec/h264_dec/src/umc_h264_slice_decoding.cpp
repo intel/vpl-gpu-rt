@@ -29,7 +29,8 @@ namespace UMC
 {
 
 H264Slice::H264Slice(MemoryAllocator *pMemoryAllocator)
-    : m_PredWeight()
+    : m_dTime(0.0)
+    , m_PredWeight()
     , m_pSeqParamSet(0)
     , m_iNumber(0)
     , m_iFirstMB(0)
@@ -47,6 +48,8 @@ H264Slice::H264Slice(MemoryAllocator *pMemoryAllocator)
     , m_pMemoryAllocator(pMemoryAllocator)
     , m_pObjHeap(nullptr)
 {
+    ReorderInfoL0 = {};
+    ReorderInfoL1 = {};
     m_SliceHeader = {};
     m_BaseAdaptiveMarkingInfo = {};
     Reset();
