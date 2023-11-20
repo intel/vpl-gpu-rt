@@ -941,12 +941,13 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
     if (data.showFrame)
     {
         MFX_CHECK(data.surface_work, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-        if (data.currFrameId >= (mfxI32)decoder.m_mCopyGuard.size())
         {
-            decoder.m_mCopyGuard.resize(data.currFrameId + 1);
+            UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
+            if (data.currFrameId >= (mfxI32)decoder.m_mCopyGuard.size())
+            {
+                decoder.m_mCopyGuard.resize(data.currFrameId + 1);
+            }
         }
-
         UMC::AutomaticUMCMutex guardCopy(decoder.m_mCopyGuard[data.currFrameId]);
         mfxStatus sts = decoder.m_surface_source->PrepareToOutput(data.surface_work, data.currFrameId, 0, decoder.m_core->GetVAType() == MFX_HW_VAAPI);
         MFX_CHECK_STS(sts);
