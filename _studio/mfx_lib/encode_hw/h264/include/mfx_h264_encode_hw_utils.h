@@ -2926,21 +2926,21 @@ private:
 
         ImplementationAvc(VideoCORE * core);
 
-        virtual ~ImplementationAvc();
+        virtual ~ImplementationAvc() noexcept override;
 
-        virtual mfxStatus Init(mfxVideoParam * par);
+        virtual mfxStatus Init(mfxVideoParam * par) override;
 
-        virtual mfxStatus Close() { return MFX_ERR_NONE; }
+        virtual mfxStatus Close() override { return MFX_ERR_NONE; }
 
-        virtual mfxStatus Reset(mfxVideoParam * par);
+        virtual mfxStatus Reset(mfxVideoParam * par) override;
 
-        virtual mfxStatus GetVideoParam(mfxVideoParam * par);
+        virtual mfxStatus GetVideoParam(mfxVideoParam * par) override;
 
-        virtual mfxStatus GetFrameParam(mfxFrameParam * par);
+        virtual mfxStatus GetFrameParam(mfxFrameParam * par) override;
 
-        virtual mfxStatus GetEncodeStat(mfxEncodeStat * stat);
+        virtual mfxStatus GetEncodeStat(mfxEncodeStat * stat) override;
 
-        virtual mfxTaskThreadingPolicy GetThreadingPolicy() {
+        virtual mfxTaskThreadingPolicy GetThreadingPolicy() override {
             return mfxTaskThreadingPolicy(MFX_TASK_THREADING_INTRA
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
                 | (m_isPOut ? MFX_TASK_POLLING : 0)
@@ -2953,7 +2953,7 @@ private:
             mfxFrameSurface1 *,
             mfxBitstream *,
             mfxFrameSurface1 **,
-            mfxEncodeInternalParams *)
+            mfxEncodeInternalParams *) override
         {
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
@@ -2965,7 +2965,7 @@ private:
             mfxFrameSurface1 **       reordered_surface,
             mfxEncodeInternalParams * internalParams,
             MFX_ENTRY_POINT *         entryPoints,
-            mfxU32 &                  numEntryPoints);
+            mfxU32 &                  numEntryPoints) override;
 
         virtual mfxStatus EncodeFrameCheckNormalWay(
             mfxEncodeCtrl *           ctrl,
@@ -2980,7 +2980,7 @@ private:
             mfxEncodeCtrl *,
             mfxEncodeInternalParams *,
             mfxFrameSurface1 *,
-            mfxBitstream *)
+            mfxBitstream *) override
         {
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
@@ -2989,7 +2989,7 @@ private:
             mfxEncodeCtrl *,
             mfxEncodeInternalParams *,
             mfxFrameSurface1 *,
-            mfxBitstream *)
+            mfxBitstream *) override
         {
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
@@ -3394,26 +3394,26 @@ private:
             mfxU32 fieldId);
 // MVC BD }
 
-        virtual mfxStatus Init(mfxVideoParam *par);
+        virtual mfxStatus Init(mfxVideoParam *par) override;
 
-        virtual mfxStatus Close();
+        virtual mfxStatus Close() override;
 
-        virtual mfxTaskThreadingPolicy GetThreadingPolicy();
+        virtual mfxTaskThreadingPolicy GetThreadingPolicy() override;
 
-        virtual mfxStatus Reset(mfxVideoParam *par);
+        virtual mfxStatus Reset(mfxVideoParam *par) override;
 
-        virtual mfxStatus GetVideoParam(mfxVideoParam *par);
+        virtual mfxStatus GetVideoParam(mfxVideoParam *par) override;
 
-        virtual mfxStatus GetFrameParam(mfxFrameParam *par);
+        virtual mfxStatus GetFrameParam(mfxFrameParam *par) override;
 
-        virtual mfxStatus GetEncodeStat(mfxEncodeStat *stat);
+        virtual mfxStatus GetEncodeStat(mfxEncodeStat *stat) override;
 
         virtual mfxStatus EncodeFrameCheck(
             mfxEncodeCtrl *,
             mfxFrameSurface1 *,
             mfxBitstream *,
             mfxFrameSurface1 **,
-            mfxEncodeInternalParams *)
+            mfxEncodeInternalParams *) override
         {
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
@@ -3425,13 +3425,13 @@ private:
             mfxFrameSurface1 **       reordered_surface,
             mfxEncodeInternalParams * pInternalParams,
             MFX_ENTRY_POINT           pEntryPoints[],
-            mfxU32 &                  numEntryPoints);
+            mfxU32 &                  numEntryPoints) override;
 
         virtual mfxStatus EncodeFrame(
             mfxEncodeCtrl *,
             mfxEncodeInternalParams *,
             mfxFrameSurface1 *,
-            mfxBitstream *)
+            mfxBitstream *) override
         {
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
@@ -3440,7 +3440,7 @@ private:
             mfxEncodeCtrl *,
             mfxEncodeInternalParams *,
             mfxFrameSurface1 *,
-            mfxBitstream *)
+            mfxBitstream *) override
         {
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }

@@ -44,43 +44,43 @@ public:
         }
     }
 
-    virtual mfxStatus Init(mfxVideoParam *par);
+    virtual mfxStatus Init(mfxVideoParam *par) override;
 
-    virtual mfxStatus Close()
+    virtual mfxStatus Close() override
     {
         m_impl.reset();
         return MFX_ERR_NONE;
     }
 
-    virtual mfxTaskThreadingPolicy GetThreadingPolicy()
+    virtual mfxTaskThreadingPolicy GetThreadingPolicy() override
     {
         return m_impl.get()
             ? m_impl->GetThreadingPolicy()
             :  MFX_TASK_THREADING_INTRA;
     }
 
-    virtual mfxStatus Reset(mfxVideoParam *par)
+    virtual mfxStatus Reset(mfxVideoParam *par) override
     {
         return m_impl.get()
             ? m_impl->Reset(par)
             : MFX_ERR_NOT_INITIALIZED;
     }
 
-    virtual mfxStatus GetVideoParam(mfxVideoParam *par)
+    virtual mfxStatus GetVideoParam(mfxVideoParam *par) override
     {
         return m_impl.get()
             ? m_impl->GetVideoParam(par)
             : MFX_ERR_NOT_INITIALIZED;
     }
 
-    virtual mfxStatus GetFrameParam(mfxFrameParam *par)
+    virtual mfxStatus GetFrameParam(mfxFrameParam *par) override
     {
         return m_impl.get()
             ? m_impl->GetFrameParam(par)
             : MFX_ERR_NOT_INITIALIZED;
     }
 
-    virtual mfxStatus GetEncodeStat(mfxEncodeStat *stat)
+    virtual mfxStatus GetEncodeStat(mfxEncodeStat *stat) override
     {
         return m_impl.get()
             ? m_impl->GetEncodeStat(stat)
@@ -92,7 +92,7 @@ public:
         mfxFrameSurface1 *surface,
         mfxBitstream *bs,
         mfxFrameSurface1 **reordered_surface,
-        mfxEncodeInternalParams *internalParams)
+        mfxEncodeInternalParams *internalParams) override
     {
         return m_impl.get()
             ? m_impl->EncodeFrameCheck(ctrl, surface, bs, reordered_surface, internalParams)
@@ -106,7 +106,7 @@ public:
         mfxFrameSurface1 **reordered_surface,
         mfxEncodeInternalParams *pInternalParams,
         MFX_ENTRY_POINT pEntryPoints[],
-        mfxU32 &numEntryPoints)
+        mfxU32 &numEntryPoints) override
     {
         return m_impl.get()
             ? m_impl->EncodeFrameCheck(ctrl, surface, bs, reordered_surface, pInternalParams, pEntryPoints, numEntryPoints)
@@ -117,7 +117,7 @@ public:
         mfxEncodeCtrl *ctrl,
         mfxEncodeInternalParams *internalParams,
         mfxFrameSurface1 *surface,
-        mfxBitstream *bs)
+        mfxBitstream *bs) override
     {
         return m_impl.get()
             ? m_impl->EncodeFrame(ctrl, internalParams, surface, bs)
@@ -128,7 +128,7 @@ public:
         mfxEncodeCtrl* ctrl,
         mfxEncodeInternalParams* internalParams,
         mfxFrameSurface1* surface,
-        mfxBitstream* bs)
+        mfxBitstream* bs) override
     {
         return m_impl.get()
             ? m_impl->CancelFrame(ctrl, internalParams, surface, bs)
