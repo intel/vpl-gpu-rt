@@ -754,6 +754,7 @@ mfxStatus VideoDECODEVP9_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_vid
     else
     {
         sts = MFX_VPX_Utility::QueryIOSurfInternal(p_video_param, p_request);
+        MFX_CHECK_STS(sts);
     }
     p_request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
 

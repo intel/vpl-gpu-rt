@@ -622,6 +622,7 @@ mfxStatus VideoDECODEAV1::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfxFr
     if (!(par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
     {
         sts = MFX_VPX_Utility::QueryIOSurfInternal(par, request);
+        MFX_CHECK_STS(sts);
         uint32_t dpb_size = std::max(8 + par->AsyncDepth, 8);
         if (dpb_size >= request->NumFrameSuggested)
         {

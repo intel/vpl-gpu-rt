@@ -1525,6 +1525,11 @@ void SurfaceSource::RemoveBinding(const mfxFrameSurface1 & surf)
 
 mfxFrameSurface1* SurfaceSource::GetDecoderSurface(UMC::FrameMemID index)
 {
+    if (index < 0)
+    {
+        return nullptr;
+    }
+
     auto it = m_umc2mfx_memid.find(index);
     if (it == std::end(m_umc2mfx_memid))
     {

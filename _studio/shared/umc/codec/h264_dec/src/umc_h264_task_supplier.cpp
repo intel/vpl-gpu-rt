@@ -285,11 +285,6 @@ Status DecReferencePictureMarking::CheckSEIRepetition(ViewItem &view, H264SEIPay
 
 void DecReferencePictureMarking::CheckSEIRepetition(ViewItem &view, H264DecoderFrame * frame)
 {
-    bool isEqual = false;
-
-    if (isEqual)
-        return;
-
     DPBCommandsList::iterator end_iter = m_commandsList.end();
     H264DecoderFrame * temp = 0;
 

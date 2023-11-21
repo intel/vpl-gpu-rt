@@ -2018,6 +2018,9 @@ mfxStatus VideoDECODEMJPEGBase_HW::FillEntryPoint(MFX_ENTRY_POINT *pEntryPoint, 
 {
     mfxU16 taskId = 0;
 
+    // add lock to avoid m_dsts is modified in CompleteTask
+    std::lock_guard<std::mutex> guard(m_guard);
+
     if (m_dsts.empty())
         MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
