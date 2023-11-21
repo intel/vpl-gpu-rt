@@ -6736,8 +6736,6 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
     MFX_CHECK_NULL_PTR3(ctrl, surface, bs);
     mfxStatus checkSts = MFX_ERR_NONE;
 
-    bool single_field_mode = false;
-
     for (mfxU32 i = 0; i < bs->NumExtParam; i++)
     {
         MFX_CHECK_NULL_PTR1(bs->ExtParam[i]);
@@ -6764,10 +6762,10 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
                             ctrl->ExtParam[i]->BufferId);
 
         // In single-field mode only one buffer is required for one field encoding
-        bool buffer_pair_allowed = !single_field_mode ? IsRunTimeExtBufferPairAllowed(video, ctrl->ExtParam[i]->BufferId) : false;
+        bool buffer_pair_allowed = IsRunTimeExtBufferPairAllowed(video, ctrl->ExtParam[i]->BufferId);
 
         // if initialized PicStruct is UNKNOWN, to check runtime PicStruct
-        bool buffer_pair_required = !single_field_mode ? IsRunTimeExtBufferPairRequired(video, ctrl->ExtParam[i]->BufferId) : false;
+        bool buffer_pair_required = IsRunTimeExtBufferPairRequired(video, ctrl->ExtParam[i]->BufferId);
 
         if (buffer_pair_required)
         {

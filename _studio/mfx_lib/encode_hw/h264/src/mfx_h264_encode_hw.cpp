@@ -3072,6 +3072,7 @@ mfxStatus ImplementationAvc::CheckBRCStatus(DdiTask &task, bool &bToRecode, mfxU
         MFX_CHECK_STS(ests);
 
         ests = m_encTools.GetEncodeStatus(&frame_sts, task.m_frameOrder);
+        MFX_CHECK_STS(ests);
 
         switch (frame_sts.BRCStatus)
         {

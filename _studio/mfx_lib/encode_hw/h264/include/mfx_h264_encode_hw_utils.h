@@ -1745,6 +1745,7 @@ namespace MfxHwH264Encode
             else
             {
                 sts = HEVCExtBRC::Create(m_BRCLocal);
+                MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_NULL_PTR);
                 m_pBRC = &m_BRCLocal;
             }
             sts = m_pBRC->Init(m_pBRC->pthis, &video);
