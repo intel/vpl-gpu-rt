@@ -36,6 +36,7 @@ File Name: mfx_trace_dump.h
 #include <iomanip>
 #include <iterator>
 #include <typeinfo>
+#include <type_traits>
 #include "mfxstructures.h"
 
 std::string PointerToHexString(void* x);
@@ -43,6 +44,8 @@ std::string GetFourCCInString(mfxU32 fourcc);
 std::string GetCodecIdInString(mfxU32 id);
 std::string GetIOPatternInString(mfxU32 io);
 bool _IsBadReadPtr(void *ptr, size_t size);
+
+using LongTermRefList = std::remove_extent<decltype(mfxExtAVCRefListCtrl::RejectedRefList)>::type;
 
 #define DUMP_RESERVED_ARRAY(r) dump_reserved_array(&(r[0]), sizeof(r)/sizeof(r[0]))
 
@@ -391,6 +394,7 @@ public:
     DEFINE_DUMP_FUNCTION(mfxExtVP9TemporalLayers);
     DEFINE_DUMP_FUNCTION(mfxVP9TemporalLayer);
     DEFINE_DUMP_FUNCTION(mfxExtVP9Param);
+    DEFINE_DUMP_FUNCTION(LongTermRefList);
 };
 #endif //_MFX_TRACE_DUMP_H_
 

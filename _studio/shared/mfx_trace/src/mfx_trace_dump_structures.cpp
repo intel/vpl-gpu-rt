@@ -369,6 +369,17 @@ std::string DumpContext::dump(const std::string structName, const mfxExtEncoderR
     return str;
 }
 
+std::string DumpContext::dump(const std::string structName, const LongTermRefList& longTermRefList)
+{
+    std::string str;
+    str += structName + ".FrameOrder=" + ToString(longTermRefList.FrameOrder) + "\n";
+    str += structName + ".PicStruct=" + ToString(longTermRefList.PicStruct) + "\n";
+    str += structName + ".ViewId=" + ToString(longTermRefList.ViewId) + "\n";
+    str += structName + ".LongTermIdx=" + ToString(longTermRefList.LongTermIdx) + "\n";
+    str += structName + ".reserved[]=" + DUMP_RESERVED_ARRAY(longTermRefList.reserved) + "\n";
+    return str;
+}
+
 std::string DumpContext::dump(const std::string structName, const mfxExtAVCRefListCtrl& ExtAVCRefListCtrl)
 {
     std::string str;
@@ -376,8 +387,35 @@ std::string DumpContext::dump(const std::string structName, const mfxExtAVCRefLi
     str += structName + ".NumRefIdxL0Active=" + ToString(ExtAVCRefListCtrl.NumRefIdxL0Active) + "\n";
     str += structName + ".NumRefIdxL1Active=" + ToString(ExtAVCRefListCtrl.NumRefIdxL1Active) + "\n";
     str += structName + ".PreferredRefList=" + ToString(ExtAVCRefListCtrl.PreferredRefList) + "\n";
+    for (int i = 0; i < 32; i++)
+    {
+        if (ExtAVCRefListCtrl.PreferredRefList[i].FrameOrder == mfxU32(MFX_FRAMEORDER_UNKNOWN)
+            && ExtAVCRefListCtrl.PreferredRefList[i].LongTermIdx == 0)
+            continue;
+
+        str += "i: " + ToString(i) + "\n";
+        str += dump("PreferredRefList: ", *((LongTermRefList *)(&ExtAVCRefListCtrl.PreferredRefList[i]))) + "\n";
+    }
     str += structName + ".RejectedRefList=" + ToString(ExtAVCRefListCtrl.RejectedRefList) + "\n";
+    for (int i = 0; i < 16; i++)
+    {
+        if (ExtAVCRefListCtrl.RejectedRefList[i].FrameOrder == mfxU32(MFX_FRAMEORDER_UNKNOWN)
+           && ExtAVCRefListCtrl.RejectedRefList[i].LongTermIdx == 0)
+            continue;
+
+        str += "i: " + ToString(i) + "\n";
+        str += dump("RejectedRefList: ", *((LongTermRefList *)(&ExtAVCRefListCtrl.RejectedRefList[i]))) + "\n";
+    }
     str += structName + ".LongTermRefList=" + ToString(ExtAVCRefListCtrl.LongTermRefList) + "\n";
+    for (int i = 0; i < 16; i++)
+    {
+        if (ExtAVCRefListCtrl.LongTermRefList[i].FrameOrder == mfxU32(MFX_FRAMEORDER_UNKNOWN)
+            && ExtAVCRefListCtrl.LongTermRefList[i].LongTermIdx == 0)
+            continue;
+
+        str += "i: " + ToString(i) + "\n";
+        str += dump("LongTermRefList: ", *((LongTermRefList *)(&ExtAVCRefListCtrl.LongTermRefList[i]))) + "\n";
+    }
     str += structName + ".ApplyLongTermIdx=" + ToString(ExtAVCRefListCtrl.ApplyLongTermIdx) + "\n";
     str += structName + ".reserved[]=" + DUMP_RESERVED_ARRAY(ExtAVCRefListCtrl.reserved) + "\n";
     return str;
