@@ -311,9 +311,10 @@ mfxStatus MFXClose(mfxSession session)
     {
         MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
     }
-    catch(const std::ios_base::failure &ex)
+    catch(...)
     {
-        MFX_RETURN(mfxStatus(ex.code().value()));
+        // set the default error value
+        mfxRes = MFX_ERR_UNKNOWN;
     }
 
     return mfxRes;
