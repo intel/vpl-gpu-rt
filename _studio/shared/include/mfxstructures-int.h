@@ -534,6 +534,7 @@ typedef struct {
     { 0x56BB, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56BC, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56BD, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56C2, MFX_HW_DG2, MFX_GT4 }, // DG2
 
     /* PVC */
     { 0x0BD0, MFX_HW_PVC, MFX_GT4 },
