@@ -2205,7 +2205,7 @@ mfxStatus BRC_EncToolBase::ReportGopHints(mfxU32 dispOrder, mfxEncToolsHintPreEn
         frStruct.qpDelta = pGopHints.QPDelta;
         frStruct.qpModulation = pGopHints.QPModulation;
         frStruct.QPDeltaExplicitModulation = pGopHints.QPDeltaExplicitModulation;
-        (*frameStruct).miniGopSize = pGopHints.MiniGopSize;
+        frStruct.miniGopSize = pGopHints.MiniGopSize;
         m_FrameStruct.push_back(frStruct);
         frameStruct = m_FrameStruct.end() - 1;
     }
