@@ -343,7 +343,6 @@ mfxU16 ME_simple(ASCVidRead *videoIn, mfxI32 fPos, ASCImDetails *dataIn, ASCimag
                     current[fPos] = predMV;
                     outSAD[fPos]  = bestSAD;
                     mainDistance  = distance;
-                    foundBetter = false;
                 }
             }
         }

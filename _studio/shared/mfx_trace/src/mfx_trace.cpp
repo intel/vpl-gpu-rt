@@ -583,6 +583,10 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
         category = static_handle->category;
         level    = static_handle->level;
     }
+    else
+    {
+        return 1;
+    }
 
     mfxTraceU32 sts = 0, res = 0;
     mfxTraceU32 i = 0;
