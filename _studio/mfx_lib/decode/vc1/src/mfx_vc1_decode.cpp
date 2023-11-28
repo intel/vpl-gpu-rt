@@ -54,9 +54,6 @@ static void SetFrameType(const uint32_t type, mfxFrameSurface1 &surface)
     case VC1_BI_FRAME:
         extFrameInfo->FrameType = MFX_FRAMETYPE_B;
         break;
-    default:// unexpected type
-        extFrameInfo->FrameType = MFX_FRAMETYPE_UNKNOWN;
-        assert(0);
     }
 }
 
