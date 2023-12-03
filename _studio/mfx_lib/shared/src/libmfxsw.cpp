@@ -703,7 +703,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
     TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_START, 0, make_event_data((mfxU32)format));
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  format = ", MFX_TRACE_FORMAT_D, format);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  format = ", MFX_TRACE_FORMAT_I, format);
     try
     {
         switch (format)
@@ -725,7 +725,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
             *num_impls = mfxU32(holder->GetSize());
 
             TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(*num_impls));
-            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_D, *num_impls);
+            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_I, *num_impls);
             return holder.release()->GetArray();
         }
 #if defined(ONEVPL_EXPERIMENTAL)
@@ -770,7 +770,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
             *num_impls = mfxU32(holder->GetSize());
 
             TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(*num_impls));
-            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_D, *num_impls);
+            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_I, *num_impls);
 
             holder->Detach();
             impl = holder.release()->GetArray();
@@ -901,7 +901,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
             *num_impls = mfxU32(holder->GetSize());
 
-            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_D, *num_impls);
+            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_I, *num_impls);
 
             holder->Detach();
             impl = holder.release()->GetArray();
