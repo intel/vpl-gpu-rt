@@ -48,6 +48,7 @@ namespace UMC_AV1_DECODER
         uint64_t GetLE(uint32_t);
         void ReadSequenceHeader(SequenceHeader&);
         void ReadUncompressedHeader(FrameHeader&, SequenceHeader const&, DPBType const&, OBUHeader const&, uint32_t&);
+        void ReadMetaData(FrameHeader& fh);
 
         using UMC_VP9_DECODER::VP9Bitstream::VP9Bitstream;
 

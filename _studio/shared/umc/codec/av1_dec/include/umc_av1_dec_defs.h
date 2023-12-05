@@ -115,6 +115,17 @@ namespace UMC_AV1_DECODER
         OBU_PADDING = 15,
     };
 
+    /* OBU metadata types. */
+    enum OBU_METADATA_TYPE
+    {
+        OBU_METADATA_TYPE_AOM_RESERVED_0 = 0,
+        OBU_METADATA_TYPE_HDR_CLL = 1,
+        OBU_METADATA_TYPE_HDR_MDCV = 2,
+        OBU_METADATA_TYPE_SCALABILITY = 3,
+        OBU_METADATA_TYPE_ITUT_T35 = 4,
+        OBU_METADATA_TYPE_TIMECODE = 5,
+    };
+
     const uint32_t OBU_TILE_LIST_HEADER_LENGTH = 4;
     const uint32_t OBU_TILE_LIST_ENTRY_HEDAER_LENGTH = 5;
 
@@ -548,6 +559,24 @@ namespace UMC_AV1_DECODER
         uint32_t FrameHeight;
     };
 
+    struct MetaData
+    {
+        struct MasteringDisplayColorVolume
+        {
+            bool     existence;
+            uint16_t display_primaries[3][2];
+            uint16_t white_point[2];
+            uint32_t max_luminance;
+            uint32_t min_luminance;
+        }hdr_mdcv;
+
+        struct ContentLightLevelInfo {
+            bool     existence;
+            uint16_t max_content_light_level;
+            uint16_t max_pic_average_light_level;
+        }hdr_cll;
+    };
+
     struct FrameHeader
     {
         //Rev 0.85 parameters (AV1 spec version 1.0) in order of appearance/calculation in uncompressed_header()
@@ -632,6 +661,7 @@ namespace UMC_AV1_DECODER
         uint32_t enable_masked_compound;
         uint32_t enable_intra_edge_filter;
         uint32_t enable_filter_intra;
+        MetaData meta_data;
     };
 
     struct OBUHeader

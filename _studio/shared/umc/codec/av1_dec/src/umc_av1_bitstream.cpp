@@ -2026,6 +2026,35 @@ namespace UMC_AV1_DECODER
         AV1D_LOG("[-]: %d", (uint32_t)BitsDecoded());
     }
 
+    void AV1Bitstream::ReadMetaData(FrameHeader& fh)
+    {
+        const uint8_t MetaData_byte = (uint8_t)GetBits(8);
+        switch ((OBU_METADATA_TYPE)MetaData_byte)
+        {
+        case OBU_METADATA_TYPE_HDR_CLL:
+            fh.meta_data.hdr_cll.max_content_light_level = (uint16_t)GetBits(16);
+            fh.meta_data.hdr_cll.max_pic_average_light_level = (uint16_t)GetBits(16);
+            fh.meta_data.hdr_cll.existence = true;
+            break;
+        case OBU_METADATA_TYPE_HDR_MDCV:
+            for (size_t i = 0; i < 3; ++i)
+            {
+               fh.meta_data.hdr_mdcv.display_primaries[i][0] = (uint16_t)GetBits(16);
+               fh.meta_data.hdr_mdcv.display_primaries[i][1] = (uint16_t)GetBits(16);
+            }
+            // White point(x, y)
+           fh.meta_data.hdr_mdcv.white_point[0] = (uint16_t)GetBits(16);
+           fh.meta_data.hdr_mdcv.white_point[1] = (uint16_t)GetBits(16);
+
+            // Max and min luminance of mastering display
+           fh.meta_data.hdr_mdcv.max_luminance = (uint32_t)GetBits(32);
+           fh.meta_data.hdr_mdcv.min_luminance = (uint32_t)GetBits(32);
+           fh.meta_data.hdr_mdcv.existence = true;
+        default:
+            break;
+        }
+    }
+
 } // namespace UMC_AV1_DECODER
 
 #endif // MFX_ENABLE_AV1_VIDEO_DECODE

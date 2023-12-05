@@ -817,6 +817,9 @@ namespace UMC_AV1_DECODER
                         break;
                     }
                 }
+                case OBU_METADATA:
+                    bs.ReadMetaData(fh);
+                    break;
                 default:
                     break;
                 }
