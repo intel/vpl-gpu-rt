@@ -728,6 +728,7 @@ namespace Base
         mfxU32   FrameOrderIn = mfxU32(-1);
         bool     isLTR        = false; // is "long-term"
         bool     isRejected   = false; // rejected ref frame should be refreshed asap
+        mfxU16   LongTermIdx  = mfxU16(0);
         mfxU8    CodingType   = 0;
         Resource Raw;
         Resource Rec;
