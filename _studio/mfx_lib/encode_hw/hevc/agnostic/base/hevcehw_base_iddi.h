@@ -40,10 +40,12 @@ public:
     DECL_BLOCK(CreateDevice)  \
     DECL_BLOCK(CreateService) \
     DECL_BLOCK(Register)      \
-    DECL_BLOCK(Reset)      \
+    DECL_BLOCK(Reset)         \
     DECL_BLOCK(SubmitTask)    \
-    DECL_BLOCK(SetDDIID)    \
-    DECL_BLOCK(QueryTask)
+    DECL_BLOCK(SetDDIID)      \
+    DECL_BLOCK(QueryTask)     \
+    DECL_BLOCK(QueryCORE)     \
+    DECL_BLOCK(QueryDDI)
 #define DECL_FEATURE_NAME "Base_IDDI"
 #include "hevcehw_decl_blocks.h"
 
