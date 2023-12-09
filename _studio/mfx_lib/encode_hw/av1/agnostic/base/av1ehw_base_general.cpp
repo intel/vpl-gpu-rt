@@ -822,7 +822,7 @@ void General::QueryIOSurf(const FeatureBlocks& blocks, TPushQIS Push)
         auto fourCC = par.mfx.FrameInfo.FourCC;
 
         req.Info = par.mfx.FrameInfo;
-        SetDefault(req.Info.Shift, (fourCC == MFX_FOURCC_P010 || fourCC == MFX_FOURCC_Y210));
+        SetDefault(req.Info.Shift, (fourCC == MFX_FOURCC_P010 || fourCC == MFX_FOURCC_Y210 || fourCC == MFX_FOURCC_P210));
 
         bool bSYS = par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY;
         bool bVID = par.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY;
@@ -1515,7 +1515,8 @@ void General::SubmitTask(const FeatureBlocks& blocks, TPushST Push)
 
         surfDst.Info.Shift =
             surfDst.Info.FourCC == MFX_FOURCC_P010
-            || surfDst.Info.FourCC == MFX_FOURCC_Y210; // convert to native shift in core.CopyFrame() if required
+            || surfDst.Info.FourCC == MFX_FOURCC_Y210
+            || surfDst.Info.FourCC == MFX_FOURCC_P210; // convert to native shift in core.CopyFrame() if required
 
         return core.DoFastCopyWrapper(
             &surfDst
@@ -3108,7 +3109,7 @@ mfxStatus General::CheckShift(mfxVideoParam & par)
 
     if (bVideoMem && !fi.Shift)
     {
-        if (fi.FourCC == MFX_FOURCC_P010 || fi.FourCC == MFX_FOURCC_P210)
+        if (fi.FourCC == MFX_FOURCC_P010 || fi.FourCC == MFX_FOURCC_Y210 || fi.FourCC == MFX_FOURCC_P210)
         {
             fi.Shift = 1;
             return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
