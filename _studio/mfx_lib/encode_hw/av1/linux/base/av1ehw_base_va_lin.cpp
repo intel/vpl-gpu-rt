@@ -404,6 +404,7 @@ mfxStatus DDI_VA::QueryCaps()
     m_caps.msdk.VBRSupport   = !!(AV(VAConfigAttribRateControl) & VA_RC_VBR);
     m_caps.msdk.CQPSupport   = !!(AV(VAConfigAttribRateControl) & VA_RC_CQP);
     m_caps.msdk.ICQSupport   = !!(AV(VAConfigAttribRateControl) & VA_RC_ICQ);
+    m_caps.msdk.QVBRSupport  = !!(AV(VAConfigAttribRateControl) & VA_RC_QVBR);
 
     m_caps.UserMaxFrameSizeSupport = !!(AV(VAConfigAttribMaxFrameSize));
 
@@ -457,6 +458,9 @@ uint32_t DDI_VA::ConvertRateControlMFX2VAAPI(mfxU16 rateControl)
         { mfxU16(MFX_RATECONTROL_CBR)   , uint32_t(VA_RC_CBR) },
         { mfxU16(MFX_RATECONTROL_VBR)   , uint32_t(VA_RC_VBR) },
         { mfxU16(MFX_RATECONTROL_ICQ)   , uint32_t(VA_RC_ICQ) },
+#ifdef MFX_ENABLE_QVBR
+        { mfxU16(MFX_RATECONTROL_QVBR)  , uint32_t(VA_RC_QVBR) },
+#endif
     };
 
     auto itRC = RCMFX2VAAPI.find(rateControl);

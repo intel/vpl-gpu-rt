@@ -47,7 +47,8 @@ void InitSPS(
 
     mfxU32 bNeedRateParam =
         par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR;
+        || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR
+        || par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR;
 
     sps.bits_per_second = bNeedRateParam * TargetKbps(par.mfx) * 1000;
 
@@ -493,7 +494,8 @@ inline void AddVaMiscRC(
 
     mfxU32 bNeedRateParam =
         par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR;
+        || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR 
+        || par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR;
 
     rc.bits_per_second = bNeedRateParam * MaxKbps(par.mfx) * 1000;
 
@@ -520,6 +522,10 @@ inline void AddVaMiscRC(
     const mfxExtCodingOption3* CO3 = ExtBuffer::Get(par);
     if (CO3)
     {
+        if (par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR) {
+            rc.quality_factor = CO3->QVBRQuality;
+        }
+
         rc.rc_flags.bits.frame_tolerance_mode =
             IsOn(CO3->LowDelayBRC) ? eFrameSizeTolerance_ExtremelyLow : eFrameSizeTolerance_Normal;
     }
