@@ -315,13 +315,7 @@ inline void PackFrameSizeInfo(BitstreamWriter& bs, FH const& fh)
 
 inline void PackColorConfig(BitstreamWriter& bs, SH const& sh)
 {
-
-    const bool high_bitdepth = sh.color_config.BitDepth == BITDEPTH_10;
-    bs.PutBit(high_bitdepth ? 1 : 0); //high_bitdepth
-
-    if (sh.seq_profile == 2 && high_bitdepth)
-        bs.PutBit(0); //twelve_bit
-
+    bs.PutBit(sh.color_config.BitDepth == BITDEPTH_10 ? 1 : 0); //high_bitdepth
     if (sh.seq_profile != 1)
         bs.PutBit(0); //mono_chrome
 

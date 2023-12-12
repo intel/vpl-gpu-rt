@@ -1167,9 +1167,7 @@ public:
         invalid += !compatible.count(pCO3->TargetChromaFormatPlus1)
             || !compatible.at(pCO3->TargetChromaFormatPlus1).count(profile);
 
-        MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
-
-        const auto& supportFourCC = compatible.at(pCO3->TargetChromaFormatPlus1).at(profile);
+        std::vector<mfxU32> supportFourCC = compatible.at(pCO3->TargetChromaFormatPlus1).at(profile);
         invalid += (std::find(supportFourCC.begin(), supportFourCC.end(), fourCC) == supportFourCC.end());
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
@@ -1229,13 +1227,14 @@ public:
             {
                 {
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
-                    , {MFX_FOURCC_AYUV, MFX_FOURCC_RGB4, MFX_FOURCC_BGR4}
+                    , {MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_RGB4
+                    , MFX_FOURCC_BGR4, MFX_FOURCC_A2RGB10}
                 }
                 ,{
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
-                    , {MFX_FOURCC_NV12
-                    , MFX_FOURCC_AYUV
-                    , MFX_FOURCC_RGB4, MFX_FOURCC_BGR4}
+                    , {MFX_FOURCC_NV12, MFX_FOURCC_P010
+                    , MFX_FOURCC_AYUV, MFX_FOURCC_Y410
+                    , MFX_FOURCC_RGB4, MFX_FOURCC_BGR4, MFX_FOURCC_A2RGB10}
                 }
             },
             //10
@@ -1246,8 +1245,7 @@ public:
                 }
                 ,{
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
-                    , {MFX_FOURCC_P010
-                    , MFX_FOURCC_Y410, MFX_FOURCC_A2RGB10}
+                    , {MFX_FOURCC_P010, MFX_FOURCC_Y410, MFX_FOURCC_A2RGB10}
                 }
             },
         };
@@ -1257,10 +1255,11 @@ public:
             || !Compatible[tbdl == 10].count(tcf)
             || !Compatible[tbdl == 10].at(tcf).count(par.mfx.FrameInfo.FourCC);
 
+        assert(!bUndefinedTargetFormat);
+
         par.mfx.FrameInfo.FourCC *= !bUndefinedTargetFormat;
 
         MFX_CHECK(!bUndefinedTargetFormat, MFX_ERR_UNSUPPORTED);
-
         return MFX_ERR_NONE;
     }
 
