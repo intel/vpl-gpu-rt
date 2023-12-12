@@ -2505,6 +2505,15 @@ typedef struct {
 } mfx3DLutVideoBuffer;
 MFX_PACK_END()
 
+#ifdef ONEVPL_EXPERIMENTAL
+/*! The mfx3DLutInterpolationMethod enumerator specifies the 3DLUT interpolation method. */
+typedef enum {
+    MFX_3DLUT_INTERPOLATION_DEFAULT              = 0,   /*!< Default 3DLUT interpolation Method. The library selects the most appropriate 3DLUT interpolation method. */
+    MFX_3DLUT_INTERPOLATION_TRILINEAR            = 1,   /*!< 3DLUT Trilinear interpolation method. */
+    MFX_3DLUT_INTERPOLATION_TETRAHEDRAL          = 2,   /*!< 3DLUT Tetrahedral interpolation method. */
+} mfx3DLutInterpolationMethod;
+#endif
+
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
     A hint structure that configures 3DLUT filter.
@@ -2518,7 +2527,12 @@ typedef struct {
         mfx3DLutSystemBuffer SystemBuffer;     /*!< The 3DLUT system buffer. mfx3DLutSystemBuffer structure describes the details of the buffer.*/
         mfx3DLutVideoBuffer  VideoBuffer;      /*!< The 3DLUT video buffer. mfx3DLutVideoBuffer describes the details of 3DLUT video buffer.*/
     };
+#ifdef ONEVPL_EXPERIMENTAL
+    mfx3DLutInterpolationMethod     InterpolationMethod;       /*!< Indicates 3DLUT Interpolation Method. mfx3DLutInterpolationMethod enumerator.*/
+    mfxU32                          reserved[3];               /*!< Reserved for future extension.*/
+#else
     mfxU32                   reserved[4];      /*!< Reserved for future extension.*/
+#endif
 } mfxExtVPP3DLut;
 MFX_PACK_END()
 
