@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Intel Corporation
+// Copyright (c) 2012-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -128,18 +128,6 @@ namespace UMC_AV1_DECODER
         { return UMC::UMC_ERR_NOT_IMPLEMENTED; }
         virtual uint32_t GetNumOfSkippedFrames() override
         { return 0; }
-        bool is_seq_header_ready() const
-        {
-            return sequence_header_ready;
-        }
-        void set_seq_header_ready()
-        {
-            sequence_header_ready = true;
-        }
-        void clean_seq_header_ready()
-        {
-            sequence_header_ready = false;
-        }
 
     public:
 
@@ -223,7 +211,6 @@ namespace UMC_AV1_DECODER
         uint32_t                        saved_clip_info_width;
         uint32_t                        saved_clip_info_height;
         bool                            clip_info_size_saved;
-        bool                            sequence_header_ready;
 
         FrameHeader                     m_prev_frame_header;
         bool                            m_prev_frame_header_exist;

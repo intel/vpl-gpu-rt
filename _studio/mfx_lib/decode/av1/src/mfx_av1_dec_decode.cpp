@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2023 Intel Corporation
+// Copyright (c) 2017-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1031,9 +1031,6 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
                 case UMC::UMC_ERR_NOT_ENOUGH_DATA:
                 case UMC::UMC_ERR_SYNC:
                     sts = MFX_ERR_MORE_DATA;
-                    break;
-                case UMC::UMC_ERR_INVALID_PARAMS:
-                    sts = MFX_ERR_INVALID_VIDEO_PARAM;
                     break;
 
                 default:
