@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 Intel Corporation
+// Copyright (c) 2017-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -54,6 +54,7 @@ namespace UMC_AV1_DECODER
         , saved_clip_info_width(0)
         , saved_clip_info_height(0)
         , clip_info_size_saved(false)
+        , sequence_header_ready(false)
         , m_prev_frame_header_exist(false)
         , m_specified_anchor_Idx(0)
         , m_isAnchor(false)
@@ -641,6 +642,7 @@ namespace UMC_AV1_DECODER
             assert(!AllocComplete(*pFrameInProgress));
             pCurrFrame = pFrameInProgress;
             gotFullFrame = true;
+            clean_seq_header_ready();
         }
         else
         {
@@ -694,10 +696,21 @@ namespace UMC_AV1_DECODER
                     // check if sequence header has been changed
                     if (IsNeedSPSInvalidate(old_seqHdr.get(), sequence_header.get()))
                     {
+                        // According to Spec Section 7.5 the contents of sequence_header_obu must be 
+                        // bit-identical each time the sequence header
+                        // appears except for the contents of operating_parameters_info
+                        if (is_seq_header_ready())
+                        {
+                            assert(!"Multi sequence_header_obu not bit-identical!");
+                            return UMC::UMC_ERR_INVALID_PARAMS;
+                        }
+
                         Update_drc(sequence_header.get());
                         // new resolution required
                         return UMC::UMC_NTF_NEW_RESOLUTION;
                     }
+
+                    set_seq_header_ready();
                     break;
                 }
                 case OBU_TILE_LIST:
@@ -746,6 +759,7 @@ namespace UMC_AV1_DECODER
                     in->MoveDataPointer(OBUOffset); // do not submit frame header in data buffer
                     OBUOffset = 0;
                     gotFullFrame = true; // tile list is a complete frame
+                    clean_seq_header_ready();
                     tile_list_idx++;
                     break;
                 case OBU_FRAME_HEADER:
@@ -776,11 +790,13 @@ namespace UMC_AV1_DECODER
                             gotFullFrame = true;
                             frames_to_skip--;
                             fh.is_anchor = 1;
+                            clean_seq_header_ready();
                         }
                         else if (anchor_decode)
                         {
                             gotFullFrame = true;
                             fh.is_anchor = 1;
+                            clean_seq_header_ready();
                         }
                         else
                         {
@@ -794,6 +810,7 @@ namespace UMC_AV1_DECODER
                         {
                             repeatedFrame = true;
                             gotFullFrame = true;
+                            clean_seq_header_ready();
                         }
                         break;
                     }
@@ -814,6 +831,10 @@ namespace UMC_AV1_DECODER
                     {
                         ReadTileGroup(layout, bs, *pFH, OBUOffset, obuInfo.size);
                         gotFullFrame = GotFullFrame(pFrameInProgress, *pFH, layout);
+                        if(gotFullFrame)
+                        {
+                            clean_seq_header_ready();
+                        }
                         break;
                     }
                 }
