@@ -1203,6 +1203,10 @@ mfxStatus EncTools::Discard(mfxU32 displayOrder)
     mfxStatus sts = MFX_ERR_NONE;
     if (isPreEncSCD(m_config, m_ctrl))
         sts = m_scd.CompleteFrame(displayOrder);
+    if (IsOn(m_config.BRC))
+    {
+        m_brc->DiscardFrame(displayOrder);
+    }
     return sts;
 }
 

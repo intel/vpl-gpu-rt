@@ -602,6 +602,7 @@ public:
     mfxStatus ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl *pFrameQp, mfxEncToolsHintQPMap* qpMapHint) override;
     mfxStatus UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *pFrameSts) override;
     mfxStatus GetHRDPos(mfxU32 dispOrder, mfxEncToolsBRCHRDPos *pHRDPos) override;
+    mfxStatus DiscardFrame(mfxU32 dispOrder) override;
 
 protected:
 
