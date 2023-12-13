@@ -320,6 +320,9 @@ namespace MfxHwVideoProcessing
             mfx3DLutMemoryLayout      MemLayout;
             mfx3DLutChannelMapping    ChannelMapping;
             mfxChannel                Channel[3];
+#ifdef ONEVPL_EXPERIMENTAL
+            mfx3DLutInterpolationMethod InterpolationMethod;
+#endif
         };
 
     public:

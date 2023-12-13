@@ -2086,6 +2086,9 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
             MFX_CHECK_NULL_PTR1(bufSc);
             bufSc->ChannelMapping               = m_executeParams.lut3DInfo.ChannelMapping;
             bufSc->BufferType                   = m_executeParams.lut3DInfo.BufferType;
+#ifdef ONEVPL_EXPERIMENTAL
+            bufSc->InterpolationMethod          = m_executeParams.lut3DInfo.InterpolationMethod;
+#endif
             if (bufSc->BufferType == MFX_RESOURCE_VA_SURFACE)
             {
                 bufSc->VideoBuffer.DataType         = m_executeParams.lut3DInfo.DataType;
@@ -6113,6 +6116,9 @@ mfxStatus ConfigureExecuteParams(
                                 executeParams.lut3DInfo.Enabled               = true;
                                 executeParams.lut3DInfo.ChannelMapping        = ext3DLUT->ChannelMapping;
                                 executeParams.lut3DInfo.BufferType            = ext3DLUT->BufferType;
+#ifdef ONEVPL_EXPERIMENTAL
+                                executeParams.lut3DInfo.InterpolationMethod   = ext3DLUT->InterpolationMethod;
+#endif
                                 if (ext3DLUT->BufferType == MFX_RESOURCE_VA_SURFACE || ext3DLUT->BufferType == MFX_RESOURCE_DX11_TEXTURE)
                                 {
                                     executeParams.lut3DInfo.DataType              = ext3DLUT->VideoBuffer.DataType;
