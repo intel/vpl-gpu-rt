@@ -383,11 +383,8 @@ public:
 
         const auto FourCC    = par.mvp.mfx.FrameInfo.FourCC;
         const bool b4CCMax10 =
-            FourCC == MFX_FOURCC_A2RGB10
-            || FourCC == MFX_FOURCC_P010
-            || FourCC == MFX_FOURCC_P210
-            || FourCC == MFX_FOURCC_Y210
-            || FourCC == MFX_FOURCC_Y410;
+            FourCC == MFX_FOURCC_P010
+            ;
 
         return mfxU16(8 + 2 * b4CCMax10);
     }
@@ -1061,8 +1058,7 @@ public:
             , MFX_FOURCC_P010
             , MFX_FOURCC_RGB4
             , MFX_FOURCC_BGR4
-            , MFX_FOURCC_AYUV
-            , MFX_FOURCC_Y410>
+            >
             (par.mfx.FrameInfo.FourCC);
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
@@ -1077,10 +1073,6 @@ public:
             && (!csf.fields.i420 || !bsf.fields.ten_bits));
         invalid += ((fourCC == MFX_FOURCC_RGB4 || fourCC == MFX_FOURCC_BGR4)
             && (!csf.fields.RGB || !bsf.fields.eight_bits));
-        invalid += (fourCC == MFX_FOURCC_AYUV
-            && (!csf.fields.i444 || !bsf.fields.eight_bits));
-        invalid += (fourCC == MFX_FOURCC_Y410
-            && (!csf.fields.i444 || !bsf.fields.ten_bits));
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
 
@@ -1095,12 +1087,10 @@ public:
         mfxU32 invalid = 0;
         static const std::map<mfxU32, std::array<mfxU16, 2>> FourCCPar=
         {
-            {mfxU32(MFX_FOURCC_NV12),     {mfxU16(MFX_CHROMAFORMAT_YUV420), BITDEPTH_8}}
-            , {mfxU32(MFX_FOURCC_P010),   {mfxU16(MFX_CHROMAFORMAT_YUV420), BITDEPTH_10}}
-            , {mfxU32(MFX_FOURCC_RGB4),   {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_8}}
-            , {mfxU32(MFX_FOURCC_BGR4),   {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_8}}
-            , {mfxU32(MFX_FOURCC_AYUV),   {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_8}}
-            , {mfxU32(MFX_FOURCC_Y410),   {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_10}}
+            {mfxU32(MFX_FOURCC_NV12),      {mfxU16(MFX_CHROMAFORMAT_YUV420), BITDEPTH_8}}
+            , {mfxU32(MFX_FOURCC_P010),    {mfxU16(MFX_CHROMAFORMAT_YUV420), BITDEPTH_10}}
+            , {mfxU32(MFX_FOURCC_RGB4),    {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_8}}
+            , {mfxU32(MFX_FOURCC_BGR4),    {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_8}}
         };
 
         auto itFourCCPar = FourCCPar.find(par.mfx.FrameInfo.FourCC);
@@ -1137,7 +1127,6 @@ public:
             pCO3->TargetChromaFormatPlus1 = defPar.base.GetTargetChromaFormatPlus1(defPar);
         }
 
-        invalid = pCO3->TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422);
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
 
@@ -1152,20 +1141,15 @@ public:
                 {
                     mfxU16(MFX_PROFILE_AV1_MAIN),
                     {mfxU32(MFX_FOURCC_NV12), mfxU32(MFX_FOURCC_P010), mfxU32(MFX_FOURCC_RGB4), mfxU32(MFX_FOURCC_BGR4),
-                        mfxU32(MFX_FOURCC_AYUV), mfxU32(MFX_FOURCC_Y410)}}
+                        }}
                 }
             },
-            {mfxU16(MFX_CHROMAFORMAT_YUV444 + 1)
-            ,{
-                {
-                    mfxU16(MFX_PROFILE_AV1_HIGH),
-                    {mfxU32(MFX_FOURCC_AYUV), mfxU32(MFX_FOURCC_Y410), mfxU32(MFX_FOURCC_RGB4), mfxU32(MFX_FOURCC_BGR4)}}
-                }
-            }
         };
 
         invalid += !compatible.count(pCO3->TargetChromaFormatPlus1)
             || !compatible.at(pCO3->TargetChromaFormatPlus1).count(profile);
+
+        MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
 
         std::vector<mfxU32> supportFourCC = compatible.at(pCO3->TargetChromaFormatPlus1).at(profile);
         invalid += (std::find(supportFourCC.begin(), supportFourCC.end(), fourCC) == supportFourCC.end());
@@ -1175,7 +1159,6 @@ public:
         //check targetChromaFormat by caps
         const auto& csf = defPar.caps.ChromaSupportFlags;
         invalid += (pCO3->TargetChromaFormatPlus1 == (MFX_CHROMAFORMAT_YUV420 + 1) && (!csf.fields.i420));
-        invalid += (pCO3->TargetChromaFormatPlus1 == (MFX_CHROMAFORMAT_YUV444 + 1) && (!csf.fields.i444));
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
 
@@ -1226,26 +1209,18 @@ public:
             //8
             {
                 {
-                    mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
-                    , {MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_RGB4
-                    , MFX_FOURCC_BGR4, MFX_FOURCC_A2RGB10}
-                }
-                ,{
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
                     , {MFX_FOURCC_NV12, MFX_FOURCC_P010
-                    , MFX_FOURCC_AYUV, MFX_FOURCC_Y410
-                    , MFX_FOURCC_RGB4, MFX_FOURCC_BGR4, MFX_FOURCC_A2RGB10}
+                    , MFX_FOURCC_RGB4, MFX_FOURCC_BGR4
+                    }
                 }
             },
             //10
             {
                 {
-                    mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
-                    , {MFX_FOURCC_Y410, MFX_FOURCC_A2RGB10}
-                }
-                ,{
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
-                    , {MFX_FOURCC_P010, MFX_FOURCC_Y410, MFX_FOURCC_A2RGB10}
+                    , {MFX_FOURCC_P010
+                    }
                 }
             },
         };
