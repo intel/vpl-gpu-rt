@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2019 Intel Corporation
+// Copyright (c) 2003-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@
 #include <vector>
 #include "umc_structures.h"
 #include "umc_h264_nal_spl.h"
+#include "mfx_utils_logging.h"
 
 namespace UMC
 {
@@ -209,6 +210,10 @@ public:
             startCodeSize1 = 0;
             source += size;
             size = 0;
+            if (!flags) // completeframe mode
+            {
+                MFX_LOG_ERROR("Incomplete bitstream will be sent to driver in completeframe mode\n");
+            }
         }
 
         if (iCodeNext == -1)
