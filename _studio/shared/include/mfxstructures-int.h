@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2021 Intel Corporation
+// Copyright (c) 2007-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -568,6 +568,11 @@ typedef struct {
 
     /* ARL S */
     { 0x7D67, MFX_HW_ARL, MFX_GT2 },
+
+    /* ARL H*/
+    { 0x7D51, MFX_HW_ARL, MFX_GT2 },
+    { 0x7DD1, MFX_HW_ARL, MFX_GT2 },
+    { 0x7D41, MFX_HW_ARL, MFX_GT2 },
 
 };
 
