@@ -3108,7 +3108,8 @@ mfxStatus General::CheckShift(mfxVideoParam & par)
 
     if (bVideoMem && !fi.Shift)
     {
-        if (fi.FourCC == MFX_FOURCC_P010 || fi.FourCC == MFX_FOURCC_P210)
+        if (fi.FourCC == MFX_FOURCC_P010
+            )
         {
             fi.Shift = 1;
             return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;

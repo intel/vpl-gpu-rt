@@ -1127,9 +1127,6 @@ public:
             pCO3->TargetChromaFormatPlus1 = defPar.base.GetTargetChromaFormatPlus1(defPar);
         }
 
-
-        MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
-
         //check targetChromaFormat By FourCC and profile
         mfxU16 profile = defPar.base.GetProfile(defPar);
         mfxU32 fourCC = par.mfx.FrameInfo.FourCC;
@@ -1151,7 +1148,7 @@ public:
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
 
-        std::vector<mfxU32> supportFourCC = compatible.at(pCO3->TargetChromaFormatPlus1).at(profile);
+        const auto& supportFourCC = compatible.at(pCO3->TargetChromaFormatPlus1).at(profile);
         invalid += (std::find(supportFourCC.begin(), supportFourCC.end(), fourCC) == supportFourCC.end());
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
@@ -1230,11 +1227,10 @@ public:
             || !Compatible[tbdl == 10].count(tcf)
             || !Compatible[tbdl == 10].at(tcf).count(par.mfx.FrameInfo.FourCC);
 
-        assert(!bUndefinedTargetFormat);
-
         par.mfx.FrameInfo.FourCC *= !bUndefinedTargetFormat;
 
         MFX_CHECK(!bUndefinedTargetFormat, MFX_ERR_UNSUPPORTED);
+
         return MFX_ERR_NONE;
     }
 
