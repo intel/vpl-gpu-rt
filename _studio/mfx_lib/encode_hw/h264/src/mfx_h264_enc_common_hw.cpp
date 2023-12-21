@@ -1439,9 +1439,13 @@ MFX_ERR_NONE - if no errors
 mfxStatus MfxHwH264Encode::SetLowPowerDefault(MfxVideoParam& par, const eMFXHWType& platform)
 {
     mfxStatus sts = CheckTriStateOption(par.mfx.LowPower) ? MFX_ERR_NONE : MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+    auto fcc = par.mfx.FrameInfo.FourCC;
 
-    if (!H264ECaps::IsVmeSupported(platform))
-    {   // DualPipe (aka VME) is not available
+    if (!H264ECaps::IsVmeSupported(platform) ||
+        (fcc == MFX_FOURCC_YUY2 ||
+         fcc == MFX_FOURCC_AYUV ||
+         fcc == MFX_FOURCC_RGB4))
+    {   // DualPipe (aka VME) is not available or YUY2/AYUV/RGB input formats
         par.mfx.LowPower = MFX_CODINGOPTION_ON;
         return sts;
     }
