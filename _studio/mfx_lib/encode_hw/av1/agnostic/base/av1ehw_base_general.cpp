@@ -188,16 +188,16 @@ void General::SetSupported(ParamSupport& blocks)
         const auto& buf_src = *(const mfxExtRefListCtrl*)pSrc;
         auto& buf_dst = *(mfxExtRefListCtrl*)pDst;
 
+        MFX_COPY_FIELD(ApplyLongTermIdx);
+
         for (size_t i = 0; i < mfx::size(buf_src.PreferredRefList); i++)
         {
             MFX_COPY_FIELD(PreferredRefList[i].FrameOrder);
-            MFX_COPY_FIELD(PreferredRefList[i].LongTermIdx);
         }
 
         for (size_t i = 0; i < mfx::size(buf_src.RejectedRefList); i++)
         {
             MFX_COPY_FIELD(RejectedRefList[i].FrameOrder);
-            MFX_COPY_FIELD(RejectedRefList[i].LongTermIdx);
         }
 
         for (size_t i = 0; i < mfx::size(buf_src.LongTermRefList); i++)
