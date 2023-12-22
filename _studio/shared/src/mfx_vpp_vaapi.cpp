@@ -1114,7 +1114,16 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             }
             else if(pParams->lut3DInfo.BufferType == MFX_RESOURCE_SYSTEM_SURFACE)
             {
-                mfxU16 seg_size, mul_size;
+                // The current implementation only supports the size of 3 channels is same.
+                mfxSts = ((pParams->lut3DInfo.Channel[0].Size == pParams->lut3DInfo.Channel[1].Size)) ? MFX_ERR_NONE : MFX_ERR_UNSUPPORTED;
+                MFX_CHECK_STS(mfxSts);
+                // The current implementation only supports 17, 33, 65 LUT size.
+                mfxSts = ((pParams->lut3DInfo.Channel[0].Size == 17) ||
+                          (pParams->lut3DInfo.Channel[0].Size == 33) ||
+                          (pParams->lut3DInfo.Channel[0].Size == 65)) ? MFX_ERR_NONE : MFX_ERR_UNSUPPORTED;
+                MFX_CHECK_STS(mfxSts);
+
+                mfxU16 seg_size = lut65_seg_size, mul_size = lut65_mul_size;
                 switch(pParams->lut3DInfo.Channel[0].Size)
                 {
                 case lut17_seg_size:
@@ -1161,10 +1170,28 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
                 void* surface_p = nullptr;
                 vaSts = vaMapBuffer(m_vaDisplay, surface_image.buf, &surface_p);
                 MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+                // The size of the surface is (seg_size * mul_size * seg_size * 2 * 4) bytes;
+                memset(surface_p, 0, seg_size * mul_size * seg_size * 8);
 
-                memcpy((char*)surface_p,                                                                           pParams->lut3DInfo.Channel[0].Data, pParams->lut3DInfo.Channel[0].Size);
-                memcpy((char*)surface_p + pParams->lut3DInfo.Channel[0].Size,                                      pParams->lut3DInfo.Channel[1].Data, pParams->lut3DInfo.Channel[1].Size);
-                memcpy((char*)surface_p + pParams->lut3DInfo.Channel[0].Size + pParams->lut3DInfo.Channel[1].Size, pParams->lut3DInfo.Channel[2].Data, pParams->lut3DInfo.Channel[2].Size);
+                mfxU64 *lut_data    = (mfxU64 *)surface_p;
+                mfxU16 *r_data      = (mfxU16 *)pParams->lut3DInfo.Channel[0].Data;
+                mfxU16 *g_data      = (mfxU16 *)pParams->lut3DInfo.Channel[1].Data;
+                mfxU16 *b_data      = (mfxU16 *)pParams->lut3DInfo.Channel[2].Data;
+                mfxU32 index = 0;
+                for (mfxU16 r_index = 0; r_index < seg_size; r_index++)
+                {
+                    for (mfxU16 g_index = 0; g_index < seg_size; g_index++)
+                    {
+                        for (mfxU16 b_index = 0; b_index < pParams->lut3DInfo.Channel[2].Size; b_index++)
+                        {
+                            mfxU16 r_temp = r_data[index];
+                            mfxU16 g_temp = g_data[index];
+                            mfxU16 b_temp = b_data[index];
+                            lut_data[r_index * seg_size * mul_size + g_index * mul_size + b_index] = ((mfxU64)b_temp)<<32 | ((mfxU64)g_temp)<<16 | ((mfxU64)r_temp);
+                            index++;
+                        }
+                    }
+                }
 
                 vaSts = vaUnmapBuffer(m_vaDisplay, surface_image.buf);
                 MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
