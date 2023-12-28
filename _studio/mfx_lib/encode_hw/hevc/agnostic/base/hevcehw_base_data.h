@@ -692,6 +692,7 @@ namespace Base
         mfxU32   DisplayOrder   = mfxU32(-1);
         mfxU32   EncodedOrder   = mfxU32(-1);
         bool     isLTR          = false; // is "long-term"
+        mfxU16   LongTermIdx    = mfxU16(0);
         mfxU8    CodingType     = 0;
         Resource Raw;
         Resource RawTmp;

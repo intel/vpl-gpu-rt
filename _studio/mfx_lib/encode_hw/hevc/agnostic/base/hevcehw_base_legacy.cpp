@@ -223,11 +223,21 @@ void Legacy::SetSupported(ParamSupport& blocks)
         auto& buf_dst = *(mfxExtAVCRefListCtrl*)pDst;
         MFX_COPY_FIELD(NumRefIdxL0Active);
         MFX_COPY_FIELD(NumRefIdxL1Active);
-        for (mfxU32 i = 0; i < 16; i++)
+        MFX_COPY_FIELD(ApplyLongTermIdx);
+        for (size_t i = 0; i < mfx::size(buf_src.PreferredRefList); i++)
         {
             MFX_COPY_FIELD(PreferredRefList[i].FrameOrder);
+        }
+
+        for (size_t i = 0; i < mfx::size(buf_src.RejectedRefList); i++)
+        {
             MFX_COPY_FIELD(RejectedRefList[i].FrameOrder);
+        }
+
+        for (size_t i = 0; i < mfx::size(buf_src.LongTermRefList); i++)
+        {
             MFX_COPY_FIELD(LongTermRefList[i].FrameOrder);
+            MFX_COPY_FIELD(LongTermRefList[i].LongTermIdx);
         }
     });
     blocks.m_ebCopySupported[MFX_EXTBUFF_AVC_TEMPORAL_LAYERS].emplace_back(
@@ -2779,7 +2789,7 @@ mfxU16 Legacy::UpdateDPB(
             , pLCtrl->LongTermRefList + mfx::size(pLCtrl->LongTermRefList)
             , [](const TLCtrlRLE& lt) { return lt.FrameOrder == mfxU32(MFX_FRAMEORDER_UNKNOWN); });
 
-        std::list<mfxU16> markLTR;
+        std::list<std::pair<mfxU16, mfxU16>> markLTR;
 
         std::transform(pLCtrl->LongTermRefList, lctrlLtrEnd, std::back_inserter(markLTR)
             , [&](const TLCtrlRLE& lt)
@@ -2788,25 +2798,58 @@ mfxU16 Legacy::UpdateDPB(
             if (idx >= MAX_DPB_SIZE)
             {
                 MFX_STS_TRACE(MFX_ERR_INVALID_VIDEO_PARAM);
-                return static_cast<mfxU16>(MAX_DPB_SIZE);
+                return std::make_pair(static_cast<mfxU16>(MAX_DPB_SIZE), lt.LongTermIdx);
             }
             idx += !!dpb[idx].isLTR * MAX_DPB_SIZE;
-            return std::min<mfxU16>(idx, MAX_DPB_SIZE);
+            return std::make_pair(std::min<mfxU16>(idx, MAX_DPB_SIZE), lt.LongTermIdx);
         });
 
-        markLTR.sort();
-        markLTR.remove(mfxU16(MAX_DPB_SIZE));
+        markLTR.sort([](std::pair<mfxU16, mfxU16>& l, std::pair<mfxU16, mfxU16>& r) { return l.first < r.first; });
+        markLTR.remove_if([&](std::pair<mfxU16, mfxU16> idxPair) { return MAX_DPB_SIZE == idxPair.first; });
         markLTR.unique();
 
         std::for_each(markLTR.begin(), markLTR.end()
-            , [&](mfxU16 idx)
+            , [&](std::pair<mfxU16, mfxU16> idxPair)
         {
-            DpbFrame ltr = dpb[idx];
+            DpbFrame ltr = dpb[idxPair.first];
             ltr.isLTR = true;
-            Remove(dpb, idx);
+            ltr.LongTermIdx = idxPair.second;
+            Remove(dpb, idxPair.first);
             Insert(dpb, st0, ltr);
             st0++;
         });
+
+        // Update LTR by slot with the same LongTermIdx if ApplyLongTermIdx is used
+        if (pLCtrl->ApplyLongTermIdx)
+        {
+            size_t size = mfx::size(dpb);
+            for (size_t i = 0; i < size; ++i)
+            {
+                if (!isValid(dpb[i]))
+                    continue;
+
+                for (size_t j = i + 1; j < size;)
+                {
+                    if (!isValid(dpb[j]))
+                    {
+                        ++j;
+                        continue;
+                    }
+
+                    if (dpb[i].isLTR && dpb[j].isLTR && (dpb[i].LongTermIdx == dpb[j].LongTermIdx))
+                    {
+                        Remove(dpb, i);
+                        --size;
+                        --st0;
+                    }
+                    else
+                    {
+                        ++j;
+                    }
+                }
+            }
+
+        }
 
         std::sort(dpb, dpb + st0, POCLess);
     }
