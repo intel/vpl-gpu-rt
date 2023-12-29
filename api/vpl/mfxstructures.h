@@ -2966,7 +2966,7 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
 
    @note Not all implementations of the encoder support LongTermIdx and ApplyLongTermIdx fields in this structure. The application must use
          query mode 1 to determine if such functionality is supported. To do this, the application must attach this extended buffer to the
-         mfxVideoParam structure and call the MFXVideoENCODE_Query function. If the function returns MFX_ERR_NONE and these fields were set to one,
+         mfxVideoParam structure and call the MFXVideoENCODE_Query function. If the function returns MFX_ERR_NONE and these fields were set to non-zero value,
          then the functionality is supported. If the function fails or sets fields to zero, then the functionality is not supported.
 
 */
