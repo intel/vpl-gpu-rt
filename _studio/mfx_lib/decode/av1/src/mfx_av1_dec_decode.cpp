@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2023 Intel Corporation
+// Copyright (c) 2017-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@
 #include "mfx_common_int.h"
 #include "mfx_common_decode_int.h"
 #include "mfx_vpx_dec_common.h"
+#include "umc_va_video_processing.h"
 
 #include "mfx_umc_alloc_wrapper.h"
 
@@ -251,6 +252,14 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
     }
 #endif
 
+    // set surface request type
+    m_request.Type = MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_DECODE;
+
+    if (internal)
+        m_request.Type |= MFX_MEMTYPE_INTERNAL_FRAME;
+    else
+        m_request.Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
+
     mfxFrameAllocRequest request_internal = m_request;
 
     {
@@ -286,6 +295,14 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
 
     ConvertMFXParamsToUMC(par, &vp);
     vp.info.profile = av1_mfx_profile_to_native_profile(par->mfx.CodecProfile);
+
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+    if (m_va->GetVideoProcessingVA())
+    {
+        UMC::Status umcSts = m_va->GetVideoProcessingVA()->Init(par, videoProcessing);
+        MFX_CHECK(umcSts == UMC::UMC_OK, MFX_ERR_INVALID_VIDEO_PARAM);
+    }
+#endif
 
     UMC::Status umcSts = m_decoder->Init(&vp);
     MFX_CHECK(umcSts == UMC::UMC_OK, MFX_ERR_NOT_INITIALIZED);
