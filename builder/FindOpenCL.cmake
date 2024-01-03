@@ -18,6 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-set( OPENCL_INCLUDE "${MFX_HOME}/contrib/OCL/include" CACHE STRING "OpenCL header files" )
+set( OPENCL_INCLUDE "${MFX_HOME}/../../build_tools/OCLHeaders" CACHE STRING "OpenCL header files" )
 
 message( STATUS "OpenCL header files were found here: ${OPENCL_INCLUDE}" )
