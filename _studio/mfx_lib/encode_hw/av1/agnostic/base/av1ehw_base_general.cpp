@@ -2251,7 +2251,7 @@ inline void SetTaskDPBRefresh(
     auto& refreshRefFrames = task.RefreshFrameFlags;
 
     if (IsI(task.FrameType))
-        std::fill(refreshRefFrames.begin(), refreshRefFrames.end(), static_cast<mfxU8>(1));
+        std::fill(refreshRefFrames.begin(), refreshRefFrames.end(), mfxU8(1));
     else if (IsRef(task.FrameType))
     {
         // At first find all rejected LTRs to refresh them with current frame
@@ -2286,6 +2286,10 @@ inline void SetTaskDPBRefresh(
         // If this frame is not put into DPB, it will not be ref-frame
         if (std::find(refreshRefFrames.begin(), refreshRefFrames.end(), 1) == refreshRefFrames.end())
             task.FrameType &= ~MFX_FRAMETYPE_REF;
+        else
+        {
+            std::fill(refreshRefFrames.begin() + task.DPB.size(), refreshRefFrames.end(), mfxU8(1));
+        }
     }
 
 }
