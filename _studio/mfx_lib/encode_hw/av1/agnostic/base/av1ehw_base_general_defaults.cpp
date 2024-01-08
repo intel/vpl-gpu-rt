@@ -485,7 +485,8 @@ public:
         auto   GetFromMaxKbps  = [&]() { return defPar.base.GetMaxKbps(defPar) / 4; };
         auto   GetFromRawBytes = [&]()
         {
-            return General::GetRawBytes(defPar) / 1000;
+            const mfxU32 numCacheFrames = defPar.base.GetTemporalUnitCacheSize(defPar);
+            return General::GetRawBytes(defPar) / 1000 * numCacheFrames;
         };
 
         SetIf(defaultSize, bUseMaxKbps, GetFromMaxKbps);
@@ -667,6 +668,20 @@ public:
         return
             par.mvp.mfx.EncodedOrder
             && par.mvp.mfx.NumRefFrame > 2;
+    }
+
+    static mfxU32 TemporalUnitCacheSize(
+        Defaults::TChain<mfxU32>::TExt
+        , const Defaults::Param& par)
+    {
+        mfxU32 numCacheFrames = 1;
+        if (HaveRABFrames(par.mvp))
+        {
+            numCacheFrames = (par.base.GetBRefType(par) != MFX_B_REF_PYRAMID) ? mfxU32(2)
+            : mfxU32(par.base.GetNumBPyramidLayers(par)) + 1;
+        }
+
+        return numCacheFrames;
     }
 
     static mfxU16 FrameType(
@@ -953,6 +968,7 @@ public:
         PUSH_DEFAULT(PreReorderInfo);
         PUSH_DEFAULT(NumReorderFrames);
         PUSH_DEFAULT(NonStdReordering);
+        PUSH_DEFAULT(TemporalUnitCacheSize);
         PUSH_DEFAULT(LoopFilterLevels);
         PUSH_DEFAULT(CDEF);
         PUSH_DEFAULT(MBBRC);

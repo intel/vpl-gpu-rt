@@ -1715,11 +1715,10 @@ void General::GetVideoParam(const FeatureBlocks& blocks, TPushGVP Push)
         , [this, &blocks](mfxVideoParam& out, StorageR& global) -> mfxStatus
     {
         out.mfx.LowPower = MFX_CODINGOPTION_ON;
-        if (HaveRABFrames(out))
+        if (out.mfx.RateControlMethod == MFX_RATECONTROL_CBR || out.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
         {
             auto defPar = GetRTDefaults(global);
-            const mfxU32 numCacheFrames = (defPar.base.GetBRefType(defPar) != MFX_B_REF_PYRAMID) ? mfxU32(2)
-                : mfxU32(defPar.base.GetNumBPyramidLayers(defPar)) + 1;
+            const mfxU32 numCacheFrames = defPar.base.GetTemporalUnitCacheSize(defPar);
             BufferSizeInKB(out.mfx) = BufferSizeInKB(out.mfx) * numCacheFrames;
         }
 
@@ -2891,7 +2890,7 @@ void SetDefaultGOP(
         SetIf(pCO3->PRefType, !pCO3->PRefType, [&]() { return defPar.base.GetPRefType(defPar); });
         
         // change default to LDB when RAB
-        if (General::HaveRABFrames(par))
+        if (HaveRABFrames(par))
             SetDefault<mfxU16>(pCO3->GPB, MFX_CODINGOPTION_ON);
         else
             SetDefault<mfxU16>(pCO3->GPB, MFX_CODINGOPTION_OFF);
@@ -3155,12 +3154,13 @@ mfxU32 CheckBufferSizeInKB(mfxVideoParam& par, const Defaults::Param& defPar)
     if (!par.mfx.BufferSizeInKB)
         return changed;
 
-    mfxU32     minSizeInKB   = 0;
-    const bool bCqpOrIcq     = par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
+    mfxU32     minSizeInKB = 0;
+    const bool bCqpOrIcq   = par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
         || par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ;
     if (bCqpOrIcq)
     {
-        minSizeInKB = General::GetRawBytes(defPar) / 1000;
+        const mfxU32 numCacheFrames = defPar.base.GetTemporalUnitCacheSize(defPar);
+        minSizeInKB =  General::GetRawBytes(defPar) / 1000 * numCacheFrames;
     }
     else
     {

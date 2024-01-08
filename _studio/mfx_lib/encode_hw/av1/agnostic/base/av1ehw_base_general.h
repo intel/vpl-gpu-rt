@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Intel Corporation
+// Copyright (c) 2019-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -218,10 +218,6 @@ namespace Base
         TTaskIt ReorderWrap(const ExtBuffer::Param<mfxVideoParam> & par, TTaskIt begin, TTaskIt end, bool flush);
         static mfxU32 GetRawBytes(const Defaults::Param& par);
         static bool IsInVideoMem(const mfxVideoParam& par);
-        static bool HaveRABFrames(const mfxVideoParam& par)
-        {
-            return par.mfx.GopPicSize > 2 && par.mfx.GopRefDist > 1;
-        }
 
         mfxU16 GetMaxRaw(const mfxVideoParam& par)
         {
