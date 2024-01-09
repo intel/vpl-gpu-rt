@@ -1440,6 +1440,7 @@ void General::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
             , StorageW& s_task) -> mfxStatus
     {
         auto& task = Task::Common::Get(s_task);
+        auto& encodedInfo = Task::EncodedInfo::Get(s_task);
 
         if (global.Contains(Glob::AllocRaw::Key))
         {
@@ -1456,7 +1457,7 @@ void General::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
 
         auto& fh = Glob::FH::Get(global);
         auto  def = GetRTDefaults(global);
-        ConfigureTask(task, def, recPool);
+        ConfigureTask(task, def, recPool, encodedInfo);
 
         auto& framesToShowInfo = Glob::FramesToShowInfo::Get(global);
         SetTaskFramesToShow(task, framesToShowInfo);
@@ -2137,6 +2138,22 @@ inline void MarkLTR(TaskCommonPar& task)
     }
 }
 
+inline void UpdateLTRInfo(TaskCommonPar& task, EncodedInfoAv1& encodedInfo)
+{
+    encodedInfo.DisplayOrder = task.DisplayOrder;
+
+    auto LTRframe = std::find_if(
+        task.DPB.begin()
+        , task.DPB.end()
+        , [encodedInfo](const DpbType::value_type& f) {
+            return f && f->isLTR && f->DisplayOrder == encodedInfo.DisplayOrder;});
+    if (LTRframe != task.DPB.end())
+    {
+        encodedInfo.isLTR = true;
+        encodedInfo.LongTermIdx = (*LTRframe)->LongTermIdx;
+    }
+}
+
 // task - [in/out] Current task object, task.DPB may be modified
 // Return - N/A
 inline void MarkRejected(TaskCommonPar& task)
@@ -2380,7 +2397,8 @@ inline void SetTaskTCBRC(
 void General::ConfigureTask(
     TaskCommonPar& task
     , const Defaults::Param& dflts
-    , IAllocation& recPool)
+    , IAllocation& recPool
+    , EncodedInfoAv1& encodedInfo)
 {
     task.StatusReportId = std::max<mfxU32>(1, m_prevTask.StatusReportId + 1);
 
@@ -2405,6 +2423,7 @@ void General::ConfigureTask(
 
     UpdateDPB(m_prevTask.DPB, reinterpret_cast<DpbFrame&>(task), task.RefreshFrameFlags, DpbFrameReleaser(recPool));
     MarkLTR(m_prevTask);
+    UpdateLTRInfo(m_prevTask, encodedInfo);
 }
 
 static bool HaveL1(DpbType const & dpb, mfxI32 displayOrderInGOP)
