@@ -64,23 +64,6 @@ void EncodedFrameInfo::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 P
     });
 }
 
-void EncodedFrameInfo::InitTask(const FeatureBlocks& blocks, TPushIT Push)
-{
-    Push(BLK_InitTask
-        , [this, &blocks](
-            mfxEncodeCtrl* /*pCtrl*/
-            , mfxFrameSurface1* /*pSurf*/
-            , mfxBitstream* /*pBs*/
-            , StorageW& /*global*/
-            , StorageW& task) -> mfxStatus
-        {
-            auto& encodedInfo = Task::EncodedInfo::Get(task);
-            encodedInfo = EncodedInfoAv1();
-
-            return MFX_ERR_NONE;
-        });
-}
-
 void EncodedFrameInfo::AllocTask(const FeatureBlocks& blocks, TPushAT Push)
 {
     Push(BLK_AllocTask
@@ -127,7 +110,7 @@ void EncodedFrameInfo::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
             auto& src = task.DPB[idx % task.DPB.size()];
 
             dst.FrameOrder  = src->DisplayOrder;
-            dst.LongTermIdx = src->isLTR ? src->LongTermIdx : MFX_LONGTERM_IDX_NO_IDX;
+            dst.LongTermIdx = mfxU16(MFX_LONGTERM_IDX_NO_IDX * !src->isLTR);
             dst.PicStruct   = MFX_PICSTRUCT_PROGRESSIVE;
 
             return dst;
@@ -166,7 +149,7 @@ void EncodedFrameInfo::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         std::copy(std::begin(encodedInfo.UsedRefListL1), std::end(encodedInfo.UsedRefListL1),
             std::begin(pInfo->UsedRefListL1));
         pInfo->FrameOrder   = (task.FrameOrderIn == mfxU32(-1)) ? task.DisplayOrder : task.FrameOrderIn;
-        pInfo->LongTermIdx  = encodedInfo.isLTR ? encodedInfo.LongTermIdx : MFX_LONGTERM_IDX_NO_IDX;
+        pInfo->LongTermIdx  = mfxU16(MFX_LONGTERM_IDX_NO_IDX * !task.isLTR);
         pInfo->PicStruct    = MFX_PICSTRUCT_PROGRESSIVE;
         pInfo->QP           = encodedInfo.QpY;
         pInfo->BRCPanicMode = 0;

@@ -1390,9 +1390,6 @@ namespace Base
         TUsedRefList UsedRefListL0 = {};
         TUsedRefList UsedRefListL1 = {};
         mfxU16       QpY           = 0;
-        mfxU32       DisplayOrder  = 0;
-        mfxU16       LongTermIdx   = MFX_LONGTERM_IDX_NO_IDX;
-        bool         isLTR         = false;
     };
 
     struct Task
