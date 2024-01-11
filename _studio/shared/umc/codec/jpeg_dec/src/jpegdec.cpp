@@ -510,6 +510,11 @@ JERRCODE CJPEGDecoder::ParseCOM(void)
   if(JPEG_OK != jerr)
     return jerr;
 
+  if (len < 2)
+  {
+    return JPEG_ERR_BAD_DATA;
+  }
+
   len -= 2;
 
   TRC1("  bytes for comment - ",len);

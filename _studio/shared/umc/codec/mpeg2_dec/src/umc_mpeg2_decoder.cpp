@@ -228,6 +228,10 @@ namespace UMC_MPEG2_DECODER
             }
             else if (EXTENSION == it->type)
             {
+                if ((uint32_t)(it->end - it->begin) <= (prefix_size + 1)) // Check the header size is valid
+                {
+                    throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
+                }
                 uint8_t ext_type = it->begin[prefix_size + 1] >> 4;
                 if (SEQUENCE_EXTENSION == ext_type)
                 {
@@ -534,7 +538,7 @@ namespace UMC_MPEG2_DECODER
             uint8_t* seqExtBegin = RawHeaderIterator::FindStartCode(data.begin + prefix_size + bitStream.BytesDecoded(), data.end);
             MFX_CHECK(seqExtBegin, UMC::UMC_ERR_INVALID_STREAM);
 
-            bitStream.Reset(seqExtBegin + prefix_size, (uint32_t)(data.end - seqExtBegin));
+            bitStream.Reset(seqExtBegin + prefix_size, (uint32_t)(data.end - seqExtBegin - prefix_size));
             bitStream.Seek(8 + 4); // skip data and extension types
             bitStream.GetSequenceExtension(*seqExtHdr.get());
 
@@ -587,7 +591,7 @@ namespace UMC_MPEG2_DECODER
             uint8_t* picExtBegin = RawHeaderIterator::FindStartCode(data.begin + prefix_size + bitStream.BytesDecoded(), data.end); // Find begining of extension
             MFX_CHECK(picExtBegin, UMC::UMC_ERR_INVALID_STREAM);
 
-            bitStream.Reset(picExtBegin + prefix_size, (uint32_t)(data.end - picExtBegin - prefix_size + 1));
+            bitStream.Reset(picExtBegin + prefix_size, (uint32_t)(data.end - picExtBegin - prefix_size));
             bitStream.Seek(8 + 4); // skip data and extension types
             bitStream.GetPictureExtensionHeader(*picExtHdr.get()); // decode extension
 
