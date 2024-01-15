@@ -204,9 +204,10 @@ namespace Base
             , FH& fh);
 
         void ConfigureTask(
-            TaskCommonPar & task
+            TaskCommonPar& task
             , const Defaults::Param& dflts
-            , IAllocation& recPool);
+            , IAllocation& recPool
+            , EncodedInfoAv1& encodedInfo);
 
         mfxStatus GetCurrentFrameHeader(
             const TaskCommonPar& task
