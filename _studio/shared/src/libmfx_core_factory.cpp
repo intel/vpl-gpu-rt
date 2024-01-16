@@ -28,7 +28,8 @@ VideoCORE* FactoryCORE::CreateCORE(eMFXVAType va_type,
                                    mfxU32 adapterNum,
                                    const std::pair<mfxU32, std::vector<mfxU8>> & affinityMask,
                                    mfxU32 numThreadsAvailable,
-                                   mfxSession session)
+                                   mfxSession session,
+                                   bool bValidateHandle)
 {
     (void)adapterNum;
     std::ignore = affinityMask;

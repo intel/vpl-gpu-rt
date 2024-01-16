@@ -319,7 +319,7 @@ mfxU32 _mfxVersionedSessionImpl::GetNumRef(void) const
 } // mfxU32 _mfxVersionedSessionImpl::GetNumRef(void) const
 
 
-mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par, bool isSingleThreadMode = false)
+mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par, bool isSingleThreadMode = false, bool bValidateHandle = false)
 {
     mfxStatus mfxRes;
     mfxU32 maxNumThreads;

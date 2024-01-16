@@ -72,7 +72,7 @@ static inline mfxU32 MakeVersion(mfxU16 major, mfxU16 minor)
     return major * 1000 + minor;
 }
 
-static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession* session, mfxIMPL implInterface, mfxU32 adapterNum, bool isSingleThreadMode = false);
+static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession* session, mfxIMPL implInterface, mfxU32 adapterNum, bool isSingleThreadMode = false, bool bValidateHandle = false);
 
 mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 {
@@ -167,7 +167,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 
 } // mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 
-static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession *session, mfxIMPL implInterface, mfxU32 adapterNum, bool isSingleThreadMode)
+static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession *session, mfxIMPL implInterface, mfxU32 adapterNum, bool isSingleThreadMode, bool bValidateHandle)
 {
     _mfxVersionedSessionImpl* pSession = nullptr;
     mfxStatus                 mfxRes   = MFX_ERR_NONE;
@@ -184,7 +184,7 @@ static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession *session, mfxIMPL
         mfxInitParam init_param = par;
         init_param.Implementation = implInterface;
 
-        mfxRes = pSession->InitEx(init_param, isSingleThreadMode);
+        mfxRes = pSession->InitEx(init_param, isSingleThreadMode, bValidateHandle);
     }
     catch(...)
     {
@@ -389,7 +389,7 @@ mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* sess
 
     // VendorImplID is used as adapterNum in current implementation - see MFXQueryImplsDescription
     // app. supposed just to copy VendorImplID from mfxImplDescription (returned by MFXQueryImplsDescription) to mfxInitializationParam
-    mfxRes = MFXInit_Internal(par, session, par.Implementation, param.VendorImplID, isSingleThreadMode);
+    mfxRes = MFXInit_Internal(par, session, par.Implementation, param.VendorImplID, isSingleThreadMode, true);
 
     TRACE_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(par.Implementation, isSingleThreadMode));
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
