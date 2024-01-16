@@ -930,6 +930,7 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo &info)
     {
     case MFX_FOURCC_NV12:
         MFX_CHECK(info.ChromaFormat == MFX_CHROMAFORMAT_YUV420, MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(info.Shift == 0, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
         break;
     case MFX_FOURCC_P010:
         MFX_CHECK(info.ChromaFormat == MFX_CHROMAFORMAT_YUV420, MFX_ERR_INVALID_VIDEO_PARAM);
