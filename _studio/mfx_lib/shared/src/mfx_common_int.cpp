@@ -216,6 +216,7 @@ mfxStatus CheckFrameInfoDecVideoProcCsc(mfxFrameInfo *info, mfxU32 codecId)
     case MFX_FOURCC_Y410:
     case MFX_FOURCC_Y416:
     case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_RGBP:
         if (info->ChromaFormat == MFX_CHROMAFORMAT_YUV444)
             return MFX_ERR_NONE;
         MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
@@ -385,6 +386,7 @@ mfxStatus UpdateCscOutputFormat(mfxVideoParam *par, mfxFrameAllocRequest *reques
             request->Info.BitDepthLuma = 12;
             request->Info.Shift = 1;
             break;
+        case MFX_FOURCC_RGBP:
         case MFX_FOURCC_RGB4:
             request->Info.BitDepthLuma = 0;
             request->Info.Shift = 0;

@@ -275,6 +275,7 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
         bool is_fourcc_supported =
                   (  videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_RGBP
                   || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
                   || videoProcessing->Out.FourCC == MFX_FOURCC_P010
                   || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
