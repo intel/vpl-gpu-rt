@@ -664,6 +664,7 @@ mfxStatus VideoDECODEMJPEG::MJPEGCompleteProc(void *pState, void *pParam,
 
 mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, MFX_ENTRY_POINT *pEntryPoint)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     // It can be useful to run threads right after first frame receive
     MFX_SAFE_CALL(DecodeFrameCheck(bs, surface_work, surface_out));
 
@@ -743,6 +744,7 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
 
 mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     UMC::Status umcRes = UMC::UMC_OK;
 
     if (!m_isInit)
@@ -869,6 +871,7 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
 
         try
         {
+            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Submit bitstream length with no start code: ", MFX_TRACE_FORMAT_I, pSrcData->GetDataSize());
             MFX_SAFE_CALL(decoder->AddPicture(pSrcData, numPic));
         }
         catch(const UMC::eUMC_Status& sts)
@@ -1936,6 +1939,7 @@ void VideoDECODEMJPEGBase_HW::ReleaseReservedTask()
 mfxStatus VideoDECODEMJPEGBase_HW::AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic)
 {
     mfxU32 fieldPos = m_numPic;
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
 
     if (MFX_PICSTRUCT_FIELD_BFF == m_vPar.mfx.FrameInfo.PicStruct)
     {

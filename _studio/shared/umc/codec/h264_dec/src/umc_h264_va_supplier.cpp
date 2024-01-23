@@ -249,6 +249,7 @@ H264DecoderFrame *VATaskSupplier::GetFreeFrame(const H264Slice * pSlice)
 
 Status VATaskSupplier::CompleteFrame(H264DecoderFrame * pFrame, int32_t field)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     if (!pFrame)
         return UMC_OK;
 
@@ -320,6 +321,7 @@ void VATaskSupplier::InitFrameCounter(H264DecoderFrame * pFrame, const H264Slice
 
 Status VATaskSupplier::AddSource(MediaData * pSource)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     if (!pSource)
         return MFXTaskSupplier::AddSource(pSource);
 

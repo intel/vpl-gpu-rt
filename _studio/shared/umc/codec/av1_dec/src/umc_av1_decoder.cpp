@@ -578,6 +578,7 @@ namespace UMC_AV1_DECODER
 
     UMC::Status AV1Decoder::GetFrame(UMC::MediaData* in, UMC::MediaData*)
     {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
         if (!in)
             return UMC::UMC_ERR_NULL_PTR;
 
@@ -701,7 +702,7 @@ namespace UMC_AV1_DECODER
                         // appears except for the contents of operating_parameters_info
                         if (is_seq_header_ready())
                         {
-                            assert(!"Multi sequence_header_obu not bit-identical!");
+                            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_CRITICAL_INFO, "Multi sequence_header_obu not bit-identical!");
                             return UMC::UMC_ERR_INVALID_PARAMS;
                         }
 

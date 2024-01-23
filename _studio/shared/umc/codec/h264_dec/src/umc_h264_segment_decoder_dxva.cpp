@@ -67,6 +67,7 @@ void H264_DXVA_SegmentDecoder::Reset()
 
 void H264_DXVA_SegmentDecoder::PackAllHeaders(H264DecoderFrame * pFrame, int32_t field)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     if (!m_Packer.get())
     {
         m_Packer.reset(Packer::CreatePacker(m_va, m_pTaskSupplier));
@@ -215,6 +216,7 @@ bool TaskBrokerSingleThreadDXVA::CheckCachedFeedbackAndComplete(H264DecoderFrame
 bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
 {
     AutomaticUMCMutex guard(m_mGuard);
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
 
     if (!m_useDXVAStatusReporting)
         return false;

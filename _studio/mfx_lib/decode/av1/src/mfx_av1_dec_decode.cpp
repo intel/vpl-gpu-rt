@@ -780,6 +780,7 @@ mfxStatus VideoDECODEAV1::GetDecodeStat(mfxDecodeStat* stat)
 
 mfxStatus VideoDECODEAV1::DecodeFrameCheck(mfxBitstream* bs, mfxFrameSurface1* surface_work, mfxFrameSurface1** surface_out, MFX_ENTRY_POINT* entry_point)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     MFX_CHECK_NULL_PTR1(entry_point);
 
     std::lock_guard<std::mutex> guard(m_guard);
@@ -946,6 +947,7 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo &info)
 
 mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surface_work, mfxFrameSurface1** surface_out)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     bool allow_null_work_surface = SupportsVPLFeatureSet(*m_core);
 
     if (allow_null_work_surface)

@@ -285,6 +285,7 @@ Status MJPEGVideoDecoderMFX_HW::_DecodeHeader(int32_t* cnt)
 
 Status MJPEGVideoDecoderMFX_HW::_DecodeField(MediaDataEx* in)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     int32_t     nUsedBytes = 0;
 
     if(JPEG_OK != m_decBase->SetSource((uint8_t*)in->GetDataPointer(), (int32_t)in->GetDataSize()))
@@ -390,6 +391,7 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "JPEG decode DDISubmitTask");
 
     sts = m_va->BeginFrame(m_frameData.GetFrameMID(), 0);
+    MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, sts);
     if (sts != UMC_OK)
         return sts;
     {
@@ -475,6 +477,7 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
             }
 
             sts = PackHeaders(in, &scanParams, &buffersForUpdate);
+            MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, sts);
             if (sts != UMC_OK)
                 return sts;
 
@@ -879,6 +882,7 @@ Status MJPEGVideoDecoderMFX_HW::GetFrame(UMC::MediaDataEx *pSrcData,
                                          const mfxU32  fieldPos)
 {
     Status status = UMC_OK;
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
 
     if(0 == out)
     {

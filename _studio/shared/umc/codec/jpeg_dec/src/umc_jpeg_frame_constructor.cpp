@@ -25,6 +25,7 @@
 
 #include "umc_jpeg_frame_constructor.h"
 #include "jpegdec_base.h"
+#include "mfx_trace.h"
 
 namespace UMC
 {
@@ -416,6 +417,7 @@ MediaDataEx * JpegFrameConstructor::GetFrame(MediaData * in, uint32_t maxBitstre
                 m_mediaData.SetBufferPointer(&m_frame[0], m_frame.size());
                 m_mediaData.SetDataSize(m_frame.size());
                 m_mediaData.SetFlags(in != nullptr ? in->GetFlags() : 0);
+                MFX_LTRACE_MSG(MFX_TRACE_LEVEL_CRITICAL_INFO, "EOI wasn't received, current frame decoding exists corruption");
                 return &m_mediaData;
             }
 

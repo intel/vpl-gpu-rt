@@ -269,6 +269,16 @@ typedef enum _MEDIA_EVENT_FILTER_KEYID
  */
 #define MFX_TRACE_LEVEL_PARAMS      MFX_TRACE_LEVEL_6
 
+ /** WARNING level
+  * - Tracing of warning info
+  */
+#define MFX_TRACE_LEVEL_WARNING_INFO MFX_TRACE_LEVEL_7
+
+ /** CRITICAL level
+  * - Tracing of critical info
+  */
+#define MFX_TRACE_LEVEL_CRITICAL_INFO MFX_TRACE_LEVEL_8
+
 // defines default trace category
 #define MFX_TRACE_CATEGORY_DEFAULT  NULL
 
@@ -587,7 +597,7 @@ extern "C" {
     MFX_LTRACE_1(_level, #_arg1 " = ", MFX_TRACE_FORMAT_X, _arg1)
 
 #define MFX_LTRACE_D(_level, _arg1) \
-    MFX_LTRACE_2(_level, #_arg1 " = ", MFX_TRACE_FORMAT_D, _arg1, _arg1)
+    MFX_LTRACE_1(_level, #_arg1 " = ", MFX_TRACE_FORMAT_D, _arg1)
 
 #define MFX_LTRACE_F(_level, _arg1) \
     MFX_LTRACE_1(_level, #_arg1 " = ", MFX_TRACE_FORMAT_F, _arg1)
@@ -756,11 +766,11 @@ public:
         std::stringstream ss;
         if (_arg1 > 0)
         {
-            ss << "[warning]  ";
+            ss << "[Warning]  ";
         }
         else if (_arg1 < 0)
         {
-            ss << "[critical]  ";
+            ss << "[Critical]  ";
         }
         ss << _mesg << " = ";
         MFX_LTRACE((&_trace_static_handle, _filename, _line, _function, MFX_TRACE_CATEGORY, _level, ss.str().c_str(), MFX_TRACE_FORMAT_I, _arg1))
@@ -772,11 +782,11 @@ public:
         std::stringstream ss;
         if (_arg1 > 0) 
         {
-            ss << "[warning]  ";
+            ss << "[Warning]  ";
         }
         else if (_arg1 < 0) 
         {
-            ss << "[critical]  ";
+            ss << "[Critical]  ";
         }
         ss << _mesg << " = ";
         MFX_LTRACE((&_trace_static_handle, _filename, _line, _function, MFX_TRACE_CATEGORY, _level, ss.str().c_str(), MFX_TRACE_FORMAT_S, code.message().c_str()))

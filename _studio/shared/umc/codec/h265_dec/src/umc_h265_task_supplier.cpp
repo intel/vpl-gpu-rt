@@ -1607,6 +1607,7 @@ UMC::Status TaskSupplier_H265::CompleteDecodedFrames(H265DecoderFrame ** decoded
 // Add a new bitstream data buffer to decoding
 UMC::Status TaskSupplier_H265::AddSource(UMC::MediaData * pSource)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     H265DecoderFrame* completed = 0;
     UMC::Status umcRes = CompleteDecodedFrames(&completed);
     if (umcRes != UMC::UMC_OK)

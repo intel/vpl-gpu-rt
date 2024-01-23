@@ -175,13 +175,17 @@ mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* static_handle,
     {
         p_str = mfx_trace_sprintf(p_str, len, "%s: ", category);
     }
-    if (!(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_LEVEL))
-    {
-        p_str = mfx_trace_sprintf(p_str, len, "LEV_%d: ", level);
-    }
     if (function_name && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FUNCTION_NAME) && !(format && ((strcmp(format, exitChr) == 0) || (strcmp(format, enterChr) == 0))))
     {
         p_str = mfx_trace_sprintf(p_str, len, "%-60s: ", function_name);
+    }
+    if (level == MFX_TRACE_LEVEL_CRITICAL_INFO)
+    {
+        p_str = mfx_trace_sprintf(p_str, len, "%s", "[Critical] ");
+    }
+    else if (level == MFX_TRACE_LEVEL_WARNING_INFO)
+    {
+        p_str = mfx_trace_sprintf(p_str, len, "%s", "[Warning] ");
     }
     if (message && strlen(message) != 0)
     {

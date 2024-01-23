@@ -1061,7 +1061,7 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo const &currInfo, mfxFrameInfo &info
 mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, MFX_ENTRY_POINT * p_entry_point)
 {
     UMC::AutomaticUMCMutex guard(m_mGuard);
-
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     mfxStatus sts = MFX_ERR_NONE;
     UMC::FrameMemID repeateFrame = UMC::FRAME_MID_INVALID;
 
@@ -1201,7 +1201,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
             TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(++FrameIndex, m_frameInfo.currFrame));
 
             UMC::Status umcSts = m_va->BeginFrame(m_frameInfo.currFrame, 0);
-
+            MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, umcSts);
             TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, m_frameInfo.currFrame, umcSts));
 
             MFX_CHECK(UMC::UMC_OK == umcSts, MFX_ERR_DEVICE_FAILED);
@@ -1210,11 +1210,13 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
             MFX_CHECK_STS(sts);
 
             umcSts = m_va->Execute();
+            MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, umcSts);
             MFX_CHECK(UMC::UMC_OK == umcSts, MFX_ERR_DEVICE_FAILED);
 
             TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(FrameIndex, umcSts));
 
             umcSts = m_va->EndFrame();
+            MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, umcSts);
 
             TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, sts));
 

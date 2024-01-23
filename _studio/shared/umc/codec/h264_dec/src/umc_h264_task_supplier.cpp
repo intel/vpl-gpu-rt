@@ -3144,6 +3144,7 @@ Status TaskSupplier::CompleteDecodedFrames(H264DecoderFrame ** decoded)
 
 Status TaskSupplier::AddSource(MediaData * pSource)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     H264DecoderFrame* completed = 0;
     Status umcRes = CompleteDecodedFrames(&completed);
     if (umcRes != UMC_OK)
@@ -3254,6 +3255,7 @@ Status TaskSupplier::ProcessNalUnit(NalUnit *nalUnit, mfxExtDecodeErrorReport * 
 
 Status TaskSupplier::AddOneFrame(MediaData * pSource)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     Status umsRes = UMC_OK;
 
     if (m_pLastSlice)
@@ -3601,6 +3603,7 @@ void TaskSupplier::DPBSanitize(H264DecoderFrame * pDPBHead, const H264DecoderFra
 
 Status TaskSupplier::AddSlice(H264Slice * pSlice, bool force)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     if (!m_accessUnit.GetLayersCount() && pSlice)
     {
         if (m_sei_messages)

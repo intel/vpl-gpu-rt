@@ -7259,7 +7259,6 @@ mfxStatus CopyFrameDataBothFields(
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Surface lock (output frame)");
     FrameLocker lock(core, dstData, dstMid);
     MFX_CHECK(dstData.Y != 0, MFX_ERR_LOCK_MEMORY);
-    MFX_AUTO_TRACE_STOP();
 
     mfxFrameSurface1 vidSurf{};
     vidSurf.Info = info;

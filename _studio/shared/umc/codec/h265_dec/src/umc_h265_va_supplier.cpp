@@ -121,6 +121,7 @@ inline bool isFreeFrame(H265DecoderFrame * pTmp)
 
 void VATaskSupplier::CompleteFrame(H265DecoderFrame * pFrame)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     if (!pFrame)
         return;
 
