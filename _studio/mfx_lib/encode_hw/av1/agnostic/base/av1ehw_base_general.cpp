@@ -2284,11 +2284,57 @@ DPBIter FindOldestSTR(DPBIter dpbBegin, DPBIter dpbEnd, mfxU8 tid)
     return oldestSTR;
 }
 
+inline mfxU8 SetTaskDPBRefreshLowDelayFlat(
+    TaskCommonPar& task
+    , const mfxVideoParam& par)
+{
+    mfxU8 refreshed = 0;
+    bool lowDelayFlat = IsP(task.FrameType) && par.mfx.GopRefDist == 1;
+    const mfxExtTemporalLayers* pTemporalLayers = ExtBuffer::Get(par);
+    if (pTemporalLayers && pTemporalLayers->NumLayers != 0)
+        lowDelayFlat = false;
+
+    if(!lowDelayFlat)
+        return refreshed;
+
+    auto& refreshRefFrames = task.RefreshFrameFlags;
+    auto dpbBegin = task.DPB.begin();
+    auto dpbEnd = task.DPB.end();
+    auto slotToRefresh = dpbEnd;
+
+    //use -1 ref or 4x ref
+    for (auto item = dpbBegin; item < dpbEnd; ++item)
+    {
+        //refresh -1 ref
+        if ((*item)->DisplayOrderInGOP % 4 != 0
+            && (*item)->DisplayOrderInGOP == task.DisplayOrderInGOP - 1
+            && !(*item)->isLTR)
+        {
+            slotToRefresh = item;
+            refreshed = 1;
+            break;
+        }
+        //refresh oldest 4x ref
+        if ((*item)->DisplayOrderInGOP % 4 == 0
+            && !(*item)->isLTR)
+        {
+            slotToRefresh = (slotToRefresh == dpbEnd) ? item
+                : (*item)->DisplayOrderInGOP < (*slotToRefresh)->DisplayOrderInGOP ? item : slotToRefresh;
+            refreshed = 1;
+        }
+    }
+
+    if (slotToRefresh != dpbEnd)
+        refreshRefFrames.at(slotToRefresh - dpbBegin) = 1;
+
+    return refreshed;
+}
+
 // task - [in/out] Current task object, RefreshFrameFlags field will be set in place
 // Return - N/A
 inline void SetTaskDPBRefresh(
     TaskCommonPar& task
-    , const mfxVideoParam&)
+    , const mfxVideoParam& par)
 {
     auto& refreshRefFrames = task.RefreshFrameFlags;
 
@@ -2298,9 +2344,15 @@ inline void SetTaskDPBRefresh(
     {
         // At first find all rejected LTRs to refresh them with current frame
         mfxU8 refreshed = 0;
+
         for (size_t i = 0; i < task.DPB.size(); i++)
             if (task.DPB[i]->isRejected)
                 refreshed = refreshRefFrames.at(i) = 1;
+
+        if (!refreshed) 
+        {
+            refreshed = SetTaskDPBRefreshLowDelayFlat(task, par);
+        }
 
         if (!refreshed)
         {
