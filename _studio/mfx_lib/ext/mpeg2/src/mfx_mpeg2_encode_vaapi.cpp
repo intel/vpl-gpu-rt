@@ -1335,7 +1335,7 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
     //------------------------------------------------------------------
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Rendering");
-        MFX_LTRACE_D(MFX_TRACE_LEVEL_PARAMS, pExecuteBuffers->m_idxMb);
+        MFX_LTRACE_I(MFX_TRACE_LEVEL_PARAMS, pExecuteBuffers->m_idxMb);
         MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|ENCODE|MPEG2|PACKET_START|", "%d|%d", m_vaContextEncode, 0);
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaBeginPicture");

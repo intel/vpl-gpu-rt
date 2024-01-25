@@ -597,7 +597,7 @@ extern "C" {
     MFX_LTRACE_1(_level, #_arg1 " = ", MFX_TRACE_FORMAT_X, _arg1)
 
 #define MFX_LTRACE_D(_level, _arg1) \
-    MFX_LTRACE_1(_level, #_arg1 " = ", MFX_TRACE_FORMAT_D, _arg1)
+    MFX_LTRACE_2(_level, #_arg1 " = ", MFX_TRACE_FORMAT_D, _arg1, _arg1)
 
 #define MFX_LTRACE_F(_level, _arg1) \
     MFX_LTRACE_1(_level, #_arg1 " = ", MFX_TRACE_FORMAT_F, _arg1)
