@@ -21,13 +21,6 @@ typedef struct _Tick
     std::string functionType;
     std::string level;
 }Tick;
-//For TXT trace
-typedef struct _TickTime
-{
-    double freq;
-    int64_t start;
-    int64_t stop;
-}TickTime;
 
 class PerfUtility
 {
@@ -38,8 +31,6 @@ public:
     int32_t getPid();
     int32_t getTid();
     void timeStampTick(const std::string &tag, const std::string &level, const std::string &flag, const std::vector<uint32_t> &taskIds);
-    static void startTick(const std::string &tag);
-    static void stopTick(const std::string &tag);
     void savePerfData();
     static std::string perfFilePath;
     static std::atomic<double> timeStamp;
@@ -51,7 +42,6 @@ private:
     static std::shared_ptr<PerfUtility> instance;
     static std::mutex perfMutex;
     std::map<int32_t, std::string> log_buffer{};
-    static std::map<std::pair<uint64_t, std::string>, std::vector<TickTime>*> records;
 };
 
 

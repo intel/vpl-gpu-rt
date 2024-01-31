@@ -19,7 +19,6 @@
 // SOFTWARE.
 
 #include "mfx_trace.h"
-#include "mfx_utils_perf.h"
 
 #ifdef MFX_TRACE_ENABLE_TEXTLOG
 extern "C"
@@ -33,7 +32,6 @@ extern "C"
 #include "unistd.h"
 
 /*------------------------------------------------------------------------------*/
-
 static FILE* g_mfxTracePrintfFile = NULL;
 static mfxTraceChar g_mfxTracePrintfFileName[MAX_PATH] =
     MFT_TRACE_PATH_TO_TEMP_LIBLOG;
@@ -43,9 +41,17 @@ static mfxTraceU32 g_PrintfSuppress =
     MFX_TRACE_TEXTLOG_SUPPRESS_LEVEL;
 
 bool trace_bEnable = false;
+double timeStamp = 0;
 std::string trace_autotag = "intialized";
-
+static std::map<std::pair<uint64_t, std::string>, std::vector<TickTime>*> records;
 /*------------------------------------------------------------------------------*/
+void startTick(const std::string& tag)
+{
+}
+
+void stopTick(const std::string& tag)
+{
+}
 
 
 mfxTraceU32 MFXTraceTextLog_GetRegistryParams(void)

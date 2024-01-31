@@ -65,10 +65,8 @@ int32_t MfxSecureStringPrint(char* buffer, size_t bufSize, size_t length, const 
 
 PerfUtility* g_perfutility = nullptr;
 std::string PerfUtility::perfFilePath = "Initialize";
-std::atomic<double> PerfUtility::timeStamp;
 std::shared_ptr<PerfUtility> PerfUtility::instance = nullptr;
 std::mutex PerfUtility::perfMutex;
-std::map<std::pair<uint64_t, std::string>, std::vector<TickTime>*> PerfUtility::records;
 std::mutex AutoPerfUtility::map_guard;
 std::map<uint64_t, std::vector<uint32_t>> AutoPerfUtility::tid2taskIds;
 
@@ -223,14 +221,6 @@ void PerfUtility::timeStampTick(const std::string &tag, const std::string &level
     newTick.functionType = flag;
     newTick.level = level;
     printPerfTimeStamp(&newTick, taskIds);
-}
-
-void PerfUtility::startTick(const std::string &tag)
-{
-}
-
-void PerfUtility::stopTick(const std::string &tag)
-{
 }
 
 void PerfUtility::printPerfTimeStamp(Tick *newTick, const std::vector<uint32_t>& taskIds)
