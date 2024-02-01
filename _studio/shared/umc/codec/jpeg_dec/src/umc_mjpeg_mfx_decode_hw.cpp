@@ -843,7 +843,8 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
                 return UMC_ERR_DEVICE_FAILED;
             if (obtainedScanParams->DataLength > (uint32_t)compBufBs->GetBufferSize())
                 return UMC_ERR_INVALID_STREAM;
-
+            if (obtainedScanParams->DataOffset + (uint32_t)src->GetDataSize() > src->GetBufferSize())
+                return UMC_ERR_INVALID_PARAMS;
             std::copy(ptr + obtainedScanParams->DataOffset, ptr + obtainedScanParams->DataOffset+(uint32_t)src->GetDataSize(), bistreamData); 
         }
         else
@@ -854,6 +855,8 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
                 return UMC_ERR_DEVICE_FAILED;
             if (obtainedScanParams->DataLength > (uint32_t)compBufBs->GetBufferSize())
                 return UMC_ERR_INVALID_STREAM;
+            if (obtainedScanParams->DataOffset + obtainedScanParams->DataLength > src->GetBufferSize())
+                return UMC_ERR_INVALID_PARAMS;
             std::copy(ptr + obtainedScanParams->DataOffset, ptr + obtainedScanParams->DataOffset + obtainedScanParams->DataLength, bistreamData);
         }        
     }
