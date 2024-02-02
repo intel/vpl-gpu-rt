@@ -1612,14 +1612,23 @@ typedef struct {
     mfxU8       MinQPI; /*!< Minimum allowed QP value for I-frame types. Valid range is 1 to 51 inclusive. Zero means default value, that is, no limitations on QP.
                              @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported. */
     mfxU8       MaxQPI; /*!< Maximum allowed QP value for I-frame types. Valid range is 1 to 51 inclusive. Zero means default value, that is, no limitations on QP.
+                             @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
+                             Adjusted MaxQPI value = 51 + (6 * (BitDepthLuma - 8)) for BitDepthLuma in the range [8,14].
+                             For HEVC_MAIN10, we add (6*(10-8)=12) on our side for MaxQPI will reach 63.
                              @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported. */
     mfxU8       MinQPP; /*!< Minimum allowed QP value for P-frame types. Valid range is 1 to 51 inclusive. Zero means default value, that is, no limitations on QP.
                              @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported. */
     mfxU8       MaxQPP; /*!< Maximum allowed QP value for P-frame types. Valid range is 1 to 51 inclusive. Zero means default value, that is, no limitations on QP.
+                             @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
+                             Adjusted MaxQPP value = 51 + (6 * (BitDepthLuma - 8)) for BitDepthLuma in the range [8,14].
+                             For HEVC_MAIN10, we add (6*(10-8)=12) on our side for MaxQPP will reach 63.
                              @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported. */
     mfxU8       MinQPB; /*!< Minimum allowed QP value for B-frame types. Valid range is 1 to 51 inclusive. Zero means default value, that is, no limitations on QP.
                              @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported. */
     mfxU8       MaxQPB; /*!< Maximum allowed QP value for B-frame types. Valid range is 1 to 51 inclusive. Zero means default value, that is, no limitations on QP.
+                             @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
+                             Adjusted MaxQPB value = 51 + (6 * (BitDepthLuma - 8)) for BitDepthLuma in the range [8,14].
+                             For HEVC_MAIN10, we add (6*(10-8)=12) on our side for MaxQPB will reach 63.
                              @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported. */
     /*!
        Sets fixed_frame_rate_flag in VUI.
