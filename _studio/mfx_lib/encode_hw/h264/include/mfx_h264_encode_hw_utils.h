@@ -660,6 +660,18 @@ namespace MfxHwH264Encode
     struct IntraRefreshState
     {
         IntraRefreshState() : refrType(0), IntraLocation(0), IntraSize(0), IntRefQPDelta(0), firstFrameInCycle(false) {}
+        bool operator==(const IntraRefreshState &b) const
+        {
+            return (refrType == b.refrType &&
+                    IntraLocation == b.IntraLocation &&
+                    IntraSize == b.IntraSize &&
+                    IntRefQPDelta == b.IntRefQPDelta &&
+                    firstFrameInCycle == b.firstFrameInCycle);
+        }
+        bool operator!=(const IntraRefreshState &b) const
+        {
+            return !(*this == b);
+        }
 
         mfxU16  refrType;
         mfxU16  IntraLocation;
