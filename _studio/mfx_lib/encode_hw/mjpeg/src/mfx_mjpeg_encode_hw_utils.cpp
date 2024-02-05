@@ -108,6 +108,7 @@ mfxStatus MfxHwMJpegEncode::CheckJpegParam(VideoCORE *core, mfxVideoParam & par,
             BytesPerPx = 2;
             break;
         case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
         default:
             BytesPerPx = 4;
     }
@@ -157,7 +158,7 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
 
     m_payload_base.length = 0;
     m_payload_list.clear();
-    if (fourCC == MFX_FOURCC_RGB4 && chromaFormat == MFX_CHROMAFORMAT_YUV444)
+    if ((fourCC == MFX_FOURCC_RGB4 || fourCC == MFX_FOURCC_BGR4)  && chromaFormat == MFX_CHROMAFORMAT_YUV444)
     {
         m_app14_data.header    = 0xEEFF;//APP14
         m_app14_data.lenH      = 0;
@@ -287,7 +288,7 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
         m_pps.num_components = 3;
     else if (fourCC == MFX_FOURCC_NV12 && chromaFormat == MFX_CHROMAFORMAT_YUV400)
         m_pps.num_components = 1;
-    else if (fourCC == MFX_FOURCC_RGB4 && chromaFormat == MFX_CHROMAFORMAT_YUV444)
+    else if ((fourCC == MFX_FOURCC_RGB4 || fourCC == MFX_FOURCC_BGR4) && chromaFormat == MFX_CHROMAFORMAT_YUV444)
         m_pps.num_components = 3;
     else
         MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -341,7 +342,7 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
     {
         // No external tables - use Quality parameter
         m_dqt_list.resize(0);
-        if (fourCC == MFX_FOURCC_RGB4)
+        if (fourCC == MFX_FOURCC_RGB4 || fourCC == MFX_FOURCC_BGR4)
         {
             m_pps.quantiser_table_selector[0] = 0;
             m_pps.quantiser_table_selector[1] = 0;
@@ -393,7 +394,7 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
         {
             m_dht_list.resize(0);
         }
-        else if (hwCaps->MaxNumHuffTable == 1 || fourCC == MFX_FOURCC_RGB4)
+        else if (hwCaps->MaxNumHuffTable == 1 || (fourCC == MFX_FOURCC_RGB4 || fourCC == MFX_FOURCC_BGR4))
         {
             m_dht_list.resize(1);
 
