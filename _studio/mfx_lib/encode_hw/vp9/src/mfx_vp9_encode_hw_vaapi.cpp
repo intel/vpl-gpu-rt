@@ -58,6 +58,7 @@ namespace MfxHwVP9Encode
             case MFX_RATECONTROL_VBR:  return VA_RC_VBR;
             case MFX_RATECONTROL_AVBR: return VA_RC_VBR;
             case MFX_RATECONTROL_CQP:  return VA_RC_CQP;
+            case MFX_RATECONTROL_ICQ:  return VA_RC_ICQ;
             default: assert(!"Unsupported RateControl"); return 0;
         }
     }
@@ -418,6 +419,10 @@ mfxStatus SetRateControl(
 
             rate_param->rc_flags.bits.reset = isBrcResetRequired;
             rate_param->rc_flags.bits.temporal_id = tl;
+        }
+        else if(par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
+        {
+            rate_param->ICQ_quality_factor = par.mfx.ICQQuality;
         }
 
         rate_param->rc_flags.bits.enable_dynamic_scaling = 1;
