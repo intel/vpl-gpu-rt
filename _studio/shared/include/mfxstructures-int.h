@@ -499,6 +499,10 @@ typedef struct {
     { 0x46D1, MFX_HW_ADL_N, MFX_GT1 },//ADL-N
     { 0x46D2, MFX_HW_ADL_N, MFX_GT1 },//ADL-N
 
+    /* TWL */
+    { 0x46D3, MFX_HW_ADL_N, MFX_GT1 },//TWL
+    { 0x46D4, MFX_HW_ADL_N, MFX_GT1 },//TWL
+
     /* DG2 */
     { 0x4F80, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x4F81, MFX_HW_DG2, MFX_GT4 }, // DG2
