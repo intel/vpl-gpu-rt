@@ -462,8 +462,8 @@ public:
         }
         else
         {
-            eb.offsets[1] = eb.offsets[0] + uint32_t(eb.height * eb.pitches[1] / 2);
-            eb.offsets[2] = eb.offsets[1] + uint32_t(eb.height * eb.pitches[2] / 2);
+            eb.offsets[1] = eb.offsets[0] + uint32_t(eb.height * eb.pitches[0]);
+            eb.offsets[2] = eb.offsets[1] + uint32_t(eb.height * eb.pitches[1] / 2);
         }
         eb.num_planes = 3;
         eb.data_size = eb.offsets[2] + (eb.height * eb.pitches[2] / 2);
