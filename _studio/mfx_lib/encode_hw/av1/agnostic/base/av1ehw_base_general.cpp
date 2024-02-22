@@ -194,6 +194,7 @@ void General::SetSupported(ParamSupport& blocks)
         const auto& buf_src = *(const mfxExtRefListCtrl*)pSrc;
         auto& buf_dst = *(mfxExtRefListCtrl*)pDst;
 
+        MFX_COPY_FIELD(NumRefIdxL0Active);
         MFX_COPY_FIELD(ApplyLongTermIdx);
 
         for (size_t i = 0; i < mfx::size(buf_src.PreferredRefList); i++)
@@ -1312,11 +1313,22 @@ void General::AllocTask(const FeatureBlocks& blocks, TPushAT Push)
     });
 }
 
-static bool CheckRefListCtrl(mfxExtRefListCtrl* refListCtrl)
+static mfxU32 CheckRefListCtrl(mfxExtRefListCtrl& refListCtrl)
 {
     mfxU32 changed = 0;
-    changed += CheckOrZero<mfxU16>(refListCtrl->NumRefIdxL0Active, 0);
-    changed += CheckOrZero<mfxU16>(refListCtrl->NumRefIdxL1Active, 0);
+
+    changed += CheckOrZero<mfxU16>(refListCtrl.NumRefIdxL1Active, 0);
+
+    for (size_t i = 0; i < mfx::size(refListCtrl.PreferredRefList); i++)
+    {
+        changed += CheckOrZero<mfxU16>(refListCtrl.PreferredRefList[i].LongTermIdx, 0);
+    }
+
+    for (size_t i = 0; i < mfx::size(refListCtrl.RejectedRefList); i++)
+    {
+        changed += CheckOrZero<mfxU16>(refListCtrl.RejectedRefList[i].LongTermIdx, 0);
+    }
+
     return changed;
 }
 
@@ -1330,7 +1342,7 @@ void General::InitTask(const FeatureBlocks& blocks, TPushIT Push)
             , StorageW& global
             , StorageW& task) -> mfxStatus
     {
-        auto& par = Glob::VideoParam::Get(global);
+        auto& par  = Glob::VideoParam::Get(global);
         auto& core = Glob::VideoCore::Get(global);
         auto& tpar = Task::Common::Get(task);
 
@@ -1341,12 +1353,14 @@ void General::InitTask(const FeatureBlocks& blocks, TPushIT Push)
 
         MFX_CHECK(pSurf, MFX_ERR_NONE);
 
-        tpar.DisplayOrder = m_frameOrder;
-        ++m_frameOrder;
+        tpar.DisplayOrder = m_frameOrder++;
 
-        tpar.pSurfIn = pSurf;
+        tpar.pSurfIn   = pSurf;
+        tpar.pSurfReal = tpar.pSurfIn;
+        core.IncreaseReference(*tpar.pSurfIn);
+        tpar.DPB.resize(par.mfx.NumRefFrame);
 
-        bool changed = 0;
+        mfxU32 changed = 0;
         if (pCtrl)
         {
             tpar.ctrl = *pCtrl;
@@ -1361,16 +1375,16 @@ void General::InitTask(const FeatureBlocks& blocks, TPushIT Push)
                 tpar.ctrl.ExtParam = tEB;
             }
             else
+            {
                 tpar.ctrl.ExtParam = nullptr;
-            
-            if (mfxExtRefListCtrl* refListCtrl = ExtBuffer::Get(tpar.ctrl))
-                changed = CheckRefListCtrl(refListCtrl);
+            }
+
+            mfxExtRefListCtrl* refListCtrl = ExtBuffer::Get(tpar.ctrl);
+            if (refListCtrl)
+            {
+                changed = CheckRefListCtrl(*refListCtrl);
+            }
         }
-        tpar.pSurfReal = tpar.pSurfIn;
-
-        core.IncreaseReference(*tpar.pSurfIn);
-
-        tpar.DPB.resize(par.mfx.NumRefFrame);
 
         return changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
     });
@@ -1769,7 +1783,8 @@ static void FillSortedFwdBwd(
     const TaskCommonPar& task
     , mfxU8 maxFwdRefs
     , DpbIndexes* fwd
-    , DpbIndexes* bwd)
+    , DpbIndexes* bwd
+    , bool& useLTR)
 {
     if (!fwd && !bwd)
         return;
@@ -1824,6 +1839,7 @@ static void FillSortedFwdBwd(
 
         if (!preferedFwd.empty())
         {
+            useLTR = true;
             if (maxFwdRefs < 2 || fwd->empty())
                 std::copy(preferedFwd.begin(), preferedFwd.end(), std::back_inserter(*fwd));
             else
@@ -2017,9 +2033,15 @@ inline std::tuple<mfxU8, mfxU8> GetMaxRefs(
 {
     const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
 
-    const mfxU8 maxFwdRefs = static_cast<mfxU8>(IsB(task.FrameType) ?
+    mfxU8 maxFwdRefs = static_cast<mfxU8>(IsB(task.FrameType) ?
         CO3.NumRefActiveBL0[0] : CO3.NumRefActiveP[0]);
     const mfxU8 maxBwdRefs = static_cast<mfxU8>(CO3.NumRefActiveBL1[0]);
+
+    const mfxExtRefListCtrl* refListCtrl = ExtBuffer::Get(task.ctrl);
+    if (refListCtrl && refListCtrl->NumRefIdxL0Active > 0)
+    {
+        maxFwdRefs = std::min(maxFwdRefs, mfxU8(refListCtrl->NumRefIdxL0Active));
+    }
 
     return std::make_tuple(maxFwdRefs, maxBwdRefs);
 }
@@ -2240,7 +2262,8 @@ inline void InitTaskDPB(
 // Return - N/A
 inline void SetTaskRefList(
     TaskCommonPar& task
-    , const mfxVideoParam& par)
+    , const mfxVideoParam& par
+    , bool& useLTR)
 {
     auto& refList = task.RefList;
     std::fill_n(refList.begin(), REFS_PER_FRAME, IDX_INVALID);
@@ -2254,7 +2277,7 @@ inline void SetTaskRefList(
 
     DpbIndexes fwd;
     DpbIndexes bwd;
-    FillSortedFwdBwd(task, maxFwdRefs, &fwd, &bwd);
+    FillSortedFwdBwd(task, maxFwdRefs, &fwd, &bwd, useLTR);
 
     if (IsP(task.FrameType))
     {
@@ -2334,7 +2357,8 @@ inline mfxU8 SetTaskDPBRefreshLowDelayFlat(
 // Return - N/A
 inline void SetTaskDPBRefresh(
     TaskCommonPar& task
-    , const mfxVideoParam& par)
+    , const mfxVideoParam& par
+    , bool useLTR)
 {
     auto& refreshRefFrames = task.RefreshFrameFlags;
 
@@ -2346,8 +2370,10 @@ inline void SetTaskDPBRefresh(
         mfxU8 refreshed = 0;
 
         for (size_t i = 0; i < task.DPB.size(); i++)
+        {
             if (task.DPB[i]->isRejected)
                 refreshed = refreshRefFrames.at(i) = 1;
+        }
 
         if (!refreshed) 
         {
@@ -2375,6 +2401,17 @@ inline void SetTaskDPBRefresh(
             // This should not happend since we maintain at least 1 STR in DPB
             if (slotToRefresh != dpbEnd)
                 refreshRefFrames.at(slotToRefresh - dpbBegin) = 1;
+        }
+
+        if (useLTR)
+        {
+            // If current frame uses Long-term reference, it will refresh all STRs which is earlier
+            // than it
+            for (size_t i = 0; i < task.DPB.size(); i++)
+            {
+                if (task.DPB[i] && !task.DPB[i]->isLTR && task.DPB[i]->DisplayOrder < task.DisplayOrder)
+                    refreshed = refreshRefFrames.at(i) = 1;
+            }
         }
 
         // If this frame is not put into DPB, it will not be ref-frame
@@ -2487,8 +2524,9 @@ void General::ConfigureTask(
 
     InitTaskDPB(task, m_prevTask);
 
-    SetTaskRefList(task, par);
-    SetTaskDPBRefresh(task, par);
+    bool useLTR = false;
+    SetTaskRefList(task, par, useLTR);
+    SetTaskDPBRefresh(task, par, useLTR);
     SetTaskInsertHeaders(task, m_prevTask, par, m_insertIVFSeq);
 
     const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
