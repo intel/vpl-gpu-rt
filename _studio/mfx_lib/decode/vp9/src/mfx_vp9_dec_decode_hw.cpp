@@ -276,6 +276,18 @@ public:
         }
     }
 
+    void CompleteCurFrame(UMC::FrameMemID frameId)
+    {
+        auto find_it = std::find_if(m_submittedFrames.begin(), m_submittedFrames.end(),
+            [frameId](const UMC_VP9_DECODER::VP9DecoderFrame & item) { return item.currFrame == frameId; });
+
+        if (find_it != m_submittedFrames.end() && find_it->isDecoded)
+        {
+            UnLockResources(*find_it);
+            m_submittedFrames.erase(find_it);
+        }
+    }
+
     void CompleteFrames()
     {
         for (auto it = m_submittedFrames.begin(); it != m_submittedFrames.end(); )
@@ -923,6 +935,7 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
             decoder.m_surface_source->SetFreeSurfaceAllowedFlag(false);
         }
         decoder.m_framesStorage->DecodeFrame(data.currFrameId);
+        decoder.m_framesStorage->CompleteCurFrame(data.currFrameId);
 
         return MFX_ERR_NONE;
     }
@@ -960,6 +973,7 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
     if (data.currFrameId != -1)
         decoder.m_surface_source->DecreaseReference(data.currFrameId);
     decoder.m_framesStorage->DecodeFrame(data.currFrameId);
+    decoder.m_framesStorage->CompleteCurFrame(data.currFrameId);
 
     return MFX_TASK_DONE;
 }
