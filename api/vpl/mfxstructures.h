@@ -2391,6 +2391,12 @@ enum {
     */
     MFX_EXTBUFF_EXPORT_SHARING_DESC_D3D12 = MFX_MAKEFOURCC('E', 'D', '1', '2'),
 #endif
+#ifdef ONEVPL_EXPERIMENTAL
+    /*!
+       See the mfxExtVPPAISuperResolution structure for details.
+    */
+    MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION = MFX_MAKEFOURCC('V','A','S','R'),
+#endif
 };
 
 /* VPP Conf: Do not use certain algorithms  */
@@ -5090,6 +5096,24 @@ typedef struct {
 
     mfxU16                reserved[8];             /*!< Reserved for future use. */
 } mfxAutoSelectImplDeviceHandle;
+MFX_PACK_END()
+#endif
+
+#ifdef ONEVPL_EXPERIMENTAL
+/* The mfxAISuperResolutionMode enumerator specifies the mode of AI based super resolution. */
+typedef enum {
+    MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT = 0,         /*!< Default super resolution mode. The library selects the most appropriate super resolution mode.*/
+} mfxAISuperResolutionMode;
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+/*! A hint structure that configures AI based super resolution VPP filter. */
+typedef struct {
+    mfxExtBuffer                Header;               /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION.*/
+    mfxAISuperResolutionMode    SRMode;               /*!< Indicates Super Resolution Mode. mfxAISuperResolutionMode enumerator.*/
+
+    mfxU32                      reserved1[16];         /*!< Reserved for future use. */
+    mfxHDL                      reserved2[4];          /*!< Reserved for future use. */
+} mfxExtVPPAISuperResolution;
 MFX_PACK_END()
 #endif
 
