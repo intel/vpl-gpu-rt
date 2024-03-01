@@ -2469,6 +2469,11 @@ JERRCODE CJPEGDecoder::DecodeHuffmanMCURowBL(int16_t* pMCUBuf, uint32_t colMCU, 
       }
       if (m_dctbl[m_ccomp[n].m_dc_selector].IsEmpty())
           return JPEG_ERR_PARAMS;
+      if (m_ccomp[n].m_ac_selector >= MAX_HUFF_TABLES)
+      {
+          return JPEG_ERR_PARAMS;
+      }
+
       IppiDecodeHuffmanSpec* dctbl  = m_dctbl[m_ccomp[n].m_dc_selector];
       IppiDecodeHuffmanSpec* actbl  = m_actbl[m_ccomp[n].m_ac_selector];
 
@@ -2479,7 +2484,10 @@ JERRCODE CJPEGDecoder::DecodeHuffmanMCURowBL(int16_t* pMCUBuf, uint32_t colMCU, 
           m_BitStreamIn.FillBuffer(SAFE_NBYTES);
 
           currPos = m_BitStreamIn.GetCurrPos();
-
+          if(NULL==actbl||NULL==dctbl)
+          {
+             return JPEG_ERR_BAD_DATA;
+          }
           status = mfxiDecodeHuffman8x8_JPEG_1u16s_C1(
                      src,srcLen,&currPos,pMCUBuf,lastDC,(int*)&m_marker,
                      dctbl,actbl,m_state);
@@ -2749,7 +2757,10 @@ JERRCODE CJPEGDecoder::ReconstructMCURowBL8x8(int16_t* pMCUBuf,
     for(c = m_curr_scan->first_comp; c < m_curr_scan->first_comp + m_curr_scan->ncomps; c++)
     {
       curr_comp = &m_ccomp[c];
-
+      if(curr_comp->m_q_selector >= MAX_QUANT_TABLES)
+      {
+        return JPEG_ERR_PARAMS;
+      }
       qtbl = m_qntbl[curr_comp->m_q_selector];
       if(!qtbl)
       {
@@ -2827,6 +2838,10 @@ JERRCODE CJPEGDecoder::ReconstructMCURowBL8x8To4x4(int16_t* pMCUBuf,
     for(c = 0; c < m_jpeg_ncomp; c++)
     {
       curr_comp = &m_ccomp[c];
+      if(curr_comp->m_q_selector >= MAX_QUANT_TABLES)
+      {
+        return JPEG_ERR_PARAMS;
+      }
       qtbl = m_qntbl[curr_comp->m_q_selector];
       if(!qtbl)
       {
@@ -2957,6 +2972,10 @@ JERRCODE CJPEGDecoder::ReconstructMCURowBL8x8To2x2(int16_t* pMCUBuf,
     for(c = 0; c < m_jpeg_ncomp; c++)
     {
       curr_comp = &m_ccomp[c];
+      if(curr_comp->m_q_selector >= MAX_QUANT_TABLES)
+      {
+        return JPEG_ERR_PARAMS;
+      }
       qtbl = m_qntbl[curr_comp->m_q_selector];
       if(!qtbl)
       {
@@ -3085,6 +3104,10 @@ JERRCODE CJPEGDecoder::ReconstructMCURowBL8x8To1x1(int16_t* pMCUBuf,
     for(c = 0; c < m_jpeg_ncomp; c++)
     {
       curr_comp = &m_ccomp[c];
+      if(curr_comp->m_q_selector >= MAX_QUANT_TABLES)
+      {
+        return JPEG_ERR_PARAMS;
+      }
       qtbl = m_qntbl[curr_comp->m_q_selector];
       if(!qtbl)
       {
@@ -3206,6 +3229,10 @@ JERRCODE CJPEGDecoder::ReconstructMCURowEX(int16_t* pMCUBuf,
     {
       curr_comp = &m_ccomp[c];
 
+      if(curr_comp->m_q_selector >= MAX_QUANT_TABLES)
+      {
+        return JPEG_ERR_PARAMS;
+      }
       qtbl = m_qntbl[curr_comp->m_q_selector];
       if(!qtbl)
       {
