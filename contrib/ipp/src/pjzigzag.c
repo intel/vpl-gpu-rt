@@ -43,5 +43,7 @@ const int mfxown_pj_izigzag_index[] =
   53, 60, 61, 54, 47, 55, 62, 63,
   63, 63, 63, 63, 63, 63, 63, 63
 };
+const int *mfxown_pj_izigzag_index_last_ptr = &mfxown_pj_izigzag_index[
+  (sizeof(mfxown_pj_izigzag_index)/sizeof(mfxown_pj_izigzag_index[0])) -1];
 
 #endif /* _MERGED_BLD */

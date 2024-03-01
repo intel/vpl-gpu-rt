@@ -28,6 +28,7 @@
 
 
 extern const int mfxown_pj_izigzag_index[];
+extern const int *mfxown_pj_izigzag_index_last_ptr;
 
 
 #endif /* __PJZIGZAG_H__ */
