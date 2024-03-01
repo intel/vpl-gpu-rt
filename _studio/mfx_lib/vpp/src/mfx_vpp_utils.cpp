@@ -123,7 +123,8 @@ const mfxU32 g_TABLE_CONFIG [] =
     MFX_EXTBUF_CAM_PADDING,
     MFX_EXTBUF_CAM_LENS_GEOM_DIST_CORRECTION,
     MFX_EXTBUF_CAM_TOTAL_COLOR_CONTROL,
-    MFX_EXTBUF_CAM_CSC_YUV_RGB
+    MFX_EXTBUF_CAM_CSC_YUV_RGB,
+    MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION
 #if defined (ONEVPL_EXPERIMENTAL)
     , MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER
 #endif
@@ -175,7 +176,8 @@ const mfxU32 g_TABLE_EXT_PARAM [] =
     MFX_EXTBUF_CAM_PADDING,
     MFX_EXTBUF_CAM_LENS_GEOM_DIST_CORRECTION,
     MFX_EXTBUF_CAM_TOTAL_COLOR_CONTROL,
-    MFX_EXTBUF_CAM_CSC_YUV_RGB
+    MFX_EXTBUF_CAM_CSC_YUV_RGB,
+    MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION
 #if defined (ONEVPL_EXPERIMENTAL)
     , MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER
 #endif
@@ -963,6 +965,12 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
         newList[index] = MFX_EXTBUFF_VPP_MIRRORING;
         index++;
     }
+	
+    if (IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION))
+    {
+        newList[index] = MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION;
+        index++;
+    }
 #ifdef MFX_ENABLE_MCTF
     // add to the end
     if (IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_MCTF))
@@ -1384,6 +1392,12 @@ mfxStatus GetPipelineList(
         {
             pipelineList.push_back(MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO);
         }
+    }
+	
+	if (IsFilterFound(&configList[0], configCount, MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION)
+        && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION))
+    {
+        pipelineList.push_back(MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION);
     }
 
 #if defined (ONEVPL_EXPERIMENTAL)
