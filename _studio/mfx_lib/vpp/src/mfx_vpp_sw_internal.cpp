@@ -123,12 +123,6 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
                 break;
             }
 #endif
-            case (mfxU32)MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION:
-            {
-                inputFramesCount[filterIndex] = 1;
-                outputFramesCount[filterIndex] = 1;
-                break;
-            }
             case (mfxU32)MFX_EXTBUFF_VPP_RESIZE:
             {
                 inputFramesCount[filterIndex]  = 1;

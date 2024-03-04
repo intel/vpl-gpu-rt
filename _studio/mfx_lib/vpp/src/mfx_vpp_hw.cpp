@@ -2154,12 +2154,6 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
             MFX_CHECK_NULL_PTR1(bufColorfill);
             bufColorfill->Enable = static_cast<mfxU16>(m_executeParams.iBackgroundColor?MFX_CODINGOPTION_ON:MFX_CODINGOPTION_OFF);
         }
-        else if (MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION == bufferId)
-        {
-            mfxExtVPPAISuperResolution* bufSuperResolution = reinterpret_cast<mfxExtVPPAISuperResolution*>(par->ExtParam[i]);
-            MFX_CHECK_NULL_PTR1(bufSuperResolution);
-            bufSuperResolution->SRMode = m_executeParams.m_srMode;
-        }
     }
 
     return MFX_ERR_NONE;
@@ -2384,12 +2378,6 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
                 format == MFX_FOURCC_RGB4)
             {
                 formatSupport = MFX_FORMAT_SUPPORT_OUTPUT;
-            }
-            break;
-        case MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION:
-            if (format == MFX_FOURCC_NV12)
-            {
-                formatSupport = MFX_FORMAT_SUPPORT_INPUT | MFX_FORMAT_SUPPORT_OUTPUT;
             }
             break;
 #if defined (ONEVPL_EXPERIMENTAL)
@@ -2684,15 +2672,6 @@ mfxStatus  VideoVPPHW::Init(
                         m_executeParams.CameraRGBToYUV.Matrix[k][m] = rgbToYuvExtBufParams->Matrix[k][m];
                     }
                 }
-            }
-        }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION)
-        {
-            mfxExtVPPAISuperResolution* extSR = (mfxExtVPPAISuperResolution*)m_params.ExtParam[i];
-            if (extSR)
-            {
-                m_executeParams.bSuperResolution = true;
-                m_executeParams.m_srMode = extSR->SRMode;
             }
         }
     }
@@ -5326,36 +5305,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
 
             break;
         } //case MFX_EXTBUFF_VPP_COMPOSITE
-        case MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION:
-        {
-            if (!caps->uSuperResolution)
-            {
-                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
-            }
-            if (par->vpp.In.FourCC != MFX_FOURCC_NV12 ||
-               (par->vpp.Out.FourCC != MFX_FOURCC_NV12 && par->vpp.Out.FourCC != MFX_FOURCC_BGRA))
-            {
-                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
-            }
-            mfxU32 inputWidth   = std::min(par->vpp.In.Width, par->vpp.In.CropW);
-            mfxU32 inputHeight  = std::min(par->vpp.In.Height, par->vpp.In.CropH);
-            mfxU32 outputWidth  = std::min(par->vpp.Out.Width, par->vpp.Out.CropW);
-            mfxU32 outputHeight = std::min(par->vpp.Out.Height, par->vpp.Out.CropH);
-            //add rotation support next
-            if (inputWidth > caps->uSrMaxInWidth ||
-                inputHeight > caps->uSrMaxInHeight)
-            {
-                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
-            }
-            mfxF32 fScaleX = (mfxF32)outputWidth / inputWidth;
-            mfxF32 fScaleY = (mfxF32)outputHeight / inputHeight;
-            if (fScaleX < 1.4f ||
-                fScaleY < 1.4f)
-            {
-                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
-            }
-            break;
-        }
+
         case MFX_EXTBUFF_ALLOCATION_HINTS:
         {
             if (++n_hints_buf > 2)
@@ -6771,17 +6721,7 @@ mfxStatus ConfigureExecuteParams(
                 executeParams.iFieldProcessingMode++;
                 break;
             }
-            case MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION:
-                for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
-                {
-                    if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION)
-                    {
-                        mfxExtVPPAISuperResolution* extSR = (mfxExtVPPAISuperResolution*)videoParam.ExtParam[i];
-                        executeParams.bSuperResolution = true;
-                        executeParams.m_srMode = extSR->SRMode;
-                    }
-                }
-                break;
+
 #ifdef MFX_ENABLE_MCTF
             case MFX_EXTBUFF_VPP_MCTF:
             {
@@ -6965,10 +6905,6 @@ mfxStatus ConfigureExecuteParams(
                     executeParams.VideoSignalInfoOut.TransferMatrix = MFX_TRANSFERMATRIX_UNKNOWN;
                     executeParams.VideoSignalInfoOut.enabled        = false;
 
-                }
-                else if (MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION == bufferId)
-                {
-                    executeParams.bSuperResolution = false;
                 }
 #ifdef MFX_ENABLE_MCTF
                 else if (MFX_EXTBUFF_VPP_MCTF == bufferId)

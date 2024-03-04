@@ -857,10 +857,6 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
                     {
                         continue;
                     }
-                    else if (MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION == in->ExtParam[i]->BufferId)
-                    {
-                        continue;
-                    }
                     else
                     {
                         out->ExtParam[i]->BufferId = 0;
