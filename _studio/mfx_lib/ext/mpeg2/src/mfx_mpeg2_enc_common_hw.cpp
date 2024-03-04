@@ -295,7 +295,7 @@ mfxStatus ExecuteBuffers::Close()
 
     if (m_bOutOfRangeMV)
     {
-        //printf ("\n\n --------- ERROR: Out of range MVs are found out. ---------\n\n");
+        //printf ("\n\n --------- ERROR: Out of range motion vectors are found out. ---------\n\n");
         m_bOutOfRangeMV = false;
     }
     if (m_bErrMBType)

@@ -75,8 +75,8 @@ enum    // Valid QP range
 
 enum
 {
-    LIST_0 = 0,     // Ref/mvs list 0 (L0)
-    LIST_1 = 1      // Ref/mvs list 1 (L1)
+    LIST_0 = 0,     // Ref/motion vectors list 0 (L0)
+    LIST_1 = 1      // Ref/motion vectors list 1 (L1)
 };
 
 // default plane & coeffs types:

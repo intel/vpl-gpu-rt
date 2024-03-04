@@ -125,7 +125,7 @@ enum
                            (VME_Input_G1(srcMatrix, uchar, 0, 2) & 0x01f);                                  \
     /* CodedPatternDC */                                                                                    \
     vector[startIdx + 2] = 0x0e;                                                                            \
-    /* num MVs and ExtendedForm, ExtendedForm is ignored. HW always set to 0 and default using Extended form*/ \
+    /* num motion vector and ExtendedForm, ExtendedForm is ignored. HW always set to 0 and default using Extended form*/ \
     vector[startIdx + 3] = (VME_Input_G1(srcMatrix, uchar, 0, 3) & 0x1f) | 0x80; /* MV Quantity*/
     /*ExtendedForm = (VME_Input_G1(srcMatrix, uchar, 0, 2) & 0x80) |\ // ExtendedForm  */
 
@@ -1038,7 +1038,7 @@ void GetNeighbourParamP(matrix_ref<uchar, 16, 1> leftBlockValues,
     }                                                                   \
     /* CodedPatternDC */                                                \
     vector[startIdx + 2] = 0x0e;                                        \
-    /* num MVs and ExtendedForm, ExtendedForm is ignored. HW always set to 0 and default using Extended form*/  \
+    /* num motion vector and ExtendedForm, ExtendedForm is ignored. HW always set to 0 and default using Extended form*/  \
     vector[startIdx + 3] = (VME_Input_G1(uniOut, uchar, 0, 3) & 0x1f) | 0x80; /* MV Quantity*/
     /*ExtendedForm = (VME_Input_G1(srcMatrix, uchar, 0, 2) & 0x80)  |\ // ExtendedForm*/
 
@@ -1334,7 +1334,7 @@ void PrepareFractionalCall(matrix_ref<uchar, 4, 32> uniIn,
     else
         VME_CLEAR_UNIInput_BMEDisableFBR(uniIn);
 
-    // copy MVs
+    // copy Motion vector
     fbrIn = uniOut.select<4, 1, 32, 1> (1, 0);
 
 } // void PrepareFractionalCall(matrix_ref<uchar, 4, 32> uniIn,
