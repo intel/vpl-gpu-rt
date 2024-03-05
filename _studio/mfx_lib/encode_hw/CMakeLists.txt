@@ -36,10 +36,13 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux
     hevc/linux/g9
     hevc/linux/g12
-    hevc/linux/xe_lpm_plus
     hevc/linux/base
-    hevc/linux/xe_hpm
   )
+
+    target_include_directories(encode_hw PUBLIC
+      hevc/linux/xe_hpm
+      hevc/linux/xe_lpm_plus
+    )
 
   set(HEVC_VIDEO_ENCODE_SRC
     hevc/hevcehw_disp.h
@@ -98,8 +101,6 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux/base/hevcehw_base_caps_lin.h
     hevc/linux/g12/hevcehw_g12_caps_lin.h
     hevc/linux/g12/hevcehw_g12_lin.h
-    hevc/linux/xe_hpm/hevcehw_xe_hpm_lin.h
-    hevc/linux/xe_lpm_plus/hevcehw_xe_lpm_plus_lin.h
 
     hevc/hevcehw_disp.cpp
     hevc/agnostic/hevcehw_base.cpp
@@ -141,9 +142,15 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux/base/hevcehw_base_rext_lin.cpp
     hevc/linux/base/hevcehw_base_qp_modulation_lin.cpp
     hevc/linux/g12/hevcehw_g12_lin.cpp
-    hevc/linux/xe_hpm/hevcehw_xe_hpm_lin.cpp
-    hevc/linux/xe_lpm_plus/hevcehw_xe_lpm_plus_lin.cpp
   )
+
+    set(HEVC_VIDEO_ENCODE_SRC
+      ${HEVC_VIDEO_ENCODE_SRC}
+      hevc/linux/xe_hpm/hevcehw_xe_hpm_lin.h
+      hevc/linux/xe_hpm/hevcehw_xe_hpm_lin.cpp
+      hevc/linux/xe_lpm_plus/hevcehw_xe_lpm_plus_lin.h
+      hevc/linux/xe_lpm_plus/hevcehw_xe_lpm_plus_lin.cpp
+    )
 
   custom_source_group("hevc" ${HEVC_VIDEO_ENCODE_SRC})
 endif()
@@ -153,13 +160,16 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_LPM_plus
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus
   )
+
+    target_include_directories(encode_hw PUBLIC
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_LPM_plus
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus
+    )
 
   set(AV1_VIDEO_ENCODE_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/av1ehw_disp.h
@@ -184,18 +194,6 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_qmatrix_lin.h
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_max_frame_size_lin.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_max_frame_size_lin.h
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm_segmentation.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm_segmentation.h
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM/av1ehw_xe_hpm_lin.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM/av1ehw_xe_hpm_lin.h
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus/av1ehw_xe_lpm_plus_lin.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus/av1ehw_xe_lpm_plus_lin.h
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_LPM_plus/av1ehw_xe_lpm_plus.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_alloc.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_alloc.h
@@ -233,6 +231,21 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_enctools_com.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_enctools_com.h
   )
+
+    set(AV1_VIDEO_ENCODE_SRC
+      ${AV1_VIDEO_ENCODE_SRC}
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm.h
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm_segmentation.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm_segmentation.h
+
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM/av1ehw_xe_hpm_lin.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM/av1ehw_xe_hpm_lin.h
+
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus/av1ehw_xe_lpm_plus_lin.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus/av1ehw_xe_lpm_plus_lin.h
+
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_LPM_plus/av1ehw_xe_lpm_plus.h
+    )
 
   custom_source_group("av1" ${AV1_VIDEO_ENCODE_SRC})
 endif()

@@ -28,6 +28,7 @@
 #undef  UMC_VA_LINUX
 #define UMC_VA_LINUX
 
+
 // mfx_features.h is auto-generated file containing mediasdk per-component
 // enable defines
 #include "mfx_features.h"

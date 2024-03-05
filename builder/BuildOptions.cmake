@@ -80,6 +80,7 @@ if (BUILD_KERNELS)
   endif()
 endif()
 
+
 # Supported frameworks for surface sharing
 # Temporarily disable OpenCL surface sharing on Linux until code is ready
 if (CMAKE_SYSTEM_NAME MATCHES Windows)
