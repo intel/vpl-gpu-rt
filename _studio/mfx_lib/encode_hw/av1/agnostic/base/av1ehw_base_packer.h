@@ -170,7 +170,7 @@ namespace Base
         virtual void GetVideoParam(const FeatureBlocks& blocks, TPushGVP Push) override;
 
         void      PackIVF(BitstreamWriter& bs, const FH& fh, mfxU32 insertHeaders, const mfxVideoParam& vp);
-        void      PackSPS(BitstreamWriter& bs, const SH& sh, const FH& fh, const ObuExtensionHeader& oeh);
+        void      PackSPS(BitstreamWriter& bs, const SH& sh, const FH& fh, const ObuExtensionHeader& oeh, const mfxVideoParam& vp);
         void      PackPPS(BitstreamWriter& bs, BitOffsets& offsets, const SH& sh, const FH& fh, const ObuExtensionHeader& oeh, mfxU32 insertHeaders);
         mfxStatus GenerateSPS(mfxVideoParam& out,  const StorageR& global);
 

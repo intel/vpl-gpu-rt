@@ -125,6 +125,8 @@ void General::SetSupported(ParamSupport& blocks)
         MFX_COPY_FIELD(TargetBitDepthChroma);
         MFX_COPY_FIELD(LowDelayBRC);
         MFX_COPY_FIELD(ScenarioInfo);
+        MFX_COPY_FIELD(TimingInfoPresent);
+        
     });
 
     // keep it temporally for backward compability
@@ -402,6 +404,7 @@ void General::SetInherited(ParamInheritance& par)
         INHERIT_OPT(TargetBitDepthChroma);
         INHERIT_OPT(LowDelayBRC);
         INHERIT_OPT(ScenarioInfo);
+        INHERIT_OPT(TimingInfoPresent);
     });
 #undef INIT_EB
 #undef INHERIT_OPT
@@ -2836,6 +2839,8 @@ void General::SetSH(
     sh.color_config.separate_uv_delta_q = 1; // NB: currently driver not work if it's '0'
     sh.color_config.subsampling_x       = 1; // YUV 4:2:0
     sh.color_config.subsampling_y       = 1; // YUV 4:2:0
+
+    sh.timing_info_present_flag         = CO2Flag(CO3.TimingInfoPresent);
 
     const mfxExtVideoSignalInfo& VSI               = ExtBuffer::Get(par);
     sh.color_config.color_range                    = VSI.VideoFullRange;

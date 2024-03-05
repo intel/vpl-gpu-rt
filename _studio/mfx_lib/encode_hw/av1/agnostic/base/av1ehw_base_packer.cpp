@@ -341,7 +341,7 @@ inline void PackColorConfig(BitstreamWriter& bs, SH const& sh)
     bs.PutBit(sh.color_config.separate_uv_delta_q); //separate_uv_delta_q
 }
 
-void Packer::PackSPS(BitstreamWriter& bs, SH const& sh, FH const& fh, ObuExtensionHeader const& oeh)
+void Packer::PackSPS(BitstreamWriter& bs, SH const& sh, FH const& fh, ObuExtensionHeader const& oeh, mfxVideoParam const& vp)
 {
     //alloc tmp buff for the header data
     const mfxU32 av1_max_header_size = 1024;
@@ -352,7 +352,16 @@ void Packer::PackSPS(BitstreamWriter& bs, SH const& sh, FH const& fh, ObuExtensi
     tmpBitstream.PutBits(3, sh.seq_profile); //seq_profile
     tmpBitstream.PutBit(sh.still_picture); //still_picture
     tmpBitstream.PutBit(0); //reduced_still_picture_header
-    tmpBitstream.PutBit(0); //timing_info_present_flag
+    tmpBitstream.PutBit(sh.timing_info_present_flag); //timing_info_present_flag
+    if (sh.timing_info_present_flag)
+    {
+        tmpBitstream.PutBits(32, vp.mfx.FrameInfo.FrameRateExtD); //num_units_in_display_tick 
+        tmpBitstream.PutBits(32, vp.mfx.FrameInfo.FrameRateExtN); //time_scale 
+        tmpBitstream.PutBit(1); //equal_picture_interval
+        tmpBitstream.PutBit(1); //num_ticks_per_picture_minus_1 = 0 = uvlc(1)
+        tmpBitstream.PutBit(0); //decoder_model_info_present_flag
+
+    }
     tmpBitstream.PutBit(0); //initial_display_delay_present_flag
 
     PackOperatingPoints(tmpBitstream, sh);
@@ -1070,7 +1079,7 @@ void Packer::SubmitTask(const FeatureBlocks& blocks, TPushST Push)
         headerOffset = bitstream.GetOffset();
         if (IsI(task.FrameType))
         {
-            PackSPS(bitstream, sh, fh, oeh);
+            PackSPS(bitstream, sh, fh, oeh, videoParam);
         }
         ph.SPS.pData  = start + headerOffset / 8;
         ph.SPS.BitLen = bitstream.GetOffset() - headerOffset;
@@ -1104,7 +1113,7 @@ inline mfxStatus Packer::GenerateSPS(mfxVideoParam& out, const StorageR& global)
         const FH& fh = Glob::FH::Get(global);
         ObuExtensionHeader oeh = {0};
 
-        PackSPS(bs, sh, fh, oeh);
+        PackSPS(bs, sh, fh, oeh, out);
         const mfxU16 spsBufSize = mfxU16((bs.GetOffset() + 7) / 8);
 
         // Only thrown status could be returned from GetVideoParam() which ignores return value
