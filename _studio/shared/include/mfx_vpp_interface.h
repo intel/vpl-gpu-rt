@@ -212,6 +212,10 @@ namespace MfxHwVideoProcessing
         mfxU32 u3DLut;
         mfxU32 uDenoise2Filter;   // mfxExtVPPDenoise2
 
+        mfxU32 uSuperResolution;
+        mfxU32 uSrMaxInWidth;
+        mfxU32 uSrMaxInHeight;
+
         mfxVppCaps()
             : uAdvancedDI(0)
             , uSimpleDI(0)
@@ -247,6 +251,9 @@ namespace MfxHwVideoProcessing
             , uFieldProcessing(0)
             , u3DLut(0)
             , uDenoise2Filter(0)
+            , uSuperResolution(0)
+            , uSrMaxInWidth(0)
+            , uSrMaxInHeight(0)
         {
             memset(&cameraCaps, 0, sizeof(CameraCaps));
         };
@@ -403,6 +410,8 @@ namespace MfxHwVideoProcessing
                ,mirroringExt(false)
                ,scene(VPP_NO_SCENE_CHANGE)
                ,bDeinterlace30i60p(false)
+               , bSuperResolution(false)
+               , m_srMode(MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT)
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
                ,gpuHangTrigger(false)
 #endif
@@ -472,7 +481,8 @@ namespace MfxHwVideoProcessing
                     mirroringExt != false ||
                     scene != VPP_NO_SCENE_CHANGE ||
                     bDeinterlace30i60p != false  ||
-                    chromaSiting != MFX_CHROMA_SITING_UNKNOWN
+                    chromaSiting != MFX_CHROMA_SITING_UNKNOWN ||
+					bSuperResolution
 #ifdef MFX_ENABLE_MCTF
                     || bEnableMctf != false
 #endif
@@ -595,6 +605,9 @@ namespace MfxHwVideoProcessing
 
         vppScene    scene;     // Keep information about scene change
         bool        bDeinterlace30i60p;
+		
+        bool                     bSuperResolution;
+        mfxAISuperResolutionMode m_srMode;
 
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
         bool       gpuHangTrigger;
