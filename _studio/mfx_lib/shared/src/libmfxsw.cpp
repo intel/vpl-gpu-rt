@@ -389,7 +389,7 @@ mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* sess
 
     // VendorImplID is used as adapterNum in current implementation - see MFXQueryImplsDescription
     // app. supposed just to copy VendorImplID from mfxImplDescription (returned by MFXQueryImplsDescription) to mfxInitializationParam
-    mfxRes = MFXInit_Internal(par, session, par.Implementation, param.VendorImplID, isSingleThreadMode, true);
+    mfxRes = MFXInit_Internal(par, session, par.Implementation, param.VendorImplID, isSingleThreadMode);
 
     TRACE_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(par.Implementation, isSingleThreadMode));
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
