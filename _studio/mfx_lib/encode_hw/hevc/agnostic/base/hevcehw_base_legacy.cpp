@@ -4299,22 +4299,52 @@ mfxStatus Legacy::CheckTU(const ENCODE_CAPS_HEVC& caps, mfxU16& tu)
     if (!tu)
         return MFX_ERR_NONE;
 
-    auto support = caps.TUSupport;
-    mfxI16 abs_diff = 0;
-    bool   sign = 0;
-    mfxI16 newtu = tu;
-
-    do
+    const uint8_t HEVC_EXTENDED_TU_SUPPORT = (1 << (1 - 1)) | (1 << (2 - 1)) | (1 << (4 - 1)) | (1 << (6 - 1)) | (1 << (7 - 1));
+    if (HEVC_EXTENDED_TU_SUPPORT == caps.TUSupport)
     {
-        newtu = tu + (1 - 2 * sign) * abs_diff;
-        abs_diff += !sign;
-        sign = !sign;
-    } while (newtu > 0 && !(support & (1 << (newtu - 1))));
-
-    if (tu != newtu)
+        switch (tu)
+        {
+        case 1:
+            tu = 1;
+            break;
+        case 2:
+            tu = 2;
+            break;
+        case 3: 
+        case 4: 
+        case 5:
+            tu = 4;
+            break;
+        case 6:
+            tu = 6;
+            break;
+        case 7:
+            tu = 7;
+            break;
+        default:
+            tu = 4;
+            break;
+        }
+    }
+    else
     {
-        tu = newtu;
-        return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+        auto support = caps.TUSupport;
+        mfxI16 abs_diff = 0;
+        bool   sign = 0;
+        mfxI16 newtu = tu;
+
+        do
+        {
+            newtu = tu + (1 - 2 * sign) * abs_diff;
+            abs_diff += !sign;
+            sign = !sign;
+        } while (newtu > 0 && !(support & (1 << (newtu - 1))));
+
+        if (tu != newtu)
+        {
+            tu = newtu;
+            return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+        }
     }
 
     return MFX_ERR_NONE;
