@@ -1062,7 +1062,10 @@ enum {
     MFX_CODEC_VC1         =MFX_MAKEFOURCC('V','C','1',' '), /*!< VC-1 codec. */
     MFX_CODEC_CAPTURE     =MFX_MAKEFOURCC('C','A','P','T'), /*!<  */
     MFX_CODEC_VP9         =MFX_MAKEFOURCC('V','P','9',' '), /*!< VP9 codec. */
-    MFX_CODEC_AV1         =MFX_MAKEFOURCC('A','V','1',' ')  /*!< AV1 codec. */
+    MFX_CODEC_AV1         =MFX_MAKEFOURCC('A','V','1',' '), /*!< AV1 codec. */
+#ifdef ONEVPL_EXPERIMENTAL 
+    MFX_CODEC_VVC         =MFX_MAKEFOURCC('V','V','C',' ')  /*!< VVC codec. */
+#endif
 };
 
 /*!
@@ -1248,7 +1251,39 @@ enum {
     MFX_LEVEL_AV1_72                        = 72,
     MFX_LEVEL_AV1_73                        = 73,
     /*! @} */
+
+#ifdef ONEVPL_EXPERIMENTAL    
+    /*! @{ */
+    /* VVC Profiles */
+    MFX_PROFILE_VVC_MAIN10                  = 1,
+    /*! @} */
+
+    /*! @{ */
+    /* VVC Levels */
+    MFX_LEVEL_VVC_1                         = 16,
+    MFX_LEVEL_VVC_2                         = 32,
+    MFX_LEVEL_VVC_21                        = 35,
+    MFX_LEVEL_VVC_3                         = 48,
+    MFX_LEVEL_VVC_31                        = 51,
+    MFX_LEVEL_VVC_4                         = 64,
+    MFX_LEVEL_VVC_41                        = 67,
+    MFX_LEVEL_VVC_5                         = 80,
+    MFX_LEVEL_VVC_51                        = 83,
+    MFX_LEVEL_VVC_52                        = 86,
+    MFX_LEVEL_VVC_6                         = 96,
+    MFX_LEVEL_VVC_61                        = 99,
+    MFX_LEVEL_VVC_62                        = 102,
+    MFX_LEVEL_VVC_155                       = 255,
+    /*! @} */
+
+    /*! @{ */
+    /* VVC tiers */
+    MFX_TIER_VVC_MAIN                       = 0,
+    MFX_TIER_VVC_HIGH                       = 0x100,
+    /*! @} */
+#endif
 };
+
 
 /*! The GopOptFlag enumerator itemizes special properties in the GOP (Group of Pictures) sequence. */
 enum {
