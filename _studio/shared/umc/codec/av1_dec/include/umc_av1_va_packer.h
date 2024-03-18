@@ -46,7 +46,7 @@ public:
     virtual ~Packer();
 
     virtual UMC::Status GetStatusReport(void* pStatusReport, size_t size) = 0;
-    virtual UMC::Status SyncTask(AV1DecoderFrame * frame, void * error) = 0;
+    virtual UMC::Status SyncTask(int32_t index, void * error) = 0;
 
     virtual void BeginFrame() = 0;
     virtual void EndFrame() = 0;

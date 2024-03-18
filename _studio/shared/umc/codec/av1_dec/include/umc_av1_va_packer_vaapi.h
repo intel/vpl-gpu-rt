@@ -47,12 +47,9 @@ namespace UMC_AV1_DECODER
         PackerVA(UMC::VideoAccelerator * va);
 
         UMC::Status GetStatusReport(void * pStatusReport, size_t size) override;
-        UMC::Status SyncTask(AV1DecoderFrame * frame, void * error) override
+        UMC::Status SyncTask(int32_t index, void * error) override
         {
-            frame->IncrementReference();
-            auto sts = m_va->SyncTask(frame->GetMemID(), error);
-            frame->DecrementReference();
-            return sts;
+            return m_va->SyncTask(index, error);
         }
         void BeginFrame() override;
         void EndFrame() override;

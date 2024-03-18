@@ -215,13 +215,14 @@ namespace UMC_AV1_DECODER
             {
                 auto_guard.unlock();
                 {
-                    sts = packer->SyncTask(&frame, NULL);
+                    sts = packer->SyncTask(frame.GetMemID(), NULL);
                 }
                 auto_guard.lock();
             }
             VAStatus surfErr = VA_STATUS_SUCCESS;
+            index = frame.GetMemID();
             auto_guard.unlock();
-            UMC::Status sts =  packer->SyncTask(&frame, &surfErr);
+            UMC::Status sts =  packer->SyncTask(index, &surfErr);
             auto_guard.lock();
 
             frame.CompleteDecoding();
