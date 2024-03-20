@@ -898,6 +898,8 @@ typedef struct {
                     @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
                     Adjusted QPI value = QPI - (6 * (BitDepthLuma - 8)) for BitDepthLuma in the range [8,14].
                     For HEVC_MAIN10, we minus (6*(10-8)=12) on our side and continue.
+                    @note In av1 design, valid range is 0 to 255 inclusive, and if QPI=QPP=QPB=0, the encoder is in lossless mode.
+                    @note In vp9 design, valid range is 1 to 255 inclusive, and zero QP that the default value is assigned by the library.
                     @note Default QPI value is implementation dependent and subject to change without additional notice in this document. */
                 mfxU16  QPI;
                 mfxU16  Accuracy; /*!< Specifies accuracy range in the unit of tenth of percent. */
@@ -911,6 +913,8 @@ typedef struct {
                     @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
                     Adjusted QPP value = QPP - (6 * (BitDepthLuma - 8)) for BitDepthLuma in the range [8,14].
                     For HEVC_MAIN10, we minus (6*(10-8)=12) on our side and continue.
+                    @note In av1 design, valid range is 0 to 255 inclusive, and if QPI=QPP=QPB=0, the encoder is in lossless mode.
+                    @note In vp9 design, valid range is 1 to 255 inclusive, and zero QP that the default value is assigned by the library.
                     @note Default QPP value is implementation dependent and subject to change without additional notice in this document. */
                 mfxU16  QPP;
                 mfxU16  ICQQuality; /*!< Used by the Intelligent Constant Quality (ICQ) bitrate control algorithm. Values are in the 1 to 51 range, where 1 corresponds the best quality. */
@@ -923,6 +927,7 @@ typedef struct {
                     @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
                     Adjusted QPB value = QPB - (6 * (BitDepthLuma - 8)) for BitDepthLuma in the range [8,14].
                     For HEVC_MAIN10, we minus (6*(10-8)=12) on our side and continue.
+                    @note In av1 design, valid range is 0 to 255 inclusive, and if QPI=QPP=QPB=0, the encoder is in lossless mode.
                     @note Default QPB value is implementation dependent and subject to change without additional notice in this document. */
                 mfxU16  QPB;
                 mfxU16  Convergence; /*!< Convergence period in the unit of 100 frames. */
@@ -1644,23 +1649,23 @@ typedef struct {
        @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported.
     */
     mfxU16      SkipFrame;
-    mfxU8       MinQPI; /*!< Minimum allowed QP value for I-frame types. Valid range is 1 to 51 inclusive. Zero means default value, that is, no limitations on QP.
+    mfxU8       MinQPI; /*!< Minimum allowed QP value for I-frame types. Valid range varies with the codec. Zero means default value, that is, no limitations on QP.
                              @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported. */
-    mfxU8       MaxQPI; /*!< Maximum allowed QP value for I-frame types. Valid range is 1 to 51 inclusive. Zero means default value, that is, no limitations on QP.
+    mfxU8       MaxQPI; /*!< Maximum allowed QP value for I-frame types. Valid range varies with the codec. Zero means default value, that is, no limitations on QP.
                              @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
                              Adjusted MaxQPI value = 51 + (6 * (BitDepthLuma - 8)) for BitDepthLuma in the range [8,14].
                              For HEVC_MAIN10, we add (6*(10-8)=12) on our side for MaxQPI will reach 63.
                              @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported. */
-    mfxU8       MinQPP; /*!< Minimum allowed QP value for P-frame types. Valid range is 1 to 51 inclusive. Zero means default value, that is, no limitations on QP.
+    mfxU8       MinQPP; /*!< Minimum allowed QP value for P-frame types. Valid range varies with the codec. Zero means default value, that is, no limitations on QP.
                              @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported. */
-    mfxU8       MaxQPP; /*!< Maximum allowed QP value for P-frame types. Valid range is 1 to 51 inclusive. Zero means default value, that is, no limitations on QP.
+    mfxU8       MaxQPP; /*!< Maximum allowed QP value for P-frame types. Valid range varies with the codec. Zero means default value, that is, no limitations on QP.
                              @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
                              Adjusted MaxQPP value = 51 + (6 * (BitDepthLuma - 8)) for BitDepthLuma in the range [8,14].
                              For HEVC_MAIN10, we add (6*(10-8)=12) on our side for MaxQPP will reach 63.
                              @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported. */
-    mfxU8       MinQPB; /*!< Minimum allowed QP value for B-frame types. Valid range is 1 to 51 inclusive. Zero means default value, that is, no limitations on QP.
+    mfxU8       MinQPB; /*!< Minimum allowed QP value for B-frame types. Valid range varies with the codec. Zero means default value, that is, no limitations on QP.
                              @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported. */
-    mfxU8       MaxQPB; /*!< Maximum allowed QP value for B-frame types. Valid range is 1 to 51 inclusive. Zero means default value, that is, no limitations on QP.
+    mfxU8       MaxQPB; /*!< Maximum allowed QP value for B-frame types. Valid range varies with the codec. Zero means default value, that is, no limitations on QP.
                              @note In the HEVC design, a further adjustment to QPs can occur based on bit depth.
                              Adjusted MaxQPB value = 51 + (6 * (BitDepthLuma - 8)) for BitDepthLuma in the range [8,14].
                              For HEVC_MAIN10, we add (6*(10-8)=12) on our side for MaxQPB will reach 63.
