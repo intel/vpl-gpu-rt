@@ -121,10 +121,7 @@ mfxStatus _mfxSession::Init(mfxIMPL implInterface, mfxVersion *ver)
     mfxStatus mfxRes;
     MFX_SCHEDULER_PARAM schedParam;
     mfxU32 maxNumThreads;
-#if defined(MFX_ENABLE_SINGLE_THREAD)
-    bool isExternalThreading = (implInterface & MFX_IMPL_EXTERNAL_THREADING)?true:false;
-    implInterface &= ~MFX_IMPL_EXTERNAL_THREADING;
-#endif
+
     // release the object before initialization
     Cleanup();
 
@@ -184,10 +181,6 @@ mfxStatus _mfxSession::Init(mfxIMPL implInterface, mfxVersion *ver)
     }
     memset(&schedParam, 0, sizeof(schedParam));
     schedParam.flags = MFX_SCHEDULER_DEFAULT;
-#if defined(MFX_ENABLE_SINGLE_THREAD)
-    if (isExternalThreading)
-        schedParam.flags = MFX_SINGLE_THREAD;
-#endif
     schedParam.numberOfThreads = maxNumThreads;
     schedParam.pCore = m_pCORE.get();
     mfxRes = m_pScheduler->Initialize(&schedParam);
@@ -323,10 +316,7 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par, bool isSingleThrea
 {
     mfxStatus mfxRes;
     mfxU32 maxNumThreads;
-#if defined(MFX_ENABLE_SINGLE_THREAD)
-    isSingleThreadMode = (par.Implementation & MFX_IMPL_EXTERNAL_THREADING) ? true : isSingleThreadMode;
-    par.Implementation &= ~MFX_IMPL_EXTERNAL_THREADING;
-#endif
+
     // release the object before initialization
     Cleanup();
 
