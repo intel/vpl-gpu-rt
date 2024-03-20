@@ -2432,6 +2432,16 @@ enum {
     */
     MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION = MFX_MAKEFOURCC('V','A','S','R'),
 #endif
+#ifdef ONEVPL_EXPERIMENTAL
+   /*!
+      See the mfxExtQualityInfoMode structure for details.
+   */
+   MFX_EXTBUFF_ENCODED_QUALITY_INFO_MODE = MFX_MAKEFOURCC('E', 'N', 'Q', 'M'),
+    /*!
+      See the mfxExtQualityInfoOutput structure for details.
+   */
+   MFX_EXTBUFF_ENCODED_QUALITY_INFO_OUTPUT = MFX_MAKEFOURCC('E', 'N', 'Q', 'O'),
+#endif
 };
 
 /* VPP Conf: Do not use certain algorithms  */
@@ -5149,6 +5159,43 @@ typedef struct {
     mfxU32                      reserved1[16];         /*!< Reserved for future use. */
     mfxHDL                      reserved2[4];          /*!< Reserved for future use. */
 } mfxExtVPPAISuperResolution;
+MFX_PACK_END()
+#endif
+
+#ifdef ONEVPL_EXPERIMENTAL
+/* The mfxQualityInfoMode enumerator specifies the mode of Quality information. */
+typedef enum {
+    MFX_QUALITY_INFO_DISABLE        = 0,
+    MFX_QUALITY_INFO_LEVEL_FRAME    = 0x1, /*!< Frame level quality report. */
+} mfxQualityInfoMode;
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+/*!
+   Used by the encoder to set quality information report mode for the encoded picture. 
+   
+   @note Not all implementations of the encoder support this extended buffer. The application must use query mode 1 to determine if
+         the functionality is supported. To do this, the application must attach this extended buffer to the mfxVideoParam structure and
+         call the MFXVideoENCODE_Query function. If the function returns MFX_ERR_NONE then the functionality is supported.
+*/
+typedef struct {
+    mfxExtBuffer        Header;         /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_ENCODED_QUALITY_INFO_MODE. */
+    mfxQualityInfoMode  QualityInfoMode;/*!< See mfxQualityInfoMode enumeration for supported modes. */
+    mfxU32              reserved[5];    /*!< Reserved for future use. */
+} mfxExtQualityInfoMode;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+/*!
+   Used by the encoder to report quality information about the encoded picture. The application can attach
+   this buffer to the mfxBitstream structure before calling MFXVideoENCODE_EncodeFrameAsync function.
+*/
+typedef struct {
+    mfxExtBuffer        Header;         /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_ENCODED_QUALITY_INFO_OUTPUT. */
+    mfxU32              FrameOrder;     /*!< Frame display order of encoded picture. */
+    mfxU32              MSE[3];         /*!< Frame level mean squared errors (MSE) for Y/U/V channel. */
+    mfxU32              reserved1[50];  /*!< Reserved for future use. */
+    mfxHDL              reserved2[4];   /*!< Reserved for future use. */
+} mfxExtQualityInfoOutput;
 MFX_PACK_END()
 #endif
 
