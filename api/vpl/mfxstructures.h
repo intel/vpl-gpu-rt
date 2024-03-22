@@ -5152,11 +5152,22 @@ MFX_PACK_END()
 #ifdef ONEVPL_EXPERIMENTAL
 /* The mfxAISuperResolutionMode enumerator specifies the mode of AI based super resolution. */
 typedef enum {
-    MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT = 0,         /*!< Default super resolution mode. The library selects the most appropriate super resolution mode.*/
+    MFX_AI_SUPER_RESOLUTION_MODE_DISABLED = 0,        /*!< Super Resolution is disabled.*/
+    MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT = 1,         /*!< Default super resolution mode. The library selects the most appropriate super resolution mode.*/
 } mfxAISuperResolutionMode;
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-/*! A hint structure that configures AI based super resolution VPP filter. */
+/*!
+    A hint structure that configures AI based super resolution VPP filter.
+    Super resolution is an AI-powered upscaling feature which converts a low-resolution to high-resolution.
+    On some platforms this filter is not supported. To query its support, the application should use the same approach that it uses to configure VPP filters:
+    adding the filter ID to the mfxExtVPPDoUse structure or by attaching the mfxExtVPPAISuperResolution structure directly to the mfxVideoParam structure and
+    calling the Query API function. If the filter is supported, the function returns a MFX_ERR_NONE status; otherwise, the function returns MFX_ERR_UNSUPPORTED.
+    If both mfxExtVPPAISuperResolution and mfxExtVPPScaling are attached during initialization, the function will return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM; if both
+    of them are attached during runtime, the mfxExtVPPAISuperResolution will override the upscaling mode and use super resolution.
+    If the application needs to switch on and off, the application can set the MFX_AI_SUPER_RESOLUTION_MODE_DISABLED to switch off, MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT
+    to switch on.
+*/
 typedef struct {
     mfxExtBuffer                Header;               /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION.*/
     mfxAISuperResolutionMode    SRMode;               /*!< Indicates Super Resolution Mode. mfxAISuperResolutionMode enumerator.*/
