@@ -512,9 +512,9 @@ public:
     FlexibleFrameAllocator(mfxHDL device = nullptr, mfxSession session = nullptr)
         // ids across different allocators (SW / HW in one core and in different cores (for simplicity)) shouldn't overlap
         : FrameAllocatorBase(session)
-        , m_bits_n_surf(16)
         // fetch_add returns value prior the increment
         , m_mid_high_part(size_t(m_allocator_num.fetch_add(1, std::memory_order_relaxed) + 1) << m_bits_n_surf)
+        , m_mid_low_part_modulo((size_t(1) << m_bits_n_surf) - 1)
         , m_device(device)
         , m_staging_adapter(std::make_shared<U>(device))
     {
@@ -753,9 +753,10 @@ protected:
     }
 
 private:
-    const size_t                           m_bits_n_surf;
+    const size_t                           m_bits_n_surf      = 16; // One session can't have more than 2^16 surfaces simultaneously
     const size_t                           m_mid_high_part;
-    std::atomic<size_t>                    m_mid_low_part     = { 0 };
+    const size_t                           m_mid_low_part_modulo;
+    size_t                                 m_mid_low_part     = 0;
     mfxHDL                                 m_device           = nullptr;
 
     mutable std::shared_timed_mutex        m_mutex;
@@ -769,10 +770,30 @@ private:
 
     const mfxMemId ALREADY_REMOVED_MID = mfxMemId(std::numeric_limits<size_t>::max());
 
+    // This method always called without m_mutex being locked
     mfxMemId GenerateMid()
     {
-        // fetch_add returns value prior the increment
-        return mfxMemId(m_mid_high_part | ((m_mid_low_part.fetch_add(1, std::memory_order_relaxed) + 1) & ((1 << m_bits_n_surf) - 1)));
+        std::lock_guard<std::shared_timed_mutex> guard(m_mutex);
+
+        // Check that pool is not already full
+        MFX_CHECK_WITH_THROW_STS(m_allocated_pool.size() <= (m_mid_low_part_modulo + 1), MFX_ERR_MEMORY_ALLOC);
+
+        mfxMemId new_memid;
+        // There is only m_mid_low_part_modulo + 1 possible mids within one allocator
+        for (size_t i = 0; i < m_mid_low_part_modulo + 1; ++i)
+        {
+            new_memid = mfxMemId(m_mid_high_part | ((++m_mid_low_part) & m_mid_low_part_modulo));
+
+            if (
+                // Check if current mid is already in pool
+                std::find_if(std::begin(m_allocated_pool), std::end(m_allocated_pool),
+                    [new_memid](const pT& surf) { return surf->GetMid() == new_memid; }) == std::end(m_allocated_pool)
+                )
+                return new_memid;
+        }
+
+        // Couldn't find suitable mid
+        MFX_CHECK_WITH_THROW_STS(false, MFX_ERR_MEMORY_ALLOC);
     }
 
 #undef MFX_DETACH_FRAME
