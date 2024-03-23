@@ -1016,3 +1016,13 @@ STRUCT(mfxExtTuneEncodeQuality,
     FIELD_T(mfxExtBuffer**, ExtParam)
     FIELD_T(mfxU16        , NumExtParam)
 )
+
+#ifdef MFX_ENABLE_ENCODE_QUALITYINFO
+STRUCT(mfxExtQualityInfoMode,
+    FIELD_S(mfxExtBuffer, Header)
+)
+
+STRUCT(mfxExtQualityInfoOutput,
+    FIELD_S(mfxExtBuffer, Header)
+)
+#endif
