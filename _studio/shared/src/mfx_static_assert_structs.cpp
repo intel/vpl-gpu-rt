@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2023 Intel Corporation
+// Copyright (c) 2014-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -244,6 +244,8 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdapterInfo               ,64   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdaptersInfo              ,24   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtPartialBitstreamParam  ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtQualityInfoMode        ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtQualityInfoOutput      ,256  )
 #endif //defined (__MFXSTRUCTURES_H__)
 
 //mfxvideo.h
@@ -1042,6 +1044,15 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAV1FilmGrainParam            ,CrMult                        ,166  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAV1FilmGrainParam            ,CrLumaMult                    ,167  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAV1FilmGrainParam            ,CrOffset                      ,168  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtQualityInfoMode              ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtQualityInfoMode              ,QualityInfoMode               ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtQualityInfoMode              ,reserved                      ,12   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtQualityInfoOutput            ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtQualityInfoOutput            ,FrameOrder                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtQualityInfoOutput            ,MSE                           ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtQualityInfoOutput            ,reserved1                     ,24   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtQualityInfoOutput            ,reserved2                     ,224  )
 #endif //defined (__MFXSTRUCTURES_H__)
 
 //mfxvideo.h

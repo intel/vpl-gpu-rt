@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Intel Corporation
+// Copyright (c) 2019-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -166,7 +166,16 @@ typedef struct tagENCODE_CAPS_AV1
         uint32_t value;
     } SupportedRateControlMethods;
 
-    uint32_t   reserved32b[16];
+    union {
+        struct {
+            uint8_t   enable_frame : 1;  // support frame level quality info
+            uint8_t   reserved3    : 7;  // [0]
+        } fields;
+        uint8_t value;
+    } QualityInfoSupportFlags;
+    uint8_t    reserved8b2[3];
+
+    uint32_t   reserved32b[15];
 
 } ENCODE_CAPS_AV1;
 

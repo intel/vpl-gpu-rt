@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 Intel Corporation
+// Copyright (c) 2021-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -95,6 +95,12 @@
 #ifdef ONEVPL_EXPERIMENTAL
 #if (!defined(LINUX32) && !defined(LINUX64))
 #define MFX_ENABLE_ENCODE_STATS
+#endif
+#endif
+
+#ifdef ONEVPL_EXPERIMENTAL
+#if (!defined(LINUX32) && !defined(LINUX64))
+#define MFX_ENABLE_ENCODE_QUALITYINFO
 #endif
 #endif
 
