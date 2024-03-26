@@ -494,35 +494,20 @@ void General::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
     Push(BLK_CheckAndFixLevel
         , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
     {
-        mfxStatus stsMap = MapLevel(out);
-        mfxStatus stsCheckValid = CheckAndFixLevel(out);
-        // invalid level error code should override mapped level error code
-        MFX_CHECK_STS(stsCheckValid);
-        MFX_CHECK_STS(stsMap);
+        mfxStatus sts = CheckAndFixLevel(out);
+        MFX_CHECK_STS(sts);
+
         return MFX_ERR_NONE;
     });
-}
-
-mfxStatus General::MapLevel(mfxVideoParam& par)
-{
-    MFX_CHECK(par.mfx.CodecLevel, MFX_ERR_NONE);
-
-    mfxU32 changed = 0;
-
-    // Map undefined level to defined level
-    changed += MapToDefinedLevel(par.mfx.CodecLevel);
-
-    MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
-    return MFX_ERR_NONE;
 }
 
 mfxStatus General::CheckAndFixLevel(mfxVideoParam& par)
 {
     MFX_CHECK(par.mfx.CodecLevel, MFX_ERR_NONE);
 
-    mfxU32 invalid = 0;
-    invalid += SetIf(par.mfx.CodecLevel, !isValidCodecLevel(par.mfx.CodecLevel), 0);
-    MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
+    mfxU32 changed = 0;
+    changed += SetIf(par.mfx.CodecLevel, !isValidCodecLevel(par.mfx.CodecLevel), 0);
+    MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
     return MFX_ERR_NONE;
 }
@@ -3908,20 +3893,6 @@ mfxStatus General::CheckCodedPicSize(
     return MFX_ERR_NONE;
 }
 
-bool MapToDefinedLevel(mfxU16& level)
-{
-    auto levelIt = LevelsRemap.find(level);
-    if(levelIt != LevelsRemap.end())
-    {
-        level = levelIt->second;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
 mfxStatus General::CheckLevelConstraints(
     mfxVideoParam& par
     , const Defaults::Param& defPar)
@@ -3932,17 +3903,14 @@ mfxStatus General::CheckLevelConstraints(
     mfxU32 maxKbps  = 0;
     SetIf(maxKbps, rc != MFX_RATECONTROL_CQP && rc != MFX_RATECONTROL_ICQ, [&]() { return defPar.base.GetMaxKbps(defPar); });
 
-    const auto                frND    = defPar.base.GetFrameRate(defPar);
     const auto                res     = GetRealResolution(par);
     const mfxExtAV1TileParam* pTiles  = ExtBuffer::Get(par);
     const mfxExtAV1AuxData*   pAuxPar = ExtBuffer::Get(par);
     const auto                tiles   = GetNumTiles(pTiles, pAuxPar);
 
     const mfxU16 minLevel = GetMinLevel(
-        std::get<0>(frND)
-        , std::get<1>(frND)
-        , std::get<0>(res)
-        ,std::get<1>(res)
+        std::get<0>(res)
+        , std::get<1>(res)
         , std::get<0>(tiles)
         , std::get<1>(tiles)
         , maxKbps
@@ -3969,13 +3937,6 @@ mfxStatus General::CheckLevelConstraints(
         pRsPar->FrameWidth  = 0;
         pRsPar->FrameHeight = 0;
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
-    }
-
-    const mfxF64 maxFrameRate = GetMaxFrameRateByLevel(par.mfx.CodecLevel, std::get<0>(res), std::get<1>(res));
-    if (par.mfx.FrameInfo.FrameRateExtN > maxFrameRate * par.mfx.FrameInfo.FrameRateExtD)
-    {
-        // Not clip frame rate, only return warning if it exceeds maximum value
-        changed++;
     }
 
     if (maxKbps > 0)
