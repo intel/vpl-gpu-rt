@@ -668,8 +668,6 @@ namespace MfxHwVideoProcessing
             void Clear()
             {
                 m_bIsSetTimeOffset = false;
-                m_bDownFrameRate = false;
-                m_bUpFrameRate = false;
                 m_timeStampDifference = 0;
                 m_expectedTimeStamp = 0;
                 m_timeStampJump = 0;
@@ -685,8 +683,6 @@ namespace MfxHwVideoProcessing
             std::vector<mfxFrameSurface1 *> m_LockedSurfacesList;
 
             bool   m_bIsSetTimeOffset;
-            bool   m_bDownFrameRate;
-            bool   m_bUpFrameRate;
             mfxU64 m_timeStampDifference;
             mfxU64 m_expectedTimeStamp;
             mfxU64 m_timeStampJump;

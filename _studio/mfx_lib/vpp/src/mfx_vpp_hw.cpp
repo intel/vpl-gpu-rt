@@ -348,10 +348,8 @@ mfxStatus CpuFrc::PtsFrc::DoCpuFRC_AndUpdatePTS(
     }
 
     // made decision regarding frame rate conversion
-    if ((input->Data.TimeStamp != (mfxU64)-1) && !m_bUpFrameRate && inputTimeStamp < m_expectedTimeStamp)
+    if ((input->Data.TimeStamp != (mfxU64)-1) && inputTimeStamp < m_expectedTimeStamp)
     {
-        m_bDownFrameRate = true;
-
         // calculate output time stamp
         output->Data.TimeStamp = m_expectedTimeStamp;
 
@@ -359,10 +357,8 @@ mfxStatus CpuFrc::PtsFrc::DoCpuFRC_AndUpdatePTS(
         // request new one input surface
         return MFX_ERR_MORE_DATA;
     }
-    else if ((input->Data.TimeStamp != (mfxU64)-1) && !m_bDownFrameRate && (input->Data.TimeStamp > m_expectedTimeStamp || m_timeStampDifference))
+    else if ((input->Data.TimeStamp != (mfxU64)-1) && (input->Data.TimeStamp > m_expectedTimeStamp || m_timeStampDifference))
     {
-        m_bUpFrameRate = true;
-
         if (inputTimeStamp <= m_expectedTimeStamp)
         {
             m_upCoeff = 0;
