@@ -1068,9 +1068,7 @@ enum {
     MFX_CODEC_CAPTURE     =MFX_MAKEFOURCC('C','A','P','T'), /*!<  */
     MFX_CODEC_VP9         =MFX_MAKEFOURCC('V','P','9',' '), /*!< VP9 codec. */
     MFX_CODEC_AV1         =MFX_MAKEFOURCC('A','V','1',' '), /*!< AV1 codec. */
-#ifdef ONEVPL_EXPERIMENTAL 
     MFX_CODEC_VVC         =MFX_MAKEFOURCC('V','V','C',' ')  /*!< VVC codec. */
-#endif
 };
 
 /*!
@@ -1257,7 +1255,6 @@ enum {
     MFX_LEVEL_AV1_73                        = 73,
     /*! @} */
 
-#ifdef ONEVPL_EXPERIMENTAL    
     /*! @{ */
     /* VVC Profiles */
     MFX_PROFILE_VVC_MAIN10                  = 1,
@@ -1286,9 +1283,7 @@ enum {
     MFX_TIER_VVC_MAIN                       = 0,
     MFX_TIER_VVC_HIGH                       = 0x100,
     /*! @} */
-#endif
 };
-
 
 /*! The GopOptFlag enumerator itemizes special properties in the GOP (Group of Pictures) sequence. */
 enum {
