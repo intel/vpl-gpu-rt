@@ -2370,6 +2370,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.TargetUsage = 7;
     }
 
+
     if (par.mfx.GopPicSize > 0 &&
         par.mfx.GopRefDist > 0 &&
         par.mfx.GopRefDist > par.mfx.GopPicSize)
