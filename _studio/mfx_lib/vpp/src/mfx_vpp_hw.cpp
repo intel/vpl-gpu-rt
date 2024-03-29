@@ -2387,6 +2387,10 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
             {
                 formatSupport = MFX_FORMAT_SUPPORT_INPUT | MFX_FORMAT_SUPPORT_OUTPUT;
             }
+            else if (format == MFX_FOURCC_BGRA)
+            {
+                formatSupport = MFX_FORMAT_SUPPORT_OUTPUT;
+            }
             break;
 #if defined (ONEVPL_EXPERIMENTAL)
         case MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER:
@@ -5324,31 +5328,35 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         } //case MFX_EXTBUFF_VPP_COMPOSITE
         case MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION:
         {
-            if (!caps->uSuperResolution)
+            mfxExtVPPAISuperResolution* extSr = (mfxExtVPPAISuperResolution*)data;
+            if (extSr->SRMode != MFX_AI_SUPER_RESOLUTION_MODE_DISABLED)
             {
-                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
-            }
-            if (par->vpp.In.FourCC != MFX_FOURCC_NV12 ||
-               (par->vpp.Out.FourCC != MFX_FOURCC_NV12 && par->vpp.Out.FourCC != MFX_FOURCC_BGRA))
-            {
-                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
-            }
-            mfxU32 inputWidth   = std::min(par->vpp.In.Width, par->vpp.In.CropW);
-            mfxU32 inputHeight  = std::min(par->vpp.In.Height, par->vpp.In.CropH);
-            mfxU32 outputWidth  = std::min(par->vpp.Out.Width, par->vpp.Out.CropW);
-            mfxU32 outputHeight = std::min(par->vpp.Out.Height, par->vpp.Out.CropH);
-            //add rotation support next
-            if (inputWidth > caps->uSrMaxInWidth ||
-                inputHeight > caps->uSrMaxInHeight)
-            {
-                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
-            }
-            mfxF32 fScaleX = (mfxF32)outputWidth / inputWidth;
-            mfxF32 fScaleY = (mfxF32)outputHeight / inputHeight;
-            if (fScaleX < 1.4f ||
-                fScaleY < 1.4f)
-            {
-                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+                if (!caps->uSuperResolution)
+                {
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+                }
+                if (par->vpp.In.FourCC != MFX_FOURCC_NV12 ||
+                    (par->vpp.Out.FourCC != MFX_FOURCC_NV12 && par->vpp.Out.FourCC != MFX_FOURCC_BGRA))
+                {
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+                }
+                mfxU32 inputWidth = std::min(par->vpp.In.Width, par->vpp.In.CropW);
+                mfxU32 inputHeight = std::min(par->vpp.In.Height, par->vpp.In.CropH);
+                mfxU32 outputWidth = std::min(par->vpp.Out.Width, par->vpp.Out.CropW);
+                mfxU32 outputHeight = std::min(par->vpp.Out.Height, par->vpp.Out.CropH);
+                //add rotation support next
+                if (inputWidth > caps->uSrMaxInWidth ||
+                    inputHeight > caps->uSrMaxInHeight)
+                {
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+                }
+                mfxF32 fScaleX = (mfxF32)outputWidth / inputWidth;
+                mfxF32 fScaleY = (mfxF32)outputHeight / inputHeight;
+                if (fScaleX < 1.4f ||
+                    fScaleY < 1.4f)
+                {
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+                }
             }
             break;
         }

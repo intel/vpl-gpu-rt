@@ -859,6 +859,26 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
                     }
                     else if (MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION == in->ExtParam[i]->BufferId)
                     {
+                        mfxExtVPPAISuperResolution* extSr = (mfxExtVPPAISuperResolution*)in->ExtParam[i];
+                        if (extSr->SRMode != MFX_AI_SUPER_RESOLUTION_MODE_DISABLED)
+                        {
+                            if (in->vpp.In.FourCC != MFX_FOURCC_NV12 ||
+                                (in->vpp.Out.FourCC != MFX_FOURCC_NV12 && in->vpp.Out.FourCC != MFX_FOURCC_BGRA))
+                            {
+                                mfxSts = MFX_STS_TRACE(MFX_ERR_UNSUPPORTED);
+                            }
+                            mfxU32 inputWidth = std::min(in->vpp.In.Width, in->vpp.In.CropW);
+                            mfxU32 inputHeight = std::min(in->vpp.In.Height, in->vpp.In.CropH);
+                            mfxU32 outputWidth = std::min(in->vpp.Out.Width, in->vpp.Out.CropW);
+                            mfxU32 outputHeight = std::min(in->vpp.Out.Height, in->vpp.Out.CropH);
+                            mfxF32 fScaleX = (mfxF32)outputWidth / inputWidth;
+                            mfxF32 fScaleY = (mfxF32)outputHeight / inputHeight;
+                            if (fScaleX < 1.4f ||
+                                fScaleY < 1.4f)
+                            {
+                                mfxSts = MFX_STS_TRACE(MFX_ERR_UNSUPPORTED);
+                            }
+                        }
                         continue;
                     }
                     else

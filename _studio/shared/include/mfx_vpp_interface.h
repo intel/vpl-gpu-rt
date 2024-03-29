@@ -411,7 +411,7 @@ namespace MfxHwVideoProcessing
                ,scene(VPP_NO_SCENE_CHANGE)
                ,bDeinterlace30i60p(false)
                , bSuperResolution(false)
-               , m_srMode(MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT)
+               , m_srMode(MFX_AI_SUPER_RESOLUTION_MODE_DISABLED)
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
                ,gpuHangTrigger(false)
 #endif
