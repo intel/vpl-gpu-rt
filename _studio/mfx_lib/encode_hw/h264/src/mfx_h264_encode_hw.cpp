@@ -1048,6 +1048,28 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     if (checkStatus == MFX_ERR_NONE && lpSts != MFX_ERR_NONE) // transfer MFX_WRN_INCOMPATIBLE_VIDEO_PARAM to upper level
         checkStatus = lpSts;
 
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+    mfxExtQualityInfoMode* pQualityPar = GetExtBuffer(m_video);
+    if (pQualityPar && pQualityPar->QualityInfoMode)
+    {
+        if (pQualityPar->QualityInfoMode != MFX_QUALITY_INFO_LEVEL_FRAME)
+        {
+            pQualityPar->QualityInfoMode = MFX_QUALITY_INFO_DISABLE;
+        }
+        if (!m_caps.ddi_caps.QualityInfoSupportFlags.fields.enable_frame)
+        {
+            pQualityPar->QualityInfoMode = MFX_QUALITY_INFO_DISABLE;
+        }
+        mfxU16 crH = m_video.mfx.FrameInfo.CropH ? m_video.mfx.FrameInfo.CropH : m_video.mfx.FrameInfo.Height;
+        mfxU16 crW = m_video.mfx.FrameInfo.CropW ? m_video.mfx.FrameInfo.CropW : m_video.mfx.FrameInfo.Width;
+        if (crW % 16 != 0 || crH % 16 != 0)
+        {
+            pQualityPar->QualityInfoMode = MFX_QUALITY_INFO_DISABLE;
+        }
+        m_frameLevelQualityEn = pQualityPar->QualityInfoMode == MFX_QUALITY_INFO_LEVEL_FRAME;
+    }
+#endif
+
     // CQP enabled
     mfxExtCodingOption2 & extOpt2 = GetExtBufferRef(m_video);
 #if defined(MFX_ENABLE_EXT_BRC)
@@ -4133,6 +4155,10 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 task->m_blockLevelQueryEn = m_blockLevelQueryEn;
 #endif
 
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+                task->m_frameLevelQualityEn = m_frameLevelQualityEn;
+#endif
+
                 //printf("Execute: %d, type %d, qp %d\n", task->m_frameOrder, task->m_type[0], task->m_cqpValue[0]);
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
                 if(task->m_handleMCTF.first)//Intercept encoder so MCTF denoised frame can be fed at the right moment.
@@ -4193,6 +4219,20 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         DdiTaskIter task = FindFrameToWaitEncode(m_encoding.begin(), m_encoding.end());
 
         mfxStatus sts = MFX_ERR_NONE;
+
+
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        if (bs)
+        {
+            task->m_qualityInfoMode = MfxExtBuffer::Get(m_video);
+            task->m_qualityInfoOutput = MfxExtBuffer::Get(*bs);
+        }
+        else
+        {
+            task->m_qualityInfoMode = nullptr;
+            task->m_qualityInfoOutput = nullptr;
+        }
+#endif
 
 #ifdef MFX_ENABLE_ENCODE_STATS
         if (bs)

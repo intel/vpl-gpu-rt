@@ -1780,6 +1780,9 @@ bool MfxHwH264Encode::IsVideoParamExtBufferIdSupported(mfxU32 id)
         || id == MFX_EXTBUFF_MOVING_RECTANGLES
         || id == MFX_EXTBUFF_MULTI_FRAME_PARAM
         || id == MFX_EXTBUFF_MULTI_FRAME_CONTROL
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        || id == MFX_EXTBUFF_ENCODED_QUALITY_INFO_MODE
+#endif
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
         || id == MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM
 #endif
@@ -7878,6 +7881,9 @@ void MfxVideoParam::Construct(mfxVideoParam const & par)
 
     CONSTRUCT_EXT_BUFFER(mfxExtPictureTimingSEI,     m_extPicTiming);
     CONSTRUCT_EXT_BUFFER(mfxExtAvcTemporalLayers,    m_extTempLayers);
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+    CONSTRUCT_EXT_BUFFER(mfxExtQualityInfoMode,      m_extQualityInfoMode);
+#endif
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     CONSTRUCT_EXT_BUFFER(mfxExtSVCSeqDesc,           m_extSvcSeqDescr);
     CONSTRUCT_EXT_BUFFER(mfxExtSVCRateControl,       m_extSvcRateCtrl);

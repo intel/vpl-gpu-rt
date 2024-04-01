@@ -1008,6 +1008,10 @@ namespace MfxHwH264Encode
             , m_storeRefBasePicFlag(0)
 
             , m_bs(0)
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+            , m_qualityInfoMode(0)
+            , m_qualityInfoOutput(0)
+#endif
             , m_bsDataLength(0, 0)
             , m_numLeadingFF(0, 0)
             , m_qpY(0, 0)
@@ -1278,6 +1282,12 @@ namespace MfxHwH264Encode
         mfxU32  m_storeRefBasePicFlag;  // for svc key picture
 
         mfxBitstream *    m_bs;           // output bitstream
+
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        mfxExtQualityInfoMode* m_qualityInfoMode = nullptr; // quality info mode
+        mfxExtQualityInfoOutput* m_qualityInfoOutput = nullptr; // quality info output
+#endif
+
         PairU32           m_bsDataLength; // bitstream size reported by driver (0 - progr/top, 1 - bottom)
         PairU32           m_numLeadingFF; // driver may insert 0xff in the beginning of coded frame
         PairU8            m_qpY;          // QpY reported by driver
@@ -1290,6 +1300,9 @@ namespace MfxHwH264Encode
         mfxExtEncodeStatsOutput* m_encodeStats;
         bool                     m_frameLevelQueryEn = false;
         bool                     m_blockLevelQueryEn = false;
+#endif
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        bool m_frameLevelQualityEn = false;
 #endif
         char   m_FrameName[32];
 
@@ -3283,6 +3296,9 @@ private:
 #ifdef MFX_ENABLE_ENCODE_STATS
         bool        m_frameLevelQueryEn = false;
         bool        m_blockLevelQueryEn = false;
+#endif
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        bool m_frameLevelQualityEn = false;
 #endif
     };
 

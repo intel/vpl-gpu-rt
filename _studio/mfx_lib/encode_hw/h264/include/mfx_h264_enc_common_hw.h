@@ -182,6 +182,9 @@ namespace MfxHwH264Encode
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCRoundingOffset,    MFX_EXTBUFF_AVC_ROUNDING_OFFSET      );
 #endif
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAvcTemporalLayers,    MFX_EXTBUFF_AVC_TEMPORAL_LAYERS      );
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+    BIND_EXTBUF_TYPE_TO_ID (mfxExtQualityInfoMode,      MFX_EXTBUFF_ENCODED_QUALITY_INFO_MODE);
+#endif
     BIND_EXTBUF_TYPE_TO_ID (mfxExtVppAuxData,           MFX_EXTBUFF_VPP_AUXDATA              );
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     BIND_EXTBUF_TYPE_TO_ID (mfxExtSpsSvcHeader,         MFX_EXTBUFF_SPS_SVC_HEADER           );
@@ -631,6 +634,9 @@ namespace MfxHwH264Encode
         mfxExtMVCSeqDesc            m_extMvcSeqDescr;
         mfxExtPictureTimingSEI      m_extPicTiming;
         mfxExtAvcTemporalLayers     m_extTempLayers;
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        mfxExtQualityInfoMode       m_extQualityInfoMode;
+#endif
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
         mfxExtSVCSeqDesc            m_extSvcSeqDescr;
         mfxExtSVCRateControl        m_extSvcRateCtrl;
