@@ -86,7 +86,8 @@ target_link_libraries(mfx_shared_lib
       D3D11.lib
       DXGI.lib
       d3d9.lib
-    >
+      d3d12.lib
+      >
     mfx_common_properties
     ${CMAKE_DL_LIBS}
   )
