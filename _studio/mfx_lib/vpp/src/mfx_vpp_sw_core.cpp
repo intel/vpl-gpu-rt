@@ -862,15 +862,70 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
                         mfxExtVPPAISuperResolution* extSr = (mfxExtVPPAISuperResolution*)in->ExtParam[i];
                         if (extSr->SRMode != MFX_AI_SUPER_RESOLUTION_MODE_DISABLED)
                         {
+                            bool bVerticalRotation       = false;
+                            mfxExtVPPRotation* extRotate = nullptr;
+
                             if (in->vpp.In.FourCC != MFX_FOURCC_NV12 ||
                                 (in->vpp.Out.FourCC != MFX_FOURCC_NV12 && in->vpp.Out.FourCC != MFX_FOURCC_BGRA))
                             {
                                 mfxSts = MFX_STS_TRACE(MFX_ERR_UNSUPPORTED);
                             }
+                            for (mfxU16 index = 0; index < out->NumExtParam; ++index)
+                            {
+                                if (in->ExtParam[index] && out->ExtParam[index])
+                                {
+                                    if (in->ExtParam[index]->BufferId != out->ExtParam[index]->BufferId)
+                                    {
+                                        continue;
+                                    }
+                                    if (in->ExtParam[index]->BufferSz != out->ExtParam[index]->BufferSz)
+                                    {
+                                        continue;
+                                    }
+                                    switch (in->ExtParam[index]->BufferId)
+                                    {
+                                    case MFX_EXTBUFF_VPP_ROTATION:
+                                        extRotate = (mfxExtVPPRotation*)in->ExtParam[index];
+                                        if (MFX_ANGLE_90 == extRotate->Angle || MFX_ANGLE_270 == extRotate->Angle)
+                                        {
+                                            bVerticalRotation = true;
+                                        }
+                                        break;
+                                    case MFX_EXTBUF_CAM_3DLUT:
+                                    case MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION:
+                                    case MFX_EXTBUF_CAM_PIPECONTROL:
+                                    case MFX_EXTBUF_CAM_WHITE_BALANCE:
+                                    case MFX_EXTBUF_CAM_BLACK_LEVEL_CORRECTION:
+                                    case MFX_EXTBUF_CAM_BAYER_DENOISE:
+                                    case MFX_EXTBUF_CAM_HOT_PIXEL_REMOVAL:
+                                    case MFX_EXTBUF_CAM_VIGNETTE_CORRECTION:
+                                    case MFX_EXTBUF_CAM_COLOR_CORRECTION_3X3:
+                                    case MFX_EXTBUF_CAM_PADDING:
+                                    case MFX_EXTBUF_CAM_LENS_GEOM_DIST_CORRECTION:
+                                    case MFX_EXTBUF_CAM_TOTAL_COLOR_CONTROL:
+                                    case MFX_EXTBUF_CAM_CSC_YUV_RGB:
+                                    case MFX_EXTBUFF_VPP_PROCAMP:
+                                    case MFX_EXTBUFF_VPP_DENOISE:
+                                    case MFX_EXTBUFF_VPP_DENOISE2:
+                                    case MFX_EXTBUFF_VPP_FIELD_WEAVING:
+                                    case MFX_EXTBUFF_VPP_FIELD_SPLITTING:
+                                    case MFX_EXTBUFF_VPP_DEINTERLACING:
+                                    case MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION:
+                                    case MFX_EXTBUFF_VPP_FIELD_PROCESSING:
+                                    case MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO:
+                                    case MFX_EXTBUFF_VPP_IMAGE_STABILIZATION:
+                                    case MFX_EXTBUFF_VPP_3DLUT:
+                                    case MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER:
+                                    case MFX_EXTBUFF_VPP_MCTF:
+                                        mfxSts = MFX_STS_TRACE(MFX_ERR_UNSUPPORTED);
+                                        break;
+                                    }
+                                }
+                            }
                             mfxU32 inputWidth = std::min(in->vpp.In.Width, in->vpp.In.CropW);
                             mfxU32 inputHeight = std::min(in->vpp.In.Height, in->vpp.In.CropH);
-                            mfxU32 outputWidth = std::min(in->vpp.Out.Width, in->vpp.Out.CropW);
-                            mfxU32 outputHeight = std::min(in->vpp.Out.Height, in->vpp.Out.CropH);
+                            mfxU32 outputWidth = bVerticalRotation ? std::min(in->vpp.Out.Height, in->vpp.Out.CropH) : std::min(in->vpp.Out.Width, in->vpp.Out.CropW);
+                            mfxU32 outputHeight = bVerticalRotation ? std::min(in->vpp.Out.Width, in->vpp.Out.CropW) : std::min(in->vpp.Out.Height, in->vpp.Out.CropH);
                             mfxF32 fScaleX = (mfxF32)outputWidth / inputWidth;
                             mfxF32 fScaleY = (mfxF32)outputHeight / inputHeight;
                             if (fScaleX < 1.4f ||
