@@ -385,8 +385,8 @@ typedef enum {
     MFX_HANDLE_HDDLUNITE_WORKLOADCONTEXT        = 9,  /*!< Pointer to HddlUnite::WorkloadContext interface. */
     MFX_HANDLE_PXP_CONTEXT                      = 10, /*!< Pointer to PXP context for protected content support. */
 
-#ifdef ONEVPL_EXPERIMENTAL
     MFX_HANDLE_CONFIG_INTERFACE                 = 1000,  /*!< Pointer to interface of type mfxConfigInterface. */
+#ifdef ONEVPL_EXPERIMENTAL
     MFX_HANDLE_MEMORY_INTERFACE                 = 1001,  /*!< Pointer to interface of type mfxMemoryInterface. */
 #endif
 } mfxHandleType;

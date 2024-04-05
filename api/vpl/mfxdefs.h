@@ -292,10 +292,7 @@ typedef enum
     MFX_ERR_RESOURCE_MAPPED             = -23,  /*!< Write access is already acquired and user requested
                                                    another write access, or read access with MFX_MEMORY_NO_WAIT flag. */
     MFX_ERR_NOT_IMPLEMENTED             = -24,   /*!< Feature or function not implemented. */
-
-#ifdef ONEVPL_EXPERIMENTAL
     MFX_ERR_MORE_EXTBUFFER              = -25,   /*!< Expect additional extended configuration buffer. */
-#endif
 
     /* warnings >0 */
     MFX_WRN_IN_EXECUTION                = 1,    /*!< The previous asynchronous operation is in execution. */
