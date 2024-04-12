@@ -30,6 +30,7 @@
 #include <algorithm>
 
 
+
 #define MFX_RT_PLATFORM_METEORLAKE 51
 #define MFX_RT_PLATFORM_ARROWLAKE  54
 
