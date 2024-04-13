@@ -418,7 +418,7 @@ typedef struct {
         struct mfxFrameSurfaceInterface*  FrameInterface;       /*!< Specifies interface to work with surface. */
         mfxU32  reserved[2];
     };
-    mfxStructVersion Version; /* Specifies version of mfxFrameSurface1 structure. */
+    mfxStructVersion Version; /*!< Specifies version of mfxFrameSurface1 structure. */
     mfxU16          reserved1[3];
     mfxFrameInfo    Info; /*!< Specifies surface properties. */
     mfxFrameData    Data; /*!< Describes the actual frame buffer. */
@@ -562,7 +562,7 @@ MFX_PACK_END()
 #endif
 
 MFX_PACK_BEGIN_STRUCT_W_L_TYPE()
-/* Specifies frame surface interface. */
+/*! Specifies frame surface interface. */
 typedef struct mfxFrameSurfaceInterface {
     mfxHDL              Context; /*!< The context of the memory interface. User should not touch (change, set, null) this pointer. */
     mfxStructVersion    Version; /*!< The version of the structure. */
@@ -2584,7 +2584,7 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
     A hint structure that configures 3DLUT filter.
 */
 typedef struct {
-    mfxExtBuffer             Header;           /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_VPP_3DLUT..*/
+    mfxExtBuffer             Header;           /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_VPP_3DLUT.*/
     mfx3DLutChannelMapping   ChannelMapping;   /*!< Indicates 3DLUT channel mapping. mfx3DLutChannelMapping enumerator.*/
     mfxResourceType          BufferType;       /*!< Indicates 3DLUT buffer type. mfxResourceType enumerator, can be system memory, VA surface, DX11 texture/buffer etc.*/
     union
@@ -3515,7 +3515,7 @@ enum {
     MFX_TRANSFERMATRIX_BT601   = 2  /*!< Transfer matrix from ITU-R BT.601 standard. */
 };
 
-/* The NominalRange enumerator itemizes pixel's value nominal range. */
+/*! The NominalRange enumerator itemizes pixel's value nominal range. */
 enum {
     MFX_NOMINALRANGE_UNKNOWN   = 0, /*!< Range is not defined. */
     MFX_NOMINALRANGE_0_255     = 1, /*!< Range is from  0 to 255. */
@@ -5124,7 +5124,7 @@ MFX_PACK_END()
 #endif
 
 #ifdef ONEVPL_EXPERIMENTAL
-/* The mfxAutoSelectImplType enumerator specifies the method for automatically selecting an implementation. */
+/*! The mfxAutoSelectImplType enumerator specifies the method for automatically selecting an implementation. */
 typedef enum {
     MFX_AUTO_SELECT_IMPL_TYPE_UNKNOWN = 0,         /*!< Unspecified automatic implementation selection. */
     MFX_AUTO_SELECT_IMPL_TYPE_DEVICE_HANDLE = 1,   /*!< Select implementation corresponding to device handle. */
@@ -5145,7 +5145,7 @@ MFX_PACK_END()
 #endif
 
 #ifdef ONEVPL_EXPERIMENTAL
-/* The mfxAISuperResolutionMode enumerator specifies the mode of AI based super resolution. */
+/*! The mfxAISuperResolutionMode enumerator specifies the mode of AI based super resolution. */
 typedef enum {
     MFX_AI_SUPER_RESOLUTION_MODE_DISABLED = 0,        /*!< Super Resolution is disabled.*/
     MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT = 1,         /*!< Default super resolution mode. The library selects the most appropriate super resolution mode.*/
@@ -5174,9 +5174,9 @@ MFX_PACK_END()
 #endif
 
 #ifdef ONEVPL_EXPERIMENTAL
-/* The mfxQualityInfoMode enumerator specifies the mode of Quality information. */
+/*! The mfxQualityInfoMode enumerator specifies the mode of Quality information. */
 typedef enum {
-    MFX_QUALITY_INFO_DISABLE        = 0,
+    MFX_QUALITY_INFO_DISABLE        = 0,   /*!< Quality reporting disabled. */
     MFX_QUALITY_INFO_LEVEL_FRAME    = 0x1, /*!< Frame level quality report. */
 } mfxQualityInfoMode;
 

@@ -286,7 +286,7 @@ typedef struct {
 MFX_PACK_END()
 
 
-/* The mfxResourceType enumerator specifies types of different native data frames and buffers. */
+/*! The mfxResourceType enumerator specifies types of different native data frames and buffers. */
 typedef enum {
     MFX_RESOURCE_SYSTEM_SURFACE                  = 1, /*!< System memory. */
     MFX_RESOURCE_VA_SURFACE_PTR                  = 2, /*!< Pointer to VA surface index. */
@@ -579,7 +579,7 @@ typedef struct {
 MFX_PACK_END()
 
 
-/* The mfxImplCapsDeliveryFormat enumerator specifies delivery format of the implementation capability. */
+/*! The mfxImplCapsDeliveryFormat enumerator specifies delivery format of the implementation capability. */
 typedef enum {
     MFX_IMPLCAPS_IMPLDESCSTRUCTURE       = 1,  /*!< Deliver capabilities as mfxImplDescription structure. */
     MFX_IMPLCAPS_IMPLEMENTEDFUNCTIONS    = 2,  /*!< Deliver capabilities as mfxImplementedFunctions structure. */
