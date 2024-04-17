@@ -166,6 +166,8 @@ mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height
         break;
     case MFX_FOURCC_P210:
     case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_Y210:
+    case MFX_FOURCC_Y216:
     case MFX_FOURCC_YUV422H:
     case MFX_FOURCC_YUV422V:
     case MFX_FOURCC_UYVY:
@@ -189,8 +191,6 @@ mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height
     case MFX_FOURCC_Y410:
     case MFX_FOURCC_Y416:
     case MFX_FOURCC_P8:
-    case MFX_FOURCC_Y210:
-    case MFX_FOURCC_Y216:
     case MFX_FOURCC_P8_TEXTURE:
     case MFX_FOURCC_YUV400:
         nBytes = pitch * height;
@@ -218,11 +218,11 @@ mfxStatus mfxDefaultAllocator::GetNumBytesRequired(const mfxFrameInfo & Info, mf
     case MFX_FOURCC_P010:
     case MFX_FOURCC_P016:
     case MFX_FOURCC_P210:
+    case MFX_FOURCC_Y210:
+    case MFX_FOURCC_Y216:
         Pitch = mfx::align2_value(Info.Width * 2, 32);
         break;
     case MFX_FOURCC_Y410:
-    case MFX_FOURCC_Y210:
-    case MFX_FOURCC_Y216:
         Pitch = mfx::align2_value(Info.Width * 4, 32);
         break;
     case MFX_FOURCC_Y416:
