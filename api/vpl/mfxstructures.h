@@ -2442,6 +2442,12 @@ enum {
    */
    MFX_EXTBUFF_ENCODED_QUALITY_INFO_OUTPUT = MFX_MAKEFOURCC('E', 'N', 'Q', 'O'),
 #endif
+#ifdef ONEVPL_EXPERIMENTAL
+   /*!
+      See the mfxExtAV1ScreenContentTools structure for details.
+   */
+   MFX_EXTBUFF_AV1_SCREEN_CONTENT_TOOLS = MFX_MAKEFOURCC('1', 'S', 'C', 'C'),
+#endif
 };
 
 /* VPP Conf: Do not use certain algorithms  */
@@ -5207,6 +5213,36 @@ typedef struct {
     mfxU32              reserved1[50];  /*!< Reserved for future use. */
     mfxHDL              reserved2[4];   /*!< Reserved for future use. */
 } mfxExtQualityInfoOutput;
+MFX_PACK_END()
+#endif
+
+#ifdef ONEVPL_EXPERIMENTAL
+MFX_PACK_BEGIN_USUAL_STRUCT()
+/*!
+   Used by the encoder to set the screen content tools.
+
+   @note Not all implementations of the encoder support this extended buffer. The application must use query mode 1 to determine if
+         the functionality is supported. To do this, the application must attach this extended buffer to the mfxVideoParam structure and
+         call the MFXVideoENCODE_Query function. If the function returns MFX_ERR_NONE then the functionality is supported.
+*/
+typedef struct {
+    mfxExtBuffer        Header;         /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_AV1_SCREEN_CONTENT_TOOLS. */
+    /*!
+       Set this flag to MFX_CODINGOPTION_ON to enable palette prediction for encoder. Set this flag to MFX_CODINGOPTION_OFF to disable it.
+       If this flag is set to any other value, the default value will be used which can be obtained from the MFXVideoENCODE_GetVideoParam function after encoding initialization.
+       See the CodingOptionValue enumerator for values of this option. This parameter is valid only during initialization.
+       @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported.
+    */
+    mfxU16              Palette;
+    /*!
+       Set this flag to MFX_CODINGOPTION_ON to enable intra block copy prediction for encoder. Set this flag to MFX_CODINGOPTION_OFF to disable it. 
+       If this flag is set to any other value, the default value will be used which can be obtained from the MFXVideoENCODE_GetVideoParam function after encoding initialization.
+       See the CodingOptionValue enumerator for values of this option. This parameter is valid only during initialization.
+       @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported.
+    */    
+    mfxU16              IntraBlockCopy;
+    mfxU16              reserved[10];   /*!< Reserved for future use. */
+} mfxExtAV1ScreenContentTools;
 MFX_PACK_END()
 #endif
 
