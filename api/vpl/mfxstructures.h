@@ -2405,11 +2405,6 @@ enum {
     
 #ifdef ONEVPL_EXPERIMENTAL
     /*!
-       See the mfxExtSyncSubmission structure for more details.
-    */
-    MFX_EXTBUFF_SYNCSUBMISSION = MFX_MAKEFOURCC('S','Y','N','C'),
-
-    /*!
        See the mfxExtVPPPercEncPrefilter structure for details.
     */
     MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER        = MFX_MAKEFOURCC('V','P','E','F'),
@@ -5098,17 +5093,6 @@ typedef struct {
 MFX_PACK_END()
 
 #ifdef ONEVPL_EXPERIMENTAL
-MFX_PACK_BEGIN_STRUCT_W_PTR()
-/*! The structure is used to get a synchronization object which signalizes about submission of a task to GPU.  */
-typedef struct {
-    mfxExtBuffer     Header;     /*! Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_SYNCSUBMISSION. */
-    mfxSyncPoint     *SubmissionSyncPoint; /*!< SyncPoint object to get a moment of a submission task to GPU.  */
-    mfxU32 reserved1[8]; /*!< Reserved for future use. */
-} mfxExtSyncSubmission;
-MFX_PACK_END()
-#endif
-
-#ifdef ONEVPL_EXPERIMENTAL
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*! The structure is used to configure perceptual encoding prefilter in VPP. */
 typedef struct {
@@ -5138,27 +5122,6 @@ typedef struct {
     mfxU16         NumExtParam;    /*!< The number of extra configuration structures attached to the structure. */
     mfxU16         reserved[11];
 } mfxExtTuneEncodeQuality;
-MFX_PACK_END()
-#endif
-
-#ifdef ONEVPL_EXPERIMENTAL
-/*! The mfxAutoSelectImplType enumerator specifies the method for automatically selecting an implementation. */
-typedef enum {
-    MFX_AUTO_SELECT_IMPL_TYPE_UNKNOWN = 0,         /*!< Unspecified automatic implementation selection. */
-    MFX_AUTO_SELECT_IMPL_TYPE_DEVICE_HANDLE = 1,   /*!< Select implementation corresponding to device handle. */
-} mfxAutoSelectImplType;
-
-MFX_PACK_BEGIN_STRUCT_W_PTR()
-/*! Specifies that an implementation should be selected which matches the device handle provided by the application. */
-typedef struct {
-    mfxAutoSelectImplType AutoSelectImplType;      /*!< Must be set to MFX_AUTO_SELECT_IMPL_TYPE_DEVICE_HANDLE. */
-
-    mfxAccelerationMode   AccelMode;               /*!< Hardware acceleration mode of provided device handle. */
-    mfxHandleType         DeviceHandleType;        /*!< Type of provided device handle. */
-    mfxHDL                DeviceHandle;            /*!< System handle to hardware device. */
-
-    mfxU16                reserved[8];             /*!< Reserved for future use. */
-} mfxAutoSelectImplDeviceHandle;
 MFX_PACK_END()
 #endif
 
