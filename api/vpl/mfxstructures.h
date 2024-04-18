@@ -2448,6 +2448,16 @@ enum {
    */
    MFX_EXTBUFF_AV1_SCREEN_CONTENT_TOOLS = MFX_MAKEFOURCC('1', 'S', 'C', 'C'),
 #endif
+#ifdef ONEVPL_EXPERIMENTAL
+    /*!
+        See the mfxExtAlphaChannelEncCtrl structure for more details.
+    */
+    MFX_EXTBUFF_ALPHA_CHANNEL_ENC_CTRL = MFX_MAKEFOURCC('A', 'C', 'E', 'C'),
+    /*!
+        See the mfxExtAlphaChannelSurface structure for more details.
+    */
+    MFX_EXTBUFF_ALPHA_CHANNEL_SURFACE = MFX_MAKEFOURCC('A', 'C', 'S', 'F'),
+#endif
 };
 
 /* VPP Conf: Do not use certain algorithms  */
@@ -2841,7 +2851,9 @@ enum {
                                                considered to be exported to DRM Prime FD, DRM FLink or DRM FrameBuffer Handle. Specifics of export
                                                types and export procedure depends on external frame allocator implementation */
     MFX_MEMTYPE_SHARED_RESOURCE = MFX_MEMTYPE_EXPORT_FRAME, /*!< For DX11 allocation use shared resource bind flag. */
-    MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET = 0x1000 /*!< Frames are in video memory and belong to video encoder render targets. */
+    MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET = 0x1000, /*!< Frames are in video memory and belong to video encoder render targets. */
+
+    MFX_MEMTYPE_VIDEO_MEMORY_UNORDERED_ACCESS = 0x8000 /*!< Frames are in video memory and used as an unordered access resource. */
 };
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
@@ -5243,6 +5255,60 @@ typedef struct {
     mfxU16              IntraBlockCopy;
     mfxU16              reserved[10];   /*!< Reserved for future use. */
 } mfxExtAV1ScreenContentTools;
+MFX_PACK_END()
+#endif
+
+
+#ifdef ONEVPL_EXPERIMENTAL
+/*! The AlphaChannelMode enumerator specifies alpha is straight or pre-multiplied. */
+enum {
+    /*!
+        RGB and alpha are independent, then the alpha value specifies how solid it is.
+        We set it to the default value, i.e., the alpha source data is already pre-multiplied, so that the decoded samples of the associated primary picture
+        should not be multiplied by the interpretation sample values of the auxiliary coded picture in the display process after output from the decoding process.
+    */
+    MFX_ALPHA_MODE_PREMULTIPLIED    = 1,
+
+    /*!
+        RGB and alpha are linked, then the alpha value specifies how much it obscures whatever is behind it.
+        Therefore, the decoded samples of the associated primary picture should be multiplied by the interpretation sample values
+        of the auxiliary coded picture in the display process after output from the decoding process.
+    */
+    MFX_ALPHA_MODE_STRAIGHT         = 2
+};
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+/*! Configure the alpha channel encoding. */
+typedef struct {
+    mfxExtBuffer        Header;     /*!< Extension buffer header. BufferId must be equal to MFX_EXTBUFF_ALPHA_CHANNEL_ENC_CTRL. */
+    /*!
+       Set this flag to MFX_CODINGOPTION_ON to enable alpha channel encoding. See the CodingOptionValue enumerator for values of this option.
+       This parameter is valid only during initialization.
+       @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported.
+    */
+    mfxU16              EnableAlphaChannelEncoding;
+    /*!
+        Specifies alpha is straight or pre-multiplied. See the AlphaChannelMode enumerator for details.
+        Encoder just record this in the SEI for post-decoding rendering.
+    */
+    mfxU16              AlphaChannelMode;
+    /*!
+       Indicates the percentage of the auxiliary alpha layer in the total bitrate. Valid range for this parameter is [1, 99].
+       We set 25 as the default value, i.e. Alpha(25) : Total(100), then 25% of the bits will be spent on alpha layer encoding whereas the other 75% will be spent on base(YUV) layer.
+       Affects the following variables: InitialDelayInKB, BufferSizeInKB, TargetKbps, MaxKbps.
+    */
+    mfxU16              AlphaChannelBitrateRatio;
+    mfxU16              reserved[9];
+} mfxExtAlphaChannelEncCtrl;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+/*! Defines the uncompressed frames surface information and data buffers for alpha channel encoding. */
+typedef struct {
+    mfxExtBuffer        Header;         /*!< Extension buffer header. BufferId must be equal to MFX_EXTBUFF_ALPHA_CHANNEL_SURFACE. */
+    mfxFrameSurface1*   AlphaSurface;   /*!< Alpha channel surface. */
+    mfxU16              reserved[8];
+} mfxExtAlphaChannelSurface;
 MFX_PACK_END()
 #endif
 
