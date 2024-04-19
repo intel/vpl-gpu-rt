@@ -1772,7 +1772,8 @@ static void FillSortedFwdBwd(
     , mfxU8 maxFwdRefs
     , DpbIndexes* fwd
     , DpbIndexes* bwd
-    , bool& useLTR)
+    , bool& useLTR
+    , bool& VCLowDelayFlat)
 {
     if (!fwd && !bwd)
         return;
@@ -1823,6 +1824,33 @@ static void FillSortedFwdBwd(
         if (fwd->empty() && firstBwd != uniqueRefs.begin()) {
             auto lastFwd = std::prev(firstBwd);
             fwd->push_back(lastFwd->second);
+        }
+
+        auto AdjustVCRefOrder = [](bool VCLowDelayFlat, std::size_t fwdSize)
+        {
+            return VCLowDelayFlat && fwdSize > 2;
+        };
+
+        if (AdjustVCRefOrder(VCLowDelayFlat,fwd->size()))
+        {
+            mfxI32 refFrmFwdIdx = -1;
+            mfxU8  refFrmDPBIdx = 0;
+            for (mfxI32 fwdIdx = (mfxI32)fwd->size() - 2; fwdIdx >= 0; fwdIdx--)
+            {
+                //fwd->size() - 2 start from the second cloest ref
+                mfxU8 DBPIdx = (*fwd)[fwdIdx];
+                if (task.DPB[DBPIdx]->DisplayOrder % 30 == 0)
+                {
+                    refFrmFwdIdx = fwdIdx;
+                    refFrmDPBIdx = (*fwd)[fwdIdx];
+                    break;
+                }
+            }
+            if (refFrmFwdIdx != -1)
+            {
+                fwd->insert(fwd->end() - 1, refFrmDPBIdx);
+                fwd->erase(fwd->begin() + refFrmFwdIdx);
+            }
         }
 
         if (!preferedFwd.empty())
@@ -2245,6 +2273,26 @@ inline void InitTaskDPB(
     MarkRejected(task);
 }
 
+inline bool IsVCLowDelayFlat(
+    const TaskCommonPar& task
+    , const mfxVideoParam& par)
+{
+
+    bool lowDelayFlat = false;
+    lowDelayFlat = IsP(task.FrameType) && par.mfx.GopRefDist == 1;
+
+    const mfxExtTemporalLayers& pTemporalLayers = ExtBuffer::Get(par);
+    if (pTemporalLayers.NumLayers != 0)
+        lowDelayFlat = false;
+
+    const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
+    if (lowDelayFlat && (CO3.ScenarioInfo == MFX_SCENARIO_VIDEO_CONFERENCE))
+    {
+        return true;
+    }
+    return false;
+}
+
 // task - [in/out] Current task object, RefList field will be set in place
 // par - [in] mfxVideoParam
 // Return - N/A
@@ -2259,13 +2307,14 @@ inline void SetTaskRefList(
     if (IsI(task.FrameType))
         return;
 
+    bool isVideoConferenceLowDelayRef = IsVCLowDelayFlat(task, par);
     mfxU8 maxFwdRefs = 0;
     mfxU8 maxBwdRefs = 0;
     std::tie(maxFwdRefs, maxBwdRefs) = GetMaxRefs(task, par);
 
     DpbIndexes fwd;
     DpbIndexes bwd;
-    FillSortedFwdBwd(task, maxFwdRefs, &fwd, &bwd, useLTR);
+    FillSortedFwdBwd(task, maxFwdRefs, &fwd, &bwd, useLTR, isVideoConferenceLowDelayRef);
 
     if (IsP(task.FrameType))
     {
@@ -2295,6 +2344,68 @@ DPBIter FindOldestSTR(DPBIter dpbBegin, DPBIter dpbEnd, mfxU8 tid)
     return oldestSTR;
 }
 
+inline void SetVCLowDelayFlatDPBRefresh(
+    TaskCommonPar& task
+    , mfxU8& refreshed
+    , DpbType::iterator& slotToRefresh)
+{
+
+    auto dpbBegin = task.DPB.begin();
+    auto dpbEnd = task.DPB.end();
+
+    // If no LTR was refreshed, then find duplicate reference frame
+    // Some frames can be included multiple times into DPB
+
+    enum REF_REFRESHED_PRIORITY
+    {
+        NO_FRAME_REFRESHED = 0,
+        OLDEST_4X_REFRESHED = 1,
+        NON_30X_4X_REFRESHED = 2,
+        USELESS_30X_REFRESHED = 3,
+        DUPLICATED_REFRESHED = 4,
+    };
+    mfxI32  displayOrderInGOP = -1;
+
+    for (auto item = dpbBegin; item < dpbEnd; ++item)
+    {
+        displayOrderInGOP = (*item)->DisplayOrderInGOP;
+
+        //Ignore LTR
+        if ((*item)->isLTR)
+            continue;
+
+        // find duplicate ref 
+        if (std::find(dpbBegin, item, *item) != item)
+        {
+            slotToRefresh = item;
+            refreshed = DUPLICATED_REFRESHED;
+            break;
+        }
+
+        //find useless 30x ref
+        if (refreshed < USELESS_30X_REFRESHED && (displayOrderInGOP % 30 == 0) && (displayOrderInGOP / 30 != task.DisplayOrderInGOP / 30 ))
+        {
+            slotToRefresh = item;
+            refreshed = USELESS_30X_REFRESHED;
+        }
+
+        //find oldest non 4x/30x ref
+        if (refreshed <= NON_30X_4X_REFRESHED && (displayOrderInGOP % 4 != 0 && displayOrderInGOP % 30 != 0))
+        {
+            slotToRefresh = (slotToRefresh == dpbEnd) || (refreshed == OLDEST_4X_REFRESHED) || (*item)->DisplayOrderInGOP < (*slotToRefresh)->DisplayOrderInGOP ? item : slotToRefresh;
+            refreshed = NON_30X_4X_REFRESHED;
+        }
+
+        //find oldest 4x ref
+        if (refreshed <= OLDEST_4X_REFRESHED && (displayOrderInGOP % 4 == 0 && displayOrderInGOP % 30 != 0))
+        {
+            refreshed = OLDEST_4X_REFRESHED;
+            slotToRefresh = (slotToRefresh == dpbEnd) || (*item)->DisplayOrderInGOP < (*slotToRefresh)->DisplayOrderInGOP ? item : slotToRefresh;
+        }
+        
+    }
+}
+
 inline mfxU8 SetTaskDPBRefreshLowDelayFlat(
     TaskCommonPar& task
     , const mfxVideoParam& par)
@@ -2313,25 +2424,33 @@ inline mfxU8 SetTaskDPBRefreshLowDelayFlat(
     auto dpbEnd = task.DPB.end();
     auto slotToRefresh = dpbEnd;
 
-    //use -1 ref or 4x ref
-    for (auto item = dpbBegin; item < dpbEnd; ++item)
+    const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
+    if (CO3.ScenarioInfo == MFX_SCENARIO_VIDEO_CONFERENCE) 
     {
-        //refresh -1 ref
-        if ((*item)->DisplayOrderInGOP % 4 != 0
-            && (*item)->DisplayOrderInGOP == task.DisplayOrderInGOP - 1
-            && !(*item)->isLTR)
+        SetVCLowDelayFlatDPBRefresh(task, refreshed, slotToRefresh);
+    }
+    else 
+    {
+        //use -1 ref or 4x ref
+        for (auto item = dpbBegin; item < dpbEnd; ++item)
         {
-            slotToRefresh = item;
-            refreshed = 1;
-            break;
-        }
-        //refresh oldest 4x ref
-        if ((*item)->DisplayOrderInGOP % 4 == 0
-            && !(*item)->isLTR)
-        {
-            slotToRefresh = (slotToRefresh == dpbEnd) ? item
-                : (*item)->DisplayOrderInGOP < (*slotToRefresh)->DisplayOrderInGOP ? item : slotToRefresh;
-            refreshed = 1;
+            //refresh -1 ref
+            if ((*item)->DisplayOrderInGOP % 4 != 0
+                && (*item)->DisplayOrderInGOP == task.DisplayOrderInGOP - 1
+                && !(*item)->isLTR)
+            {
+                slotToRefresh = item;
+                refreshed = 1;
+                break;
+            }
+            //refresh oldest 4x ref
+            if ((*item)->DisplayOrderInGOP % 4 == 0
+                && !(*item)->isLTR)
+            {
+                slotToRefresh = (slotToRefresh == dpbEnd) ? item
+                    : (*item)->DisplayOrderInGOP < (*slotToRefresh)->DisplayOrderInGOP ? item : slotToRefresh;
+                refreshed = 1;
+            }
         }
     }
 
