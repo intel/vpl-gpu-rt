@@ -246,6 +246,7 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtPartialBitstreamParam  ,32   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtQualityInfoMode        ,32   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtQualityInfoOutput      ,256  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtAV1ScreenContentTools  ,32   )
 #endif //defined (__MFXSTRUCTURES_H__)
 
 //mfxvideo.h
@@ -1053,6 +1054,11 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtQualityInfoOutput            ,MSE                           ,12   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtQualityInfoOutput            ,reserved1                     ,24   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtQualityInfoOutput            ,reserved2                     ,224  )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAV1ScreenContentTools        ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAV1ScreenContentTools        ,Palette                       ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAV1ScreenContentTools        ,IntraBlockCopy                ,10   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAV1ScreenContentTools        ,reserved                      ,12   )
 #endif //defined (__MFXSTRUCTURES_H__)
 
 //mfxvideo.h
