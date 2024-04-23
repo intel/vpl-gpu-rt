@@ -571,7 +571,8 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
                                            Task *pTask,
                                            std::vector<sFrameEx*>& dpb,
                                            VP9FrameLevelParam &frameParam,
-                                           mfxU32 prevFrameOrderInRefStructure);
+                                           mfxU32 prevFrameOrderInRefStructure,
+                                           mfxU32 zeroLevelCounter);
 
     mfxStatus UpdateDpb(VP9FrameLevelParam &frameParam,
                         sFrameEx *pRecFrame,

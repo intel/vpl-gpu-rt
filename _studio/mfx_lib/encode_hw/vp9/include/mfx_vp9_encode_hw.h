@@ -210,5 +210,7 @@ protected:
 
     bool m_bUseInternalMem;
     bool m_isD3D9SimWithVideoMem;
+
+    mfxU32 m_zeroLevelCounter = 0; // limit Picture Group to 8 frames.
 };
 } // MfxHwVP9Encode

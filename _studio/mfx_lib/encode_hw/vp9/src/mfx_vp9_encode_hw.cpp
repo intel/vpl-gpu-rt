@@ -804,7 +804,7 @@ mfxStatus MFXVideoENCODEVP9_HW::ConfigTask(Task &task)
         MFX_CHECK(task.m_pSegmentMap != 0, MFX_WRN_DEVICE_BUSY);
     }
 
-    sts = DecideOnRefListAndDPBRefresh(curMfxPar, &task, m_dpb, frameParam, prevFrameOrderInRefStructure);
+    sts = DecideOnRefListAndDPBRefresh(curMfxPar, &task, m_dpb, frameParam, prevFrameOrderInRefStructure, m_zeroLevelCounter);
 
     task.m_frameParam = frameParam;
 

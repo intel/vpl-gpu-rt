@@ -475,7 +475,8 @@ mfxStatus DecideOnRefListAndDPBRefresh(
     Task *pTask,
     std::vector<sFrameEx*>& dpb,
     VP9FrameLevelParam &frameParam,
-    mfxU32 prevFrameOrderInRefStructure)
+    mfxU32 prevFrameOrderInRefStructure,
+    mfxU32 zeroLevelCounter)
 {
     if (frameParam.frameType == KEY_FRAME)
     {
@@ -547,8 +548,6 @@ mfxStatus DecideOnRefListAndDPBRefresh(
 
         if (par.m_webRTCMode)
         {
-            // limit Picture Group to 8 frames
-            static mfxU32 zeroLevelCounter = 0;
             if (frameParam.temporalLayer == 0) zeroLevelCounter++; // each time we get frame with TL id = 0, zeroLevelCounter increases
 
             // To limit PG to 8 frames (means 9 and next frames could not reffer to frames previous to 8 frame), we need to delete last reference that comes after 8's frame
