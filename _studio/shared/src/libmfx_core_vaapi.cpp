@@ -499,7 +499,7 @@ public:
             for (uint32_t plane = 1; plane < eb.num_planes; ++plane)
             {
                 eb.pitches[plane] = eb.pitches[0];
-                eb.offsets[plane] = uint32_t(eb.pitches[0] * eb.height);
+                eb.offsets[plane] = uint32_t(eb.pitches[0] * eb.height) * plane;
             }
         }
 
