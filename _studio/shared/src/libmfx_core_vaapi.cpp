@@ -894,15 +894,13 @@ mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm(bool force_cm_device_creation)
     {
         m_ForcedGpuCopyState = MFX_GPUCOPY_OFF;
     }
-/*
-// Uncomment after additional changes
+
 #ifdef ONEVPL_EXPERIMENTAL
-    bool use_cm_buffer_cache = m_ForcedGpuCopyState != MFX_GPUCOPY_SAFE;
+    bool use_cm_buffer_cache = m_ForcedGpuCopyState == MFX_GPUCOPY_FAST;
 #else
-    bool use_cm_buffer_cache = true;
-#endif
-*/
     bool use_cm_buffer_cache = false;
+#endif
+
     std::unique_ptr<CmCopyWrapper> tmp_cm(new CmCopyWrapper(use_cm_buffer_cache));
 
     MFX_CHECK_NULL_PTR1(tmp_cm->GetCmDevice(*m_p_display_wrapper));
