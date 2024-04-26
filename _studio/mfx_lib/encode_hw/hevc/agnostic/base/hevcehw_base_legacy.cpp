@@ -4373,7 +4373,7 @@ mfxStatus Legacy::CheckTiles(
         mfxU32 minTileHeight = MIN_TILE_HEIGHT_IN_SAMPLES;
 
         // min 2x2 lcu is supported on VDEnc
-        SetIf(minTileHeight, defPar.caps.NumScalablePipesMinus1 > 0 && IsOn(par.mfx.LowPower), 128);
+        SetIf(minTileHeight, IsOn(par.mfx.LowPower), 128);
 
         mfxU16 maxCol = std::max<mfxU16>(1, mfxU16(defPar.base.GetCodedPicWidth(defPar) / minTileWidth));
         mfxU16 maxRow = std::max<mfxU16>(1, mfxU16(defPar.base.GetCodedPicHeight(defPar) / minTileHeight));
