@@ -144,7 +144,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         break;
     }
 
-    // MFXInit / MFXInitEx in oneVPL is for work in legacy (1.x) mode only
+    // MFXInit / MFXInitEx in Intel VPL is for work in legacy (1.x) mode only
     // app. must use MFXInitialize for 2.x features
     if (par.Version.Major > 1)
     {
@@ -154,7 +154,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 
     mfxRes = MFXInit_Internal(par, session, implInterface, adapterNum);
 
-    // oneVPL should report 1.255 API version when it was initialized through MFXInit / MFXInitEx
+    // Intel VPL should report 1.255 API version when it was initialized through MFXInit / MFXInitEx
     if (session && *session && mfxRes >= MFX_ERR_NONE)
     {
         (*session)->m_versionToReport.Major = 1;
