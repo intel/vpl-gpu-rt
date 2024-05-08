@@ -2298,6 +2298,11 @@ bool SurfaceSource::HasFreeSurface()
     }
 }
 
+bool SurfaceSource::GetSurfaceType()
+{
+    return m_redirect_to_vpl_path;
+}
+
 void SurfaceSource::SetFreeSurfaceAllowedFlag(bool flag)
 {
     if (m_redirect_to_vpl_path != !!m_vpl_cache_decoder_surfaces)

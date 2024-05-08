@@ -36,6 +36,7 @@
 #include "mfx_common_int.h"
 #include "mfx_ext_buffers.h"
 
+
 namespace UMC_HEVC_DECODER
 {
 
@@ -150,27 +151,26 @@ UMC::Status VATaskSupplier::AllocateFrameData(H265DecoderFrame * pFrame, mfxSize
     info.Init(dimensions.width, dimensions.height, chroma_format_idc, bit_depth);
 
     UMC::FrameMemID frmMID;
-    UMC::Status sts = m_pFrameAllocator->Alloc(&frmMID, &info, 0);
+    UMC::Status sts = m_pFrameAllocator->Alloc(&frmMID, &info, mfx_UMC_ReallocAllowed);
 
     if (sts == UMC::UMC_ERR_ALLOC)
         return UMC::UMC_ERR_ALLOC;
-
-    if (sts != UMC::UMC_OK)
-    {
-        throw h265_exception(UMC::UMC_ERR_ALLOC);
-    }
 
     UMC::FrameData frmData;
     frmData.Init(&info, frmMID, m_pFrameAllocator);
 
     auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
+    if (sts != UMC::UMC_OK)
+    {
+        throw h265_exception(UMC::UMC_ERR_ALLOC);
+    }
+
     if (frame_source)
     {
         mfxFrameSurface1* surface =
             frame_source->GetSurfaceByIndex(frmMID);
         if (!surface)
             throw h265_exception(UMC::UMC_ERR_ALLOC);
-
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
         mfxExtBuffer* extbuf =
             GetExtendedBuffer(surface->Data.ExtParam, surface->Data.NumExtParam, MFX_EXTBUFF_GPU_HANG);

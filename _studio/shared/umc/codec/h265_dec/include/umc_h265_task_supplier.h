@@ -306,7 +306,7 @@ public:
     UMC::Status GetInfo(UMC::VideoDecoderParams *lpInfo);
 
     // Add a new bitstream data buffer to decoding
-    virtual UMC::Status AddSource(UMC::MediaData *pSource);
+    virtual UMC::Status AddSource(UMC::MediaData *pSource, VideoCORE* pCore);
 
     // Chose appropriate processing action for specified NAL unit
     UMC::Status ProcessNalUnit(UMC::MediaDataEx *nalUnit);
@@ -448,6 +448,7 @@ protected:
 
     // Keep track of which parameter set is in use.
     bool              m_WaitForIDR;
+    bool              m_SpsChanged;
     bool              m_prevSliceBroken;
 
     int32_t m_RA_POC;
@@ -469,6 +470,8 @@ protected:
     PocDecoding m_pocDecoding;
 
     bool m_isInitialized;
+
+    VideoCORE *m_pCore;
 
     UMC::Mutex m_mGuard;
 

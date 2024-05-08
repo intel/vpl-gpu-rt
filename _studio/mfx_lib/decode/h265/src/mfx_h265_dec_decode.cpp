@@ -1036,7 +1036,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             MFX_CHECK_STS(sts);
 
             umcRes = !m_surface_source->HasFreeSurface() ?
-                UMC::UMC_ERR_NEED_FORCE_OUTPUT : m_pH265VideoDecoder->AddSource(bs ? &src : 0);
+                UMC::UMC_ERR_NEED_FORCE_OUTPUT : m_pH265VideoDecoder->AddSource(bs ? &src : 0, m_core);
 
             umcFrameRes = umcRes;
 

@@ -71,6 +71,9 @@ protected:
 
     uint32_t m_bufferedFrameNumber;
 
+    uint16_t m_drcFrameWidth = 0;
+    uint16_t m_drcFrameHeight = 0;
+
 private:
     VATaskSupplier & operator = (VATaskSupplier &)
     {

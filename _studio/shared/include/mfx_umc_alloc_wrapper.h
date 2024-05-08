@@ -261,6 +261,8 @@ public:
 
     bool HasFreeSurface();
 
+    bool GetSurfaceType();
+
     void SetFreeSurfaceAllowedFlag(bool flag);
 
 protected:
