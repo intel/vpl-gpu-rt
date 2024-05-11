@@ -435,6 +435,7 @@ typedef enum {
     MFX_SURFACE_TYPE_VAAPI                 = 3,      /*!< VA-API surface. */
     MFX_SURFACE_TYPE_OPENCL_IMG2D          = 4,      /*!< OpenCL 2D image (cl_mem). */
     MFX_SURFACE_TYPE_D3D12_TEX2D           = 5,      /*!< D3D12 surface of type ID3D12Resource with 2D texture type. */
+    MFX_SURFACE_TYPE_VULKAN_IMG2D          = 6,      /*!< Vulkan 2D image (VkImage). */
 } mfxSurfaceType;
 
 /*! This enumerator specifies the sharing modes which are allowed for importing or exporting shared surfaces. */
@@ -2420,6 +2421,10 @@ enum {
     See the mfxExtSurfaceD3D12Tex2DExportDescription structure for more details.
     */
     MFX_EXTBUFF_EXPORT_SHARING_DESC_D3D12 = MFX_MAKEFOURCC('E', 'D', '1', '2'),
+    /*!
+    See the mfxExtSurfaceVulkanImg2DExportDescription structure for more details.
+    */
+    MFX_EXTBUFF_EXPORT_SHARING_DESC_VULKAN = MFX_MAKEFOURCC('E', 'V', 'U', 'L'),
 #endif
 #ifdef ONEVPL_EXPERIMENTAL
     /*!
