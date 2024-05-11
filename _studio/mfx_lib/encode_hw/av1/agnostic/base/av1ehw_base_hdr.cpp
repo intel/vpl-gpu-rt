@@ -52,10 +52,6 @@ inline mfxStatus CheckAndFixMasteringDisplayColourVolumeInfo(mfxExtMasteringDisp
     changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[0], 50000u);
     changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[1], 50000u);
     changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[2], 50000u);
-    changed += CheckMinOrClip(pMDCV->MaxDisplayMasteringLuminance, 1u);
-    changed += CheckMaxOrClip(pMDCV->MaxDisplayMasteringLuminance, 65535u);
-    changed += CheckMinOrClip(pMDCV->MinDisplayMasteringLuminance, 1u);
-    changed += CheckMaxOrClip(pMDCV->MinDisplayMasteringLuminance, 65535u);
 
     return changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
 }
