@@ -732,7 +732,7 @@ ImplementationAvc::ImplementationAvc(VideoCORE * core)
     memset(&m_mbqpInfo, 0, sizeof(m_mbqpInfo));
 }
 
-ImplementationAvc::~ImplementationAvc() noexcept
+ImplementationAvc::~ImplementationAvc()
 {
     amtScd.Close();
 #ifdef MFX_ENABLE_EXT
