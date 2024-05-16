@@ -59,6 +59,7 @@
 #endif
 
 
+
 #include "libmfx_core.h"
 
 bool VideoENCODE::m_singleEncodeMode = true;
@@ -317,6 +318,7 @@ static const CodecId2Handlers codecId2Handlers =
 }; // codecId2Handlers
 
 
+
 template<>
 VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
 {
@@ -324,7 +326,11 @@ VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
     mfxU32 CodecId = par.mfx.CodecId;
     mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
     std::unique_ptr<VideoENCODE> pENCODE;
+    bool bUseNormalEncode = true;
 
+
+
+    if (bUseNormalEncode)
     {
         // create a codec instance
         auto handler = codecId2Handlers.find(CodecKey(CodecId));
@@ -379,10 +385,14 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", in);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", out);
 
+    bool bUseNormalEncode = true;
     bool bIsHWENCSupport = false;
 
     try
     {
+
+
+        if (bUseNormalEncode)
         {
             CodecId2Handlers::const_iterator handler;
             handler = codecId2Handlers.find(CodecKey(out->mfx.CodecId));
@@ -454,10 +464,14 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
     MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In: session = ", MFX_TRACE_FORMAT_P, session);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", par);
 
+    bool bUseNormalEncode = true;
     bool bIsHWENCSupport = false;
 
     try
     {
+
+
+        if (bUseNormalEncode)
         {
             CodecId2Handlers::const_iterator handler;
             handler = codecId2Handlers.find(CodecKey(par->mfx.CodecId));

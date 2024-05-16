@@ -894,6 +894,7 @@ std::string DumpContext::dump(const std::string structName, const  mfxExtQuality
     return str;
 }
 
+
 std::string DumpContext::dump(const std::string structName, const  mfxExtEncoderIPCMArea& ExtEncoderIPCMArea)
 {
     std::string str;

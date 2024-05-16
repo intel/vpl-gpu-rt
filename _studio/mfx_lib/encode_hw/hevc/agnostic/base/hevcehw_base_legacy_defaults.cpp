@@ -1821,6 +1821,8 @@ public:
         slo.max_num_reorder_pics         = std::min<mfxU8>(numReorderFrames, slo.max_dec_pic_buffering_minus1);
         slo.max_latency_increase_plus1   = 0;
 
+        vps.extension_flag = 0;
+
         return MFX_ERR_NONE;
     }
 

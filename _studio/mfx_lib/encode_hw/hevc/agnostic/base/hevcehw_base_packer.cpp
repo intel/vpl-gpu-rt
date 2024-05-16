@@ -460,8 +460,10 @@ void BitstreamWriter::cabacInit()
 }
 
 
-void Packer::PackNALU(BitstreamWriter& bs, NALU const & h)
+void Packer::PackNALU(BitstreamWriter& bs, NALU const & nalu)
 {
+    const NALU& h = nalu;
+
     bool bLongSC =
         h.nal_unit_type == VPS_NUT
         || h.nal_unit_type == SPS_NUT
@@ -573,6 +575,20 @@ void Packer::PackAUD(BitstreamWriter& bs, mfxU8 pic_type)
     bs.PutTrailingBits();
 }
 
+void PackExtension(mfxU8 extFlags, std::function<bool(mfxU8)> Pack)
+{
+    mfxU8 extId = 0;
+
+    while (extFlags)
+    {
+        if (extFlags & 0x80)
+            ThrowAssert(!Pack(extId), "extension is not supported");
+
+        ++extId;
+        extFlags <<= 1;
+    }
+}
+
 void Packer::PackVPS(BitstreamWriter& bs, VPS const &  vps)
 {
     NALU nalu = {0, VPS_NUT, 0, 1};
@@ -611,7 +627,9 @@ void Packer::PackVPS(BitstreamWriter& bs, VPS const &  vps)
         assert(0 == vps.num_hrd_parameters);
     }
 
-    bs.PutBit(0); //vps.extension_flag
+    bs.PutBit(vps.extension_flag);
+
+
     bs.PutTrailingBits();
 }
 
@@ -759,20 +777,6 @@ void Packer::PackVUI(BitstreamWriter& bs, VUI const & vui, mfxU16 max_sub_layers
 }
 
 void PackSTRPS(BitstreamWriter& bs, const STRPS* sets, mfxU32 num, mfxU32 idx);
-
-void PackExtension(mfxU8 extFlags, std::function<bool(mfxU8)> Pack)
-{
-    mfxU8 extId = 0;
-
-    while (extFlags)
-    {
-        if (extFlags & 0x80)
-            ThrowAssert(!Pack(extId), "extension is not supported");
-
-        ++extId;
-        extFlags <<= 1;
-    }
-}
 
 mfxU32 Packer::PackSLD(BitstreamWriter& bs, ScalingList const & scl)
 {
@@ -1649,6 +1653,7 @@ mfxU32 Packer::GetPrefixSEI(
     if (bPackError)
         return 0;
 
+
     bool bNeedOwnPT = (task.InsertHeaders & INSERT_PTSEI)
         && !std::any_of(prefixPL.begin(), prefixPL.end(), PLTypeEq<1>);
     if (bNeedOwnPT)
@@ -1859,6 +1864,7 @@ void Packer::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         auto ph = make_unique<MakeStorable<PackedHeaders>>(PackedHeaders{});
 
         m_pGlob = &global;
+
 
         if (global.Contains(CC::Key)  && CC::Get(global).UpdateLPLAAnalysisSPSBS)
             CC::Get(global).UpdateLPLAAnalysisSPSBS(global, Glob::SPS::Get(global));

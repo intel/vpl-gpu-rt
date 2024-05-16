@@ -276,6 +276,8 @@ namespace Base
         mfxU32 num_ticks_poc_diff_one_minus1 : 10;
         mfxU32 num_hrd_parameters            : 10;
 
+        mfxU8 extension_flag                 : 1;
+        mfxU8 ExtensionFlags;
         //VPSHRD* hrd; //max 1024
     };
 
@@ -730,15 +732,16 @@ namespace Base
 
     enum eInsertHeader
     {
-        INSERT_AUD      = 0x01,
-        INSERT_VPS      = 0x02,
-        INSERT_SPS      = 0x04,
-        INSERT_PPS      = 0x08,
-        INSERT_BPSEI    = 0x10,
-        INSERT_PTSEI    = 0x20,
-        INSERT_DCVSEI   = 0x40,
-        INSERT_LLISEI   = 0x80,
-        INSERT_SEI      = (INSERT_BPSEI | INSERT_PTSEI | INSERT_DCVSEI | INSERT_LLISEI)
+        INSERT_AUD      = 0x0001,
+        INSERT_VPS      = 0x0002,
+        INSERT_SPS      = 0x0004,
+        INSERT_PPS      = 0x0008,
+        INSERT_BPSEI    = 0x0010,
+        INSERT_PTSEI    = 0x0020,
+        INSERT_DCVSEI   = 0x0040,
+        INSERT_LLISEI   = 0x0080,
+        INSERT_ACISEI   = 0x0100,
+        INSERT_SEI      = (INSERT_BPSEI | INSERT_PTSEI | INSERT_DCVSEI | INSERT_LLISEI | INSERT_ACISEI)
     };
 
     enum eRecFlag
@@ -1423,6 +1426,8 @@ namespace Base
         using ResetHint           = StorageVar<__LINE__ - _KD, Base::ResetHint>; //available during Reset
         using Reorder             = StorageVar<__LINE__ - _KD, Reorderer>;
         using NeedRextConstraints = StorageVar<__LINE__ - _KD, std::function<bool(const Base::ProfileTierLevel&)>>;
+        using UpdateNaluIfNeeded  = StorageVar<__LINE__ - _KD, std::function<bool(Base::NALU&)>>;
+        using PackVpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::VPS&, mfxU8, IBsWriter&, mfxU32)>>;
         using ReadSpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::SPS&, mfxU8, IBsReader&)>>;
         using ReadPpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::PPS&, mfxU8, IBsReader&)>>;
         using PackSpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::SPS&, mfxU8, IBsWriter&)>>;
@@ -1433,6 +1438,7 @@ namespace Base
         using TaskManager         = StorageVar<__LINE__ - _KD, MakeStorable<MfxEncodeHW::TaskManager::TMRefWrapper>>;
         static const StorageR::TKey ReservedKey0 = __LINE__ - _KD;
         static const StorageR::TKey BasePackerKey = __LINE__ - _KD;
+        static const StorageR::TKey MultiLayerVpsKey = __LINE__ - _KD;
         static const StorageR::TKey SccSpsKey = __LINE__ - _KD;
         static const StorageR::TKey SccPpsKey = __LINE__ - _KD;
         static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;

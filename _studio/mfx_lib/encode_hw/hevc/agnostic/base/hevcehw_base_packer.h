@@ -136,7 +136,6 @@ namespace Base
             , *m_pRTBufEnd = nullptr;
         NotNull<StorageW*> m_pGlob;
 
-
         virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override;
         virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
         virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override;
