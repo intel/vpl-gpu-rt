@@ -3266,7 +3266,7 @@ void General::SetDefaults(
         SetDefault(pAuxPar->EnableCdef, MFX_CODINGOPTION_ON);
         SetDefault(pAuxPar->EnableRestoration, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->EnableLoopFilter, MFX_CODINGOPTION_ON);
-        SetDefault(pAuxPar->InterpFilter, MFX_AV1_INTERP_EIGHTTAP);
+        SetDefault(pAuxPar->InterpFilter, MFX_AV1_INTERP_DEFAULT);
         SetDefault(pAuxPar->DisableCdfUpdate, MFX_CODINGOPTION_OFF);
         // DisableFrameEndUpdateCdf has to be ON if DisableCdfUpdate is ON.
         SetDefault(pAuxPar->DisableFrameEndUpdateCdf, pAuxPar->DisableCdfUpdate);
