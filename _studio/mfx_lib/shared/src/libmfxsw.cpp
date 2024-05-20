@@ -169,6 +169,8 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 
 static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession *session, mfxIMPL implInterface, mfxU32 adapterNum, bool isSingleThreadMode, bool bValidateHandle)
 {
+
+    MFX_CHECK_HDL(session);
     _mfxVersionedSessionImpl* pSession = nullptr;
     mfxStatus                 mfxRes   = MFX_ERR_NONE;
 
