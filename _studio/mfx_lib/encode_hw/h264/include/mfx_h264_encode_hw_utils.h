@@ -2952,7 +2952,7 @@ private:
 
         ImplementationAvc(VideoCORE * core);
 
-        virtual ~ImplementationAvc() noexcept override;
+        virtual ~ImplementationAvc() override;
 
         virtual mfxStatus Init(mfxVideoParam * par) override;
 
