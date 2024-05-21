@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Intel Corporation
+// Copyright (c) 2012-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -160,6 +160,11 @@ namespace UMC_AV1_DECODER
 
         virtual bool QueryFrames() = 0;
 
+        void SetVideoCore(VideoCORE* pCore)
+        {
+            m_pCore = pCore;
+        }
+
         void Flush();
 
     protected:
@@ -230,6 +235,10 @@ namespace UMC_AV1_DECODER
         UMC::FrameMemID                 m_anchor_frame_mem_ids[MAX_ANCHOR_SIZE];
         UMC::FrameMemID                 m_specified_anchor_Idx; // anchor frame index specified by application
         bool                            m_isAnchor; // check if current frame is a anchor frame
+        bool                            m_SpsChanged;
+        uint16_t                        m_drcFrameWidth;
+        uint16_t                        m_drcFrameHeight;
+        VideoCORE*                      m_pCore;
     };
 }
 

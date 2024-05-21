@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2023 Intel Corporation
+// Copyright (c) 2017-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,8 @@
 #include "umc_av1_frame.h"
 
 #include <algorithm>
+#include "mfx_umc_alloc_wrapper.h"
+
 
 #include "mfx_unified_av1d_logging.h"
 
@@ -58,6 +60,10 @@ namespace UMC_AV1_DECODER
         , m_prev_frame_header_exist(false)
         , m_specified_anchor_Idx(0)
         , m_isAnchor(false)
+        , m_SpsChanged(false)
+        , m_drcFrameWidth(0)
+        , m_drcFrameHeight(0)
+        , m_pCore(nullptr)
     {
         outputed_frames.clear();
         m_prev_frame_header = {};
@@ -137,6 +143,21 @@ namespace UMC_AV1_DECODER
             return true;
         }
 
+        return false;
+    }
+
+    static bool IsNeedSPSChanged(SequenceHeader* old_sps, const SequenceHeader* new_sps)
+    {
+        if (!old_sps || !new_sps)
+        {
+            return false;
+        }
+
+        if ((old_sps->seq_profile != new_sps->seq_profile) ||
+            (old_sps->film_grain_param_present != new_sps->film_grain_param_present))
+        {
+            return true;
+        }
         return false;
     }
 
@@ -666,6 +687,7 @@ namespace UMC_AV1_DECODER
                 uint32_t lst_shift;
                 bs.ReadOBUInfo(obuInfo);
                 const AV1_OBU_TYPE obuType = obuInfo.header.obu_type;
+                auto frame_source = dynamic_cast<SurfaceSource*>(allocator);
 
                 if (obuInfo.header.obu_type > OBU_PADDING)
                     return UMC::UMC_ERR_INVALID_PARAMS;
@@ -707,8 +729,13 @@ namespace UMC_AV1_DECODER
                         }
 
                         Update_drc(sequence_header.get());
-                        // new resolution required
-                        return UMC::UMC_NTF_NEW_RESOLUTION;
+                        m_SpsChanged = IsNeedSPSChanged(old_seqHdr.get(), sequence_header.get());
+
+                        if ((frame_source && !frame_source->GetSurfaceType()) || (frame_source->GetSurfaceType() && m_SpsChanged))
+                        {
+                            // new resolution required
+                            return UMC::UMC_NTF_NEW_RESOLUTION;
+                        }
                     }
 
                     set_seq_header_ready();
@@ -745,7 +772,13 @@ namespace UMC_AV1_DECODER
                         params.info.clip_info.height = (int32_t)(tlInfo.frameHeightInTiles * fh.tile_info.TileHeight * MI_SIZE);
                         params.info.disp_clip_info = params.info.clip_info;
                         PreFrame_id = OldPreFrame_id;
-                        return UMC::UMC_NTF_NEW_RESOLUTION;
+
+                        m_SpsChanged = IsNeedSPSChanged(old_seqHdr.get(), sequence_header.get());
+                        if ((frame_source && !frame_source->GetSurfaceType()) || (frame_source->GetSurfaceType() && m_SpsChanged))
+                        {
+                            // new resolution required
+                            return UMC::UMC_NTF_NEW_RESOLUTION;
+                        }
                     }
 
                     fh.output_frame_width_in_tiles  = tlInfo.frameWidthInTiles;
@@ -1266,9 +1299,20 @@ namespace UMC_AV1_DECODER
             throw av1_exception(sts);
 
         UMC::FrameMemID id;
-        sts = allocator->Alloc(&id, &info, 0);
+        sts = allocator->Alloc(&id, &info, mfx_UMC_ReallocAllowed);
+
+        auto frame_source = dynamic_cast<SurfaceSource*>(allocator);
         if (sts != UMC::UMC_OK)
+        {
             throw av1_exception(UMC::UMC_ERR_ALLOC);
+        }
+
+        if (frame_source)
+        {
+            mfxFrameSurface1* surface = frame_source->GetSurfaceByIndex(id);
+            if (!surface)
+                throw av1_exception(UMC::UMC_ERR_ALLOC);
+        }
 
         AllocateFrameData(info, id, frame);
         if (frame.m_index < 0)

@@ -990,7 +990,7 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
         {
             sts = m_surface_source->SetCurrentMFXSurface(surface_work);
             MFX_CHECK_STS(sts);
-
+            m_decoder->SetVideoCore(m_core);
             UMC::Status umcRes = m_surface_source->HasFreeSurface() ?
                 m_decoder->GetFrame(bs ? &src : 0, nullptr) : UMC::UMC_ERR_NEED_FORCE_OUTPUT;
 
