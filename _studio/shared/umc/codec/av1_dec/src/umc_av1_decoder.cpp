@@ -1145,6 +1145,13 @@ namespace UMC_AV1_DECODER
 
         par.film_grain = sh.film_grain_param_present;
 
+        // video signal
+        par.color_range = sh.color_config.color_range;
+        par.color_description_present_flag = sh.color_config.color_description_present_flag;
+        par.color_primaries = sh.color_config.color_primaries;
+        par.transfer_characteristics = sh.color_config.transfer_characteristics;
+        par.matrix_coefficients = sh.color_config.matrix_coefficients;
+
         return UMC::UMC_OK;
     }
 

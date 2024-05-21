@@ -91,8 +91,8 @@ namespace UMC_AV1_DECODER
 
         config.mono_chrome = profile != 1 ? bs.GetBit() : 0;
 
-        uint32_t color_description_present_flag = bs.GetBit();
-        if (color_description_present_flag)
+        config.color_description_present_flag = bs.GetBit();
+        if (config.color_description_present_flag)
         {
             config.color_primaries = bs.GetBits(8);
             config.transfer_characteristics = bs.GetBits(8);
