@@ -346,6 +346,7 @@ namespace UMC_AV1_DECODER
         uint32_t subsampling_x;
         uint32_t subsampling_y;
         uint32_t separate_uv_delta_q;
+        uint32_t color_description_present_flag;
     };
 
     struct SequenceHeader
