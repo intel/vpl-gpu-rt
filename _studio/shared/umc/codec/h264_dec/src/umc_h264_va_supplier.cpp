@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2021 Intel Corporation
+// Copyright (c) 2003-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,7 @@
 #include "mfx_common_int.h"
 #include "mfx_ext_buffers.h"
 #include "umc_h264_notify.h"
+
 
 namespace UMC
 {
@@ -100,6 +101,8 @@ void LazyCopier::CopyAll()
 
 VATaskSupplier::VATaskSupplier()
     : m_bufferedFrameNumber(0)
+    , m_drcFrameWidth(0)
+    , m_drcFrameHeight(0)
 {
 }
 
@@ -336,24 +339,26 @@ Status VATaskSupplier::AllocateFrameData(H264DecoderFrame * pFrame)
     info.Init(dimensions.width, dimensions.height, pFrame->GetColorFormat(), pFrame->m_bpp);
 
     FrameMemID frmMID;
-    Status sts = m_pFrameAllocator->Alloc(&frmMID, &info, 0);
+    Status sts = m_pFrameAllocator->Alloc(&frmMID, &info, mfx_UMC_ReallocAllowed);
 
     if (sts == UMC_ERR_ALLOC)
         return UMC_ERR_ALLOC;
 
-    if (sts != UMC_OK)
-        throw h264_exception(UMC_ERR_ALLOC);
-
-    FrameData frmData;
+    UMC::FrameData frmData;
     frmData.Init(&info, frmMID, m_pFrameAllocator);
 
     auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
+
+    if (sts != UMC_OK)
+    {
+        throw h264_exception(UMC_ERR_ALLOC);
+    }
+
     if (frame_source)
     {
         mfxFrameSurface1* surface = frame_source->GetSurfaceByIndex(frmMID);
         if (!surface)
             throw h264_exception(UMC_ERR_ALLOC);
-
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
         mfxExtBuffer* extbuf = nullptr;
 

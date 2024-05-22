@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2017-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -522,6 +522,11 @@ public:
         m_pMemoryAllocator = pMemoryAllocator;
     }
 
+    void SetVideoCore(VideoCORE* pCore)
+    {
+        m_pCore = pCore;
+    }
+
     MemoryAllocator * GetMemoryAllocator() const { return m_pMemoryAllocator; };
 
     void SetFrameAllocator(FrameAllocator *pFrameAllocator)
@@ -638,6 +643,7 @@ protected:
     // Keep track of which parameter set is in use.
     bool              m_WaitForIDR;
 
+    bool              m_SpsChanged;
     uint32_t            m_DPBSizeEx;
     int32_t            m_frameOrder;
 
@@ -653,6 +659,8 @@ protected:
     AccessUnit m_accessUnit;
 
     bool m_isInitialized;
+
+    VideoCORE* m_pCore;
 
     Mutex m_mGuard;
 

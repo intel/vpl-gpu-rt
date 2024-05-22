@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2020 Intel Corporation
+// Copyright (c) 2003-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,7 @@
 
 
 #include "mfx_enc_common.h"
+#include "mfx_umc_alloc_wrapper.h"
 
 namespace UMC
 {
@@ -359,7 +360,15 @@ Status MFXTaskSupplier::DecodeHeaders(NalUnit *nalUnit)
                 m_firstVideoParams.mfx.FrameInfo.Height < (currSPS->frame_height_in_mbs * 16) ||
                 (currSPS->level_idc && m_firstVideoParams.mfx.CodecLevel && m_firstVideoParams.mfx.CodecLevel < currSPS->level_idc))
             {
-                return UMC_NTF_NEW_RESOLUTION;
+                auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
+                if (frame_source && frame_source->GetSurfaceType() && !m_SpsChanged)
+                {
+                    return UMC::UMC_OK;
+                }
+                else
+                {
+                    return UMC::UMC_NTF_NEW_RESOLUTION;
+                }
             }
         }
 
