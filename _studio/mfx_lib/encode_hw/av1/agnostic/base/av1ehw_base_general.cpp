@@ -3324,9 +3324,9 @@ mfxStatus General::CheckFrameRate(mfxVideoParam & par)
 {
     auto& fi = par.mfx.FrameInfo;
 
-    if (fi.FrameRateExtN && fi.FrameRateExtD) // FR <= 300
+    if (fi.FrameRateExtN && fi.FrameRateExtD) // FR <= 1000
     {
-        if (fi.FrameRateExtN > mfxU32(300 * fi.FrameRateExtD))
+        if (fi.FrameRateExtN > mfxU32(1000 * fi.FrameRateExtD))
         {
             fi.FrameRateExtN = fi.FrameRateExtD = 0;
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
