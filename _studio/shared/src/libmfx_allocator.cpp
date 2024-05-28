@@ -193,6 +193,9 @@ mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height
     case MFX_FOURCC_Y216:
     case MFX_FOURCC_P8_TEXTURE:
     case MFX_FOURCC_YUV400:
+    case MFX_FOURCC_R16:
+    case MFX_FOURCC_ARGB16:
+    case MFX_FOURCC_ABGR16:
         nBytes = pitch * height;
         break;
     case MFX_FOURCC_ABGR16F:
