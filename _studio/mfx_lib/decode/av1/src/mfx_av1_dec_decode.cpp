@@ -1368,6 +1368,13 @@ mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFram
     surface_out->Info.FrameRateExtD = isShouldUpdate ? m_init_par.mfx.FrameInfo.FrameRateExtD : m_first_par.mfx.FrameInfo.FrameRateExtD;
     surface_out->Info.FrameRateExtN = isShouldUpdate ? m_init_par.mfx.FrameInfo.FrameRateExtN : m_first_par.mfx.FrameInfo.FrameRateExtN;
 
+    mfxExtAV1FilmGrainParam* extFilmGrain = (mfxExtAV1FilmGrainParam*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM);
+    if (extFilmGrain)
+    {
+        UMC_AV1_DECODER::FrameHeader const& fh = pFrame->GetFrameHeader();
+        CopyFilmGrainParam(*extFilmGrain, fh.film_grain_params);
+    }
+
     const UMC_AV1_DECODER::FrameHeader& fh = pFrame->GetFrameHeader();
     // extract HDR MasteringDisplayColourVolume info
     mfxExtMasteringDisplayColourVolume* display_colour = (mfxExtMasteringDisplayColourVolume*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME);
