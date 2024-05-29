@@ -879,10 +879,78 @@ mfxStatus QueryImplsDescription(VideoCORE& core, mfxEncoderDescription& caps, mf
     return MFX_ERR_NONE;
 }
 
-//
-// THE OTHER ENCODE FUNCTIONS HAVE IMPLICIT IMPLEMENTATION
-//
+mfxStatus MFXVideoENCODE_Reset(mfxSession session, mfxVideoParam* par) {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
+    mfxStatus mfxRes = MFX_ERR_NONE;
 
-FUNCTION_RESET_IMPL(ENCODE, Reset, (mfxSession session, mfxVideoParam *par), (par))
-FUNCTION_IMPL(ENCODE, GetVideoParam, (mfxSession session, mfxVideoParam *par), (par))
-FUNCTION_IMPL(ENCODE, GetEncodeStat, (mfxSession session, mfxEncodeStat *stat), (stat))
+    MFX_LOG_API_TRACE("----------------MFXVideoENCODE_Reset----------------\n");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", par);
+
+    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(session->m_pENCODE.get(), MFX_ERR_NOT_INITIALIZED);
+
+    try {
+        /* wait until all tasks are processed */
+        MFX_SAFE_CALL(session->m_pENCODE->ResetCache(par));
+        session->m_pScheduler->WaitForAllTasksCompletion(session->m_pENCODE.get());
+        /* call the codec's method */
+        mfxRes = session->m_pENCODE->Reset(par);
+    } catch(...) {
+        mfxRes = MFX_ERR_NULL_PTR;
+    }
+
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "Out:  ", par);
+    MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
+
+    return mfxRes;
+}
+
+mfxStatus MFXVideoENCODE_GetVideoParam(mfxSession session, mfxVideoParam* par) {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
+    mfxStatus mfxRes = MFX_ERR_NONE;
+
+    MFX_LOG_API_TRACE("----------------MFXVideoENCODE_GetVideoParam----------------\n");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", par);
+
+    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(session->m_pENCODE.get(), MFX_ERR_NOT_INITIALIZED);
+
+    try {
+        /* call the codec's method */
+        mfxRes = session->m_pENCODE->GetVideoParam(par);
+    } catch(...) {
+        mfxRes = MFX_ERR_NULL_PTR;
+    }
+
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "Out:  ", par);
+    MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
+
+    return mfxRes;
+}
+
+mfxStatus MFXVideoENCODE_GetEncodeStat(mfxSession session, mfxEncodeStat* stat) {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
+    mfxStatus mfxRes = MFX_ERR_NONE;
+
+    MFX_LOG_API_TRACE("----------------MFXVideoENCODE_GetEncodeStat----------------\n");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
+
+    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(session->m_pENCODE.get(), MFX_ERR_NOT_INITIALIZED);
+    try {
+        /* call the codec's method */
+        mfxRes = session->m_pENCODE->GetEncodeStat(stat);
+    }
+    catch (...) {
+        mfxRes = MFX_ERR_NULL_PTR;
+    }
+
+    MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
+
+    return mfxRes;
+}
