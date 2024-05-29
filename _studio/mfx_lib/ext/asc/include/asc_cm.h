@@ -49,7 +49,6 @@ typedef struct ASCvideoBufferCm: public ASCVidSample
 
 class ASC_Cm: public ASC
 {
-using ASC::Init;
 public:
     ASC_Cm();
     virtual ~ASC_Cm(){}
@@ -123,7 +122,6 @@ protected:
 
     mfxStatus RunFrame(SurfaceIndex *idxFrom, mfxU32 parity);
     mfxStatus RunFrame(mfxHDLPair frameHDL, mfxU32 parity);
-    mfxStatus RunFrame(mfxU8 *frame, mfxU32 parity);
 
     mfxStatus CreateCmSurface2D(mfxHDLPair pSrcPair, CmSurface2D* & pCmSurface2D, SurfaceIndex* &pCmSrcIndex);
     mfxStatus CreateCmKernels();
@@ -154,13 +152,13 @@ public:
     mfxStatus PutFrameProgressive(mfxHDLPair surface);
     mfxStatus PutFrameProgressive(mfxHDL surface);
     mfxStatus PutFrameProgressive(SurfaceIndex* idxSurf);
-    mfxStatus PutFrameProgressive(mfxU8 *frame, mfxI32 Pitch);
-
     
     mfxStatus PutFrameInterlaced(mfxHDLPair surface);
     mfxStatus PutFrameInterlaced(mfxHDL surface);
     mfxStatus PutFrameInterlaced(SurfaceIndex* idxSurf);
     mfxStatus PutFrameInterlaced(mfxU8 *frame, mfxI32 Pitch);
+    using ASC::RunFrame;
+    using ASC::PutFrameProgressive;
 
     virtual mfxStatus calc_RaCa_Surf(mfxHDLPair surface, mfxF64& rscs);
 //private:
