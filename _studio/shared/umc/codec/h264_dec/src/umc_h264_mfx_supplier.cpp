@@ -361,7 +361,7 @@ Status MFXTaskSupplier::DecodeHeaders(NalUnit *nalUnit)
                 (currSPS->level_idc && m_firstVideoParams.mfx.CodecLevel && m_firstVideoParams.mfx.CodecLevel < currSPS->level_idc))
             {
                 auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
-                if (frame_source && frame_source->GetSurfaceType() && !m_SpsChanged)
+                if (frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag)
                 {
                     return UMC::UMC_OK;
                 }

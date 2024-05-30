@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2020 Intel Corporation
+// Copyright (c) 2012-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -253,7 +253,7 @@ bool IsNeedSPSInvalidate(const H265SeqParamSet *old_sps, const H265SeqParamSet *
 
 // Check if bitstream params has changed
 static
-bool IsNeedSPSChanged(const H265SeqParamSet* old_sps, const H265SeqParamSet* new_sps)
+bool IsNeedRecreateSurface(const H265SeqParamSet* old_sps, const H265SeqParamSet* new_sps)
 {
     if (!old_sps || !new_sps)
         return false;
@@ -674,6 +674,7 @@ TaskSupplier_H265::TaskSupplier_H265()
     , m_pMemoryAllocator(0)
     , m_pFrameAllocator(0)
     , m_WaitForIDR(false)
+    , m_RecreateSurfaceFlag(false)
     , m_prevSliceBroken(false)
     , m_RA_POC(0)
     , NoRaslOutputFlag(0)
@@ -684,6 +685,7 @@ TaskSupplier_H265::TaskSupplier_H265()
     , m_UIDFrameCounter(0)
     , m_sei_messages(0)
     , m_isInitialized(false)
+    , m_pCore(nullptr)
 {
 }
 
@@ -1144,7 +1146,7 @@ UMC::Status TaskSupplier_H265::xDecodeSPS(H265HeadersBitstream *bs)
     bool newResolution = false;
     if (IsNeedSPSInvalidate(old_sps, &sps))
     {
-        m_SpsChanged = IsNeedSPSChanged(old_sps, &sps);
+        m_RecreateSurfaceFlag = IsNeedRecreateSurface(old_sps, &sps);
         newResolution = true;
     }
 
@@ -1623,11 +1625,11 @@ UMC::Status TaskSupplier_H265::CompleteDecodedFrames(H265DecoderFrame ** decoded
 }
 
 // Add a new bitstream data buffer to decoding
-UMC::Status TaskSupplier_H265::AddSource(UMC::MediaData * pSource, VideoCORE *pCore)
+UMC::Status TaskSupplier_H265::AddSource(UMC::MediaData * pSource)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     H265DecoderFrame* completed = 0;
-    m_pCore = pCore;
+
     UMC::Status umcRes = CompleteDecodedFrames(&completed);
     if (umcRes != UMC::UMC_OK)
         return pSource || !completed ? umcRes : UMC::UMC_OK;
@@ -1870,7 +1872,7 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
                             int32_t size = pMediaDataEx->offsets[nalIndex + 1] - pMediaDataEx->offsets[nalIndex];
 
                             auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
-                            if (frame_source && frame_source->GetSurfaceType() && !m_SpsChanged)
+                            if (frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag)
                             {
                                 m_checkCRAInsideResetProcess = false;
                             }

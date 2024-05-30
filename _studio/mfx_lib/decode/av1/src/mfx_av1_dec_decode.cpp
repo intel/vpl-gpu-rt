@@ -985,6 +985,7 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
     try
     {
         MFXMediaDataAdapter src(bs);
+        m_decoder->SetVideoCore(m_core);
 
         for (;;)
         {

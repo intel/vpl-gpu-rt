@@ -882,7 +882,7 @@ bool IsNeedSPSInvalidate(const H264SeqParamSet *old_sps, const H264SeqParamSet *
 
 // Check if bitstream params has changed
 static
-bool IsNeedSPSChanged(const H264SeqParamSet* old_sps, const H264SeqParamSet* new_sps)
+bool IsNeedRecreateSurface(const H264SeqParamSet* old_sps, const H264SeqParamSet* new_sps)
 {
     if (!old_sps || !new_sps)
         return false;
@@ -1987,7 +1987,7 @@ TaskSupplier::TaskSupplier()
     , m_pMemoryAllocator(0)
     , m_pFrameAllocator(0)
     , m_WaitForIDR(false)
-    , m_SpsChanged(false)
+    , m_RecreateSurfaceFlag(false)
     , m_DPBSizeEx(0)
     , m_frameOrder(0)
     , m_pTaskBroker(0)
@@ -2506,7 +2506,7 @@ Status TaskSupplier::DecodeHeaders(NalUnit *nalUnit)
                 bool newResolution = false;
                 if (IsNeedSPSInvalidate(old_sps, &sps))
                 {
-                    m_SpsChanged = IsNeedSPSChanged(old_sps, &sps);
+                    m_RecreateSurfaceFlag = IsNeedRecreateSurface(old_sps, &sps);
                     newResolution = true;
                 }
 
@@ -3358,7 +3358,7 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
                 {
                     //surface can reallocate when mem2.0 resolution changed, the status don't need to return
                     //surface need to recreate when mem1.0 or sps params changed of mem2.0, the status need to return 
-                    if (frame_source && frame_source->GetSurfaceType() && !m_SpsChanged) 
+                    if (frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag) 
                     {
                         flag = true;
                     }

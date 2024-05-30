@@ -39,6 +39,7 @@
 #include "mfx_ext_buffers.h"
 #include "umc_h264_notify.h"
 
+#include "libmfx_core_vaapi.h"
 
 namespace UMC
 {
@@ -351,7 +352,15 @@ Status VATaskSupplier::AllocateFrameData(H264DecoderFrame * pFrame)
 
     if (sts != UMC_OK)
     {
-        throw h264_exception(UMC_ERR_ALLOC);
+        if (sts == UMC::UMC_ERR_NOT_ENOUGH_BUFFER && frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag)
+        {
+            m_drcFrameWidth = (uint16_t)dimensions.width;
+            m_drcFrameHeight = (uint16_t)dimensions.height;
+        }
+        else
+        {
+            throw h264_exception(UMC::UMC_ERR_ALLOC);
+        }
     }
 
     if (frame_source)
@@ -359,6 +368,16 @@ Status VATaskSupplier::AllocateFrameData(H264DecoderFrame * pFrame)
         mfxFrameSurface1* surface = frame_source->GetSurfaceByIndex(frmMID);
         if (!surface)
             throw h264_exception(UMC_ERR_ALLOC);
+
+        if (m_drcFrameWidth > surface->Info.Width || m_drcFrameHeight > surface->Info.Height)
+        {
+            surface->Info.Width = mfx::align2_value(m_drcFrameWidth, 16);
+            surface->Info.Height = mfx::align2_value(m_drcFrameHeight, 16);
+            VAAPIVideoCORE_VPL* vaapi_core_vpl = reinterpret_cast<VAAPIVideoCORE_VPL*>(m_pCore->QueryCoreInterface(MFXIVAAPIVideoCORE_VPL_GUID));
+            MFX_CHECK_NULL_PTR1(vaapi_core_vpl);
+            vaapi_core_vpl->ReallocFrame(surface);                        
+        }
+
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
         mfxExtBuffer* extbuf = nullptr;
 

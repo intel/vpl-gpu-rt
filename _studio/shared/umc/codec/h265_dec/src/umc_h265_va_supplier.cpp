@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2020 Intel Corporation
+// Copyright (c) 2013-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -36,12 +36,15 @@
 #include "mfx_common_int.h"
 #include "mfx_ext_buffers.h"
 
+#include "libmfx_core_vaapi.h"
 
 namespace UMC_HEVC_DECODER
 {
 
 VATaskSupplier::VATaskSupplier()
     : m_bufferedFrameNumber(0)
+    , m_drcFrameWidth(0)
+    , m_drcFrameHeight(0)
 {
 }
 
@@ -162,7 +165,15 @@ UMC::Status VATaskSupplier::AllocateFrameData(H265DecoderFrame * pFrame, mfxSize
     auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
     if (sts != UMC::UMC_OK)
     {
-        throw h265_exception(UMC::UMC_ERR_ALLOC);
+        if (sts == UMC::UMC_ERR_NOT_ENOUGH_BUFFER && frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag)
+        {
+            m_drcFrameWidth = (uint16_t)dimensions.width;
+            m_drcFrameHeight = (uint16_t)dimensions.height;
+        }
+        else
+        {
+            throw h265_exception(UMC::UMC_ERR_ALLOC);
+        }
     }
 
     if (frame_source)
@@ -171,6 +182,16 @@ UMC::Status VATaskSupplier::AllocateFrameData(H265DecoderFrame * pFrame, mfxSize
             frame_source->GetSurfaceByIndex(frmMID);
         if (!surface)
             throw h265_exception(UMC::UMC_ERR_ALLOC);
+
+        if (m_drcFrameWidth && m_drcFrameHeight && (m_drcFrameWidth != surface->Info.Width|| m_drcFrameHeight != surface->Info.Height))
+        {
+            surface->Info.Width = mfx::align2_value(m_drcFrameWidth, 16);
+            surface->Info.Height = mfx::align2_value(m_drcFrameHeight, 16);
+            VAAPIVideoCORE_VPL* vaapi_core_vpl = reinterpret_cast<VAAPIVideoCORE_VPL*>(m_pCore->QueryCoreInterface(MFXIVAAPIVideoCORE_VPL_GUID));
+            MFX_CHECK_NULL_PTR1(vaapi_core_vpl);
+            vaapi_core_vpl->ReallocFrame(surface);
+        }
+
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
         mfxExtBuffer* extbuf =
             GetExtendedBuffer(surface->Data.ExtParam, surface->Data.NumExtParam, MFX_EXTBUFF_GPU_HANG);

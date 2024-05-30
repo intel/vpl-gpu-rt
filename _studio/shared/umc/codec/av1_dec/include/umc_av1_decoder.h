@@ -235,7 +235,7 @@ namespace UMC_AV1_DECODER
         UMC::FrameMemID                 m_anchor_frame_mem_ids[MAX_ANCHOR_SIZE];
         UMC::FrameMemID                 m_specified_anchor_Idx; // anchor frame index specified by application
         bool                            m_isAnchor; // check if current frame is a anchor frame
-        bool                            m_SpsChanged;
+        bool                            m_RecreateSurfaceFlag;
         uint16_t                        m_drcFrameWidth;
         uint16_t                        m_drcFrameHeight;
         VideoCORE*                      m_pCore;

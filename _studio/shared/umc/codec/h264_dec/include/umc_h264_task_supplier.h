@@ -643,7 +643,7 @@ protected:
     // Keep track of which parameter set is in use.
     bool              m_WaitForIDR;
 
-    bool              m_SpsChanged;
+    bool              m_RecreateSurfaceFlag;
     uint32_t            m_DPBSizeEx;
     int32_t            m_frameOrder;
 

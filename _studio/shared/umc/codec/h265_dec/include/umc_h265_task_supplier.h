@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2020 Intel Corporation
+// Copyright (c) 2012-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -306,7 +306,7 @@ public:
     UMC::Status GetInfo(UMC::VideoDecoderParams *lpInfo);
 
     // Add a new bitstream data buffer to decoding
-    virtual UMC::Status AddSource(UMC::MediaData *pSource, VideoCORE* pCore);
+    virtual UMC::Status AddSource(UMC::MediaData *pSource);
 
     // Chose appropriate processing action for specified NAL unit
     UMC::Status ProcessNalUnit(UMC::MediaDataEx *nalUnit);
@@ -319,6 +319,11 @@ public:
     void SetFrameAllocator(UMC::FrameAllocator *pFrameAllocator)
     {
         m_pFrameAllocator = pFrameAllocator;
+    }
+
+    void SetVideoCore(VideoCORE* pCore)
+    {
+        m_pCore = pCore;
     }
 
     // Find a next frame ready to be output from decoder
@@ -448,7 +453,7 @@ protected:
 
     // Keep track of which parameter set is in use.
     bool              m_WaitForIDR;
-    bool              m_SpsChanged;
+    bool              m_RecreateSurfaceFlag;
     bool              m_prevSliceBroken;
 
     int32_t m_RA_POC;

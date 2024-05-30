@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2021 Intel Corporation
+// Copyright (c) 2012-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -332,7 +332,7 @@ UMC::Status MFXTaskSupplier_H265::DecodeHeaders(UMC::MediaDataEx *nalUnit)
                 (currSPS->m_pcPTL.GetGeneralPTL()->level_idc && m_firstVideoParams.mfx.CodecLevel && m_firstVideoParams.mfx.CodecLevel < currSPS->m_pcPTL.GetGeneralPTL()->level_idc))
             {
                 auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
-                if (frame_source && frame_source->GetSurfaceType() && !m_SpsChanged)
+                if (frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag)
                 {
                     return UMC::UMC_OK;
                 }

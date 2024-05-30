@@ -32,6 +32,7 @@
 #include <algorithm>
 #include "mfx_umc_alloc_wrapper.h"
 
+#include "libmfx_core_vaapi.h"
 
 #include "mfx_unified_av1d_logging.h"
 
@@ -60,7 +61,7 @@ namespace UMC_AV1_DECODER
         , m_prev_frame_header_exist(false)
         , m_specified_anchor_Idx(0)
         , m_isAnchor(false)
-        , m_SpsChanged(false)
+        , m_RecreateSurfaceFlag(false)
         , m_drcFrameWidth(0)
         , m_drcFrameHeight(0)
         , m_pCore(nullptr)
@@ -146,7 +147,7 @@ namespace UMC_AV1_DECODER
         return false;
     }
 
-    static bool IsNeedSPSChanged(SequenceHeader* old_sps, const SequenceHeader* new_sps)
+    static bool IsNeedRecreateSurface(SequenceHeader* old_sps, const SequenceHeader* new_sps)
     {
         if (!old_sps || !new_sps)
         {
@@ -729,9 +730,9 @@ namespace UMC_AV1_DECODER
                         }
 
                         Update_drc(sequence_header.get());
-                        m_SpsChanged = IsNeedSPSChanged(old_seqHdr.get(), sequence_header.get());
+                        m_RecreateSurfaceFlag = IsNeedRecreateSurface(old_seqHdr.get(), sequence_header.get());
 
-                        if ((frame_source && !frame_source->GetSurfaceType()) || (frame_source->GetSurfaceType() && m_SpsChanged))
+                        if ((frame_source && !frame_source->GetSurfaceType()) || (frame_source->GetSurfaceType() && m_RecreateSurfaceFlag))
                         {
                             // new resolution required
                             return UMC::UMC_NTF_NEW_RESOLUTION;
@@ -773,8 +774,8 @@ namespace UMC_AV1_DECODER
                         params.info.disp_clip_info = params.info.clip_info;
                         PreFrame_id = OldPreFrame_id;
 
-                        m_SpsChanged = IsNeedSPSChanged(old_seqHdr.get(), sequence_header.get());
-                        if ((frame_source && !frame_source->GetSurfaceType()) || (frame_source->GetSurfaceType() && m_SpsChanged))
+                        m_RecreateSurfaceFlag = IsNeedRecreateSurface(old_seqHdr.get(), sequence_header.get());
+                        if ((frame_source && !frame_source->GetSurfaceType()) || (frame_source->GetSurfaceType() && m_RecreateSurfaceFlag))
                         {
                             // new resolution required
                             return UMC::UMC_NTF_NEW_RESOLUTION;
@@ -1304,7 +1305,15 @@ namespace UMC_AV1_DECODER
         auto frame_source = dynamic_cast<SurfaceSource*>(allocator);
         if (sts != UMC::UMC_OK)
         {
-            throw av1_exception(UMC::UMC_ERR_ALLOC);
+            if (sts == UMC::UMC_ERR_NOT_ENOUGH_BUFFER && frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag)
+            {
+                m_drcFrameWidth = (uint16_t)params.info.clip_info.width;
+                m_drcFrameHeight = (uint16_t)params.info.clip_info.height;
+            }
+            else
+            {
+                throw av1_exception(UMC::UMC_ERR_ALLOC);
+            }
         }
 
         if (frame_source)
@@ -1312,6 +1321,16 @@ namespace UMC_AV1_DECODER
             mfxFrameSurface1* surface = frame_source->GetSurfaceByIndex(id);
             if (!surface)
                 throw av1_exception(UMC::UMC_ERR_ALLOC);
+
+            if (m_drcFrameWidth > surface->Info.Width || m_drcFrameHeight > surface->Info.Height)
+            {
+                surface->Info.Width = mfx::align2_value(m_drcFrameWidth, 16);
+                surface->Info.Height = mfx::align2_value(m_drcFrameHeight, 16);
+                VAAPIVideoCORE_VPL* vaapi_core_vpl = reinterpret_cast<VAAPIVideoCORE_VPL*>(m_pCore->QueryCoreInterface(MFXIVAAPIVideoCORE_VPL_GUID));
+                if (!vaapi_core_vpl)
+                    throw av1_exception(UMC::UMC_ERR_NULL_PTR);
+                vaapi_core_vpl->ReallocFrame(surface);
+            }
         }
 
         AllocateFrameData(info, id, frame);

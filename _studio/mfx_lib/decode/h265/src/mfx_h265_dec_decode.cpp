@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2020 Intel Corporation
+// Copyright (c) 2012-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1029,6 +1029,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             reinterpret_cast<mfxExtDecodeErrorReport *>(extbuf)->ErrorTypes = 0;
             src.SetExtBuffer(extbuf);
         }
+        m_pH265VideoDecoder->SetVideoCore(m_core);
 
         for (;;)
         {
@@ -1036,7 +1037,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             MFX_CHECK_STS(sts);
 
             umcRes = !m_surface_source->HasFreeSurface() ?
-                UMC::UMC_ERR_NEED_FORCE_OUTPUT : m_pH265VideoDecoder->AddSource(bs ? &src : 0, m_core);
+                UMC::UMC_ERR_NEED_FORCE_OUTPUT : m_pH265VideoDecoder->AddSource(bs ? &src : 0);
 
             umcFrameRes = umcRes;
 
