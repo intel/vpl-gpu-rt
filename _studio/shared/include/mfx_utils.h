@@ -471,6 +471,21 @@ namespace options //MSDK API options verification utilities
         return CheckOrZero(opt, (T)other...);
     }
 
+    template <class T>
+    inline bool CheckOrSetDefault(T& opt, T dflt)
+    {
+        opt = T(dflt);
+        return true;
+    }
+
+    template <class T, T val, T... other>
+    inline bool CheckOrSetDefault(T & opt, T dflt)
+    {
+        if (opt == val)
+            return false;
+        return CheckOrSetDefault<T, other...>(opt, dflt);
+    }
+
     template <class T, class U>
     inline bool CheckMaxOrZero(T & opt, U max)
     {
