@@ -2428,6 +2428,12 @@ enum {
     MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION = MFX_MAKEFOURCC('V','A','S','R'),
 #endif
 #ifdef ONEVPL_EXPERIMENTAL
+    /*!
+       See the mfxExtVPPAIFrameInterpolation structure for details.
+    */
+    MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION = MFX_MAKEFOURCC('V', 'A', 'F', 'I'),
+#endif
+#ifdef ONEVPL_EXPERIMENTAL
    /*!
       See the mfxExtQualityInfoMode structure for details.
    */
@@ -3075,12 +3081,19 @@ MFX_PACK_END()
 
 /*! The FrcAlgm enumerator itemizes frame rate conversion algorithms. See description of mfxExtVPPFrameRateConversion structure for more details. */
 enum {
-    MFX_FRCALGM_PRESERVE_TIMESTAMP    = 0x0001, /*!< Frame dropping/repetition based frame rate conversion algorithm with preserved original
-                                                     time stamps. Any inserted frames will carry MFX_TIMESTAMP_UNKNOWN. */
-    MFX_FRCALGM_DISTRIBUTED_TIMESTAMP = 0x0002, /*!< Frame dropping/repetition based frame rate conversion algorithm with distributed time stamps.
-                                                     The algorithm distributes output time stamps evenly according to the output frame rate. */
-    MFX_FRCALGM_FRAME_INTERPOLATION   = 0x0004  /*!< Frame rate conversion algorithm based on frame interpolation. This flag may be combined with
-                                                     MFX_FRCALGM_PRESERVE_TIMESTAMP or MFX_FRCALGM_DISTRIBUTED_TIMESTAMP flags. */
+    MFX_FRCALGM_PRESERVE_TIMESTAMP         = 0x0001, /*!< Frame dropping/repetition based frame rate conversion algorithm with preserved original
+                                                          time stamps. Any inserted frames will carry MFX_TIMESTAMP_UNKNOWN. */
+    MFX_FRCALGM_DISTRIBUTED_TIMESTAMP      = 0x0002, /*!< Frame dropping/repetition based frame rate conversion algorithm with distributed time stamps.
+                                                          The algorithm distributes output time stamps evenly according to the output frame rate. */
+    MFX_FRCALGM_FRAME_INTERPOLATION        = 0x0004, /*!< Frame rate conversion algorithm based on frame interpolation. This flag may be combined with
+                                                          MFX_FRCALGM_PRESERVE_TIMESTAMP or MFX_FRCALGM_DISTRIBUTED_TIMESTAMP flags. */
+#ifdef ONEVPL_EXPERIMENTAL
+    MFX_FRCALGM_AI_FRAME_INTERPOLATION     = 0x0008  /*!< Frame rate conversion algorithm based on AI powered frame interpolation. This flag may be combined with
+                                                          MFX_FRCALGM_PRESERVE_TIMESTAMP or MFX_FRCALGM_DISTRIBUTED_TIMESTAMP flags. This flag can not be combined
+                                                          with MFX_FRCALGM_FRAME_INTERPOLATION. If application sets this flag, the application needs to attach
+                                                          MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION for the details of frame interpolation to mfxVideoParam. Refer to
+                                                          mfxExtVPPAIFrameInterpolation for more details.*/
+#endif
 };
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
@@ -5151,6 +5164,46 @@ typedef struct {
     mfxU32                      reserved1[16];         /*!< Reserved for future use. */
     mfxHDL                      reserved2[4];          /*!< Reserved for future use. */
 } mfxExtVPPAISuperResolution;
+MFX_PACK_END()
+#endif
+
+#ifdef ONEVPL_EXPERIMENTAL
+/* The mfxAIFrameInterpolationMode enumerator specifies the mode of AI based frame interpolation. */
+typedef enum {
+    MFX_AI_FRAME_INTERPOLATION_MODE_DISABLE = 0,         /*!< AI based frame interpolation is disabled. The library duplicates the frame if AI frame interpolation is disabled.*/
+    MFX_AI_FRAME_INTERPOLATION_MODE_DEFAULT = 1,         /*!< Default AI based frame interpolation mode. The library selects the most appropriate AI based frame interpolation mode.*/
+} mfxAIFrameInterpolationMode;
+
+/*!
+    A hint structure that configures AI based frame interpolation VPP filter.
+    AI powered frame interpolation feature can reconstruct one or more intermediate frames between two consecutive frames by AI method.
+    On some platforms this filter is not supported. To query its support, the application should use the same approach that it uses to configure VPP filters:
+    Attaching the mfxExtVPPAIFrameInterpolation structure directly to the mfxVideoParam structure and setting the frame rate of input and output (FrameRateExtN and FrameRateExtD),
+    then calling the Query API function. If the filter is supported, the Query function returns a MFX_ERR_NONE status; otherwise, the function returns MFX_ERR_UNSUPPORTED.
+    As a new method of frame interpolation, the application can attach mfxExtVPPAIFrameInterpolation to mfxVideoParam during initialization for frame interpolation, or attach both
+    mfxExtVPPAIFrameInterpolation and mfxExtVPPFrameRateConversion to mfxVideoParam and use which mfxExtVPPAIFrameInterpolation is regarded as a new algorithm of mfxExtVPPFrameRateConversion
+    (MFX_FRCALGM_AI_FRAME_INTERPOLATION).
+    The applications should follow video processing procedures and call the API mfxStatus MFXVideoVPP_RunFrameVPPAsync(Session, Input, Output, Auxdata, Syncp) to process the frames one by one.
+    The below is detailed explanation of video processing procedures in this AI frame interpolation case. If the application does not follow the below input/output sequence, the application could
+    get the unexpected output and get an error return value.
+    Input:    Frame0                Frame1                Frame2                Frame3                        FrameN
+    Output:   Frame0    Frame0.5    Frame1    Frame1.5    Frame2    Frame2.5    Frame3    FrameX.5            FrameN
+    #0 API call: Input Frame0, Output Frame0, Return MFX_ERR_NONE.
+    #1 API call: Input Frame1, Output Frame0.5 and Return MFX_ERR_MORE_SURFACE.
+    #2 API call: Input Frame1, Output Frame1, Return MFX_ERR_NONE.
+    #3 API call: Input Frame2, Output Frame1.5, Return MFX_ERR_MORE_SURFACE.
+    #4 API call: Input Frame2, Output Frame2, Return MFX_ERR_NONE.
+*/
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+typedef struct {
+    mfxExtBuffer                        Header;                           /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION.*/
+    mfxAIFrameInterpolationMode         FIMode;                           /*!< Indicates frame interpolation mode. The mfxAIFrameInterpolationMode enumerator.*/
+    mfxU16                              EnableScd;                        /*!< Indicates if enabling scene change detection(SCD) of the library. Recommend to enable this flag for
+                                                                               better quality. Value 0 means disable SCD, Value 1 means enable SCD.*/
+
+    mfxU32                              reserved1[24];                    /*!< Reserved for future use. */
+    mfxHDL                              reserved2[8];                     /*!< Reserved for future use. */
+} mfxExtVPPAIFrameInterpolation;
 MFX_PACK_END()
 #endif
 
