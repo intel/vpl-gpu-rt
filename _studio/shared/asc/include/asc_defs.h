@@ -18,12 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef __ASC_DEFS_H__
-#define __ASC_DEFS_H__
-
 #include <stdint.h>
 
 #include "mfx_config.h"
+
+#ifndef __ASC_DEFS_H__
+#define __ASC_DEFS_H__
 
 #define ASCTUNEDATA       0
 

@@ -411,6 +411,18 @@ mfxStatus ASC_Cm::RunFrame(mfxHDLPair frameHDL, mfxU32 parity)
     return MFX_ERR_NONE;
 }
 
+mfxStatus ASC_Cm::RunFrame(mfxU8 *frame, mfxU32 parity) {
+    if (!m_ASCinitialized)
+        return MFX_ERR_NOT_INITIALIZED;
+    m_videoData[ASCCurrent_Frame]->frame_number = m_videoData[ASCReference_Frame]->frame_number + 1;
+    (this->*(resizeFunc))(frame, m_width, m_height, m_pitch, (ASCLayers)0, parity);
+    RsCsCalc();
+    DetectShotChangeFrame();
+    Put_LTR_Hint();
+    GeneralBufferRotation();
+    return MFX_ERR_NONE;
+}
+
 mfxStatus ASC_Cm::CreateCmSurface2D(mfxHDLPair pSrcPair, CmSurface2D* & pCmSurface2D, SurfaceIndex* &pCmSrcIndex)
 {
     INT cmSts = 0;
@@ -681,6 +693,19 @@ mfxStatus ASC_Cm::PutFrameProgressive(mfxHDL surface)
     mfxHDLPair
         surfPair = { surface, nullptr };
     mfxStatus sts = PutFrameProgressive(surfPair);
+    return sts;
+}
+
+mfxStatus ASC_Cm::PutFrameProgressive(mfxU8 *frame, mfxI32 Pitch) {
+    mfxStatus sts;
+    if (Pitch > 0) {
+        sts = SetPitch(Pitch);
+        SCD_CHECK_MFX_ERR(sts);
+    }
+
+    sts = RunFrame(frame, ASCTopField);
+    SCD_CHECK_MFX_ERR(sts);
+    m_dataReady = (sts == MFX_ERR_NONE);
     return sts;
 }
 

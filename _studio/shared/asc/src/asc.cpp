@@ -332,13 +332,6 @@ void ASC::VidSample_Init() {
     }
 }
 
-mfxStatus ASC::VidSample_Alloc()
-{
-    for (mfxI32 i = 0; i < ASCVIDEOSTATSBUF; i++)
-        SCD_CHECK_MFX_ERR(m_videoData[i]->layer.InitFrame(m_dataIn->layer));
-    return MFX_ERR_NONE;
-}
-
 void ASC::SetUltraFastDetection() {
     m_support->size = ASCSmall_Size;
     resizeFunc = &ASC::SubSampleASC_ImagePro;
@@ -461,7 +454,6 @@ mfxStatus ASC::Init(mfxI32 Width,
 
     VidSample_Init();
     Setup_Environment();
-    VidSample_Alloc();
 
     sts = VidRead_Init();
     SCD_CHECK_MFX_ERR(sts);
@@ -1169,31 +1161,6 @@ void ASC::VidSample_dispose()
         }
     }
     free(m_frameBkp);
-}
-
-mfxStatus ASC::RunFrame(mfxU8* frame, mfxU32 parity) {
-    if (!m_ASCinitialized)
-        return MFX_ERR_NOT_INITIALIZED;
-    m_videoData[ASCCurrent_Frame]->frame_number = m_videoData[ASCReference_Frame]->frame_number + 1;
-    (this->*(resizeFunc))(frame, m_width, m_height, m_pitch, (ASCLayers)0, parity);
-    RsCsCalc();
-    DetectShotChangeFrame();
-    Put_LTR_Hint();
-    GeneralBufferRotation();
-    return MFX_ERR_NONE;
-}
-
-mfxStatus ASC::PutFrameProgressive(mfxU8* frame, mfxI32 Pitch) {
-    mfxStatus sts;
-    if (Pitch > 0) {
-        sts = SetPitch(Pitch);
-        SCD_CHECK_MFX_ERR(sts);
-    }
-
-    sts = RunFrame(frame, ASCTopField);
-    SCD_CHECK_MFX_ERR(sts);
-    m_dataReady = (sts == MFX_ERR_NONE);
-    return sts;
 }
 
 }

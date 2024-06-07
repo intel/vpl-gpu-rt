@@ -188,7 +188,6 @@ protected:
     void InitStruct();
     mfxStatus VidRead_Init();
     void VidSample_Init();
-    virtual mfxStatus VidSample_Alloc();
     void SubSampleASC_ImagePro(mfxU8 *frame, mfxI32 srcWidth, mfxI32 srcHeight, mfxI32 inputPitch, ASCLayers dstIdx, mfxU32 parity);
     void SubSampleASC_ImageInt(mfxU8 *frame, mfxI32 srcWidth, mfxI32 srcHeight, mfxI32 inputPitch, ASCLayers dstIdx, mfxU32 parity);
     bool CompareStats(mfxU8 current, mfxU8 reference);
@@ -245,10 +244,6 @@ public:
     static mfxI32 Get_CpuFeature_SSE41();
 
     virtual mfxStatus calc_RaCa_Surf(mfxHDLPair surface, mfxF64& rscs);
-
-    mfxStatus RunFrame(mfxU8* frame, mfxU32 parity);
-    mfxStatus PutFrameProgressive(mfxU8* frame, mfxI32 Pitch);
-
 protected:
     ASCVidSample** m_videoData;
 };

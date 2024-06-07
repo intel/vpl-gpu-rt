@@ -64,4 +64,5 @@ target_link_libraries(asc
   PRIVATE
     mfx_sdl_properties
     umc
+    $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
   )

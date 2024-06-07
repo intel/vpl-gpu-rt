@@ -38,7 +38,6 @@ target_sources(asc_ext
 target_link_libraries(asc_ext
   PRIVATE
     cmrt_cross_platform_hw
-    asc
 )
 
 include(sources_ext.cmake OPTIONAL)
