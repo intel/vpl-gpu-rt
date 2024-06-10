@@ -588,12 +588,6 @@ void General::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         return CheckTU(out, m_pQWCDefaults->caps);
     });
 
-    Push(BLK_CheckDeltaQ
-        , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
-    {
-        return CheckDeltaQ(out);
-    });
-
     Push(BLK_CheckFrameOBU
         , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW& strg) -> mfxStatus
     {
@@ -674,6 +668,12 @@ void General::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     {
         return CheckRateControl(out, *m_pQWCDefaults);
     });
+
+    Push(BLK_CheckDeltaQ
+        , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
+        {
+            return CheckDeltaQ(out);
+        });
 
     Push(BLK_CheckCrops
         , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
@@ -2097,6 +2097,56 @@ inline void SetTaskQp(
     SetIf(task.QpY, !!task.ctrl.QP, static_cast<mfxU8>(task.ctrl.QP));
 }
 
+inline bool CheckQpInRangeOrClip(mfxI32 qp, mfxI8& delta)
+{
+
+    mfxI32 clipQp = static_cast<mfxI32>(delta);
+    if (qp + delta > 255)
+    {
+        clipQp = 255 - qp;
+    }
+    else if (qp + delta < 0)
+    {
+        clipQp = 0 - qp;
+    }
+    else
+    {
+        return false;
+    }
+
+    std::ignore = CheckRangeOrClip(clipQp, -63, 63);
+
+    delta = static_cast<mfxI8>(clipQp);
+    return true;
+}
+
+inline void ClipTaskDeltaQp(
+    TaskCommonPar& task
+    ,const mfxVideoParam& par)
+{
+    if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
+    {
+        return;
+    }
+    const mfxExtAV1AuxData& auxPar = ExtBuffer::Get(par);
+    mfxU32 changed = 0;
+
+    task.YDcDeltaQ = auxPar.QP.YDcDeltaQ;
+    task.UDcDeltaQ = auxPar.QP.UDcDeltaQ;
+    task.UAcDeltaQ = auxPar.QP.UAcDeltaQ;
+    task.VDcDeltaQ = auxPar.QP.VDcDeltaQ;
+    task.VAcDeltaQ = auxPar.QP.VAcDeltaQ;
+
+    changed += CheckQpInRangeOrClip(task.QpY, task.YDcDeltaQ);
+    changed += CheckQpInRangeOrClip(task.QpY, task.UDcDeltaQ);
+    changed += CheckQpInRangeOrClip(task.QpY, task.UAcDeltaQ);
+    changed += CheckQpInRangeOrClip(task.QpY, task.VDcDeltaQ);
+    changed += CheckQpInRangeOrClip(task.QpY, task.VAcDeltaQ);
+
+    std::ignore = changed;
+
+    return;
+}
 inline void SetTaskBRCParams(
     TaskCommonPar& task
     , const mfxVideoParam& par)
@@ -2626,6 +2676,7 @@ void General::ConfigureTask(
 
     const auto& par = dflts.mvp;
     SetTaskQp(task, par);
+    ClipTaskDeltaQp(task, par);
     SetTaskBRCParams(task, par);
     SetTaskEncodeOrders(task, m_prevTask);
 
@@ -3693,6 +3744,23 @@ mfxStatus General::CheckTU(mfxVideoParam & par, const ENCODE_CAPS_AV1& /* caps *
 
 }
 
+inline mfxStatus FixDeltaQpRange(mfxU16& qp, mfxExtAV1AuxData* pAuxPar)
+{
+    MFX_CHECK(pAuxPar, MFX_ERR_NULL_PTR);
+
+    mfxU32 changed = 0;
+
+    changed += CheckQpInRangeOrClip(qp, pAuxPar->QP.YDcDeltaQ);
+    changed += CheckQpInRangeOrClip(qp, pAuxPar->QP.UDcDeltaQ);
+    changed += CheckQpInRangeOrClip(qp, pAuxPar->QP.UAcDeltaQ);
+    changed += CheckQpInRangeOrClip(qp, pAuxPar->QP.VDcDeltaQ);
+    changed += CheckQpInRangeOrClip(qp, pAuxPar->QP.VAcDeltaQ);
+
+    MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+
+    return MFX_ERR_NONE;
+}
+
 mfxStatus General::CheckDeltaQ(mfxVideoParam& par)
 {
     mfxExtAV1AuxData* pAuxPar = ExtBuffer::Get(par);
@@ -3710,6 +3778,20 @@ mfxStatus General::CheckDeltaQ(mfxVideoParam& par)
     changed += CheckMaxOrClip(pAuxPar->QP.VDcDeltaQ, 63);
     changed += CheckMinOrClip(pAuxPar->QP.VAcDeltaQ, -63);
     changed += CheckMaxOrClip(pAuxPar->QP.VAcDeltaQ, 63);
+
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
+    {
+        changed += FixDeltaQpRange(par.mfx.QPI, pAuxPar);
+        if (par.mfx.GopPicSize > 1)
+        {
+            changed += FixDeltaQpRange(par.mfx.QPP, pAuxPar);
+        }
+        if (par.mfx.GopRefDist > 1)
+        {
+            changed += FixDeltaQpRange(par.mfx.QPB, pAuxPar);
+        }
+    }
+
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
     return MFX_ERR_NONE;
@@ -4395,6 +4477,12 @@ mfxStatus General::GetCurrentFrameHeader(
     SetRefFrameIndex(task, currFH, frameIsIntra);
 
     currFH.quantization_params.base_q_idx = task.QpY;
+
+    currFH.quantization_params.DeltaQYDc = task.YDcDeltaQ;
+    currFH.quantization_params.DeltaQUDc = task.UDcDeltaQ;
+    currFH.quantization_params.DeltaQUAc = task.UAcDeltaQ;
+    currFH.quantization_params.DeltaQVDc = task.VDcDeltaQ;
+    currFH.quantization_params.DeltaQVAc = task.VAcDeltaQ;
 
     if (IsLossless(currFH))
     {
