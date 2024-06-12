@@ -25,6 +25,8 @@
 #include "basestreamin.h"
 #include "bitstreamin.h"
 
+#include <string.h>
+#include <string>
 
 CBitStreamInput::CBitStreamInput(void)
 {
@@ -253,5 +255,46 @@ JERRCODE CBitStreamInput::ReadDword(int* dword)
 
   return JPEG_OK;
 } // CBitStreamInput::ReadDword()
+
+
+JERRCODE CBitStreamInput::SeekAfterByte(int byte, int* skipped)
+{
+  JERRCODE jerr;
+  int cnt, res = 0;
+  unsigned char bytes[] = { byte };
+  unsigned char* buf;
+  std::size_t p;
+  std::string pattern(bytes, bytes + 1); 
+
+  for (;;)
+  {
+    if(m_currPos >= m_DataLen)
+    {
+      jerr = FillBuffer();
+      if(JPEG_OK != jerr)
+        return jerr;
+    }
+    buf = (unsigned char*) &m_pData[m_currPos];
+    cnt = m_DataLen - m_currPos;
+
+    std::string search(buf, buf + cnt);
+
+    p = search.find(pattern);
+    if(p != std::string::npos) break;
+    res += cnt;
+    m_currPos += cnt;
+    m_nUsedBytes += cnt; 
+  }
+
+  cnt = p;
+  res += cnt;
+  ++cnt;
+  m_currPos += cnt;
+  m_nUsedBytes += cnt; 
+  if(skipped)
+    *skipped = res;
+
+  return JPEG_OK;
+} // CBitStreamInput::SeekToByte()
 
 #endif // MFX_ENABLE_MJPEG_VIDEO_DECODE
