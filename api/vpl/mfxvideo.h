@@ -169,6 +169,8 @@ mfxStatus MFX_CDECL MFXVideoCORE_GetHandle(mfxSession session, mfxHandleType typ
    MFX_ERR_NONE The function completed successfully.
 
    @since This function is available since API version 1.19.
+
+   Notes: Deprecated mfxPlatform::CodeName will be filled with MFX_PLATFORM_MAXIMUM for future new platforms.
 */
 mfxStatus MFX_CDECL MFXVideoCORE_QueryPlatform(mfxSession session, mfxPlatform* platform);
 

@@ -265,6 +265,10 @@ enum {
     MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_ATS_M)          = 46, /*!< Code name ATS-M, same media functionality as DG2. */
     MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_ALDERLAKE_N)    = 55, /*!< Code name Alder Lake N. */
     MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_KEEMBAY)        = 50, /*!< Code name Keem Bay. */
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_METEORLAKE)     = 51, /*!< Code name Meteor Lake. */
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_LUNARLAKE)      = 53, /*!< Code name Lunar Lake. */
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_ARROWLAKE)      = 54, /*!< Code name Arrow Lake. */
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_MAXIMUM)        = 65535, /*!< General code name. */
 };
 
 /*! The mfxMediaAdapterType enumerator itemizes types of graphics adapters. */
