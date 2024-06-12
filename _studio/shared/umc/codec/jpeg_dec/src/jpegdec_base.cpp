@@ -314,22 +314,9 @@ JERRCODE CJPEGDecoderBase::NextMarker(JMARKER* marker)
 
   for(;;)
   {
-    jerr = m_BitStreamIn.ReadByte(&c);
+    jerr = m_BitStreamIn.SeekAfterByte(0xff, &n);
     if(JPEG_OK != jerr)
       return jerr;
-
-    if(c != 0xff)
-    {
-      do
-      {
-        n++;
-
-        jerr = m_BitStreamIn.ReadByte(&c);
-        if(JPEG_OK != jerr)
-          return jerr;
-
-      } while(c != 0xff);
-    }
 
     do
     {

@@ -57,6 +57,7 @@ public:
   JERRCODE ReadByte(int* byte);
   JERRCODE ReadWord(int* word);
   JERRCODE ReadDword(int* dword);
+  JERRCODE SeekAfterByte(int byte, int* skipped = NULL);
 
 protected:
   CBaseStreamInput* m_in;
