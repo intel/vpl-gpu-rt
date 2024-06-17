@@ -84,8 +84,10 @@ enum eMFXHWType
     MFX_HW_DG2       = MFX_HW_TGL_LP + 8,
 
     MFX_HW_PVC       = MFX_HW_XE_HP_SDV + 2,
+
     MFX_HW_MTL       = 0x1700000,
     MFX_HW_ARL       = MFX_HW_MTL + 1,
+    MFX_HW_LNL       = MFX_HW_MTL + 3,
 
 };
 
@@ -579,6 +581,13 @@ typedef struct {
     { 0x7D51, MFX_HW_ARL, MFX_GT2 },
     { 0x7DD1, MFX_HW_ARL, MFX_GT2 },
     { 0x7D41, MFX_HW_ARL, MFX_GT2 },
+
+
+    /* LNL */
+    { 0x6420, MFX_HW_LNL, MFX_GT2 },
+    { 0x6480, MFX_HW_LNL, MFX_GT2 },
+    { 0x64A0, MFX_HW_LNL, MFX_GT2 },
+    { 0x64B0, MFX_HW_LNL, MFX_GT2 },
 
 };
 

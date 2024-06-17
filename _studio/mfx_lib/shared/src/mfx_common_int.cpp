@@ -1256,6 +1256,7 @@ mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id)
                          platform.CodeName = MFX_PLATFORM_DG2;           break;
     case MFX_HW_MTL    : platform.CodeName = MFX_PLATFORM_METEORLAKE;    break;
     case MFX_HW_ARL    : platform.CodeName = MFX_PLATFORM_ARROWLAKE;     break;
+    case MFX_HW_LNL    : platform.CodeName = MFX_PLATFORM_LUNARLAKE;     break;
     default:
                          platform.MediaAdapterType = MFX_MEDIA_UNKNOWN;
                          platform.CodeName = MFX_PLATFORM_UNKNOWN;       break;
