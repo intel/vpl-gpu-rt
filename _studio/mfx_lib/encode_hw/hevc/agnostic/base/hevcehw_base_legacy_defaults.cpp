@@ -566,8 +566,9 @@ public:
         {
             return pCO3->TargetChromaFormatPlus1;
         }
-        //For RGB4 use illogical default 420 for backward compatibility
-        if (par.mvp.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4)
+        //For RGB4 and BGR4 use illogical default 420 for backward compatibility
+        if (par.mvp.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4
+            || par.mvp.mfx.FrameInfo.FourCC == MFX_FOURCC_BGR4)
         {
             return mfxU16(MFX_CHROMAFORMAT_YUV420 + 1);
         }
