@@ -254,6 +254,21 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
 
                 break;
             }
+            case MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION:
+            {
+                mfxFrameInfo info;
+
+                info = pParam->vpp.In;
+                mfxF64 inFrameRate = CalculateUMCFramerate(info.FrameRateExtN, info.FrameRateExtD);
+                info = pParam->vpp.Out;
+                mfxF64 outFrameRate = CalculateUMCFramerate(info.FrameRateExtN, info.FrameRateExtD);
+
+                inputFramesCount[filterIndex] = 1;
+                outputFramesCount[filterIndex] = 1;
+                outputFramesCount[filterIndex] = std::max<mfxU16>(outputFramesCount[filterIndex], (mfxU16)(ceil(outFrameRate / inFrameRate)));
+
+                break;
+            }
 
             case (mfxU32)MFX_EXTBUFF_VPP_PROCAMP:
             {

@@ -54,6 +54,8 @@
 #include "asc.h"
 #endif
 
+#include "mfx_vpp_ai_frame_interpolation.h"
+
 #if defined (ONEVPL_EXPERIMENTAL)
 namespace PercEncPrefilter
 {
@@ -76,14 +78,15 @@ namespace MfxHwVideoProcessing
         FRC_ENABLED  = 0x01,
         FRC_STANDARD = 0x02,
         FRC_DISTRIBUTED_TIMESTAMP = 0x04,
-        FRC_INTERPOLATION = 0x08
+        FRC_INTERPOLATION = 0x08,
+        FRC_AI_INTERPOLATION       = 0x10
     };
 
     enum AdvGfxMode
     {
-        VARIANCE_REPORT = 0x10,
-        IS_REFERENCES   = 0x20,
-        COMPOSITE       = 0x40
+        VARIANCE_REPORT = 0x20,
+        IS_REFERENCES   = 0x40,
+        COMPOSITE       = 0x80
     };
 
 
@@ -734,6 +737,7 @@ namespace MfxHwVideoProcessing
         //mfxU32 GetSubTask(DdiTask *pTask);
         mfxStatus DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx);
 
+        void SetAiFi(std::shared_ptr<MFXVideoFrameInterpolation>& interpolator) { m_aiFrameInterpolator = interpolator; }
     private:
 #ifdef MFX_ENABLE_MCTF
         std::weak_ptr<CMC> pMCTF;
@@ -846,6 +850,7 @@ namespace MfxHwVideoProcessing
 #ifdef MFX_ENABLE_MCTF
         mfxU32  m_MCTFSurfacesInQueue;
 #endif
+        std::shared_ptr<MFXVideoFrameInterpolation> m_aiFrameInterpolator;
     }; // class TaskManager
 
     class VideoVPPHW
@@ -1033,6 +1038,8 @@ namespace MfxHwVideoProcessing
 #if defined (ONEVPL_EXPERIMENTAL)
         std::unique_ptr<PercEncPrefilter::PercEncFilter> m_PercEncFilter;
 #endif
+
+        std::shared_ptr<MFXVideoFrameInterpolation> m_aiVfiFilter;
 
     };
 

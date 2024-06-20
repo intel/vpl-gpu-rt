@@ -127,6 +127,7 @@ const mfxU32 g_TABLE_CONFIG [] =
     MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION
 #if defined (ONEVPL_EXPERIMENTAL)
     , MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER
+    ,MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION
 #endif
 };
 
@@ -180,6 +181,7 @@ const mfxU32 g_TABLE_EXT_PARAM [] =
     MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION
 #if defined (ONEVPL_EXPERIMENTAL)
     , MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER
+    , MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION
 #endif
 };
 
@@ -859,7 +861,14 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
         index++;
     }
 
-    if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION ) )
+    if (IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION))
+    {
+        newList[index] = MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION;
+        index++;
+    }
+
+    if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION ) && 
+        !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION))
     {
         newList[index] = MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION;
         index++;
@@ -1393,8 +1402,14 @@ mfxStatus GetPipelineList(
             pipelineList.push_back(MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO);
         }
     }
-	
-	if (IsFilterFound(&configList[0], configCount, MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION)
+
+	if (IsFilterFound(&configList[0], configCount, MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION)
+        && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION))
+    {
+        pipelineList.push_back(MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION);
+    }
+
+    if (IsFilterFound(&configList[0], configCount, MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION)
         && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION))
     {
         pipelineList.push_back(MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION);

@@ -410,8 +410,10 @@ namespace MfxHwVideoProcessing
                ,mirroringExt(false)
                ,scene(VPP_NO_SCENE_CHANGE)
                ,bDeinterlace30i60p(false)
-               , bSuperResolution(false)
-               , m_srMode(MFX_AI_SUPER_RESOLUTION_MODE_DISABLED)
+               ,bSuperResolution(false)
+               ,m_srMode(MFX_AI_SUPER_RESOLUTION_MODE_DISABLED)
+               ,bAiVfi(false)
+               ,m_aiFiMode(MFX_AI_FRAME_INTERPOLATION_MODE_DISABLE)
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
                ,gpuHangTrigger(false)
 #endif
@@ -608,6 +610,9 @@ namespace MfxHwVideoProcessing
 		
         bool                     bSuperResolution;
         mfxAISuperResolutionMode m_srMode;
+
+        bool                        bAiVfi;
+        mfxAIFrameInterpolationMode m_aiFiMode;
 
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
         bool       gpuHangTrigger;
