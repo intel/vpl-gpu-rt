@@ -431,7 +431,8 @@ mfxStatus DDI_VA::QueryCaps()
     auto attribValEncAV1 = *(VAConfigAttribValEncAV1 *)(&attrs[idx_map[(VAConfigAttribType)VAConfigAttribEncAV1]].value);
     m_caps.CDEFChannelStrengthSupport = attribValEncAV1.bits.support_cdef_channel_strength ? 1 : 0;
     m_caps.AV1ToolSupportFlags.fields.PaletteMode = attribValEncAV1.bits.support_palette_mode ? 1 : 0;
-
+    m_caps.AV1ToolSupportFlags.fields.allow_intrabc = attribValEncAV1.bits.support_allow_intrabc ? 1 : 0;
+    
     auto attribValEncAV1Ext1 = *(VAConfigAttribValEncAV1Ext1 *)(&attrs[idx_map[(VAConfigAttribType)VAConfigAttribEncAV1Ext1]].value);
     m_caps.SegmentFeatureSupport               = attribValEncAV1Ext1.bits.segment_feature_support;
     m_caps.MinSegIdBlockSizeAccepted           = attribValEncAV1Ext1.bits.min_segid_block_size_accepted;
