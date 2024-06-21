@@ -3060,7 +3060,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                     par.mfx.CodecLevel = GetMaxSupportedLevel();
             }
         }
-        else if (par.mfx.CodecLevel != 0 && par.mfx.CodecLevel < minLevel)
+        else if (par.mfx.CodecLevel != 0 && (par.mfx.CodecLevel != MFX_LEVEL_AVC_1b || minLevel != MFX_LEVEL_AVC_1) && par.mfx.CodecLevel < minLevel)
         {
             if (extBits->SPSBuffer)
                 MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
@@ -3090,7 +3090,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                     par.mfx.CodecLevel = GetMaxSupportedLevel();
             }
         }
-        else if (par.mfx.CodecLevel != 0 && par.mfx.CodecLevel < minLevel)
+        else if (par.mfx.CodecLevel != 0 && (par.mfx.CodecLevel != MFX_LEVEL_AVC_1b || minLevel != MFX_LEVEL_AVC_1) && par.mfx.CodecLevel < minLevel)
         {
             if (extBits->SPSBuffer)
                 MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
@@ -3114,7 +3114,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             par.mfx.CodecLevel = MFX_LEVEL_AVC_52;
             par.mfx.NumRefFrame = GetMaxNumRefFrame(par);
         }
-        else if (par.mfx.CodecLevel != 0 && par.mfx.CodecLevel < minLevel)
+        else if (par.mfx.CodecLevel != 0 && (par.mfx.CodecLevel != MFX_LEVEL_AVC_1b || minLevel != MFX_LEVEL_AVC_1) && par.mfx.CodecLevel < minLevel)
         {
             if (extBits->SPSBuffer)
                 MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
@@ -3486,7 +3486,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                 {
                     if (mfxU16 minLevel = GetLevelLimitByMaxBitrate(profile, par.calcParam.targetKbps))
                     {
-                        if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && par.mfx.CodecLevel < minLevel)
+                        if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && (par.mfx.CodecLevel != MFX_LEVEL_AVC_1b || minLevel != MFX_LEVEL_AVC_1) && par.mfx.CodecLevel < minLevel)
                         {
                             if (extBits->SPSBuffer)
                                 MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
@@ -3558,7 +3558,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             {
                 if (mfxU16 minLevel = GetLevelLimitByMaxBitrate(profile, par.calcParam.maxKbps))
                 {
-                    if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && par.mfx.CodecLevel < minLevel)
+                    if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && (par.mfx.CodecLevel != MFX_LEVEL_AVC_1b || minLevel != MFX_LEVEL_AVC_1) && par.mfx.CodecLevel < minLevel)
                     {
                         if (extBits->SPSBuffer)
                             MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
@@ -3648,7 +3648,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                 {
                     if (mfxU16 minLevel = GetLevelLimitByBufferSize(profile, par.calcParam.bufferSizeInKB))
                     {
-                        if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && par.mfx.CodecLevel < minLevel)
+                        if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && (par.mfx.CodecLevel != MFX_LEVEL_AVC_1b || minLevel != MFX_LEVEL_AVC_1) && par.mfx.CodecLevel < minLevel)
                         {
                             if (extBits->SPSBuffer)
                                 MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
@@ -3702,7 +3702,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         {
             if (mfxU16 minLevel = GetLevelLimitByMaxBitrate(profile, par.calcParam.decorativeHrdParam.targetKbps))
             {
-                if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && par.mfx.CodecLevel < minLevel)
+                if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && (par.mfx.CodecLevel != MFX_LEVEL_AVC_1b || minLevel != MFX_LEVEL_AVC_1) && par.mfx.CodecLevel < minLevel)
                 {
                     changed = true;
                     par.mfx.CodecLevel   = minLevel;
@@ -3732,7 +3732,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         {
             if (mfxU16 minLevel = GetLevelLimitByMaxBitrate(profile, par.calcParam.decorativeHrdParam.maxKbps))
             {
-                if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && par.mfx.CodecLevel < minLevel)
+                if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && (par.mfx.CodecLevel != MFX_LEVEL_AVC_1b || minLevel != MFX_LEVEL_AVC_1) && par.mfx.CodecLevel < minLevel)
                 {
                     changed = true;
                     par.mfx.CodecLevel = minLevel;
@@ -3756,7 +3756,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         {
             if (mfxU16 minLevel = GetLevelLimitByBufferSize(profile, par.calcParam.decorativeHrdParam.bufferSizeInKB))
             {
-                if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && par.mfx.CodecLevel < minLevel)
+                if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && (par.mfx.CodecLevel != MFX_LEVEL_AVC_1b || minLevel != MFX_LEVEL_AVC_1) && par.mfx.CodecLevel < minLevel)
                 {
                     changed = true;
                     par.mfx.CodecLevel = minLevel;
