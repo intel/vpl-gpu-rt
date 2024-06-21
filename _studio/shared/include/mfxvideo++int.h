@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2018-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -42,6 +42,9 @@
 
 #include "va/va.h"
 
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+#define VAProfileVVCMain10 100
+#endif
 // Helper struct VaGuidMapper is placed _studio/shared/include/libmfx_core_vaapi.h for use linux/android GUIDs
 // Pack VAEntrypoint and VAProfile into GUID data structure
 #define DEFINE_GUID_VA(name, profile, entrypoint) \
@@ -81,6 +84,11 @@ DEFINE_GUID_VA(sDXVA2_Intel_IVB_ModeJPEG_VLD_NoFGT,          VAProfileJPEGBaseli
 /* MPEG2 */
 DEFINE_GUID_VA(sDXVA2_ModeMPEG2_VLD,                         VAProfileMPEG2Main,     VAEntrypointVLD);
 DEFINE_GUID_VA(DXVA2_Intel_Encode_MPEG2,                     VAProfileMPEG2Main,     VAEntrypointEncSlice);
+
+//vvc
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+DEFINE_GUID_VA(DXVA_Intel_ModeVVC_VLD,                       VAProfileVVCMain10,   VAEntrypointVLD);
+#endif
 
 /* AV1 */
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)

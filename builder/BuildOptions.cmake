@@ -89,6 +89,7 @@ else()
   set( MFX_ENABLE_SHARING_OPENCL OFF)
 endif()
 
+option( MFX_ENABLE_VVC_VIDEO_DECODE "Enabled VVC decoder?" ON)
 option( MFX_ENABLE_AV1_VIDEO_DECODE "Enabled AV1 decoder?" ON)
 option( MFX_ENABLE_VP8_VIDEO_DECODE "Enabled VP8 decoder?" ON)
 option( MFX_ENABLE_VP9_VIDEO_DECODE "Enabled VP9 decoder?" ON)

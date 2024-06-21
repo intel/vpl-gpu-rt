@@ -1,4 +1,4 @@
-// Copyright (c) 2006-2020 Intel Corporation
+// Copyright (c) 2006-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -124,6 +124,9 @@ uint32_t g_Profiles[] =
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
     UMC::AV1_VLD,
 #endif
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+    UMC::VVC_VLD,
+#endif
 };
 
 // va profile priorities for different codecs
@@ -187,6 +190,13 @@ VAProfile g_JPEGProfiles[] =
 {
     VAProfileJPEGBaseline
 };
+
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+VAProfile g_VVCProfiles[] =
+{
+    (VAProfile)VAProfileVVCMain10
+};
+#endif
 
 VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
 {
@@ -268,6 +278,12 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
     case UMC::VA_JPEG:
         if (profile < UMC_ARRAY_SIZE(g_JPEGProfiles)) va_profile = g_JPEGProfiles[profile];
         break;
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+    case UMC::VA_VVC:
+    case UMC::VA_VVC | UMC::VA_PROFILE_10:
+        if (profile < UMC_ARRAY_SIZE(g_VVCProfiles)) va_profile = g_VVCProfiles[profile];
+        break;
+#endif
     default:
         va_profile = (VAProfile)-1;
         break;
@@ -787,12 +803,59 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
                 va_num_elements = size/sizeof(VASliceParameterBufferAV1);
                 break;
 #endif
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+            case UMC::VA_VVC:
+            case UMC::VA_VVC | UMC::VA_PROFILE_10:
+                va_size         = sizeof(UMC_VVC_DECODER::VASliceParameterBufferVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VASliceParameterBufferVVC);
+                break;
+#endif
             default:
                 va_size         = 0;
                 va_num_elements = 0;
                 break;
             }
         }
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)  
+        else if((m_Profile & VA_CODEC) == UMC::VA_VVC)
+        {        
+            if( VATileBufferType == va_type)
+            {
+                va_size         = sizeof(UMC_VVC_DECODER::VATileVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VATileVVC);
+            }
+            else if( VAAlfBufferType == va_type)
+            {
+                va_size         = sizeof(UMC_VVC_DECODER::VAAlfDataVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VAAlfDataVVC);
+            }            
+            else if( VALmcsBufferType == va_type)
+            {
+                va_size         = sizeof(UMC_VVC_DECODER::VALmcsDataVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VALmcsDataVVC);
+            }            
+            else if( VAIQMatrixBufferType == va_type) 
+            {
+                va_size         = sizeof(UMC_VVC_DECODER::VAScalingListVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VAScalingListVVC);
+            }
+            else if( VASliceStructBufferType == va_type)
+            {
+                va_size         = sizeof(UMC_VVC_DECODER::VASliceStructVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VASliceStructVVC);
+            }
+            else if(VASubPicBufferType == va_type)
+            {
+                va_size         = sizeof(UMC_VVC_DECODER::VASubPicVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VASubPicVVC);           
+            }
+            else
+            {
+                va_size         = size;
+                va_num_elements = 1;
+            }
+        }       
+#endif        
         else
         {
             va_size         = size;

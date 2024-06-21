@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2020 Intel Corporation
+// Copyright (c) 2007-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -140,6 +140,17 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
         }
         break;
 
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+    case MFX_CODEC_VVC:
+        profile |= VA_VVC;
+        switch (param->mfx.FrameInfo.FourCC)
+        {
+        case MFX_FOURCC_P010:
+            profile |= VA_PROFILE_10;
+            break;
+        }
+        break;
+#endif
     default:
         return 0;
     }

@@ -280,6 +280,13 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId)
             )
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         break;
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+    case MFX_CODEC_VVC:
+        if (info->FourCC != MFX_FOURCC_NV12 &&
+            info->FourCC != MFX_FOURCC_P010)
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+        break;
+#endif
 #if defined(MFX_ENABLE_AV1_VIDEO_CODEC)
     case MFX_CODEC_AV1:
             if (   info->FourCC != MFX_FOURCC_NV12
@@ -328,6 +335,17 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId)
 
     switch (codecId) 
     {
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+    case MFX_CODEC_VVC:
+        if (info->FourCC == MFX_FOURCC_P210
+            || info->FourCC == MFX_FOURCC_Y210
+            || info->FourCC == MFX_FOURCC_P016
+            || info->FourCC == MFX_FOURCC_Y216
+            || info->FourCC == MFX_FOURCC_Y416)
+        {
+            MFX_CHECK(info->Shift == 1, MFX_ERR_INVALID_VIDEO_PARAM);
+        }
+#endif
     case MFX_CODEC_HEVC:
         break;
     default:
@@ -424,6 +442,9 @@ static mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
         case MFX_CODEC_VP9:
 #if defined(MFX_ENABLE_AV1_VIDEO_CODEC)
         case MFX_CODEC_AV1:
+#endif
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+        case MFX_CODEC_VVC:
 #endif
             break;
         default:

@@ -230,6 +230,28 @@ if (MFX_ENABLE_AV1_VIDEO_DECODE)
   source_group("av1" FILES ${AV1_VIDEO_DECODE_SRC})
 endif()
 
+if (MFX_ENABLE_VVC_VIDEO_DECODE)
+  target_include_directories(decode_hw PUBLIC
+    ${UMC_CODECS}/vvc_dec/include
+    vvc/include
+  )
+
+  set(VVC_VIDEO_DECODE_SRC
+    vvc/src/mfx_vvc_dec_decode.cpp
+    ${UMC_CODECS}/vvc_dec/src/umc_vvc_bitstream_headers.cpp
+    ${UMC_CODECS}/vvc_dec/src/umc_vvc_decoder.cpp
+    ${UMC_CODECS}/vvc_dec/src/umc_vvc_decoder_va.cpp
+    ${UMC_CODECS}/vvc_dec/src/umc_vvc_frame.cpp
+    ${UMC_CODECS}/vvc_dec/src/umc_vvc_heap.cpp
+    ${UMC_CODECS}/vvc_dec/src/umc_vvc_slice_decoding.cpp
+    ${UMC_CODECS}/vvc_dec/src/umc_vvc_mfx_utils.cpp
+    ${UMC_CODECS}/vvc_dec/src/umc_vvc_au_splitter.cpp
+    ${UMC_CODECS}/vvc_dec/src/umc_vvc_va_packer_vaapi.cpp
+  )
+
+  source_group("vvc" FILES ${VVC_VIDEO_DECODE_SRC})
+endif()
+
 target_sources(decode_hw PRIVATE
   ${AVC_VIDEO_DECODE_SRC}
   ${HEVC_VIDEO_DECODE_SRC}
@@ -239,6 +261,7 @@ target_sources(decode_hw PRIVATE
   ${VP8_VIDEO_DECODE_SRC}
   ${VP9_VIDEO_DECODE_SRC}
   ${AV1_VIDEO_DECODE_SRC}
+  ${VVC_VIDEO_DECODE_SRC}
 )
 
 target_include_directories(decode_hw

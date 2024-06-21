@@ -184,6 +184,14 @@ namespace AV1DCaps {
     }
 }
 #endif // MFX_ENABLE_AV1_VIDEO_DECODE
+#ifdef MFX_ENABLE_VVC_VIDEO_DECODE
+namespace VVCDCaps {
+    inline bool IsPlatformSupported(eMFXHWType platform)
+    {
+        return platform >= MFX_HW_LNL;
+    }
+}
+#endif // MFX_ENABLE_VVC_VIDEO_DECODE
 
 #ifdef MFX_ENABLE_H264_VIDEO_DECODE
 namespace H264DCaps {

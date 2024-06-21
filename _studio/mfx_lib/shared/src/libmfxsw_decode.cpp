@@ -62,6 +62,9 @@
 #include "mfx_av1_dec_decode.h"
 #endif
 
+#if defined (MFX_ENABLE_VVC_VIDEO_DECODE)
+#include "mfx_vvc_dec_decode.h"
+#endif
 
 #include "mfx_unified_decode_logging.h"
 
@@ -124,6 +127,11 @@ VideoDECODE* _mfxSession::Create<VideoDECODE>(mfxVideoParam& par)
          break;
 #endif
 
+#if defined (MFX_ENABLE_VVC_VIDEO_DECODE)
+     case MFX_CODEC_VVC:
+         pDECODE = new VideoDECODEVVC(core, &mfxRes);
+         break;
+#endif
     default:
         break;
     }
@@ -219,6 +227,11 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             break;
 #endif
 
+#ifdef MFX_ENABLE_VVC_VIDEO_DECODE
+        case MFX_CODEC_VVC:
+            mfxRes = VideoDECODEVVC::Query(session->m_pCORE.get(), in, out);
+            break;
+#endif
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
         }
@@ -304,6 +317,11 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             break;
 #endif
 
+#ifdef MFX_ENABLE_VVC_VIDEO_DECODE
+        case MFX_CODEC_VVC:
+            mfxRes = VideoDECODEVVC::QueryIOSurf(session->m_pCORE.get(), par, request);
+            break;
+#endif
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
         }
@@ -391,6 +409,11 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
             break;
 #endif
 
+#ifdef MFX_ENABLE_VVC_VIDEO_DECODE
+        case MFX_CODEC_VVC:
+            mfxRes = VideoDECODEVVC::DecodeHeader(session->m_pCORE.get(), bs, par);
+            break;
+#endif
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
         }
@@ -698,6 +721,18 @@ mfxStatus QueryImplsDescription(VideoCORE& core, mfxDecoderDescription& caps, mf
                [](VideoCORE& core, mfxDecoderDescription::decoder& caps, mfx::PODArraysHolder& ah)
                {
                    return VideoDECODEAV1::QueryImplsDescription(core, caps, ah);
+               }
+           }
+       },
+    #endif
+    #if defined (MFX_ENABLE_VVC_VIDEO_DECODE)
+       {
+           MFX_CODEC_VVC,
+           {
+               // .QueryImplsDescription =
+               [](VideoCORE& core, mfxDecoderDescription::decoder& caps, mfx::PODArraysHolder& ah)
+               {
+                   return VideoDECODEVVC::QueryImplsDescription(core, caps, ah);
                }
            }
        },

@@ -73,6 +73,9 @@ enum VideoAccelerationProfile
 #if defined(MFX_ENABLE_AV1_VIDEO_CODEC)
     VA_AV1          = 0x0009,
 #endif
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+    VA_VVC          = 0x000a,
+#endif
 
     // Entry points
     VA_ENTRY_POINT  = 0xfff00,
@@ -108,6 +111,10 @@ enum VideoAccelerationProfile
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
     AV1_VLD         = VA_AV1 | VA_VLD,
     AV1_10_VLD      = VA_AV1 | VA_VLD | VA_PROFILE_10,
+#endif
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+    VVC_VLD         = VA_VVC | VA_VLD,
+    VVC_10_VLD      = VA_VVC | VA_VLD | VA_PROFILE_10,
 #endif
 
     H265_VLD_REXT               = VA_H265 | VA_VLD | VA_PROFILE_REXT,
@@ -316,6 +323,13 @@ public:
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
         case VA_AV1:
 #if defined(MFX_ENABLE_HW_BLOCKING_TASK_SYNC_AV1D)
+            isEnabled = true;
+#endif
+            break;
+#endif
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+        case VA_VVC:
+#if defined(MFX_ENABLE_HW_BLOCKING_TASK_SYNC_VVCD)
             isEnabled = true;
 #endif
             break;
