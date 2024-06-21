@@ -31,6 +31,7 @@
 
 class MfxVppHelper;
 
+using namespace MfxHwVideoProcessing;
 class MFXVideoFrameInterpolation
 {
     enum Ratio {
@@ -43,7 +44,7 @@ public:
     MFXVideoFrameInterpolation();
     virtual ~MFXVideoFrameInterpolation();
 
-    mfxStatus Init(VideoCORE* core, mfxFrameInfo& inInfo, mfxFrameInfo& outInfo, mfxU16 IOPattern);
+    mfxStatus Init(VideoCORE* core, mfxFrameInfo& inInfo, mfxFrameInfo& outInfo, mfxU16 IOPattern, const mfxVideoSignalInfo& videoSignalInfo);
 
     mfxStatus UpdateTsAndGetStatus(
         mfxFrameSurface1* input,

@@ -26,18 +26,30 @@
 #include "mfx_vpp_hw.h"
 
 MFXVideoFrameInterpolation::MFXVideoFrameInterpolation() :
+	m_responseIn(),
+	m_responseOut(),
 	m_inputFwd(),
 	m_inputBkwd(),
 	m_output(),
 	m_memIdBkwd(0),
 	m_memIdFwd(0),
 	m_enableScd(false),
+	m_scd(),
 	m_scdNeedCsc(false),
+	m_vppForScd(nullptr),
+	m_scdImage(),
+	m_scdAllocation(),
 	m_preWorkCscForFi(false),
 	m_postWrokForFi(false),
+	m_vppBeforeFi0(nullptr),
+	m_vppBeforeFi1(nullptr),
+	m_vppAfterFi(nullptr),
+	m_rgbSurfForFiIn(),
+	m_rgbSurfForFiOut(),
 	m_rgbBkwd(),
 	m_rgbfwd(),
 	m_rgbFiOut(),
+	m_outSurfForFi(),
 	m_fiOut()
 {
 }
@@ -55,16 +67,21 @@ bool MFXVideoFrameInterpolation::IsScdSupportedFormat(mfxU32 fourcc)
 
 MFXVideoFrameInterpolation::~MFXVideoFrameInterpolation()
 {
-	m_core->FreeFrames(&m_responseIn);
-	m_core->FreeFrames(&m_responseOut);
+	if (m_responseIn.mids)
+		m_core->FreeFrames(&m_responseIn);
+	if (m_responseOut.mids)
+		m_core->FreeFrames(&m_responseOut);
 	if (m_scdNeedCsc)
 	{
-		m_core->FreeFrames(&m_scdAllocation);
-	
+		if (m_scdAllocation.mids)
+			m_core->FreeFrames(&m_scdAllocation);
 	}
-	m_core->FreeFrames(&m_rgbSurfForFiOut);
-	m_core->FreeFrames(&m_rgbSurfForFiIn);
-	m_core->FreeFrames(&m_outSurfForFi);
+	if (m_rgbSurfForFiOut.mids)
+		m_core->FreeFrames(&m_rgbSurfForFiOut);
+	if (m_rgbSurfForFiIn.mids)
+		m_core->FreeFrames(&m_rgbSurfForFiIn);
+	if (m_outSurfForFi.mids)
+		m_core->FreeFrames(&m_outSurfForFi);
 }
 
 mfxStatus MFXVideoFrameInterpolation::InitScd(const mfxFrameInfo& frameInfo)
@@ -129,7 +146,7 @@ mfxStatus MFXVideoFrameInterpolation::InitScd(const mfxFrameInfo& frameInfo)
 	return MFX_ERR_NONE;
 }
 
-mfxStatus MFXVideoFrameInterpolation::Init(VideoCORE* core, mfxFrameInfo& inInfo, mfxFrameInfo& outInfo, mfxU16 IOPattern)
+mfxStatus MFXVideoFrameInterpolation::Init(VideoCORE* core, mfxFrameInfo& inInfo, mfxFrameInfo& outInfo, mfxU16 IOPattern, const mfxVideoSignalInfo& videoSignalInfo)
 {
 	m_core = core;
 	MFX_CHECK_NULL_PTR1(m_core);
@@ -182,6 +199,49 @@ mfxStatus MFXVideoFrameInterpolation::Init(VideoCORE* core, mfxFrameInfo& inInfo
 	if (xeSts != XE_AIVFI_SUCCESS)
 		MFX_RETURN(MFX_ERR_UNKNOWN);
 #endif
+
+	mfxExtVideoSignalInfo vsInPre   = {};
+	mfxExtVideoSignalInfo vsOutPre  = {};
+	mfxExtVideoSignalInfo vsInPost  = {};
+	mfxExtVideoSignalInfo vsOutPost = {};
+	mfxExtBuffer* extBufferPre[2]   = {};
+	mfxExtBuffer* extBufferPost[2]  = {};
+	if (videoSignalInfo.enabled)
+	{
+		mfxVideoSignalInfo vsInfoIn  = videoSignalInfo;
+		mfxVideoSignalInfo vsInfoOut = videoSignalInfo;
+		vsInfoOut.VideoFormat        = 1;
+
+		vsInPre.Header.BufferId          = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN;
+		vsInPre.Header.BufferSz          = sizeof(vsInPre);
+		vsInPre.ColourDescriptionPresent = vsInfoIn.ColourDescriptionPresent;
+		vsInPre.ColourPrimaries          = vsInfoIn.ColourPrimaries;
+		vsInPre.MatrixCoefficients       = vsInfoIn.MatrixCoefficients;
+		vsInPre.TransferCharacteristics  = vsInfoIn.TransferCharacteristics;
+		vsInPre.VideoFormat              = vsInfoIn.VideoFormat;
+		vsInPre.VideoFullRange           = vsInfoIn.VideoFullRange;
+
+		vsOutPre.Header.BufferId          = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT;
+		vsOutPre.Header.BufferSz          = sizeof(vsOutPre);
+		vsOutPre.ColourDescriptionPresent = vsInfoOut.ColourDescriptionPresent;
+		vsOutPre.ColourPrimaries          = vsInfoOut.ColourPrimaries;
+		vsOutPre.MatrixCoefficients       = vsInfoOut.MatrixCoefficients;
+		vsOutPre.TransferCharacteristics  = vsInfoOut.TransferCharacteristics;
+		vsOutPre.VideoFormat              = vsInfoOut.VideoFormat;
+		vsOutPre.VideoFullRange           = vsInfoOut.VideoFullRange;
+
+		extBufferPre[0] = &vsInPre.Header;
+		extBufferPre[1] = &vsOutPre.Header;
+
+		vsInPost                  = vsOutPre;
+		vsInPost.Header.BufferId  = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN;
+		vsOutPost                 = vsInPre;
+		vsOutPost.Header.BufferId = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT;
+
+		extBufferPost[0] = &vsInPost.Header;
+		extBufferPost[1] = &vsOutPost.Header;
+	}
+
 	m_preWorkCscForFi = true;
 	{
 		mfxStatus sts = MFX_ERR_NONE;
@@ -198,6 +258,12 @@ mfxStatus MFXVideoFrameInterpolation::Init(VideoCORE* core, mfxFrameInfo& inInfo
 		vppParams.vpp.Out           = outInfo;
 		vppParams.vpp.Out.FourCC    = MFX_FOURCC_BGR4;
 		vppParams.vpp.Out.PicStruct = inInfo.PicStruct;
+
+		if (videoSignalInfo.enabled)
+		{
+			vppParams.NumExtParam = 2;
+			vppParams.ExtParam = &(extBufferPre[0]);
+		}
 
 		sts = m_vppBeforeFi0->Init(&vppParams);
 		MFX_CHECK_STS(sts);
@@ -229,6 +295,12 @@ mfxStatus MFXVideoFrameInterpolation::Init(VideoCORE* core, mfxFrameInfo& inInfo
 		vppParams.vpp.In.PicStruct = inInfo.PicStruct;
 		vppParams.vpp.In.FourCC    = MFX_FOURCC_BGR4;
 		vppParams.vpp.Out          = outInfo;
+
+		if (videoSignalInfo.enabled)
+		{
+			vppParams.NumExtParam = 2;
+			vppParams.ExtParam = &(extBufferPost[0]);
+		}
 
 		sts = m_vppAfterFi->Init(&vppParams);
 		MFX_CHECK_STS(sts);

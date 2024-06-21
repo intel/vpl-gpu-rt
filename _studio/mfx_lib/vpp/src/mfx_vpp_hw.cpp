@@ -2895,7 +2895,7 @@ mfxStatus  VideoVPPHW::Init(
     if (m_executeParams.bAiVfi)
     {
         m_aiVfiFilter = std::make_shared<MFXVideoFrameInterpolation>();
-        sts = m_aiVfiFilter->Init(m_pCore, par->vpp.In, par->vpp.Out, m_IOPattern);
+        sts = m_aiVfiFilter->Init(m_pCore, par->vpp.In, par->vpp.Out, m_IOPattern, m_executeParams.m_outVideoSignalInfo);
         MFX_CHECK_STS(sts);
         m_taskMngr.SetAiFi(m_aiVfiFilter);
     }
