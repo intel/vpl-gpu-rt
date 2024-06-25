@@ -325,6 +325,9 @@ public:
                     case MFX_EXTBUFF_AV1_SCREEN_CONTENT_TOOLS:
                         str += dump(name, *((mfxExtAV1ScreenContentTools*)_struct.ExtParam[i])) + "\n";
                         break;
+                    case MFX_EXTBUFF_ALPHA_CHANNEL_ENC_CTRL:
+                        str += dump(name, *((mfxExtAlphaChannelEncCtrl*)_struct.ExtParam[i])) + "\n";
+                        break;
 #endif
                     default:
                         str += dump(name, *(_struct.ExtParam[i])) + "\n";
@@ -410,6 +413,7 @@ public:
     DEFINE_DUMP_FUNCTION(mfxExtQualityInfoMode);
     DEFINE_DUMP_FUNCTION(mfxExtQualityInfoOutput);
     DEFINE_DUMP_FUNCTION(mfxExtAV1ScreenContentTools);
+    DEFINE_DUMP_FUNCTION(mfxExtAlphaChannelEncCtrl);
 #endif
 };
 #endif //_MFX_TRACE_DUMP_H_

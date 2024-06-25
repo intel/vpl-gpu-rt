@@ -882,7 +882,6 @@ std::string DumpContext::dump(const std::string structName, const  mfxExtMBQP& E
     return str;
 }
 
-
 std::string DumpContext::dump(const std::string structName, const  mfxExtEncoderIPCMArea& ExtEncoderIPCMArea)
 {
     std::string str;
@@ -1094,6 +1093,17 @@ std::string DumpContext::dump(const std::string structName, const  mfxExtAV1Scre
     DUMP_FIELD(IntraBlockCopy);
     DUMP_FIELD_RESERVED(reserved);
 
+    return str;
+}
+
+std::string DumpContext::dump(const std::string structName, const  mfxExtAlphaChannelEncCtrl& ExtAlphaCtrl)
+{
+    std::string str;
+    str += dump(structName + ".Header", ExtAlphaCtrl.Header) + "\n";
+    str += structName + ".EnableAlphaChannelEncoding=" + ToString(ExtAlphaCtrl.EnableAlphaChannelEncoding) + "\n";
+    str += structName + ".AlphaChannelMode=" + ToString(ExtAlphaCtrl.AlphaChannelMode) + "\n";
+    str += structName + ".AlphaChannelBitrateRatio=" + ToString(ExtAlphaCtrl.AlphaChannelBitrateRatio) + "\n";
+    str += structName + ".reserved[]=" + DUMP_RESERVED_ARRAY(ExtAlphaCtrl.reserved) + "\n";
     return str;
 }
 #endif
