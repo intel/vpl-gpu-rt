@@ -467,7 +467,6 @@ mfxStatus VideoDECODEVVC::QueryFrame(mfxThreadTask task)
     MFX_CHECK(m_core, MFX_ERR_UNDEFINED_BEHAVIOR);
     MFX_CHECK(m_decoder, MFX_ERR_NOT_INITIALIZED);
 
-    std::lock_guard<std::mutex> guard(m_guard);
     auto info =
         reinterpret_cast<ThreadTaskInfoVVC*>(task);
     UMC_VVC_DECODER::VVCDecoderFrame* frame = NULL;

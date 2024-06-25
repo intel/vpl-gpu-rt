@@ -363,7 +363,6 @@ namespace UMC_VVC_DECODER
         for (DPBType::iterator frm = m_dpb.begin(); frm != m_dpb.end(); frm++)
             if (InProgress(**frm))
                 decode_queue.push_back(*frm);
-        
         // below logic around "wasCompleted" was adopted from AVC/HEVC decoders
         bool wasCompleted = false;
         UMC::Status sts = UMC::UMC_OK;
@@ -371,6 +370,8 @@ namespace UMC_VVC_DECODER
         {
             wasCompleted = false;
             VVCDecoderFrame& frame = **frm;
+            if (!frame.IsDecodingStarted())
+                continue;
             uint32_t index = 0;
             if (m_va->IsGPUSyncEventEnable() && frame.m_pic_output && frame.IsDisplayable())
             {
@@ -417,7 +418,6 @@ namespace UMC_VVC_DECODER
                     frame.CompleteDecoding();
                     wasCompleted = true;
                     m_reports.erase(m_reports.begin() + i);
-                    SwitchCurrentAU();
                     break;
                 }
             }
