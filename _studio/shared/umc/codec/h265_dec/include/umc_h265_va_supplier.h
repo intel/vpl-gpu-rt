@@ -59,7 +59,8 @@ public:
 
 
 protected:
-    virtual UMC::Status AllocateFrameData(H265DecoderFrame * pFrame, mfxSize dimensions, const H265SeqParamSet* pSeqParamSet, const H265PicParamSet *pPicParamSet);
+    virtual UMC::Status AllocateFrameData(H265DecoderFrame * pFrame, mfxSize dimensions, const H265SeqParamSet* pSeqParamSet,
+                                            const H265PicParamSet *pPicParamSet, UMC::ColorFormat colorFormat);
 
     virtual void InitFrameCounter(H265DecoderFrame * pFrame, const H265Slice *pSlice);
 
@@ -95,9 +96,10 @@ public:
 
 protected:
 
-    virtual UMC::Status AllocateFrameData(H265DecoderFrame * pFrame, mfxSize dimensions, const H265SeqParamSet* pSeqParamSet, const H265PicParamSet * pps)
+    virtual UMC::Status AllocateFrameData(H265DecoderFrame * pFrame, mfxSize dimensions, const H265SeqParamSet* pSeqParamSet,
+                                        const H265PicParamSet * pps, UMC::ColorFormat colorFormat)
     {
-        UMC::Status ret = BaseClass::AllocateFrameData(pFrame, dimensions, pSeqParamSet, pps);
+        UMC::Status ret = BaseClass::AllocateFrameData(pFrame, dimensions, pSeqParamSet, pps, colorFormat);
 
         if (ret == UMC::UMC_OK)
         {

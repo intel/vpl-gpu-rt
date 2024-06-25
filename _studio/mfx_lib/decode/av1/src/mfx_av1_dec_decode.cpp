@@ -293,6 +293,7 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
 
     m_core->GetVA((mfxHDL*)&m_va, MFX_MEMTYPE_FROM_DECODE);
     vp.pVideoAccelerator = m_va;
+    vp.color_config.BitDepth = FourCcBitDepth(par->mfx.FrameInfo.FourCC);
 
     ConvertMFXParamsToUMC(par, &vp);
     vp.info.profile = av1_mfx_profile_to_native_profile(par->mfx.CodecProfile);

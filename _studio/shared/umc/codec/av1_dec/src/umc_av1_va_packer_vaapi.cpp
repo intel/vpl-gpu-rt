@@ -180,8 +180,7 @@ namespace UMC_AV1_DECODER
         seqInfo.film_grain_params_present = sh.film_grain_param_present;
 
         picParam.matrix_coefficients = sh.color_config.matrix_coefficients;
-        picParam.bit_depth_idx = (sh.color_config.BitDepth == 10) ? 1 :
-            (sh.color_config.BitDepth == 12) ? 2 : 0;
+	picParam.bit_depth_idx = (m_bitDepth == 10) ? 1 : (m_bitDepth == 12) ? 2 : 0;
         picParam.order_hint_bits_minus_1 = (uint8_t)sh.order_hint_bits_minus1;
 
         // fill pic params

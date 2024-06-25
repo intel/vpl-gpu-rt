@@ -379,6 +379,11 @@ public:
         return &m_ObjHeap;
     }
 
+    UMC::ColorFormat GetColorformat()
+    {
+        return m_initializationParams.info.color_format;
+    }
+
 protected:
 
     // Include a new slice into a set of frame slices
@@ -417,7 +422,8 @@ protected:
     virtual UMC::Status AddOneFrame(UMC::MediaData * pSource);
 
     // Allocate frame internals
-    virtual UMC::Status AllocateFrameData(H265DecoderFrame * pFrame, mfxSize dimensions, const H265SeqParamSet* pSeqParamSet, const H265PicParamSet *pPicParamSet);
+    virtual UMC::Status AllocateFrameData(H265DecoderFrame * pFrame, mfxSize dimensions,
+        const H265SeqParamSet* pSeqParamSet, const H265PicParamSet *pPicParamSet, UMC::ColorFormat colorFormat);
 
     // Decode a bitstream header NAL unit
     virtual UMC::Status DecodeHeaders(UMC::MediaDataEx *nalUnit);

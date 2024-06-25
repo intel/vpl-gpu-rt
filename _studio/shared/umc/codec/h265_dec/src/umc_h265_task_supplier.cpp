@@ -2484,12 +2484,12 @@ UMC::Status TaskSupplier_H265::InitFreeFrame(H265DecoderFrame * pFrame, const H2
 }
 
 // Allocate frame internals
-UMC::Status TaskSupplier_H265::AllocateFrameData(H265DecoderFrame * pFrame, mfxSize dimensions, const H265SeqParamSet* pSeqParamSet, const H265PicParamSet *pPicParamSet)
+UMC::Status TaskSupplier_H265::AllocateFrameData(H265DecoderFrame * pFrame, mfxSize dimensions, const H265SeqParamSet* pSeqParamSet,
+                                                const H265PicParamSet *pPicParamSet, UMC::ColorFormat colorFormat)
 {
-    UMC::ColorFormat color_format = pFrame->GetColorFormat();
-        //(ColorFormat) pSeqParamSet->chroma_format_idc;
+    UMC::ColorFormat color_format = colorFormat;
     UMC::VideoDataInfo info;
-    int32_t bit_depth = pSeqParamSet->need16bitOutput ? 10 : 8;
+    int32_t bit_depth = color_format2bit_depth(color_format);
     info.Init(dimensions.width, dimensions.height, color_format, bit_depth);
 
     UMC::FrameMemID frmMID;
@@ -2550,7 +2550,8 @@ H265DecoderFrame * TaskSupplier_H265::AllocateNewFrame(const H265Slice *pSlice)
         return 0;
     }
 
-    umcRes = AllocateFrameData(pFrame, pFrame->lumaSize(), pSlice->GetSeqParam(), pSlice->GetPicParam());
+    umcRes = AllocateFrameData(pFrame, pFrame->lumaSize(), pSlice->GetSeqParam(), pSlice->GetPicParam(),
+                        m_initializationParams.info.color_format);
     if (umcRes != UMC::UMC_OK)
     {
         return 0;

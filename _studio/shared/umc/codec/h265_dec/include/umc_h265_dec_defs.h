@@ -1492,6 +1492,27 @@ inline size_t CalculateSuggestedSize(const H265SeqParamSet * sps)
     return 2*size;
 }
 
+inline
+mfxU16 color_format2bit_depth(UMC::ColorFormat format)
+{
+    switch (format)
+    {
+        case UMC::NV12:
+        case UMC::YUY2:
+        case UMC::AYUV: return 8;
+
+        case UMC::P010:
+        case UMC::Y210:
+        case UMC::Y410:  return 10;
+
+        case UMC::P016:
+        case UMC::Y216:
+        case UMC::Y416:  return 12;
+
+        default:         return 0;
+    }
+}
+
 } // end namespace UMC_HEVC_DECODER
 
 #endif // H265_GLOBAL_ROM_H
