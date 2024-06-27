@@ -24,7 +24,9 @@
 
 #include "mfx_vpp_interface.h"
 #include "asc.h"
+#ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
 #include "xe_ai_vfi.h"
+#endif
 #include "mfx_vpp_helper.h"
 
 #include <queue>
