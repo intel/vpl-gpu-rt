@@ -257,14 +257,14 @@ JERRCODE CBitStreamInput::ReadDword(int* dword)
 } // CBitStreamInput::ReadDword()
 
 
-JERRCODE CBitStreamInput::SeekAfterByte(int byte, int* skipped)
+JERRCODE CBitStreamInput::SeekAfterByte(uint8_t byte, int* skipped)
 {
   JERRCODE jerr;
   int cnt, res = 0;
   unsigned char bytes[] = { byte };
   unsigned char* buf;
   std::size_t p;
-  std::string pattern(bytes, bytes + 1); 
+  std::string pattern(bytes, bytes + 1);
 
   for (;;)
   {
@@ -283,14 +283,14 @@ JERRCODE CBitStreamInput::SeekAfterByte(int byte, int* skipped)
     if(p != std::string::npos) break;
     res += cnt;
     m_currPos += cnt;
-    m_nUsedBytes += cnt; 
+    m_nUsedBytes += cnt;
   }
 
   cnt = p;
   res += cnt;
   ++cnt;
   m_currPos += cnt;
-  m_nUsedBytes += cnt; 
+  m_nUsedBytes += cnt;
   if(skipped)
     *skipped = res;
 
