@@ -31,6 +31,7 @@ target_link_libraries(vpp_hw
     vpp_hw_avx2
     mfx_sdl_properties
     $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
+    $<$<AND:$<PLATFORM_ID:Windows>,$<BOOL:${MFX_ENABLE_EXT}>>:ai_vfi_ext>
   )
 
 add_library(vpp_hw_avx2

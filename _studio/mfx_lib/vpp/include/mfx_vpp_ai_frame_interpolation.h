@@ -20,7 +20,6 @@
 #ifndef _MFX_VPP_AI_FRAME_INTERPOLATION_H_
 #define _MFX_VPP_AI_FRAME_INTERPOLATION_H_
 
-#define ENABLE_VFI 0
 
 #include "mfx_vpp_interface.h"
 #include "asc.h"
@@ -94,7 +93,7 @@ private:
     mfxFrameSurface1              m_scdImage;
     mfxFrameAllocResponse         m_scdAllocation;
 
-#if ENABLE_VFI
+#ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
     xeAIVfi                       m_aiIntp;
 #endif
     bool                          m_preWorkCscForFi;
