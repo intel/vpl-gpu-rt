@@ -24,6 +24,7 @@
 #include "mfx_vpp_interface.h"
 #include "asc.h"
 #ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
+#include "asc_ai_vfi.h"
 #include "xe_ai_vfi.h"
 #endif
 #include "mfx_vpp_helper.h"
@@ -87,7 +88,9 @@ private:
 
     //scd related
     bool                          m_enableScd;
-    ns_asc::ASC                   m_scd;
+#ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
+    ns_asc::ASC_AiVfi             m_scd;
+#endif
     bool                          m_scdNeedCsc;
     std::unique_ptr<MfxVppHelper> m_vppForScd;
     mfxFrameSurface1              m_scdImage;

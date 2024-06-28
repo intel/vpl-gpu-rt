@@ -34,7 +34,9 @@ MFXVideoFrameInterpolation::MFXVideoFrameInterpolation() :
     m_memIdBkwd(0),
     m_memIdFwd(0),
     m_enableScd(false),
+#ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
     m_scd(),
+#endif
     m_scdNeedCsc(false),
     m_vppForScd(nullptr),
     m_scdImage(),
@@ -95,8 +97,10 @@ mfxStatus MFXVideoFrameInterpolation::InitScd(const mfxFrameInfo& frameInfo)
 
     if (!m_enableScd)
         return MFX_ERR_NONE;
+#ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
     MFX_CHECK_STS(m_scd.Init(frameInfo.Width, frameInfo.Height, frameInfo.Width, MFX_PICSTRUCT_PROGRESSIVE, false));
     m_scd.SetGoPSize(ns_asc::Immediate_GoP);
+#endif
 
     if (frameInfo.FourCC != MFX_FOURCC_NV12)
     {
@@ -623,11 +627,12 @@ mfxStatus MFXVideoFrameInterpolation::SceneChangeDetect(mfxFrameSurface1* input,
     {
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
-
+#ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
     sts = m_scd.PutFrameProgressive(dataY, pitch);
     MFX_CHECK_STS(sts);
 
     decision = m_scd.Get_frame_shot_Decision();
+#endif
 
     if (isExternal)
     {
