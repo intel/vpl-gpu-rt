@@ -816,9 +816,9 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
                 break;
             }
         }
-#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)  
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
         else if((m_Profile & VA_CODEC) == UMC::VA_VVC)
-        {        
+        {
             if( VATileBufferType == va_type)
             {
                 va_size         = sizeof(UMC_VVC_DECODER::VATileVVC);
@@ -828,13 +828,13 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
             {
                 va_size         = sizeof(UMC_VVC_DECODER::VAAlfDataVVC);
                 va_num_elements = size/sizeof(UMC_VVC_DECODER::VAAlfDataVVC);
-            }            
+            }
             else if( VALmcsBufferType == va_type)
             {
                 va_size         = sizeof(UMC_VVC_DECODER::VALmcsDataVVC);
                 va_num_elements = size/sizeof(UMC_VVC_DECODER::VALmcsDataVVC);
-            }            
-            else if( VAIQMatrixBufferType == va_type) 
+            }
+            else if( VAIQMatrixBufferType == va_type)
             {
                 va_size         = sizeof(UMC_VVC_DECODER::VAScalingListVVC);
                 va_num_elements = size/sizeof(UMC_VVC_DECODER::VAScalingListVVC);
@@ -847,15 +847,15 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
             else if(VASubPicBufferType == va_type)
             {
                 va_size         = sizeof(UMC_VVC_DECODER::VASubPicVVC);
-                va_num_elements = size/sizeof(UMC_VVC_DECODER::VASubPicVVC);           
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VASubPicVVC);
             }
             else
             {
                 va_size         = size;
                 va_num_elements = 1;
             }
-        }       
-#endif        
+        }
+#endif
         else
         {
             va_size         = size;
@@ -889,7 +889,7 @@ LinuxVideoAccelerator::Execute()
     VAStatus       va_res = VA_STATUS_SUCCESS;
     VAStatus       va_sts = VA_STATUS_SUCCESS;
     VABufferID     id;
-    uint32_t         i;
+    uint32_t       i;
     VACompBuffer*  pCompBuf = NULL;
 
     std::lock_guard<std::mutex> guard(m_SyncMutex);
