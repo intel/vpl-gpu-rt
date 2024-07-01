@@ -1155,6 +1155,11 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
         VP9DecoderFrame frameInfo = m_frameInfo;
         sts = DecodeFrameHeader(bs, frameInfo);
+
+        // XXX: Overwrite profile and bit_depth from mfxparam so that we can configure
+        // the output bit format.
+        frameInfo.profile = m_vPar.mfx.CodecProfile - 1;
+        frameInfo.bit_depth = m_vPar.mfx.FrameInfo.BitDepthLuma;
         MFX_CHECK_STS(sts);
 
         MFX_VP9_Utility::FillVideoParam(m_core->GetPlatformType(), frameInfo, m_vPar);
