@@ -429,6 +429,7 @@ void UpdatePPS(
     //other params
     pps.picture_flags.bits.error_resilient_mode = bs_fh.error_resilient_mode;
     pps.picture_flags.bits.enable_frame_obu     = (task.InsertHeaders & INSERT_FRM_OBU) ? 1 : 0;
+    pps.picture_flags.bits.allow_intrabc        = bs_fh.allow_intrabc;
     pps.reconstructed_frame = rec.at(task.Rec.Idx);
 
     //offsets
