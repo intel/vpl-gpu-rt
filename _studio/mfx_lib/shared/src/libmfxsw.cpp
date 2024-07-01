@@ -44,7 +44,7 @@
 mfxStatus MFXInit(mfxIMPL implParam, mfxVersion *ver, mfxSession *session)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  implParam = ", MFX_TRACE_FORMAT_D, implParam);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  implParam = ", MFX_TRACE_FORMAT_I, implParam);
     MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
 
     mfxInitParam par = {};
@@ -72,11 +72,11 @@ static inline mfxU32 MakeVersion(mfxU16 major, mfxU16 minor)
     return major * 1000 + minor;
 }
 
-static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession* session, mfxIMPL implInterface, mfxU32 adapterNum, bool isSingleThreadMode = false);
+static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession* session, mfxIMPL implInterface, mfxU32 adapterNum, bool isSingleThreadMode = false, bool bValidateHandle = false);
 
 mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 {
-    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  Implementation = ", MFX_TRACE_FORMAT_D, par.Implementation);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  Implementation = ", MFX_TRACE_FORMAT_I, par.Implementation);
     MFX_TRACE_2("In:  MFX_API version = ", "%d.%d", par.Version.Major, par.Version.Minor);
     MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
     mfxStatus mfxRes = MFX_ERR_NONE;
@@ -144,7 +144,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         break;
     }
 
-    // MFXInit / MFXInitEx in oneVPL is for work in legacy (1.x) mode only
+    // MFXInit / MFXInitEx in Intel VPL is for work in legacy (1.x) mode only
     // app. must use MFXInitialize for 2.x features
     if (par.Version.Major > 1)
     {
@@ -154,7 +154,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 
     mfxRes = MFXInit_Internal(par, session, implInterface, adapterNum);
 
-    // oneVPL should report 1.255 API version when it was initialized through MFXInit / MFXInitEx
+    // Intel VPL should report 1.255 API version when it was initialized through MFXInit / MFXInitEx
     if (session && *session && mfxRes >= MFX_ERR_NONE)
     {
         (*session)->m_versionToReport.Major = 1;
@@ -167,8 +167,10 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 
 } // mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 
-static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession *session, mfxIMPL implInterface, mfxU32 adapterNum, bool isSingleThreadMode)
+static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession *session, mfxIMPL implInterface, mfxU32 adapterNum, bool isSingleThreadMode, bool bValidateHandle)
 {
+
+    MFX_CHECK_HDL(session);
     _mfxVersionedSessionImpl* pSession = nullptr;
     mfxStatus                 mfxRes   = MFX_ERR_NONE;
 
@@ -184,7 +186,7 @@ static mfxStatus MFXInit_Internal(mfxInitParam par, mfxSession *session, mfxIMPL
         mfxInitParam init_param = par;
         init_param.Implementation = implInterface;
 
-        mfxRes = pSession->InitEx(init_param, isSingleThreadMode);
+        mfxRes = pSession->InitEx(init_param, isSingleThreadMode, bValidateHandle);
     }
     catch(...)
     {
@@ -212,28 +214,41 @@ mfxStatus MFXDoWork(mfxSession session)
 {
     mfxStatus res;
 
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    TRACE_EVENT(MFX_TRACE_API_DO_WORK_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session));
-
-    // check error(s)
-    if (0 == session)
+    try
     {
-        MFX_RETURN(MFX_ERR_INVALID_HANDLE);
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
+        TRACE_EVENT(MFX_TRACE_API_DO_WORK_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session));
+
+        // check error(s)
+        if (0 == session)
+        {
+            MFX_RETURN(MFX_ERR_INVALID_HANDLE);
+        }
+
+        MFXIUnknown* pInt = session->m_pScheduler;
+        MFXIScheduler2* newScheduler =
+            ::QueryInterface<MFXIScheduler2>(pInt, MFXIScheduler2_GUID);
+
+        if (!newScheduler)
+        {
+            if (!session->m_pScheduler && pInt) // if created in QueryInterface
+            {
+                pInt->Release();
+                pInt = NULL;
+            }
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
+        }
+
+        res = newScheduler->DoWork();
+
+        TRACE_EVENT(MFX_TRACE_API_DO_WORK_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(res));
+
+        newScheduler->Release();
     }
-
-    MFXIUnknown * pInt = session->m_pScheduler;
-    MFXIScheduler2 *newScheduler = 
-        ::QueryInterface<MFXIScheduler2>(pInt, MFXIScheduler2_GUID);
-
-    if (!newScheduler)
+    catch (...)
     {
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+        MFX_RETURN(MFX_ERR_UNKNOWN);
     }
-    newScheduler->Release();
-
-    res = newScheduler->DoWork();
-
-    TRACE_EVENT(MFX_TRACE_API_DO_WORK_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(res));
 
     return res;
 } // mfxStatus MFXDoWork(mfxSession *session)
@@ -248,6 +263,7 @@ struct MFXTrace_EventCloseOnExit
 
 mfxStatus MFXClose(mfxSession session)
 {
+    PERF_UTILITY_AUTO("MFXClose", PERF_LEVEL_API);
     mfxStatus mfxRes = MFX_ERR_NONE;
     MFXTrace_EventCloseOnExit MFXTrace_EventClose;
 
@@ -299,79 +315,103 @@ mfxStatus MFXClose(mfxSession session)
     MFX_TRACE_CLOSE();
 #endif
     TRACE_EVENT(MFX_TRACE_API_MFX_CLOSE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(mfxRes));
-    MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
+
+    try
+    {
+        MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
+    }
+    catch(...)
+    {
+        // set the default error value
+        mfxRes = MFX_ERR_UNKNOWN;
+    }
+
     return mfxRes;
 
 } // mfxStatus MFXClose(mfxHDL session)
 
 mfxStatus MFX_CDECL MFXInitialize(mfxInitializationParam param, mfxSession* session)
 {
-    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
+
     mfxStatus mfxRes = MFX_ERR_NONE;
 
-    MFX_TRACE_INIT();
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    TRACE_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data((mfxU32)param.AccelerationMode, param.VendorImplID));
-
-    mfxInitParam par = {};
-
-    par.Implementation = MFX_IMPL_HARDWARE;
-    switch (param.AccelerationMode)
+    try
     {
-    case MFX_ACCEL_MODE_VIA_D3D9:
-        par.Implementation |= MFX_IMPL_VIA_D3D9;
-        break;
-    case MFX_ACCEL_MODE_VIA_D3D11:
-        par.Implementation |= MFX_IMPL_VIA_D3D11;
-        break;
-    case MFX_ACCEL_MODE_VIA_VAAPI:
-        par.Implementation |= MFX_IMPL_VIA_VAAPI;
-        break;
-    default:
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
-    }
+        MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);
 
-    par.Version.Major = MFX_VERSION_MAJOR;
-    par.Version.Minor = MFX_VERSION_MINOR;
-    par.ExternalThreads = 0;
-    par.NumExtParam = param.NumExtParam;
-    par.ExtParam = param.ExtParam;
+        MFX_TRACE_INIT();
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
+        TRACE_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data((mfxU32)param.AccelerationMode, param.VendorImplID));
 
-    bool isSingleThreadMode = false;
+        mfxInitParam par = {};
+
+        par.Implementation = MFX_IMPL_HARDWARE;
+        switch (param.AccelerationMode)
+        {
+        case MFX_ACCEL_MODE_VIA_D3D9:
+            par.Implementation |= MFX_IMPL_VIA_D3D9;
+            break;
+        case MFX_ACCEL_MODE_VIA_D3D11:
+            par.Implementation |= MFX_IMPL_VIA_D3D11;
+            break;
+        case MFX_ACCEL_MODE_VIA_VAAPI:
+            par.Implementation |= MFX_IMPL_VIA_VAAPI;
+            break;
+        default:
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
+        }
+
+        par.Version.Major = MFX_VERSION_MAJOR;
+        par.Version.Minor = MFX_VERSION_MINOR;
+        par.ExternalThreads = 0;
+        par.NumExtParam = param.NumExtParam;
+        par.ExtParam = param.ExtParam;
+
+        bool isSingleThreadMode = false;
 
 #if defined(MFX_ENABLE_SINGLE_THREAD)
-    std::vector<mfxExtBuffer*> buffers;
+        std::vector<mfxExtBuffer*> buffers;
 
-    if (par.NumExtParam > 0)
-    {
-        MFX_CHECK_NULL_PTR1(par.ExtParam);
-
-        buffers.reserve(par.NumExtParam);
-
-        std::remove_copy_if(par.ExtParam, par.ExtParam + par.NumExtParam, std::back_inserter(buffers),
-            [](const mfxExtBuffer* buf)
-            {
-                return buf && buf->BufferId == MFX_EXTBUFF_THREADS_PARAM && (reinterpret_cast<const mfxExtThreadsParam*>(buf))->NumThread == 0;
-            }
-        );
-
-        //here in 'buffers' we have all ext. buffers excepting MFX_EXTBUFF_THREADS_PARAM
-        isSingleThreadMode = buffers.size() != par.NumExtParam;
-
-        if (isSingleThreadMode)
+        if (par.NumExtParam > 0)
         {
-            par.NumExtParam = static_cast<mfxU16>(buffers.size());
-            par.ExtParam    = par.NumExtParam > 0 ? buffers.data() : nullptr;
+            MFX_CHECK_NULL_PTR1(par.ExtParam);
+
+            buffers.reserve(par.NumExtParam);
+
+            std::remove_copy_if(par.ExtParam, par.ExtParam + par.NumExtParam, std::back_inserter(buffers),
+                [](const mfxExtBuffer* buf)
+                {
+                    return buf && buf->BufferId == MFX_EXTBUFF_THREADS_PARAM && (reinterpret_cast<const mfxExtThreadsParam*>(buf))->NumThread == 0;
+                }
+            );
+
+            //here in 'buffers' we have all ext. buffers excepting MFX_EXTBUFF_THREADS_PARAM
+            isSingleThreadMode = buffers.size() != par.NumExtParam;
+
+            if (isSingleThreadMode)
+            {
+                par.NumExtParam = static_cast<mfxU16>(buffers.size());
+                par.ExtParam = par.NumExtParam > 0 ? buffers.data() : nullptr;
+            }
         }
-    }
 #endif
 
-    // VendorImplID is used as adapterNum in current implementation - see MFXQueryImplsDescription
-    // app. supposed just to copy VendorImplID from mfxImplDescription (returned by MFXQueryImplsDescription) to mfxInitializationParam
-    mfxRes = MFXInit_Internal(par, session, par.Implementation, param.VendorImplID, isSingleThreadMode);
+#ifdef ONEVPL_EXPERIMENTAL
+        par.GPUCopy = param.DeviceCopy;
+#endif
 
-    TRACE_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(par.Implementation, isSingleThreadMode));
-    MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
+        // VendorImplID is used as adapterNum in current implementation - see MFXQueryImplsDescription
+        // app. supposed just to copy VendorImplID from mfxImplDescription (returned by MFXQueryImplsDescription) to mfxInitializationParam
+        mfxRes = MFXInit_Internal(par, session, par.Implementation, param.VendorImplID, isSingleThreadMode);
+
+        TRACE_EVENT(MFX_TRACE_API_MFXINITIALIZE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(par.Implementation, isSingleThreadMode));
+        MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
+    }
+    catch (...)
+    {
+        MFX_RETURN(MFX_ERR_UNKNOWN);
+    }
+
     return mfxRes;
 }
 
@@ -430,10 +470,7 @@ namespace mfx
     };
 
     class ImplDescription;
-    class ExtendedDeviceID;
-
     using ImplDescriptionHolder = DescriptionHolder<ImplDescription>;
-    using ExtendedDeviceIDHolder = DescriptionHolder<ExtendedDeviceID>;
 
     class ImplDescription
         : public ImplCapsCommon
@@ -458,6 +495,8 @@ namespace mfx
     }
 
 #ifdef ONEVPL_EXPERIMENTAL
+    class ExtendedDeviceID;
+    using ExtendedDeviceIDHolder = DescriptionHolder<ExtendedDeviceID>;
 
     class ExtendedDeviceID
         : public ImplCapsCommon
@@ -480,6 +519,29 @@ namespace mfx
         if (m_pHolder)
             m_pHolder->Release();
     }
+
+    class SurfaceTypesSupported
+        : public ImplCapsCommon
+        , public mfxSurfaceTypesSupported
+        , public PODArraysHolder
+    {
+    public:
+        SurfaceTypesSupported()
+            : mfxSurfaceTypesSupported()
+        {
+            Version.Version = MFX_SURFACETYPESSUPPORTED_VERSION;
+
+            m_pthis = ImplCapsCommon::GetHDL(*this);
+        }
+
+        mfxHDL* GetHDL()
+        {
+            return &m_pthis;
+        }
+
+    private:
+        mfxHDL m_pthis = nullptr;
+    };
 #endif // ONEVPL_EXPERIMENTAL
 
     class ImplFunctions
@@ -650,6 +712,7 @@ static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfx
 
 mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfxU32* num_impls)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     mfxHDL* impl = nullptr;
     if (!num_impls)
         return impl;
@@ -659,7 +722,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
     TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_START, 0, make_event_data((mfxU32)format));
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  format = ", MFX_TRACE_FORMAT_D, format);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  format = ", MFX_TRACE_FORMAT_I, format);
     try
     {
         switch (format)
@@ -681,7 +744,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
             *num_impls = mfxU32(holder->GetSize());
 
             TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(*num_impls));
-            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_D, *num_impls);
+            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_I, *num_impls);
             return holder.release()->GetArray();
         }
 #if defined(ONEVPL_EXPERIMENTAL)
@@ -726,10 +789,50 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
             *num_impls = mfxU32(holder->GetSize());
 
             TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(*num_impls));
-            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_D, *num_impls);
+            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_I, *num_impls);
 
             holder->Detach();
             impl = holder.release()->GetArray();
+
+            return impl;
+        }
+
+        case MFX_IMPLCAPS_SURFACE_TYPES:
+        {
+            std::unique_ptr<mfx::SurfaceTypesSupported> holder(new mfx::SurfaceTypesSupported);
+
+            auto get_sharing_mode_flags = [](mfxSurfaceType type) -> mfxU32
+            {
+                switch (type)
+                {
+                case MFX_SURFACE_TYPE_VAAPI:
+                    return MFX_SURFACE_FLAG_IMPORT_SHARED | MFX_SURFACE_FLAG_IMPORT_COPY | MFX_SURFACE_FLAG_EXPORT_SHARED | MFX_SURFACE_FLAG_EXPORT_COPY;
+                default:
+                    return MFX_SURFACE_FLAG_DEFAULT;
+                }
+            };
+
+            for (auto type : { MFX_SURFACE_TYPE_VAAPI })
+            {
+                auto& surface_type = holder->PushBack(holder->SurfaceTypes);
+                holder->NumSurfaceTypes++;
+
+                surface_type = {};
+                surface_type.SurfaceType = type;
+
+                for (auto comp : { MFX_SURFACE_COMPONENT_ENCODE, MFX_SURFACE_COMPONENT_DECODE, MFX_SURFACE_COMPONENT_VPP_INPUT, MFX_SURFACE_COMPONENT_VPP_OUTPUT })
+                {
+                    auto& surface_component = holder->PushBack(surface_type.SurfaceComponents);
+                    surface_type.NumSurfaceComponents++;
+
+                    surface_component = {};
+                    surface_component.SurfaceComponent = comp;
+                    surface_component.SurfaceFlags     = get_sharing_mode_flags(type);
+                }
+            }
+
+            *num_impls = 1;
+            impl = holder.release()->GetHDL();
 
             return impl;
         }
@@ -763,6 +866,15 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
                 ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_UNLIMITED;
                 ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_LIMITED;
 
+                impl.Dev.Version.Version = MFX_STRUCT_VERSION(1, 1);
+                impl.Dev.MediaAdapterType = MFX_MEDIA_UNKNOWN;
+
+                if (auto pCore1_19 = QueryCoreInterface<IVideoCore_API_1_19>(&core, MFXICORE_API_1_19_GUID))
+                {
+                    mfxPlatform platform = {};
+                    if (MFX_ERR_NONE == pCore1_19->QueryPlatform(&platform))
+                        impl.Dev.MediaAdapterType = platform.MediaAdapterType;
+                }
 
                 snprintf(impl.Dev.DeviceID, sizeof(impl.Dev.DeviceID), "%x/%d", deviceId, adapterNum);
                 snprintf(impl.ImplName, sizeof(impl.ImplName), "mfx-gen");
@@ -808,7 +920,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
             *num_impls = mfxU32(holder->GetSize());
 
-            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_D, *num_impls);
+            MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_I, *num_impls);
 
             holder->Detach();
             impl = holder.release()->GetArray();
@@ -828,6 +940,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
 mfxStatus MFX_CDECL MFXReleaseImplDescription(mfxHDL hdl)
 {
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_CHECK_HDL(hdl);
 

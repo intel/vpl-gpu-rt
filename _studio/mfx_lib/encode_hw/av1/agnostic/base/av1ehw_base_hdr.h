@@ -44,6 +44,8 @@ namespace AV1EHW
         DECL_BLOCK(CheckAndFixCLLI)\
         DECL_BLOCK(SetDefaultsMDCV)\
         DECL_BLOCK(SetDefaultsCLLI)\
+        DECL_BLOCK(InitTaskMDCV)\
+        DECL_BLOCK(InitTaskCLLI)\
         DECL_BLOCK(InsertPayloads)
 #define DECL_FEATURE_NAME "Base_Hdr"
 #include "av1ehw_decl_blocks.h"
@@ -57,10 +59,11 @@ namespace AV1EHW
             virtual void SetSupported(ParamSupport& par) override;
             virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
             virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
+            virtual void InitTask(const FeatureBlocks& blocks, TPushIT Push) override;
             virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) override;
 
-            void PackHDR(BitstreamWriter& bs, const SH& sh, const ObuExtensionHeader& oeh, const mfxExtContentLightLevelInfo& LightLevel);
-            void PackHDR(BitstreamWriter& bs, const SH& sh, const ObuExtensionHeader& oeh, const mfxExtMasteringDisplayColourVolume& DisplayColour);
+            void PackHDR(BitstreamWriter& bs, const ObuExtensionHeader& oeh, const mfxExtContentLightLevelInfo& LightLevel);
+            void PackHDR(BitstreamWriter& bs, const ObuExtensionHeader& oeh, const mfxExtMasteringDisplayColourVolume& DisplayColour);
             void MetadataType(BitstreamWriter& bs, mfxU32 const value);
 
             std::array<mfxU8, HDR_SIZE> m_buf;

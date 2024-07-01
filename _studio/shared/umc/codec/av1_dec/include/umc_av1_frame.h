@@ -165,6 +165,11 @@ namespace UMC_AV1_DECODER
         void Displayed(bool d)
         { displayed = d; }
 
+        bool DpbUpdated() const
+        { return dpb_updated; }
+        void DpbUpdated(bool u)
+        { dpb_updated = u; }
+
         bool Repeated() const
         { return repeated; }
         void Repeated(bool d)
@@ -183,12 +188,24 @@ namespace UMC_AV1_DECODER
         bool DecodingStarted() const
         { return decoding_started; }
         void StartDecoding()
-        { decoding_started = true; }
+        {
+            if (!decoding_started)
+            {
+                decoding_started = true;
+                IncrementReference();
+            }
+        }
 
         bool DecodingCompleted() const
         { return decoding_completed; }
         void CompleteDecoding()
-        { decoding_completed = true; }
+        {
+            if (!decoding_completed)
+            {
+                decoding_completed = true;
+                DecrementReference();
+            }
+        }
 
         bool ShowAsExisting() const
         { return show_as_existing; }
@@ -257,6 +274,7 @@ namespace UMC_AV1_DECODER
                                                      // after it frame still may remain in [AV1Decoder::dpb], but only as reference
 
         bool                              repeated;
+        bool                              dpb_updated;
         bool                              decoding_started;     // set in [application thread] right after frame submission to the driver started
         bool                              decoding_completed;   // set in [scheduler thread] after getting driver status report for the frame
 

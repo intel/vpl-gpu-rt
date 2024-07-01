@@ -36,7 +36,7 @@ void EncodeStats::FrameSubmit(const FeatureBlocks& /*blocks*/, TPushFS Push)
             const mfxEncodeCtrl* /*pCtrl*/
             , const mfxFrameSurface1* /*pSurf*/
             , mfxBitstream& bs
-            , StorageW& /*global*/
+            , StorageRW& /*global*/
             , StorageRW& /*local*/) -> mfxStatus
     {
         mfxExtEncodeStatsOutput* pStats = ExtBuffer::Get(bs);

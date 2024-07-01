@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2020 Intel Corporation
+// Copyright (c) 2012-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -321,6 +321,11 @@ public:
         m_pFrameAllocator = pFrameAllocator;
     }
 
+    void SetVideoCore(VideoCORE* pCore)
+    {
+        m_pCore = pCore;
+    }
+
     // Find a next frame ready to be output from decoder
     virtual H265DecoderFrame *GetFrameToDisplayInternal(bool force);
 
@@ -448,6 +453,7 @@ protected:
 
     // Keep track of which parameter set is in use.
     bool              m_WaitForIDR;
+    bool              m_RecreateSurfaceFlag;
     bool              m_prevSliceBroken;
 
     int32_t m_RA_POC;
@@ -469,6 +475,8 @@ protected:
     PocDecoding m_pocDecoding;
 
     bool m_isInitialized;
+
+    VideoCORE *m_pCore;
 
     UMC::Mutex m_mGuard;
 

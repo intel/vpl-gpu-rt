@@ -1,6 +1,6 @@
 /* ****************************************************************************** *\
 
-Copyright (C) 2012-2022 Intel Corporation.  All rights reserved.
+Copyright (C) 2012-2024 Intel Corporation.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -355,12 +355,8 @@ std::string DumpContext::dump(const std::string structName, const mfxExtCodingOp
     DUMP_FIELD(AdaptiveLTR);
     DUMP_FIELD(AdaptiveCQM);
     DUMP_FIELD(AdaptiveRef);
-#ifdef ONEVPL_EXPERIMENTAL
-    DUMP_FIELD(CPUEncToolsProcessing);
     DUMP_FIELD_RESERVED(reserved);
-#else
-    DUMP_FIELD_RESERVED(reserved);
-#endif  
+
     return str;
 }
 
@@ -373,6 +369,17 @@ std::string DumpContext::dump(const std::string structName, const mfxExtEncoderR
     return str;
 }
 
+std::string DumpContext::dump(const std::string structName, const LongTermRefList& longTermRefList)
+{
+    std::string str;
+    str += structName + ".FrameOrder=" + ToString(longTermRefList.FrameOrder) + "\n";
+    str += structName + ".PicStruct=" + ToString(longTermRefList.PicStruct) + "\n";
+    str += structName + ".ViewId=" + ToString(longTermRefList.ViewId) + "\n";
+    str += structName + ".LongTermIdx=" + ToString(longTermRefList.LongTermIdx) + "\n";
+    str += structName + ".reserved[]=" + DUMP_RESERVED_ARRAY(longTermRefList.reserved) + "\n";
+    return str;
+}
+
 std::string DumpContext::dump(const std::string structName, const mfxExtAVCRefListCtrl& ExtAVCRefListCtrl)
 {
     std::string str;
@@ -380,8 +387,35 @@ std::string DumpContext::dump(const std::string structName, const mfxExtAVCRefLi
     str += structName + ".NumRefIdxL0Active=" + ToString(ExtAVCRefListCtrl.NumRefIdxL0Active) + "\n";
     str += structName + ".NumRefIdxL1Active=" + ToString(ExtAVCRefListCtrl.NumRefIdxL1Active) + "\n";
     str += structName + ".PreferredRefList=" + ToString(ExtAVCRefListCtrl.PreferredRefList) + "\n";
+    for (int i = 0; i < 32; i++)
+    {
+        if (ExtAVCRefListCtrl.PreferredRefList[i].FrameOrder == mfxU32(MFX_FRAMEORDER_UNKNOWN)
+            && ExtAVCRefListCtrl.PreferredRefList[i].LongTermIdx == 0)
+            continue;
+
+        str += "i: " + ToString(i) + "\n";
+        str += dump("PreferredRefList: ", *((LongTermRefList *)(&ExtAVCRefListCtrl.PreferredRefList[i]))) + "\n";
+    }
     str += structName + ".RejectedRefList=" + ToString(ExtAVCRefListCtrl.RejectedRefList) + "\n";
+    for (int i = 0; i < 16; i++)
+    {
+        if (ExtAVCRefListCtrl.RejectedRefList[i].FrameOrder == mfxU32(MFX_FRAMEORDER_UNKNOWN)
+           && ExtAVCRefListCtrl.RejectedRefList[i].LongTermIdx == 0)
+            continue;
+
+        str += "i: " + ToString(i) + "\n";
+        str += dump("RejectedRefList: ", *((LongTermRefList *)(&ExtAVCRefListCtrl.RejectedRefList[i]))) + "\n";
+    }
     str += structName + ".LongTermRefList=" + ToString(ExtAVCRefListCtrl.LongTermRefList) + "\n";
+    for (int i = 0; i < 16; i++)
+    {
+        if (ExtAVCRefListCtrl.LongTermRefList[i].FrameOrder == mfxU32(MFX_FRAMEORDER_UNKNOWN)
+            && ExtAVCRefListCtrl.LongTermRefList[i].LongTermIdx == 0)
+            continue;
+
+        str += "i: " + ToString(i) + "\n";
+        str += dump("LongTermRefList: ", *((LongTermRefList *)(&ExtAVCRefListCtrl.LongTermRefList[i]))) + "\n";
+    }
     str += structName + ".ApplyLongTermIdx=" + ToString(ExtAVCRefListCtrl.ApplyLongTermIdx) + "\n";
     str += structName + ".reserved[]=" + DUMP_RESERVED_ARRAY(ExtAVCRefListCtrl.reserved) + "\n";
     return str;
@@ -976,10 +1010,6 @@ std::string DumpContext::dump(const std::string structName, const  mfxExtVP9Segm
     {
         str += dump_array_with_cast<mfxU8, mfxU16>(_struct.SegmentId, _struct.NumSegmentIdAlloc);
     }
-    else
-    {
-        DUMP_FIELD(SegmentId);
-    }
 
     return str;
 }
@@ -1031,3 +1061,49 @@ std::string DumpContext::dump(const std::string structName, const  mfxExtVP9Para
     DUMP_FIELD_RESERVED(reserved);
     return str;
 }
+
+#if defined(ONEVPL_EXPERIMENTAL)
+std::string DumpContext::dump(const std::string structName, const  mfxExtQualityInfoMode& _struct)
+{
+    std::string str;
+    str += dump(structName + ".Header", _struct.Header) + "\n";
+    DUMP_FIELD(QualityInfoMode);
+    DUMP_FIELD_RESERVED(reserved);
+
+    return str;
+}
+
+std::string DumpContext::dump(const std::string structName, const  mfxExtQualityInfoOutput& _struct)
+{
+    std::string str;
+    str += dump(structName + ".Header", _struct.Header) + "\n";
+    DUMP_FIELD(FrameOrder);
+    str += structName + ".MSE[]=" + DUMP_RESERVED_ARRAY(_struct.MSE) + "\n";
+    DUMP_FIELD_RESERVED(reserved1);
+    DUMP_FIELD_RESERVED(reserved2);
+
+    return str;
+}
+
+std::string DumpContext::dump(const std::string structName, const  mfxExtAV1ScreenContentTools& _struct)
+{
+    std::string str;
+    str += dump(structName + ".Header", _struct.Header) + "\n";
+    DUMP_FIELD(Palette);
+    DUMP_FIELD(IntraBlockCopy);
+    DUMP_FIELD_RESERVED(reserved);
+
+    return str;
+}
+
+std::string DumpContext::dump(const std::string structName, const  mfxExtAlphaChannelEncCtrl& ExtAlphaCtrl)
+{
+    std::string str;
+    str += dump(structName + ".Header", ExtAlphaCtrl.Header) + "\n";
+    str += structName + ".EnableAlphaChannelEncoding=" + ToString(ExtAlphaCtrl.EnableAlphaChannelEncoding) + "\n";
+    str += structName + ".AlphaChannelMode=" + ToString(ExtAlphaCtrl.AlphaChannelMode) + "\n";
+    str += structName + ".AlphaChannelBitrateRatio=" + ToString(ExtAlphaCtrl.AlphaChannelBitrateRatio) + "\n";
+    str += structName + ".reserved[]=" + DUMP_RESERVED_ARRAY(ExtAlphaCtrl.reserved) + "\n";
+    return str;
+}
+#endif

@@ -161,8 +161,10 @@ void WeightPred::PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Pu
                 ssh.pwt[l][i][Cr][O] = pExtPWT->Weights[l][i][Cr][O];
             };
 
-            std::list<mfxI16> idxY(sz * caps.LumaWeightedPred, 0);
-            std::list<mfxI16> idxC(sz * caps.ChromaWeightedPred, 0);
+            mfxU32 tmpLengthY = sz * caps.LumaWeightedPred;
+            mfxU32 tmpLengthC = sz * caps.ChromaWeightedPred;
+            std::list<mfxI16> idxY(tmpLengthY, 0);
+            std::list<mfxI16> idxC(tmpLengthC, 0);
 
             std::iota(idxY.begin(), idxY.end(), mfxI16(0));
             std::iota(idxC.begin(), idxC.end(), mfxI16(0));

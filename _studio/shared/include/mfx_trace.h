@@ -50,6 +50,8 @@
     #define ROLLBACK_WARN_HIDE_PREV_LOCAL_DECLARATION \
         _Pragma("GCC diagnostic pop")
 
+#define VPLLOG_BUFFER_SIZE 256
+
 typedef unsigned int mfxTraceU32;
 typedef __UINT64 mfxTraceU64;
 
@@ -57,7 +59,7 @@ typedef __UINT64 mfxTraceU64;
 extern mfxTraceU64 EventCfg;
 extern mfxTraceU32 LogConfig;
 extern int32_t FrameIndex;
-
+extern char VplLogPath[VPLLOG_BUFFER_SIZE];
 // C section
 
 #ifdef __cplusplus
@@ -267,6 +269,16 @@ typedef enum _MEDIA_EVENT_FILTER_KEYID
  */
 #define MFX_TRACE_LEVEL_PARAMS      MFX_TRACE_LEVEL_6
 
+ /** WARNING level
+  * - Tracing of warning info
+  */
+#define MFX_TRACE_LEVEL_WARNING_INFO MFX_TRACE_LEVEL_7
+
+ /** CRITICAL level
+  * - Tracing of critical info
+  */
+#define MFX_TRACE_LEVEL_CRITICAL_INFO MFX_TRACE_LEVEL_8
+
 // defines default trace category
 #define MFX_TRACE_CATEGORY_DEFAULT  NULL
 
@@ -304,6 +316,12 @@ typedef union
 
 typedef struct
 {
+    uint64_t callCount;
+    double   totalTime;
+}TimeStampInfo;
+
+typedef struct
+{
     mfxTraceChar* category;
     mfxTraceLevel level;
     // reserved for stat dump:
@@ -316,6 +334,8 @@ typedef struct
     mfxTraceHandle sd7;
     // reserved for itt
     mfxTraceHandle itt1;
+    //timeStamp
+    TimeStampInfo  tick;
 } mfxTraceStaticHandle;
 
 typedef struct
@@ -585,23 +605,31 @@ extern "C" {
 #ifdef MFX_TRACE_ENABLE
 #define MFX_LTRACE_BUFFER_S(_level, _name, _buffer, _size)  \
     if (_buffer)                                            \
-    MFX_LTRACE_2(_level, _name, "%p[%d]", _buffer, _size)
+    MFX_LTRACE_2(_level, _name, "%p[%lu]", _buffer, _size)
 #else
 #define MFX_LTRACE_BUFFER_S(_level, _name, _buffer, _size)
 #endif
 
 #ifdef MFX_TRACE_ENABLE
-#define MFX_LTRACE_BUFFER(_level, _message, _buffer) \
-{ \
-    if (0 != LogConfig && _buffer) \
-    { \
-        DumpContext context; \
-        std::string _str = context.dump(#_buffer, *_buffer); \
-        MFX_LTRACE_1(_level, "\n" _message, "%s", _str.c_str()) \
-    } \
-    else { \
-        MFX_LTRACE_BUFFER_S(_level, #_buffer, _buffer, sizeof(*_buffer)) \
-    } \
+#define MFX_LTRACE_BUFFER(_level, _message, _buffer)                    \
+{                                                                       \
+    if (0 != LogConfig && _buffer)                                      \
+    {                                                                   \
+        DumpContext context;                                            \
+        std::string _str;                                               \
+        try                                                             \
+        {                                                               \
+            _str = context.dump(#_buffer, *_buffer);                    \
+        }                                                               \
+        catch(...)                                                      \
+        {                                                               \
+            return MFX_ERR_UNKNOWN;                                     \
+        }                                                               \
+        MFX_LTRACE_1(_level, "\n" _message, "%s", _str.c_str())         \
+    }                                                                   \
+else {                                                                  \
+        MFX_LTRACE_BUFFER_S(_level, #_buffer, _buffer, sizeof(*_buffer))\
+    }                                                                   \
 }
 #else
 #define MFX_LTRACE_BUFFER(_level, _buffer) \
@@ -738,11 +766,11 @@ public:
         std::stringstream ss;
         if (_arg1 > 0)
         {
-            ss << "[warning]  ";
+            ss << "[Warning]  ";
         }
         else if (_arg1 < 0)
         {
-            ss << "[critical]  ";
+            ss << "[Critical]  ";
         }
         ss << _mesg << " = ";
         MFX_LTRACE((&_trace_static_handle, _filename, _line, _function, MFX_TRACE_CATEGORY, _level, ss.str().c_str(), MFX_TRACE_FORMAT_I, _arg1))
@@ -754,21 +782,28 @@ public:
         std::stringstream ss;
         if (_arg1 > 0) 
         {
-            ss << "[warning]  ";
+            ss << "[Warning]  ";
         }
         else if (_arg1 < 0) 
         {
-            ss << "[critical]  ";
+            ss << "[Critical]  ";
         }
         ss << _mesg << " = ";
         MFX_LTRACE((&_trace_static_handle, _filename, _line, _function, MFX_TRACE_CATEGORY, _level, ss.str().c_str(), MFX_TRACE_FORMAT_S, code.message().c_str()))
     }
 };
 
-#define MFX_LTRACE_I(_level, _arg1) \
-{ \
-    MFXLTraceI mFXLTraceI; \
-    mFXLTraceI.mfx_ltrace_i(_level, #_arg1, __FUNCTION__, __FILE__, __LINE__,_arg1); \
+#define MFX_LTRACE_I(_level, _arg1)                                                         \
+{                                                                                           \
+    MFXLTraceI mFXLTraceI;                                                                  \
+    try                                                                                     \
+    {                                                                                       \
+        mFXLTraceI.mfx_ltrace_i(_level, #_arg1, __FUNCTION__, __FILE__, __LINE__,_arg1);    \
+    }                                                                                       \
+    catch(...)                                                                              \
+    {                                                                                       \
+        std::cerr << "Trace failed!" << '\n';                                               \
+    }                                                                                       \
 }
 #else
 #define MFX_LTRACE_I(_level, _arg1) \

@@ -34,8 +34,6 @@ public:
 
     virtual mfxStatus Init(mfxVideoParam* param);
 
-    virtual mfxStatus Reset(mfxVideoParam* param);
-
     virtual mfxStatus Close();
 
     virtual mfxStatus Submit(mfxFrameSurface1* input, mfxFrameSurface1* output = nullptr);
@@ -47,17 +45,15 @@ protected:
     void DestroyVpp();
 
 protected:
-    bool                   m_bInitialized = false;
-    bool                   m_taskSubmitted= false;
-    VideoCORE*             m_core         = nullptr;
+    bool                   m_bInitialized  = false;
+    bool                   m_taskSubmitted = false;
+
+    VideoCORE*                    m_core = nullptr;
     std::unique_ptr<VideoVPPMain> m_pVpp;
 
-    MFX_ENTRY_POINT        m_entryPoint[2]   = {};
-    mfxFrameAllocResponse  m_dsResponse      = {};
-    mfxFrameSurface1       m_dsSurface       = {};
-
-    mfxU16                 m_dstWidth    = 128; // target down scaled size
-    mfxU16                 m_dstHeight   = 64;
+    MFX_ENTRY_POINT        m_entryPoint[2] = {};
+    mfxFrameAllocResponse  m_dstResponse   = {};
+    mfxFrameSurface1       m_dstSurface    = {};
 };
 
 #endif // !_MFX_VPP_HELPER_H_

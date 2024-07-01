@@ -307,10 +307,10 @@ UMC::Status FillVideoParam(const H265VideoParamSet * vps, const H265SeqParamSet 
 
     //if (seq->frame_cropping_flag)
     {
-        par->mfx.FrameInfo.CropX = (mfxU16)(seq->conf_win_left_offset);
-        par->mfx.FrameInfo.CropY = (mfxU16)(seq->conf_win_top_offset);
-        par->mfx.FrameInfo.CropH = (mfxU16)(par->mfx.FrameInfo.Height - (seq->conf_win_top_offset + seq->conf_win_bottom_offset));
-        par->mfx.FrameInfo.CropW = (mfxU16)(par->mfx.FrameInfo.Width - (seq->conf_win_left_offset + seq->conf_win_right_offset));
+        par->mfx.FrameInfo.CropX = (mfxU16)(seq->conf_win_left_offset + seq->def_disp_win_left_offset);
+        par->mfx.FrameInfo.CropY = (mfxU16)(seq->conf_win_top_offset + seq->def_disp_win_top_offset);
+        par->mfx.FrameInfo.CropH = (mfxU16)(par->mfx.FrameInfo.Height - (seq->conf_win_top_offset + seq->conf_win_bottom_offset + seq->def_disp_win_top_offset + seq->def_disp_win_bottom_offset));
+        par->mfx.FrameInfo.CropW = (mfxU16)(par->mfx.FrameInfo.Width - (seq->conf_win_left_offset + seq->conf_win_right_offset + seq->def_disp_win_left_offset + seq->def_disp_win_right_offset));
 
         par->mfx.FrameInfo.CropH -= (mfxU16)(par->mfx.FrameInfo.Height - seq->pic_height_in_luma_samples);
         par->mfx.FrameInfo.CropW -= (mfxU16)(par->mfx.FrameInfo.Width - seq->pic_width_in_luma_samples);
@@ -444,7 +444,7 @@ UMC::Status HeadersAnalyzer::DecodeHeader(UMC::MediaData * data, mfxBitstream *b
     {
         m_supplier->GetNalUnitSplitter()->MoveToStartCode(data); // move data pointer to start code
 
-        if (!m_isSPSFound) // move point to first start code
+        if (!m_isSPSFound && bs) // move point to first start code
         {
             bs->DataOffset = (mfxU32)((mfxU8*)data->GetDataPointer() - (mfxU8*)data->GetBufferPointer());
             bs->DataLength = (mfxU32)data->GetDataSize();
@@ -473,7 +473,7 @@ UMC::Status HeadersAnalyzer::DecodeHeader(UMC::MediaData * data, mfxBitstream *b
             break;
     }
 
-    if (umcRes == UMC::UMC_ERR_SYNC) // move pointer
+    if (umcRes == UMC::UMC_ERR_SYNC && bs) // move pointer
     {
         bs->DataOffset = (mfxU32)((mfxU8*)data->GetDataPointer() - (mfxU8*)data->GetBufferPointer());
         bs->DataLength = (mfxU32)data->GetDataSize();

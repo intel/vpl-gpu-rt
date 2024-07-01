@@ -87,7 +87,9 @@ namespace UMC_AV1_DECODER
     }
 
     AV1DecoderFrame::AV1DecoderFrame()
-        : seq_header(new SequenceHeader{})
+        : m_index(0)
+        , m_anchorFrameIdx(0)
+        , seq_header(new SequenceHeader{})
         , header(new FrameHeader{})
     {
         Reset();
@@ -102,6 +104,7 @@ namespace UMC_AV1_DECODER
     {
         error = 0;
         displayed = false;
+        dpb_updated = false;
         repeated = false;
         outputted = false;
         decoded   = false;

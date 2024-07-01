@@ -81,6 +81,18 @@ public:
             , TaskCommonPar&
             , const VACodedBufferSegment&>;
         TUpdateCqmHint UpdateCqmHint;
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+        using TPackETSWAdaptiveCqmPPS = CallChain<bool
+            , const StorageR&   //global
+            , const StorageR&>; //task
+        TPackETSWAdaptiveCqmPPS PackETSWAdaptiveCqmPPS;
+#endif
+
+        using TUpdateEncQP = CallChain<void
+            , const StorageR&
+            , TaskCommonPar&
+            , uint8_t >;
+        TUpdateEncQP UpdateEncQP;
 
         using TAddMiscData = CallChain<bool
             , const StorageR& //glob
@@ -100,15 +112,15 @@ protected:
     virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
     virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
 
-    VAEncSequenceParameterBufferHEVC            m_sps;
-    VAEncPictureParameterBufferHEVC             m_pps;
-    VAQMatrixBufferHEVC                         m_qm;
-    std::vector<VAEncSliceParameterBufferHEVC>  m_slices;
+    VAEncSequenceParameterBufferHEVC            m_sps = {};
+    VAEncPictureParameterBufferHEVC             m_pps = {};
+    VAQMatrixBufferHEVC                         m_qm = {};
+    std::vector<VAEncSliceParameterBufferHEVC>  m_slices = {};
     mfxU32                                      m_numSkipFrames = 0;
     mfxU32                                      m_sizeSkipFrames = 0;
     mfxU32                                      m_resetHintFlags = 0;
-    std::list<std::vector<mfxU8>>               m_vaPerSeqMiscData;
-    std::list<std::vector<mfxU8>>               m_vaPerPicMiscData;
+    std::list<std::vector<mfxU8>>               m_vaPerSeqMiscData = {};
+    std::list<std::vector<mfxU8>>               m_vaPerPicMiscData = {};
 };
 
 } //Base

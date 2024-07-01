@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2020 Intel Corporation
+// Copyright (c) 2012-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -196,6 +196,7 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
 
         bool is_fourcc_supported =
                  (  videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
+                 || videoProcessing->Out.FourCC == MFX_FOURCC_RGBP
                  || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
                  || videoProcessing->Out.FourCC == MFX_FOURCC_P010
                  || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
@@ -740,9 +741,9 @@ mfxStatus VideoDECODEH265::QueryIOSurfInternal(eMFXHWType type, mfxVideoParam *p
 
     uint32_t level_idc = par->mfx.CodecLevel;
     if (hevcParam)
-        dpbSize = CalculateDPBSize(par->mfx.CodecProfile, level_idc, hevcParam->PicWidthInLumaSamples, hevcParam->PicHeightInLumaSamples, 0);
+        dpbSize = CalculateDPBSize(par->mfx.CodecProfile, level_idc, hevcParam->PicWidthInLumaSamples, hevcParam->PicHeightInLumaSamples, par->mfx.MaxDecFrameBuffering);
     else
-        dpbSize = CalculateDPBSize(par->mfx.CodecProfile, level_idc, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, 0) + 1; //1 extra for avoid aligned size issue
+        dpbSize = CalculateDPBSize(par->mfx.CodecProfile, level_idc, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, par->mfx.MaxDecFrameBuffering) + 1; //1 extra for avoid aligned size issue
 
     if (par->mfx.MaxDecFrameBuffering && par->mfx.MaxDecFrameBuffering < dpbSize)
         dpbSize = par->mfx.MaxDecFrameBuffering;
@@ -894,7 +895,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs,
                                               MFX_ENTRY_POINT *pEntryPoint)
 {
     UMC::AutomaticUMCMutex guard(m_mGuard);
-
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     mfxStatus mfxSts = DecodeFrameCheck(bs, surface_work, surface_out);
 
     if (MFX_ERR_NONE == mfxSts || (mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxSts) // It can be useful to run threads right after first frame receive
@@ -1028,6 +1029,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             reinterpret_cast<mfxExtDecodeErrorReport *>(extbuf)->ErrorTypes = 0;
             src.SetExtBuffer(extbuf);
         }
+        m_pH265VideoDecoder->SetVideoCore(m_core);
 
         for (;;)
         {
@@ -1630,11 +1632,11 @@ bool VideoDECODEH265::IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * o
     return true;
 }
 
-mfxStatus VideoDECODEH265::GetSurface(mfxFrameSurface1* & surface)
+mfxStatus VideoDECODEH265::GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface)
 {
     MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface(surface);
+    return m_surface_source->GetSurface(surface, import_surface);
 }
 
 mfxFrameSurface1 *VideoDECODEH265::GetInternalSurface(mfxFrameSurface1 *surface)

@@ -37,3 +37,10 @@ void copySysToVideoShift_C(const mfxU16* src, mfxU16* dst, int width, int shift)
     for (int i = 0; i < width; i++)
         *dst++ = (*src++) << shift;
 }
+
+void copySysVariantToVideo_C(const mfxU8* src, int loffset, mfxU16* dst, int width)
+{
+    mfxU8* src2 = (mfxU8*)src + loffset;
+    for (int i = 0; i < width; i++)
+        *dst++ = ((mfxU16)(*src++) << 8) + ((mfxU16)(*src2++)<<6);
+}

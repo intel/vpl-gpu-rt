@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2021 Intel Corporation
+// Copyright (c) 2007-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -84,7 +84,10 @@ enum eMFXHWType
     MFX_HW_DG2       = MFX_HW_TGL_LP + 8,
 
     MFX_HW_PVC       = MFX_HW_XE_HP_SDV + 2,
+
     MFX_HW_MTL       = 0x1700000,
+    MFX_HW_ARL       = MFX_HW_MTL + 1,
+    MFX_HW_LNL       = MFX_HW_MTL + 3,
 
 };
 
@@ -427,13 +430,13 @@ typedef struct {
     { 0x4C9A, MFX_HW_RKL, MFX_GT1 }, // RKL-S
 
     /* ADL-S */
-    { 0x4600, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4680, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4681, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4682, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4683, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4688, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x468A, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x468B, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4690, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4691, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
     { 0x4692, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
@@ -457,6 +460,11 @@ typedef struct {
     { 0xA78C, MFX_HW_ADL_S, MFX_GT1 },//RPL-S
     { 0xA78D, MFX_HW_ADL_S, MFX_GT1 },//RPL-S
     { 0xA78E, MFX_HW_ADL_S, MFX_GT1 },//RPL-S
+
+    { 0xA7AA, MFX_HW_ADL_S, MFX_GT1 },//RPL 
+    { 0xA7AB, MFX_HW_ADL_S, MFX_GT1 },//RPL 
+    { 0xA7AC, MFX_HW_ADL_S, MFX_GT1 },//RPL 
+    { 0xA7AD, MFX_HW_ADL_S, MFX_GT1 },//RPL
 
     /* ADL-P */
     { 0x46A0, MFX_HW_ADL_P, MFX_GT2 },//ADL-P
@@ -493,6 +501,10 @@ typedef struct {
     { 0x46D1, MFX_HW_ADL_N, MFX_GT1 },//ADL-N
     { 0x46D2, MFX_HW_ADL_N, MFX_GT1 },//ADL-N
 
+    /* TWL */
+    { 0x46D3, MFX_HW_ADL_N, MFX_GT1 },//TWL
+    { 0x46D4, MFX_HW_ADL_N, MFX_GT1 },//TWL
+
     /* DG2 */
     { 0x4F80, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x4F81, MFX_HW_DG2, MFX_GT4 }, // DG2
@@ -511,7 +523,6 @@ typedef struct {
     { 0x5695, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x5696, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x5697, MFX_HW_DG2, MFX_GT4 }, // DG2
-    { 0x5698, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56A0, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56A1, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56A2, MFX_HW_DG2, MFX_GT4 }, // DG2
@@ -519,15 +530,19 @@ typedef struct {
     { 0x56A4, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56A5, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56A6, MFX_HW_DG2, MFX_GT4 }, // DG2
-    { 0x56A7, MFX_HW_DG2, MFX_GT4 }, // DG2
-    { 0x56A8, MFX_HW_DG2, MFX_GT4 }, // DG2
-    { 0x56A9, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56B0, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56B1, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56B2, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56B3, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56C0, MFX_HW_DG2, MFX_GT4 }, // DG2
     { 0x56C1, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56BA, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56BB, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56BC, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56BD, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56BE, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56BF, MFX_HW_DG2, MFX_GT4 }, // DG2
+    { 0x56C2, MFX_HW_DG2, MFX_GT4 }, // DG2
 
     /* PVC */
     { 0x0BD0, MFX_HW_PVC, MFX_GT4 },
@@ -547,6 +562,7 @@ typedef struct {
     { 0x7D40, MFX_HW_MTL, MFX_GT2 },
     { 0x7D50, MFX_HW_MTL, MFX_GT2 },
     { 0x7D55, MFX_HW_MTL, MFX_GT2 },
+    { 0x7D57, MFX_HW_MTL, MFX_GT2 },
     { 0x7D60, MFX_HW_MTL, MFX_GT2 },
     { 0x7D70, MFX_HW_MTL, MFX_GT2 },
     { 0x7D75, MFX_HW_MTL, MFX_GT2 },
@@ -554,18 +570,27 @@ typedef struct {
     { 0x7D76, MFX_HW_MTL, MFX_GT2 },
     { 0x7D66, MFX_HW_MTL, MFX_GT2 },
     { 0x7DD5, MFX_HW_MTL, MFX_GT2 },
+    { 0x7DD7, MFX_HW_MTL, MFX_GT2 },
     { 0x7D45, MFX_HW_MTL, MFX_GT2 },
     { 0x7DE0, MFX_HW_MTL, MFX_GT2 },
 
+    /* ARL S */
+    { 0x7D67, MFX_HW_ARL, MFX_GT2 },
+
+    /* ARL H*/
+    { 0x7D51, MFX_HW_ARL, MFX_GT2 },
+    { 0x7DD1, MFX_HW_ARL, MFX_GT2 },
+    { 0x7D41, MFX_HW_ARL, MFX_GT2 },
+
+
+    /* LNL */
+    { 0x6420, MFX_HW_LNL, MFX_GT2 },
+    { 0x6480, MFX_HW_LNL, MFX_GT2 },
+    { 0x64A0, MFX_HW_LNL, MFX_GT2 },
+    { 0x64B0, MFX_HW_LNL, MFX_GT2 },
+
 };
 
-/*
-Some components (samples, JPEG decoder) has used MFX_FOURCC_RGBP already.
-So, for API 1.27 and below "MFX_FOURCC_RGBP" defined inside of msdk library
-and samples.
-Since next version of API (1.28) "MFX_FOURCC_RGBP" should officially
-defined in API "mfxstructures.h".
-*/
 enum
 {
     MFX_FOURCC_IMC3         = MFX_MAKEFOURCC('I','M','C','3'),

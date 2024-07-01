@@ -28,9 +28,12 @@
 #include <cstdint>
 #include <immintrin.h>
 
-
 namespace PercEncPrefilter
 {
+
+constexpr int MAX_QP=51;
+constexpr int MIN_QP=0;
+
 struct Parameters
 {
     struct PerFrame
@@ -39,6 +42,7 @@ struct Parameters
         int temporalSlope = 2;
         int spatialIterations = 1;
         int spatialSlope = 4;
+        bool qpAdaptive = false;
     };
 
     struct PerBlock
@@ -77,6 +81,8 @@ struct Filter
     std::vector<ModulatedParameters<int16_t>> modulatedParametersTemporal;
 
     std::array<std::vector<int16_t>, 2> coefficientsVertical;
+    std::array<std::vector<int16_t>, 2> coefficientsVerticalULDR;
+    std::array<std::vector<int16_t>, 2> coefficientsVerticalURDL;
     std::vector<int16_t> coefficientsHorizontal;
     std::vector<int16_t> coefficientsTemporal;
 
@@ -98,9 +104,12 @@ struct Filter
         const uint8_t *inputLineBelow,
         uint8_t *output,
         int width,
-        int y);
+        int y,
+        int16_t clamp);
 
-    void processFrame(const uint8_t *input, int inputStride, const uint8_t *modulation, int modulationStride, const uint8_t *previousOutput, int previousOutputStride, uint8_t *output, int outputStride, int width, int height);
+    void processFrame(const uint8_t *input, int inputStride, const uint8_t *modulation, int modulationStride,
+                      const uint8_t *previousOutput, int previousOutputStride, uint8_t *output, int outputStride,
+                      int width, int height, int qp=MAX_QP);
 };
 
 }//namespace

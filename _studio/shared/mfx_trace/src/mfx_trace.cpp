@@ -101,6 +101,7 @@ static mfxTraceU32      g_Level      = MFX_TRACE_LEVEL_DEFAULT;
 mfxTraceU64      EventCfg = 0;
 mfxTraceU32      LogConfig = 0;
 int32_t FrameIndex = -1;
+char VplLogPath[VPLLOG_BUFFER_SIZE] = "";
 static volatile uint32_t  g_refCounter = 0;
 
 static mfxTraceU32           g_mfxTraceCategoriesNum = 0;
@@ -179,58 +180,106 @@ mfxTraceAlgorithm g_TraceAlgorithms[] =
 
 
 #define CATEGORIES_BUFFER_SIZE 1024
+#define USER_FEATURE_FILE_NEXT               "/etc/igfx_user_feature_next.txt"
+#define USER_SETTING_CONFIG_PATH             "[config]"
+#define USER_SETTING_REPORT_PATH             "[report]"
 
 mfxTraceU32 MFXTrace_GetRegistryParams(void)
 {
-    mfxTraceU32 value = 0;
-    FILE* conf_file = mfx_trace_open_conf_file(MFX_TRACE_CONFIG);
+    std::ifstream regStream;
+    std::map<std::string, std::map<std::string, std::string>> RegBufferMap;
 
-    if (!conf_file) return 1;
-    if (!mfx_trace_get_conf_dword(conf_file, MFX_TRACE_CONF_OMODE_TYPE, &value))
+    regStream.open(USER_FEATURE_FILE_NEXT);
+    if (regStream.good())
     {
-        g_OutputMode = value;
+        std::string id = "";
+        while (!regStream.eof())
+        {
+            std::string line = "";
+            std::getline(regStream, line);
+            auto endIndex = line.find("\r");
+            if (endIndex != std::string::npos)
+            {
+                line = line.substr(0, endIndex);
+            }
+            if (std::string::npos != line.find(USER_SETTING_CONFIG_PATH))
+            {
+                id = USER_SETTING_CONFIG_PATH;
+            }
+            else if (std::string::npos != line.find(USER_SETTING_REPORT_PATH))
+            {
+                id = USER_SETTING_REPORT_PATH;
+            }
+            else if (line.find("]") != std::string::npos)
+            {
+                auto mkPos = line.find_last_of("]");
+                id = line.substr(0, mkPos + 1);
+            }
+            else
+            {
+                if (id == USER_SETTING_REPORT_PATH)
+                {
+                    continue;
+                }
+                std::size_t pos = line.find("=");
+                if (std::string::npos != pos && !id.empty())
+                {
+                    std::string name = line.substr(0, pos);
+                    std::string value = line.substr(pos + 1);
+                    auto& keys = RegBufferMap[id];
+                    keys[name] = value;
+                }
+            }
+        }
     }
-    if (!mfx_trace_get_conf_dword(conf_file, MFX_TRACE_CONF_LEVEL, &value))
+    regStream.close();
+
+    for (auto multiter = RegBufferMap.begin(); multiter != RegBufferMap.end(); multiter++)
     {
-        g_Level = value;
+        if (multiter->first == "[config]")
+        {
+            for (auto iter = multiter->second.begin(); iter != multiter->second.end(); iter++)
+            {
+                if (iter->first == "VPL TXT LOG")
+                {
+                    if (stoi(iter->second) > 0 && stoi(iter->second) < MFX_TXTLOG_LEVEL_API)
+                    {
+                        g_OutputMode |= MFX_TRACE_OUTPUT_TEXTLOG;
+                        g_Level = stoi(iter->second);
+                    }
+                }
+                else if (iter->first == "VPL LOG PATH")
+                {
+                    if (!iter->second.empty())
+                    {
+                        strncpy(VplLogPath, iter->second.c_str(), VPLLOG_BUFFER_SIZE - 1);
+                        VplLogPath[VPLLOG_BUFFER_SIZE - 1] = 0;
+                    }
+                    else
+                    {
+                        strcpy(VplLogPath, "/tmp");
+                    }
+                }
+                else if (iter->first == "VPL PERF LOG" && stoi(iter->second))
+                {
+                    g_perfutility = PerfUtility::getInstance();
+                }
+                else if (iter->first == "VPL PERF PATH")
+                {
+                    if (!iter->second.empty())
+                    {
+                        PerfUtility::perfFilePath = iter->second;
+                    }
+                }
+            }
+        }
     }
-    fclose(conf_file);
     return 0;
 }
 
 
 mfxTraceU32 MFXTrace_GetEnvParams(void)
 {
-    //get VPL TXT log environment variable
-    const char* tracelogChar = std::getenv("VPL_TXT_LOG");
-    char* endPtr = nullptr;
-    if (tracelogChar != nullptr)
-    {
-        LogConfig = std::strtol(tracelogChar, &endPtr, 10);
-        if (LogConfig > 0 && LogConfig <= MFX_TXTLOG_LEVEL_API)
-        {
-            g_OutputMode |= MFX_TRACE_OUTPUT_TEXTLOG;
-            g_Level = LogConfig;
-        }
-    }
-    //get VPL perf log environment variable
-    const char* PerflogChar = std::getenv("VPL_PERF_LOG");
-    const char* PerfPathChar = std::getenv("VPL_PERF_PATH");
-    char* pEndPerf = nullptr;
-    if (PerflogChar != nullptr)
-    {
-        g_perfutility->mainTid = g_perfutility->getTid();
-        g_perfutility->dwPerfUtilityIsEnabled = std::strtol(PerflogChar, &pEndPerf, 10);
-        if (PerfPathChar != nullptr)
-        {
-            g_perfutility->perfFilePath = PerfPathChar;
-        }
-        else
-        {
-            g_perfutility->perfFilePath = "C:\\Temp";
-        }
-    }
-
     //Capture different info according to VPL_EVENT_TRACE_CFG
     const char* g_eventCfg = std::getenv("VPL_EVENT_TRACE_CFG");
     char* endEventCfg = nullptr;
@@ -344,7 +393,6 @@ mfxTraceU32 MFXTrace_Init()
     }
 
     sts = MFXTrace_GetRegistryParams();
-
     sts = MFXTrace_GetEnvParams();
     if (!sts)
     {
@@ -535,6 +583,10 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
         category = static_handle->category;
         level    = static_handle->level;
     }
+    else
+    {
+        return 1;
+    }
 
     mfxTraceU32 sts = 0, res = 0;
     mfxTraceU32 i = 0;
@@ -545,7 +597,7 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
         {
             if (!MFXTrace_IsPrintableCategoryAndLevel(g_TraceAlgorithms[i].m_OutputInitilized, level)) continue;
 
-            res = g_TraceAlgorithms[i].m_EndTaskFn(static_handle, task_handle);
+            res = (g_TraceAlgorithms[i].m_EndTaskFn) ? g_TraceAlgorithms[i].m_EndTaskFn(static_handle, task_handle) : 0;
             if (!sts && res) sts = res;
         }
     }

@@ -267,7 +267,7 @@ void MeP16_1MV_MRE_8x8(
     vector<short, 2>
         mvPred = 0,
         mvPred2 = 0;
-    //read(SURF_MV16x16, mbX * MVDATA_SIZE, mbY, mvPred); // these pred MVs will be updated later here
+    //read(SURF_MV16x16, mbX * MVDATA_SIZE, mbY, mvPred); 
     uchar
         x_r = 64,
         y_r = 32;
@@ -335,7 +335,7 @@ void MeP16_1MV_MRE_8x8(
     run_vme_ime(uniIn, imeIn,
         VME_STREAM_OUT, VME_SEARCH_SINGLE_REF_SINGLE_REC_SINGLE_START,
         SURF_SRC_AND_REF, ref0XY, NULL, costCenter, imeOut);
-    mv8   = imeOut.row(8).format<short>().select<8, 1>(8); // 4 MVs
+    mv8   = imeOut.row(8).format<short>().select<8, 1>(8); // 4 motion vectors
     dist8 = imeOut.row(7).format<ushort>().select<4, 1>(4);
     // distortions Integer search results
     // 8x8
@@ -423,7 +423,7 @@ void MeP16bi_1MV2_MRE(
     vector<short, 2>
         mvPred  = 0,
         mvPred2 = 0;
-    //read(SURF_MV16x16, mbX * MVDATA_SIZE, mbY, mvPred); // these pred MVs will be updated later here
+    //read(SURF_MV16x16, mbX * MVDATA_SIZE, mbY, mvPred); // these pred motion vectors will be updated later here
 
 #if COMPLEX_BIDIR
     uchar
@@ -622,7 +622,7 @@ void MeP16bi_1MV2_MRE_8x8(
     vector<short, 2>
         mvPred  = 0,
         mvPred2 = 0;
-    //read(SURF_MV16x16, mbX * MVDATA_SIZE, mbY, mvPred); // these pred MVs will be updated later here
+    //read(SURF_MV16x16, mbX * MVDATA_SIZE, mbY, mvPred); // these pred motion vectors will be updated later here
 #if COMPLEX_BIDIR
     uchar x_r = 48;
     uchar y_r = 40;
@@ -706,7 +706,7 @@ void MeP16bi_1MV2_MRE_8x8(
     run_vme_ime(uniIn, imeIn,
         VME_STREAM_OUT, VME_SEARCH_SINGLE_REF_SINGLE_REC_SINGLE_START,
         SURF_SRC_AND_REF, ref0XY, NULL, costCenter, imeOut);
-    mv8   = imeOut.row(8).format<short>().select<8, 1>(8); // 4 MVs
+    mv8   = imeOut.row(8).format<short>().select<8, 1>(8); // 4 motion vectors
     dist8 = imeOut.row(7).format<ushort>().select<4, 1>(4);
     vector<short, 2>
         mv16;
@@ -716,7 +716,7 @@ void MeP16bi_1MV2_MRE_8x8(
     run_vme_ime(uniIn, imeIn,
         VME_STREAM_OUT, VME_SEARCH_SINGLE_REF_SINGLE_REC_SINGLE_START,
         SURF_SRC_AND_REF2, ref1XY, NULL, costCenter, imeOut);
-    mv8_2   = imeOut.row(8).format<short>().select<8, 1>(8); // 4 MVs
+    mv8_2   = imeOut.row(8).format<short>().select<8, 1>(8); // 4 motion vectors
     dist8_2 = imeOut.row(7).format<ushort>().select<4, 1>(4);
 
 #else
@@ -725,7 +725,7 @@ void MeP16bi_1MV2_MRE_8x8(
     run_vme_ime(uniIn, imeIn,
         VME_STREAM_OUT, VME_SEARCH_SINGLE_REF_SINGLE_REC_SINGLE_START,
         SURF_SRC_AND_REF2, ref1XY, NULL, costCenter, imeOut);
-    mv8_2   = imeOut.row(8).format<short>().select<8, 1>(8); // 4 MVs
+    mv8_2   = imeOut.row(8).format<short>().select<8, 1>(8); // 4 motion vectors
     dist8_2 = imeOut.row(7).format<ushort>().select<4, 1>(4);
     //mv8_2 = mv8 * -1;
 #endif
@@ -850,7 +850,7 @@ void MeP16_1ME_2BiRef_MRE_8x8(
     vector<short, 2>
         mvPred = 0,
         mvPred2 = 0;
-    //read(SURF_MV16x16, mbX * MVDATA_SIZE, mbY, mvPred); // these pred MVs will be updated later here
+    //read(SURF_MV16x16, mbX * MVDATA_SIZE, mbY, mvPred); // these pred motion vectors will be updated later here
 #if COMPLEX_BIDIR
     uchar x_r = 48;
     uchar y_r = 40;
@@ -930,12 +930,12 @@ void MeP16_1ME_2BiRef_MRE_8x8(
     run_vme_ime(uniIn, imeIn,
         VME_STREAM_OUT, VME_SEARCH_SINGLE_REF_SINGLE_REC_SINGLE_START,
         SURF_SRC_AND_REF, ref0XY, NULL, costCenter, imeOut);
-    mv8 = imeOut.row(8).format<short>().select<8, 1>(8); // 4 MVs
+    mv8 = imeOut.row(8).format<short>().select<8, 1>(8); // 4 motion vectors
     dist8 = imeOut.row(7).format<ushort>().select<4, 1>(4);
     vector<short, 2>
         mv16;
     VME_GET_IMEOutput_Rec0_16x16_Mv(imeOut, mv16);
-    mv8_2 = -mv8; // 4 MVs
+    mv8_2 = -mv8; // 4 motion vectors
 
     // distortions Integer search results
     // 8x8

@@ -174,6 +174,7 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
     {
         return MFX_ERR_NULL_PTR;
     }
+    PERF_UTILITY_SET_ASYNC_TASK_ID(pTask->param.task.nTaskId);
 
     if (MFX_SINGLE_THREAD == m_param.flags)
     {

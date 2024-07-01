@@ -29,7 +29,6 @@ typedef struct {
 } mfxExtBuffer;
 MFX_PACK_END()
 
-#ifdef ONEVPL_EXPERIMENTAL
 
 #define MFX_REFINTERFACE_VERSION MFX_STRUCT_VERSION(1, 0)
 
@@ -41,9 +40,9 @@ typedef struct mfxRefInterface {
     mfxHDL              Context; /*!< The context of the container interface. User should not touch (change, set, null) this pointer. */
     mfxStructVersion    Version; /*!< The version of the structure. */
     /*! @brief
-    Increments the internal reference counter of the container. The container is not destroyed until the container 
+    Increments the internal reference counter of the container. The container is not destroyed until the container
     is released using the mfxRefInterface::Release function.
-    mfxRefInterface::AddRef should be used each time a new link to the container is created 
+    mfxRefInterface::AddRef should be used each time a new link to the container is created
     (for example, copy structure) for proper  management.
 
     @param[in]  ref_interface  Valid interface.
@@ -58,7 +57,7 @@ typedef struct mfxRefInterface {
     mfxStatus (MFX_CDECL *AddRef)(struct mfxRefInterface*  ref_interface);
    /*! @brief
     Decrements the internal reference counter of the container. mfxRefInterface::Release should be called after using the
-    mfxRefInterface::AddRef function to add a container or when allocation logic requires it. 
+    mfxRefInterface::AddRef function to add a container or when allocation logic requires it.
 
     @param[in]  ref_interface  Valid interface.
 
@@ -87,7 +86,6 @@ typedef struct mfxRefInterface {
 
 }mfxRefInterface;
 MFX_PACK_END()
-#endif
 
 /* Library initialization and deinitialization */
 /*!
@@ -189,11 +187,13 @@ typedef struct _mfxSyncPoint *mfxSyncPoint;
 /*! The GPUCopy enumerator controls usage of GPU accelerated copying between video and system memory in the legacy Intel(r) Media SDK components. */
 enum {
     MFX_GPUCOPY_DEFAULT = 0, /*!< Use default mode for the legacy Intel(r) Media SDK implementation. */
-    MFX_GPUCOPY_ON      = 1, /*!< The hint to enable GPU accelerated copying when it is supported by the library. 
-                                  If the library doesn't support GPU accelerated copy the operation will be made by CPU. */
-    MFX_GPUCOPY_OFF     = 2,  /*!< Disable GPU accelerated copying. */
+    MFX_GPUCOPY_ON      = 1, /*!< The hint to enable GPU accelerated copying when it is supported by the library.
+                                  If the library doesn't support GPU accelerated copy the operation will be made by CPU.
+                                  Buffer caching usage decision is up to runtime to decide, for explicit hints please use MFX_GPUCOPY_SAFE or MFX_GPUCOPY_FAST */
+    MFX_GPUCOPY_OFF     = 2, /*!< Disable GPU accelerated copying. */
+    MFX_GPUCOPY_SAFE    = 3, /*!< The hint to disable buffer caching for GPU accelerated copying. Actual when GPU accelerated copying is supported by the library. */
 #ifdef ONEVPL_EXPERIMENTAL
-    MFX_GPUCOPY_SAFE    = 3  /*!< The hint to disable buffer caching for GPU accelerated copying. Actual when GPU accelerated copying is supported by the library. */
+    MFX_GPUCOPY_FAST    = 4  /*!< The hint to enable buffer caching for GPU accelerated copying. Actual when GPU accelerated copying is supported by the library. */
 #endif
 };
 
@@ -265,6 +265,10 @@ enum {
     MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_ATS_M)          = 46, /*!< Code name ATS-M, same media functionality as DG2. */
     MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_ALDERLAKE_N)    = 55, /*!< Code name Alder Lake N. */
     MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_KEEMBAY)        = 50, /*!< Code name Keem Bay. */
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_METEORLAKE)     = 51, /*!< Code name Meteor Lake. */
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_LUNARLAKE)      = 53, /*!< Code name Lunar Lake. */
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_ARROWLAKE)      = 54, /*!< Code name Arrow Lake. */
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PLATFORM_MAXIMUM)        = 65535, /*!< General code name. */
 };
 
 /*! The mfxMediaAdapterType enumerator itemizes types of graphics adapters. */
@@ -286,16 +290,16 @@ typedef struct {
 MFX_PACK_END()
 
 
-/* The mfxResourceType enumerator specifies types of different native data frames and buffers. */
+/*! The mfxResourceType enumerator specifies types of different native data frames and buffers. */
 typedef enum {
     MFX_RESOURCE_SYSTEM_SURFACE                  = 1, /*!< System memory. */
     MFX_RESOURCE_VA_SURFACE_PTR                  = 2, /*!< Pointer to VA surface index. */
     MFX_RESOURCE_VA_SURFACE                      = MFX_RESOURCE_VA_SURFACE_PTR, /*!< Pointer to VA surface index. */
     MFX_RESOURCE_VA_BUFFER_PTR                   = 3, /*!< Pointer to VA buffer index. */
     MFX_RESOURCE_VA_BUFFER                       = MFX_RESOURCE_VA_BUFFER_PTR, /*!< Pointer to VA buffer index. */
-    MFX_RESOURCE_DX9_SURFACE                     = 4, /*!< IDirect3DSurface9. */
-    MFX_RESOURCE_DX11_TEXTURE                    = 5, /*!< ID3D11Texture2D. */
-    MFX_RESOURCE_DX12_RESOURCE                   = 6, /*!< ID3D12Resource. */
+    MFX_RESOURCE_DX9_SURFACE                     = 4, /*!< Pointer to IDirect3DSurface9. */
+    MFX_RESOURCE_DX11_TEXTURE                    = 5, /*!< Pointer to ID3D11Texture2D. */
+    MFX_RESOURCE_DX12_RESOURCE                   = 6, /*!< Pointer to ID3D12Resource. */
     MFX_RESOURCE_DMA_RESOURCE                    = 7, /*!< DMA resource. */
     MFX_RESOURCE_HDDLUNITE_REMOTE_MEMORY         = 8, /*!< HDDL Unite Remote memory handle. */
 } mfxResourceType;
@@ -442,13 +446,14 @@ typedef enum {
     MFX_ACCEL_MODE_VIA_D3D9     = 0x0200,  /*!< Hardware acceleration goes through the Microsoft* Direct3D9* infrastructure. */
     MFX_ACCEL_MODE_VIA_D3D11    = 0x0300,  /*!< Hardware acceleration goes through the Microsoft* Direct3D11* infrastructure. */
     MFX_ACCEL_MODE_VIA_VAAPI    = 0x0400,  /*!< Hardware acceleration goes through the Linux* VA-API infrastructure. */
-    MFX_ACCEL_MODE_VIA_VAAPI_DRM_RENDER_NODE    = MFX_ACCEL_MODE_VIA_VAAPI,  /*!< Hardware acceleration goes through the Linux* VA-API infrastructure with DRM RENDER MODE as default acceleration access point. */
+    MFX_ACCEL_MODE_VIA_VAAPI_DRM_RENDER_NODE
+                       = MFX_ACCEL_MODE_VIA_VAAPI, /*!< Hardware acceleration goes through the Linux* VA-API infrastructure with DRM RENDER MODE as default acceleration access point. */
     MFX_ACCEL_MODE_VIA_VAAPI_DRM_MODESET = 0x0401, /*!< Hardware acceleration goes through the Linux* VA-API infrastructure with DRM MODESET as  default acceleration access point. */
-    MFX_ACCEL_MODE_VIA_VAAPI_GLX = 0x0402, /*! Hardware acceleration goes through the Linux* VA-API infrastructure with OpenGL Extension to the X Window System
-                                              as default acceleration access point. */
-    MFX_ACCEL_MODE_VIA_VAAPI_X11 = 0x0403, /*!< Hardware acceleration goes through the Linux* VA-API infrastructure with X11 as default acceleration access point. */
+    MFX_ACCEL_MODE_VIA_VAAPI_GLX         = 0x0402, /*!< Hardware acceleration goes through the Linux* VA-API infrastructure with OpenGL Extension to the X Window System
+                                                        as default acceleration access point. */
+    MFX_ACCEL_MODE_VIA_VAAPI_X11     = 0x0403, /*!< Hardware acceleration goes through the Linux* VA-API infrastructure with X11 as default acceleration access point. */
     MFX_ACCEL_MODE_VIA_VAAPI_WAYLAND = 0x0404, /*!< Hardware acceleration goes through the Linux* VA-API infrastructure with Wayland as default acceleration access point. */
-    MFX_ACCEL_MODE_VIA_HDDLUNITE    = 0x0500,  /*!< Hardware acceleration goes through the HDDL* Unite*. */
+    MFX_ACCEL_MODE_VIA_HDDLUNITE     = 0x0500, /*!< Hardware acceleration goes through the HDDL* Unite*. */
 } mfxAccelerationMode;
 
 #define MFX_ACCELERATIONMODESCRIPTION_VERSION MFX_STRUCT_VERSION(1, 0)
@@ -466,13 +471,13 @@ MFX_PACK_END()
 /*! Specifies the surface pool allocation policies. */
  typedef enum {
     /*! Recommends to limit max pool size by sum of requested surfaces asked by components. */
-    MFX_ALLOCATION_OPTIMAL = 0, 
+    MFX_ALLOCATION_OPTIMAL = 0,
 
     /*! Dynamic allocation with no limit. */
-    MFX_ALLOCATION_UNLIMITED   = 1, 
-    
+    MFX_ALLOCATION_UNLIMITED   = 1,
+
     /*! Max pool size is limited by NumberToPreAllocate + DeltaToAllocateOnTheFly. */
-    MFX_ALLOCATION_LIMITED     = 2,  
+    MFX_ALLOCATION_LIMITED     = 2,
 
 } mfxPoolAllocationPolicy;
 
@@ -531,12 +536,11 @@ typedef struct {
 } mfxImplementedFunctions;
 MFX_PACK_END()
 
-#ifdef ONEVPL_EXPERIMENTAL
 
 #define MFX_EXTENDEDDEVICEID_VERSION MFX_STRUCT_VERSION(1, 0)
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-/*! Specifies various physical device properties for device matching and identification outside of oneVPL. */
+/*! Specifies various physical device properties for device matching and identification outside of oneAPI Video Processing Library (oneVPL). */
 typedef struct {
     mfxStructVersion Version;                       /*!< Version of the structure. */
     mfxU16           VendorID;                      /*!< PCI vendor ID. */
@@ -575,22 +579,22 @@ typedef struct {
       mfxU8  pci_dev;                               /*!< The index of the physical device on the bus. Same as mfxExtendedDeviceId::PCIDevice. */
       mfxU8  pci_func;                              /*!< The function number of the device on the physical device.  Same as mfxExtendedDeviceId::PCIFunction. */
       mfxU8  reserved[4];                           /*!< Reserved for future use. */
-      mfxU8  sub_device_id;                         /*!< SubDevice ID.*/  
+      mfxU8  sub_device_id;                         /*!< SubDevice ID.*/
 } extDeviceUUID;
 MFX_PACK_END()
 
-#endif
 
-/* The mfxImplCapsDeliveryFormat enumerator specifies delivery format of the implementation capability. */
+/*! The mfxImplCapsDeliveryFormat enumerator specifies delivery format of the implementation capability. */
 typedef enum {
     MFX_IMPLCAPS_IMPLDESCSTRUCTURE       = 1,  /*!< Deliver capabilities as mfxImplDescription structure. */
     MFX_IMPLCAPS_IMPLEMENTEDFUNCTIONS    = 2,  /*!< Deliver capabilities as mfxImplementedFunctions structure. */
     MFX_IMPLCAPS_IMPLPATH                = 3,  /*!< Deliver pointer to the null-terminated string with the path to the
                                                     implementation. String is delivered in a form of buffer of
                                                     mfxChar type. */
-#ifdef ONEVPL_EXPERIMENTAL
-    MFX_IMPLCAPS_DEVICE_ID_EXTENDED      = 4   /*!< Deliver extended device ID information as mfxExtendedDeviceId
+    MFX_IMPLCAPS_DEVICE_ID_EXTENDED      = 4,  /*!< Deliver extended device ID information as mfxExtendedDeviceId
                                                     structure.*/
+#ifdef ONEVPL_EXPERIMENTAL
+    MFX_IMPLCAPS_SURFACE_TYPES           = 5,  /*!< Deliver capabilities as mfxSurfaceTypesSupported structure. */
 #endif
 } mfxImplCapsDeliveryFormat;
 

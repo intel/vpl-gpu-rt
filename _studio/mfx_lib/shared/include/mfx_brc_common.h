@@ -22,7 +22,7 @@
 #define __MFX_BRC_COMMON_H__
 
 #include "mfx_common.h"
-#ifdef MFX_ENABLE_ENCTOOLS
+#ifdef MFX_ENABLE_ENCTOOLS_BASE
 #include "mfxenctools-int.h"
 #else
 #include "mfxbrc.h"
@@ -172,7 +172,7 @@ NalHrdConformance | VuiNalHrdParameters   |  Result
     on (or default)      on (or default)    => MFX_BRC_HRD_STRONG
 --------------------------------------------------------------
 */
-#if !defined(MFX_ENABLE_ENCTOOLS)
+#if !defined(MFX_ENABLE_ENCTOOLS_BASE)
 enum : mfxU16
 {
     MFX_BRC_NO_HRD = 0,

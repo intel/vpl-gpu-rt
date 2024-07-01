@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2020 Intel Corporation
+// Copyright (c) 2008-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -302,6 +302,9 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
     case MFX_FOURCC_YUY2:
         color_format = UMC::YUY2;
         break;
+    case MFX_FOURCC_UYVY:
+        color_format = UMC::UYVY;
+        break;
     case MFX_FOURCC_AYUV:
         color_format = UMC::AYUV;
         break;
@@ -319,6 +322,24 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
         break;
     case MFX_FOURCC_Y416:
         color_format = UMC::Y416;
+        break;
+    case MFX_FOURCC_RGBP:
+    case MFX_FOURCC_BGRP:
+    case MFX_FOURCC_YUV444:
+        color_format = UMC::YUV444;
+        break;
+    case MFX_FOURCC_YUV411:
+        color_format = UMC::YUV411;
+        break;
+    case MFX_FOURCC_YUV400:
+        color_format = UMC::GRAY;
+        break;
+    case MFX_FOURCC_YUV422H:
+    case MFX_FOURCC_YUV422V:
+        color_format = UMC::YUV422;
+        break;
+    case MFX_FOURCC_IMC3:
+        color_format = UMC::IMC3;
         break;
     default:
         return UMC::UMC_ERR_UNSUPPORTED;
@@ -477,6 +498,7 @@ UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC:
     case UMC::NV12:
     case UMC::NV16:
     case UMC::YUY2:
+    case UMC::UYVY:
     case UMC::IMC3:
     case UMC::RGB32:
     case UMC::AYUV:
@@ -783,7 +805,7 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
             MFX_CHECK(m_pCore->IsSupportedDelayAlloc(), MFX_ERR_UNDEFINED_BEHAVIOR);
             for (mfxU32 i = 0; i < m_frameDataInternal.GetSize(); i++)
             {
-                auto internal_surf = m_frameDataInternal.GetSurface(i);
+                auto& internal_surf = m_frameDataInternal.GetSurface(i);
                 if (internal_surf.Data.MemId == surf->Data.MemId)
                 {
                     isFound = true;
@@ -1272,6 +1294,21 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
         case MFX_FOURCC_Y416:
             color_format = UMC::Y416;
             break;
+        case MFX_FOURCC_RGBP:
+        case MFX_FOURCC_BGRP:
+        case MFX_FOURCC_YUV444:
+            color_format = UMC::YUV444;
+            break;
+        case MFX_FOURCC_YUV411:
+            color_format = UMC::YUV411;
+            break;
+        case MFX_FOURCC_YUV400:
+            color_format = UMC::GRAY;
+            break;
+        case MFX_FOURCC_YUV422H:
+        case MFX_FOURCC_YUV422V:
+            color_format = UMC::YUV422;
+            break;
         default:
             MFX_CHECK_WITH_THROW_STS(false, MFX_ERR_UNSUPPORTED);
         }
@@ -1390,8 +1427,12 @@ void SurfaceSource::ReleaseCurrentWorkSurface()
 // Closes object and releases all allocated memory
 UMC::Status SurfaceSource::Close()
 {
-    MFX_CHECK( m_redirect_to_vpl_path == !!m_vpl_cache_decoder_surfaces, UMC::UMC_ERR_NOT_INITIALIZED);
-    MFX_CHECK(!m_redirect_to_vpl_path == !!m_umc_allocator_adapter,      UMC::UMC_ERR_NOT_INITIALIZED);
+    if (m_redirect_to_vpl_path != !!m_vpl_cache_decoder_surfaces
+    || !m_redirect_to_vpl_path != !!m_umc_allocator_adapter)
+    {
+        // Was already Closed, do nothing
+        return UMC::UMC_OK;
+    }
 
     if (m_redirect_to_vpl_path)
     {
@@ -1484,6 +1525,11 @@ void SurfaceSource::RemoveBinding(const mfxFrameSurface1 & surf)
 
 mfxFrameSurface1* SurfaceSource::GetDecoderSurface(UMC::FrameMemID index)
 {
+    if (index < 0)
+    {
+        return nullptr;
+    }
+
     auto it = m_umc2mfx_memid.find(index);
     if (it == std::end(m_umc2mfx_memid))
     {
@@ -1697,7 +1743,7 @@ UMC::Status SurfaceSource::GetFrameHandle(UMC::FrameMemID MID, void * handle)
 
         auto it = m_umc2mfx_memid.find(MID);
         MFX_CHECK(it != std::end(m_umc2mfx_memid), MFX_ERR_INVALID_HANDLE);
-        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(m_core->GetFrameHDL(it->second, reinterpret_cast<mfxHDL*>(handle), false)));
+        return ConvertStatusMfx2Umc(MFX_STS_TRACE(m_core->GetFrameHDL(it->second, reinterpret_cast<mfxHDL*>(handle), false)));
     }
     else
     {
@@ -1815,7 +1861,7 @@ UMC::Status SurfaceSource::Unlock(UMC::FrameMemID MID)
         auto base_core_vpl = dynamic_cast<CommonCORE_VPL*>(m_core);
         MFX_CHECK(base_core_vpl, UMC::UMC_ERR_NULL_PTR);
 
-        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(base_core_vpl->Unlock(*surf)));
+        return ConvertStatusMfx2Umc(MFX_STS_TRACE(base_core_vpl->Unlock(*surf)));
     }
     else
     {
@@ -1835,7 +1881,7 @@ UMC::Status SurfaceSource::IncreaseReference(UMC::FrameMemID MID)
         mfxFrameSurface1* surf = GetDecoderSurface(MID);
         MFX_CHECK(surf, UMC::UMC_ERR_NULL_PTR);
 
-        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(AddRefSurface(*surf, true)));
+        return ConvertStatusMfx2Umc(MFX_STS_TRACE(AddRefSurface(*surf, true)));
     }
     else
     {
@@ -1860,11 +1906,11 @@ UMC::Status SurfaceSource::DecreaseReference(UMC::FrameMemID MID)
             mfxU32 counter = 0;
             MFX_CHECK(surf->FrameInterface->GetRefCounter(surf, &counter) == MFX_ERR_NONE, UMC::UMC_ERR_FAILED);
 
-            if (counter == 2)
+            if (counter == 1)
                 RemoveCorrespondence(*surf);
         }
 
-        return ConvertStatusUmc2Mfx(MFX_STS_TRACE(ReleaseSurface(*surf, true)));
+        return ConvertStatusMfx2Umc(MFX_STS_TRACE(ReleaseSurface(*surf, true)));
     }
     else
     {
@@ -2141,12 +2187,12 @@ mfxFrameSurface1 * SurfaceSource::GetInternalSurface(UMC::FrameMemID index)
     }
 }
 
-mfxStatus SurfaceSource::GetSurface(mfxFrameSurface1* & surface)
+mfxStatus SurfaceSource::GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface)
 {
-    MFX_CHECK(m_redirect_to_vpl_path,              MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(m_redirect_to_vpl_path,      MFX_ERR_UNSUPPORTED);
     MFX_CHECK(m_vpl_cache_output_surfaces, MFX_ERR_NOT_INITIALIZED);
 
-    return (*m_vpl_cache_output_surfaces)->GetSurface(surface);
+    return (*m_vpl_cache_output_surfaces)->GetSurface(surface, false, import_surface);
 }
 
 mfxFrameSurface1 * SurfaceSource::GetSurfaceByIndex(UMC::FrameMemID index)
@@ -2252,6 +2298,11 @@ bool SurfaceSource::HasFreeSurface()
     }
 }
 
+bool SurfaceSource::GetSurfaceType()
+{
+    return m_redirect_to_vpl_path;
+}
+
 void SurfaceSource::SetFreeSurfaceAllowedFlag(bool flag)
 {
     if (m_redirect_to_vpl_path != !!m_vpl_cache_decoder_surfaces)
@@ -2261,6 +2312,7 @@ void SurfaceSource::SetFreeSurfaceAllowedFlag(bool flag)
     if (!m_redirect_to_vpl_path != !!m_umc_allocator_adapter)
     {
         std::ignore = MFX_STS_TRACE(MFX_ERR_NOT_INITIALIZED);
+        return;
     }
 
     if (m_redirect_to_vpl_path)

@@ -35,6 +35,7 @@
 #include "hevcehw_base_recon_info_lin.h"
 #include "hevcehw_base_extddi.h"
 
+
 namespace HEVCEHW
 {
 namespace Linux

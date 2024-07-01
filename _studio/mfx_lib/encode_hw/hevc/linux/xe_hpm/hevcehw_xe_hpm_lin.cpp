@@ -28,6 +28,8 @@
 #include "hevcehw_base_extddi.h"
 #include "hevcehw_base_caps_lin.h"
 #include "hevcehw_g12_caps.h"
+#include "hevcehw_base_recon422_ext.h"
+#include "hevcehw_base_iddi.h"
 
 namespace HEVCEHW
 {
@@ -45,6 +47,7 @@ MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
 
     newFeatures.emplace_back(new HEVCEHW::Linux::Base::Caps(HEVCEHW::Base::FEATURE_CAPS));
     newFeatures.emplace_back(new HEVCEHW::Base::ExtDDI(HEVCEHW::Base::FEATURE_EXTDDI));
+    newFeatures.emplace_back(new HEVCEHW::Base::Recon422EXT(FEATURE_RECON422EXT));
 
     for (auto& pFeature : newFeatures)
         pFeature->Init(mode, *this);
@@ -61,6 +64,16 @@ MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
             qnc
             , { HEVCEHW::Base::FEATURE_LEGACY, HEVCEHW::Base::Legacy::BLK_SetLowPowerDefault }
             , { HEVCEHW::Base::FEATURE_CAPS, HEVCEHW::Linux::Base::Caps::BLK_SetDefaultsCallChain });
+
+        Reorder(
+            qnc
+            , { HEVCEHW::Base::FEATURE_LEGACY, HEVCEHW::Base::Legacy::BLK_SetLowPowerDefault }
+            , { FEATURE_RECON422EXT, HEVCEHW::Base::Recon422EXT::BLK_SetCallChain });//featureID, blockID
+
+        Reorder(
+            qnc
+            , { HEVCEHW::Base::FEATURE_DDI, HEVCEHW::Base::IDDI::BLK_SetDDIID }
+            , { FEATURE_RECON422EXT, HEVCEHW::Base::Recon422EXT::BLK_SetRecon422Caps });
 
         auto& qwc = BQ<BQ_Query1WithCaps>::Get(*this);
 

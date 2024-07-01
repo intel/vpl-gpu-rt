@@ -32,7 +32,6 @@ extern "C"
 #include "unistd.h"
 
 /*------------------------------------------------------------------------------*/
-
 static FILE* g_mfxTracePrintfFile = NULL;
 static mfxTraceChar g_mfxTracePrintfFileName[MAX_PATH] =
     MFT_TRACE_PATH_TO_TEMP_LIBLOG;
@@ -41,28 +40,18 @@ static mfxTraceU32 g_PrintfSuppress =
     MFX_TRACE_TEXTLOG_SUPPRESS_LINE_NUM |
     MFX_TRACE_TEXTLOG_SUPPRESS_LEVEL;
 
-typedef mfxTraceU64 mfxTraceTick;
-
-#include <sys/time.h>
-
-#define MFX_TRACE_TIME_MHZ 1000000
-
-static mfxTraceTick mfx_trace_get_frequency(void)
-{
-    return (mfxTraceTick)MFX_TRACE_TIME_MHZ;
-}
-
-static mfxTraceTick mfx_trace_get_tick(void)
-{
-    struct timeval tv;
-
-    gettimeofday(&tv, NULL);
-    return (mfxTraceTick)tv.tv_sec * (mfxTraceTick)MFX_TRACE_TIME_MHZ + (mfxTraceTick)tv.tv_usec;
-}
-
-#define mfx_trace_get_time(T,S,F) ((double)(__INT64)((T)-(S))/(double)(__INT64)(F))
-
+bool trace_bEnable = false;
+double timeStamp = 0;
+std::string trace_autotag = "intialized";
+static std::map<std::pair<uint64_t, std::string>, std::vector<TickTime>*> records;
 /*------------------------------------------------------------------------------*/
+void startTick(const std::string& tag)
+{
+}
+
+void stopTick(const std::string& tag)
+{
+}
 
 
 mfxTraceU32 MFXTraceTextLog_GetRegistryParams(void)
@@ -101,9 +90,10 @@ mfxTraceU32 MFXTraceTextLog_Init()
 
     sts = MFXTraceTextLog_Close();
     if (!sts) sts = MFXTraceTextLog_GetRegistryParams();
-
-    std::string filename_path = "/tmp/mfxlib_Pid" + std::to_string(getpid()) + "_Tid" + std::to_string(pthread_self()) + ".log";
-    strcpy(g_mfxTracePrintfFileName,filename_path.c_str()); 
+    std::string StrPid = "/mfxlib_Pid";
+    std::string filename_path = VplLogPath + StrPid + std::to_string(getpid()) + "_Tid" + std::to_string(pthread_self()) + ".log";
+    strncpy(g_mfxTracePrintfFileName,filename_path.c_str(), MAX_PATH - 1);
+    g_mfxTracePrintfFileName[MAX_PATH - 1] = 0;
 
     if (!sts)
     {
@@ -181,7 +171,7 @@ mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* static_handle,
     char* g_fimeName = strrchr(strfile_name, '/') + 1;
     if (g_fimeName && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FILE_NAME))
     {
-        p_str = mfx_trace_sprintf(p_str, len, "=====>%s: ", g_fimeName);
+        p_str = mfx_trace_sprintf(p_str, len, "=====>%-40s: ", g_fimeName);
     }
     if (line_num && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_LINE_NUM))
     {
@@ -189,33 +179,48 @@ mfxTraceU32 MFXTraceTextLog_vDebugMessage(mfxTraceStaticHandle* static_handle,
     }
     if (category && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_CATEGORY))
     {
-        p_str = mfx_trace_sprintf(p_str, len, "%S: ", category);
-    }
-    if (!(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_LEVEL))
-    {
-        p_str = mfx_trace_sprintf(p_str, len, "LEV_%d: ", level);
+        p_str = mfx_trace_sprintf(p_str, len, "%s: ", category);
     }
     if (function_name && !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FUNCTION_NAME) && !(format && ((strcmp(format, exitChr) == 0) || (strcmp(format, enterChr) == 0))))
     {
-        p_str = mfx_trace_sprintf(p_str, len, "%-40s: ", function_name);
+        p_str = mfx_trace_sprintf(p_str, len, "%-60s: ", function_name);
+    }
+    if (level == MFX_TRACE_LEVEL_CRITICAL_INFO)
+    {
+        p_str = mfx_trace_sprintf(p_str, len, "%s", "[Critical] ");
+    }
+    else if (level == MFX_TRACE_LEVEL_WARNING_INFO)
+    {
+        p_str = mfx_trace_sprintf(p_str, len, "%s", "[Warning] ");
     }
     if (message && strlen(message) != 0)
     {
-        p_str = mfx_trace_sprintf(p_str, len, "%s", message);
+        if (format && ((strcmp(format, exitChr) == 0) || (strcmp(format, enterChr) == 0)))
+        {
+            p_str = mfx_trace_sprintf(p_str, len, "%-40s", message);
+        }
+        else
+        {
+            p_str = mfx_trace_sprintf(p_str, len, "%s", message);
+        }
     }
     if (format)
     {
         p_str = mfx_trace_vsprintf(p_str, len, format, args);
         if (strcmp(format, exitChr) == 0)
         {
-            mfxTraceTick trace_frequency = mfx_trace_get_frequency();
-            double total_time = mfx_trace_get_time(static_handle->sd2.tick, 0, trace_frequency);
-            if (total_time)
+            if (static_handle)
             {
-                p_str = mfx_trace_sprintf(p_str, len, "\t\tExec Time: %5.6fus\t\t", total_time);
-            }
+                if (static_handle->tick.totalTime)
+                {
+                    p_str = mfx_trace_sprintf(p_str, len, "\t\tExec Time: %5.4fms\t\t", static_handle->tick.totalTime);
+                }
 
-            p_str = mfx_trace_sprintf(p_str, len, "Call Count: %d", static_handle->sd5.uint32);
+                if (static_handle->tick.callCount)
+                {
+                    p_str = mfx_trace_sprintf(p_str, len, "\tCall Count: %I64d", static_handle->tick.callCount);
+                }
+            }
 
             p_str = mfx_trace_sprintf(p_str, len, "\n");
         }
@@ -245,7 +250,6 @@ mfxTraceU32 MFXTraceTextLog_BeginTask(mfxTraceStaticHandle *static_handle,
         handle->fd4.str    = (char*)task_name;
     }
 
-    static_handle->sd1.tick = mfx_trace_get_tick();
 
     return MFXTraceTextLog_DebugMessage(static_handle,
                                        file_name, line_num,
@@ -277,8 +281,6 @@ mfxTraceU32 MFXTraceTextLog_EndTask(mfxTraceStaticHandle *static_handle,
         task_name     = handle->fd4.str;
     }
 
-    ++(static_handle->sd5.uint32);
-    static_handle->sd2.tick = mfx_trace_get_tick() - static_handle->sd1.tick;
 
     return MFXTraceTextLog_DebugMessage(static_handle,
                                        file_name, line_num,

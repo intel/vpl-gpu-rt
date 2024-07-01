@@ -24,10 +24,10 @@
 #include "av1ehw_base_general.h"
 #include "av1ehw_base_segmentation.h"
 
-using namespace AV1EHW;
-using namespace AV1EHW::Base;
-
 namespace AV1EHW
+{
+
+namespace Base
 {
 
 template<typename T>
@@ -664,4 +664,5 @@ void Segmentation::PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT 
 
 } //namespace AV1EHW
 
+}
 #endif //defined(MFX_ENABLE_AV1_VIDEO_ENCODE)

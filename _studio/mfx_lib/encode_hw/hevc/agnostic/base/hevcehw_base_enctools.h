@@ -24,82 +24,51 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 #if defined(MFX_ENABLE_ENCTOOLS)
 
-#include "hevcehw_base.h"
-#include "hevcehw_base_data.h"
-#include "mfxenctools-int.h"
-#include "mfx_enc_common.h"
+#include "hevcehw_base_enctools_com.h"
 
 namespace HEVCEHW
 {
 namespace Base
 {
     class HevcEncTools
-        : public FeatureBase
+        : public HevcEncToolsCommon
     {
     public:
-        mfxStatus SubmitPreEncTask(StorageW&  global, StorageW& s_task);
-        mfxStatus QueryPreEncTask(StorageW&  global, StorageW& s_task);
         mfxStatus BRCGetCtrl(StorageW&  global, StorageW& s_task,
             mfxEncToolsBRCQuantControl &extQuantCtrl, mfxEncToolsBRCHRDPos  &extHRDPos, mfxEncToolsHintQPMap   &qpMapHint);
         mfxStatus BRCUpdate(StorageW&  global, StorageW& s_task,
             mfxEncToolsBRCStatus &sts);
 
-#define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetDefaultsCallChain)\
-    DECL_BLOCK(Check)\
-    DECL_BLOCK(Init)\
-    DECL_BLOCK(ResetCheck)\
-    DECL_BLOCK(Reset)\
-    DECL_BLOCK(SetCallChains)\
-    DECL_BLOCK(AddTask)\
-    DECL_BLOCK(PreEncSubmit)\
-    DECL_BLOCK(PreEncQuery)\
-    DECL_BLOCK(GetFrameCtrl)\
-    DECL_BLOCK(UpdateTask)\
-    DECL_BLOCK(Update)\
-    DECL_BLOCK(Discard)\
-    DECL_BLOCK(Close)\
-    DECL_BLOCK(SetDefaults)\
-    DECL_BLOCK(QueryIOSurf)
-#define DECL_FEATURE_NAME "Base_EncTools"
-#include "hevcehw_decl_blocks.h"
+        virtual bool isFeatureEnabled(const mfxVideoParam& par) override;
+        virtual void SetDefaultConfig(const mfxVideoParam& video, mfxExtEncToolsConfig& config, bool bMBQPSupport) override;
+        virtual bool IsEncToolsConfigOn(const mfxExtEncToolsConfig& config, bool bGameStreaming) override;
+        virtual bool IsEncToolsImplicit(const mfxVideoParam& video) override;
+        virtual mfxU32 CorrectVideoParams(mfxVideoParam& video, mfxExtEncToolsConfig& supportedConfig) override;
+        virtual mfxStatus QueryPreEncTask(StorageW& global, StorageW& s_task) override;
+        virtual mfxStatus InitEncToolsCtrl(mfxVideoParam const& par, mfxEncToolsCtrl* ctrl) override;
 
         HevcEncTools(mfxU32 FeatureId)
-            : FeatureBase(FeatureId)
+            : HevcEncToolsCommon(FeatureId)
         {}
 
     protected:
         virtual void SetSupported(ParamSupport& par) override;
         virtual void SetInherited(ParamInheritance& par) override;
         virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
-        virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
-        virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
         virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override;
         virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
-        virtual void FreeTask(const FeatureBlocks& blocks, TPushQT Push) override;
-
         virtual void Reset(const FeatureBlocks& blocks, TPushR Push) override;
-        virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
-        virtual void Close(const FeatureBlocks& blocks, TPushCLS Push) override;
-        virtual void QueryIOSurf(const FeatureBlocks&, TPushQIS Push) override;
 
-        mfxEncTools*            m_pEncTools = nullptr;
-        mfxEncToolsCtrl         m_EncToolCtrl = {};
-        mfxExtEncToolsConfig    m_EncToolConfig = {};
-        bool                    m_bEncToolsInner = false;
-        mfxU32                  m_maxDelay = 0;
-        mfxU32                  m_numPicBuffered = 0;
-
-        mfxU16        S_ET_SUBMIT = mfxU16(-1);
-        mfxU16        S_ET_QUERY = mfxU16(-1);
-
-        std::list<mfxLplastatus>         LpLaStatus;
-
-        mfx::OnExit    m_destroy;
     };
 
     bool IsEncToolsOptOn(const mfxExtEncToolsConfig &config, bool bGameStreaming);
     bool IsLPLAEncToolsOn(const mfxExtEncToolsConfig &config, bool bGameStreaming);
+    bool IsHwEncToolsOn(const mfxVideoParam& video);
+    bool IsSwEncToolsOn(const mfxVideoParam& video);
+    bool IsSwEncToolsSpsACQM(const mfxVideoParam &video);
+    bool IsSwEncToolsPpsACQM(const mfxVideoParam &video);
+    int EncToolsDeblockingBetaOffset();
+    int EncToolsDeblockingAlphaTcOffset();
 
 } //Base
 } //namespace HEVCEHW

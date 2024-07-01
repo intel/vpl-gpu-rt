@@ -75,8 +75,8 @@ enum    // Valid QP range
 
 enum
 {
-    LIST_0 = 0,     // Ref/mvs list 0 (L0)
-    LIST_1 = 1      // Ref/mvs list 1 (L1)
+    LIST_0 = 0,     // Ref/motion vectors list 0 (L0)
+    LIST_1 = 1      // Ref/motion vectors list 1 (L1)
 };
 
 // default plane & coeffs types:
@@ -1331,6 +1331,11 @@ inline size_t CalculateSuggestedSize(const UMC_H264_DECODER::H264SeqParamSet * s
         size = base_size + base_size + base_size;
         break;
     };
+
+    if (sps->bit_depth_chroma > 8 || sps->bit_depth_luma > 8)
+    {
+        size *= 2;
+    }
 
     return size;
 }

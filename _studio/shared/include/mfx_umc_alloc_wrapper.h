@@ -252,7 +252,7 @@ public:
     mfxFrameSurface1 * GetSurface(UMC::FrameMemID index, mfxFrameSurface1 *surface, const mfxVideoParam * videoPar);
     mfxFrameSurface1 * GetInternalSurface(UMC::FrameMemID index);
 
-    mfxStatus GetSurface(mfxFrameSurface1* & surf);
+    mfxStatus GetSurface(mfxFrameSurface1* & surf, mfxSurfaceHeader* import_surface);
     mfxFrameSurface1 * GetInternalSurface(mfxFrameSurface1 *sfc_surf);
 
     mfxFrameSurface1 * GetSurfaceByIndex(UMC::FrameMemID index);
@@ -260,6 +260,8 @@ public:
     mfxStatus PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam * videoPar, mfxU32 gpuCopyMode = MFX_COPY_USE_ANY);
 
     bool HasFreeSurface();
+
+    bool GetSurfaceType();
 
     void SetFreeSurfaceAllowedFlag(bool flag);
 

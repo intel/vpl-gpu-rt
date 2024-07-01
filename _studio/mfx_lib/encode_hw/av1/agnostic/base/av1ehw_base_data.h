@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Intel Corporation
+// Copyright (c) 2019-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@
 #include "av1ehw_base.h"
 #include "av1ehw_ddi.h"
 #include "ehw_device.h"
+#include "ehw_task_manager.h"
 #include <vector>
 #include <set>
 
@@ -124,14 +125,6 @@ namespace Base
         31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31,
         31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31
     };
-
-    static const uint8_t ICQFactorLookup[52] = { 
-        0,  1,  1,  1,  1,  2,  3,  4,  6,  7,  9,  11, 13, 16, 18, 23,
-        26, 30, 34, 39, 46, 52, 59, 68, 77, 87, 98, 104,112,120,127,134,
-        142,149,157,164,171,178,186,193,200,207,213,219,225,230,235,240,
-        245,249,252,255 
-    };
-
 
     inline bool IsValid(mfxU8 idx)
     {
@@ -305,10 +298,20 @@ namespace Base
         BLOCK_8x8   = 3
     };
 
+    struct TileSizeParams
+    {
+        mfxU16 UniformTileSpacing         = 0;
+        mfxU16 NumTileRows                = 0;
+        mfxU16 NumTileColumns             = 0;
+        mfxU16 TileWidthInSB[128]         = { 0 };
+        mfxU16 TileHeightInSB[128]        = { 0 };
+    };
+
     struct TileLimits
     {
         uint32_t MaxTileWidthSb;
-        uint32_t MaxTileHeightSb;
+        uint32_t MaxTileHeightSbNonUniform;
+        uint32_t MaxTileHeightSbUniform;
         uint32_t MinLog2TileCols;
         uint32_t MaxLog2TileCols;
         uint32_t MinLog2TileRows;
@@ -725,6 +728,7 @@ namespace Base
         mfxU32   FrameOrderIn = mfxU32(-1);
         bool     isLTR        = false; // is "long-term"
         bool     isRejected   = false; // rejected ref frame should be refreshed asap
+        mfxU16   LongTermIdx  = mfxU16(0);
         mfxU8    CodingType   = 0;
         Resource Raw;
         Resource Rec;
@@ -819,10 +823,12 @@ namespace Base
         Resource          CUQP;
         mfxHDLPair        HDLRaw                 = {};
         bool              bCUQPMap               = false;
-#if defined(MFX_ENABLE_ENCTOOLS)
+#if defined(MFX_ENABLE_ENCTOOLS_BASE)
         mfxLplastatus     LplaStatus           = {};
-        mfxBRCHints      BrcHints             = {};
-        bool             bBRCUpdated          = false;
+        mfxBRCHints      BrcHints              = {};
+        bool             bBRCUpdated           = false;
+        mfxFrameSurface1* pFilteredSurface     = nullptr;
+        mfxEncToolsHintSaliencyMap saliencyMap = {};
 #endif
         mfxGopHints       GopHints               = {};
         bool              bForceSync             = false;
@@ -834,6 +840,11 @@ namespace Base
         mfxI32            PrevRAP                = -1;
         mfxU16            NumRecode              = 0;
         mfxU8             QpY                    = 0;
+        mfxI8             YDcDeltaQ              = 0;
+        mfxI8             UDcDeltaQ              = 0;
+        mfxI8             UAcDeltaQ              = 0;
+        mfxI8             VDcDeltaQ              = 0;
+        mfxI8             VAcDeltaQ              = 0;
         mfxU32            InsertHeaders          = 0;
         mfxU32            StatusReportId         = mfxU32(-1);
         DpbRefreshType    RefreshFrameFlags      = {};
@@ -863,6 +874,11 @@ namespace Base
     }
 
     inline bool isValid(DpbFrame const & frame) { return IDX_INVALID != frame.Rec.Idx; }
+
+    inline bool HaveRABFrames(const mfxVideoParam& par)
+    {
+        return par.mfx.GopPicSize > 2 && par.mfx.GopRefDist > 1;
+    }
 
     inline std::tuple<mfxU32, mfxU32> GetRealResolution(const mfxVideoParam& vp)
     {
@@ -950,7 +966,7 @@ namespace Base
         if (par.mfx.FrameInfo.FrameRateExtN && par.mfx.FrameInfo.FrameRateExtD)
         {
             // Use type mfxU64 to avoid value overflow with most value precise obtained.
-            mfxU64 targetbps    = TargetKbps(par.mfx) * 1000;
+            mfxU64 targetbps    = mfxU64(TargetKbps(par.mfx)) * 1000;
             avgFrameSizeInBytes = mfxU32(targetbps * par.mfx.FrameInfo.FrameRateExtD / par.mfx.FrameInfo.FrameRateExtN / 8);
         }
 
@@ -1056,6 +1072,11 @@ namespace Base
     struct ResetHint
     {
         mfxU32 Flags;
+    };
+
+    struct DeviceCreationMask
+    {
+        mfxU32 DisableTemporalDevice = 0;
     };
 
     struct VAID
@@ -1200,6 +1221,7 @@ namespace Base
         TChain<mfxU16> GetCodedPicAlignment;
         TChain<mfxU16> GetGopPicSize;
         TChain<mfxU16> GetGopRefDist;
+        TChain<mfxU16> GetTargetUsage;
         TChain<mfxU16> GetNumBPyramidLayers;
         TChain<mfxU16> GetNumRefFrames;
         TChain<mfxU16> GetNumRefBPyramid;
@@ -1223,6 +1245,7 @@ namespace Base
         TChain<mfxU16> GetNumTemporalLayers;
         TChain<mfxU8>  GetNumReorderFrames;
         TChain<bool>   GetNonStdReordering;
+        TChain<mfxU32> GetTemporalUnitCacheSize;
         TChain<std::tuple<mfxU16, mfxU16, mfxU16>> GetMaxNumRef;
         TChain<std::tuple<mfxU32, mfxU32>>         GetFrameRate;
         TChain<std::tuple<mfxU16, mfxU16, mfxU16>> GetQPMFX; //I,P,B
@@ -1279,7 +1302,6 @@ namespace Base
 
         //for Query w/caps (check + fix)
         using TCheckAndFix = CallChain<mfxStatus, const Defaults::Param&, mfxVideoParam&>;
-        TCheckAndFix CheckLevel;
         TCheckAndFix CheckSurfSize;
         TCheckAndFix CheckProfile;
         TCheckAndFix CheckFourCC;
@@ -1307,6 +1329,9 @@ namespace Base
         , FEATURE_ENCTOOLS
         , FEATURE_MAX_FRAME_SIZE
         , FEATURE_HDR
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        , FEATURE_QUALITYINFO
+#endif
         , NUM_FEATURES
     };
 
@@ -1347,9 +1372,10 @@ namespace Base
         using Reorder             = StorageVar<__LINE__ - _KD, Reorderer>;
         using Defaults            = StorageVar<__LINE__ - _KD, Base::Defaults>;
         using SegDpb              = StorageVar<__LINE__ - _KD, SegDpbType>;
+        using DeviceCreation      = StorageVar<__LINE__ - _KD, Base::DeviceCreationMask>;
+        using TaskManager         = StorageVar<__LINE__ - _KD, MakeStorable<MfxEncodeHW::TaskManager::TMRefWrapper>>;
         static const StorageR::TKey CallChainsKey = __LINE__ - _KD;
         static const StorageR::TKey ReservedKey0    = __LINE__ - _KD;
-        static const StorageR::TKey TaskManagerKey  = __LINE__ - _KD;
         static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;
     };
 
@@ -1372,6 +1398,12 @@ namespace Base
         TUsedRefList UsedRefListL0 = {};
         TUsedRefList UsedRefListL1 = {};
         mfxU16       QpY           = 0;
+        mfxU32       DisplayOrder  = 0;
+        mfxU16       LongTermIdx   = MFX_LONGTERM_IDX_NO_IDX;
+        bool         isLTR         = false;
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        mfxU32       MSE[3];
+#endif
     };
 
     struct Task

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 Intel Corporation
+﻿// Copyright (c) 2020-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,12 +26,11 @@
 #include <algorithm>
 #include <numeric>
 
-using namespace AV1EHW::Base;
-
 namespace AV1EHW
 {
-
-inline bool IsValidTilesSize(
+namespace Base
+{
+inline bool IsValidTileSize(
     const mfxU16 sbNum
     , const mfxU16 TileNum
     , const TileSizeArrayType& tileSizeInSB)
@@ -98,18 +97,37 @@ inline void SetNonUniformTileSize(
     std::generate(tileSizeInSB, tileSizeInSB + tileNum, CalcTileSize);
 }
 
+/*
+* This function returns true iff uniformSpacing is true and input params are applicable for uniform tile size
+*/
+inline bool SetDefaultTileSize(
+    const mfxU16 sbNum
+    , const mfxU16 tileNum
+    , const bool uniformSpacing
+    , TileSizeArrayType& tileSizeInSB)
+{
+    assert(tileNum > 0);
+
+    if (uniformSpacing && SetUniformTileSize(sbNum, tileNum, tileSizeInSB))
+    {
+        return true;
+    }
+
+    SetNonUniformTileSize(sbNum, tileNum, tileSizeInSB);
+    return false;
+}
+
 inline void SetTileLimits(
     const mfxU16 sbCols
     , const mfxU16 sbRows
-    , const mfxU32 numTileColumns
+    , const mfxU16 numTileColumns
     , const TileSizeArrayType &tileWidthInSB
     , TileLimits& tileLimits)
 {
     assert(tileWidthInSB[0] > 0);
 
-    const mfxU32 tileAreaSb   = sbCols * sbRows;
-    const mfxU32 TileColsLog2 = TileLog2(mfxU32(1), numTileColumns);
-
+    const mfxU32 tileAreaSb    = mfxU32(sbCols) * sbRows;
+    const mfxU32 TileColsLog2  = mfxU32(TileLog2(mfxU16(1), numTileColumns));
     tileLimits.MaxTileWidthSb  = AV1_MAX_TILE_WIDTH_SB;
     mfxU32 maxTileAreaSb       = AV1_MAX_TILE_AREA_SB;
 
@@ -120,39 +138,44 @@ inline void SetTileLimits(
     const mfxU32 minLog2Tiles  = std::max(tileLimits.MinLog2TileCols, TileLog2(maxTileAreaSb, tileAreaSb));
     tileLimits.MinLog2TileRows = mfxU32(std::max(mfxI32(minLog2Tiles) - mfxI32(TileColsLog2), mfxI32(0)));
 
+    tileLimits.MaxTileHeightSbUniform = sbRows;
+    for (mfxU32 idx = 0; idx < numTileColumns; idx++)
+    {
+        tileLimits.MaxTileHeightSbUniform = std::min(tileLimits.MaxTileHeightSbUniform, maxTileAreaSb / tileWidthInSB[idx]);
+    }
+
     maxTileAreaSb = tileAreaSb;
     if (minLog2Tiles)
     {
         maxTileAreaSb >>= (minLog2Tiles + 1);
     }
 
-    const mfxU32 widestTileSb  = *std::max_element(tileWidthInSB, tileWidthInSB + numTileColumns);
-    tileLimits.MaxTileHeightSb = std::max(mfxU32(1), maxTileAreaSb / widestTileSb);
+    const mfxU32 widestTileSb            = *std::max_element(tileWidthInSB, tileWidthInSB + numTileColumns);
+    tileLimits.MaxTileHeightSbNonUniform = std::max(mfxU32(1), maxTileAreaSb / widestTileSb);
 }
 
-inline mfxU32 CheckTileLimits(
-    const mfxU32 numTileColumns
-    , const mfxU32 numTileRows
-    , const TileSizeArrayType& tileWidthInSB
-    , const TileSizeArrayType& tileHeightInSB
-    , const TileLimits& tileLimits)
+inline mfxU32 CheckTileLimits(const TileLimits& tileLimits, const TileSizeParams& tileParams)
 {
     mfxU32 invalid = 0;
-    for (mfxU32 i = 0; i < numTileColumns; i++)
+
+    for (mfxU32 i = 0; i < tileParams.NumTileColumns; i++)
     {
-        invalid += tileWidthInSB[i] > tileLimits.MaxTileWidthSb;
+        invalid += tileParams.TileWidthInSB[i] > tileLimits.MaxTileWidthSb;
     }
 
-    for (mfxU32 i = 0; i < numTileRows; i++)
+    mfxU32 maxTileHeightSb = IsOff(tileParams.UniformTileSpacing) ? tileLimits.MaxTileHeightSbNonUniform : tileLimits.MaxTileHeightSbUniform;
+    for (mfxU32 i = 0; i < tileParams.NumTileRows; i++)
     {
-        invalid += tileHeightInSB[i] > tileLimits.MaxTileHeightSb;
+        invalid += tileParams.TileHeightInSB[i] > maxTileHeightSb;
     }
 
-    mfxU32 TileColsLog2 = TileLog2(mfxU32(1), numTileColumns);
-    mfxU32 TileRowsLog2 = TileLog2(mfxU32(1), numTileRows);
-
-    invalid = CheckRangeOrClip(TileColsLog2, tileLimits.MinLog2TileCols, tileLimits.MaxLog2TileCols);
-    invalid = CheckRangeOrClip(TileRowsLog2, tileLimits.MinLog2TileRows, tileLimits.MaxLog2TileRows);
+    if (!IsOff(tileParams.UniformTileSpacing))
+    {
+        mfxU32 TileColsLog2 = TileLog2(mfxU16(1), tileParams.NumTileColumns);
+        mfxU32 TileRowsLog2 = TileLog2(mfxU16(1), tileParams.NumTileRows);
+        invalid += CheckRangeOrClip(TileColsLog2, tileLimits.MinLog2TileCols, tileLimits.MaxLog2TileCols);
+        invalid += CheckRangeOrClip(TileRowsLog2, tileLimits.MinLog2TileRows, tileLimits.MaxLog2TileRows);
+    }
 
     return invalid;
 }
@@ -176,37 +199,9 @@ inline void CleanTileBuffers(mfxExtAV1TileParam* pTilePar, mfxExtAV1AuxData* pAu
     }
 }
 
-/*
-* This function returns true iff bTryUniformTiles is true and input params are applicable for uniform tile size
-*/
-inline bool SetDefaultTileSize(
-    const mfxU16 sbNum
-    , const mfxU16 tileNum
-    , const bool bTryUniformTiles
-    , TileSizeArrayType& tileSizeInSB)
-{
-    if (tileNum == 0 || tileSizeInSB[0] != 0)
-    {
-        return false;
-    }
-
-    if (bTryUniformTiles)
-    {
-        const bool bSet = SetUniformTileSize(sbNum, tileNum, tileSizeInSB);
-        if (bSet)
-        {
-            return true;
-        }
-    }
-
-    SetNonUniformTileSize(sbNum, tileNum, tileSizeInSB);
-
-    return false;
-}
-
 inline mfxU16 GetMinTileCols(const mfxU16 sbCols)
 {
-    return  mfx::CeilDiv(sbCols, mfxU16(AV1_MAX_TILE_WIDTH_SB));
+    return std::max(mfxU16(1), mfx::CeilDiv(sbCols, mfxU16(AV1_MAX_TILE_WIDTH_SB)));
 }
 
 inline mfxU16 GetMaxTileCols(const mfxU16 sbCols)
@@ -214,9 +209,13 @@ inline mfxU16 GetMaxTileCols(const mfxU16 sbCols)
     return std::min(sbCols, mfxU16(AV1_MAX_NUM_TILE_COLS));
 }
 
-inline mfxU16 GetMinTileRows(const mfxU16 sbRows, const TileLimits& tileLimits)
+inline mfxU16 GetMinTileRows(
+    const mfxU16 sbRows
+    , const bool bUniformSpacing
+    , const TileLimits& tileLimits)
 {
-    return mfx::CeilDiv(sbRows, mfxU16(tileLimits.MaxTileHeightSb));
+    mfxU32 maxTileHeightSb = bUniformSpacing ? tileLimits.MaxTileHeightSbUniform : tileLimits.MaxTileHeightSbNonUniform;
+    return std::max(mfxU16(1), mfx::CeilDiv(sbRows, mfxU16(maxTileHeightSb)));
 }
 
 inline mfxU16 GetMaxTileRows(const mfxU16 sbRows)
@@ -224,129 +223,145 @@ inline mfxU16 GetMaxTileRows(const mfxU16 sbRows)
     return std::min(sbRows, mfxU16(AV1_MAX_NUM_TILE_ROWS));
 }
 
-inline void SetDefaultTileParams(
+inline bool IsValidUniformSpacing(
+    const mfxU16 sbNum
+    , const mfxU16 tileNum
+    , TileSizeArrayType& tileSizeInSB)
+{
+    TileSizeArrayType tmpTileSizeInSB = { 0 };
+    bool valid = SetUniformTileSize(sbNum, tileNum, tmpTileSizeInSB);
+    valid = valid && std::equal(tileSizeInSB, tileSizeInSB + tileNum, tmpTileSizeInSB);
+
+    return valid;
+}
+
+mfxU16 GetNumTile(mfxU16 numTile, const TileSizeArrayType& tileSize)
+{
+    mfxU16 numTileFromArray = CountTileNumber(tileSize);
+    SetIf(numTile, numTile == 0 || numTileFromArray != 0, numTileFromArray);
+    return std::max(mfxU16(1), numTile);
+}
+
+void InitTileParams(const mfxExtAV1TileParam* pTilePar, const mfxExtAV1AuxData* pAuxPar, TileSizeParams& tileParams)
+{
+    tileParams = { 0 };
+    if (pTilePar)
+    {
+        tileParams.NumTileRows    = pTilePar->NumTileRows;
+        tileParams.NumTileColumns = pTilePar->NumTileColumns;
+    }
+
+    if (pAuxPar)
+    {
+        tileParams.UniformTileSpacing = pAuxPar->UniformTileSpacing;
+        std::copy_n(pAuxPar->TileWidthInSB, sizeof(mfxExtAV1AuxData::TileWidthInSB) / sizeof(mfxU16), tileParams.TileWidthInSB);
+        std::copy_n(pAuxPar->TileHeightInSB, sizeof(mfxExtAV1AuxData::TileHeightInSB) / sizeof(mfxU16), tileParams.TileHeightInSB);
+    }
+}
+
+void SetCorrectTileParams(
     const mfxU16 sbCols
     , const mfxU16 sbRows
+    , const mfxU16 maxTileColsByLevel
+    , const mfxU32 maxTilesByLevel
+    , TileLimits& tileLimits
+    , TileSizeParams& tileParams)
+{
+    // Make sure tile numbers are alinged
+    tileParams.NumTileColumns = GetNumTile(tileParams.NumTileColumns, tileParams.TileWidthInSB);
+    tileParams.NumTileRows    = GetNumTile(tileParams.NumTileRows, tileParams.TileHeightInSB);
+
+    // Check number of tile columns, which depends on video width and level
+    const mfxU16 minTileCols = GetMinTileCols(sbCols);
+    const mfxU16 maxTileCols = std::min(GetMaxTileCols(sbCols), maxTileColsByLevel);
+    CheckRangeOrClip(tileParams.NumTileColumns, minTileCols, maxTileCols);
+
+    bool uniformSpacing = !IsOff(tileParams.UniformTileSpacing)
+        && (tileParams.TileWidthInSB[0] == 0 || IsValidUniformSpacing(sbCols, tileParams.NumTileColumns, tileParams.TileWidthInSB))
+        && (tileParams.TileHeightInSB[0] == 0 || IsValidUniformSpacing(sbRows, tileParams.NumTileRows, tileParams.TileHeightInSB));
+    // Check tile widths
+    if (!IsValidTileSize(sbCols, tileParams.NumTileColumns, tileParams.TileWidthInSB))
+    {
+        std::fill_n(tileParams.TileWidthInSB, tileParams.NumTileColumns, mfxU16(0));
+        uniformSpacing &= SetDefaultTileSize(sbCols, tileParams.NumTileColumns, uniformSpacing, tileParams.TileWidthInSB);
+    }
+
+    // Check number of tile rows
+    SetTileLimits(sbCols, sbRows, tileParams.NumTileColumns, tileParams.TileWidthInSB, tileLimits);
+
+    assert(tileParams.NumTileColumns != 0);
+    const mfxU16 maxTileRows = std::min(GetMaxTileRows(sbRows), mfxU16(maxTilesByLevel / tileParams.NumTileColumns));
+    CheckMaxOrClip(tileParams.NumTileRows, maxTileRows);
+
+    // There might be two round when uniformSpacing is true, but can't be achieved
+    bool tryAgain      = uniformSpacing;
+    mfxU16 numTileRows = 0;
+    do
+    {
+        numTileRows = tileParams.NumTileRows;
+        mfxU16 minTileRows = GetMinTileRows(sbRows, uniformSpacing, tileLimits);
+        CheckMinOrClip(numTileRows, minTileRows);
+
+        bool uniformSpacingRows = uniformSpacing;
+        if (!IsValidTileSize(sbRows, numTileRows, tileParams.TileHeightInSB))
+        {
+            std::fill_n(tileParams.TileHeightInSB, numTileRows, mfxU16(0));
+            uniformSpacingRows = SetDefaultTileSize(sbRows, numTileRows, uniformSpacing, tileParams.TileHeightInSB);
+        }
+
+        if (uniformSpacingRows != uniformSpacing)
+        {
+            uniformSpacing = uniformSpacingRows;
+            continue;
+        }
+
+        tryAgain = false;
+    } while (tryAgain);
+
+    tileParams.NumTileRows = numTileRows;
+    tileParams.UniformTileSpacing = uniformSpacing ? mfxU8(MFX_CODINGOPTION_ON) : mfxU8(MFX_CODINGOPTION_OFF);
+}
+
+mfxU32 CopyTileSize(const mfxU16 num, const TileSizeArrayType& src, TileSizeArrayType& dst)
+{
+    mfxU32 changed = 0;
+    for (mfxU16 idx = 0; idx < num; idx++)
+    {
+        changed += SetIf(dst[idx], dst[idx] != src[idx], src[idx]);
+    }
+    return changed;
+}
+
+inline void SetDefaultTileBuffers(
+    const mfxU16 sbCols
+    , const mfxU16 sbRows
+    , const mfxU16 maxTileColsByLevel
+    , const mfxU32 maxTilesByLevel
     , mfxExtAV1TileParam& tilePar
     , mfxExtAV1AuxData* pAuxPar)
 {
+    TileSizeParams tileParams = { };
+    TileLimits     tileLimits = { };
+
+    InitTileParams(&tilePar, pAuxPar, tileParams);
+    SetCorrectTileParams(sbCols, sbRows, maxTileColsByLevel, maxTilesByLevel, tileLimits, tileParams);
+
+    SetDefault(tilePar.NumTileRows, tileParams.NumTileRows);
+    SetDefault(tilePar.NumTileColumns, tileParams.NumTileColumns);
     SetDefault(tilePar.NumTileGroups, 1);
 
     if (pAuxPar != nullptr)
     {
-        SetDefault(tilePar.NumTileColumns, CountTileNumber(pAuxPar->TileWidthInSB));
-        SetDefault(tilePar.NumTileRows, CountTileNumber(pAuxPar->TileHeightInSB));
-    }
-
-    SetDefault(tilePar.NumTileColumns, GetMinTileCols(sbCols));
-
-    TileSizeArrayType  tileWidthInSB = {};
-    if (pAuxPar != nullptr)
-    {
-        std::copy_n(pAuxPar->TileWidthInSB, tilePar.NumTileColumns, tileWidthInSB);
-    }
-
-    bool bTryUniformTiles = pAuxPar == nullptr || (!IsOff(pAuxPar->UniformTileSpacing) && pAuxPar->TileWidthInSB[0] == 0 && pAuxPar->TileHeightInSB[0] == 0);
-    if (!IsValidTilesSize(sbCols, tilePar.NumTileColumns, tileWidthInSB))
-    {
-        std::fill_n(tileWidthInSB, tilePar.NumTileColumns, mfxU16(0));
-        SetDefaultTileSize(sbCols, tilePar.NumTileColumns, bTryUniformTiles, tileWidthInSB);
-    }
-
-    TileLimits tileLimits = {};
-    SetTileLimits(sbCols, sbRows, tilePar.NumTileColumns, tileWidthInSB, tileLimits);
-
-    SetDefault(tilePar.NumTileRows, GetMinTileRows(sbRows, tileLimits));
-
-    if (pAuxPar != nullptr)
-    {
-        bool bUniformTiles = true;
-        bUniformTiles &= SetDefaultTileSize(sbCols, tilePar.NumTileColumns, bTryUniformTiles, pAuxPar->TileWidthInSB);
-        bUniformTiles &= SetDefaultTileSize(sbRows, tilePar.NumTileRows, bTryUniformTiles, pAuxPar->TileHeightInSB);
-
-        SetDefault(pAuxPar->UniformTileSpacing, bUniformTiles ? mfxU8(MFX_CODINGOPTION_ON) : mfxU8(MFX_CODINGOPTION_OFF));
+        SetDefault(pAuxPar->UniformTileSpacing, mfxU8(tileParams.UniformTileSpacing));
         SetDefault(pAuxPar->ContextUpdateTileIdPlus1, mfxU8(tilePar.NumTileColumns * tilePar.NumTileRows));
-    }
-}
-
-inline mfxU32 CheckUniformTileSpacing(
-    const mfxU16 sbCols
-    , const mfxU16 sbRows
-    , const mfxU16 numTileColumns
-    , const mfxU16 numTileRows
-    , const TileSizeArrayType& tileWidthInSB
-    , const TileSizeArrayType& tileHeightInSB
-    , const mfxU8 UniformTileSpacing)
-{
-    mfxU32 changed = 0;
-
-    changed += Check<mfxU8
-        , mfxU8(MFX_CODINGOPTION_ON)
-        , mfxU8(MFX_CODINGOPTION_OFF)
-        , mfxU8(MFX_CODINGOPTION_UNKNOWN)>
-        (UniformTileSpacing);
-
-    if (!IsOn(UniformTileSpacing))
-    {
-        return changed;
-    }
-
-    // Check if uniform tile spacing is valid
-    TileSizeArrayType tileSizeInSB = {};
-    if (!SetUniformTileSize(sbCols, numTileColumns, tileSizeInSB))
-    {
-        return ++changed;
-    }
-
-    for (mfxU32 i = 0; i < numTileColumns; ++i)
-    {
-        if (tileWidthInSB[i] != tileSizeInSB[i])
+        if (pAuxPar->TileHeightInSB[0] == 0 && pAuxPar->TileWidthInSB[0] == 0)
         {
-            return ++changed;
+            CopyTileSize(tilePar.NumTileRows, tileParams.TileHeightInSB, pAuxPar->TileHeightInSB);
+            CopyTileSize(tilePar.NumTileColumns, tileParams.TileWidthInSB, pAuxPar->TileWidthInSB);
         }
     }
-
-    if (!SetUniformTileSize(sbRows, numTileRows, tileSizeInSB))
-    {
-        return ++changed;
-    }
-
-    for (mfxU32 i = 0; i < numTileRows; ++i)
-    {
-        if (tileHeightInSB[i] != tileSizeInSB[i])
-        {
-            return ++changed;
-        }
-    }
-
-    return changed;
 }
 
-inline mfxU32 CheckAndFixTileAuxParams(
-    const mfxU16 sbCols
-    , const mfxU16 sbRows
-    , const mfxU16 numTileCols
-    , const mfxU16 numTileRows
-    , const TileSizeArrayType& tileWidthInSB
-    , const TileSizeArrayType& tileHeightInSB
-    , mfxU8& UniformTileSpacing
-    , mfxU8& ContextUpdateTileIdPlus1)
-{
-    mfxU32 changed = 0;
-    if (CheckUniformTileSpacing(sbCols, sbRows, numTileCols, numTileRows, tileWidthInSB, tileHeightInSB, UniformTileSpacing))
-    {
-        UniformTileSpacing = 0;
-        changed++;
-    }
-
-    changed += CheckMaxOrClip(ContextUpdateTileIdPlus1, mfxU8(numTileCols * numTileRows));
-
-    return changed;
-}
-
-/*
-* This function uses temporal buffers for checking in order to not set default value in ext-buffers (expected behavior for Query())
-*/
 mfxStatus CheckAndFixBuffers(
     const mfxU16 sbCols
     , const mfxU16 sbRows
@@ -355,40 +370,15 @@ mfxStatus CheckAndFixBuffers(
     , mfxExtAV1TileParam& tilePar
     , mfxExtAV1AuxData* pAuxPar)
 {
-    mfxU32 changed = 0, invalid = 0;
 
-    // Make sure tile numbers are alinged between buffers
-    auto numTiles = GetNumTiles(&tilePar, pAuxPar);
-    changed += SetIf(tilePar.NumTileColumns, tilePar.NumTileColumns != std::get<0>(numTiles), std::get<0>(numTiles));
-    changed += SetIf(tilePar.NumTileRows, tilePar.NumTileRows != std::get<1>(numTiles), std::get<1>(numTiles));
+    TileSizeParams tileParams = { };
+    TileLimits     tileLimits = { };
 
-    // Prepare buffers for tile number and tile size check
-    TileSizeArrayType  tileWidthInSB   = {};
-    TileSizeArrayType  tileHeightInSB  = {};
+    InitTileParams(&tilePar, pAuxPar, tileParams);
+    SetCorrectTileParams(sbCols, sbRows, maxTileColsByLevel, maxTilesByLevel, tileLimits, tileParams);
 
-    // If tile size does exist in input buffer, make sure tile sizes are copied after checking
-    const bool bTileSizeSet = pAuxPar != nullptr && (pAuxPar->TileWidthInSB[0] != 0 || pAuxPar->TileHeightInSB[0] != 0);
-    if (bTileSizeSet)
-    {
-        std::copy_n(pAuxPar->TileWidthInSB, tilePar.NumTileColumns, tileWidthInSB);
-        std::copy_n(pAuxPar->TileHeightInSB, tilePar.NumTileRows, tileHeightInSB);
-    }
-
-    // Check number of tile columns
-    const mfxU16 maxTileCols = std::min(GetMaxTileCols(sbCols), maxTileColsByLevel);
-    const mfxU16 minTileCols = GetMinTileCols(sbCols);
-    changed += CheckRangeOrClip(tilePar.NumTileColumns, minTileCols, maxTileCols);
-
-    // Check tile widths
-    mfxU32 sizeChanged = 0;
-    const bool bTryUniformTiles = pAuxPar == nullptr || (!IsOff(pAuxPar->UniformTileSpacing) && tileWidthInSB[0] == 0 && tileHeightInSB[0] == 0);
-    if (!IsValidTilesSize(sbCols, tilePar.NumTileColumns, tileWidthInSB))
-    {
-        sizeChanged++;
-        std::fill_n(tileWidthInSB, tilePar.NumTileColumns, mfxU16(0));
-        SetDefaultTileSize(sbCols, tilePar.NumTileColumns, bTryUniformTiles, tileWidthInSB);
-        invalid += !IsValidTilesSize(sbCols, tilePar.NumTileColumns, tileWidthInSB);
-    }
+    mfxU32 invalid = 0;
+    invalid += CheckTileLimits(tileLimits, tileParams);
 
     if (invalid)
     {
@@ -396,57 +386,25 @@ mfxStatus CheckAndFixBuffers(
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
-    // Check number of tile rows
-    TileLimits tileLimits = {};
-    SetTileLimits(sbCols, sbRows, tilePar.NumTileColumns, tileWidthInSB, tileLimits);
-
-    MFX_CHECK(tilePar.NumTileColumns != 0, MFX_ERR_UNKNOWN);
-
-    const mfxU16 maxTileRows = std::min(GetMaxTileRows(sbRows), mfxU16(maxTilesByLevel / tilePar.NumTileColumns));
-    const mfxU16 minTileRows = GetMinTileRows(sbRows, tileLimits);
-
-    changed += CheckRangeOrClip(tilePar.NumTileRows, minTileRows, maxTileRows);
-    changed += CheckRangeOrClip(tilePar.NumTileGroups, mfxU16(0), mfxU16(tilePar.NumTileColumns * tilePar.NumTileRows));
-
-    // Check tile heights
-    if (!IsValidTilesSize(sbRows, tilePar.NumTileRows, tileHeightInSB))
-    {
-        sizeChanged++;
-        std::fill_n(tileHeightInSB, tilePar.NumTileRows, mfxU16(0));
-        SetDefaultTileSize(sbRows, tilePar.NumTileRows, bTryUniformTiles, tileHeightInSB);
-        invalid += !IsValidTilesSize(sbRows, tilePar.NumTileRows, tileHeightInSB);
-    }
-
-    if (invalid)
-    {
-        CleanTileBuffers(&tilePar, pAuxPar);
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
-    }
-
-    if (bTileSizeSet)
-    {
-        changed += sizeChanged;
-        std::copy_n(tileWidthInSB, tilePar.NumTileColumns, pAuxPar->TileWidthInSB);
-        std::copy_n(tileHeightInSB, tilePar.NumTileRows, pAuxPar->TileHeightInSB);
-    }
-
-    // Check tile size against limits
-    invalid += CheckTileLimits(tilePar.NumTileColumns, tilePar.NumTileRows, tileWidthInSB, tileHeightInSB, tileLimits);
-
-    if (invalid)
-    {
-        CleanTileBuffers(&tilePar, pAuxPar);
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
-    }
+    mfxU32 changed = 0;
+    changed += SetIf(tilePar.NumTileRows, tilePar.NumTileRows != tileParams.NumTileRows, tileParams.NumTileRows);
+    changed += SetIf(tilePar.NumTileColumns, tilePar.NumTileColumns != tileParams.NumTileColumns, tileParams.NumTileColumns);
+    changed += CheckRangeOrClip(tilePar.NumTileGroups, mfxU16(0), mfxU16(tilePar.NumTileRows * tilePar.NumTileColumns));
 
     if (pAuxPar != nullptr)
     {
-        changed += CheckAndFixTileAuxParams(sbCols, sbRows, tilePar.NumTileColumns, tilePar.NumTileRows, tileWidthInSB, tileHeightInSB,
-            pAuxPar->UniformTileSpacing, pAuxPar->ContextUpdateTileIdPlus1);
+        changed += SetIf(pAuxPar->UniformTileSpacing
+            , pAuxPar->UniformTileSpacing && pAuxPar->UniformTileSpacing != tileParams.UniformTileSpacing
+            , mfxU8(tileParams.UniformTileSpacing));
+        changed += CheckMaxOrClip(pAuxPar->ContextUpdateTileIdPlus1, mfxU8(tilePar.NumTileColumns * tilePar.NumTileRows));
+        if (pAuxPar->TileHeightInSB[0] || pAuxPar->TileWidthInSB[0])
+        {
+            changed += CopyTileSize(tilePar.NumTileRows, tileParams.TileHeightInSB, pAuxPar->TileHeightInSB);
+            changed += CopyTileSize(tilePar.NumTileColumns, tileParams.TileWidthInSB, pAuxPar->TileWidthInSB);
+        }
     }
 
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
-
     return MFX_ERR_NONE;
 }
 
@@ -558,7 +516,7 @@ void Tile::SetInherited(ParamInheritance& par)
 void Tile::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
 {
     Push(BLK_SetDefaults
-        , [this](mfxVideoParam& par, StorageW&, StorageRW&)
+        , [this](mfxVideoParam& par, StorageW& global, StorageRW&)
     {
         // Not check any tile related params in AuxData if pTilePar is nullptr
         mfxExtAV1TileParam* pTilePar = ExtBuffer::Get(par);
@@ -569,9 +527,16 @@ void Tile::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
 
         mfxU16 sbCols = 0, sbRows = 0;
         std::tie(sbCols, sbRows)  = GetSBNum(par);
+        const auto&            caps               = Glob::EncodeCaps::Get(global);
+        const auto&            defchain           = Glob::Defaults::Get(global);
+        const Defaults::Param& defPar             = Defaults::Param(par, caps, defchain);
+
+        const mfxU16           minLevel           = GetMinLevel(defPar, std::max(par.mfx.CodecLevel, mfxU16(MFX_LEVEL_AV1_2)));
+        const mfxU16           maxTileColsByLevel = GetMaxTileColsByLevel(minLevel);
+        const mfxU32           maxTilesByLevel    = GetMaxTilesByLevel(minLevel);
 
         mfxExtAV1AuxData* pAuxPar = ExtBuffer::Get(par);
-        SetDefaultTileParams(sbCols, sbRows, *pTilePar, pAuxPar);
+        SetDefaultTileBuffers(sbCols, sbRows, maxTileColsByLevel, maxTilesByLevel, *pTilePar, pAuxPar);
     });
 }
 
@@ -592,8 +557,8 @@ void Tile::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         const Defaults::Param& defPar             = Defaults::Param(out, caps, defchain);
 
         const mfxU16           minLevel           = GetMinLevel(defPar, std::max(out.mfx.CodecLevel, mfxU16(MFX_LEVEL_AV1_2)));
-        const mfxU16           maxTileColsByLevel = GetMaxTileCols(minLevel);
-        const mfxU32           maxTilesByLevel    = GetMaxTiles(minLevel);
+        const mfxU16           maxTileColsByLevel = GetMaxTileColsByLevel(minLevel);
+        const mfxU32           maxTilesByLevel    = GetMaxTilesByLevel(minLevel);
 
         mfxExtAV1AuxData*      pAuxPar            = ExtBuffer::Get(out);
 
@@ -686,9 +651,9 @@ void Tile::InitTask(const FeatureBlocks& blocks, TPushIT Push)
             pFrameAuxPar = &tempAuxPar;
         }
 
-        const mfxU16 maxTileColsByLevel = GetMaxTileCols(par.mfx.CodecLevel);
-        const mfxU32 maxTilesByLevel    = GetMaxTiles(par.mfx.CodecLevel);
-        SetDefaultTileParams(sbCols, sbRows, *pFrameTilePar, pFrameAuxPar);
+        const mfxU16 maxTileColsByLevel = GetMaxTileColsByLevel(par.mfx.CodecLevel);
+        const mfxU32 maxTilesByLevel    = GetMaxTilesByLevel(par.mfx.CodecLevel);
+        SetDefaultTileBuffers(sbCols, sbRows, maxTileColsByLevel, maxTilesByLevel, *pFrameTilePar, pFrameAuxPar);
         mfxStatus sts = CheckAndFixBuffers(sbCols, sbRows, maxTileColsByLevel, maxTilesByLevel, *pFrameTilePar, pFrameAuxPar);
         if (sts < MFX_ERR_NONE)
         {
@@ -749,7 +714,7 @@ void Tile::ResetState(const FeatureBlocks& blocks, TPushRS Push)
         return MFX_ERR_NONE;
     });
 }
-
+}
 } //namespace AV1EHW
 
 #endif //defined(MFX_ENABLE_AV1_VIDEO_ENCODE)

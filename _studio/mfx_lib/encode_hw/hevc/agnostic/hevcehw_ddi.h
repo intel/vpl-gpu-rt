@@ -126,8 +126,17 @@ typedef struct tagENCODE_CAPS_HEVC
     };
 
     uint32_t reserved32bits1;
+
+    union {
+        struct {
+            uint8_t   enable_frame : 1;  // support frame level quality info
+            uint8_t   reserved3 : 7;  // [0]
+        } fields;
+        uint8_t value;
+    } QualityInfoSupportFlags;
+
+    uint8_t reserved8bits[3];
     uint32_t reserved32bits2;
-    uint32_t reserved32bits3;
 
 } ENCODE_CAPS_HEVC;
 }; //namespace HEVCEHW

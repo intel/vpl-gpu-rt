@@ -123,6 +123,12 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
                 break;
             }
 #endif
+            case (mfxU32)MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION:
+            {
+                inputFramesCount[filterIndex] = 1;
+                outputFramesCount[filterIndex] = 1;
+                break;
+            }
             case (mfxU32)MFX_EXTBUFF_VPP_RESIZE:
             {
                 inputFramesCount[filterIndex]  = 1;
@@ -245,6 +251,21 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
                 // after analysis for correct FRC processing we require following equations
                 inputFramesCount[ filterIndex ]  = std::max<mfxU16>( inputFramesCount[ filterIndex ],  MFXVideoVPPFrameRateConversion::GetInFramesCountExt() );
                 outputFramesCount[ filterIndex ] = std::max<mfxU16>( outputFramesCount[ filterIndex ], MFXVideoVPPFrameRateConversion::GetOutFramesCountExt() );
+
+                break;
+            }
+            case MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION:
+            {
+                mfxFrameInfo info;
+
+                info = pParam->vpp.In;
+                mfxF64 inFrameRate = CalculateUMCFramerate(info.FrameRateExtN, info.FrameRateExtD);
+                info = pParam->vpp.Out;
+                mfxF64 outFrameRate = CalculateUMCFramerate(info.FrameRateExtN, info.FrameRateExtD);
+
+                inputFramesCount[filterIndex] = 1;
+                outputFramesCount[filterIndex] = 1;
+                outputFramesCount[filterIndex] = std::max<mfxU16>(outputFramesCount[filterIndex], (mfxU16)(ceil(outFrameRate / inFrameRate)));
 
                 break;
             }

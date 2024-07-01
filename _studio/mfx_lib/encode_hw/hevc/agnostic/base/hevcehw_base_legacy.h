@@ -180,7 +180,6 @@ namespace Base
         mfxStatus CheckTiles(
             mfxVideoParam & par
             , const Defaults::Param& defPar);
-        mfxStatus CheckTU(mfxVideoParam & par, const ENCODE_CAPS_HEVC& caps);
         mfxStatus CheckGopRefDist(mfxVideoParam & par, const ENCODE_CAPS_HEVC& caps);
         mfxStatus CheckIOPattern(mfxVideoParam & par);
         mfxStatus CheckBRC(
@@ -238,6 +237,7 @@ namespace Base
         static bool IsInVideoMem(const mfxVideoParam & par);
         static bool IsTCBRC(const mfxVideoParam & par, mfxU16 tcbrcSupport);
         static bool IsMain10SP(const mfxU16 codecProfile, const mfxExtHEVCParam* pHEVC);
+        static mfxStatus CheckTU(const ENCODE_CAPS_HEVC& caps, mfxU16& tu);
 
         static inline MBQPMode GetMBQPMode(const ENCODE_CAPS_HEVC& caps, const mfxVideoParam& par)
         {

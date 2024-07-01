@@ -276,33 +276,23 @@ inline bool DecodeExpGolombOne_H264_1u32s (uint32_t **ppBitStream,
     uint32_t thisChunksLength = 0;
     uint32_t sval;
 
-    /* check error(s) */
-
-    /* Fast check for element = 0 */
-    if ((remainingBits < 1))
+    if (remainingBits > 8)// optimized bs parsing logic
     {
-        throw h264_exception(UMC::UMC_ERR_INVALID_STREAM);
-    }
-    h264GetBits((*ppBitStream), (*pBitOffset), 1, code);
-    remainingBits -= 1;
+        /* check error(s) */
+        /* Fast check for element = 0 */
+        if ((remainingBits < 1))
+        {
+            throw h264_exception(UMC::UMC_ERR_INVALID_STREAM);
+        }
+        h264GetBits((*ppBitStream), (*pBitOffset), 1, code);
+        remainingBits -= 1;
 
-    if (code)
-    {
-        *pDst = 0;
-        return true;
-    }
+        if (code)
+        {
+            *pDst = 0;
+            return true;
+        }
 
-    if ((remainingBits < 8))
-    {
-        throw h264_exception(UMC::UMC_ERR_INVALID_STREAM);
-    }
-    h264GetBits((*ppBitStream), (*pBitOffset), 8, code);
-    length += 8;
-    remainingBits -= 8;
-
-    /* find nonzero byte */
-    while (code == 0 && 32 > length)
-    {
         if ((remainingBits < 8))
         {
             throw h264_exception(UMC::UMC_ERR_INVALID_STREAM);
@@ -310,54 +300,100 @@ inline bool DecodeExpGolombOne_H264_1u32s (uint32_t **ppBitStream,
         h264GetBits((*ppBitStream), (*pBitOffset), 8, code);
         length += 8;
         remainingBits -= 8;
-    }
 
-    /* find leading '1' */
-    while ((code & 0x80) == 0 && 32 > thisChunksLength)
-    {
-        code <<= 1;
-        thisChunksLength++;
-    }
-    length -= 8 - thisChunksLength;
-
-    h264UngetNBits((*ppBitStream), (*pBitOffset),8 - (thisChunksLength + 1));
-    remainingBits += 8 - (thisChunksLength + 1);
-
-    /* skipping very long codes, let's assume what the code is corrupted */
-    if (32 <= length || 32 <= thisChunksLength)
-    {
-        uint32_t dwords;
-        length -= (*pBitOffset + 1);
-        dwords = length/32;
-        length -= (32*dwords);
-        *ppBitStream += (dwords + 1);
-        *pBitOffset = 31 - length;
-        *pDst = 0;
-        return false;
-    }
-
-    /* Get info portion of codeword */
-    if (length)
-    {
-        if ((remainingBits < length))
+        /* find nonzero byte */
+        while (code == 0 && 32 > length)
         {
-            throw h264_exception(UMC::UMC_ERR_INVALID_STREAM);
+            if ((remainingBits < 8))
+            {
+                throw h264_exception(UMC::UMC_ERR_INVALID_STREAM);
+            }
+            h264GetBits((*ppBitStream), (*pBitOffset), 8, code);
+            length += 8;
+            remainingBits -= 8;
         }
-        h264GetBits((*ppBitStream), (*pBitOffset),length, info);
-    }
 
-    sval = ((1 << (length)) + (info) - 1);
-    if (isSigned)
-    {
-        if (sval & 1)
-            *pDst = (int32_t) ((sval + 1) >> 1);
+        /* find leading '1' */
+        while ((code & 0x80) == 0 && 32 > thisChunksLength)
+        {
+            code <<= 1;
+            thisChunksLength++;
+        }
+        length -= 8 - thisChunksLength;
+
+        h264UngetNBits((*ppBitStream), (*pBitOffset), 8 - (thisChunksLength + 1));
+        remainingBits += 8 - (thisChunksLength + 1);
+
+        /* skipping very long codes, let's assume what the code is corrupted */
+        if (32 <= length || 32 <= thisChunksLength)
+        {
+            uint32_t dwords;
+            length -= (*pBitOffset + 1);
+            dwords = length / 32;
+            length -= (32 * dwords);
+            *ppBitStream += (dwords + 1);
+            *pBitOffset = 31 - length;
+            *pDst = 0;
+            return false;
+        }
+
+        /* Get info portion of codeword */
+        if (length)
+        {
+            if ((remainingBits < length))
+            {
+                throw h264_exception(UMC::UMC_ERR_INVALID_STREAM);
+            }
+            h264GetBits((*ppBitStream), (*pBitOffset), length, info);
+        }
+
+        sval = ((1 << (length)) + (info)-1);
+        if (isSigned)
+        {
+            if (sval & 1)
+                *pDst = (int32_t)((sval + 1) >> 1);
+            else
+                *pDst = -((int32_t)(sval >> 1));
+        }
         else
-            *pDst = -((int32_t) (sval >> 1));
+            *pDst = (int32_t)sval;
     }
-    else
-        *pDst = (int32_t) sval;
-
-    return true;
+    else //add the else logic to handle scenes where optimization parsing logix does not work
+    {
+        int32_t leadingZeroBits = 0;
+        int32_t bsSize = remainingBits;
+        for (leadingZeroBits = 0; leadingZeroBits <= bsSize; ++leadingZeroBits)
+        {
+            h264GetBits((*ppBitStream), (*pBitOffset), 1, code);
+            if (code == 0)
+                continue;
+            else
+                break;
+        }
+        remainingBits -= leadingZeroBits;
+        length += leadingZeroBits;
+        if (leadingZeroBits <= bsSize)
+        {
+            if (leadingZeroBits == 0)
+            {
+                sval = 0;
+            }
+            else
+            {
+                h264GetBits((*ppBitStream), (*pBitOffset), leadingZeroBits, code);
+                sval = (1 << leadingZeroBits) - 1 + code;
+            }
+        }
+        else
+        {
+            sval = (uint32_t)(-1);
+        }
+        if ((bool)(isSigned) == true)
+            *pDst = (sval & 1UL) ? (int32_t)((sval >> 1) + 1) : -(int32_t)(sval >> 1);
+        else
+            *pDst = sval;
+    }
+   return true;
 }
 
 inline bool H264BaseBitstream::IsBSLeft(size_t sizeToRead)
@@ -399,7 +435,6 @@ inline int32_t H264BaseBitstream::GetVLCElement(bool bIsSigned)
     int32_t remainingbits = (int32_t)((m_maxBsSize + m_tailBsSize) * 8) - (int32_t)BitsDecoded();
 
     bool res = DecodeExpGolombOne_H264_1u32s(&m_pbs, &m_bitOffset, &sval, remainingbits, bIsSigned);
-
     if (!res)
         throw h264_exception(UMC_ERR_INVALID_STREAM);
     return sval;

@@ -24,9 +24,6 @@
 
 MfxVppHelper::MfxVppHelper(VideoCORE* core, mfxStatus* mfxRes) : m_core(core)
 {
-    if (m_pVpp)
-        DestroyVpp();
-
     m_pVpp.reset(new VideoVPPMain(m_core, mfxRes));
 }
 
@@ -49,11 +46,6 @@ mfxStatus MfxVppHelper::Init(mfxVideoParam* param)
     m_bInitialized = true;
 
     return mfxRes;
-}
-
-mfxStatus MfxVppHelper::Reset(mfxVideoParam* /*param*/)
-{
-    return MFX_ERR_UNSUPPORTED;
 }
 
 mfxStatus MfxVppHelper::Close()
@@ -79,7 +71,7 @@ mfxStatus MfxVppHelper::Submit(mfxFrameSurface1 * input, mfxFrameSurface1* outpu
         return MFX_ERR_NOT_INITIALIZED;
     }
 
-    mfxFrameSurface1* vppout = output ? output : &m_dsSurface;
+    mfxFrameSurface1* vppout = output ? output : &m_dstSurface;
     mfxU32 numEntryPoints = 2;
 
     mfxRes = m_pVpp->VppFrameCheck(input, vppout, nullptr, m_entryPoint, numEntryPoints);
@@ -114,27 +106,24 @@ mfxStatus MfxVppHelper::CreateVpp(mfxVideoParam* param)
     vppRequest[1].Type |= MFX_MEMTYPE_INTERNAL_FRAME;
     vppRequest[1].Type |= MFX_MEMTYPE_FROM_VPPOUT;
 
-    mfxRes = m_core->AllocFrames(&vppRequest[1], &m_dsResponse, false);
+    mfxRes = m_core->AllocFrames(&vppRequest[1], &m_dstResponse, false);
     MFX_CHECK_STS(mfxRes);
 
-    m_dsSurface.Info         = vppRequest[1].Info;
-    m_dsSurface.Data.MemId   = m_dsResponse.mids[0];
-    m_dsSurface.Data.MemType = vppRequest[1].Type;
+    m_dstSurface.Info         = vppRequest[1].Info;
+    m_dstSurface.Data.MemId   = m_dstResponse.mids[0];
+    m_dstSurface.Data.MemType = vppRequest[1].Type;
 
     mfxRes = m_pVpp->Init(param);
-
-    m_core->LockFrame(m_dsSurface.Data.MemId, &m_dsSurface.Data);
 
     return mfxRes;
 }
 
 void MfxVppHelper::DestroyVpp()
 {
-    m_core->UnlockFrame(m_dsSurface.Data.MemId, &m_dsSurface.Data);
-    m_core->FreeFrames(&m_dsResponse, false);
+    m_core->FreeFrames(&m_dstResponse, false);
 }
 
 mfxFrameSurface1 const& MfxVppHelper::GetOutputSurface() const
 {
-    return m_dsSurface;
+    return m_dstSurface;
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2021 Intel Corporation
+// Copyright (c) 2009-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,6 @@
 #include <algorithm>
 
 
-#define MFX_RT_PLATFORM_METEORLAKE 51
 
 mfxExtBuffer* GetExtendedBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id)
 {
@@ -90,6 +89,18 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 codecId)
     case MFX_FOURCC_Y416:
     case MFX_FOURCC_ABGR16F:
         break;
+    case MFX_FOURCC_YUV444:
+    case MFX_FOURCC_YUV411:
+    case MFX_FOURCC_YUV400:
+    case MFX_FOURCC_YUV422H:
+    case MFX_FOURCC_YUV422V:
+    case MFX_FOURCC_UYVY:
+    case MFX_FOURCC_IMC3:
+        if (codecId != MFX_CODEC_JPEG)
+        {
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+        }
+        break;
     default:
         MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
@@ -124,8 +135,14 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 codecId)
             && info->FourCC != MFX_FOURCC_Y416)
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
-
-    MFX_CHECK(info->ChromaFormat <= MFX_CHROMAFORMAT_YUV444,  MFX_ERR_INVALID_VIDEO_PARAM);
+    if (codecId != MFX_CODEC_JPEG)
+    {
+        MFX_CHECK(info->ChromaFormat <= MFX_CHROMAFORMAT_YUV444,  MFX_ERR_INVALID_VIDEO_PARAM);
+    }
+    else
+    {
+        MFX_CHECK(info->ChromaFormat < MFX_CHROMAFORMAT_RESERVED1,  MFX_ERR_INVALID_VIDEO_PARAM);
+    }
 
     MFX_CHECK(!(info->FrameRateExtN != 0 && info->FrameRateExtD == 0), MFX_ERR_INVALID_VIDEO_PARAM);
 
@@ -197,6 +214,7 @@ mfxStatus CheckFrameInfoDecVideoProcCsc(mfxFrameInfo *info, mfxU32 codecId)
     case MFX_FOURCC_Y410:
     case MFX_FOURCC_Y416:
     case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_RGBP:
         if (info->ChromaFormat == MFX_CHROMAFORMAT_YUV444)
             return MFX_ERR_NONE;
         MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
@@ -214,7 +232,18 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId)
     switch (codecId)
     {
     case MFX_CODEC_JPEG:
-        if (info->FourCC != MFX_FOURCC_NV12 && info->FourCC != MFX_FOURCC_RGB4 && info->FourCC != MFX_FOURCC_YUY2)
+        if (info->FourCC != MFX_FOURCC_NV12 &&
+            info->FourCC != MFX_FOURCC_RGB4 &&
+            info->FourCC != MFX_FOURCC_YUY2 &&
+            info->FourCC != MFX_FOURCC_UYVY &&
+            info->FourCC != MFX_FOURCC_BGRP &&
+            info->FourCC != MFX_FOURCC_IMC3 &&
+            info->FourCC != MFX_FOURCC_YUV444 &&
+            info->FourCC != MFX_FOURCC_YUV411 &&
+            info->FourCC != MFX_FOURCC_YUV400 &&
+            info->FourCC != MFX_FOURCC_YUV422H &&
+            info->FourCC != MFX_FOURCC_YUV422V &&
+            info->FourCC != MFX_FOURCC_RGBP)
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         break;
     case MFX_CODEC_VP8:
@@ -251,6 +280,13 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId)
             )
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         break;
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+    case MFX_CODEC_VVC:
+        if (info->FourCC != MFX_FOURCC_NV12 &&
+            info->FourCC != MFX_FOURCC_P010)
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+        break;
+#endif
 #if defined(MFX_ENABLE_AV1_VIDEO_CODEC)
     case MFX_CODEC_AV1:
             if (   info->FourCC != MFX_FOURCC_NV12
@@ -272,8 +308,10 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId)
     case MFX_CODEC_JPEG:
         MFX_CHECK(   info->ChromaFormat == MFX_CHROMAFORMAT_YUV420
                   || info->ChromaFormat == MFX_CHROMAFORMAT_YUV444
+                  || info->ChromaFormat == MFX_CHROMAFORMAT_YUV411
                   || info->ChromaFormat == MFX_CHROMAFORMAT_YUV400
                   || info->ChromaFormat == MFX_CHROMAFORMAT_YUV422H
+                  || info->ChromaFormat == MFX_CHROMAFORMAT_YUV422V
                   , MFX_ERR_INVALID_VIDEO_PARAM);
         break;
     case MFX_CODEC_AVC:
@@ -297,6 +335,17 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId)
 
     switch (codecId) 
     {
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+    case MFX_CODEC_VVC:
+        if (info->FourCC == MFX_FOURCC_P210
+            || info->FourCC == MFX_FOURCC_Y210
+            || info->FourCC == MFX_FOURCC_P016
+            || info->FourCC == MFX_FOURCC_Y216
+            || info->FourCC == MFX_FOURCC_Y416)
+        {
+            MFX_CHECK(info->Shift == 1, MFX_ERR_INVALID_VIDEO_PARAM);
+        }
+#endif
     case MFX_CODEC_HEVC:
         break;
     default:
@@ -353,6 +402,7 @@ mfxStatus UpdateCscOutputFormat(mfxVideoParam *par, mfxFrameAllocRequest *reques
             request->Info.BitDepthLuma = 12;
             request->Info.Shift = 1;
             break;
+        case MFX_FOURCC_RGBP:
         case MFX_FOURCC_RGB4:
             request->Info.BitDepthLuma = 0;
             request->Info.Shift = 0;
@@ -392,6 +442,9 @@ static mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
         case MFX_CODEC_VP9:
 #if defined(MFX_ENABLE_AV1_VIDEO_CODEC)
         case MFX_CODEC_AV1:
+#endif
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+        case MFX_CODEC_VVC:
 #endif
             break;
         default:
@@ -621,8 +674,6 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
         supported_buffers = g_commonSupportedExtBuffers;
         numberOfSupported = sizeof(g_commonSupportedExtBuffers) / sizeof(g_commonSupportedExtBuffers[0]);
     }
-    if (!supported_buffers)
-        return MFX_ERR_NONE;
 
     const mfxU32 *common_supported_buffers = g_commonSupportedExtBuffers;
     mfxU32 common_numberOfSupported = sizeof(g_commonSupportedExtBuffers) / sizeof(g_commonSupportedExtBuffers[0]);
@@ -1224,8 +1275,9 @@ mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id)
     case MFX_HW_DG2    :
                          platform.MediaAdapterType = MFX_MEDIA_DISCRETE;
                          platform.CodeName = MFX_PLATFORM_DG2;           break;
-    // MFX_PLATFORM_METEORLAKE is not ready in spec, use MFX_RT_PLATFORM_METEORLAKE until spec updated
-    case MFX_HW_MTL    : platform.CodeName = MFX_RT_PLATFORM_METEORLAKE; break;
+    case MFX_HW_MTL    : platform.CodeName = MFX_PLATFORM_METEORLAKE;    break;
+    case MFX_HW_ARL    : platform.CodeName = MFX_PLATFORM_ARROWLAKE;     break;
+    case MFX_HW_LNL    : platform.CodeName = MFX_PLATFORM_LUNARLAKE;     break;
     default:
                          platform.MediaAdapterType = MFX_MEDIA_UNKNOWN;
                          platform.CodeName = MFX_PLATFORM_UNKNOWN;       break;

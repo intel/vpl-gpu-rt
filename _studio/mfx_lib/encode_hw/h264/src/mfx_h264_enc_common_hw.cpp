@@ -900,7 +900,11 @@ namespace
 
         if (par.calcParam.numTemporalLayer > 0 || par.calcParam.tempScalabilityMode)
         {
-            mfxU32 maxScale = par.calcParam.scale[par.calcParam.numTemporalLayer - 1];
+            mfxU32 maxScale = 0;
+
+            if (par.calcParam.numTemporalLayer > 0 && par.calcParam.numTemporalLayer <= 8)
+                maxScale = par.calcParam.scale[par.calcParam.numTemporalLayer - 1];
+
             // for tempScalabilityMode number of temporal layers should be changed dynamically w/o IDR insertion
             // to assure this first SPS in bitstream should contain maximum possible log2_max_frame_num_minus4
             if (par.calcParam.tempScalabilityMode)
@@ -1045,8 +1049,8 @@ namespace
             if (extOpt.ViewOutput != MFX_CODINGOPTION_ON) // in case of ViewOutput bitstream should contain one view (not all views)
                 mvcMultiplier = extMvc.NumView ? extMvc.NumView : 1;
         }
-
-        return mfxU32(std::min<size_t>(UINT_MAX, size_t(par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height * mvcMultiplier / (16u * 16u) * maxMBBytes + 999u) / 1000u));
+        mfxU32 frameSize = par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height;
+        return mfxU32(std::min<size_t>(UINT_MAX, size_t(frameSize * mvcMultiplier / (16u * 16u) * maxMBBytes + 999u) / 1000u));
     }
 
     mfxU32 CheckAgreementOfFrameRate(
@@ -1486,7 +1490,7 @@ mfxStatus MfxHwH264Encode::QueryHwCaps(VideoCORE* core, MFX_ENCODE_CAPS & hwCaps
 
     ddi.reset(CreatePlatformH264Encoder(core));
     if (ddi.get() == 0)
-        return Error(MFX_ERR_DEVICE_FAILED);
+        MFX_RETURN(Error(MFX_ERR_DEVICE_FAILED));
 
 
     mfxStatus sts = ddi->CreateAuxilliaryDevice(core, guid, width, height, true);
@@ -1495,7 +1499,7 @@ mfxStatus MfxHwH264Encode::QueryHwCaps(VideoCORE* core, MFX_ENCODE_CAPS & hwCaps
     sts = ddi->QueryEncodeCaps(hwCaps);
     MFX_CHECK_STS(sts);
 
-    return pEncodeCaps->SetHWCaps<MFX_ENCODE_CAPS>(guid, &hwCaps);
+    MFX_RETURN(pEncodeCaps->SetHWCaps<MFX_ENCODE_CAPS>(guid, &hwCaps));
 }
 
 mfxStatus MfxHwH264Encode::QueryMbProcRate(VideoCORE* core, mfxVideoParam const & par, mfxU32 (&mbPerSec)[16], const mfxVideoParam * in)
@@ -1523,7 +1527,7 @@ mfxStatus MfxHwH264Encode::QueryMbProcRate(VideoCORE* core, mfxVideoParam const 
 
     ddi.reset(CreatePlatformH264Encoder(core));
     if (ddi.get() == 0)
-        return Error(MFX_ERR_DEVICE_FAILED);
+        MFX_RETURN(Error(MFX_ERR_DEVICE_FAILED));
 
 
     mfxStatus sts = ddi->CreateAuxilliaryDevice(core, guid, width, height, true);
@@ -1535,7 +1539,7 @@ mfxStatus MfxHwH264Encode::QueryMbProcRate(VideoCORE* core, mfxVideoParam const 
     MFX_CHECK_STS(sts);
     mbPerSec[(par.mfx.TargetUsage?par.mfx.TargetUsage:4) - 1] = tempMbPerSec[0];
 
-    return pEncodeCaps->SetHWCaps<mfxU32>(guid, mbPerSec, 16);
+    MFX_RETURN(pEncodeCaps->SetHWCaps<mfxU32>(guid, mbPerSec, 16));
 }
 
 mfxStatus MfxHwH264Encode::QueryGuid(VideoCORE* core, GUID guid)
@@ -1544,7 +1548,7 @@ mfxStatus MfxHwH264Encode::QueryGuid(VideoCORE* core, GUID guid)
 
     ddi.reset(CreatePlatformH264Encoder(core));
     if (ddi.get() == 0)
-        return Error(MFX_ERR_DEVICE_FAILED);
+        MFX_RETURN(Error(MFX_ERR_DEVICE_FAILED));
 
     return ddi->QueryHWGUID(core, guid, true);
 }
@@ -1652,7 +1656,7 @@ mfxStatus MfxHwH264Encode::CorrectCropping(MfxVideoParam& par)
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }
 
-    return sts;
+    MFX_RETURN(sts);
 }
 
 bool MfxHwH264Encode::IsRunTimeOnlyExtBuffer(mfxU32 id)
@@ -1776,6 +1780,9 @@ bool MfxHwH264Encode::IsVideoParamExtBufferIdSupported(mfxU32 id)
         || id == MFX_EXTBUFF_MOVING_RECTANGLES
         || id == MFX_EXTBUFF_MULTI_FRAME_PARAM
         || id == MFX_EXTBUFF_MULTI_FRAME_CONTROL
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        || id == MFX_EXTBUFF_ENCODED_QUALITY_INFO_MODE
+#endif
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
         || id == MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM
 #endif
@@ -1901,7 +1908,7 @@ mfxStatus MfxHwH264Encode::CopySpsPpsToVideoParam(
             changed = true;
     }
 
-    return changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
+    MFX_RETURN(changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE);
 }
 
 // check encoding configuration for number of H264 spec violations allowed by MSDK
@@ -1913,7 +1920,7 @@ mfxStatus MfxHwH264Encode::CheckForAllowedH264SpecViolations(
         && par.mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_UNKNOWN
         && par.mfx.CodecLevel > MFX_LEVEL_AVC_41)
     {
-        return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+        MFX_RETURN(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
     }
 
     return MFX_ERR_NONE;
@@ -1994,7 +2001,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         case MFX_ERR_INVALID_VIDEO_PARAM:
         case MFX_ERR_INCOMPATIBLE_VIDEO_PARAM:
-            return sts;
+            MFX_RETURN(sts);
         case MFX_WRN_INCOMPATIBLE_VIDEO_PARAM:
             checkSts = sts;
             break;
@@ -2010,7 +2017,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
         MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     case MFX_ERR_INVALID_VIDEO_PARAM:
     case MFX_ERR_INCOMPATIBLE_VIDEO_PARAM:
-        return sts;
+        MFX_RETURN(sts);
     case MFX_WRN_INCOMPATIBLE_VIDEO_PARAM:
         checkSts = sts;
         break;
@@ -2060,7 +2067,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
     }
 #endif
 
-    return checkSts;
+    MFX_RETURN(checkSts);
 }
 
 /*
@@ -2091,11 +2098,11 @@ mfxStatus MfxHwH264Encode::CheckAndFixRectQueryLike(
     mfxStatus checkSts = MFX_ERR_NONE;
 
     if (rect->Left == 0 && rect->Right == 0 && rect->Top == 0 && rect->Bottom == 0)
-        return checkSts;
+        MFX_RETURN(checkSts);
 
     checkSts = CheckAndFixOpenRectQueryLike(par, rect);
 
-    return checkSts;
+    MFX_RETURN(checkSts);
 }
 
 /*
@@ -2159,7 +2166,7 @@ mfxStatus MfxHwH264Encode::CheckAndFixOpenRectQueryLike(
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
-    return checkSts;
+    MFX_RETURN(checkSts);
 }
 
 mfxStatus MfxHwH264Encode::CheckAndFixRoiQueryLike(
@@ -2184,7 +2191,7 @@ mfxStatus MfxHwH264Encode::CheckAndFixRoiQueryLike(
             checkSts = MFX_ERR_UNSUPPORTED;
     }
 
-    return checkSts;
+    MFX_RETURN(checkSts);
 }
 
 mfxStatus MfxHwH264Encode::CheckAndFixMovingRectQueryLike(
@@ -2199,7 +2206,7 @@ mfxStatus MfxHwH264Encode::CheckAndFixMovingRectQueryLike(
     if (par.mfx.FrameInfo.Height)
         if(!CheckRangeDflt(rect->SourceTop, mfxU32(0), mfxU32(par.mfx.FrameInfo.Height - 1), mfxU32(0))) checkSts = MFX_ERR_UNSUPPORTED;
 
-    return checkSts;
+    MFX_RETURN(checkSts);
 }
 
 //typedef bool Bool;
@@ -2245,7 +2252,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     // check HW capabilities
     if (par.mfx.FrameInfo.Width  > hwCaps.ddi_caps.MaxPicWidth ||
         par.mfx.FrameInfo.Height > hwCaps.ddi_caps.MaxPicHeight)
-        return Error(MFX_ERR_UNSUPPORTED);
+        MFX_RETURN(Error(MFX_ERR_UNSUPPORTED));
 
     if ((par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PART1) != MFX_PICSTRUCT_PROGRESSIVE)
     {
@@ -2267,7 +2274,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
     if (hwCaps.ddi_caps.MaxNum_TemporalLayer != 0 &&
         hwCaps.ddi_caps.MaxNum_TemporalLayer < par.calcParam.numTemporalLayer)
-        return Error(MFX_ERR_UNSUPPORTED);
+        MFX_RETURN(Error(MFX_ERR_UNSUPPORTED));
 
     if (!CheckTriStateOption(par.mfx.LowPower)) changed = true;
 
@@ -2365,6 +2372,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         changed = true;
         par.mfx.TargetUsage = 7;
     }
+
 
     if (par.mfx.GopPicSize > 0 &&
         par.mfx.GopRefDist > 0 &&
@@ -2585,7 +2593,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (par.mfx.FrameInfo.CropX > par.mfx.FrameInfo.Width)
         {
             if (extBits->SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             unsupported = true;
             par.mfx.FrameInfo.CropX = 0;
@@ -2594,7 +2602,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (par.mfx.FrameInfo.CropX + par.mfx.FrameInfo.CropW > par.mfx.FrameInfo.Width)
         {
             if (extBits->SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             unsupported = true;
             par.mfx.FrameInfo.CropW = par.mfx.FrameInfo.Width - par.mfx.FrameInfo.CropX;
@@ -2606,7 +2614,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (par.mfx.FrameInfo.CropY > par.mfx.FrameInfo.Height)
         {
             if (extBits->SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             unsupported = true;
             par.mfx.FrameInfo.CropY = 0;
@@ -2615,7 +2623,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (par.mfx.FrameInfo.CropY + par.mfx.FrameInfo.CropH > par.mfx.FrameInfo.Height)
         {
             if (extBits->SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             unsupported = true;
             par.mfx.FrameInfo.CropH = par.mfx.FrameInfo.Height - par.mfx.FrameInfo.CropY;
@@ -2820,7 +2828,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
     {
         if (extBits->SPSBuffer)
-            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
         changed = true;
         par.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
@@ -2842,7 +2850,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_MONOCHROME)
     {
         if (extBits->SPSBuffer)
-            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
         changed = true;
         par.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
@@ -2852,7 +2860,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV422)
     {
         if (extBits->SPSBuffer)
-            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
         changed = true;
         par.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV422;
@@ -2862,7 +2870,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
     {
         if (extBits->SPSBuffer)
-            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
         changed = true;
         par.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV444;
@@ -2872,7 +2880,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
     {
         if (extBits->SPSBuffer)
-            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
         changed = true;
         par.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV444;
@@ -2914,7 +2922,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (contradictoryVuiParam)
         {
             if (extBits->SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             changed = true;
         }
@@ -2949,7 +2957,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         (par.mfx.FrameInfo.FrameRateExtD == 0))
     {
         if (extBits->SPSBuffer && !IsOff(extOpt3->TimingInfoPresent))
-            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
         unsupported = true;
         par.mfx.FrameInfo.FrameRateExtN = 0;
@@ -2962,7 +2970,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.FrameRateExtN > mfxU64(172) * par.mfx.FrameInfo.FrameRateExtD)
     {
         if (extBits->SPSBuffer) // frame_rate read from sps
-            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
         unsupported = true;
         par.mfx.FrameInfo.FrameRateExtN = 0;
@@ -2974,7 +2982,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     {
         // if timing_info_present_flag is 0, fixed_frame_rate_flag is inferred to be 0 (Annex E.2.1)
         if (extBits->SPSBuffer)
-            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
         changed = true;
         extOpt2->FixedFrameRate = MFX_CODINGOPTION_OFF;
@@ -2986,7 +2994,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             IsOn(extOpt3->LowDelayHrd))
         {
             if (extBits->SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             changed = true;
             extOpt3->LowDelayHrd = MFX_CODINGOPTION_OFF;
@@ -2996,10 +3004,10 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     if (par.mfx.CodecProfile != MFX_PROFILE_UNKNOWN && !IsValidCodingProfile(par.mfx.CodecProfile))
     {
         if (extBits->SPSBuffer)
-            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
         if (par.mfx.CodecProfile == MFX_PROFILE_AVC_MULTIVIEW_HIGH)
-            return Error(MFX_ERR_UNSUPPORTED);
+            MFX_RETURN(Error(MFX_ERR_UNSUPPORTED));
 
         changed = true;
         par.mfx.CodecProfile = MFX_PROFILE_UNKNOWN;
@@ -3008,7 +3016,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     if (par.mfx.CodecLevel != MFX_LEVEL_UNKNOWN && !IsValidCodingLevel(par.mfx.CodecLevel))
     {
         if (extBits->SPSBuffer)
-            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
         changed = true;
         par.mfx.CodecLevel = MFX_LEVEL_UNKNOWN;
@@ -3028,7 +3036,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         {
             // when driver writes headers it can write only even values of num_ref_frames
             if (extBits->SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             changed = true;
             par.mfx.NumRefFrame++;
@@ -3042,7 +3050,9 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (minLevel == 0)
         {
             if (extBits->SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            {
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
+            }
             else if (par.mfx.CodecLevel != 0)
             {
                 changed = true; // warning should be returned if frame size exceeds maximum value supported by AVC standard
@@ -3053,7 +3063,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         else if (par.mfx.CodecLevel != 0 && par.mfx.CodecLevel < minLevel)
         {
             if (extBits->SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             changed = true;
             par.mfx.CodecLevel = minLevel;
@@ -3071,7 +3081,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         {
             if (extBits->SPSBuffer)
             {
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
             }
             else if (par.mfx.CodecLevel != 0)
             {
@@ -3083,7 +3093,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         else if (par.mfx.CodecLevel != 0 && par.mfx.CodecLevel < minLevel)
         {
             if (extBits->SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             changed = true;
             par.mfx.CodecLevel = minLevel;
@@ -3098,7 +3108,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (minLevel == 0)
         {
             if (extBits->SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             changed = false;
             par.mfx.CodecLevel = MFX_LEVEL_AVC_52;
@@ -3107,7 +3117,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         else if (par.mfx.CodecLevel != 0 && par.mfx.CodecLevel < minLevel)
         {
             if (extBits->SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             changed = false;
             par.mfx.CodecLevel = minLevel;
@@ -3256,7 +3266,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             if (extOpt->MaxDecFrameBuffering > maxDpbSize)
             {
                 if (extBits->SPSBuffer)
-                    return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                    MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                 changed = true;
                 extOpt->MaxDecFrameBuffering = maxDpbSize;
@@ -3268,7 +3278,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             if (extOpt->MaxDecFrameBuffering < par.mfx.NumRefFrame)
             {
                 if (extBits->SPSBuffer)
-                    return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                    MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                 changed = true;
                 extOpt->MaxDecFrameBuffering = par.mfx.NumRefFrame;
@@ -3280,7 +3290,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         (IsAvcBaseProfile(par.mfx.CodecProfile) || hwCaps.ddi_caps.NoCabacSupport))
     {
         if (extBits->SPSBuffer)
-            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
         changed = true;
         extOpt->CAVLC = MFX_CODINGOPTION_ON;
@@ -3291,7 +3301,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (IsAvcBaseProfile(par.mfx.CodecProfile) || par.mfx.CodecProfile == MFX_PROFILE_AVC_MAIN)
         {
             if (extBits->PPSBuffer && extPps->transform8x8ModeFlag)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             changed = true;
             extOpt->IntraPredBlockSize = MFX_BLOCKSIZE_MIN_16X16;
@@ -3437,11 +3447,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         changed = true;
     }
 
-    // Keep the behavior on VME and set to OFF from DG2 since we decided to deprecate this parameter on VDEnc.
+    // Keep the behavior on VME and set to OFF from ACM since we decided to deprecate this parameter on VDEnc.
     if (H264ECaps::IsVmeSupported(platform)) {
         if (extOpt2->BitrateLimit == MFX_CODINGOPTION_UNKNOWN)
             extOpt2->BitrateLimit = MFX_CODINGOPTION_ON;
     } else {
+        if (extOpt2->BitrateLimit == MFX_CODINGOPTION_ON)
+            changed = true;
         extOpt2->BitrateLimit = MFX_CODINGOPTION_OFF;
     }
 
@@ -3477,7 +3489,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                         if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && par.mfx.CodecLevel < minLevel)
                         {
                             if (extBits->SPSBuffer)
-                                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                             changed = true;
                             par.mfx.CodecLevel   = minLevel;
@@ -3490,7 +3502,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                 if (profile == MFX_PROFILE_UNKNOWN)
                 {
                     if (extBits->SPSBuffer)
-                        return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                        MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                     if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0)
                     {
@@ -3531,7 +3543,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                     if (extBits->SPSBuffer && (
                         extSps->vui.flags.nalHrdParametersPresent ||
                         extSps->vui.flags.vclHrdParametersPresent))
-                        return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                        MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                     changed = true;
                     par.calcParam.maxKbps = par.calcParam.targetKbps;
@@ -3549,7 +3561,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                     if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && par.mfx.CodecLevel < minLevel)
                     {
                         if (extBits->SPSBuffer)
-                            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                         changed = true;
                         par.mfx.CodecLevel = minLevel;
@@ -3562,7 +3574,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             if (profile == MFX_PROFILE_UNKNOWN)
             {
                 if (extBits->SPSBuffer)
-                    return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                    MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                 if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0)
                 {
@@ -3624,7 +3636,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                         if (extBits->SPSBuffer && (
                             extSps->vui.flags.nalHrdParametersPresent ||
                             extSps->vui.flags.vclHrdParametersPresent))
-                            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                         changed = true;
                         par.calcParam.bufferSizeInKB = mfxU32(2 * avgFrameSizeInKB + 1);
@@ -3639,7 +3651,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                         if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0 && par.mfx.CodecLevel < minLevel)
                         {
                             if (extBits->SPSBuffer)
-                                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                             changed = true;
                             par.mfx.CodecLevel = minLevel;
@@ -3651,7 +3663,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                 if (profile == MFX_PROFILE_UNKNOWN)
                 {
                     if (extBits->SPSBuffer)
-                        return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                        MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                     if (par.mfx.CodecLevel != 0 && par.mfx.CodecProfile != 0)
                     {
@@ -4001,7 +4013,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             extSps->vui.flags.vclHrdParametersPresent != 0                  ||
             extSps->vui.nalHrdParameters.cpbCntMinus1 > 0                   ||
             extSps->vui.numReorderFrames > extSps->vui.maxDecFrameBuffering)
-            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
         // the following fields aren't supported by snb/ivb_win7 drivers directly and requires sps patching
         // patching is not possible whe protection is on
@@ -4015,7 +4027,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                 extSps->constraints.set5 != 0 ||
                 extSps->constraints.set6 != 0 ||
                 extSps->constraints.set7 != 0)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
         if (extBits->PPSBuffer)
         {
@@ -4035,13 +4047,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                 extPps->redundantPicCntPresentFlag != 0                ||
                 extPps->secondChromaQpIndexOffset < -12                ||
                 extPps->secondChromaQpIndexOffset > 12)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             // the following fields aren't supported by snb/ivb_win7 drivers directlyand requires pps patching
             // patching is not possible whe protection is on
             if (par.Protected != 0)
                 if (extSps->nalRefIdc != 1)
-                    return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                    MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
         }
 
 #ifdef MFX_ENABLE_AVC_CUSTOM_QMATRIX
@@ -4052,13 +4064,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             if (!IsAvcHighProfile(par.mfx.CodecProfile) || par.Protected != 0)
             {
                 extSps->seqScalingMatrixPresentFlag = 0;
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
             }
             //levelIdx == 3 isn't supported
             if (extSps->levelIdc == 3)
             {
                 extSps->seqScalingMatrixPresentFlag = 0;
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
             }
             //if seqScalingMatrixPresent flag isn't 0 at least one matrix has to be provided
             //More information Rec. ITU-T H.264, 7.4.2.1.1 Sequence parameter set data semantics
@@ -4086,13 +4098,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             if (!IsAvcHighProfile(par.mfx.CodecProfile) || par.Protected != 0)
             {
                 extPps->picScalingMatrixPresentFlag = 0;
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
             }
             //transform8x8ModeFlag has to be 1, other values is unsupported
             if (extPps->transform8x8ModeFlag != 1)
             {
                 extPps->picScalingMatrixPresentFlag = 0;
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
             }
             else
             {
@@ -4829,11 +4841,11 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 #endif // MFX_ENABLE_H264_REPARTITION_CHECK
 
 
-    return unsupported
+    MFX_RETURN(unsupported
         ? MFX_ERR_UNSUPPORTED
         : (changed || warning)
             ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM
-            : MFX_ERR_NONE;
+            : MFX_ERR_NONE);
 }
 
 // checks MVC per-view parameters (bitrates, buffer size, initial delay, level)
@@ -4852,7 +4864,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
         if (par.calcParam.mvcPerViewPar.codecLevel != 0 && par.calcParam.mvcPerViewPar.codecLevel < minLevel)
         {
             if (extBits.SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             changed = true;
             par.calcParam.mvcPerViewPar.codecLevel = minLevel;
@@ -4871,7 +4883,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
         if (par.calcParam.mvcPerViewPar.codecLevel != 0 && par.calcParam.mvcPerViewPar.codecLevel < minLevel)
         {
             if (extBits.SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             changed = true;
             par.calcParam.mvcPerViewPar.codecLevel = minLevel;
@@ -4886,7 +4898,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
         if (par.calcParam.mvcPerViewPar.codecLevel != 0 && par.calcParam.mvcPerViewPar.codecLevel < minLevel)
         {
             if (extBits.SPSBuffer)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             changed = false;
             par.calcParam.mvcPerViewPar.codecLevel = minLevel;
@@ -4922,7 +4934,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
                     if (par.calcParam.mvcPerViewPar.codecLevel != 0 && par.calcParam.mvcPerViewPar.codecLevel < minLevel)
                     {
                         if (extBits.SPSBuffer)
-                            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                         changed = true;
                         par.calcParam.mvcPerViewPar.codecLevel   = minLevel;
@@ -4932,7 +4944,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
             }
 
             if (profile == MFX_PROFILE_UNKNOWN)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
         }
     }
 
@@ -4958,7 +4970,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
                 if (extBits.SPSBuffer && (
                     extSps.vui.flags.nalHrdParametersPresent ||
                     extSps.vui.flags.vclHrdParametersPresent))
-                    return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                    MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                 changed = true;
                 par.calcParam.mvcPerViewPar.maxKbps = par.calcParam.mvcPerViewPar.targetKbps;
@@ -4976,7 +4988,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
                 if (par.calcParam.mvcPerViewPar.codecLevel != 0 && par.calcParam.mvcPerViewPar.codecLevel < minLevel)
                 {
                     if (extBits.SPSBuffer)
-                        return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                        MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                     changed = true;
                     par.calcParam.mvcPerViewPar.codecLevel = minLevel;
@@ -4986,7 +4998,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
         }
 
         if (profile == MFX_PROFILE_UNKNOWN)
-            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
     }
 
     if (par.calcParam.mvcPerViewPar.bufferSizeInKB != 0)
@@ -5016,7 +5028,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
                     if (extBits.SPSBuffer && (
                         extSps.vui.flags.nalHrdParametersPresent ||
                         extSps.vui.flags.vclHrdParametersPresent))
-                        return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                        MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                     changed = true;
                     par.calcParam.mvcPerViewPar.bufferSizeInKB = mfxU16(2 * avgFrameSizeInKB + 1);
@@ -5031,7 +5043,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
                     if (par.calcParam.mvcPerViewPar.codecLevel != 0 && par.calcParam.mvcPerViewPar.codecLevel < minLevel)
                     {
                         if (extBits.SPSBuffer)
-                            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                            MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
                         changed = true;
                         par.calcParam.mvcPerViewPar.codecLevel = minLevel;
@@ -5041,7 +5053,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
             }
 
             if (profile == MFX_PROFILE_UNKNOWN)
-                return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM));
 
             if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
                 par.mfx.RateControlMethod != MFX_RATECONTROL_AVBR &&
@@ -5062,7 +5074,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
         }
     }
 
-    return changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
+    MFX_RETURN(changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE);
 }
 
 // check mfxExtMVCSeqDesc as in Query
@@ -5093,7 +5105,7 @@ mfxStatus MfxHwH264Encode::CheckMVCSeqDescQueryLike(mfxExtMVCSeqDesc * mvcSeqDes
         mvcSeqDesc->NumViewAlloc = 0;
     }
 
-    return unsupported ? MFX_ERR_UNSUPPORTED : MFX_ERR_NONE;
+    MFX_RETURN(unsupported ? MFX_ERR_UNSUPPORTED : MFX_ERR_NONE);
 }
 
 // check mfxExtMVCSeqDesc before encoding
@@ -5101,7 +5113,7 @@ mfxStatus MfxHwH264Encode::CheckAndFixMVCSeqDesc(mfxExtMVCSeqDesc * mvcSeqDesc, 
 {
     if (mvcSeqDesc == nullptr)
     {
-        return MFX_ERR_NULL_PTR;
+        MFX_RETURN(MFX_ERR_NULL_PTR);
     }
 
     bool unsupported = false;
@@ -5184,8 +5196,8 @@ mfxStatus MfxHwH264Encode::CheckAndFixMVCSeqDesc(mfxExtMVCSeqDesc * mvcSeqDesc, 
         unsupported = true;
     }
 
-    return unsupported ? MFX_ERR_UNSUPPORTED :
-        changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
+    MFX_RETURN(unsupported ? MFX_ERR_UNSUPPORTED :
+        changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE);
 }
 
 void MfxHwH264Encode::InheritDefaultValues(
@@ -5968,6 +5980,77 @@ void MfxHwH264Encode::SetDefaults(
             par.mfx.CodecProfile = MFX_PROFILE_AVC_HIGH;
     }
 
+    if (par.calcParam.cqpHrdMode == 0)
+    {
+        if (par.calcParam.maxKbps == 0)
+        {
+            if (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
+                par.mfx.RateControlMethod == MFX_RATECONTROL_WIDI_VBR ||
+                par.mfx.RateControlMethod == MFX_RATECONTROL_VCM ||
+                par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR ||
+                par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD)
+            {
+                mfxU32 maxBps = par.calcParam.targetKbps * MAX_BITRATE_RATIO;
+                if (IsOn(extOpt->NalHrdConformance) ||
+                    IsOn(extOpt->VuiVclHrdParameters))
+                    maxBps = std::min(maxBps, GetMaxBitrate(par));
+
+                par.calcParam.maxKbps = maxBps / 1000;
+                assert(par.calcParam.maxKbps >= par.calcParam.targetKbps);
+            }
+            else if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR)
+            {
+                par.calcParam.maxKbps = par.calcParam.targetKbps;
+            }
+        }
+
+        if (par.calcParam.bufferSizeInKB == 0)
+        {
+            if (bRateControlLA(par.mfx.RateControlMethod) && (par.mfx.RateControlMethod != MFX_RATECONTROL_LA_HRD))
+            {
+                par.calcParam.bufferSizeInKB = GetMaxCodedFrameSizeInKB(par);
+            }
+            else
+            {
+                mfxU32 bufferSizeInBits = std::min(
+                    GetMaxBufferSize(par),                           // limit by spec
+                    par.calcParam.maxKbps * DEFAULT_CPB_IN_SECONDS); // limit by common sense
+
+                par.calcParam.bufferSizeInKB = !IsHRDBasedBRCMethod(par.mfx.RateControlMethod)
+                    ? GetMaxCodedFrameSizeInKB(par)
+                    : bufferSizeInBits / 8000;
+            }
+            par.calcParam.bufferSizeInKB = std::max(par.calcParam.bufferSizeInKB, par.calcParam.initialDelayInKB);
+
+        }
+
+        if (par.calcParam.initialDelayInKB == 0 && IsHRDBasedBRCMethod(par.mfx.RateControlMethod))
+        {
+            par.calcParam.initialDelayInKB = (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR && isSWBRC(par)) ?
+                3 * par.calcParam.bufferSizeInKB / 4 :
+                par.calcParam.bufferSizeInKB / 2;
+        }
+
+        // Check default value of BufferSizeInKB at extremely low bitrate to ensure there is enough space to write bitstream
+        if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
+            par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ &&
+            !isSWBRC(par) &&
+            par.mfx.BufferSizeInKB == 0 &&
+            par.mfx.FrameInfo.Width != 0 &&
+            par.mfx.FrameInfo.Height != 0 &&
+            par.mfx.FrameInfo.FrameRateExtN != 0 &&
+            par.mfx.FrameInfo.FrameRateExtD != 0)
+        {
+            mfxF64 rawDataBitrate = 12.0 * par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height *
+                par.mfx.FrameInfo.FrameRateExtN / par.mfx.FrameInfo.FrameRateExtD;
+            mfxU32 minBufferSizeInKB = mfxU32(std::min<mfxF64>(0xffffffff, rawDataBitrate / 8 / 1000.0 / 1400.0));
+            if (par.calcParam.bufferSizeInKB < minBufferSizeInKB) {
+                par.calcParam.bufferSizeInKB = minBufferSizeInKB;
+                par.calcParam.initialDelayInKB = minBufferSizeInKB / 2;
+            }
+        }
+    }
+
     if (par.mfx.CodecLevel == MFX_LEVEL_UNKNOWN)
         par.mfx.CodecLevel = GetMinLevelForAllParameters(par);
 
@@ -6120,58 +6203,6 @@ void MfxHwH264Encode::SetDefaults(
 
     if (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_UNKNOWN)
         extOpt3->EnableMBForceIntra = MFX_CODINGOPTION_OFF;
-
-    if (par.calcParam.cqpHrdMode == 0)
-    {
-        if (par.calcParam.maxKbps == 0)
-        {
-            if (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
-                par.mfx.RateControlMethod == MFX_RATECONTROL_WIDI_VBR ||
-                par.mfx.RateControlMethod == MFX_RATECONTROL_VCM ||
-                par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR ||
-                par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD)
-            {
-                mfxU32 maxBps = par.calcParam.targetKbps * MAX_BITRATE_RATIO;
-                if (IsOn(extOpt->NalHrdConformance) ||
-                    IsOn(extOpt->VuiVclHrdParameters))
-                    maxBps = std::min(maxBps, GetMaxBitrate(par));
-
-                par.calcParam.maxKbps = maxBps / 1000;
-                assert(par.calcParam.maxKbps >= par.calcParam.targetKbps);
-            }
-            else if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR)
-            {
-                par.calcParam.maxKbps = par.calcParam.targetKbps;
-            }
-        }
-
-        if (par.calcParam.bufferSizeInKB == 0)
-        {
-            if (bRateControlLA(par.mfx.RateControlMethod) && (par.mfx.RateControlMethod != MFX_RATECONTROL_LA_HRD))
-            {
-                par.calcParam.bufferSizeInKB = GetMaxCodedFrameSizeInKB(par);
-            }
-            else
-            {
-                mfxU32 bufferSizeInBits = std::min(
-                    GetMaxBufferSize(par),                           // limit by spec
-                    par.calcParam.maxKbps * DEFAULT_CPB_IN_SECONDS); // limit by common sense
-
-                par.calcParam.bufferSizeInKB = !IsHRDBasedBRCMethod(par.mfx.RateControlMethod)
-                        ? GetMaxCodedFrameSizeInKB(par)
-                        : bufferSizeInBits / 8000;
-            }
-            par.calcParam.bufferSizeInKB = std::max(par.calcParam.bufferSizeInKB, par.calcParam.initialDelayInKB);
-
-        }
-
-        if (par.calcParam.initialDelayInKB == 0 && IsHRDBasedBRCMethod(par.mfx.RateControlMethod))
-        {
-            par.calcParam.initialDelayInKB = (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR && isSWBRC(par)) ?
-                3*par.calcParam.bufferSizeInKB / 4:
-                par.calcParam.bufferSizeInKB / 2;
-        }
-    }
 
     if (IsMvcProfile(par.mfx.CodecProfile))
     {
@@ -6709,8 +6740,6 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
     MFX_CHECK_NULL_PTR3(ctrl, surface, bs);
     mfxStatus checkSts = MFX_ERR_NONE;
 
-    bool single_field_mode = false;
-
     for (mfxU32 i = 0; i < bs->NumExtParam; i++)
     {
         MFX_CHECK_NULL_PTR1(bs->ExtParam[i]);
@@ -6737,10 +6766,10 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
                             ctrl->ExtParam[i]->BufferId);
 
         // In single-field mode only one buffer is required for one field encoding
-        bool buffer_pair_allowed = !single_field_mode ? IsRunTimeExtBufferPairAllowed(video, ctrl->ExtParam[i]->BufferId) : false;
+        bool buffer_pair_allowed = IsRunTimeExtBufferPairAllowed(video, ctrl->ExtParam[i]->BufferId);
 
         // if initialized PicStruct is UNKNOWN, to check runtime PicStruct
-        bool buffer_pair_required = !single_field_mode ? IsRunTimeExtBufferPairRequired(video, ctrl->ExtParam[i]->BufferId) : false;
+        bool buffer_pair_required = IsRunTimeExtBufferPairRequired(video, ctrl->ExtParam[i]->BufferId);
 
         if (buffer_pair_required)
         {
@@ -6980,7 +7009,7 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
         }
     }
 
-    return checkSts;
+    MFX_RETURN(checkSts);
 }
 
 mfxStatus MfxHwH264Encode::CheckFEIRunTimeExtBuffersContent(
@@ -6995,7 +7024,7 @@ mfxStatus MfxHwH264Encode::CheckFEIRunTimeExtBuffersContent(
     (void)video;
     (void)bs;
 
-    return checkSts;
+    MFX_RETURN(checkSts);
 }
 
 mfxStatus MfxHwH264Encode::CheckRunTimePicStruct(
@@ -7036,7 +7065,7 @@ mfxStatus MfxHwH264Encode::CheckRunTimePicStruct(
     if (initPs == UNK && runtPs == UNK)
         MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+    MFX_RETURN(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 }
 
 bool MfxHwH264Encode::IsRecoveryPointSeiMessagePresent(
@@ -7074,7 +7103,7 @@ mfxStatus MfxHwH264Encode::CopyFrameDataBothFields(
         inMemType);
     MFX_CHECK_STS(sts);
 
-    return sts;
+    MFX_RETURN(sts);
 }
 
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
@@ -7852,6 +7881,9 @@ void MfxVideoParam::Construct(mfxVideoParam const & par)
 
     CONSTRUCT_EXT_BUFFER(mfxExtPictureTimingSEI,     m_extPicTiming);
     CONSTRUCT_EXT_BUFFER(mfxExtAvcTemporalLayers,    m_extTempLayers);
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+    CONSTRUCT_EXT_BUFFER(mfxExtQualityInfoMode,      m_extQualityInfoMode);
+#endif
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
     CONSTRUCT_EXT_BUFFER(mfxExtSVCSeqDesc,           m_extSvcSeqDescr);
     CONSTRUCT_EXT_BUFFER(mfxExtSVCRateControl,       m_extSvcRateCtrl);

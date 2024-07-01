@@ -33,19 +33,18 @@ namespace Base
 {
     class TaskManager
         : public FeatureBase
-        , protected MfxEncodeHW::TaskManager
+        , public MfxEncodeHW::TaskManager
     {
     public:
 #define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetTMInterface) \
     DECL_BLOCK(Init) \
+    DECL_BLOCK(InitAlloc) \
     DECL_BLOCK(ResetState) \
     DECL_BLOCK(NewTask) \
     DECL_BLOCK(PrepareTask) \
-    DECL_BLOCK(LASubmit) \
-    DECL_BLOCK(LAQuery) \
     DECL_BLOCK(ReorderTask) \
     DECL_BLOCK(SubmitTask) \
+    DECL_BLOCK(UpdateTask) \
     DECL_BLOCK(QueryTask) \
     DECL_BLOCK(Close)
 #define DECL_FEATURE_NAME "Base_TaskManager"
@@ -56,39 +55,16 @@ namespace Base
         {
         }
 
-        // Task Manager Interface for extra stages and logic
-        class ExtTMInterface
-            : public Storable
-        {
-        public:
-            ExtTMInterface(MfxEncodeHW::TaskManager& mgr)
-                : m_Manager(mgr)
-            {}
-
-            using TAsyncStage = CallChain<mfxStatus
-                , StorageW& /*glob*/
-                , StorageW& /*task*/>;
-
-            MfxEncodeHW::TaskManager& m_Manager;
-            std::map<mfxU16, TAsyncStage> m_AsyncStages;
-            mfxU16 m_ResourceExtra = 0;
-
-            using TUpdateTask = CallChain<mfxStatus
-                , StorageW& /*glob*/
-                , StorageW* /*dstTask*/>;
-            TUpdateTask UpdateTask = {};
-        };
-
-        using TMInterface = StorageVar<Base::Glob::TaskManagerKey, ExtTMInterface>;
     protected:
         NotNull<const Glob::VideoParam::TRef*> m_pPar;
         NotNull<Glob::Reorder::TRef*> m_pReorder;
         NotNull<const FeatureBlocks*> m_pBlocks;
-        NotNull<StorageW*> m_pGlob;
+
         NotNull<StorageRW*> m_pFrameCheckLocal;
 
         virtual void InitInternal(const FeatureBlocks& blocks, TPushII Push) override;
         virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override;
+        virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override;
         virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
         virtual void FrameSubmit(const FeatureBlocks& blocks, TPushFS Push) override;
         virtual void AsyncRoutine(const FeatureBlocks& blocks, TPushAR Push) override;
@@ -132,12 +108,6 @@ namespace Base
             , std::function<bool(const mfxStatus&)> stopAt) override;
         virtual mfxStatus RunQueueTaskFree(StorageW& task) override;
 
-        virtual mfxStatus TaskPrepare(StorageW& /*task*/) override;
-        virtual mfxStatus TaskReorder(StorageW& /*task*/) override;
-        virtual mfxStatus TaskSubmit(StorageW& /*task*/) override;
-        virtual mfxStatus TaskQuery(StorageW& /*task*/) override;
-
-        mfxStatus RunExtraStages(mfxU16 beginStageID, mfxU16 endStageID, StorageW& task);
     };
 
 } //Base

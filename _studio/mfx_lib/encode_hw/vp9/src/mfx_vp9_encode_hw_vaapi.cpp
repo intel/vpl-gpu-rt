@@ -23,6 +23,7 @@
 #include "mfx_vp9_encode_hw_par.h"
 #include "mfx_vp9_encode_hw_vaapi.h"
 #include "mfx_common_int.h"
+#include "mfx_platform_caps.h"
 #include <map>
 
 namespace MfxHwVP9Encode
@@ -629,7 +630,6 @@ VAProfile ConvertGuidToVAAPIProfile(const GUID& guid)
 void HardcodeCaps(ENCODE_CAPS_VP9& caps)
 {
     caps.CodingLimitSet = 1;
-    caps.Color420Only =  1;
 
     caps.Color420Only = 0;
     caps.MaxEncodedBitDepth = 1; //0: 8bit, 1: 8 and 10 bit;
@@ -698,7 +698,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     VAStatus vaSts = vaGetConfigAttributes(m_vaDisplay,
                           vaapipr,
-                          VAEntrypointEncSliceLP,
+                          CommonCaps::IsVAEncSliceLPSupported(m_pmfxCore->GetHWType()) ? VAEntrypointEncSliceLP : VAEntrypointEncSlice,
                           attrs.data(),
                           (int)attrs.size());
 
@@ -799,10 +799,12 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
                 &numEntrypoints);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
+    VAEntrypoint entrypoint = CommonCaps::IsVAEncSliceLPSupported(m_pmfxCore->GetHWType()) ? VAEntrypointEncSliceLP : VAEntrypointEncSlice;
+
     bool bEncodeEnable = false;
     for( entrypointsIndx = 0; entrypointsIndx < numEntrypoints; entrypointsIndx++ )
     {
-        if( VAEntrypointEncSliceLP == pEntrypoints[entrypointsIndx] )
+        if( entrypoint == pEntrypoints[entrypointsIndx] )
         {
             bEncodeEnable = true;
             break;
@@ -820,7 +822,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
     attrib[1].type = VAConfigAttribRateControl;
     vaSts = vaGetConfigAttributes(m_vaDisplay,
                           va_profile,
-                          VAEntrypointEncSliceLP,
+                          entrypoint,
                           &attrib[0], 2);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
@@ -839,7 +841,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
     vaSts = vaCreateConfig(
         m_vaDisplay,
         va_profile,
-        VAEntrypointEncSliceLP,
+        entrypoint,
         attrib,
         2,
         &m_vaConfig);
@@ -1186,7 +1188,7 @@ mfxStatus VAAPIEncoder::Execute(
     // Rendering
     //------------------------------------------------------------------
     {
-        MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|ENCODE|VP9|PACKET_START|", "%p|%d", m_vaContextEncode, task.m_taskIdForDriver);
+        MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|ENCODE|VP9|PACKET_START|", "%p|%d", reinterpret_cast<void*>(m_vaContextEncode), task.m_taskIdForDriver);
         vaSts = vaBeginPicture(
             m_vaDisplay,
             m_vaContextEncode,

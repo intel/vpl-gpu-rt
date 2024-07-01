@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2020 Intel Corporation
+// Copyright (c) 2003-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,7 @@
 
 
 #include "mfx_enc_common.h"
+#include "mfx_umc_alloc_wrapper.h"
 
 namespace UMC
 {
@@ -359,7 +360,15 @@ Status MFXTaskSupplier::DecodeHeaders(NalUnit *nalUnit)
                 m_firstVideoParams.mfx.FrameInfo.Height < (currSPS->frame_height_in_mbs * 16) ||
                 (currSPS->level_idc && m_firstVideoParams.mfx.CodecLevel && m_firstVideoParams.mfx.CodecLevel < currSPS->level_idc))
             {
-                return UMC_NTF_NEW_RESOLUTION;
+                auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
+                if (frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag)
+                {
+                    return UMC::UMC_OK;
+                }
+                else
+                {
+                    return UMC::UMC_NTF_NEW_RESOLUTION;
+                }
             }
         }
 
@@ -1078,7 +1087,7 @@ void CheckCrops(const mfxFrameInfo &in, mfxFrameInfo &out, mfxStatus & sts)
 {
     mfxU32 maskW = 1;
     mfxU32 maskH = 1;
-    if (in.ChromaFormat >= MFX_CHROMAFORMAT_MONOCHROME && in.ChromaFormat <= MFX_CHROMAFORMAT_YUV444)
+    if (in.ChromaFormat <= MFX_CHROMAFORMAT_YUV444)
     {
         maskW = UMC::SubWidthC[in.ChromaFormat];
         maskH = UMC::SubHeightC[in.ChromaFormat];

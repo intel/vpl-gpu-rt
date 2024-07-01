@@ -232,13 +232,15 @@ EncTools::EncTools(void* rtmodule, void* etmodule)
     , m_pAllocator(nullptr)
     , m_pETAllocator(nullptr)
     , m_pmfxAllocatorParams(nullptr)
-    , m_mfxSession_LA(nullptr)
+    , m_mfxSession_LA_ENC(nullptr)
+    , m_mfxSession_LA_VPP(rtmodule)
     , m_mfxSession_SCD(rtmodule)
     , m_mfxVppParams_LA()
     , m_mfxVppParams_AEnc()
     , m_VppResponse()
     , m_IntSurfaces_SCD()
     , m_hRTModule(rtmodule)
+    , m_FFPrefilterSession(rtmodule)
 {
     m_etModule = etmodule;
 }
@@ -372,69 +374,16 @@ mfxStatus EncTools::ResetVPP(mfxEncToolsCtrl const& ctrl)
 
     if (isPreEncLA(m_config, ctrl))
     {
-        bool toInit = true;
         if (!m_pmfxVPP_LA)
         {
-            if (!m_mfxSession_LA)
-            {
-                m_mfxSession_LA = m_lpLookAhead.GetEncSession();
-                MFX_CHECK(m_mfxSession_LA != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
-            }
-            m_pmfxVPP_LA.reset(new MFXDLVideoVPP(*m_mfxSession_LA, m_hRTModule));
-            MFX_CHECK(m_pmfxVPP_LA, MFX_ERR_MEMORY_ALLOC);
+            InitVPP_LA(ctrl);
         }
-        else
+        else 
         {
-            if (VPPParamsChanged(prev_mfxVppParams_LA, m_mfxVppParams_LA))
+            if(VPPParamsChanged(prev_mfxVppParams_LA, m_mfxVppParams_LA))
             {
-                m_pmfxVPP_LA->Close();
-                m_pAllocator->Free(m_pAllocator->pthis, &m_VppResponse);
-                if (!m_pIntSurfaces_LA.empty())
-                    m_pIntSurfaces_LA.clear();
-            }
-            else
-                toInit = false;
-        }
-
-        if (toInit)
-        {
-            mfxExtVPPScaling vppScalingMode = {};
-            vppScalingMode.Header.BufferId = MFX_EXTBUFF_VPP_SCALING;
-            vppScalingMode.Header.BufferSz = sizeof(vppScalingMode);
-            vppScalingMode.ScalingMode = MFX_SCALING_MODE_LOWPOWER;
-            vppScalingMode.InterpolationMethod = MFX_INTERPOLATION_NEAREST_NEIGHBOR;
-            std::vector<mfxExtBuffer*> extParams;
-            extParams.push_back(&vppScalingMode.Header);
-            m_mfxVppParams_LA.ExtParam = extParams.data();
-            m_mfxVppParams_LA.NumExtParam = (mfxU16)extParams.size();
-
-            sts = m_pmfxVPP_LA->Init(&m_mfxVppParams_LA);
-            m_mfxVppParams_LA.ExtParam = nullptr;
-            m_mfxVppParams_LA.NumExtParam = 0;
-            MFX_CHECK_STS(sts);
-        }
-
-        //memory allocation for LA
-        mfxFrameAllocRequest VppRequest[2]{};
-        sts = m_pmfxVPP_LA->QueryIOSurf(&m_mfxVppParams_LA, VppRequest);
-        MFX_CHECK_STS(sts);
-
-        if (VppRequest->NumFrameSuggested > m_pIntSurfaces_LA.size())
-        {
-            if (!m_pIntSurfaces_LA.empty())
-            {
-                m_pIntSurfaces_LA.clear();
-                m_pAllocator->Free(m_pAllocator->pthis, &m_VppResponse);
-            }
-            sts = m_pAllocator->Alloc(m_pAllocator->pthis, &(VppRequest[1]), &m_VppResponse);
-            MFX_CHECK_STS(sts);
-
-            m_pIntSurfaces_LA.resize(m_VppResponse.NumFrameActual);
-            for (mfxU32 i = 0; i < (mfxU32)m_pIntSurfaces_LA.size(); i++)
-            {
-                m_pIntSurfaces_LA[i] = {};
-                m_pIntSurfaces_LA[i].Info = m_mfxVppParams_LA.vpp.Out;
-                m_pIntSurfaces_LA[i].Data.MemId = m_VppResponse.mids[i];
+                CloseVPP_LA();
+                InitVPP_LA(ctrl);
             }
         }
     }
@@ -499,47 +448,7 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl)
     //LA VPP
     if (isPreEncLA(m_config, ctrl))
     {
-        m_mfxSession_LA = m_lpLookAhead.GetEncSession();
-        MFX_CHECK(m_mfxSession_LA != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-        m_pmfxVPP_LA.reset(new MFXDLVideoVPP(*m_mfxSession_LA, m_hRTModule));
-        MFX_CHECK(m_pmfxVPP_LA, MFX_ERR_MEMORY_ALLOC);
-        mfxExtVPPScaling vppScalingMode = {};
-        vppScalingMode.Header.BufferId = MFX_EXTBUFF_VPP_SCALING;
-        vppScalingMode.Header.BufferSz = sizeof(vppScalingMode);
-        vppScalingMode.ScalingMode = MFX_SCALING_MODE_LOWPOWER;
-        vppScalingMode.InterpolationMethod = MFX_INTERPOLATION_NEAREST_NEIGHBOR;
-        std::vector<mfxExtBuffer*> extParams;
-        extParams.push_back(&vppScalingMode.Header);
-        m_mfxVppParams_LA.ExtParam = extParams.data();
-        m_mfxVppParams_LA.NumExtParam = (mfxU16)extParams.size();
-
-        sts = m_pmfxVPP_LA->Init(&m_mfxVppParams_LA);
-        m_mfxVppParams_LA.ExtParam = nullptr;
-        m_mfxVppParams_LA.NumExtParam = 0;
-        MFX_CHECK_STS(sts);
-
-        //memory allocation for LA
-        mfxFrameAllocRequest VppRequest[2]{};
-        sts = m_pmfxVPP_LA->QueryIOSurf(&m_mfxVppParams_LA, VppRequest);
-        MFX_CHECK_STS(sts);
-
-        sts = m_pAllocator->Alloc(m_pAllocator->pthis, &(VppRequest[1]), &m_VppResponse);
-        if(sts == MFX_ERR_UNSUPPORTED){
-            //workaround for external allocator, if allocator refused allocation request, then
-            //try to request decoder pool
-            VppRequest[1].Type |= MFX_MEMTYPE_FROM_DECODE;
-            sts = m_pAllocator->Alloc(m_pAllocator->pthis, &(VppRequest[1]), &m_VppResponse);
-        }
-        MFX_CHECK_STS(sts);
-
-        m_pIntSurfaces_LA.resize(m_VppResponse.NumFrameActual);
-        for (mfxU32 i = 0; i < (mfxU32)m_pIntSurfaces_LA.size(); i++)
-        {
-            m_pIntSurfaces_LA[i] = {};
-            m_pIntSurfaces_LA[i].Info = m_mfxVppParams_LA.vpp.Out;
-            m_pIntSurfaces_LA[i].Data.MemId = m_VppResponse.mids[i];
-        }
+        InitVPP_LA(ctrl);
     }
 
     //SCD VPP
@@ -549,6 +458,7 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl)
         MFX_CHECK(m_pmfxVPP_SCD, MFX_ERR_MEMORY_ALLOC);
 
         sts = m_pmfxVPP_SCD->Init(&m_mfxVppParams_AEnc);
+        MFX_CHECK_STS(sts);
 
         //memory allocation for SCD
         m_IntSurfaces_SCD = {};
@@ -559,6 +469,45 @@ mfxStatus EncTools::InitVPP(mfxEncToolsCtrl const& ctrl)
     }
 
     m_bVPPInit = true;
+    return MFX_ERR_NONE;
+}
+
+mfxStatus EncTools::InitVPP_LA(mfxEncToolsCtrl const& /*ctrl*/){
+    //create LA VPP session and join it to LA ENC session
+    m_mfxSession_LA_ENC = m_lpLookAhead.GetEncSession();
+    MFX_CHECK(m_mfxSession_LA_ENC != nullptr, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    mfxStatus sts{};
+    sts = InitVPPSession(&m_mfxSession_LA_VPP);
+    MFX_CHECK_STS(sts);
+
+    sts = m_mfxSession_LA_VPP.JoinSession(*m_mfxSession_LA_ENC);
+    MFX_CHECK_STS(sts);
+
+    //init LA VPP
+    m_pmfxVPP_LA.reset(new MFXDLVideoVPP(m_mfxSession_LA_VPP, m_hRTModule));
+    MFX_CHECK(m_pmfxVPP_LA, MFX_ERR_MEMORY_ALLOC);
+    mfxExtVPPScaling vppScalingMode = {};
+    vppScalingMode.Header.BufferId = MFX_EXTBUFF_VPP_SCALING;
+    vppScalingMode.Header.BufferSz = sizeof(vppScalingMode);
+    vppScalingMode.ScalingMode = MFX_SCALING_MODE_LOWPOWER;
+    vppScalingMode.InterpolationMethod = MFX_INTERPOLATION_NEAREST_NEIGHBOR;
+    std::vector<mfxExtBuffer*> extParams;
+    extParams.push_back(&vppScalingMode.Header);
+    m_mfxVppParams_LA.ExtParam = extParams.data();
+    m_mfxVppParams_LA.NumExtParam = (mfxU16)extParams.size();
+
+    sts = m_pmfxVPP_LA->Init(&m_mfxVppParams_LA);
+    m_mfxVppParams_LA.ExtParam = nullptr;
+    m_mfxVppParams_LA.NumExtParam = 0;
+    MFX_CHECK_STS(sts);
+
+    //allocate surfaces for LA
+    mfxFrameSurface1* surf = nullptr;
+    sts = m_mfxSession_LA_ENC->GetSurfaceForEncode(&surf);
+    MFX_CHECK_STS(sts);
+    m_pIntSurfaces_LA.push_back(*surf);
+
     return MFX_ERR_NONE;
 }
 
@@ -575,7 +524,7 @@ mfxStatus EncTools::InitMfxVppParams(mfxEncToolsCtrl const & ctrl)
     if (!mfxVppParams_Common.vpp.In.CropH)
         mfxVppParams_Common.vpp.In.CropH = mfxVppParams_Common.vpp.In.Height;
 
-    if(ctrl.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING && mfxVppParams_Common.vpp.Out.BitDepthLuma == 10){
+    if(ctrl.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING && (mfxVppParams_Common.vpp.Out.BitDepthLuma == 10 || mfxVppParams_Common.vpp.Out.FourCC == MFX_FOURCC_YUY2)){
         mfxVppParams_Common.vpp.Out.FourCC = MFX_FOURCC_NV12;
         mfxVppParams_Common.vpp.Out.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
         mfxVppParams_Common.vpp.Out.BitDepthLuma = 8;
@@ -620,23 +569,7 @@ mfxStatus EncTools::CloseVPP()
     MFX_CHECK(m_bVPPInit, MFX_ERR_NOT_INITIALIZED);
     mfxStatus sts = MFX_ERR_NONE;
 
-    if (m_pAllocator)
-    {
-        if(m_VppResponse.mids && m_VppResponse.NumFrameActual != 0)
-        {
-            m_pAllocator->Free(m_pAllocator->pthis, &m_VppResponse);
-            m_pAllocator = nullptr;
-        }
-    }
-    if (m_pIntSurfaces_LA.size())
-        m_pIntSurfaces_LA.clear();
-    if (m_pmfxVPP_LA)
-    {
-        m_pmfxVPP_LA->Close();
-        m_pmfxVPP_LA.reset();
-    }
-
-    m_mfxSession_LA = nullptr;
+    CloseVPP_LA();
 
     if (m_IntSurfaces_SCD.Data.Y)
     {
@@ -656,6 +589,48 @@ mfxStatus EncTools::CloseVPP()
     }
     m_bVPPInit = false;
     return sts;
+}
+
+static void UpdateStatus(mfxStatus& res, const mfxStatus cur)
+{
+    res = res < 0 ? res : cur < 0 ? cur : res > 0 ? res : cur;
+}
+
+mfxStatus EncTools::CloseVPP_LA(){
+    mfxStatus res{}, cur{};
+
+    for(mfxFrameSurface1& s : m_pIntSurfaces_LA)
+    {
+        if(s.FrameInterface)
+        {
+            cur = s.FrameInterface->Release(&s);
+            UpdateStatus(res, cur);
+        }
+    }
+    m_pIntSurfaces_LA.clear();
+
+    if (m_pmfxVPP_LA)
+    {
+        cur = m_pmfxVPP_LA->Close();
+        UpdateStatus(res, cur);
+        m_pmfxVPP_LA.reset();
+    }
+
+    if (m_mfxSession_LA_VPP)
+    {
+        cur = m_mfxSession_LA_ENC->DisjoinSession();
+        UpdateStatus(res, cur);
+
+        if(cur == MFX_ERR_NONE)
+        {
+            cur = m_mfxSession_LA_VPP.Close();
+            UpdateStatus(res, cur);
+        }
+    }
+
+    m_mfxSession_LA_ENC = nullptr;
+
+    return res;
 }
 
 mfxStatus EncTools::GetDeviceAllocator(mfxEncToolsCtrl const* ctrl)
@@ -705,6 +680,15 @@ mfxStatus EncTools::Init(mfxExtEncToolsConfig const * pConfig, mfxEncToolsCtrl c
     MFX_CHECK_NULL_PTR2(pConfig, ctrl);
     MFX_CHECK(!m_bInit, MFX_ERR_UNDEFINED_BEHAVIOR);
 
+    if(IsOn(pConfig->SaliencyMapHint))
+    {
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
+
+    if(m_UseFFPrefilter && IsOn(pConfig->SaliencyMapHint)){
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
+
     m_ctrl = *ctrl;
 
     bool needVPP = isPreEncSCD(*pConfig, *ctrl) || isPreEncLA(*pConfig, *ctrl);
@@ -743,9 +727,15 @@ mfxStatus EncTools::Init(mfxExtEncToolsConfig const * pConfig, mfxEncToolsCtrl c
         MFX_CHECK_STS(sts);
     }
 
-    if(IsOn(pConfig->SaliencyMapHint))
+
+    if(m_UseFFPrefilter)
     {
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+        sts = InitFFPrefilter(*ctrl);
+        MFX_CHECK_STS(sts);
+    }
+    else
+    {
+        m_PercEncFilter.Init(ctrl->FrameInfo);
     }
 
     m_bInit = true;
@@ -778,6 +768,8 @@ mfxStatus EncTools::Close()
         m_config.BRC = false;
     }
     
+
+    CloseFFPrefilter();
 
     m_bInit = false;
 
@@ -902,6 +894,7 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
 
     if (pFrameData)
     {
+
         pFrameData->Surface->Data.FrameOrder = par->DisplayOrder;
 
         if (isPreEncSCD(m_config, m_ctrl) || isPreEncLA(m_config, m_ctrl))
@@ -933,12 +926,12 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
             {
                 m_pIntSurfaces_LA[0].Data.FrameOrder = par->DisplayOrder;
 
-                sts = VPPDownScaleSurface(m_mfxSession_LA, m_pmfxVPP_LA.get(), &vppSyncp_LA, pFrameData->Surface, m_pIntSurfaces_LA.data());
+                sts = VPPDownScaleSurface(&m_mfxSession_LA_VPP, m_pmfxVPP_LA.get(), &vppSyncp_LA, pFrameData->Surface, m_pIntSurfaces_LA.data());
                 MFX_CHECK_STS(sts);
 
                 sts = m_lpLookAhead.Submit(m_pIntSurfaces_LA.data(), FrameType, &encSyncp_LA);
                 MFX_CHECK_STS(sts);
-                sts = m_mfxSession_LA->SyncOperation(encSyncp_LA, ENC_TOOLS_WAIT_INTERVAL);
+                sts = m_mfxSession_LA_ENC->SyncOperation(encSyncp_LA, ENC_TOOLS_WAIT_INTERVAL);
                 MFX_CHECK_STS(sts);
 
                 sts = m_lpLookAhead.SaveEncodedFrameSize(m_pIntSurfaces_LA.data(), 0 /*frame type*/);
@@ -950,7 +943,7 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
             {
                 m_IntSurfaces_SCD.Data.FrameOrder = m_pIntSurfaces_LA[0].Data.FrameOrder = par->DisplayOrder;
 
-                sts = VPPDownScaleSurface(m_mfxSession_LA, m_pmfxVPP_LA.get(), &vppSyncp_LA, pFrameData->Surface, m_pIntSurfaces_LA.data());
+                sts = VPPDownScaleSurface(&m_mfxSession_LA_VPP, m_pmfxVPP_LA.get(), &vppSyncp_LA, pFrameData->Surface, m_pIntSurfaces_LA.data());
                 MFX_CHECK_STS(sts);
                 sts = VPPDownScaleSurface(&m_mfxSession_SCD, m_pmfxVPP_SCD.get(), &vppSyncp_SCD, pFrameData->Surface, &m_IntSurfaces_SCD);
                 MFX_CHECK_STS(sts);
@@ -973,7 +966,7 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
 
                     sts = m_lpLookAhead.Submit(m_pIntSurfaces_LA.data(), FrameType, &encSyncp_LA);
                     MFX_CHECK_STS(sts);
-                    sts = m_mfxSession_LA->SyncOperation(encSyncp_LA, ENC_TOOLS_WAIT_INTERVAL);
+                    sts = m_mfxSession_LA_ENC->SyncOperation(encSyncp_LA, ENC_TOOLS_WAIT_INTERVAL);
                     MFX_CHECK_STS(sts);
 
                     sts = m_lpLookAhead.SaveEncodedFrameSize(m_pIntSurfaces_LA.data(), FrameType);
@@ -995,7 +988,7 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
                     MFX_CHECK_STS(sts);
 
                     //save LA results
-                    sts = m_mfxSession_LA->SyncOperation(encSyncp_LA, ENC_TOOLS_WAIT_INTERVAL);
+                    sts = m_mfxSession_LA_ENC->SyncOperation(encSyncp_LA, ENC_TOOLS_WAIT_INTERVAL);
                     MFX_CHECK_STS(sts);
 
                     m_scd.GetIntraDecision(par->DisplayOrder, &FrameType);
@@ -1014,6 +1007,7 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
                 return MFX_ERR_UNDEFINED_BEHAVIOR;
             }
         }
+
 
     }
 
@@ -1056,6 +1050,52 @@ mfxStatus EncTools::Submit(mfxEncToolsTaskParam const * par)
             MFX_CHECK_STS(sts);
         }
         return m_brc->ReportGopHints(par->DisplayOrder, *pPreEncGOP);
+    }
+
+    mfxEncToolsPrefilterParam *pPrefilterParam = (mfxEncToolsPrefilterParam *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_PREFILTER_PARAM);
+    if(pPrefilterParam && !m_UseFFPrefilter)
+    {
+        mfxFrameSurface1 *in = pPrefilterParam->InSurface;
+        mfxFrameSurface1 *out = pPrefilterParam->OutSurface;
+
+        MFX_CHECK_NULL_PTR1(m_pAllocator);
+        MFX_CHECK_NULL_PTR3(in, out, out->FrameInterface);
+
+        sts = m_pAllocator->Lock(m_pAllocator->pthis, in->Data.MemId, &(in->Data));
+        MFX_CHECK_STS(sts);
+
+        mfx::OnExit unlock([&in, this]()
+        {
+            mfxStatus sts = m_pAllocator->Unlock(m_pAllocator->pthis, in->Data.MemId, &(in->Data));
+            std::ignore = MFX_STS_TRACE(sts);
+        });
+
+        sts = out->FrameInterface->Map(out, MFX_MAP_WRITE);
+        MFX_CHECK_STS(sts);
+
+        mfx::OnExit unmap([&out]()
+        {
+            mfxStatus sts =     out->FrameInterface->Unmap(out);
+            std::ignore = MFX_STS_TRACE(sts);
+        });
+
+        mfxEncToolsHintSaliencyMap *pSM = (mfxEncToolsHintSaliencyMap *)Et_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_ENCTOOLS_HINT_SALIENCY_MAP);
+
+        if(pSM)
+        {
+            sts = m_PercEncFilter.SetModulationMap(*pSM);
+            MFX_CHECK_STS(sts);
+        }
+
+        sts = m_PercEncFilter.RunFrame(*in, *out, pPrefilterParam->QpY);
+        MFX_CHECK_STS(sts);
+    }
+
+
+    if(pPrefilterParam && m_UseFFPrefilter)
+    {
+        sts = RunFFPrefilter(pPrefilterParam);
+        MFX_CHECK_STS(sts);
     }
 
     return sts;
@@ -1163,5 +1203,254 @@ mfxStatus EncTools::Discard(mfxU32 displayOrder)
     mfxStatus sts = MFX_ERR_NONE;
     if (isPreEncSCD(m_config, m_ctrl))
         sts = m_scd.CompleteFrame(displayOrder);
+    if (IsOn(m_config.BRC))
+    {
+        m_brc->DiscardFrame(displayOrder);
+    }
     return sts;
 }
+
+mfxStatus PercEncFilterWrapper::Init(const mfxFrameInfo& info)
+{
+    if(!AVX2Supported())
+    {
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
+
+    if (initialized)
+        return MFX_ERR_NONE;
+
+    MFX_CHECK(info.CropW >= 16, MFX_ERR_INVALID_VIDEO_PARAM);
+    MFX_CHECK(info.CropH >= 2, MFX_ERR_INVALID_VIDEO_PARAM);
+
+    MFX_CHECK(info.FourCC         == MFX_FOURCC_NV12,         MFX_ERR_INVALID_VIDEO_PARAM);
+    MFX_CHECK(info.ChromaFormat   == MFX_CHROMAFORMAT_YUV420, MFX_ERR_INVALID_VIDEO_PARAM);
+
+    width = info.CropW;
+    height = info.CropH;
+    previousOutput.resize(size_t(width) * height);
+
+    modulationStride = (width + blockSizeFilter - 1) / blockSizeFilter;
+    modulation.resize(size_t(modulationStride) * ((height + blockSizeFilter - 1) / blockSizeFilter));
+    parametersFrame.spatialSlope = 2;
+    parametersFrame.temporalSlope = 5;
+    // Using QP Adaptive as Encoder integration has QP feedback
+    parametersFrame.qpAdaptive = true;
+    if(!parametersFrame.qpAdaptive)
+    {
+        // Orig
+        parametersBlock[0].spatial.pivot = 0.005909118892594739f;
+        parametersBlock[1].spatial.pivot = 0.008541855174858726f;
+        parametersBlock[0].spatial.minimum = -0.02285621848581362f;
+        parametersBlock[1].spatial.minimum = -0.04005541977955759f;
+        parametersBlock[0].spatial.maximum = 0.041140246241535394f;
+        parametersBlock[1].spatial.maximum = 0.f;
+    }
+    else
+    {
+        parametersBlock[0].spatial.pivot = 0.023914614115868146f;
+        parametersBlock[0].spatial.minimum = -0.011074017123454209f;
+        parametersBlock[0].spatial.maximum = 0.06830047767528989f;
+        parametersBlock[1].spatial.pivot = 0.017164396880008734f;
+        parametersBlock[1].spatial.minimum = -0.03023741792966293f;
+        parametersBlock[1].spatial.maximum = 0.0436184808511757f;
+    }
+
+    parametersBlock[0].temporal.pivot = 0.f;
+    parametersBlock[1].temporal.pivot = 0.f;
+    parametersBlock[0].temporal.minimum = 0.f;
+    parametersBlock[1].temporal.minimum = 0.f;
+    parametersBlock[0].temporal.maximum = 0.f;
+    parametersBlock[1].temporal.maximum = 0.f;
+
+    filter = std::make_unique<PercEncPrefilter::Filter>(parametersFrame, parametersBlock, width);
+
+    initialized = true;
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus PercEncFilterWrapper::SetModulationMap(const mfxEncToolsHintSaliencyMap &sm)
+{
+    constexpr mfxU32 blockSize = 8; // source saliency is on 8x8 block granularity
+    if(sm.BlockSize != blockSize)
+    {
+        MFX_RETURN(MFX_ERR_UNKNOWN);
+    }
+
+    for (size_t y = 0; y < size_t(height); y += blockSizeFilter)
+    {
+        for (size_t x = 0; x < size_t(width); x += blockSizeFilter)
+        {
+            float m = 0.f;
+            int count = 0;
+
+            for (size_t dy = 0; dy < std::min<size_t>(blockSizeFilter, height - y); dy += blockSize)
+            {
+                for (size_t dx = 0; dx <  std::min<size_t>(blockSizeFilter, width - x); dx +=blockSize)
+                {
+                    m += sm.SaliencyMap[(x + dx) / blockSize + (y + dy) / blockSize * sm.Width];
+                    ++count;
+                }
+            }
+
+            count = count ? count : 1;
+            int mod = int(256.f * m /count);
+            mod = std::max(mod, 0);
+            mod = std::min(mod, 255);
+            modulation[x / blockSizeFilter + y / blockSizeFilter * modulationStride] = (uint8_t)mod;
+        }
+    }
+
+    return MFX_ERR_NONE;
+
+}
+
+mfxStatus PercEncFilterWrapper::RunFrame(mfxFrameSurface1& in, mfxFrameSurface1& out, mfxU32 QpY)
+{
+
+    if(!initialized)
+    {
+        MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
+    }
+
+    if(!filter || !in.Data.Y || in.Data.Pitch == 0 || !in.Data.Y || in.Data.Pitch == 0)
+    {
+        MFX_RETURN(MFX_ERR_UNKNOWN);
+    }
+
+    filter->processFrame(in.Data.Y, in.Data.Pitch,
+                        modulation.data(), modulationStride,
+                        previousOutput.data(), width,
+                        out.Data.Y, out.Data.Pitch,
+                        width, height, QpY);
+
+    //retain a copy of the output for next time...
+    for (size_t y = 0; y < size_t(height); ++y)
+    {
+        std::copy(
+            &out.Data.Y[out.Data.Pitch * y],
+            &out.Data.Y[out.Data.Pitch * y + width],
+            &previousOutput[width * y]);
+    }
+
+    // copy chroma
+    for (int y = 0; y < height / 2; ++y)
+    {
+        std::copy(
+            &in.Data.UV[in.Data.Pitch * y],
+            &in.Data.UV[in.Data.Pitch * y + width],
+            &out.Data.UV[out.Data.Pitch * y]);
+    }
+
+    return MFX_ERR_NONE;
+}
+
+bool PercEncFilterWrapper::AVX2Supported()
+{
+#if defined(__GNUC__)
+    return __builtin_cpu_supports("avx2") > 0;
+#else
+    int info[4] = {};
+    constexpr int EBX_REGISTER = 1;
+    constexpr int ECX_REGISTER = 2;
+    constexpr int AVX_OSXSAVE_MASK = (1 << 27) | (1 << 28);
+    constexpr int AVX2_MASK = 1 << 5;
+    constexpr int XMM_YMM_STATES_MASK = 0x6;
+
+    //check that AVX is supported and _xgetbv is enabled
+    __cpuidex(info, 0x1, 0);
+    if((info[ECX_REGISTER] & AVX_OSXSAVE_MASK) != AVX_OSXSAVE_MASK)
+    {
+        return false;
+    }
+
+    //check that AVX2 is supported
+    __cpuidex(info, 0x7, 0);
+    if((info[EBX_REGISTER] & AVX2_MASK) != AVX2_MASK)
+    {
+        return false;
+    }
+
+    //check that OS enabled XMM and YMM states support
+    return (_xgetbv(_XCR_XFEATURE_ENABLED_MASK) & XMM_YMM_STATES_MASK) == XMM_YMM_STATES_MASK;
+#endif
+}
+
+mfxStatus EncTools::InitFFPrefilter(mfxEncToolsCtrl const & ctrl)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+
+    //init session
+    MFX_CHECK(m_deviceType==MFX_HANDLE_VA_DISPLAY, MFX_ERR_NOT_IMPLEMENTED);
+
+    mfxInitParam initParam{};
+    initParam.Version.Major = MFX_VERSION_MAJOR;
+    initParam.Version.Minor = MFX_VERSION_MINOR;
+    initParam.Implementation = MFX_IMPL_HARDWARE | MFX_IMPL_VIA_VAAPI;
+
+    sts = m_FFPrefilterSession.InitEx(initParam);
+    MFX_CHECK_STS(sts);
+
+    sts = m_FFPrefilterSession.SetFrameAllocator(m_pAllocator);
+    MFX_CHECK_STS(sts);
+
+    sts = m_FFPrefilterSession.SetHandle((mfxHandleType)m_deviceType, m_device);
+    MFX_CHECK_STS(sts);
+
+    //init VPP video params
+    mfxVideoParam videoParam{};
+    videoParam.vpp.In = ctrl.FrameInfo;
+    videoParam.vpp.Out = videoParam.vpp.In;
+    videoParam.IOPattern = ctrl.IOPattern | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+
+    mfxExtVPPDetail detailBuffer{};
+    detailBuffer.Header.BufferId = MFX_EXTBUFF_VPP_DETAIL;
+    detailBuffer.Header.BufferSz = sizeof(mfxExtVPPDetail);
+    detailBuffer.DetailFactor = 20;
+
+    std::vector<mfxExtBuffer*> extParams;
+    extParams.push_back(&detailBuffer.Header);
+    videoParam.ExtParam = extParams.data();
+    videoParam.NumExtParam = (mfxU16)extParams.size();
+
+    //init VPP
+    m_FFPrefilterVPP.reset(new MFXDLVideoVPP(m_FFPrefilterSession, m_hRTModule));
+    sts = m_FFPrefilterVPP->Init(&videoParam);
+
+    MFX_RETURN(sts);
+}
+
+mfxStatus EncTools::CloseFFPrefilter()
+{
+    mfxStatus sts = MFX_ERR_NONE;
+
+    if (m_FFPrefilterVPP)
+    {
+        m_FFPrefilterVPP->Close();
+        m_FFPrefilterVPP.reset();
+    }
+
+    if (m_FFPrefilterSession)
+    {
+        sts = m_FFPrefilterSession.Close();
+    }
+
+    return sts;
+}
+
+mfxStatus EncTools::RunFFPrefilter(mfxEncToolsPrefilterParam *pPrefilterParam)
+{
+    MFX_CHECK_NULL_PTR1(pPrefilterParam);
+    mfxFrameSurface1 *in = pPrefilterParam->InSurface;
+    mfxFrameSurface1 *out = pPrefilterParam->OutSurface;
+    MFX_CHECK_NULL_PTR2(in, out);
+    MFX_CHECK_NULL_PTR1(m_FFPrefilterVPP);
+
+    mfxSyncPoint prefilterSyncPoint{};
+    mfxStatus sts = m_FFPrefilterVPP->RunFrameVPPAsync(in, out, NULL, &prefilterSyncPoint);
+    MFX_CHECK_STS(sts);
+    sts = m_FFPrefilterSession.SyncOperation(prefilterSyncPoint, ENC_TOOLS_WAIT_INTERVAL);
+    MFX_RETURN(sts);
+}
+

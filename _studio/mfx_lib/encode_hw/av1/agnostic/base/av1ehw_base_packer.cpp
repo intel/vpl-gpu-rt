@@ -25,11 +25,11 @@
 #include "av1ehw_base_task.h"
 #include <numeric>
 
-using namespace AV1EHW::Base;
-
 namespace AV1EHW
 {
 
+    namespace Base
+    {
 BitstreamWriter::BitstreamWriter(mfxU8* bs, mfxU32 size, mfxU8 bitOffset)
     : m_bsStart(bs)
     , m_bsEnd(bs + size)
@@ -315,7 +315,13 @@ inline void PackFrameSizeInfo(BitstreamWriter& bs, FH const& fh)
 
 inline void PackColorConfig(BitstreamWriter& bs, SH const& sh)
 {
-    bs.PutBit(sh.color_config.BitDepth == BITDEPTH_10 ? 1 : 0); //high_bitdepth
+
+    const bool high_bitdepth = sh.color_config.BitDepth == BITDEPTH_10;
+    bs.PutBit(high_bitdepth ? 1 : 0); //high_bitdepth
+
+    if (sh.seq_profile == 2 && high_bitdepth)
+        bs.PutBit(0); //twelve_bit
+
     if (sh.seq_profile != 1)
         bs.PutBit(0); //mono_chrome
 
@@ -335,7 +341,7 @@ inline void PackColorConfig(BitstreamWriter& bs, SH const& sh)
     bs.PutBit(sh.color_config.separate_uv_delta_q); //separate_uv_delta_q
 }
 
-void Packer::PackSPS(BitstreamWriter& bs, SH const& sh, FH const& fh, ObuExtensionHeader const& oeh)
+void Packer::PackSPS(BitstreamWriter& bs, SH const& sh, FH const& fh, ObuExtensionHeader const& oeh, mfxVideoParam const& vp)
 {
     //alloc tmp buff for the header data
     const mfxU32 av1_max_header_size = 1024;
@@ -346,7 +352,16 @@ void Packer::PackSPS(BitstreamWriter& bs, SH const& sh, FH const& fh, ObuExtensi
     tmpBitstream.PutBits(3, sh.seq_profile); //seq_profile
     tmpBitstream.PutBit(sh.still_picture); //still_picture
     tmpBitstream.PutBit(0); //reduced_still_picture_header
-    tmpBitstream.PutBit(0); //timing_info_present_flag
+    tmpBitstream.PutBit(sh.timing_info_present_flag); //timing_info_present_flag
+    if (sh.timing_info_present_flag)
+    {
+        tmpBitstream.PutBits(32, vp.mfx.FrameInfo.FrameRateExtD); //num_units_in_display_tick 
+        tmpBitstream.PutBits(32, vp.mfx.FrameInfo.FrameRateExtN); //time_scale 
+        tmpBitstream.PutBit(1); //equal_picture_interval
+        tmpBitstream.PutBit(1); //num_ticks_per_picture_minus_1 = 0 = uvlc(1)
+        tmpBitstream.PutBit(0); //decoder_model_info_present_flag
+
+    }
     tmpBitstream.PutBit(0); //initial_display_delay_present_flag
 
     PackOperatingPoints(tmpBitstream, sh);
@@ -391,8 +406,8 @@ void Packer::PackSPS(BitstreamWriter& bs, SH const& sh, FH const& fh, ObuExtensi
 
     tmpBitstream.PutTrailingBits();
 
-    const mfxU32 obu_extension_flag = sh.operating_points_cnt_minus_1 ? 1 : 0;
-    PackOBUHeader(bs, OBU_SEQUENCE_HEADER, obu_extension_flag, oeh);
+    const bool ext = oeh.temporal_id | oeh.spatial_id;
+    PackOBUHeader(bs, OBU_SEQUENCE_HEADER, ext, oeh);
 
     mfxU32 const obu_size_in_bytes = (tmpBitstream.GetOffset() + 7) / 8;
     PackOBUHeaderSize(bs, obu_size_in_bytes);
@@ -511,18 +526,11 @@ inline void PackFrameSize(
 }
 
 inline void PackRenderSize(
-    BitstreamWriter& bs,
-    FH const& fh)
+    BitstreamWriter& bs)
 {
     mfxU32 render_and_frame_size_different = 0;
 
     bs.PutBit(render_and_frame_size_different); //render_and_frame_size_different
-
-    if (render_and_frame_size_different == 1)
-    {
-        bs.PutBits(16, fh.RenderWidth - 1); //render_width_minus_1
-        bs.PutBits(16, fh.RenderHeight - 1); //render_height_minus_1
-    }
 }
 
 inline void PackFrameSizeWithRefs(
@@ -535,15 +543,8 @@ inline void PackFrameSizeWithRefs(
     for (mfxI8 ref = 0; ref < REFS_PER_FRAME; ref++)
         bs.PutBit(found_ref); //found_ref
 
-    if (found_ref == 0)
-    {
-        PackFrameSize(bs, sh, fh);
-        PackRenderSize(bs, fh);
-    }
-    else
-    {
-        PackSuperresParams(bs, sh, fh);
-    }
+    PackFrameSize(bs, sh, fh);
+    PackRenderSize(bs);
 }
 
 static void PackFrameRefInfo(BitstreamWriter& bs, SH const& sh, FH const& fh)
@@ -561,7 +562,7 @@ static void PackFrameRefInfo(BitstreamWriter& bs, SH const& sh, FH const& fh)
     else
     {
         PackFrameSize(bs, sh, fh);
-        PackRenderSize(bs, fh);
+        PackRenderSize(bs);
     }
 
     bs.PutBit(fh.allow_high_precision_mv); //allow_high_precision_mv
@@ -620,7 +621,7 @@ inline void PackNonUniformTile(BitstreamWriter& bs, mfxU32 sbCols, mfxU32 sbRows
     for (mfxU16 i = 0; i < tileInfo.TileRows; i++)
     {
         sizeSb = tileInfo.TileHeightInSB[i];
-        WriteUniform(bs, std::min<mfxU32>(sbRows, tileInfo.tileLimits.MaxTileHeightSb), sizeSb - 1);
+        WriteUniform(bs, std::min<mfxU32>(sbRows, tileInfo.tileLimits.MaxTileHeightSbNonUniform), sizeSb - 1);
         sbRows -= sizeSb;
     }
 }
@@ -894,7 +895,7 @@ inline void PackFrameHeader(
     else
     {
         PackFrameSize(bs, sh, fh);
-        PackRenderSize(bs, fh);
+        PackRenderSize(bs);
         if (fh.allow_screen_content_tools && fh.UpscaledWidth == fh.FrameWidth)
             bs.PutBit(fh.allow_intrabc);
     }
@@ -960,7 +961,7 @@ void Packer::PackPPS(
     else
         PackFrameHeader(tmpBitstream, tmp_offsets, sh, fh);
 
-    const mfxU32 obu_extension_flag = sh.operating_points_cnt_minus_1 ? 1 : 0;
+    const bool obu_extension_flag = oeh.temporal_id | oeh.spatial_id;
     const mfxU32 obu_header_offset  = bs.GetOffset();
     if (insertHeaders & INSERT_FRM_OBU)
     {
@@ -1067,7 +1068,7 @@ void Packer::SubmitTask(const FeatureBlocks& blocks, TPushST Push)
         headerOffset = bitstream.GetOffset();
         if (task.InsertHeaders & INSERT_TD)
         {
-            mfxU32 ext   = sh.operating_points_cnt_minus_1 ? 1 : 0;
+            const bool ext = oeh.temporal_id | oeh.spatial_id;
             PackOBUHeader(bitstream, OBU_TEMPORAL_DELIMITER, ext, oeh);
             PackOBUHeaderSize(bitstream, 0);
         }
@@ -1078,7 +1079,7 @@ void Packer::SubmitTask(const FeatureBlocks& blocks, TPushST Push)
         headerOffset = bitstream.GetOffset();
         if (IsI(task.FrameType))
         {
-            PackSPS(bitstream, sh, fh, oeh);
+            PackSPS(bitstream, sh, fh, oeh, videoParam);
         }
         ph.SPS.pData  = start + headerOffset / 8;
         ph.SPS.BitLen = bitstream.GetOffset() - headerOffset;
@@ -1112,7 +1113,7 @@ inline mfxStatus Packer::GenerateSPS(mfxVideoParam& out, const StorageR& global)
         const FH& fh = Glob::FH::Get(global);
         ObuExtensionHeader oeh = {0};
 
-        PackSPS(bs, sh, fh, oeh);
+        PackSPS(bs, sh, fh, oeh, out);
         const mfxU16 spsBufSize = mfxU16((bs.GetOffset() + 7) / 8);
 
         // Only thrown status could be returned from GetVideoParam() which ignores return value
@@ -1175,8 +1176,7 @@ void Packer::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
         FH                 tempFh = {};
         tempFh.show_existing_frame = 1;
 
-        auto& taskMgrIface = TaskManager::TMInterface::Get(global);
-        auto& tm = taskMgrIface.m_Manager;
+        auto& tm = Glob::TaskManager::Get(global).m_tm;
         for (const auto& frame : task.FramesToShow)
         {
             mfxU8 tempData[64];
@@ -1195,7 +1195,7 @@ void Packer::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
             if (IsOn(auxPar.InsertTemporalDelimiter))
             {
                 // Add temporal delimiter for shown frame
-                mfxU32 ext = sh.operating_points_cnt_minus_1 ? 1 : 0;
+                const bool ext = oeh.temporal_id | oeh.spatial_id;
                 PackOBUHeader(bitstream, OBU_TEMPORAL_DELIMITER, ext, oeh);
                 PackOBUHeaderSize(bitstream, 0);
             }
@@ -1236,6 +1236,8 @@ void Packer::QueryTask(const FeatureBlocks&, TPushQT Push)
 
         return MFX_ERR_NONE;
     });
+}
+
 }
 
 }

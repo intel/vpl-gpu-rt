@@ -33,6 +33,7 @@ add_library(enctools_base STATIC ${sources})
 target_include_directories(enctools_base
   PUBLIC
     include
+    ${OPENCL_INCLUDE}
   )
 target_link_libraries(enctools_base
   PRIVATE 

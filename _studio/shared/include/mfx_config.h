@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2021 Intel Corporation
+// Copyright (c) 2016-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@
 #undef  UMC_VA_LINUX
 #define UMC_VA_LINUX
 
+
 // mfx_features.h is auto-generated file containing mediasdk per-component
 // enable defines
 #include "mfx_features.h"
@@ -56,6 +57,10 @@
 
 #if defined (MFX_ENABLE_VC1_VIDEO_DECODE) || defined (UMC_ENABLE_VC1_SPLITTER)
 #define MFX_ENABLE_VC1_VIDEO_CODEC
+#endif
+
+#if defined(MFX_ENABLE_VIDEO_HYPER_ENCODE_HW) || defined(MFX_ENABLE_VIDEO_ALPHA_ENCODE_HW)
+#define MFX_ENABLE_VIDEO_BS_WITH_LOCK
 #endif
 
 #if defined(ONEVPL_EXPERIMENTAL) && defined(MFX_ENABLE_PXP_EXT)
@@ -90,5 +95,7 @@
 #include "mfx_config_decode.h"
 #include "mfx_config_encode.h"
 #include "mfx_config_vpp.h"
+
+
 
 #endif // _MFX_CONFIG_H_

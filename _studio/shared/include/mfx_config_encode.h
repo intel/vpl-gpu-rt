@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 Intel Corporation
+// Copyright (c) 2021-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -70,16 +70,42 @@
 #endif
 
 #define MFX_ENABLE_QVBR
+
 #ifdef MFX_ENABLE_ENCTOOLS
-    #if defined(MFX_ENABLE_AENC)
-        #define MFX_ENABLE_ADAPTIVE_ENCODE
-    #endif
+#ifndef MFX_ENABLE_ENCTOOLS_BASE
+    #define MFX_ENABLE_ENCTOOLS_BASE
+#endif
+#if defined(MFX_ENABLE_AENC)
+    #define MFX_ENABLE_ADAPTIVE_ENCODE
+#endif
+#if (defined(MFX_VA_LINUX))
+    #define MFX_ENABLE_ENCTOOLS_SW
+#endif
+#endif
+
+#ifdef MFX_ENABLE_HW_LPLA
+#ifndef MFX_ENABLE_ENCTOOLS_BASE
+    #define MFX_ENABLE_ENCTOOLS_BASE
+#endif
+#ifndef MFX_ENABLE_LPLA_BASE
+    #define MFX_ENABLE_LPLA_BASE
+#endif
 #endif
 
 #ifdef ONEVPL_EXPERIMENTAL
 #if (!defined(LINUX32) && !defined(LINUX64))
 #define MFX_ENABLE_ENCODE_STATS
 #endif
+#endif
+
+#ifdef ONEVPL_EXPERIMENTAL
+#if (!defined(LINUX32) && !defined(LINUX64))
+#define MFX_ENABLE_ENCODE_QUALITYINFO
+#endif
+#endif
+
+#ifdef ONEVPL_EXPERIMENTAL
+#define MFX_ENABLE_ENCODE_AV1SCC
 #endif
 
 #endif // _MFX_CONFIG_ENCODE_H_

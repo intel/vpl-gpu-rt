@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Intel Corporation
+// Copyright (c) 2018-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -80,6 +80,7 @@ EXTBUF(mfxExtAV1Segmentation             , MFX_EXTBUFF_AV1_SEGMENTATION)
 
 EXTBUF(mfxExtVPPPercEncPrefilter         , MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER)
 
+EXTBUF(mfxExtTuneEncodeQuality           , MFX_EXTBUFF_TUNE_ENCODE_QUALITY)
 #endif //defined(__MFXSTRUCTURES_H__)
 
 #if defined(__MFXAV1_H__)
@@ -134,14 +135,14 @@ EXTBUF(mfxExtLAFrameStatistics           , MFX_EXTBUFF_LOOKAHEAD_STAT           
 
 #if defined(__MFX_EXT_BUFFERS_H__)
 EXTBUF(mfxExtCodingOptionDDI             , MFX_EXTBUFF_DDI                       )
-#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+#if defined(MFX_ENABLE_LPLA_BASE)
 EXTBUF(mfxExtLplaParam                   , MFX_EXTBUFF_LP_LOOKAHEAD              )
 EXTBUF(mfxExtLpLaStatus                  , MFX_EXTBUFF_LPLA_STATUS               )
 #endif
 
 EXTBUF(mfxExtHyperModeParam               , MFX_EXTBUFF_HYPER_MODE_PARAM         )
 
-#if defined(MFX_ENABLE_ENCTOOLS)
+#if defined(MFX_ENABLE_ENCTOOLS_BASE)
 EXTBUF(mfxExtEncToolsConfig              , MFX_EXTBUFF_ENCTOOLS_CONFIG           )
 #endif
 
@@ -155,4 +156,13 @@ EXTBUF(mfxExtAllocationHints, MFX_EXTBUFF_ALLOCATION_HINTS)
 #ifdef MFX_ENABLE_ENCODE_STATS
 #include "mfxencodestats.h"
 EXTBUF(mfxExtEncodeStatsOutput, MFX_EXTBUFF_ENCODESTATS)
+#endif
+
+#ifdef MFX_ENABLE_ENCODE_QUALITYINFO
+EXTBUF(mfxExtQualityInfoMode, MFX_EXTBUFF_ENCODED_QUALITY_INFO_MODE)
+EXTBUF(mfxExtQualityInfoOutput, MFX_EXTBUFF_ENCODED_QUALITY_INFO_OUTPUT)
+#endif
+
+#ifdef MFX_ENABLE_ENCODE_AV1SCC
+EXTBUF(mfxExtAV1ScreenContentTools, MFX_EXTBUFF_AV1_SCREEN_CONTENT_TOOLS)
 #endif

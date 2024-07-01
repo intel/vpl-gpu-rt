@@ -77,7 +77,49 @@ mfxStatus TaskManager::TaskNew(
     return sts;
 }
 
-mfxStatus TaskManager::TaskPrepare(StorageW& /*task*/ )
+mfxStatus TaskManager::RunExtraStages(mfxU16 beginStageID, mfxU16 endStageID, StorageW& task)
+{
+    MFX_CHECK(!m_pGlob.isNull(), MFX_ERR_NONE);
+    auto& stages = m_AsyncStages;
+    auto itStage = stages.find(beginStageID);
+    auto itEnd   = stages.find(endStageID);
+
+    MFX_CHECK(itStage != stages.end(), MFX_ERR_NONE);
+
+    for (; itStage != itEnd; ++itStage)
+    {
+        std::unique_lock<std::mutex> closeGuard(m_closeMtx);
+        MFX_SAFE_CALL(itStage->second(*m_pGlob, task));
+    }
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus TaskManager::TaskPrepare(StorageW& task)
+{
+    MFX_SAFE_CALL(RunExtraStages(NextStage(S_NEW), Stage(S_PREPARE), task));
+    return TaskPrepareInner(task);
+}
+
+mfxStatus TaskManager::TaskReorder(StorageW& task)
+{
+    MFX_SAFE_CALL(RunExtraStages(NextStage(S_PREPARE), Stage(S_REORDER), task));
+    return TaskReorderInner(task);
+}
+
+mfxStatus TaskManager::TaskSubmit(StorageW& task)
+{
+    MFX_SAFE_CALL(RunExtraStages(NextStage(S_REORDER), Stage(S_SUBMIT), task));
+    return TaskSubmitInner(task);
+}
+
+mfxStatus TaskManager::TaskQuery(StorageW& task)
+{
+    MFX_SAFE_CALL(RunExtraStages(NextStage(S_SUBMIT), Stage(S_QUERY), task));
+    return TaskQueryInner(task);
+}
+
+mfxStatus TaskManager::TaskPrepareInner(StorageW& /*task*/ )
 {
     std::unique_lock<std::mutex> closeGuard(m_closeMtx);
 
@@ -97,7 +139,7 @@ mfxStatus TaskManager::TaskPrepare(StorageW& /*task*/ )
     return MFX_ERR_NONE;
 }
 
-mfxStatus TaskManager::TaskReorder(StorageW& task)
+mfxStatus TaskManager::TaskReorderInner(StorageW& task)
 {
     std::unique_lock<std::mutex> closeGuard(m_closeMtx);
     bool bNeedTask = !m_nRecodeTasks
@@ -120,7 +162,7 @@ mfxStatus TaskManager::TaskReorder(StorageW& task)
     return RunQueueTaskPostReorder(*pTask);
 }
 
-mfxStatus TaskManager::TaskSubmit(StorageW& /*task*/)
+mfxStatus TaskManager::TaskSubmitInner(StorageW& /*task*/)
 {
     std::unique_lock<std::mutex> closeGuard(m_closeMtx);
 
@@ -143,7 +185,7 @@ mfxStatus TaskManager::TaskSubmit(StorageW& /*task*/)
     return MFX_ERR_NONE;
 }
 
-mfxStatus TaskManager::TaskQuery(StorageW& inTask)
+mfxStatus TaskManager::TaskQueryInner(StorageW& inTask)
 {
     std::unique_lock<std::mutex> closeGuard(m_closeMtx);
     auto pBs = GetBS(inTask);

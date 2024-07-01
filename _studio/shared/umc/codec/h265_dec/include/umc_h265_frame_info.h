@@ -48,6 +48,7 @@ public:
     H265DecoderFrameInfo(H265DecoderFrame * pFrame)
         : m_pFrame(pFrame)
         , m_prepared(0)
+        , m_frameBeforeIDR(0)
         , m_sps(0)
         , m_SliceCount(0)
     {

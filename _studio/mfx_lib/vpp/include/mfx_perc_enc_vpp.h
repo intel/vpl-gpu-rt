@@ -107,6 +107,53 @@ Here, qS and qT each contain a set of parameter pairs. The first of each pairs i
 modulation, m = 0. The second of each pair is used where modulation, m = 1. In blocks having m between
 0 and 1, a proportionate blend of the pair is used to control the filter. Thus the modulation map controls
 the "blend" of two different filters that can have very different characteristics.
+
+Qp Adaptive Option
+
+By enabling QP adaptive option the filter output is clamped in a range with respect to the original where
+the range is calculated from the QP.
+The filter is also modified by adding extra taps and Spatial parameter p.min is modified by contrast.
+
+The modified filter is given by:
+
+yOut = clamp(yOut', yC-qpClamp, yC+qpClamp)
+
+yOut' = yC * rC
+     + yU * f(yU, yC, pS)
+     + yD * f(yD, yC, pS)
+     + yL * f(yL, yC, pS)
+     + yR * f(yR, yC, pS)
+     + yUL * f(yR, yC, pS)
+     + yDR * f(yR, yC, pS)
+     + yUR * f(yR, yC, pS)
+     + yDL * f(yR, yC, pS)
+     + yP * f(yP, yC, pT)
+
+qpClamp = (int) pow(2, (qp-4.0)/6.0)/4.0;
+
+Where
+
+rC = 1
+   - f(yU, yC, pS)
+   - f(yD, yC, pS)
+   - f(yL, yC, pS)
+   - f(yR, yC, pS)
+   - f(yUL, yC, pS)
+   - f(yDR, yC, pS)
+   - f(yUR, yC, pS)
+   - f(yDL, yC, pS)
+   - f(yP, yC, pT)
+
+The following diagonal input spatial neighbors are additionally used :
+yUL upper left, yDR down right, yUR upper right, yDL down left.
+
+The spatial parameter p.min is modified for local constrast as follows :
+p.min' = (p.min * (512 - abs(yN - yC)) >> 9
+
+and used in weight calculation as follows :
+f(yN, yC, p) = clamp((p.pivot - abs(yN - yC)) * p.slope, p.min', p.max)
+
+The modulation scheme remains unchanged.
 */
 class PercEncFilter
     : public FilterVPP

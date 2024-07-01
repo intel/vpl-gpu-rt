@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -152,22 +152,20 @@ namespace Base
         return maxDisplayRate / width / height;
     }
 
-    mfxU32 GetMaxTiles(mfxU16 CodecLevel)
+    mfxU32 GetMaxTilesByLevel(mfxU16 CodecLevel)
     {
         const mfxU16 levelIndex = GetLevelIndexInTable(CodecLevel);
         return mfxU32(TableA2[levelIndex][MAX_TILES_INDEX]);
     }
 
-    mfxU16 GetMaxTileCols(mfxU16 CodecLevel)
+    mfxU16 GetMaxTileColsByLevel(mfxU16 CodecLevel)
     {
         const mfxU16 levelIndex = GetLevelIndexInTable(CodecLevel);
         return mfxU16(TableA2[levelIndex][MAX_TILE_COLS_INDEX]);
     }
 
     mfxU16 GetMinLevel(
-        mfxU32 frN
-        , mfxU32 frD
-        , mfxU32 width
+        mfxU32 width
         , mfxU32 height
         , mfxU16 numTileCols
         , mfxU16 numTileRows
@@ -187,7 +185,6 @@ namespace Base
 
             const mfxU32 picSizeInSamplesY = width * height;
             const mfxU32 numTiles          = mfxU32(numTileCols) * mfxU32(numTileRows);
-            const mfxF64 maxFrameRate      = GetMaxFrameRateByLevel(level, width, height);
             const mfxU64 maxPicSize        = TableA1[levelIndex][MAX_PIC_SIZE_INDEX];
             const mfxU64 maxHSize          = TableA1[levelIndex][MAX_H_SIZE_INDEX];
             const mfxU64 maxVSize          = TableA1[levelIndex][MAX_V_SIZE_INDEX];
@@ -195,8 +192,7 @@ namespace Base
             const mfxU32 maxTiles          = TableA2[levelIndex][MAX_TILES_INDEX];
 
             bool bNextLevel =
-                frN > (maxFrameRate * frD)
-                || picSizeInSamplesY > maxPicSize
+                picSizeInSamplesY > maxPicSize
                 || width > maxHSize
                 || height > maxVSize
                 || numTileCols > maxTileCols
@@ -242,17 +238,14 @@ namespace Base
         mfxU32 maxKbps  = 0;
         SetIf(maxKbps, rc != MFX_RATECONTROL_CQP && rc != MFX_RATECONTROL_ICQ, [&]() { return defPar.base.GetMaxKbps(defPar); });
 
-        const auto                frND    = defPar.base.GetFrameRate(defPar);
         const auto                res     = GetRealResolution(defPar.mvp);
         const mfxExtAV1TileParam* pTiles  = ExtBuffer::Get(defPar.mvp);
         const mfxExtAV1AuxData*   pAuxPar = ExtBuffer::Get(defPar.mvp);
         const auto                tiles   = GetNumTiles(pTiles, pAuxPar);
 
         return GetMinLevel(
-            std::get<0>(frND)
-            , std::get<1>(frND)
-            , std::get<0>(res)
-            ,std::get<1>(res)
+            std::get<0>(res)
+            , std::get<1>(res)
             , std::get<0>(tiles)
             , std::get<1>(tiles)
             , maxKbps

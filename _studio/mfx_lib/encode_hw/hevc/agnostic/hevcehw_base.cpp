@@ -24,6 +24,7 @@
 #include "hevcehw_base.h"
 #include <thread>
 #include <sstream>
+#include "libmfx_core.h"
 
 namespace HEVCEHW
 {
@@ -108,6 +109,8 @@ void FeatureBase::Init(
 
     assert(nQ > 0);
 }
+
+MFX_PROPAGATE_GetSurface_VideoENCODE_Impl(ImplBase)
 
 }; //namespace HEVCEHW
 

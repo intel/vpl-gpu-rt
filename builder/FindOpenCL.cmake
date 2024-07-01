@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2020 Intel Corporation
+# Copyright (c) 2014-2023 Intel Corporation
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,25 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-find_path( OPENCL_INCLUDE CL/opencl.h PATHS /usr/include /opt/intel/opencl/include)
-find_library( OPENCL_LIBRARY libOpenCL.so PATHS /usr/lib /opt/intel/opencl/)
+set( OPENCL_INCLUDE "${MFX_HOME}/../../build_tools/OCLHeaders" CACHE STRING "OpenCL header files" )
 
-set( OCL_LIBS "" )
-
-if ( NOT OPENCL_INCLUDE MATCHES NOTFOUND )
-    if ( NOT OPENCL_LIBRARY MATCHES NOTFOUND )
-        if ( EXISTS /etc/OpenCL/vendors/intel.icd )
-            set ( OPENCL_FOUND TRUE )
-
-            get_filename_component( OPENCL_LIBRARY_PATH ${OPENCL_LIBRARY} PATH )
-
-            list( APPEND OPENCL_LIBS OpenCL )
-        endif()
-    endif()
-endif()
-
-if ( NOT DEFINED OPENCL_FOUND )
-  message( STATUS "Intel OpenCL SDK was not found (optional). The following will not be built: rotate_opencl plugin.")
-else ()
-  message( STATUS "Intel OpenCL SDK was found here: ${OPENCL_LIBRARY_PATH} and ${OPENCL_INCLUDE}" )
-endif()
+message( STATUS "OpenCL header files were found here: ${OPENCL_INCLUDE}" )

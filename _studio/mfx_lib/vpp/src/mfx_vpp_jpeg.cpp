@@ -278,10 +278,10 @@ mfxStatus VideoVppJpeg::BeginHwJpegProcessing(mfxFrameSurface1 *pInputSurface,
     m_pExecuteSurface.frameInfo = pInputSurface->Info;
 
     // prepare the primary video sample
-    m_pExecuteSurface.startTimeStamp = m_taskId * CURRENT_TIME_STAMP;
-    m_pExecuteSurface.endTimeStamp  = m_taskId * CURRENT_TIME_STAMP + FRAME_INTERVAL;
+    m_pExecuteSurface.startTimeStamp = (mfxU64)m_taskId * CURRENT_TIME_STAMP;
+    m_pExecuteSurface.endTimeStamp  = (mfxU64)m_taskId * CURRENT_TIME_STAMP + FRAME_INTERVAL;
     
-    m_executeParams.targetTimeStamp = m_taskId * CURRENT_TIME_STAMP;
+    m_executeParams.targetTimeStamp = (mfxU64)m_taskId * CURRENT_TIME_STAMP;
 
     m_executeParams.targetSurface.memId = pOutputSurface->Data.MemId;
     m_executeParams.targetSurface.hdl = static_cast<mfxHDLPair>(out);
@@ -422,6 +422,7 @@ mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfx
                 AssocIdx.erase(it);
             }
         }
+        MFX_CHECK(index >= 0, MFX_ERR_INVALID_VIDEO_PARAM);
         
         MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index], hdl));
     }
@@ -438,6 +439,7 @@ mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfx
     {
         mfxU16 outMemType = static_cast<mfxU16>((m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY ? MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_DXVA2_DECODER_TARGET) |
                                                 MFX_MEMTYPE_EXTERNAL_FRAME);
+        MFX_CHECK(index >= 0, MFX_ERR_INVALID_VIDEO_PARAM);
 
         sts = m_pCore->DoFastCopyWrapper(pOutputSurface, outMemType,
                                          &m_surfaces[index], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
@@ -454,6 +456,7 @@ mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurface, mfx
 
     if(m_bUseInternalMem)
     {
+        MFX_CHECK(index >= 0, MFX_ERR_INVALID_VIDEO_PARAM);
         m_pCore->DecreasePureReference(m_surfaces[index].Data.Locked);
     }
 
@@ -484,6 +487,7 @@ mfxStatus VideoVppJpeg::EndHwJpegProcessing(mfxFrameSurface1 *pInputSurfaceTop,
                 AssocIdx.erase(it);
             }
         }
+        MFX_CHECK(index >= 0, MFX_ERR_INVALID_VIDEO_PARAM);
         
         MFX_SAFE_CALL(m_pCore->GetFrameHDL(m_surfaces[index], hdl));
     }

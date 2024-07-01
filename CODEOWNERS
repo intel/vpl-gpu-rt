@@ -1,36 +1,18 @@
-* zhijie.zhang@intel.com
-/api/include/ vasily.aristarkhov@intel.com dmitry.gurulev@intel.com miroslav.goncharenko@intel.com evgeniy.starov@intel.com dmitry.ermilov@intel.com
-/api/vpl/     vasily.aristarkhov@intel.com dmitry.gurulev@intel.com miroslav.goncharenko@intel.com evgeniy.starov@intel.com dmitry.ermilov@intel.com
+* dmitry.v.aleksandrov@intel.com jie.xia@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com rachel.liu@intel.com fish.jiang@intel.com
 
-/api/mfx_dispatch/    maxim.maximov@intel.com nikita.pletnev@intel.com oleg.nabiullin@intel.com
-
-CODEOWNERS  oleg.nabiullin@intel.com dmitry.ermilov@intel.com eugene.ponomarev@intel.com
+# API
+/api/**                                 miroslav.goncharenko@intel.com vasily.aristarkhov@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com chunbo.chen@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
 
 # Quick Build buildplans and scripts
-/config/** oleg.nabiullin@intel.com dmitry.ermilov@intel.com eugene.ponomarev@intel.com
+/config/**                              andrey.shakhnov@intel.com zhijie.zhang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
 
 # core & plugin:
-/_studio/mfx_lib/shared/**              dmitry.gurulev@intel.com miroslav.goncharenko@intel.com evgeniy.starov@intel.com dmitry.ermilov@intel.com
-/_studio/shared/**                      dmitry.gurulev@intel.com miroslav.goncharenko@intel.com evgeniy.starov@intel.com dmitry.ermilov@intel.com
-/_studio/shared/umc/core/**             dmitry.gurulev@intel.com miroslav.goncharenko@intel.com evgeniy.starov@intel.com dmitry.ermilov@intel.com
-/_studio/shared/umc/io/**               dmitry.gurulev@intel.com miroslav.goncharenko@intel.com evgeniy.starov@intel.com dmitry.ermilov@intel.com
-/_studio/mfx_lib/cmrt_cross_platform/** dmitry.gurulev@intel.com miroslav.goncharenko@intel.com evgeniy.starov@intel.com dmitry.ermilov@intel.com
-/_studio/mfx_lib/scheduler/**           dmitry.gurulev@intel.com miroslav.goncharenko@intel.com evgeniy.starov@intel.com dmitry.ermilov@intel.com
-
-# mfx_player & mfx_transcoder
-/_testsuite/mfx_player/**               alexandra.tyugina@intel.com alla.ukhina@intel.com wade.yuan@intel.com shanshan1.wang@intel.com
-/_testsuite/mfx_transcoder/**           alexandra.tyugina@intel.com alla.ukhina@intel.com
-/_testsuite/test_vpp/**                 alexandra.tyugina@intel.com alla.ukhina@intel.com
-/_testsuite/test_thread_safety/**       alexandra.tyugina@intel.com alla.ukhina@intel.com
-/_testsuite/test_usage_models/**        alexandra.tyugina@intel.com alla.ukhina@intel.com
-/_testsuite/sample_common/**            alexandra.tyugina@intel.com alla.ukhina@intel.com
-/_studio/shared/umc/codec/h264_spl/**   alexandra.tyugina@intel.com alla.ukhina@intel.com wade.yuan@intel.com shanshan1.wang@intel.com
-/_studio/shared/umc/codec/vc1_spl/**    alexandra.tyugina@intel.com alla.ukhina@intel.com wade.yuan@intel.com shanshan1.wang@intel.com
-/_studio/shared/umc/codec/asf_spl/**    alexandra.tyugina@intel.com alla.ukhina@intel.com wade.yuan@intel.com shanshan1.wang@intel.com
-/_studio/shared/umc/codec/avi_spl/**    alexandra.tyugina@intel.com alla.ukhina@intel.com wade.yuan@intel.com shanshan1.wang@intel.com
-/_studio/shared/umc/codec/demuxer/**    alexandra.tyugina@intel.com alla.ukhina@intel.com wade.yuan@intel.com shanshan1.wang@intel.com
-/_studio/shared/umc/codec/mpeg4_spl/**  alexandra.tyugina@intel.com alla.ukhina@intel.com wade.yuan@intel.com shanshan1.wang@intel.com
-/_studio/shared/umc/codec/spl_common/** alexandra.tyugina@intel.com alla.ukhina@intel.com wade.yuan@intel.com shanshan1.wang@intel.com
+/_studio/mfx_lib/shared/**              lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
+/_studio/shared/**                      lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
+/_studio/shared/umc/core/**             lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
+/_studio/shared/umc/io/**               lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
+/_studio/mfx_lib/cmrt_cross_platform/** lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
+/_studio/mfx_lib/scheduler/**           lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
 
 # decoders
 /_studio/mfx_lib/decode/**                          yan.wang@intel.com will.guo@intel.com yuchen.wang@intel.com
@@ -49,54 +31,31 @@ CODEOWNERS  oleg.nabiullin@intel.com dmitry.ermilov@intel.com eugene.ponomarev@i
 /_studio/mfx_lib/shared/src/mfx_vpx_dec/**          yan.wang@intel.com will.guo@intel.com yuchen.wang@intel.com
 
 # AVC/MPEG2/JPEG encode
-/_studio/mfx_lib/encode_hw/h264/**                  sergey.a.osipov@intel.com leonid.a.kulakov@intel.com denis.volkov@intel.com
-/_studio/mfx_lib/shared/src/mfx_h264*               sergey.a.osipov@intel.com leonid.a.kulakov@intel.com denis.volkov@intel.com
-/_studio/mfx_lib/shared/include/mfx_h264*           sergey.a.osipov@intel.com leonid.a.kulakov@intel.com denis.volkov@intel.com
-/_studio/mfx_lib/encode_hw/mpeg2/**                 sergey.a.osipov@intel.com leonid.a.kulakov@intel.com denis.volkov@intel.com
-/_studio/mfx_lib/shared/include/mfx_mpeg2           sergey.a.osipov@intel.com leonid.a.kulakov@intel.com denis.volkov@intel.com
-/_studio/mfx_lib/shared/src/mfx_mpeg2*              sergey.a.osipov@intel.com leonid.a.kulakov@intel.com denis.volkov@intel.com
-/_studio/mfx_lib/encode_hw/mjpeg/**                 sergey.a.osipov@intel.com leonid.a.kulakov@intel.com denis.volkov@intel.com
-/_testsuite/msdk_ts/src/gmock/test_suites/avce*     sergey.a.osipov@intel.com leonid.a.kulakov@intel.com denis.volkov@intel.com
-/_testsuite/msdk_ts/src/gmock/test_suites/mpeg2e*   sergey.a.osipov@intel.com leonid.a.kulakov@intel.com denis.volkov@intel.com
-/_testsuite/msdk_ts/src/gmock/test_suites/mjpege*   sergey.a.osipov@intel.com leonid.a.kulakov@intel.com denis.volkov@intel.com
-/_testsuite/msdk_ts/src/gmock/test_suites/jpege*    sergey.a.osipov@intel.com leonid.a.kulakov@intel.com denis.volkov@intel.com
-/_testsuite/msdk_ts/src/gmock/test_suites/vp8e*     sergey.a.osipov@intel.com leonid.a.kulakov@intel.com denis.volkov@intel.com
+/_studio/mfx_lib/encode_hw/h264/**                  denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/shared/src/mfx_h264*               denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/shared/include/mfx_h264*           denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/encode_hw/mpeg2/**                 denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/shared/include/mfx_mpeg2           denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/shared/src/mfx_mpeg2*              denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/encode_hw/mjpeg/**                 denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
 
 # HEVC encode:
-/_studio/mfx_lib/encode_hw/hevc/**                  thomas.li@intel.com jeremy.shang@intel.com vitaliy.ilichev@intel.com yuri.skuridin@intel.com
-/_testsuite/msdk_ts/src/gmock/test_suites/hevce*    thomas.li@intel.com jeremy.shang@intel.com vitaliy.ilichev@intel.com leonid.a.kulakov@intel.com yuri.skuridin@intel.com
+/_studio/mfx_lib/encode_hw/hevc/**                  thomas.li@intel.com lightny.gong@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
 
 # AV1 encode:
-/_studio/mfx_lib/encode_hw/av1/**                  stanislav.efremov@intel.com maxim.xue@intel.com lightny.gong@intel.com rachel.cheng@intel.com jianhong.zhang@intel.com 
-/_studio/mfx_lib/shared/include/feature_blocks/**  stanislav.efremov@intel.com maxim.xue@intel.com lightny.gong@intel.com rachel.cheng@intel.com jianhong.zhang@intel.com 
-/tests/unit/suites/av1e/**                         stanislav.efremov@intel.com maxim.xue@intel.com lightny.gong@intel.com rachel.cheng@intel.com jianhong.zhang@intel.com 
+/_studio/mfx_lib/encode_hw/av1/**                   chunbo.chen@intel.com maxim.xue@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/shared/include/feature_blocks/**   chunbo.chen@intel.com maxim.xue@intel.com rachel.cheng@intel.com
 
 # HEVC & AV1 encode shared:
-/_studio/mfx_lib/encode_hw/shared/**               thomas.li@intel.com jeremy.shang@intel.com vitaliy.ilichev@intel.com leonid.a.kulakov@intel.com yuri.skuridin@intel.com stanislav.efremov@intel.com maxim.xue@intel.com lightny.gong@intel.com rachel.cheng@intel.com jianhong.zhang@intel.com 
+/_studio/mfx_lib/encode_hw/shared/**                chunbo.chen@intel.com thomas.li@intel.com maxim.xue@intel.com lightny.gong@intel.com rachel.cheng@intel.com
 
 # VP9 encode:
-_studio/mfx_lib/encode_hw/vp9/                     ekaterina.shiryaeva.alexandrovna@intel.com anastasiia.sokolova@intel.com nikita.pletnev@intel.com andrey.larionov@intel.com ilya.sergeev@intel.com vasiliy.buzoverya@intel.com
-/_testsuite/msdk_ts/src/gmock/test_suites/vp9e*    ekaterina.shiryaeva.alexandrovna@intel.com anastasiia.sokolova@intel.com nikita.pletnev@intel.com andrey.larionov@intel.com ilya.sergeev@intel.com vasiliy.buzoverya@intel.com
+_studio/mfx_lib/encode_hw/vp9/                      chunbo.chen@intel.com maxim.xue@intel.com rachel.cheng@intel.com
 
 # VPP:
-/_studio/mfx_lib/vpp/                              furong.zhang@intel.com
-/_testsuite/msdk_ts/src/gmock/test_suites/vpp*     furong.zhang@intel.com
-
-# tests:
-/_testsuite/msdk_ts/** 
-/tests/** 
-
-# mvce:
-/_studio/mfx_lib/encode_hw/mvc/** 
+/_studio/mfx_lib/vpp/                               furong.zhang@intel.com
 
 # enctools:
-/_studio/enctools/                                  timofei.a.kulakov@intel.com olga.golikova@intel.com sergey.plotnikov@intel.com
+/_studio/enctools/                                  sergey.plotnikov@intel.com neelesh.gokhale@intel.com
 /_studio/enctools/aenc                              sergey.plotnikov@intel.com neelesh.gokhale@intel.com
-/_studio/shared/include/mfxenctools-int.h           timofei.a.kulakov@intel.com olga.golikova@intel.com
-
-# samples:
-/tutorials/**                                       alla.ukhina@intel.com alexandra.tyugina@intel.com
-
-# hyper_encode:
-/_studio/mfx_lib/encode_hw/hyper_encode/**     andrey.orlov@intel.com natalia.domnina@intel.com dmitry.gurulev@intel.com dmitry.ermilov@intel.com 
-/_testsuite/msdk_ts/src/gmock/test_suites/le_* andrey.orlov@intel.com natalia.domnina@intel.com dmitry.gurulev@intel.com dmitry.ermilov@intel.com
+/_studio/shared/enctools/                           sergey.plotnikov@intel.com neelesh.gokhale@intel.com

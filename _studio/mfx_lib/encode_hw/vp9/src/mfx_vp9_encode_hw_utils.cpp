@@ -254,7 +254,6 @@ mfxU32 ModifyLoopFilterLevelQPBased(mfxU32 QP, eMFXHWType platform)
         double qnorm3 = qnorm * qnorm2;
         level = mfxI32((20.095 * qnorm3 - 15.371 * qnorm2 + 5.5294 * qnorm - 0.166) * 63 /*MAX_LOOP_FILTER*/ + 0.5);
         level = level < 0 ? 0 : level > 63 ? 63 : level;
-        if (level > 63) level = 63;
         return (mfxU8)level;
     }
     else {
@@ -293,7 +292,8 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
                           Task const & task,
                           mfxU8 frameType,
                           VP9FrameLevelParam &frameParam,
-                          eMFXHWType platform)
+                          eMFXHWType platform,
+                          bool isLastFrameKeyFrame)
 {
     (void)platform;
 
@@ -386,6 +386,12 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
         frameParam.refreshFrameContext = par.m_numLayers ? 0 : 1;
     }
 
+    //overwriting refreshFrameContext to 0 for consecutive key frames
+    if (frameParam.frameType == KEY_FRAME && isLastFrameKeyFrame)
+    {
+        frameParam.refreshFrameContext = 0;
+    }
+
     frameParam.allowHighPrecisionMV = 1;
 
     mfxU16 alignedWidth  = mfx::align2_value(mfxU16(frameParam.width),  8); // align to Mode Info block size (8 pixels)
@@ -469,7 +475,8 @@ mfxStatus DecideOnRefListAndDPBRefresh(
     Task *pTask,
     std::vector<sFrameEx*>& dpb,
     VP9FrameLevelParam &frameParam,
-    mfxU32 prevFrameOrderInRefStructure)
+    mfxU32 prevFrameOrderInRefStructure,
+    mfxU32 zeroLevelCounter)
 {
     if (frameParam.frameType == KEY_FRAME)
     {
@@ -541,8 +548,6 @@ mfxStatus DecideOnRefListAndDPBRefresh(
 
         if (par.m_webRTCMode)
         {
-            // limit Picture Group to 8 frames
-            static mfxU32 zeroLevelCounter = 0;
             if (frameParam.temporalLayer == 0) zeroLevelCounter++; // each time we get frame with TL id = 0, zeroLevelCounter increases
 
             // To limit PG to 8 frames (means 9 and next frames could not reffer to frames previous to 8 frame), we need to delete last reference that comes after 8's frame

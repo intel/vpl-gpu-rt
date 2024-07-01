@@ -33,7 +33,8 @@ mfxStatus DeviceVAAPI::Create(
     , GUID        guid
     , mfxU32      /*width*/
     , mfxU32      /*height*/
-    , bool        /*isTemporal*/)
+    , bool        /*isTemporal*/
+    , bool)
 {
     mfxStatus sts = core.GetHandle(MFX_HANDLE_VA_DISPLAY, (mfxHDL*)&m_vaDisplay);
     MFX_CHECK_STS(sts);

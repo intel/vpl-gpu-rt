@@ -421,7 +421,7 @@ namespace MfxHwH264Encode
         static void DestroySurface    (CmDevice * device, void * p);
         static void DestroySurface2DUP(CmDevice * device, void * p);
         static void DestroyBufferUp   (CmDevice * device, void * p);
-        void (*m_cmDestroy)(CmDevice *, void *);
+        void (*m_cmDestroy)(CmDevice *, void *) = 0;
 
         CmDevice *  m_cmDevice = nullptr;
 #endif
@@ -612,8 +612,8 @@ namespace MfxHwH264Encode
         }
 
     private:
-        T      m_arr[N];
-        mfxU32 m_numElem;
+        T      m_arr[N]  = {};
+        mfxU32 m_numElem = 0;
     };
 
     struct BiFrameLocation
@@ -660,6 +660,18 @@ namespace MfxHwH264Encode
     struct IntraRefreshState
     {
         IntraRefreshState() : refrType(0), IntraLocation(0), IntraSize(0), IntRefQPDelta(0), firstFrameInCycle(false) {}
+        bool operator==(const IntraRefreshState &b) const
+        {
+            return (refrType == b.refrType &&
+                    IntraLocation == b.IntraLocation &&
+                    IntraSize == b.IntraSize &&
+                    IntRefQPDelta == b.IntRefQPDelta &&
+                    firstFrameInCycle == b.firstFrameInCycle);
+        }
+        bool operator!=(const IntraRefreshState &b) const
+        {
+            return !(*this == b);
+        }
 
         mfxU16  refrType;
         mfxU16  IntraLocation;
@@ -996,6 +1008,10 @@ namespace MfxHwH264Encode
             , m_storeRefBasePicFlag(0)
 
             , m_bs(0)
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+            , m_qualityInfoMode(0)
+            , m_qualityInfoOutput(0)
+#endif
             , m_bsDataLength(0, 0)
             , m_numLeadingFF(0, 0)
             , m_qpY(0, 0)
@@ -1253,7 +1269,7 @@ namespace MfxHwH264Encode
 
         ArrayRoi        m_roi;
         mfxU16          m_numRoi;
-        mfxI8           m_NonRectROIDeltaQpList[16];
+        mfxI8           m_NonRectROIDeltaQpList[16] = {};
         mfxU8           m_NumDeltaQpForNonRectROI;
         mfxU16          m_roiMode;
         ArrayRect       m_dirtyRect;
@@ -1266,6 +1282,12 @@ namespace MfxHwH264Encode
         mfxU32  m_storeRefBasePicFlag;  // for svc key picture
 
         mfxBitstream *    m_bs;           // output bitstream
+
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        mfxExtQualityInfoMode* m_qualityInfoMode = nullptr; // quality info mode
+        mfxExtQualityInfoOutput* m_qualityInfoOutput = nullptr; // quality info output
+#endif
+
         PairU32           m_bsDataLength; // bitstream size reported by driver (0 - progr/top, 1 - bottom)
         PairU32           m_numLeadingFF; // driver may insert 0xff in the beginning of coded frame
         PairU8            m_qpY;          // QpY reported by driver
@@ -1276,8 +1298,11 @@ namespace MfxHwH264Encode
 
 #ifdef MFX_ENABLE_ENCODE_STATS
         mfxExtEncodeStatsOutput* m_encodeStats;
-        bool                     m_frameLevelQueryEn;
-        bool                     m_blockLevelQueryEn;
+        bool                     m_frameLevelQueryEn = false;
+        bool                     m_blockLevelQueryEn = false;
+#endif
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        bool m_frameLevelQualityEn = false;
 #endif
         char   m_FrameName[32];
 
@@ -1454,10 +1479,10 @@ namespace MfxHwH264Encode
     public: // temporary for debugging and dumping
         mfxF64 x[N];
         mfxF64 y[N];
-        mfxU32 windowSize;
-        mfxF64 normX;
-        mfxF64 sumxy;
-        mfxF64 sumxx;
+        mfxU32 windowSize = 0;
+        mfxF64 normX = 0;
+        mfxF64 sumxy = 0;
+        mfxF64 sumxx = 0;
     };
 
     class BrcIface
@@ -1562,7 +1587,7 @@ namespace MfxHwH264Encode
 
     private:
         UMC::H264BRC m_impl;
-        mfxU32 m_lookAhead;
+        mfxU32 m_lookAhead = 0;
     };
 
     class Hrd
@@ -1745,6 +1770,7 @@ namespace MfxHwH264Encode
             else
             {
                 sts = HEVCExtBRC::Create(m_BRCLocal);
+                MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_NULL_PTR);
                 m_pBRC = &m_BRCLocal;
             }
             sts = m_pBRC->Init(m_pBRC->pthis, &video);
@@ -2078,7 +2104,11 @@ public:
 
         sts = InitCtrl(video, &ctrl);
         if (MFX_FAILED(sts))
+        {
+            if (bCreated)
+                MFXVideoENCODE_DestroyEncTools(encTools);
             return 0;
+        }
 
         encTools->GetSupportedConfig(encTools->Context, &supportedConfig,&ctrl);
 
@@ -2107,7 +2137,12 @@ public:
         mfxStatus sts = CreateEncTools(video, encTools, bCreated);
         MFX_CHECK_STS(sts);
         sts = InitCtrl(video, &ctrl);
-        MFX_CHECK_STS(sts);
+        if (MFX_FAILED(sts))
+        {
+            if (bCreated)
+                MFXVideoENCODE_DestroyEncTools(encTools);
+            return sts;
+        }
 
         encTools->GetSupportedConfig(encTools->Context, &supportedConfig,&ctrl);
 
@@ -2126,23 +2161,33 @@ public:
         mfxExtEncToolsConfig requiredConf = {};
         mfxExtEncToolsConfig supportedConf = {};
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
         memset(&m_EncToolCtrl, 0, sizeof(mfxEncToolsCtrl));
         m_EncToolCtrl.ExtParam = m_ExtParam;
         m_EncToolCtrl.NumExtParam = 2;
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
         mfxStatus sts = InitCtrl(video, &m_EncToolCtrl);
         MFX_CHECK_STS(sts);
 
         sts = CreateEncTools(video, m_pEncTools, m_bEncToolsCreated);
         MFX_CHECK_STS(sts);
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
         m_pEncTools->GetSupportedConfig(m_pEncTools->Context, &supportedConf, &m_EncToolCtrl);
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
         if (CorrectVideoParams(video, supportedConf))
             MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
         GetRequiredFunc(video, requiredConf);
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
         sts = m_pEncTools->Init(m_pEncTools->Context, &requiredConf, &m_EncToolCtrl);
         MFX_CHECK_STS(sts);
 
@@ -2159,6 +2204,8 @@ public:
         m_LAHWBRC = IsEnctoolsLAGS(video);
         m_LASWBRC = IsEnctoolsLABRC(video);
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
         return MFX_ERR_NONE;
     }
 
@@ -2184,6 +2231,14 @@ public:
         MFX_CHECK(m_pEncTools != 0, MFX_ERR_NOT_INITIALIZED);
 
         mfxEncToolsCtrl newCtrl = {};
+        mfxExtBuffer* ExtParam;
+        mfxExtEncoderResetOption* pRO = (mfxExtEncoderResetOption*)mfx::GetExtBuffer(video.ExtParam, video.NumExtParam, MFX_EXTBUFF_ENCODER_RESET_OPTION);
+        if (pRO && pRO->StartNewSequence == MFX_CODINGOPTION_ON)
+        {
+            ExtParam = &(pRO->Header);
+            newCtrl.NumExtParam = 1;
+            newCtrl.ExtParam = &ExtParam;
+        }
         mfxStatus sts = InitCtrl(video, &newCtrl);
         MFX_CHECK_STS(sts);
 
@@ -2476,7 +2531,7 @@ public:
         par.DisplayOrder = dispOrder;
 
         std::vector<mfxExtBuffer*> extParams;
-        mfxEncToolsBRCStatus extSts;
+        mfxEncToolsBRCStatus extSts = {};
         extSts.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_STATUS;
         extSts.Header.BufferSz = sizeof(extSts);
         extParams.push_back((mfxExtBuffer *)&extSts);
@@ -2702,6 +2757,8 @@ protected:
 public:
     inline bool isLASWBRC() { return m_LASWBRC; }
     inline bool isLAHWBRC() { return m_LAHWBRC; }
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
 
 private:
     mfxEncTools*            m_pEncTools = nullptr;
@@ -2711,6 +2768,8 @@ private:
     mfxExtBuffer*           m_ExtParam[2] = {};
     bool                    m_LASWBRC = false;
     bool                    m_LAHWBRC = false;
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
 
 };
 #endif
@@ -2893,21 +2952,21 @@ private:
 
         ImplementationAvc(VideoCORE * core);
 
-        virtual ~ImplementationAvc();
+        virtual ~ImplementationAvc() override;
 
-        virtual mfxStatus Init(mfxVideoParam * par);
+        virtual mfxStatus Init(mfxVideoParam * par) override;
 
-        virtual mfxStatus Close() { return MFX_ERR_NONE; }
+        virtual mfxStatus Close() override { return MFX_ERR_NONE; }
 
-        virtual mfxStatus Reset(mfxVideoParam * par);
+        virtual mfxStatus Reset(mfxVideoParam * par) override;
 
-        virtual mfxStatus GetVideoParam(mfxVideoParam * par);
+        virtual mfxStatus GetVideoParam(mfxVideoParam * par) override;
 
-        virtual mfxStatus GetFrameParam(mfxFrameParam * par);
+        virtual mfxStatus GetFrameParam(mfxFrameParam * par) override;
 
-        virtual mfxStatus GetEncodeStat(mfxEncodeStat * stat);
+        virtual mfxStatus GetEncodeStat(mfxEncodeStat * stat) override;
 
-        virtual mfxTaskThreadingPolicy GetThreadingPolicy() {
+        virtual mfxTaskThreadingPolicy GetThreadingPolicy() override {
             return mfxTaskThreadingPolicy(MFX_TASK_THREADING_INTRA
 #if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
                 | (m_isPOut ? MFX_TASK_POLLING : 0)
@@ -2920,7 +2979,7 @@ private:
             mfxFrameSurface1 *,
             mfxBitstream *,
             mfxFrameSurface1 **,
-            mfxEncodeInternalParams *)
+            mfxEncodeInternalParams *) override
         {
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
@@ -2932,7 +2991,7 @@ private:
             mfxFrameSurface1 **       reordered_surface,
             mfxEncodeInternalParams * internalParams,
             MFX_ENTRY_POINT *         entryPoints,
-            mfxU32 &                  numEntryPoints);
+            mfxU32 &                  numEntryPoints) override;
 
         virtual mfxStatus EncodeFrameCheckNormalWay(
             mfxEncodeCtrl *           ctrl,
@@ -2947,7 +3006,7 @@ private:
             mfxEncodeCtrl *,
             mfxEncodeInternalParams *,
             mfxFrameSurface1 *,
-            mfxBitstream *)
+            mfxBitstream *) override
         {
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
@@ -2956,10 +3015,12 @@ private:
             mfxEncodeCtrl *,
             mfxEncodeInternalParams *,
             mfxFrameSurface1 *,
-            mfxBitstream *)
+            mfxBitstream *) override
         {
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
+
+        MFX_PROPAGATE_GetSurface_VideoENCODE_Definition;
 
     protected:
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
@@ -3233,8 +3294,11 @@ private:
         mfxI32      m_RefQp;
         mfxI32      m_RefOrder;
 #ifdef MFX_ENABLE_ENCODE_STATS
-        bool        m_frameLevelQueryEn;
-        bool        m_blockLevelQueryEn;
+        bool        m_frameLevelQueryEn = false;
+        bool        m_blockLevelQueryEn = false;
+#endif
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        bool m_frameLevelQualityEn = false;
 #endif
     };
 
@@ -3359,26 +3423,26 @@ private:
             mfxU32 fieldId);
 // MVC BD }
 
-        virtual mfxStatus Init(mfxVideoParam *par);
+        virtual mfxStatus Init(mfxVideoParam *par) override;
 
-        virtual mfxStatus Close();
+        virtual mfxStatus Close() override;
 
-        virtual mfxTaskThreadingPolicy GetThreadingPolicy();
+        virtual mfxTaskThreadingPolicy GetThreadingPolicy() override;
 
-        virtual mfxStatus Reset(mfxVideoParam *par);
+        virtual mfxStatus Reset(mfxVideoParam *par) override;
 
-        virtual mfxStatus GetVideoParam(mfxVideoParam *par);
+        virtual mfxStatus GetVideoParam(mfxVideoParam *par) override;
 
-        virtual mfxStatus GetFrameParam(mfxFrameParam *par);
+        virtual mfxStatus GetFrameParam(mfxFrameParam *par) override;
 
-        virtual mfxStatus GetEncodeStat(mfxEncodeStat *stat);
+        virtual mfxStatus GetEncodeStat(mfxEncodeStat *stat) override;
 
         virtual mfxStatus EncodeFrameCheck(
             mfxEncodeCtrl *,
             mfxFrameSurface1 *,
             mfxBitstream *,
             mfxFrameSurface1 **,
-            mfxEncodeInternalParams *)
+            mfxEncodeInternalParams *) override
         {
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
@@ -3390,13 +3454,13 @@ private:
             mfxFrameSurface1 **       reordered_surface,
             mfxEncodeInternalParams * pInternalParams,
             MFX_ENTRY_POINT           pEntryPoints[],
-            mfxU32 &                  numEntryPoints);
+            mfxU32 &                  numEntryPoints) override;
 
         virtual mfxStatus EncodeFrame(
             mfxEncodeCtrl *,
             mfxEncodeInternalParams *,
             mfxFrameSurface1 *,
-            mfxBitstream *)
+            mfxBitstream *) override
         {
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
@@ -3405,10 +3469,12 @@ private:
             mfxEncodeCtrl *,
             mfxEncodeInternalParams *,
             mfxFrameSurface1 *,
-            mfxBitstream *)
+            mfxBitstream *) override
         {
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
+
+        MFX_PROPAGATE_GetSurface_VideoENCODE_Definition;
 
     protected:
         ImplementationMvc(ImplementationMvc const &);
@@ -4223,7 +4289,7 @@ private:
         (void)outSize;
 
         uint64_t y = 0, x = 0;
-        for (uint64_t i = 0, pos = 0, size = inSize * inSize; i < inSize; ++i)
+        for (uint64_t i = 0, pos = 0, size = (uint64_t)inSize * (uint64_t)inSize; i < inSize; ++i)
         {
             if (y <= x)
             {
@@ -4269,7 +4335,7 @@ private:
         (void)outSize;
 
         uint64_t y = 0, x = 0;
-        for (uint64_t i = 0, pos = 0, size = inSize * inSize; i < inSize; ++i)
+        for (uint64_t i = 0, pos = 0, size = (uint64_t)inSize * (uint64_t)inSize; i < inSize; ++i)
         {
             if (y <= x)
             {

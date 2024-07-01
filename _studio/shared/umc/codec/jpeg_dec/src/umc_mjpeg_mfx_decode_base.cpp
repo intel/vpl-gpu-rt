@@ -253,6 +253,38 @@ Status MJPEGVideoDecoderBaseMFX::FillVideoParam(mfxVideoParam *par, bool /*full*
     par->mfx.Rotation  = MFX_ROTATION_0;
     par->mfx.InterleavedDec = (mfxU16)(m_interleavedScan ? MFX_SCANTYPE_INTERLEAVED : MFX_SCANTYPE_NONINTERLEAVED);
 
+    if (par->mfx.InterleavedDec == MFX_SCANTYPE_NONINTERLEAVED)
+    {
+        // get the output FourCC according to ChromaFormat and ColorFormat when MFX_SCANTYPE_NONINTERLEAVED
+        // according to the driver capability.
+        if (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV411)
+        {
+            par->mfx.FrameInfo.FourCC = MFX_FOURCC_YUV411;
+        }
+        else if (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV420)
+        {
+            par->mfx.FrameInfo.FourCC = MFX_FOURCC_IMC3;
+        }
+        else if (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422 || par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422H)
+        {
+            par->mfx.FrameInfo.FourCC = MFX_FOURCC_YUV422H;
+        }
+        else if (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422V)
+        {
+            par->mfx.FrameInfo.FourCC = MFX_FOURCC_YUV422V;
+        }
+        else if (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444 && par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr)
+        {
+            par->mfx.FrameInfo.FourCC = MFX_FOURCC_YUV444;
+        }
+        else if (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444 && par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB)
+        {
+            par->mfx.FrameInfo.FourCC = MFX_FOURCC_RGBP;
+        }
+
+        par->mfx.FrameInfo.ChromaFormat = par->mfx.JPEGChromaFormat;
+    }
+
     par->mfx.NumThread = 0;
 
     return UMC_OK;

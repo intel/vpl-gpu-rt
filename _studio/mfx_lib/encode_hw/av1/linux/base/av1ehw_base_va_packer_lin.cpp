@@ -45,11 +45,11 @@ void InitSPS(
     sps.intra_period = par.mfx.GopPicSize;
     sps.ip_period    = par.mfx.GopRefDist;
 
-    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
-    {
-        sps.bits_per_second = TargetKbps(par.mfx) * 1000;
-    }
+    mfxU32 bNeedRateParam =
+        par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
+        || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR;
+
+    sps.bits_per_second = bNeedRateParam * TargetKbps(par.mfx) * 1000;
 
     sps.order_hint_bits_minus_1 = static_cast<mfxU8>(bs_sh.order_hint_bits_minus1);
 
@@ -364,6 +364,12 @@ void UpdatePPS(
     pps.min_base_qindex = task.MinBaseQIndex;
     pps.max_base_qindex = task.MaxBaseQIndex;
 
+    pps.y_dc_delta_q = task.YDcDeltaQ;
+    pps.u_dc_delta_q = task.UDcDeltaQ;
+    pps.u_ac_delta_q = task.UAcDeltaQ;
+    pps.v_dc_delta_q = task.VDcDeltaQ;
+    pps.v_ac_delta_q = task.VAcDeltaQ;
+
     pps.order_hint = static_cast<mfxU8>(bs_fh.order_hint);
 
     //DPB and refs management
@@ -501,6 +507,7 @@ inline void AddVaMiscRC(
         rc.target_percentage = mfxU32(100.0 * (mfxF64)TargetKbps(par.mfx) / (mfxF64)MaxKbps(par.mfx));
 
     rc.rc_flags.bits.reset = bNeedRateParam && bResetBRC;
+    rc.quality_factor = par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ ? par.mfx.ICQQuality : 0;
 
     const mfxExtCodingOption2* CO2 = ExtBuffer::Get(par);
 
@@ -523,7 +530,6 @@ inline void AddVaMiscRC(
             IsOn(CO3->LowDelayBRC) ? eFrameSizeTolerance_ExtremelyLow : eFrameSizeTolerance_Normal;
     }
 
-    rc.ICQ_quality_factor = 0;
     rc.initial_qp         = bs_fh.quantization_params.base_q_idx;
 }
 
@@ -848,6 +854,9 @@ void VAPacker::SubmitTask(const FeatureBlocks& blocks, TPushST Push)
 
         AddPackedHeaderIf(!!(task.InsertHeaders & INSERT_SPS)
             , ph.SPS, par, VAEncPackedHeaderAV1_SPS);
+
+        AddPackedHeaderIf(!!(task.InsertHeaders & INSERT_HDR)
+            , ph.HDR, par, VAEncPackedHeaderAV1_SPS);
 
         AddPackedHeaderIf(!!(task.InsertHeaders & INSERT_PPS)
             , ph.PPS, par, VAEncPackedHeaderAV1_PPS);

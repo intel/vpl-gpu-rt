@@ -1113,6 +1113,9 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameHeader(mfxBitstream *in)
 
         }
 
+        if ((int32_t) (data_in_end - data_in) < 4)
+            throw vp8_exception(MFX_ERR_MORE_DATA);
+
         m_boolDecoder[VP8_FIRST_PARTITION].init(data_in, (int32_t) (data_in_end - data_in));
 
         if (m_frame_info.frameType == UMC::I_PICTURE)  // if VP8_KEY_FRAME
@@ -1407,11 +1410,11 @@ mfxStatus VideoDECODEVP8_HW::SetSkipMode(mfxSkipMode /*mode*/)
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoDECODEVP8_HW::GetSurface(mfxFrameSurface1* & surface)
+mfxStatus VideoDECODEVP8_HW::GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface)
 {
     MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface(surface);
+    return m_surface_source->GetSurface(surface, import_surface);
 }
 
 //////////////////////////////////////////////////////////////////////////////

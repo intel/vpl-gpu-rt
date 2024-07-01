@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Intel Corporation
+// Copyright (c) 2021-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -83,7 +83,7 @@ extern "C" {
     mfxU16    MFX_CDECL AEncGetPersistenceMap(mfxHDL pthis, mfxU32 displayOrder, mfxU8 PMap[AENC_MAP_SIZE]);
     mfxU16    MFX_CDECL AEncGetLastPQp(mfxHDL pthis);
     mfxI8     MFX_CDECL AEncAPQSelect(mfxHDL pthis, mfxU32 SC, mfxU32 TSC, mfxU32 MVSize, mfxU32 Contrast, mfxU32 PyramidLayer, mfxU32 BaseQp);
-    void      MFX_CDECL AEncUpdateFrame(mfxHDL pthis, mfxU32 displayOrder, mfxU32 bits, mfxU32 QpY);
+    void      MFX_CDECL AEncUpdateFrame(mfxHDL pthis, mfxU32 displayOrder, mfxU32 bits, mfxU32 QpY, mfxU32 Type);
 
 #ifdef __cplusplus
 } // extern "C"

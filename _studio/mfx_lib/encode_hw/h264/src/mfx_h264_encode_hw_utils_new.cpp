@@ -1886,9 +1886,6 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
             return state;
         }
 
-        if (mfxI32(frameOrderInGopDispOrder - 1) < 0)
-            return state;
-
         state.firstFrameInCycle = extOpt3Init.IntRefCycleDist ? (((frameOrderInGopDispOrder - 1) % extOpt3Init.IntRefCycleDist == 0) && frameOrderInGopDispOrder) : (((frameOrderInGopDispOrder - 1) % extOpt3Init.NumSliceP == 0) && frameOrderInGopDispOrder);
 
         state.IntraSize = ((USHORT)divider.GetNumMbInSlice() / (video.mfx.FrameInfo.Width >> 4));

@@ -504,7 +504,11 @@ namespace UMC_AV1_DECODER
         // Identify the nearest forward and backward references.
         for (int32_t i = 0; i < INTER_REFS; ++i)
         {
-            FrameHeader const& refHdr = frameDpb[fh.ref_frame_idx[i]]->GetFrameHeader();
+            AV1DecoderFrame *pFrame = frameDpb[fh.ref_frame_idx[i]];
+            if (!pFrame || pFrame->UID == -1)
+                continue;
+
+            FrameHeader const& refHdr = pFrame->GetFrameHeader();
             const uint32_t refOrderHint = refHdr.order_hint;
 
             if (av1_get_relative_dist(sh, refOrderHint, fh.order_hint) < 0)
@@ -1287,7 +1291,7 @@ namespace UMC_AV1_DECODER
         {
             if (BytesLeft() <= 0)
                 throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
-            t += (*m_pbs++) << (i * 8);
+            t += (uint32_t)((*m_pbs++) << (i * 8));
         }
 
         return t;
@@ -1876,9 +1880,12 @@ namespace UMC_AV1_DECODER
                 {
                     const int OrderHintBits = sh.order_hint_bits_minus1 + 1;
                     fh.ref_order_hint[i] = GetBits(OrderHintBits);
-                    FrameHeader const& refHdr = frameDpb[i]->GetFrameHeader();
-                    if (fh.ref_order_hint[i] != refHdr.order_hint)
-                        frameDpb[i]->SetRefValid(false);
+                    if(frameDpb[i])
+                    {
+                        FrameHeader const& refHdr = frameDpb[i]->GetFrameHeader();
+                        if (fh.ref_order_hint[i] != refHdr.order_hint)
+                            frameDpb[i]->SetRefValid(false);
+                    }
                 }
             }
         }
@@ -2023,6 +2030,35 @@ namespace UMC_AV1_DECODER
             av1_read_film_grain(*this, sh, fh, frameDpb);
 
         AV1D_LOG("[-]: %d", (uint32_t)BitsDecoded());
+    }
+
+    void AV1Bitstream::ReadMetaData(FrameHeader& fh)
+    {
+        const uint8_t MetaData_byte = (uint8_t)GetBits(8);
+        switch ((OBU_METADATA_TYPE)MetaData_byte)
+        {
+        case OBU_METADATA_TYPE_HDR_CLL:
+            fh.meta_data.hdr_cll.max_content_light_level = (uint16_t)GetBits(16);
+            fh.meta_data.hdr_cll.max_pic_average_light_level = (uint16_t)GetBits(16);
+            fh.meta_data.hdr_cll.existence = true;
+            break;
+        case OBU_METADATA_TYPE_HDR_MDCV:
+            for (size_t i = 0; i < 3; ++i)
+            {
+               fh.meta_data.hdr_mdcv.display_primaries[i][0] = (uint16_t)GetBits(16);
+               fh.meta_data.hdr_mdcv.display_primaries[i][1] = (uint16_t)GetBits(16);
+            }
+            // White point(x, y)
+           fh.meta_data.hdr_mdcv.white_point[0] = (uint16_t)GetBits(16);
+           fh.meta_data.hdr_mdcv.white_point[1] = (uint16_t)GetBits(16);
+
+            // Max and min luminance of mastering display
+           fh.meta_data.hdr_mdcv.max_luminance = (uint32_t)GetBits(32);
+           fh.meta_data.hdr_mdcv.min_luminance = (uint32_t)GetBits(32);
+           fh.meta_data.hdr_mdcv.existence = true;
+        default:
+            break;
+        }
     }
 
 } // namespace UMC_AV1_DECODER

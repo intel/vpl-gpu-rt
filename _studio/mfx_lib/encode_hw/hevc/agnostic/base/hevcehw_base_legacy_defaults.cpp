@@ -27,6 +27,10 @@
 #include <numeric>
 #include <set>
 
+#ifdef MFX_ENABLE_ENCTOOLS
+#include "hevcehw_base_enctools.h"
+#endif
+
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
 
@@ -206,6 +210,20 @@ public:
         }
 
         return std::min<mfxU16>(GopPicSize - 1, 4 * (1 + bCQP));
+    }
+
+    static mfxU16 TargetUsage(
+        Defaults::TChain<mfxU16>::TExt
+        , const Defaults::Param& par)
+    {
+        mfxU16 tu = 0;
+        if (par.mvp.mfx.TargetUsage)
+        {
+            tu = par.mvp.mfx.TargetUsage;
+        }
+        SetDefault(tu, mfxU16(4)) && Legacy::CheckTU(par.caps, tu);
+
+        return tu;
     }
 
     static mfxU16 NumBPyramidLayers(
@@ -548,8 +566,9 @@ public:
         {
             return pCO3->TargetChromaFormatPlus1;
         }
-        //For RGB4 use illogical default 420 for backward compatibility
-        if (par.mvp.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4)
+        //For RGB4 and BGR4 use illogical default 420 for backward compatibility
+        if (par.mvp.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4
+            || par.mvp.mfx.FrameInfo.FourCC == MFX_FOURCC_BGR4)
         {
             return mfxU16(MFX_CHROMAFORMAT_YUV420 + 1);
         }
@@ -635,7 +654,24 @@ public:
         mfxU32 minCPB             = bUseMaxKbps * InitialDelayInKB(par.mvp.mfx);
         mfxU32 defaultCPB         = 0;
         auto   GetMaxCPBByLevel   = [&]() { return GetMaxCpbInKBByLevel(par.mvp); };
-        auto   GetCPBFromMaxKbps  = [&]() { return par.base.GetMaxKbps(par) / 4; };
+        auto   GetCPBFromMaxKbps = [&]()
+        {
+            mfxU32 defaultBufferSizeInKB = par.base.GetMaxKbps(par) / 4;
+
+            // Check BufferSizeInKB at extremely low bitrate to ensure there is enough space to write bitstream
+            if (mfx.FrameInfo.Width != 0 &&
+                mfx.FrameInfo.Height != 0 &&
+                mfx.FrameInfo.FrameRateExtN != 0 &&
+                mfx.FrameInfo.FrameRateExtD != 0)
+            {
+                mfxF64 rawDataBitrate = 12.0 * mfx.FrameInfo.Width * mfx.FrameInfo.Height * mfx.FrameInfo.FrameRateExtN / mfx.FrameInfo.FrameRateExtD;
+                mfxU32 minBufferSizeInKB = mfxU32(std::min<mfxF64>(0xffffffff, rawDataBitrate / 8 / 1000.0 / 1400.0));
+                if (defaultBufferSizeInKB < minBufferSizeInKB) {
+                    defaultBufferSizeInKB = minBufferSizeInKB;
+                }
+            }
+            return defaultBufferSizeInKB;
+        };
         auto   GetCPBFromRawBytes = [&]()
         {
             mfxU16 bd = par.base.GetTargetBitDepthLuma(par);
@@ -1471,6 +1507,11 @@ public:
             if (SliceStructure == POW2ROW)
             {
                 mfxU32 nRowLog2     = mfx::CeilLog2(nRowsPerSlice);
+                if (nRowLog2 > 31 || nRowLog2 == 0)
+                {
+                    MFX_STS_TRACE(MFX_ERR_INVALID_VIDEO_PARAM);
+                    return (mfxU16)nSlice;
+                }
                 mfxU32 nRowsCand[2] = { mfxU32(1 << (nRowLog2 - 1)), mfxU32(1 << nRowLog2) };
                 mfxI32 dC0          = nRowsPerSlice - nRowsCand[0];
                 mfxI32 dC1          = nRowsCand[1] - nRowsPerSlice;
@@ -1781,6 +1822,8 @@ public:
         slo.max_num_reorder_pics         = std::min<mfxU8>(numReorderFrames, slo.max_dec_pic_buffering_minus1);
         slo.max_latency_increase_plus1   = 0;
 
+        vps.extension_flag = 0;
+
         return MFX_ERR_NONE;
     }
 
@@ -2023,6 +2066,17 @@ public:
         pps.deblocking_filter_control_present_flag  = 1;
         pps.deblocking_filter_disabled_flag         = !!CO2.DisableDeblockingIdc;
         pps.deblocking_filter_override_enabled_flag = 1; // to disable deblocking per frame
+
+        #if defined(MFX_ENABLE_ENCTOOLS_SW)
+        #if defined(ONEVPL_EXPERIMENTAL)
+                bool bSWEncTools = IsSwEncToolsOn(par);
+                if (bSWEncTools && CO3.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING && CO3.ContentInfo == MFX_CONTENT_NOISY_VIDEO) {
+                    pps.beta_offset_div2                        = mfxI8(EncToolsDeblockingBetaOffset() * 0.5 * !pps.deblocking_filter_disabled_flag);
+                    pps.tc_offset_div2                          = mfxI8(EncToolsDeblockingAlphaTcOffset() * 0.5 * !pps.deblocking_filter_disabled_flag);
+                }
+        #endif
+        #endif
+
         pps.scaling_list_data_present_flag              = 0;
         pps.lists_modification_present_flag             = 1;
         pps.log2_parallel_merge_level_minus2            = 0;
@@ -2100,6 +2154,7 @@ public:
         PUSH_DEFAULT(MaxDPB);
         PUSH_DEFAULT(GopPicSize);
         PUSH_DEFAULT(GopRefDist);
+        PUSH_DEFAULT(TargetUsage);
         PUSH_DEFAULT(NumBPyramidLayers);
         PUSH_DEFAULT(NumRefBPyramid);
         PUSH_DEFAULT(NumRefPPyramid);
@@ -2425,7 +2480,7 @@ public:
         invalid += (itFourCCPar == FourCCPar.end() && Res2Bool(par.mfx.FrameInfo.FourCC, mfxU32(MFX_FOURCC_NV12)));
 
         itFourCCPar = FourCCPar.find(par.mfx.FrameInfo.FourCC);
-        assert(itFourCCPar != FourCCPar.end());
+        MFX_CHECK(itFourCCPar != FourCCPar.end(), MFX_ERR_INVALID_VIDEO_PARAM);
 
         invalid += CheckOrZero(par.mfx.FrameInfo.ChromaFormat,   mfxU16(itFourCCPar->second[0]));
         invalid += CheckOrZero(par.mfx.FrameInfo.BitDepthLuma,   mfxU16(itFourCCPar->second[1]), 0);

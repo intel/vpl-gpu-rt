@@ -34,9 +34,11 @@
 #include <set>
 #include <iterator>
 
-using namespace AV1EHW::Base;
 
 namespace AV1EHW
+{
+
+namespace Base
 {
 
 void General::SetSupported(ParamSupport& blocks)
@@ -123,6 +125,8 @@ void General::SetSupported(ParamSupport& blocks)
         MFX_COPY_FIELD(TargetBitDepthChroma);
         MFX_COPY_FIELD(LowDelayBRC);
         MFX_COPY_FIELD(ScenarioInfo);
+        MFX_COPY_FIELD(TimingInfoPresent);
+        
     });
 
     // keep it temporally for backward compability
@@ -169,6 +173,12 @@ void General::SetSupported(ParamSupport& blocks)
         auto& buf_dst = *(mfxExtCodingOption2*)pDst;
 
         MFX_COPY_FIELD(BRefType);
+        MFX_COPY_FIELD(MinQPI);
+        MFX_COPY_FIELD(MinQPP);
+        MFX_COPY_FIELD(MinQPB);
+        MFX_COPY_FIELD(MaxQPI);
+        MFX_COPY_FIELD(MaxQPP);
+        MFX_COPY_FIELD(MaxQPB);
     });
 
     blocks.m_ebCopySupported[MFX_EXTBUFF_ENCODER_RESET_OPTION].emplace_back(
@@ -186,10 +196,23 @@ void General::SetSupported(ParamSupport& blocks)
         const auto& buf_src = *(const mfxExtRefListCtrl*)pSrc;
         auto& buf_dst = *(mfxExtRefListCtrl*)pDst;
 
-        for (mfxU32 i = 0; i < 16; i++)
+        MFX_COPY_FIELD(NumRefIdxL0Active);
+        MFX_COPY_FIELD(ApplyLongTermIdx);
+
+        for (size_t i = 0; i < mfx::size(buf_src.PreferredRefList); i++)
+        {
+            MFX_COPY_FIELD(PreferredRefList[i].FrameOrder);
+        }
+
+        for (size_t i = 0; i < mfx::size(buf_src.RejectedRefList); i++)
         {
             MFX_COPY_FIELD(RejectedRefList[i].FrameOrder);
+        }
+
+        for (size_t i = 0; i < mfx::size(buf_src.LongTermRefList); i++)
+        {
             MFX_COPY_FIELD(LongTermRefList[i].FrameOrder);
+            MFX_COPY_FIELD(LongTermRefList[i].LongTermIdx);
         }
     });
 
@@ -351,6 +374,12 @@ void General::SetInherited(ParamInheritance& par)
     {
         INIT_EB(mfxExtCodingOption2);
         INHERIT_OPT(BRefType);
+        INHERIT_OPT(MinQPI);
+        INHERIT_OPT(MinQPP);
+        INHERIT_OPT(MinQPB);
+        INHERIT_OPT(MaxQPI);
+        INHERIT_OPT(MaxQPP);
+        INHERIT_OPT(MaxQPB);
     });
 
     par.m_ebInheritDefault[MFX_EXTBUFF_CODING_OPTION3].emplace_back(
@@ -375,6 +404,7 @@ void General::SetInherited(ParamInheritance& par)
         INHERIT_OPT(TargetBitDepthChroma);
         INHERIT_OPT(LowDelayBRC);
         INHERIT_OPT(ScenarioInfo);
+        INHERIT_OPT(TimingInfoPresent);
     });
 #undef INIT_EB
 #undef INHERIT_OPT
@@ -459,18 +489,26 @@ void General::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
 
         return MFX_ERR_NONE;
     });
+
+    // Level will be used to set default Tile structures
+    Push(BLK_CheckAndFixLevel
+        , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
+    {
+        mfxStatus sts = CheckAndFixLevel(out);
+        MFX_CHECK_STS(sts);
+
+        return MFX_ERR_NONE;
+    });
 }
 
-mfxStatus General::MapLevel(mfxVideoParam& par)
+mfxStatus General::CheckAndFixLevel(mfxVideoParam& par)
 {
     MFX_CHECK(par.mfx.CodecLevel, MFX_ERR_NONE);
 
     mfxU32 changed = 0;
+    changed += SetIf(par.mfx.CodecLevel, !isValidCodecLevel(par.mfx.CodecLevel), 0);
+    MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
-    // Map undefined level to defined level
-    changed += MapToDefinedLevel(par.mfx.CodecLevel);
-
-    MFX_CHECK(!changed, MFX_WRN_VIDEO_PARAM_CHANGED);
     return MFX_ERR_NONE;
 }
 
@@ -526,18 +564,6 @@ void General::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         return m_pQWCDefaults->base.CheckFourCCByTargetFormat(*m_pQWCDefaults, out);
     });
 
-    Push(BLK_CheckLevel
-        , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
-    {
-        mfxStatus stsMap = MapLevel(out);
-        mfxStatus stsCheckValid = m_pQWCDefaults->base.CheckLevel(*m_pQWCDefaults, out);
-        // invalid level error code should override mapped level error code
-        MFX_CHECK_STS(stsCheckValid);
-        MFX_CHECK_STS(stsMap);
-        return MFX_ERR_NONE;
-
-    });
-
     Push(BLK_CheckPicStruct
         , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
     {
@@ -560,12 +586,6 @@ void General::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
     {
         return CheckTU(out, m_pQWCDefaults->caps);
-    });
-
-    Push(BLK_CheckDeltaQ
-        , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
-    {
-        return CheckDeltaQ(out);
     });
 
     Push(BLK_CheckFrameOBU
@@ -649,6 +669,12 @@ void General::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         return CheckRateControl(out, *m_pQWCDefaults);
     });
 
+    Push(BLK_CheckDeltaQ
+        , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
+        {
+            return CheckDeltaQ(out);
+        });
+
     Push(BLK_CheckCrops
         , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
     {
@@ -690,6 +716,12 @@ void General::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     {
         const auto& caps = Glob::EncodeCaps::Get(strg);
         return CheckTCBRC(out, caps);
+    });
+
+    Push(BLK_CheckCdfUpdate
+        ,[this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
+    {
+        return CheckCdfUpdate(out);
     });
 }
 
@@ -825,6 +857,9 @@ void General::InitExternal(const FeatureBlocks& blocks, TPushIE Push)
     Push(BLK_Query1NoCaps
         , [this, &blocks](const mfxVideoParam& in, StorageRW& strg, StorageRW&) -> mfxStatus
     {
+        auto& disableTemporalCreation = Glob::DeviceCreation::GetOrConstruct(strg);
+        disableTemporalCreation.DisableTemporalDevice = true;
+
         return RunQuery1NoCapsQueue(blocks, in, strg);
     });
 
@@ -1212,7 +1247,7 @@ void General::FrameSubmit(const FeatureBlocks& blocks, TPushFS Push)
             const mfxEncodeCtrl* /*pCtrl*/
             , const mfxFrameSurface1* pSurf
             , mfxBitstream& /*bs*/
-            , StorageW& global
+            , StorageRW& global
             , StorageRW& /*local*/) -> mfxStatus
     {
         MFX_CHECK(pSurf, MFX_ERR_NONE);
@@ -1230,7 +1265,7 @@ void General::FrameSubmit(const FeatureBlocks& blocks, TPushFS Push)
             const mfxEncodeCtrl* /*pCtrl*/
             , const mfxFrameSurface1* /*pSurf*/
             , mfxBitstream& bs
-            , StorageW& global
+            , StorageRW& global
             , StorageRW& local) -> mfxStatus
     {
         auto& par = Glob::VideoParam::Get(global);
@@ -1261,24 +1296,27 @@ void General::AllocTask(const FeatureBlocks& blocks, TPushAT Push)
     {
         task.Insert(Task::Common::Key, new Task::Common::TRef);
         task.Insert(Task::FH::Key, new MakeStorable<Task::FH::TRef>);
+        task.Insert(Task::EncodedInfo::Key, new MakeStorable<Task::EncodedInfo::TRef>);
         return MFX_ERR_NONE;
     });
 }
 
-static bool CheckRefListCtrl(mfxExtRefListCtrl* refListCtrl)
+static mfxU32 CheckRefListCtrl(mfxExtRefListCtrl& refListCtrl)
 {
     mfxU32 changed = 0;
-    changed += CheckOrZero<mfxU16>(refListCtrl->ApplyLongTermIdx, 0);
-    changed += CheckOrZero<mfxU16>(refListCtrl->NumRefIdxL0Active, 0);
-    changed += CheckOrZero<mfxU16>(refListCtrl->NumRefIdxL1Active, 0);
-    for (auto& preferred : refListCtrl->PreferredRefList)
+
+    changed += CheckOrZero<mfxU16>(refListCtrl.NumRefIdxL1Active, 0);
+
+    for (size_t i = 0; i < mfx::size(refListCtrl.PreferredRefList); i++)
     {
-        if (preferred.FrameOrder != static_cast<mfxU32>(MFX_FRAMEORDER_UNKNOWN))
-        {
-            preferred.FrameOrder = mfxU32(MFX_FRAMEORDER_UNKNOWN);
-            changed++;
-        }
+        changed += CheckOrZero<mfxU16>(refListCtrl.PreferredRefList[i].LongTermIdx, 0);
     }
+
+    for (size_t i = 0; i < mfx::size(refListCtrl.RejectedRefList); i++)
+    {
+        changed += CheckOrZero<mfxU16>(refListCtrl.RejectedRefList[i].LongTermIdx, 0);
+    }
+
     return changed;
 }
 
@@ -1292,7 +1330,7 @@ void General::InitTask(const FeatureBlocks& blocks, TPushIT Push)
             , StorageW& global
             , StorageW& task) -> mfxStatus
     {
-        auto& par = Glob::VideoParam::Get(global);
+        auto& par  = Glob::VideoParam::Get(global);
         auto& core = Glob::VideoCore::Get(global);
         auto& tpar = Task::Common::Get(task);
 
@@ -1303,12 +1341,14 @@ void General::InitTask(const FeatureBlocks& blocks, TPushIT Push)
 
         MFX_CHECK(pSurf, MFX_ERR_NONE);
 
-        tpar.DisplayOrder = m_frameOrder;
-        ++m_frameOrder;
+        tpar.DisplayOrder = m_frameOrder++;
 
-        tpar.pSurfIn = pSurf;
+        tpar.pSurfIn   = pSurf;
+        tpar.pSurfReal = tpar.pSurfIn;
+        core.IncreaseReference(*tpar.pSurfIn);
+        tpar.DPB.resize(par.mfx.NumRefFrame);
 
-        bool changed = 0;
+        mfxU32 changed = 0;
         if (pCtrl)
         {
             tpar.ctrl = *pCtrl;
@@ -1323,16 +1363,16 @@ void General::InitTask(const FeatureBlocks& blocks, TPushIT Push)
                 tpar.ctrl.ExtParam = tEB;
             }
             else
+            {
                 tpar.ctrl.ExtParam = nullptr;
-            
-            if (mfxExtRefListCtrl* refListCtrl = ExtBuffer::Get(tpar.ctrl))
-                changed = CheckRefListCtrl(refListCtrl);
+            }
+
+            mfxExtRefListCtrl* refListCtrl = ExtBuffer::Get(tpar.ctrl);
+            if (refListCtrl)
+            {
+                changed = CheckRefListCtrl(*refListCtrl);
+            }
         }
-        tpar.pSurfReal = tpar.pSurfIn;
-
-        core.IncreaseReference(*tpar.pSurfIn);
-
-        tpar.DPB.resize(par.mfx.NumRefFrame);
 
         return changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
     });
@@ -1415,6 +1455,7 @@ void General::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
             , StorageW& s_task) -> mfxStatus
     {
         auto& task = Task::Common::Get(s_task);
+        auto& encodedInfo = Task::EncodedInfo::Get(s_task);
 
         if (global.Contains(Glob::AllocRaw::Key))
         {
@@ -1431,7 +1472,7 @@ void General::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
 
         auto& fh = Glob::FH::Get(global);
         auto  def = GetRTDefaults(global);
-        ConfigureTask(task, def, recPool);
+        ConfigureTask(task, def, recPool, encodedInfo);
 
         auto& framesToShowInfo = Glob::FramesToShowInfo::Get(global);
         SetTaskFramesToShow(task, framesToShowInfo);
@@ -1505,6 +1546,8 @@ void General::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
     Push(BLK_CopyBS
         , [this](StorageW& global, StorageW& s_task) -> mfxStatus
     {
+        PERF_UTILITY_AUTO("BLK_CopyBS", PERF_LEVEL_INTERNAL);
+
         auto& task = Task::Common::Get(s_task);
         if (!task.pBsData)
         {
@@ -1522,8 +1565,7 @@ void General::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         }
 
         mfxStatus sts             = MFX_ERR_NONE;
-        auto&     taskMgrIface    = TaskManager::TMInterface::Get(global);
-        auto&     tm              = taskMgrIface.m_Manager;
+        auto&     tm              = Glob::TaskManager::Get(global).m_tm;
         bool      bNeedCacheFrame = task.BsDataLength > 0 && (IsHiddenFrame(task) || task.DisplayOrder != m_temporalUnitOrder);
         if (bNeedCacheFrame)
         {
@@ -1667,6 +1709,12 @@ void General::FreeTask(const FeatureBlocks& /*blocks*/, TPushFT Push)
         if(task.ctrl.NumExtParam)
             delete[] task.ctrl.ExtParam;
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+        if(task.saliencyMap.SaliencyMap)
+        {
+            delete[] task.saliencyMap.SaliencyMap;
+        }
+#endif
         return MFX_ERR_NONE;
     });
 }
@@ -1683,11 +1731,10 @@ void General::GetVideoParam(const FeatureBlocks& blocks, TPushGVP Push)
         , [this, &blocks](mfxVideoParam& out, StorageR& global) -> mfxStatus
     {
         out.mfx.LowPower = MFX_CODINGOPTION_ON;
-        if (HaveRABFrames(out))
+        if (out.mfx.RateControlMethod == MFX_RATECONTROL_CBR || out.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
         {
             auto defPar = GetRTDefaults(global);
-            const mfxU32 numCacheFrames = (defPar.base.GetBRefType(defPar) != MFX_B_REF_PYRAMID) ? mfxU32(2)
-                : mfxU32(defPar.base.GetNumBPyramidLayers(defPar)) + 1;
+            const mfxU32 numCacheFrames = defPar.base.GetTemporalUnitCacheSize(defPar);
             BufferSizeInKB(out.mfx) = BufferSizeInKB(out.mfx) * numCacheFrames;
         }
 
@@ -1722,8 +1769,11 @@ static void RemoveRejected(
 
 static void FillSortedFwdBwd(
     const TaskCommonPar& task
+    , mfxU8 maxFwdRefs
     , DpbIndexes* fwd
-    , DpbIndexes* bwd)
+    , DpbIndexes* bwd
+    , bool& useLTR
+    , bool& VCLowDelayFlat)
 {
     if (!fwd && !bwd)
         return;
@@ -1734,10 +1784,31 @@ static void FillSortedFwdBwd(
     auto IsBwd = [=](Ref ref) {return ref.first > task.DisplayOrderInGOP; };
 
     DisplayOrderToDPBIndex uniqueRefs;
+    const mfxExtRefListCtrl* refListCtrl = ExtBuffer::Get(task.ctrl);
+    std::set<mfxU8> preferedFwd;
+    if (refListCtrl)
+    {
+        for (const auto& ltr : refListCtrl->PreferredRefList)
+        {
+            if (ltr.FrameOrder == mfxU32(MFX_FRAMEORDER_UNKNOWN))
+                continue;
+
+            for (mfxU8 refIdx = 0; refIdx < mfxU8(task.DPB.size()); refIdx++)
+            {
+                auto& refFrm = task.DPB[refIdx];
+                if (refFrm && refFrm->DisplayOrderInGOP < task.DisplayOrderInGOP
+                    && refFrm->isLTR && refFrm->DisplayOrder == ltr.FrameOrder)
+                {
+                    preferedFwd.insert(refIdx);
+                }
+            }
+        }
+    }
+
     for (mfxU8 refIdx = 0; refIdx < task.DPB.size(); refIdx++)
     {
         auto& refFrm = task.DPB.at(refIdx);
-        if (refFrm && refFrm->TemporalID <= task.TemporalID)
+        if (refFrm && refFrm->TemporalID <= task.TemporalID && preferedFwd.count(refIdx) == 0)
             uniqueRefs.insert({ refFrm->DisplayOrderInGOP, refIdx });
     }
     uniqueRefs.erase(task.DisplayOrderInGOP);
@@ -1753,6 +1824,48 @@ static void FillSortedFwdBwd(
         if (fwd->empty() && firstBwd != uniqueRefs.begin()) {
             auto lastFwd = std::prev(firstBwd);
             fwd->push_back(lastFwd->second);
+        }
+
+        auto AdjustVCRefOrder = [](bool VCLowDelayFlat, std::size_t fwdSize)
+        {
+            return VCLowDelayFlat && fwdSize > 2;
+        };
+
+        if (AdjustVCRefOrder(VCLowDelayFlat,fwd->size()))
+        {
+            mfxI32 refFrmFwdIdx = -1;
+            mfxU8  refFrmDPBIdx = 0;
+            for (mfxI32 fwdIdx = (mfxI32)fwd->size() - 2; fwdIdx >= 0; fwdIdx--)
+            {
+                //fwd->size() - 2 start from the second cloest ref
+                mfxU8 DBPIdx = (*fwd)[fwdIdx];
+                if (task.DPB[DBPIdx]->DisplayOrder % 30 == 0)
+                {
+                    refFrmFwdIdx = fwdIdx;
+                    refFrmDPBIdx = (*fwd)[fwdIdx];
+                    break;
+                }
+            }
+            if (refFrmFwdIdx != -1)
+            {
+                fwd->insert(fwd->end() - 1, refFrmDPBIdx);
+                fwd->erase(fwd->begin() + refFrmFwdIdx);
+            }
+        }
+
+        if (!preferedFwd.empty())
+        {
+            useLTR = true;
+            if (maxFwdRefs < 2 || fwd->empty())
+                std::copy(preferedFwd.begin(), preferedFwd.end(), std::back_inserter(*fwd));
+            else
+            {
+                // Make sure the nearest STR will be used
+                auto last = fwd->back();
+                fwd->pop_back();
+                std::copy(preferedFwd.begin(), preferedFwd.end(), std::back_inserter(*fwd));
+                fwd->push_back(last);
+            }
         }
     }
 
@@ -1936,9 +2049,15 @@ inline std::tuple<mfxU8, mfxU8> GetMaxRefs(
 {
     const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
 
-    const mfxU8 maxFwdRefs = static_cast<mfxU8>(IsB(task.FrameType) ?
+    mfxU8 maxFwdRefs = static_cast<mfxU8>(IsB(task.FrameType) ?
         CO3.NumRefActiveBL0[0] : CO3.NumRefActiveP[0]);
     const mfxU8 maxBwdRefs = static_cast<mfxU8>(CO3.NumRefActiveBL1[0]);
+
+    const mfxExtRefListCtrl* refListCtrl = ExtBuffer::Get(task.ctrl);
+    if (refListCtrl && refListCtrl->NumRefIdxL0Active > 0)
+    {
+        maxFwdRefs = std::min(maxFwdRefs, mfxU8(refListCtrl->NumRefIdxL0Active));
+    }
 
     return std::make_tuple(maxFwdRefs, maxBwdRefs);
 }
@@ -1978,6 +2097,56 @@ inline void SetTaskQp(
     SetIf(task.QpY, !!task.ctrl.QP, static_cast<mfxU8>(task.ctrl.QP));
 }
 
+inline bool CheckQpInRangeOrClip(mfxI32 qp, mfxI8& delta)
+{
+
+    mfxI32 clipQp = static_cast<mfxI32>(delta);
+    if (qp + delta > 255)
+    {
+        clipQp = 255 - qp;
+    }
+    else if (qp + delta < 0)
+    {
+        clipQp = 0 - qp;
+    }
+    else
+    {
+        return false;
+    }
+
+    std::ignore = CheckRangeOrClip(clipQp, -63, 63);
+
+    delta = static_cast<mfxI8>(clipQp);
+    return true;
+}
+
+inline void ClipTaskDeltaQp(
+    TaskCommonPar& task
+    ,const mfxVideoParam& par)
+{
+    if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
+    {
+        return;
+    }
+    const mfxExtAV1AuxData& auxPar = ExtBuffer::Get(par);
+    mfxU32 changed = 0;
+
+    task.YDcDeltaQ = auxPar.QP.YDcDeltaQ;
+    task.UDcDeltaQ = auxPar.QP.UDcDeltaQ;
+    task.UAcDeltaQ = auxPar.QP.UAcDeltaQ;
+    task.VDcDeltaQ = auxPar.QP.VDcDeltaQ;
+    task.VAcDeltaQ = auxPar.QP.VAcDeltaQ;
+
+    changed += CheckQpInRangeOrClip(task.QpY, task.YDcDeltaQ);
+    changed += CheckQpInRangeOrClip(task.QpY, task.UDcDeltaQ);
+    changed += CheckQpInRangeOrClip(task.QpY, task.UAcDeltaQ);
+    changed += CheckQpInRangeOrClip(task.QpY, task.VDcDeltaQ);
+    changed += CheckQpInRangeOrClip(task.QpY, task.VAcDeltaQ);
+
+    std::ignore = changed;
+
+    return;
+}
 inline void SetTaskBRCParams(
     TaskCommonPar& task
     , const mfxVideoParam& par)
@@ -1985,9 +2154,22 @@ inline void SetTaskBRCParams(
     if(par.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
         return;
 
-    const mfxExtAV1AuxData& auxPar = ExtBuffer::Get(par);
-    task.MinBaseQIndex             = auxPar.QP.MinBaseQIndex;
-    task.MaxBaseQIndex             = auxPar.QP.MaxBaseQIndex;
+    const mfxExtCodingOption2& CO2 = ExtBuffer::Get(par);
+    if (task.FrameType & MFX_FRAMETYPE_I)
+    {
+        task.MinBaseQIndex = CO2.MinQPI;
+        task.MaxBaseQIndex = CO2.MaxQPI;
+    }
+    else if (task.FrameType & MFX_FRAMETYPE_P)
+    {
+        task.MinBaseQIndex = CO2.MinQPP;
+        task.MaxBaseQIndex = CO2.MaxQPP;
+    }
+    else if (task.FrameType & MFX_FRAMETYPE_B)
+    {
+        task.MinBaseQIndex = CO2.MinQPB;
+        task.MaxBaseQIndex = CO2.MaxQPB;
+    }
 }
 
 inline void SetTaskEncodeOrders(
@@ -2010,6 +2192,23 @@ inline void SetTaskEncodeOrders(
     }
 }
 
+inline mfxU8 CountUniqueSTR(DpbType& taskDPB)
+{
+
+    mfxU8 count = 0;
+    std::set<mfxU32> checkedRef;
+    for (auto& ref : taskDPB)
+    {
+        if (ref && !ref->isLTR && checkedRef.count(ref->DisplayOrder) == 0)
+        {
+            count += 1;
+            checkedRef.insert(ref->DisplayOrder);
+        }
+    }
+
+    return count;
+}
+
 // task - [in/out] Current task object, task.DPB may be modified
 // Return - N/A
 inline void MarkLTR(TaskCommonPar& task)
@@ -2017,24 +2216,20 @@ inline void MarkLTR(TaskCommonPar& task)
     const mfxExtRefListCtrl* refListCtrl = ExtBuffer::Get(task.ctrl);
 
     // If external reflist is not used, check for internal reflist
-    if (!refListCtrl && task.InternalListCtrlPresent) {
+    if (!refListCtrl && task.InternalListCtrlPresent)
+    {
         refListCtrl = &task.InternalListCtrl;
     }
 
     if (!refListCtrl)
         return;
 
-    // Count how many unique STR left in DPB so far
-    // We need to keep at least 1 STR
-    decltype(task.DPB) tmpDPB(task.DPB);
-    std::ignore = std::unique(tmpDPB.begin(), tmpDPB.end());
-    auto numberOfUniqueSTRs = std::count_if(
-        tmpDPB.begin()
-        , tmpDPB.end()
-        , [](const DpbType::value_type& f) { return f && !f->isLTR; });
+    mfxU8 numberOfUniqueSTRs = CountUniqueSTR(task.DPB);
+    if (numberOfUniqueSTRs == 0)
+        return;
 
     const auto& ltrList = refListCtrl->LongTermRefList;
-    for (mfxI32 i = 0; i < 16 && numberOfUniqueSTRs > 1; i++)
+    for (size_t i = 0; i < mfx::size(ltrList); i++)
     {
         const mfxU32 ltrFrameOrder = ltrList[i].FrameOrder;
         if (ltrFrameOrder == static_cast<mfxU32>(MFX_FRAMEORDER_UNKNOWN))
@@ -2050,8 +2245,26 @@ inline void MarkLTR(TaskCommonPar& task)
             && !(*frameToBecomeLTR)->isRejected)
         {
             (*frameToBecomeLTR)->isLTR = true;
-            numberOfUniqueSTRs--;
+            (*frameToBecomeLTR)->LongTermIdx = ltrList[i].LongTermIdx;
+            if (--numberOfUniqueSTRs == 0)
+                break;
         }
+    }
+}
+
+inline void UpdateLTRInfo(TaskCommonPar& task, EncodedInfoAv1& encodedInfo)
+{
+    encodedInfo.DisplayOrder = task.DisplayOrder;
+
+    auto LTRframe = std::find_if(
+        task.DPB.begin()
+        , task.DPB.end()
+        , [encodedInfo](const DpbType::value_type& f) {
+            return f && f->isLTR && f->DisplayOrder == encodedInfo.DisplayOrder;});
+    if (LTRframe != task.DPB.end())
+    {
+        encodedInfo.isLTR = true;
+        encodedInfo.LongTermIdx = (*LTRframe)->LongTermIdx;
     }
 }
 
@@ -2083,6 +2296,21 @@ inline void MarkRejected(TaskCommonPar& task)
             if (f && f->DisplayOrder == rejectedFrameOrder)
                 f->isRejected = true;
     }
+
+    if (!refListCtrl->ApplyLongTermIdx)
+        return;
+
+    for (const auto& ltr : refListCtrl->LongTermRefList)
+    {
+        if (ltr.FrameOrder == mfxU32(MFX_FRAMEORDER_UNKNOWN))
+            continue;
+
+        for (auto& f : task.DPB)
+        {
+            if (f && f->isLTR && f->LongTermIdx == ltr.LongTermIdx)
+                f->isRejected = true;
+        }
+    }
 }
 
 inline void InitTaskDPB(
@@ -2095,12 +2323,33 @@ inline void InitTaskDPB(
     MarkRejected(task);
 }
 
+inline bool IsVCLowDelayFlat(
+    const TaskCommonPar& task
+    , const mfxVideoParam& par)
+{
+
+    bool lowDelayFlat = false;
+    lowDelayFlat = IsP(task.FrameType) && par.mfx.GopRefDist == 1;
+
+    const mfxExtTemporalLayers& pTemporalLayers = ExtBuffer::Get(par);
+    if (pTemporalLayers.NumLayers != 0)
+        lowDelayFlat = false;
+
+    const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
+    if (lowDelayFlat && (CO3.ScenarioInfo == MFX_SCENARIO_VIDEO_CONFERENCE))
+    {
+        return true;
+    }
+    return false;
+}
+
 // task - [in/out] Current task object, RefList field will be set in place
 // par - [in] mfxVideoParam
 // Return - N/A
 inline void SetTaskRefList(
     TaskCommonPar& task
-    , const mfxVideoParam& par)
+    , const mfxVideoParam& par
+    , bool& useLTR)
 {
     auto& refList = task.RefList;
     std::fill_n(refList.begin(), REFS_PER_FRAME, IDX_INVALID);
@@ -2108,13 +2357,14 @@ inline void SetTaskRefList(
     if (IsI(task.FrameType))
         return;
 
-    DpbIndexes fwd;
-    DpbIndexes bwd;
-    FillSortedFwdBwd(task, &fwd, &bwd);
-
+    bool isVideoConferenceLowDelayRef = IsVCLowDelayFlat(task, par);
     mfxU8 maxFwdRefs = 0;
     mfxU8 maxBwdRefs = 0;
     std::tie(maxFwdRefs, maxBwdRefs) = GetMaxRefs(task, par);
+
+    DpbIndexes fwd;
+    DpbIndexes bwd;
+    FillSortedFwdBwd(task, maxFwdRefs, &fwd, &bwd, useLTR, isVideoConferenceLowDelayRef);
 
     if (IsP(task.FrameType))
     {
@@ -2144,23 +2394,148 @@ DPBIter FindOldestSTR(DPBIter dpbBegin, DPBIter dpbEnd, mfxU8 tid)
     return oldestSTR;
 }
 
+inline void SetVCLowDelayFlatDPBRefresh(
+    TaskCommonPar& task
+    , mfxU8& refreshed
+    , DpbType::iterator& slotToRefresh)
+{
+
+    auto dpbBegin = task.DPB.begin();
+    auto dpbEnd = task.DPB.end();
+
+    // If no LTR was refreshed, then find duplicate reference frame
+    // Some frames can be included multiple times into DPB
+
+    enum REF_REFRESHED_PRIORITY
+    {
+        NO_FRAME_REFRESHED = 0,
+        OLDEST_4X_REFRESHED = 1,
+        NON_30X_4X_REFRESHED = 2,
+        USELESS_30X_REFRESHED = 3,
+        DUPLICATED_REFRESHED = 4,
+    };
+    mfxI32  displayOrderInGOP = -1;
+
+    for (auto item = dpbBegin; item < dpbEnd; ++item)
+    {
+        displayOrderInGOP = (*item)->DisplayOrderInGOP;
+
+        //Ignore LTR
+        if ((*item)->isLTR)
+            continue;
+
+        // find duplicate ref 
+        if (std::find(dpbBegin, item, *item) != item)
+        {
+            slotToRefresh = item;
+            refreshed = DUPLICATED_REFRESHED;
+            break;
+        }
+
+        //find useless 30x ref
+        if (refreshed < USELESS_30X_REFRESHED && (displayOrderInGOP % 30 == 0) && (displayOrderInGOP / 30 != task.DisplayOrderInGOP / 30 ))
+        {
+            slotToRefresh = item;
+            refreshed = USELESS_30X_REFRESHED;
+        }
+
+        //find oldest non 4x/30x ref
+        if (refreshed <= NON_30X_4X_REFRESHED && (displayOrderInGOP % 4 != 0 && displayOrderInGOP % 30 != 0))
+        {
+            slotToRefresh = (slotToRefresh == dpbEnd) || (refreshed == OLDEST_4X_REFRESHED) || (*item)->DisplayOrderInGOP < (*slotToRefresh)->DisplayOrderInGOP ? item : slotToRefresh;
+            refreshed = NON_30X_4X_REFRESHED;
+        }
+
+        //find oldest 4x ref
+        if (refreshed <= OLDEST_4X_REFRESHED && (displayOrderInGOP % 4 == 0 && displayOrderInGOP % 30 != 0))
+        {
+            refreshed = OLDEST_4X_REFRESHED;
+            slotToRefresh = (slotToRefresh == dpbEnd) || (*item)->DisplayOrderInGOP < (*slotToRefresh)->DisplayOrderInGOP ? item : slotToRefresh;
+        }
+        
+    }
+}
+
+inline mfxU8 SetTaskDPBRefreshLowDelayFlat(
+    TaskCommonPar& task
+    , const mfxVideoParam& par)
+{
+    mfxU8 refreshed = 0;
+    bool lowDelayFlat = IsP(task.FrameType) && par.mfx.GopRefDist == 1;
+    const mfxExtTemporalLayers* pTemporalLayers = ExtBuffer::Get(par);
+    if (pTemporalLayers && pTemporalLayers->NumLayers != 0)
+        lowDelayFlat = false;
+
+    if(!lowDelayFlat)
+        return refreshed;
+
+    auto& refreshRefFrames = task.RefreshFrameFlags;
+    auto dpbBegin = task.DPB.begin();
+    auto dpbEnd = task.DPB.end();
+    auto slotToRefresh = dpbEnd;
+
+    const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
+    if (CO3.ScenarioInfo == MFX_SCENARIO_VIDEO_CONFERENCE) 
+    {
+        SetVCLowDelayFlatDPBRefresh(task, refreshed, slotToRefresh);
+    }
+    else 
+    {
+        //use -1 ref or 4x ref
+        for (auto item = dpbBegin; item < dpbEnd; ++item)
+        {
+            //refresh -1 ref
+            if ((*item)->DisplayOrderInGOP % 4 != 0
+                && (*item)->DisplayOrderInGOP == task.DisplayOrderInGOP - 1
+                && !(*item)->isLTR)
+            {
+                slotToRefresh = item;
+                refreshed = 1;
+                break;
+            }
+            //refresh oldest 4x ref
+            if ((*item)->DisplayOrderInGOP % 4 == 0
+                && !(*item)->isLTR)
+            {
+                slotToRefresh = (slotToRefresh == dpbEnd) ? item
+                    : (*item)->DisplayOrderInGOP < (*slotToRefresh)->DisplayOrderInGOP ? item : slotToRefresh;
+                refreshed = 1;
+            }
+        }
+    }
+
+    if (slotToRefresh != dpbEnd)
+        refreshRefFrames.at(slotToRefresh - dpbBegin) = 1;
+
+    return refreshed;
+}
+
 // task - [in/out] Current task object, RefreshFrameFlags field will be set in place
 // Return - N/A
 inline void SetTaskDPBRefresh(
     TaskCommonPar& task
-    , const mfxVideoParam&)
+    , const mfxVideoParam& par
+    , bool useLTR)
 {
     auto& refreshRefFrames = task.RefreshFrameFlags;
 
     if (IsI(task.FrameType))
-        std::fill(refreshRefFrames.begin(), refreshRefFrames.end(), static_cast<mfxU8>(1));
+        std::fill(refreshRefFrames.begin(), refreshRefFrames.end(), mfxU8(1));
     else if (IsRef(task.FrameType))
     {
         // At first find all rejected LTRs to refresh them with current frame
         mfxU8 refreshed = 0;
+
         for (size_t i = 0; i < task.DPB.size(); i++)
+        {
             if (task.DPB[i]->isRejected)
                 refreshed = refreshRefFrames.at(i) = 1;
+        }
+
+        if (!refreshed) 
+        {
+            refreshed = SetTaskDPBRefreshLowDelayFlat(task, par);
+        }
 
         if (!refreshed)
         {
@@ -2184,7 +2559,27 @@ inline void SetTaskDPBRefresh(
             if (slotToRefresh != dpbEnd)
                 refreshRefFrames.at(slotToRefresh - dpbBegin) = 1;
         }
+
+        if (useLTR)
+        {
+            // If current frame uses Long-term reference, it will refresh all STRs which is earlier
+            // than it
+            for (size_t i = 0; i < task.DPB.size(); i++)
+            {
+                if (task.DPB[i] && !task.DPB[i]->isLTR && task.DPB[i]->DisplayOrder < task.DisplayOrder)
+                    refreshed = refreshRefFrames.at(i) = 1;
+            }
+        }
+
+        // If this frame is not put into DPB, it will not be ref-frame
+        if (std::find(refreshRefFrames.begin(), refreshRefFrames.end(), 1) == refreshRefFrames.end())
+            task.FrameType &= ~MFX_FRAMETYPE_REF;
+        else
+        {
+            std::fill(refreshRefFrames.begin() + task.DPB.size(), refreshRefFrames.end(), mfxU8(1));
+        }
     }
+
 }
 
 class DpbFrameReleaser
@@ -2274,19 +2669,22 @@ inline void SetTaskTCBRC(
 void General::ConfigureTask(
     TaskCommonPar& task
     , const Defaults::Param& dflts
-    , IAllocation& recPool)
+    , IAllocation& recPool
+    , EncodedInfoAv1& encodedInfo)
 {
     task.StatusReportId = std::max<mfxU32>(1, m_prevTask.StatusReportId + 1);
 
     const auto& par = dflts.mvp;
     SetTaskQp(task, par);
+    ClipTaskDeltaQp(task, par);
     SetTaskBRCParams(task, par);
     SetTaskEncodeOrders(task, m_prevTask);
 
     InitTaskDPB(task, m_prevTask);
 
-    SetTaskRefList(task, par);
-    SetTaskDPBRefresh(task, par);
+    bool useLTR = false;
+    SetTaskRefList(task, par, useLTR);
+    SetTaskDPBRefresh(task, par, useLTR);
     SetTaskInsertHeaders(task, m_prevTask, par, m_insertIVFSeq);
 
     const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
@@ -2299,6 +2697,7 @@ void General::ConfigureTask(
 
     UpdateDPB(m_prevTask.DPB, reinterpret_cast<DpbFrame&>(task), task.RefreshFrameFlags, DpbFrameReleaser(recPool));
     MarkLTR(m_prevTask);
+    UpdateLTRInfo(m_prevTask, encodedInfo);
 }
 
 static bool HaveL1(DpbType const & dpb, mfxI32 displayOrderInGOP)
@@ -2596,6 +2995,8 @@ void General::SetSH(
     sh.color_config.subsampling_x       = 1; // YUV 4:2:0
     sh.color_config.subsampling_y       = 1; // YUV 4:2:0
 
+    sh.timing_info_present_flag         = CO2Flag(CO3.TimingInfoPresent);
+
     const mfxExtVideoSignalInfo& VSI               = ExtBuffer::Get(par);
     sh.color_config.color_range                    = VSI.VideoFullRange;
     sh.color_config.color_description_present_flag = VSI.ColourDescriptionPresent;
@@ -2713,8 +3114,8 @@ void General::SetFH(
 
     fh.TxMode = TX_MODE_SELECT;
     fh.reduced_tx_set = 1;
-    fh.delta_lf_present = 1;
-    fh.delta_lf_multi = 1;
+    fh.delta_lf_present = 0;
+    fh.delta_lf_multi = 0;
 
     fh.quantization_params.using_qmatrix = 0;
     fh.quantization_params.qm_y = 15;
@@ -2784,7 +3185,7 @@ void SetDefaultGOP(
         SetIf(pCO3->PRefType, !pCO3->PRefType, [&]() { return defPar.base.GetPRefType(defPar); });
         
         // change default to LDB when RAB
-        if (General::HaveRABFrames(par))
+        if (HaveRABFrames(par))
             SetDefault<mfxU16>(pCO3->GPB, MFX_CODINGOPTION_ON);
         else
             SetDefault<mfxU16>(pCO3->GPB, MFX_CODINGOPTION_OFF);
@@ -2834,11 +3235,14 @@ void SetDefaultBRC(
         SetDefault<mfxU16>(par.mfx.ICQQuality, 26);
     }
 
-    mfxExtAV1AuxData* pAuxPar = ExtBuffer::Get(par);
-    if (pAuxPar && par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
+    if (pCO2 && par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
-        SetDefault(pAuxPar->QP.MinBaseQIndex, AV1_MIN_Q_INDEX);
-        SetDefault(pAuxPar->QP.MaxBaseQIndex, AV1_MAX_Q_INDEX);
+        SetDefault(pCO2->MinQPI, AV1_MIN_Q_INDEX);
+        SetDefault(pCO2->MinQPP, AV1_MIN_Q_INDEX);
+        SetDefault(pCO2->MinQPB, AV1_MIN_Q_INDEX);
+        SetDefault(pCO2->MaxQPI, AV1_MAX_Q_INDEX);
+        SetDefault(pCO2->MaxQPP, AV1_MAX_Q_INDEX);
+        SetDefault(pCO2->MaxQPB, AV1_MAX_Q_INDEX);
     }
 
     if (pCO3)
@@ -2880,7 +3284,7 @@ void General::SetDefaults(
 
     const mfxU16 IOPByAlctr[2] = { MFX_IOPATTERN_IN_SYSTEM_MEMORY, MFX_IOPATTERN_IN_VIDEO_MEMORY };
     SetDefault(par.IOPattern, IOPByAlctr[!!bExternalFrameAllocator]);
-    SetDefault(par.mfx.TargetUsage, DEFAULT_TARGET_USAGE);
+    SetDefault(par.mfx.TargetUsage, defPar.base.GetTargetUsage(defPar));
     SetDefault(par.mfx.NumThread, 1);
 
     mfxExtAV1ResolutionParam* pRsPar = ExtBuffer::Get(par);
@@ -2913,9 +3317,10 @@ void General::SetDefaults(
         SetDefault(pAuxPar->EnableCdef, MFX_CODINGOPTION_ON);
         SetDefault(pAuxPar->EnableRestoration, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->EnableLoopFilter, MFX_CODINGOPTION_ON);
-        SetDefault(pAuxPar->InterpFilter, MFX_AV1_INTERP_EIGHTTAP);
+        SetDefault(pAuxPar->InterpFilter, MFX_AV1_INTERP_DEFAULT);
         SetDefault(pAuxPar->DisableCdfUpdate, MFX_CODINGOPTION_OFF);
-        SetDefault(pAuxPar->DisableFrameEndUpdateCdf, MFX_CODINGOPTION_OFF);
+        // DisableFrameEndUpdateCdf has to be ON if DisableCdfUpdate is ON.
+        SetDefault(pAuxPar->DisableFrameEndUpdateCdf, pAuxPar->DisableCdfUpdate);
         SetDefault(pAuxPar->LoopFilter.ModeRefDeltaEnabled, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->LoopFilter.ModeRefDeltaUpdate, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->DisplayFormatSwizzle, MFX_CODINGOPTION_OFF);
@@ -2970,9 +3375,9 @@ mfxStatus General::CheckFrameRate(mfxVideoParam & par)
 {
     auto& fi = par.mfx.FrameInfo;
 
-    if (fi.FrameRateExtN && fi.FrameRateExtD) // FR <= 300
+    if (fi.FrameRateExtN && fi.FrameRateExtD) // FR <= 1000
     {
-        if (fi.FrameRateExtN > mfxU32(300 * fi.FrameRateExtD))
+        if (fi.FrameRateExtN > mfxU32(1000 * fi.FrameRateExtD))
         {
             fi.FrameRateExtN = fi.FrameRateExtD = 0;
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
@@ -3004,7 +3409,8 @@ mfxStatus General::CheckShift(mfxVideoParam & par)
 
     if (bVideoMem && !fi.Shift)
     {
-        if (fi.FourCC == MFX_FOURCC_P010 || fi.FourCC == MFX_FOURCC_P210)
+        if (fi.FourCC == MFX_FOURCC_P010
+            )
         {
             fi.Shift = 1;
             return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
@@ -3046,12 +3452,13 @@ mfxU32 CheckBufferSizeInKB(mfxVideoParam& par, const Defaults::Param& defPar)
     if (!par.mfx.BufferSizeInKB)
         return changed;
 
-    mfxU32     minSizeInKB   = 0;
-    const bool bCqpOrIcq     = par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
+    mfxU32     minSizeInKB = 0;
+    const bool bCqpOrIcq   = par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
         || par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ;
     if (bCqpOrIcq)
     {
-        minSizeInKB = General::GetRawBytes(defPar) / 1000;
+        const mfxU32 numCacheFrames = defPar.base.GetTemporalUnitCacheSize(defPar);
+        minSizeInKB =  General::GetRawBytes(defPar) / 1000 * numCacheFrames;
     }
     else
     {
@@ -3071,14 +3478,15 @@ mfxU32 CheckBufferSizeInKB(mfxVideoParam& par, const Defaults::Param& defPar)
     return changed;
 }
 
-inline mfxU32 CheckAndFixQP(mfxU16& qp, const mfxU16 minQP, const mfxU16 maxQP)
+template<class T, class U>
+inline mfxU32 CheckAndFixQP(T& qp, const U minQP, const U maxQP)
 {
     mfxU32 changed = 0;
 
     if (qp)
     {
-        changed += CheckMinOrClip<mfxU16>(qp, minQP);
-        changed += CheckMaxOrClip<mfxU16>(qp, maxQP);
+        changed += CheckMinOrClip<T, U>(qp, minQP);
+        changed += CheckMaxOrClip<T, U>(qp, maxQP);
     }
 
     return changed;
@@ -3131,12 +3539,31 @@ mfxStatus General::CheckRateControl(
     mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
     if (pCO2)
     {
-        changed += CheckOrZero<mfxU8>(pCO2->MinQPI, 0, minQP);
-        changed += CheckOrZero<mfxU8>(pCO2->MaxQPI, 0, maxQP);
-        changed += CheckOrZero<mfxU8>(pCO2->MinQPP, 0, minQP);
-        changed += CheckOrZero<mfxU8>(pCO2->MaxQPP, 0, maxQP);
-        changed += CheckOrZero<mfxU8>(pCO2->MinQPB, 0, minQP);
-        changed += CheckOrZero<mfxU8>(pCO2->MaxQPB, 0, maxQP);
+        // some apps would only set MinQP or MaxQP
+        bool bInvalid = (pCO2->MaxQPI && pCO2->MinQPI && pCO2->MaxQPI < pCO2->MinQPI)
+            || (pCO2->MaxQPP && pCO2->MinQPP && pCO2->MaxQPP < pCO2->MinQPP)
+            || (pCO2->MaxQPB && pCO2->MinQPB && pCO2->MaxQPB < pCO2->MinQPB);
+
+        MFX_CHECK(!bInvalid, MFX_ERR_INVALID_VIDEO_PARAM);
+
+        if (bCQP)
+        {
+            changed += CheckOrZero<mfxU8>(pCO2->MinQPI, 0);
+            changed += CheckOrZero<mfxU8>(pCO2->MinQPP, 0);
+            changed += CheckOrZero<mfxU8>(pCO2->MinQPB, 0);
+            changed += CheckOrZero<mfxU8>(pCO2->MaxQPI, 0);
+            changed += CheckOrZero<mfxU8>(pCO2->MaxQPP, 0);
+            changed += CheckOrZero<mfxU8>(pCO2->MaxQPB, 0);
+        }
+        else
+        {
+            changed += CheckAndFixQP(pCO2->MinQPI, minQP, maxQP);
+            changed += CheckAndFixQP(pCO2->MinQPP, minQP, maxQP);
+            changed += CheckAndFixQP(pCO2->MinQPB, minQP, maxQP);
+            changed += CheckAndFixQP(pCO2->MaxQPI, minQP, maxQP);
+            changed += CheckAndFixQP(pCO2->MaxQPP, minQP, maxQP);
+            changed += CheckAndFixQP(pCO2->MaxQPB, minQP, maxQP);
+        }
     }
 
     mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
@@ -3166,25 +3593,6 @@ mfxStatus General::CheckRateControl(
         };
 
         changed += !!std::count_if(std::begin(pCO3->QPOffset), std::end(pCO3->QPOffset), CheckQPOffset);
-    }
-
-    mfxExtAV1AuxData* pAuxPar = ExtBuffer::Get(par);
-    if (pAuxPar)
-    {
-        if (bCQP)
-        {
-            changed += CheckOrZero<mfxU8>(pAuxPar->QP.MinBaseQIndex, 0);
-            changed += CheckOrZero<mfxU8>(pAuxPar->QP.MaxBaseQIndex, 0);
-        }
-        else
-        {
-            if (pAuxPar->QP.MinBaseQIndex || pAuxPar->QP.MaxBaseQIndex)
-            {
-                changed += CheckRangeOrClip(pAuxPar->QP.MinBaseQIndex, minQP, maxQP);
-                changed += CheckRangeOrClip(pAuxPar->QP.MaxBaseQIndex, minQP, maxQP);
-                changed += CheckMaxOrClip(pAuxPar->QP.MinBaseQIndex, pAuxPar->QP.MaxBaseQIndex);
-            }
-        }
     }
 
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
@@ -3336,6 +3744,23 @@ mfxStatus General::CheckTU(mfxVideoParam & par, const ENCODE_CAPS_AV1& /* caps *
 
 }
 
+inline mfxStatus FixDeltaQpRange(mfxU16& qp, mfxExtAV1AuxData* pAuxPar)
+{
+    MFX_CHECK(pAuxPar, MFX_ERR_NULL_PTR);
+
+    mfxU32 changed = 0;
+
+    changed += CheckQpInRangeOrClip(qp, pAuxPar->QP.YDcDeltaQ);
+    changed += CheckQpInRangeOrClip(qp, pAuxPar->QP.UDcDeltaQ);
+    changed += CheckQpInRangeOrClip(qp, pAuxPar->QP.UAcDeltaQ);
+    changed += CheckQpInRangeOrClip(qp, pAuxPar->QP.VDcDeltaQ);
+    changed += CheckQpInRangeOrClip(qp, pAuxPar->QP.VAcDeltaQ);
+
+    MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+
+    return MFX_ERR_NONE;
+}
+
 mfxStatus General::CheckDeltaQ(mfxVideoParam& par)
 {
     mfxExtAV1AuxData* pAuxPar = ExtBuffer::Get(par);
@@ -3353,6 +3778,20 @@ mfxStatus General::CheckDeltaQ(mfxVideoParam& par)
     changed += CheckMaxOrClip(pAuxPar->QP.VDcDeltaQ, 63);
     changed += CheckMinOrClip(pAuxPar->QP.VAcDeltaQ, -63);
     changed += CheckMaxOrClip(pAuxPar->QP.VAcDeltaQ, 63);
+
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
+    {
+        changed += FixDeltaQpRange(par.mfx.QPI, pAuxPar);
+        if (par.mfx.GopPicSize > 1)
+        {
+            changed += FixDeltaQpRange(par.mfx.QPP, pAuxPar);
+        }
+        if (par.mfx.GopRefDist > 1)
+        {
+            changed += FixDeltaQpRange(par.mfx.QPB, pAuxPar);
+        }
+    }
+
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
     return MFX_ERR_NONE;
@@ -3631,7 +4070,7 @@ mfxStatus General::CopyConfigurable(const ParamSupport& sprt, const mfxVideoPara
             CopyEB(copyIt->second, pEbIn, pEbTmp);
         }
 
-        if(pEbOut->BufferId == MFX_EXTBUFF_AV1_AUXDATA)
+        if(pEbOut->BufferId == MFX_EXTBUFF_AV1_AUXDATA && pEbIn)
         {
             std::copy_n((mfxU8*)pEbIn, pEbIn->BufferSz, ebTmp.data());
         }
@@ -3655,20 +4094,6 @@ mfxStatus General::CheckCodedPicSize(
     return MFX_ERR_NONE;
 }
 
-bool Base::MapToDefinedLevel(mfxU16& level)
-{
-    auto levelIt = LevelsRemap.find(level);
-    if(levelIt != LevelsRemap.end())
-    {
-        level = levelIt->second;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
 mfxStatus General::CheckLevelConstraints(
     mfxVideoParam& par
     , const Defaults::Param& defPar)
@@ -3679,17 +4104,14 @@ mfxStatus General::CheckLevelConstraints(
     mfxU32 maxKbps  = 0;
     SetIf(maxKbps, rc != MFX_RATECONTROL_CQP && rc != MFX_RATECONTROL_ICQ, [&]() { return defPar.base.GetMaxKbps(defPar); });
 
-    const auto                frND    = defPar.base.GetFrameRate(defPar);
     const auto                res     = GetRealResolution(par);
     const mfxExtAV1TileParam* pTiles  = ExtBuffer::Get(par);
     const mfxExtAV1AuxData*   pAuxPar = ExtBuffer::Get(par);
     const auto                tiles   = GetNumTiles(pTiles, pAuxPar);
 
     const mfxU16 minLevel = GetMinLevel(
-        std::get<0>(frND)
-        , std::get<1>(frND)
-        , std::get<0>(res)
-        ,std::get<1>(res)
+        std::get<0>(res)
+        , std::get<1>(res)
         , std::get<0>(tiles)
         , std::get<1>(tiles)
         , maxKbps
@@ -3716,13 +4138,6 @@ mfxStatus General::CheckLevelConstraints(
         pRsPar->FrameWidth  = 0;
         pRsPar->FrameHeight = 0;
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
-    }
-
-    const mfxF64 maxFrameRate = GetMaxFrameRateByLevel(par.mfx.CodecLevel, std::get<0>(res), std::get<1>(res));
-    if (par.mfx.FrameInfo.FrameRateExtN > maxFrameRate * par.mfx.FrameInfo.FrameRateExtD)
-    {
-        // Not clip frame rate, only return warning if it exceeds maximum value
-        changed++;
     }
 
     if (maxKbps > 0)
@@ -3756,6 +4171,20 @@ mfxStatus General::CheckTCBRC(mfxVideoParam& par, const ENCODE_CAPS_AV1& caps)
     bool isVBR = par.mfx.RateControlMethod  ==  MFX_RATECONTROL_VBR;
     mfxU32 changed = 0;
     changed += SetIf(CO3->LowDelayBRC, !(caps.SupportedRateControlMethods.fields.TCBRCSupport && isVBR), MFX_CODINGOPTION_OFF);
+
+    MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+    return MFX_ERR_NONE;
+}
+
+mfxStatus General::CheckCdfUpdate(mfxVideoParam& par)
+{
+    mfxExtAV1AuxData* auxPar = ExtBuffer::Get(par);
+    MFX_CHECK(auxPar, MFX_ERR_NONE);
+
+    mfxU32 changed = 0;
+    changed += SetIf(auxPar->DisableFrameEndUpdateCdf, 
+                    CO2Flag(auxPar->DisableCdfUpdate) && !CO2Flag(auxPar->DisableFrameEndUpdateCdf), 
+                    MFX_CODINGOPTION_ON);
 
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
     return MFX_ERR_NONE;
@@ -3921,7 +4350,6 @@ inline mfxU32 GetReferenceMode(const TaskCommonPar& task)
 inline int av1_get_relative_dist(const SH& sh, const uint32_t a, const uint32_t b)
 {
     // the logic is from AV1 spec 5.9.3
-
     if (!sh.enable_order_hint)
         return 0;
 
@@ -4050,6 +4478,12 @@ mfxStatus General::GetCurrentFrameHeader(
 
     currFH.quantization_params.base_q_idx = task.QpY;
 
+    currFH.quantization_params.DeltaQYDc = task.YDcDeltaQ;
+    currFH.quantization_params.DeltaQUDc = task.UDcDeltaQ;
+    currFH.quantization_params.DeltaQUAc = task.UAcDeltaQ;
+    currFH.quantization_params.DeltaQVDc = task.VDcDeltaQ;
+    currFH.quantization_params.DeltaQVAc = task.VAcDeltaQ;
+
     if (IsLossless(currFH))
     {
         currFH.CodedLossless = 1;
@@ -4072,5 +4506,5 @@ mfxStatus General::GetCurrentFrameHeader(
 }
 
 }
-
+}
 #endif

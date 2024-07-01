@@ -1,6 +1,3 @@
-
-#==============MCTF========================================================
-
 set(sources
     src/mfx_denoise_vpp.cpp
     src/mfx_detail_enhancement_vpp.cpp
@@ -15,13 +12,17 @@ set(sources
     src/mfx_vpp_sw_internal.cpp
     src/mfx_vpp_utils.cpp
     src/mfx_vpp_jpeg.cpp
+    src/mfx_vpp_ai_frame_interpolation.cpp
     )
 
 add_library(vpp_hw STATIC ${sources})
 
 target_include_directories(vpp_hw
   PUBLIC
-    include)
+    include
+    ${OPENCL_INCLUDE}
+    ${MSDK_STUDIO_ROOT}/mfx_lib/ext/ai_vfi
+    )
 
 target_link_libraries(vpp_hw
   PUBLIC
@@ -30,6 +31,7 @@ target_link_libraries(vpp_hw
     vpp_hw_avx2
     mfx_sdl_properties
     $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
+    $<$<AND:$<PLATFORM_ID:Windows>,$<BOOL:${MFX_ENABLE_EXT}>>:ai_vfi_ext>
   )
 
 add_library(vpp_hw_avx2

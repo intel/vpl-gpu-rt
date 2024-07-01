@@ -27,6 +27,10 @@
 #include "hevcehw_ddi.h"
 #include "ehw_resources_pool.h"
 #include "ehw_device.h"
+#include "ehw_task_manager.h"
+#if defined(MFX_ENABLE_ENCTOOLS_BASE)
+#include "mfxenctools-int.h"
+#endif
 #include <vector>
 
 namespace HEVCEHW
@@ -272,6 +276,8 @@ namespace Base
         mfxU32 num_ticks_poc_diff_one_minus1 : 10;
         mfxU32 num_hrd_parameters            : 10;
 
+        mfxU8 extension_flag                 : 1;
+        mfxU8 ExtensionFlags;
         //VPSHRD* hrd; //max 1024
     };
 
@@ -688,8 +694,10 @@ namespace Base
         mfxU32   DisplayOrder   = mfxU32(-1);
         mfxU32   EncodedOrder   = mfxU32(-1);
         bool     isLTR          = false; // is "long-term"
+        mfxU16   LongTermIdx    = mfxU16(0);
         mfxU8    CodingType     = 0;
         Resource Raw;
+        Resource RawTmp;
         Resource Rec;
         mfxFrameSurface1* pSurfIn = nullptr; //input surface, may be opaque
     } DpbFrame, DpbArray[MAX_DPB_SIZE];
@@ -724,15 +732,16 @@ namespace Base
 
     enum eInsertHeader
     {
-        INSERT_AUD      = 0x01,
-        INSERT_VPS      = 0x02,
-        INSERT_SPS      = 0x04,
-        INSERT_PPS      = 0x08,
-        INSERT_BPSEI    = 0x10,
-        INSERT_PTSEI    = 0x20,
-        INSERT_DCVSEI   = 0x40,
-        INSERT_LLISEI   = 0x80,
-        INSERT_SEI      = (INSERT_BPSEI | INSERT_PTSEI | INSERT_DCVSEI | INSERT_LLISEI)
+        INSERT_AUD      = 0x0001,
+        INSERT_VPS      = 0x0002,
+        INSERT_SPS      = 0x0004,
+        INSERT_PPS      = 0x0008,
+        INSERT_BPSEI    = 0x0010,
+        INSERT_PTSEI    = 0x0020,
+        INSERT_DCVSEI   = 0x0040,
+        INSERT_LLISEI   = 0x0080,
+        INSERT_ACISEI   = 0x0100,
+        INSERT_SEI      = (INSERT_BPSEI | INSERT_PTSEI | INSERT_DCVSEI | INSERT_LLISEI | INSERT_ACISEI)
     };
 
     enum eRecFlag
@@ -786,7 +795,7 @@ namespace Base
         Resource            CUQP;
         mfxHDLPair          HDLRaw              = {};
         bool                bCUQPMap            = false;
-#if defined(MFX_ENABLE_ENCTOOLS)
+#if defined(MFX_ENABLE_ENCTOOLS_BASE)
         mfxLplastatus       LplaStatus          = {};
 #endif
         mfxGopHints         GopHints            = {};
@@ -1106,6 +1115,7 @@ namespace Base
         TChain<mfxU16> GetNumTemporalLayers;
         TChain<mfxU16> GetGopPicSize;
         TChain<mfxU16> GetGopRefDist;
+        TChain<mfxU16> GetTargetUsage;
         TChain<mfxU16> GetNumBPyramidLayers;
         TChain<mfxU16> GetNumRefFrames;
         TChain<mfxU16> GetNumRefBPyramid;
@@ -1134,7 +1144,6 @@ namespace Base
         TChain<mfxU32> GetMaxKbps;
         TChain<mfxU32> GetBufferSizeInKB;
         TChain<mfxU32> GetPreSetBufferSizeInKB;
-        TChain<std::tuple<mfxU16, mfxU16>> GetNumTiles; // (NumTileColumns, NumTileRows)
         TChain<std::tuple<mfxU16, mfxU16, mfxU16>> GetMaxNumRef;
         TChain<std::tuple<mfxU32, mfxU32>> GetFrameRate;
         TChain<std::tuple<mfxU16, mfxU16, mfxU16>> GetQPMFX; //I,P,B
@@ -1143,6 +1152,11 @@ namespace Base
         TChain<mfxU8> GetHighestTId;
         TChain<mfxU8> GetNumReorderFrames;
         TChain<bool>  GetNonStdReordering;
+
+        using TGetNumTiles = CallChain<
+            std::tuple<mfxU16, mfxU16>
+            , const Param&>;
+        TGetNumTiles GetNumTiles; // (NumTileColumns, NumTileRows)
 
         using TGetNumRefActive = CallChain<
             bool //bExternal
@@ -1346,6 +1360,9 @@ namespace Base
         , FEATURE_LPLA_STATUS
         , FEATURE_QUERY_IMPL_DESC
         , FEATURE_ENCTOOLS
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+        , FEATURE_ENTOOLS_QMATRIX
+#endif
         , FEATURE_REXT
         , FEATURE_SAO
         , FEATURE_QP_MODULATION
@@ -1354,6 +1371,9 @@ namespace Base
         , FEATURE_CAPS
 #ifdef MFX_ENABLE_PXP
         , FEATURE_PXP
+#endif
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        , FEATURE_QUALITYINFO
 #endif
         , NUM_FEATURES
     };
@@ -1391,6 +1411,7 @@ namespace Base
         using CqmPPS              = StorageVar<__LINE__ - _KD, std::vector<Base::PPS>>;
         using SliceInfo           = StorageVar<__LINE__ - _KD, std::vector<Base::SliceInfo>>;
         using AllocRaw            = StorageVar<__LINE__ - _KD, IAllocation>;
+        using AllocRawTmp         = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocOpq            = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocRec            = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocBS             = StorageVar<__LINE__ - _KD, IAllocation>;
@@ -1405,6 +1426,8 @@ namespace Base
         using ResetHint           = StorageVar<__LINE__ - _KD, Base::ResetHint>; //available during Reset
         using Reorder             = StorageVar<__LINE__ - _KD, Reorderer>;
         using NeedRextConstraints = StorageVar<__LINE__ - _KD, std::function<bool(const Base::ProfileTierLevel&)>>;
+        using UpdateNaluIfNeeded  = StorageVar<__LINE__ - _KD, std::function<bool(Base::NALU&)>>;
+        using PackVpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::VPS&, mfxU8, IBsWriter&, mfxU32)>>;
         using ReadSpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::SPS&, mfxU8, IBsReader&)>>;
         using ReadPpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::PPS&, mfxU8, IBsReader&)>>;
         using PackSpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::SPS&, mfxU8, IBsWriter&)>>;
@@ -1412,9 +1435,10 @@ namespace Base
         using Defaults            = StorageVar<__LINE__ - _KD, Base::Defaults>;
         using SCCFlags            = StorageVar<__LINE__ - _KD, Base::SCCFlags>;
         using DDIIDSetting        = StorageVar<__LINE__ - _KD, Base::DDIIDSetting>;
+        using TaskManager         = StorageVar<__LINE__ - _KD, MakeStorable<MfxEncodeHW::TaskManager::TMRefWrapper>>;
         static const StorageR::TKey ReservedKey0 = __LINE__ - _KD;
         static const StorageR::TKey BasePackerKey = __LINE__ - _KD;
-        static const StorageR::TKey TaskManagerKey = __LINE__ - _KD;
+        static const StorageR::TKey MultiLayerVpsKey = __LINE__ - _KD;
         static const StorageR::TKey SccSpsKey = __LINE__ - _KD;
         static const StorageR::TKey SccPpsKey = __LINE__ - _KD;
         static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;

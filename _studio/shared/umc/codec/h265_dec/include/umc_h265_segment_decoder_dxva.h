@@ -127,7 +127,7 @@ public:
         TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(++FrameIndex, pFrame->GetFrameMID()));
 
         sts = m_va->BeginFrame(pFrame->GetFrameMID(), 0);
-
+        MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, sts);
         TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, pFrame->GetFrameMID(), sts));
 
         if (sts != UMC::UMC_OK)
@@ -153,7 +153,7 @@ public:
             return;
 
         UMC::Status sts = m_va->EndFrame();
-
+        MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, sts);
         TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, sts));
 
         if (sts != UMC::UMC_OK)

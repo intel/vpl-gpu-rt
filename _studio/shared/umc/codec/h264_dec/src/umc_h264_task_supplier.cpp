@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2020 Intel Corporation
+// Copyright (c) 2003-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,7 @@
 #include "umc_h264_notify.h"
 
 #include "umc_h264_dec_debug.h"
+#include "mfx_umc_alloc_wrapper.h"
 
 using namespace UMC_H264_DECODER;
 
@@ -285,11 +286,6 @@ Status DecReferencePictureMarking::CheckSEIRepetition(ViewItem &view, H264SEIPay
 
 void DecReferencePictureMarking::CheckSEIRepetition(ViewItem &view, H264DecoderFrame * frame)
 {
-    bool isEqual = false;
-
-    if (isEqual)
-        return;
-
     DPBCommandsList::iterator end_iter = m_commandsList.end();
     H264DecoderFrame * temp = 0;
 
@@ -879,6 +875,22 @@ bool IsNeedSPSInvalidate(const H264SeqParamSet *old_sps, const H264SeqParamSet *
         return true;
 
     if (old_sps->bit_depth_chroma != new_sps->bit_depth_chroma)
+        return true;
+
+    return false;
+}
+
+// Check if bitstream params has changed
+static
+bool IsNeedRecreateSurface(const H264SeqParamSet* old_sps, const H264SeqParamSet* new_sps)
+{
+    if (!old_sps || !new_sps)
+        return false;
+
+    if ((old_sps->chroma_format_idc != new_sps->chroma_format_idc) ||
+        (old_sps->bit_depth_luma != new_sps->bit_depth_luma) ||
+        (old_sps->bit_depth_chroma != new_sps->bit_depth_chroma) ||
+        (old_sps->vui.max_dec_frame_buffering < new_sps->vui.max_dec_frame_buffering))
         return true;
 
     return false;
@@ -1798,6 +1810,7 @@ ViewItem::ViewItem()
     viewId = 0;
     maxDecFrameBuffering = 0;
     maxNumReorderFrames  = 16; // Max DPB size
+    memset(MaxLongTermFrameIdx, 0, sizeof(MaxLongTermFrameIdx));
 
     Reset();
 
@@ -1974,13 +1987,16 @@ TaskSupplier::TaskSupplier()
     , m_pMemoryAllocator(0)
     , m_pFrameAllocator(0)
     , m_WaitForIDR(false)
+    , m_RecreateSurfaceFlag(false)
     , m_DPBSizeEx(0)
     , m_frameOrder(0)
     , m_pTaskBroker(0)
     , m_UIDFrameCounter(0)
     , m_sei_messages(0)
     , m_isInitialized(false)
+    , m_pCore(nullptr)
     , m_ignoreLevelConstrain(false)
+
 {
 }
 
@@ -2490,6 +2506,7 @@ Status TaskSupplier::DecodeHeaders(NalUnit *nalUnit)
                 bool newResolution = false;
                 if (IsNeedSPSInvalidate(old_sps, &sps))
                 {
+                    m_RecreateSurfaceFlag = IsNeedRecreateSurface(old_sps, &sps);
                     newResolution = true;
                 }
 
@@ -3148,6 +3165,7 @@ Status TaskSupplier::CompleteDecodedFrames(H264DecoderFrame ** decoded)
 
 Status TaskSupplier::AddSource(MediaData * pSource)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     H264DecoderFrame* completed = 0;
     Status umcRes = CompleteDecodedFrames(&completed);
     if (umcRes != UMC_OK)
@@ -3258,6 +3276,7 @@ Status TaskSupplier::ProcessNalUnit(NalUnit *nalUnit, mfxExtDecodeErrorReport * 
 
 Status TaskSupplier::AddOneFrame(MediaData * pSource)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     Status umsRes = UMC_OK;
 
     if (m_pLastSlice)
@@ -3296,8 +3315,6 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
         {
             if (!pSource)
                 return AddSlice(0, true);
-
-            return UMC_ERR_NOT_ENOUGH_DATA;
         }
 
         if ((NAL_UT_IDR_SLICE != nalUnit->GetNalUnitType()) &&
@@ -3335,16 +3352,29 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
             umsRes = DecodeHeaders(nalUnit);
             if (umsRes != UMC_OK)
             {
+                auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
+                bool flag = false;
                 if (umsRes == UMC_NTF_NEW_RESOLUTION && pSource)
                 {
-                    int32_t size = (int32_t)nalUnit->GetDataSize();
-                    pSource->MoveDataPointer(- size - 3);
+                    //surface can reallocate when mem2.0 resolution changed, the status don't need to return
+                    //surface need to recreate when mem1.0 or sps params changed of mem2.0, the status need to return 
+                    if (frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag) 
+                    {
+                        flag = true;
+                    }
+                    else 
+                    {
+                        int32_t size = (int32_t)nalUnit->GetDataSize();
+                        pSource->MoveDataPointer(-size - 3);
+                    }
+                }
+                else if (pDecodeErrorReport && umsRes == UMC_ERR_INVALID_STREAM)
+                {
+                    SetDecodeErrorTypes(nalUnit->GetNalUnitType(), pDecodeErrorReport);
                 }
 
-                if (pDecodeErrorReport && umsRes == UMC_ERR_INVALID_STREAM)
-                    SetDecodeErrorTypes(nalUnit->GetNalUnitType(), pDecodeErrorReport);
-
-                return umsRes;
+                if(!flag)
+                    return umsRes;
             }
 
             if (nalUnit->GetNalUnitType() == NAL_UT_SPS || nalUnit->GetNalUnitType() == NAL_UT_PPS)
@@ -3607,6 +3637,7 @@ void TaskSupplier::DPBSanitize(H264DecoderFrame * pDPBHead, const H264DecoderFra
 
 Status TaskSupplier::AddSlice(H264Slice * pSlice, bool force)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     if (!m_accessUnit.GetLayersCount() && pSlice)
     {
         if (m_sei_messages)

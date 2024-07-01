@@ -58,10 +58,7 @@ protected:
     virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
     virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
 
-    virtual mfxStatus SetDDIID(const mfxU16 bitDepth
-        , const mfxU16 chromFormat
-        , const mfxU32 fourCC
-        , const mfxU16 targetChromaFormat) override;
+    virtual mfxStatus SetDDIID(mfxU16 targetBitDepth, mfxU16 targetChromaFormat) override;
 
     mfxStatus CreateVABuffers(
         const std::list<DDIExecParam>& par
@@ -79,6 +76,7 @@ protected:
     std::vector<VABufferID> m_perPicPar;
     std::vector<VABufferID> m_bs;
     VAID* m_vaid = nullptr;
+    eMFXHWType m_hw = MFX_HW_UNKNOWN;
 };
 
 } //Base

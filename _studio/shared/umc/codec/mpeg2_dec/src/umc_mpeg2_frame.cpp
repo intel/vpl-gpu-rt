@@ -254,6 +254,8 @@ namespace UMC_MPEG2_DECODER
         aspectWidth  = 0;
         aspectHeight = 0;
 
+        fieldIndex   = 0;
+        m_index      = 0;
         group.reset();
     }
 

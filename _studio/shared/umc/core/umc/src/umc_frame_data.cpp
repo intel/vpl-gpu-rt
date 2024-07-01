@@ -318,7 +318,9 @@ FrameData::FrameData()
     : m_locked(false)
     , m_FrameMID(FRAME_MID_INVALID)
     , m_FrameAlloc(0)
-{}
+    , m_PlaneInfo{}
+{
+}
 
 FrameData::FrameData(const FrameData & fd)
     : m_locked(false)

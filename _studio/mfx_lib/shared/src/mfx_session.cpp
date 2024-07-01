@@ -121,10 +121,7 @@ mfxStatus _mfxSession::Init(mfxIMPL implInterface, mfxVersion *ver)
     mfxStatus mfxRes;
     MFX_SCHEDULER_PARAM schedParam;
     mfxU32 maxNumThreads;
-#if defined(MFX_ENABLE_SINGLE_THREAD)
-    bool isExternalThreading = (implInterface & MFX_IMPL_EXTERNAL_THREADING)?true:false;
-    implInterface &= ~MFX_IMPL_EXTERNAL_THREADING;
-#endif
+
     // release the object before initialization
     Cleanup();
 
@@ -184,10 +181,6 @@ mfxStatus _mfxSession::Init(mfxIMPL implInterface, mfxVersion *ver)
     }
     memset(&schedParam, 0, sizeof(schedParam));
     schedParam.flags = MFX_SCHEDULER_DEFAULT;
-#if defined(MFX_ENABLE_SINGLE_THREAD)
-    if (isExternalThreading)
-        schedParam.flags = MFX_SINGLE_THREAD;
-#endif
     schedParam.numberOfThreads = maxNumThreads;
     schedParam.pCore = m_pCORE.get();
     mfxRes = m_pScheduler->Initialize(&schedParam);
@@ -319,14 +312,11 @@ mfxU32 _mfxVersionedSessionImpl::GetNumRef(void) const
 } // mfxU32 _mfxVersionedSessionImpl::GetNumRef(void) const
 
 
-mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par, bool isSingleThreadMode = false)
+mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par, bool isSingleThreadMode = false, bool bValidateHandle = false)
 {
     mfxStatus mfxRes;
     mfxU32 maxNumThreads;
-#if defined(MFX_ENABLE_SINGLE_THREAD)
-    isSingleThreadMode = (par.Implementation & MFX_IMPL_EXTERNAL_THREADING) ? true : isSingleThreadMode;
-    par.Implementation &= ~MFX_IMPL_EXTERNAL_THREADING;
-#endif
+
     // release the object before initialization
     Cleanup();
 
@@ -460,17 +450,19 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par, bool isSingleThrea
         return gpu_copy == MFX_GPUCOPY_DEFAULT
             || gpu_copy == MFX_GPUCOPY_ON
             || gpu_copy == MFX_GPUCOPY_OFF
-#ifdef ONEVPL_EXPERIMENTAL
             || gpu_copy == MFX_GPUCOPY_SAFE
+#ifdef ONEVPL_EXPERIMENTAL
+            || gpu_copy == MFX_GPUCOPY_FAST
 #endif
             ;
     };
 
     MFX_CHECK(IsGPUcopyValid(par.GPUCopy), MFX_ERR_UNSUPPORTED);
 
-    if (MFX_PLATFORM_SOFTWARE == m_currentPlatform && (MFX_GPUCOPY_ON == par.GPUCopy
-#ifdef ONEVPL_EXPERIMENTAL
+    if (MFX_PLATFORM_SOFTWARE == m_currentPlatform && (MFX_GPUCOPY_ON   == par.GPUCopy
                                                     || MFX_GPUCOPY_SAFE == par.GPUCopy
+#ifdef ONEVPL_EXPERIMENTAL
+                                                    || MFX_GPUCOPY_FAST == par.GPUCopy
 #endif
     ))
     {
@@ -482,7 +474,7 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par, bool isSingleThrea
         CMEnabledCoreInterface* pCmCore = QueryCoreInterface<CMEnabledCoreInterface>(m_pCORE.get());
         if (pCmCore)
         {
-            pCmCore->SetCmCopyStatus(MFX_GPUCOPY_ON == par.GPUCopy);
+            pCmCore->SetCmCopyMode(par.GPUCopy);
         }
     }
 

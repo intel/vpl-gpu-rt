@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 Intel Corporation
+// Copyright (c) 2017-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,7 @@
 #include "umc_av1_frame.h"
 #include "umc_av1_va_packer_vaapi.h"
 #include "mfx_unified_av1d_logging.h"
+#include "umc_va_video_processing.h"
 
 using namespace UMC;
 
@@ -133,6 +134,12 @@ namespace UMC_AV1_DECODER
 
         std::copy(tileControlParams.begin(), tileControlParams.end(), tileControlParam);
         compBufTile->SetDataSize(tileControlInfoSize);
+
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+        if (m_va->GetVideoProcessingVA())
+            PackProcessingInfo(info);
+#endif
+
     }
 
     void PackerVA::PackPicParams(VADecPictureParameterBufferAV1& picParam, AV1DecoderFrame const& frame)
@@ -448,6 +455,28 @@ namespace UMC_AV1_DECODER
         TRACE_BUFFER_EVENT(VA_TRACE_API_AV1_TILECONTROLPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_TILEPARAM,
             tileControlParam, AV1DecodeTileControlparam, TILECONTROLPARAMS_AV1D);
     }
+
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+    void PackerVA::PackProcessingInfo(AV1DecoderFrame const& info)
+    {
+        UMC::VideoProcessingVA* vpVA = m_va->GetVideoProcessingVA();
+        if (!vpVA)
+            throw av1_exception(UMC::UMC_ERR_FAILED);
+
+        UMC::UMCVACompBuffer* pipelineVABuf = nullptr;
+        auto* pipelineBuf = reinterpret_cast<VAProcPipelineParameterBuffer*>(m_va->GetCompBuffer(VAProcPipelineParameterBufferType, &pipelineVABuf, sizeof(VAProcPipelineParameterBuffer)));
+        if (!pipelineBuf)
+            throw av1_exception(UMC::UMC_ERR_FAILED);
+        pipelineVABuf->SetDataSize(sizeof(VAProcPipelineParameterBuffer));
+
+        MFX_INTERNAL_CPY(pipelineBuf, &vpVA->m_pipelineParams, sizeof(VAProcPipelineParameterBuffer));
+
+        pipelineBuf->surface = m_va->GetSurfaceID(info.GetMemID()); // should filled in packer
+        pipelineBuf->additional_outputs = (VASurfaceID*)vpVA->GetCurrentOutputSurface();
+        // To keep output aligned, decode downsampling use this fixed combination of chroma sitting type
+        pipelineBuf->input_color_properties.chroma_sample_location = VA_CHROMA_SITING_HORIZONTAL_LEFT | VA_CHROMA_SITING_VERTICAL_CENTER;
+    }
+#endif // #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
 
 } // namespace UMC_AV1_DECODER
 

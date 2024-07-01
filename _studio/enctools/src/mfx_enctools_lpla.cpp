@@ -145,12 +145,6 @@ mfxStatus LPLA_EncTool::InitSession()
     sts = m_mfxSession.QueryVersion(&version); // get real API version of the loaded library
     MFX_CHECK_STS(sts);
 
-    if (m_pAllocator)
-    {
-        sts = m_mfxSession.SetFrameAllocator(m_pAllocator);
-        MFX_CHECK_STS(sts);
-    }
-
     sts = m_mfxSession.SetHandle((mfxHandleType)m_deviceType, m_device);
     MFX_CHECK_STS(sts);
 
@@ -204,7 +198,8 @@ mfxStatus LPLA_EncTool::InitEncParams(mfxEncToolsCtrl const & ctrl, mfxExtEncToo
         m_encParams.mfx.FrameInfo.Height = (m_encParams.mfx.FrameInfo.CropH + 15) & ~0xF;
     }
 
-    if(ctrl.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING && m_encParams.mfx.FrameInfo.BitDepthLuma == 10){
+    if(ctrl.ScenarioInfo != MFX_SCENARIO_GAME_STREAMING && (m_encParams.mfx.FrameInfo.BitDepthLuma == 10 || m_encParams.mfx.FrameInfo.FourCC == MFX_FOURCC_YUY2))
+    {
         m_encParams.mfx.FrameInfo.FourCC = MFX_FOURCC_NV12;
         m_encParams.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
         m_encParams.mfx.FrameInfo.BitDepthLuma = 8;
@@ -422,7 +417,7 @@ mfxStatus LPLA_EncTool::Query(mfxU32 dispOrder, mfxEncToolsHintPreEncodeGOP *pPr
     else if (m_GopRefDist > 1)
     {
         // closed GOP (GopOptFlag or IDR)
-        if ((dispOrder - m_lastIFrameNumber + 1 == (mfxU32)m_encParams.mfx.GopPicSize) && (m_encParams.mfx.GopOptFlag & MFX_GOP_CLOSED)
+        if (((dispOrder - m_lastIFrameNumber + 1 == (mfxU32)m_encParams.mfx.GopPicSize) && (m_encParams.mfx.GopOptFlag & MFX_GOP_CLOSED))
             || (m_encParams.mfx.GopPicSize && (dispOrder - m_lastIDRFrameNumber + 1 == (mfxU32)m_encParams.mfx.GopPicSize * m_IdrInterval)))
         {
             pPreEncGOP->FrameType = MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;

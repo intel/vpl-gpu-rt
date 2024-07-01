@@ -31,7 +31,8 @@ public:
                                  mfxU32 adapterNum,
                                  const std::pair<mfxU32, std::vector<mfxU8>> & affinityMask,
                                  mfxU32 numThreadsAvailable, 
-                                 mfxSession session = NULL);
+                                 mfxSession session = NULL,
+                                 bool bValidateHandle = false);
 };
 
 #endif

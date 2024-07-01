@@ -36,7 +36,7 @@ namespace Base
     public:
 #define DECL_BLOCK_LIST\
     DECL_BLOCK(CheckMAD  )\
-    DECL_BLOCK(AllocTask )\
+    DECL_BLOCK(InitTask  )\
     DECL_BLOCK(QueryInfo )\
     DECL_BLOCK(ReportInfo)
 #define DECL_FEATURE_NAME "Base_EncodedFrameInfo"
@@ -49,7 +49,7 @@ namespace Base
     protected:
         virtual void SetSupported(ParamSupport& par) override;
         virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-        virtual void AllocTask(const FeatureBlocks& blocks, TPushAT Push) override;
+        virtual void InitTask(const FeatureBlocks& blocks, TPushIT Push) override;
         virtual void QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push) override;
     };
 

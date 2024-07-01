@@ -20,6 +20,7 @@
 
 #include "mfx_common.h"
 #include "hevcehw_base_va_lin.h"
+#include "mfx_platform_caps.h"
 
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
@@ -30,7 +31,7 @@ using namespace HEVCEHW::Base;
 using namespace HEVCEHW::Linux;
 using namespace HEVCEHW::Linux::Base;
 
-mfxStatus PickDDIIDNormal(VAID*& DDIID, Defaults::Param defPar, const mfxVideoParam& par)
+mfxStatus PickDDIIDNormal(VAID*& DDIID, Defaults::Param defPar, const mfxVideoParam& par, VideoCORE& core)
 {
     const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(defPar.mvp);
 
@@ -59,7 +60,7 @@ mfxStatus PickDDIIDNormal(VAID*& DDIID, Defaults::Param defPar, const mfxVideoPa
     
     static const std::map<mfxU16, std::map<mfxU16, ::VAID>> VAIDSupported[2] =
     {
-        //LowPower = OFF
+        // EncSlice Support
         {
             {
                 mfxU16(8),
@@ -78,7 +79,7 @@ mfxStatus PickDDIIDNormal(VAID*& DDIID, Defaults::Param defPar, const mfxVideoPa
                 }
             }
         }
-        //LowPower = ON
+        // EncSliceLP Support
         ,{
             {
                 mfxU16(8),
@@ -99,11 +100,11 @@ mfxStatus PickDDIIDNormal(VAID*& DDIID, Defaults::Param defPar, const mfxVideoPa
         }
     };
 
-    bool bLowPower = IsOn(par.mfx.LowPower);
+    bool bEncSliceLPSupported = IsOn(par.mfx.LowPower) && CommonCaps::IsVAEncSliceLPSupported(core.GetHWType());
 
     // Choose and return VAID
     MFX_CHECK((bitDepth == 8 || bitDepth == 10), MFX_ERR_NONE);
-    DDIID = const_cast<VAID*>(&VAIDSupported[bLowPower].at(bitDepth).at(chromFormat));
+    DDIID = const_cast<VAID*>(&VAIDSupported[bEncSliceLPSupported].at(bitDepth).at(chromFormat));
 
     return MFX_ERR_NONE;
 }
@@ -134,25 +135,45 @@ mfxStatus PickDDIIDREXT(VAID* &DDIID, const mfxVideoParam& par)
     return MFX_ERR_NONE;
 }
 
-mfxStatus PickDDIIDSCC(VAID* &DDIID, const mfxVideoParam& par)
+mfxStatus PickDDIIDSCC(VAID* &DDIID, const mfxVideoParam& par, VideoCORE& core)
 {
     MFX_CHECK(par.mfx.CodecProfile == MFX_PROFILE_HEVC_SCC, MFX_ERR_NONE);
     MFX_CHECK(IsOn(par.mfx.LowPower), MFX_ERR_NONE);
 
-    static const std::map<mfxU16, std::map<mfxU16, VAID>> VAIDSupported =
+    static const std::map<mfxU16, std::map<mfxU16, VAID>> VAIDSupported[2] =
     {
+        // EncSlice Support
         {
-            mfxU16(8),
             {
-                {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileHEVCSccMain,    VAEntrypointEncSliceLP}}
-                , {mfxU16(MFX_CHROMAFORMAT_YUV444), VAID{VAProfileHEVCSccMain444, VAEntrypointEncSliceLP}}
+                mfxU16(8),
+                {
+                    {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileHEVCSccMain,    VAEntrypointEncSlice}}
+                    , {mfxU16(MFX_CHROMAFORMAT_YUV444), VAID{VAProfileHEVCSccMain444, VAEntrypointEncSlice}}
+                }
+            }
+            , {
+                mfxU16(10),
+                {
+                    {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileHEVCSccMain10,  VAEntrypointEncSlice}}
+                    , {mfxU16(MFX_CHROMAFORMAT_YUV444), VAID{VAProfileHEVCSccMain444_10, VAEntrypointEncSlice}}
+                }
             }
         }
-        , {
-            mfxU16(10),
+        // EncSliceLP Support
+        ,{
             {
-                {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileHEVCSccMain10,  VAEntrypointEncSliceLP}}
-                , {mfxU16(MFX_CHROMAFORMAT_YUV444), VAID{VAProfileHEVCSccMain444_10, VAEntrypointEncSliceLP}}
+                mfxU16(8),
+                {
+                    {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileHEVCSccMain,    VAEntrypointEncSliceLP}}
+                    , {mfxU16(MFX_CHROMAFORMAT_YUV444), VAID{VAProfileHEVCSccMain444, VAEntrypointEncSliceLP}}
+                }
+            }
+            , {
+                mfxU16(10),
+                {
+                    {mfxU16(MFX_CHROMAFORMAT_YUV420), VAID{VAProfileHEVCSccMain10,  VAEntrypointEncSliceLP}}
+                    , {mfxU16(MFX_CHROMAFORMAT_YUV444), VAID{VAProfileHEVCSccMain444_10, VAEntrypointEncSliceLP}}
+                }
             }
         }
     };
@@ -172,11 +193,13 @@ mfxStatus PickDDIIDSCC(VAID* &DDIID, const mfxVideoParam& par)
             cf = std::max<mfxU16>(cf, pCO3->TargetChromaFormatPlus1 - 1);
     }
 
+    bool bEncSliceLPSupported = IsOn(par.mfx.LowPower) && CommonCaps::IsVAEncSliceLPSupported(core.GetHWType());
+
     // Check that list of VAIDs contains VAU for resulting BitDepth, ChromaFormat
-    MFX_CHECK(VAIDSupported.count(bd) && VAIDSupported.at(bd).count(cf), MFX_ERR_NONE);
+    MFX_CHECK(VAIDSupported[bEncSliceLPSupported].count(bd) && VAIDSupported[bEncSliceLPSupported].at(bd).count(cf), MFX_ERR_NONE);
 
     // Choose and return VAID
-    DDIID = const_cast<VAID*>(&VAIDSupported.at(bd).at(cf));
+    DDIID = const_cast<VAID*>(&VAIDSupported[bEncSliceLPSupported].at(bd).at(cf));
 
     return MFX_ERR_NONE;
 }
@@ -192,11 +215,11 @@ mfxStatus DDI_VA::SetDDIID(VAID* &DDIID, const mfxVideoParam& par, StorageRW& st
     fakeCaps.YUV422ReconSupport = Glob::DDIIDSetting::GetOrConstruct(strg).EnableRecon422 || !IsOn(par.mfx.LowPower);
     fakeCaps.YUV444ReconSupport = true;
 
-    MFX_CHECK_STS(PickDDIIDNormal(DDIID, defPar, par));
+    MFX_CHECK_STS(PickDDIIDNormal(DDIID, defPar, par, core));
 
     MFX_CHECK_STS(PickDDIIDREXT(DDIID, par));
 
-    MFX_CHECK_STS(PickDDIIDSCC(DDIID, par));
+    MFX_CHECK_STS(PickDDIIDSCC(DDIID, par, core));
 
     MFX_CHECK_NULL_PTR1(DDIID);
 
@@ -458,7 +481,7 @@ void DDI_VA::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
         MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS
             , "A|ENCODE|AVC|PACKET_START|", "%p|%d"
-            , m_vaContextEncode, task.StatusReportId);
+            , reinterpret_cast<void*>(m_vaContextEncode), task.StatusReportId);
 
         sts = BeginPicture(task.HDLRaw.first);
         MFX_CHECK_STS(sts);

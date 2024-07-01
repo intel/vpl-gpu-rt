@@ -562,7 +562,8 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
                               Task const & task,
                               mfxU8 frameType,
                               VP9FrameLevelParam &frameParam,
-                              eMFXHWType platform);
+                              eMFXHWType platform,
+                              bool isLastFrameKeyFrame);
 
     mfxStatus InitVp9SeqLevelParam(VP9MfxVideoParam const &video, VP9SeqLevelParam &param);
 
@@ -570,7 +571,8 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
                                            Task *pTask,
                                            std::vector<sFrameEx*>& dpb,
                                            VP9FrameLevelParam &frameParam,
-                                           mfxU32 prevFrameOrderInRefStructure);
+                                           mfxU32 prevFrameOrderInRefStructure,
+                                           mfxU32 zeroLevelCounter);
 
     mfxStatus UpdateDpb(VP9FrameLevelParam &frameParam,
                         sFrameEx *pRecFrame,

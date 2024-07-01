@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <stdint.h>
 #include <string>
 #include <map>
@@ -11,12 +12,12 @@
 
 #define MFX_MAX_PERF_FILENAME_LEN 260
 #define MFX_MAX_PATH_LENGTH       256
-
+//For perf log
 typedef struct _Tick
 {
     std::string tag;
     int64_t timestamp;
-    double freq;
+    int64_t freq;
     std::string functionType;
     std::string level;
 }Tick;
@@ -25,28 +26,22 @@ class PerfUtility
 {
 public:
     static PerfUtility* getInstance();
-    ~PerfUtility() {};
-    PerfUtility() {};
+    ~PerfUtility();
+    PerfUtility() = default;
     int32_t getPid();
     int32_t getTid();
-    void timeStampTick(std::string tag, std::string level, std::string flag, const std::vector<uint32_t> &taskIds);
-    bool setupFilePath(std::fstream& pTimeStampFile);
+    void timeStampTick(const std::string &tag, const std::string &level, const std::string &flag, const std::vector<uint32_t> &taskIds);
     void savePerfData();
-    void closeFile() {};
-    char sDetailsFileName[MFX_MAX_PERF_FILENAME_LEN + 1] = { '\0' };
-    int32_t dwPerfUtilityIsEnabled = false;
-    std::string perfFilePath;
-    std::stringstream ss;
-    bool routine_flag = false;
-    int32_t mainTid;
-    static std::mutex perfMutex;
+    static std::string perfFilePath;
+    static std::atomic<double> timeStamp;
 
 private:
     void printPerfTimeStamp(Tick* newTick, const std::vector<uint32_t>& taskIds);
 
 private:
     static std::shared_ptr<PerfUtility> instance;
-    Tick newTick;
+    static std::mutex perfMutex;
+    std::map<int32_t, std::string> log_buffer{};
 };
 
 
@@ -56,6 +51,7 @@ extern PerfUtility* g_perfutility;
 #define PERF_LEVEL_DDI "DDI"
 #define PERF_LEVEL_HW "HW"
 #define PERF_LEVEL_ROUTINE "Routine"
+#define PERF_LEVEL_INTERNAL "INTERNAL"
 
 #define MFX_FLAG_ENTER ": ENTER"
 #define MFX_FLAG_EXIT  ": EXIT"
@@ -63,19 +59,10 @@ extern PerfUtility* g_perfutility;
 #define PERF_UTILITY_TIMESTAMP(TAG,LEVEL,FLAG)                                       \
     do                                                                               \
     {                                                                                \
-        if (g_perfutility->dwPerfUtilityIsEnabled)                                   \
+        if (g_perfutility)                                                           \
         {                                                                            \
             g_perfutility->timeStampTick(TAG, LEVEL, FLAG, std::vector<uint32_t>()); \
         }                                                                            \
-    } while(0)
-
-#define PERF_UTILITY_PRINT                         \
-    do                                             \
-    {                                              \
-        if (g_perfutility->dwPerfUtilityIsEnabled) \
-        {                                          \
-            g_perfutility->savePerfData();         \
-        }                                          \
     } while(0)
 
 #define PERF_UTILITY_AUTO(TAG,LEVEL) AutoPerfUtility apu(TAG,LEVEL)
@@ -85,13 +72,12 @@ class AutoPerfUtility
 {
 public:
     static void SetTaskId(uint32_t id);
-    AutoPerfUtility(std::string tag, std::string level);
+    AutoPerfUtility(const std::string &tag, const std::string &level);
     ~AutoPerfUtility();
 
 private:
     static std::mutex map_guard;
     static std::map<uint64_t, std::vector<uint32_t>> tid2taskIds;
-    bool bEnable = false;
     bool bPrintTaskIds = false;
     std::string autotag = "intialized";
     std::string autolevel = "intialized";

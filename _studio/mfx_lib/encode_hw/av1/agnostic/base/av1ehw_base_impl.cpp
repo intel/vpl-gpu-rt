@@ -73,8 +73,9 @@ void MFXVideoENCODEAV1_HW::InternalInitFeatures(
 
         Reorder(
             BQ<BQ_InitExternal>::Get(*this)
+            , { FEATURE_GENERAL, General::BLK_Query1WithCaps }
             , { FEATURE_DDI, IDDI::BLK_CreateDevice }
-            , { FEATURE_GENERAL, General::BLK_Query1NoCaps });
+            , PLACE_AFTER);
 
         auto& qIA = BQ<BQ_InitAlloc>::Get(*this);
         Reorder(qIA
@@ -167,6 +168,12 @@ private:
         m_bInit = true;
     }
 
+    bool IsSwEncToolsOn(const mfxVideoParam & video)
+    {
+        std::unique_ptr<AV1EncTools> pEncTools(new AV1EncTools(0));
+        return pEncTools->IsSwEncToolsOn(video);
+    }
+
     bool    m_bInit = false;
     mfxU16  RateControlMethod = 0;
 
@@ -186,6 +193,8 @@ mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
     wrn = RunBlocks(CheckGE<mfxStatus, MFX_ERR_NONE>, BQ<BQ_InitExternal>::Get(*this), *par, global, local);
     MFX_CHECK(!IsErrorSts(wrn), wrn);
 
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
     sts = RunBlocks(CheckGE<mfxStatus, MFX_ERR_NONE>, BQ<BQ_InitInternal>::Get(*this), global, local);
     MFX_CHECK(!IsErrorSts(sts), sts);
     wrn = GetWorstSts(sts, wrn);
@@ -225,6 +234,8 @@ mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
 #if defined(MFX_ENABLE_ENCTOOLS)
         Reorder(queue, { FEATURE_PACKER, Packer::BLK_SubmitTask }, { FEATURE_ENCTOOLS, AV1EncTools::BLK_GetFrameCtrl });
 #endif
+
+        queue.splice(queue.begin(), queue, Get(queue, { FEATURE_TASK_MANAGER, TaskManager::BLK_UpdateTask }));
     }
 
     {

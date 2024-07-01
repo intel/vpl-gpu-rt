@@ -27,7 +27,7 @@
 #include <map>
 #include <exception>
 #include <algorithm>
-#ifdef MFX_ENABLE_ENCTOOLS
+#ifdef MFX_ENABLE_ENCTOOLS_BASE
 #include "mfxenctools-int.h"
 #endif
 
@@ -172,7 +172,7 @@ namespace MfxExtBuffer
             return pEB;
         }
     protected:
-        std::array<mfxExtBuffer*, 64> m_ExtParam;
+        std::array<mfxExtBuffer*, 64> m_ExtParam = {};
     };
 
     class CastExtractor

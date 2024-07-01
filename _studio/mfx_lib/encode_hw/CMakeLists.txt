@@ -36,10 +36,13 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux
     hevc/linux/g9
     hevc/linux/g12
-    hevc/linux/xe_lpm_plus
     hevc/linux/base
-    hevc/linux/xe_hpm
   )
+
+    target_include_directories(encode_hw PUBLIC
+      hevc/linux/xe_hpm
+      hevc/linux/xe_lpm_plus
+    )
 
   set(HEVC_VIDEO_ENCODE_SRC
     hevc/hevcehw_disp.h
@@ -54,6 +57,8 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/agnostic/base/hevcehw_base_encoded_frame_info.h
     hevc/agnostic/base/hevcehw_base_enctools.cpp
     hevc/agnostic/base/hevcehw_base_enctools.h
+    hevc/agnostic/base/hevcehw_base_enctools_com.cpp
+    hevc/agnostic/base/hevcehw_base_enctools_com.h
     hevc/agnostic/base/hevcehw_base_ext_brc.h
     hevc/agnostic/base/hevcehw_base_hdr_sei.h
     hevc/agnostic/base/hevcehw_base_hrd.h
@@ -75,6 +80,8 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/agnostic/base/hevcehw_base_rext.h
     hevc/agnostic/base/hevcehw_base_extddi.h
     hevc/agnostic/base/hevcehw_base_caps.h
+    hevc/agnostic/base/hevcehw_base_recon422.h
+    hevc/agnostic/base/hevcehw_base_recon422_ext.h
     hevc/agnostic/g12/hevcehw_g12_caps.h
     hevc/agnostic/g12/hevcehw_g12_data.h
 
@@ -84,6 +91,7 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux/base/hevcehw_base_roi_lin.h
     hevc/linux/base/hevcehw_base_va_lin.h
     hevc/linux/base/hevcehw_base_va_packer_lin.h
+    hevc/linux/base/hevcehw_base_enctools_qmatrix_lin.h
     hevc/linux/base/hevcehw_base_weighted_prediction_lin.h
     hevc/linux/base/hevcehw_base_max_frame_size_lin.h
     hevc/linux/base/hevcehw_base_dirty_rect_lin.h
@@ -93,8 +101,6 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux/base/hevcehw_base_caps_lin.h
     hevc/linux/g12/hevcehw_g12_caps_lin.h
     hevc/linux/g12/hevcehw_g12_lin.h
-    hevc/linux/xe_hpm/hevcehw_xe_hpm_lin.h
-    hevc/linux/xe_lpm_plus/hevcehw_xe_lpm_plus_lin.h
 
     hevc/hevcehw_disp.cpp
     hevc/agnostic/hevcehw_base.cpp
@@ -130,14 +136,21 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux/base/hevcehw_base_va_lin.cpp
     hevc/linux/base/hevcehw_base_va_packer_lin.cpp
     hevc/linux/base/hevcehw_base_weighted_prediction_lin.cpp
+    hevc/linux/base/hevcehw_base_enctools_qmatrix_lin.cpp
     hevc/linux/base/hevcehw_base_max_frame_size_lin.cpp
     hevc/linux/base/hevcehw_base_dirty_rect_lin.cpp
     hevc/linux/base/hevcehw_base_rext_lin.cpp
     hevc/linux/base/hevcehw_base_qp_modulation_lin.cpp
     hevc/linux/g12/hevcehw_g12_lin.cpp
-    hevc/linux/xe_hpm/hevcehw_xe_hpm_lin.cpp
-    hevc/linux/xe_lpm_plus/hevcehw_xe_lpm_plus_lin.cpp
   )
+
+    set(HEVC_VIDEO_ENCODE_SRC
+      ${HEVC_VIDEO_ENCODE_SRC}
+      hevc/linux/xe_hpm/hevcehw_xe_hpm_lin.h
+      hevc/linux/xe_hpm/hevcehw_xe_hpm_lin.cpp
+      hevc/linux/xe_lpm_plus/hevcehw_xe_lpm_plus_lin.h
+      hevc/linux/xe_lpm_plus/hevcehw_xe_lpm_plus_lin.cpp
+    )
 
   custom_source_group("hevc" ${HEVC_VIDEO_ENCODE_SRC})
 endif()
@@ -147,13 +160,16 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_LPM_plus
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus
   )
+
+    target_include_directories(encode_hw PUBLIC
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_LPM_plus
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus
+    )
 
   set(AV1_VIDEO_ENCODE_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/av1ehw_disp.h
@@ -178,18 +194,6 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_qmatrix_lin.h
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_max_frame_size_lin.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_max_frame_size_lin.h
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm_segmentation.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm_segmentation.h
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM/av1ehw_xe_hpm_lin.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM/av1ehw_xe_hpm_lin.h
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus/av1ehw_xe_lpm_plus_lin.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus/av1ehw_xe_lpm_plus_lin.h
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_LPM_plus/av1ehw_xe_lpm_plus.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_alloc.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_alloc.h
@@ -224,7 +228,24 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_enctools.h
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_hdr.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_hdr.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_enctools_com.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_enctools_com.h
   )
+
+    set(AV1_VIDEO_ENCODE_SRC
+      ${AV1_VIDEO_ENCODE_SRC}
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm.h
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm_segmentation.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_HPM/av1ehw_xe_hpm_segmentation.h
+
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM/av1ehw_xe_hpm_lin.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM/av1ehw_xe_hpm_lin.h
+
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus/av1ehw_xe_lpm_plus_lin.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus/av1ehw_xe_lpm_plus_lin.h
+
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_LPM_plus/av1ehw_xe_lpm_plus.h
+    )
 
   custom_source_group("av1" ${AV1_VIDEO_ENCODE_SRC})
 endif()
@@ -299,12 +320,8 @@ target_include_directories(encode_hw
 
     ${MSDK_UMC_ROOT}/codec/brc/include
     ${MSDK_UMC_ROOT}/codec/color_space_converter/include
-    $<$<BOOL:${MFX_ENABLE_ENCTOOLS}>:
-      ${MSDK_STUDIO_ROOT}/shared/enctools/include
-    >
+    ${OPENCL_INCLUDE}
 )
-
-set(ENCTOOLS_LIB $<$<BOOL:${MFX_ENABLE_ENCTOOLS}>:enctools_base>)
 
 target_link_libraries(encode_hw
   PUBLIC
@@ -316,7 +333,17 @@ target_link_libraries(encode_hw
   PRIVATE
     mfx_sdl_properties
     bitrate_control
-    ${ENCTOOLS_LIB}
   )
+
+if (MFX_ENABLE_ENCTOOLS OR MFX_ENABLE_HW_LPLA)
+  target_include_directories(encode_hw
+    PUBLIC
+      ${MSDK_STUDIO_ROOT}/shared/enctools/include
+    )
+  target_link_libraries(encode_hw
+    PRIVATE
+      enctools_base
+    )
+endif()
 
 include(sources_ext.cmake OPTIONAL)

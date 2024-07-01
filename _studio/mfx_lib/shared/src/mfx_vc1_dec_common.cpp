@@ -852,28 +852,19 @@ mfxStatus MFXVC1DecCommon::PrepareSeqHeader(mfxBitstream *bs_in, mfxBitstream *b
             if(bs_in->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME ||
                 bs_in->DataFlag & MFX_BITSTREAM_EOS)
             {
-                if (isFindFirstSC) // SH start code already find. Complete unit
-                {
-                    //end of SH
-                    readPos = readPos - 2;
-                    Ipp8u* ptr = readPos - 1;
-                    //trim zero bytes
-                    while ( (*ptr==0) && (ptr > readBuf) )
-                        ptr--;
-                    size = (Ipp32u)(ptr - readBuf - readDataSize +1);
-                    if(size + bs_out->DataOffset > bs_out->MaxLength)
-                        return MFX_ERR_NOT_ENOUGH_BUFFER;
+                //end of SH
+                readPos = readPos - 2;
+                Ipp8u* ptr = readPos - 1;
+                //trim zero bytes
+                while ( (*ptr==0) && (ptr > readBuf) )
+                    ptr--;
+                size = (Ipp32u)(ptr - readBuf - readDataSize +1);
+                if(size + bs_out->DataOffset > bs_out->MaxLength)
+                    return MFX_ERR_NOT_ENOUGH_BUFFER;
 
-                    MFX_INTERNAL_CPY(bs_out->Data + bs_out->DataOffset, readBuf + readDataSize, size);
-                    bs_out->DataLength = size;
-                    return MFX_ERR_NONE;
-                }
-                else
-                {
-                    bs_in->DataOffset +=  bs_in->DataLength - 4;
-                    bs_in->DataLength = 4;
-                    return MFX_ERR_MORE_DATA;                
-                }
+                MFX_INTERNAL_CPY(bs_out->Data + bs_out->DataOffset, readBuf + readDataSize, size);
+                bs_out->DataLength = size;
+                return MFX_ERR_NONE;
             }
             else
                 return MFX_ERR_MORE_DATA;

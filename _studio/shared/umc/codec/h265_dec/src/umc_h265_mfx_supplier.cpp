@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2021 Intel Corporation
+// Copyright (c) 2012-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,7 @@
 #include "umc_h265_debug.h"
 
 #include "umc_h265_mfx_utils.h"
+#include "mfx_umc_alloc_wrapper.h"
 
 namespace UMC_HEVC_DECODER
 {
@@ -330,7 +331,16 @@ UMC::Status MFXTaskSupplier_H265::DecodeHeaders(UMC::MediaDataEx *nalUnit)
                 m_firstVideoParams.mfx.FrameInfo.Height < (currSPS->pic_height_in_luma_samples) ||
                 (currSPS->m_pcPTL.GetGeneralPTL()->level_idc && m_firstVideoParams.mfx.CodecLevel && m_firstVideoParams.mfx.CodecLevel < currSPS->m_pcPTL.GetGeneralPTL()->level_idc))
             {
-                return UMC::UMC_NTF_NEW_RESOLUTION;
+                auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
+                if (frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag)
+                {
+                    return UMC::UMC_OK;
+                }
+                else
+                {
+                    return UMC::UMC_NTF_NEW_RESOLUTION;
+                }
+
             }
         }
 

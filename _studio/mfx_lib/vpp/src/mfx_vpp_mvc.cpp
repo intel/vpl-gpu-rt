@@ -178,7 +178,7 @@ mfxStatus ImplementationMvc::Reset(mfxVideoParam *par)
 
     m_iteratorVPP = m_VPP.begin(); // save for EndOfStream processing
 
-    return (MFX_ERR_NONE == sts) ? internalSts : sts;
+    return internalSts;
 
 } // mfxStatus ImplementationMvc::Reset(mfxVideoParam *par)
 
@@ -328,6 +328,8 @@ mfxStatus ImplementationMvc::Close(void)
     return MFX_ERR_NONE;
 
 } // mfxStatus ImplementationMvc::Close( void )
+
+MFX_PROPAGATE_GetSurface_VideoVPP_Impl(ImplementationMvc)
 
 #endif // MFX_ENABLE_VPP
 /* EOF */

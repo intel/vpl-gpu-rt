@@ -27,6 +27,48 @@
 using namespace AV1EHW;
 using namespace AV1EHW::Base;
 
+inline void SetDefaultMasteringDisplayColourVolume(mfxExtMasteringDisplayColourVolume* pMDCV)
+{
+    SetDefault<mfxU32>(pMDCV->MaxDisplayMasteringLuminance, 1u);
+    SetDefault<mfxU32>(pMDCV->MinDisplayMasteringLuminance, 1u);
+}
+
+inline void SetDefaultContentLightLevel(mfxExtContentLightLevelInfo* pCLLI)
+{
+    SetDefault<mfxU16>(pCLLI->MaxContentLightLevel, 1u);
+    SetDefault<mfxU16>(pCLLI->MaxPicAverageLightLevel, 1u);
+}
+
+inline mfxStatus CheckAndFixMasteringDisplayColourVolumeInfo(mfxExtMasteringDisplayColourVolume* pMDCV)
+{
+    mfxU32 changed = 0;
+
+    changed += CheckOrZero<mfxU16, MFX_PAYLOAD_OFF, MFX_PAYLOAD_IDR>(pMDCV->InsertPayloadToggle);
+    changed += CheckMaxOrClip(pMDCV->WhitePointX, 50000u);
+    changed += CheckMaxOrClip(pMDCV->WhitePointY, 50000u);
+    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesX[0], 50000u);
+    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesX[1], 50000u);
+    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesX[2], 50000u);
+    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[0], 50000u);
+    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[1], 50000u);
+    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[2], 50000u);
+
+    return changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
+}
+
+inline mfxStatus CheckAndFixContentLightLevelInfo(mfxExtContentLightLevelInfo* pCLLI)
+{
+    mfxU32 changed = 0;
+
+    changed += CheckOrZero<mfxU16, MFX_PAYLOAD_OFF, MFX_PAYLOAD_IDR>(pCLLI->InsertPayloadToggle);
+    changed += CheckMinOrClip(pCLLI->MaxContentLightLevel, 1u);
+    changed += CheckMaxOrClip(pCLLI->MaxContentLightLevel, 65535u);
+    changed += CheckMinOrClip(pCLLI->MaxPicAverageLightLevel, 1u);
+    changed += CheckMaxOrClip(pCLLI->MaxPicAverageLightLevel, 65535u);
+
+    return changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
+}
+
 void Hdr::SetSupported(ParamSupport& blocks)
 {
     blocks.m_ebCopySupported[MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO].emplace_back(
@@ -67,7 +109,7 @@ void Hdr::MetadataType(BitstreamWriter& bs, mfxU32 const value)
 }
 
 void Hdr::PackHDR(
-    BitstreamWriter& bs, SH const& sh, ObuExtensionHeader const& oeh
+    BitstreamWriter& bs, ObuExtensionHeader const& oeh
     , mfxExtMasteringDisplayColourVolume const& DisplayColour)
 {
     std::vector<mfxU8> tmpBuf(HDR_SIZE);
@@ -87,7 +129,7 @@ void Hdr::PackHDR(
 
     tmpBitstream.PutTrailingBits();
 
-    const mfxU32 obu_extension_flag = sh.operating_points_cnt_minus_1 ? 1 : 0;
+    const bool obu_extension_flag = oeh.temporal_id | oeh.spatial_id;
     Packer::PackOBUHeader(bs, OBU_METADATA, obu_extension_flag, oeh);
 
     mfxU32 const obu_size_in_bytes = (tmpBitstream.GetOffset() + 7) / 8;
@@ -97,7 +139,7 @@ void Hdr::PackHDR(
 }
 
 void Hdr::PackHDR(
-    BitstreamWriter& bs, SH const& sh, ObuExtensionHeader const& oeh
+    BitstreamWriter& bs, ObuExtensionHeader const& oeh
     , mfxExtContentLightLevelInfo const& LightLevel)
 {
     std::vector<mfxU8> tmpBuf(HDR_SIZE);
@@ -110,7 +152,7 @@ void Hdr::PackHDR(
 
     tmpBitstream.PutTrailingBits();
 
-    const mfxU32 obu_extension_flag = sh.operating_points_cnt_minus_1 ? 1 : 0;
+    const bool obu_extension_flag = oeh.temporal_id | oeh.spatial_id;
     Packer::PackOBUHeader(bs, OBU_METADATA, obu_extension_flag, oeh);
 
     mfxU32 const obu_size_in_bytes = (tmpBitstream.GetOffset() + 7) / 8;
@@ -126,8 +168,7 @@ void Hdr::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
         {
             mfxExtMasteringDisplayColourVolume* pMDCV = ExtBuffer::Get(par);
             MFX_CHECK(pMDCV, MFX_ERR_NONE);
-
-            SetDefault<mfxU16>(pMDCV->InsertPayloadToggle, MFX_PAYLOAD_OFF);
+            SetDefaultMasteringDisplayColourVolume(pMDCV);
 
             return MFX_ERR_NONE;
         });
@@ -137,8 +178,7 @@ void Hdr::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
         {
             mfxExtContentLightLevelInfo* pCLLI = ExtBuffer::Get(par);
             MFX_CHECK(pCLLI, MFX_ERR_NONE);
-
-            SetDefault<mfxU16>(pCLLI->InsertPayloadToggle, MFX_PAYLOAD_OFF);
+            SetDefaultContentLightLevel(pCLLI);
 
             return MFX_ERR_NONE;
         });
@@ -151,19 +191,7 @@ void Hdr::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     {
         mfxExtMasteringDisplayColourVolume* pMDCV = ExtBuffer::Get(par);
         MFX_CHECK(pMDCV, MFX_ERR_NONE);
-        mfxU32 changed = 0;
-
-        changed += CheckOrZero<mfxU16, MFX_PAYLOAD_OFF, MFX_PAYLOAD_IDR>(pMDCV->InsertPayloadToggle);
-        changed += CheckMaxOrClip(pMDCV->WhitePointX, 50000u);
-        changed += CheckMaxOrClip(pMDCV->WhitePointY, 50000u);
-        changed += CheckMaxOrClip(pMDCV->DisplayPrimariesX[0], 50000u);
-        changed += CheckMaxOrClip(pMDCV->DisplayPrimariesX[1], 50000u);
-        changed += CheckMaxOrClip(pMDCV->DisplayPrimariesX[2], 50000u);
-        changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[0], 50000u);
-        changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[1], 50000u);
-        changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[2], 50000u);
-
-        return changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
+        return CheckAndFixMasteringDisplayColourVolumeInfo(pMDCV);
     });
 
     Push(BLK_CheckAndFixCLLI
@@ -171,12 +199,39 @@ void Hdr::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     {
         mfxExtContentLightLevelInfo* pCLLI = ExtBuffer::Get(par);
         MFX_CHECK(pCLLI, MFX_ERR_NONE);
-        mfxU32 changed = 0;
-
-        changed += CheckOrZero<mfxU16, MFX_PAYLOAD_OFF, MFX_PAYLOAD_IDR>(pCLLI->InsertPayloadToggle);
-
-        return changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
+        return CheckAndFixContentLightLevelInfo(pCLLI);
     });
+}
+
+void Hdr::InitTask(const FeatureBlocks& blocks, TPushIT Push)
+{
+    Push(BLK_InitTaskMDCV
+        , [this, &blocks](
+            mfxEncodeCtrl* /*pCtrl*/
+            , mfxFrameSurface1* /*pSurf*/
+            , mfxBitstream* /*pBs*/
+            , StorageW& /*global*/
+            , StorageW& task) -> mfxStatus
+        {
+            mfxExtMasteringDisplayColourVolume* pMDCV = ExtBuffer::Get(Task::Common::Get(task).ctrl);
+            MFX_CHECK(pMDCV, MFX_ERR_NONE);
+            SetDefaultMasteringDisplayColourVolume(pMDCV);
+            return CheckAndFixMasteringDisplayColourVolumeInfo(pMDCV);
+        });
+
+    Push(BLK_InitTaskCLLI
+        , [this, &blocks](
+            mfxEncodeCtrl* /*pCtrl*/
+            , mfxFrameSurface1* /*pSurf*/
+            , mfxBitstream* /*pBs*/
+            , StorageW& /*global*/
+            , StorageW& task) -> mfxStatus
+        {
+            mfxExtContentLightLevelInfo* pCLLI = ExtBuffer::Get(Task::Common::Get(task).ctrl);
+            MFX_CHECK(pCLLI, MFX_ERR_NONE);
+            SetDefaultContentLightLevel(pCLLI);
+            return CheckAndFixContentLightLevelInfo(pCLLI);
+        });
 }
 
 void Hdr::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
@@ -195,7 +250,7 @@ void Hdr::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         bool bInsertCLLI = false;
         if (pCLLI != NULL)
         {
-            bInsertMDCV = true;
+            bInsertCLLI = true;
         }
 
         mfxVideoParam& videoParam = Glob::VideoParam::Get(global);
@@ -209,7 +264,6 @@ void Hdr::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
         BitstreamWriter bs(m_buf.data(), (mfxU32)m_buf.size(), 0);
         PackedHeaders& ph = Glob::PackedHeaders::Get(global);
-        SH& sh = Glob::SH::Get(global);
         ObuExtensionHeader oeh = { task.TemporalID, 0 };
 
         mfxU8* start = bs.GetStart();
@@ -217,11 +271,11 @@ void Hdr::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
         if (bInsertMDCV)
         {
-            PackHDR(bs, sh, oeh, *pMDCV);
+            PackHDR(bs, oeh, *pMDCV);
         }
         if (bInsertCLLI)
         {
-            PackHDR(bs, sh, oeh, *pCLLI);
+            PackHDR(bs, oeh, *pCLLI);
         }
 
         task.Offsets.HDRHeaderByteOffset = (bs.GetOffset() >> 3);

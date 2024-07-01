@@ -348,10 +348,8 @@ mfxStatus CpuFrc::PtsFrc::DoCpuFRC_AndUpdatePTS(
     }
 
     // made decision regarding frame rate conversion
-    if ((input->Data.TimeStamp != (mfxU64)-1) && !m_bUpFrameRate && inputTimeStamp < m_expectedTimeStamp)
+    if ((input->Data.TimeStamp != (mfxU64)-1) && inputTimeStamp < m_expectedTimeStamp)
     {
-        m_bDownFrameRate = true;
-
         // calculate output time stamp
         output->Data.TimeStamp = m_expectedTimeStamp;
 
@@ -359,10 +357,8 @@ mfxStatus CpuFrc::PtsFrc::DoCpuFRC_AndUpdatePTS(
         // request new one input surface
         return MFX_ERR_MORE_DATA;
     }
-    else if ((input->Data.TimeStamp != (mfxU64)-1) && !m_bDownFrameRate && (input->Data.TimeStamp > m_expectedTimeStamp || m_timeStampDifference))
+    else if ((input->Data.TimeStamp != (mfxU64)-1) && (input->Data.TimeStamp > m_expectedTimeStamp || m_timeStampDifference))
     {
-        m_bUpFrameRate = true;
-
         if (inputTimeStamp <= m_expectedTimeStamp)
         {
             m_upCoeff = 0;
@@ -968,7 +964,7 @@ mfxStatus ResMngr::FillTaskForMode30i60p(
 
     // MARKER: last frame in current Task Slot
     // after resource are filled we can update generall container and state
-    if( m_outputIndex == 0 )
+    if( m_outputIndex == 0 && m_pSubResource)
     {
         size_t numFramesToRemove = m_pSubResource->surfaceListForRelease.size();
 
@@ -1105,7 +1101,7 @@ mfxStatus ResMngr::FillTask(
 
     // MARKER: last frame in current Task Slot
     // after resource are filled we can update generall container and state
-    if( m_outputIndex == 0 )
+    if( m_outputIndex == 0 && m_pSubResource)
     {
         size_t numFramesToRemove = m_pSubResource->surfaceListForRelease.size();
 
@@ -1255,7 +1251,14 @@ mfxStatus TaskManager::DoCpuFRC_AndUpdatePTS(
     mfxFrameSurface1 *output,
     mfxStatus *intSts)
 {
-    return m_cpuFrc.DoCpuFRC_AndUpdatePTS(input, output, intSts);
+    if (FRC_AI_INTERPOLATION & m_extMode)
+    {
+        return m_aiFrameInterpolator->UpdateTsAndGetStatus(input, output, intSts);
+    }
+    else
+    {
+        return m_cpuFrc.DoCpuFRC_AndUpdatePTS(input, output, intSts);
+    }
 
 } // mfxStatus TaskManager::::DoCpuFRC_AndUpdatePTS(...)
 
@@ -1390,6 +1393,10 @@ mfxStatus TaskManager::AssignTask(
         aux);
     MFX_CHECK_STS(sts);
 
+    if (FRC_AI_INTERPOLATION & m_extMode)
+    {
+        m_aiFrameInterpolator->AddTaskQueue(pTask->taskIndex);
+    }
 #ifdef MFX_ENABLE_MCTF
     if (pTask->bMCTF)
     {
@@ -1659,7 +1666,7 @@ mfxStatus TaskManager::FillTask(
     }
 
     m_actualNumber += 1; // make sense for simple mode only
-
+    MFX_CHECK_NULL_PTR1(pTask->input.pSurf);
     mfxStatus sts = m_core->IncreaseReference(*pTask->input.pSurf);
     MFX_CHECK_STS(sts);
 
@@ -2086,6 +2093,9 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
             MFX_CHECK_NULL_PTR1(bufSc);
             bufSc->ChannelMapping               = m_executeParams.lut3DInfo.ChannelMapping;
             bufSc->BufferType                   = m_executeParams.lut3DInfo.BufferType;
+#ifdef ONEVPL_EXPERIMENTAL
+            bufSc->InterpolationMethod          = m_executeParams.lut3DInfo.InterpolationMethod;
+#endif
             if (bufSc->BufferType == MFX_RESOURCE_VA_SURFACE)
             {
                 bufSc->VideoBuffer.DataType         = m_executeParams.lut3DInfo.DataType;
@@ -2150,6 +2160,18 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
             mfxExtVPPColorFill *bufColorfill = reinterpret_cast<mfxExtVPPColorFill *>(par->ExtParam[i]);
             MFX_CHECK_NULL_PTR1(bufColorfill);
             bufColorfill->Enable = static_cast<mfxU16>(m_executeParams.iBackgroundColor?MFX_CODINGOPTION_ON:MFX_CODINGOPTION_OFF);
+        }
+        else if (MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION == bufferId)
+        {
+            mfxExtVPPAISuperResolution* bufSuperResolution = reinterpret_cast<mfxExtVPPAISuperResolution*>(par->ExtParam[i]);
+            MFX_CHECK_NULL_PTR1(bufSuperResolution);
+            bufSuperResolution->SRMode = m_executeParams.m_srMode;
+        }
+        else if (MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION == bufferId)
+        {
+            mfxExtVPPAIFrameInterpolation* bufFrc = reinterpret_cast<mfxExtVPPAIFrameInterpolation*>(par->ExtParam[i]);
+            MFX_CHECK_NULL_PTR1(bufFrc);
+            bufFrc->FIMode = m_executeParams.m_aiFiMode;
         }
     }
 
@@ -2377,6 +2399,16 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
                 formatSupport = MFX_FORMAT_SUPPORT_OUTPUT;
             }
             break;
+        case MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION:
+            if (format == MFX_FOURCC_NV12)
+            {
+                formatSupport = MFX_FORMAT_SUPPORT_INPUT | MFX_FORMAT_SUPPORT_OUTPUT;
+            }
+            else if (format == MFX_FOURCC_BGRA)
+            {
+                formatSupport = MFX_FORMAT_SUPPORT_OUTPUT;
+            }
+            break;
 #if defined (ONEVPL_EXPERIMENTAL)
         case MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER:
             if (format == MFX_FOURCC_NV12)
@@ -2385,6 +2417,12 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
             }
             break;
 #endif
+        case MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION:
+            if (format == MFX_FOURCC_NV12)
+            {
+                formatSupport = MFX_FORMAT_SUPPORT_INPUT | MFX_FORMAT_SUPPORT_OUTPUT;
+            }
+            break;
         default:
             break;
     }
@@ -2671,6 +2709,24 @@ mfxStatus  VideoVPPHW::Init(
                 }
             }
         }
+        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION)
+        {
+            mfxExtVPPAISuperResolution* extSR = (mfxExtVPPAISuperResolution*)m_params.ExtParam[i];
+            if (extSR)
+            {
+                m_executeParams.bSuperResolution = true;
+                m_executeParams.m_srMode = extSR->SRMode;
+            }
+        }
+        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION)
+        {
+            mfxExtVPPAIFrameInterpolation* extFrc = (mfxExtVPPAIFrameInterpolation*)m_params.ExtParam[i];
+            if (extFrc)
+            {
+                m_executeParams.bAiVfi = true;
+                m_executeParams.m_aiFiMode = extFrc->FIMode;
+            }
+        }
     }
 
     m_config.m_IOPattern = 0;
@@ -2801,7 +2857,7 @@ mfxStatus  VideoVPPHW::Init(
             }
 
             // create "Default" MCTF settings.
-            IntMctfParams MctfConfig;
+            IntMctfParams MctfConfig = {};
             CMC::QueryDefaultParams(&MctfConfig);
 
             // create default MCTF control
@@ -2835,6 +2891,14 @@ mfxStatus  VideoVPPHW::Init(
         m_PercEncFilter->Init(&par->vpp.In, &par->vpp.Out);
     }
 #endif
+
+    if (m_executeParams.bAiVfi)
+    {
+        m_aiVfiFilter = std::make_shared<MFXVideoFrameInterpolation>();
+        sts = m_aiVfiFilter->Init(m_pCore, par->vpp.In, par->vpp.Out, m_IOPattern, m_executeParams.m_outVideoSignalInfo);
+        MFX_CHECK_STS(sts);
+        m_taskMngr.SetAiFi(m_aiVfiFilter);
+    }
 
     return (bIsFilterSkipped) ? MFX_WRN_FILTER_SKIPPED : MFX_ERR_NONE;
 
@@ -2884,7 +2948,7 @@ mfxStatus VideoVPPHW::InitMCTF(const mfxFrameInfo& info, const IntMctfParams& Mc
         m_MctfMfxAlocResponse.mids = &(m_MctfMids[0]);
 
         if (D3D_TO_SYS == m_ioMode || SYS_TO_SYS == m_ioMode) // [OUT == SYSTEM_MEMORY]
-            sts = m_pCore->AllocFrames(&request, &m_MctfMfxAlocResponse, false);
+            sts = m_pCore->AllocFrames(&request, &m_MctfMfxAlocResponse, true);
         else
             sts = m_pCore->AllocFrames(&request, &m_MctfMfxAlocResponse, false);
 
@@ -3253,7 +3317,7 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
         if (m_executeParams.bEnableMctf)
         {
             // create "Default" MCTF settings.
-            IntMctfParams MctfConfig;
+            IntMctfParams MctfConfig = {};
             CMC::QueryDefaultParams(&MctfConfig);
 
             // create default MCTF control
@@ -3875,7 +3939,8 @@ mfxStatus VideoVPPHW::PostWorkOutSurface(ExtSurface & output)
             && !m_PercEncFilter
 #endif
             ;
-
+        if (m_executeParams.bAiVfi && m_aiVfiFilter)
+            copy = false;
         if (copy)
         {
              // the reason for this is as follows:
@@ -4924,11 +4989,23 @@ mfxStatus VideoVPPHW::QueryTaskRoutine(void *pState, void *pParam, mfxU32 thread
     }
 #endif
 
+    if (pHwVpp->m_executeParams.bAiVfi && pHwVpp->m_aiVfiFilter)
+    {
+        if (SYS_TO_SYS == pHwVpp->m_ioMode || D3D_TO_SYS == pHwVpp->m_ioMode)
+        {
+            pHwVpp->m_aiVfiFilter->ReturnSurface(pTask->taskIndex, pTask->output.pSurf, pHwVpp->m_internalVidSurf[VPP_OUT].mids[pTask->output.resIdx]);
+        }
+        else
+        {
+            pHwVpp->m_aiVfiFilter->ReturnSurface(pTask->taskIndex, pTask->output.pSurf, 0);
+        }
+    }
+
     // [4] Complete task
     sts = pHwVpp->m_taskMngr.CompleteTask(pTask);
     return sts;
 
-    } // mfxStatus VideoVPPHW::QueryTaskRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber)
+} // mfxStatus VideoVPPHW::QueryTaskRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber)
 
 
 #ifdef MFX_ENABLE_MCTF
@@ -5119,6 +5196,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             // MFX_SCALING_MODE_INTEL_GEN_COMPUTE is only supported on DG2+. If this flag is set on older platforms, return an error message.
             if (extScaling->ScalingMode == MFX_SCALING_MODE_INTEL_GEN_COMPUTE && !VppCaps::IsScalingModeSupportEU(core->GetHWType()))
             {
+                extScaling->ScalingMode = MFX_SCALING_MODE_DEFAULT;
                 sts = GetWorstSts(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
             }
             break;
@@ -5301,7 +5379,86 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
 
             break;
         } //case MFX_EXTBUFF_VPP_COMPOSITE
-
+        case MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION:
+        {
+            mfxExtVPPAISuperResolution* extSr = (mfxExtVPPAISuperResolution*)data;
+            if (extSr->SRMode != MFX_AI_SUPER_RESOLUTION_MODE_DISABLED)
+            {
+                bool bVerticalRotation       = false;
+                mfxExtVPPRotation* extRotate = nullptr;
+                if (!caps->uSuperResolution)
+                {
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+                }
+                if (par->vpp.In.FourCC != MFX_FOURCC_NV12 ||
+                    (par->vpp.Out.FourCC != MFX_FOURCC_NV12 && par->vpp.Out.FourCC != MFX_FOURCC_BGRA))
+                {
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+                }
+                for (mfxU16 index = 0; index < par->NumExtParam; ++index)
+                {
+                    switch (par->ExtParam[index]->BufferId)
+                    {
+                    case MFX_EXTBUFF_VPP_ROTATION:
+                        extRotate = (mfxExtVPPRotation*)par->ExtParam[index];
+                        if (extRotate)
+                        {
+                            if (MFX_ANGLE_90 == extRotate->Angle || MFX_ANGLE_270 == extRotate->Angle)
+                            {
+                                bVerticalRotation = true;
+                            }
+                        }
+                        break;
+                    case MFX_EXTBUF_CAM_3DLUT:
+                    case MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION:
+                    case MFX_EXTBUF_CAM_PIPECONTROL:
+                    case MFX_EXTBUF_CAM_WHITE_BALANCE:
+                    case MFX_EXTBUF_CAM_BLACK_LEVEL_CORRECTION:
+                    case MFX_EXTBUF_CAM_BAYER_DENOISE:
+                    case MFX_EXTBUF_CAM_HOT_PIXEL_REMOVAL:
+                    case MFX_EXTBUF_CAM_VIGNETTE_CORRECTION:
+                    case MFX_EXTBUF_CAM_COLOR_CORRECTION_3X3:
+                    case MFX_EXTBUF_CAM_PADDING:
+                    case MFX_EXTBUF_CAM_LENS_GEOM_DIST_CORRECTION:
+                    case MFX_EXTBUF_CAM_TOTAL_COLOR_CONTROL:
+                    case MFX_EXTBUF_CAM_CSC_YUV_RGB:
+                    case MFX_EXTBUFF_VPP_PROCAMP:
+                    case MFX_EXTBUFF_VPP_DENOISE:
+                    case MFX_EXTBUFF_VPP_DENOISE2:
+                    case MFX_EXTBUFF_VPP_FIELD_WEAVING:
+                    case MFX_EXTBUFF_VPP_FIELD_SPLITTING:
+                    case MFX_EXTBUFF_VPP_DEINTERLACING:
+                    case MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION:
+                    case MFX_EXTBUFF_VPP_FIELD_PROCESSING:
+                    case MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO:
+                    case MFX_EXTBUFF_VPP_IMAGE_STABILIZATION:
+                    case MFX_EXTBUFF_VPP_3DLUT:
+                    case MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER:
+                    case MFX_EXTBUFF_VPP_MCTF:
+                        sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+                        break;
+                    }
+                }
+                mfxU32 inputWidth = std::min(par->vpp.In.Width, par->vpp.In.CropW);
+                mfxU32 inputHeight = std::min(par->vpp.In.Height, par->vpp.In.CropH);
+                mfxU32 outputWidth = bVerticalRotation ? std::min(par->vpp.Out.Height, par->vpp.Out.CropH) : std::min(par->vpp.Out.Width, par->vpp.Out.CropW);
+                mfxU32 outputHeight = bVerticalRotation ? std::min(par->vpp.Out.Width, par->vpp.Out.CropW) : std::min(par->vpp.Out.Height, par->vpp.Out.CropH);
+                //add rotation support next
+                if (inputWidth > caps->uSrMaxInWidth ||
+                    inputHeight > caps->uSrMaxInHeight)
+                {
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+                }
+                mfxF32 fScaleX = (mfxF32)outputWidth / inputWidth;
+                mfxF32 fScaleY = (mfxF32)outputHeight / inputHeight;
+                if (fScaleX < 1.4f ||
+                    fScaleY < 1.4f)
+                {
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+                }
+            }
+            break;
+        }
         case MFX_EXTBUFF_ALLOCATION_HINTS:
         {
             if (++n_hints_buf > 2)
@@ -5344,11 +5501,24 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
     /* 3. Check single field cases */
     if ( (par->vpp.In.PicStruct & MFX_PICSTRUCT_FIELD_SINGLE) && !(par->vpp.Out.PicStruct & MFX_PICSTRUCT_FIELD_SINGLE) )
     {
-        if (!IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_FIELD_WEAVING) || // FIELD_WEAVING filter must be there
-            (IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_RESIZE) &&
-             pLen > 2) ) // there is another filter except implicit RESIZE
+        if (!IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_FIELD_WEAVING)) // FIELD_WEAVING filter must be there
         {
             sts = (MFX_ERR_UNSUPPORTED < sts) ? MFX_ERR_UNSUPPORTED : sts;
+        }
+
+        if (IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_RESIZE) && pLen > 2)
+        {
+            mfxU32 maxNum = 2;
+            if (IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_CSC))
+                ++maxNum;
+            if (IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_RSHIFT_IN))
+                ++maxNum;
+            if (IsFilterFound(pList, pLen, MFX_EXTBUFF_VPP_LSHIFT_OUT))
+                ++maxNum;
+            if (pLen > maxNum)
+            {
+                sts = (MFX_ERR_UNSUPPORTED < sts) ? MFX_ERR_UNSUPPORTED : sts;
+            }
         }
 
         // VPP SyncTaskSubmission returns MFX_ERR_UNSUPPORTED when output picstructure has no parity
@@ -5628,7 +5798,7 @@ template <class T> void add_unique_fragments(const cRect<T> &r, std::vector< cRe
     stack.push_back(r);
 
     while(!stack.empty()) {
-        cRect<T> &cr = stack.back();
+        cRect<T> cr = stack.back();
 
         if(cr.m_frag_lvl == frag_cnt) {
             stack.pop_back();
@@ -5640,7 +5810,7 @@ template <class T> void add_unique_fragments(const cRect<T> &r, std::vector< cRe
                 fragment(cr, cf, stack);
             }
             else {
-                cr.m_frag_lvl++;
+                stack.back().m_frag_lvl++;
             }
         }
     }
@@ -5669,7 +5839,7 @@ mfxU64 make_back_color_yuv(mfxU16 bit_depth, mfxU16 Y, mfxU16 U, mfxU16 V)
     assert(bit_depth);
 
     mfxU64 const shift = bit_depth - 8;
-    mfxU64 const max_val = (1 << bit_depth) - 1;
+    mfxU64 const max_val = ((mfxU64)1 << bit_depth) - 1;
 
     return
         ((mfxU64) max_val << 48) |
@@ -5681,7 +5851,7 @@ mfxU64 make_back_color_yuv(mfxU16 bit_depth, mfxU16 Y, mfxU16 U, mfxU16 V)
 inline
 mfxU64 make_back_color_argb(mfxU16 bit_depth, mfxU16 R, mfxU16 G, mfxU16 B)
 {
-    mfxU64 const max_val = (1 << bit_depth) - 1;
+    mfxU64 const max_val = ((mfxU64)1 << bit_depth) - 1;
 
     return ((mfxU64)max_val << 48) |
         (mfx::clamp<mfxU64>(R, 0, max_val) << 32) |
@@ -6099,6 +6269,9 @@ mfxStatus ConfigureExecuteParams(
                                 executeParams.lut3DInfo.Enabled               = true;
                                 executeParams.lut3DInfo.ChannelMapping        = ext3DLUT->ChannelMapping;
                                 executeParams.lut3DInfo.BufferType            = ext3DLUT->BufferType;
+#ifdef ONEVPL_EXPERIMENTAL
+                                executeParams.lut3DInfo.InterpolationMethod   = ext3DLUT->InterpolationMethod;
+#endif
                                 if (ext3DLUT->BufferType == MFX_RESOURCE_VA_SURFACE || ext3DLUT->BufferType == MFX_RESOURCE_DX11_TEXTURE)
                                 {
                                     executeParams.lut3DInfo.DataType              = ext3DLUT->VideoBuffer.DataType;
@@ -6701,7 +6874,33 @@ mfxStatus ConfigureExecuteParams(
                 executeParams.iFieldProcessingMode++;
                 break;
             }
+            case MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION:
+                for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
+                {
+                    if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION)
+                    {
+                        mfxExtVPPAISuperResolution* extSR = (mfxExtVPPAISuperResolution*)videoParam.ExtParam[i];
+                        executeParams.bSuperResolution = true;
+                        executeParams.m_srMode = extSR->SRMode;
+                    }
+                }
+                break;
+            case MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION:
+            {
+                config.m_extConfig.mode = FRC_ENABLED | FRC_AI_INTERPOLATION;
+                config.m_extConfig.frcRational[VPP_IN].FrameRateExtN = videoParam.vpp.In.FrameRateExtN;
+                config.m_extConfig.frcRational[VPP_IN].FrameRateExtD = videoParam.vpp.In.FrameRateExtD;
+                config.m_extConfig.frcRational[VPP_OUT].FrameRateExtN = videoParam.vpp.Out.FrameRateExtN;
+                config.m_extConfig.frcRational[VPP_OUT].FrameRateExtD = videoParam.vpp.Out.FrameRateExtD;
 
+                inDNRatio = (mfxF64)videoParam.vpp.In.FrameRateExtD / videoParam.vpp.In.FrameRateExtN;
+                outDNRatio = (mfxF64)videoParam.vpp.Out.FrameRateExtD / videoParam.vpp.Out.FrameRateExtN;
+
+                mfxExtVPPAIFrameInterpolation* extFrc = (mfxExtVPPAIFrameInterpolation*)videoParam.ExtParam[0];
+                executeParams.bAiVfi = true;
+                executeParams.m_aiFiMode = extFrc->FIMode;
+                break;
+            }
 #ifdef MFX_ENABLE_MCTF
             case MFX_EXTBUFF_VPP_MCTF:
             {
@@ -6885,6 +7084,10 @@ mfxStatus ConfigureExecuteParams(
                     executeParams.VideoSignalInfoOut.TransferMatrix = MFX_TRANSFERMATRIX_UNKNOWN;
                     executeParams.VideoSignalInfoOut.enabled        = false;
 
+                }
+                else if (MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION == bufferId)
+                {
+                    executeParams.bSuperResolution = false;
                 }
 #ifdef MFX_ENABLE_MCTF
                 else if (MFX_EXTBUFF_VPP_MCTF == bufferId)
@@ -7165,6 +7368,7 @@ mfxStatus MfxFrameAllocResponse::Free( void )
         {
             NumFrameActual = m_numFrameActualReturnedByAllocFrames;
             m_core->FreeFrames(this);
+            mids = NULL;
         }
     }
 
@@ -7238,7 +7442,6 @@ mfxStatus CopyFrameDataBothFields(
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Surface lock (output frame)");
     FrameLocker lock(core, dstData, dstMid);
     MFX_CHECK(dstData.Y != 0, MFX_ERR_LOCK_MEMORY);
-    MFX_AUTO_TRACE_STOP();
 
     mfxFrameSurface1 vidSurf{};
     vidSurf.Info = info;

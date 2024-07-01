@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 Intel Corporation
+// Copyright (c) 2017-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,9 @@
 #include "umc_av1_frame.h"
 
 #include <algorithm>
+#include "mfx_umc_alloc_wrapper.h"
+
+#include "libmfx_core_vaapi.h"
 
 #include "mfx_unified_av1d_logging.h"
 
@@ -38,6 +41,7 @@ namespace UMC_AV1_DECODER
     AV1Decoder::AV1Decoder()
         : allocator(nullptr)
         , sequence_header(nullptr)
+        , old_seqHdr(nullptr)
         , counter(0)
         , Curr(nullptr)
         , Curr_temp(nullptr)
@@ -53,9 +57,17 @@ namespace UMC_AV1_DECODER
         , saved_clip_info_width(0)
         , saved_clip_info_height(0)
         , clip_info_size_saved(false)
+        , sequence_header_ready(false)
         , m_prev_frame_header_exist(false)
+        , m_specified_anchor_Idx(0)
+        , m_isAnchor(false)
+        , m_RecreateSurfaceFlag(false)
+        , m_drcFrameWidth(0)
+        , m_drcFrameHeight(0)
+        , m_pCore(nullptr)
     {
         outputed_frames.clear();
+        m_prev_frame_header = {};
     }
 
     AV1Decoder::~AV1Decoder()
@@ -64,6 +76,10 @@ namespace UMC_AV1_DECODER
             std::default_delete<AV1DecoderFrame>()
         );
         outputed_frames.clear();
+
+        // release unique_ptr resource
+        sequence_header.reset();
+        old_seqHdr.reset();
     }
 
     inline bool CheckOBUType(AV1_OBU_TYPE type)
@@ -87,35 +103,62 @@ namespace UMC_AV1_DECODER
 
     inline uint32_t MapLevel(uint32_t levelIdx)
     {
-        if (levelIdx < 20)
+        if (levelIdx <= 31)
             return (2 + (levelIdx >> 2)) * 10 + (levelIdx & 3);
         else
             return MFX_LEVEL_UNKNOWN;
     }
 
-    static bool IsNeedSPSInvalidate(const SequenceHeader *old_sps, const SequenceHeader *new_sps)
+    static bool IsNeedSPSInvalidate(SequenceHeader *old_sps, const SequenceHeader *new_sps)
     {
         if (!old_sps || !new_sps)
         {
+            return false;
+        }
+        if (old_sps->max_frame_width == 0 || old_sps->max_frame_height == 0)
+        {
+            old_sps->max_frame_width = new_sps->max_frame_width;
+            old_sps->max_frame_height = new_sps->max_frame_height;
+            old_sps->seq_profile = new_sps->seq_profile;
+            old_sps->film_grain_param_present = new_sps->film_grain_param_present;
             return false;
         }
 
         if ((old_sps->max_frame_width != new_sps->max_frame_width) ||
             (old_sps->max_frame_height != new_sps->max_frame_height))
         {
+            old_sps->max_frame_width = new_sps->max_frame_width;
+            old_sps->max_frame_height = new_sps->max_frame_height;
             return true;
         }
 
         if (old_sps->seq_profile != new_sps->seq_profile)
         {
+            old_sps->seq_profile = new_sps->seq_profile;
             return true;
         }
 
         if (old_sps->film_grain_param_present != new_sps->film_grain_param_present)
         {
+            old_sps->film_grain_param_present = new_sps->film_grain_param_present;
             return true;
         }
 
+        return false;
+    }
+
+    static bool IsNeedRecreateSurface(SequenceHeader* old_sps, const SequenceHeader* new_sps)
+    {
+        if (!old_sps || !new_sps)
+        {
+            return false;
+        }
+
+        if ((old_sps->seq_profile != new_sps->seq_profile) ||
+            (old_sps->film_grain_param_present != new_sps->film_grain_param_present))
+        {
+            return true;
+        }
         return false;
     }
 
@@ -187,6 +230,18 @@ namespace UMC_AV1_DECODER
         return SetParams(vp);
     }
 
+    UMC::Status AV1Decoder::Update_drc(SequenceHeader* seq)
+    {
+        if (!seq)
+            return UMC::UMC_ERR_NULL_PTR;
+
+        params.info.clip_info.height = seq->max_frame_height;
+        params.info.clip_info.width = seq->max_frame_width;
+        params.info.disp_clip_info = params.info.clip_info;
+        m_ClipInfo = params.info;
+        return UMC::UMC_OK;
+    }
+
     UMC::Status AV1Decoder::GetInfo(UMC::BaseCodecParams* info)
     {
         AV1DecoderParams* vp =
@@ -199,10 +254,11 @@ namespace UMC_AV1_DECODER
         return UMC::UMC_OK;
     }
 
-    DPBType DPBUpdate(AV1DecoderFrame const * prevFrame)
+    DPBType AV1Decoder::DPBUpdate(AV1DecoderFrame * prevFrame)
     {
         assert(prevFrame);
 
+        std::unique_lock<std::mutex> l(guard);
         DPBType updatedFrameDPB;
 
         DPBType const& prevFrameDPB = prevFrame->frame_dpb;
@@ -212,6 +268,11 @@ namespace UMC_AV1_DECODER
             updatedFrameDPB = prevFrameDPB;
 
         const FrameHeader& fh = prevFrame->GetFrameHeader();
+
+        prevFrame->DpbUpdated(true);
+
+        if (fh.refresh_frame_flags == 0)
+            return updatedFrameDPB;
 
         for (uint8_t i = 0; i < NUM_REF_FRAMES; i++)
         {
@@ -328,6 +389,10 @@ namespace UMC_AV1_DECODER
         {
             std::unique_lock<std::mutex> l(guard);
             pFrame = frameDPB[fh.frame_to_show_map_idx];
+
+            if (pFrame->Repeated())
+                return nullptr;
+
             //Increase referernce here, and will be decreased when
             //CompleteDecodedFrames not show_frame case.
             pFrame->IncrementReference();
@@ -371,7 +436,21 @@ namespace UMC_AV1_DECODER
             return pFrame;
         }
         else
-            pFrame = GetFrameBuffer(fh);
+	{
+            AV1DecoderFrame *pExFrame = nullptr;
+	    if (fh.refresh_frame_flags != 0)
+	    {
+                for (uint8_t i = 0; i < NUM_REF_FRAMES; i++)
+                {
+                    if ((fh.refresh_frame_flags >> i) & 1)
+                    {
+                        pExFrame = frameDPB[i];
+		        break;
+		    }
+	        }
+	    }
+            pFrame = GetFrameBuffer(fh, pExFrame);
+	}
 
         if (!pFrame)
             return nullptr;
@@ -501,7 +580,7 @@ namespace UMC_AV1_DECODER
         // frame preparation to decoding is in progress
         // i.e. SDK decoder still getting tiles of the frame from application (has both arrived and missing tiles)
         //      or it got all tiles and waits for output surface to start decoding
-        if (GetNumArrivedTiles(frame) == 0)
+        if (GetNumArrivedTiles(frame) == 0 || frame.UID == -1)
             return false;
 
         return GetNumMissingTiles(frame) || !AllocComplete(frame);
@@ -514,11 +593,14 @@ namespace UMC_AV1_DECODER
 
         frame->SetFrameTime(frame_order * in_framerate);
         frame->SetFrameOrder(frame_order);
-        frame_order++;
+        FrameHeader strFrameHeader = frame->GetFrameHeader();
+        if (strFrameHeader.show_frame || strFrameHeader.show_existing_frame)//add for fix -DecoderdOrder hang issue
+            frame_order++;
     }
 
     UMC::Status AV1Decoder::GetFrame(UMC::MediaData* in, UMC::MediaData*)
     {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
         if (!in)
             return UMC::UMC_ERR_NULL_PTR;
 
@@ -534,7 +616,7 @@ namespace UMC_AV1_DECODER
         {
             if (!Repeat_show)
             {
-                if (Curr_temp != Curr)
+                if (!pPrevFrame->DpbUpdated())
                 {
                     updated_refs = DPBUpdate(pPrevFrame);
                     refs_temp = updated_refs;
@@ -557,6 +639,7 @@ namespace UMC_AV1_DECODER
         {
             updated_refs = refs_temp;
             Curr_temp = Curr;
+            Repeat_show = 0;
         }
 
         if ((!updated_refs.empty())&& (updated_refs[0] != nullptr))
@@ -582,6 +665,7 @@ namespace UMC_AV1_DECODER
             assert(!AllocComplete(*pFrameInProgress));
             pCurrFrame = pFrameInProgress;
             gotFullFrame = true;
+            clean_seq_header_ready();
         }
         else
         {
@@ -604,6 +688,7 @@ namespace UMC_AV1_DECODER
                 uint32_t lst_shift;
                 bs.ReadOBUInfo(obuInfo);
                 const AV1_OBU_TYPE obuType = obuInfo.header.obu_type;
+                auto frame_source = dynamic_cast<SurfaceSource*>(allocator);
 
                 if (obuInfo.header.obu_type > OBU_PADDING)
                     return UMC::UMC_ERR_INVALID_PARAMS;
@@ -626,18 +711,35 @@ namespace UMC_AV1_DECODER
                     *sequence_header = SequenceHeader{};
                     bs.ReadSequenceHeader(*sequence_header);
 
-                    SequenceHeader const *old_seqHdr = nullptr;
-                    if (pPrevFrame)
+                    if (!old_seqHdr)
                     {
-                        old_seqHdr= &pPrevFrame->GetSeqHeader();
+                        old_seqHdr.reset(new SequenceHeader());
+                        Update_drc(sequence_header.get());
                     }
 
                     // check if sequence header has been changed
-                    if (IsNeedSPSInvalidate(old_seqHdr, sequence_header.get()))
+                    if (IsNeedSPSInvalidate(old_seqHdr.get(), sequence_header.get()))
                     {
-                        // new resolution required
-                        return UMC::UMC_NTF_NEW_RESOLUTION;
+                        // According to Spec Section 7.5 the contents of sequence_header_obu must be 
+                        // bit-identical each time the sequence header
+                        // appears except for the contents of operating_parameters_info
+                        if (is_seq_header_ready())
+                        {
+                            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_CRITICAL_INFO, "Multi sequence_header_obu not bit-identical!");
+                            return UMC::UMC_ERR_INVALID_PARAMS;
+                        }
+
+                        Update_drc(sequence_header.get());
+                        m_RecreateSurfaceFlag = IsNeedRecreateSurface(old_seqHdr.get(), sequence_header.get());
+
+                        if ((frame_source && !frame_source->GetSurfaceType()) || (frame_source->GetSurfaceType() && m_RecreateSurfaceFlag))
+                        {
+                            // new resolution required
+                            return UMC::UMC_NTF_NEW_RESOLUTION;
+                        }
                     }
+
+                    set_seq_header_ready();
                     break;
                 }
                 case OBU_TILE_LIST:
@@ -671,7 +773,13 @@ namespace UMC_AV1_DECODER
                         params.info.clip_info.height = (int32_t)(tlInfo.frameHeightInTiles * fh.tile_info.TileHeight * MI_SIZE);
                         params.info.disp_clip_info = params.info.clip_info;
                         PreFrame_id = OldPreFrame_id;
-                        return UMC::UMC_NTF_NEW_RESOLUTION;
+
+                        m_RecreateSurfaceFlag = IsNeedRecreateSurface(old_seqHdr.get(), sequence_header.get());
+                        if ((frame_source && !frame_source->GetSurfaceType()) || (frame_source->GetSurfaceType() && m_RecreateSurfaceFlag))
+                        {
+                            // new resolution required
+                            return UMC::UMC_NTF_NEW_RESOLUTION;
+                        }
                     }
 
                     fh.output_frame_width_in_tiles  = tlInfo.frameWidthInTiles;
@@ -686,6 +794,7 @@ namespace UMC_AV1_DECODER
                     in->MoveDataPointer(OBUOffset); // do not submit frame header in data buffer
                     OBUOffset = 0;
                     gotFullFrame = true; // tile list is a complete frame
+                    clean_seq_header_ready();
                     tile_list_idx++;
                     break;
                 case OBU_FRAME_HEADER:
@@ -716,11 +825,13 @@ namespace UMC_AV1_DECODER
                             gotFullFrame = true;
                             frames_to_skip--;
                             fh.is_anchor = 1;
+                            clean_seq_header_ready();
                         }
                         else if (anchor_decode)
                         {
                             gotFullFrame = true;
                             fh.is_anchor = 1;
+                            clean_seq_header_ready();
                         }
                         else
                         {
@@ -734,6 +845,7 @@ namespace UMC_AV1_DECODER
                         {
                             repeatedFrame = true;
                             gotFullFrame = true;
+                            clean_seq_header_ready();
                         }
                         break;
                     }
@@ -754,9 +866,16 @@ namespace UMC_AV1_DECODER
                     {
                         ReadTileGroup(layout, bs, *pFH, OBUOffset, obuInfo.size);
                         gotFullFrame = GotFullFrame(pFrameInProgress, *pFH, layout);
+                        if(gotFullFrame)
+                        {
+                            clean_seq_header_ready();
+                        }
                         break;
                     }
                 }
+                case OBU_METADATA:
+                    bs.ReadMetaData(fh);
+                    break;
                 default:
                     break;
                 }
@@ -922,27 +1041,6 @@ namespace UMC_AV1_DECODER
         return UMC::UMC_OK;
     }
 
-    bool AV1Decoder::IsFreeSlotInDPB(){
-        int emptyCounter = 0;
-        int readyCounter = 0;
-        for(AV1DecoderFrame* fr : dpb){
-            if(fr->Empty()){
-                emptyCounter++;
-            }
-            if(fr->Outputted() && fr->Displayed() && !fr->RefValid()){
-                readyCounter++;
-            }
-        }
-
-        //this is temporary workaround for parallel encoding use case, that uses
-        //big value of async depth >= 20 and as a result big DPB
-        if(emptyCounter == 2 && readyCounter == 0 && dpb.size() > 20){
-            return false;
-        }
-
-        return true;
-    }
-
     AV1DecoderFrame* AV1Decoder::FindFrameByMemID(UMC::FrameMemID id)
     {
         return FindFrame(
@@ -1062,55 +1160,51 @@ namespace UMC_AV1_DECODER
         refs_temp.resize(size);
     }
 
-    void AV1Decoder::CompleteDecodedFrames(FrameHeader const& fh, AV1DecoderFrame* pCurrFrame, AV1DecoderFrame* pPrevFrame)
+    void AV1Decoder::CompleteDecodedFrames(FrameHeader const& fh, AV1DecoderFrame* pCurrFrame, AV1DecoderFrame*)
     {
-        if (pPrevFrame && Curr)
+        std::unique_lock<std::mutex> l(guard);
+        if (Curr)
         {
-            std::unique_lock<std::mutex> l(guard);
             FrameHeader const& FH_OutTemp = Curr->GetFrameHeader();
-            if (outputed_frames.size() == 0)
+            if (Repeat_show || FH_OutTemp.show_frame)
             {
-                outputed_frames.push_back(pPrevFrame);
+                bool bAdded = false;
+                for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); iter++)
+                {
+                    AV1DecoderFrame* temp = *iter;
+                    if (Curr->UID == temp->UID)
+                    {
+                        bAdded = true;
+                        break;
+                    }
+                }
+                if (!bAdded)
+                    outputed_frames.push_back(Curr);
             }
             else
             {
-                if (Repeat_show || FH_OutTemp.show_frame)
+                // For no display case, decrease reference here which is increased
+                // in pFrame->IncrementReference() in show_existing_frame case.
+                if(pCurrFrame)
                 {
-                    for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
-                    {
-                        AV1DecoderFrame* temp = *iter;
-                        if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated())
-                        {
-                            temp->DecrementReference();
-                            iter = outputed_frames.erase(iter);
-                        }
-                        else
-                            iter++;
-                    }
-                    outputed_frames.push_back(Curr);
-                }
-                else
-                {
-                    // For no display case, decrease reference here which is increased
-                    // in pFrame->IncrementReference() in show_existing_frame case.
-                    if(pCurrFrame)
-                    {
+                    if (Curr->UID == -1)
+                        Curr = nullptr;
+                    else if(Curr != pCurrFrame)
                         Curr->DecrementReference();
-                    }else{
-                        for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
-                        {
-                            AV1DecoderFrame* temp = *iter;
-                            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated())
-                            {
-                                temp->DecrementReference();
-                                iter = outputed_frames.erase(iter);
-                            }
-                            else
-                                iter++;
-                        }
-                    }
                 }
             }
+        }
+
+        for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
+        {
+            AV1DecoderFrame* temp = *iter;
+            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated() && temp->DpbUpdated())
+            {
+                temp->DecrementReference();
+                iter = outputed_frames.erase(iter);
+            }
+            else
+                iter++;
         }
 
         // When no available buffer, don't update Curr buffer to avoid update DPB duplicated.
@@ -1127,13 +1221,29 @@ namespace UMC_AV1_DECODER
         }
     }
 
-    AV1DecoderFrame* AV1Decoder::GetFreeFrame()
+    void AV1Decoder::Flush()
+    {
+        std::unique_lock<std::mutex> l(guard);
+        for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
+        {
+            AV1DecoderFrame* temp = *iter;
+            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated() && temp->DpbUpdated())
+            {
+                temp->DecrementReference();
+                iter = outputed_frames.erase(iter);
+            }
+            else
+                iter++;
+        }
+    }
+
+    AV1DecoderFrame* AV1Decoder::GetFreeFrame(AV1DecoderFrame* excepted)
     {
         std::unique_lock<std::mutex> l(guard);
 
         auto i = std::find_if(std::begin(dpb), std::end(dpb),
-            [](AV1DecoderFrame const* frame)
-            { return frame->Empty(); }
+            [excepted](AV1DecoderFrame const* frame)
+            { return frame->Empty() && frame != excepted; }
         );
 
         AV1DecoderFrame* frame =
@@ -1145,9 +1255,9 @@ namespace UMC_AV1_DECODER
         return frame;
     }
 
-    AV1DecoderFrame* AV1Decoder::GetFrameBuffer(FrameHeader const& fh)
+    AV1DecoderFrame* AV1Decoder::GetFrameBuffer(FrameHeader const& fh, AV1DecoderFrame* excepted)
     {
-        AV1DecoderFrame* frame = GetFreeFrame();
+        AV1DecoderFrame* frame = GetFreeFrame(excepted);
         if (!frame)
         {
            return nullptr;
@@ -1190,9 +1300,38 @@ namespace UMC_AV1_DECODER
             throw av1_exception(sts);
 
         UMC::FrameMemID id;
-        sts = allocator->Alloc(&id, &info, 0);
+        sts = allocator->Alloc(&id, &info, mfx_UMC_ReallocAllowed);
+
+        auto frame_source = dynamic_cast<SurfaceSource*>(allocator);
         if (sts != UMC::UMC_OK)
-            throw av1_exception(UMC::UMC_ERR_ALLOC);
+        {
+            if (sts == UMC::UMC_ERR_NOT_ENOUGH_BUFFER && frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag)
+            {
+                m_drcFrameWidth = (uint16_t)params.info.clip_info.width;
+                m_drcFrameHeight = (uint16_t)params.info.clip_info.height;
+            }
+            else
+            {
+                throw av1_exception(UMC::UMC_ERR_ALLOC);
+            }
+        }
+
+        if (frame_source)
+        {
+            mfxFrameSurface1* surface = frame_source->GetSurfaceByIndex(id);
+            if (!surface)
+                throw av1_exception(UMC::UMC_ERR_ALLOC);
+
+            if (m_drcFrameWidth > surface->Info.Width || m_drcFrameHeight > surface->Info.Height)
+            {
+                surface->Info.Width = mfx::align2_value(m_drcFrameWidth, 16);
+                surface->Info.Height = mfx::align2_value(m_drcFrameHeight, 16);
+                VAAPIVideoCORE_VPL* vaapi_core_vpl = reinterpret_cast<VAAPIVideoCORE_VPL*>(m_pCore->QueryCoreInterface(MFXIVAAPIVideoCORE_VPL_GUID));
+                if (!vaapi_core_vpl)
+                    throw av1_exception(UMC::UMC_ERR_NULL_PTR);
+                vaapi_core_vpl->ReallocFrame(surface);
+            }
+        }
 
         AllocateFrameData(info, id, frame);
         if (frame.m_index < 0)

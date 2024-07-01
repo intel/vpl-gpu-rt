@@ -140,9 +140,9 @@ public:
         CMEnabledCoreAdapter(VAAPIVideoCORE_T *pVAAPICore): m_pVAAPICore(pVAAPICore)
         {
         }
-        virtual void SetCmCopyStatus(bool enable) override
+        virtual void SetCmCopyMode(mfxU16 cm_copy_mode) override
         {
-            m_pVAAPICore->SetCmCopyStatus(enable);
+            m_pVAAPICore->SetCmCopyMode(cm_copy_mode);
         }
     protected:
         VAAPIVideoCORE_T *m_pVAAPICore;
@@ -195,7 +195,7 @@ public:
 
     mfxStatus            GetVAService(VADisplay *pVADisplay);
 
-    void                 SetCmCopyStatus(bool enable);
+    void                 SetCmCopyMode(mfxU16 cm_copy_mode);
 
 protected:
     VAAPIVideoCORE_T(const mfxU32 adapterNum, const AffinityMaskType& affinityMask, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
@@ -263,7 +263,7 @@ public:
     virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, mfxU32 gpuCopyMode = MFX_COPY_USE_ANY)                                      override;
     virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType, mfxU32 gpuCopyMode = MFX_COPY_USE_ANY) override;
 
-    virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)                                                      override;
+    virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf, mfxSurfaceHeader* import_surface)                             override;
 
 protected:
     VAAPIVideoCORE_VPL(const mfxU32 adapterNum, const AffinityMaskType& affinityMask, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);

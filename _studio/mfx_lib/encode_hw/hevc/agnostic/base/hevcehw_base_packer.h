@@ -136,7 +136,6 @@ namespace Base
             , *m_pRTBufEnd = nullptr;
         NotNull<StorageW*> m_pGlob;
 
-
         virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override;
         virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
         virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override;
@@ -262,6 +261,11 @@ namespace Base
             using TPackAdaptiveCqmHeader = CallChain<bool
                 , StorageW*>;
             TPackAdaptiveCqmHeader PackAdaptiveCqmHeader;
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+            using TPackSWETAdaptiveCqmHeader = CallChain<bool
+                , StorageW*>;
+            TPackSWETAdaptiveCqmHeader PackSWETAdaptiveCqmHeader;
+#endif
 
             using TUpdateLPLAAnalysisSPSBS = CallChain<void
                 , const StorageR& //global

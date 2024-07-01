@@ -179,7 +179,7 @@ static int32_t Qstep2QP (double Qstep)
 Status H264BRC::InitHRD()
 {
   int32_t profile_ind, level_ind;
-  unsigned long long bufSizeBits = mParams.HRDBufferSizeBytes << 3;
+  unsigned long long bufSizeBits = (long long)mParams.HRDBufferSizeBytes << 3;
   unsigned long long maxBitrate = mParams.maxBitrate;
   int32_t bitsPerFrame;
 
@@ -899,7 +899,7 @@ BRCStatus H264BRC::UpdateQuant(int32_t bEncoded, int32_t totalPicBits)
   mBitsEncodedTotal += totalPicBits;
   mBitsDesiredTotal += bitsPerPic;
 
-  long long targetFullness = mParams.HRDInitialDelayBytes << 3;
+  long long targetFullness = (long long)mParams.HRDInitialDelayBytes << 3;
   long long minTargetFullness = std::min(mHRD.bufSize / 2, mBitrate * 2); // half bufsize or 2 sec
   if (targetFullness < minTargetFullness)
       targetFullness = minTargetFullness;

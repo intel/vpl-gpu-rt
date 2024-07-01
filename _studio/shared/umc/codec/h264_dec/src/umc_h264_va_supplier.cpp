@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2021 Intel Corporation
+// Copyright (c) 2003-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,8 @@
 #include "mfx_common_int.h"
 #include "mfx_ext_buffers.h"
 #include "umc_h264_notify.h"
+
+#include "libmfx_core_vaapi.h"
 
 namespace UMC
 {
@@ -100,6 +102,8 @@ void LazyCopier::CopyAll()
 
 VATaskSupplier::VATaskSupplier()
     : m_bufferedFrameNumber(0)
+    , m_drcFrameWidth(0)
+    , m_drcFrameHeight(0)
 {
 }
 
@@ -249,6 +253,7 @@ H264DecoderFrame *VATaskSupplier::GetFreeFrame(const H264Slice * pSlice)
 
 Status VATaskSupplier::CompleteFrame(H264DecoderFrame * pFrame, int32_t field)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     if (!pFrame)
         return UMC_OK;
 
@@ -320,6 +325,7 @@ void VATaskSupplier::InitFrameCounter(H264DecoderFrame * pFrame, const H264Slice
 
 Status VATaskSupplier::AddSource(MediaData * pSource)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     if (!pSource)
         return MFXTaskSupplier::AddSource(pSource);
 
@@ -334,23 +340,43 @@ Status VATaskSupplier::AllocateFrameData(H264DecoderFrame * pFrame)
     info.Init(dimensions.width, dimensions.height, pFrame->GetColorFormat(), pFrame->m_bpp);
 
     FrameMemID frmMID;
-    Status sts = m_pFrameAllocator->Alloc(&frmMID, &info, 0);
+    Status sts = m_pFrameAllocator->Alloc(&frmMID, &info, mfx_UMC_ReallocAllowed);
 
     if (sts == UMC_ERR_ALLOC)
         return UMC_ERR_ALLOC;
 
-    if (sts != UMC_OK)
-        throw h264_exception(UMC_ERR_ALLOC);
-
-    FrameData frmData;
+    UMC::FrameData frmData;
     frmData.Init(&info, frmMID, m_pFrameAllocator);
 
     auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
+
+    if (sts != UMC_OK)
+    {
+        if (sts == UMC::UMC_ERR_NOT_ENOUGH_BUFFER && frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag)
+        {
+            m_drcFrameWidth = (uint16_t)dimensions.width;
+            m_drcFrameHeight = (uint16_t)dimensions.height;
+        }
+        else
+        {
+            throw h264_exception(UMC::UMC_ERR_ALLOC);
+        }
+    }
+
     if (frame_source)
     {
         mfxFrameSurface1* surface = frame_source->GetSurfaceByIndex(frmMID);
         if (!surface)
             throw h264_exception(UMC_ERR_ALLOC);
+
+        if (m_drcFrameWidth > surface->Info.Width || m_drcFrameHeight > surface->Info.Height)
+        {
+            surface->Info.Width = mfx::align2_value(m_drcFrameWidth, 16);
+            surface->Info.Height = mfx::align2_value(m_drcFrameHeight, 16);
+            VAAPIVideoCORE_VPL* vaapi_core_vpl = reinterpret_cast<VAAPIVideoCORE_VPL*>(m_pCore->QueryCoreInterface(MFXIVAAPIVideoCORE_VPL_GUID));
+            MFX_CHECK_NULL_PTR1(vaapi_core_vpl);
+            vaapi_core_vpl->ReallocFrame(surface);                        
+        }
 
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
         mfxExtBuffer* extbuf = nullptr;

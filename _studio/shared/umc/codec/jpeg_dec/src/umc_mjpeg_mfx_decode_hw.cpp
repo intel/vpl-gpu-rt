@@ -285,6 +285,7 @@ Status MJPEGVideoDecoderMFX_HW::_DecodeHeader(int32_t* cnt)
 
 Status MJPEGVideoDecoderMFX_HW::_DecodeField(MediaDataEx* in)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     int32_t     nUsedBytes = 0;
 
     if(JPEG_OK != m_decBase->SetSource((uint8_t*)in->GetDataPointer(), (int32_t)in->GetDataSize()))
@@ -390,6 +391,7 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "JPEG decode DDISubmitTask");
 
     sts = m_va->BeginFrame(m_frameData.GetFrameMID(), 0);
+    MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, sts);
     if (sts != UMC_OK)
         return sts;
     {
@@ -444,18 +446,20 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
             if(JPEG_OK != jerr)
                 return UMC_ERR_FAILED;
 
-            jerr = m_decBase->ParseSOS(JO_READ_HEADER);
-            if (m_decBase->m_curr_comp_no != m_decBase->m_curr_scan->ncomps-1)
-                return UMC_ERR_INVALID_STREAM;
-            if(JPEG_OK != jerr)
+            jerr = m_decBase->ParseSOS(JO_READ_DATA);
+            
+	    if(JPEG_OK != jerr)
             {
                 if (JPEG_ERR_BUFF == jerr)
                     return UMC_ERR_NOT_ENOUGH_DATA;
                 else
                     return UMC_ERR_FAILED;
             }
+            buffersForUpdate |= 1 << 3;
 
-            buffersForUpdate |= 1 << 4;
+            sts = SyntaxErrorConcealment(&buffersForUpdate);
+            if (sts != UMC_OK)
+                return sts;
 
             scanParams.NumComponents        = (uint16_t)m_decBase->m_curr_scan->ncomps;
             scanParams.RestartInterval      = (uint16_t)m_decBase->m_curr_scan->jpeg_restart_interval;
@@ -473,6 +477,7 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
             }
 
             sts = PackHeaders(in, &scanParams, &buffersForUpdate);
+            MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, sts);
             if (sts != UMC_OK)
                 return sts;
 
@@ -556,11 +561,99 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
 }
 
 #ifdef UMC_VA
+Status MJPEGVideoDecoderMFX_HW::SyntaxErrorConcealment(uint8_t* buffersForUpdate)
+{
+    // Skip check if buffer is not ready for update
+    // Bits: 0 - picParams, 1 - quantTable, 2 - huffmanTables, 3 - bistreamData, 4 - scanParams
+    if(*buffersForUpdate == 0)
+    {
+        return UMC_OK;
+    }
+    //check SOF0 and SOS syntax
+    if (((*buffersForUpdate & 1) != 0) && ((*buffersForUpdate & (1 << 4)) != 0))
+    {
+         // P: DCT baseline support 8 only
+        if (m_decBase->m_jpeg_precision != 8)
+        {
+            return UMC_ERR_INVALID_STREAM;
+        }
+        // X: (1 - 65535)
+        if (m_decBase->m_jpeg_width == 0)
+        {
+            return UMC_ERR_INVALID_STREAM;
+        }
+
+        // Nf: (1 - 4)
+        if (m_decBase->m_jpeg_ncomp < 1 || m_decBase->m_jpeg_ncomp > MAX_COMPS_PER_SCAN)
+        {
+            return UMC_ERR_INVALID_STREAM;
+        }
+        for (int32_t i = 0; i < m_decBase->m_jpeg_ncomp; i++)
+        {
+            // Hi: (1 - 4)
+            if (m_decBase->m_ccomp[i].m_hsampling < 1 || m_decBase->m_ccomp[i].m_hsampling > 4)
+            {
+                return UMC_ERR_INVALID_STREAM;
+            }
+            // Vi: (1 - 4)
+            if (m_decBase->m_ccomp[i].m_vsampling < 1 || m_decBase->m_ccomp[i].m_vsampling > 4)
+            {
+                return UMC_ERR_INVALID_STREAM;
+            }
+
+            // Tqi: (0 - 3)
+            if (m_decBase->m_ccomp[i].m_q_selector > 3)
+            {
+                return UMC_ERR_INVALID_STREAM;
+            }
+            // The q table selected by Tqi should exist in DQT
+            if (m_decBase->m_qntbl[m_decBase->m_ccomp[i].m_q_selector].m_initialized == 0)
+            {
+                return UMC_ERR_INVALID_STREAM;
+            }
+            for (int32_t j = i + 1; j < m_decBase->m_jpeg_ncomp; j++)
+            {
+                // Ci: different value to each other id
+                if (m_decBase->m_ccomp[i].m_id == m_decBase->m_ccomp[j].m_id)
+                {
+                    return UMC_ERR_INVALID_STREAM;
+                }
+            }
+
+            // Tdj: (0 - 1); Taj: (0 - 1)
+            if (m_decBase->m_ccomp[i].m_dc_selector > 1 || m_decBase->m_ccomp[i].m_ac_selector > 1)
+            {
+                return UMC_ERR_INVALID_STREAM;
+            }
+        }
+    }
+
+    // Check DQT data
+    if ((*buffersForUpdate & (1 << 1)) != 0)
+    {
+        // At least one QuanTable in one image
+        if(m_decBase->GetNumQuantTables() == 0)
+        {
+            return UMC_ERR_INVALID_STREAM;
+        }
+        for (int32_t i = 0; i < MAX_QUANT_TABLES; i++)
+        {
+            if (!m_decBase->m_qntbl[i].m_initialized)
+                continue;
+
+            // Pq: should be always zero for 8-bit quantization tables
+            if (m_decBase->m_qntbl[i].m_precision)
+            {
+                return UMC_ERR_INVALID_STREAM;
+            }
+        }
+    }
+    return UMC_OK;
+}
+
 // Linux/Android version
 Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PARAMETER* obtainedScanParams, uint8_t* buffersForUpdate)
 {
-    uint32_t bitstreamTile = 0;
-
     /////////////////////////////////////////////////////////////////////////////////////////
     if((*buffersForUpdate & 1) != 0)
     {
@@ -571,6 +664,10 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
         picParams = (VAPictureParameterBufferJPEGBaseline*)m_va->GetCompBuffer(VAPictureParameterBufferType,
                                                                             &compBufPic,
                                                                             sizeof(VAPictureParameterBufferJPEGBaseline));
+        if ((uint32_t)compBufPic->GetBufferSize() < sizeof(VAPictureParameterBufferJPEGBaseline))
+            return UMC_ERR_FAILED;
+        memset(picParams, 0, sizeof(VAPictureParameterBufferJPEGBaseline));
+
         if(!picParams)
             return UMC_ERR_DEVICE_FAILED;
         picParams->picture_width  = (uint16_t)m_decBase->m_jpeg_width;
@@ -620,6 +717,9 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
         qmatrixParams = (VAIQMatrixBufferJPEGBaseline*)m_va->GetCompBuffer(VAIQMatrixBufferType,
                                                                        &compBufQM,
                                                                        sizeof(VAIQMatrixBufferJPEGBaseline));
+        if ((uint32_t)compBufQM->GetBufferSize() < sizeof(VAIQMatrixBufferJPEGBaseline))
+            return UMC_ERR_FAILED;
+
         for (int32_t i = 0; i < MAX_QUANT_TABLES; i++)
         {
             if (!m_decBase->m_qntbl[i].m_initialized)
@@ -646,6 +746,8 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
         huffmanParams = (VAHuffmanTableBufferJPEGBaseline*)m_va->GetCompBuffer(VAHuffmanTableBufferType,
                                                                        &compBufHm,
                                                                        sizeof(VAHuffmanTableBufferJPEGBaseline));
+        if ((uint32_t)compBufHm->GetBufferSize() < sizeof(VAHuffmanTableBufferJPEGBaseline))
+            return UMC_ERR_FAILED;
         if(!huffmanParams)
             return UMC_ERR_DEVICE_FAILED;
         for (int32_t i = 0; i < 2; i++)
@@ -686,13 +788,22 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
         *buffersForUpdate -= 1 << 3;
         UMCVACompBuffer* compBufSlice;
         VASliceParameterBufferJPEGBaseline *sliceParams;
+
+        // create scan parameter buffer , size is scan number * sizeof(VASliceParameterBufferJPEGBaseline)
         sliceParams = (VASliceParameterBufferJPEGBaseline*)m_va->GetCompBuffer(VASliceParameterBufferType,
-                                                                                 &compBufSlice,
-                                                                                 sizeof(VASliceParameterBufferJPEGBaseline));
-        if ( !sliceParams )
+                                                                               &compBufSlice,
+                                                                               m_decBase->m_num_scans*sizeof(VASliceParameterBufferJPEGBaseline));
+       
+        static uint32_t firstSacnOffset = 0;       
+        if(m_decBase->m_curr_scan->scan_no == 0)
+        {
+            // mark first scan parameter offset
+            firstSacnOffset = obtainedScanParams->DataOffset;
+        }
+        sliceParams = sliceParams + m_decBase->m_curr_scan->scan_no;
+        if (!sliceParams)
             MFX_RETURN(MFX_ERR_DEVICE_FAILED);
         sliceParams->slice_data_size           = obtainedScanParams->DataLength;
-        sliceParams->slice_data_offset         = 0;
         sliceParams->slice_data_flag           = VA_SLICE_DATA_FLAG_ALL;
         sliceParams->num_components            = obtainedScanParams->NumComponents;
         sliceParams->restart_interval          = obtainedScanParams->RestartInterval;
@@ -705,7 +816,16 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
             sliceParams->components[i].dc_table_selector  = obtainedScanParams->DcHuffTblSelector[i];
             sliceParams->components[i].ac_table_selector  = obtainedScanParams->AcHuffTblSelector[i];
         }
-        compBufSlice->SetDataSize(sizeof(VASliceParameterBufferJPEGBaseline));
+        
+        if (m_decBase->m_curr_scan->scan_no == m_decBase->m_num_scans - 1)
+        {
+            sliceParams->slice_data_offset = obtainedScanParams->DataOffset - firstSacnOffset;
+            compBufSlice->SetDataSize(sizeof(VASliceParameterBufferJPEGBaseline) * m_decBase->m_num_scans);
+        }
+        else if (m_decBase->m_curr_scan->scan_no < m_decBase->m_num_scans - 1)
+        {
+            sliceParams->slice_data_offset = obtainedScanParams->DataOffset - firstSacnOffset;
+        }
     }
 
     if((*buffersForUpdate & (1 << 4)) != 0)
@@ -713,22 +833,32 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
         *buffersForUpdate -= 1 << 4;
         UMCVACompBuffer* compBufBs;
         uint8_t *ptr   = (uint8_t *)src->GetDataPointer();
-        uint8_t *bistreamData = (uint8_t *)m_va->GetCompBuffer(VASliceDataBufferType, &compBufBs, obtainedScanParams->DataLength);
 
-        if(!bistreamData)
-            return UMC_ERR_DEVICE_FAILED;
-        if (obtainedScanParams->DataLength > (uint32_t)compBufBs->GetBufferSize())
-            return UMC_ERR_INVALID_STREAM;
-        std::copy(ptr + obtainedScanParams->DataOffset, ptr + obtainedScanParams->DataOffset + obtainedScanParams->DataLength, bistreamData);
-    }
+        if(m_decBase->m_num_scans > 1)
+        {
+            // if multiple scan, store all scan data
+            uint8_t* bistreamData = (uint8_t*)m_va->GetCompBuffer(VASliceDataBufferType, &compBufBs, (uint32_t)src->GetDataSize());
 
-    /////////////////////////////////////////////////////////////////////////////////////////
-    while(bitstreamTile != 0)
-    {
-        UMCVACompBuffer* compBufBs;
-        uint8_t *bistreamData = (uint8_t *)m_va->GetCompBuffer(VASliceDataBufferType, &compBufBs, bitstreamTile);
-        MFX_INTERNAL_CPY(bistreamData, (uint8_t*)src->GetDataPointer() + obtainedScanParams->DataOffset + obtainedScanParams->DataLength - bitstreamTile, bitstreamTile);
-        bitstreamTile = 0;
+            if(!bistreamData)
+                return UMC_ERR_DEVICE_FAILED;
+            if (obtainedScanParams->DataLength > (uint32_t)compBufBs->GetBufferSize())
+                return UMC_ERR_INVALID_STREAM;
+            if (obtainedScanParams->DataOffset + (uint32_t)src->GetDataSize() > src->GetBufferSize())
+                return UMC_ERR_INVALID_PARAMS;
+            std::copy(ptr + obtainedScanParams->DataOffset, ptr + obtainedScanParams->DataOffset+(uint32_t)src->GetDataSize(), bistreamData); 
+        }
+        else
+        {
+            uint8_t *bistreamData = (uint8_t *)m_va->GetCompBuffer(VASliceDataBufferType, &compBufBs, obtainedScanParams->DataLength);
+
+            if(!bistreamData)
+                return UMC_ERR_DEVICE_FAILED;
+            if (obtainedScanParams->DataLength > (uint32_t)compBufBs->GetBufferSize())
+                return UMC_ERR_INVALID_STREAM;
+            if (obtainedScanParams->DataOffset + obtainedScanParams->DataLength > src->GetBufferSize())
+                return UMC_ERR_INVALID_PARAMS;
+            std::copy(ptr + obtainedScanParams->DataOffset, ptr + obtainedScanParams->DataOffset + obtainedScanParams->DataLength, bistreamData);
+        }        
     }
 
     return UMC_OK;
@@ -755,6 +885,7 @@ Status MJPEGVideoDecoderMFX_HW::GetFrame(UMC::MediaDataEx *pSrcData,
                                          const mfxU32  fieldPos)
 {
     Status status = UMC_OK;
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
 
     if(0 == out)
     {

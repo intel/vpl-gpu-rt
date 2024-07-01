@@ -96,13 +96,19 @@ set(LIBS
   mfx_common_hw
   mfx_trace
   mfx_logging
-  $<$<BOOL:${MFX_ENABLE_ENCTOOLS}>:enctools_base>
   ${HW_ONLY_LIBS}
   $<$<BOOL:${ITT_FOUND}>:itt>
   Threads::Threads
   ${CMAKE_DL_LIBS}
   $<$<PLATFORM_ID:Windows>:cfgmgr32>
 )
+
+if (MFX_ENABLE_ENCTOOLS OR MFX_ENABLE_HW_LPLA)
+  set(LIBS
+      ${LIBS}
+      enctools_base
+    )
+endif()
 
 target_compile_definitions(mfxcore
   PUBLIC
@@ -112,6 +118,7 @@ target_compile_definitions(mfxcore
 target_include_directories(mfxcore
   PUBLIC
     scheduler/include
+    ${OPENCL_INCLUDE}
   )
   
 if (CMAKE_SYSTEM_NAME MATCHES Linux)

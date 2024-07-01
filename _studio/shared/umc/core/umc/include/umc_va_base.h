@@ -73,6 +73,9 @@ enum VideoAccelerationProfile
 #if defined(MFX_ENABLE_AV1_VIDEO_CODEC)
     VA_AV1          = 0x0009,
 #endif
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+    VA_VVC          = 0x000a,
+#endif
 
     // Entry points
     VA_ENTRY_POINT  = 0xfff00,
@@ -108,6 +111,10 @@ enum VideoAccelerationProfile
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
     AV1_VLD         = VA_AV1 | VA_VLD,
     AV1_10_VLD      = VA_AV1 | VA_VLD | VA_PROFILE_10,
+#endif
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+    VVC_VLD         = VA_VVC | VA_VLD,
+    VVC_10_VLD      = VA_VVC | VA_VLD | VA_PROFILE_10,
 #endif
 
     H265_VLD_REXT               = VA_H265 | VA_VLD | VA_PROFILE_REXT,
@@ -209,6 +216,7 @@ public:
         m_Profile(UNKNOWN),
         m_Platform(VA_UNKNOWN_PLATFORM),
         m_HWPlatform(MFX_HW_UNKNOWN),
+        m_HWDeviceID(0),
 #if defined(MFX_ENABLE_PROTECT)
         m_protectedVA(nullptr),
 #endif
@@ -238,6 +246,8 @@ public:
     // By default just calls BeginFrame(index). must be overridden by child class
     virtual Status BeginFrame(int32_t  index, uint32_t fieldId )
     {
+        MFX_CHECK(index >= 0, UMC_ERR_INVALID_PARAMS);
+
         // by default just calls BeginFrame(index)
         (void)fieldId;
         return BeginFrame(index);
@@ -317,6 +327,13 @@ public:
 #endif
             break;
 #endif
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+        case VA_VVC:
+#if defined(MFX_ENABLE_HW_BLOCKING_TASK_SYNC_VVCD)
+            isEnabled = true;
+#endif
+            break;
+#endif
         default:
             break;
         }
@@ -351,6 +368,7 @@ public:
     VideoAccelerationProfile    m_Profile;          // entry point
     VideoAccelerationPlatform   m_Platform;         // DXVA, LinuxVA, etc
     eMFXHWType                  m_HWPlatform;
+    mfxU16                      m_HWDeviceID;
 
 protected:
 

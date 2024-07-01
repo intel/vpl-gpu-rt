@@ -39,6 +39,7 @@ public:
     MFXVideoENCODEVP9_HW(VideoCORE *core, mfxStatus *status)
         : m_bStartIVFSequence(false)
         , m_maxBsSize(0)
+        , m_pCore(nullptr)
         , m_initialized(false)
         , m_frameArrivalOrder(0)
         , m_drainState(false)
@@ -64,7 +65,7 @@ public:
         if (status)
             *status = MFX_ERR_NONE;
     }
-    virtual ~MFXVideoENCODEVP9_HW()
+    virtual ~MFXVideoENCODEVP9_HW() override
     {
         Close();
     }
@@ -75,32 +76,32 @@ public:
 
     static mfxStatus QueryImplsDescription(VideoCORE& core, mfxEncoderDescription::encoder& caps, mfx::PODArraysHolder& ah);
 
-    virtual mfxStatus Init(mfxVideoParam *par);
+    virtual mfxStatus Init(mfxVideoParam *par) override;
 
-    virtual mfxStatus Reset(mfxVideoParam *par);
+    virtual mfxStatus Reset(mfxVideoParam *par) override;
 
-    virtual mfxStatus Close();
+    virtual mfxStatus Close() override;
 
-    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) { return MFX_TASK_THREADING_INTRA; }
+    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) override { return MFX_TASK_THREADING_INTRA; }
 
-    virtual mfxStatus GetVideoParam(mfxVideoParam *par);
+    virtual mfxStatus GetVideoParam(mfxVideoParam *par) override;
 
-    virtual mfxStatus GetFrameParam(mfxFrameParam * /*par*/)
+    virtual mfxStatus GetFrameParam(mfxFrameParam * /*par*/) override
     {
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
-    virtual mfxStatus GetEncodeStat(mfxEncodeStat * /*stat*/)
+    virtual mfxStatus GetEncodeStat(mfxEncodeStat * /*stat*/) override
     {
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
-    virtual mfxStatus EncodeFrameCheck(mfxEncodeCtrl * /*ctrl*/, mfxFrameSurface1 * /*surface*/, mfxBitstream * /*bs*/, mfxFrameSurface1 ** /*reordered_surface*/, mfxEncodeInternalParams * /*pInternalParams*/)
+    virtual mfxStatus EncodeFrameCheck(mfxEncodeCtrl * /*ctrl*/, mfxFrameSurface1 * /*surface*/, mfxBitstream * /*bs*/, mfxFrameSurface1 ** /*reordered_surface*/, mfxEncodeInternalParams * /*pInternalParams*/) override
     {
         return MFX_ERR_NONE;
     }
 
-    virtual mfxStatus EncodeFrameCheck(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs, mfxFrameSurface1 ** /*reordered_surface*/, mfxEncodeInternalParams * /*pInternalParams*/, MFX_ENTRY_POINT *pEntryPoint)
+    virtual mfxStatus EncodeFrameCheck(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs, mfxFrameSurface1 ** /*reordered_surface*/, mfxEncodeInternalParams * /*pInternalParams*/, MFX_ENTRY_POINT *pEntryPoint) override
     {
         mfxThreadTask userParam;
 
@@ -117,12 +118,12 @@ public:
         return mfxRes;
     }
 
-    virtual mfxStatus EncodeFrame(mfxEncodeCtrl * /*ctrl*/, mfxEncodeInternalParams * /*pInternalParams*/, mfxFrameSurface1 * /*surface*/, mfxBitstream * /*bs*/)
+    virtual mfxStatus EncodeFrame(mfxEncodeCtrl * /*ctrl*/, mfxEncodeInternalParams * /*pInternalParams*/, mfxFrameSurface1 * /*surface*/, mfxBitstream * /*bs*/) override
     {
         return MFX_ERR_NONE;
     }
 
-    virtual mfxStatus CancelFrame(mfxEncodeCtrl * /*ctrl*/, mfxEncodeInternalParams * /*pInternalParams*/, mfxFrameSurface1 * /*surface*/, mfxBitstream * /*bs*/)
+    virtual mfxStatus CancelFrame(mfxEncodeCtrl * /*ctrl*/, mfxEncodeInternalParams * /*pInternalParams*/, mfxFrameSurface1 * /*surface*/, mfxBitstream * /*bs*/) override
     {
         return MFX_ERR_NONE;
     }
@@ -156,6 +157,8 @@ public:
     {
         return m_initialized;
     }
+
+    MFX_PROPAGATE_GetSurface_VideoENCODE_Definition;
 
 protected:
     VP9MfxVideoParam              m_video;
@@ -203,8 +206,11 @@ protected:
 
     mfxExtVP9Segmentation m_prevSegment;
     VP9FrameLevelParam m_prevFrameParam;
+    bool m_isPrevFrameKeyFrame = false;
 
     bool m_bUseInternalMem;
     bool m_isD3D9SimWithVideoMem;
+
+    mfxU32 m_zeroLevelCounter = 0; // limit Picture Group to 8 frames.
 };
 } // MfxHwVP9Encode

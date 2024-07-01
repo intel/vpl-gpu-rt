@@ -250,6 +250,51 @@ protected:
 
     mfxU16                                     m_deviceId;
 
+    class mfxMemoryInterfaceWrapper : public mfxMemoryInterface
+    {
+    public:
+        mfxMemoryInterfaceWrapper(mfxSession session)
+        {
+            Context            = session;
+            Version.Version    = MFX_MEMORYINTERFACE_VERSION;
+            ImportFrameSurface = ImportFrameSurface_impl;
+        }
+
+        static mfxStatus ImportFrameSurface_impl(mfxMemoryInterface* memory_interface, mfxSurfaceComponent surf_component, mfxSurfaceHeader* ext_surface, mfxFrameSurface1** imported_surface)
+        {
+            MFX_CHECK_NULL_PTR2(memory_interface, ext_surface);
+
+            auto session = reinterpret_cast<mfxSession>(memory_interface->Context);
+
+            switch (surf_component)
+            {
+            case MFX_SURFACE_COMPONENT_ENCODE:
+                MFX_CHECK(session->m_pENCODE, MFX_ERR_NOT_INITIALIZED);
+
+                MFX_RETURN(session->m_pENCODE->GetSurface(imported_surface, ext_surface));
+
+            case MFX_SURFACE_COMPONENT_DECODE:
+                MFX_CHECK(session->m_pDECODE, MFX_ERR_NOT_INITIALIZED);
+                MFX_CHECK_NULL_PTR1(imported_surface);
+
+                MFX_RETURN(session->m_pDECODE->GetSurface(*imported_surface, ext_surface));
+
+            case MFX_SURFACE_COMPONENT_VPP_INPUT:
+                MFX_CHECK(session->m_pVPP, MFX_ERR_NOT_INITIALIZED);
+
+                MFX_RETURN(session->m_pVPP->GetSurfaceFromIn(imported_surface, ext_surface));
+
+            case MFX_SURFACE_COMPONENT_VPP_OUTPUT:
+                MFX_CHECK(session->m_pVPP, MFX_ERR_NOT_INITIALIZED);
+
+                MFX_RETURN(session->m_pVPP->GetSurfaceFromOut(imported_surface, ext_surface));
+
+            default:
+                MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+            }
+        }
+    } m_memory_interface;
+
     CommonCORE & operator = (const CommonCORE &) = delete;
 };
 
@@ -353,7 +398,7 @@ public:
 
     virtual void* QueryCoreInterface(const MFX_GUID &guid)                    override;
 
-    virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* &surf);
+    virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* &surf, mfxSurfaceHeader* import_surface);
 
 protected:
 
@@ -535,12 +580,12 @@ public:
         return m_time_to_wait;
     }
 
-    mfxStatus GetSurface(mfxFrameSurface1*& output_surface, bool emulate_zero_refcount_base = false)
+    mfxStatus GetSurface(mfxFrameSurface1*& output_surface, bool emulate_zero_refcount_base = false, mfxSurfaceHeader* import_surface = nullptr)
     {
-        return GetSurface(output_surface, m_time_to_wait, emulate_zero_refcount_base);
+        return GetSurface(output_surface, m_time_to_wait, emulate_zero_refcount_base, import_surface);
     }
 
-    mfxStatus GetSurface(mfxFrameSurface1* & output_surface, std::chrono::milliseconds current_time_to_wait, bool emulate_zero_refcount_base = false)
+    mfxStatus GetSurface(mfxFrameSurface1* & output_surface, std::chrono::milliseconds current_time_to_wait, bool emulate_zero_refcount_base = false, mfxSurfaceHeader* import_surface = nullptr)
     {
         /*
             Note: emulate_zero_refcount_base flag is required for some corner cases in decoders. More precisely
@@ -552,45 +597,78 @@ public:
         */
         std::unique_lock<std::mutex> lock(m_mutex);
 
-        // Try to export existing surface from cache first
-
-        output_surface = FreeSurfaceLookup(emulate_zero_refcount_base);
-        if (output_surface)
+        if (!import_surface)
         {
-            return MFX_ERR_NONE;
-        }
+            // Try to export existing surface from cache first
 
-        if (m_cached_surfaces.size() >= m_limit)
-        {
-            using namespace std::chrono;
-
-            MFX_CHECK(current_time_to_wait != 0ms, MFX_WRN_ALLOC_TIMEOUT_EXPIRED);
-
-            // Cannot allocate surface, but we can wait
-            bool wait_succeeded = m_cv_wait_free_surface.wait_for(lock, current_time_to_wait,
-                [&output_surface, emulate_zero_refcount_base, this]()
+            output_surface = FreeSurfaceLookup(emulate_zero_refcount_base);
+            if (output_surface)
             {
-                output_surface = FreeSurfaceLookup(emulate_zero_refcount_base);
+                return MFX_ERR_NONE;
+            }
 
-                return output_surface != nullptr;
-            });
+            if (m_cached_surfaces.size() + m_num_pending_insertion >= m_limit)
+            {
+                using namespace std::chrono;
 
-            MFX_CHECK(wait_succeeded, MFX_WRN_ALLOC_TIMEOUT_EXPIRED);
+                MFX_CHECK(current_time_to_wait != 0ms, MFX_WRN_ALLOC_TIMEOUT_EXPIRED);
 
-            return MFX_ERR_NONE;
+                // Cannot allocate (no free slots) surface, but we can wait
+                bool wait_succeeded = m_cv_wait_free_surface.wait_for(lock, current_time_to_wait,
+                    [&output_surface, emulate_zero_refcount_base, this]()
+                {
+                    output_surface = FreeSurfaceLookup(emulate_zero_refcount_base);
+
+                    return output_surface != nullptr;
+                });
+
+                MFX_CHECK(wait_succeeded, MFX_WRN_ALLOC_TIMEOUT_EXPIRED);
+
+                return MFX_ERR_NONE;
+            }
+        }
+        // Check if there is a free slot for insertion
+        else if (m_cached_surfaces.size() + m_num_pending_insertion >= m_limit)
+        {
+            // We try to reallocate one of the existing free surfaces if cache limit reached, but user asks to import surface
+            auto it = std::find_if(std::begin(m_cached_surfaces), std::end(m_cached_surfaces), [](const SurfaceHolder& surface) { return !surface.m_in_use; });
+
+            if (it == std::end(m_cached_surfaces))
+            {
+                using namespace std::chrono;
+
+                MFX_CHECK(current_time_to_wait != 0ms, MFX_WRN_ALLOC_TIMEOUT_EXPIRED);
+
+                // Cannot allocate (no free slots) surface, but we can wait
+                bool wait_succeeded = m_cv_wait_free_surface.wait_for(lock, current_time_to_wait,
+                    [&it, this]()
+                    {
+                        it = std::find_if(std::begin(m_cached_surfaces), std::end(m_cached_surfaces), [](const SurfaceHolder& surface) { return !surface.m_in_use; });
+
+                        return it != std::end(m_cached_surfaces);
+                    });
+
+                MFX_CHECK(wait_succeeded, MFX_WRN_ALLOC_TIMEOUT_EXPIRED);
+
+                m_cached_surfaces.erase(it);
+            }
         }
 
         // Get the new one from allocator
+        ++m_num_pending_insertion;
         lock.unlock();
 
         mfxFrameSurface1* surf = nullptr;
         // Surfaces returned by CreateSurface already have RefCounter == 1
-        mfxStatus sts = m_core.CreateSurface(m_type, m_frame_info, surf);
+        mfxStatus sts = m_core.CreateSurface(m_type, m_frame_info, surf, import_surface);
         MFX_CHECK_STS(sts);
 
         lock.lock();
         m_cached_surfaces.emplace_back(*surf, *this);
-        m_cached_surfaces.back().m_exported = true;
+        --m_num_pending_insertion;
+        m_cached_surfaces.back().m_in_use = true;
+        // We can relax this in future if actually copy happened during import
+        m_cached_surfaces.back().m_created_from_external_handle = !!import_surface;
 
         if (emulate_zero_refcount_base)
         {
@@ -606,7 +684,7 @@ public:
     {
         std::lock_guard<std::mutex> guard(m_mutex);
 
-        auto it = find_if(std::begin(m_cached_surfaces), std::end(m_cached_surfaces), [memid](SurfaceHolder& surface) { return surface.Data.MemId == memid; });
+        auto it = std::find_if(std::begin(m_cached_surfaces), std::end(m_cached_surfaces), [memid](const SurfaceHolder& surface) { return surface.Data.MemId == memid; });
 
         return it != std::end(m_cached_surfaces) ? &(*it) : nullptr;
     }
@@ -635,7 +713,7 @@ public:
 
             for (mfxU32 i = 0; i < hints_buffer.NumberToPreAllocate; ++i)
             {
-                MFX_SAFE_CALL(m_core.CreateSurface(m_type, m_frame_info, surf));
+                MFX_SAFE_CALL(m_core.CreateSurface(m_type, m_frame_info, surf, nullptr));
                 preallocated_surfaces.emplace_back(*surf, *this);
             }
 
@@ -709,23 +787,6 @@ public:
         return MFX_ERR_NONE;
     }
 
-    // Refresh called when some free surface returned to the pool
-    void Refresh()
-    {
-        if (!m_num_to_revoke)
-        {
-            // If no surfaces to decommit, notify some waiter
-            m_cv_wait_free_surface.notify_one();
-            return;
-        }
-
-        // Decommit current surface
-        std::unique_lock<std::mutex> lock(m_mutex);
-
-        // Here look up repeated, because current surface (which was just returned to cache) may have been already exported again
-        DecomitSurfaces(lock);
-    }
-
     void DecomitSurfaces(std::unique_lock<std::mutex>& outer_lock)
     {
         // Actual delete will happen after mutex unlock
@@ -737,7 +798,7 @@ public:
             [](const SurfaceHolder& surface_holder)
         {
             // Check if surface is still owned by somebody
-            return !surface_holder.m_exported;
+            return !surface_holder.m_in_use;
         };
 
         // splice_if
@@ -770,6 +831,47 @@ public:
         return m_policy;
     }
 
+    mfxStatus MarkSurfaceFree(mfxMemId mid)
+    {
+        // Actual delete will happen after mutex unlock
+        std::list<SurfaceHolder> surface_to_delete;
+
+        std::unique_lock<std::mutex> lock(m_mutex);
+
+        auto p_holder = std::find_if(std::begin(m_cached_surfaces), std::end(m_cached_surfaces), [mid](const SurfaceHolder& surface) { return surface.Data.MemId == mid; });
+        MFX_CHECK(p_holder != std::end(m_cached_surfaces), MFX_ERR_NOT_FOUND);
+
+        // Mark as free
+        p_holder->m_in_use = false;
+
+#ifndef NDEBUG
+        assert(!p_holder->m_was_released);
+        p_holder->m_was_released = true;
+#endif
+        // For imported surfaces we delete it immidiately, without returning to cache (since we don't control lifetime of HW handle)
+        if (p_holder->m_created_from_external_handle)
+        {
+            surface_to_delete.splice(std::end(surface_to_delete), m_cached_surfaces, p_holder);
+
+            return MFX_ERR_NONE;
+        }
+
+        // Remove surfaces from pool if required or notify waiters about free surface
+        if (!m_num_to_revoke)
+        {
+            // If no surfaces to decommit, notify some waiter
+            lock.unlock();
+            m_cv_wait_free_surface.notify_one();
+            return MFX_ERR_NONE;
+        }
+
+        // Decommit current surface
+        surface_to_delete.splice(std::end(surface_to_delete), m_cached_surfaces, p_holder);
+        --m_num_to_revoke;
+
+        return MFX_ERR_NONE;
+    }
+
 private:
 
     SurfaceCache(CommonCORE_VPL& core, mfxU16 type, const mfxFrameInfo& frame_info)
@@ -790,12 +892,12 @@ private:
     {
         // This function is called only from thread safe context, so no mutex acquiring here
 
-        auto it = find_if(std::begin(m_cached_surfaces), std::end(m_cached_surfaces), [](SurfaceHolder& surface) { return !surface.m_exported; });
+        auto it = std::find_if(std::begin(m_cached_surfaces), std::end(m_cached_surfaces), [](const SurfaceHolder& surface) { return !surface.m_in_use; });
 
         if (it == std::end(m_cached_surfaces))
             return nullptr;
 
-        it->m_exported = true;
+        it->m_in_use = true;
         if (emulate_zero_refcount_base)
         {
             it->FrameInterface->AddRef = &skip_one_addref;
@@ -820,7 +922,10 @@ private:
     class SurfaceHolder : public mfxFrameSurface1
     {
     public:
-        bool m_exported = false;
+        // Right now in usage
+        bool m_in_use                       = false;
+        // Current surface was Imported (i.e. created from user-provided handle)
+        bool m_created_from_external_handle = false;
 #ifndef NDEBUG
         bool m_was_released = false;
 #endif
@@ -830,32 +935,23 @@ private:
             , m_cache(cache)
             , m_surface_interface(*FrameInterface)
             , original_release(m_surface_interface.Release)
-            , m_locked_count(surf.Data.Locked)
         {
-            m_surface_interface.Release = proxy_release;
-
-            std::ignore = vm_interlocked_inc16((volatile Ipp16u*)&m_locked_count);
+            FrameInterface->Release = m_surface_interface.Release = proxy_release;
 
             // Connect surface with it's pool (cache instance)
-            reinterpret_cast<mfxFrameSurfaceBaseInterface*>(FrameInterface->Context)->SetParentPool(&m_cache);
-
+            reinterpret_cast<mfxFrameSurfaceBaseInterface*>(m_surface_interface.Context)->SetParentPool(&m_cache);
         }
 
         ~SurfaceHolder()
         {
             // Untie surface from pool
-            reinterpret_cast<mfxFrameSurfaceBaseInterface*>(FrameInterface->Context)->SetParentPool(nullptr);
-
-            std::ignore = vm_interlocked_dec16((volatile Ipp16u*)&m_locked_count);
+            reinterpret_cast<mfxFrameSurfaceBaseInterface*>(m_surface_interface.Context)->SetParentPool(nullptr);
 
             m_surface_interface.Release = original_release;
 
-            MFX_STS_TRACE(m_surface_interface.Release(this));
-        }
+            *FrameInterface = m_surface_interface;
 
-        void RefreshParentPool()
-        {
-            m_cache.Refresh();
+            std::ignore = MFX_STS_TRACE(m_surface_interface.Release(this));
         }
 
     private:
@@ -864,12 +960,9 @@ private:
         SurfaceCache & m_cache;
 
         // Store it to protect against user zeroing this pointer
-        mfxFrameSurfaceInterface & m_surface_interface;
+        mfxFrameSurfaceInterface m_surface_interface;
 
         mfxStatus(MFX_CDECL *original_release)(mfxFrameSurface1* surface);
-
-        // To mimic legacy behavior
-        mfxU16 & m_locked_count;
 
         static mfxStatus proxy_release(mfxFrameSurface1* surface)
         {
@@ -882,23 +975,20 @@ private:
 
             mfxU32 ref_counter = reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->GetRefCounter();
 
-            if (ref_counter > 2)
+            if (ref_counter > 1)
             {
                 // Bypass to original release function
                 return reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->Release();
             }
 
             // Return back to pool, don't touch ref counter
-            reinterpret_cast<SurfaceHolder*>(surface)->m_exported = false;
+            auto pool = reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->QueryParentPool();
+            MFX_CHECK_HDL(pool);
+            auto cache = reinterpret_cast<SurfaceCache*>(pool->Context);
+            MFX_CHECK_HDL(cache);
+            mfx::OnExit release_cache([cache]() { cache->Release(); });
 
-#ifndef NDEBUG
-            assert(!reinterpret_cast<SurfaceHolder*>(surface)->m_was_released);
-            reinterpret_cast<SurfaceHolder*>(surface)->m_was_released = true;
-#endif
-            // Remove surfaces from pool if required or notify waiters about free surface
-            reinterpret_cast<SurfaceHolder*>(surface)->RefreshParentPool();
-
-            return MFX_ERR_NONE;
+            return cache->MarkSurfaceFree(surface->Data.MemId);
         }
     };
 
@@ -913,8 +1003,10 @@ private:
 
     mfxPoolAllocationPolicy   m_policy = MFX_ALLOCATION_UNLIMITED;
     // Default is MFX_ALLOCATION_UNLIMITED
-    size_t                    m_limit         = std::numeric_limits<size_t>::max();
-    size_t                    m_num_to_revoke = 0;
+    size_t                    m_limit                 = std::numeric_limits<size_t>::max();
+    // Counter of surfaces being constructed
+    size_t                    m_num_pending_insertion = 0;
+    size_t                    m_num_to_revoke         = 0;
 
     std::list<SurfaceHolder>  m_cached_surfaces;
     std::list<mfxU32>         m_requests;

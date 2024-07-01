@@ -142,7 +142,7 @@ enum
 bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H265Task *)
 {
     UMC::AutomaticUMCMutex guard(m_mGuard);
-
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     // check error(s)
     if (m_IsShouldQuit)
     {

@@ -64,7 +64,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-/*! This is a table to map pxp parameter associacted with decode input.
+/*! This is a table to map pxp parameter associated with decode input.
     PXP parameter point to VAEncryptionParameters on linux.
     pMfxBitstream is the key to search pPXPParams
     {pMfxBitstream | pPXPParams}
@@ -77,7 +77,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-/*! This is a table to map pxp parameter associacted with encode input/output.
+/*! This is a table to map pxp parameter associated with encode input/output.
     PXP parameter point to VAEncryptionParameters on linux.
     {bitstream_ptr | pxp_param_ptr | pOutput | outputSize}
 */
@@ -160,7 +160,7 @@ MFX_PACK_BEGIN_STRUCT_W_PTR()
         vaDetachProtectedSession(va_dpy, pxp_ctx_hdl.secureDecodeCfg.ContextId); 
         vaDetachProtectedSession(va_dpy, pxp_ctx_hdl.secureEncodeCfg.ContextId);
         vaDetachProtectedSession(va_dpy, pxp_ctx_hdl.secureVPPCfg.ContextId);
-    13.Destroy PXP session and terninate VA display
+    13.Destroy PXP session and terminate VA display
         vaDestroyProtectedSession(pxpSessionHdl);
         vaTerminate(va_dpy);
     14. release VPL session

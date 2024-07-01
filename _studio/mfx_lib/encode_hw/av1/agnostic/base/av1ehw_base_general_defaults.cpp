@@ -28,9 +28,10 @@
 #include <numeric>
 #include <set>
 
-using namespace AV1EHW::Base;
-
 namespace AV1EHW
+{
+
+namespace Base
 {
 
 class GetDefault
@@ -135,6 +136,18 @@ public:
         }
 
         return std::min<mfxU16>(DEFAULT_GOP_REF_DIST, par.base.GetGopPicSize(par) - 1);
+    }
+
+    static mfxU16 TargetUsage(
+        Defaults::TChain<mfxU16>::TExt
+        , const Defaults::Param& par)
+    {
+        if (par.mvp.mfx.TargetUsage)
+        {
+            return par.mvp.mfx.TargetUsage;
+        }
+
+        return DEFAULT_TARGET_USAGE;
     }
 
     static mfxU16 NumBPyramidLayers(
@@ -243,7 +256,7 @@ public:
         bool bExternal = false;
         const mfxU16 numRefByTU[3][7] =
         {
-            { 2, 2, 2, 2, 2, 1, 1 },
+            { 3, 3, 3, 2, 2, 1, 1 },
             { 1, 1, 1, 1, 1, 1, 1 },
             { 1, 1, 1, 1, 1, 1, 1 }
         };
@@ -370,11 +383,8 @@ public:
 
         const auto FourCC    = par.mvp.mfx.FrameInfo.FourCC;
         const bool b4CCMax10 =
-            FourCC == MFX_FOURCC_A2RGB10
-            || FourCC == MFX_FOURCC_P010
-            || FourCC == MFX_FOURCC_P210
-            || FourCC == MFX_FOURCC_Y210
-            || FourCC == MFX_FOURCC_Y410;
+            FourCC == MFX_FOURCC_P010
+            ;
 
         return mfxU16(8 + 2 * b4CCMax10);
     }
@@ -475,7 +485,8 @@ public:
         auto   GetFromMaxKbps  = [&]() { return defPar.base.GetMaxKbps(defPar) / 4; };
         auto   GetFromRawBytes = [&]()
         {
-            return General::GetRawBytes(defPar) / 1000;
+            const mfxU32 numCacheFrames = defPar.base.GetTemporalUnitCacheSize(defPar);
+            return General::GetRawBytes(defPar) / 1000 * numCacheFrames;
         };
 
         SetIf(defaultSize, bUseMaxKbps, GetFromMaxKbps);
@@ -530,7 +541,27 @@ public:
         mfxU16 QPB = bCQP * par.mvp.mfx.QPB;
 
         if (bCQP)
-            return std::make_tuple(QPI, QPP, QPB);
+        {
+            const bool isLossless = (QPI == 0) && (QPP == 0) && (QPB == 0);
+            if (!isLossless)
+            {
+                if (QPI)
+                {
+                    SetDefault(QPP, QPI);
+                    SetDefault(QPB, QPP);
+                }
+                else if (QPP)
+                {
+                    SetDefault(QPI, QPP);
+                    SetDefault(QPB, QPP);
+                }
+                else if (QPB)
+                {
+                    SetDefault(QPP, QPB);
+                    SetDefault(QPI, QPP);
+                }
+            }
+        }
         else
         {
             bool bValid = ((QPI) && (QPP) && (QPB));
@@ -543,9 +574,9 @@ public:
             SetDefault(QPI, std::max<mfxU16>(minQP, (maxQP + 1) / 2));
             SetDefault(QPP, std::min<mfxU16>(QPI + 5, maxQP));
             SetDefault(QPB, std::min<mfxU16>(QPP + 5, maxQP));
-
-            return std::make_tuple(QPI, QPP, QPB);
         }
+
+        return std::make_tuple(QPI, QPP, QPB);
     }
 
     static void QPOffset(
@@ -637,6 +668,20 @@ public:
         return
             par.mvp.mfx.EncodedOrder
             && par.mvp.mfx.NumRefFrame > 2;
+    }
+
+    static mfxU32 TemporalUnitCacheSize(
+        Defaults::TChain<mfxU32>::TExt
+        , const Defaults::Param& par)
+    {
+        mfxU32 numCacheFrames = 1;
+        if (HaveRABFrames(par.mvp))
+        {
+            numCacheFrames = (par.base.GetBRefType(par) != MFX_B_REF_PYRAMID) ? mfxU32(2)
+            : mfxU32(par.base.GetNumBPyramidLayers(par)) + 1;
+        }
+
+        return numCacheFrames;
     }
 
     static mfxU16 FrameType(
@@ -832,22 +877,8 @@ public:
         if (par.mvp.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
         {
             const int32_t qp = bs_fh.quantization_params.base_q_idx;
-            int32_t loopFilterLevelFormulaType = 2; // 0 for old formula, 2 for new formula
-            if (loopFilterLevelFormulaType == 2)
-            {
-                levelY = LoopFilterLevelsLuma[qp];
-                levelUV = LoopFilterLevelsChroma[qp];
-            }
-            else
-            {
-                if (qp < 150)
-                    levelY = qp / 6;
-                else
-                    levelY = (int32_t)(qp * 0.38 - 32);
-
-                levelY = std::min(levelY, 63);
-                levelUV = levelY;
-            }
+            levelY = LoopFilterLevelsLuma[qp];
+            levelUV = LoopFilterLevelsChroma[qp];
         }
 
         auto& lp = bs_fh.loop_filter_params;
@@ -907,6 +938,7 @@ public:
         PUSH_DEFAULT(CodedPicAlignment);
         PUSH_DEFAULT(GopPicSize);
         PUSH_DEFAULT(GopRefDist);
+        PUSH_DEFAULT(TargetUsage);
         PUSH_DEFAULT(NumBPyramidLayers);
         PUSH_DEFAULT(NumRefFrames);
         PUSH_DEFAULT(NumRefBPyramid);
@@ -936,6 +968,7 @@ public:
         PUSH_DEFAULT(PreReorderInfo);
         PUSH_DEFAULT(NumReorderFrames);
         PUSH_DEFAULT(NonStdReordering);
+        PUSH_DEFAULT(TemporalUnitCacheSize);
         PUSH_DEFAULT(LoopFilterLevels);
         PUSH_DEFAULT(CDEF);
         PUSH_DEFAULT(MBBRC);
@@ -983,21 +1016,6 @@ public:
 class CheckAndFix
 {
 public:
-    static mfxStatus Level(
-        Defaults::TCheckAndFix::TExt
-        , const Defaults::Param& /*dpar*/
-        , mfxVideoParam& par)
-    {
-        MFX_CHECK(par.mfx.CodecLevel, MFX_ERR_NONE);
-
-        mfxU32 invalid = 0;
-        invalid += SetIf(par.mfx.CodecLevel, !isValidCodecLevel(par.mfx.CodecLevel), 0);
-
-        MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
-
-        return MFX_ERR_NONE;
-    }
-
     static mfxStatus SurfSize(
         Defaults::TCheckAndFix::TExt
         , const Defaults::Param& dpar
@@ -1025,7 +1043,7 @@ public:
 
     static mfxStatus Profile(
         Defaults::TCheckAndFix::TExt
-        , const Defaults::Param& /*dpar*/
+        , const Defaults::Param& dpar
         , mfxVideoParam& par)
     {
         bool bInvalid = CheckOrZero<mfxU16
@@ -1033,6 +1051,13 @@ public:
             , MFX_PROFILE_AV1_MAIN
             , MFX_PROFILE_AV1_HIGH>
             (par.mfx.CodecProfile);
+
+        if (par.mfx.CodecProfile)
+        {
+            mfxU16 ChromaFormat = dpar.base.GetTargetChromaFormatPlus1(dpar) - 1;
+            bInvalid |= (par.mfx.CodecProfile == MFX_PROFILE_AV1_MAIN && ChromaFormat != MFX_CHROMAFORMAT_YUV420)
+                || (par.mfx.CodecProfile == MFX_PROFILE_AV1_HIGH && ChromaFormat != MFX_CHROMAFORMAT_YUV444);
+        }
 
         MFX_CHECK(!bInvalid, MFX_ERR_UNSUPPORTED);
         return MFX_ERR_NONE;
@@ -1049,8 +1074,7 @@ public:
             , MFX_FOURCC_P010
             , MFX_FOURCC_RGB4
             , MFX_FOURCC_BGR4
-            , MFX_FOURCC_AYUV
-            , MFX_FOURCC_Y410>
+            >
             (par.mfx.FrameInfo.FourCC);
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
@@ -1065,10 +1089,6 @@ public:
             && (!csf.fields.i420 || !bsf.fields.ten_bits));
         invalid += ((fourCC == MFX_FOURCC_RGB4 || fourCC == MFX_FOURCC_BGR4)
             && (!csf.fields.RGB || !bsf.fields.eight_bits));
-        invalid += (fourCC == MFX_FOURCC_AYUV
-            && (!csf.fields.i444 || !bsf.fields.eight_bits));
-        invalid += (fourCC == MFX_FOURCC_Y410
-            && (!csf.fields.i444 || !bsf.fields.ten_bits));
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
 
@@ -1083,12 +1103,10 @@ public:
         mfxU32 invalid = 0;
         static const std::map<mfxU32, std::array<mfxU16, 2>> FourCCPar=
         {
-            {mfxU32(MFX_FOURCC_NV12),     {mfxU16(MFX_CHROMAFORMAT_YUV420), BITDEPTH_8}}
-            , {mfxU32(MFX_FOURCC_P010),   {mfxU16(MFX_CHROMAFORMAT_YUV420), BITDEPTH_10}}
-            , {mfxU32(MFX_FOURCC_RGB4),   {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_8}}
-            , {mfxU32(MFX_FOURCC_BGR4),   {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_8}}
-            , {mfxU32(MFX_FOURCC_AYUV),   {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_8}}
-            , {mfxU32(MFX_FOURCC_Y410),   {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_10}}
+            {mfxU32(MFX_FOURCC_NV12),      {mfxU16(MFX_CHROMAFORMAT_YUV420), BITDEPTH_8}}
+            , {mfxU32(MFX_FOURCC_P010),    {mfxU16(MFX_CHROMAFORMAT_YUV420), BITDEPTH_10}}
+            , {mfxU32(MFX_FOURCC_RGB4),    {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_8}}
+            , {mfxU32(MFX_FOURCC_BGR4),    {mfxU16(MFX_CHROMAFORMAT_YUV444), BITDEPTH_8}}
         };
 
         auto itFourCCPar = FourCCPar.find(par.mfx.FrameInfo.FourCC);
@@ -1125,10 +1143,6 @@ public:
             pCO3->TargetChromaFormatPlus1 = defPar.base.GetTargetChromaFormatPlus1(defPar);
         }
 
-        invalid = pCO3->TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422);
-
-        MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
-
         //check targetChromaFormat By FourCC and profile
         mfxU16 profile = defPar.base.GetProfile(defPar);
         mfxU32 fourCC = par.mfx.FrameInfo.FourCC;
@@ -1139,22 +1153,18 @@ public:
             ,{
                 {
                     mfxU16(MFX_PROFILE_AV1_MAIN),
-                    {mfxU32(MFX_FOURCC_NV12), mfxU32(MFX_FOURCC_P010), mfxU32(MFX_FOURCC_RGB4), mfxU32(MFX_FOURCC_BGR4)}}
+                    {mfxU32(MFX_FOURCC_NV12), mfxU32(MFX_FOURCC_P010), mfxU32(MFX_FOURCC_RGB4), mfxU32(MFX_FOURCC_BGR4),
+                        }}
                 }
             },
-            {mfxU16(MFX_CHROMAFORMAT_YUV444 + 1)
-            ,{
-                {
-                    mfxU16(MFX_PROFILE_AV1_HIGH),
-                    {mfxU32(MFX_FOURCC_AYUV), mfxU32(MFX_FOURCC_Y410), mfxU32(MFX_FOURCC_RGB4), mfxU32(MFX_FOURCC_BGR4)}}
-                }
-            }
         };
 
         invalid += !compatible.count(pCO3->TargetChromaFormatPlus1)
             || !compatible.at(pCO3->TargetChromaFormatPlus1).count(profile);
 
-        std::vector<mfxU32> supportFourCC = compatible.at(pCO3->TargetChromaFormatPlus1).at(profile);
+        MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
+
+        const auto& supportFourCC = compatible.at(pCO3->TargetChromaFormatPlus1).at(profile);
         invalid += (std::find(supportFourCC.begin(), supportFourCC.end(), fourCC) == supportFourCC.end());
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
@@ -1162,7 +1172,6 @@ public:
         //check targetChromaFormat by caps
         const auto& csf = defPar.caps.ChromaSupportFlags;
         invalid += (pCO3->TargetChromaFormatPlus1 == (MFX_CHROMAFORMAT_YUV420 + 1) && (!csf.fields.i420));
-        invalid += (pCO3->TargetChromaFormatPlus1 == (MFX_CHROMAFORMAT_YUV444 + 1) && (!csf.fields.i444));
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
 
@@ -1213,26 +1222,18 @@ public:
             //8
             {
                 {
-                    mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
-                    , {MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_RGB4
-                    , MFX_FOURCC_BGR4, MFX_FOURCC_A2RGB10}
-                }
-                ,{
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
                     , {MFX_FOURCC_NV12, MFX_FOURCC_P010
-                    , MFX_FOURCC_AYUV, MFX_FOURCC_Y410
-                    , MFX_FOURCC_RGB4, MFX_FOURCC_BGR4, MFX_FOURCC_A2RGB10}
+                    , MFX_FOURCC_RGB4, MFX_FOURCC_BGR4
+                    }
                 }
             },
             //10
             {
                 {
-                    mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
-                    , {MFX_FOURCC_Y410, MFX_FOURCC_A2RGB10}
-                }
-                ,{
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
-                    , {MFX_FOURCC_P010, MFX_FOURCC_Y410, MFX_FOURCC_A2RGB10}
+                    , {MFX_FOURCC_P010
+                    }
                 }
             },
         };
@@ -1242,11 +1243,10 @@ public:
             || !Compatible[tbdl == 10].count(tcf)
             || !Compatible[tbdl == 10].at(tcf).count(par.mfx.FrameInfo.FourCC);
 
-        assert(!bUndefinedTargetFormat);
-
         par.mfx.FrameInfo.FourCC *= !bUndefinedTargetFormat;
 
         MFX_CHECK(!bUndefinedTargetFormat, MFX_ERR_UNSUPPORTED);
+
         return MFX_ERR_NONE;
     }
 
@@ -1285,7 +1285,6 @@ public:
     {
 #define PUSH_DEFAULT(X) df.Check##X.Push(X);
 
-        PUSH_DEFAULT(Level);
         PUSH_DEFAULT(SurfSize);
         PUSH_DEFAULT(Profile);
         PUSH_DEFAULT(FourCC);
@@ -1308,4 +1307,5 @@ void General::PushDefaults(Defaults& df)
 
 }
 
+}
 #endif //defined(MFX_ENABLE_AV1_VIDEO_ENCODE)

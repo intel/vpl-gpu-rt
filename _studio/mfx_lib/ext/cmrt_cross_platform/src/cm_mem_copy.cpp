@@ -172,8 +172,8 @@ CmBufferUPWrapper* CmCopyWrapper::CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize, mf
 
     if (m_tableSysRelations.end() != it)
     {
-        // Code below temporary disables CM-cache
-        if (it->second.IsFree())
+        // If caching is switched off, simply recreate each buffer
+        if (it->second.IsFree() && !m_use_cm_buffers_cache)
         {
             CmBufferUP* pCmUserBuffer;
             cmStatus cmSts = m_pCmDevice->CreateBufferUP(memSize, pDst, pCmUserBuffer);
@@ -2521,7 +2521,7 @@ mfxStatus CmCopyWrapper::IsCmCopySupported(mfxFrameSurface1 *pSurface, IppiSize 
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if(pSurface->Data.UV - pSurface->Data.Y != pSurface->Data.Pitch * pSurface->Info.Height)
+    if(pSurface->Data.UV <= pSurface->Data.Y || size_t(pSurface->Data.UV - pSurface->Data.Y) != size_t(pSurface->Data.Pitch) * pSurface->Info.Height)
     {
         return MFX_ERR_UNSUPPORTED;
     }

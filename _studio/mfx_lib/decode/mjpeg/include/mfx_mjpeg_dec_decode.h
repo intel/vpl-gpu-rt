@@ -109,11 +109,13 @@ public:
     virtual mfxStatus AllocateFrameData(UMC::FrameData *&data);
     virtual mfxStatus FillEntryPoint(MFX_ENTRY_POINT *pEntryPoint, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out);
 
-    mfxU32 AdjustFrameAllocRequest(mfxFrameAllocRequest *request, mfxInfoMFX *info, eMFXVAType vaType, bool usePostProcessing);
+    mfxU32 AdjustFrameAllocRequest(mfxFrameAllocRequest *request, mfxInfoMFX *info, VideoCORE * core, bool isPostProcEnable);
 
-    static void AdjustFourCC(mfxFrameInfo *requestFrameInfo, const mfxInfoMFX *info, eMFXVAType vaType, bool usePostProc, bool *needVpp);
+    static void AdjustFourCC(mfxFrameInfo *requestFrameInfo, const mfxInfoMFX *info, eMFXVAType vaType, bool isPostProcEnable, bool *needVpp);
 
     static mfxStatus CheckVPPCaps(VideoCORE * core, mfxVideoParam * par);
+    static bool isVideoPostprocEnabled(VideoCORE * core);
+
 
 
 protected:
@@ -188,7 +190,7 @@ public:
     virtual mfxStatus GetUserData(mfxU8 *ud, mfxU32 *sz, mfxU64 *ts);
     virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload) override;
     virtual mfxStatus SetSkipMode(mfxSkipMode mode) override;
-    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface) override;
+    virtual mfxStatus GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface) override;
 
 protected:
     static mfxStatus QueryIOSurfInternal(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
@@ -200,6 +202,9 @@ protected:
 
     mfxVideoParamWrapper m_vFirstPar;
     mfxVideoParamWrapper m_vPar;
+
+    mfxU16 m_maxCropW;
+    mfxU16 m_maxCropH;
 
     VideoCORE * m_core;
 

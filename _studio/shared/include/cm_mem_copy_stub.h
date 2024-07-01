@@ -30,6 +30,8 @@ class CmCopyWrapper
 {
 public:
 
+    CmCopyWrapper(bool /*cm_buffer_cache*/ = false) {}
+
     // destructor
     virtual ~CmCopyWrapper(void) {}
 

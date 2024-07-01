@@ -39,7 +39,7 @@ namespace UMC_HEVC_DECODER
         UMC::Status MergeEncryptedNalUnit(UMC::MediaDataEx* nalUnit, UMC::MediaData* pSource);
         void SetVA(UMC::VideoAccelerator* va) { m_va = va; }
     private:
-        UMC::VideoAccelerator* m_va;
+        UMC::VideoAccelerator* m_va = nullptr;
     };
 
 }

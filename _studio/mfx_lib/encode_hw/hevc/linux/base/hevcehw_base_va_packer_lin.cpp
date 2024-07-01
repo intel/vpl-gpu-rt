@@ -25,6 +25,9 @@
 #include "mfx_common_int.h"
 #include "hevcehw_base_va_lin.h"
 #include "hevcehw_base_legacy.h"
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+#include "hevcehw_base_enctools_qmatrix_lin.h"
+#endif
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
@@ -43,7 +46,7 @@ void VAPacker::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 
         HardcodeCapsCommon(caps, par);
 
-        bool bLP   = (vaid-> Entrypoint == VAEntrypointEncSliceLP);
+        bool bLP = IsOn(par.mfx.LowPower);
 
         caps.LCUSizeSupported |=
               (32 >> 4) * (!bLP)
@@ -272,11 +275,11 @@ void AddVaMiscRC(
     {
         const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
         rc.min_qp = task.m_minQP - 6*(CO3.TargetBitDepthLuma - 8);
-        if ((rc.min_qp < 0) || (rc.min_qp > 51))
+        if (rc.min_qp > 51)
             rc.min_qp = 10;
 
         rc.max_qp = task.m_maxQP - 6*(CO3.TargetBitDepthLuma - 8);
-        if ((rc.max_qp < 0) || (rc.max_qp > 51))
+        if (rc.max_qp > 51)
             rc.max_qp = 51;
     }
 
@@ -909,6 +912,15 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
         AddPackedHeaderIf(!!(task.InsertHeaders & INSERT_PPS)
             , ph.PPS, par, VAEncPackedHeaderHEVC_PPS);
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+        if (cc.PackETSWAdaptiveCqmPPS && cc.PackETSWAdaptiveCqmPPS(global, s_task))
+        {
+            for (mfxU32 i = 0; i < ET_CQM_NUM_CUST_MATRIX; ++i)
+            {
+                AddPackedHeaderIf(true, ph.CqmPPS.at(i), par, VAEncPackedHeaderHEVC_PPS);
+            }
+        }
+#endif
 
         AddPackedHeaderIf((!!(task.InsertHeaders & INSERT_SEI) || task.ctrl.NumPayload) && ph.PrefixSEI.BitLen
             , ph.PrefixSEI, par/*, VAEncPackedHeaderHEVC_SEI*/);
@@ -960,7 +972,12 @@ void VAPacker::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         auto sts = CC::Get(global).ReadFeedback(global, s_task, *(const VACodedBufferSegment*)pFB);
         SetIf(rtErr, sts < MFX_ERR_NONE, sts);
 
-#if defined(MFX_ENABLE_ENCTOOLS_LPLA)
+        if (CC::Get(global).UpdateEncQP)
+        {
+            CC::Get(global).UpdateEncQP(global, task, (((const VACodedBufferSegment*)pFB)->status & VA_CODED_BUF_STATUS_PICTURE_AVE_QP_MASK));
+        }
+
+#if defined(MFX_ENABLE_LPLA_BASE)
         auto& cc = CC::Get(global);
         if (cc.UpdateCqmHint)
         {

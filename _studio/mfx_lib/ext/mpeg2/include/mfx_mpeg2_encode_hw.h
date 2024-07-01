@@ -34,7 +34,7 @@ class MFXVideoENCODEMPEG2_HW : public VideoENCODE
 {
 public:
     static mfxStatus Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
-    {   
+    {
         return MPEG2EncoderHW::ControllerBase::Query(core,in,out);
     }
     static mfxStatus QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request)
@@ -51,8 +51,8 @@ public:
         pEncoder = 0;
         *sts = MFX_ERR_NONE;
     }
-    virtual ~MFXVideoENCODEMPEG2_HW() {Close();}
-    virtual mfxStatus Init(mfxVideoParam *par)
+    virtual ~MFXVideoENCODEMPEG2_HW() override {Close();}
+    virtual mfxStatus Init(mfxVideoParam *par) override
     {
         mfxStatus     sts  = MFX_ERR_NONE;
         ENCODE_CAPS   Caps = {};
@@ -81,7 +81,7 @@ public:
         }
         return sts;
     }
-    virtual mfxStatus Reset(mfxVideoParam *par)
+    virtual mfxStatus Reset(mfxVideoParam *par) override
     {
         if (!pEncoder)
         {
@@ -89,7 +89,7 @@ public:
         }
         return pEncoder->Reset(par);
     }
-    virtual mfxStatus Close(void)
+    virtual mfxStatus Close(void) override
     {
         mfxStatus sts = MFX_ERR_NONE;
         if (pEncoder)
@@ -100,7 +100,7 @@ public:
         }
         return sts;
     }
-    virtual mfxStatus GetVideoParam(mfxVideoParam *par)
+    virtual mfxStatus GetVideoParam(mfxVideoParam *par) override
     {
         if (!pEncoder)
         {
@@ -108,11 +108,11 @@ public:
         }
         return pEncoder->GetVideoParam(par);
     }
-    virtual mfxStatus GetFrameParam(mfxFrameParam *)
+    virtual mfxStatus GetFrameParam(mfxFrameParam *) override
     {
         return MFX_ERR_UNSUPPORTED;
     }
-    virtual mfxStatus GetEncodeStat(mfxEncodeStat *stat)
+    virtual mfxStatus GetEncodeStat(mfxEncodeStat *stat) override
     {
         if (!pEncoder)
         {
@@ -123,7 +123,7 @@ public:
     virtual mfxStatus EncodeFrameCheck(mfxEncodeCtrl *ctrl,
         mfxFrameSurface1 *surface,
         mfxBitstream *bs, mfxFrameSurface1 **reordered_surface,
-        mfxEncodeInternalParams *pInternalParams)
+        mfxEncodeInternalParams *pInternalParams) override
     {
         if (!pEncoder)
         {
@@ -134,7 +134,7 @@ public:
     virtual mfxStatus EncodeFrame(mfxEncodeCtrl *ctrl,
         mfxEncodeInternalParams *pInternalParams,
         mfxFrameSurface1 *surface,
-        mfxBitstream *bs)
+        mfxBitstream *bs) override
     {
         if (!pEncoder)
         {
@@ -146,7 +146,7 @@ public:
     virtual mfxStatus CancelFrame(mfxEncodeCtrl *ctrl,
         mfxEncodeInternalParams *pInternalParams,
         mfxFrameSurface1 *surface,
-        mfxBitstream *bs)
+        mfxBitstream *bs) override
     {
         if (!pEncoder)
         {
@@ -161,7 +161,7 @@ public:
                                mfxFrameSurface1 **reordered_surface,
                                mfxEncodeInternalParams *pInternalParams,
                                MFX_ENTRY_POINT pEntryPoints[],
-                               mfxU32 &numEntryPoints)
+                               mfxU32 &numEntryPoints) override
     {
         if (!pEncoder)
         {
@@ -170,7 +170,7 @@ public:
         return pEncoder->EncodeFrameCheck(ctrl,surface,bs,reordered_surface,pInternalParams,pEntryPoints,numEntryPoints);
     }
     virtual
-    mfxTaskThreadingPolicy GetThreadingPolicy(void) 
+    mfxTaskThreadingPolicy GetThreadingPolicy(void) override
     {
         if (!pEncoder)
         {
@@ -179,11 +179,15 @@ public:
         return pEncoder->GetThreadingPolicy();
     }
 
+    MFX_PROPAGATE_GetSurface_VideoENCODE_Definition;
+
 private:
     VideoCORE*                      m_pCore;
     MPEG2EncoderHW::EncoderBase*    pEncoder;
 
 };
+
+MFX_PROPAGATE_GetSurface_VideoENCODE_Impl(MFXVideoENCODEMPEG2_HW);
 
 #endif // MFX_ENABLE_MPEG2_VIDEO_ENCODE
 #endif

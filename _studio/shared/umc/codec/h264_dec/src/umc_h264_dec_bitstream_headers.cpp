@@ -347,6 +347,11 @@ inline bool CheckLevel(uint8_t level_idc, bool ignore_level_constrain = false)
 {
     (void)(ignore_level_constrain); //UNREFERENCED_PARAMETER
 
+    if (level_idc > H264VideoDecoderParams::H264_LEVEL_52)
+    {
+        MFX_LOG_WARN("H264 Level is larger than LEVEL 5.2!");
+    }
+
     switch(level_idc)
     {
     case H264VideoDecoderParams::H264_LEVEL_1:

@@ -57,6 +57,7 @@ struct IEncToolsBRC
     virtual mfxStatus ProcessFrame(mfxU32 /*dispOrder*/, mfxEncToolsBRCQuantControl*, mfxEncToolsHintQPMap*) = 0;
     virtual mfxStatus UpdateFrame(mfxU32 /*dispOrder*/, mfxEncToolsBRCStatus*) = 0;
     virtual mfxStatus GetHRDPos(mfxU32 /*dispOrder*/, mfxEncToolsBRCHRDPos*) = 0;
+    virtual mfxStatus DiscardFrame(mfxU32 /*dispOrder*/) = 0;
 };
 
 namespace EncToolsFuncs

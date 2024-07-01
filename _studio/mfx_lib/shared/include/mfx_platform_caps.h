@@ -24,17 +24,10 @@
 #define __MFX_PLATFORM_CAPS_H__
 
 namespace CommonCaps {
-    inline bool IsPreSiPlatform(eMFXHWType platform, mfxU16 deviceId)
+    inline bool IsPreSiPlatform(eMFXHWType platform, mfxU16 /*deviceId*/)
     {
 
-        //Add the additional device id judgement codes for derivative platforms which reuse the same 
-        //platform name with leading platform. Need to delete it when changed to be post-si platform.
-        if(deviceId == 0x4F89 || deviceId == 0x4F8C)
-        {
-            return true;
-        }
-
-        return platform >= MFX_HW_MTL;
+        return platform >= MFX_HW_ARL;
     }
 
     inline bool IsVppSkipQuerySupported(eMFXHWType platform, mfxU16 deviceId)
@@ -64,6 +57,17 @@ namespace CommonCaps {
     {
         return platform <= MFX_HW_XE_HP_SDV;
     }
+
+    inline bool IsVAEncSliceLPSupported(eMFXHWType platform)
+    {
+        return (platform < MFX_HW_MTL);
+    }
+
+    inline bool IsLastLookaheadWindowSupported(eMFXHWType platform)
+    {
+        return (platform >= MFX_HW_DG2);
+    }
+
 }
 
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE
@@ -143,8 +147,7 @@ namespace VppCaps
 
     inline bool IsVideoSignalSupported(eMFXHWType platform)
     {
-        return 
-        platform >= MFX_HW_DG2;
+        return platform >= MFX_HW_ADL_S;
     }
 
     inline bool IsSwFieldProcessingSupported(eMFXHWType platform)
@@ -181,6 +184,14 @@ namespace AV1DCaps {
     }
 }
 #endif // MFX_ENABLE_AV1_VIDEO_DECODE
+#ifdef MFX_ENABLE_VVC_VIDEO_DECODE
+namespace VVCDCaps {
+    inline bool IsPlatformSupported(eMFXHWType platform)
+    {
+        return platform >= MFX_HW_LNL;
+    }
+}
+#endif // MFX_ENABLE_VVC_VIDEO_DECODE
 
 #ifdef MFX_ENABLE_H264_VIDEO_DECODE
 namespace H264DCaps {

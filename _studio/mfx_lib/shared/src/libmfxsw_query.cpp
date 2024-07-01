@@ -50,7 +50,7 @@ mfxStatus MFXQueryIMPL(mfxSession session, mfxIMPL *impl)
 
     // save the current implementation type
     *impl = currentImpl;
-    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  impl = ", MFX_TRACE_FORMAT_D, *impl);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  impl = ", MFX_TRACE_FORMAT_I, *impl);
     return MFX_ERR_NONE;
 
 } // mfxStatus MFXQueryIMPL(mfxSession session, mfxIMPL *impl)

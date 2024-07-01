@@ -178,7 +178,7 @@ Status VC1VideoDecoder::Init(BaseCodecParams *pInit)
         if(m_pContext->m_seqLayerHeader.PROFILE == VC1_PROFILE_UNKNOWN)
         {
             //assert(0);
-            if((uint32_t)((m_pCurrentIn)&&0xFF) == 0xC5)
+            if (*(uint8_t *)(m_pCurrentIn->GetDataPointer()) == 0xC5)
                 m_pContext->m_seqLayerHeader.PROFILE = VC1_PROFILE_MAIN;
             else
                 m_pContext->m_seqLayerHeader.PROFILE = VC1_PROFILE_ADVANCED;
@@ -1414,8 +1414,8 @@ Status  VC1VideoDecoder::SetRMSurface()
     FrameMemID RMindex = -1;
     VC1FrameDescriptor *pCurrDescriptor = NULL;
     pCurrDescriptor = m_pStore->GetLastDS();
-    m_pStore->LockSurface(&RMindex);
-    if (RMindex < 0)
+    auto Free_idx = m_pStore->LockSurface(&RMindex);
+    if (RMindex < 0 || Free_idx < 0)
         return UMC_ERR_ALLOC;
 
     if (VC1_IS_REFERENCE(pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE))

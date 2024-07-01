@@ -27,7 +27,7 @@ endif()
 
 
 # Througout this project MFX_VERSION refers to uAPI version and MEDIA_VERSION refers to product version
-set(MEDIA_VERSION 23.2.0) # auto-update
+set(MEDIA_VERSION 24.3.0) # auto-update
 set(MEDIA_VERSION_STR "${MEDIA_VERSION}${MEDIA_VERSION_EXTRA}" CACHE STRING "" FORCE)
 
 if(CMAKE_SYSTEM_NAME MATCHES WindowsStore)
@@ -93,8 +93,8 @@ if (ENABLE_ITT)
 endif()
 
 message("")
-message("********************** oneVPL GPU Runtime Configuration Summary **********************")
-message("oneVPL:")
+message("********************** Intel VPL GPU Runtime Configuration Summary **********************")
+message("Intel VPL:")
 message("  API (request to use this version)       : ${API}")
 message("  API_VERSION                             : ${API_VERSION}")
 message("  API_FLAGS                               : ${API_FLAGS}")

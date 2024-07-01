@@ -1621,6 +1621,14 @@ mfxStatus BRC_EncToolBase::GetHRDPos(mfxU32 dispOrder, mfxEncToolsBRCHRDPos *pHR
     return MFX_ERR_NONE;
 }
 
+mfxStatus BRC_EncToolBase::DiscardFrame(mfxU32 dispOrder){
+    auto frameStructItr = std::find_if(m_FrameStruct.begin(), m_FrameStruct.end(), CompareByDisplayOrder(dispOrder));
+    if(frameStructItr != m_FrameStruct.end()){
+        m_FrameStruct.erase(frameStructItr);
+    }
+    return MFX_ERR_NONE;
+}
+
 static mfxU8 SelectQp(mfxF64 erate[52], mfxF64 budget)
 {
     for (mfxU8 qp = 1; qp < 52; qp++)
@@ -2205,7 +2213,7 @@ mfxStatus BRC_EncToolBase::ReportGopHints(mfxU32 dispOrder, mfxEncToolsHintPreEn
         frStruct.qpDelta = pGopHints.QPDelta;
         frStruct.qpModulation = pGopHints.QPModulation;
         frStruct.QPDeltaExplicitModulation = pGopHints.QPDeltaExplicitModulation;
-        (*frameStruct).miniGopSize = pGopHints.MiniGopSize;
+        frStruct.miniGopSize = pGopHints.MiniGopSize;
         m_FrameStruct.push_back(frStruct);
         frameStruct = m_FrameStruct.end() - 1;
     }

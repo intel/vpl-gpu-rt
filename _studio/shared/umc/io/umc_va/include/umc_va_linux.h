@@ -141,7 +141,7 @@ protected:
     virtual VACompBuffer* GetCompBufferHW(int32_t type, int32_t size, int32_t index = -1);
 
     // LinuxVideoAccelerator methods
-    uint16_t GetDecodingError();
+    uint16_t GetDecodingError(VASurfaceID *surface);
 
     void SetTraceStrings(uint32_t umc_codec);
     virtual Status SetAttributes(VAProfile va_profile, LinuxVideoAcceleratorParams* pParams, VAConfigAttrib *attribute, int32_t *attribsNumber);

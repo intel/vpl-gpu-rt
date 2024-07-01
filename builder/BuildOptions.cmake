@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2021 Intel Corporation
+# Copyright (c) 2017-2023 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -81,6 +81,15 @@ if (BUILD_KERNELS)
 endif()
 
 
+# Supported frameworks for surface sharing
+# Temporarily disable OpenCL surface sharing on Linux until code is ready
+if (CMAKE_SYSTEM_NAME MATCHES Windows)
+  option( MFX_ENABLE_SHARING_OPENCL "Enable surface sharing between VPL and OpenCL." ON)
+else()
+  set( MFX_ENABLE_SHARING_OPENCL OFF)
+endif()
+
+option( MFX_ENABLE_VVC_VIDEO_DECODE "Enabled VVC decoder?" ON)
 option( MFX_ENABLE_AV1_VIDEO_DECODE "Enabled AV1 decoder?" ON)
 option( MFX_ENABLE_VP8_VIDEO_DECODE "Enabled VP8 decoder?" ON)
 option( MFX_ENABLE_VP9_VIDEO_DECODE "Enabled VP9 decoder?" ON)

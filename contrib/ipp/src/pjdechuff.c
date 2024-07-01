@@ -751,6 +751,9 @@ IPPFUN(IppStatus, mfxiDecodeHuffman8x8_JPEG_1u16s_C1, (
 
       r = mfxownpj_get_bits(s,pState);
 
+      if (zz_index_ptr > mfxown_pj_izigzag_index_last_ptr)
+        return ippStsErr;
+
       zz = *zz_index_ptr++;
 
       /* !dudnik: 031222 fixed zz overflow */

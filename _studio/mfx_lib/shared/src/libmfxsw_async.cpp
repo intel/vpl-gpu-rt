@@ -25,6 +25,7 @@
 #include "libmfx_core_interface.h"
 
 
+
 #include "mfx_unified_decode_logging.h"
 
 mfxStatus MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfxU32 wait)
@@ -39,7 +40,7 @@ mfxStatus MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfx
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(syncp, MFX_ERR_NULL_PTR);
 
-    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  wait = ", MFX_TRACE_FORMAT_D, wait);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  wait = ", MFX_TRACE_FORMAT_I, wait);
 
     try {
         {

@@ -193,9 +193,9 @@ public:
         if (this != &other)
         {
             DestroyBuffer();
+            pIndex = other.pIndex;
 
             static_cast<CmSurfBufferBase&>(*this) = std::move(static_cast<CmSurfBufferBase&>(other));
-            pIndex = other.pIndex;
 
             other.pIndex = nullptr;
         }
@@ -227,6 +227,10 @@ private:
 class CmCopyWrapper
 {
 public:
+
+    CmCopyWrapper(bool cm_buffer_cache = false)
+        : m_use_cm_buffers_cache(cm_buffer_cache)
+    {}
 
     // destructor
     virtual ~CmCopyWrapper(void);
@@ -456,7 +460,10 @@ protected:
     SurfaceIndex  *m_pCmSrcIndex   = nullptr;
     SurfaceIndex  *m_pCmDstIndex   = nullptr;
 
+    // Cache for CM surfaces (associated with frames in video memory)
     std::map<std::tuple<mfxHDLPair, mfxU32, mfxU32>, CmSurface2DWrapper> m_tableCmRelations;
+    // Cache for CM Buffers (associated with frames in system memory)
+    bool                                                                 m_use_cm_buffers_cache = false;
     std::map<std::tuple<mfxU8 *,    mfxU32, mfxU32>, CmBufferUPWrapper>  m_tableSysRelations;
 
     std::mutex m_mutex;

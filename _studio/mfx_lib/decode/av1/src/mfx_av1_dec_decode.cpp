@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 Intel Corporation
+// Copyright (c) 2017-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@
 #include "mfx_common_int.h"
 #include "mfx_common_decode_int.h"
 #include "mfx_vpx_dec_common.h"
+#include "umc_va_video_processing.h"
 
 #include "mfx_umc_alloc_wrapper.h"
 
@@ -130,6 +131,7 @@ VideoDECODEAV1::VideoDECODEAV1(VideoCORE* core, mfxStatus* sts)
     , m_first_run(true)
     , m_request()
     , m_response()
+    , m_response_alien()
     , m_is_init(false)
     , m_in_framerate(0)
     , m_is_cscInUse(false)
@@ -193,7 +195,7 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
     m_response_alien = {};
 
     mfxStatus sts = MFX_VPX_Utility::QueryIOSurfInternal(par, &m_request);
-    uint32_t dpb_size = 8 + (par->AsyncDepth ? par->AsyncDepth : MFX_AUTO_ASYNC_DEPTH_VALUE) + 1;
+    uint32_t dpb_size = std::max(8 + par->AsyncDepth, 8);
     if (dpb_size >= m_request.NumFrameSuggested)
     {
         m_request.NumFrameSuggested = mfxU16(dpb_size + 1);
@@ -232,6 +234,7 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
         bool is_fourcc_supported = false;
         is_fourcc_supported =
             (videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
+                || videoProcessing->Out.FourCC == MFX_FOURCC_RGBP
                 || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
                 || videoProcessing->Out.FourCC == MFX_FOURCC_P010
                 || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
@@ -249,6 +252,14 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
 #endif
     }
 #endif
+
+    // set surface request type
+    m_request.Type = MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_DECODE;
+
+    if (internal)
+        m_request.Type |= MFX_MEMTYPE_INTERNAL_FRAME;
+    else
+        m_request.Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
 
     mfxFrameAllocRequest request_internal = m_request;
 
@@ -285,6 +296,14 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
 
     ConvertMFXParamsToUMC(par, &vp);
     vp.info.profile = av1_mfx_profile_to_native_profile(par->mfx.CodecProfile);
+
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+    if (m_va->GetVideoProcessingVA())
+    {
+        UMC::Status umcSts = m_va->GetVideoProcessingVA()->Init(par, videoProcessing);
+        MFX_CHECK(umcSts == UMC::UMC_OK, MFX_ERR_INVALID_VIDEO_PARAM);
+    }
+#endif
 
     UMC::Status umcSts = m_decoder->Init(&vp);
     MFX_CHECK(umcSts == UMC::UMC_OK, MFX_ERR_NOT_INITIALIZED);
@@ -621,7 +640,8 @@ mfxStatus VideoDECODEAV1::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfxFr
     if (!(par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
     {
         sts = MFX_VPX_Utility::QueryIOSurfInternal(par, request);
-        uint32_t dpb_size = 8 + par->AsyncDepth + 1;
+        MFX_CHECK_STS(sts);
+        uint32_t dpb_size = std::max(8 + par->AsyncDepth, 8);
         if (dpb_size >= request->NumFrameSuggested)
         {
             request->NumFrameSuggested = mfxU16(dpb_size + 1);
@@ -760,6 +780,7 @@ mfxStatus VideoDECODEAV1::GetDecodeStat(mfxDecodeStat* stat)
 
 mfxStatus VideoDECODEAV1::DecodeFrameCheck(mfxBitstream* bs, mfxFrameSurface1* surface_work, mfxFrameSurface1** surface_out, MFX_ENTRY_POINT* entry_point)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     MFX_CHECK_NULL_PTR1(entry_point);
 
     std::lock_guard<std::mutex> guard(m_guard);
@@ -897,6 +918,8 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
     }
     mfxStatus sts = DecodeFrame(surface_out, frame);
 
+    m_decoder->Flush();
+
     MFX_CHECK_STS(sts);
     return MFX_TASK_DONE;
 }
@@ -908,28 +931,23 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo &info)
     switch (info.FourCC)
     {
     case MFX_FOURCC_NV12:
+        MFX_CHECK(info.ChromaFormat == MFX_CHROMAFORMAT_YUV420, MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(info.Shift == 0, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
         break;
     case MFX_FOURCC_P010:
+        MFX_CHECK(info.ChromaFormat == MFX_CHROMAFORMAT_YUV420, MFX_ERR_INVALID_VIDEO_PARAM);
         MFX_CHECK(info.Shift == 1, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
         break;
     default:
         MFX_CHECK_STS(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
-    switch (info.ChromaFormat)
-    {
-    case MFX_CHROMAFORMAT_YUV420:
-        break;
-    default:
-        MFX_CHECK_STS(MFX_ERR_INVALID_VIDEO_PARAM);
-    }
-
-
     return MFX_ERR_NONE;
 }
 
 mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surface_work, mfxFrameSurface1** surface_out)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     bool allow_null_work_surface = SupportsVPLFeatureSet(*m_core);
 
     if (allow_null_work_surface)
@@ -967,16 +985,13 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
     try
     {
         MFXMediaDataAdapter src(bs);
+        m_decoder->SetVideoCore(m_core);
 
         for (;;)
         {
-            if (!m_decoder->IsFreeSlotInDPB()){
-                return MFX_WRN_DEVICE_BUSY;
-            }
-
             sts = m_surface_source->SetCurrentMFXSurface(surface_work);
             MFX_CHECK_STS(sts);
-
+            m_decoder->SetVideoCore(m_core);
             UMC::Status umcRes = m_surface_source->HasFreeSurface() ?
                 m_decoder->GetFrame(bs ? &src : 0, nullptr) : UMC::UMC_ERR_NEED_FORCE_OUTPUT;
 
@@ -989,8 +1004,10 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
                  UMC_AV1_DECODER::AV1DecoderParams vp;
                  umcRes = m_decoder->GetInfo(&vp);
                  FillVideoParam(&vp, &m_video_par);
-                 if (m_video_par.mfx.FrameInfo.Width != surface_work->Info.Width ||
-                     m_video_par.mfx.FrameInfo.Height != surface_work->Info.Height)
+                 // Realloc surface here for LST case which DRC happended in the last frame
+                 if (surface_work && vp.lst_mode &&
+                     (m_video_par.mfx.FrameInfo.Width > surface_work->Info.Width ||
+                      m_video_par.mfx.FrameInfo.Height > surface_work->Info.Height))
                  {
                      MFX_RETURN(MFX_ERR_REALLOC_SURFACE);
                  }
@@ -1037,6 +1054,9 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
                 case UMC::UMC_ERR_NOT_ENOUGH_DATA:
                 case UMC::UMC_ERR_SYNC:
                     sts = MFX_ERR_MORE_DATA;
+                    break;
+                case UMC::UMC_ERR_INVALID_PARAMS:
+                    sts = MFX_ERR_INVALID_VIDEO_PARAM;
                     break;
 
                 default:
@@ -1317,12 +1337,6 @@ mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFram
     mfxFrameSurface1* surface_out = *surf_out;
     MFX_CHECK(surface_out, MFX_ERR_INVALID_HANDLE);
 
-    // For repeated frame in VPL memory, ref_count of copied surface is added twice (in GetSurface),
-    // so need to decrease one more reference.
-     UMC::FrameMemID copiedFrmMid = m_decoder->GetRepeatedFrame();
-    if (copiedFrmMid != -1 && (fd->GetFrameMID() == copiedFrmMid) && surface_out->FrameInterface)
-        m_surface_source->DecreaseReference(copiedFrmMid);
-
     SetFrameType(*pFrame, *surface_out);
 
     surface_out->Info.FrameId.TemporalId = 0;
@@ -1355,17 +1369,58 @@ mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFram
     surface_out->Info.FrameRateExtD = isShouldUpdate ? m_init_par.mfx.FrameInfo.FrameRateExtD : m_first_par.mfx.FrameInfo.FrameRateExtD;
     surface_out->Info.FrameRateExtN = isShouldUpdate ? m_init_par.mfx.FrameInfo.FrameRateExtN : m_first_par.mfx.FrameInfo.FrameRateExtN;
 
+    mfxExtAV1FilmGrainParam* extFilmGrain = (mfxExtAV1FilmGrainParam*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM);
+    if (extFilmGrain)
+    {
+        UMC_AV1_DECODER::FrameHeader const& fh = pFrame->GetFrameHeader();
+        CopyFilmGrainParam(*extFilmGrain, fh.film_grain_params);
+    }
+
+    const UMC_AV1_DECODER::FrameHeader& fh = pFrame->GetFrameHeader();
+    // extract HDR MasteringDisplayColourVolume info
+    mfxExtMasteringDisplayColourVolume* display_colour = (mfxExtMasteringDisplayColourVolume*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME);
+    if (display_colour && fh.meta_data.hdr_mdcv.existence)
+    {
+        for (size_t i = 0; i < 3; i++)
+        {
+            display_colour->DisplayPrimariesX[i] = (mfxU16)fh.meta_data.hdr_mdcv.display_primaries[i][0];
+            display_colour->DisplayPrimariesY[i] = (mfxU16)fh.meta_data.hdr_mdcv.display_primaries[i][1];
+        }
+        display_colour->WhitePointX = (mfxU16)fh.meta_data.hdr_mdcv.white_point[0];
+        display_colour->WhitePointY = (mfxU16)fh.meta_data.hdr_mdcv.white_point[1];
+        display_colour->MaxDisplayMasteringLuminance = (mfxU32)fh.meta_data.hdr_mdcv.max_luminance;
+        display_colour->MinDisplayMasteringLuminance = (mfxU32)fh.meta_data.hdr_mdcv.min_luminance;
+        display_colour->InsertPayloadToggle = MFX_PAYLOAD_IDR;
+    }
+    else if(display_colour)
+    {
+        display_colour->InsertPayloadToggle = MFX_PAYLOAD_OFF;
+    }
+
+    // extract HDR ContentLightLevel info
+    mfxExtContentLightLevelInfo* content_light = (mfxExtContentLightLevelInfo*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO);
+    if (content_light && fh.meta_data.hdr_cll.existence)
+    {
+        content_light->MaxContentLightLevel = (mfxU16)fh.meta_data.hdr_cll.max_content_light_level;
+        content_light->MaxPicAverageLightLevel = (mfxU16)fh.meta_data.hdr_cll.max_pic_average_light_level;
+        content_light->InsertPayloadToggle = MFX_PAYLOAD_IDR;
+    }
+    else if(content_light)
+    {
+        content_light->InsertPayloadToggle = MFX_PAYLOAD_OFF;
+    }
+
     TRACE_BUFFER_EVENT(MFX_TRACE_API_AV1_OUTPUTINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO,
         surface_out, AV1DecodeSurfaceOutparam, SURFACEOUT_AV1D);
 
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoDECODEAV1::GetSurface(mfxFrameSurface1* & surface)
+mfxStatus VideoDECODEAV1::GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface)
 {
     MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface(surface);
+    return m_surface_source->GetSurface(surface, import_surface);
 }
 
 #endif

@@ -150,7 +150,7 @@ mfxStatus VideoDECODEVP9_HW::CleanRefList()
 {
     for (mfxI32 ref_index = 0; ref_index < NUM_REF_FRAMES; ++ref_index)
     {
-        if (m_frameInfo.ref_frame_map[ref_index] >= 0)
+        if (m_frameInfo.ref_frame_map[ref_index] >= 0 && m_surface_source)
             MFX_CHECK((m_surface_source->DecreaseReference(m_frameInfo.ref_frame_map[ref_index]) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
 
         m_frameInfo.ref_frame_map[ref_index] = -1;
@@ -227,12 +227,18 @@ public:
         }
         catch (vp9_exception const& e)
         {
-            m_submittedFrames.shrink_to_fit();
-            m_submittedFrames.clear();
             assert(0);
         }
-        m_submittedFrames.shrink_to_fit();
-        m_submittedFrames.clear();
+
+        try
+        {
+            m_submittedFrames.shrink_to_fit();
+            m_submittedFrames.clear();
+        }
+        catch(...)
+        {
+            assert(0);
+        }
     }
 
     void Add(UMC_VP9_DECODER::VP9DecoderFrame & frame)
@@ -264,10 +270,22 @@ public:
         if (find_it != m_submittedFrames.end())
         {
             find_it->isDecoded = true;
-        }
 
-        TRACE_EVENT(MFX_TRACE_API_VP9_DISPLAYINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
-            find_it->currFrame, (uint32_t)find_it->isDecoded));
+            TRACE_EVENT(MFX_TRACE_API_VP9_DISPLAYINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
+                find_it->currFrame, (uint32_t)find_it->isDecoded));
+        }
+    }
+
+    void CompleteCurFrame(UMC::FrameMemID frameId)
+    {
+        auto find_it = std::find_if(m_submittedFrames.begin(), m_submittedFrames.end(),
+            [frameId](const UMC_VP9_DECODER::VP9DecoderFrame & item) { return item.currFrame == frameId; });
+
+        if (find_it != m_submittedFrames.end() && find_it->isDecoded)
+        {
+            UnLockResources(*find_it);
+            m_submittedFrames.erase(find_it);
+        }
     }
 
     void CompleteFrames()
@@ -376,6 +394,7 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
 
         bool is_fourcc_supported =
                   (  videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_RGBP
                   || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
                   || videoProcessing->Out.FourCC == MFX_FOURCC_P010
                   || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
@@ -748,6 +767,7 @@ mfxStatus VideoDECODEVP9_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_vid
     else
     {
         sts = MFX_VPX_Utility::QueryIOSurfInternal(p_video_param, p_request);
+        MFX_CHECK_STS(sts);
     }
     p_request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
 
@@ -915,6 +935,7 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
             decoder.m_surface_source->SetFreeSurfaceAllowedFlag(false);
         }
         decoder.m_framesStorage->DecodeFrame(data.currFrameId);
+        decoder.m_framesStorage->CompleteCurFrame(data.currFrameId);
 
         return MFX_ERR_NONE;
     }
@@ -935,12 +956,13 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
     if (data.showFrame)
     {
         MFX_CHECK(data.surface_work, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-        if (data.currFrameId >= (mfxI32)decoder.m_mCopyGuard.size())
         {
-            decoder.m_mCopyGuard.resize(data.currFrameId + 1);
+            UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
+            if (data.currFrameId >= (mfxI32)decoder.m_mCopyGuard.size())
+            {
+                decoder.m_mCopyGuard.resize(data.currFrameId + 1);
+            }
         }
-
         UMC::AutomaticUMCMutex guardCopy(decoder.m_mCopyGuard[data.currFrameId]);
         mfxStatus sts = decoder.m_surface_source->PrepareToOutput(data.surface_work, data.currFrameId, 0, decoder.m_core->GetVAType() == MFX_HW_VAAPI);
         MFX_CHECK_STS(sts);
@@ -951,6 +973,7 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
     if (data.currFrameId != -1)
         decoder.m_surface_source->DecreaseReference(data.currFrameId);
     decoder.m_framesStorage->DecodeFrame(data.currFrameId);
+    decoder.m_framesStorage->CompleteCurFrame(data.currFrameId);
 
     return MFX_TASK_DONE;
 }
@@ -1052,7 +1075,7 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo const &currInfo, mfxFrameInfo &info
 mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, MFX_ENTRY_POINT * p_entry_point)
 {
     UMC::AutomaticUMCMutex guard(m_mGuard);
-
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     mfxStatus sts = MFX_ERR_NONE;
     UMC::FrameMemID repeateFrame = UMC::FRAME_MID_INVALID;
 
@@ -1192,7 +1215,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
             TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(++FrameIndex, m_frameInfo.currFrame));
 
             UMC::Status umcSts = m_va->BeginFrame(m_frameInfo.currFrame, 0);
-
+            MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, umcSts);
             TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, m_frameInfo.currFrame, umcSts));
 
             MFX_CHECK(UMC::UMC_OK == umcSts, MFX_ERR_DEVICE_FAILED);
@@ -1201,11 +1224,13 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
             MFX_CHECK_STS(sts);
 
             umcSts = m_va->Execute();
+            MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, umcSts);
             MFX_CHECK(UMC::UMC_OK == umcSts, MFX_ERR_DEVICE_FAILED);
 
             TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(FrameIndex, umcSts));
 
             umcSts = m_va->EndFrame();
+            MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, umcSts);
 
             TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, sts));
 
@@ -1269,6 +1294,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
             if (surface_work) // for model 3 we don't need to zero surface_out because we can alloc next frame inside decoder
             {
                 surface_out = nullptr;
+                sts = MFX_ERR_MORE_SURFACE;
             }
             else // for model 3 if we need more surface we can alloc it inside decoder
             {
@@ -1673,11 +1699,11 @@ mfxStatus VideoDECODEVP9_HW::PackHeaders(mfxBitstream *bs, VP9DecoderFrame const
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoDECODEVP9_HW::GetSurface(mfxFrameSurface1* & surface)
+mfxStatus VideoDECODEVP9_HW::GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface)
 {
     MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface(surface);
+    return m_surface_source->GetSurface(surface, import_surface);
 }
 
 #endif //MFX_ENABLE_VP9_VIDEO_DECODE

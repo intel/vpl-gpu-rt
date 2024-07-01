@@ -1,4 +1,4 @@
-// Copyright (c) 2006-2020 Intel Corporation
+// Copyright (c) 2006-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -124,6 +124,9 @@ uint32_t g_Profiles[] =
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
     UMC::AV1_VLD,
 #endif
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+    UMC::VVC_VLD,
+#endif
 };
 
 // va profile priorities for different codecs
@@ -188,6 +191,13 @@ VAProfile g_JPEGProfiles[] =
     VAProfileJPEGBaseline
 };
 
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+VAProfile g_VVCProfiles[] =
+{
+    (VAProfile)VAProfileVVCMain10
+};
+#endif
+
 VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
 {
     VAProfile va_profile = (VAProfile)-1;
@@ -235,6 +245,7 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
         break;
     case UMC::VA_H265 | UMC::VA_PROFILE_SCC | UMC::VA_PROFILE_444:
         if (profile < 1) va_profile = VAProfileHEVCSccMain444;
+        break;
     case UMC::VA_H265 | UMC::VA_PROFILE_SCC | UMC::VA_PROFILE_444 | UMC::VA_PROFILE_10:
         if (profile < 1) va_profile = VAProfileHEVCSccMain444_10;
         break;
@@ -267,6 +278,12 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
     case UMC::VA_JPEG:
         if (profile < UMC_ARRAY_SIZE(g_JPEGProfiles)) va_profile = g_JPEGProfiles[profile];
         break;
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+    case UMC::VA_VVC:
+    case UMC::VA_VVC | UMC::VA_PROFILE_10:
+        if (profile < UMC_ARRAY_SIZE(g_VVCProfiles)) va_profile = g_VVCProfiles[profile];
+        break;
+#endif
     default:
         va_profile = (VAProfile)-1;
         break;
@@ -405,6 +422,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         {
             va_profiles    = new VAProfile[va_max_num_profiles];
             va_entrypoints = new VAEntrypoint[va_max_num_entrypoints];
+            PERF_UTILITY_AUTO("vaQueryConfigProfiles", PERF_LEVEL_DDI);
             va_res = vaQueryConfigProfiles(m_dpy, va_profiles, &va_num_profiles);
             umcRes = va_to_umc_res(va_res);
         }
@@ -442,6 +460,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         }
         if (UMC_OK == umcRes)
         {
+            PERF_UTILITY_AUTO("vaQueryConfigEntrypoints", PERF_LEVEL_DDI);
             va_res = vaQueryConfigEntrypoints(m_dpy, va_profile, va_entrypoints, &va_num_entrypoints);
             umcRes = va_to_umc_res(va_res);
         }
@@ -489,6 +508,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
 
             va_attributes[nattr++].type = VAConfigAttribEncryption;
 
+            PERF_UTILITY_AUTO("vaGetConfigAttributes", PERF_LEVEL_DDI);
             va_res = vaGetConfigAttributes(m_dpy, va_profile, va_entrypoint, va_attributes, nattr);
             umcRes = va_to_umc_res(va_res);
         }
@@ -504,6 +524,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             m_pConfigId = pParams->m_pConfigId;
             if (*m_pConfigId == VA_INVALID_ID)
             {
+                PERF_UTILITY_AUTO("vaCreateConfig", PERF_LEVEL_DDI);
                 va_res = vaCreateConfig(m_dpy, va_profile, va_entrypoint, va_attributes, attribsNumber, m_pConfigId);
                 umcRes = va_to_umc_res(va_res);
                 needRecreateContext = true;
@@ -528,6 +549,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateContext");
 
             assert(!pParams->m_surf && "render targets tied to the context shoul be NULL");
+            PERF_UTILITY_AUTO("vaCreateContext", PERF_LEVEL_DDI);
             va_res = vaCreateContext(m_dpy, *m_pConfigId, width, height, pParams->m_CreateFlags, NULL, 0, m_pContext);
 
             umcRes = va_to_umc_res(va_res);
@@ -594,12 +616,14 @@ Status LinuxVideoAccelerator::Close(void)
         if ((m_pContext && (*m_pContext != VA_INVALID_ID)) && !(m_pKeepVAState && *m_pKeepVAState))
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaDestroyContext");
+            PERF_UTILITY_AUTO("vaDestroyContext", PERF_LEVEL_DDI);
             VAStatus vaSts = vaDestroyContext(m_dpy, *m_pContext);
             std::ignore = MFX_STS_TRACE(vaSts);
             *m_pContext = VA_INVALID_ID;
         }
         if ((m_pConfigId && (*m_pConfigId != VA_INVALID_ID)) && !(m_pKeepVAState && *m_pKeepVAState))
         {
+            PERF_UTILITY_AUTO("vaDestroyConfig", PERF_LEVEL_DDI);
             VAStatus vaSts = vaDestroyConfig(m_dpy, *m_pConfigId);
             std::ignore = MFX_STS_TRACE(vaSts);
             *m_pConfigId = VA_INVALID_ID;
@@ -637,6 +661,7 @@ Status LinuxVideoAccelerator::BeginFrame(int32_t FrameBufIndex)
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaBeginPicture");
             MFX_LTRACE_2(MFX_TRACE_LEVEL_EXTCALL, m_sDecodeTraceStart, "%d|%d", *m_pContext, 0);
+            PERF_UTILITY_AUTO("vaBeginPicture", PERF_LEVEL_DDI);
             VAStatus va_res = vaBeginPicture(m_dpy, *m_pContext, *surface);
             umcRes = va_to_umc_res(va_res);
         }
@@ -778,12 +803,59 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
                 va_num_elements = size/sizeof(VASliceParameterBufferAV1);
                 break;
 #endif
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
+            case UMC::VA_VVC:
+            case UMC::VA_VVC | UMC::VA_PROFILE_10:
+                va_size         = sizeof(UMC_VVC_DECODER::VASliceParameterBufferVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VASliceParameterBufferVVC);
+                break;
+#endif
             default:
                 va_size         = 0;
                 va_num_elements = 0;
                 break;
             }
         }
+#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)  
+        else if((m_Profile & VA_CODEC) == UMC::VA_VVC)
+        {        
+            if( VATileBufferType == va_type)
+            {
+                va_size         = sizeof(UMC_VVC_DECODER::VATileVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VATileVVC);
+            }
+            else if( VAAlfBufferType == va_type)
+            {
+                va_size         = sizeof(UMC_VVC_DECODER::VAAlfDataVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VAAlfDataVVC);
+            }            
+            else if( VALmcsBufferType == va_type)
+            {
+                va_size         = sizeof(UMC_VVC_DECODER::VALmcsDataVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VALmcsDataVVC);
+            }            
+            else if( VAIQMatrixBufferType == va_type) 
+            {
+                va_size         = sizeof(UMC_VVC_DECODER::VAScalingListVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VAScalingListVVC);
+            }
+            else if( VASliceStructBufferType == va_type)
+            {
+                va_size         = sizeof(UMC_VVC_DECODER::VASliceStructVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VASliceStructVVC);
+            }
+            else if(VASubPicBufferType == va_type)
+            {
+                va_size         = sizeof(UMC_VVC_DECODER::VASubPicVVC);
+                va_num_elements = size/sizeof(UMC_VVC_DECODER::VASubPicVVC);           
+            }
+            else
+            {
+                va_size         = size;
+                va_num_elements = 1;
+            }
+        }       
+#endif        
         else
         {
             va_size         = size;
@@ -791,6 +863,7 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
         }
         buffer_size = va_size * va_num_elements;
 
+        PERF_UTILITY_AUTO("vaCreateBuffer", PERF_LEVEL_DDI);
         va_res = vaCreateBuffer(m_dpy, *m_pContext, va_type, va_size, va_num_elements, NULL, &id);
     }
     if (VA_STATUS_SUCCESS == va_res)
@@ -832,17 +905,21 @@ LinuxVideoAccelerator::Execute()
             {
                 if (pCompBuf->GetType() == VASliceParameterBufferType)
                 {
+                    PERF_UTILITY_AUTO("vaBufferSetNumElements", PERF_LEVEL_DDI);
                     va_sts = vaBufferSetNumElements(m_dpy, id, pCompBuf->GetNumOfItem());
                     if (VA_STATUS_SUCCESS == va_res) va_res = va_sts;
                 }
             }
-
-            va_sts = vaUnmapBuffer(m_dpy, id);
+            {
+                PERF_UTILITY_AUTO("vaUnmapBuffer", PERF_LEVEL_DDI);
+                va_sts = vaUnmapBuffer(m_dpy, id);
+            }
             if (VA_STATUS_SUCCESS == va_res) va_res = va_sts;
 
 
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
+                PERF_UTILITY_AUTO("vaRenderPicture", PERF_LEVEL_DDI);
                 va_sts = vaRenderPicture(m_dpy, *m_pContext, &id, 1);
                 if (VA_STATUS_SUCCESS == va_res) va_res = va_sts;
             }
@@ -865,6 +942,7 @@ Status LinuxVideoAccelerator::EndFrame(void*)
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaEndPicture");
+        PERF_UTILITY_AUTO("vaEndPicture", PERF_LEVEL_DDI);
         va_res = vaEndPicture(m_dpy, *m_pContext);
         MFX_LTRACE_2(MFX_TRACE_LEVEL_EXTCALL, m_sDecodeTraceEnd, "%d|%d", *m_pContext, 0);
     }
@@ -895,6 +973,7 @@ int32_t LinuxVideoAccelerator::GetSurfaceID(int32_t idx) const
 {
     VASurfaceID *surface;
     Status sts = UMC_OK;
+    MFX_CHECK(idx >= 0, UMC_ERR_INVALID_PARAMS);
 
     try {
         sts = m_allocator->GetFrameHandle(idx, &surface);
@@ -908,7 +987,7 @@ int32_t LinuxVideoAccelerator::GetSurfaceID(int32_t idx) const
     return *surface;
 }
 
-uint16_t LinuxVideoAccelerator::GetDecodingError()
+uint16_t LinuxVideoAccelerator::GetDecodingError(VASurfaceID *surface)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "GetDecodingError");
     uint16_t error = 0;
@@ -917,25 +996,27 @@ uint16_t LinuxVideoAccelerator::GetDecodingError()
     // NOTE: at the moment there is no such support for Android, so no need to execute...
     VAStatus va_sts;
 
-    for(VASurfaceID surface : m_associatedIds)
+    VASurfaceDecodeMBErrors* pVaDecErr = NULL;
     {
-        VASurfaceDecodeMBErrors* pVaDecErr = NULL;
-
-        va_sts = vaQuerySurfaceError(m_dpy, surface, VA_STATUS_ERROR_DECODING_ERROR, (void**)&pVaDecErr);
-
-        if (VA_STATUS_SUCCESS == va_sts)
+        PERF_UTILITY_AUTO("vaQuerySurfaceError", PERF_LEVEL_DDI);
+        MFX_CHECK(surface != nullptr, UMC_ERR_INVALID_PARAMS);
+        va_sts = vaQuerySurfaceError(m_dpy, *surface, VA_STATUS_ERROR_DECODING_ERROR, (void**)&pVaDecErr);
+    }
+    if (VA_STATUS_SUCCESS == va_sts)
+    {
+        if (NULL != pVaDecErr)
         {
-            if (NULL != pVaDecErr)
+            for (int i = 0; pVaDecErr[i].status != -1; ++i)
             {
-                for (int i = 0; pVaDecErr[i].status != -1; ++i)
                 {
                     error = MFX_CORRUPTION_MAJOR;
                 }
+
             }
-            else
-            {
-                error = MFX_CORRUPTION_MAJOR;
-            }
+        }
+        else
+        {
+            error = MFX_CORRUPTION_MAJOR;
         }
     }
 #endif
@@ -994,20 +1075,26 @@ Status LinuxVideoAccelerator::QueryTaskStatus(int32_t FrameBufIndex, void * stat
         return sts;
 
     VASurfaceStatus surface_status;
-
-    VAStatus va_status = vaQuerySurfaceStatus(m_dpy, *surface, &surface_status);
+    VAStatus va_status;
     VAStatus va_sts;
+    {
+        PERF_UTILITY_AUTO("vaQuerySurfaceStatus", PERF_LEVEL_DDI);
+        va_status = vaQuerySurfaceStatus(m_dpy, *surface, &surface_status);
+    }
     if ((VA_STATUS_SUCCESS == va_status) && (VASurfaceReady == surface_status))
     {
-        // handle decoding errors
-        va_sts = vaSyncSurface(m_dpy, *surface);
+        {
+            PERF_UTILITY_AUTO("vaSyncSurface", PERF_LEVEL_DDI);
+            // handle decoding errors
+            va_sts = vaSyncSurface(m_dpy, *surface);
+        }
 
         if (error)
         {
             switch (va_sts)
             {
                 case VA_STATUS_ERROR_DECODING_ERROR:
-                    *(uint16_t*)error = GetDecodingError();
+                    *(uint16_t*)error = GetDecodingError(surface);
                     break;
 
                 case VA_STATUS_ERROR_HW_BUSY:
@@ -1043,6 +1130,7 @@ Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorrupti
     VAStatus va_sts = VA_STATUS_SUCCESS;
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncSurface");
+        PERF_UTILITY_AUTO("vaSyncSurface", PERF_LEVEL_DDI);
         va_sts = vaSyncSurface(m_dpy, *surface);
     }
 
@@ -1050,7 +1138,7 @@ Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorrupti
 
     if (VA_STATUS_ERROR_DECODING_ERROR == va_sts)
     {
-        if (surfCorruption) *(uint16_t*)surfCorruption = GetDecodingError();
+        if (surfCorruption) *(uint16_t*)surfCorruption = GetDecodingError(surface);
         return UMC_OK;
     }
     if (VA_STATUS_ERROR_OPERATION_FAILED == va_sts)

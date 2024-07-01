@@ -35,10 +35,13 @@ class AEnc_EncTool
 {
 public:
     AEnc_EncTool() :
+        m_aenc(nullptr),
+        m_aencPar(),
         m_ptmpFrame(nullptr),
-        m_bInit(false)
+        m_bInit(false),
+        FrameWidth_aligned(0),
+        FrameHeight_aligned(0)
     {
-        m_aencPar = {};
     }
     ~AEnc_EncTool() { Close(); }
     mfxStatus Init(mfxEncToolsCtrl const & ctrl, mfxExtEncToolsConfig const & pConfig);

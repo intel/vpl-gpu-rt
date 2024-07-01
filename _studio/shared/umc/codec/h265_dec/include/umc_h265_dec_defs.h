@@ -423,7 +423,12 @@ public:
 class H265ScalingList
 {
 public:
-    H265ScalingList() { m_initialized = false; }
+    H265ScalingList()
+    {
+        m_initialized = false;
+        memset(m_dequantCoef, 0, sizeof(int16_t*) * SCALING_LIST_SIZE_NUM * SCALING_LIST_NUM * SCALING_LIST_REM_NUM);
+    }
+
     ~H265ScalingList()
     {
         if (m_initialized)

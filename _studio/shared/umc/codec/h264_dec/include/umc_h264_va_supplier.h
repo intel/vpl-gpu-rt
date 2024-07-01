@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2019 Intel Corporation
+// Copyright (c) 2003-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -98,6 +98,9 @@ protected:
 
     uint32_t m_bufferedFrameNumber;
     LazyCopier m_lazyCopier;
+
+    uint16_t m_drcFrameWidth;
+    uint16_t m_drcFrameHeight;
 
 private:
     VATaskSupplier & operator = (VATaskSupplier &)

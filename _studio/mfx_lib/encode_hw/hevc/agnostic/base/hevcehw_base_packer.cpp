@@ -25,6 +25,9 @@
 #include <iterator>
 #include <numeric>
 #include <iterator>
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+#include "hevcehw_base_enctools_qmatrix_lin.h"
+#endif
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
@@ -441,7 +444,7 @@ void BitstreamWriter::SliceFinish()
 
     RenormE();
     PutBitC((m_codILow >> 9) & 1);
-    PutBit(m_codILow >> 8);
+    PutBit((m_codILow >> 8) & 1);
     PutTrailingBits();
 
     m_BinCountsInNALunits++;
@@ -457,8 +460,10 @@ void BitstreamWriter::cabacInit()
 }
 
 
-void Packer::PackNALU(BitstreamWriter& bs, NALU const & h)
+void Packer::PackNALU(BitstreamWriter& bs, NALU const & nalu)
 {
+    const NALU& h = nalu;
+
     bool bLongSC =
         h.nal_unit_type == VPS_NUT
         || h.nal_unit_type == SPS_NUT
@@ -570,6 +575,20 @@ void Packer::PackAUD(BitstreamWriter& bs, mfxU8 pic_type)
     bs.PutTrailingBits();
 }
 
+void PackExtension(mfxU8 extFlags, std::function<bool(mfxU8)> Pack)
+{
+    mfxU8 extId = 0;
+
+    while (extFlags)
+    {
+        if (extFlags & 0x80)
+            ThrowAssert(!Pack(extId), "extension is not supported");
+
+        ++extId;
+        extFlags <<= 1;
+    }
+}
+
 void Packer::PackVPS(BitstreamWriter& bs, VPS const &  vps)
 {
     NALU nalu = {0, VPS_NUT, 0, 1};
@@ -608,7 +627,9 @@ void Packer::PackVPS(BitstreamWriter& bs, VPS const &  vps)
         assert(0 == vps.num_hrd_parameters);
     }
 
-    bs.PutBit(0); //vps.extension_flag
+    bs.PutBit(vps.extension_flag);
+
+
     bs.PutTrailingBits();
 }
 
@@ -756,20 +777,6 @@ void Packer::PackVUI(BitstreamWriter& bs, VUI const & vui, mfxU16 max_sub_layers
 }
 
 void PackSTRPS(BitstreamWriter& bs, const STRPS* sets, mfxU32 num, mfxU32 idx);
-
-void PackExtension(mfxU8 extFlags, std::function<bool(mfxU8)> Pack)
-{
-    mfxU8 extId = 0;
-
-    while (extFlags)
-    {
-        if (extFlags & 0x80)
-            ThrowAssert(!Pack(extId), "extension is not supported");
-
-        ++extId;
-        extFlags <<= 1;
-    }
-}
 
 mfxU32 Packer::PackSLD(BitstreamWriter& bs, ScalingList const & scl)
 {
@@ -1646,6 +1653,7 @@ mfxU32 Packer::GetPrefixSEI(
     if (bPackError)
         return 0;
 
+
     bool bNeedOwnPT = (task.InsertHeaders & INSERT_PTSEI)
         && !std::any_of(prefixPL.begin(), prefixPL.end(), PLTypeEq<1>);
     if (bNeedOwnPT)
@@ -1761,14 +1769,16 @@ static void PackSkipCTU(
         (yCtu != y0)
         && ((xCtu >= x0 && yCtu > y0)
             || (xCtu < x0 && yCtu > (y0 + (1 << log2CtuSize))));
+
     bool boundary =
         ((xCtu + (1 << log2CtuSize) > sps.pic_width_in_luma_samples)
             || (yCtu + (1 << log2CtuSize) > sps.pic_height_in_luma_samples))
         && (log2CtuSize > (sps.log2_min_luma_coding_block_size_minus3 + 3));
     mfxU8 split_flag = boundary && (log2CtuSize > (sps.log2_min_luma_coding_block_size_minus3 + 3));
 
-    if (!boundary)
+    if (!boundary && (log2CtuSize > (sps.log2_min_luma_coding_block_size_minus3 + 3))) {
         bs.EncodeBin(ctx.SPLIT_CODING_UNIT_FLAG[0], split_flag);
+    }
 
     if (split_flag)
     {
@@ -1855,7 +1865,8 @@ void Packer::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
         m_pGlob = &global;
 
-        if (global.Contains(CC::Key))
+
+        if (global.Contains(CC::Key)  && CC::Get(global).UpdateLPLAAnalysisSPSBS)
             CC::Get(global).UpdateLPLAAnalysisSPSBS(global, Glob::SPS::Get(global));
 
         mfxStatus sts = Reset(
@@ -1982,12 +1993,34 @@ mfxStatus Packer::Reset(
     sts = PackHeader(rbsp, pESBegin, pESEnd, ph.PPS);
     MFX_CHECK_STS(sts);
     pESBegin += ph.PPS.BitLen / 8;
+    bool bPackedCqmPPS = false;
+#if defined(MFX_ENABLE_ENCTOOLS_SW)
+    // Pack cqm PPS header for ETSW adaptive cqm
+    if (!bPackedCqmPPS &&m_pGlob->Contains(CC::Key) &&
+        CC::Get(*m_pGlob).PackSWETAdaptiveCqmHeader &&
+        CC::Get(*m_pGlob).PackSWETAdaptiveCqmHeader(m_pGlob))
+    {
+        bPackedCqmPPS = true;
+        ph.CqmPPS.resize(HEVCEHW::Linux::Base::ET_CQM_NUM_CUST_MATRIX);
+        for (mfxU8 idx = 0; idx < HEVCEHW::Linux::Base::ET_CQM_NUM_CUST_MATRIX && idx < cqmpps.size(); idx++)
+        {
+            if (cqmpps[idx].scaling_list_data_present_flag)
+            {
+                PackPPS(rbsp, cqmpps[idx]);
+                sts = PackHeader(rbsp, pESBegin, pESEnd, ph.CqmPPS[idx]);
+                MFX_CHECK_STS(sts);
+                pESBegin += ph.CqmPPS[idx].BitLen / 8;
+            }
+        }
+    }
+#endif
 
     // Pack cqm PPS header for adaptive cqm.
-    if (m_pGlob->Contains(CC::Key) &&
+    if (!bPackedCqmPPS && m_pGlob->Contains(CC::Key) &&
         CC::Get(*m_pGlob).PackAdaptiveCqmHeader &&
         CC::Get(*m_pGlob).PackAdaptiveCqmHeader(m_pGlob))
     {
+        bPackedCqmPPS = true;
         ph.CqmPPS.resize(CQM_HINT_NUM_CUST_MATRIX);
         for (mfxU8 idx = 0; idx < CQM_HINT_NUM_CUST_MATRIX && idx < cqmpps.size(); idx++)
         {
@@ -2157,6 +2190,7 @@ void Packer::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             mfxStatus sts           = MFX_ERR_NONE;
 
             MFX_CHECK(bsData.Y, MFX_ERR_LOCK_MEMORY);
+            if(task.bRecode) task.BsDataLength=0;
 
             auto BSInsert = [&](const PackedData& d) -> mfxStatus
             {
@@ -2180,8 +2214,12 @@ void Packer::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             MFX_CHECK(!bErr, sts);
 
             // Update Slice header for adaptive cqm.
-            if (global.Contains(CC::Key)) CC::Get(global).UpdateAdaptiveCqmSH(global, s_task);
-
+            if (global.Contains(CC::Key) && CC::Get(global).UpdateAdaptiveCqmSH) CC::Get(global).UpdateAdaptiveCqmSH(global, s_task);
+            // Skip Frame cannot have sao
+            ssh.sao_luma_flag   = 0;
+            ssh.sao_chroma_flag = 0;
+            // No need for merge cands
+            ssh.five_minus_max_num_merge_cand = 4;
             mfxU32 sz = GetPSEIAndSSH(
                 Glob::VideoParam::Get(global)
                 , task

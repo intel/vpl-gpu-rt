@@ -70,8 +70,7 @@ target_link_options(mfx_shared_lib
     $<$<AND:$<PLATFORM_ID:Windows>,$<CONFIG:Debug>>:/NODEFAULTLIB:libcpmt.lib>
     $<$<PLATFORM_ID:Windows>:
       /DEBUG
-      /PDB:$<TARGET_PDB_FILE_DIR:$<TARGET_PROPERTY:NAME>>/$<TARGET_PROPERTY:NAME>_full.pdb
-      /PDBSTRIPPED:$<TARGET_PDB_FILE_DIR:$<TARGET_PROPERTY:NAME>>/$<TARGET_PROPERTY:NAME>.pdb
+      /PDB:$<TARGET_PDB_FILE_DIR:$<TARGET_PROPERTY:NAME>>/$<TARGET_PROPERTY:NAME>.pdb
     >
   )
 
@@ -87,7 +86,8 @@ target_link_libraries(mfx_shared_lib
       D3D11.lib
       DXGI.lib
       d3d9.lib
-    >
+      d3d12.lib
+      >
     mfx_common_properties
     ${CMAKE_DL_LIBS}
   )

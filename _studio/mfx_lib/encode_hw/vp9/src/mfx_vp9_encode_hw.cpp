@@ -435,7 +435,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
     MFX_CHECK_STS(sts);
     sts = m_ddi->Register(m_outBitstreams.GetFrameAllocReponse(), D3DDDIFMT_INTELENCODE_BITSTREAMDATA);
     MFX_CHECK_STS(sts);
-    m_maxBsSize = request.Info.Width * request.Info.Height;
+    m_maxBsSize = static_cast<mfxU64>(request.Info.Width) * static_cast<mfxU64>(request.Info.Height);
 
     // allocate and register surfaces for segmentation map
     sts = m_ddi->QueryCompBufferInfo(D3DDDIFMT_INTELENCODE_MBSEGMENTMAP, request, m_video.mfx.FrameInfo.Width, m_video.mfx.FrameInfo.Height);
@@ -780,7 +780,7 @@ mfxStatus MFXVideoENCODEVP9_HW::ConfigTask(Task &task)
     task.m_frameOrderInRefStructure = m_frameOrderInRefStructure;
 
     eMFXHWType platform = m_pCore->GetHWType();
-    mfxStatus sts = SetFramesParams(curMfxPar, task, frameType, frameParam, platform);
+    mfxStatus sts = SetFramesParams(curMfxPar, task, frameType, frameParam, platform, m_isPrevFrameKeyFrame);
 
     task.m_pRecFrame = 0;
     task.m_pOutBs = 0;
@@ -804,7 +804,7 @@ mfxStatus MFXVideoENCODEVP9_HW::ConfigTask(Task &task)
         MFX_CHECK(task.m_pSegmentMap != 0, MFX_WRN_DEVICE_BUSY);
     }
 
-    sts = DecideOnRefListAndDPBRefresh(curMfxPar, &task, m_dpb, frameParam, prevFrameOrderInRefStructure);
+    sts = DecideOnRefListAndDPBRefresh(curMfxPar, &task, m_dpb, frameParam, prevFrameOrderInRefStructure, m_zeroLevelCounter);
 
     task.m_frameParam = frameParam;
 
@@ -842,6 +842,8 @@ mfxStatus MFXVideoENCODEVP9_HW::ConfigTask(Task &task)
     UpdateDpb(frameParam, task.m_pRecFrame, m_dpb, m_pCore);
 
     m_prevFrameParam = task.m_frameParam;
+
+    m_isPrevFrameKeyFrame = (frameType == KEY_FRAME);
 
     MFX_RETURN(sts);
 }
@@ -1150,7 +1152,7 @@ mfxStatus MFXVideoENCODEVP9_HW::UpdateBitstream(
 
     // Update bitstream fields
     task.m_pBitsteam->TimeStamp = task.m_timeStamp;
-    task.m_pBitsteam->FrameType = mfxU16(task.m_frameParam.frameType == KEY_FRAME ? MFX_FRAMETYPE_I : MFX_FRAMETYPE_P);
+    task.m_pBitsteam->FrameType = mfxU16(task.m_frameParam.frameType == KEY_FRAME ? (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR) : MFX_FRAMETYPE_P);
     task.m_pBitsteam->PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
 
     if (mfxExtAVCEncodedFrameInfo * encFrameInfo = GetExtBuffer(*(task.m_pBitsteam)))
@@ -1159,5 +1161,6 @@ mfxStatus MFXVideoENCODEVP9_HW::UpdateBitstream(
     return MFX_ERR_NONE;
 }
 
+MFX_PROPAGATE_GetSurface_VideoENCODE_Impl(MFXVideoENCODEVP9_HW)
 
 } // MfxHwVP9Encode

@@ -42,7 +42,19 @@ enum
     MFX_TRACE_TEXTLOG_SUPPRESS_FUNCTION_NAME = 0x10
 };
 
+//For TXT trace
+typedef struct _TickTime
+{
+    double freq;
+    int64_t start;
+    int64_t stop;
+}TickTime;
+
 /*------------------------------------------------------------------------------*/
+
+void startTick(const std::string& tag);
+
+void stopTick(const std::string& tag);
 
 mfxTraceU32 MFXTraceTextLog_Init();
 

@@ -129,6 +129,9 @@ static Status CopyImage(VideoData *pSrc, VideoData *pDst, int flag, int bSwapUV)
 
     pSrc->GetPlaneInfo(&src, iSrcPlane);
     pDst->GetPlaneInfo(&dst, iDstPlane);
+    if(!src.m_pPlane || !dst.m_pPlane) {
+      return UMC_ERR_NULL_PTR;
+    }
 
     size.width = src.m_ippSize.width * src.m_iSamples;
     size.height = src.m_ippSize.height;

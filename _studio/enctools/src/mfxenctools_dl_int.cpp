@@ -37,6 +37,12 @@ MFXDLVideoSession::MFXDLVideoSession(void* module)
         GetModuleFuncAddress(module, "MFXVideoCORE_SetHandle"));
     SyncOperationPtr = reinterpret_cast<decltype(SyncOperationPtr)>(
         GetModuleFuncAddress(module, "MFXVideoCORE_SyncOperation"));
+    GetSurfaceForEncodePtr = reinterpret_cast<decltype(GetSurfaceForEncodePtr)>(
+        GetModuleFuncAddress(module, "MFXMemory_GetSurfaceForEncode"));
+    JoinSessionPtr = reinterpret_cast<decltype(JoinSessionPtr)>(
+        GetModuleFuncAddress(module, "MFXJoinSession"));
+    DisjoinSessionPtr = reinterpret_cast<decltype(DisjoinSessionPtr)>(
+        GetModuleFuncAddress(module, "MFXDisjoinSession"));
 }
 
 

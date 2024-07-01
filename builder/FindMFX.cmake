@@ -74,7 +74,6 @@ set( MFX_VERSION_MAJOR ${major_vers})
 set( MFX_VERSION_MINOR ${minor_vers})
 
 set( API_USE_LATEST TRUE )
-set( API_FLAGS -DMFX_VERSION_USE_LATEST )
 
 add_library( onevpl-api INTERFACE )
 target_include_directories(onevpl-api

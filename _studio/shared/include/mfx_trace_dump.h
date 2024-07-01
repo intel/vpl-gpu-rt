@@ -1,6 +1,6 @@
 /* ****************************************************************************** *\
 
-Copyright (C) 2012-2022 Intel Corporation.  All rights reserved.
+Copyright (C) 2012-2024 Intel Corporation.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -36,6 +36,7 @@ File Name: mfx_trace_dump.h
 #include <iomanip>
 #include <iterator>
 #include <typeinfo>
+#include <type_traits>
 #include "mfxstructures.h"
 
 std::string PointerToHexString(void* x);
@@ -43,6 +44,8 @@ std::string GetFourCCInString(mfxU32 fourcc);
 std::string GetCodecIdInString(mfxU32 id);
 std::string GetIOPatternInString(mfxU32 io);
 bool _IsBadReadPtr(void *ptr, size_t size);
+
+using LongTermRefList = std::remove_extent<decltype(mfxExtAVCRefListCtrl::RejectedRefList)>::type;
 
 #define DUMP_RESERVED_ARRAY(r) dump_reserved_array(&(r[0]), sizeof(r)/sizeof(r[0]))
 
@@ -312,6 +315,20 @@ public:
                     case MFX_EXTBUFF_VP9_PARAM:
                         str += dump(name, *((mfxExtVP9Param*)_struct.ExtParam[i])) + "\n";
                         break;
+#if defined(ONEVPL_EXPERIMENTAL)
+                    case MFX_EXTBUFF_ENCODED_QUALITY_INFO_MODE:
+                        str += dump(name, *((mfxExtQualityInfoMode*)_struct.ExtParam[i])) + "\n";
+                        break;
+                    case MFX_EXTBUFF_ENCODED_QUALITY_INFO_OUTPUT:
+                        str += dump(name, *((mfxExtQualityInfoOutput*)_struct.ExtParam[i])) + "\n";
+                        break;                       
+                    case MFX_EXTBUFF_AV1_SCREEN_CONTENT_TOOLS:
+                        str += dump(name, *((mfxExtAV1ScreenContentTools*)_struct.ExtParam[i])) + "\n";
+                        break;
+                    case MFX_EXTBUFF_ALPHA_CHANNEL_ENC_CTRL:
+                        str += dump(name, *((mfxExtAlphaChannelEncCtrl*)_struct.ExtParam[i])) + "\n";
+                        break;
+#endif
                     default:
                         str += dump(name, *(_struct.ExtParam[i])) + "\n";
                         break;
@@ -391,6 +408,13 @@ public:
     DEFINE_DUMP_FUNCTION(mfxExtVP9TemporalLayers);
     DEFINE_DUMP_FUNCTION(mfxVP9TemporalLayer);
     DEFINE_DUMP_FUNCTION(mfxExtVP9Param);
+    DEFINE_DUMP_FUNCTION(LongTermRefList);
+#if defined(ONEVPL_EXPERIMENTAL)
+    DEFINE_DUMP_FUNCTION(mfxExtQualityInfoMode);
+    DEFINE_DUMP_FUNCTION(mfxExtQualityInfoOutput);
+    DEFINE_DUMP_FUNCTION(mfxExtAV1ScreenContentTools);
+    DEFINE_DUMP_FUNCTION(mfxExtAlphaChannelEncCtrl);
+#endif
 };
 #endif //_MFX_TRACE_DUMP_H_
 

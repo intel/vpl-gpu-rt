@@ -28,7 +28,7 @@
 
 mfxStatus AEncInit(mfxHDL*, AEncParam) { return MFX_ERR_UNSUPPORTED; }
 mfxStatus AEncProcessFrame(mfxHDL, mfxU32, mfxU8*, mfxI32, AEncFrame*) { return MFX_ERR_UNSUPPORTED; }
-void AEncUpdateFrame(mfxHDL, mfxU32, mfxU32, mfxU32) {}
+void AEncUpdateFrame(mfxHDL, mfxU32, mfxU32, mfxU32, mfxU32) {}
 void AEncClose(mfxHDL) {}
 mfxU16 AEncGetIntraDecision(mfxHDL, mfxU32) { return 0; }
 mfxU16 AEncGetPersistenceMap(mfxHDL, mfxU32, mfxU8[]) { return 0; }
@@ -174,8 +174,8 @@ mfxStatus AEnc_EncTool::ReportEncResult(mfxU32 displayOrder, mfxEncToolsBRCEncod
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
     mfxStatus sts = FindOutFrame(displayOrder);
     MFX_CHECK_STS(sts);
-
-    AEncUpdateFrame(m_aenc, displayOrder, pEncRes.CodedFrameSize*8, pEncRes.QpY);
+    mfxU32 Type = (*m_frameIt).Type;
+    AEncUpdateFrame(m_aenc, displayOrder, pEncRes.CodedFrameSize*8, pEncRes.QpY, Type);
 
     return MFX_ERR_NONE;
 }

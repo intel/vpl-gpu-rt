@@ -160,6 +160,8 @@ private:
 } g_global_registry;
 #endif
 
+class FrameAllocatorWrapper;
+
 class FrameAllocatorBase
 {
 public:
@@ -170,11 +172,12 @@ public:
     virtual mfxStatus Unlock(mfxMemId mid, mfxFrameData* frame_data)                                        = 0;
     virtual mfxStatus GetHDL(mfxMemId mid, mfxHDL& handle)                                            const = 0;
     virtual mfxStatus Free(mfxFrameAllocResponse& response)                                                 = 0;
-    virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* & output_surf) = 0;
+    virtual mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* & output_surf,
+                                                                          mfxSurfaceHeader* import_surface) = 0;
     virtual mfxStatus ReallocSurface(const mfxFrameInfo& info, mfxMemId id)                                 = 0;
     virtual void      SetDevice(mfxHDL device)                                                              = 0;
 
-    // this is actually a WA, which should be removed after Synchronize will be implemented through dependency manager
+    // Currently Synchronize implemented through mfxSyncPoint mechanism
     mfxStatus Synchronize(mfxSyncPoint, mfxU32 /*timeout*/);
 
     static bool CheckMemoryFlags(mfxU32 flags)
@@ -198,9 +201,16 @@ protected:
 
     // Surface need access to Remove method from destructor, for allocator state update
     friend class mfxFrameSurfaceBaseInterface;
-
     virtual void Remove(mfxMemId mid) = 0;
 
+    friend class FrameAllocatorWrapper;
+    void SetWrapper(FrameAllocatorWrapper* wrapper)
+    {
+        // It is assumed that there is only one possible wrapper, so it is ok to reassign without a check here
+        m_frame_allocator_wrapper = wrapper;
+    }
+
+    FrameAllocatorWrapper*            m_frame_allocator_wrapper = nullptr;
     mfxSession                        m_session;
 };
 
@@ -236,7 +246,8 @@ public:
         return allocator.Free(allocator.pthis, &response);
     }
 
-    mfxStatus CreateSurface(mfxU16, const mfxFrameInfo &, mfxFrameSurface1* &) override { return MFX_ERR_UNSUPPORTED; }
+    mfxStatus CreateSurface(mfxU16, const mfxFrameInfo &, mfxFrameSurface1* &,
+                                                            mfxSurfaceHeader*) override { return MFX_ERR_UNSUPPORTED; }
     mfxStatus ReallocSurface(const mfxFrameInfo &, mfxMemId )                  override { return MFX_ERR_UNSUPPORTED; }
     void      SetDevice(mfxHDL )                                               override { return; }
     void      Remove(mfxMemId)                                                 override { return; }
@@ -346,7 +357,7 @@ public:
         return allocator->Free(response);
     }
 
-    mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* & output_surf)
+    mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* & output_surf, mfxSurfaceHeader* import_surface)
     {
         if (RequiredHWallocator(type))
         {
@@ -355,9 +366,11 @@ public:
 
         FrameAllocatorBase* allocator = ((type & MFX_MEMTYPE_SYSTEM_MEMORY) || !allocator_hw) ? allocator_sw.get() : allocator_hw.get();
         MFX_CHECK_HDL(allocator);
-        MFX_SAFE_CALL(allocator->CreateSurface(type, info, output_surf));
+        MFX_SAFE_CALL(allocator->CreateSurface(type, info, output_surf, import_surface));
 
         CacheMid(output_surf->Data.MemId, *allocator);
+        // it is required to clean up m_mid_to_allocator when output_surf will be completely deleted
+        allocator->SetWrapper(this);
 
         return MFX_ERR_NONE;
     }
@@ -461,6 +474,17 @@ private:
         m_mid_to_allocator[mid] = &allocator;
     }
 
+    // To allow access to Remove function
+    template <class T, class U> friend class FlexibleFrameAllocator;
+
+    // This function is called when surface is deleted by reducing refcount to zero
+    void Remove(mfxMemId mid)
+    {
+        std::unique_lock<std::shared_timed_mutex> lock(m_mutex);
+
+        m_mid_to_allocator.erase(mid);
+    }
+
     std::shared_timed_mutex                 m_mutex;
     std::map<mfxMemId, FrameAllocatorBase*> m_mid_to_allocator;
     bool                                    m_delayed_allocation;
@@ -488,11 +512,12 @@ public:
     FlexibleFrameAllocator(mfxHDL device = nullptr, mfxSession session = nullptr)
         // ids across different allocators (SW / HW in one core and in different cores (for simplicity)) shouldn't overlap
         : FrameAllocatorBase(session)
-        , m_last_created_mid(m_allocator_num << 16)
+        // fetch_add returns value prior the increment
+        , m_mid_high_part(size_t(m_allocator_num.fetch_add(1, std::memory_order_relaxed) + 1) << m_bits_n_surf)
+        , m_mid_low_part_modulo((size_t(1) << m_bits_n_surf) - 1)
         , m_device(device)
         , m_staging_adapter(std::make_shared<U>(device))
     {
-        std::ignore = m_allocator_num.fetch_add(1, std::memory_order_relaxed);
     }
 
     mfxStatus Alloc(mfxFrameAllocRequest& request, mfxFrameAllocResponse& response) override
@@ -515,7 +540,7 @@ public:
             {
                 mids[i] = GenerateMid();
 
-                alloc_list.emplace_back(pT(T::Create(request.Info, type, mids[i], m_staging_adapter, m_device, request.AllocId, *this), MFX_DETACH_FRAME));
+                alloc_list.emplace_back(pT(T::Create(request.Info, type, mids[i], m_staging_adapter, m_device, request.AllocId, *this, nullptr), MFX_DETACH_FRAME));
             }
 
             std::lock_guard<std::shared_timed_mutex> guard(m_mutex);
@@ -637,7 +662,7 @@ public:
         return sts;
     }
 
-    mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* & output_surf) override
+    mfxStatus CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1* & output_surf, mfxSurfaceHeader* import_surface) override
     {
         MFX_CHECK(!(type & MFX_MEMTYPE_EXTERNAL_FRAME), MFX_ERR_UNSUPPORTED);
 
@@ -645,7 +670,7 @@ public:
         {
             std::list<pT> alloc_list;
 
-            alloc_list.emplace_back(pT(T::Create(info, T::AdjustType(type), GenerateMid(), m_staging_adapter, m_device, 0u, *this), MFX_DETACH_FRAME));
+            alloc_list.emplace_back(pT(T::Create(info, T::AdjustType(type), GenerateMid(), m_staging_adapter, m_device, 0u, *this, import_surface), MFX_DETACH_FRAME));
 
             std::lock_guard<std::shared_timed_mutex> guard(m_mutex);
 
@@ -653,8 +678,6 @@ public:
 
             // Fill mfxFrameSurface1 object and return to user
             output_surf = &(m_allocated_pool.back()->m_exported_surface);
-
-            return output_surf->FrameInterface->AddRef(output_surf);
         }
         catch (const std::system_error& ex)
         {
@@ -710,6 +733,10 @@ protected:
         // Surface is being deleted after decreasing refcount to zero, no need decrease refcount in destructor of holder
         it->release();
 
+        // Remove surface from mid <-> allocator binding table
+        if (m_frame_allocator_wrapper)
+            m_frame_allocator_wrapper->Remove(mid);
+
         m_allocated_pool.erase(it);
 
         std::ignore = std::find_if(std::begin(m_returned_mids), std::end(m_returned_mids),
@@ -726,7 +753,10 @@ protected:
     }
 
 private:
-    std::atomic<size_t>                    m_last_created_mid = { 0 };
+    const size_t                           m_bits_n_surf      = 16; // One session can't have more than 2^16 surfaces simultaneously
+    const size_t                           m_mid_high_part;
+    const size_t                           m_mid_low_part_modulo;
+    size_t                                 m_mid_low_part     = 0;
     mfxHDL                                 m_device           = nullptr;
 
     mutable std::shared_timed_mutex        m_mutex;
@@ -740,9 +770,30 @@ private:
 
     const mfxMemId ALREADY_REMOVED_MID = mfxMemId(std::numeric_limits<size_t>::max());
 
+    // This method always called without m_mutex being locked
     mfxMemId GenerateMid()
     {
-        return mfxMemId(m_last_created_mid.fetch_add(1, std::memory_order_relaxed) + 1);
+        std::lock_guard<std::shared_timed_mutex> guard(m_mutex);
+
+        // Check that pool is not already full
+        MFX_CHECK_WITH_THROW_STS(m_allocated_pool.size() <= (m_mid_low_part_modulo + 1), MFX_ERR_MEMORY_ALLOC);
+
+        mfxMemId new_memid;
+        // There is only m_mid_low_part_modulo + 1 possible mids within one allocator
+        for (size_t i = 0; i < m_mid_low_part_modulo + 1; ++i)
+        {
+            new_memid = mfxMemId(m_mid_high_part | ((++m_mid_low_part) & m_mid_low_part_modulo));
+
+            if (
+                // Check if current mid is already in pool
+                std::find_if(std::begin(m_allocated_pool), std::end(m_allocated_pool),
+                    [new_memid](const pT& surf) { return surf->GetMid() == new_memid; }) == std::end(m_allocated_pool)
+                )
+                return new_memid;
+        }
+
+        // Couldn't find suitable mid
+        MFX_CHECK_WITH_THROW_STS(false, MFX_ERR_MEMORY_ALLOC);
     }
 
 #undef MFX_DETACH_FRAME
@@ -761,10 +812,11 @@ public:
     virtual mfxStatus                          Unlock()                = 0;
     virtual std::pair<mfxHDL, mfxResourceType> GetNativeHandle() const = 0;
     virtual std::pair<mfxHDL, mfxHandleType>   GetDeviceHandle() const = 0;
+    virtual mfxStatus Export(const mfxSurfaceHeader& export_header,
+                                  mfxSurfaceHeader** exported_surface) = 0;
 
     mfxMemId GetMid() const { return m_mid; }
 
-    // this is actually a WA, which should be removed after Synchronize will be implemented through dependency manager
     mfxStatus Synchronize(mfxU32 timeout)
     {
         // If allocator is detached, no need to sychronize surface. It is already synchronized
@@ -829,14 +881,71 @@ inline void copy_frame_surface_pixel_pointers(mfxFrameData& buf_dst, const mfxFr
     MFX_COPY_FIELD_NO_LOG(A);
 }
 
+class mfxFrameSurfaceInterfaceImpl;
+
+class mfxSurfaceBase
+    : public mfxRefCountableImpl<mfxSurfaceInterface>
+{
+public:
+    mfxSurfaceBase(const mfxSurfaceHeader& export_header, mfxFrameSurfaceInterfaceImpl* p_base_surface)
+        : m_p_base_surface(p_base_surface)
+    {
+        MFX_CHECK_WITH_THROW_STS(CheckExportFlags(export_header.SurfaceFlags), MFX_ERR_INVALID_VIDEO_PARAM);
+
+        // Surface interface level
+        Context         = this;
+        Version.Version = MFX_SURFACEINTERFACE_VERSION;
+        Header          = export_header;
+
+        mfxSurfaceInterface::Synchronize = &mfxSurfaceBase::Synchronize_impl;
+    }
+
+    static mfxStatus Synchronize_impl(mfxSurfaceInterface* ext_surface, mfxU32 timeout)
+    {
+        MFX_CHECK_NULL_PTR1(ext_surface);
+        MFX_CHECK_HDL(ext_surface->Context);
+
+        return
+            reinterpret_cast<mfxSurfaceBase*>(ext_surface->Context)->Synchronize(timeout);
+    }
+
+    mfxStatus Synchronize(mfxU32 timeout);
+
+    void DetachBaseSurface()
+    {
+        m_p_base_surface = nullptr;
+    }
+
+    mfxFrameSurfaceInterfaceImpl* GetParentSurface()
+    {
+        return m_p_base_surface;
+    }
+
+    // Here we return memory which will be transferred outside, it will be copy of internal fields,
+    // so we will be on safe side if user accidently memset this memory, so it protects internal state from accidental change
+    virtual mfxSurfaceHeader* GetExport() = 0;
+
+private:
+
+    static bool CheckExportFlags(mfxU32 export_flags)
+    {
+        return (export_flags == MFX_SURFACE_FLAG_DEFAULT) || (export_flags & (MFX_SURFACE_FLAG_EXPORT_SHARED | MFX_SURFACE_FLAG_EXPORT_COPY));
+    }
+
+    void Close() override;
+
+    mfxFrameSurfaceInterfaceImpl* m_p_base_surface = nullptr;
+
+};
+
 class mfxFrameSurfaceInterfaceImpl : public mfxFrameSurfaceBaseInterface
 {
 public:
-    mfxFrameSurfaceInterfaceImpl(const mfxFrameInfo & info, mfxU16 type, mfxMemId mid, FrameAllocatorBase& allocator)
+    mfxFrameSurfaceInterfaceImpl(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, FrameAllocatorBase& allocator)
         : mfxFrameSurfaceBaseInterface(mid, allocator)
     {
         // Surface interface level
-        Context = static_cast<mfxFrameSurfaceBaseInterface*>(this);
+        Context         = static_cast<mfxFrameSurfaceBaseInterface*>(this);
         Version.Version = MFX_FRAMESURFACEINTERFACE_VERSION;
 
         mfxFrameSurfaceInterface::Map             = &mfxFrameSurfaceInterfaceImpl::Map_impl;
@@ -845,6 +954,7 @@ public:
         mfxFrameSurfaceInterface::GetDeviceHandle = &mfxFrameSurfaceInterfaceImpl::GetDeviceHandle_impl;
         mfxFrameSurfaceInterface::Synchronize     = &mfxFrameSurfaceInterfaceImpl::Synchronize_impl;
         mfxFrameSurfaceInterface::QueryInterface  = &mfxFrameSurfaceInterfaceImpl::QueryInterface_impl;
+        mfxFrameSurfaceInterface::Export          = &mfxFrameSurfaceInterfaceImpl::Export_impl;
 
         // Surface representation
         m_internal_surface.Version.Version = MFX_FRAMESURFACE1_VERSION;
@@ -947,6 +1057,21 @@ public:
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
+    static mfxStatus Export_impl(mfxFrameSurface1* surface, mfxSurfaceHeader export_header, mfxSurfaceHeader** exported_surface)
+    {
+        MFX_CHECK_NULL_PTR1(surface);
+        MFX_CHECK_HDL(surface->FrameInterface);
+        MFX_CHECK_HDL(surface->FrameInterface->Context);
+
+        // This is virtual function call, so it will be dispatched to Export function defined in current child class
+        return reinterpret_cast<mfxFrameSurfaceBaseInterface*>(surface->FrameInterface->Context)->Export(export_header, exported_surface);
+    }
+
+    virtual mfxStatus CreateExportSurface(const mfxSurfaceHeader& /*export_header*/, mfxSurfaceBase*& /*exported_surface*/)
+    {
+        MFX_RETURN(MFX_ERR_NOT_IMPLEMENTED);
+    }
+
     bool ReallocAllowed(const mfxFrameInfo& frame_info) const
     {
         mfxU16 bitdepth_luma   = frame_info.BitDepthLuma   ? frame_info.BitDepthLuma   : BitDepthFromFourcc(frame_info.FourCC);
@@ -970,13 +1095,97 @@ public:
         copy_frame_surface_pixel_pointers(*frame_data, m_internal_surface.Data);
     }
 
+    void DetachExported(mfxSurfaceBase* exp_surface)
+    {
+        std::lock_guard<std::mutex> guard(m_mutex);
+
+        auto it = std::find_if(std::begin(m_converted_surfaces_for_export), std::end(m_converted_surfaces_for_export),
+            [exp_surface](const pExpSurf& p_exported_surf)
+            {
+                return p_exported_surf.get() == exp_surface;
+            });
+
+        if (it == std::end(m_converted_surfaces_for_export))
+        {
+            std::ignore = MFX_STS_TRACE(MFX_WRN_OUT_OF_RANGE);
+            return;
+        }
+
+        // This function is called from exported surface destructor, so no need to decrease reference here, object is already being deleted
+        it->release();
+
+        m_converted_surfaces_for_export.erase(it);
+    }
+
     // Will be returned to user, to protect original fields of mfxFrameSurface1 from zeroing on user side
     mfxFrameSurface1   m_exported_surface = {};
 
 protected:
-    mfxFrameSurface1   m_internal_surface = {};
 
-    mutable std::mutex m_mutex;
+#define MFX_RELEASE_EXPORTED                                   \
+    [](mfxSurfaceBase* surface)                                \
+    {                                                          \
+        /* Surface is being deleted in destructor of container,
+           so no need to recursevely update it's content */    \
+        surface->DetachBaseSurface();                          \
+                                                               \
+        std::ignore = MFX_STS_TRACE(surface->Release());       \
+    }
+
+    using pExpSurf = std::unique_ptr<mfxSurfaceBase, void(*)(mfxSurfaceBase* surface)>;
+
+    mfxStatus Export(const mfxSurfaceHeader& export_header, mfxSurfaceHeader** exported_surface) override
+    {
+
+        MFX_CHECK_NULL_PTR1(exported_surface);
+
+        std::lock_guard<std::mutex> guard(m_mutex);
+
+        /*
+        if ((export_header.SurfaceFlags == MFX_SURFACE_FLAG_DEFAULT) || (export_header.SurfaceFlags & MFX_SURFACE_FLAG_EXPORT_SHARED))
+        {
+            // First check if we already exported current surface to this type
+            auto it = std::find_if(std::begin(m_converted_surfaces_for_export), std::end(m_converted_surfaces_for_export),
+                [&export_header](const pExpSurf& p_exported_surf)
+                {
+                        // Check that surface is of same type
+                    return (export_header.SurfaceType == p_exported_surf->Header.SurfaceType)
+                        // and export flags are compatible:
+                        // only shared (no-copy) export is allowed for reexport (returning same object to user)
+                        && (p_exported_surf->Header.SurfaceFlags & MFX_SURFACE_FLAG_EXPORT_SHARED);
+                });
+
+            if (it != std::end(m_converted_surfaces_for_export))
+            {
+                p_exported_surf->AddRef();
+                *exported_surface = (*it)->GetExport();
+                return MFX_ERR_NONE;
+            }
+        }
+
+        // Need to create new export surface
+        */
+
+        // Here we go into overload of Export in derived class, here actual exported surface is created
+        mfxSurfaceBase* tmp_exported_surface = nullptr;
+        MFX_SAFE_CALL(this->CreateExportSurface(export_header, tmp_exported_surface));
+
+        MFX_CHECK_NULL_PTR1(tmp_exported_surface);
+
+        m_converted_surfaces_for_export.emplace_back(pExpSurf(tmp_exported_surface, MFX_RELEASE_EXPORTED));
+
+        *exported_surface = tmp_exported_surface->GetExport();
+
+        return MFX_ERR_NONE;
+    }
+
+    mfxFrameSurface1    m_internal_surface = {};
+
+    std::list<pExpSurf> m_converted_surfaces_for_export;
+
+    mutable std::mutex  m_mutex;
+
+#undef MFX_RELEASE_EXPORTED
 };
 
 class mfxSurfaceArrayImpl;
@@ -1169,6 +1378,45 @@ private:
     bool                    m_write_lock = false;
 };
 
+
+template <>
+struct mfxRefCountableInstance<mfxSurfaceInterface>
+{
+    static mfxRefCountable* Get(mfxSurfaceInterface* object)
+    {
+        return reinterpret_cast<mfxRefCountable*>(object->Context);
+    }
+};
+
+template<class SurfaceType>
+class mfxSurfaceImpl : public mfxSurfaceBase, public SurfaceType
+{
+public:
+    mfxSurfaceImpl(const mfxSurfaceHeader& export_header, mfxFrameSurfaceInterfaceImpl* p_base_surface)
+        : mfxSurfaceBase(export_header, p_base_surface)
+        , SurfaceType()
+    {
+        mfxSurfaceInterface::Header.StructSize = sizeof(SurfaceType);
+        SurfaceType::SurfaceInterface = *(static_cast<mfxSurfaceInterface*>(this));
+    }
+
+    mfxSurfaceHeader* GetExport() override
+    {
+        m_surface_for_export = *(static_cast<SurfaceType*>(this));
+
+        return &m_surface_for_export.SurfaceInterface.Header;
+    }
+
+protected:
+    void SetResultedExportType(mfxU32 export_type)
+    {
+        mfxSurfaceInterface::Header.SurfaceFlags = SurfaceType::SurfaceInterface.Header.SurfaceFlags = export_type;
+    }
+
+    SurfaceType m_surface_for_export = {};
+
+};
+
 // This stub used for allocators which don't need staging surfaces
 class staging_adapter_stub
 {
@@ -1184,8 +1432,12 @@ public:
 
 struct mfxFrameSurface1_sw : public RWAcessSurface
 {
-    static mfxFrameSurface1_sw* Create(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>& staging_adapter, mfxHDL device, mfxU32 context, FrameAllocatorBase& allocator)
+    static mfxFrameSurface1_sw* Create(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>& staging_adapter, mfxHDL device, mfxU32 context, FrameAllocatorBase& allocator,
+        mfxSurfaceHeader* import_surface)
     {
+        // Import of SW surfaces is not supported right now
+        MFX_CHECK_WITH_THROW_STS(!import_surface, MFX_ERR_UNSUPPORTED);
+
         auto surface = new mfxFrameSurface1_sw(info, type, mid, staging_adapter, device, context, allocator);
         surface->AddRef();
         return surface;
@@ -1205,6 +1457,10 @@ struct mfxFrameSurface1_sw : public RWAcessSurface
     mfxStatus                          Unlock()                override;
     std::pair<mfxHDL, mfxResourceType> GetNativeHandle() const override { return { nullptr, mfxResourceType(0) }; }
     std::pair<mfxHDL, mfxHandleType>   GetDeviceHandle() const override { return { nullptr, mfxHandleType(0)   }; }
+    mfxStatus Export(const mfxSurfaceHeader&, mfxSurfaceHeader**) override
+    {
+        MFX_RETURN(MFX_ERR_NOT_IMPLEMENTED);
+    }
 
     mfxStatus GetHDL(mfxHDL& handle) const
     {
@@ -1227,6 +1483,24 @@ protected:
 
 using FlexibleFrameAllocatorSW = FlexibleFrameAllocator<mfxFrameSurface1_sw, staging_adapter_stub>;
 
+const size_t MFX_MAX_NUM_COLOR_PLANES = 4;
+
+using uniq_ptr_mfx_shared_lib_holder = std::unique_ptr<mfx::mfx_shared_lib_holder>;
+
+class ImportExportHelper : private std::map<mfxSurfaceType, uniq_ptr_mfx_shared_lib_holder>
+{
+public:
+
+    mfx::mfx_shared_lib_holder* GetHelper(mfxSurfaceType shared_library_type);
+
+    // Write a specialization for desired convertion in dedicated source code file
+    template <mfxSurfaceType SharedLibType>
+    static uniq_ptr_mfx_shared_lib_holder LoadAndInit();
+
+private:
+    std::mutex m_mutex;
+
+};
 
 #endif
 

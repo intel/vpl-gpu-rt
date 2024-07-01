@@ -27,5 +27,6 @@
 void copyVideoToSys_SSE4(const mfxU8* src, mfxU8* dst, int width);
 void copyVideoToSysShift_SSE4(const mfxU16* src, mfxU16* dst, int width, int shift);
 void copySysToVideoShift_SSE4(const mfxU16* src, mfxU16* dst, int width, int shift);
+void copySysVariantToVideo_SSE4(const mfxU8* src, int loffset, mfxU16* dst, int width);
 
 #endif // __FAST_COPY_SSE4_IMPL_H__

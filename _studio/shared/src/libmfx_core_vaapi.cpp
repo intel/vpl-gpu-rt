@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2021 Intel Corporation
+// Copyright (c) 2007-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -72,7 +72,19 @@ mfx_device_item getDeviceItem(VADisplay pVaDisplay)
 {
     /* This is value by default */
     mfx_device_item retDeviceItem = { 0x0000, MFX_HW_UNKNOWN, MFX_GT_UNKNOWN };
-
+    int devID = 0;
+    int ret = -1;
+#if VA_CHECK_VERSION(1, 15, 0)
+    VADisplayAttribute attr = {};
+    attr.type = VADisplayPCIID;
+    auto sts = vaGetDisplayAttributes(pVaDisplay, &attr, 1);
+    if (VA_STATUS_SUCCESS == sts &&
+        VA_DISPLAY_ATTRIB_GETTABLE == attr.flags)
+    {
+        devID = attr.value & 0xffff;
+        ret = 0;
+    }
+#else
     VADisplayContextP pDisplayContext_test = reinterpret_cast<VADisplayContextP>(pVaDisplay);
     VADriverContextP  pDriverContext_test  = pDisplayContext_test->pDriverContext;
 
@@ -82,13 +94,11 @@ mfx_device_item getDeviceItem(VADisplay pVaDisplay)
     * we can call ioctl() to kernel mode driver,
     * get device ID and find out platform type
     * */
-    int devID = 0;
     drm_i915_getparam_t gp;
     gp.param = I915_PARAM_CHIPSET_ID;
     gp.value = &devID;
-
-    int ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
-
+    ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
+#endif
     if (!ret)
     {
         mfxU32 listSize = (sizeof(listLegalDevIDs) / sizeof(mfx_device_item));
@@ -417,6 +427,20 @@ public:
         return MFX_ERR_NONE;
     }
 
+    static bool IsSupportedByPlatform(eMFXHWType hw_type)
+    {
+        switch (hw_type)
+        {
+        case MFX_HW_PVC:
+        case MFX_HW_MTL:
+        case MFX_HW_DG2:
+        case MFX_HW_LNL:
+            return true;
+        default:
+            return false;
+        }
+    }
+
     static void SetBuffersNV12(const mfxFrameSurface1& surf, VASurfaceAttribExternalBuffers& eb, bool bUsePtrs)
     {
         eb.offsets[1] =
@@ -439,8 +463,8 @@ public:
         }
         else
         {
-            eb.offsets[1] = eb.offsets[0] + uint32_t(eb.height * eb.pitches[1] / 2);
-            eb.offsets[2] = eb.offsets[1] + uint32_t(eb.height * eb.pitches[2] / 2);
+            eb.offsets[1] = eb.offsets[0] + uint32_t(eb.height * eb.pitches[0]);
+            eb.offsets[2] = eb.offsets[1] + uint32_t(eb.height * eb.pitches[1] / 2);
         }
         eb.num_planes = 3;
         eb.data_size = eb.offsets[2] + (eb.height * eb.pitches[2] / 2);
@@ -476,7 +500,7 @@ public:
             for (uint32_t plane = 1; plane < eb.num_planes; ++plane)
             {
                 eb.pitches[plane] = eb.pitches[0];
-                eb.offsets[plane] = uint32_t(eb.pitches[0] * eb.height);
+                eb.offsets[plane] = uint32_t(eb.pitches[0] * eb.height) * plane;
             }
         }
 
@@ -534,35 +558,50 @@ public:
             || fourcc == MFX_FOURCC_P016;
     }
 
-    static bool IsVaCopySupportSurface(mfxFrameSurface1* pDst, mfxFrameSurface1* pSrc)
+    static bool IsVaCopySupportSurface(const mfxFrameSurface1& dst_surface, const mfxFrameSurface1& src_surface)
     {
-        if (!pDst || !pSrc)
+        auto CheckOneSurface = [](const mfxFrameSurface1& sw_surface)
         {
+            // Only start addresses with 4k aligment for UsrPtr surface are supported, refer: https://dri.freedesktop.org/docs/drm/gpu/driver-uapi.html#c.drm_i915_gem_userptr
+            if ((size_t)sw_surface.Data.Y % BASE_ADDR_ALIGN)
+                return false;
+
+            // Pitch should be 16-aligned
+            if (sw_surface.Data.Pitch % 16)
+                return false;
+
+            // Pixel data is stored continuously for chroma and Luma for multiplane format.
+            if (!IsTwoPlanesFormat(sw_surface.Info.FourCC))
+                return true;
+
+            // Two planes format
+            size_t luma_size_in_bytes_aligned = (mfxU32)sw_surface.Data.Pitch * mfx::align2_value(sw_surface.Info.Height, 32);
+            size_t luma_size_in_bytes         = (mfxU32)sw_surface.Data.Pitch * mfx::align2_value(sw_surface.Info.Height, 1);
+            // Assume that frame data is stored in continuous chunk (Chroma right after Luma)
+            // use relative offset between UV and Y, not pitch * height
+            // Two cases need to be checked:
+            // 1. Height 32 aligned, e.g, internal allocator need this path
+            // 2. Height not aligned, i.e., app uses specific allocator without alignment.
+            // vaCopy can't support the two planes' formats which are not stored continuously.
+            // App need copy each plane as 1 plane format if it still keep Luma/ chroma plan using noncontinuous chunk.
+
+            return (sw_surface.Data.Y + luma_size_in_bytes_aligned == sw_surface.Data.UV)
+                || (sw_surface.Data.Y + luma_size_in_bytes         == sw_surface.Data.UV);
+        };
+
+        // SW to SW copy is not supported
+        if (dst_surface.Data.Y && src_surface.Data.Y)
             return false;
-        }
-        // just support start address 4k aligment for UsrPtr surface, refer: https://dri.freedesktop.org/docs/drm/gpu/driver-uapi.html#c.drm_i915_gem_userptr
-        // pitch 16 aligmment;
-        // Frame data is stored continuously for chroma and Luma for multiplane format.
-        mfxFrameSurface1* chunkSurface  = pSrc->Data.Y ? pSrc:pDst;
-        bool CanvaCopysupport = (((size_t)chunkSurface->Data.Y % BASE_ADDR_ALIGN) == 0 && (chunkSurface->Data.Pitch % 16 == 0));
-        if (IsTwoPlanesFormat(chunkSurface->Info.FourCC) && CanvaCopysupport)
-        {
-                size_t luma_size_in_bytes_aligned = chunkSurface->Data.Pitch * mfx::align2_value(chunkSurface->Info.Height, 32);
-                size_t luma_size_in_bytes         = chunkSurface->Data.Pitch * mfx::align2_value(chunkSurface->Info.Height, 1);
-                // assume that frame data is stored in continuous chunk (Chroma right after Luma)
-                // use relative offset between UV and Y, not pitch * height
-                // Two cases need to be checked:
-                // 1. Height 32 aligned, e.g, internal allocator need this path
-                // 2. Height not aligned, i.e., app uses specific allocator without alignment.
-                // vaCopy can't support the two planes' formats which are not stored continuously.
-                // App need copy each plane as 1 plane format if it still keep Luma/ chroma plan using uncontinous chunck.
-                if (chunkSurface->Data.Y + luma_size_in_bytes_aligned != chunkSurface->Data.UV
-                    || (chunkSurface->Data.Y + luma_size_in_bytes != chunkSurface->Data.UV))
-                {
-                    CanvaCopysupport = false;
-                }
-        }
-        return CanvaCopysupport;
+
+        // If dst surface is in SW memory, check it's data layout
+        if (dst_surface.Data.Y && !CheckOneSurface(dst_surface))
+            return false;
+
+        // If src surface is in SW memory, check it's data layout
+        if (src_surface.Data.Y && !CheckOneSurface(src_surface))
+            return false;
+
+        return true;
     }
 
 protected:
@@ -799,7 +838,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
 
             std::ignore = MFX_STS_TRACE(TryInitializeCm(false));
 
-            if (m_HWType == MFX_HW_PVC || m_HWType == MFX_HW_MTL || m_HWType == MFX_HW_DG2)
+            if (VACopyWrapper::IsSupportedByPlatform(m_HWType))
             {
                 this->m_pVaCopy.reset(new VACopyWrapper(*m_p_display_wrapper));
                 if (!this->m_pVaCopy->IsSupported())
@@ -830,8 +869,8 @@ bool VAAPIVideoCORE_T<Base>::IsCmSupported()
 template <class Base>
 bool VAAPIVideoCORE_T<Base>::IsCmCopyEnabledByDefault()
 {
-    // For Linux by default CM copy is ON on RKL/ADL
-    return IsCmSupported() && GetHWType() != MFX_HW_DG1 && GetHWType() != MFX_HW_TGL_LP;
+    // For Linux by default CM copy is ON on RKL
+    return IsCmSupported() && GetHWType() != MFX_HW_DG1 && GetHWType() != MFX_HW_TGL_LP && GetHWType() != MFX_HW_ADL_P && GetHWType() != MFX_HW_ADL_S;
 }
 
 template <class Base>
@@ -857,7 +896,13 @@ mfxStatus VAAPIVideoCORE_T<Base>::TryInitializeCm(bool force_cm_device_creation)
         m_ForcedGpuCopyState = MFX_GPUCOPY_OFF;
     }
 
-    std::unique_ptr<CmCopyWrapper> tmp_cm(new CmCopyWrapper);
+#ifdef ONEVPL_EXPERIMENTAL
+    bool use_cm_buffer_cache = m_ForcedGpuCopyState == MFX_GPUCOPY_FAST;
+#else
+    bool use_cm_buffer_cache = false;
+#endif
+
+    std::unique_ptr<CmCopyWrapper> tmp_cm(new CmCopyWrapper(use_cm_buffer_cache));
 
     MFX_CHECK_NULL_PTR1(tmp_cm->GetCmDevice(*m_p_display_wrapper));
 
@@ -1056,7 +1101,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::ProcessRenderTargets(
 #endif
 
     this->RegisterMids(response, request->Type, !m_bUseExtAllocForHWFrames, pAlloc);
-    m_pcHWAlloc.release();
+    m_pcHWAlloc.release(); // pointer is managed by m_AllocatorQueue
 
     return MFX_ERR_NONE;
 
@@ -1078,12 +1123,12 @@ mfxStatus VAAPIVideoCORE_T<Base>::GetVAService(
 } // mfxStatus VAAPIVideoCORE_T<Base>::GetVAService(...)
 
 template <class Base>
-void VAAPIVideoCORE_T<Base>::SetCmCopyStatus(bool enable)
+void VAAPIVideoCORE_T<Base>::SetCmCopyMode(mfxU16 cm_copy_mode)
 {
     UMC::AutomaticUMCMutex guard(this->m_guard);
 
-    m_ForcedGpuCopyState = enable ? MFX_GPUCOPY_ON : MFX_GPUCOPY_OFF;
-} // void VAAPIVideoCORE_T<Base>::SetCmCopyStatus(...)
+    m_ForcedGpuCopyState = cm_copy_mode;
+} // void VAAPIVideoCORE_T<Base>::SetCmCopyMode(...)
 
 template <class Base>
 mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
@@ -1143,6 +1188,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
     m_pVA->m_Platform   = UMC::VA_LINUX;
     m_pVA->m_Profile    = (VideoAccelerationProfile)profile;
     m_pVA->m_HWPlatform = m_HWType;
+    m_pVA->m_HWDeviceID = this->m_deviceId;
 
     Status st = m_pVA->Init(&params);
     MFX_CHECK(st == UMC_OK, MFX_ERR_UNSUPPORTED);
@@ -1372,7 +1418,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
             // If CM copy failed, fallback to VA copy
             MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopyVideoToVideo(pDst, pSrc));
             // Remove CM adapter in case of failed copy
-            this->SetCmCopyStatus(false);
+            this->SetCmCopyMode(MFX_GPUCOPY_OFF);
         }
 
         VASurfaceID *va_surf_src = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
@@ -1381,19 +1427,25 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
         VAImage va_img_src = {};
         VAStatus va_sts;
-
-        va_sts = vaDeriveImage(*m_p_display_wrapper, *va_surf_src, &va_img_src);
+        {
+            PERF_UTILITY_AUTO("vaDeriveImage", PERF_LEVEL_DDI);
+            va_sts = vaDeriveImage(*m_p_display_wrapper, *va_surf_src, &va_img_src);
+        }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaPutImage");
+            PERF_UTILITY_AUTO("vaPutImage", PERF_LEVEL_DDI);
             va_sts = vaPutImage(*m_p_display_wrapper, *va_surf_dst, va_img_src.image_id,
                                 0, 0, roi.width, roi.height,
                                 0, 0, roi.width, roi.height);
         }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
-        va_sts = vaDestroyImage(*m_p_display_wrapper, va_img_src.image_id);
+        {
+            PERF_UTILITY_AUTO("vaDestroyImage", PERF_LEVEL_DDI);
+            va_sts = vaDestroyImage(*m_p_display_wrapper, va_img_src.image_id);
+        }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
     }
     else if (nullptr != pSrc->Data.MemId && nullptr != dstPtr)
@@ -1405,7 +1457,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
                 // If CM copy failed, fallback to VA copy
                 MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopyVideoToSys(pDst, pSrc));
                 // Remove CM adapter in case of failed copy
-                this->SetCmCopyStatus(false);
+                this->SetCmCopyMode(MFX_GPUCOPY_OFF);
             }
 
             VASurfaceID *va_surface = (VASurfaceID*)(((mfxHDLPair *)pSrc->Data.MemId)->first);
@@ -1418,6 +1470,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+                PERF_UTILITY_AUTO("vaMapBuffer", PERF_LEVEL_DDI);
                 va_sts = vaMapBuffer(*m_p_display_wrapper, va_image.buf, (void **) &pBits);
             }
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
@@ -1440,11 +1493,14 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+                PERF_UTILITY_AUTO("vaUnmapBuffer", PERF_LEVEL_DDI);
                 va_sts = vaUnmapBuffer(*m_p_display_wrapper, va_image.buf);
             }
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
-
-            va_sts = vaDestroyImage(*m_p_display_wrapper, va_image.image_id);
+            {
+                PERF_UTILITY_AUTO("vaDestroyImage", PERF_LEVEL_DDI);
+                va_sts = vaDestroyImage(*m_p_display_wrapper, va_image.image_id);
+            }
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
         }
 
@@ -1464,7 +1520,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
             // If CM copy failed, fallback to VA copy
             MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopySysToVideo(pDst, pSrc));
             // Remove CM adapter in case of failed copy
-            this->SetCmCopyStatus(false);
+            this->SetCmCopyMode(MFX_GPUCOPY_OFF);
         }
 
         VAStatus va_sts = VA_STATUS_SUCCESS;
@@ -1477,6 +1533,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+            PERF_UTILITY_AUTO("vaMapBuffer", PERF_LEVEL_DDI);
             va_sts = vaMapBuffer(*m_p_display_wrapper, va_image.buf, (void **) &pBits);
         }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
@@ -1500,12 +1557,16 @@ mfxStatus VAAPIVideoCORE_T<Base>::DoFastCopyExtended(
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+            PERF_UTILITY_AUTO("vaUnmapBuffer", PERF_LEVEL_DDI);
             va_sts = vaUnmapBuffer(*m_p_display_wrapper, va_image.buf);
         }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
 
         // vaDestroyImage
-        va_sts = vaDestroyImage(*m_p_display_wrapper, va_image.image_id);
+        {
+            PERF_UTILITY_AUTO("vaDestroyImage", PERF_LEVEL_DDI);
+            va_sts = vaDestroyImage(*m_p_display_wrapper, va_image.image_id);
+        }
         MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
     }
     else
@@ -1616,6 +1677,8 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
         break;
     case MFX_CODEC_VP8:
         break;
+    case MFX_CODEC_VVC:
+        break; 
     default:
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
@@ -1858,7 +1921,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     // Check if requested copy backend is CM and CM is capable to perform copy
     bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF) && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
-    if (m_pVaCopy && (VACopyWrapper::IsVaCopySupportSurface(pDst, pSrc)) && (gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF))
+    if (m_pVaCopy && (VACopyWrapper::IsVaCopySupportSurface(*pDst, *pSrc)) && (gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF))
     {
         auto vacopyMode =
             ((gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) == MFX_COPY_USE_VACOPY_ANY) ? VACopyWrapper::DEFAULT
@@ -1890,7 +1953,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
             // If CM copy failed, fallback to VA copy
             MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopyVideoToVideo(pDst, pSrc));
             // Remove CM adapter in case of failed copy
-            this->SetCmCopyStatus(false);
+            this->SetCmCopyMode(MFX_GPUCOPY_OFF);
         }
         // Fallback to VA copy in case of failed CM copy
 
@@ -1906,6 +1969,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaPutImage");
+            PERF_UTILITY_AUTO("vaPutImage", PERF_LEVEL_DDI);
             VAStatus va_sts = vaPutImage(*m_p_display_wrapper, *va_surf_dst, src_lock.m_image.image_id,
                 0, 0, roi.width, roi.height,
                 0, 0, roi.width, roi.height);
@@ -1923,7 +1987,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
             // If CM copy failed, fallback to VA copy
             MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopyVideoToSys(pDst, pSrc));
             // Remove CM adapter in case of failed copy
-            this->SetCmCopyStatus(false);
+            this->SetCmCopyMode(MFX_GPUCOPY_OFF);
         }
         // Fallback to SW copy in case of failed CM copy
 
@@ -1975,7 +2039,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
             // If CM copy failed, fallback to VA copy
             MFX_RETURN_IF_ERR_NONE(m_pCmCopy->CopySysToVideo(pDst, pSrc));
             // Remove CM adapter in case of failed copy
-            this->SetCmCopyStatus(false);
+            this->SetCmCopyMode(MFX_GPUCOPY_OFF);
         }
         // Fallback to SW copy in case of failed CM copy
 
@@ -2014,7 +2078,7 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 } // mfxStatus VAAPIVideoCORE_VPL::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 
-mfxStatus VAAPIVideoCORE_VPL::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf)
+mfxStatus VAAPIVideoCORE_VPL::CreateSurface(mfxU16 type, const mfxFrameInfo& info, mfxFrameSurface1*& surf, mfxSurfaceHeader* import_surface)
 {
     {
         UMC::AutomaticUMCMutex guard(m_guard);
@@ -2023,7 +2087,7 @@ mfxStatus VAAPIVideoCORE_VPL::CreateSurface(mfxU16 type, const mfxFrameInfo& inf
         m_frame_allocator_wrapper.SetDevice(m_p_display_wrapper.get());
     }
 
-    return m_frame_allocator_wrapper.CreateSurface(type, info, surf);
+    return m_frame_allocator_wrapper.CreateSurface(type, info, surf, import_surface);
 }
 
 template class VAAPIVideoCORE_T<CommonCORE_VPL>;

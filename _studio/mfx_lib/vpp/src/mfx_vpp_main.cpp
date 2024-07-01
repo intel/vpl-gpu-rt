@@ -160,5 +160,7 @@ mfxStatus VideoVPPMain::RunFrameVPP(mfxFrameSurface1 *in, mfxFrameSurface1 *out,
 
 } // mfxStatus VideoVPPMain::RunFrameVPP(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux)
 
+MFX_PROPAGATE_GetSurface_VideoVPP_Impl(VideoVPPMain)
+
 #endif // MFX_ENABLE_VPP
 /* EOF */

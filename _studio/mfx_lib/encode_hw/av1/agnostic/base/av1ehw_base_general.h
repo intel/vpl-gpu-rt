@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Intel Corporation
+// Copyright (c) 2019-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -47,8 +47,8 @@ namespace Base
     DECL_BLOCK(CopyConfigurable     )\
     DECL_BLOCK(FixParam             )\
     DECL_BLOCK(CheckAndFixLowPower  )\
+    DECL_BLOCK(CheckAndFixLevel     )\
     DECL_BLOCK(CheckFormat          )\
-    DECL_BLOCK(CheckLevel           )\
     DECL_BLOCK(CheckPicStruct       )\
     DECL_BLOCK(CheckSurfSize        )\
     DECL_BLOCK(CheckCodedPicSize    )\
@@ -73,6 +73,7 @@ namespace Base
     DECL_BLOCK(CheckEncodedOrder    )\
     DECL_BLOCK(CheckLevelConstraints)\
     DECL_BLOCK(CheckTCBRC           )\
+    DECL_BLOCK(CheckCdfUpdate       )\
     DECL_BLOCK(Query1NoCaps         )\
     DECL_BLOCK(CheckColorConfig     )\
     DECL_BLOCK(Query1WithCaps       )\
@@ -179,9 +180,10 @@ namespace Base
         mfxStatus CheckFrameRate(mfxVideoParam& par);
         mfxStatus CheckNumRefFrame(mfxVideoParam& par, const Defaults::Param& defPar);
         mfxStatus CheckColorConfig(mfxVideoParam& par);
-        mfxStatus MapLevel(mfxVideoParam& par);
+        mfxStatus CheckAndFixLevel(mfxVideoParam& par);
         mfxStatus CheckLevelConstraints(mfxVideoParam& par, const Defaults::Param& defPar);
         mfxStatus CheckTCBRC(mfxVideoParam& par, const ENCODE_CAPS_AV1& caps);
+        mfxStatus CheckCdfUpdate(mfxVideoParam& par);
 
         void SetDefaults(
             mfxVideoParam& par
@@ -201,9 +203,10 @@ namespace Base
             , FH& fh);
 
         void ConfigureTask(
-            TaskCommonPar & task
+            TaskCommonPar& task
             , const Defaults::Param& dflts
-            , IAllocation& recPool);
+            , IAllocation& recPool
+            , EncodedInfoAv1& encodedInfo);
 
         mfxStatus GetCurrentFrameHeader(
             const TaskCommonPar& task
@@ -215,10 +218,6 @@ namespace Base
         TTaskIt ReorderWrap(const ExtBuffer::Param<mfxVideoParam> & par, TTaskIt begin, TTaskIt end, bool flush);
         static mfxU32 GetRawBytes(const Defaults::Param& par);
         static bool IsInVideoMem(const mfxVideoParam& par);
-        static bool HaveRABFrames(const mfxVideoParam& par)
-        {
-            return par.mfx.GopPicSize > 2 && par.mfx.GopRefDist > 1;
-        }
 
         mfxU16 GetMaxRaw(const mfxVideoParam& par)
         {
@@ -259,7 +258,6 @@ namespace Base
 
     };
 
-    bool MapToDefinedLevel(mfxU16& level);
     inline void SetDefaultFrameInfo(mfxU32& frameWidth, mfxU32& frameHeight, mfxFrameInfo& fi)
     {
         if (frameWidth)

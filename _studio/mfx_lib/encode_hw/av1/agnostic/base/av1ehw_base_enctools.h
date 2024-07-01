@@ -25,92 +25,60 @@
 #if defined(MFX_ENABLE_ENCTOOLS)
 
 #include "av1ehw_base.h"
+#include "av1ehw_base_enctools_com.h"
 #include "av1ehw_base_data.h"
 #include "mfxenctools-int.h"
 #include "mfx_enc_common.h"
+
+#include "libmfx_core.h"            //SurfaceCache
+
+#include "av1ehw_base_enctools_com.h"
 
 namespace AV1EHW
 {
 namespace Base
 {
     class AV1EncTools
-        : public FeatureBase
+        : public AV1EncToolsCommon
     {
     public:
-        mfxStatus SubmitPreEncTask(StorageW&  global, StorageW& s_task);
-        mfxStatus QueryPreEncTask(StorageW&  global, StorageW& s_task);
-        mfxStatus BRCGetCtrl(StorageW&  global, StorageW& s_task,
-            mfxEncToolsBRCQuantControl &extQuantCtrl, mfxEncToolsBRCHRDPos  &extHRDPos);
-        mfxStatus BRCUpdate(StorageW&  global, StorageW& s_task,
-            mfxEncToolsBRCStatus &sts);
+        virtual mfxStatus SubmitPreEncTask(StorageW&  global, StorageW& s_task) override; 
+        mfxStatus BRCGetCtrl(StorageW&  global, StorageW& s_task, mfxEncToolsBRCQuantControl &extQuantCtrl, mfxEncToolsBRCHRDPos  &extHRDPos);
+        mfxStatus BRCUpdate(StorageW&  global, StorageW& s_task, mfxEncToolsBRCStatus &sts);
 
-#define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetDefaultsCallChain)\
-    DECL_BLOCK(Check)\
-    DECL_BLOCK(Init)\
-    DECL_BLOCK(ResetCheck)\
-    DECL_BLOCK(Reset)\
-    DECL_BLOCK(SetCallChains)\
-    DECL_BLOCK(AddTask)\
-    DECL_BLOCK(PreEncSubmit)\
-    DECL_BLOCK(PreEncQuery)\
-    DECL_BLOCK(GetFrameCtrl)\
-    DECL_BLOCK(UpdateTask)\
-    DECL_BLOCK(Update)\
-    DECL_BLOCK(Discard)\
-    DECL_BLOCK(Close)\
-    DECL_BLOCK(SetDefaults)\
-    DECL_BLOCK(QueryIOSurf)
-#define DECL_FEATURE_NAME "Base_EncTools"
-#include "av1ehw_decl_blocks.h"
+        mfxStatus QueryPreEncTask(StorageW& global, StorageW& s_task) override;
+        virtual bool IsFeatureEnabled(const mfxVideoParam& par) override;
 
+        virtual void SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsConfig &config, bool bMBQPSupport) override;
+        virtual mfxU32 CorrectVideoParams(mfxVideoParam& video, mfxExtEncToolsConfig& supportedConfig) override;
+        virtual mfxStatus InitEncToolsCtrl(mfxVideoParam const& par, mfxEncToolsCtrl* ctrl) override;
         AV1EncTools(mfxU32 FeatureId)
-            : FeatureBase(FeatureId)
-        {}
+            : AV1EncToolsCommon(FeatureId)
+        {
+#if defined(MFX_ENABLE_LOG_UTILITY)
+            m_trace.second.insert(AV1EncToolsCommon::m_trace.second.begin(), AV1EncToolsCommon::m_trace.second.end());
+#endif
+        }
 
     protected:
-        virtual void SetSupported(ParamSupport& par) override;
-        virtual void SetInherited(ParamInheritance& par) override;
-        virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
-        virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
-        virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
-        virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override;
-        virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
-        virtual void FreeTask(const FeatureBlocks& blocks, TPushQT Push) override;
+    virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
+    virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override;
+    virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
+    virtual void SetSupported(ParamSupport& par) override;
+    void SetInherited(ParamInheritance& par) override;
+    virtual void Reset(const FeatureBlocks& blocks, TPushR Push) override;
+    virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
+    virtual void FreeTask(const FeatureBlocks& blocks, TPushQT Push) override;
 
-        virtual void Reset(const FeatureBlocks& blocks, TPushR Push) override;
-        virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
-        virtual void Close(const FeatureBlocks& blocks, TPushCLS Push) override;
-        virtual void QueryIOSurf(const FeatureBlocks&, TPushQIS Push) override;
+    void AllocSegmentationData(mfxU16 frame_width, mfxU16 frame_height, mfxU8 blockSize);
+    void ReleaseSegmentationData(void); //m_destroy
 
-        mfxEncTools*            m_pEncTools = nullptr;
-        mfxEncToolsCtrl         m_EncToolCtrl = {};
-        mfxExtEncToolsConfig    m_EncToolConfig = {};
-        bool                    m_bEncToolsInner = false;
-        mfxU32                  m_maxDelay = 0;
-        mfxU32                  m_numPicBuffered = 0;
-
-        mfxU16        S_ET_SUBMIT = mfxU16(-1);
-        mfxU16        S_ET_QUERY = mfxU16(-1);
-
-        std::list<mfxLplastatus>         LpLaStatus;
-
-        mfx::OnExit    m_destroy;
-
-        mfxU8* m_pSegmentQPMap = nullptr;  //Note: QP in this map is HEVC QP
-        mfxU8* m_pSegmentIDMap = nullptr;
-        mfxExtAV1Segmentation m_SegmentationInfo = {};
-
-    protected:
-        void AllocSegmentationData(mfxU16 frame_width, mfxU16 frame_height, mfxU8 blockSize);
-        void ReleaseSegmentationData(void);
+    bool m_enablePercEncPrefilter = false;
+    std::unique_ptr<SurfaceCache> m_filteredFrameCache;
+    bool m_saliencyMapSupported = false;
+    size_t m_saliencyMapSize = 0;
 
     };
-
-    bool IsEncToolsOn(const mfxVideoParam& video);
-    bool IsHwEncToolsOn(const mfxVideoParam& video);
-    bool IsSwEncToolsOn(const mfxVideoParam& video);
-    void SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsConfig &config, bool bMBQPSupport);
 
 } //Base
 } //namespace AV1EHW

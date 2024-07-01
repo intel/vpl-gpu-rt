@@ -53,34 +53,34 @@ namespace MfxVideoProcessing
         virtual ~ImplementationMvc();
 
         // VideoVPP
-        virtual mfxStatus RunFrameVPP(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux);
+        virtual mfxStatus RunFrameVPP(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux) override;
 
         // VideoBase methods
-        virtual mfxStatus Reset(mfxVideoParam *par);
-        virtual mfxStatus Close(void);
-        virtual mfxStatus Init(mfxVideoParam *par);
+        virtual mfxStatus Reset(mfxVideoParam *par) override;
+        virtual mfxStatus Close(void) override;
+        virtual mfxStatus Init(mfxVideoParam *par) override;
 
         virtual mfxStatus GetVideoParam(
-            mfxVideoParam *par);
+            mfxVideoParam *par) override;
 
         virtual mfxStatus GetVPPStat(
-            mfxVPPStat *stat);
+            mfxVPPStat *stat) override;
 
         virtual mfxStatus VppFrameCheck(
             mfxFrameSurface1 *in,
             mfxFrameSurface1 *out,
             mfxExtVppAuxData *aux,
             MFX_ENTRY_POINT pEntryPoint[],
-            mfxU32 &numEntryPoints);
+            mfxU32 &numEntryPoints) override;
 
         virtual mfxStatus VppFrameCheck(
             mfxFrameSurface1 *,
-            mfxFrameSurface1 *)
+            mfxFrameSurface1 *) override
         {
             return MFX_ERR_UNSUPPORTED;
         }
 
-        virtual mfxTaskThreadingPolicy GetThreadingPolicy(void);
+        virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) override;
 
         // multi threading of SW_VPP functions
         mfxStatus RunVPPTask(
@@ -89,6 +89,8 @@ namespace MfxVideoProcessing
             FilterVPP::InternalParam *pParam );
 
         mfxStatus ResetTaskCounters();
+
+        MFX_PROPAGATE_GetSurface_VideoVPP_Definition;
 
     private:
 

@@ -43,6 +43,7 @@
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
 
+
 void Legacy::SetSupported(ParamSupport& blocks)
 {
     auto CopyRawBuffer = [](mfxU8* pSrcBuf, mfxU16 szSrcBuf, mfxU8* pDstBuf, mfxU16& szDstBuf)
@@ -192,6 +193,7 @@ void Legacy::SetSupported(ParamSupport& blocks)
         MFX_COPY_FIELD(LowDelayBRC);
         MFX_COPY_FIELD(BRCPanicMode);
         MFX_COPY_FIELD(ScenarioInfo);
+        MFX_COPY_FIELD(ContentInfo);
         MFX_COPY_FIELD(AdaptiveCQM);
     });
     blocks.m_ebCopyPtrs[MFX_EXTBUFF_CODING_OPTION_SPSPPS].emplace_back(
@@ -221,11 +223,21 @@ void Legacy::SetSupported(ParamSupport& blocks)
         auto& buf_dst = *(mfxExtAVCRefListCtrl*)pDst;
         MFX_COPY_FIELD(NumRefIdxL0Active);
         MFX_COPY_FIELD(NumRefIdxL1Active);
-        for (mfxU32 i = 0; i < 16; i++)
+        MFX_COPY_FIELD(ApplyLongTermIdx);
+        for (size_t i = 0; i < mfx::size(buf_src.PreferredRefList); i++)
         {
             MFX_COPY_FIELD(PreferredRefList[i].FrameOrder);
+        }
+
+        for (size_t i = 0; i < mfx::size(buf_src.RejectedRefList); i++)
+        {
             MFX_COPY_FIELD(RejectedRefList[i].FrameOrder);
+        }
+
+        for (size_t i = 0; i < mfx::size(buf_src.LongTermRefList); i++)
+        {
             MFX_COPY_FIELD(LongTermRefList[i].FrameOrder);
+            MFX_COPY_FIELD(LongTermRefList[i].LongTermIdx);
         }
     });
     blocks.m_ebCopySupported[MFX_EXTBUFF_AVC_TEMPORAL_LAYERS].emplace_back(
@@ -712,7 +724,7 @@ void Legacy::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     Push(BLK_CheckTU
         , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
     {
-        return CheckTU(out, m_pQWCDefaults->caps);
+        return CheckTU(m_pQWCDefaults->caps, out.mfx.TargetUsage);
     });
 
     Push(BLK_CheckTemporalLayers
@@ -1156,6 +1168,23 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             return MFX_ERR_NONE;
         };
 
+        auto AllocRawTmp = [&](mfxU16 NumFrameMin)
+        {
+            std::unique_ptr<IAllocation> pAlloc(Tmp::MakeAlloc::Get(local)(Glob::VideoCore::Get(strg)));
+            mfxFrameAllocRequest req = rawInfo;
+            req.NumFrameMin = NumFrameMin;
+
+            req.Info.FourCC = MFX_FOURCC_P016;
+            req.Type = MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY;
+
+            sts = pAlloc->Alloc(req, true);
+            MFX_CHECK_STS(sts);
+
+            strg.Insert(Glob::AllocRawTmp::Key, std::move(pAlloc));
+
+            return MFX_ERR_NONE;
+        };
+
         bool isD3D9SimWithVideoMem = IsD3D9Simulation(Glob::VideoCore::Get(strg)) && (par.IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY);
         if (par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY || isD3D9SimWithVideoMem)
         {
@@ -1173,6 +1202,11 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         {
             sts = AllocRaw(GetMaxBS(par));
             MFX_CHECK_STS(sts);
+            if(rawInfo.Info.BitDepthLuma == 10)
+            {
+                sts = AllocRawTmp(GetMaxBS(par));
+                MFX_CHECK_STS(sts);
+            }
         }
 
         return sts;
@@ -1463,6 +1497,9 @@ void Legacy::ResetState(const FeatureBlocks& blocks, TPushRS Push)
         if (real.Contains(Glob::AllocRaw::Key))
             Glob::AllocRaw::Get(real).UnlockAll();
 
+        if (real.Contains(Glob::AllocRawTmp::Key))
+            Glob::AllocRawTmp::Get(real).UnlockAll();
+
         ResetState();
 
         return MFX_ERR_NONE;
@@ -1476,7 +1513,7 @@ void Legacy::FrameSubmit(const FeatureBlocks& /*blocks*/, TPushFS Push)
             const mfxEncodeCtrl* /*pCtrl*/
             , const mfxFrameSurface1* pSurf
             , mfxBitstream& /*bs*/
-            , StorageW& global
+            , StorageRW& global
             , StorageRW& /*local*/) -> mfxStatus
     {
         MFX_CHECK(pSurf, MFX_ERR_NONE);
@@ -1493,7 +1530,7 @@ void Legacy::FrameSubmit(const FeatureBlocks& /*blocks*/, TPushFS Push)
             const mfxEncodeCtrl* /*pCtrl*/
             , const mfxFrameSurface1* /*pSurf*/
             , mfxBitstream& bs
-            , StorageW& global
+            , StorageRW& global
             , StorageRW& local) -> mfxStatus
     {
         auto& par = Glob::VideoParam::Get(global);
@@ -1616,6 +1653,11 @@ void Legacy::PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Push)
             task.Raw = Glob::AllocRaw::Get(global).Acquire();
             MFX_CHECK(task.Raw.Mid, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
+        if (global.Contains(Glob::AllocRawTmp::Key))
+        {
+            task.RawTmp = Glob::AllocRawTmp::Get(global).Acquire();
+            MFX_CHECK(task.RawTmp.Mid, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
  
         task.Rec = Glob::AllocRec::Get(global).Acquire();
         task.BS = Glob::AllocBS::Get(global).Acquire();
@@ -1644,6 +1686,7 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             StorageW& global
             , StorageW& s_task) -> mfxStatus
     {
+
         auto& par = Glob::VideoParam::Get(global);
         auto& task = Task::Common::Get(s_task);
 
@@ -1659,8 +1702,22 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             bCheckSkip
             && !!(allocRec.GetFlag(task.DPB.Active[task.RefPicList[1][0]].Rec.Idx) & REC_SKIPPED);
 
+        if(IsSWBRC(par) && par.AsyncDepth<2 && task.bSkip && !IsRef(task.FrameType))
+        {
+            task.SkipCMD = SKIPCMD_NeedCurrentFrameSkipping | SKIPCMD_NeedSkipSliceGen;
+            task.bSkip = false;
+            task.bForceSync = true;
+            bool  bL1  = (IsB(task.FrameType) && !task.isLDB && task.NumRefActive[1] && !task.b2ndField);
+            auto  idx  = task.RefPicList[bL1][0];
+            MFX_CHECK(idx < MAX_DPB_SIZE, MFX_ERR_UNDEFINED_BEHAVIOR);
+            auto& ref = task.DPB.Active[idx];
+            allocRec.SetFlag(task.Rec.Idx, REC_SKIPPED);
+            allocRec.SetFlag(ref.Rec.Idx, REC_SKIPPED * !!idx);
+        }
+
         MFX_CHECK(task.bSkip, MFX_ERR_NONE);
 
+        auto& allocRaw = Glob::AllocRaw::Get(global);
         task.bForceSync = true;
 
         if (IsI(task.FrameType))
@@ -1673,7 +1730,7 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             FrameLocker raw(Glob::VideoCore::Get(global), task.Raw.Mid);
 
             mfxU32 size = raw.Pitch * par.mfx.FrameInfo.Height;
-            int UVFiller = (par.mfx.FrameInfo.FourCC == MFX_FOURCC_NV12) * 126;
+            int UVFiller = 126;
 
             memset(raw.Y, 0, size);
             memset(raw.UV, UVFiller, size >> 1);
@@ -1687,13 +1744,19 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         bool  bL1  = (IsB(task.FrameType) && !task.isLDB && task.NumRefActive[1] && !task.b2ndField);
         auto  idx  = task.RefPicList[bL1][0];
 
+        auto raw = task.Raw;
         mfxFrameSurface1 surfSrc = {};
         mfxFrameSurface1 surfDst = {};
 
-        surfSrc.Info = par.mfx.FrameInfo;
-        surfDst.Info = allocRec.GetInfo();
+        surfSrc.Data.MemType = mfxU16(MFX_MEMTYPE_FROM_ENCODE
+                                | MFX_MEMTYPE_DXVA2_DECODER_TARGET
+                                | MFX_MEMTYPE_INTERNAL_FRAME);
+        surfDst.Data.MemType = mfxU16(MFX_MEMTYPE_FROM_ENCODE
+                                | MFX_MEMTYPE_DXVA2_DECODER_TARGET
+                                | MFX_MEMTYPE_INTERNAL_FRAME);
+        surfSrc.Info = allocRec.GetInfo();
+        surfDst.Info = allocRaw.GetInfo();
 
-        MFX_CHECK(!memcmp(&surfSrc.Info, &surfDst.Info, sizeof(mfxFrameInfo)), MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(idx < MAX_DPB_SIZE, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         auto& ref = task.DPB.Active[idx];
@@ -1702,16 +1765,45 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
         MFX_CHECK(allocRec.GetFlag(ref.Rec.Idx) & REC_READY, MFX_ERR_NONE);
 
+        if(par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
+        {
+            raw = task.RawTmp;
+            surfDst.Info.FourCC = MFX_FOURCC_P016;
+            surfDst.Data.MemType = MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY;
+        }
+
         surfSrc.Data.MemId = ref.Rec.Mid;
-        surfDst.Data.MemId = task.Raw.Mid;
+        surfDst.Data.MemId = raw.Mid;
 
         mfxStatus sts = core.DoFastCopyWrapper(
-            &surfDst, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE,
-            &surfSrc, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE);
+            &surfDst, surfDst.Data.MemType,
+            &surfSrc, surfSrc.Data.MemType);
         MFX_CHECK_STS(sts);
 
-        allocRec.SetFlag(ref.Rec.Idx, REC_SKIPPED * !!idx);
+        if(par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
+        {
+            CommonCORE_VPL* ccore = dynamic_cast <CommonCORE_VPL*>(&core);
+            mfxFrameSurface1_scoped_lock inLock(&surfDst, ccore);
+            MFX_SAFE_CALL(inLock.lock(MFX_MAP_READ));
 
+            mfxFrameSurface1 surfInp = {};
+            surfInp.Info = allocRaw.GetInfo();
+            surfInp.Data.MemId = task.Raw.Mid;
+            mfxFrameSurface1_scoped_lock outLock(&surfInp, ccore);
+            MFX_SAFE_CALL(outLock.lock(MFX_MAP_WRITE));
+
+            for (size_t y = 0; y < size_t(par.mfx.FrameInfo.Height); ++y)
+            {
+                copySysVariantToVideo(&surfDst.Data.Y[surfDst.Data.Pitch * y], mfx::align2_value(par.mfx.FrameInfo.Width, 32), &surfInp.Data.Y16[(surfInp.Data.Pitch>>1) * y], par.mfx.FrameInfo.Width);
+            }
+
+            mfxU16* DUV = (mfxU16*) surfInp.Data.UV;
+            for (int y = 0; y < par.mfx.FrameInfo.Height / 2; ++y)
+            {
+                copySysVariantToVideo(&surfDst.Data.UV[surfDst.Data.Pitch * y], mfx::align2_value(par.mfx.FrameInfo.Width, 32), &DUV[(surfInp.Data.Pitch>>1) * y], par.mfx.FrameInfo.Width);
+            }
+        }
+        allocRec.SetFlag(ref.Rec.Idx, REC_SKIPPED * !!idx);
         return MFX_ERR_NONE;
     });
 
@@ -1839,6 +1931,8 @@ void Legacy::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
     Push(BLK_CopyBS
         , [](StorageW& global, StorageW& s_task) -> mfxStatus
     {
+        PERF_UTILITY_AUTO("BLK_CopyBS", PERF_LEVEL_INTERNAL);
+
         auto& task = Task::Common::Get(s_task);
 
         if (!task.pBsData)
@@ -1875,6 +1969,8 @@ void Legacy::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
     Push(BLK_DoPadding
         , [](StorageW& /*global*/, StorageW& s_task) -> mfxStatus
     {
+        PERF_UTILITY_AUTO("BLK_DoPadding", PERF_LEVEL_INTERNAL);
+
         auto& task = Task::Common::Get(s_task);
 
         MFX_CHECK(task.MinFrameSize >= task.BsDataLength, MFX_ERR_NONE);
@@ -1955,6 +2051,10 @@ void Legacy::FreeTask(const FeatureBlocks& /*blocks*/, TPushFT Push)
             global.Contains(Glob::AllocRaw::Key)
             && !ReleaseResource(Glob::AllocRaw::Get(global), task.Raw)
             , "task.Raw resource is invalid");
+        ThrowAssert(
+            global.Contains(Glob::AllocRawTmp::Key)
+            && !ReleaseResource(Glob::AllocRawTmp::Get(global), task.RawTmp)
+            , "task.RawTmp resource is invalid");
 
         SetIf(task.pSurfIn, task.pSurfIn && !core.DecreaseReference(*task.pSurfIn), nullptr);
         ThrowAssert(!!task.pSurfIn, "failed in core.DecreaseReference");
@@ -2689,29 +2789,67 @@ mfxU16 Legacy::UpdateDPB(
             , pLCtrl->LongTermRefList + mfx::size(pLCtrl->LongTermRefList)
             , [](const TLCtrlRLE& lt) { return lt.FrameOrder == mfxU32(MFX_FRAMEORDER_UNKNOWN); });
 
-        std::list<mfxU16> markLTR;
+        std::list<std::pair<mfxU16, mfxU16>> markLTR;
 
         std::transform(pLCtrl->LongTermRefList, lctrlLtrEnd, std::back_inserter(markLTR)
             , [&](const TLCtrlRLE& lt)
         {
             mfxU16 idx = GetDPBIdxByFO(dpb, lt.FrameOrder);
+            if (idx >= MAX_DPB_SIZE)
+            {
+                MFX_STS_TRACE(MFX_ERR_INVALID_VIDEO_PARAM);
+                return std::make_pair(static_cast<mfxU16>(MAX_DPB_SIZE), lt.LongTermIdx);
+            }
             idx += !!dpb[idx].isLTR * MAX_DPB_SIZE;
-            return std::min<mfxU16>(idx, MAX_DPB_SIZE);
+            return std::make_pair(std::min<mfxU16>(idx, MAX_DPB_SIZE), lt.LongTermIdx);
         });
 
-        markLTR.sort();
-        markLTR.remove(mfxU16(MAX_DPB_SIZE));
+        markLTR.sort([](std::pair<mfxU16, mfxU16>& l, std::pair<mfxU16, mfxU16>& r) { return l.first < r.first; });
+        markLTR.remove_if([&](std::pair<mfxU16, mfxU16> idxPair) { return MAX_DPB_SIZE == idxPair.first; });
         markLTR.unique();
 
         std::for_each(markLTR.begin(), markLTR.end()
-            , [&](mfxU16 idx)
+            , [&](std::pair<mfxU16, mfxU16> idxPair)
         {
-            DpbFrame ltr = dpb[idx];
+            DpbFrame ltr = dpb[idxPair.first];
             ltr.isLTR = true;
-            Remove(dpb, idx);
+            ltr.LongTermIdx = idxPair.second;
+            Remove(dpb, idxPair.first);
             Insert(dpb, st0, ltr);
             st0++;
         });
+
+        // Update LTR by slot with the same LongTermIdx if ApplyLongTermIdx is used
+        if (pLCtrl->ApplyLongTermIdx)
+        {
+            size_t size = mfx::size(dpb);
+            for (size_t i = 0; i < size; ++i)
+            {
+                if (!isValid(dpb[i]))
+                    continue;
+
+                for (size_t j = i + 1; j < size;)
+                {
+                    if (!isValid(dpb[j]))
+                    {
+                        ++j;
+                        continue;
+                    }
+
+                    if (dpb[i].isLTR && dpb[j].isLTR && (dpb[i].LongTermIdx == dpb[j].LongTermIdx))
+                    {
+                        Remove(dpb, i);
+                        --size;
+                        --st0;
+                    }
+                    else
+                    {
+                        ++j;
+                    }
+                }
+            }
+
+        }
 
         std::sort(dpb, dpb + st0, POCLess);
     }
@@ -3235,12 +3373,10 @@ mfxStatus Legacy::CheckSPS(const SPS& sps, const ENCODE_CAPS_HEVC& caps, eMFXHWT
       !(   caps.MaxEncodedBitDepth == 3
         && ( !(sps.bit_depth_luma_minus8 == 0
             || sps.bit_depth_luma_minus8 == 2
-            || sps.bit_depth_luma_minus8 == 4
-            || sps.bit_depth_luma_minus8 == 8)
+            || sps.bit_depth_luma_minus8 == 4)
           || !(sps.bit_depth_chroma_minus8 == 0
             || sps.bit_depth_chroma_minus8 == 2
-            || sps.bit_depth_chroma_minus8 == 4
-            || sps.bit_depth_chroma_minus8 == 8))));
+            || sps.bit_depth_chroma_minus8 == 4))));
 
     return MFX_ERR_NONE;
 }
@@ -3477,7 +3613,7 @@ void Legacy::SetDefaults(
     SetDefault(par.mfx.CodecProfile, defPar.base.GetProfile(defPar));
     SetDefault(par.AsyncDepth, defPar.base.GetAsyncDepth(defPar));
     SetDefault(par.IOPattern, IOPByAlctr[!!bExternalFrameAllocator]);
-    SetDefault(par.mfx.TargetUsage, mfxU16(4)) && CheckTU(par, defPar.caps);
+    SetDefault(par.mfx.TargetUsage, defPar.base.GetTargetUsage(defPar));
 
     if (pTile)
     {
@@ -3863,9 +3999,9 @@ mfxStatus Legacy::CheckFrameRate(mfxVideoParam & par)
 {
     auto& fi = par.mfx.FrameInfo;
 
-    if (fi.FrameRateExtN && fi.FrameRateExtD) // FR <= 300
+    if (fi.FrameRateExtN && fi.FrameRateExtD) // FR <= 1000
     {
-        if (fi.FrameRateExtN > mfxU32(300 * fi.FrameRateExtD))
+        if (fi.FrameRateExtN > mfxU32(1000 * fi.FrameRateExtD))
         {
             fi.FrameRateExtN = fi.FrameRateExtD = 0;
             MFX_RETURN(MFX_ERR_UNSUPPORTED);
@@ -4155,36 +4291,63 @@ mfxStatus Legacy::CheckGopRefDist(mfxVideoParam & par, const ENCODE_CAPS_HEVC& c
     return MFX_ERR_NONE;
 }
 
-mfxStatus Legacy::CheckTU(mfxVideoParam & par, const ENCODE_CAPS_HEVC& caps)
+mfxStatus Legacy::CheckTU(const ENCODE_CAPS_HEVC& caps, mfxU16& tu)
 {
-    auto& tu = par.mfx.TargetUsage;
-
     if (CheckMaxOrZero(tu, 7u))
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
 
     if (!tu)
         return MFX_ERR_NONE;
 
-    auto support = caps.TUSupport;
-    mfxI16 abs_diff = 0;
-    bool   sign = 0;
-    mfxI16 newtu = tu;
-
-    do
+    const uint8_t HEVC_EXTENDED_TU_SUPPORT = (1 << (1 - 1)) | (1 << (2 - 1)) | (1 << (4 - 1)) | (1 << (6 - 1)) | (1 << (7 - 1));
+    if (HEVC_EXTENDED_TU_SUPPORT == caps.TUSupport)
     {
-        newtu = tu + (1 - 2 * sign) * abs_diff;
-        abs_diff += !sign;
-        sign = !sign;
-    } while (!(support & (1 << (newtu - 1))) && newtu > 0);
-
-    if (tu != newtu)
+        switch (tu)
+        {
+        case 1:
+            tu = 1;
+            break;
+        case 2:
+            tu = 2;
+            break;
+        case 3: 
+        case 4: 
+        case 5:
+            tu = 4;
+            break;
+        case 6:
+            tu = 6;
+            break;
+        case 7:
+            tu = 7;
+            break;
+        default:
+            tu = 4;
+            break;
+        }
+    }
+    else
     {
-        tu = newtu;
-        return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+        auto support = caps.TUSupport;
+        mfxI16 abs_diff = 0;
+        bool   sign = 0;
+        mfxI16 newtu = tu;
+
+        do
+        {
+            newtu = tu + (1 - 2 * sign) * abs_diff;
+            abs_diff += !sign;
+            sign = !sign;
+        } while (newtu > 0 && !(support & (1 << (newtu - 1))));
+
+        if (tu != newtu)
+        {
+            tu = newtu;
+            return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+        }
     }
 
     return MFX_ERR_NONE;
-
 }
 
 mfxStatus Legacy::CheckTiles(
@@ -4210,7 +4373,7 @@ mfxStatus Legacy::CheckTiles(
         mfxU32 minTileHeight = MIN_TILE_HEIGHT_IN_SAMPLES;
 
         // min 2x2 lcu is supported on VDEnc
-        SetIf(minTileHeight, defPar.caps.NumScalablePipesMinus1 > 0 && IsOn(par.mfx.LowPower), 128);
+        SetIf(minTileHeight, IsOn(par.mfx.LowPower), 128);
 
         mfxU16 maxCol = std::max<mfxU16>(1, mfxU16(defPar.base.GetCodedPicWidth(defPar) / minTileWidth));
         mfxU16 maxRow = std::max<mfxU16>(1, mfxU16(defPar.base.GetCodedPicHeight(defPar) / minTileHeight));

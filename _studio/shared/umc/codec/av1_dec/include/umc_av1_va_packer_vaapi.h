@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 Intel Corporation
+// Copyright (c) 2017-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -60,6 +60,9 @@ namespace UMC_AV1_DECODER
     private:
         void PackPicParams(VADecPictureParameterBufferAV1&, AV1DecoderFrame const&);
         void PackTileControlParams(VASliceParameterBufferAV1&, TileLocation const&);
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+        void PackProcessingInfo(AV1DecoderFrame const&);
+#endif
 
         std::vector<VASurfaceID> anchors_frames;
     };

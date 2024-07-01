@@ -27,6 +27,8 @@
 MFX_SCHEDULER_TASK::MFX_SCHEDULER_TASK(mfxU32 taskID, mfxSchedulerCore *pSchedulerCore) :
     taskID(taskID),
     jobID(0),
+    opRes(MFX_ERR_NONE),
+    curStatus(MFX_ERR_NONE),
     pNext(NULL),
     m_pSchedulerCore(pSchedulerCore)
 {

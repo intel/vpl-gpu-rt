@@ -28,6 +28,7 @@ int32_t vm_string_vprintf(const vm_char *format, va_list argptr)
     va_copy(copy, argptr);
     sts = vprintf(format, copy);
     va_end(argptr);
+    va_end(copy);
     return sts;
 }
 

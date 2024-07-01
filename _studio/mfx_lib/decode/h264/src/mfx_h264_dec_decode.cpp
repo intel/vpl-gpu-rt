@@ -1,4 +1,4 @@
-// Copyright (c) 2004-2021 Intel Corporation
+// Copyright (c) 2004-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -275,6 +275,7 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
         bool is_fourcc_supported =
                   (  videoProcessing->Out.FourCC == MFX_FOURCC_RGB4
+                  || videoProcessing->Out.FourCC == MFX_FOURCC_RGBP
                   || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
                   || videoProcessing->Out.FourCC == MFX_FOURCC_P010
                   || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
@@ -460,11 +461,11 @@ mfxStatus VideoDECODEH264::QueryImplsDescription(
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoDECODEH264::GetSurface(mfxFrameSurface1* & surface)
+mfxStatus VideoDECODEH264::GetSurface(mfxFrameSurface1* & surface, mfxSurfaceHeader* import_surface)
 {
     MFX_CHECK(m_surface_source, MFX_ERR_NOT_INITIALIZED);
 
-    return m_surface_source->GetSurface(surface);
+    return m_surface_source->GetSurface(surface, import_surface);
 }
 
 mfxU16 VideoDECODEH264::GetChangedProfile(mfxVideoParam *par)
@@ -1149,6 +1150,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs,
 
 mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 
     bool allow_null_work_surface = SupportsVPLFeatureSet(*m_core);
@@ -1222,6 +1224,8 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             ((mfxExtDecodeErrorReport *)extbuf)->ErrorTypes = 0;
             src.SetExtBuffer(extbuf);
         }
+
+        m_pH264VideoDecoder->SetVideoCore(m_core);
 
         for (;;)
         {

@@ -8,7 +8,7 @@
 #define __MFXDEFS_H__
 
 #define MFX_VERSION_MAJOR 2
-#define MFX_VERSION_MINOR 9
+#define MFX_VERSION_MINOR 11
 
 // MFX_VERSION - version of API that 'assumed' by build may be provided externally
 // if it omitted then latest stable API derived from Major.Minor is assumed
@@ -19,7 +19,7 @@
 #else
   #undef MFX_VERSION_MAJOR
   #define MFX_VERSION_MAJOR ((MFX_VERSION) / 1000)
-  
+
   #undef MFX_VERSION_MINOR
   #define MFX_VERSION_MINOR ((MFX_VERSION) % 1000)
 #endif
@@ -126,7 +126,7 @@ extern "C"
    #define MFX_DEPRECATED_ENUM_FIELD_INSIDE(arg) arg
    #define MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(arg)
  #endif
- 
+
 typedef unsigned char       mfxU8;         /*!< Unsigned integer, 8 bit type. */
 typedef char                mfxI8;         /*!< Signed integer, 8 bit type. */
 typedef short               mfxI16;        /*!< Signed integer, 16 bit type. */
@@ -148,9 +148,7 @@ typedef void*               mfxHDL;        /*!< Handle type. */
 typedef mfxHDL              mfxMemId;      /*!< Memory ID type. */
 typedef void*               mfxThreadTask; /*!< Thread task type. */
 typedef char                mfxChar;       /*!< UTF-8 byte. */
-#ifdef ONEVPL_EXPERIMENTAL
 typedef unsigned short      mfxFP16;       /*!< Half precision floating point, 16 bit type. */
-#endif
 
 /* MFX structures version info */
 MFX_PACK_BEGIN_USUAL_STRUCT()
@@ -176,8 +174,7 @@ MFX_PACK_END()
 
 #define MFX_STRUCT_VERSION(MAJOR, MINOR) (256*(MAJOR) + (MINOR))
 
-
-#define MFX_VARIANT_VERSION MFX_STRUCT_VERSION(1, 0)
+#define MFX_VARIANT_VERSION MFX_STRUCT_VERSION(1, 1)
 
 /*! The mfxDataType enumerates data type for mfxDataType. */
 typedef enum {
@@ -193,9 +190,7 @@ typedef enum {
     MFX_DATA_TYPE_F32,                    /*!< 32-bit single precision floating point. */
     MFX_DATA_TYPE_F64,                    /*!< 64-bit double precision floating point. */
     MFX_DATA_TYPE_PTR,                    /*!< Generic type pointer. */
-#ifdef ONEVPL_EXPERIMENTAL
     MFX_DATA_TYPE_FP16,                   /*!< 16-bit half precision floating point. */
-#endif
 }mfxDataType;
 
 /*! The mfxVariantType enumerator data types for mfxVariantType. */
@@ -212,9 +207,7 @@ typedef enum {
     MFX_VARIANT_TYPE_F32   = MFX_DATA_TYPE_F32,                          /*!< 32-bit single precision floating point. */
     MFX_VARIANT_TYPE_F64   = MFX_DATA_TYPE_F64,                          /*!< 64-bit double precision floating point. */
     MFX_VARIANT_TYPE_PTR   = MFX_DATA_TYPE_PTR,                          /*!< Generic type pointer. */
-#ifdef ONEVPL_EXPERIMENTAL
     MFX_VARIANT_TYPE_FP16  = MFX_DATA_TYPE_FP16,                         /*!< 16-bit half precision floating point. */
-#endif
 } mfxVariantType;
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
@@ -234,9 +227,7 @@ typedef struct {
         mfxI64 I64; /*!< mfxI64 data. */
         mfxF32 F32; /*!< mfxF32 data. */
         mfxF64 F64; /*!< mfxF64 data. */
-#ifdef ONEVPL_EXPERIMENTAL
         mfxFP16 FP16; /*!< mfxFP16 data. */
-#endif
         mfxHDL Ptr; /*!< Pointer. When this points to a string the string must be null terminated. */
     } Data;         /*!< Value data member. */
 } mfxVariant;
@@ -251,19 +242,21 @@ typedef struct {
 } mfxRange32U;
 MFX_PACK_END()
 
-
+MFX_PACK_BEGIN_USUAL_STRUCT()
 /*! Represents a pair of numbers of type mfxI16. */
 typedef struct {
     mfxI16  x; /*!< First number. */
     mfxI16  y; /*!< Second number. */
 } mfxI16Pair;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 /*! Represents pair of handles of type mfxHDL. */
 typedef struct {
     mfxHDL first;  /*!< First handle. */
     mfxHDL second; /*!< Second handle. */
 } mfxHDLPair;
-
+MFX_PACK_END()
 
 /*********************************************************************************\
 Error message
@@ -299,6 +292,8 @@ typedef enum
     MFX_ERR_RESOURCE_MAPPED             = -23,  /*!< Write access is already acquired and user requested
                                                    another write access, or read access with MFX_MEMORY_NO_WAIT flag. */
     MFX_ERR_NOT_IMPLEMENTED             = -24,   /*!< Feature or function not implemented. */
+    MFX_ERR_MORE_EXTBUFFER              = -25,   /*!< Expect additional extended configuration buffer. */
+
     /* warnings >0 */
     MFX_WRN_IN_EXECUTION                = 1,    /*!< The previous asynchronous operation is in execution. */
     MFX_WRN_DEVICE_BUSY                 = 2,    /*!< The hardware acceleration device is busy. */
@@ -325,7 +320,7 @@ typedef enum
 
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-/*! Represents Globally Unique Identifier (GUID) with memory layout 
+/*! Represents Globally Unique Identifier (GUID) with memory layout
     compliant to RFC 4122. See https://www.rfc-editor.org/info/rfc4122 for details. */
 typedef struct
 {

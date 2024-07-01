@@ -37,6 +37,7 @@ class IDDIPacker
 public:
 #define DECL_BLOCK_LIST\
     DECL_BLOCK(Init) \
+    DECL_BLOCK(InitTileGroups) \
     DECL_BLOCK(Reset) \
     DECL_BLOCK(SubmitTask) \
     DECL_BLOCK(QueryTask) \

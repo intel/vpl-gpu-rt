@@ -58,12 +58,13 @@ namespace UMC_AV1_DECODER
         va = dp->pVideoAccelerator;
         packer.reset(Packer::CreatePacker(va));
 
-        uint32_t dpb_size = params.async_depth + TOTAL_REFS + 1;
+        uint32_t dpb_size = std::max(params.async_depth + TOTAL_REFS, 8u);
 
         if (dp->lst_mode)
         {
             dpb_size = MAX_EXTERNAL_REFS;
         }
+
 
         SetDPBSize(dpb_size);
         SetRefSize(TOTAL_REFS);
@@ -82,6 +83,7 @@ namespace UMC_AV1_DECODER
         {
             // it's first submission for current frame - need to call BeginFrame
             sts = va->BeginFrame(frame.GetMemID(SURFACE_RECON));
+            MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, sts);
 
             TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_SUBMIT_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, frame.GetMemID(), sts));
 
@@ -104,6 +106,7 @@ namespace UMC_AV1_DECODER
             // VA Execute after full frame detected to avoid duplicate submission
             // of the decode buffer when app use small decbufsize.
             sts = va->Execute();
+            MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, sts);
         }
         if (sts != UMC::UMC_OK)
         {
@@ -116,6 +119,7 @@ namespace UMC_AV1_DECODER
             TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_START, TR_KEY_DDI_API, make_event_data(FrameIndex, sts));
 
             sts = va->EndFrame();
+            MFX_LTRACE_I(MFX_TRACE_LEVEL_INTERNAL, sts);
 
             TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_ENDFRAME_TASK, EVENT_TYPE_END, TR_KEY_DDI_API, make_event_data(FrameIndex, sts));
         }
@@ -188,7 +192,7 @@ namespace UMC_AV1_DECODER
     bool AV1DecoderVA::QueryFrames()
     {
         std::unique_lock<std::mutex> auto_guard(guard);
-
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);
         // form frame queue in decoded order
         DPBType decode_queue;
         for (DPBType::iterator frm = dpb.begin(); frm != dpb.end(); frm++)

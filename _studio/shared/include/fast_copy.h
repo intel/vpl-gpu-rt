@@ -42,10 +42,12 @@ enum
 typedef void(*t_copyVideoToSys)(const mfxU8* src, mfxU8* dst, int width);
 typedef void(*t_copyVideoToSysShift)(const mfxU16* src, mfxU16* dst, int width, int shift);	
 typedef void(*t_copySysToVideoShift)(const mfxU16* src, mfxU16* dst, int width, int shift);
+typedef void(*t_copySysVariantToVideo)(const mfxU8* src, int loffset, mfxU16* dst, int width);
 
 void copyVideoToSys(const mfxU8* src, mfxU8* dst, int width);
 void copyVideoToSysShift(const mfxU16* src, mfxU16* dst, int width, int shift);
 void copySysToVideoShift(const mfxU16* src, mfxU16* dst, int width, int shift);
+void copySysVariantToVideo(const mfxU8* src, int loffset, mfxU16* dst, int width);
 
 template<typename T>
 inline int mfxCopyRect(const T* pSrc, int srcStep, T* pDst, int dstStep, IppiSize roiSize, int flag)

@@ -84,9 +84,11 @@ public:
     mfxStatus DeriveImage()
     {
         MFX_CHECK(!m_image_created, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-        VAStatus va_sts = vaDeriveImage(m_display, m_surface_id, &m_image);
-        MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+        {
+            PERF_UTILITY_AUTO("vaDeriveImage", PERF_LEVEL_DDI);
+            VAStatus va_sts = vaDeriveImage(m_display, m_surface_id, &m_image);
+            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+        }
 
         m_image_created = true;
 
@@ -102,6 +104,7 @@ public:
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+            PERF_UTILITY_AUTO("vaMapBuffer", PERF_LEVEL_DDI);
             VAStatus va_sts = vaMapBuffer(m_display, m_image.buf, (void **)&ptr);
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
         }
@@ -118,6 +121,7 @@ public:
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+            PERF_UTILITY_AUTO("vaUnmapBuffer", PERF_LEVEL_DDI);
             VAStatus va_sts = vaUnmapBuffer(m_display, m_image.buf);
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
         }
@@ -131,9 +135,11 @@ public:
     {
         MFX_CHECK(m_image_created, MFX_ERR_NOT_INITIALIZED);
         MFX_CHECK(!m_mapped, MFX_ERR_UNKNOWN);
-
-        VAStatus va_sts = vaDestroyImage(m_display, m_image.image_id);
-        MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+        {
+            PERF_UTILITY_AUTO("vaUnmapBuffer", PERF_LEVEL_DDI);
+            VAStatus va_sts = vaDestroyImage(m_display, m_image.image_id);
+            MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
+        }
 
         m_image_created = false;
 
@@ -184,12 +190,18 @@ class vaapi_resource_wrapper
 {
 public:
     vaapi_resource_wrapper(VADisplayWrapper& display)
-        : m_pVADisplay(display.shared_from_this())
+        : m_resource_id(VA_INVALID_ID), m_pVADisplay(display.shared_from_this())
     {}
 
     virtual mfxStatus Lock(mfxFrameData& frame_data, mfxU32 flags) = 0;
     virtual mfxStatus Unlock()                                     = 0;
     virtual ~vaapi_resource_wrapper() {};
+
+    virtual mfxStatus Export(const mfxSurfaceHeader& /*export_header*/, mfxSurfaceBase*& /*exported_surface*/,
+        mfxFrameSurfaceInterfaceImpl* /*p_base_surface*/)
+    {
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
 
     VAGenericID*      GetHandle() { return &m_resource_id; }
     VADisplayWrapper& GetDevice() { return *m_pVADisplay;  }
@@ -216,22 +228,36 @@ private:
 class vaapi_surface_wrapper : public vaapi_resource_wrapper
 {
 public:
-    vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 type, VADisplayWrapper& display);
+    vaapi_surface_wrapper(const mfxFrameInfo &info, mfxU16 type, VADisplayWrapper& display, mfxSurfaceHeader* import_surface);
     ~vaapi_surface_wrapper();
     virtual mfxStatus Lock(mfxFrameData& frame_data, mfxU32 flags) override;
     virtual mfxStatus Unlock()                                     override;
 
 private:
+
+    virtual mfxStatus Export(const mfxSurfaceHeader& export_header, mfxSurfaceBase*& exported_surface, mfxFrameSurfaceInterfaceImpl* p_base_surface) override;
+
+    std::pair<mfxStatus, bool> TryImportSurface     (const mfxFrameInfo& info, mfxSurfaceHeader* import_surface);
+    std::pair<mfxStatus, bool> TryImportSurfaceVAAPI(const mfxFrameInfo& info, mfxSurfaceVAAPI&  import_surface);
+
+
+    mfxStatus CopyImportSurface     (const mfxFrameInfo& info, mfxSurfaceHeader* import_surface);
+    mfxStatus CopyImportSurfaceVAAPI(const mfxFrameInfo& info, mfxSurfaceVAAPI&  import_surface);
+
+
     SurfaceScopedLock m_surface_lock;
+    // If m_imported == true we will not delete vaapi surface in destructor
+    bool              m_imported = false;
     mfxU16            m_type;
     mfxU32            m_fourcc;
 };
 
 struct mfxFrameSurface1_hw_vaapi : public RWAcessSurface
 {
-    static mfxFrameSurface1_hw_vaapi* Create(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>& stg_adapter, mfxHDL display, mfxU32 context, FrameAllocatorBase& allocator)
+    static mfxFrameSurface1_hw_vaapi* Create(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>& stg_adapter, mfxHDL display, mfxU32 context, FrameAllocatorBase& allocator,
+        mfxSurfaceHeader* import_surface)
     {
-        auto surface = new mfxFrameSurface1_hw_vaapi(info, type, mid, stg_adapter, display, context, allocator);
+        auto surface = new mfxFrameSurface1_hw_vaapi(info, type, mid, stg_adapter, display, context, allocator, import_surface);
         surface->AddRef();
         return surface;
     }
@@ -251,13 +277,28 @@ struct mfxFrameSurface1_hw_vaapi : public RWAcessSurface
     std::pair<mfxHDL, mfxResourceType> GetNativeHandle() const override;
     std::pair<mfxHDL, mfxHandleType>   GetDeviceHandle() const override;
 
+    mfxStatus CreateExportSurface(const mfxSurfaceHeader& export_header, mfxSurfaceBase*& exported_surface) override
+    {
+        //mfxFrameSurfaceInterfaceImpl
+        switch (export_header.SurfaceType)
+        {
+        case MFX_SURFACE_TYPE_VAAPI:
+            MFX_CHECK_HDL(m_resource_wrapper);
+
+            MFX_RETURN(m_resource_wrapper->Export(export_header, exported_surface, this));
+        default:
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
+        }
+    }
+
     mfxStatus GetHDL(mfxHDL& handle) const;
     mfxStatus Realloc(const mfxFrameInfo & info);
 
     static mfxU16 AdjustType(mfxU16 type) { return mfxFrameSurface1_sw::AdjustType(type); }
 
 private:
-    mfxFrameSurface1_hw_vaapi(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>& stg_adapter, mfxHDL display, mfxU32 context, FrameAllocatorBase& allocator);
+    mfxFrameSurface1_hw_vaapi(const mfxFrameInfo& info, mfxU16 type, mfxMemId mid, std::shared_ptr<staging_adapter_stub>& stg_adapter, mfxHDL display, mfxU32 context, FrameAllocatorBase& allocator,
+                              mfxSurfaceHeader* import_surface);
 
     mutable std::shared_timed_mutex         m_hdl_mutex;
 
@@ -267,6 +308,28 @@ private:
 };
 
 using FlexibleFrameAllocatorHW_VAAPI = FlexibleFrameAllocator<mfxFrameSurface1_hw_vaapi, staging_adapter_stub>;
+
+class mfxSurfaceVAAPIImpl
+    : public mfxSurfaceImpl<mfxSurfaceVAAPI>
+{
+public:
+
+    static mfxSurfaceVAAPIImpl* Create(const mfxSurfaceHeader& export_header, mfxFrameSurfaceInterfaceImpl* p_base_surface, std::shared_ptr<VADisplayWrapper>& display, VASurfaceID surface_id)
+    {
+        auto surface = new mfxSurfaceVAAPIImpl(export_header, p_base_surface, display, surface_id);
+        surface->AddRef();
+        return surface;
+    }
+
+    ~mfxSurfaceVAAPIImpl();
+
+private:
+    mfxSurfaceVAAPIImpl(const mfxSurfaceHeader& export_header, mfxFrameSurfaceInterfaceImpl* p_base_surface, std::shared_ptr<VADisplayWrapper>& display, VASurfaceID surface_id);
+
+    VASurfaceID                       m_surface_id = VA_INVALID_ID;
+    std::shared_ptr<VADisplayWrapper> m_pVADisplay;
+
+};
 
 #endif // LIBMFX_ALLOCATOR_VAAPI_H_
 /* EOF */
