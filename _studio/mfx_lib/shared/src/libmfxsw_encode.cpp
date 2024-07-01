@@ -510,7 +510,7 @@ static mfxStatus SetupCache(mfxSession session, const mfxVideoParam& par)
     if (session->m_pCORE->IsExternalFrameAllocator())
         return MFX_ERR_NONE;
 
-    mfxU16 memory_type = mfxU16(par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ? MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
+    mfxU16 memory_type = session->m_pENCODE->GetMemType(par);
 
     auto& pCache = session->m_pENCODE->m_pSurfaceCache;
 

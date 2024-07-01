@@ -102,6 +102,16 @@ public:
         MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
+    mfxU16 GetMemType(mfxVideoParam par) override
+    {
+        mfxU16 memory_type = mfxU16(par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ? MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
+
+        if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_BGR4)
+            memory_type |= MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET;
+
+        return memory_type;
+    }
+
     MFX_PROPAGATE_GetSurface_VideoENCODE_Definition;
 
 protected:
