@@ -25,6 +25,7 @@
 #define __UMC_H264_SEGMENT_DECODER_BASE_H
 
 #include "umc_h264_dec.h"
+#include "umc_h264_frame.h"
 
 namespace UMC
 {
@@ -52,7 +53,7 @@ public:
     }
 
     // Decode slice's segment
-    virtual UMC::Status ProcessSegment(void) = 0;
+    virtual UMC::Status ProcessSegment(H264DecoderFrame* outputFrame) = 0;
 
     virtual void RestoreErrorRect(int32_t , int32_t , H264Slice * )
     {

@@ -105,7 +105,7 @@ protected:
 
     virtual Status DecodeHeaders(NalUnit *nalUnit);
 
-    mfxStatus RunThread(mfxU32 threadNumber);
+    mfxStatus RunThread(mfxU32 threadNumber, H264DecoderFrame* outputFrame = nullptr);
 
     mfxVideoParam  m_firstVideoParams;
 

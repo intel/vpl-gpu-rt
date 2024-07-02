@@ -53,7 +53,7 @@ public:
     virtual bool IsEnoughForStartDecoding(bool force);
 
     // Get next working task
-    virtual bool GetNextTask(H264Task *pTask);
+    virtual bool GetNextTask(H264Task *pTask, H264DecoderFrame* outputFrame);
 
     virtual void Reset();
     virtual void Release();
@@ -72,7 +72,7 @@ protected:
 
     bool IsFrameCompleted(H264DecoderFrame * pFrame);
 
-    virtual bool GetNextTaskInternal(H264Task *pTask) = 0;
+    virtual bool GetNextTaskInternal(H264Task *pTask, H264DecoderFrame* outputFrame) = 0;
     virtual bool PrepareFrame(H264DecoderFrame * pFrame) = 0;
 
     void InitAUs();

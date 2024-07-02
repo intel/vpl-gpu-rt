@@ -71,7 +71,7 @@ public:
 
     void PackAllHeaders(H264DecoderFrame * pFrame, int32_t field);
 
-    virtual Status ProcessSegment(void);
+    virtual Status ProcessSegment(H264DecoderFrame* outputFrame);
 
     Packer * GetPacker() { return m_Packer.get();}
 
@@ -175,7 +175,7 @@ public:
     virtual bool PrepareFrame(H264DecoderFrame * pFrame);
 
     // Get next working task
-    virtual bool GetNextTaskInternal(H264Task *pTask);
+    virtual bool GetNextTaskInternal(H264Task *pTask, H264DecoderFrame* outputFrame);
     virtual void Start();
 
     virtual void Reset();

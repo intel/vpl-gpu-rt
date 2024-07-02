@@ -80,10 +80,10 @@ void H264_DXVA_SegmentDecoder::PackAllHeaders(H264DecoderFrame * pFrame, int32_t
     m_Packer->EndFrame();
 }
 
-Status H264_DXVA_SegmentDecoder::ProcessSegment(void)
+Status H264_DXVA_SegmentDecoder::ProcessSegment(H264DecoderFrame* outputFrame)
 {
     try{
-        if (m_pTaskBroker->GetNextTask(0))
+        if (m_pTaskBroker->GetNextTask(0, outputFrame))
         {
         }
         else
@@ -213,7 +213,7 @@ bool TaskBrokerSingleThreadDXVA::CheckCachedFeedbackAndComplete(H264DecoderFrame
     return false;
 }
 
-bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
+bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *, H264DecoderFrame* outputFrame)
 {
     AutomaticUMCMutex guard(m_mGuard);
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, __FUNCTION__);

@@ -1081,7 +1081,7 @@ mfxStatus VideoDECODEH264::RunThread(ThreadTaskInfo264* info, mfxU32 threadNumbe
     {
         for (int32_t i = 0; i < 2 && sts == MFX_TASK_WORKING; i++)
         {
-            sts = m_pH264VideoDecoder->RunThread(threadNumber);
+            sts = m_pH264VideoDecoder->RunThread(threadNumber, pFrame);
         }
     }
 

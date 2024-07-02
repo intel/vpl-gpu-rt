@@ -412,9 +412,9 @@ bool TaskBroker::IsFrameCompleted(H264DecoderFrame * pFrame)
     return ret;
 }
 
-bool TaskBroker::GetNextTask(H264Task *pTask)
+bool TaskBroker::GetNextTask(H264Task *pTask, H264DecoderFrame* outputFrame)
 {
-    return GetNextTaskInternal(pTask);
+    return GetNextTaskInternal(pTask, outputFrame);
 } // bool TaskBroker::GetNextTask(H264Task *pTask)
 
 void TaskBroker::AddPerformedTask(H264Task *)
