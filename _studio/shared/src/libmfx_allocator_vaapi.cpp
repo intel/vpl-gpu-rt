@@ -603,6 +603,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         frame_data.A = frame_data.R + 3;
         break;
 
+    case MFX_FOURCC_YUV400:
     case VA_FOURCC_P208:
         frame_data.Y = p_buffer + va_image.offsets[0];
         break;
