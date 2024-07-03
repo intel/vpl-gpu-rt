@@ -213,7 +213,12 @@ mfxStatus MFXVideoENCODEMJPEG_HW::QueryImplsDescription(
     ah.PushBack(memCaps.ColorFormats) = MFX_FOURCC_YUY2;
     ah.PushBack(memCaps.ColorFormats) = MFX_FOURCC_RGB4;
     ah.PushBack(memCaps.ColorFormats) = MFX_FOURCC_BGR4;
+#if defined(LINUX)
+    ah.PushBack(memCaps.ColorFormats) = MFX_FOURCC_YUV400;
+    memCaps.NumColorFormats = 6;
+#else
     memCaps.NumColorFormats = 5;
+#endif
 
     ah.PushBack(profileCaps.MemDesc);
     profileCaps.MemDesc[1] = profileCaps.MemDesc[0];
@@ -392,6 +397,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Query(VideoCORE * core, mfxVideoParam *in, mfx
 
         if ((fourCC == 0 && chromaFormat == 0) ||
             (fourCC == MFX_FOURCC_NV12 && (chromaFormat == MFX_CHROMAFORMAT_YUV420 || chromaFormat == MFX_CHROMAFORMAT_YUV400)) ||
+            (fourCC == MFX_FOURCC_YUV400 && chromaFormat == MFX_CHROMAFORMAT_YUV400) ||
             (fourCC == MFX_FOURCC_YUY2 && chromaFormat == MFX_CHROMAFORMAT_YUV422H) ||
             ((fourCC == MFX_FOURCC_RGB4 || fourCC == MFX_FOURCC_BGR4) && chromaFormat == MFX_CHROMAFORMAT_YUV444))
         {
@@ -691,6 +697,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Init(mfxVideoParam *par)
     mfxU16 doubleBytesPerPx = 0;
     switch(m_vParam.mfx.FrameInfo.FourCC)
     {
+        case MFX_FOURCC_YUV400:
         case MFX_FOURCC_NV12:
         case MFX_FOURCC_YV12:
             doubleBytesPerPx = 3;
