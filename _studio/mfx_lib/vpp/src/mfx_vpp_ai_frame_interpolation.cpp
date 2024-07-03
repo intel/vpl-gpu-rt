@@ -193,6 +193,7 @@ mfxStatus MFXVideoFrameInterpolation::Init(VideoCORE* core, mfxFrameInfo& inInfo
 
 #ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
     D3D11Interface* pD3d11 = QueryCoreInterface<D3D11Interface>(core);
+    MFX_CHECK(pD3d11, MFX_ERR_NULL_PTR);
     // Init
     xeAIVfiConfig config = {
         outInfo.Width, outInfo.Height,
