@@ -451,6 +451,12 @@ public:
         return MFX_ERR_NONE;
     }
 
+    virtual
+    mfxU16 GetMemType(mfxVideoParam par)
+    {
+        return mfxU16(par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ? MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
+    }
+
     virtual mfxStatus GetSurface(mfxFrameSurface1** output_surf, mfxSurfaceHeader* import_surface) = 0;
 
     std::unique_ptr<surface_cache_controller<SurfaceCache>, std::function<void(surface_cache_controller<SurfaceCache>*)>> m_pSurfaceCache;
