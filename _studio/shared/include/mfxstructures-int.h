@@ -1,4 +1,3 @@
-
 // Copyright (c) 2007-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
