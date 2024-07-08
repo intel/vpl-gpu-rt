@@ -20,6 +20,7 @@
 
 #include "mfx_common.h"
 #include "hevcehw_base_va_packer_lin.h"
+#include "mfx_platform_caps.h"
 
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 #include "mfx_common_int.h"
@@ -39,6 +40,7 @@ void VAPacker::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     Push(BLK_HardcodeCaps
         , [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus
     {
+        eMFXHWType hw        = Glob::VideoCore::Get(strg).GetHWType();
         auto& caps           = Glob::EncodeCaps::Get(strg);
         auto& ddiidSetting = Glob::DDIIDSetting::Get(strg);
         VAID* vaid           = (VAID*)ddiidSetting.DDIID;
