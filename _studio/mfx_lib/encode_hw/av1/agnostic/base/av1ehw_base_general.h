@@ -38,72 +38,73 @@ namespace Base
     public:
 
 #define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetLogging           )\
-    DECL_BLOCK(Query0               )\
-    DECL_BLOCK(SetDefaultsCallChain )\
-    DECL_BLOCK(PreCheckCodecId      )\
-    DECL_BLOCK(PreCheckChromaFormat )\
-    DECL_BLOCK(PreCheckExtBuffers   )\
-    DECL_BLOCK(CopyConfigurable     )\
-    DECL_BLOCK(FixParam             )\
-    DECL_BLOCK(CheckAndFixLowPower  )\
-    DECL_BLOCK(CheckAndFixLevel     )\
-    DECL_BLOCK(CheckFormat          )\
-    DECL_BLOCK(CheckPicStruct       )\
-    DECL_BLOCK(CheckSurfSize        )\
-    DECL_BLOCK(CheckCodedPicSize    )\
-    DECL_BLOCK(CheckTU              )\
-    DECL_BLOCK(CheckDeltaQ          )\
-    DECL_BLOCK(CheckFrameOBU        )\
-    DECL_BLOCK(CheckOrderHint       )\
-    DECL_BLOCK(CheckOrderHintBits   )\
-    DECL_BLOCK(CheckCDEF            )\
-    DECL_BLOCK(CheckTemporalLayers  )\
-    DECL_BLOCK(CheckGopRefDist      )\
-    DECL_BLOCK(CheckStillPicture    )\
-    DECL_BLOCK(CheckGPB             )\
-    DECL_BLOCK(CheckNumRefFrame     )\
-    DECL_BLOCK(CheckIOPattern       )\
-    DECL_BLOCK(CheckProtected       )\
-    DECL_BLOCK(CheckRateControl     )\
-    DECL_BLOCK(CheckCrops           )\
-    DECL_BLOCK(CheckShift           )\
-    DECL_BLOCK(CheckFrameRate       )\
-    DECL_BLOCK(CheckProfile         )\
-    DECL_BLOCK(CheckEncodedOrder    )\
-    DECL_BLOCK(CheckLevelConstraints)\
-    DECL_BLOCK(CheckTCBRC           )\
-    DECL_BLOCK(CheckCdfUpdate       )\
-    DECL_BLOCK(Query1NoCaps         )\
-    DECL_BLOCK(CheckColorConfig     )\
-    DECL_BLOCK(Query1WithCaps       )\
-    DECL_BLOCK(SetUnalignedDefaults )\
-    DECL_BLOCK(SetDefaults          )\
-    DECL_BLOCK(AttachMissingBuffers )\
-    DECL_BLOCK(SetFrameAllocRequest )\
-    DECL_BLOCK(SetSH                )\
-    DECL_BLOCK(SetFH                )\
-    DECL_BLOCK(SetReorder           )\
-    DECL_BLOCK(SetRepeat            )\
-    DECL_BLOCK(AllocRaw             )\
-    DECL_BLOCK(AllocRec             )\
-    DECL_BLOCK(AllocBS              )\
-    DECL_BLOCK(ResetInit            )\
-    DECL_BLOCK(ResetCheck           )\
-    DECL_BLOCK(ResetState           )\
-    DECL_BLOCK(CheckSurf            )\
-    DECL_BLOCK(CheckBS              )\
-    DECL_BLOCK(AllocTask            )\
-    DECL_BLOCK(InitTask             )\
-    DECL_BLOCK(PrepareTask          )\
-    DECL_BLOCK(ConfigureTask        )\
-    DECL_BLOCK(GetRawHDL            )\
-    DECL_BLOCK(CopySysToRaw         )\
-    DECL_BLOCK(CopyBS               )\
-    DECL_BLOCK(UpdateBsInfo         )\
-    DECL_BLOCK(SetRecInfo           )\
-    DECL_BLOCK(FreeTask             )\
-    DECL_BLOCK(Close                )
+    DECL_BLOCK(SetLogging                           )\
+    DECL_BLOCK(Query0                               )\
+    DECL_BLOCK(SetDefaultsCallChain                 )\
+    DECL_BLOCK(PreCheckCodecId                      )\
+    DECL_BLOCK(PreCheckChromaFormat                 )\
+    DECL_BLOCK(PreCheckExtBuffers                   )\
+    DECL_BLOCK(CopyConfigurable                     )\
+    DECL_BLOCK(FixParam                             )\
+    DECL_BLOCK(CheckAndFixLowPower                  )\
+    DECL_BLOCK(CheckAndFixLevel                     )\
+    DECL_BLOCK(CheckFormat                          )\
+    DECL_BLOCK(CheckPicStruct                       )\
+    DECL_BLOCK(CheckSurfSize                        )\
+    DECL_BLOCK(CheckCodedPicSize                    )\
+    DECL_BLOCK(CheckTU                              )\
+    DECL_BLOCK(CheckDeltaQ                          )\
+    DECL_BLOCK(CheckFrameOBU                        )\
+    DECL_BLOCK(CheckOrderHint                       )\
+    DECL_BLOCK(CheckOrderHintBits                   )\
+    DECL_BLOCK(CheckCDEF                            )\
+    DECL_BLOCK(CheckTemporalLayers                  )\
+    DECL_BLOCK(CheckGopRefDist                      )\
+    DECL_BLOCK(CheckStillPicture                    )\
+    DECL_BLOCK(CheckGPB                             )\
+    DECL_BLOCK(CheckNumRefFrame                     )\
+    DECL_BLOCK(CheckIOPattern                       )\
+    DECL_BLOCK(CheckProtected                       )\
+    DECL_BLOCK(CheckRateControl                     )\
+    DECL_BLOCK(CheckCrops                           )\
+    DECL_BLOCK(CheckShift                           )\
+    DECL_BLOCK(CheckFrameRate                       )\
+    DECL_BLOCK(CheckProfile                         )\
+    DECL_BLOCK(CheckEncodedOrder                    )\
+    DECL_BLOCK(CheckLevelConstraints                )\
+    DECL_BLOCK(CheckTCBRC                           )\
+    DECL_BLOCK(CheckCdfUpdate                       )\
+    DECL_BLOCK(Query1NoCaps                         )\
+    DECL_BLOCK(CheckColorConfig                     )\
+    DECL_BLOCK(Query1WithCaps                       )\
+    DECL_BLOCK(SetUnalignedDefaults                 )\
+    DECL_BLOCK(SetDefaults                          )\
+    DECL_BLOCK(AttachMissingBuffers                 )\
+    DECL_BLOCK(SetFrameAllocRequest                 )\
+    DECL_BLOCK(SetSH                                )\
+    DECL_BLOCK(SetFH                                )\
+    DECL_BLOCK(SetReorder                           )\
+    DECL_BLOCK(SetRepeat                            )\
+    DECL_BLOCK(AllocRaw                             )\
+    DECL_BLOCK(AllocRec                             )\
+    DECL_BLOCK(AllocBS                              )\
+    DECL_BLOCK(ResetInit                            )\
+    DECL_BLOCK(ResetCheck                           )\
+    DECL_BLOCK(ResetState                           )\
+    DECL_BLOCK(CheckSurf                            )\
+    DECL_BLOCK(CheckBS                              )\
+    DECL_BLOCK(AllocTask                            )\
+    DECL_BLOCK(InitTask                             )\
+    DECL_BLOCK(PrepareTask                          )\
+    DECL_BLOCK(ConfigureTask                        )\
+    DECL_BLOCK(GetRawHDL                            )\
+    DECL_BLOCK(CopySysToRaw                         )\
+    DECL_BLOCK(CopyBS                               )\
+    DECL_BLOCK(UpdateBsInfo                         )\
+    DECL_BLOCK(SetRecInfo                           )\
+    DECL_BLOCK(CheckAndFixSlidingWindow             )\
+    DECL_BLOCK(FreeTask                             )\
+    DECL_BLOCK(Close                                )
 #define DECL_FEATURE_NAME "Base_General"
 #include "av1ehw_decl_blocks.h"
 
@@ -184,6 +185,7 @@ namespace Base
         mfxStatus CheckLevelConstraints(mfxVideoParam& par, const Defaults::Param& defPar);
         mfxStatus CheckTCBRC(mfxVideoParam& par, const ENCODE_CAPS_AV1& caps);
         mfxStatus CheckCdfUpdate(mfxVideoParam& par);
+        mfxStatus CheckAndFixSlidingWindow(mfxVideoParam& par, const Defaults::Param& defPar);
 
         void SetDefaults(
             mfxVideoParam& par

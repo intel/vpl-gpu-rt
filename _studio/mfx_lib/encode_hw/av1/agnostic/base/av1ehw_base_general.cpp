@@ -33,6 +33,7 @@
 #include <numeric>
 #include <set>
 #include <iterator>
+#include <cmath>
 
 
 namespace AV1EHW
@@ -126,6 +127,8 @@ void General::SetSupported(ParamSupport& blocks)
         MFX_COPY_FIELD(LowDelayBRC);
         MFX_COPY_FIELD(ScenarioInfo);
         MFX_COPY_FIELD(TimingInfoPresent);
+        MFX_COPY_FIELD(WinBRCSize);
+        MFX_COPY_FIELD(WinBRCMaxAvgKbps);
         
     });
 
@@ -405,6 +408,8 @@ void General::SetInherited(ParamInheritance& par)
         INHERIT_OPT(LowDelayBRC);
         INHERIT_OPT(ScenarioInfo);
         INHERIT_OPT(TimingInfoPresent);
+        INHERIT_OPT(WinBRCSize);
+        INHERIT_OPT(WinBRCMaxAvgKbps);
     });
 #undef INIT_EB
 #undef INHERIT_OPT
@@ -722,6 +727,12 @@ void General::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         ,[this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
     {
         return CheckCdfUpdate(out);
+    });
+
+    Push(BLK_CheckAndFixSlidingWindow
+        ,[this](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
+    {
+        return CheckAndFixSlidingWindow(out, *m_pQWCDefaults);
     });
 }
 
@@ -3255,6 +3266,79 @@ void SetDefaultBRC(
     {
         SetDefault<mfxU16>(pCO3->ScenarioInfo, MFX_SCENARIO_REMOTE_GAMING);
     }
+}
+
+inline void FixWinBRCMaxAvgKbps(mfxVideoParam& par, mfxExtCodingOption3& CO3, const mfxF64 overShootCBRPct)
+{
+    mfxU32 targetKbps = TargetKbps(par.mfx);
+    mfxU32 winBRCMaxAvgKbps = static_cast<mfxU32>(std::round(targetKbps * overShootCBRPct));
+    mfxU16 multiplierMin = (mfxU16)mfx::CeilDiv<mfxU32>(winBRCMaxAvgKbps, 65535u);
+    mfxU16 multiplier = std::max<const mfxU16>(1, par.mfx.BRCParamMultiplier);
+
+    if (multiplierMin > multiplier)
+    {
+        par.mfx.TargetKbps = static_cast<mfxU16> (TargetKbps(par.mfx) / multiplierMin);
+        par.mfx.MaxKbps = static_cast<mfxU16>(MaxKbps(par.mfx) / multiplierMin);
+        par.mfx.BufferSizeInKB = static_cast<mfxU16>(BufferSizeInKB(par.mfx) / multiplierMin);
+        par.mfx.InitialDelayInKB = static_cast<mfxU16>(InitialDelayInKB(par.mfx) / multiplierMin);
+        par.mfx.BRCParamMultiplier = multiplierMin;
+    }
+    CO3.WinBRCMaxAvgKbps = mfxU16(winBRCMaxAvgKbps / std::max<const mfxU32>(1, par.mfx.BRCParamMultiplier));
+}
+
+mfxStatus General::CheckAndFixSlidingWindow(mfxVideoParam& par, const Defaults::Param& defPar)
+{
+    mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
+    MFX_CHECK(pCO3, MFX_ERR_NONE);
+    MFX_CHECK(pCO3->WinBRCSize != 0 || pCO3->WinBRCMaxAvgKbps != 0, MFX_ERR_NONE);
+
+    if (par.mfx.RateControlMethod != MFX_RATECONTROL_CBR
+        || defPar.caps.SupportedRateControlMethods.fields.SlidingWindow == false)
+    {
+        pCO3->WinBRCSize = 0;
+        pCO3->WinBRCMaxAvgKbps = 0;
+        MFX_RETURN(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+    }
+
+    mfxU32 changed = 0;
+    mfxU32 frN = 0, frD = 0;
+    std::tie(frN, frD) = defPar.base.GetFrameRate(defPar);
+    mfxF64 frameRate = static_cast<mfxF64>(frN) / frD;
+    mfxU16 winBRCSizeMax = 120;
+    mfxU16 winBRCSizeMin = std::min(static_cast<mfxU16>(0.5 * frameRate), winBRCSizeMax);
+
+    if (pCO3->WinBRCSize)
+    {
+        changed += CheckRangeOrClip(pCO3->WinBRCSize, winBRCSizeMin, winBRCSizeMax);
+    }
+    else
+    {
+        SetDefault(pCO3->WinBRCSize, std::min(static_cast<mfxU16>(frameRate), winBRCSizeMax));
+        changed += 1;
+    }
+
+    if (pCO3->WinBRCMaxAvgKbps)
+    {
+        mfxU32 targetKbps = defPar.base.GetTargetKbps(defPar);
+        mfxU32 winBRCMaxAvgKbps = pCO3->WinBRCMaxAvgKbps * std::max<const mfxU16>(1, par.mfx.BRCParamMultiplier);
+        mfxF64 overShootCBRPct = static_cast<mfxF64>(winBRCMaxAvgKbps) / targetKbps;
+        bool isWinBRCMaxAvgKbpsChanged = CheckRangeOrClip(overShootCBRPct, 1.10f, 2.00f);
+
+        if (isWinBRCMaxAvgKbpsChanged)
+        {
+            FixWinBRCMaxAvgKbps(par, *pCO3, overShootCBRPct);
+            changed += 1;
+        }
+    }
+    else
+    {
+        mfxF64 overShootCBRPct = (pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING) ? 1.20f : 1.40f;
+        FixWinBRCMaxAvgKbps(par, *pCO3, overShootCBRPct);
+        changed += 1;
+    }
+
+    MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+    return MFX_ERR_NONE;
 }
 
 inline void SetDefaultOrderHint(mfxExtAV1AuxData* par)
