@@ -42,9 +42,6 @@
 
 #include "va/va.h"
 
-#if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
-#define VAProfileVVCMain10 100
-#endif
 // Helper struct VaGuidMapper is placed _studio/shared/include/libmfx_core_vaapi.h for use linux/android GUIDs
 // Pack VAEntrypoint and VAProfile into GUID data structure
 #define DEFINE_GUID_VA(name, profile, entrypoint) \
