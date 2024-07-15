@@ -25,8 +25,9 @@
 
 #ifndef __UMC_VVC_VA_PACKER_H
 
-#include "umc_vvc_va_private.h"
 #include "umc_vvc_decoder_va.h"
+
+#include <va/va_dec_vvc.h>
 
 #define __UMC_VVC_VA_PACKER_H
 

@@ -228,20 +228,20 @@ namespace UMC_VVC_DECODER
             throw vvc_exception(UMC::UMC_ERR_NULL_PTR);
         uint32_t tile_count = pPicParamSet->pps_num_exp_tile_columns_minus1 + pPicParamSet->pps_num_exp_tile_rows_minus1 + 2;
         UMC::UMCVACompBuffer* compBufTile = nullptr;
-        auto pTileParam = reinterpret_cast<VATileVVC*>(m_va->GetCompBuffer(VATileBufferType, &compBufTile,sizeof(VATileVVC) * tile_count));
-        if (!pTileParam || !compBufTile || (compBufTile->GetBufferSize() < sizeof(VATileVVC)))
+        auto pTileParam = reinterpret_cast<uint16_t*>(m_va->GetCompBuffer(VATileBufferType, &compBufTile,sizeof(uint16_t) * tile_count));
+        if (!pTileParam || !compBufTile || (compBufTile->GetBufferSize() < sizeof(uint16_t)))
             throw vvc_exception(MFX_ERR_MEMORY_ALLOC);
 
-        memset(pTileParam, 0, sizeof(VATileVVC) * tile_count);
+        memset(pTileParam, 0, sizeof(uint16_t) * tile_count);
         for (uint32_t i = 0; i < tile_count; i++) 
         {
             if (i < pPicParamSet->pps_num_exp_tile_columns_minus1 + 1) 
             {
-                pTileParam->tile_dimension = (uint16_t)pPicParamSet->pps_tile_column_width[i] - 1;  //check pps_tile_column_width_minus1
+                *pTileParam = (uint16_t)pPicParamSet->pps_tile_column_width[i] - 1;  //check pps_tile_column_width_minus1
             }
             else 
             {
-                pTileParam->tile_dimension = (uint16_t)pPicParamSet->pps_tile_row_height[i - pPicParamSet->pps_num_exp_tile_columns_minus1 - 1] - 1;
+                *pTileParam = (uint16_t)pPicParamSet->pps_tile_row_height[i - pPicParamSet->pps_num_exp_tile_columns_minus1 - 1] - 1;
             }
             pTileParam++;
         }

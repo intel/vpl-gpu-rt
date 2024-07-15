@@ -27,6 +27,7 @@
 #include "mfx_trace.h"
 #include "umc_frame_allocator.h"
 #include "mfxstructures.h"
+#include <va/va_dec_vvc.h>
 
 #define UMC_VA_NUM_OF_COMP_BUFFERS       8
 #define UMC_VA_DECODE_STREAM_OUT_ENABLE  2
@@ -806,8 +807,8 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
 #if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
             case UMC::VA_VVC:
             case UMC::VA_VVC | UMC::VA_PROFILE_10:
-                va_size         = sizeof(UMC_VVC_DECODER::VASliceParameterBufferVVC);
-                va_num_elements = size/sizeof(UMC_VVC_DECODER::VASliceParameterBufferVVC);
+                va_size         = sizeof(VASliceParameterBufferVVC);
+                va_num_elements = size/sizeof(VASliceParameterBufferVVC);
                 break;
 #endif
             default:
@@ -821,33 +822,33 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
         {
             if( VATileBufferType == va_type)
             {
-                va_size         = sizeof(UMC_VVC_DECODER::VATileVVC);
-                va_num_elements = size/sizeof(UMC_VVC_DECODER::VATileVVC);
+                va_size         = sizeof(uint16_t);
+                va_num_elements = size/sizeof(uint16_t);
             }
             else if( VAAlfBufferType == va_type)
             {
-                va_size         = sizeof(UMC_VVC_DECODER::VAAlfDataVVC);
-                va_num_elements = size/sizeof(UMC_VVC_DECODER::VAAlfDataVVC);
+                va_size         = sizeof(VAAlfDataVVC);
+                va_num_elements = size/sizeof(VAAlfDataVVC);
             }
             else if( VALmcsBufferType == va_type)
             {
-                va_size         = sizeof(UMC_VVC_DECODER::VALmcsDataVVC);
-                va_num_elements = size/sizeof(UMC_VVC_DECODER::VALmcsDataVVC);
+                va_size         = sizeof(VALmcsDataVVC);
+                va_num_elements = size/sizeof(VALmcsDataVVC);
             }
             else if( VAIQMatrixBufferType == va_type)
             {
-                va_size         = sizeof(UMC_VVC_DECODER::VAScalingListVVC);
-                va_num_elements = size/sizeof(UMC_VVC_DECODER::VAScalingListVVC);
+                va_size         = sizeof(VAScalingListVVC);
+                va_num_elements = size/sizeof(VAScalingListVVC);
             }
             else if( VASliceStructBufferType == va_type)
             {
-                va_size         = sizeof(UMC_VVC_DECODER::VASliceStructVVC);
-                va_num_elements = size/sizeof(UMC_VVC_DECODER::VASliceStructVVC);
+                va_size         = sizeof(VASliceStructVVC);
+                va_num_elements = size/sizeof(VASliceStructVVC);
             }
             else if(VASubPicBufferType == va_type)
             {
-                va_size         = sizeof(UMC_VVC_DECODER::VASubPicVVC);
-                va_num_elements = size/sizeof(UMC_VVC_DECODER::VASubPicVVC);
+                va_size         = sizeof(VASubPicVVC);
+                va_num_elements = size/sizeof(VASubPicVVC);
             }
             else
             {
