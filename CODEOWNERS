@@ -1,18 +1,18 @@
-* dmitry.v.aleksandrov@intel.com jie.xia@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com rachel.liu@intel.com fish.jiang@intel.com
+* jie.xia@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
 
 # API
-/api/**                                 miroslav.goncharenko@intel.com vasily.aristarkhov@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com chunbo.chen@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
+/api/**                                 miroslav.goncharenko@intel.com vasily.aristarkhov@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com chunbo.chen@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
 
 # Quick Build buildplans and scripts
-/config/**                              andrey.shakhnov@intel.com zhijie.zhang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
+/config/**                              zhijie.zhang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
 
 # core & plugin:
-/_studio/mfx_lib/shared/**              lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
-/_studio/shared/**                      lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
-/_studio/shared/umc/core/**             lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
-/_studio/shared/umc/io/**               lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
-/_studio/mfx_lib/cmrt_cross_platform/** lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
-/_studio/mfx_lib/scheduler/**           lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com
+/_studio/mfx_lib/shared/**              lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
+/_studio/shared/**                      lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
+/_studio/shared/umc/core/**             lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
+/_studio/shared/umc/io/**               lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
+/_studio/mfx_lib/cmrt_cross_platform/** lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
+/_studio/mfx_lib/scheduler/**           lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
 
 # decoders
 /_studio/mfx_lib/decode/**                          yan.wang@intel.com will.guo@intel.com yuchen.wang@intel.com
@@ -31,13 +31,13 @@
 /_studio/mfx_lib/shared/src/mfx_vpx_dec/**          yan.wang@intel.com will.guo@intel.com yuchen.wang@intel.com
 
 # AVC/MPEG2/JPEG encode
-/_studio/mfx_lib/encode_hw/h264/**                  denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
-/_studio/mfx_lib/shared/src/mfx_h264*               denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
-/_studio/mfx_lib/shared/include/mfx_h264*           denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
-/_studio/mfx_lib/encode_hw/mpeg2/**                 denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
-/_studio/mfx_lib/shared/include/mfx_mpeg2           denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
-/_studio/mfx_lib/shared/src/mfx_mpeg2*              denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
-/_studio/mfx_lib/encode_hw/mjpeg/**                 denis.volkov@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/encode_hw/h264/**                  chunbo.chen@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/shared/src/mfx_h264*               chunbo.chen@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/shared/include/mfx_h264*           chunbo.chen@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/encode_hw/mpeg2/**                 chunbo.chen@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/shared/include/mfx_mpeg2           chunbo.chen@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/shared/src/mfx_mpeg2*              chunbo.chen@intel.com rachel.cheng@intel.com
+/_studio/mfx_lib/encode_hw/mjpeg/**                 chunbo.chen@intel.com rachel.cheng@intel.com
 
 # HEVC encode:
 /_studio/mfx_lib/encode_hw/hevc/**                  thomas.li@intel.com lightny.gong@intel.com chunbo.chen@intel.com rachel.cheng@intel.com
