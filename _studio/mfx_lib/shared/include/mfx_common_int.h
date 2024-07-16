@@ -48,6 +48,7 @@ mfxStatus PackMfxFrameRate(mfxU32 nom, mfxU32 denom, mfxU32& packed); // fit u32
 mfxExtBuffer* GetExtendedBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id);
 mfxExtBuffer* GetExtendedBufferInternal(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id);
 
+
 class ExtendedBuffer
 {
 public:

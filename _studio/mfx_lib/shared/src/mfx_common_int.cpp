@@ -30,7 +30,6 @@
 #include <algorithm>
 
 
-
 mfxExtBuffer* GetExtendedBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id)
 {
     if (extBuf != 0)
