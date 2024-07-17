@@ -56,17 +56,6 @@ MFXVideoFrameInterpolation::MFXVideoFrameInterpolation() :
 {
 }
 
-bool MFXVideoFrameInterpolation::IsScdSupportedFormat(mfxU32 fourcc)
-{
-    if (fourcc == MFX_FOURCC_NV12 ||
-        fourcc == MFX_FOURCC_RGB4 ||
-        fourcc == MFX_FOURCC_BGR4)
-    {
-        return true;
-    }
-    return false;
-}
-
 MFXVideoFrameInterpolation::~MFXVideoFrameInterpolation()
 {
     if (m_responseIn.mids)
@@ -86,23 +75,20 @@ MFXVideoFrameInterpolation::~MFXVideoFrameInterpolation()
         m_core->FreeFrames(&m_outSurfForFi);
 }
 
-mfxStatus MFXVideoFrameInterpolation::InitScd(const mfxFrameInfo& frameInfo)
+mfxStatus MFXVideoFrameInterpolation::InitScd(const mfxFrameInfo& inFrameInfo, const mfxFrameInfo& outFrameInfo)
 {
     mfxStatus sts = MFX_ERR_NONE;
-
-    if (IsScdSupportedFormat(frameInfo.FourCC))
-    {
-        m_enableScd = true;
-    }
+ 
+    m_enableScd = true;
 
     if (!m_enableScd)
         return MFX_ERR_NONE;
 #ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
-    MFX_CHECK_STS(m_scd.Init(frameInfo.Width, frameInfo.Height, frameInfo.Width, MFX_PICSTRUCT_PROGRESSIVE, false));
+    MFX_CHECK_STS(m_scd.Init(outFrameInfo.Width, outFrameInfo.Height, outFrameInfo.Width, MFX_PICSTRUCT_PROGRESSIVE, false));
     m_scd.SetGoPSize(ns_asc::Immediate_GoP);
 #endif
 
-    if (frameInfo.FourCC != MFX_FOURCC_NV12)
+    if (outFrameInfo.FourCC != MFX_FOURCC_NV12)
     {
         m_scdNeedCsc = true;
 
@@ -112,8 +98,8 @@ mfxStatus MFXVideoFrameInterpolation::InitScd(const mfxFrameInfo& frameInfo)
         mfxVideoParam vppParams = {};
         vppParams.AsyncDepth = 1;
         vppParams.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
-        vppParams.vpp.In = frameInfo;
-        vppParams.vpp.Out = frameInfo;
+        vppParams.vpp.In = outFrameInfo;
+        vppParams.vpp.Out = outFrameInfo;
         //vppParams.vpp.Out.CropX = 0;
         //vppParams.vpp.Out.CropY = 0;
         //vppParams.vpp.Out.CropW = m_scd.Get_asc_subsampling_width();
@@ -189,7 +175,7 @@ mfxStatus MFXVideoFrameInterpolation::Init(VideoCORE* core, mfxFrameInfo& inInfo
     m_outStamp = 0;
     m_outTick = (mfxU16)m_ratio;
 
-    MFX_CHECK_STS(InitScd(inInfo));
+    MFX_CHECK_STS(InitScd(inInfo, outInfo));
 
 #ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
     D3D11Interface* pD3d11 = QueryCoreInterface<D3D11Interface>(core);
@@ -596,7 +582,7 @@ mfxStatus MFXVideoFrameInterpolation::SceneChangeDetect(mfxFrameSurface1* input,
     mfxU8* dataY = nullptr;
     mfxI32 pitch = 0;
     
-    if (input->Info.FourCC == MFX_FOURCC_NV12)
+    if (!m_scdNeedCsc)
     {
         if (isExternal)
         {
@@ -613,7 +599,7 @@ mfxStatus MFXVideoFrameInterpolation::SceneChangeDetect(mfxFrameSurface1* input,
         pitch = (mfxI32)(input->Data.PitchLow + (input->Data.PitchHigh << 16));
         dataY = input->Data.Y;
     }
-    else if(input->Info.FourCC == MFX_FOURCC_RGB4)
+    else
     {
         sts = m_vppForScd->Submit(input, &m_scdImage);
         MFX_CHECK_STS(sts);
@@ -624,10 +610,7 @@ mfxStatus MFXVideoFrameInterpolation::SceneChangeDetect(mfxFrameSurface1* input,
         dataY = m_scdImage.Data.Y;
         pitch = m_scdImage.Data.Pitch;
     }
-    else
-    {
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
-    }
+
 #ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
     sts = m_scd.PutFrameProgressive(dataY, pitch);
     MFX_CHECK_STS(sts);
@@ -635,14 +618,22 @@ mfxStatus MFXVideoFrameInterpolation::SceneChangeDetect(mfxFrameSurface1* input,
     decision = m_scd.Get_frame_shot_Decision();
 #endif
 
-    if (isExternal)
+    if (!m_scdNeedCsc)
     {
-        sts = m_core->UnlockExternalFrame(*input);
+        if (isExternal)
+        {
+            sts = m_core->UnlockExternalFrame(*input);
+        }
+        else
+        {
+            sts = m_core->UnlockFrame(*input);
+        }
     }
     else
     {
-        sts = m_core->UnlockFrame(*input);
+        sts = m_core->UnlockFrame(m_scdImage);
     }
+
     MFX_CHECK_STS(sts);
     return sts;
 }

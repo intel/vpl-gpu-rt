@@ -55,12 +55,10 @@ public:
 
     mfxStatus ReturnSurface(mfxU32 taskIndex, mfxFrameSurface1* out, mfxMemId internalVidMemId = 0);
 
-    bool IsScdSupportedFormat(mfxU32 fourcc);
-
     mfxStatus AddTaskQueue(mfxU32 taskIndex);
 
 private:
-    mfxStatus InitScd(const mfxFrameInfo& frameInfo);
+    mfxStatus InitScd(const mfxFrameInfo& inFrameInfo, const mfxFrameInfo& outFrameInfo);
     mfxStatus SceneChangeDetect(mfxFrameSurface1* input, bool isExternal, mfxU32& decision);
 
     mfxStatus DuplicateFrame();
