@@ -229,7 +229,7 @@ namespace UMC_VVC_DECODER
         uint32_t tile_count = pPicParamSet->pps_num_exp_tile_columns_minus1 + pPicParamSet->pps_num_exp_tile_rows_minus1 + 2;
         UMC::UMCVACompBuffer* compBufTile = nullptr;
         auto pTileParam = reinterpret_cast<uint16_t*>(m_va->GetCompBuffer(VATileBufferType, &compBufTile,sizeof(uint16_t) * tile_count));
-        if (!pTileParam || !compBufTile || (compBufTile->GetBufferSize() < sizeof(uint16_t)))
+        if (!pTileParam || !compBufTile || (static_cast<size_t>(compBufTile->GetBufferSize()) < sizeof(uint16_t)))
             throw vvc_exception(MFX_ERR_MEMORY_ALLOC);
 
         memset(pTileParam, 0, sizeof(uint16_t) * tile_count);
@@ -260,7 +260,7 @@ namespace UMC_VVC_DECODER
             uint32_t subpic_count = pSeqParamSet->sps_num_subpics_minus1 + 1;
             UMC::UMCVACompBuffer* compBufSubpic = nullptr;
             auto pSubpicParam = reinterpret_cast<VASubPicVVC*>(m_va->GetCompBuffer(VASubPicBufferType, &compBufSubpic,sizeof(VASubPicVVC) * subpic_count));
-            if (!pSubpicParam || !compBufSubpic || (compBufSubpic->GetBufferSize() < sizeof(VASubPicVVC)))
+            if (!pSubpicParam || !compBufSubpic || (static_cast<size_t>(compBufSubpic->GetBufferSize()) < sizeof(VASubPicVVC)))
                 throw vvc_exception(MFX_ERR_MEMORY_ALLOC);
             memset(pSubpicParam, 0, sizeof(VASubPicVVC) * subpic_count);
 
@@ -402,7 +402,7 @@ namespace UMC_VVC_DECODER
                             break;
                         uint32_t max_surf_num = pSlice->GetMaxSurfNum();
                         uint32_t refFramePOCidx = pPicParam->ReferenceFrames[idx].picture_id - max_surf_num;   // should add sync depth
-                        if (pPicParam->ReferenceFrames[refFramePOCidx].picture_id == sh_rpls[listIdx]->POC[i])
+                        if (pPicParam->ReferenceFrames[refFramePOCidx].picture_id == static_cast<uint32_t>(sh_rpls[listIdx]->POC[i]))
                         {
                             pSliceParam->RefPicList[listIdx][i] = idx;
                             break;
@@ -483,12 +483,12 @@ namespace UMC_VVC_DECODER
 
         UMC::UMCVACompBuffer* compBufferSlice = nullptr;
         VASliceParameterBufferVVC* vvcSliceParamsLongBase = reinterpret_cast<VASliceParameterBufferVVC*>(m_va->GetCompBuffer(VASliceParameterBufferType, &compBufferSlice,sizeof(VASliceParameterBufferVVC) * slice_num));
-        if (!vvcSliceParamsLongBase || !compBufferSlice || (compBufferSlice->GetBufferSize() < sizeof(VASliceParameterBufferVVC) * slice_num))
+        if (!vvcSliceParamsLongBase || !compBufferSlice || (static_cast<size_t>(compBufferSlice->GetBufferSize()) < sizeof(VASliceParameterBufferVVC) * slice_num))
             throw vvc_exception(MFX_ERR_MEMORY_ALLOC);
 
         size_t sliceDataBufferSize = 0;
         int32_t alignedSize = 0;
-        for(int i = 0; i < slice_num; i++)
+        for(size_t i = 0; i < slice_num; i++)
         {
             VVCSlice *pSlice = pSliceInfo->GetSlice(i);
             if(!pSlice)
@@ -516,7 +516,7 @@ namespace UMC_VVC_DECODER
         uint32_t size = 0;
         uint32_t* src_ptr = 0;
         uint32_t size_before = 0;
-        for(int i = 0; i < slice_num; i++)
+        for(size_t i = 0; i < slice_num; i++)
         {
             vvcSliceParamsLongBase->slice_data_offset = size_before;
             VVCSlice *pSlice = pSliceInfo->GetSlice(i);
@@ -876,7 +876,7 @@ namespace UMC_VVC_DECODER
         // Pic params buffer packing
         UMC::UMCVACompBuffer* compBufPic = nullptr;
         auto picParam = reinterpret_cast<VAPictureParameterBufferVVC*>(m_va->GetCompBuffer(VAPictureParameterBufferType, &compBufPic,sizeof(VAPictureParameterBufferVVC)));
-        if (!picParam || !compBufPic || (compBufPic->GetBufferSize() < sizeof(VAPictureParameterBufferVVC)))
+        if (!picParam || !compBufPic || (static_cast<size_t>(compBufPic->GetBufferSize()) < sizeof(VAPictureParameterBufferVVC)))
             throw vvc_exception(MFX_ERR_MEMORY_ALLOC);
 
         memset(picParam, 0, sizeof(VAPictureParameterBufferVVC));
@@ -894,7 +894,7 @@ namespace UMC_VVC_DECODER
             }
             UMC::UMCVACompBuffer* compBufAlf = nullptr;
             auto alfParam = reinterpret_cast<VAAlfDataVVC*>(m_va->GetCompBuffer(VAAlfBufferType, &compBufAlf,sizeof(VAAlfDataVVC)*ALF_num));
-            if (!alfParam || !compBufAlf || (compBufAlf->GetBufferSize() < sizeof(VAAlfDataVVC)*ALF_num))
+            if (!alfParam || !compBufAlf || (static_cast<size_t>(compBufAlf->GetBufferSize()) < sizeof(VAAlfDataVVC)*ALF_num))
                 throw vvc_exception(MFX_ERR_MEMORY_ALLOC);
             memset(alfParam, 0, sizeof(VAAlfDataVVC)*ALF_num);
             pFirstSlice->aps_num[ALF_APS] = ALF_num;     // return the actual No.
@@ -913,7 +913,7 @@ namespace UMC_VVC_DECODER
             // LMCS buffer packing
             UMC::UMCVACompBuffer* compBufLmcs = nullptr;
             auto lmcsParam = reinterpret_cast<VALmcsDataVVC*>(m_va->GetCompBuffer(VALmcsBufferType, &compBufLmcs,sizeof(VALmcsDataVVC)*LMCS_num));
-            if (!lmcsParam || !compBufLmcs || (compBufLmcs->GetBufferSize() < sizeof(VALmcsDataVVC)))
+            if (!lmcsParam || !compBufLmcs || (static_cast<size_t>(compBufLmcs->GetBufferSize()) < sizeof(VALmcsDataVVC)))
             {
                 throw vvc_exception(MFX_ERR_MEMORY_ALLOC);
             }
@@ -933,7 +933,7 @@ namespace UMC_VVC_DECODER
             // ScalingList buffer packing
             UMC::UMCVACompBuffer* compBufSL = nullptr;
             auto scalingParam = reinterpret_cast<VAScalingListVVC*>(m_va->GetCompBuffer(VAIQMatrixBufferType, &compBufSL,sizeof(VAScalingListVVC)*scalinglist_num));
-            if (!scalingParam || !compBufSL || (compBufSL->GetBufferSize() < sizeof(VAScalingListVVC)))
+            if (!scalingParam || !compBufSL || (static_cast<size_t>(compBufSL->GetBufferSize()) < sizeof(VAScalingListVVC)))
             {
                 throw vvc_exception(MFX_ERR_MEMORY_ALLOC);
             }

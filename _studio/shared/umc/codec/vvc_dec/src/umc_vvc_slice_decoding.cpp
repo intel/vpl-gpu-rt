@@ -30,9 +30,9 @@
 namespace UMC_VVC_DECODER
 {
     VVCSlice::VVCSlice()
-        : m_seqParamSet(0)
+        : m_tileByteLocation(0)
         , m_picParamSet(0)
-        , m_tileByteLocation (0)
+        , m_seqParamSet(0)
     {
         m_picHeader = {};
         m_adaptParamSet.clear();

@@ -604,9 +604,9 @@ namespace UMC_VVC_DECODER
             return UMC::B_PICTURE;
         case I_SLICE:
             return UMC::I_PICTURE;
+        default:
+            return UMC::NONE_PICTURE;
         }
-
-        return UMC::NONE_PICTURE;
     }
 
     enum ChannelType

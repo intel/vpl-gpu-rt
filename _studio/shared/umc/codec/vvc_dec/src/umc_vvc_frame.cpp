@@ -33,15 +33,15 @@
 namespace UMC_VVC_DECODER
 {
     VVCDecoderFrameInfo::VVCDecoderFrameInfo(VVCDecoderFrame &Frame)
-        : m_frame(Frame)
-        , m_isFilled(false)
-        , m_IsIDR(0)
+        : m_IsIDR(0)
+        , m_frame(Frame)
         , m_frameBeforeIDR(0)
+        , m_isFilled(false)
+        , m_Status()
         , m_isIntraAU(0)
         , m_nextAU(0)
         , m_prevAU(0)
         , m_refAU(0)
-        , m_Status()
     {
     }
 
@@ -103,7 +103,8 @@ namespace UMC_VVC_DECODER
     }
 
     VVCDecoderFrame::VVCDecoderFrame()
-        : m_decOrder(0xffffffff)
+        : m_frameOrder(0)
+        , m_decOrder(0xffffffff)
         , m_displayOrder(0xffffffff)
         , m_dFrameTime(-1.0)
         , m_isOriginalPTS(false)
@@ -112,6 +113,10 @@ namespace UMC_VVC_DECODER
         , m_verticalSize(0)
         , m_aspectWidth(0)
         , m_aspectHeight(0)
+        , m_RefPicListResetCount(0)
+        , m_pitchChroma(0)
+        , m_isFull(false)
+        , m_decFlush(false)
         , m_data(new UMC::FrameData{})
         , m_locked(0)
         , m_decodingStarted(false)
@@ -120,17 +125,12 @@ namespace UMC_VVC_DECODER
         , m_outputted(false)
         , m_displayed(false)
         , m_decoded(false)
-        , m_isFull(false)
         , m_isRef(false)
         , m_isSkipped(false)
         , m_error(0)
-        , m_slicesInfo(*this)
-        , m_RefPicListResetCount(0)
-        , m_frameOrder(0)
-        , m_isInter(true)
-        , m_decFlush(false)
-        , m_pitchChroma(0)
         , show_as_existing(false)
+        , m_isInter(true)
+        , m_slicesInfo(*this)
     {
         Reset();
     }

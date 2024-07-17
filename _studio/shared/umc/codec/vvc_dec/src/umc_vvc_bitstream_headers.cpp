@@ -1650,8 +1650,8 @@ namespace UMC_VVC_DECODER
             }
             for (uint32_t nalOrVcl = 0; nalOrVcl < 2; nalOrVcl++)
             {
-                if ((nalOrVcl == 0) && (general_timing_hrd_parameters->general_nal_hrd_params_present_flag) ||
-                    (nalOrVcl == 1) && (general_timing_hrd_parameters->general_vcl_hrd_params_present_flag))
+                if (((nalOrVcl == 0) && (general_timing_hrd_parameters->general_nal_hrd_params_present_flag)) ||
+                    ((nalOrVcl == 1) && (general_timing_hrd_parameters->general_vcl_hrd_params_present_flag)))
                 {
                     for (uint32_t j = 0; j <= general_timing_hrd_parameters->hrd_cpb_cnt_minus1; j++)
                     {
@@ -1675,8 +1675,8 @@ namespace UMC_VVC_DECODER
             ols_timing_hrd_parameters->low_delay_hrd_flag[i] = ols_timing_hrd_parameters->low_delay_hrd_flag[MaxSubLayersVal];
             for (uint32_t nalOrVcl = 0; nalOrVcl < 2; nalOrVcl++)
             {
-                if ((nalOrVcl == 0) && (general_timing_hrd_parameters->general_nal_hrd_params_present_flag) ||
-                    (nalOrVcl == 1) && (general_timing_hrd_parameters->general_vcl_hrd_params_present_flag))
+                if (((nalOrVcl == 0) && (general_timing_hrd_parameters->general_nal_hrd_params_present_flag)) ||
+                    ((nalOrVcl == 1) && (general_timing_hrd_parameters->general_vcl_hrd_params_present_flag)))
                 {
                     for (uint32_t j = 0; j <= general_timing_hrd_parameters->hrd_cpb_cnt_minus1; j++)
                     {

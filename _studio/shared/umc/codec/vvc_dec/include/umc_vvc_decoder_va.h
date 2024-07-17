@@ -91,8 +91,8 @@ namespace UMC_VVC_DECODER
 
             ReportItem(uint32_t index, uint8_t status)
                 : m_index(index)
-                , m_status(status)
                 , m_field(0)
+                , m_status(status)
             {
             }
 

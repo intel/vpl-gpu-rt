@@ -33,8 +33,8 @@ namespace UMC_VVC_DECODER
     };
 
     StartCodeSearcher::StartCodeSearcher()
-        : m_code(-1)
-        , m_pts(-1)
+        : m_pts(-1)
+        , m_code(-1)
         , m_suggestedSize(10 * 1024)
     {
         m_mediaData.SetExData(&m_mediaDataEx);

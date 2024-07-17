@@ -46,14 +46,14 @@
 
 VideoDECODEVVC::VideoDECODEVVC(VideoCORE *core, mfxStatus *sts)
     : m_core(core)
-    , m_isFirstRun(true)
     , m_request()
     , m_response()
     , m_response_alien()
     , m_stat()
     , m_isInit(false)
-    , m_frameOrder((mfxU16)MFX_FRAMEORDER_UNKNOWN)
+    , m_isFirstRun(true)
     , m_useDelayedDisplay(false)
+    , m_frameOrder((mfxU16)MFX_FRAMEORDER_UNKNOWN)
     , m_is_cscInUse(false)
 {
     if (sts)
