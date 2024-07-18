@@ -121,6 +121,7 @@ namespace UMC_AV1_DECODER
             old_sps->max_frame_height = new_sps->max_frame_height;
             old_sps->seq_profile = new_sps->seq_profile;
             old_sps->film_grain_param_present = new_sps->film_grain_param_present;
+            old_sps->color_config.BitDepth = new_sps->color_config.BitDepth;
             return false;
         }
 
@@ -141,6 +142,12 @@ namespace UMC_AV1_DECODER
         if (old_sps->film_grain_param_present != new_sps->film_grain_param_present)
         {
             old_sps->film_grain_param_present = new_sps->film_grain_param_present;
+            return true;
+        }
+
+        if (old_sps->color_config.BitDepth != new_sps->color_config.BitDepth)
+        {
+            old_sps->color_config.BitDepth = new_sps->color_config.BitDepth;
             return true;
         }
 
