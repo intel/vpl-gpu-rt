@@ -820,7 +820,7 @@ typedef struct {
         of this option. Use the Query API function to check if this feature is supported. */
     mfxU16  LowPower;
     /*! Specifies a multiplier for bitrate control parameters. Affects the following variables: InitialDelayInKB, BufferSizeInKB,
-        TargetKbps, MaxKbps. If this value is not equal to zero, the encoder calculates BRC parameters as ``value * BRCParamMultiplier``. */
+        TargetKbps, MaxKbps, WinBRCMaxAvgKbps. If this value is not equal to zero, the encoder calculates BRC parameters as ``value * BRCParamMultiplier``. */
     mfxU16  BRCParamMultiplier;
 
     mfxFrameInfo    FrameInfo; /*!< mfxFrameInfo structure that specifies frame parameters. */
@@ -1756,14 +1756,13 @@ typedef struct {
                                 @note Not all codecs and implementations support these values. Use the Query API function to check if this feature is supported */
 
     /*!
-       When rate control method is MFX_RATECONTROL_VBR, MFX_RATECONTROL_LA, MFX_RATECONTROL_LA_HRD, or MFX_RATECONTROL_QVBR this parameter
-       specifies the maximum bitrate averaged over a sliding window specified by WinBRCSize. For MFX_RATECONTROL_CBR this parameter is ignored and
-       equals TargetKbps.
+       When rate control method is MFX_RATECONTROL_CBR, MFX_RATECONTROL_VBR, MFX_RATECONTROL_LA, MFX_RATECONTROL_LA_HRD, or MFX_RATECONTROL_QVBR 
+       this parameter specifies the maximum bitrate averaged over a sliding window specified by WinBRCSize.
     */
     mfxU16      WinBRCMaxAvgKbps;
     /*!
        When rate control method is MFX_RATECONTROL_CBR, MFX_RATECONTROL_VBR, MFX_RATECONTROL_LA, MFX_RATECONTROL_LA_HRD, or MFX_RATECONTROL_QVBR
-       this parameter specifies sliding window size in frames. Set this parameter to zero to disable sliding window.
+       this parameter specifies sliding window size in frames. Set WinBRCMaxAvgKbps and WinBRCSize to zero to disable sliding window.
     */
     mfxU16      WinBRCSize;
 
