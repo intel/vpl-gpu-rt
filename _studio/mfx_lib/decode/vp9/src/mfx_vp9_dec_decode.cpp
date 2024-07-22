@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2019 Intel Corporation
+// Copyright (c) 2012-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -262,6 +262,9 @@ void FillVideoParam(eMFXPlatform platform, UMC_VP9_DECODER::VP9DecoderFrame cons
             params.mfx.FrameInfo.Shift = 1;
         }
     }
+
+    params.mfx.FrameInfo.FrameRateExtN = 30;
+    params.mfx.FrameInfo.FrameRateExtD = 1;
 }
 
 } //MFX_VP9_Utility

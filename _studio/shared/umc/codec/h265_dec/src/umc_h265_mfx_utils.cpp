@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2017-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -339,6 +339,11 @@ UMC::Status FillVideoParam(const H265VideoParamSet * vps, const H265SeqParamSet 
     {
         par->mfx.FrameInfo.FrameRateExtD = seq->getTimingInfo()->vps_num_units_in_tick;
         par->mfx.FrameInfo.FrameRateExtN = seq->getTimingInfo()->vps_time_scale;
+    }
+    else // If no frame rate info in bitstream, will set to default 30fps
+    {
+        par->mfx.FrameInfo.FrameRateExtN = 30;
+        par->mfx.FrameInfo.FrameRateExtD = 1;
     }
 
     par->mfx.CodecProfile = (mfxU16)seq->m_pcPTL.GetGeneralPTL()->profile_idc;
