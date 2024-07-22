@@ -2437,7 +2437,6 @@ enum {
     */
     MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION = MFX_MAKEFOURCC('V', 'A', 'F', 'I'),
 #endif
-#ifdef ONEVPL_EXPERIMENTAL
    /*!
       See the mfxExtQualityInfoMode structure for details.
    */
@@ -2446,13 +2445,10 @@ enum {
       See the mfxExtQualityInfoOutput structure for details.
    */
    MFX_EXTBUFF_ENCODED_QUALITY_INFO_OUTPUT = MFX_MAKEFOURCC('E', 'N', 'Q', 'O'),
-#endif
-#ifdef ONEVPL_EXPERIMENTAL
    /*!
       See the mfxExtAV1ScreenContentTools structure for details.
    */
    MFX_EXTBUFF_AV1_SCREEN_CONTENT_TOOLS = MFX_MAKEFOURCC('1', 'S', 'C', 'C'),
-#endif
 #ifdef ONEVPL_EXPERIMENTAL
     /*!
         See the mfxExtAlphaChannelEncCtrl structure for more details.
@@ -5211,7 +5207,6 @@ typedef struct {
 MFX_PACK_END()
 #endif
 
-#ifdef ONEVPL_EXPERIMENTAL
 /*! The mfxQualityInfoMode enumerator specifies the mode of Quality information. */
 typedef enum {
     MFX_QUALITY_INFO_DISABLE        = 0,   /*!< Quality reporting disabled. */
@@ -5246,9 +5241,7 @@ typedef struct {
     mfxHDL              reserved2[4];   /*!< Reserved for future use. */
 } mfxExtQualityInfoOutput;
 MFX_PACK_END()
-#endif
 
-#ifdef ONEVPL_EXPERIMENTAL
 MFX_PACK_BEGIN_USUAL_STRUCT()
 /*!
    Used by the encoder to set the screen content tools.
@@ -5276,7 +5269,6 @@ typedef struct {
     mfxU16              reserved[10];   /*!< Reserved for future use. */
 } mfxExtAV1ScreenContentTools;
 MFX_PACK_END()
-#endif
 
 
 #ifdef ONEVPL_EXPERIMENTAL
