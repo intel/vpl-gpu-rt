@@ -77,6 +77,9 @@ MFXVideoFrameInterpolation::~MFXVideoFrameInterpolation()
         m_core->FreeFrames(&m_rgbSurfForFiIn);
     if (m_outSurfForFi.mids)
         m_core->FreeFrames(&m_outSurfForFi);
+#ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
+    m_scd.Close();
+#endif
 }
 
 mfxStatus MFXVideoFrameInterpolation::InitScd(const mfxFrameInfo& inFrameInfo, const mfxFrameInfo& outFrameInfo)
