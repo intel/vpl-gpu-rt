@@ -286,7 +286,7 @@ JERRCODE CBitStreamInput::SeekAfterByte(uint8_t byte, int* skipped)
     m_nUsedBytes += cnt;
   }
 
-  cnt = p;
+  cnt = (int) p;
   res += cnt;
   ++cnt;
   m_currPos += cnt;
