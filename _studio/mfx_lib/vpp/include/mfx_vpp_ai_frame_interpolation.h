@@ -46,7 +46,12 @@ public:
     MFXVideoFrameInterpolation();
     virtual ~MFXVideoFrameInterpolation();
 
-    mfxStatus Init(VideoCORE* core, mfxFrameInfo& inInfo, mfxFrameInfo& outInfo, mfxU16 IOPattern, const mfxVideoSignalInfo& videoSignalInfo);
+    mfxStatus Init(
+        VideoCORE* core,
+        const mfxFrameInfo& inInfo,
+        const mfxFrameInfo& outInfo,
+        mfxU16 IOPattern,
+        const mfxVideoSignalInfo& videoSignalInfo);
 
     mfxStatus UpdateTsAndGetStatus(
         mfxFrameSurface1* input,
@@ -58,6 +63,12 @@ public:
     mfxStatus AddTaskQueue(mfxU32 taskIndex);
 
 private:
+    bool      IsVppNeededForVfi(const mfxFrameInfo& inInfo, const mfxFrameInfo& outInfo);
+    mfxStatus InitVppAndAllocateSurface(
+        const mfxFrameInfo& inInfo,
+        const mfxFrameInfo& outInfo,
+        const mfxVideoSignalInfo& videoSignalInfo);
+
     mfxStatus InitScd(const mfxFrameInfo& inFrameInfo, const mfxFrameInfo& outFrameInfo);
     mfxStatus SceneChangeDetect(mfxFrameSurface1* input, bool isExternal, mfxU32& decision);
 
@@ -97,8 +108,7 @@ private:
 #ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
     xeAIVfi                       m_aiIntp;
 #endif
-    bool                          m_preWorkCscForFi;
-    bool                          m_postWrokForFi;
+    bool                          m_vppForFi;
     std::unique_ptr<MfxVppHelper> m_vppBeforeFi0;
     std::unique_ptr<MfxVppHelper> m_vppBeforeFi1;
     std::unique_ptr<MfxVppHelper> m_vppAfterFi;

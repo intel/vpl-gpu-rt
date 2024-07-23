@@ -25,6 +25,11 @@
 #include "mfx_vpp_defs.h"
 #include "mfx_vpp_hw.h"
 
+#define WIDTH1  (mfxU16)1920
+#define HEIGHT1 (mfxU16)1080
+#define WIDTH2  (mfxU16)2560
+#define HEIGHT2 (mfxU16)1440
+
 MFXVideoFrameInterpolation::MFXVideoFrameInterpolation() :
     m_responseIn(),
     m_responseOut(),
@@ -41,8 +46,7 @@ MFXVideoFrameInterpolation::MFXVideoFrameInterpolation() :
     m_vppForScd(nullptr),
     m_scdImage(),
     m_scdAllocation(),
-    m_preWorkCscForFi(false),
-    m_postWrokForFi(false),
+    m_vppForFi(true),
     m_vppBeforeFi0(nullptr),
     m_vppBeforeFi1(nullptr),
     m_vppAfterFi(nullptr),
@@ -136,7 +140,171 @@ mfxStatus MFXVideoFrameInterpolation::InitScd(const mfxFrameInfo& inFrameInfo, c
     return MFX_ERR_NONE;
 }
 
-mfxStatus MFXVideoFrameInterpolation::Init(VideoCORE* core, mfxFrameInfo& inInfo, mfxFrameInfo& outInfo, mfxU16 IOPattern, const mfxVideoSignalInfo& videoSignalInfo)
+bool MFXVideoFrameInterpolation::IsVppNeededForVfi(const mfxFrameInfo& inInfo, const mfxFrameInfo& outInfo)
+{
+    // kernel only support RGB
+    if (outInfo.FourCC != MFX_FOURCC_RGB4 ||
+        outInfo.FourCC != MFX_FOURCC_BGR4)
+    {
+        return true;
+    }
+
+    // kernel only support 1080p and 1440p
+    if ((outInfo.Width == WIDTH1 && outInfo.Height == HEIGHT1) ||
+        (outInfo.Width == WIDTH2 && outInfo.Height == HEIGHT2))
+    {
+        return false;
+    }
+    return true;
+}
+
+mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
+    const mfxFrameInfo& inInfo,
+    const mfxFrameInfo& outInfo,
+    const mfxVideoSignalInfo& videoSignalInfo)
+{
+    mfxExtVideoSignalInfo vsInPre = {};
+    mfxExtVideoSignalInfo vsOutPre = {};
+    mfxExtVideoSignalInfo vsInPost = {};
+    mfxExtVideoSignalInfo vsOutPost = {};
+    mfxExtBuffer* extBufferPre[2] = {};
+    mfxExtBuffer* extBufferPost[2] = {};
+    if (videoSignalInfo.enabled)
+    {
+        mfxVideoSignalInfo vsInfoIn = videoSignalInfo;
+        mfxVideoSignalInfo vsInfoOut = videoSignalInfo;
+        vsInfoOut.VideoFormat = 1;
+
+        vsInPre.Header.BufferId = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN;
+        vsInPre.Header.BufferSz = sizeof(vsInPre);
+        vsInPre.ColourDescriptionPresent = vsInfoIn.ColourDescriptionPresent;
+        vsInPre.ColourPrimaries = vsInfoIn.ColourPrimaries;
+        vsInPre.MatrixCoefficients = vsInfoIn.MatrixCoefficients;
+        vsInPre.TransferCharacteristics = vsInfoIn.TransferCharacteristics;
+        vsInPre.VideoFormat = vsInfoIn.VideoFormat;
+        vsInPre.VideoFullRange = vsInfoIn.VideoFullRange;
+
+        vsOutPre.Header.BufferId = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT;
+        vsOutPre.Header.BufferSz = sizeof(vsOutPre);
+        vsOutPre.ColourDescriptionPresent = vsInfoOut.ColourDescriptionPresent;
+        vsOutPre.ColourPrimaries = vsInfoOut.ColourPrimaries;
+        vsOutPre.MatrixCoefficients = vsInfoOut.MatrixCoefficients;
+        vsOutPre.TransferCharacteristics = vsInfoOut.TransferCharacteristics;
+        vsOutPre.VideoFormat = vsInfoOut.VideoFormat;
+        vsOutPre.VideoFullRange = vsInfoOut.VideoFullRange;
+
+        extBufferPre[0] = &vsInPre.Header;
+        extBufferPre[1] = &vsOutPre.Header;
+
+        vsInPost = vsOutPre;
+        vsInPost.Header.BufferId = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN;
+        vsOutPost = vsInPre;
+        vsOutPost.Header.BufferId = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT;
+
+        extBufferPost[0] = &vsInPost.Header;
+        extBufferPost[1] = &vsOutPost.Header;
+    }
+
+    m_vppForFi = IsVppNeededForVfi(inInfo, outInfo);
+    if (m_vppForFi)
+    {
+        {
+            mfxStatus sts = MFX_ERR_NONE;
+            m_vppBeforeFi0.reset(new MfxVppHelper(m_core, &sts));
+            MFX_CHECK_STS(sts);
+            m_vppBeforeFi1.reset(new MfxVppHelper(m_core, &sts));
+            MFX_CHECK_STS(sts);
+
+            mfxVideoParam vppParams     = {};
+            vppParams.AsyncDepth        = 1;
+            vppParams.IOPattern         = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+            vppParams.vpp.In            = outInfo;
+            vppParams.vpp.In.PicStruct  = inInfo.PicStruct;
+            vppParams.vpp.Out           = outInfo;
+            vppParams.vpp.Out.Width     = WIDTH1;
+            vppParams.vpp.Out.Height    = mfx::align2_value(HEIGHT1);
+            vppParams.vpp.Out.CropW     = WIDTH1;
+            vppParams.vpp.Out.CropH     = HEIGHT1;
+            vppParams.vpp.Out.FourCC    = MFX_FOURCC_BGR4;
+            vppParams.vpp.Out.PicStruct = inInfo.PicStruct;
+
+            if (videoSignalInfo.enabled)
+            {
+                vppParams.NumExtParam = 2;
+                vppParams.ExtParam = &(extBufferPre[0]);
+            }
+
+            sts = m_vppBeforeFi0->Init(&vppParams);
+            MFX_CHECK_STS(sts);
+            sts = m_vppBeforeFi1->Init(&vppParams);
+            MFX_CHECK_STS(sts);
+
+            mfxFrameAllocRequest requestRGB = {};
+            requestRGB.Info = vppParams.vpp.Out;
+            requestRGB.Type = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT;
+            requestRGB.NumFrameMin = 2;
+            requestRGB.NumFrameSuggested = 2;
+            MFX_CHECK_STS(m_core->AllocFrames(&requestRGB, &m_rgbSurfForFiIn));
+            m_rgbBkwd.Info = vppParams.vpp.Out;
+            m_rgbBkwd = MakeSurface(m_rgbBkwd.Info, m_rgbSurfForFiIn.mids[0]);
+            m_rgbfwd.Info = vppParams.vpp.Out;
+            m_rgbfwd = MakeSurface(m_rgbfwd.Info, m_rgbSurfForFiIn.mids[1]);
+        }
+
+        {
+            mfxStatus sts = MFX_ERR_NONE;
+            m_vppAfterFi.reset(new MfxVppHelper(m_core, &sts));
+            MFX_CHECK_STS(sts);
+
+            mfxVideoParam vppParams    = {};
+            vppParams.AsyncDepth       = 1;
+            vppParams.IOPattern        = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+            vppParams.vpp.In           = outInfo;
+            vppParams.vpp.In.Width     = WIDTH1;
+            vppParams.vpp.In.Height    = mfx::align2_value(HEIGHT1);
+            vppParams.vpp.In.CropW     = WIDTH1;
+            vppParams.vpp.In.CropH     = HEIGHT1;
+            vppParams.vpp.In.PicStruct = inInfo.PicStruct;
+            vppParams.vpp.In.FourCC    = MFX_FOURCC_BGR4;
+            vppParams.vpp.Out          = outInfo;
+
+            if (videoSignalInfo.enabled)
+            {
+                vppParams.NumExtParam = 2;
+                vppParams.ExtParam = &(extBufferPost[0]);
+            }
+
+            sts = m_vppAfterFi->Init(&vppParams);
+            MFX_CHECK_STS(sts);
+
+            mfxFrameAllocRequest requestFiOut = {};
+            requestFiOut.Info = vppParams.vpp.In;
+            requestFiOut.Type = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT;
+            requestFiOut.NumFrameMin = 1;
+            requestFiOut.NumFrameSuggested = 1;
+            MFX_CHECK_STS(m_core->AllocFrames(&requestFiOut, &m_rgbSurfForFiOut));
+            m_rgbFiOut.Info = vppParams.vpp.In;
+            m_rgbFiOut = MakeSurface(m_rgbFiOut.Info, m_rgbSurfForFiOut.mids[0]);
+
+            mfxFrameAllocRequest requestFinalOut = {};
+            requestFinalOut.Info = vppParams.vpp.Out;
+            requestFinalOut.Type = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT;
+            requestFinalOut.NumFrameMin = 1;
+            requestFinalOut.NumFrameSuggested = 1;
+            MFX_CHECK_STS(m_core->AllocFrames(&requestFinalOut, &m_outSurfForFi));
+            m_fiOut.Info = vppParams.vpp.Out;
+            m_fiOut = MakeSurface(m_fiOut.Info, m_outSurfForFi.mids[0]);
+        }
+    }
+    return MFX_ERR_NONE;
+}
+
+mfxStatus MFXVideoFrameInterpolation::Init(
+    VideoCORE* core,
+    const mfxFrameInfo& inInfo,
+    const mfxFrameInfo& outInfo,
+    mfxU16 IOPattern,
+    const mfxVideoSignalInfo& videoSignalInfo)
 {
     m_core = core;
     MFX_CHECK_NULL_PTR1(m_core);
@@ -191,129 +359,7 @@ mfxStatus MFXVideoFrameInterpolation::Init(VideoCORE* core, mfxFrameInfo& inInfo
         MFX_RETURN(MFX_ERR_UNKNOWN);
 #endif
 
-    mfxExtVideoSignalInfo vsInPre   = {};
-    mfxExtVideoSignalInfo vsOutPre  = {};
-    mfxExtVideoSignalInfo vsInPost  = {};
-    mfxExtVideoSignalInfo vsOutPost = {};
-    mfxExtBuffer* extBufferPre[2]   = {};
-    mfxExtBuffer* extBufferPost[2]  = {};
-    if (videoSignalInfo.enabled)
-    {
-        mfxVideoSignalInfo vsInfoIn  = videoSignalInfo;
-        mfxVideoSignalInfo vsInfoOut = videoSignalInfo;
-        vsInfoOut.VideoFormat        = 1;
-
-        vsInPre.Header.BufferId          = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN;
-        vsInPre.Header.BufferSz          = sizeof(vsInPre);
-        vsInPre.ColourDescriptionPresent = vsInfoIn.ColourDescriptionPresent;
-        vsInPre.ColourPrimaries          = vsInfoIn.ColourPrimaries;
-        vsInPre.MatrixCoefficients       = vsInfoIn.MatrixCoefficients;
-        vsInPre.TransferCharacteristics  = vsInfoIn.TransferCharacteristics;
-        vsInPre.VideoFormat              = vsInfoIn.VideoFormat;
-        vsInPre.VideoFullRange           = vsInfoIn.VideoFullRange;
-
-        vsOutPre.Header.BufferId          = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT;
-        vsOutPre.Header.BufferSz          = sizeof(vsOutPre);
-        vsOutPre.ColourDescriptionPresent = vsInfoOut.ColourDescriptionPresent;
-        vsOutPre.ColourPrimaries          = vsInfoOut.ColourPrimaries;
-        vsOutPre.MatrixCoefficients       = vsInfoOut.MatrixCoefficients;
-        vsOutPre.TransferCharacteristics  = vsInfoOut.TransferCharacteristics;
-        vsOutPre.VideoFormat              = vsInfoOut.VideoFormat;
-        vsOutPre.VideoFullRange           = vsInfoOut.VideoFullRange;
-
-        extBufferPre[0] = &vsInPre.Header;
-        extBufferPre[1] = &vsOutPre.Header;
-
-        vsInPost                  = vsOutPre;
-        vsInPost.Header.BufferId  = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN;
-        vsOutPost                 = vsInPre;
-        vsOutPost.Header.BufferId = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT;
-
-        extBufferPost[0] = &vsInPost.Header;
-        extBufferPost[1] = &vsOutPost.Header;
-    }
-
-    m_preWorkCscForFi = true;
-    {
-        mfxStatus sts = MFX_ERR_NONE;
-        m_vppBeforeFi0.reset(new MfxVppHelper(m_core, &sts));
-        MFX_CHECK_STS(sts);
-        m_vppBeforeFi1.reset(new MfxVppHelper(m_core, &sts));
-        MFX_CHECK_STS(sts);
-
-        mfxVideoParam vppParams     = {};
-        vppParams.AsyncDepth        = 1;
-        vppParams.IOPattern         = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
-        vppParams.vpp.In            = outInfo;
-        vppParams.vpp.In.PicStruct  = inInfo.PicStruct;
-        vppParams.vpp.Out           = outInfo;
-        vppParams.vpp.Out.FourCC    = MFX_FOURCC_BGR4;
-        vppParams.vpp.Out.PicStruct = inInfo.PicStruct;
-
-        if (videoSignalInfo.enabled)
-        {
-            vppParams.NumExtParam = 2;
-            vppParams.ExtParam = &(extBufferPre[0]);
-        }
-
-        sts = m_vppBeforeFi0->Init(&vppParams);
-        MFX_CHECK_STS(sts);
-        sts = m_vppBeforeFi1->Init(&vppParams);
-        MFX_CHECK_STS(sts);
-
-        mfxFrameAllocRequest requestRGB = {};
-        requestRGB.Info                 = vppParams.vpp.Out;
-        requestRGB.Type                 = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT;
-        requestRGB.NumFrameMin          = 2;
-        requestRGB.NumFrameSuggested    = 2;
-        MFX_CHECK_STS(m_core->AllocFrames(&requestRGB, &m_rgbSurfForFiIn));
-        m_rgbBkwd.Info = vppParams.vpp.Out;
-        m_rgbBkwd      = MakeSurface(m_rgbBkwd.Info, m_rgbSurfForFiIn.mids[0]);
-        m_rgbfwd.Info  = vppParams.vpp.Out;
-        m_rgbfwd       = MakeSurface(m_rgbfwd.Info, m_rgbSurfForFiIn.mids[1]);
-    }
-
-    m_postWrokForFi = true;
-    {
-        mfxStatus sts = MFX_ERR_NONE;
-        m_vppAfterFi.reset(new MfxVppHelper(m_core, &sts));
-        MFX_CHECK_STS(sts);
-
-        mfxVideoParam vppParams    = {};
-        vppParams.AsyncDepth       = 1;
-        vppParams.IOPattern        = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
-        vppParams.vpp.In           = outInfo;
-        vppParams.vpp.In.PicStruct = inInfo.PicStruct;
-        vppParams.vpp.In.FourCC    = MFX_FOURCC_BGR4;
-        vppParams.vpp.Out          = outInfo;
-
-        if (videoSignalInfo.enabled)
-        {
-            vppParams.NumExtParam = 2;
-            vppParams.ExtParam = &(extBufferPost[0]);
-        }
-
-        sts = m_vppAfterFi->Init(&vppParams);
-        MFX_CHECK_STS(sts);
-
-        mfxFrameAllocRequest requestFiOut = {};
-        requestFiOut.Info                 = vppParams.vpp.In;
-        requestFiOut.Type                 = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT;
-        requestFiOut.NumFrameMin          = 1;
-        requestFiOut.NumFrameSuggested    = 1;
-        MFX_CHECK_STS(m_core->AllocFrames(&requestFiOut, &m_rgbSurfForFiOut));
-        m_rgbFiOut.Info = vppParams.vpp.In;
-        m_rgbFiOut      = MakeSurface(m_rgbFiOut.Info, m_rgbSurfForFiOut.mids[0]);
-
-        mfxFrameAllocRequest requestFinalOut = {};
-        requestFinalOut.Info                 = vppParams.vpp.Out;
-        requestFinalOut.Type                 = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT;
-        requestFinalOut.NumFrameMin          = 1;
-        requestFinalOut.NumFrameSuggested    = 1;
-        MFX_CHECK_STS(m_core->AllocFrames(&requestFinalOut, &m_outSurfForFi));
-        m_fiOut.Info = vppParams.vpp.Out;
-        m_fiOut      = MakeSurface(m_fiOut.Info, m_outSurfForFi.mids[0]);
-    }
+    MFX_CHECK_STS(InitVppAndAllocateSurface(inInfo, outInfo, videoSignalInfo));
 
     return MFX_ERR_NONE;
 }
@@ -526,16 +572,13 @@ mfxStatus MFXVideoFrameInterpolation::DoInterpolation4x()
 mfxStatus MFXVideoFrameInterpolation::InterpolateAi(mfxFrameSurface1* bwd, mfxFrameSurface1* fwd, mfxFrameSurface1* out)
 {
     mfxFrameSurface1 bkwTempSurface = *bwd, fwdTempSurface = *fwd, outTempSurface = *out;
-    if (m_preWorkCscForFi)
+    if (m_vppForFi)
     {
         MFX_CHECK_STS(m_vppBeforeFi0->Submit(bwd, &m_rgbBkwd));
         MFX_CHECK_STS(m_vppBeforeFi1->Submit(fwd, &m_rgbfwd));
 
         bkwTempSurface = m_rgbBkwd;
         fwdTempSurface = m_rgbfwd;
-    }
-    if (m_postWrokForFi)
-    {
         outTempSurface = m_rgbFiOut;
     }
 
@@ -564,7 +607,7 @@ mfxStatus MFXVideoFrameInterpolation::InterpolateAi(mfxFrameSurface1* bwd, mfxFr
         MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 #endif
-    if (m_postWrokForFi)
+    if (m_vppForFi)
     {
         MFX_CHECK_STS(m_vppAfterFi->Submit(&m_rgbFiOut, &m_fiOut));
         return m_core->DoFastCopyWrapper(out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
