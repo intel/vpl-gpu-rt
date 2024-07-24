@@ -3322,7 +3322,7 @@ mfxStatus General::CheckAndFixSlidingWindow(mfxVideoParam& par, const Defaults::
         mfxU32 targetKbps = defPar.base.GetTargetKbps(defPar);
         mfxU32 winBRCMaxAvgKbps = pCO3->WinBRCMaxAvgKbps * std::max<const mfxU16>(1, par.mfx.BRCParamMultiplier);
         mfxF64 overShootCBRPct = static_cast<mfxF64>(winBRCMaxAvgKbps) / targetKbps;
-        bool isWinBRCMaxAvgKbpsChanged = CheckRangeOrClip(overShootCBRPct, 1.10f, 2.00f);
+        bool isWinBRCMaxAvgKbpsChanged = CheckRangeOrClip(overShootCBRPct, 1.1, 2.0);
 
         if (isWinBRCMaxAvgKbpsChanged)
         {
@@ -3332,7 +3332,7 @@ mfxStatus General::CheckAndFixSlidingWindow(mfxVideoParam& par, const Defaults::
     }
     else
     {
-        mfxF64 overShootCBRPct = (pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING) ? 1.20f : 1.40f;
+        mfxF64 overShootCBRPct = (pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING) ? 1.2 : 1.4;
         FixWinBRCMaxAvgKbps(par, *pCO3, overShootCBRPct);
         changed += 1;
     }
