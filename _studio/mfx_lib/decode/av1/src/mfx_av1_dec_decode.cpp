@@ -1242,17 +1242,6 @@ mfxStatus VideoDECODEAV1::FillVideoParam(UMC_AV1_DECODER::AV1DecoderParams const
         || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416)
         par->mfx.FrameInfo.Shift = 1;
 
-    if (vp->framerate_n && vp->framerate_d)
-    {
-        par->mfx.FrameInfo.FrameRateExtN = vp->framerate_n;
-        par->mfx.FrameInfo.FrameRateExtD = vp->framerate_d;
-    }
-    else // If no frame rate info in bitstream, will set to default 30fps
-    {
-        par->mfx.FrameInfo.FrameRateExtN = 30;
-        par->mfx.FrameInfo.FrameRateExtD = 1;
-    }
-
     return MFX_ERR_NONE;
 }
 

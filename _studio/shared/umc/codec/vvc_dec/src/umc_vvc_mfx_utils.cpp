@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2024 Intel Corporation
+// Copyright (c) 2022-2023 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -120,12 +120,6 @@ namespace UMC_VVC_DECODER
                 par->mfx.FrameInfo.FrameRateExtN = (mfxU32)(pVps->general_timing_hrd_parameters.time_scale);
                 par->mfx.FrameInfo.FrameRateExtD = (mfxU32)(pVps->general_timing_hrd_parameters.num_units_in_tick);
             }
-        }
-        // If no frame rate info in bitstream, will set to default 30fps
-        if (!par->mfx.FrameInfo.FrameRateExtN || !par->mfx.FrameInfo.FrameRateExtD)
-        {
-            par->mfx.FrameInfo.FrameRateExtN = 30;
-            par->mfx.FrameInfo.FrameRateExtD = 1;
         }
 
         if (pSps->profile_tier_level.general_profile_idc == (VVC_STILL_PICTURE | VVC_MAIN_10))

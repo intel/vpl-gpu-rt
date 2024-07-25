@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2024 Intel Corporation
+// Copyright (c) 2014-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -126,8 +126,6 @@ namespace VP8DecodeCommon
         p_params->mfx.FrameInfo.FourCC = MFX_FOURCC_NV12;
         p_params->mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
         p_params->mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
-        p_params->mfx.FrameInfo.FrameRateExtN = 30;
-        p_params->mfx.FrameInfo.FrameRateExtD = 1;
         MoveBitstreamData(*p_bs, n_bytes_offset);
 
         return MFX_ERR_NONE;

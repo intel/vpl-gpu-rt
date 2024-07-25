@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2024 Intel Corporation
+// Copyright (c) 2003-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -180,10 +180,10 @@ Status FillVideoParam(const UMC_H264_DECODER::H264SeqParamSet * seq, mfxVideoPar
         par->mfx.FrameInfo.FrameRateExtD = seq->vui.num_units_in_tick * 2;
         par->mfx.FrameInfo.FrameRateExtN = seq->vui.time_scale;
     }
-    else // If no frame rate info in bitstream, will set to default 30fps
+    else
     {
-        par->mfx.FrameInfo.FrameRateExtD = 30;
-        par->mfx.FrameInfo.FrameRateExtN = 1;
+        par->mfx.FrameInfo.FrameRateExtD = 0;
+        par->mfx.FrameInfo.FrameRateExtN = 0;
     }
 
     par->mfx.CodecProfile = seq->profile_idc;

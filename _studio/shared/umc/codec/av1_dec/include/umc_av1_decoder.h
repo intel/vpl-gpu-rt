@@ -59,8 +59,6 @@ namespace UMC_AV1_DECODER
             , anchors_loaded(false)
             , skip_first_frames(0)
             , pre_loaded_anchors(nullptr)
-            , framerate_n(0)
-            , framerate_d(0)
         {}
 
     public:
@@ -74,9 +72,6 @@ namespace UMC_AV1_DECODER
         bool                 anchors_loaded;
         uint32_t             skip_first_frames;
         mfxFrameSurface1**   pre_loaded_anchors;
-        uint32_t             framerate_n; // (uint32_t) frame rate numerator
-        uint32_t             framerate_d; // (uint32_t) frame rate denominator
-
     };
 
     class ReportItem // adopted from HEVC/AVC decoders
