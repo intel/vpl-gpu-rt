@@ -146,7 +146,7 @@ mfxStatus MFXVideoFrameInterpolation::InitScd(const mfxFrameInfo& inFrameInfo, c
 bool MFXVideoFrameInterpolation::IsVppNeededForVfi(const mfxFrameInfo& inInfo, const mfxFrameInfo& outInfo)
 {
     // kernel only support RGB
-    if (outInfo.FourCC != MFX_FOURCC_RGB4 ||
+    if (outInfo.FourCC != MFX_FOURCC_RGB4 &&
         outInfo.FourCC != MFX_FOURCC_BGR4)
     {
         return true;

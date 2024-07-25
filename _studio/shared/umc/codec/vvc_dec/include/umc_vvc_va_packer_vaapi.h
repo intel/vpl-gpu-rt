@@ -46,10 +46,10 @@ namespace UMC_VVC_DECODER
     {
     public:
         PackerVA(UMC::VideoAccelerator * va);
-        void PackAU(VVCDecoderFrame *pFrame, DPBType dpb);
+        void PackAU(VVCDecoderFrame *pFrame, DPBType dpb) override;
 
         UMC::Status GetStatusReport(void * pStatusReport, size_t size) override;
-        UMC::Status SyncTask(int32_t index, void * error);
+        UMC::Status SyncTask(int32_t index, void * error) override;
         UMC::Status QueryTaskStatus(int32_t index, void * status, void * error);
 
         void BeginFrame() override;

@@ -77,6 +77,8 @@ namespace UMC_VVC_DECODER
     {
     public:
 
+        virtual ~Splitter_VVC() = default;
+
         void Reset()
         {
             m_iCodeSearcher.Reset();
