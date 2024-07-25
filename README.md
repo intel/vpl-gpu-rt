@@ -33,13 +33,11 @@ platforms.
 
 Intel® VPL Gen Runtime implementation supports the following hardware platforms:
 
-| GPU | Supported |
-| --- | --------- |
-| TGL (Tiger Lake) | ✔ |
-| DG1 (Xe MAX) | ✔ |
-| RKL (Rocket Lake) | ✔ |
-| ADL-S (Alder Lake S) | ✔ |
-| ADL-P (Alder Lake P) | ✔ |
+- TGL/RKL/ADL/RPL (TGL: Tiger Lake, RKL: Rocket Lake, ADL-S/P/N: Alder Lake, RPL-S/P: Raptor Lake)
+- DG1
+- Alchemist(DG2)/ATSM
+- MTL/ARL (MTL: Meteor Lake, ARL-S/H: Arrow Lake)
+- LNL (Lunar Lake)
 
 # Dependencies
 Intel® VPL GPU Runtime depends on [LibVA](https://github.com/intel/libva/).
