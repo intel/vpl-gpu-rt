@@ -1,4 +1,4 @@
-// Copyright (c) 2004-2019 Intel Corporation
+// Copyright (c) 2004-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1212,7 +1212,7 @@ namespace UMC
             else
                 Offset = PicHeaderSize;
 
-            if (*(p_CurOffsets+1) && p_CurOriginalOffsets && (p_CurOriginalOffsets + 1))
+            if (*(p_CurOffsets+1) && p_CurOriginalOffsets)
                 SliceSize = *(p_CurOriginalOffsets+1) - *p_CurOriginalOffsets - Offset;
             else
                 SliceSize = this->m_pContext->m_FrameSize - Offset;
