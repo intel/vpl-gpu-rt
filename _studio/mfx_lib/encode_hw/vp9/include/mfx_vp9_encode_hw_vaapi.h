@@ -33,6 +33,14 @@ namespace MfxHwVP9Encode
         MFX_FOURCC_VP9_SEGMAP  = MFX_MAKEFOURCC('V','P','8','S'),
     };
 
+    enum
+    {
+        BLOCK_16x16 = 0,
+        BLOCK_32x32 = 1,
+        BLOCK_64x64 = 2,
+        BLOCK_8x8 = 4
+    };
+
     typedef struct
     {
         VASurfaceID surface;

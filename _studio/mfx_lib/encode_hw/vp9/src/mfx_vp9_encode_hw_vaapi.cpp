@@ -75,6 +75,22 @@ namespace MfxHwVP9Encode
         }
     } // mfxU16 ConvertSegmentRefControlToVAAPI(mfxU16 refFrameControl)
 
+    mfxU32 MapSegIdBlockSizeToVAAPI(mfxU16 size)
+    {
+        switch (size)
+        {
+        case MFX_VP9_SEGMENT_ID_BLOCK_SIZE_8x8:
+            return BLOCK_8x8;
+        case MFX_VP9_SEGMENT_ID_BLOCK_SIZE_32x32:
+            return BLOCK_32x32;
+        case MFX_VP9_SEGMENT_ID_BLOCK_SIZE_64x64:
+            return BLOCK_64x64;
+        case MFX_VP9_SEGMENT_ID_BLOCK_SIZE_16x16:
+        default:
+            return BLOCK_16x16;
+        }
+    }
+
     void FillSpsBuffer(mfxVideoParam const & par, VAEncSequenceParameterBufferVP9 & sps)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FillSpsBuffer");
@@ -166,10 +182,12 @@ namespace MfxHwVP9Encode
         if (pps.pic_flags.bits.show_frame == 0)
                 pps.pic_flags.bits.super_frame_flag = 1;
 
-        //segmentation functionality is not fully implemented yet
         if (framePar.segmentation == APP_SEGMENTATION)
         {
-            //pps.pic_flags.bits.seg_id_block_size = BLOCK_16x16; //no such parameter in va
+#if VA_CHECK_VERSION(1, 23, 0)
+            mfxExtVP9Segmentation const & seg = GetActualExtBufferRef(*task.m_pParam, task.m_ctrl);
+            pps.seg_id_block_size = MapSegIdBlockSizeToVAAPI(seg.SegmentIdBlockSize);
+#endif
             pps.pic_flags.bits.segmentation_update_map = task.m_frameParam.segmentationUpdateMap;
             pps.pic_flags.bits.segmentation_temporal_update = task.m_frameParam.segmentationTemporalUpdate;
             pps.pic_flags.bits.auto_segmentation = false; //not supported for now
