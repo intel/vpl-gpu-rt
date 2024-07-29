@@ -4617,19 +4617,19 @@ mfxU16 GetSliceHeaderLTRs(
     size_t nDPBLT = 0;
     mfxU32 MaxPocLsb  = (1<<(sps.log2_max_pic_order_cnt_lsb_minus4+4));
     mfxU32 dPocCycleMSBprev = 0;
-    mfxI32 DPBLT[MAX_DPB_SIZE] = {};
+    std::array<mfxI32, MAX_DPB_SIZE> DPBLT{};
     mfxI32 InvalidPOC = -9000;
 
-    std::transform(DPB, DPB + mfx::size(DPB), DPBLT
+    std::transform(DPB, DPB + mfx::size(DPB), DPBLT.begin()
         , [InvalidPOC](const DpbFrame& x) { return (x.isLTR && isValid(x)) ? x.POC : InvalidPOC; });
 
-    nDPBLT = std::remove_if(DPBLT, DPBLT + mfx::size(DPBLT)
-        , [InvalidPOC](mfxI32 x) { return x == InvalidPOC; }) - DPBLT;
+    nDPBLT = std::remove_if(DPBLT.begin(), DPBLT.begin() + DPBLT.size()
+        , [InvalidPOC](mfxI32 x) { return x == InvalidPOC; }) - DPBLT.begin();
 
-    std::sort(DPBLT, DPBLT + nDPBLT, std::greater<mfxI32>()); // sort for DeltaPocMsbCycleLt (may only increase)
+    std::sort(DPBLT.begin(), DPBLT.begin() + nDPBLT, std::greater<mfxI32>()); // sort for DeltaPocMsbCycleLt (may only increase)
 
     // insert LTR using lt_ref_pic_poc_lsb_sps
-    std::for_each(DPBLT, DPBLT + nDPBLT, [&](mfxI32& ltpoc) {
+    std::for_each(DPBLT.begin(), DPBLT.begin() + nDPBLT, [&](mfxI32& ltpoc) {
         mfxU32 dPocCycleMSB = (task.POC / MaxPocLsb - ltpoc / MaxPocLsb);
         mfxU32 dPocLSB      = ltpoc - (task.POC - dPocCycleMSB * MaxPocLsb - s.pic_order_cnt_lsb);
 
@@ -4667,11 +4667,11 @@ mfxU16 GetSliceHeaderLTRs(
         ltpoc = InvalidPOC;
     });
 
-    nDPBLT = std::remove_if(DPBLT, DPBLT + nDPBLT
-        , [InvalidPOC](mfxI32 x) { return x == InvalidPOC; }) - DPBLT;
+    nDPBLT = std::remove_if(DPBLT.begin(), DPBLT.begin() + nDPBLT
+        , [InvalidPOC](mfxI32 x) { return x == InvalidPOC; }) - DPBLT.begin();
     dPocCycleMSBprev = 0;
 
-    std::for_each(DPBLT, DPBLT + nDPBLT, [&](mfxI32 ltpoc) {
+    std::for_each(DPBLT.begin(), DPBLT.begin() + nDPBLT, [&](mfxI32 ltpoc) {
         auto& curlt = s.lt[s.num_long_term_sps + s.num_long_term_pics];
         mfxU32 dPocCycleMSB = (task.POC / MaxPocLsb - ltpoc / MaxPocLsb);
         mfxU32 dPocLSB      = ltpoc - (task.POC - dPocCycleMSB * MaxPocLsb - s.pic_order_cnt_lsb);
