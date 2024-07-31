@@ -1301,27 +1301,61 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
 
     mfxDrvSurface* pRefSurf = &(pParams->pRefSurfaces[0]);
     memset(&m_pipelineParam[0], 0, sizeof(m_pipelineParam[0]));
-
+    const char *driverVersion = vaQueryVendorString(m_vaDisplay);
+    const char *standardVersion = "Intel iHD driver for Intel(R) Gen Graphics - 24.3.1";
+    bool versionMatch = strcmp(driverVersion, standardVersion) >= 0;
     if (pParams->bFieldWeaving || ( (pParams->refCount > 1) && (0 != pParams->iDeinterlacingAlgorithm )))
     {
-        m_pipelineParam[0].num_backward_references = 1;
+        if (versionMatch)
+        {
+            m_pipelineParam[0].num_forward_references = 1;
+        }
+        else
+        {
+            m_pipelineParam[0].num_backward_references = 1;
+        }
         mfxDrvSurface* pRefSurf_1 = NULL;
         /* in pRefSurfaces
-            * first is backward references
+            * first is past frame references
             * then current src surface
-            * and only after this is forward references
+            * and only after this is future frame references
             * */
         pRefSurf_1 = &(pParams->pRefSurfaces[0]); // point to previous frame
         VASurfaceID *ref_srf = (VASurfaceID *)(pRefSurf_1->hdl.first);
-        m_pipelineParam[0].backward_references = ref_srf;
+        if (versionMatch)
+        {
+            m_pipelineParam[0].forward_references = ref_srf;
+        }
+        else
+        {
+            m_pipelineParam[0].backward_references = ref_srf;
+        }
     }
     /* FRC Interpolated case */
     if (0 != pParams->bFRCEnable)
     {
         if (30 == pParams->customRateData.customRate.FrameRateExtD)
-            m_pipelineParam[0].num_forward_references = 2;
+        {
+            if (versionMatch)
+            {
+                m_pipelineParam[0].num_backward_references = 2;
+            }
+            else
+            {
+                m_pipelineParam[0].num_forward_references = 2;
+            }
+        }
         else if (24 == pParams->customRateData.customRate.FrameRateExtD)
-            m_pipelineParam[0].num_forward_references = 3;
+        {
+            if (versionMatch)
+            {
+                m_pipelineParam[0].num_backward_references = 3;
+            }
+            else
+            {
+                m_pipelineParam[0].num_forward_references = 3;
+            }
+        }
 
         if (2 == pParams->refCount) /* may be End of Stream case */
         {
@@ -1352,7 +1386,14 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             m_refForFRC[2] = *(VASurfaceID*) (pRefSurf_frc3->hdl.first);
         }
         /* to pass ref list to pipeline */
-        m_pipelineParam[0].forward_references = m_refForFRC;
+        if (versionMatch)
+        {
+            m_pipelineParam[0].backward_references = m_refForFRC;
+        }
+        else
+        {
+            m_pipelineParam[0].forward_references = m_refForFRC;
+        }
     } /*if (0 != pParams->bFRCEnable)*/
 
     /* SRC surface */
