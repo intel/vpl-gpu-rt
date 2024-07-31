@@ -881,7 +881,6 @@ namespace UMC_VVC_DECODER
         m_sliceMap = s->m_sliceMap;
 
         m_sliceHeader.cabac_init_flag = slice->cabac_init_flag;
-        MFX_INTERNAL_CPY(&m_adaptParamSet, &s->m_adaptParamSet, sizeof(VVCAPS));
         MFX_INTERNAL_CPY(m_sliceHeader.alf_enabled_flag, slice->alf_enabled_flag, sizeof(slice->alf_enabled_flag));
         m_sliceHeader.num_alf_aps_ids_luma = slice->num_alf_aps_ids_luma;
         m_sliceHeader.alf_aps_ids_luma = slice->alf_aps_ids_luma;
