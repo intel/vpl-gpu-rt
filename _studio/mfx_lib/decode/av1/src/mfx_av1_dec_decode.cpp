@@ -1242,6 +1242,18 @@ mfxStatus VideoDECODEAV1::FillVideoParam(UMC_AV1_DECODER::AV1DecoderParams const
         || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416)
         par->mfx.FrameInfo.Shift = 1;
 
+    // video signal section
+    mfxExtVideoSignalInfo * videoSignal = (mfxExtVideoSignalInfo *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
+    if (videoSignal)
+    {
+        videoSignal->VideoFormat = vp->info.color_format;
+        videoSignal->VideoFullRange = vp->color_range;
+        videoSignal->ColourDescriptionPresent = vp->color_description_present_flag;
+        videoSignal->ColourPrimaries = vp->color_primaries;
+        videoSignal->TransferCharacteristics = vp->transfer_characteristics;
+        videoSignal->MatrixCoefficients = vp->matrix_coefficients;
+    }
+
     return MFX_ERR_NONE;
 }
 
