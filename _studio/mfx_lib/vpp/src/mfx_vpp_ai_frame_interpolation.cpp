@@ -31,13 +31,8 @@
 #define HEIGHT2 (mfxU16)1440
 
 MFXVideoFrameInterpolation::MFXVideoFrameInterpolation() :
-    m_responseIn(),
-    m_responseOut(),
     m_inputFwd(),
     m_inputBkwd(),
-    m_output(),
-    m_memIdBkwd(0),
-    m_memIdFwd(0),
     m_enableScd(false),
 #ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
     m_scd(),
@@ -51,10 +46,7 @@ MFXVideoFrameInterpolation::MFXVideoFrameInterpolation() :
     m_vppBeforeFi1(nullptr),
     m_vppAfterFi(nullptr),
     m_rgbSurfForFiIn(),
-    m_rgbSurfForFiOut(),
-    m_rgbBkwd(),
-    m_rgbfwd(),
-    m_rgbFiOut(),
+    m_rgbSurfArray(),
     m_outSurfForFi(),
     m_fiOut()
 {
@@ -62,24 +54,77 @@ MFXVideoFrameInterpolation::MFXVideoFrameInterpolation() :
 
 MFXVideoFrameInterpolation::~MFXVideoFrameInterpolation()
 {
-    if (m_responseIn.mids)
-        m_core->FreeFrames(&m_responseIn);
-    if (m_responseOut.mids)
-        m_core->FreeFrames(&m_responseOut);
     if (m_scdNeedCsc)
     {
         if (m_scdAllocation.mids)
             m_core->FreeFrames(&m_scdAllocation);
     }
-    if (m_rgbSurfForFiOut.mids)
-        m_core->FreeFrames(&m_rgbSurfForFiOut);
-    if (m_rgbSurfForFiIn.mids)
-        m_core->FreeFrames(&m_rgbSurfForFiIn);
     if (m_outSurfForFi.mids)
         m_core->FreeFrames(&m_outSurfForFi);
 #ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
     m_scd.Close();
 #endif
+}
+
+mfxStatus MFXVideoFrameInterpolation::ConfigureFrameRate(
+    mfxU16 IOPattern,
+    const mfxFrameInfo& inInfo,
+    const mfxFrameInfo& outInfo)
+{
+    m_IOPattern = IOPattern;
+    m_frcRational[VPP_IN] = { inInfo.FrameRateExtN, inInfo.FrameRateExtD };
+    m_frcRational[VPP_OUT] = { outInfo.FrameRateExtN, outInfo.FrameRateExtD };
+
+    mfxF64 inRate = 100 * (((mfxF64)m_frcRational[VPP_IN].FrameRateExtN / (mfxF64)m_frcRational[VPP_IN].FrameRateExtD));
+    mfxF64 outRate = 100 * (((mfxF64)m_frcRational[VPP_OUT].FrameRateExtN / (mfxF64)m_frcRational[VPP_OUT].FrameRateExtD));
+
+    mfxF64 mul = outRate / inRate;
+    if (fabs(mul - 4.) < 1e-3)
+    {
+        m_ratio = ratio_4x;
+    }
+    else if (fabs(mul - 2.) < 1e-3)
+    {
+        m_ratio = ratio_2x;
+    }
+#if defined(_DEBUG)
+    else if (fabs(mul - 8.) < 1e-3)
+    {
+        m_ratio = ratio_8x;
+    }
+    else if (fabs(mul - 16.) < 1e-3)
+    {
+        m_ratio = ratio_16x;
+    }
+#endif
+    else
+    {
+        m_ratio = ratio_unsupported;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
+
+    m_outStamp = 0;
+    m_outTick = (mfxU16)m_ratio;
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus MFXVideoFrameInterpolation::InitFrameInterpolator(VideoCORE* core, const mfxFrameInfo& outInfo)
+{
+#ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
+    D3D11Interface* pD3d11 = QueryCoreInterface<D3D11Interface>(core);
+    MFX_CHECK(pD3d11, MFX_ERR_NULL_PTR);
+    // Init
+    xeAIVfiConfig config = {
+        outInfo.Width, outInfo.Height,
+        (mfxU32)core->GetHWType(),
+        pD3d11->GetD3D11Device(),
+        pD3d11->GetD3D11DeviceContext(), DXGI_FORMAT_R8G8B8A8_UNORM };
+    xeAIVfiStatus xeSts = m_aiIntp.Init(config);
+    if (xeSts != XE_AIVFI_SUCCESS)
+        MFX_RETURN(MFX_ERR_UNKNOWN);
+#endif
+    return MFX_ERR_NONE;
 }
 
 mfxStatus MFXVideoFrameInterpolation::InitScd(const mfxFrameInfo& inFrameInfo, const mfxFrameInfo& outFrameInfo)
@@ -245,13 +290,15 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
             mfxFrameAllocRequest requestRGB = {};
             requestRGB.Info = vppParams.vpp.Out;
             requestRGB.Type = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT;
-            requestRGB.NumFrameMin = 2;
-            requestRGB.NumFrameSuggested = 2;
+            requestRGB.NumFrameMin = (mfxU16)m_ratio + 1;
+            requestRGB.NumFrameSuggested = (mfxU16)m_ratio + 1;
             MFX_CHECK_STS(m_core->AllocFrames(&requestRGB, &m_rgbSurfForFiIn));
-            m_rgbBkwd.Info = vppParams.vpp.Out;
-            m_rgbBkwd = MakeSurface(m_rgbBkwd.Info, m_rgbSurfForFiIn.mids[0]);
-            m_rgbfwd.Info = vppParams.vpp.Out;
-            m_rgbfwd = MakeSurface(m_rgbfwd.Info, m_rgbSurfForFiIn.mids[1]);
+
+            for (int i = 0; i <= (mfxU16)m_ratio; i++)
+            {
+                m_rgbSurfArray[i].Info = vppParams.vpp.Out;
+                m_rgbSurfArray[i] = MakeSurface(m_rgbSurfArray[i].Info, m_rgbSurfForFiIn.mids[i]);
+            }
         }
 
         {
@@ -280,15 +327,6 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
             sts = m_vppAfterFi->Init(&vppParams);
             MFX_CHECK_STS(sts);
 
-            mfxFrameAllocRequest requestFiOut = {};
-            requestFiOut.Info = vppParams.vpp.In;
-            requestFiOut.Type = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT;
-            requestFiOut.NumFrameMin = 1;
-            requestFiOut.NumFrameSuggested = 1;
-            MFX_CHECK_STS(m_core->AllocFrames(&requestFiOut, &m_rgbSurfForFiOut));
-            m_rgbFiOut.Info = vppParams.vpp.In;
-            m_rgbFiOut = MakeSurface(m_rgbFiOut.Info, m_rgbSurfForFiOut.mids[0]);
-
             mfxFrameAllocRequest requestFinalOut = {};
             requestFinalOut.Info = vppParams.vpp.Out;
             requestFinalOut.Type = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT;
@@ -312,55 +350,11 @@ mfxStatus MFXVideoFrameInterpolation::Init(
     m_core = core;
     MFX_CHECK_NULL_PTR1(m_core);
 
-    mfxFrameAllocRequest request = {};
-    request.Info = outInfo;
-    request.Type = MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_INTERNAL_FRAME;
-    request.NumFrameMin = request.NumFrameSuggested = 2;
-    MFX_CHECK_STS(m_core->AllocFrames(&request, &m_responseIn));
-    request.NumFrameMin = request.NumFrameSuggested = 3;
-    MFX_CHECK_STS(m_core->AllocFrames(&request, &m_responseOut));
-    m_memIdFwd = m_responseIn.mids[1];
-
-    m_IOPattern            = IOPattern;
-    m_frcRational[VPP_IN]  = {inInfo.FrameRateExtN, inInfo.FrameRateExtD};
-    m_frcRational[VPP_OUT] = { outInfo.FrameRateExtN, outInfo.FrameRateExtD };
-
-    mfxF64 inRate = 100 * (((mfxF64)m_frcRational[VPP_IN].FrameRateExtN / (mfxF64)m_frcRational[VPP_IN].FrameRateExtD));
-    mfxF64 outRate = 100 * (((mfxF64)m_frcRational[VPP_OUT].FrameRateExtN / (mfxF64)m_frcRational[VPP_OUT].FrameRateExtD));
-
-    mfxF64 mul = outRate / inRate;
-    if (fabs(mul - 4.) < 1e-3)
-    {
-        m_ratio = ratio_4x;
-    }
-    else if (fabs(mul - 2.) < 1e-3)
-    {
-        m_ratio = ratio_2x;
-    }
-    else
-    {
-        m_ratio = ratio_unsupported;
-        MFX_RETURN(MFX_ERR_UNSUPPORTED);
-    }
-
-    m_outStamp = 0;
-    m_outTick = (mfxU16)m_ratio;
+    MFX_CHECK_STS(ConfigureFrameRate(IOPattern, inInfo, outInfo));
 
     MFX_CHECK_STS(InitScd(inInfo, outInfo));
 
-#ifdef MFX_ENABLE_AI_VIDEO_FRAME_INTERPOLATION
-    D3D11Interface* pD3d11 = QueryCoreInterface<D3D11Interface>(core);
-    MFX_CHECK(pD3d11, MFX_ERR_NULL_PTR);
-    // Init
-    xeAIVfiConfig config = {
-        outInfo.Width, outInfo.Height,
-        (mfxU32)core->GetHWType(),
-        pD3d11->GetD3D11Device(),
-        pD3d11->GetD3D11DeviceContext(), DXGI_FORMAT_R8G8B8A8_UNORM };
-    xeAIVfiStatus xeSts = m_aiIntp.Init(config);
-    if (xeSts != XE_AIVFI_SUCCESS)
-        MFX_RETURN(MFX_ERR_UNKNOWN);
-#endif
+    MFX_CHECK_STS(InitFrameInterpolator(m_core, outInfo));
 
     MFX_CHECK_STS(InitVppAndAllocateSurface(inInfo, outInfo, videoSignalInfo));
 
@@ -375,27 +369,21 @@ mfxStatus MFXVideoFrameInterpolation::UpdateTsAndGetStatus(
     if (nullptr == input) return MFX_ERR_MORE_DATA;
     mfxStatus sts = MFX_ERR_NONE;
 
-    if (m_ratio == ratio_2x || m_ratio == ratio_4x)
+    if (m_outStamp == 0)
     {
-        if (m_outStamp == 0)
-        {
-            m_inputBkwd.Info = output->Info;
-        }
-        else if (m_outStamp == 1)
-        {
-            m_inputFwd.Info = output->Info;
+        m_inputBkwd.Info = output->Info;
+    }
+    else if (m_outStamp == 1)
+    {
+        m_inputFwd.Info = output->Info;
 
-            *intSts = MFX_ERR_MORE_SURFACE;
-        }
-        else
-        {
-            *intSts = MFX_ERR_MORE_SURFACE;
-        }
+        *intSts = MFX_ERR_MORE_SURFACE;
     }
     else
     {
-        sts = MFX_ERR_INVALID_VIDEO_PARAM;
+        *intSts = MFX_ERR_MORE_SURFACE;
     }
+
     MFX_RETURN(sts);
 }
 
@@ -414,28 +402,38 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
     mfxU16 stamp = t.second;
     if (stamp == 0)
     {
-        // m_memIdBkwd = 0 means first frame
-        if (!m_memIdBkwd)
-        {
-            m_memIdBkwd = m_responseIn.mids[0];
-        }
-        m_inputBkwd = MakeSurface(m_inputBkwd.Info, m_memIdBkwd);
         if (m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
         {
-            // record internal vpp output vid mem for intp bkw frame
-            mfxFrameSurface1 internalSurf = MakeSurface(m_inputBkwd.Info, internalVidMemId);
-            sts = m_core->DoFastCopyWrapper(&m_inputBkwd, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, &internalSurf, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
-            MFX_CHECK_STS(sts);
             // copy vpp internal output to app output
-            sts = m_core->DoFastCopyWrapper(out, MFX_MEMTYPE_SYSTEM_MEMORY, &m_inputBkwd, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
-            MFX_CHECK_STS(sts);
+            mfxFrameSurface1 internalSurf = MakeSurface(m_rgbSurfArray[0].Info, internalVidMemId);
+            sts = m_core->DoFastCopyWrapper(out, MFX_MEMTYPE_SYSTEM_MEMORY, &internalSurf, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+
+            // record internal vpp output vid mem for intp surface pool
+            if (m_vppForFi)
+            {
+                sts = m_vppBeforeFi0->Submit(&internalSurf, &m_rgbSurfArray[0]);
+                MFX_CHECK_STS(sts);
+            }
+            else
+            {
+                sts = m_core->DoFastCopyWrapper(&m_rgbSurfArray[0], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, &internalSurf, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+                MFX_CHECK_STS(sts);
+            }
         }
         else
         {
             if (!internalVidMemId)
             {
-                sts = m_core->DoFastCopyWrapper(&m_inputBkwd, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
-                MFX_CHECK_STS(sts);
+                if (m_vppForFi)
+                {
+                    sts = m_vppBeforeFi0->Submit(out, &m_rgbSurfArray[0]);
+                    MFX_CHECK_STS(sts);
+                }
+                else
+                {
+                    sts = m_core->DoFastCopyWrapper(&m_rgbSurfArray[0], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+                    MFX_CHECK_STS(sts);
+                }
             }
             else
             {
@@ -445,24 +443,24 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
     }
     else if (stamp == 1)
     {
-        m_output[1] = *out;
-        if (m_ratio == ratio_4x) 
-        {
-            m_output[2] = MakeSurface(out->Info, m_responseOut.mids[1]);
-            m_output[3] = MakeSurface(out->Info, m_responseOut.mids[2]);
-        }
-
-        m_inputFwd = MakeSurface(m_inputFwd.Info, m_memIdFwd);
         if (m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
         {
             // record internal vpp output vid mem for intp fwd frame
             mfxFrameSurface1 internalSurf = MakeSurface(m_inputFwd.Info, internalVidMemId);
-            sts = m_core->DoFastCopyWrapper(&m_inputFwd, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, &internalSurf, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
-            MFX_CHECK_STS(sts);
+            if (m_vppForFi)
+            {
+                sts = m_vppBeforeFi0->Submit(&internalSurf, &m_rgbSurfArray[m_ratio]);
+                MFX_CHECK_STS(sts);
+            }
+            else
+            {
+                sts = m_core->DoFastCopyWrapper(&m_rgbSurfArray[m_ratio], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, &internalSurf, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+                MFX_CHECK_STS(sts);
+            }
 
             if (m_enableScd)
             {
-                sts = SceneChangeDetect(&m_inputFwd, false, scdDecision);
+                sts = SceneChangeDetect(&internalSurf, false, scdDecision);
                 MFX_CHECK_STS(sts);
             }
         }
@@ -470,11 +468,20 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
         {
             if (!internalVidMemId)
             {
-                sts = m_core->DoFastCopyWrapper(&m_inputFwd, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
-                MFX_CHECK_STS(sts);
+                if (m_vppForFi)
+                {
+                    sts = m_vppBeforeFi0->Submit(out, &m_rgbSurfArray[m_ratio]);
+                    MFX_CHECK_STS(sts);
+                }
+                else
+                {
+                    sts = m_core->DoFastCopyWrapper(&m_rgbSurfArray[m_ratio], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+                    MFX_CHECK_STS(sts);
+                }
+
                 if (m_enableScd)
                 {
-                    sts = SceneChangeDetect(&m_inputFwd, false, scdDecision);
+                    sts = SceneChangeDetect(out, true, scdDecision);
                     MFX_CHECK_STS(sts);
                 }
             }
@@ -494,16 +501,75 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
             sts = DuplicateFrame();
         }
         MFX_CHECK_STS(sts);
+
+        if (m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
+        {
+            if (m_vppForFi)
+            {
+                MFX_CHECK_STS(m_vppAfterFi->Submit(&m_rgbSurfArray[stamp], &m_fiOut));
+                MFX_CHECK_STS(m_core->DoFastCopyWrapper(
+                    out, MFX_MEMTYPE_SYSTEM_MEMORY,
+                    &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+            }
+            else
+            {
+                MFX_CHECK_STS(m_core->DoFastCopyWrapper(
+                    out, MFX_MEMTYPE_SYSTEM_MEMORY,
+                    &m_rgbSurfArray[stamp], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+            }
+        }
+        else
+        {
+            if (!internalVidMemId)
+            {
+                if (m_vppForFi)
+                {
+                    MFX_CHECK_STS(m_vppAfterFi->Submit(&m_rgbSurfArray[stamp], &m_fiOut));
+                    MFX_CHECK_STS(m_core->DoFastCopyWrapper(
+                        out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET,
+                        &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+                }
+                else
+                {
+                    MFX_CHECK_STS(m_core->DoFastCopyWrapper(
+                        out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET,
+                        &m_rgbSurfArray[stamp], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+                }
+            }
+            else
+            {
+                MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
+            }
+        }
     }
     else if (stamp >= 2)
     {
         if (m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
         {
-            sts = m_core->DoFastCopyWrapper(out, MFX_MEMTYPE_SYSTEM_MEMORY, &m_output[stamp], MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+            sts = m_core->DoFastCopyWrapper(out, MFX_MEMTYPE_SYSTEM_MEMORY, &m_rgbSurfArray[stamp], MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
         }
         else
         {
-            sts = m_core->DoFastCopyWrapper(out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, &m_output[stamp], MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+            if (!internalVidMemId)
+            {
+                if (m_vppForFi)
+                {
+                    MFX_CHECK_STS(m_vppAfterFi->Submit(&m_rgbSurfArray[stamp], &m_fiOut));
+                    MFX_CHECK_STS(m_core->DoFastCopyWrapper(
+                        out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET,
+                        &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+                }
+                else
+                {
+                    MFX_CHECK_STS(m_core->DoFastCopyWrapper(
+                        out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET,
+                        &m_rgbSurfArray[stamp], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+                }
+            }
+            else
+            {
+                MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
+            }
         }
         MFX_CHECK_STS(sts);
     }
@@ -523,67 +589,49 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
 
 mfxStatus MFXVideoFrameInterpolation::DuplicateFrame()
 {
-    mfxStatus sts = MFX_ERR_NONE;
-    if (m_ratio == ratio_2x)
+    for (int i = 1; i < m_ratio / 2; i++)
     {
-        sts = m_core->DoFastCopyWrapper(&m_output[1], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, &m_inputBkwd, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
-        MFX_CHECK_STS(sts);
+        MFX_CHECK_STS(m_core->DoFastCopyWrapper(
+            &m_rgbSurfArray[i], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET,
+            &m_rgbSurfArray[0], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
     }
-    else if (m_ratio == ratio_4x)
+    for (int i = m_ratio / 2; i < m_ratio; i++)
     {
-        sts = m_core->DoFastCopyWrapper(&m_output[1], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, &m_inputBkwd, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
-        sts = m_core->DoFastCopyWrapper(&m_output[2], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, &m_inputBkwd, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
-        sts = m_core->DoFastCopyWrapper(&m_output[3], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, &m_inputBkwd, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
-        MFX_CHECK_STS(sts);
+        MFX_CHECK_STS(m_core->DoFastCopyWrapper(
+            &m_rgbSurfArray[i],       MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET,
+            &m_rgbSurfArray[m_ratio], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
     }
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus MFXVideoFrameInterpolation::DoInterpolation(mfxU16 leftIdx, mfxU16 rightIdx)
+{
+    if ((leftIdx + 1) == rightIdx)
+    {
+        return MFX_ERR_NONE;
+    }
+
+    mfxU16 mid = (leftIdx + rightIdx) / 2;
+
+    MFX_CHECK_STS(InterpolateAi(m_rgbSurfArray[leftIdx], m_rgbSurfArray[rightIdx], m_rgbSurfArray[mid]));
+
+    MFX_CHECK_STS(DoInterpolation(leftIdx, mid));
+    MFX_CHECK_STS(DoInterpolation(mid, rightIdx));
 
     return MFX_ERR_NONE;
 }
 
 mfxStatus MFXVideoFrameInterpolation::DoInterpolation()
 {
-    mfxStatus sts = MFX_ERR_NONE;
-    if (m_ratio == ratio_2x)
-    {
-        sts = DoInterpolation2x();
-        MFX_CHECK_STS(sts);
-    }
-    else if (m_ratio == ratio_4x)
-    {
-        sts = DoInterpolation4x();
-        MFX_CHECK_STS(sts);
-    }
-
-    return MFX_ERR_NONE;
+    MFX_RETURN(DoInterpolation(0, (mfxU16)m_ratio));
 }
 
-mfxStatus MFXVideoFrameInterpolation::DoInterpolation2x()
+mfxStatus MFXVideoFrameInterpolation::InterpolateAi(mfxFrameSurface1& bwd, mfxFrameSurface1& fwd, mfxFrameSurface1& out)
 {
-    mfxStatus sts = InterpolateAi(&m_inputBkwd, &m_inputFwd, &m_output[1]);
-    MFX_RETURN(sts);
-}
-
-mfxStatus MFXVideoFrameInterpolation::DoInterpolation4x()
-{
-    MFX_CHECK_STS(InterpolateAi(&m_inputBkwd, &m_inputFwd, &m_output[2]));
-    MFX_CHECK_STS(InterpolateAi(&m_inputBkwd, &m_output[2], &m_output[1]));
-    MFX_CHECK_STS(InterpolateAi(&m_output[2], &m_inputFwd, &m_output[3]));
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus MFXVideoFrameInterpolation::InterpolateAi(mfxFrameSurface1* bwd, mfxFrameSurface1* fwd, mfxFrameSurface1* out)
-{
-    mfxFrameSurface1 bkwTempSurface = *bwd, fwdTempSurface = *fwd, outTempSurface = *out;
-    if (m_vppForFi)
-    {
-        MFX_CHECK_STS(m_vppBeforeFi0->Submit(bwd, &m_rgbBkwd));
-        MFX_CHECK_STS(m_vppBeforeFi1->Submit(fwd, &m_rgbfwd));
-
-        bkwTempSurface = m_rgbBkwd;
-        fwdTempSurface = m_rgbfwd;
-        outTempSurface = m_rgbFiOut;
-    }
+    mfxFrameSurface1 bkwTempSurface = bwd;
+    mfxFrameSurface1 fwdTempSurface = fwd;
+    mfxFrameSurface1 outTempSurface = out;
 
     bkwTempSurface.Data.MemType = MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET;
     fwdTempSurface.Data.MemType = MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET;
@@ -610,15 +658,8 @@ mfxStatus MFXVideoFrameInterpolation::InterpolateAi(mfxFrameSurface1* bwd, mfxFr
         MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 #endif
-    if (m_vppForFi)
-    {
-        MFX_CHECK_STS(m_vppAfterFi->Submit(&m_rgbFiOut, &m_fiOut));
-        return m_core->DoFastCopyWrapper(out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
-    }
-    else
-    {
-        return MFX_ERR_NONE;
-    }
+
+    return MFX_ERR_NONE;
 }
 
 mfxStatus MFXVideoFrameInterpolation::SceneChangeDetect(mfxFrameSurface1* input, bool isExternal, mfxU32& decision)

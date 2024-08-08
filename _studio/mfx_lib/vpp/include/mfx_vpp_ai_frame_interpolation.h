@@ -39,6 +39,8 @@ class MFXVideoFrameInterpolation
     enum Ratio {
         ratio_2x = 2,
         ratio_4x = 4,
+        ratio_8x = 8,
+        ratio_16x = 16,
         ratio_unsupported  = -1
     };
 
@@ -63,6 +65,11 @@ public:
     mfxStatus AddTaskQueue(mfxU32 taskIndex);
 
 private:
+    mfxStatus ConfigureFrameRate(
+        mfxU16 IOPattern,
+        const mfxFrameInfo& inInfo,
+        const mfxFrameInfo& outInfo);
+    mfxStatus InitFrameInterpolator(VideoCORE* core, const mfxFrameInfo& outInfo);
     bool      IsVppNeededForVfi(const mfxFrameInfo& inInfo, const mfxFrameInfo& outInfo);
     mfxStatus InitVppAndAllocateSurface(
         const mfxFrameInfo& inInfo,
@@ -74,9 +81,8 @@ private:
 
     mfxStatus DuplicateFrame();
     mfxStatus DoInterpolation();
-    mfxStatus DoInterpolation2x();
-    mfxStatus DoInterpolation4x();
-    mfxStatus InterpolateAi(mfxFrameSurface1* bkw, mfxFrameSurface1* fwd, mfxFrameSurface1* out);
+    mfxStatus DoInterpolation(mfxU16 leftIdx, mfxU16 rightIdx);
+    mfxStatus InterpolateAi(mfxFrameSurface1& bkw, mfxFrameSurface1& fwd, mfxFrameSurface1& out);
 
     VideoCORE* m_core;
 
@@ -87,13 +93,8 @@ private:
 
     mfxU16 m_IOPattern;
 
-    mfxFrameAllocResponse m_responseIn;
-    mfxFrameAllocResponse m_responseOut;
     mfxFrameSurface1      m_inputFwd;
     mfxFrameSurface1      m_inputBkwd;
-    mfxFrameSurface1      m_output[4];
-    mfxMemId              m_memIdBkwd;
-    mfxMemId              m_memIdFwd;
 
     //scd related
     bool                          m_enableScd;
@@ -112,14 +113,11 @@ private:
     std::unique_ptr<MfxVppHelper> m_vppBeforeFi0;
     std::unique_ptr<MfxVppHelper> m_vppBeforeFi1;
     std::unique_ptr<MfxVppHelper> m_vppAfterFi;
+
     mfxFrameAllocResponse         m_rgbSurfForFiIn;
-    mfxFrameAllocResponse         m_rgbSurfForFiOut;
-    mfxFrameSurface1              m_rgbBkwd;
-    mfxFrameSurface1              m_rgbfwd;
-    mfxFrameSurface1              m_rgbFiOut;
+    mfxFrameSurface1              m_rgbSurfArray[17];
     mfxFrameAllocResponse         m_outSurfForFi;
     mfxFrameSurface1              m_fiOut;
-
 
     // first  taskIndex
     // second timestamp
