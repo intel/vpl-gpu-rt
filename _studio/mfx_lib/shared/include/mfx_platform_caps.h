@@ -68,6 +68,11 @@ namespace CommonCaps {
         return (platform >= MFX_HW_DG2);
     }
 
+
+    inline bool IsCBRSlidingWinSupported(eMFXHWType platform)
+    {
+        return (platform >= MFX_HW_MTL);
+    }
 }
 
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE

@@ -4603,79 +4603,122 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         ||  par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD
         || (mfxRateControlHwSupport && !IsOn(extOpt2->ExtBRC));
 
-     if (extOpt3->WinBRCMaxAvgKbps || extOpt3->WinBRCSize)
-     {
-         if (!slidingWindowSupported)
-         {
-             extOpt3->WinBRCMaxAvgKbps = 0;
-             extOpt3->WinBRCSize = 0;
-             par.calcParam.WinBRCMaxAvgKbps = 0;
-             unsupported = true;
-         }
-         else if (extOpt3->WinBRCSize==0)
-         {
-             warning = true;
-         }
-         else if (mfxRateControlHwSupport && !IsOn(extOpt2->ExtBRC))
-         {
-             if (par.mfx.FrameInfo.FrameRateExtN != 0 && par.mfx.FrameInfo.FrameRateExtD != 0)
-             {
-                 mfxU16 iframerate = (mfxU16)ceil((mfxF64)par.mfx.FrameInfo.FrameRateExtN / par.mfx.FrameInfo.FrameRateExtD);
-                 if (extOpt3->WinBRCSize != iframerate)
-                 {
-                     extOpt3->WinBRCSize = iframerate;
-                     changed = true;
-                 }
-             }
-             else
-             {
-                 CalculateMFXFramerate((mfxF64)extOpt3->WinBRCSize, &par.mfx.FrameInfo.FrameRateExtN, &par.mfx.FrameInfo.FrameRateExtD);
-                 changed = true;
-             }
-             if (par.calcParam.maxKbps)
-             {
-                 if (par.calcParam.WinBRCMaxAvgKbps != par.calcParam.maxKbps)
-                 {
-                     par.calcParam.WinBRCMaxAvgKbps = (mfxU16)par.calcParam.maxKbps;
-                     changed = true;
-                 }
-             }
-             else if (par.calcParam.WinBRCMaxAvgKbps)
-             {
-                 if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR &&
-                     par.calcParam.targetKbps &&
-                     par.calcParam.WinBRCMaxAvgKbps != par.calcParam.targetKbps)
-                 {
-                     par.calcParam.WinBRCMaxAvgKbps = par.calcParam.targetKbps;
-                     changed = true;
-                 }
+    if (extOpt3->WinBRCMaxAvgKbps || extOpt3->WinBRCSize)
+    {
+        if (!slidingWindowSupported)
+        {
+            extOpt3->WinBRCMaxAvgKbps = 0;
+            extOpt3->WinBRCSize = 0;
+            par.calcParam.WinBRCMaxAvgKbps = 0;
+            unsupported = true;
+        }
+        else if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR && CommonCaps::IsCBRSlidingWinSupported(platform))
+        {
+            mfxU16 framerate = 0;
+            if (par.mfx.FrameInfo.FrameRateExtN != 0 && par.mfx.FrameInfo.FrameRateExtD != 0)
+            {
+                framerate = (mfxU16)ceil((mfxF64)par.mfx.FrameInfo.FrameRateExtN / par.mfx.FrameInfo.FrameRateExtD);
+            }
+            else
+            {
+                CalculateMFXFramerate((mfxF64)framerate, &par.mfx.FrameInfo.FrameRateExtN, &par.mfx.FrameInfo.FrameRateExtD);
+            }
+            mfxU16 maxWinBRCSize = 60;
+            mfxU16 minWinBRCSize = std::min<mfxU16>(mfxU16(framerate * 0.5), maxWinBRCSize);
+            
+            if (extOpt3->WinBRCSize) //check WinBRCSize range and clip it to [framerate*0.5, 60]
+            {
+                if (!CheckRange(extOpt3->WinBRCSize, minWinBRCSize, maxWinBRCSize))
+                    changed = true;
+            }
+            else //set default as framerate
+            {
+                extOpt3->WinBRCSize = std::min<mfxU16>(framerate, maxWinBRCSize);
+                changed = true;
+            }
 
-                 if (par.calcParam.targetKbps && par.calcParam.WinBRCMaxAvgKbps < par.calcParam.targetKbps)
-                 {
-                     extOpt3->WinBRCMaxAvgKbps = 0;
-                     par.calcParam.WinBRCMaxAvgKbps = 0;
-                     extOpt3->WinBRCSize = 0;
-                     unsupported = true;
-                 }
-                 else
-                 {
-                     par.calcParam.maxKbps = par.calcParam.WinBRCMaxAvgKbps;
-                     changed = true;
-                 }
-             }
-             else
-             {
-                 warning = true;
-             }
-         }
-         else if (par.calcParam.targetKbps && par.calcParam.WinBRCMaxAvgKbps < par.calcParam.targetKbps)
-         {
-             extOpt3->WinBRCMaxAvgKbps = 0;
-             par.calcParam.WinBRCMaxAvgKbps = 0;
-             extOpt3->WinBRCSize = 0;
-             unsupported = true;
-         }
-     }
+            mfxU32 minWinBRCMaxAvgKbps = static_cast<mfxU32>(par.mfx.TargetKbps * 1.1);
+            mfxU32 maxWinBRCMaxAvgKbps = static_cast<mfxU32>(par.mfx.TargetKbps * 2.0);
+            mfxU32 WinBRCMaxAvgKbps = (mfxU32)extOpt3->WinBRCMaxAvgKbps;
+
+            if (extOpt3->WinBRCMaxAvgKbps) //check WinBRCMaxAvgKbps range and clip it
+            {
+                if (!CheckRange(WinBRCMaxAvgKbps, minWinBRCMaxAvgKbps, maxWinBRCMaxAvgKbps))
+                {
+                    par.calcParam.WinBRCMaxAvgKbps = WinBRCMaxAvgKbps * std::max<mfxU16>(par.mfx.BRCParamMultiplier, 1);
+                    changed = true;
+                }
+            }
+            else //set default as 1.3x/1.7x target bitrate for OBS/other scenario
+            {
+                par.calcParam.WinBRCMaxAvgKbps = extOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING ? static_cast<mfxU32>(par.calcParam.targetKbps * 1.3) : static_cast<mfxU32>(par.calcParam.targetKbps * 1.7);
+                changed = true;
+            }
+        }
+        else if (extOpt3->WinBRCSize == 0)
+        {
+            warning = true;
+        }
+        else if (mfxRateControlHwSupport && !IsOn(extOpt2->ExtBRC))
+        {
+            if (par.mfx.FrameInfo.FrameRateExtN != 0 && par.mfx.FrameInfo.FrameRateExtD != 0)
+            {
+                mfxU16 iframerate = (mfxU16)ceil((mfxF64)par.mfx.FrameInfo.FrameRateExtN / par.mfx.FrameInfo.FrameRateExtD);
+                if (extOpt3->WinBRCSize != iframerate)
+                {
+                    extOpt3->WinBRCSize = iframerate;
+                    changed = true;
+                }
+            }
+            else
+            {
+                CalculateMFXFramerate((mfxF64)extOpt3->WinBRCSize, &par.mfx.FrameInfo.FrameRateExtN, &par.mfx.FrameInfo.FrameRateExtD);
+                changed = true;
+            }
+            if (par.calcParam.maxKbps)
+            {
+                if (par.calcParam.WinBRCMaxAvgKbps != par.calcParam.maxKbps)
+                {
+                    par.calcParam.WinBRCMaxAvgKbps = (mfxU16)par.calcParam.maxKbps;
+                    changed = true;
+                }
+            }
+            else if (par.calcParam.WinBRCMaxAvgKbps)
+            {
+                if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR &&
+                    par.calcParam.targetKbps &&
+                    par.calcParam.WinBRCMaxAvgKbps != par.calcParam.targetKbps)
+                {
+                    par.calcParam.WinBRCMaxAvgKbps = par.calcParam.targetKbps;
+                    changed = true;
+                }
+
+                if (par.calcParam.targetKbps && par.calcParam.WinBRCMaxAvgKbps < par.calcParam.targetKbps)
+                {
+                    extOpt3->WinBRCMaxAvgKbps = 0;
+                    par.calcParam.WinBRCMaxAvgKbps = 0;
+                    extOpt3->WinBRCSize = 0;
+                    unsupported = true;
+                }
+                else
+                {
+                    par.calcParam.maxKbps = par.calcParam.WinBRCMaxAvgKbps;
+                    changed = true;
+                }
+            }
+            else
+            {
+                warning = true;
+            }
+        }
+        else if (par.calcParam.targetKbps && par.calcParam.WinBRCMaxAvgKbps < par.calcParam.targetKbps)
+        {
+            extOpt3->WinBRCMaxAvgKbps = 0;
+            par.calcParam.WinBRCMaxAvgKbps = 0;
+            extOpt3->WinBRCSize = 0;
+            unsupported = true;
+        }
+    }
 
     if (   extOpt2->MinQPI || extOpt2->MaxQPI
         || extOpt2->MinQPP || extOpt2->MaxQPP
@@ -7687,7 +7730,8 @@ void MfxVideoParam::SyncVideoToCalculableParam()
         calcParam.bufferSizeInKB = calcParam.initialDelayInKB = calcParam.maxKbps = 0;
     }
     if (   mfx.RateControlMethod == MFX_RATECONTROL_LA
-        || mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD)
+        || mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD
+        || mfx.RateControlMethod == MFX_RATECONTROL_CBR)
         calcParam.WinBRCMaxAvgKbps = m_extOpt3.WinBRCMaxAvgKbps * multiplier;
 
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE
@@ -7821,7 +7865,8 @@ void MfxVideoParam::SyncCalculableToVideoParam()
         }
     }
     if (   mfx.RateControlMethod == MFX_RATECONTROL_LA
-        || mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD)
+        || mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD
+        || mfx.RateControlMethod == MFX_RATECONTROL_CBR)
         m_extOpt3.WinBRCMaxAvgKbps = mfxU16(calcParam.WinBRCMaxAvgKbps / mfx.BRCParamMultiplier);
 }
 

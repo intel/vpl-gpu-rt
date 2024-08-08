@@ -24,6 +24,7 @@
 #include "hevcehw_base_legacy.h"
 #include "hevcehw_base_data.h"
 #include "hevcehw_base_constraints.h"
+#include "mfx_platform_caps.h"
 #include <numeric>
 #include <set>
 
@@ -2638,25 +2639,82 @@ public:
 
         mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
         bool   bExtBRC      = pCO2 && IsOn(pCO2->ExtBRC);
-        bool   bVBR         = (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR || par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR);
-        bool   bUnsupported = bVBR && pCO3->WinBRCMaxAvgKbps && (pCO3->WinBRCMaxAvgKbps < TargetKbps(par.mfx));
-        mfxU32 changed      = !bVBR || bUnsupported;
 
-        pCO3->WinBRCSize       *= !changed;
-        pCO3->WinBRCMaxAvgKbps *= !changed;
+        auto   fr = dpar.base.GetFrameRate(dpar);
+        mfxU16 fps = mfxU16(mfx::CeilDiv(std::get<0>(fr), std::get<1>(fr)));
 
-        MFX_CHECK(!bUnsupported, MFX_ERR_UNSUPPORTED);
-        MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
-        MFX_CHECK(bVBR && !bExtBRC, MFX_ERR_NONE);
+        if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR && CommonCaps::IsCBRSlidingWinSupported(dpar.hw))
+        {
+            MFX_CHECK(!bExtBRC, MFX_ERR_NONE);
 
-        auto   fr      = dpar.base.GetFrameRate(dpar);
-        mfxU16 fps     = mfxU16(mfx::CeilDiv(std::get<0>(fr), std::get<1>(fr)));
-        auto   maxKbps = dpar.base.GetMaxKbps(dpar);
+            mfxU32 changed = 0;
 
-        changed += pCO3->WinBRCSize && SetIf(pCO3->WinBRCSize, pCO3->WinBRCSize != fps, fps);
-        changed += SetIf(pCO3->WinBRCMaxAvgKbps, pCO3->WinBRCMaxAvgKbps != maxKbps, maxKbps);
+            //check and fix for WinBRCSize
+            mfxU16 maxWinBRCSize = 60; //limitation in huc region
+            mfxU16 minWinBRCSize = std::min<mfxU16>(mfxU16(fps * 0.5), maxWinBRCSize);
 
-        MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+            if (pCO3->WinBRCSize == 0)
+            {
+                pCO3->WinBRCSize = std::min<mfxU16>(fps, maxWinBRCSize);
+            }
+            else 
+            {
+                changed += CheckRangeOrClip(pCO3->WinBRCSize, minWinBRCSize, maxWinBRCSize);
+            }
+
+            //check and fix for WinBRCMaxAvgKbps
+            auto   targetKbps = dpar.base.GetTargetKbps(dpar);
+            mfxU32 minWinBRCMaxAvgKbps = static_cast<mfxU32>(targetKbps * 1.1);
+            mfxU32 maxWinBRCMaxAvgKbps = static_cast<mfxU32>(targetKbps * 2.0);
+            mfxU32 WinBRCMaxAvgKbps = (mfxU32)pCO3->WinBRCMaxAvgKbps * std::max<mfxU16>(par.mfx.BRCParamMultiplier, 1);
+
+            if (pCO3->WinBRCMaxAvgKbps == 0)
+            {
+                WinBRCMaxAvgKbps = pCO3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING ? static_cast<mfxU32>(targetKbps * 1.3) : static_cast<mfxU32>(targetKbps * 1.7);
+                
+            }
+            else 
+            {
+                changed += CheckRangeOrClip(WinBRCMaxAvgKbps, minWinBRCMaxAvgKbps, maxWinBRCMaxAvgKbps);
+                
+            }
+
+            mfxU16 multiplierMin = (mfxU16)mfx::CeilDiv<mfxU32>(WinBRCMaxAvgKbps, 65535u);
+            mfxU16 multiplier = std::max<const mfxU16>(1, par.mfx.BRCParamMultiplier);
+
+            if (multiplierMin > multiplier)
+            {
+                par.mfx.TargetKbps = static_cast<mfxU16> (TargetKbps(par.mfx) / multiplierMin);
+                par.mfx.MaxKbps = static_cast<mfxU16>(MaxKbps(par.mfx) / multiplierMin);
+                par.mfx.BufferSizeInKB = static_cast<mfxU16>(BufferSizeInKB(par.mfx) / multiplierMin);
+                par.mfx.InitialDelayInKB = static_cast<mfxU16>(InitialDelayInKB(par.mfx) / multiplierMin);
+                par.mfx.BRCParamMultiplier = multiplierMin;
+            }
+
+            pCO3->WinBRCMaxAvgKbps = (mfxU16)(WinBRCMaxAvgKbps / std::max<mfxU16>(par.mfx.BRCParamMultiplier, 1));
+            MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+        }
+        else
+        {
+            bool   bVBR = (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR || par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR);
+            bool   bUnsupported = bVBR && pCO3->WinBRCMaxAvgKbps && (pCO3->WinBRCMaxAvgKbps < TargetKbps(par.mfx));
+            mfxU32 changed = !bVBR || bUnsupported;
+
+            pCO3->WinBRCSize *= !changed;
+            pCO3->WinBRCMaxAvgKbps *= !changed;
+
+            MFX_CHECK(!bUnsupported, MFX_ERR_UNSUPPORTED);
+            MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_CHECK(bVBR && !bExtBRC, MFX_ERR_NONE);
+
+            auto   maxKbps = dpar.base.GetMaxKbps(dpar);
+
+            changed += pCO3->WinBRCSize && SetIf(pCO3->WinBRCSize, pCO3->WinBRCSize != fps, fps);
+            changed += SetIf(pCO3->WinBRCMaxAvgKbps, pCO3->WinBRCMaxAvgKbps != maxKbps, maxKbps);
+
+            MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+        }
+        
         return MFX_ERR_NONE;
     }
 
