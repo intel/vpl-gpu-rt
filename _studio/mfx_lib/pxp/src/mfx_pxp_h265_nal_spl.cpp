@@ -83,13 +83,38 @@ namespace UMC_HEVC_DECODER
                 // additional 00 at the end of NAL
                 uint8_t* end_nal_ptr = (uint8_t*)nalUnit->GetBufferPointer() + nalUnit->GetBufferSize();
                 uint32_t end_nal_index = 0;
+
+                uint32_t currSegment = pxpva->m_curSegment;
                 uint32_t ext_buf_size = cur_segment_length - nalUnit->GetBufferSize();
-                while (end_nal_index < ext_buf_size && *end_nal_ptr == 0)
+                uint8_t extEndByte = 0;
+                uint32_t indexNewSeg = 0;
+                while (end_nal_index < ext_buf_size)
                 {
+                    extEndByte = *end_nal_ptr;
+                    if(extEndByte != 0)
+                    {
+                        break;
+                    }
                     end_nal_ptr++;
                     end_nal_index++;
+                    indexNewSeg++;
+                    if(end_nal_index == ext_buf_size)
+                    {
+                        ++currSegment;
+                        indexNewSeg = 0;
+                        uint32_t numSegments = static_cast<VAEncryptionParameters*>(pxpva->GetPXPParams())->num_segments;
+                        if(currSegment < numSegments)
+                        {
+                            ext_buf_size += (static_cast<VAEncryptionParameters*>(pxpva->GetPXPParams())->segment_info + currSegment)->segment_length;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
                 }
-                if (end_nal_index >= ext_buf_size)
+                
+                if (extEndByte != 1 || (currSegment > pxpva->m_curSegment && indexNewSeg > 1)) // No start code follow, or the following start code is in complete different segment
                 {
                     nalUnit->SetBufferPointer((uint8_t*)nalUnit->GetBufferPointer(), cur_segment_length);
                     nalUnit->SetDataSize(cur_segment_length);
