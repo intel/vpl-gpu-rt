@@ -104,8 +104,4 @@
 #endif
 #endif
 
-#ifdef ONEVPL_EXPERIMENTAL
-#define MFX_ENABLE_ENCODE_AV1SCC
-#endif
-
 #endif // _MFX_CONFIG_ENCODE_H_
