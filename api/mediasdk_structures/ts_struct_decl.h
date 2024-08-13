@@ -1017,7 +1017,6 @@ STRUCT(mfxExtTuneEncodeQuality,
     FIELD_T(mfxU16        , NumExtParam)
 )
 
-#ifdef MFX_ENABLE_ENCODE_QUALITYINFO
 STRUCT(mfxExtQualityInfoMode,
     FIELD_S(mfxExtBuffer, Header)
 )
@@ -1025,10 +1024,7 @@ STRUCT(mfxExtQualityInfoMode,
 STRUCT(mfxExtQualityInfoOutput,
     FIELD_S(mfxExtBuffer, Header)
 )
-#endif
 
-#ifdef MFX_ENABLE_ENCODE_AV1SCC
 STRUCT(mfxExtAV1ScreenContentTools,
     FIELD_S(mfxExtBuffer, Header)
 )
-#endif
