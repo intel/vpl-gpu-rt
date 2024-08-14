@@ -208,7 +208,8 @@ namespace Base
             TaskCommonPar& task
             , const Defaults::Param& dflts
             , IAllocation& recPool
-            , EncodedInfoAv1& encodedInfo);
+            , EncodedInfoAv1& encodedInfo
+            , FH& fh);
 
         mfxStatus GetCurrentFrameHeader(
             const TaskCommonPar& task

@@ -364,11 +364,11 @@ void UpdatePPS(
     pps.min_base_qindex = task.MinBaseQIndex;
     pps.max_base_qindex = task.MaxBaseQIndex;
 
-    pps.y_dc_delta_q = task.YDcDeltaQ;
-    pps.u_dc_delta_q = task.UDcDeltaQ;
-    pps.u_ac_delta_q = task.UAcDeltaQ;
-    pps.v_dc_delta_q = task.VDcDeltaQ;
-    pps.v_ac_delta_q = task.VAcDeltaQ;
+    pps.y_dc_delta_q = static_cast<mfxI8>(bs_fh.quantization_params.DeltaQYDc);
+    pps.u_dc_delta_q = static_cast<mfxI8>(bs_fh.quantization_params.DeltaQUDc);
+    pps.u_ac_delta_q = static_cast<mfxI8>(bs_fh.quantization_params.DeltaQUAc);
+    pps.v_dc_delta_q = static_cast<mfxI8>(bs_fh.quantization_params.DeltaQVDc);
+    pps.v_ac_delta_q = static_cast<mfxI8>(bs_fh.quantization_params.DeltaQVAc);
 
     pps.order_hint = static_cast<mfxU8>(bs_fh.order_hint);
 

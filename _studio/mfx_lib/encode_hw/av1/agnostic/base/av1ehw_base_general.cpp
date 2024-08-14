@@ -1481,9 +1481,9 @@ void General::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
         MFX_CHECK(task.Rec.Idx != IDX_INVALID, MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(task.Rec.Mid && task.BS.Mid, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-        auto& fh = Glob::FH::Get(global);
+        auto& glob_fh = Glob::FH::Get(global);
         auto  def = GetRTDefaults(global);
-        ConfigureTask(task, def, recPool, encodedInfo);
+        ConfigureTask(task, def, recPool, encodedInfo, glob_fh);
 
         auto& framesToShowInfo = Glob::FramesToShowInfo::Get(global);
         SetTaskFramesToShow(task, framesToShowInfo);
@@ -1492,7 +1492,8 @@ void General::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
         SetTaskRepeatedFramesSize(task, repeatFrameSizeInfo);
 
         auto& sh = Glob::SH::Get(global);
-        auto sts = GetCurrentFrameHeader(task, def, sh, fh, Task::FH::Get(s_task));
+        auto& task_fh = Task::FH::Get(s_task);
+        auto sts = GetCurrentFrameHeader(task, def, sh, glob_fh, task_fh);
         MFX_CHECK_STS(sts);
 
         return sts;
@@ -2075,11 +2076,13 @@ inline std::tuple<mfxU8, mfxU8> GetMaxRefs(
 
 inline void SetTaskQp(
     TaskCommonPar& task
-    , const mfxVideoParam& par)
+    , const mfxVideoParam& par
+    , FH& fh)
 {
     if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
         task.QpY = 128;
+        fh.quantization_params.base_q_idx = task.QpY;
         return;
     }
 
@@ -2106,9 +2109,11 @@ inline void SetTaskQp(
     }
 
     SetIf(task.QpY, !!task.ctrl.QP, static_cast<mfxU8>(task.ctrl.QP));
+    fh.quantization_params.base_q_idx = task.QpY;
 }
 
-inline bool CheckQpInRangeOrClip(mfxI32 qp, mfxI8& delta)
+template<class T>
+inline bool CheckQpInRangeOrClip(mfxI32 qp, T& delta)
 {
 
     mfxI32 clipQp = static_cast<mfxI32>(delta);
@@ -2127,13 +2132,11 @@ inline bool CheckQpInRangeOrClip(mfxI32 qp, mfxI8& delta)
 
     std::ignore = CheckRangeOrClip(clipQp, -63, 63);
 
-    delta = static_cast<mfxI8>(clipQp);
+    delta = static_cast<T>(clipQp);
     return true;
 }
 
-inline void ClipTaskDeltaQp(
-    TaskCommonPar& task
-    ,const mfxVideoParam& par)
+inline void ClipDeltaQp(const mfxVideoParam& par, FH& fh)
 {
     if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
@@ -2142,17 +2145,19 @@ inline void ClipTaskDeltaQp(
     const mfxExtAV1AuxData& auxPar = ExtBuffer::Get(par);
     mfxU32 changed = 0;
 
-    task.YDcDeltaQ = auxPar.QP.YDcDeltaQ;
-    task.UDcDeltaQ = auxPar.QP.UDcDeltaQ;
-    task.UAcDeltaQ = auxPar.QP.UAcDeltaQ;
-    task.VDcDeltaQ = auxPar.QP.VDcDeltaQ;
-    task.VAcDeltaQ = auxPar.QP.VAcDeltaQ;
+    fh.quantization_params.DeltaQYDc = static_cast<mfxI32>(auxPar.QP.YDcDeltaQ);
+    fh.quantization_params.DeltaQUDc = static_cast<mfxI32>(auxPar.QP.UDcDeltaQ);
+    fh.quantization_params.DeltaQUAc = static_cast<mfxI32>(auxPar.QP.UAcDeltaQ);
+    fh.quantization_params.DeltaQVDc = static_cast<mfxI32>(auxPar.QP.VDcDeltaQ);
+    fh.quantization_params.DeltaQVAc = static_cast<mfxI32>(auxPar.QP.VAcDeltaQ);
 
-    changed += CheckQpInRangeOrClip(task.QpY, task.YDcDeltaQ);
-    changed += CheckQpInRangeOrClip(task.QpY, task.UDcDeltaQ);
-    changed += CheckQpInRangeOrClip(task.QpY, task.UAcDeltaQ);
-    changed += CheckQpInRangeOrClip(task.QpY, task.VDcDeltaQ);
-    changed += CheckQpInRangeOrClip(task.QpY, task.VAcDeltaQ);
+    auto qp = fh.quantization_params.base_q_idx;
+
+    changed += CheckQpInRangeOrClip(qp, fh.quantization_params.DeltaQYDc);
+    changed += CheckQpInRangeOrClip(qp, fh.quantization_params.DeltaQUDc);
+    changed += CheckQpInRangeOrClip(qp, fh.quantization_params.DeltaQUAc);
+    changed += CheckQpInRangeOrClip(qp, fh.quantization_params.DeltaQVDc);
+    changed += CheckQpInRangeOrClip(qp, fh.quantization_params.DeltaQVAc);
 
     std::ignore = changed;
 
@@ -2681,13 +2686,14 @@ void General::ConfigureTask(
     TaskCommonPar& task
     , const Defaults::Param& dflts
     , IAllocation& recPool
-    , EncodedInfoAv1& encodedInfo)
+    , EncodedInfoAv1& encodedInfo
+    , FH& fh)
 {
     task.StatusReportId = std::max<mfxU32>(1, m_prevTask.StatusReportId + 1);
 
     const auto& par = dflts.mvp;
-    SetTaskQp(task, par);
-    ClipTaskDeltaQp(task, par);
+    SetTaskQp(task, par, fh);
+    ClipDeltaQp(par, fh);
     SetTaskBRCParams(task, par);
     SetTaskEncodeOrders(task, m_prevTask);
 
@@ -4559,14 +4565,6 @@ mfxStatus General::GetCurrentFrameHeader(
     const bool frameIsIntra = FrameIsIntra(currFH);
     SetRefFrameFlags(task, currFH, frameIsIntra);
     SetRefFrameIndex(task, currFH, frameIsIntra);
-
-    currFH.quantization_params.base_q_idx = task.QpY;
-
-    currFH.quantization_params.DeltaQYDc = task.YDcDeltaQ;
-    currFH.quantization_params.DeltaQUDc = task.UDcDeltaQ;
-    currFH.quantization_params.DeltaQUAc = task.UAcDeltaQ;
-    currFH.quantization_params.DeltaQVDc = task.VDcDeltaQ;
-    currFH.quantization_params.DeltaQVAc = task.VAcDeltaQ;
 
     if (IsLossless(currFH))
     {
