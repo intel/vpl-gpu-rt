@@ -1372,9 +1372,7 @@ namespace Base
 #ifdef MFX_ENABLE_PXP
         , FEATURE_PXP
 #endif
-#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
         , FEATURE_QUALITYINFO
-#endif
         , NUM_FEATURES
     };
 

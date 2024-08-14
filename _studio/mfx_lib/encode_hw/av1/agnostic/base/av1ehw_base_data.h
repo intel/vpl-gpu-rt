@@ -1329,9 +1329,7 @@ namespace Base
         , FEATURE_ENCTOOLS
         , FEATURE_MAX_FRAME_SIZE
         , FEATURE_HDR
-#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
         , FEATURE_QUALITYINFO
-#endif
         , NUM_FEATURES
     };
 
@@ -1401,9 +1399,7 @@ namespace Base
         mfxU32       DisplayOrder  = 0;
         mfxU16       LongTermIdx   = MFX_LONGTERM_IDX_NO_IDX;
         bool         isLTR         = false;
-#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
         mfxU32       MSE[3];
-#endif
     };
 
     struct Task
