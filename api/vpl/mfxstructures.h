@@ -5236,7 +5236,8 @@ MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer        Header;         /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_ENCODED_QUALITY_INFO_OUTPUT. */
     mfxU32              FrameOrder;     /*!< Frame display order of encoded picture. */
-    mfxU32              MSE[3];         /*!< Frame level mean squared errors (MSE) for Y/U/V channel. */
+    mfxU32              MSE[3];         /*!< Frame level mean squared errors (MSE) for Y/U/V channel. 
+                                             @note MSE is stored in U24.8 format. The calculation formula is: PSNR = 10 * log10(256.0 * (2^bitDepth - 1)^2 / (double)MSE)). */
     mfxU32              reserved1[50];  /*!< Reserved for future use. */
     mfxHDL              reserved2[4];   /*!< Reserved for future use. */
 } mfxExtQualityInfoOutput;
