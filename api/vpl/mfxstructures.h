@@ -2449,7 +2449,6 @@ enum {
       See the mfxExtAV1ScreenContentTools structure for details.
    */
    MFX_EXTBUFF_AV1_SCREEN_CONTENT_TOOLS = MFX_MAKEFOURCC('1', 'S', 'C', 'C'),
-#ifdef ONEVPL_EXPERIMENTAL
     /*!
         See the mfxExtAlphaChannelEncCtrl structure for more details.
     */
@@ -2458,7 +2457,6 @@ enum {
         See the mfxExtAlphaChannelSurface structure for more details.
     */
     MFX_EXTBUFF_ALPHA_CHANNEL_SURFACE = MFX_MAKEFOURCC('A', 'C', 'S', 'F'),
-#endif
 };
 
 /* VPP Conf: Do not use certain algorithms  */
@@ -5272,7 +5270,6 @@ typedef struct {
 MFX_PACK_END()
 
 
-#ifdef ONEVPL_EXPERIMENTAL
 /*! The AlphaChannelMode enumerator specifies alpha is straight or pre-multiplied. */
 enum {
     /*!
@@ -5323,7 +5320,6 @@ typedef struct {
     mfxU16              reserved[8];
 } mfxExtAlphaChannelSurface;
 MFX_PACK_END()
-#endif
 
 #ifdef __cplusplus
 } // extern "C"
