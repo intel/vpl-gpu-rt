@@ -1318,6 +1318,7 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
             sts = MFX_ERR_UNSUPPORTED;
         }
 
+        out->mfx.FrameInfo.Shift = in->mfx.FrameInfo.Shift;
         switch (in->mfx.FrameInfo.PicStruct)
         {
         case MFX_PICSTRUCT_UNKNOWN:
