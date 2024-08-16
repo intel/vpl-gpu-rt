@@ -61,7 +61,7 @@ protected:
     void HardcodeCapsCommon(EncodeCapsHevc& caps, const mfxVideoParam& par)
     {
         caps.SliceIPOnly        = IsOn(par.mfx.LowPower);
-        caps.msdk.PSliceSupport = false;
+        caps.msdk.PSliceSupport = true;
     }
 };
 
