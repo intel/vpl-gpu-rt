@@ -435,6 +435,7 @@ public:
         case MFX_HW_MTL:
         case MFX_HW_DG2:
         case MFX_HW_LNL:
+        case MFX_HW_BMG:
             return true;
         default:
             return false;
