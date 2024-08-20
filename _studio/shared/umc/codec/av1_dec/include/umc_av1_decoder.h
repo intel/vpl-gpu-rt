@@ -64,6 +64,8 @@ namespace UMC_AV1_DECODER
             , color_primaries(AOM_CICP_CP_UNSPECIFIED)
             , transfer_characteristics(AOM_CICP_TC_UNSPECIFIED)
             , matrix_coefficients(AOM_CICP_MC_UNSPECIFIED)
+            , framerate_n(0)
+            , framerate_d(0)
         {}
 
     public:
@@ -82,6 +84,8 @@ namespace UMC_AV1_DECODER
         uint32_t             color_primaries;
         uint32_t             transfer_characteristics;
         uint32_t             matrix_coefficients;
+        uint32_t             framerate_n;
+        uint32_t             framerate_d;
     };
 
     class ReportItem // adopted from HEVC/AVC decoders
