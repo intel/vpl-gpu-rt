@@ -84,7 +84,7 @@ namespace UMC_MPEG2_DECODER
             else // start code wasn't found
             {
                 // Load the data excepte last 1 or 2 bytes if they have zero values (Considering [... 0x0 0x0] [0x1 ...]) to the cache
-                uint32_t numZerosAtEnd = (0 == end[-1]) ? 1 + (0 == end[-2]) : 0;
+                uint32_t numZerosAtEnd = (0 == end[-1]) ? 1 + (in->GetDataSize() > 1 ? (0 == end[-2]) : 0) : 0;
                 readSize = (uint32_t)(end - begin - numZerosAtEnd);
                 m_cache.insert(m_cache.end(), (uint8_t *)begin, (uint8_t *)(end - numZerosAtEnd));
             }
