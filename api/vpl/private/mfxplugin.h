@@ -156,6 +156,7 @@ typedef struct mfxVideoCodecPlugin{
 } mfxVideoCodecPlugin;
 MFX_PACK_END()
 
+
 MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct mfxPlugin{
     mfxHDL pthis;

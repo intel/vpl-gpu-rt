@@ -38,6 +38,7 @@ MFX_PACK_END()
 
 mfxStatus MFX_CDECL MFXVideoCORE_SetBufferAllocator(mfxSession session, mfxBufferAllocator *allocator);
 
+
 /* IOPattern */
 enum {
     MFX_IOPATTERN_IN_OPAQUE_MEMORY  = 0x04,
