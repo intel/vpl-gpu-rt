@@ -809,6 +809,13 @@ namespace UMC_VVC_DECODER
             {
                 pTmp->Reset();
             }
+            // check frames with same POC and set prev one as unused
+            else if (pTmp->PicOrderCnt() == m_sliceHeader.m_poc)
+            {
+                pTmp->SetisShortTermRef(false);
+                pTmp->SetisLongTermRef(false);
+                pTmp->setAsReferenced(false);
+            }
         }
     }
 
