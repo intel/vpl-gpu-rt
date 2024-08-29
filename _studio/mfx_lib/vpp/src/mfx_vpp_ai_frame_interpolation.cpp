@@ -406,7 +406,7 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
         {
             // copy vpp internal output to app output
             mfxFrameSurface1 internalSurf = MakeSurface(m_rgbSurfArray[0].Info, internalVidMemId);
-            sts = m_core->DoFastCopyWrapper(out, MFX_MEMTYPE_SYSTEM_MEMORY, &internalSurf, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+            sts = m_core->DoFastCopyWrapper(out, MFX_MEMTYPE_SYSTEM_MEMORY, &internalSurf, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
 
             // record internal vpp output vid mem for intp surface pool
             if (m_vppForFi)
@@ -416,7 +416,7 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
             }
             else
             {
-                sts = m_core->DoFastCopyWrapper(&m_rgbSurfArray[0], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, &internalSurf, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+                sts = m_core->DoFastCopyWrapper(&m_rgbSurfArray[0], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET, &internalSurf, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
                 MFX_CHECK_STS(sts);
             }
         }
@@ -431,7 +431,7 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
                 }
                 else
                 {
-                    sts = m_core->DoFastCopyWrapper(&m_rgbSurfArray[0], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+                    sts = m_core->DoFastCopyWrapper(&m_rgbSurfArray[0], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET, out, MFX_MEMTYPE_DXVA2_DECODER_TARGET);
                     MFX_CHECK_STS(sts);
                 }
             }
@@ -454,7 +454,7 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
             }
             else
             {
-                sts = m_core->DoFastCopyWrapper(&m_rgbSurfArray[m_ratio], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, &internalSurf, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+                sts = m_core->DoFastCopyWrapper(&m_rgbSurfArray[m_ratio], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET, &internalSurf, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
                 MFX_CHECK_STS(sts);
             }
 
@@ -475,7 +475,7 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
                 }
                 else
                 {
-                    sts = m_core->DoFastCopyWrapper(&m_rgbSurfArray[m_ratio], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET, out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+                    sts = m_core->DoFastCopyWrapper(&m_rgbSurfArray[m_ratio], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET, out, MFX_MEMTYPE_DXVA2_DECODER_TARGET);
                     MFX_CHECK_STS(sts);
                 }
 
@@ -509,13 +509,13 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
                 MFX_CHECK_STS(m_vppAfterFi->Submit(&m_rgbSurfArray[stamp], &m_fiOut));
                 MFX_CHECK_STS(m_core->DoFastCopyWrapper(
                     out, MFX_MEMTYPE_SYSTEM_MEMORY,
-                    &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+                    &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET));
             }
             else
             {
                 MFX_CHECK_STS(m_core->DoFastCopyWrapper(
                     out, MFX_MEMTYPE_SYSTEM_MEMORY,
-                    &m_rgbSurfArray[stamp], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+                    &m_rgbSurfArray[stamp], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET));
             }
         }
         else
@@ -526,14 +526,14 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
                 {
                     MFX_CHECK_STS(m_vppAfterFi->Submit(&m_rgbSurfArray[stamp], &m_fiOut));
                     MFX_CHECK_STS(m_core->DoFastCopyWrapper(
-                        out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET,
-                        &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+                        out, MFX_MEMTYPE_DXVA2_DECODER_TARGET,
+                        &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET));
                 }
                 else
                 {
                     MFX_CHECK_STS(m_core->DoFastCopyWrapper(
-                        out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET,
-                        &m_rgbSurfArray[stamp], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+                        out, MFX_MEMTYPE_DXVA2_DECODER_TARGET,
+                        &m_rgbSurfArray[stamp], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET));
                 }
             }
             else
@@ -546,7 +546,7 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
     {
         if (m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
         {
-            sts = m_core->DoFastCopyWrapper(out, MFX_MEMTYPE_SYSTEM_MEMORY, &m_rgbSurfArray[stamp], MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET);
+            sts = m_core->DoFastCopyWrapper(out, MFX_MEMTYPE_SYSTEM_MEMORY, &m_rgbSurfArray[stamp], MFX_MEMTYPE_DXVA2_DECODER_TARGET);
         }
         else
         {
@@ -556,14 +556,14 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
                 {
                     MFX_CHECK_STS(m_vppAfterFi->Submit(&m_rgbSurfArray[stamp], &m_fiOut));
                     MFX_CHECK_STS(m_core->DoFastCopyWrapper(
-                        out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET,
-                        &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+                        out, MFX_MEMTYPE_DXVA2_DECODER_TARGET,
+                        &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET));
                 }
                 else
                 {
                     MFX_CHECK_STS(m_core->DoFastCopyWrapper(
-                        out, MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET,
-                        &m_rgbSurfArray[stamp], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+                        out, MFX_MEMTYPE_DXVA2_DECODER_TARGET,
+                        &m_rgbSurfArray[stamp], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET));
                 }
             }
             else
@@ -592,14 +592,14 @@ mfxStatus MFXVideoFrameInterpolation::DuplicateFrame()
     for (int i = 1; i < m_ratio / 2; i++)
     {
         MFX_CHECK_STS(m_core->DoFastCopyWrapper(
-            &m_rgbSurfArray[i], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET,
-            &m_rgbSurfArray[0], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+            &m_rgbSurfArray[i], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET,
+            &m_rgbSurfArray[0], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET));
     }
     for (int i = m_ratio / 2; i < m_ratio; i++)
     {
         MFX_CHECK_STS(m_core->DoFastCopyWrapper(
-            &m_rgbSurfArray[i],       MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET,
-            &m_rgbSurfArray[m_ratio], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET));
+            &m_rgbSurfArray[i],       MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET,
+            &m_rgbSurfArray[m_ratio], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET));
     }
 
     return MFX_ERR_NONE;
