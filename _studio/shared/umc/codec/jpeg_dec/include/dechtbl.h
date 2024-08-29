@@ -26,20 +26,9 @@
 #include "ippj.h"
 #include "jpegbase.h"
 
-#if defined(MFX_ENABLE_JPEG_SW_FALLBACK)
-
-  #if defined(MSDK_USE_EXTERNAL_IPP)
-    #include "ipp2mfx.h"
-  #endif
-#endif
-
 class CJPEGDecoderHuffmanTable
 {
 private:
-#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
-  IppiDecodeHuffmanSpec* m_table;
-#endif
-
   uint8_t                  m_bits[16];
   uint8_t                  m_vals[256];
   bool                   m_bEmpty;
@@ -66,38 +55,9 @@ public:
   bool     IsValid(void)                { return m_bValid; }
   void     SetInvalid(void)             { m_bValid = 0; return; }
 
-#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
-  operator IppiDecodeHuffmanSpec*(void) { return m_table; }
-#endif
-
   const uint8_t*   GetBits() const        { return m_bits; }
   const uint8_t*   GetValues() const      { return m_vals; }
 };
-
-
-#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
-class CJPEGDecoderHuffmanState
-{
-private:
-  IppiDecodeHuffmanState* m_state;
-
-public:
-  CJPEGDecoderHuffmanState(void);
-  virtual ~CJPEGDecoderHuffmanState(void);
-
-  CJPEGDecoderHuffmanState(const CJPEGDecoderHuffmanState&) = delete;
-  CJPEGDecoderHuffmanState(CJPEGDecoderHuffmanState&&) = delete;
-  CJPEGDecoderHuffmanState& operator=(const CJPEGDecoderHuffmanState&) = delete;
-  CJPEGDecoderHuffmanState& operator=(CJPEGDecoderHuffmanState&&) = delete;
-
-  JERRCODE Create(void);
-  JERRCODE Destroy(void);
-
-  JERRCODE Init(void);
-
-  operator IppiDecodeHuffmanState*(void) { return m_state; }
-};
-#endif
 
 #endif // MFX_ENABLE_MJPEG_VIDEO_DECODE
 #endif // __DECHTBL_H__

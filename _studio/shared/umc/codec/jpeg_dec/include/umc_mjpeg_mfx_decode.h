@@ -74,9 +74,6 @@ public:
 
     virtual FrameData *GetDst(void);
 
-    // Get next frame
-    virtual Status DecodePicture(const CJpegTask &task, const mfxU32 threadNumber, const mfxU32 callNumber);
-
     void SetFrameAllocator(FrameAllocator * frameAllocator) override;
 
     Status DecodeHeader(MediaData* in);
@@ -119,11 +116,6 @@ public:
 protected:
 
     void AdjustFrameSize(mfxSize & size) override;
-
-    Status DecodePiece(const mfxU32 fieldNum,
-                       const mfxU32 restartNum,
-                       const mfxU32 restartsToDecode,
-                       const mfxU32 threadNum);
 
     Status _DecodeHeader(int32_t* nUsedBytes, const uint32_t threadNum);
 

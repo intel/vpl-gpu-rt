@@ -26,21 +26,10 @@
 #include "ippj.h"
 #include "jpegbase.h"
 
-#if defined(MFX_ENABLE_JPEG_SW_FALLBACK)
-  #if defined(MSDK_USE_EXTERNAL_IPP)
-    #include "ipp2mfx.h"
-  #endif
-#endif
-
 class CJPEGDecoderQuantTable
 {
 private:
   uint8_t   m_rbf[DCTSIZE2*sizeof(uint16_t)+(CPU_CACHE_LINE-1)];
-#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
-  uint8_t   m_qbf[DCTSIZE2*sizeof(float)+(CPU_CACHE_LINE-1)];
-  uint16_t* m_qnt16u;
-  float* m_qnt32f;
-#endif
 
 public:
   int     m_id;
@@ -55,13 +44,6 @@ public:
   JERRCODE Init(int id,uint8_t  raw[DCTSIZE2]);
 
   JERRCODE Init(int id,uint16_t raw[DCTSIZE2]);
-#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
-  JERRCODE ConvertToLowPrecision(void);
-  JERRCODE ConvertToHighPrecision(void);
-
-  operator uint16_t*() { return m_precision == 0 ? m_qnt16u : 0; }
-  operator float*() { return m_precision == 1 ? m_qnt32f : 0; }
-#endif
 };
 
 

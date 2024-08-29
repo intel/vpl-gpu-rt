@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2023 Intel Corporation
+// Copyright (c) 2008-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1372,12 +1372,7 @@ void SurfaceSource::CreateUMCAllocator(const mfxVideoParam & video_param, eMFXPl
 
     if (MFX_PLATFORM_SOFTWARE == platform)
     {
-#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
-        MFX_CHECK_WITH_THROW_STS(video_param.mfx.CodecId == MFX_CODEC_JPEG, MFX_ERR_UNSUPPORTED);
-        m_umc_allocator_adapter.reset(new mfx_UMC_FrameAllocator());
-#else
         MFX_CHECK_WITH_THROW_STS(false, MFX_ERR_UNSUPPORTED);
-#endif
     }
     else
     {
