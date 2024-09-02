@@ -41,6 +41,7 @@ public:
     DECL_BLOCK(Reset) \
     DECL_BLOCK(SubmitTask) \
     DECL_BLOCK(QueryTask) \
+    DECL_BLOCK(PatchDDIFeedback) \
     DECL_BLOCK(QueryCaps) \
     DECL_BLOCK(SetCallChains)
 #define DECL_FEATURE_NAME "Base_IDDIPacker"

@@ -169,7 +169,8 @@ typedef struct tagENCODE_CAPS_AV1
     union {
         struct {
             uint8_t   enable_frame : 1;  // support frame level quality info
-            uint8_t   reserved3    : 7;  // [0]
+            uint8_t   enable_block : 1;  // support block level quality info
+            uint8_t   reserved3    : 6;  // [0]
         } fields;
         uint8_t value;
     } QualityInfoSupportFlags;
