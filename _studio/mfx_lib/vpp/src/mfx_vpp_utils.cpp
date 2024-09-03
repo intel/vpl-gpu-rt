@@ -127,8 +127,8 @@ const mfxU32 g_TABLE_CONFIG [] =
     MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION
 #if defined (ONEVPL_EXPERIMENTAL)
     , MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER
-    ,MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION
 #endif
+    ,MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION
 };
 
 
@@ -181,8 +181,8 @@ const mfxU32 g_TABLE_EXT_PARAM [] =
     MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION
 #if defined (ONEVPL_EXPERIMENTAL)
     , MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER
-    , MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION
 #endif
+    , MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION
 };
 
 PicStructMode GetPicStructMode(mfxU16 inPicStruct, mfxU16 outPicStruct)
@@ -747,6 +747,16 @@ void ShowPipeline( std::vector<mfxU32> pipelineList )
                 fprintf(stderr, "MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT\n");
                 break;
             }
+            case (mfxU32)MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION:
+            {
+                fprintf(stderr, "MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION\n");
+                break;
+            }
+            case (mfxU32)MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION:
+            {
+                fprintf(stderr, "MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION\n");
+                break;
+            }
             default:
             {
                 fprintf(stderr, "UNKNOWN Filter ID!!! \n");
@@ -974,7 +984,7 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
         newList[index] = MFX_EXTBUFF_VPP_MIRRORING;
         index++;
     }
-	
+
     if (IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION))
     {
         newList[index] = MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION;
@@ -1403,7 +1413,7 @@ mfxStatus GetPipelineList(
         }
     }
 
-	if (IsFilterFound(&configList[0], configCount, MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION)
+    if (IsFilterFound(&configList[0], configCount, MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION)
         && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION))
     {
         pipelineList.push_back(MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION);
