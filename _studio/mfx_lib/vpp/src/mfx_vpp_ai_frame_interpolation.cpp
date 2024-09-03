@@ -289,7 +289,7 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
 
             mfxFrameAllocRequest requestRGB = {};
             requestRGB.Info = vppParams.vpp.Out;
-            requestRGB.Type = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT;
+            requestRGB.Type = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_SHARED_RESOURCE;
             requestRGB.NumFrameMin = (mfxU16)m_ratio + 1;
             requestRGB.NumFrameSuggested = (mfxU16)m_ratio + 1;
             MFX_CHECK_STS(m_core->AllocFrames(&requestRGB, &m_rgbSurfForFiIn));
