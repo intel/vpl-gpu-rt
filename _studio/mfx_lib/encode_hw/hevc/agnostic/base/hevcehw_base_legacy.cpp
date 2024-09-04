@@ -4343,7 +4343,6 @@ mfxStatus Legacy::CheckTU(const ENCODE_CAPS_HEVC& caps, mfxU16& tu)
         if (tu != newtu)
         {
             tu = newtu;
-            return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
         }
     }
 
