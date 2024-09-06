@@ -1205,6 +1205,7 @@ enum {
     MFX_LEVEL_HEVC_6   = 60,
     MFX_LEVEL_HEVC_61  = 61,
     MFX_LEVEL_HEVC_62  = 62,
+    MFX_LEVEL_HEVC_85  = 85,
     /*! @} */
 
     /*! @{ */
