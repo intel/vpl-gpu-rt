@@ -42,6 +42,7 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     target_include_directories(encode_hw PUBLIC
       hevc/linux/xe_hpm
       hevc/linux/xe_lpm_plus
+      hevc/linux/xe2
     )
 
   set(HEVC_VIDEO_ENCODE_SRC
@@ -150,6 +151,8 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
       hevc/linux/xe_hpm/hevcehw_xe_hpm_lin.cpp
       hevc/linux/xe_lpm_plus/hevcehw_xe_lpm_plus_lin.h
       hevc/linux/xe_lpm_plus/hevcehw_xe_lpm_plus_lin.cpp
+      hevc/linux/xe2/hevcehw_xe2_lin.h
+      hevc/linux/xe2/hevcehw_xe2_lin.cpp
     )
 
   custom_source_group("hevc" ${HEVC_VIDEO_ENCODE_SRC})
@@ -169,6 +172,8 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
       ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_HPM
       ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_LPM_plus
       ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe2
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe2
     )
 
   set(AV1_VIDEO_ENCODE_SRC
@@ -230,6 +235,8 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_hdr.h
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_enctools_com.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_enctools_com.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_scc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_scc.h
   )
 
     set(AV1_VIDEO_ENCODE_SRC
@@ -245,6 +252,14 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
       ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe_LPM_plus/av1ehw_xe_lpm_plus_lin.h
 
       ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe_LPM_plus/av1ehw_xe_lpm_plus.h
+
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe2/av1ehw_xe2_lin.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/Xe2/av1ehw_xe2_lin.h
+
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe2/av1ehw_xe2_scc.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe2/av1ehw_xe2_scc.h
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe2/av1ehw_xe2_cdef.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe2/av1ehw_xe2_cdef.h
     )
 
   custom_source_group("av1" ${AV1_VIDEO_ENCODE_SRC})

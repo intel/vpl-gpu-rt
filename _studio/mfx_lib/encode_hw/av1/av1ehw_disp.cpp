@@ -37,6 +37,12 @@
         namespace Xe_LPM_Plus { using namespace AV1EHW::Linux::Xe_LPM_Plus; };
     };
 
+    #include "av1ehw_xe2_lin.h"
+    namespace AV1EHWDisp
+    {
+        namespace Xe2 { using namespace AV1EHW::Linux::Xe2; };
+    };
+
 
 namespace AV1EHW
 {
@@ -57,6 +63,8 @@ static ImplBase* CreateSpecific(
         impl = new AV1EHWDisp::Xe_LPM_Plus::MFXVideoENCODEAV1_HW(core, status, mode);
     else if (hw == MFX_HW_ARL)
         impl = new AV1EHWDisp::Xe_LPM_Plus::MFXVideoENCODEAV1_HW(core, status, mode);
+    if (hw == MFX_HW_BMG || hw == MFX_HW_LNL)
+        impl = new AV1EHWDisp::Xe2::MFXVideoENCODEAV1_HW(core, status, mode);
 
 
     if (impl == nullptr)

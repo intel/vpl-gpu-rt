@@ -143,6 +143,18 @@ namespace AV1ECaps {
     }
 }
 
+namespace HEVCECaps {
+    inline bool IsNative422Supported(eMFXHWType platform)
+    {
+        return (platform >= MFX_HW_BMG);
+    }
+
+    inline bool IsTUExtended(eMFXHWType platform)
+    {
+        return (platform >= MFX_HW_BMG);
+    }
+}
+
 namespace VppCaps
 {
     inline bool IsMctfSupported(eMFXHWType platform)

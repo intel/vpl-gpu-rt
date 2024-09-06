@@ -1311,6 +1311,7 @@ namespace Base
     enum eFeatureId
     {
           FEATURE_GENERAL = 0
+        , FEATURE_SCC
         , FEATURE_DDI
         , FEATURE_DDI_PACKER
         , FEATURE_ALLOCATOR
