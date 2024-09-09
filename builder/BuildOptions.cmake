@@ -25,6 +25,8 @@ include(CMakeDependentOption)
 option( MFX_ENABLE_EXT "Build with extensions?" ON )
 cmake_dependent_option( MFX_ENABLE_KERNELS "Enable media kernels?" ON "MFX_ENABLE_EXT" OFF )
 
+option( MFX_ENABLE_JPEG_SW_FALLBACK "Enabled software fallback for JPEG ?" ON )
+
 
 option( ENABLE_OPENCL "Build targets dependent on OpenCL?" ON )
 

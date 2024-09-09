@@ -545,6 +545,121 @@ Status MJPEGVideoDecoderMFX::SetColorSpace(uint16_t chromaFormat, uint16_t color
 
 } // MJPEGVideoDecoderMFX::SetRotation(uint16_t rotation)
 
+Status MJPEGVideoDecoderMFX::DecodePicture(const CJpegTask &task,
+                                           const mfxU32 threadNumber,
+                                           const mfxU32 callNumber)
+{
+    Status umcRes = UMC_OK;
+    mfxU32 picNum, pieceNum;
+    mfxI32 curr_scan_no;
+    JERRCODE jerr;
+    int i;
+/*
+    if(0 == out)
+        return UMC_ERR_NULL_PTR;
+    *out = 0;*/
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_INTERNAL, "MJPEG, frame: ", "%d", m_frameNo);
+
+    // find appropriate source picture buffer
+    picNum = 0;
+    pieceNum = callNumber;
+    while (task.GetPictureBuffer(picNum).numPieces <= pieceNum)
+    {
+        pieceNum -= task.GetPictureBuffer(picNum).numPieces;
+        picNum += 1;
+    }
+    const CJpegTaskBuffer &picBuffer = task.GetPictureBuffer(picNum);
+
+    // check if there is a need to decode the header
+    if (m_pLastPicBuffer[threadNumber] != &picBuffer)
+    {
+        int32_t nUsedBytes = 0;
+
+        // set the source data
+        jerr = m_dec[threadNumber]->SetSource((uint8_t *) picBuffer.pBuf,
+                    picBuffer.imageHeaderSize + picBuffer.scanSize[0]);
+        if (JPEG_OK != jerr)
+            return UMC_ERR_FAILED;
+
+        umcRes = _DecodeHeader(&nUsedBytes, threadNumber);
+        if (UMC_OK != umcRes)
+        {
+            return umcRes;
+        }
+        // save the pointer to the last decoded picture
+        m_pLastPicBuffer[threadNumber] = &picBuffer;
+
+        m_dec[threadNumber]->m_curr_scan = &m_dec[threadNumber]->m_scans[0];
+    }
+
+    // determinate scan number contained current piece
+    if(picBuffer.scanOffset[0] <= picBuffer.pieceOffset[pieceNum] &&
+       (picBuffer.pieceOffset[pieceNum] < picBuffer.scanOffset[1] || 0 == picBuffer.scanOffset[1]))
+    {
+        curr_scan_no = 0;
+    }
+    else if(picBuffer.scanOffset[1] <= picBuffer.pieceOffset[pieceNum] &&
+        (picBuffer.pieceOffset[pieceNum] < picBuffer.scanOffset[2] || 0 == picBuffer.scanOffset[2]))
+    {
+        curr_scan_no = 1;
+    }
+    else if(picBuffer.scanOffset[2] <= picBuffer.pieceOffset[pieceNum])
+    {
+        curr_scan_no = 2;
+    }
+    else
+    {
+        return UMC_ERR_FAILED;
+    }
+
+    // check if there is a need to decode scan header and DRI segment
+    if(m_dec[threadNumber]->m_curr_scan->scan_no != curr_scan_no)
+    {
+        for(i = 1; i <= curr_scan_no; i++)
+        {
+            m_dec[threadNumber]->m_curr_scan = &m_dec[threadNumber]->m_scans[i];
+
+            if(picBuffer.scanTablesOffset[i] != 0)
+            {
+                int32_t nUsedBytes = 0;
+                jerr = m_dec[threadNumber]->SetSource((uint8_t *) picBuffer.pBuf + picBuffer.scanTablesOffset[i],
+                            picBuffer.scanTablesSize[i] + picBuffer.scanSize[i]);
+                if (JPEG_OK != jerr)
+                    return UMC_ERR_FAILED;
+
+                umcRes = _DecodeHeader(&nUsedBytes, threadNumber);
+                if (UMC_OK != umcRes)
+                {
+                    return umcRes;
+                }
+            }
+        }
+    }
+
+    m_dec[threadNumber]->m_num_scans = picBuffer.numScans;
+
+    // set the next piece to the decoder
+    jerr = m_dec[threadNumber]->SetSource(picBuffer.pBuf + picBuffer.pieceOffset[pieceNum],
+        picBuffer.pieceSize[pieceNum]);
+    if(JPEG_OK != jerr)
+        return UMC_ERR_FAILED;
+
+    // decode a next piece from the picture
+    umcRes = DecodePiece(picBuffer.fieldPos,
+                         (mfxU32)picBuffer.pieceRSTOffset[pieceNum],
+                         (mfxU32)(picBuffer.pieceRSTOffset[pieceNum+1] - picBuffer.pieceRSTOffset[pieceNum]),
+                         threadNumber);
+
+    if (UMC_OK != umcRes)
+    {
+        task.surface_out->Data.Corrupted = 1;
+        return umcRes;
+    }
+
+    return UMC_OK;
+
+} // Status MJPEGVideoDecoderMFX::DecodePicture(const CJpegTask &task,
+
 Status MJPEGVideoDecoderMFX::PostProcessing(double pts)
 {
     VideoData rotatedFrame;
@@ -908,6 +1023,109 @@ Status MJPEGVideoDecoderMFX::_DecodeHeader(int32_t* cnt, const uint32_t threadNu
     *cnt = m_dec[threadNum]->GetNumDecodedBytes();
     return UMC_OK;
 }
+
+Status MJPEGVideoDecoderMFX::DecodePiece(const mfxU32 fieldNum,
+                                         const mfxU32 restartNum,
+                                         const mfxU32 restartsToDecode,
+                                         const mfxU32 threadNum)
+{
+    int32_t   dstPlaneStep[4];
+    uint8_t*   pDstPlane[4];
+    int32_t   dstStep;
+    uint8_t*   pDst;
+    //JSS      sampling = (JSS)m_frameSampling;
+    JERRCODE jerr = JPEG_OK;
+    mfxSize dimension = m_frameDims;
+
+    if (!m_IsInit)
+        return UMC_ERR_NOT_INITIALIZED;
+
+    if (RGB32 == m_internalFrame.GetColorFormat())
+    {
+        dstStep = (int32_t)m_internalFrame.GetPlanePitch(0);
+        pDst = (uint8_t*)m_internalFrame.GetPlanePointer(0);
+        if (m_interleaved)
+        {
+            if (fieldNum & 1)//!m_firstField)
+                pDst += dstStep;
+            dstStep *= 2;
+
+            dimension.height /= 2;
+        }
+
+        jerr = m_dec[threadNum]->SetDestination(pDst, dstStep, dimension, m_frameChannels, JC_BGRA, JS_444);
+    }
+    else if (YUV444 == m_internalFrame.GetColorFormat())
+    {
+        pDstPlane[0] = (uint8_t*)m_internalFrame.GetPlanePointer(0);
+        pDstPlane[1] = (uint8_t*)m_internalFrame.GetPlanePointer(1);
+        pDstPlane[2] = (uint8_t*)m_internalFrame.GetPlanePointer(2);
+        pDstPlane[3] = 0;
+
+        dstPlaneStep[0] = (int32_t)m_internalFrame.GetPlanePitch(0);
+        dstPlaneStep[1] = (int32_t)m_internalFrame.GetPlanePitch(1);
+        dstPlaneStep[2] = (int32_t)m_internalFrame.GetPlanePitch(2);
+        dstPlaneStep[3] = 0;
+
+        if (m_interleaved)
+        {
+            for (int32_t i = 0; i < 3; i++)
+            {
+                if (fieldNum & 1)//!m_firstField)
+                    pDstPlane[i] += dstPlaneStep[i];
+                dstPlaneStep[i] *= 2;
+            }
+
+            dimension.height /= 2;
+        }
+
+        jerr = m_dec[threadNum]->SetDestination(pDstPlane, dstPlaneStep, dimension, m_frameChannels, JC_YCBCR, JS_444);
+    }
+    else if (NV12 == m_internalFrame.GetColorFormat())
+    {
+        pDstPlane[0] = (uint8_t*)m_internalFrame.GetPlanePointer(0);
+        pDstPlane[1] = (uint8_t*)m_internalFrame.GetPlanePointer(1);
+        pDstPlane[2] = 0;
+        pDstPlane[3] = 0;
+
+        dstPlaneStep[0] = (int32_t)m_internalFrame.GetPlanePitch(0);
+        dstPlaneStep[1] = (int32_t)m_internalFrame.GetPlanePitch(1);
+        dstPlaneStep[2] = 0;
+        dstPlaneStep[3] = 0;
+
+        if (m_interleaved)
+        {
+            for (int32_t i = 0; i < 3; i++)
+            {
+                if (fieldNum & 1)//!m_firstField)
+                    pDstPlane[i] += dstPlaneStep[i];
+                dstPlaneStep[i] *= 2;
+            }
+
+            dimension.height /= 2;
+        }
+
+        jerr = m_dec[threadNum]->SetDestination(pDstPlane, dstPlaneStep, dimension, m_frameChannels, JC_NV12, JS_420);
+    }
+    else
+    {
+        return UMC_ERR_FAILED;
+    }
+
+    if(JPEG_OK != jerr)
+        return UMC_ERR_FAILED;
+
+    jerr = m_dec[threadNum]->ReadData(restartNum, restartsToDecode);
+
+    if(JPEG_ERR_BUFF == jerr)
+        return UMC_ERR_NOT_ENOUGH_DATA;
+
+    if(JPEG_OK != jerr)
+        return UMC_ERR_FAILED;
+
+    return UMC_OK;
+
+} // Status MJPEGVideoDecoderMFX::DecodePiece(const mfxU32 fieldNum,
 
 void MJPEGVideoDecoderMFX::SetFrameAllocator(FrameAllocator * frameAllocator)
 {
