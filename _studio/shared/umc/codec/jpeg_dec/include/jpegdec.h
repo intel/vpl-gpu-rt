@@ -1,4 +1,4 @@
-// Copyright (c) 2001-2019 Intel Corporation
+// Copyright (c) 2001-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -162,9 +162,6 @@ public:
 #endif
 
   IMAGE                       m_dst;
-#ifdef MFX_ENABLE_JPEG_SW_FALLBACK
-  CJPEGDecoderHuffmanState    m_state;
-#endif
 
 public:
   JERRCODE Init(void);
