@@ -1483,9 +1483,9 @@ void General::PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push)
 
         auto& glob_fh = Glob::FH::Get(global);
         auto  def = GetRTDefaults(global);
-        ConfigureTask(task, def, recPool, encodedInfo, glob_fh);
-
         auto& framesToShowInfo = Glob::FramesToShowInfo::Get(global);
+
+        ConfigureTask(task, def, recPool, framesToShowInfo, encodedInfo, glob_fh);
         SetTaskFramesToShow(task, framesToShowInfo);
 
         auto& repeatFrameSizeInfo = Glob::RepeatFrameSizeInfo::Get(global);
@@ -1820,8 +1820,11 @@ static void FillSortedFwdBwd(
     for (mfxU8 refIdx = 0; refIdx < task.DPB.size(); refIdx++)
     {
         auto& refFrm = task.DPB.at(refIdx);
-        if (refFrm && refFrm->TemporalID <= task.TemporalID && preferedFwd.count(refIdx) == 0)
+        if (refFrm && refFrm->PyramidLevel <= task.PyramidLevel
+            && refFrm->TemporalID <= task.TemporalID && preferedFwd.count(refIdx) == 0)
+        {
             uniqueRefs.insert({ refFrm->DisplayOrderInGOP, refIdx });
+        }
     }
     uniqueRefs.erase(task.DisplayOrderInGOP);
 
@@ -2393,21 +2396,44 @@ inline void SetTaskRefList(
         FillRefListRAB(fwd, maxFwdRefs, bwd, maxBwdRefs, refList);
 }
 
-template <typename DPBIter>
-DPBIter FindOldestSTR(DPBIter dpbBegin, DPBIter dpbEnd, mfxU8 tid)
+DpbIterType FindOldestLowestPrioritySTR(DpbIterType dpbBegin, DpbIterType dpbEnd, const TFramesToShowInfo& framesToShowInfo, mfxU16 numRefP, mfxU32 currentLevel, mfxU8 tid)
 {
-    DPBIter oldestSTR = dpbEnd;
+    std::map<mfxU32, std::vector<DpbIterType>> refsInDPB;
     for (auto it = dpbBegin; it != dpbEnd; ++it)
     {
-        if ((*it) && !(*it)->isLTR && (*it)->TemporalID >= tid)
+        auto& pRef = *it;
+        if (!pRef || pRef->isLTR || pRef->TemporalID < tid || (pRef->PyramidLevel == 0 && currentLevel > 0))
+            continue;
+
+        if (framesToShowInfo.find(pRef->DisplayOrder) != framesToShowInfo.end())
+            continue;
+
+        refsInDPB[pRef->PyramidLevel].push_back(it);
+    }
+
+    if (refsInDPB.size() == 0)
+        return dpbEnd;
+
+    mfxU32 targetLevel = refsInDPB.rbegin()->first; // refresh highest level
+    // P frames will refresh level 0 refs first if there are too many candidates and leads to no slots for ref-B
+    if (currentLevel == 0
+        && ((numRefP > 1 && refsInDPB[0].size() >= numRefP)
+            || (numRefP == 1 && refsInDPB[0].size() > numRefP))) // P not refresh I directly
+    {
+        targetLevel = 0;
+    }
+
+    std::vector<DpbIterType> refsInLevel = refsInDPB[targetLevel];
+    DpbIterType slot = refsInLevel.size() > 0 ? refsInLevel[0] : dpbEnd;
+    for (size_t idx = 1; idx < refsInLevel.size(); ++idx)
+    {
+        if ((*refsInLevel[idx])->DisplayOrder < (*slot)->DisplayOrder)
         {
-            if (oldestSTR == dpbEnd)
-                oldestSTR = it;
-            else if ((*oldestSTR)->DisplayOrder > (*it)->DisplayOrder)
-                oldestSTR = it;
+            slot = refsInLevel[idx];
         }
     }
-    return oldestSTR;
+
+    return slot;
 }
 
 inline void SetVCLowDelayFlatDPBRefresh(
@@ -2531,6 +2557,7 @@ inline mfxU8 SetTaskDPBRefreshLowDelayFlat(
 inline void SetTaskDPBRefresh(
     TaskCommonPar& task
     , const mfxVideoParam& par
+    , const TFramesToShowInfo& framesToShowInfo
     , bool useLTR)
 {
     auto& refreshRefFrames = task.RefreshFrameFlags;
@@ -2562,13 +2589,22 @@ inline void SetTaskDPBRefresh(
             // If no LTR was refreshed, then find duplicate reference frame
             // Some frames can be included multiple times into DPB
             for (auto it = dpbBegin + 1; it < dpbEnd && slotToRefresh == dpbEnd; ++it)
+            {
                 if (std::find(dpbBegin, it, *it) != it)
+                {
                     slotToRefresh = it;
+                    break;
+                }
+            }
 
-            // If no duplicates, then find the oldest STR
+            // If no duplicates, then find the lowest priority short term ref slot with oldest display order
             // For temporal scalability frame must not overwrite frames from lower layers
             if (slotToRefresh == dpbEnd)
-                slotToRefresh = FindOldestSTR(dpbBegin, dpbEnd, task.TemporalID);
+            {
+                const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
+                mfxU16 numRefP = CO3.NumRefActiveP[0];
+                slotToRefresh = FindOldestLowestPrioritySTR(dpbBegin, dpbEnd, framesToShowInfo, numRefP, task.PyramidLevel, task.TemporalID);
+            }
 
             // If failed, just do not refresh any reference frame.
             // This should not happend since we maintain at least 1 STR in DPB
@@ -2686,6 +2722,7 @@ void General::ConfigureTask(
     TaskCommonPar& task
     , const Defaults::Param& dflts
     , IAllocation& recPool
+    , const TFramesToShowInfo& framesToShowInfo
     , EncodedInfoAv1& encodedInfo
     , FH& fh)
 {
@@ -2701,7 +2738,7 @@ void General::ConfigureTask(
 
     bool useLTR = false;
     SetTaskRefList(task, par, useLTR);
-    SetTaskDPBRefresh(task, par, useLTR);
+    SetTaskDPBRefresh(task, par, framesToShowInfo, useLTR);
     SetTaskInsertHeaders(task, m_prevTask, par, m_insertIVFSeq);
 
     const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);

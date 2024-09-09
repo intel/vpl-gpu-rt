@@ -184,8 +184,8 @@ public:
             return std::max<mfxU16>({ NumRefFrame, NumRefActiveP[0], maxBL0, maxBL1 });
         });
 
-        // Need to have one more DPB buffer slot to enable two L0 for non-ref B frames in AV1
-        if (*std::max_element(NumRefActiveBL0, NumRefActiveBL0 + NumLayers) == 2)
+        // Need to have one more DPB buffer slot to enable 3 P refs or 2 BL0 refs in AV1
+        if (NumRefActiveP[0] == 3  || *std::max_element(NumRefActiveBL0, NumRefActiveBL0 + NumLayers) == 2)
         {
             NumRefFrame++;
         }
