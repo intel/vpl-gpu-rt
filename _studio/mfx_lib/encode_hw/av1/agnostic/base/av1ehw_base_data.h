@@ -766,7 +766,6 @@ namespace Base
     };
 
     using DpbType = std::vector<std::shared_ptr<DpbFrame>>;
-    using DpbIterType = DpbType::iterator;
     using RefListType = std::array<mfxU8, REFS_PER_FRAME>;
     using DpbRefreshType = std::array<mfxU8, NUM_REF_FRAMES>;
 

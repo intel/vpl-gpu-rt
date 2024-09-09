@@ -208,7 +208,6 @@ namespace Base
             TaskCommonPar& task
             , const Defaults::Param& dflts
             , IAllocation& recPool
-            , const TFramesToShowInfo& framesToShowInfo
             , EncodedInfoAv1& encodedInfo
             , FH& fh);
 
