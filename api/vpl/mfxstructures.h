@@ -5164,6 +5164,11 @@ MFX_PACK_END()
 typedef enum {
     MFX_AI_FRAME_INTERPOLATION_MODE_DISABLE = 0,         /*!< AI based frame interpolation is disabled. The library duplicates the frame if AI frame interpolation is disabled.*/
     MFX_AI_FRAME_INTERPOLATION_MODE_DEFAULT = 1,         /*!< Default AI based frame interpolation mode. The library selects the most appropriate AI based frame interpolation mode.*/
+
+#ifdef ONEVPL_EXPERIMENTAL
+    MFX_AI_FRAME_INTERPOLATION_MODE_BEST_SPEED = 2,      /*!< AI based frame interpolation in best speed.*/
+    MFX_AI_FRAME_INTERPOLATION_MODE_BEST_QUALITY = 3,    /*!< AI based frame interpolation in best quality.*/
+#endif
 } mfxAIFrameInterpolationMode;
 
 /*!
