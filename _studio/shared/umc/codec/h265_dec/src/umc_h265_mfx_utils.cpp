@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2017-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -681,6 +681,7 @@ mfxStatus Query_H265(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out, eMF
         case MFX_LEVEL_HEVC_6:
         case MFX_LEVEL_HEVC_61:
         case MFX_LEVEL_HEVC_62:
+        case MFX_LEVEL_HEVC_85:
             out->mfx.CodecLevel = in->mfx.CodecLevel;
             break;
         default:
