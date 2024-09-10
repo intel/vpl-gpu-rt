@@ -2402,7 +2402,10 @@ DpbIterType FindOldestLowestPrioritySTR(DpbIterType dpbBegin, DpbIterType dpbEnd
     for (auto it = dpbBegin; it != dpbEnd; ++it)
     {
         auto& pRef = *it;
-        if (!pRef || pRef->isLTR || pRef->TemporalID < tid || (pRef->PyramidLevel == 0 && currentLevel > 0))
+        // Note: B-frames may refresh I-frames and P-frames in certain cases
+        // This is necessary to keep hidden frames in the Decoded Picture Buffer (DPB)
+        // These hidden frames are required for potential future insertion of repeat frames
+        if (!pRef || pRef->isLTR || pRef->TemporalID < tid)
             continue;
 
         if (framesToShowInfo.find(pRef->DisplayOrder) != framesToShowInfo.end())
@@ -2414,16 +2417,19 @@ DpbIterType FindOldestLowestPrioritySTR(DpbIterType dpbBegin, DpbIterType dpbEnd
     if (refsInDPB.size() == 0)
         return dpbEnd;
 
-    mfxU32 targetLevel = refsInDPB.rbegin()->first; // refresh highest level
-    // P frames will refresh level 0 refs first if there are too many candidates and leads to no slots for ref-B
-    if (currentLevel == 0
-        && ((numRefP > 1 && refsInDPB[0].size() >= numRefP)
-            || (numRefP == 1 && refsInDPB[0].size() > numRefP))) // P not refresh I directly
+    // Attempt to refresh the highest level reference frame first, as it has the lowest priority
+    mfxU32 targetLevel = refsInDPB.rbegin()->first;
+
+    // For P-frames:
+    //   - If the number of level 0 reference frames exceeds the threshold (numRefP for P-frames, 2 for BL0 frames),
+    //   - Fall back to refreshing a level 0 reference frame,
+    //   - This avoids refreshing all B-frames that might be used in future predictions
+    if (currentLevel == 0 && refsInDPB[0].size() >= std::max(numRefP, mfxU16(2)))
     {
         targetLevel = 0;
     }
 
-    std::vector<DpbIterType> refsInLevel = refsInDPB[targetLevel];
+    std::vector<DpbIterType>& refsInLevel = refsInDPB[targetLevel];
     DpbIterType slot = refsInLevel.size() > 0 ? refsInLevel[0] : dpbEnd;
     for (size_t idx = 1; idx < refsInLevel.size(); ++idx)
     {
