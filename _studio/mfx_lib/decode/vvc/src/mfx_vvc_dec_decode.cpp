@@ -588,7 +588,8 @@ void VideoDECODEVVC::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFrameSurf
     surface_out->Info.FrameRateExtD = isShouldUpdate ? m_videoPar.mfx.FrameInfo.FrameRateExtD : m_firstPar.mfx.FrameInfo.FrameRateExtD;
     surface_out->Info.FrameRateExtN = isShouldUpdate ? m_videoPar.mfx.FrameInfo.FrameRateExtN : m_firstPar.mfx.FrameInfo.FrameRateExtN;
 
-    surface_out->Info.PicStruct = m_videoPar.mfx.ExtendedPicStruct;
+    // field currently not support, return unknown
+    surface_out->Info.PicStruct = (m_videoPar.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) ? m_videoPar.mfx.FrameInfo.PicStruct: MFX_PICSTRUCT_UNKNOWN;
 
     surface_out->Data.TimeStamp = GetMfxTimeStamp(pFrame->m_dFrameTime);
 
