@@ -825,7 +825,11 @@ void VAPacker::SubmitTask(const FeatureBlocks& blocks, TPushST Push)
         auto& par = Glob::DDI_SubmitParam::Get(global);
         par.clear();
 
-        par.push_back(PackVaBuffer(VAEncSequenceParameterBufferType, m_sps));
+        if (IsI(task.FrameType))
+        {
+            par.push_back(PackVaBuffer(VAEncSequenceParameterBufferType, m_sps));
+        }
+
         par.push_back(PackVaBuffer(VAEncPictureParameterBufferType, m_pps));
 
         if (!m_tile_groups_task.empty())
