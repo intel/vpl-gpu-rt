@@ -3,9 +3,9 @@
 Intel® Video Processing Library (Intel® VPL) GPU Runtime is a Runtime implementation of [Intel® VPL](https://github.com/intel/libvpl/)
 API for Intel Gen GPUs. Runtime provides access to hardware-accelerated video decode, encode and filtering.
 
-**Supported video encoders**: HEVC, AVC, MPEG-2, JPEG, VP9  
-**Supported video decoders**: HEVC, AVC, VP8, VP9, MPEG-2, VC1, JPEG, AV1, VVC  
-**Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate, Composition  
+**Supported video encoders**: HEVC, AVC, MPEG-2, JPEG, VP9, AV1
+**Supported video decoders**: HEVC, AVC, VP8, VP9, MPEG-2, VC1, JPEG, AV1, VVC
+**Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate, Composition
 
 Implementation is written in C++ 14 with parts in C-for-Media (CM).
 
@@ -38,6 +38,7 @@ Intel® VPL Gen Runtime implementation supports the following hardware platforms
 - Alchemist(DG2)/ATSM
 - MTL/ARL (MTL: Meteor Lake, ARL-S/H: Arrow Lake)
 - LNL (Lunar Lake)
+- BMG (Battlemage)
 
 # Dependencies
 Intel® VPL GPU Runtime depends on [LibVA](https://github.com/intel/libva/).
