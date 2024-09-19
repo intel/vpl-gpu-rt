@@ -261,10 +261,7 @@ JERRCODE CBitStreamInput::SeekAfterByte(uint8_t byte, int* skipped)
 {
   JERRCODE jerr;
   int cnt, res = 0;
-  unsigned char bytes[] = { byte };
-  unsigned char* buf;
-  std::size_t p;
-  std::string pattern(bytes, bytes + 1);
+  uint8_t* p;
 
   for (;;)
   {
@@ -274,19 +271,18 @@ JERRCODE CBitStreamInput::SeekAfterByte(uint8_t byte, int* skipped)
       if(JPEG_OK != jerr)
         return jerr;
     }
-    buf = (unsigned char*) &m_pData[m_currPos];
+
     cnt = m_DataLen - m_currPos;
 
-    std::string search(buf, buf + cnt);
+    p = std::find(m_pData + m_currPos, m_pData + m_DataLen, byte);
+    if(p != m_pData + m_DataLen) break;
 
-    p = search.find(pattern);
-    if(p != std::string::npos) break;
     res += cnt;
     m_currPos += cnt;
     m_nUsedBytes += cnt;
   }
 
-  cnt = (int) p;
+  cnt = (int) (p - m_pData - m_currPos);
   res += cnt;
   ++cnt;
   m_currPos += cnt;
