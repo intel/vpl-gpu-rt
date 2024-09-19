@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2020 Intel Corporation
+// Copyright (c) 2012-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -331,7 +331,7 @@ UMC::Status H265HeadersBitstream::GetVideoParamSet(H265VideoParamSet *pcVPS)
     }
 
     pcVPS->vps_max_layer_id = GetBits(6);
-    if (pcVPS->vps_max_layer_id >= MAX_NUH_LAYER_ID)
+    if (pcVPS->vps_max_layer_id > MAX_NUH_LAYER_ID)
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
     pcVPS->vps_num_layer_sets = GetVLCElementU() + 1;
@@ -2102,8 +2102,10 @@ UMC::Status H265HeadersBitstream::GetNALUnitType(NalUnitType &nal_unit_type, uin
 
     nal_unit_type = (NalUnitType)GetBits(6);
     uint32_t nuh_layer_id = GetBits(6);
-    if (nuh_layer_id)
+    if (nuh_layer_id > MAX_NUH_LAYER_ID)
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+    if (nuh_layer_id)
+        return UMC::UMC_ERR_UNSUPPORTED;//only support layer 0 which is the basic layer
 
     uint32_t const nuh_temporal_id_plus1 = GetBits(3);
     if (!nuh_temporal_id_plus1)

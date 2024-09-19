@@ -1432,9 +1432,10 @@ UMC::Status TaskSupplier_H265::DecodeHeaders(UMC::MediaDataEx *nalUnit)
         NalUnitType nal_unit_type;
         uint32_t temporal_id = 0;
 
-        bitStream.GetNALUnitType(nal_unit_type, temporal_id);
-
-        switch(nal_unit_type)
+        umcRes = bitStream.GetNALUnitType(nal_unit_type, temporal_id);
+        if (umcRes != UMC::UMC_OK)
+            return umcRes;
+        switch (nal_unit_type)
         {
         case NAL_UT_VPS:
             umcRes = xDecodeVPS(&bitStream);
