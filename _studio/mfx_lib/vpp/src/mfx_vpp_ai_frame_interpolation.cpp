@@ -211,12 +211,20 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
     const mfxFrameInfo& outInfo,
     const mfxVideoSignalInfo& videoSignalInfo)
 {
+    std::vector<mfxExtBuffer*> extBufferPre, extBufferPost;
+
+    mfxExtVPPScaling m_scalingConfig = {};
+    m_scalingConfig.Header.BufferId = MFX_EXTBUFF_VPP_SCALING;
+    m_scalingConfig.Header.BufferSz = sizeof(mfxExtVPPScaling);
+    m_scalingConfig.ScalingMode = MFX_SCALING_MODE_INTEL_GEN_COMPUTE;
+    //m_scalingConfig.InterpolationMethod = MFX_INTERPOLATION_NEAREST_NEIGHBOR;
+    extBufferPre.push_back(&m_scalingConfig.Header);
+    extBufferPost.push_back(&m_scalingConfig.Header);
+
     mfxExtVideoSignalInfo vsInPre = {};
     mfxExtVideoSignalInfo vsOutPre = {};
     mfxExtVideoSignalInfo vsInPost = {};
     mfxExtVideoSignalInfo vsOutPost = {};
-    mfxExtBuffer* extBufferPre[2] = {};
-    mfxExtBuffer* extBufferPost[2] = {};
     if (videoSignalInfo.enabled)
     {
         mfxVideoSignalInfo vsInfoIn = videoSignalInfo;
@@ -241,16 +249,16 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
         vsOutPre.VideoFormat = vsInfoOut.VideoFormat;
         vsOutPre.VideoFullRange = vsInfoOut.VideoFullRange;
 
-        extBufferPre[0] = &vsInPre.Header;
-        extBufferPre[1] = &vsOutPre.Header;
+        extBufferPre.push_back(&vsInPre.Header);
+        extBufferPre.push_back(&vsOutPre.Header);
 
         vsInPost = vsOutPre;
         vsInPost.Header.BufferId = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_IN;
         vsOutPost = vsInPre;
         vsOutPost.Header.BufferId = MFX_EXTBUFF_VIDEO_SIGNAL_INFO_OUT;
 
-        extBufferPost[0] = &vsInPost.Header;
-        extBufferPost[1] = &vsOutPost.Header;
+        extBufferPost.push_back(&vsInPost.Header);
+        extBufferPost.push_back(&vsOutPost.Header);
     }
 
     m_vppForFi = IsVppNeededForVfi(inInfo, outInfo);
@@ -276,11 +284,8 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
             vppParams.vpp.Out.FourCC    = MFX_FOURCC_BGR4;
             vppParams.vpp.Out.PicStruct = inInfo.PicStruct;
 
-            if (videoSignalInfo.enabled)
-            {
-                vppParams.NumExtParam = 2;
-                vppParams.ExtParam = &(extBufferPre[0]);
-            }
+            vppParams.NumExtParam = (mfxU16)extBufferPre.size();
+            vppParams.ExtParam = extBufferPre.data();
 
             sts = m_vppBeforeFi0->Init(&vppParams);
             MFX_CHECK_STS(sts);
@@ -318,11 +323,8 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
             vppParams.vpp.In.FourCC    = MFX_FOURCC_BGR4;
             vppParams.vpp.Out          = outInfo;
 
-            if (videoSignalInfo.enabled)
-            {
-                vppParams.NumExtParam = 2;
-                vppParams.ExtParam = &(extBufferPost[0]);
-            }
+            vppParams.NumExtParam = (mfxU16)extBufferPost.size();
+            vppParams.ExtParam = extBufferPost.data();
 
             sts = m_vppAfterFi->Init(&vppParams);
             MFX_CHECK_STS(sts);
