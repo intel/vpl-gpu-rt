@@ -6,6 +6,8 @@ env:
   CFLAGS: -O2 -Wformat -Wformat-security -Wall -Werror -D_FORTIFY_SOURCE=2 -fstack-protector-strong
   LDFLAGS: -Wl,--as-needed
 
+permissions: read-all
+
 jobs:
   clang14:
     runs-on: ubuntu-22.04
