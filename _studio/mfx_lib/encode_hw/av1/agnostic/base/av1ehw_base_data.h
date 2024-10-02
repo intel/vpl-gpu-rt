@@ -1327,6 +1327,7 @@ namespace Base
         , FEATURE_MAX_FRAME_SIZE
         , FEATURE_HDR
         , FEATURE_QUALITYINFO
+        , FEATURE_INTERPO_FILTER
         , NUM_FEATURES
     };
 
