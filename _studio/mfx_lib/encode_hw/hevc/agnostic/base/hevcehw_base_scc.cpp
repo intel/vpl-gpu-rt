@@ -160,6 +160,7 @@ void SCC::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
             vps.general.constraint.max_422chroma = (defpar.mvp.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444);
             vps.general.constraint.max_420chroma = (defpar.mvp.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444);
             vps.general.constraint.lower_bit_rate = 1;
+            vps.general.constraint.max_14bit = 1;
 
             return sts;
         });
