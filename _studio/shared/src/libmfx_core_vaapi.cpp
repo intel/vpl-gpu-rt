@@ -130,10 +130,10 @@ public:
     enum eEngine
     {
         INVALID = uint32_t(-1)
+        , DEFAULT = VA_EXEC_MODE_DEFAULT
         , BLT = VA_EXEC_MODE_POWER_SAVING
-        , VE = VA_EXEC_MODE_DEFAULT
         , EU = VA_EXEC_MODE_PERFORMANCE
-        , DEFAULT = 0xff
+        , VE = EU + 1
     };
 
     struct FCCDesc
@@ -318,33 +318,11 @@ public:
     static const std::map<mfxU32, FCCDesc> FccMap;
     VADisplay  m_dpy = nullptr;
     uint32_t   m_copyEngine = INVALID;
-    uint32_t   m_copyEngineSupported = 0;
 
     VACopyWrapper(VADisplay dpy)
         : m_dpy(dpy)
     {
-        int nAttr = vaMaxNumDisplayAttributes(m_dpy);
-
-        std::vector<VADisplayAttribute> attrs(nAttr);
-
-        if (VA_STATUS_SUCCESS != vaQueryDisplayAttributes(m_dpy, attrs.data(), &nAttr))
-            nAttr = 0;
-
-        auto itEnd = std::next(attrs.begin(), nAttr);
-        auto it = std::find_if(attrs.begin(), itEnd
-            , [](const VADisplayAttribute& attr) { return attr.type == VADisplayAttribCopy; });
-
-        if (it != itEnd)
-        {
-            m_copyEngineSupported = it->value;
-
-            if (m_copyEngineSupported & (1 << EU))
-                m_copyEngine = EU;
-            else if (m_copyEngineSupported & (1 << BLT))
-                m_copyEngine = BLT;
-            else if (m_copyEngineSupported & (1 << VE))
-                m_copyEngine = VE;
-        }
+        m_copyEngine = DEFAULT;
     }
 
     bool IsSupported() const
@@ -387,7 +365,6 @@ public:
 
         auto copyMode = GetMode(src, dst);
         MFX_CHECK(copyMode != VACOPY_UNSUPPORTED, MFX_ERR_UNSUPPORTED);
-        MFX_CHECK(forceEngine == DEFAULT || ((1 << forceEngine) & m_copyEngineSupported), MFX_ERR_UNSUPPORTED);
 
         if (   src.Info.Width != dst.Info.Width
             || src.Info.Height != dst.Info.Height)
@@ -560,8 +537,28 @@ public:
             || fourcc == MFX_FOURCC_P016;
     }
 
-    static bool IsVaCopySupportSurface(const mfxFrameSurface1& dst_surface, const mfxFrameSurface1& src_surface)
+    static bool IsVaCopySupportSurface(const mfxFrameSurface1& dst_surface, const mfxFrameSurface1& src_surface, eMFXHWType platform)
     {
+        if (dst_surface.Info.FourCC != src_surface.Info.FourCC)
+        {
+            return false;
+        }
+
+        if (platform >= MFX_HW_MTL)
+        {
+            if (dst_surface.Info.FourCC != MFX_FOURCC_NV12 &&
+                dst_surface.Info.FourCC != MFX_FOURCC_P010 &&
+                dst_surface.Info.FourCC != MFX_FOURCC_P016 &&
+                dst_surface.Info.FourCC != MFX_FOURCC_YUY2 &&
+                dst_surface.Info.FourCC != MFX_FOURCC_Y210 &&
+                dst_surface.Info.FourCC != MFX_FOURCC_Y216 &&
+                dst_surface.Info.FourCC != MFX_FOURCC_Y416
+                )
+            {
+                return false;
+            }
+        }
+
         auto CheckOneSurface = [](const mfxFrameSurface1& sw_surface)
         {
             // Only start addresses with 4k aligment for UsrPtr surface are supported, refer: https://dri.freedesktop.org/docs/drm/gpu/driver-uapi.html#c.drm_i915_gem_userptr
@@ -1923,14 +1920,9 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     // Check if requested copy backend is CM and CM is capable to perform copy
     bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF) && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
-    if (m_pVaCopy && (VACopyWrapper::IsVaCopySupportSurface(*pDst, *pSrc)) && (gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF))
+    if (m_pVaCopy && (VACopyWrapper::IsVaCopySupportSurface(*pDst, *pSrc, m_HWType)) && (gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF))
     {
-        auto vacopyMode =
-            ((gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) == MFX_COPY_USE_VACOPY_ANY) ? VACopyWrapper::DEFAULT
-            : (gpuCopyMode & MFX_COPY_USE_VACOPY_EU) ? VACopyWrapper::EU
-            : (gpuCopyMode & MFX_COPY_USE_VACOPY_BLT) ? VACopyWrapper::BLT
-            : VACopyWrapper::VE
-            ;
+        auto vacopyMode = VACopyWrapper::DEFAULT;
 
         if (m_HWType == MFX_HW_DG2)
         {
