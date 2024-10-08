@@ -205,14 +205,9 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
 
     m_init_par = (mfxVideoParamWrapper)(*par);
 
-    if (0 == m_init_par.mfx.FrameInfo.FrameRateExtN || 0 == m_init_par.mfx.FrameInfo.FrameRateExtD)
-    {
-        m_init_par.mfx.FrameInfo.FrameRateExtD = 1;
-        m_init_par.mfx.FrameInfo.FrameRateExtN = 30;
-    }
-
     m_first_par = m_init_par;
-    m_in_framerate = (mfxF64) m_first_par.mfx.FrameInfo.FrameRateExtD / m_first_par.mfx.FrameInfo.FrameRateExtN;
+    m_in_framerate = (m_first_par.mfx.FrameInfo.FrameRateExtD && m_first_par.mfx.FrameInfo.FrameRateExtN) ?
+        ((mfxF64) m_first_par.mfx.FrameInfo.FrameRateExtD / m_first_par.mfx.FrameInfo.FrameRateExtN) : (mfxF64)1.0 / 30;
     m_decoder->SetInFrameRate(m_in_framerate);
 
     //mfxFrameAllocResponse response{};
@@ -506,13 +501,9 @@ mfxStatus VideoDECODEAV1::Reset(mfxVideoParam* par)
 
     m_first_par = *par;
 
-    if (0 == m_first_par.mfx.FrameInfo.FrameRateExtN || 0 == m_first_par.mfx.FrameInfo.FrameRateExtD)
-    {
-        m_first_par.mfx.FrameInfo.FrameRateExtD = 1;
-        m_first_par.mfx.FrameInfo.FrameRateExtN = 30;
-    }
+    m_in_framerate = (m_first_par.mfx.FrameInfo.FrameRateExtD && m_first_par.mfx.FrameInfo.FrameRateExtN) ?
+        ((mfxF64)m_first_par.mfx.FrameInfo.FrameRateExtD / m_first_par.mfx.FrameInfo.FrameRateExtN) : (mfxF64)1.0 / 30;
 
-    m_in_framerate = (mfxF64) m_first_par.mfx.FrameInfo.FrameRateExtD / m_first_par.mfx.FrameInfo.FrameRateExtN;
     m_decoder->SetInFrameRate(m_in_framerate);
 
     return MFX_ERR_NONE;

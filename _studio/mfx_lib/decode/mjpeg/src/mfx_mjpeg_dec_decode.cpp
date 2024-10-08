@@ -400,8 +400,8 @@ mfxStatus VideoDECODEMJPEG::GetVideoParam(mfxVideoParam *par)
 
         if (!par->mfx.FrameInfo.FrameRateExtD && !par->mfx.FrameInfo.FrameRateExtN)
         {
-            par->mfx.FrameInfo.FrameRateExtN = 30;
-            par->mfx.FrameInfo.FrameRateExtD = 1;
+            par->mfx.FrameInfo.FrameRateExtN = 0;
+            par->mfx.FrameInfo.FrameRateExtD = 0;
         }
     }
 
@@ -711,7 +711,7 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
                                                     (MFX_PICSTRUCT_FIELD_TFF));
         (*surface_out)->Data.TimeStamp = GetMfxTimeStamp(dst->GetTime());
 
-        if(MFX_TIME_STAMP_INVALID == (*surface_out)->Data.TimeStamp)
+        if ((MFX_TIME_STAMP_INVALID == (*surface_out)->Data.TimeStamp) && m_vPar.mfx.FrameInfo.FrameRateExtN)
         {
             (*surface_out)->Data.TimeStamp = ((mfxU64)m_frameOrder * m_vPar.mfx.FrameInfo.FrameRateExtD * MFX_TIME_STAMP_FREQUENCY) / m_vPar.mfx.FrameInfo.FrameRateExtN;
         }

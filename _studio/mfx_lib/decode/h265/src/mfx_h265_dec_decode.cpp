@@ -549,8 +549,8 @@ mfxStatus VideoDECODEH265::GetVideoParam(mfxVideoParam *par)
 
         if (!par->mfx.FrameInfo.FrameRateExtD && !par->mfx.FrameInfo.FrameRateExtN)
         {
-            par->mfx.FrameInfo.FrameRateExtN = 30;
-            par->mfx.FrameInfo.FrameRateExtD = 1;
+            par->mfx.FrameInfo.FrameRateExtN = 0;
+            par->mfx.FrameInfo.FrameRateExtD = 0;
         }
     }
 

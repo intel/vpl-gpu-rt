@@ -165,13 +165,8 @@ mfxStatus VideoDECODEVP8_HW::Init(mfxVideoParam *p_video_param)
     m_init_w = p_video_param->mfx.FrameInfo.Width;
     m_init_h = p_video_param->mfx.FrameInfo.Height;
 
-    if(m_on_init_video_params.mfx.FrameInfo.FrameRateExtN == 0 || m_on_init_video_params.mfx.FrameInfo.FrameRateExtD == 0)
-    {
-        m_on_init_video_params.mfx.FrameInfo.FrameRateExtD = 1000;
-        m_on_init_video_params.mfx.FrameInfo.FrameRateExtN = 30000;
-    }
-
-    m_in_framerate = (mfxF64) m_on_init_video_params.mfx.FrameInfo.FrameRateExtD / m_on_init_video_params.mfx.FrameInfo.FrameRateExtN;
+    m_in_framerate = (m_on_init_video_params.mfx.FrameInfo.FrameRateExtN && m_on_init_video_params.mfx.FrameInfo.FrameRateExtD) ?
+        (mfxF64) m_on_init_video_params.mfx.FrameInfo.FrameRateExtD / m_on_init_video_params.mfx.FrameInfo.FrameRateExtN : (mfxF64) 1 / 30;
 
     m_video_params = m_on_init_video_params;
 
@@ -321,13 +316,8 @@ mfxStatus VideoDECODEVP8_HW::Reset(mfxVideoParam *p_video_param)
     m_on_init_video_params = *p_video_param;
     m_video_params = m_on_init_video_params;
 
-    if (m_on_init_video_params.mfx.FrameInfo.FrameRateExtN == 0 || m_on_init_video_params.mfx.FrameInfo.FrameRateExtD == 0)
-    {
-        m_on_init_video_params.mfx.FrameInfo.FrameRateExtD = 1000;
-        m_on_init_video_params.mfx.FrameInfo.FrameRateExtN = 30000;
-    }
-
-    m_in_framerate = (mfxF64) m_on_init_video_params.mfx.FrameInfo.FrameRateExtD / m_on_init_video_params.mfx.FrameInfo.FrameRateExtN;
+    m_in_framerate = (m_on_init_video_params.mfx.FrameInfo.FrameRateExtN && m_on_init_video_params.mfx.FrameInfo.FrameRateExtD) ?
+        (mfxF64) m_on_init_video_params.mfx.FrameInfo.FrameRateExtD / m_on_init_video_params.mfx.FrameInfo.FrameRateExtN : (mfxF64) 1 / 30;
 
     if(CheckHardwareSupport(m_p_core, p_video_param) == false)
     {

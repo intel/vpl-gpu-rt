@@ -245,7 +245,7 @@ namespace UMC_MPEG2_DECODER
             case 6:  frameRateN = 50;    frameRateD = 1;    break;
             case 7:  frameRateN = 60000; frameRateD = 1001; break;
             case 8:  frameRateN = 60;    frameRateD = 1;    break;
-            default: frameRateN = 30;    frameRateD = 1;
+            default: frameRateN = 0;     frameRateD = 0;
         }
         return;
     }

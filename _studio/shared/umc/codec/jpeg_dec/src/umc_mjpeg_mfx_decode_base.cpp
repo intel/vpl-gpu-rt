@@ -231,8 +231,8 @@ Status MJPEGVideoDecoderBaseMFX::FillVideoParam(mfxVideoParam *par, bool /*full*
     par->mfx.FrameInfo.AspectRatioW = 0;
     par->mfx.FrameInfo.AspectRatioH = 0;
 
-    par->mfx.FrameInfo.FrameRateExtD = 1;
-    par->mfx.FrameInfo.FrameRateExtN = 30;
+    par->mfx.FrameInfo.FrameRateExtD = 0;
+    par->mfx.FrameInfo.FrameRateExtN = 0;
 
     par->mfx.CodecProfile = 1;
     par->mfx.CodecLevel = 1;

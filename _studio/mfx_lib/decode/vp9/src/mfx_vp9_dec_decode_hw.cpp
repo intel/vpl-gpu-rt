@@ -411,13 +411,8 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
            m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
         | (m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
 
-    if (0 == m_vInitPar.mfx.FrameInfo.FrameRateExtN || 0 == m_vInitPar.mfx.FrameInfo.FrameRateExtD)
-    {
-        m_vInitPar.mfx.FrameInfo.FrameRateExtD = 1000;
-        m_vInitPar.mfx.FrameInfo.FrameRateExtN = 30000;
-    }
-
-    m_in_framerate = (mfxF64) m_vInitPar.mfx.FrameInfo.FrameRateExtD / m_vInitPar.mfx.FrameInfo.FrameRateExtN;
+    m_in_framerate = (m_vInitPar.mfx.FrameInfo.FrameRateExtN && m_vInitPar.mfx.FrameInfo.FrameRateExtD) ?
+        (mfxF64) m_vInitPar.mfx.FrameInfo.FrameRateExtD / m_vInitPar.mfx.FrameInfo.FrameRateExtN : (mfxF64) 1 / 30;
 
     if ((m_vPar.mfx.FrameInfo.AspectRatioH == 0) && (m_vPar.mfx.FrameInfo.AspectRatioW == 0))
     {
@@ -581,13 +576,8 @@ mfxStatus VideoDECODEVP9_HW::Reset(mfxVideoParam *par)
 
     m_vPar = *par;
 
-    if (0 == m_vPar.mfx.FrameInfo.FrameRateExtN || 0 == m_vPar.mfx.FrameInfo.FrameRateExtD)
-    {
-        m_vPar.mfx.FrameInfo.FrameRateExtD = m_vInitPar.mfx.FrameInfo.FrameRateExtD;
-        m_vPar.mfx.FrameInfo.FrameRateExtN = m_vInitPar.mfx.FrameInfo.FrameRateExtN;
-    }
-
-    m_in_framerate = (mfxF64) m_vPar.mfx.FrameInfo.FrameRateExtD / m_vPar.mfx.FrameInfo.FrameRateExtN;
+    m_in_framerate = (m_vPar.mfx.FrameInfo.FrameRateExtN && m_vPar.mfx.FrameInfo.FrameRateExtD) ?
+        (mfxF64) m_vPar.mfx.FrameInfo.FrameRateExtD / m_vPar.mfx.FrameInfo.FrameRateExtN : (mfxF64) 1 / 30;
     m_index = 0;
 
     return MFX_ERR_NONE;
