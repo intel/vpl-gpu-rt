@@ -847,6 +847,7 @@ namespace Base
         BitOffsets        Offsets                = {};
         mfxU8             MinBaseQIndex          = 0;
         mfxU8             MaxBaseQIndex          = 0;
+        mfxU8             AdaptiveTUEnabled      = 0;
 
         RefListType       RefList                = {};
         DpbType           DPB;

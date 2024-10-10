@@ -26,7 +26,6 @@
 #include "mfx_h264_encode_hw_utils.h"
 #include "mfx_common_int.h"
 #include "ippi.h"
-
 using namespace MfxHwH264Encode;
 
 
@@ -2200,7 +2199,6 @@ void MfxHwH264Encode::ConfigureTask(
     task.m_encOrder      = prevTask.m_encOrder + 1;
     task.m_encOrderIdr   = prevIdrFrameFlag ? prevTask.m_encOrder : prevTask.m_encOrderIdr;
     task.m_encOrderI     = prevIFrameFlag ? prevTask.m_encOrder : prevTask.m_encOrderI;
-
 
     task.m_isUseRawRef = IsOn(extOpt2.UseRawRef);
     task.m_isSkipped = false;
