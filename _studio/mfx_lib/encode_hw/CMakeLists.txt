@@ -239,6 +239,8 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_enctools_com.h
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_scc.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_scc.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_cdef.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_cdef.h
   )
 
     set(AV1_VIDEO_ENCODE_SRC
@@ -260,8 +262,6 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
 
       ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe2/av1ehw_xe2_scc.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe2/av1ehw_xe2_scc.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe2/av1ehw_xe2_cdef.cpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/Xe2/av1ehw_xe2_cdef.h
     )
 
   custom_source_group("av1" ${AV1_VIDEO_ENCODE_SRC})

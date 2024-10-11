@@ -25,7 +25,7 @@
 
 namespace AV1EHW
 {
-namespace Xe2
+namespace Base
 {
     class CDEF
         : public FeatureBase
@@ -44,7 +44,7 @@ namespace Xe2
         virtual void Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
     };
 
-} //Xe2
+} //Base
 } //namespace AV1EHW
 
 #endif //defined(MFX_ENABLE_AV1_VIDEO_ENCODE)

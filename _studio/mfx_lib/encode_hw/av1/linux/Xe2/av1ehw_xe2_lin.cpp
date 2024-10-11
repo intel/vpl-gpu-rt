@@ -26,7 +26,7 @@
 #include "av1ehw_base_tile.h"
 #include "av1ehw_xe2_lin.h"
 #include "av1ehw_xe2_scc.h"
-#include "av1ehw_xe2_cdef.h"
+#include "av1ehw_base_cdef.h"
 
 using namespace AV1EHW;
 using namespace AV1EHW::Base;
@@ -41,7 +41,7 @@ Linux::Xe2::MFXVideoENCODEAV1_HW::MFXVideoENCODEAV1_HW(
 
     newFeatures.emplace_back(new AV1EHW::Base::Segmentation(AV1EHW::Base::FEATURE_SEGMENTATION));
     newFeatures.emplace_back(new AV1EHW::Xe2::SCC(FEATURE_SCC));
-    newFeatures.emplace_back(new AV1EHW::Xe2::CDEF(FEATURE_XE2CDEF));
+    newFeatures.emplace_back(new AV1EHW::Base::CDEF(FEATURE_XE2CDEF));
 
     for (auto& pFeature : newFeatures)
         pFeature->Init(mode, *this);

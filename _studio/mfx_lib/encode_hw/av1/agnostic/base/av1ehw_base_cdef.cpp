@@ -22,15 +22,14 @@
 #if defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
 
 #include "av1ehw_base_data.h"
-#include "av1ehw_xe2_cdef.h"
+#include "av1ehw_base_cdef.h"
 
 using namespace AV1EHW;
 using namespace AV1EHW::Base;
-using namespace AV1EHW::Xe2;
 
 namespace AV1EHW
 {
-namespace Xe2
+namespace Base
 {
 
 inline static void TuneCDEFLowQP(uint32_t* strength, int32_t qp)
@@ -273,7 +272,7 @@ void CDEF::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     });
 }
 
-} //namespace Xe2
+} //namespace Base
 } //namespace AV1EHW
 
 #endif //defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
