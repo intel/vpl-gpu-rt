@@ -96,6 +96,7 @@ typedef struct tagENCODE_CAPS_VP9
     USHORT          MaxNumOfDirtyRect;
     USHORT          MaxNumOfMoveRect;
     UINT            MaxNum_Reference0;
+    UCHAR           SegIdBlockSizeSupport;
 
 
 } ENCODE_CAPS_VP9;

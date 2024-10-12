@@ -38,7 +38,8 @@ namespace MfxHwVP9Encode
         BLOCK_16x16 = 0,
         BLOCK_32x32 = 1,
         BLOCK_64x64 = 2,
-        BLOCK_8x8 = 4
+        BLOCK_8x8 = 3,
+        BLOCK_UNSUPPORTED = 8
     };
 
     typedef struct

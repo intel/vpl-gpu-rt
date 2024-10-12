@@ -86,8 +86,9 @@ namespace MfxHwVP9Encode
         case MFX_VP9_SEGMENT_ID_BLOCK_SIZE_64x64:
             return BLOCK_64x64;
         case MFX_VP9_SEGMENT_ID_BLOCK_SIZE_16x16:
-        default:
             return BLOCK_16x16;
+        default:
+            return BLOCK_UNSUPPORTED;
         }
     }
 
@@ -111,7 +112,8 @@ namespace MfxHwVP9Encode
         mfxVideoParam const & /*par*/,
         VAEncPictureParameterBufferVP9 & pps,
         std::vector<ExtVASurface> const & reconQueue,
-        BitOffsets const &offsets)
+        BitOffsets const &offsets,
+        ENCODE_CAPS_VP9 caps)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FillPpsBuffer");
 
@@ -187,6 +189,8 @@ namespace MfxHwVP9Encode
 #if VA_CHECK_VERSION(1, 23, 0)
             mfxExtVP9Segmentation const & seg = GetActualExtBufferRef(*task.m_pParam, task.m_ctrl);
             pps.seg_id_block_size = MapSegIdBlockSizeToVAAPI(seg.SegmentIdBlockSize);
+            if (((1 << pps.seg_id_block_size) & caps.SegIdBlockSizeSupport) == 0)
+                MFX_RETURN(MFX_ERR_UNSUPPORTED);
 #endif
             pps.pic_flags.bits.segmentation_update_map = task.m_frameParam.segmentationUpdateMap;
             pps.pic_flags.bits.segmentation_temporal_update = task.m_frameParam.segmentationTemporalUpdate;
@@ -701,6 +705,9 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         VAConfigAttribEncMacroblockInfo,
         VAConfigAttribEncMaxRefFrames,
         VAConfigAttribEncSkipFrame,
+#if VA_CHECK_VERSION(1, 23, 0)
+        VAConfigAttribEncVP9,
+#endif
     };
     std::vector<VAConfigAttrib> attrs;
 
@@ -781,7 +788,12 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         m_caps.FrameLevelRateCtrl = attrs[idx_map[VAConfigAttribProcessingRate]].value == VA_PROCESSING_RATE_ENCODE;
         m_caps.BRCReset = attrs[idx_map[VAConfigAttribProcessingRate]].value == VA_PROCESSING_RATE_ENCODE;
     }
-
+#if VA_CHECK_VERSION(1, 23, 0)
+    if (attrs[idx_map[VAConfigAttribEncVP9]].value != VA_ATTRIB_NOT_SUPPORTED)
+    {
+        m_caps.SegIdBlockSizeSupport = attrs[idx_map[VAConfigAttribEncVP9]].value;
+    }
+#endif
     HardcodeCaps(m_caps);
 
     return MFX_ERR_NONE;
@@ -1051,8 +1063,10 @@ mfxStatus VAAPIEncoder::Execute(
     mfxU16 bytesWritten = PrepareFrameHeader(*task.m_pParam, pBuf, (mfxU32)m_frameHeaderBuf.size(), task, m_seqParam, offsets);
     MFX_CHECK(bytesWritten != 0, MFX_ERR_MORE_DATA);
 
+    mfxStatus sts = MFX_ERR_NONE;
     // update params
-    FillPpsBuffer(task, m_video, m_pps, m_reconQueue, offsets);
+    sts = FillPpsBuffer(task, m_video, m_pps, m_reconQueue, offsets, m_caps);
+    MFX_CHECK_STS(sts);
     FillSegMap(task, m_video, m_pmfxCore, m_segPar);
 
 //===============================================================================================
@@ -1074,7 +1088,6 @@ mfxStatus VAAPIEncoder::Execute(
     //------------------------------------------------------------------
     // buffer creation & configuration
     //------------------------------------------------------------------
-    mfxStatus sts;
     {
         // 1. sequence level
         {
