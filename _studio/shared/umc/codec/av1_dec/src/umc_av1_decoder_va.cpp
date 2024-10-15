@@ -57,6 +57,7 @@ namespace UMC_AV1_DECODER
 
         va = dp->pVideoAccelerator;
         packer.reset(Packer::CreatePacker(va));
+	packer->SetBitDepth(dp->color_config.BitDepth);
 
         uint32_t dpb_size = std::max(params.async_depth + TOTAL_REFS, 8u);
 
