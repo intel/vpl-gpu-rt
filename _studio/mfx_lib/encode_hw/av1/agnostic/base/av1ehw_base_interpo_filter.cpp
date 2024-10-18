@@ -61,7 +61,6 @@ static mfxStatus PostUpdateInterpFilter(
     , mfxU8 QP
     , Base::FH& currFH)
 {
-
     if (currFH.frame_type != KEY_FRAME)
     {
         const mfxExtCodingOption2& CO2 = ExtBuffer::Get(par);
