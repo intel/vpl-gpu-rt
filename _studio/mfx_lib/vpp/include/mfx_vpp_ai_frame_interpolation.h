@@ -48,6 +48,8 @@ public:
     MFXVideoFrameInterpolation();
     virtual ~MFXVideoFrameInterpolation();
 
+    static mfxStatus Query(VideoCORE* core);
+
     mfxStatus Init(
         VideoCORE* core,
         const mfxFrameInfo& inInfo,

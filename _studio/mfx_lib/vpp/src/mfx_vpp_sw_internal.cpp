@@ -384,7 +384,7 @@ bool IsCompositionMode(mfxVideoParam* pParam)
     return false;
 }
 
-mfxStatus ExtendedQuery(VideoCORE *, mfxU32 filterName, mfxExtBuffer* pHint)
+mfxStatus ExtendedQuery(VideoCORE *core, mfxU32 filterName, mfxExtBuffer* pHint)
 {
     if( MFX_EXTBUFF_VPP_DENOISE == filterName
         || MFX_EXTBUFF_VPP_DENOISE2 == filterName
@@ -436,6 +436,10 @@ mfxStatus ExtendedQuery(VideoCORE *, mfxU32 filterName, mfxExtBuffer* pHint)
     else if (MFX_EXTBUFF_VPP_SCALING == filterName)
     {
         MFX_RETURN(CheckScalingParam(pHint));
+    }
+    else if (MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION == filterName)
+    {
+        MFX_RETURN(MFXVideoFrameInterpolation::Query(core));
     }
     else // ignore
     {

@@ -737,3 +737,17 @@ mfxStatus MFXVideoFrameInterpolation::AddTaskQueue(mfxU32 taskIndex)
     }
     return MFX_ERR_NONE;
 }
+
+mfxStatus MFXVideoFrameInterpolation::Query(VideoCORE* core)
+{
+    MFX_CHECK_NULL_PTR1(core);
+    auto platform = core->GetHWType();
+    if (platform == MFX_HW_DG2 || platform >= MFX_HW_MTL)
+    {
+        return MFX_ERR_NONE;
+    }
+    else
+    {
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
+}
