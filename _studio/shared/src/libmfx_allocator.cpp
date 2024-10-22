@@ -746,18 +746,7 @@ mfx::mfx_shared_lib_holder* ImportExportHelper::GetHelper(mfxSurfaceType shared_
     lock.unlock();
     mfx::mfx_shared_lib_holder* ret = nullptr;
     uniq_ptr_mfx_shared_lib_holder loaded_lib;
-#ifdef MFX_ENABLE_SHARING_OPENCL
-    switch (shared_library_type)
-    {
-//#ifdef MFX_ENABLE_SHARING_OPENCL
-    case MFX_SURFACE_TYPE_OPENCL_IMG2D:
-        loaded_lib = LoadAndInit<MFX_SURFACE_TYPE_OPENCL_IMG2D>();
-        break;
-//#endif
-    default:
-        break;
-    }
-#endif
+
 
     if (loaded_lib)
     {

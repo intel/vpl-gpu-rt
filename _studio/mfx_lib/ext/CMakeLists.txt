@@ -172,6 +172,7 @@ if(MFX_ENABLE_KERNELS)
     PUBLIC
       ${genx_include_dirs}
       ${mctf_include_dir}
+      ${VULKAN_INCLUDE}
   )
 
   target_sources(mfx_ext PRIVATE

@@ -21,6 +21,7 @@ target_include_directories(vpp_hw
   PUBLIC
     include
     ${OPENCL_INCLUDE}
+    ${VULKAN_INCLUDE}
     ${MSDK_STUDIO_ROOT}/mfx_lib/ext/ai_vfi
     )
 

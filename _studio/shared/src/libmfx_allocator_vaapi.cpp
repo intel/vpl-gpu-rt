@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2023 Intel Corporation
+// Copyright (c) 2007-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,14 +18,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "mfx_common.h"
 
+#include "mfx_common.h"
 
 #include <algorithm>
 #include <vector>
 
 #include "ippcore.h"
-#include "ipps.h"
 
 #include "libmfx_allocator_vaapi.h"
 #include "mfx_utils.h"
@@ -959,6 +958,7 @@ std::pair<mfxStatus, bool> vaapi_surface_wrapper::TryImportSurface(const mfxFram
     case MFX_SURFACE_TYPE_VAAPI:
         return TryImportSurfaceVAAPI(info, *(reinterpret_cast<mfxSurfaceVAAPI*>(import_surface)));
 
+
     default:
         return { MFX_STS_TRACE(MFX_ERR_UNSUPPORTED), false };
     }
@@ -1022,6 +1022,8 @@ std::pair<mfxStatus, bool> vaapi_surface_wrapper::TryImportSurfaceVAAPI(const mf
     return { MFX_ERR_NONE, true };
 }
 
+
+
 mfxStatus vaapi_surface_wrapper::CopyImportSurface(const mfxFrameInfo& info, mfxSurfaceHeader* import_surface)
 {
     MFX_CHECK_NULL_PTR1(import_surface);
@@ -1030,6 +1032,7 @@ mfxStatus vaapi_surface_wrapper::CopyImportSurface(const mfxFrameInfo& info, mfx
     {
     case MFX_SURFACE_TYPE_VAAPI:
         MFX_RETURN(CopyImportSurfaceVAAPI(info, *(reinterpret_cast<mfxSurfaceVAAPI*>(import_surface))));
+
 
     default:
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
@@ -1050,6 +1053,8 @@ mfxStatus vaapi_surface_wrapper::CopyImportSurfaceVAAPI(const mfxFrameInfo& info
 
     return MFX_ERR_NONE;
 }
+
+
 
 vaapi_surface_wrapper::~vaapi_surface_wrapper()
 {
@@ -1086,11 +1091,14 @@ mfxStatus vaapi_surface_wrapper::Unlock()
 
 mfxStatus vaapi_surface_wrapper::Export(const mfxSurfaceHeader& export_header, mfxSurfaceBase*& exported_surface, mfxFrameSurfaceInterfaceImpl* p_base_surface)
 {
+
     switch (export_header.SurfaceType)
     {
     case MFX_SURFACE_TYPE_VAAPI:
         exported_surface = mfxSurfaceVAAPIImpl::Create(export_header, p_base_surface, m_pVADisplay, m_resource_id);
         break;
+
+
     default:
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }

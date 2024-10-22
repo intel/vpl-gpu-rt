@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2020 Intel Corporation
+// Copyright (c) 2011-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@
 
 #include "mfxvideo++int.h"
 #include "libmfx_allocator.h"
+
 
 // VAAPI Allocator internal Mem ID
 struct vaapiMemIdInt
@@ -233,13 +234,20 @@ public:
     virtual mfxStatus Lock(mfxFrameData& frame_data, mfxU32 flags) override;
     virtual mfxStatus Unlock()                                     override;
 
-private:
-
     virtual mfxStatus Export(const mfxSurfaceHeader& export_header, mfxSurfaceBase*& exported_surface, mfxFrameSurfaceInterfaceImpl* p_base_surface) override;
+    std::shared_ptr<ImportExportHelper>& GetCreateHelper()
+    {
+        std::lock_guard<std::mutex> guard(m_mutex);
 
+        if (!m_import_export_helper)
+            m_import_export_helper.reset(new ImportExportHelper());
+
+        return m_import_export_helper;
+    }
+
+private:
     std::pair<mfxStatus, bool> TryImportSurface     (const mfxFrameInfo& info, mfxSurfaceHeader* import_surface);
     std::pair<mfxStatus, bool> TryImportSurfaceVAAPI(const mfxFrameInfo& info, mfxSurfaceVAAPI&  import_surface);
-
 
     mfxStatus CopyImportSurface     (const mfxFrameInfo& info, mfxSurfaceHeader* import_surface);
     mfxStatus CopyImportSurfaceVAAPI(const mfxFrameInfo& info, mfxSurfaceVAAPI&  import_surface);
@@ -247,9 +255,12 @@ private:
 
     SurfaceScopedLock m_surface_lock;
     // If m_imported == true we will not delete vaapi surface in destructor
-    bool              m_imported = false;
-    mfxU16            m_type;
-    mfxU32            m_fourcc;
+    bool                                m_imported = false;
+    mfxU16                              m_type;
+    mfxU32                              m_fourcc;
+    std::mutex                          m_mutex;
+    std::shared_ptr<ImportExportHelper> m_import_export_helper;
+
 };
 
 struct mfxFrameSurface1_hw_vaapi : public RWAcessSurface

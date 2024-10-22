@@ -22,6 +22,7 @@ target_include_directories(pxp_hw
     ${MSDK_UMC_ROOT}/codec/h265_dec/include
     ${MSDK_UMC_ROOT}/codec/vvc_dec/include
     ${OPENCL_INCLUDE}
+    ${VULKAN_INCLUDE}
 )
 
 target_link_libraries(pxp_hw

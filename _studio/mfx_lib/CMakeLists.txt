@@ -119,12 +119,14 @@ target_include_directories(mfxcore
   PUBLIC
     scheduler/include
     ${OPENCL_INCLUDE}
+    ${VULKAN_INCLUDE}
   )
   
 if (CMAKE_SYSTEM_NAME MATCHES Linux)
   target_include_directories(mfxcore
     PUBLIC
       scheduler/linux/include
+      ${VULKAN_INCLUDE}
   )
 endif()
 

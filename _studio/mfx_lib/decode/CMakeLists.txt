@@ -81,6 +81,7 @@ if (MFX_ENABLE_MJPEG_VIDEO_DECODE)
     ${MSDK_UMC_ROOT}/codec/color_space_converter/include
     mjpeg/include
     ${OPENCL_INCLUDE}
+    ${VULKAN_INCLUDE}
   )
 
   set(MJPEG_VIDEO_DECODE_SRC
