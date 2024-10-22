@@ -1664,11 +1664,20 @@ mfxStatus TaskManager::FillTask(
             m_resMngr.m_surf[VPP_IN][pTask->input.resIdx].SetFree(false);
         }
     }
-
+    mfxStatus sts = MFX_ERR_NONE;
     m_actualNumber += 1; // make sense for simple mode only
-    MFX_CHECK_NULL_PTR1(pTask->input.pSurf);
-    mfxStatus sts = m_core->IncreaseReference(*pTask->input.pSurf);
-    MFX_CHECK_STS(sts);
+
+    if ((FRC_AI_INTERPOLATION & m_extMode) && !pTask->input.pSurf)
+    {
+        // input sequence reaches its end
+        pTask->m_aiVfiSequenceEnd = true;
+    }
+    else
+    {
+        MFX_CHECK_NULL_PTR1(pTask->input.pSurf);
+        sts = m_core->IncreaseReference(*pTask->input.pSurf);
+        MFX_CHECK_STS(sts);
+    }
 
     sts = m_core->IncreaseReference(*pTask->output.pSurf);
     MFX_CHECK_STS(sts);
@@ -4222,6 +4231,12 @@ mfxStatus VideoVPPHW::MergeRuntimeParams(const DdiTask *pTask, MfxHwVideoProcess
 mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
 {
     mfxStatus sts = MFX_ERR_NONE;
+
+    if (pTask->m_aiVfiSequenceEnd)
+    {
+        pTask->skipQueryStatus = true;
+        return sts;
+    }
 #ifdef MFX_ENABLE_MCTF
     if (pTask->outputForApp.pSurf)
     {

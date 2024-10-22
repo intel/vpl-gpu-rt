@@ -281,6 +281,7 @@ namespace MfxHwVideoProcessing
             , skipQueryStatus(false)
             , pAuxData(NULL)
             , pSubResource(NULL)
+            , m_aiVfiSequenceEnd(false)
         {
 #ifdef MFX_ENABLE_MCTF
             memset(&MctfData, 0, sizeof(IntMctfParams));
@@ -318,6 +319,8 @@ namespace MfxHwVideoProcessing
         ReleaseResource* pSubResource;
 
         std::vector<ExtSurface> m_refList; //m_refList.size() == bkwdRefCount +fwdRefCount
+
+        bool m_aiVfiSequenceEnd;
     };
 
     struct ExtendedConfig

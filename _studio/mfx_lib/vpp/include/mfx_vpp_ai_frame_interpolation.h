@@ -92,6 +92,7 @@ private:
     Ratio                              m_ratio;
     mfxU16                             m_outStamp;
     mfxU16                             m_outTick;
+    bool                               m_sequenceEnd;
 
     mfxU16 m_IOPattern;
 

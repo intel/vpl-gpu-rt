@@ -31,6 +31,7 @@
 #define HEIGHT2 (mfxU16)1440
 
 MFXVideoFrameInterpolation::MFXVideoFrameInterpolation() :
+    m_sequenceEnd(false),
     m_inputFwd(),
     m_inputBkwd(),
     m_enableScd(false),
@@ -368,7 +369,16 @@ mfxStatus MFXVideoFrameInterpolation::UpdateTsAndGetStatus(
     mfxFrameSurface1* output,
     mfxStatus* intSts)
 {
-    if (nullptr == input) return MFX_ERR_MORE_DATA;
+    if (nullptr == input)
+    {
+        // nullptr == input means input sequence reaches its end
+        if (m_sequenceEnd)
+        {
+            return MFX_ERR_MORE_DATA;
+        }
+        if (m_outStamp == (m_ratio - 1)) m_sequenceEnd = true;
+        return MFX_ERR_NONE;
+    }
     mfxStatus sts = MFX_ERR_NONE;
 
     if (m_outStamp == 0)
