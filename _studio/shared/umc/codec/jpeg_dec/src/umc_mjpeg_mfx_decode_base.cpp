@@ -263,7 +263,7 @@ Status MJPEGVideoDecoderBaseMFX::FillVideoParam(mfxVideoParam *par, bool /*full*
         }
         else if (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV420)
         {
-            par->mfx.FrameInfo.FourCC = MFX_FOURCC_IMC3;
+            par->mfx.FrameInfo.FourCC = MFX_FOURCC_NV12;
         }
         else if (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422 || par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422H)
         {
