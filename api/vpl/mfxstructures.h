@@ -98,7 +98,19 @@ typedef struct {
         Specify the frame rate with the following formula: FrameRateExtN / FrameRateExtD.
 
         For encoding, frame rate must be specified. For decoding, frame rate may be unspecified (FrameRateExtN and FrameRateExtD
-        are all zeros.) In this case, the frame rate is defaulted to 30 frames per second.
+        are all zeros.) In this case, the frame rate is defaulted to 0 frames per second, and timestamp will be calculated by 30fps in SDK.
+
+        In decoding process:
+
+        If there is frame rate information in bitstream, MFXVideoDECODE_DecodeHeader will carry actual frame rate in FrameRateExtN and FrameRateExtD parameters.
+        MFXVideoDECODE_Init, MFXVideoDECODE_Query, MFXVideoDECODE_DecodeFrameAsync and MFXVideoDECODE_GetVideoParam will also carry these values for frame rate.
+        Timestamp will be calculated by the actual frame rate.
+
+        If there is no frame rate information in bitstream, MFXVideoDECODE_DecodeHeader will assign 0 for frame rate in FrameRateExtN and FrameRateExtD parameters.
+        MFXVideoDECODE_Init, MFXVideoDECODE_Query, MFXVideoDECODE_DecodeFrameAsync and MFXVideoDECODE_GetVideoParam will also assign 0 for frame rate. Timestamp will be calculated by 30fps.
+
+        If these two parameters are modified through MFXVideoDECODE_Init, then the modified values for frame rate will be used in
+	MFXVideoDECODE_Query, MFXVideoDECODE_DecodeFrameAsync and MFXVideoDECODE_GetVideoParam. Timestamps will be calculated using the modified values.
     */
     mfxU32  FrameRateExtN; /*!< Frame rate numerator. */
     mfxU32  FrameRateExtD; /*!< Frame rate denominator. */
