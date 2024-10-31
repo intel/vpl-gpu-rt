@@ -59,9 +59,7 @@ protected:
     virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
 
     virtual mfxStatus SetDDIID(const mfxU16 bitDepth
-        , const mfxU16 chromFormat
-        , const mfxU32 fourCC
-        , const mfxU16 targetChromaFormat) override;
+        , const mfxU16 chromFormat) override;
 
     mfxStatus CreateVABuffers(
         const std::list<DDIExecParam>& par

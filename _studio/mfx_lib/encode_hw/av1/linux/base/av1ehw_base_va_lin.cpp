@@ -29,7 +29,7 @@ using namespace AV1EHW;
 using namespace AV1EHW::Base;
 using namespace AV1EHW::Linux::Base;
 
-mfxStatus DDI_VA::SetDDIID(const mfxU16 bitDepth, const mfxU16 chromFormat, const mfxU32 /*fourCC*/, const mfxU16/* targetChromaFormat*/)
+mfxStatus DDI_VA::SetDDIID(const mfxU16 bitDepth, const mfxU16 chromFormat)
 {
     MFX_CHECK(!m_vaid, MFX_ERR_NONE);
 
@@ -114,11 +114,9 @@ void DDI_VA::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 
         m_hw = Glob::VideoCore::Get(strg).GetHWType();
         const mfxU16 bitDepth     = m_pDefaults->base.GetBitDepthLuma(*m_pDefaults);
-        const mfxU16 chromaFormat = par.mfx.FrameInfo.ChromaFormat;
-        const mfxU32 fourCC       = par.mfx.FrameInfo.FourCC;
         const mfxU16 profile      = par.mfx.CodecProfile;
         const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(m_pDefaults->mvp);
-        mfxU16 targetChromaFormat = MFX_CHROMAFORMAT_YUV420;
+        mfxU16 targetChromaFormat = m_pDefaults->base.GetTargetChromaFormatPlus1(*m_pDefaults) - 1;;
 
         SetIf(targetChromaFormat, profile == MFX_PROFILE_AV1_HIGH, MFX_CHROMAFORMAT_YUV444);
         if (pCO3)
@@ -126,7 +124,7 @@ void DDI_VA::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
             SetIf(targetChromaFormat, !pCO3->TargetChromaFormatPlus1, pCO3->TargetChromaFormatPlus1 - 1);
         }
 
-        MFX_SAFE_CALL(SetDDIID(bitDepth, chromaFormat, fourCC, targetChromaFormat));
+        MFX_SAFE_CALL(SetDDIID(bitDepth, targetChromaFormat));
 
         return MFX_ERR_NONE;
     });
@@ -398,6 +396,7 @@ mfxStatus DDI_VA::QueryCaps()
     MFX_CHECK_STS(sts);
 
     m_caps.ChromaSupportFlags.fields.i420 = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV420);
+    m_caps.ChromaSupportFlags.fields.RGB = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_RGB32);
 
     m_caps.BitDepthSupportFlags.fields.eight_bits = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV420);
     m_caps.BitDepthSupportFlags.fields.ten_bits   = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV420_10BPP);

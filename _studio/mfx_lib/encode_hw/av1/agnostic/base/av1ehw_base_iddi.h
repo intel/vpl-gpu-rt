@@ -62,9 +62,7 @@ protected:
     virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override = 0;
 
     virtual mfxStatus SetDDIID(const mfxU16 bitDepth
-        , const mfxU16 chromFormat
-        , const mfxU32 fourCC
-        , const mfxU16 targetChromaForamt) = 0;
+        , const mfxU16 chromFormat) = 0;
 };
 
 } //Base
