@@ -114,10 +114,17 @@ void DDI_VA::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 
         m_hw = Glob::VideoCore::Get(strg).GetHWType();
         const mfxU16 bitDepth     = m_pDefaults->base.GetBitDepthLuma(*m_pDefaults);
-        const mfxU16 chromaFormat = par.mfx.FrameInfo.ChromaFormat;
+        const mfxU16 profile            = m_pDefaults->base.GetProfile(*m_pDefaults);
+        const mfxExtCodingOption3* pCO3 = ExtBuffer::Get(m_pDefaults->mvp);
+        mfxU16 targetChromaFormat       = m_pDefaults->base.GetTargetChromaFormatPlus1(*m_pDefaults) - 1;
 
+    
+        if (pCO3)
+        {
+            SetIf(targetChromaFormat, pCO3->TargetChromaFormatPlus1, pCO3->TargetChromaFormatPlus1 - 1);
+        }
 
-        MFX_SAFE_CALL(SetDDIID(bitDepth, chromaFormat));
+        MFX_SAFE_CALL(SetDDIID(bitDepth, targetChromaFormat));
 
         return MFX_ERR_NONE;
     });
@@ -389,6 +396,7 @@ mfxStatus DDI_VA::QueryCaps()
     MFX_CHECK_STS(sts);
 
     m_caps.ChromaSupportFlags.fields.i420 = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV420);
+    m_caps.ChromaSupportFlags.fields.RGB = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_RGB32);
 
     m_caps.BitDepthSupportFlags.fields.eight_bits = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV420);
     m_caps.BitDepthSupportFlags.fields.ten_bits   = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV420_10BPP);
