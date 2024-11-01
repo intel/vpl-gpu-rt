@@ -231,10 +231,15 @@ mfxStatus VideoDECODEVVC::Reset(mfxVideoParam *par)
 
     std::lock_guard<std::mutex> guard(m_guard);
 
+    TRACE_EVENT(MFX_TRACE_API_DECODE_RESET_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(par ? par->mfx.FrameInfo.Width : 0,
+        par ? par->mfx.FrameInfo.Height : 0, par ? par->mfx.CodecId : 0));
+
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 
     m_decoder->Reset();
     m_decoder->SetVideoParams(*par);
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_RESET_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
 
     return MFX_ERR_NONE;
 }
@@ -385,17 +390,26 @@ mfxStatus VideoDECODEVVC::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVid
 
 mfxStatus VideoDECODEVVC::GetVideoParam(mfxVideoParam *par)
 {
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETVIDEOPARAM_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(par ? par->mfx.FrameInfo.Width : 0,
+        par ? par->mfx.FrameInfo.Height : 0, par ? par->mfx.CodecId : 0));
+
     MFX_CHECK_NULL_PTR1(par);
     MFX_CHECK(m_decoder, MFX_ERR_NOT_INITIALIZED);
 
     std::lock_guard<std::mutex> guard(m_guard);
 
-     return MFX_ERR_NONE;
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETVIDEOPARAM_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
+
+    return MFX_ERR_NONE;
 }
 
 mfxStatus VideoDECODEVVC::GetDecodeStat(mfxDecodeStat *stat)
 {
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETSTAT_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(0));
+
     MFX_CHECK_NULL_PTR1(stat);
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETSTAT_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(stat ? stat->NumFrame : 0));
 
     return MFX_ERR_NONE;
 }
@@ -863,7 +877,11 @@ mfxStatus VideoDECODEVVC::SetSkipMode(mfxSkipMode /*mode*/)
 {
     std::lock_guard<std::mutex> guard(m_guard);
 
+    TRACE_EVENT(MFX_TRACE_API_DECODE_SETSKIPMODE_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(0));
+
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_SETSKIPMODE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
 
     return MFX_ERR_NONE;
 }

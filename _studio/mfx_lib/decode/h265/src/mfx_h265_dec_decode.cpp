@@ -393,6 +393,9 @@ mfxStatus VideoDECODEH265::Reset(mfxVideoParam *par)
 {
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
+    TRACE_EVENT(MFX_TRACE_API_DECODE_RESET_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(par ? par->mfx.FrameInfo.Width : 0,
+        par ? par->mfx.FrameInfo.Height : 0, par ? par->mfx.CodecId : 0));
+
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 
     m_globalTask = false;
@@ -433,6 +436,8 @@ mfxStatus VideoDECODEH265::Reset(mfxVideoParam *par)
     m_pH265VideoDecoder->SetVideoParams(&m_vFirstPar);
 
     MFX_CHECK(!isNeedChangeVideoParamWarning, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_RESET_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
 
     return MFX_ERR_NONE;
 }
@@ -484,6 +489,9 @@ mfxStatus VideoDECODEH265::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPar
 mfxStatus VideoDECODEH265::GetVideoParam(mfxVideoParam *par)
 {
     UMC::AutomaticUMCMutex guard(m_mGuard);
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETVIDEOPARAM_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(par ? par->mfx.FrameInfo.Width : 0,
+        par ? par->mfx.FrameInfo.Height : 0, par ? par->mfx.CodecId : 0));
 
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 
@@ -568,6 +576,8 @@ mfxStatus VideoDECODEH265::GetVideoParam(mfxVideoParam *par)
             par->mfx.FrameInfo.AspectRatioW = 1;
         }
     }
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETVIDEOPARAM_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
 
     return MFX_ERR_NONE;
 }
@@ -765,6 +775,8 @@ mfxStatus VideoDECODEH265::GetDecodeStat(mfxDecodeStat *stat)
 {
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETSTAT_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(0));
+
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR1(stat);
@@ -783,6 +795,9 @@ mfxStatus VideoDECODEH265::GetDecodeStat(mfxDecodeStat *stat)
     }
 
     *stat = m_stat;
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETSTAT_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(stat ? stat->NumFrame : 0));
+
     return MFX_ERR_NONE;
 }
 
@@ -1448,6 +1463,8 @@ mfxStatus VideoDECODEH265::GetPayload( mfxU64 *ts, mfxPayload *payload )
 {
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETPAYLOAD_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(payload));
+
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR3(ts, payload, payload->Data);
@@ -1477,6 +1494,8 @@ mfxStatus VideoDECODEH265::GetPayload( mfxU64 *ts, mfxPayload *payload )
         *ts = MFX_TIME_STAMP_INVALID;
     }
 
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETPAYLOAD_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
+
     return MFX_ERR_NONE;
 }
 
@@ -1499,6 +1518,8 @@ H265DecoderFrame * VideoDECODEH265::GetFrameToDisplay_H265(bool force)
 mfxStatus VideoDECODEH265::SetSkipMode(mfxSkipMode mode)
 {
     UMC::AutomaticUMCMutex guard(m_mGuard);
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_SETSKIPMODE_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(mode));
 
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 
@@ -1525,6 +1546,8 @@ mfxStatus VideoDECODEH265::SetSkipMode(mfxSkipMode mode)
     }
 
     m_pH265VideoDecoder->ChangeVideoDecodingSpeed(num);
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_SETSKIPMODE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(test_num == num ? MFX_WRN_VALUE_NOT_CHANGED : MFX_ERR_NONE));
 
     MFX_CHECK(test_num != num, MFX_WRN_VALUE_NOT_CHANGED);
     return MFX_ERR_NONE;

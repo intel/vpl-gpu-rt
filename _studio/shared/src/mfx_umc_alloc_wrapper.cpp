@@ -1682,7 +1682,9 @@ UMC::Status SurfaceSource::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDat
 
         mfxFrameSurface1* surf = nullptr;
         // If timer wasn't set (i.e. cache hints buffer wasn't attached) cache timeout below would be zero (i.e. no waiting for free surface)
+        TRACE_EVENT(MFX_TRACE_API_GETSURFACE_TASK, EVENT_TYPE_START, TR_KEY_INTERNAl, make_event_data(surf));
         sts = (*m_vpl_cache_decoder_surfaces)->GetSurface(surf, cache_timeout, true);
+        TRACE_EVENT(MFX_TRACE_API_GETSURFACE_TASK, EVENT_TYPE_END, TR_KEY_INTERNAl, make_event_data(sts, surf));
 
         MFX_CHECK(sts == MFX_ERR_NONE,        UMC::UMC_ERR_ALLOC);
 

@@ -435,7 +435,7 @@ mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
     PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
     InitMfxLogging();
     TRACE_EVENT(MFX_TRACE_API_DECODE_INIT_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session, par ? par->mfx.FrameInfo.Width : 0, 
-        par ? par->mfx.FrameInfo.Height : 0, par ? par->mfx.CodecId : 0));
+        par ? par->mfx.FrameInfo.Height : 0, par ? par->AsyncDepth : 0, par ? par->mfx.DecodedOrder : 0, par ? par->mfx.CodecId : 0));
 
     mfxStatus mfxRes;
 
@@ -516,7 +516,7 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
 {
     mfxStatus mfxRes;
     PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
-    TRACE_EVENT(MFX_TRACE_API_DECODE_FRAME_ASYNC_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session, surface_work, bs ? bs->DataLength : 0));
+    TRACE_EVENT(MFX_TRACE_API_DECODE_FRAME_ASYNC_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session, surface_work, bs ? bs->DataLength : 0, bs ? bs->DataFlag : 0));
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
     MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  session = ", MFX_TRACE_FORMAT_P, session);

@@ -464,6 +464,9 @@ mfxStatus VideoDECODEAV1::Reset(mfxVideoParam* par)
 {
     std::lock_guard<std::mutex> guard(m_guard);
 
+    TRACE_EVENT(MFX_TRACE_API_DECODE_RESET_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(par ? par->mfx.FrameInfo.Width : 0,
+        par ? par->mfx.FrameInfo.Height : 0, par ? par->mfx.CodecId : 0));
+
     MFX_CHECK_NULL_PTR1(par);
 
     MFX_CHECK(m_is_init, MFX_ERR_NOT_INITIALIZED);
@@ -505,6 +508,8 @@ mfxStatus VideoDECODEAV1::Reset(mfxVideoParam* par)
         ((mfxF64)m_first_par.mfx.FrameInfo.FrameRateExtD / m_first_par.mfx.FrameInfo.FrameRateExtN) : (mfxF64)1.0 / 30;
 
     m_decoder->SetInFrameRate(m_in_framerate);
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_RESET_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
 
     return MFX_ERR_NONE;
 }
@@ -700,6 +705,9 @@ mfxStatus VideoDECODEAV1::DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfxVid
 
 mfxStatus VideoDECODEAV1::GetVideoParam(mfxVideoParam *par)
 {
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETVIDEOPARAM_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(par ? par->mfx.FrameInfo.Width : 0,
+        par ? par->mfx.FrameInfo.Height : 0, par ? par->mfx.CodecId : 0));
+
     MFX_CHECK_NULL_PTR1(par);
     MFX_CHECK(m_decoder, MFX_ERR_NOT_INITIALIZED);
 
@@ -758,13 +766,19 @@ mfxStatus VideoDECODEAV1::GetVideoParam(mfxVideoParam *par)
         break;
     }
 
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETVIDEOPARAM_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
+
     return MFX_ERR_NONE;
 }
 
 
 mfxStatus VideoDECODEAV1::GetDecodeStat(mfxDecodeStat* stat)
 {
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETSTAT_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(0));
+
     MFX_CHECK_NULL_PTR1(stat);
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETSTAT_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(stat ? stat->NumFrame : 0, MFX_ERR_NONE));
 
     return MFX_ERR_NONE;
 }

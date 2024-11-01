@@ -51,6 +51,9 @@ private:
 
 mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par, mfxVideoChannelParam** vpp_par_array, mfxU32 num_channel_par)
 {
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_VPP_INIT_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(0));
+
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK_NULL_PTR2(decode_par, vpp_par_array);
 
@@ -351,6 +354,8 @@ mfxStatus MFXVideoDECODE_VPP_Init(mfxSession session, mfxVideoParam* decode_par,
         MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 
+    TRACE_EVENT(MFX_TRACE_API_DECODE_VPP_INIT_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
+
     return MFX_ERR_NONE;
 }
 
@@ -398,6 +403,9 @@ protected:
 
 mfxStatus MFXVideoDECODE_VPP_DecodeFrameAsync(mfxSession session, mfxBitstream* bs, mfxU32* skip_channels, mfxU32 num_skip_channels, mfxSurfaceArray** surf_array_out)
 {
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_VPP_FRAMEASYNC_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(0));
+
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(surf_array_out, MFX_ERR_NULL_PTR);
     if (num_skip_channels != 0)
@@ -630,6 +638,8 @@ mfxStatus MFXVideoDECODE_VPP_DecodeFrameAsync(mfxSession session, mfxBitstream* 
         mfxRes = MFX_ERR_UNKNOWN;
     }
 
+    TRACE_EVENT(MFX_TRACE_API_DECODE_VPP_FRAMEASYNC_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(mfxRes));
+
     return mfxRes;
 }
 
@@ -651,6 +661,9 @@ static inline bool CmpFrameInfoIgnoreCrops(const mfxFrameInfo& l, const mfxFrame
 
 mfxStatus MFXVideoDECODE_VPP_Reset(mfxSession session, mfxVideoParam* decode_par, mfxVideoChannelParam** vpp_par_array, mfxU32 num_channel_par)
 {
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_VPP_RESET_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(0));
+
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
 
     //check if we need full reset
@@ -707,6 +720,8 @@ mfxStatus MFXVideoDECODE_VPP_Reset(mfxSession session, mfxVideoParam* decode_par
         //MFX_SAFE_CALL(session->m_pDVP->VPPs[id]->Reset(&VppParams));
     }
 
+    TRACE_EVENT(MFX_TRACE_API_DECODE_VPP_RESET_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
+
     return MFX_ERR_NONE;
 }
 
@@ -718,6 +733,9 @@ static void UpdateStatus(mfxStatus& res, const mfxStatus cur)
 
 mfxStatus MFXVideoDECODE_VPP_Close(mfxSession session)
 {
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_VPP_CLOSE_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(0));
+
     MFX_CHECK(session,               MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pScheduler, MFX_ERR_NOT_INITIALIZED);
 
@@ -745,6 +763,8 @@ mfxStatus MFXVideoDECODE_VPP_Close(mfxSession session)
     {
         UpdateStatus(res, MFX_ERR_UNKNOWN);
     }
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_VPP_CLOSE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(res));
 
     return res;
 }

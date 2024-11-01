@@ -145,6 +145,21 @@ enum mfxTraceTaskType
     VA_TRACE_API_HEVC_DPBPARAMETER_TASK,
     MFX_TRACE_PIPELINE_STICKER_TASK,
     VPLMessage_TASK,
+    MFX_TRACE_API_DECODE_RESET_TASK,
+    MFX_TRACE_API_DECODE_GETVIDEOPARAM_TASK,
+    MFX_TRACE_API_DECODE_GETSTAT_TASK,
+    MFX_TRACE_API_DECODE_SETSKIPMODE_TASK,
+    MFX_TRACE_API_DECODE_GETPAYLOAD_TASK,
+    MFX_TRACE_API_GETSURFACE_TASK,
+    MFX_TRACE_API_DECODE_VPP_INIT_TASK,
+    MFX_TRACE_API_DECODE_VPP_CLOSE_TASK,
+    MFX_TRACE_API_DECODE_VPP_RESET_TASK,
+    MFX_TRACE_API_DECODE_VPP_FRAMEASYNC_TASK,
+    MFX_TRACE_API_DOFASTCOPY_WRAPPER_TASK,
+    MFX_TRACE_API_ADD_TASK,
+    MFX_TRACE_API_GET_TASK,
+    MFX_TRACE_API_QUERY_TASK,
+    MFX_TRACE_API_MARK_TASK,
 };
 
 // list of output modes
@@ -217,6 +232,7 @@ typedef enum _MEDIA_EVENT_FILTER_KEYID
     //Common key
     TR_KEY_MFX_API = 0,
     TR_KEY_DDI_API,
+    TR_KEY_INTERNAl,
     //Decode key
     TR_KEY_DECODE_PICPARAM,
     TR_KEY_DECODE_SLICEPARAM,
@@ -494,7 +510,7 @@ public:
 };
 
 #define TRACE_CHECK(keyWord)   \
-    (EventCfg & (1 << keyWord)) || keyWord == TR_KEY_MFX_API || keyWord == TR_KEY_DDI_API
+    (EventCfg & (1 << keyWord)) || keyWord == TR_KEY_MFX_API || keyWord == TR_KEY_DDI_API || keyWord == TR_KEY_INTERNAl
 
 // This macro is recommended to use instead creating RT Info ScopedTrace object directly
 #define TRACE_BUFFER_EVENT(task, level, keyWord, pData, funcName, structType)   \

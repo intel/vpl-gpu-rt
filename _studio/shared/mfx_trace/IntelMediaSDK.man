@@ -48,6 +48,7 @@
           <event symbol="MFXCloseExit" value="82" version="0" task="MFXClose" opcode="win:Stop" template="MfxClose_Exit" />
           <event symbol="DoWorkEntry" value="85" version="0" task="DoWork" opcode="win:Start" template="DoWork_Entry" />
           <event symbol="DoWorkExit" value="86" version="0" task="DoWork" opcode="win:Stop" template="DoWork_Exit" />
+          <event symbol="MFXSyncOperationInfo" value="88" version="0" task="MFXSyncOperation" opcode="win:Info" template="MFXSyncOperation_Info" />
           <event symbol="MFXSyncOperationEntry" value="89" version="0" task="MFXSyncOperation" opcode="win:Start" template="MFXSyncOperation_Entry" />
           <event symbol="MFXSyncOperationExit" value="90" version="0" task="MFXSyncOperation" opcode="win:Stop" template="MFXSyncOperation_Exit" />
           <event symbol="WaitForGlobalEventEntry" value="93" version="0" task="WaitForGlobalEvent" opcode="win:Start" template="WaitForGlobalEvent_Entry" />
@@ -194,6 +195,46 @@
           <event symbol="VPLMessageInfo" value="296" version="0" task="VPLMessage" opcode="win:Info" template="t_VPLMessage_Info"></event>
           <event symbol="VPLMessageEntry" value="297" version="0" task="VPLMessage" opcode="win:Start" template="t_VPLMessage_Entry"></event>
           <event symbol="VPLMessageExit" value="298" version="0" task="VPLMessage" opcode="win:Stop" template="t_VPLMessage_Exit"></event>
+          <event symbol="MFX_DECODE_RESET_Info" value="300" version="0" task="MFX_DECODE_RESET" opcode="win:Info" template="t_MFX_DECODE_RESET_Info"></event>
+          <event symbol="MFX_DECODE_RESET_Entry" value="301" version="0" task="MFX_DECODE_RESET" opcode="win:Start" template="t_MFX_DECODE_RESET_Entry"></event>
+          <event symbol="MFX_DECODE_RESET_Exit" value="302" version="0" task="MFX_DECODE_RESET" opcode="win:Stop" template="t_MFX_DECODE_RESET_Exit"></event>
+          <event symbol="MFX_DECODE_GetVideoParam_Info" value="304" version="0" task="MFX_DECODE_GetVideoParam" opcode="win:Info" template="t_MFX_DECODE_GetVideoParam_Info"></event>
+          <event symbol="MFX_DECODE_GetVideoParam_Entry" value="305" version="0" task="MFX_DECODE_GetVideoParam" opcode="win:Start" template="t_MFX_DECODE_GetVideoParam_Entry"></event>
+          <event symbol="MFX_DECODE_GetVideoParam_Exit" value="306" version="0" task="MFX_DECODE_GetVideoParam" opcode="win:Stop" template="t_MFX_DECODE_GetVideoParam_Exit"></event>
+          <event symbol="MFX_DECODE_GetStat_Info" value="308" version="0" task="MFX_DECODE_GetStat" opcode="win:Info" template="t_MFX_DECODE_GetStat_Info"></event>
+          <event symbol="MFX_DECODE_GetStat_Entry" value="309" version="0" task="MFX_DECODE_GetStat" opcode="win:Start"></event>
+          <event symbol="MFX_DECODE_GetStat_Exit" value="310" version="0" task="MFX_DECODE_GetStat" opcode="win:Stop" template="t_MFX_DECODE_GetStat_Exit"></event>
+          <event symbol="MFX_DECODE_SetSkipMode_Entry" value="313" version="0" task="MFX_DECODE_SetSkipMode" opcode="win:Start" template="t_MFX_DECODE_SetSkipMode_Entry"></event>
+          <event symbol="MFX_DECODE_SetSkipMode_Exit" value="314" version="0" task="MFX_DECODE_SetSkipMode" opcode="win:Stop" template="t_MFX_DECODE_SetSkipMode_Exit"></event>
+          <event symbol="MFX_DECODE_GetPayLoad_Entry" value="317" version="0" task="MFX_DECODE_GetPayLoad" opcode="win:Start" template="t_MFX_DECODE_GetPayLoad_Entry"></event>
+          <event symbol="MFX_DECODE_GetPayLoad_Exit" value="318" version="0" task="MFX_DECODE_GetPayLoad" opcode="win:Stop" template="t_MFX_DECODE_GetPayLoad_Exit"></event>
+          <event symbol="MFX_GetSurface_Info" value="320" version="0" task="MFX_GetSurface" opcode="win:Info" template="t_MFX_GetSurface_Info"></event>
+          <event symbol="MFX_GetSurface_Entry" value="321" version="0" task="MFX_GetSurface" opcode="win:Start" template="t_MFX_GetSurface_Entry"></event>
+          <event symbol="MFX_GetSurface_Exit" value="322" version="0" task="MFX_GetSurface" opcode="win:Stop" template="t_MFX_GetSurface_Exit"></event>
+          <event symbol="MFX_DECODE_VppInit_Entry" value="325" version="0" task="MFX_DECODE_VppInit" opcode="win:Start" ></event>
+          <event symbol="MFX_DECODE_VppInit_Exit" value="326" version="0" task="MFX_DECODE_VppInit" opcode="win:Stop" template="t_MFX_DECODE_VppInit_Exit"></event>
+          <event symbol="MFX_DECODE_VppClose_Entry" value="329" version="0" task="MFX_DECODE_VppClose" opcode="win:Start" ></event>
+          <event symbol="MFX_DECODE_VppClose_Exit" value="330" version="0" task="MFX_DECODE_VppClose" opcode="win:Stop" template="t_MFX_DECODE_VppClose_Exit"></event>
+          <event symbol="MFX_DECODE_VppReset_Entry" value="333" version="0" task="MFX_DECODE_VppReset" opcode="win:Start" ></event>
+          <event symbol="MFX_DECODE_VppReset_Exit" value="334" version="0" task="MFX_DECODE_VppReset" opcode="win:Stop" template="t_MFX_DECODE_VppReset_Exit"></event>
+          <event symbol="MFX_DECODE_VppFrameAsync_Entry" value="337" version="0" task="MFX_DECODE_VppFrameAsync" opcode="win:Start" ></event>
+          <event symbol="MFX_DECODE_VppFrameAsync_Exit" value="338" version="0" task="MFX_DECODE_VppFrameAsync" opcode="win:Stop" template="t_MFX_DECODE_VppFrameAsync_Exit"></event>
+          <event symbol="MFX_DoFastCopy_Info" value="340" version="0" task="MFX_DoFastCopy" opcode="win:Info" template="t_MFX_DoFastCopy_Info"></event>
+          <event symbol="MFX_DoFastCopy_Entry" value="341" version="0" task="MFX_DoFastCopy" opcode="win:Start" template="t_MFX_DoFastCopy_Entry"></event>
+          <event symbol="MFX_DoFastCopy_Exit" value="342" version="0" task="MFX_DoFastCopy" opcode="win:Stop" template="t_MFX_DoFastCopy_Exit"></event>
+          <event symbol="MFX_ADD_TASK_Info" value="344" version="0" task="MFX_ADD_TASK" opcode="win:Info" template="t_MFX_ADD_TASK_Info"></event>
+          <event symbol="MFX_ADD_TASK_Entry" value="345" version="0" task="MFX_ADD_TASK" opcode="win:Start" ></event>
+          <event symbol="MFX_ADD_TASK_Exit" value="346" version="0" task="MFX_ADD_TASK" opcode="win:Stop" ></event>
+          <event symbol="MFX_GET_TASK_Info" value="348" version="0" task="MFX_GET_TASK" opcode="win:Info" template="t_MFX_GET_TASK_Info"></event>
+          <event symbol="MFX_GET_TASK_Entry" value="349" version="0" task="MFX_GET_TASK" opcode="win:Start" ></event>
+          <event symbol="MFX_GET_TASK_Exit" value="350" version="0" task="MFX_GET_TASK" opcode="win:Stop" ></event>
+          <event symbol="MFX_QUERY_TASK_Info" value="352" version="0" task="MFX_QUERY_TASK" opcode="win:Info" template="t_MFX_QUERY_TASK_Info"></event>
+          <event symbol="MFX_QUERY_TASK_Entry" value="353" version="0" task="MFX_QUERY_TASK" opcode="win:Start" ></event>
+          <event symbol="MFX_QUERY_TASK_Exit" value="354" version="0" task="MFX_QUERY_TASK" opcode="win:Stop" ></event>
+          <event symbol="MFX_MARK_TASK_Info" value="356" version="0" task="MFX_MARK_TASK" opcode="win:Info" template="t_MFX_MARK_TASK_Info"></event>
+          <event symbol="MFX_MARK_TASK_Entry" value="357" version="0" task="MFX_MARK_TASK" opcode="win:Start" ></event>
+          <event symbol="MFX_MARK_TASK_Exit" value="358" version="0" task="MFX_MARK_TASK" opcode="win:Stop" ></event>
+
         </events>
         <tasks>
           <task name="MFX_DecodeQuery" symbol="MFX_TRACE_API_DECODE_QUERY_TASK_ETW" value="1" eventGUID="{00000000-0000-0000-0000-000000000000}"></task>
@@ -270,6 +311,23 @@
           <task name="Decode_Buffer_DPB_H265_VA" symbol="VA_TRACE_API_HEVC_DPBPARAMETER_TASK" value="72" eventGUID="{00000000-0000-0000-0000-000000000000}" />
           <task name="MFX_Pipeline_Sticker" symbol="MFX_Pipeline_Sticker" value="73" eventGUID="{00000000-0000-0000-0000-000000000000}"></task>
           <task name="VPLMessage" symbol="VPLMessage_TASK" value="74" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_DECODE_RESET" symbol="MFX_TRACE_API_DECODE_RESET_TASK" value="75" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_DECODE_GetVideoParam" symbol="MFX_TRACE_API_DECODE_GETVIDEOPARAM_TASK" value="76" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_DECODE_GetStat" symbol="MFX_TRACE_API_DECODE_GETSTAT_TASK" value="77" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_DECODE_SetSkipMode" symbol="MFX_TRACE_API_DECODE_SETSKIPMODE_TASK" value="78" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_DECODE_GetPayLoad" symbol="MFX_TRACE_API_DECODE_GETPAYLOAD_TASK" value="79" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_GetSurface" symbol="MFX_TRACE_API_GETSURFACE_TASK" value="80" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_DECODE_VppInit" symbol="MFX_TRACE_API_DECODE_VPP_INIT_TASK" value="81" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_DECODE_VppClose" symbol="MFX_TRACE_API_DECODE_VPP_CLOSE_TASK" value="82" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_DECODE_VppReset" symbol="MFX_TRACE_API_DECODE_VPP_RESET_TASK" value="83" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_DECODE_VppFrameAsync" symbol="MFX_TRACE_API_DECODE_VPP_FRAMEASYNC_TASK" value="84" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_DoFastCopy" symbol="MFX_TRACE_API_DOFASTCOPY_WRAPPER_TASK" value="85" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_ADD_TASK" symbol="MFX_TRACE_API_ADD_TASK" value="86" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_GET_TASK" symbol="MFX_TRACE_API_GET_TASK" value="87" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_QUERY_TASK" symbol="MFX_TRACE_API_QUERY_TASK" value="88" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFX_MARK_TASK" symbol="MFX_TRACE_API_MARK_TASK" value="89" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+
+            
         </tasks>
         <opcodes></opcodes>
         <keywords></keywords>
@@ -482,6 +540,11 @@
             <map value="0" message="$(string.Map.VP9FrameType.KEY_FRAME)" />
             <map value="1" message="$(string.Map.VP9FrameType.INTER_FRAME)" />
           </valueMap>
+          <valueMap name="mfxSkipMode">
+              <map value="0" message="$(string.Map.mfxSkipMode.MFX_SKIPMODE_NOSKIP)" />
+              <map value="1" message="$(string.Map.mfxSkipMode.MFX_SKIPMODE_MORE)" />
+              <map value="2" message="$(string.Map.mfxSkipMode.MFX_SKIPMODE_LESS)" />
+          </valueMap>            
         </maps>
         <templates>
           <template tid="Entry">
@@ -518,8 +581,10 @@
           </template>
           <template tid="MFX_DecodeInit_Entry">
             <data name="session" inType="win:Pointer" outType="win:HexInt64" />
-            <data name="in_width" inType="win:UInt16" outType="xs:unsignedShort" />
-            <data name="in_height" inType="win:UInt16" outType="xs:unsignedShort" />
+            <data name="in_width" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="in_height" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="async depth" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="decoded order" inType="win:UInt32" outType="xs:unsignedInt" />
             <data name="codec_id" inType="win:UInt32" map="Codec" />
           </template>
           <template tid="MFX_DecodeInit_Exit">
@@ -535,6 +600,7 @@
             <data name="session" inType="win:Pointer" outType="win:HexInt64" />
             <data name="surface" inType="win:Pointer" outType="win:HexInt64" />
             <data name="bitstream_data_length" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="bitstream_data_flag" inType="win:UInt32" outType="xs:unsignedInt" />
           </template>
           <template tid="MFX_DecodeFrameAsync_Exit">
             <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
@@ -640,6 +706,13 @@
           </template>
           <template tid="DoWork_Exit">
             <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+          </template>
+          <template tid="MFXSyncOperation_Info">
+              <data name="timeout" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="TaskId" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="pTask.jobID" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="handle.jobID" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="pTask.opRes" inType="win:UInt32" map="mfxStatus" />
           </template>
           <template tid="MFXSyncOperation_Entry">
             <data name="FrameIndex" inType="win:UInt32" outType="xs:unsignedInt" />
@@ -1988,6 +2061,154 @@
             <data name="level" inType="win:UInt32" outType="xs:unsignedInt"></data>
             <data name="message" inType="win:AnsiString" outType="xs:string"></data>
           </template>
+          <template tid="t_MFX_DECODE_RESET_Info">
+            <data name="codecId" inType="win:UInt32" map="Codec" />
+            <data name="frameWidth" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameHeight" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameBitDepthLuma" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameBitDepthChroma" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameCropX" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameCropY" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameCropH" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameCropW" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="framePicStruct" inType="win:UInt32" map="mfxFrameInfoPicStruct" />
+            <data name="frameChromaFormat" inType="win:UInt32" map="chromaFormat" />
+            <data name="frameAspectRatioW" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameAspectRatioH" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameFrameRateExtD" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameFrameRateExtN" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="codecProfile" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="codecLevel" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="maxDecFrameBuffering" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="frameFourCC" inType="win:UInt32" map="frameFourcc" />
+          </template>
+          <template tid="t_MFX_DECODE_RESET_Entry">
+            <data name="in_width" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="in_height" inType="win:UInt32" outType="xs:unsignedInt" />
+            <data name="codec_id" inType="win:UInt32" map="Codec" />
+          </template>
+          <template tid="t_MFX_DECODE_RESET_Exit">
+            <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+          </template>
+          <template tid="t_MFX_DECODE_GetVideoParam_Info">
+              <data name="codecId" inType="win:UInt32" map="Codec" />
+              <data name="frameWidth" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frameHeight" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frameBitDepthLuma" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frameBitDepthChroma" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frameCropX" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frameCropY" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frameCropH" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frameCropW" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="framePicStruct" inType="win:UInt32" map="mfxFrameInfoPicStruct" />
+              <data name="frameChromaFormat" inType="win:UInt32" map="chromaFormat" />
+              <data name="frameAspectRatioW" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frameAspectRatioH" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frameFrameRateExtD" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frameFrameRateExtN" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="codecProfile" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="codecLevel" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="maxDecFrameBuffering" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="frameFourCC" inType="win:UInt32" map="frameFourcc" />
+          </template>
+          <template tid="t_MFX_DECODE_GetVideoParam_Entry">
+              <data name="in_width" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="in_height" inType="win:UInt32" outType="xs:unsignedInt" />
+              <data name="codec_id" inType="win:UInt32" map="Codec" />
+          </template>
+          <template tid="t_MFX_DECODE_GetVideoParam_Exit">
+              <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+          </template>
+            <template tid="t_MFX_DECODE_GetStat_Info">
+                <data name="codecId" inType="win:UInt32" map="Codec" />
+                <data name="frameWidth" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="frameHeight" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="frameBitDepthLuma" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="frameBitDepthChroma" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="frameCropX" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="frameCropY" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="frameCropH" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="frameCropW" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="framePicStruct" inType="win:UInt32" map="mfxFrameInfoPicStruct" />
+                <data name="frameChromaFormat" inType="win:UInt32" map="chromaFormat" />
+                <data name="frameAspectRatioW" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="frameAspectRatioH" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="frameFrameRateExtD" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="frameFrameRateExtN" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="codecProfile" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="codecLevel" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="maxDecFrameBuffering" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="frameFourCC" inType="win:UInt32" map="frameFourcc" />
+            </template>
+            <template tid="t_MFX_DECODE_GetStat_Exit">
+                <data name="NumFrame" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+            </template>
+            <template tid="t_MFX_DECODE_SetSkipMode_Entry">
+                <data name="Mode" inType="win:UInt32" map="mfxStatus" />
+            </template>
+            <template tid="t_MFX_DECODE_SetSkipMode_Exit">
+                <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+            </template>
+            <template tid="t_MFX_DECODE_GetPayLoad_Entry">
+                <data name="payload" inType="win:Pointer" outType="win:HexInt64" />
+            </template>
+            <template tid="t_MFX_DECODE_GetPayLoad_Exit">
+                <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+            </template>
+            <template tid="t_MFX_GetSurface_Info">
+                <data name="surfNum" inType="win:UInt32" outType="xs:unsignedInt" />
+            </template>            
+            <template tid="t_MFX_GetSurface_Entry">
+                <data name="surf" inType="win:Pointer" outType="win:HexInt64" />
+            </template>
+            <template tid="t_MFX_GetSurface_Exit">
+                <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+                <data name="surf" inType="win:Pointer" outType="win:HexInt64" />
+            </template>
+            <template tid="t_MFX_DECODE_VppInit_Exit">
+                <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+            </template>
+            <template tid="t_MFX_DECODE_VppClose_Exit">
+                <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+            </template>
+            <template tid="t_MFX_DECODE_VppReset_Exit">
+                <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+            </template>
+            <template tid="t_MFX_DECODE_VppFrameAsync_Exit">
+                <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+            </template>
+            <template tid="t_MFX_DoFastCopy_Entry">
+                <data name="srcMemType" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="dstMemType" inType="win:UInt32" outType="xs:unsignedInt" />
+            </template>            
+            <template tid="t_MFX_DoFastCopy_Info">
+                <data name="canUseMediaCopy" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="canUseCMCopy" inType="win:UInt32" outType="xs:unsignedInt" />
+            </template>
+            <template tid="t_MFX_DoFastCopy_Exit">
+                <data name="mfxStatus" inType="win:UInt32" map="mfxStatus" />
+            </template>
+            <template tid="t_MFX_ADD_TASK_Info">
+                <data name="TaskId" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="JobId" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="SyncPoint" inType="win:Pointer" outType="win:HexInt64" />
+            </template>
+            <template tid="t_MFX_GET_TASK_Info">
+                <data name="TaskId" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="JobId" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="ThreadNum" inType="win:UInt32" outType="xs:unsignedInt" />
+            </template>
+            <template tid="t_MFX_QUERY_TASK_Info">
+                <data name="TaskId" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="ThreadNum" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="call.res" inType="win:UInt32" map="mfxStatus" />
+            </template>
+            <template tid="t_MFX_MARK_TASK_Info">
+                <data name="TaskId" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="ThreadNum" inType="win:UInt32" outType="xs:unsignedInt" />
+                <data name="call.res" inType="win:UInt32" map="mfxStatus" />
+            </template>
         </templates>
       </provider>
     </events>
@@ -2193,6 +2414,11 @@
 
         <string id="Map.VP9FrameType.KEY_FRAME" value="KEY_FRAME" />
         <string id="Map.VP9FrameType.INTER_FRAME" value="INTER_FRAME" />
+
+        <string id="Map.mfxSkipMode.MFX_SKIPMODE_NOSKIP" value="MFX_SKIPMODE_NOSKIP" />
+        <string id="Map.mfxSkipMode.MFX_SKIPMODE_MORE" value="MFX_SKIPMODE_MORE" />
+        <string id="Map.mfxSkipMode.MFX_SKIPMODE_LESS" value="MFX_SKIPMODE_LESS" />
+
       </stringTable>
     </resources>
   </localization>

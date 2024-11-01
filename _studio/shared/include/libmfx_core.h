@@ -677,6 +677,8 @@ public:
 
         output_surface = &m_cached_surfaces.back();
 
+        TRACE_EVENT(MFX_TRACE_API_GETSURFACE_TASK, EVENT_TYPE_INFO, TR_KEY_INTERNAl, make_event_data(m_cached_surfaces.size()));
+
         return MFX_ERR_NONE;
     }
 

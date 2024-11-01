@@ -297,6 +297,9 @@ mfxStatus VideoDECODEMJPEG::QueryImplsDescription(
 
 mfxStatus VideoDECODEMJPEG::Reset(mfxVideoParam *par)
 {
+    TRACE_EVENT(MFX_TRACE_API_DECODE_RESET_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(par ? par->mfx.FrameInfo.Width : 0,
+        par ? par->mfx.FrameInfo.Height : 0, par ? par->mfx.CodecId : 0));
+
     MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR1(par);
@@ -346,6 +349,8 @@ mfxStatus VideoDECODEMJPEG::Reset(mfxVideoParam *par)
         assert(m_platform == MFX_PLATFORM_SOFTWARE);
         MFX_RETURN(MFX_WRN_PARTIAL_ACCELERATION);
     }
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_RESET_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
 
     return MFX_ERR_NONE;
 }
@@ -624,6 +629,8 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurfInternal(VideoCORE *core, mfxVideoParam *
 
 mfxStatus VideoDECODEMJPEG::GetDecodeStat(mfxDecodeStat *stat)
 {
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETSTAT_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(0));
+
     if (!m_isInit)
         MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
@@ -633,6 +640,9 @@ mfxStatus VideoDECODEMJPEG::GetDecodeStat(mfxDecodeStat *stat)
     decoder->m_stat.NumError = 0;
 
     *stat = decoder->m_stat;
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETSTAT_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(stat ? stat->NumFrame : 0, MFX_ERR_NONE));
+
     return MFX_ERR_NONE;
 }
 
@@ -909,15 +919,19 @@ mfxStatus VideoDECODEMJPEG::GetUserData(mfxU8 *ud, mfxU32 *sz, mfxU64 *ts)
 
 mfxStatus VideoDECODEMJPEG::GetPayload( mfxU64 *ts, mfxPayload *payload )
 {
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETPAYLOAD_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(payload));
     if (!m_isInit)
         MFX_RETURN(MFX_ERR_NOT_INITIALIZED);
 
     MFX_CHECK_NULL_PTR3(ts, payload, payload->Data);
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETPAYLOAD_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_UNSUPPORTED));
+
     MFX_RETURN(MFX_ERR_UNSUPPORTED);
 }
 
 mfxStatus VideoDECODEMJPEG::SetSkipMode(mfxSkipMode mode)
 {
+    TRACE_EVENT(MFX_TRACE_API_DECODE_SETSKIPMODE_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(mode));
     // check error(s)
     if (!m_isInit)
     {
@@ -947,6 +961,7 @@ mfxStatus VideoDECODEMJPEG::SetSkipMode(mfxSkipMode mode)
         m_skipRate = 0;
         break;
     }
+    TRACE_EVENT(MFX_TRACE_API_DECODE_SETSKIPMODE_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
 
     return MFX_ERR_NONE;
 
@@ -1422,6 +1437,9 @@ VideoDECODEMJPEGBase::VideoDECODEMJPEGBase()
 
 mfxStatus VideoDECODEMJPEGBase::GetVideoParam(mfxVideoParam *par, UMC::MJPEGVideoDecoderBaseMFX * mjpegDecoder)
 {
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETVIDEOPARAM_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(par ? par->mfx.FrameInfo.Width : 0,
+        par ? par->mfx.FrameInfo.Height : 0, par ? par->mfx.CodecId : 0));
+
     mfxExtJPEGQuantTables*    jpegQT = (mfxExtJPEGQuantTables*)   mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_QT );
     mfxExtJPEGHuffmanTables*  jpegHT = (mfxExtJPEGHuffmanTables*) mfx::GetExtBuffer( par->ExtParam, par->NumExtParam, MFX_EXTBUFF_JPEG_HUFFMAN );
 
@@ -1443,6 +1461,8 @@ mfxStatus VideoDECODEMJPEGBase::GetVideoParam(mfxVideoParam *par, UMC::MJPEGVide
         if (umcRes != UMC::UMC_OK)
             return ConvertUMCStatusToMfx(umcRes);
     }
+
+    TRACE_EVENT(MFX_TRACE_API_DECODE_GETVIDEOPARAM_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
 
     return MFX_ERR_NONE;
 }
