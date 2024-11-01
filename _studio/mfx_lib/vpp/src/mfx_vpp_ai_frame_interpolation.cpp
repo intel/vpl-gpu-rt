@@ -49,7 +49,9 @@ MFXVideoFrameInterpolation::MFXVideoFrameInterpolation() :
     m_rgbSurfForFiIn(),
     m_rgbSurfArray(),
     m_outSurfForFi(),
-    m_fiOut()
+    m_fiOut(),
+    m_time_stamp_start(0),
+    m_time_stamp_interval(0)
 {
 }
 
@@ -106,6 +108,16 @@ mfxStatus MFXVideoFrameInterpolation::ConfigureFrameRate(
 
     m_outStamp = 0;
     m_outTick = (mfxU16)m_ratio;
+
+    m_time_stamp_start = (mfxU64)MFX_TIMESTAMP_UNKNOWN;
+    // Default to 30fps
+    m_time_stamp_interval = (mfxU64)((mfxF64) MFX_TIME_STAMP_FREQUENCY / (mfxF64)30);
+
+    if (m_frcRational[VPP_OUT].FrameRateExtN != 0)
+    {
+        // Specify the frame rate: FrameRateExtN / FrameRateExtD.
+        m_time_stamp_interval = (mfxU64)(MFX_TIME_STAMP_FREQUENCY * (((mfxF64)m_frcRational[VPP_OUT].FrameRateExtD / (mfxF64)m_frcRational[VPP_OUT].FrameRateExtN)));
+    }
 
     return MFX_ERR_NONE;
 }
@@ -369,6 +381,8 @@ mfxStatus MFXVideoFrameInterpolation::UpdateTsAndGetStatus(
     mfxFrameSurface1* output,
     mfxStatus* intSts)
 {
+    mfxStatus sts = MFX_ERR_NONE;
+
     if (nullptr == input)
     {
         // nullptr == input means input sequence reaches its end
@@ -376,26 +390,34 @@ mfxStatus MFXVideoFrameInterpolation::UpdateTsAndGetStatus(
         {
             return MFX_ERR_MORE_DATA;
         }
-        if (m_outStamp == (m_ratio - 1)) m_sequenceEnd = true;
-        return MFX_ERR_NONE;
-    }
-    mfxStatus sts = MFX_ERR_NONE;
-
-    if (m_outStamp == 0)
-    {
-        m_inputBkwd.Info = output->Info;
-    }
-    else if (m_outStamp == 1)
-    {
-        m_inputFwd.Info = output->Info;
-
-        *intSts = MFX_ERR_MORE_SURFACE;
+        else
+        {
+            if (m_outStamp == (m_ratio - 1)) m_sequenceEnd = true;
+            sts = MFX_ERR_NONE;
+        }
     }
     else
     {
-        *intSts = MFX_ERR_MORE_SURFACE;
-    }
+        if (m_outStamp == 0)
+        {
+            // record the time stamp of input frame [n, n+1]
+            m_time_stamp_start = input->Data.TimeStamp;
+            m_inputBkwd.Info = output->Info;
+        }
+        else if (m_outStamp == 1)
+        {
+            m_inputFwd.Info = output->Info;
 
+            *intSts = MFX_ERR_MORE_SURFACE;
+        }
+        else
+        {
+            *intSts = MFX_ERR_MORE_SURFACE;
+        }
+    }
+    
+    output->Data.TimeStamp = m_time_stamp_start + m_outStamp * m_time_stamp_interval;
+    
     MFX_RETURN(sts);
 }
 

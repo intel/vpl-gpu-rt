@@ -126,6 +126,13 @@ private:
     // second timestamp
     using task = std::pair<mfxU32, mfxU16>;
     std::queue<task>            m_taskQueue;
+
+    // To calculate the time stamp in mfxFrameData
+    // The starting time of input frame n for frame [n, n+1] interpolation in units of 90KHz. Divide TimeStamp by 90,000 (90 KHz) to obtain the time in seconds
+    // The value of MFX_TIMESTAMP_UNKNOWN indicates that there is no time stamp
+    mfxU64 m_time_stamp_start;
+    // The time interval of two interpolated frames [n, n+1] in units of 90KHz. Divide TimeStamp by 90,000 (90 KHz) to obtain the time in seconds
+    mfxU64 m_time_stamp_interval;
 };
 
 #endif
