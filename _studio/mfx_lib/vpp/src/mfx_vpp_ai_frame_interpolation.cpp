@@ -50,6 +50,7 @@ MFXVideoFrameInterpolation::MFXVideoFrameInterpolation() :
     m_rgbSurfArray(),
     m_outSurfForFi(),
     m_fiOut(),
+    m_taskIndex(0),
     m_time_stamp_start(0),
     m_time_stamp_interval(0)
 {
@@ -415,25 +416,24 @@ mfxStatus MFXVideoFrameInterpolation::UpdateTsAndGetStatus(
             *intSts = MFX_ERR_MORE_SURFACE;
         }
     }
+    AddTaskQueue(m_sequenceEnd);
     
     output->Data.TimeStamp = m_time_stamp_start + m_outStamp * m_time_stamp_interval;
     
     MFX_RETURN(sts);
 }
 
-mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSurface1* out, mfxMemId internalVidMemId)
+mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxFrameSurface1* out, mfxMemId internalVidMemId)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-    while (taskIndex != m_taskQueue.front().first)
-    {
-    }
-
     mfxU32 scdDecision = 0;
 
-    task t = m_taskQueue.front();
+    Task t;
+    m_taskQueue.Dequeue(t);
     //mfxU16 stamp = m_outStamp;
-    mfxU16 stamp = t.second;
+    mfxU16 stamp = t.outStamp;
+    bool isSequenceEnd = t.isSequenceEnd;
     if (stamp == 0)
     {
         if (m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
@@ -475,7 +475,7 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
             }
         }
     }
-    else if (stamp == 1)
+    else if (stamp == 1 && !isSequenceEnd)
     {
         if (m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
         {
@@ -576,7 +576,7 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
             }
         }
     }
-    else if (stamp >= 2)
+    else if (stamp >= 2 && !isSequenceEnd)
     {
         if (m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
         {
@@ -607,17 +607,39 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxU32 taskIndex, mfxFrameSu
         }
         MFX_CHECK_STS(sts);
     }
+    else if (isSequenceEnd)
+    {
+        if (m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
+        {
+            sts = m_core->DoFastCopyWrapper(out, MFX_MEMTYPE_SYSTEM_MEMORY, &m_rgbSurfArray[m_ratio], MFX_MEMTYPE_DXVA2_DECODER_TARGET);
+        }
+        else
+        {
+            if (!internalVidMemId)
+            {
+                if (m_vppForFi)
+                {
+                    MFX_CHECK_STS(m_vppAfterFi->Submit(&m_rgbSurfArray[m_ratio], &m_fiOut));
+                    MFX_CHECK_STS(m_core->DoFastCopyWrapper(
+                        out, MFX_MEMTYPE_DXVA2_DECODER_TARGET,
+                        &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET));
+                }
+                else
+                {
+                    MFX_CHECK_STS(m_core->DoFastCopyWrapper(
+                        out, MFX_MEMTYPE_DXVA2_DECODER_TARGET,
+                        &m_rgbSurfArray[m_ratio], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET));
+                }
+            }
+            else
+            {
+                MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
+            }
+        }
+        MFX_CHECK_STS(sts);
 
-    //stamp++;
-    //if (stamp == m_outTick)
-    //{
-    //    m_outStamp = 0;
-    //    m_inputBkwd.Data.MemId = m_inputFwd.Data.MemId;
-    //    std::swap(m_memIdBkwd, m_memIdFwd);
-    //    m_inputFwd = {};
-    //    memset(m_output, 0, sizeof(m_output));
-    //}
-    m_taskQueue.pop();
+    }
+
     MFX_RETURN(sts);
 }
 
@@ -759,10 +781,10 @@ mfxStatus MFXVideoFrameInterpolation::SceneChangeDetect(mfxFrameSurface1* input,
     return sts;
 }
 
-mfxStatus MFXVideoFrameInterpolation::AddTaskQueue(mfxU32 taskIndex)
+mfxStatus MFXVideoFrameInterpolation::AddTaskQueue(bool isSequenceEnd)
 {
-    m_taskQueue.push(task(taskIndex, m_outStamp));
-    m_outStamp++;
+    m_taskQueue.Enqueue(Task{ m_taskIndex++, m_outStamp++, isSequenceEnd });
+
     if (m_outStamp == m_outTick)
     {
         m_outStamp = 0;

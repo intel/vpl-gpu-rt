@@ -62,9 +62,7 @@ public:
         mfxFrameSurface1* output,
         mfxStatus* intSts);
 
-    mfxStatus ReturnSurface(mfxU32 taskIndex, mfxFrameSurface1* out, mfxMemId internalVidMemId = 0);
-
-    mfxStatus AddTaskQueue(mfxU32 taskIndex);
+    mfxStatus ReturnSurface(mfxFrameSurface1* out, mfxMemId internalVidMemId = 0);
 
 private:
     mfxStatus ConfigureFrameRate(
@@ -85,6 +83,8 @@ private:
     mfxStatus DoInterpolation();
     mfxStatus DoInterpolation(mfxU16 leftIdx, mfxU16 rightIdx);
     mfxStatus InterpolateAi(mfxFrameSurface1& bkw, mfxFrameSurface1& fwd, mfxFrameSurface1& out);
+
+    mfxStatus AddTaskQueue(bool isSequenceEnd = false);
 
     VideoCORE* m_core;
 
@@ -122,10 +122,36 @@ private:
     mfxFrameAllocResponse         m_outSurfForFi;
     mfxFrameSurface1              m_fiOut;
 
-    // first  taskIndex
-    // second timestamp
-    using task = std::pair<mfxU32, mfxU16>;
-    std::queue<task>            m_taskQueue;
+    struct Task
+    {
+        mfxU32 taskIndex;
+        mfxU16 outStamp;
+        bool   isSequenceEnd;
+    };
+    class tsQueue 
+    {
+    public: 
+        // first  taskIndex
+        // second timestamp
+        void Enqueue(Task t)
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_queue.push(t);
+        }
+        void Dequeue(Task& t)
+        {
+            while (m_queue.empty()) {}
+            std::lock_guard<std::mutex> lock(m_mutex);
+            t = m_queue.front();
+            m_queue.pop();
+        }
+    private:
+        std::queue<Task>            m_queue;
+        std::mutex                  m_mutex;
+    } ;
+    tsQueue                     m_taskQueue;
+    mfxU32                      m_taskIndex;
+    std::mutex m_mutex;
 
     // To calculate the time stamp in mfxFrameData
     // The starting time of input frame n for frame [n, n+1] interpolation in units of 90KHz. Divide TimeStamp by 90,000 (90 KHz) to obtain the time in seconds

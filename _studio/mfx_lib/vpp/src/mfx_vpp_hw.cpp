@@ -1393,10 +1393,6 @@ mfxStatus TaskManager::AssignTask(
         aux);
     MFX_CHECK_STS(sts);
 
-    if (FRC_AI_INTERPOLATION & m_extMode)
-    {
-        m_aiFrameInterpolator->AddTaskQueue(pTask->taskIndex);
-    }
 #ifdef MFX_ENABLE_MCTF
     if (pTask->bMCTF)
     {
@@ -5008,11 +5004,11 @@ mfxStatus VideoVPPHW::QueryTaskRoutine(void *pState, void *pParam, mfxU32 thread
     {
         if (SYS_TO_SYS == pHwVpp->m_ioMode || D3D_TO_SYS == pHwVpp->m_ioMode)
         {
-            pHwVpp->m_aiVfiFilter->ReturnSurface(pTask->taskIndex, pTask->output.pSurf, pHwVpp->m_internalVidSurf[VPP_OUT].mids[pTask->output.resIdx]);
+            pHwVpp->m_aiVfiFilter->ReturnSurface(pTask->output.pSurf, pHwVpp->m_internalVidSurf[VPP_OUT].mids[pTask->output.resIdx]);
         }
         else
         {
-            pHwVpp->m_aiVfiFilter->ReturnSurface(pTask->taskIndex, pTask->output.pSurf, 0);
+            pHwVpp->m_aiVfiFilter->ReturnSurface(pTask->output.pSurf, 0);
         }
     }
 
