@@ -131,27 +131,27 @@ private:
     class tsQueue 
     {
     public: 
-        // first  taskIndex
-        // second timestamp
+
         void Enqueue(Task t)
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             m_queue.push(t);
+            m_cv.notify_one();
         }
         void Dequeue(Task& t)
         {
-            while (m_queue.empty()) {}
-            std::lock_guard<std::mutex> lock(m_mutex);
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_cv.wait(lock, [this] { return !m_queue.empty(); });
             t = m_queue.front();
             m_queue.pop();
         }
     private:
         std::queue<Task>            m_queue;
         std::mutex                  m_mutex;
+        std::condition_variable     m_cv;
     } ;
     tsQueue                     m_taskQueue;
     mfxU32                      m_taskIndex;
-    std::mutex m_mutex;
 
     // To calculate the time stamp in mfxFrameData
     // The starting time of input frame n for frame [n, n+1] interpolation in units of 90KHz. Divide TimeStamp by 90,000 (90 KHz) to obtain the time in seconds

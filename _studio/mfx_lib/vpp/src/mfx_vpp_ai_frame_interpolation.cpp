@@ -419,7 +419,7 @@ mfxStatus MFXVideoFrameInterpolation::UpdateTsAndGetStatus(
     output->Data.TimeStamp = m_time_stamp_start + m_outStamp * m_time_stamp_interval;
 
     AddTaskQueue(m_sequenceEnd);
-    
+
     MFX_RETURN(sts);
 }
 
@@ -612,32 +612,28 @@ mfxStatus MFXVideoFrameInterpolation::ReturnSurface(mfxFrameSurface1* out, mfxMe
         if (m_IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
         {
             sts = m_core->DoFastCopyWrapper(out, MFX_MEMTYPE_SYSTEM_MEMORY, &m_rgbSurfArray[m_ratio], MFX_MEMTYPE_DXVA2_DECODER_TARGET);
+            MFX_CHECK_STS(sts);
         }
         else
         {
-            if (!internalVidMemId)
+            MFX_CHECK(!internalVidMemId, MFX_ERR_UNDEFINED_BEHAVIOR);
+            if (m_vppForFi)
             {
-                if (m_vppForFi)
-                {
-                    MFX_CHECK_STS(m_vppAfterFi->Submit(&m_rgbSurfArray[m_ratio], &m_fiOut));
-                    MFX_CHECK_STS(m_core->DoFastCopyWrapper(
-                        out, MFX_MEMTYPE_DXVA2_DECODER_TARGET,
-                        &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET));
-                }
-                else
-                {
-                    MFX_CHECK_STS(m_core->DoFastCopyWrapper(
-                        out, MFX_MEMTYPE_DXVA2_DECODER_TARGET,
-                        &m_rgbSurfArray[m_ratio], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET));
-                }
+                sts = m_vppAfterFi->Submit(&m_rgbSurfArray[m_ratio], &m_fiOut);
+                MFX_CHECK_STS(sts);
+                sts = m_core->DoFastCopyWrapper(
+                    out, MFX_MEMTYPE_DXVA2_DECODER_TARGET,
+                    &m_fiOut, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
+                MFX_CHECK_STS(sts);
             }
             else
             {
-                MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
+                sts = m_core->DoFastCopyWrapper(
+                    out, MFX_MEMTYPE_DXVA2_DECODER_TARGET,
+                    &m_rgbSurfArray[m_ratio], MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
+                MFX_CHECK_STS(sts);
             }
         }
-        MFX_CHECK_STS(sts);
-
     }
 
     MFX_RETURN(sts);
