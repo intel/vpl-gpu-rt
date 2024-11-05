@@ -416,9 +416,9 @@ mfxStatus MFXVideoFrameInterpolation::UpdateTsAndGetStatus(
             *intSts = MFX_ERR_MORE_SURFACE;
         }
     }
-    AddTaskQueue(m_sequenceEnd);
-    
     output->Data.TimeStamp = m_time_stamp_start + m_outStamp * m_time_stamp_interval;
+
+    AddTaskQueue(m_sequenceEnd);
     
     MFX_RETURN(sts);
 }
