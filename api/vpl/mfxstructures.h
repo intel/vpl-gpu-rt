@@ -110,7 +110,7 @@ typedef struct {
         MFXVideoDECODE_Init, MFXVideoDECODE_Query, MFXVideoDECODE_DecodeFrameAsync and MFXVideoDECODE_GetVideoParam will also assign 0 for frame rate. Timestamp will be calculated by 30fps.
 
         If these two parameters are modified through MFXVideoDECODE_Init, then the modified values for frame rate will be used in
-	MFXVideoDECODE_Query, MFXVideoDECODE_DecodeFrameAsync and MFXVideoDECODE_GetVideoParam. Timestamps will be calculated using the modified values.
+        MFXVideoDECODE_Query, MFXVideoDECODE_DecodeFrameAsync and MFXVideoDECODE_GetVideoParam. Timestamps will be calculated using the modified values.
     */
     mfxU32  FrameRateExtN; /*!< Frame rate numerator. */
     mfxU32  FrameRateExtD; /*!< Frame rate denominator. */
@@ -1769,7 +1769,7 @@ typedef struct {
                                 @note Not all codecs and implementations support these values. Use the Query API function to check if this feature is supported */
 
     /*!
-       When rate control method is MFX_RATECONTROL_CBR, MFX_RATECONTROL_VBR, MFX_RATECONTROL_LA, MFX_RATECONTROL_LA_HRD, or MFX_RATECONTROL_QVBR 
+       When rate control method is MFX_RATECONTROL_CBR, MFX_RATECONTROL_VBR, MFX_RATECONTROL_LA, MFX_RATECONTROL_LA_HRD, or MFX_RATECONTROL_QVBR
        this parameter specifies the maximum bitrate averaged over a sliding window specified by WinBRCSize.
     */
     mfxU16      WinBRCMaxAvgKbps;
@@ -5244,7 +5244,7 @@ MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer        Header;         /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_ENCODED_QUALITY_INFO_OUTPUT. */
     mfxU32              FrameOrder;     /*!< Frame display order of encoded picture. */
-    mfxU32              MSE[3];         /*!< Frame level mean squared errors (MSE) for Y/U/V channel. 
+    mfxU32              MSE[3];         /*!< Frame level mean squared errors (MSE) for Y/U/V channel.
                                              @note MSE is stored in U24.8 format. The calculation formula is: PSNR = 10 * log10(256.0 * (2^bitDepth - 1)^2 / (double)MSE)). */
     mfxU32              reserved1[50];  /*!< Reserved for future use. */
     mfxHDL              reserved2[4];   /*!< Reserved for future use. */
