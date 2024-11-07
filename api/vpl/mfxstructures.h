@@ -5149,7 +5149,21 @@ MFX_PACK_END()
 typedef enum {
     MFX_AI_SUPER_RESOLUTION_MODE_DISABLED = 0,        /*!< Super Resolution is disabled.*/
     MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT = 1,         /*!< Default super resolution mode. The library selects the most appropriate super resolution mode.*/
+#ifdef ONEVPL_EXPERIMENTAL
+    MFX_AI_SUPER_RESOLUTION_MODE_SHARPEN = 2,         /*!< In this mode, super Resolution is optimized or trained to have high sharpness level. This mode is recommended to be used in video conference(camera
+                                                           noise) or similar usage scenario.*/
+    MFX_AI_SUPER_RESOLUTION_MODE_ARTIFACTREMOVAL= 3,  /*!< In this mode, Super Resolution is optimized or trained to remove encoding artifacts with medium sharpness level. This mode is recommended to be used in
+                                                           video surveillance or similar usage scenarios which may have camera noise and encoding artifacts due to limited network bandwidth.*/
+#endif
 } mfxAISuperResolutionMode;
+
+#ifdef ONEVPL_EXPERIMENTAL
+typedef enum {
+    MFX_AI_SUPER_RESOLUTION_ALGORITHM_DEFAULT = 0,        /*!< Super Resolution algorithm by default. The library selects the most appropriate super resolution algorithm.*/
+    MFX_AI_SUPER_RESOLUTION_ALGORITHM_1       = 1,        /*!< Super Resolution algorithm1.*/
+    MFX_AI_SUPER_RESOLUTION_ALGORITHM_2       = 2,        /*!< Super Resolution algorithm2, MFX_AI_SUPER_RESOLUTION_ALGORITHM_2 video quality is expected to be better than MFX_AI_SUPER_RESOLUTION_ALGORITHM_1.*/
+} mfxAISuperResolutionAlgorithm;
+#endif
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
 /*!
@@ -5166,8 +5180,12 @@ MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer                Header;               /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION.*/
     mfxAISuperResolutionMode    SRMode;               /*!< Indicates Super Resolution Mode. mfxAISuperResolutionMode enumerator.*/
-
+#ifdef ONEVPL_EXPERIMENTAL
+    mfxAISuperResolutionAlgorithm SRAlgorithm;        /*!< Indicates Super Resolution Algorithm. mfxAISuperResolutionAlgorithm enumerator.*/
+    mfxU32                      reserved1[15];         /*!< Reserved for future use. */
+#else
     mfxU32                      reserved1[16];         /*!< Reserved for future use. */
+#endif
     mfxHDL                      reserved2[4];          /*!< Reserved for future use. */
 } mfxExtVPPAISuperResolution;
 MFX_PACK_END()
