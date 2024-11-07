@@ -130,10 +130,14 @@ mfxStatus MFXVideoFrameInterpolation::InitFrameInterpolator(VideoCORE* core, con
     MFX_CHECK(pD3d11, MFX_ERR_NULL_PTR);
     // Init
     xeAIVfiConfig config = {
-        outInfo.Width, outInfo.Height,
+        outInfo.Width,
+        outInfo.Height,
         (mfxU32)core->GetHWType(),
         pD3d11->GetD3D11Device(),
-        pD3d11->GetD3D11DeviceContext(), DXGI_FORMAT_R8G8B8A8_UNORM };
+        pD3d11->GetD3D11DeviceContext(),
+        DXGI_FORMAT_R8G8B8A8_UNORM,
+        core->GetHWDeviceId()
+        };
     xeAIVfiStatus xeSts = m_aiIntp.Init(config);
     if (xeSts != XE_AIVFI_SUCCESS)
         MFX_RETURN(MFX_ERR_UNKNOWN);
