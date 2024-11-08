@@ -710,6 +710,56 @@ static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfx
     return true;
 };
 
+static void FillImplsDescription(mfx::ImplDescription& impl, VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum, const std::vector<bool>& subDevMask)
+{
+    impl.Version.Version = MFX_STRUCT_VERSION(1, 2);
+    impl.Impl = MFX_IMPL_TYPE_HARDWARE;
+    impl.ApiVersion = { { MFX_VERSION_MINOR, MFX_VERSION_MAJOR } };
+    impl.VendorID = 0x8086;
+    // use adapterNum as VendorImplID, app. supposed just to copy it from mfxImplDescription to mfxInitializationParam
+    impl.VendorImplID = adapterNum;
+    impl.AccelerationMode = core.GetVAType() == MFX_HW_VAAPI ? MFX_ACCEL_MODE_VIA_VAAPI : MFX_ACCEL_MODE_VIA_D3D11;
+
+    impl.AccelerationModeDescription.Version.Version = MFX_STRUCT_VERSION(1, 0);
+    mfx::PODArraysHolder& ah = impl;
+    ah.PushBack(impl.AccelerationModeDescription.Mode) = impl.AccelerationMode;
+    impl.AccelerationModeDescription.NumAccelerationModes++;
+    impl.PoolPolicies.Version.Version = MFX_STRUCT_VERSION(1, 0);
+    impl.PoolPolicies.NumPoolPolicies = 3;
+    ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_OPTIMAL;
+    ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_UNLIMITED;
+    ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_LIMITED;
+
+    impl.Dev.Version.Version = MFX_STRUCT_VERSION(1, 1);
+    impl.Dev.MediaAdapterType = MFX_MEDIA_UNKNOWN;
+
+    if (auto pCore1_19 = QueryCoreInterface<IVideoCore_API_1_19>(&core, MFXICORE_API_1_19_GUID))
+    {
+        mfxPlatform platform = {};
+        if (MFX_ERR_NONE == pCore1_19->QueryPlatform(&platform))
+            impl.Dev.MediaAdapterType = platform.MediaAdapterType;
+    }
+
+    snprintf(impl.Dev.DeviceID, sizeof(impl.Dev.DeviceID), "%x/%d", deviceId, adapterNum);
+    snprintf(impl.ImplName, sizeof(impl.ImplName), "mfx-gen");
+    snprintf(impl.License, sizeof(impl.License),
+        "MIT License"
+    );
+
+    for (std::size_t i = 0, e = subDevMask.size(); i != e; ++i)
+    {
+        if (subDevMask[i])
+        {
+            auto& subDevices = ah.PushBack(impl.Dev.SubDevices);
+            subDevices.Index = impl.Dev.NumSubDevices;
+            snprintf(subDevices.SubDeviceID, sizeof(subDevices.SubDeviceID), "%d", static_cast<mfxU32>(i));
+            impl.Dev.NumSubDevices++;
+        }
+    }
+
+    return;
+};
+
 mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfxU32* num_impls)
 {
     PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
@@ -849,53 +899,8 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
                 auto& impl = holder->PushBack();
 
-                impl.Version.Version = MFX_STRUCT_VERSION(1, 2);
-                impl.Impl = MFX_IMPL_TYPE_HARDWARE;
-                impl.ApiVersion = { { MFX_VERSION_MINOR, MFX_VERSION_MAJOR } };
-                impl.VendorID = 0x8086;
-                // use adapterNum as VendorImplID, app. supposed just to copy it from mfxImplDescription to mfxInitializationParam
-                impl.VendorImplID = adapterNum;
-                impl.AccelerationMode = core.GetVAType() == MFX_HW_VAAPI ? MFX_ACCEL_MODE_VIA_VAAPI : MFX_ACCEL_MODE_VIA_D3D11;
+                FillImplsDescription(impl, core, deviceId, adapterNum, subDevMask);
 
-                impl.AccelerationModeDescription.Version.Version = MFX_STRUCT_VERSION(1, 0);
-                mfx::PODArraysHolder& ah = impl;
-                ah.PushBack(impl.AccelerationModeDescription.Mode) = impl.AccelerationMode;
-                impl.AccelerationModeDescription.NumAccelerationModes++;
-                impl.PoolPolicies.Version.Version = MFX_STRUCT_VERSION(1, 0);
-                impl.PoolPolicies.NumPoolPolicies = 3;
-                ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_OPTIMAL;
-                ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_UNLIMITED;
-                ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_LIMITED;
-
-                impl.Dev.Version.Version = MFX_STRUCT_VERSION(1, 1);
-                impl.Dev.MediaAdapterType = MFX_MEDIA_UNKNOWN;
-
-                if (auto pCore1_19 = QueryCoreInterface<IVideoCore_API_1_19>(&core, MFXICORE_API_1_19_GUID))
-                {
-                    mfxPlatform platform = {};
-                    if (MFX_ERR_NONE == pCore1_19->QueryPlatform(&platform))
-                        impl.Dev.MediaAdapterType = platform.MediaAdapterType;
-                }
-
-                snprintf(impl.Dev.DeviceID, sizeof(impl.Dev.DeviceID), "%x/%d", deviceId, adapterNum);
-                snprintf(impl.ImplName, sizeof(impl.ImplName), "mfx-gen");
-                snprintf(impl.License, sizeof(impl.License),
-                    "MIT License"
-                    );
-
-                for (std::size_t i = 0, e = subDevMask.size(); i != e; ++i)
-                {
-                    if (subDevMask[i])
-                    {
-                        auto & subDevices = ah.PushBack(impl.Dev.SubDevices);
-                        subDevices.Index = impl.Dev.NumSubDevices;
-                        snprintf(subDevices.SubDeviceID, sizeof(subDevices.SubDeviceID), "%d", static_cast<mfxU32>(i));
-                        impl.Dev.NumSubDevices++;
-                    }
-                }
-
-                impl.AccelerationModeDescription.Version.Version = MFX_STRUCT_VERSION(1, 0);
-                impl.PoolPolicies.Version.Version = MFX_STRUCT_VERSION(1, 0);
                 impl.Dec.Version.Version = MFX_STRUCT_VERSION(1, 0);
                 impl.Enc.Version.Version = MFX_STRUCT_VERSION(1, 0);
                 impl.VPP.Version.Version = MFX_STRUCT_VERSION(1, 0);
