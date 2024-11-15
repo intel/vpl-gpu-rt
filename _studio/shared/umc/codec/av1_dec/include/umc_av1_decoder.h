@@ -179,7 +179,7 @@ namespace UMC_AV1_DECODER
             m_pCore = pCore;
         }
 
-        void Flush();
+        void FlushRepeatFrame(AV1DecoderFrame*);
 
     protected:
 
@@ -235,6 +235,8 @@ namespace UMC_AV1_DECODER
         mfxU16                          frame_order;
         mfxF64                          in_framerate;
         UMC::FrameMemID                 repeateFrame;//frame to be repeated
+
+        FrameHeader                     last_frame_header;
 
         uint32_t                        anchor_frames_count;
         uint32_t                        tile_list_idx;

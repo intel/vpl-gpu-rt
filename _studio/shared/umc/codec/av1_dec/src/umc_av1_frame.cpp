@@ -105,7 +105,6 @@ namespace UMC_AV1_DECODER
         error = 0;
         displayed = false;
         dpb_updated = false;
-        repeated = false;
         outputted = false;
         decoded   = false;
         skipped   = false;

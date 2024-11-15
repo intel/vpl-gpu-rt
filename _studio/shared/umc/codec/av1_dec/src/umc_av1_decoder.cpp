@@ -68,6 +68,7 @@ namespace UMC_AV1_DECODER
     {
         outputed_frames.clear();
         m_prev_frame_header = {};
+        last_frame_header   = {};
     }
 
     AV1Decoder::~AV1Decoder()
@@ -396,25 +397,13 @@ namespace UMC_AV1_DECODER
         {
             std::unique_lock<std::mutex> l(guard);
             pFrame = frameDPB[fh.frame_to_show_map_idx];
-
-            if (pFrame->Repeated())
-                return nullptr;
-
-            //Increase referernce here, and will be decreased when
-            //CompleteDecodedFrames not show_frame case.
-            pFrame->IncrementReference();
             assert(pFrame);
             repeateFrame = pFrame->GetMemID();
 
-            //Add one more Reference, and add it into outputed frame list
-            //When QueryFrame finished and update status in outputed frame
-            //list, then it will be released in CompleteDecodedFrames.
+            //repeat frame reference counter increase here, and will decrease in queryframe()
             pFrame->IncrementReference();
-            pFrame->Repeated(true);
-            outputed_frames.push_back(pFrame);
 
             FrameHeader const& refFH = pFrame->GetFrameHeader();
-
             if (!refFH.showable_frame)
                 throw av1_exception(UMC::UMC_ERR_INVALID_STREAM);
 
@@ -1184,10 +1173,10 @@ namespace UMC_AV1_DECODER
     void AV1Decoder::CompleteDecodedFrames(FrameHeader const& fh, AV1DecoderFrame* pCurrFrame, AV1DecoderFrame*)
     {
         std::unique_lock<std::mutex> l(guard);
-        if (Curr)
+        if ((Curr) && (!last_frame_header.show_existing_frame)) //if last frame is a repeat frame , do not insert it into output frames, its refcounter will decrease in QueryFrame()
         {
             FrameHeader const& FH_OutTemp = Curr->GetFrameHeader();
-            if (Repeat_show || FH_OutTemp.show_frame)
+            if (FH_OutTemp.show_frame)
             {
                 bool bAdded = false;
                 for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); iter++)
@@ -1204,8 +1193,7 @@ namespace UMC_AV1_DECODER
             }
             else
             {
-                // For no display case, decrease reference here which is increased
-                // in pFrame->IncrementReference() in show_existing_frame case.
+                // For no display case, it decrementReference here and frame.completedecoding() in working thread
                 if(pCurrFrame)
                 {
                     if (Curr->UID == -1)
@@ -1219,7 +1207,7 @@ namespace UMC_AV1_DECODER
         for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
         {
             AV1DecoderFrame* temp = *iter;
-            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated() && temp->DpbUpdated())
+            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && temp->DpbUpdated())
             {
                 temp->DecrementReference();
                 iter = outputed_frames.erase(iter);
@@ -1232,6 +1220,8 @@ namespace UMC_AV1_DECODER
         if(pCurrFrame!= NULL)
             Curr = pCurrFrame;
 
+        last_frame_header = fh; //store latest frame header
+
         if (fh.show_existing_frame)
         {
             Repeat_show = 1;
@@ -1242,19 +1232,12 @@ namespace UMC_AV1_DECODER
         }
     }
 
-    void AV1Decoder::Flush()
+    void AV1Decoder::FlushRepeatFrame(AV1DecoderFrame* frame)
     {
         std::unique_lock<std::mutex> l(guard);
-        for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
+        if (frame->Outputted() && frame->Displayed()) //repeat frame only need these 2 flags, as repeat frame will not call DpbUpdate() function
         {
-            AV1DecoderFrame* temp = *iter;
-            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated() && temp->DpbUpdated())
-            {
-                temp->DecrementReference();
-                iter = outputed_frames.erase(iter);
-            }
-            else
-                iter++;
+            frame->DecrementReference(); //repeat frame decrement here
         }
     }
 

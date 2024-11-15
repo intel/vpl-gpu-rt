@@ -903,9 +903,8 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
 
     if(info->copyfromframe != UMC::FRAME_MID_INVALID)
     {
-        frame = m_decoder->DecodeFrameID(info->copyfromframe);
+        frame = m_decoder->FindFrameByMemID(info->copyfromframe);
         MFX_CHECK(frame, MFX_ERR_UNDEFINED_BEHAVIOR);
-        frame->Repeated(false);
     }
     else
     {
@@ -923,7 +922,10 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
     }
     mfxStatus sts = DecodeFrame(surface_out, frame);
 
-    m_decoder->Flush();
+    if (info->copyfromframe != UMC::FRAME_MID_INVALID)
+    {
+        m_decoder->FlushRepeatFrame(frame);
+    }
 
     MFX_CHECK_STS(sts);
     return MFX_TASK_DONE;
