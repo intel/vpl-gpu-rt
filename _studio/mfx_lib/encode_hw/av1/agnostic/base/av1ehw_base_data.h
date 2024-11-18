@@ -1329,6 +1329,7 @@ namespace Base
         , FEATURE_HDR
         , FEATURE_QUALITYINFO
         , FEATURE_INTERPO_FILTER
+        , FEATURE_CDEF
         , NUM_FEATURES
     };
 
