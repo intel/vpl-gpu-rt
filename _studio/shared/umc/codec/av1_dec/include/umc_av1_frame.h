@@ -158,17 +158,16 @@ namespace UMC_AV1_DECODER
         { return *header; }
 
         bool Empty() const;
-        bool Decoded() const;
 
         bool Displayed() const
         { return displayed; }
         void Displayed(bool d)
         { displayed = d; }
 
-        bool DpbUpdated() const
-        { return dpb_updated; }
-        void DpbUpdated(bool u)
-        { dpb_updated = u; }
+        bool RefUpdated() const
+        { return ref_updated; }
+        void RefUpdated(bool u)
+        { ref_updated = u; }
 
         bool Outputted() const
         { return outputted; }
@@ -222,7 +221,6 @@ namespace UMC_AV1_DECODER
         void AddReferenceFrame(AV1DecoderFrame* frm);
         void FreeReferenceFrames();
         void UpdateReferenceList();
-        void OnDecodingCompleted();
 
         void SetRefValid(bool valid)
         { ref_valid = valid; }
@@ -265,10 +263,7 @@ namespace UMC_AV1_DECODER
         bool                              outputted; // set in [application thread] when frame is mapped to respective output mfxFrameSurface
         bool                              displayed; // set in [scheduler thread] when frame decoding is finished and
                                                      // respective mfxFrameSurface prepared for output to application
-        bool                              decoded;   // set in [application thread] to signal that frame is completed and respective reference counter decremented
-                                                     // after it frame still may remain in [AV1Decoder::dpb], but only as reference
-
-        bool                              dpb_updated;
+        bool                              ref_updated;
         bool                              decoding_started;     // set in [application thread] right after frame submission to the driver started
         bool                              decoding_completed;   // set in [scheduler thread] after getting driver status report for the frame
 

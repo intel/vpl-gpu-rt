@@ -104,9 +104,8 @@ namespace UMC_AV1_DECODER
     {
         error = 0;
         displayed = false;
-        dpb_updated = false;
+        ref_updated = false;
         outputted = false;
-        decoded   = false;
         skipped   = false;
         decoding_started = false;
         decoding_completed = false;
@@ -212,10 +211,6 @@ namespace UMC_AV1_DECODER
         return !data[SURFACE_DISPLAY].get();
     }
 
-    bool AV1DecoderFrame::Decoded() const
-    {
-        return decoded;
-    }
 
     UMC::FrameMemID AV1DecoderFrame::GetMemID(int idx) const
     {
@@ -252,13 +247,6 @@ namespace UMC_AV1_DECODER
             int32_t refIdx = header->ref_frame_idx[i];
             AddReferenceFrame(frame_dpb[refIdx]);
         }
-    }
-
-    void AV1DecoderFrame::OnDecodingCompleted()
-    {
-        DecrementReference();
-        FreeReferenceFrames();
-        decoded = true;
     }
 
     uint32_t AV1DecoderFrame::GetUpscaledWidth() const

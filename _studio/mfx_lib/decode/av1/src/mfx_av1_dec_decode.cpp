@@ -922,6 +922,7 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
     }
     mfxStatus sts = DecodeFrame(surface_out, frame);
 
+    //repeat frame decrease reference counter here
     if (info->copyfromframe != UMC::FRAME_MID_INVALID)
     {
         m_decoder->FlushRepeatFrame(frame);

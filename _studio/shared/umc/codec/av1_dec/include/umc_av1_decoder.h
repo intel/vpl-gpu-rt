@@ -163,7 +163,7 @@ namespace UMC_AV1_DECODER
         AV1DecoderFrame* DecodeFrameID(UMC::FrameMemID);
         AV1DecoderFrame* FindFrameInProgress();
         AV1DecoderFrame* GetCurrFrame()
-        { return Curr; }
+        { return lastest_submitted_frame; }
         UMC::FrameMemID  GetRepeatedFrame(){return repeateFrame;}
         void SetInFrameRate(mfxF64 rate)
         { in_framerate = rate; }
@@ -209,7 +209,7 @@ namespace UMC_AV1_DECODER
 
         AV1DecoderFrame* GetFrameBufferByIdx(FrameHeader const& fh, UMC::FrameMemID id);
         AV1DecoderFrame* StartAnchorFrame(FrameHeader const& fh, DPBType const& frameDPB, uint32_t idx);
-        DPBType DPBUpdate(AV1DecoderFrame * prevFrame);
+        DPBType ReferenceListUpdate(AV1DecoderFrame * prevFrame);
 
 
     protected:
@@ -226,18 +226,15 @@ namespace UMC_AV1_DECODER
         uint32_t                        counter;
         AV1DecoderParams                params;
         std::vector<AV1DecoderFrame*>   outputed_frames; // tore frames need to be output
-        AV1DecoderFrame*                Curr; // store current frame for Poutput
-        AV1DecoderFrame*                Curr_temp; // store current frame insist double updateDPB
+        AV1DecoderFrame*                lastest_submitted_frame; // store current frame for Poutput
         uint32_t                        Repeat_show; // show if current frame is repeated frame
         uint32_t                        PreFrame_id;//id of previous frame
         uint32_t                        OldPreFrame_id;//old id of previous frame. When decode LST clip, need this for parsing twice
-        DPBType                         refs_temp; // previous updated frameDPB
+        DPBType                         last_updated_refs; // previous updated frameDPB
         mfxU16                          frame_order;
         mfxF64                          in_framerate;
         UMC::FrameMemID                 repeateFrame;//frame to be repeated
-
-        FrameHeader                     last_frame_header;
-
+        FrameHeader                     last_frame_header; // store last frame's header
         uint32_t                        anchor_frames_count;
         uint32_t                        tile_list_idx;
         uint32_t                        frames_to_skip;
