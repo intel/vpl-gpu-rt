@@ -98,6 +98,7 @@ public:
     virtual mfxStatus EndPicture() = 0;
     virtual mfxU32    GetLastErr() const = 0;
     virtual void      Trace(const DDIExecParam&, bool /*bAfterExec*/, mfxU32 /*res*/) {}
+    virtual GUID      GetGUID() const = 0;
 
 };
 

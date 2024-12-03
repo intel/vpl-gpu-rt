@@ -85,6 +85,7 @@ public:
     virtual mfxStatus BeginPicture(mfxHDL) override;
     virtual mfxStatus EndPicture() override;
     virtual mfxU32    GetLastErr() const override { return mfxU32(m_lastErr); }
+    virtual GUID      GetGUID() const override { return GUID(); }
 
     VABufferID  CreateVABuffer(const DDIExecParam&);
     mfxStatus   DestroyVABuffer(VABufferID);
