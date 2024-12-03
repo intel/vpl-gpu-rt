@@ -227,7 +227,6 @@ namespace UMC_AV1_DECODER
         AV1DecoderParams                params;
         std::vector<AV1DecoderFrame*>   outputed_frames; // tore frames need to be output
         AV1DecoderFrame*                lastest_submitted_frame; // store current frame for Poutput
-        uint32_t                        Repeat_show; // show if current frame is repeated frame
         uint32_t                        PreFrame_id;//id of previous frame
         uint32_t                        OldPreFrame_id;//old id of previous frame. When decode LST clip, need this for parsing twice
         DPBType                         last_updated_refs; // previous updated frameDPB
