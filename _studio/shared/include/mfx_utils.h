@@ -32,6 +32,7 @@
 #include "mfx_trace.h"
 #include "mfx_utils_logging.h"
 #include "mfx_utils_perf.h"
+#include "mfx_decode_dpb_logging.h"
 #include "mfx_timing.h"
 #include "mfxsurfacepool.h"
 #include "mfx_error.h"

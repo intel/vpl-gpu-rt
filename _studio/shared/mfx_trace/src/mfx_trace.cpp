@@ -21,6 +21,7 @@
 #include "mfxdefs.h"
 #include "mfx_trace.h"
 #include "mfx_utils_perf.h"
+#include "mfx_decode_dpb_logging.h"
 
 static mfx_reflect::AccessibleTypesCollection g_Reflection;
 
@@ -269,6 +270,17 @@ mfxTraceU32 MFXTrace_GetRegistryParams(void)
                     if (!iter->second.empty())
                     {
                         PerfUtility::perfFilePath = iter->second;
+                    }
+                }
+                else if (iter->first == "VPL DPB LOG" && stoi(iter->second))
+                {
+                    dpb_logger = DPBLog::getInstance();
+                }
+                else if (iter->first == "VPL DPB PATH")
+                {
+                    if (!iter->second.empty())
+                    {
+                        DPBLog::dpbFilePath = iter->second;
                     }
                 }
             }
