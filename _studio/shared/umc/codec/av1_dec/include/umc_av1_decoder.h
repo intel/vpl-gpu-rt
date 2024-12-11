@@ -180,6 +180,8 @@ namespace UMC_AV1_DECODER
         }
 
         void FlushRepeatFrame(AV1DecoderFrame*);
+        void AV1IncrementReference(const std::string& function, int line, AV1DecoderFrame* frame);
+        void AV1DecrementReference(const std::string& function, int line, AV1DecoderFrame* frame);
 
     protected:
 

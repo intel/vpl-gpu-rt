@@ -187,6 +187,7 @@ namespace UMC_AV1_DECODER
             {
                 decoding_started = true;
                 IncrementReference();
+                DPBLOG_PRINT(__FUNCTION__, __LINE__, "[+]", this, m_refCounter);
             }
         }
 
@@ -198,6 +199,7 @@ namespace UMC_AV1_DECODER
             {
                 decoding_completed = true;
                 DecrementReference();
+                DPBLOG_PRINT(__FUNCTION__, __LINE__, "[-]", this, m_refCounter);
             }
         }
 
