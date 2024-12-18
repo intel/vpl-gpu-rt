@@ -90,6 +90,8 @@ enum eMFXHWType
     MFX_HW_BMG       = MFX_HW_MTL + 2,
     MFX_HW_LNL       = MFX_HW_MTL + 3,
 
+    MFX_HW_PTL       = 0x1800000,
+
 };
 
 enum eMFXGTConfig
@@ -596,6 +598,16 @@ typedef struct {
     { 0x6480, MFX_HW_LNL, MFX_GT2 },
     { 0x64A0, MFX_HW_LNL, MFX_GT2 },
     { 0x64B0, MFX_HW_LNL, MFX_GT2 },
+
+    /* PTL / Pantherlake */
+    { 0xB080, MFX_HW_PTL, MFX_GT2 },
+    { 0xB081, MFX_HW_PTL, MFX_GT2 },
+    { 0xB082, MFX_HW_PTL, MFX_GT2 },
+    { 0xB083, MFX_HW_PTL, MFX_GT2 },
+    { 0xB08F, MFX_HW_PTL, MFX_GT2 },
+    { 0xB090, MFX_HW_PTL, MFX_GT2 },
+    { 0xB0A0, MFX_HW_PTL, MFX_GT2 },
+    { 0xB0B0, MFX_HW_PTL, MFX_GT2 },
 
 };
 

@@ -414,6 +414,7 @@ public:
         case MFX_HW_ARL:
         case MFX_HW_LNL:
         case MFX_HW_BMG:
+        case MFX_HW_PTL:
             return true;
         default:
             return false;
