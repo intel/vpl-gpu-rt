@@ -2170,7 +2170,8 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
         {
             mfxExtVPPAISuperResolution* bufSuperResolution = reinterpret_cast<mfxExtVPPAISuperResolution*>(par->ExtParam[i]);
             MFX_CHECK_NULL_PTR1(bufSuperResolution);
-            bufSuperResolution->SRMode = m_executeParams.m_srMode;
+            bufSuperResolution->SRMode = m_executeParams.srGetParams.Mode;
+            bufSuperResolution->SRAlgorithm = m_executeParams.srGetParams.Algorithm;
         }
         else if (MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION == bufferId)
         {
@@ -2719,8 +2720,9 @@ mfxStatus  VideoVPPHW::Init(
             mfxExtVPPAISuperResolution* extSR = (mfxExtVPPAISuperResolution*)m_params.ExtParam[i];
             if (extSR)
             {
-                m_executeParams.bSuperResolution = true;
-                m_executeParams.m_srMode = extSR->SRMode;
+                m_executeParams.srSetParams.Enabled = true;
+                m_executeParams.srSetParams.Mode = extSR->SRMode;
+                m_executeParams.srSetParams.Algorithm = extSR->SRAlgorithm;
             }
         }
         else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION)
@@ -6891,8 +6893,9 @@ mfxStatus ConfigureExecuteParams(
                     if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION)
                     {
                         mfxExtVPPAISuperResolution* extSR = (mfxExtVPPAISuperResolution*)videoParam.ExtParam[i];
-                        executeParams.bSuperResolution = true;
-                        executeParams.m_srMode = extSR->SRMode;
+                        executeParams.srSetParams.Enabled = true;
+                        executeParams.srSetParams.Mode = extSR->SRMode;
+                        executeParams.srSetParams.Algorithm = extSR->SRAlgorithm;
                     }
                 }
                 break;
@@ -7098,7 +7101,7 @@ mfxStatus ConfigureExecuteParams(
                 }
                 else if (MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION == bufferId)
                 {
-                    executeParams.bSuperResolution = false;
+                    executeParams.srSetParams.Enabled = false;
                 }
 #ifdef MFX_ENABLE_MCTF
                 else if (MFX_EXTBUFF_VPP_MCTF == bufferId)

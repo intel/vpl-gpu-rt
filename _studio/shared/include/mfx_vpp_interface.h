@@ -332,6 +332,19 @@ namespace MfxHwVideoProcessing
 #endif
         };
 
+        struct SRInfo {
+            bool                                 Enabled;
+            mfxAISuperResolutionMode             Mode;
+            mfxAISuperResolutionAlgorithm        Algorithm;
+
+            bool operator!=(const SRInfo& other) const
+            {
+                return Enabled        != other.Enabled
+                       || Mode        != other.Mode
+                       || Algorithm   != other.Algorithm;
+            }
+        };
+
     public:
             mfxExecuteParams():
                 targetSurface()
@@ -410,8 +423,6 @@ namespace MfxHwVideoProcessing
                ,mirroringExt(false)
                ,scene(VPP_NO_SCENE_CHANGE)
                ,bDeinterlace30i60p(false)
-               ,bSuperResolution(false)
-               ,m_srMode(MFX_AI_SUPER_RESOLUTION_MODE_DISABLED)
                ,bAiVfi(false)
                ,m_aiFiMode(MFX_AI_FRAME_INTERPOLATION_MODE_DISABLE)
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
@@ -446,6 +457,11 @@ namespace MfxHwVideoProcessing
                    inHDR10MetaData = {};
                    outHDR10MetaData = {};
                    denoiseStrength = 0;
+
+                   srSetParams.Enabled = false;
+                   srSetParams.Mode = MFX_AI_SUPER_RESOLUTION_MODE_DISABLED;
+                   srSetParams.Algorithm = MFX_AI_SUPER_RESOLUTION_ALGORITHM_DEFAULT;
+                   srGetParams = srSetParams;
             };
 
             bool IsDoNothing()
@@ -483,8 +499,7 @@ namespace MfxHwVideoProcessing
                     mirroringExt != false ||
                     scene != VPP_NO_SCENE_CHANGE ||
                     bDeinterlace30i60p != false  ||
-                    chromaSiting != MFX_CHROMA_SITING_UNKNOWN ||
-					bSuperResolution
+                    chromaSiting != MFX_CHROMA_SITING_UNKNOWN
 #ifdef MFX_ENABLE_MCTF
                     || bEnableMctf != false
 #endif
@@ -607,9 +622,9 @@ namespace MfxHwVideoProcessing
 
         vppScene    scene;     // Keep information about scene change
         bool        bDeinterlace30i60p;
-		
-        bool                     bSuperResolution;
-        mfxAISuperResolutionMode m_srMode;
+
+        SRInfo      srSetParams;
+        SRInfo      srGetParams;
 
         bool                        bAiVfi;
         mfxAIFrameInterpolationMode m_aiFiMode;
