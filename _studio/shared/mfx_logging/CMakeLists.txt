@@ -24,11 +24,11 @@ target_include_directories(mfx_logging
   PUBLIC
     include
     ${MFX_API_HOME}/mediasdk_structures
-	${MSDK_STUDIO_ROOT}/shared/umc/codec/h265_dec/include
-	${MSDK_STUDIO_ROOT}/shared/umc/codec/h264_dec/include
-	${MSDK_STUDIO_ROOT}/shared/umc/codec/av1_dec/include
-	${MSDK_STUDIO_ROOT}/shared/umc/codec/vp9_dec/include
-	${MSDK_STUDIO_ROOT}/shared/umc/io/umc_va/include
+    ${MSDK_STUDIO_ROOT}/shared/umc/codec/h265_dec/include
+    ${MSDK_STUDIO_ROOT}/shared/umc/codec/h264_dec/include
+    ${MSDK_STUDIO_ROOT}/shared/umc/codec/av1_dec/include
+    ${MSDK_STUDIO_ROOT}/shared/umc/codec/vp9_dec/include
+    ${MSDK_STUDIO_ROOT}/shared/umc/io/umc_va/include
   )
 
 target_link_libraries(mfx_logging
