@@ -184,7 +184,7 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
 
         mfxStatus task_sts = MFX_ERR_NONE;
         
-        mfx::TimerMs<mfxU64> timer((mfxU64)timeToWait);
+        mfx::TimerMs<mfxU64> timer((mfxU64)timeToWait * 1000);
 
         while (MFX_WRN_IN_EXECUTION == pTask->opRes)
         {
