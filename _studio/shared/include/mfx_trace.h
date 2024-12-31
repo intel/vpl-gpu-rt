@@ -212,7 +212,8 @@ typedef enum
     MFX_TXTLOG_LEVEL_API = 4,   //include API Func
 #else
     MFX_TXTLOG_LEVEL_API_AND_PARAMS = 1,    //include API Func, API PARAMS
-    MFX_TXTLOG_LEVEL_API = 2    //include API Func
+    MFX_TXTLOG_LEVEL_API = 2,    //include API Func
+    MFX_TXTLOG_LEVEL_MAX = 3   //include API Func, API PARAMS and internal Func
 #endif
 } mfxTxtLogLevel;
 

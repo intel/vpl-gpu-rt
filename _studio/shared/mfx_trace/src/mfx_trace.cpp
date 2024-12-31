@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2020 Intel Corporation
+// Copyright (c) 2010-2024 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -327,11 +327,12 @@ inline bool MFXTrace_IsPrintableCategoryAndLevel(mfxTraceU32 m_OutputInitilized,
 {
     bool logFlag = false;
     if (m_OutputInitilized == MFX_TRACE_OUTPUT_TEXTLOG) {
-#ifndef NDEBUG
+
         if (g_Level == MFX_TXTLOG_LEVEL_MAX)
         {
             logFlag = true;
         }
+#ifndef NDEBUG
         else if (g_Level == MFX_TXTLOG_LEVEL_API_AND_INTERNAL)
         {
             if (level != MFX_TRACE_LEVEL_API_PARAMS)
@@ -341,7 +342,7 @@ inline bool MFXTrace_IsPrintableCategoryAndLevel(mfxTraceU32 m_OutputInitilized,
         }
         else if (g_Level == MFX_TXTLOG_LEVEL_API_AND_PARAMS)
 #else
-        if (g_Level == MFX_TXTLOG_LEVEL_API_AND_PARAMS)
+        else if (g_Level == MFX_TXTLOG_LEVEL_API_AND_PARAMS)
 #endif
         {
             if (level == MFX_TRACE_LEVEL_API_PARAMS || level == MFX_TRACE_LEVEL_API)
