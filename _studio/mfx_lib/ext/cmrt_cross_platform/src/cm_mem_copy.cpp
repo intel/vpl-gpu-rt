@@ -3000,11 +3000,12 @@ bool CmCopyWrapper::CanUseCmCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
     }
     else if (NULL != pSrc->Data.MemId && NULL != dstPtr)
     {
-        if (!CM_ALIGNED(pDst->Data.Pitch))
+        mfxU32 dstPitch = pDst->Data.PitchLow + ((mfxU32)pDst->Data.PitchHigh << 16);
+        if (!CM_ALIGNED(dstPitch))
             return false;
 
         mfxI64 verticalPitch = (mfxI64)(pDst->Data.UV - pDst->Data.Y);
-        verticalPitch = (verticalPitch % pDst->Data.Pitch)? 0 : verticalPitch / pDst->Data.Pitch;
+        verticalPitch = (verticalPitch % dstPitch)? 0 : verticalPitch / dstPitch;
         if (isNV12LikeFormat(pDst->Info.FourCC) && isNV12LikeFormat(pSrc->Info.FourCC) && CM_ALIGNED(pDst->Data.Y) && CM_ALIGNED(pDst->Data.UV) && CM_SUPPORTED_COPY_SIZE(roi) && verticalPitch >= pDst->Info.Height && verticalPitch <= 16384)
         {
             return CheckSurfaceContinuouslyAllocated(*pDst);
@@ -3022,11 +3023,12 @@ bool CmCopyWrapper::CanUseCmCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
     }
     else if (NULL != srcPtr && NULL != pDst->Data.MemId)
     {
-        if (!CM_ALIGNED(pSrc->Data.Pitch))
+        mfxU32 srcPitch = pSrc->Data.PitchLow + ((mfxU32)pSrc->Data.PitchHigh << 16);
+        if (!CM_ALIGNED(srcPitch))
             return false;
 
         mfxI64 verticalPitch = (mfxI64)(pSrc->Data.UV - pSrc->Data.Y);
-        verticalPitch = (verticalPitch % pSrc->Data.Pitch)? 0 : verticalPitch / pSrc->Data.Pitch;
+        verticalPitch = (verticalPitch % srcPitch)? 0 : verticalPitch / srcPitch;
 
         if (isNV12LikeFormat(pDst->Info.FourCC) && isNV12LikeFormat(pSrc->Info.FourCC) && CM_ALIGNED(pSrc->Data.Y) && CM_ALIGNED(pSrc->Data.UV) && CM_SUPPORTED_COPY_SIZE(roi) && verticalPitch >= pSrc->Info.Height && verticalPitch <= 16384)
         {
