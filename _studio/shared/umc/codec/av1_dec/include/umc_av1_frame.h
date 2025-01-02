@@ -254,6 +254,7 @@ namespace UMC_AV1_DECODER
         DPBType          frame_dpb;
         UMC::FrameMemID  m_index;
         UMC::FrameMemID  m_anchorFrameIdx; // application to specify anchor frame index used by current frame
+        bool             mark_Added;    //mark this frame has beed added into output_frames or not
 
     protected:
         virtual void Free()

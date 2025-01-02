@@ -1197,20 +1197,13 @@ namespace UMC_AV1_DECODER
         if ((lastest_submitted_frame) && (!last_frame_header.show_existing_frame)) 
         {
             FrameHeader const& FH_OutTemp = lastest_submitted_frame->GetFrameHeader();
-            if (FH_OutTemp.show_frame) //display frame
+            if (FH_OutTemp.show_frame)//display frame
             {
-                bool bAdded = false;
-                for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); iter++)
+                if (!lastest_submitted_frame->mark_Added)
                 {
-                    AV1DecoderFrame* temp = *iter;
-                    if (lastest_submitted_frame->UID == temp->UID)
-                    {
-                        bAdded = true;
-                        break;
-                    }
-                }
-                if (!bAdded)
                     outputed_frames.push_back(lastest_submitted_frame);
+                    lastest_submitted_frame->mark_Added = true;
+                }
             }
             else
             {
@@ -1237,10 +1230,8 @@ namespace UMC_AV1_DECODER
                 iter++;
         }
 
-        // When no available buffer, don't update Curr buffer to avoid update DPB duplicated.
-        if(pCurrFrame!= NULL)
-            lastest_submitted_frame = pCurrFrame;
-
+        //update lateset_submitted_frame even pCurrFrame is nullptr(not enough frame) 
+        lastest_submitted_frame = pCurrFrame;
         last_frame_header = fh; //store latest frame header
     }
 

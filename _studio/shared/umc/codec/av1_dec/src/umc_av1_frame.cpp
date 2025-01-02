@@ -127,6 +127,7 @@ namespace UMC_AV1_DECODER
         film_grain_disabled = false;
 
         UID = -1;
+        mark_Added = false;
 
         frame_time = -1;
         frame_order = 0;
