@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2024 Intel Corporation
+// Copyright (c) 2022-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -528,6 +528,8 @@ namespace UMC_VVC_DECODER
     {
         switch (status)
         {
+        case 0:
+            break;
         case 1:
             frame.AddError(UMC::ERROR_FRAME_MINOR);
             break;
