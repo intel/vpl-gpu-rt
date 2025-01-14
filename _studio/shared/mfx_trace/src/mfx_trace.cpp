@@ -332,7 +332,6 @@ inline bool MFXTrace_IsPrintableCategoryAndLevel(mfxTraceU32 m_OutputInitilized,
         {
             logFlag = true;
         }
-#ifndef NDEBUG
         else if (g_Level == MFX_TXTLOG_LEVEL_API_AND_INTERNAL)
         {
             if (level != MFX_TRACE_LEVEL_API_PARAMS)
@@ -341,9 +340,6 @@ inline bool MFXTrace_IsPrintableCategoryAndLevel(mfxTraceU32 m_OutputInitilized,
             }
         }
         else if (g_Level == MFX_TXTLOG_LEVEL_API_AND_PARAMS)
-#else
-        else if (g_Level == MFX_TXTLOG_LEVEL_API_AND_PARAMS)
-#endif
         {
             if (level == MFX_TRACE_LEVEL_API_PARAMS || level == MFX_TRACE_LEVEL_API)
             {

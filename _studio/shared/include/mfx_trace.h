@@ -205,16 +205,10 @@ typedef enum
 // enumeration of the TXT log levels
 typedef enum
 {
-#ifndef NDEBUG
     MFX_TXTLOG_LEVEL_MAX = 1,   //include API Func, API PARAMS and internal Func
     MFX_TXTLOG_LEVEL_API_AND_INTERNAL = 2,  //include API Func and internal Func
     MFX_TXTLOG_LEVEL_API_AND_PARAMS = 3, //include API Func and API PARAMS
     MFX_TXTLOG_LEVEL_API = 4,   //include API Func
-#else
-    MFX_TXTLOG_LEVEL_API_AND_PARAMS = 1,    //include API Func, API PARAMS
-    MFX_TXTLOG_LEVEL_API = 2,    //include API Func
-    MFX_TXTLOG_LEVEL_MAX = 3   //include API Func, API PARAMS and internal Func
-#endif
 } mfxTxtLogLevel;
 
 typedef enum _MEDIA_EVENT_TYPE

@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2024 Intel Corporation
+// Copyright (c) 2007-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,8 @@ using namespace UMC;
 
 mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "ChooseProfile");
+
     mfxU32 profile = UMC::VA_VLD;
 
     // video accelerator is needed for decoders only
