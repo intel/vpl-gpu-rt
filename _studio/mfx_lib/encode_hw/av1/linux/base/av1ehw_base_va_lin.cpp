@@ -121,7 +121,7 @@ void DDI_VA::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         SetIf(targetChromaFormat, profile == MFX_PROFILE_AV1_HIGH, MFX_CHROMAFORMAT_YUV444);
         if (pCO3)
         {
-            SetIf(targetChromaFormat, !pCO3->TargetChromaFormatPlus1, pCO3->TargetChromaFormatPlus1 - 1);
+            SetIf(targetChromaFormat, pCO3->TargetChromaFormatPlus1, pCO3->TargetChromaFormatPlus1 - 1);
         }
 
         MFX_SAFE_CALL(SetDDIID(bitDepth, targetChromaFormat));
