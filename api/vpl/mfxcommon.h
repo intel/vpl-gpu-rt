@@ -158,6 +158,7 @@ typedef struct {
             mfxEncryptedData* EncryptedData; /*!< Reserved and must be zero. */
             mfxExtBuffer **ExtParam;         /*!< Array of extended buffers for additional bitstream configuration. See the ExtendedBufferID enumerator for a complete list of extended buffers. */
             mfxU16  NumExtParam;             /*!< The number of extended buffers attached to this structure. */
+            mfxU16  reserved1;               /*!< Reserved for future use. */
             mfxU32  CodecId;                 /*!< Specifies the codec format identifier in the FourCC code. See the CodecFormatFourCC enumerator for details. This optional parameter is required for the simplified decode initialization.  */
 
         };
