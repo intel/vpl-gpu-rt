@@ -624,6 +624,16 @@ typedef struct {
 } mfxInitializationParam;
 MFX_PACK_END()
 
+#ifdef ONEVPL_EXPERIMENTAL
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+/*! Represents a name/value pair to indicate requested properties. For use with MFXQueryImplsProperties() */
+typedef struct {
+    mfxU8* PropName;       /*!< Property name string to indicate the requested Property. */
+    mfxVariant PropVar;    /*!< Property value corresponding to the property name. */
+} mfxQueryProperty;
+MFX_PACK_END()
+#endif
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
