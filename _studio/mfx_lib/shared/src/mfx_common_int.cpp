@@ -418,7 +418,7 @@ mfxStatus UpdateCscOutputFormat(mfxVideoParam *par, mfxFrameAllocRequest *reques
             request->Info.Shift = 0;
             break;
         default:
-            return MFX_ERR_UNSUPPORTED;
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
         }
 
         request->Info.BitDepthChroma = request->Info.BitDepthLuma;
@@ -522,10 +522,10 @@ mfxStatus CheckVideoParamEncoders(mfxVideoParam *in, eMFXHWType type)
 mfxStatus CheckBitstream(const mfxBitstream *bs)
 {
     if (!bs || !bs->Data)
-        return MFX_ERR_NULL_PTR;
+        MFX_RETURN(MFX_ERR_NULL_PTR);
 
     if (bs->DataOffset + bs->DataLength > bs->MaxLength)
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
     return MFX_ERR_NONE;
 }
@@ -589,9 +589,7 @@ mfxStatus CheckFrameData(const mfxFrameSurface1 *surface)
     if (surface->Data.MemId)
         return MFX_ERR_NONE;
 
-    mfxStatus sts;
-    return
-        sts = CheckFramePointers(surface->Info, surface->Data);
+    MFX_RETURN(CheckFramePointers(surface->Info, surface->Data));
 }
 
 mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
@@ -770,7 +768,7 @@ mfxStatus PackMfxFrameRate(mfxU32 nom, mfxU32 den, mfxU32& packed)
         }
     }
     packed = (den << 16) | nom;
-    return sts;
+    MFX_RETURN(sts);
 }
 
 
