@@ -97,7 +97,9 @@ namespace MfxHwH264Encode
             GUID        guid,
             mfxU32      width,
             mfxU32      height,
-            bool        isTemporal = false) = 0;
+            bool        isTemporal = false,
+            mfxU16      chromaFormat = 1,
+            mfxU16      bitDepth = 8) = 0;
 
         virtual
         mfxStatus CreateAccelerationService(

@@ -1493,7 +1493,7 @@ mfxStatus MfxHwH264Encode::QueryHwCaps(VideoCORE* core, MFX_ENCODE_CAPS & hwCaps
         MFX_RETURN(Error(MFX_ERR_DEVICE_FAILED));
 
 
-    mfxStatus sts = ddi->CreateAuxilliaryDevice(core, guid, width, height, true);
+    mfxStatus sts = ddi->CreateAuxilliaryDevice(core, guid, width, height, true, par->mfx.FrameInfo.ChromaFormat, par->mfx.FrameInfo.BitDepthLuma);
     MFX_CHECK_STS(sts);
 
     sts = ddi->QueryEncodeCaps(hwCaps);
@@ -1530,7 +1530,7 @@ mfxStatus MfxHwH264Encode::QueryMbProcRate(VideoCORE* core, mfxVideoParam const 
         MFX_RETURN(Error(MFX_ERR_DEVICE_FAILED));
 
 
-    mfxStatus sts = ddi->CreateAuxilliaryDevice(core, guid, width, height, true);
+    mfxStatus sts = ddi->CreateAuxilliaryDevice(core, guid, width, height, true, in->mfx.FrameInfo.ChromaFormat, in->mfx.FrameInfo.BitDepthLuma);
     MFX_CHECK_STS(sts);
 
     mfxU32 tempMbPerSec[16] = {0, };
@@ -2839,7 +2839,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.FourCC != MFX_FOURCC_RGB4 &&
         par.mfx.FrameInfo.FourCC != MFX_FOURCC_BGR4 &&
         par.mfx.FrameInfo.FourCC != MFX_FOURCC_YUY2 &&
-        par.mfx.FrameInfo.FourCC != MFX_FOURCC_AYUV)
+        par.mfx.FrameInfo.FourCC != MFX_FOURCC_AYUV
+       )
     {
         unsupported = true;
         par.mfx.FrameInfo.FourCC = 0;
@@ -3124,7 +3125,9 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         }
     }
 
-    if (IsAvcHighProfile(par.mfx.CodecProfile) && (par.mfx.CodecProfile & MASK_CONSTRAINT_SET0123_FLAG))
+    if ((par.mfx.CodecProfile == MFX_PROFILE_AVC_HIGH ||
+        par.mfx.CodecProfile == MFX_PROFILE_AVC_CONSTRAINED_HIGH ||
+        par.mfx.CodecProfile == MFX_PROFILE_AVC_PROGRESSIVE_HIGH) && (par.mfx.CodecProfile & MASK_CONSTRAINT_SET0123_FLAG))
     {
         changed = true;
         par.mfx.CodecProfile = par.mfx.CodecProfile & ~MASK_CONSTRAINT_SET0123_FLAG;
@@ -4003,9 +4006,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (extSps->seqParameterSetId > 31                                  ||
             !IsValidCodingProfile(extSps->profileIdc)                       ||
             !IsValidCodingLevel(extSps->levelIdc)                           ||
-            extSps->chromaFormatIdc != 1                                    ||
-            extSps->bitDepthLumaMinus8 != 0                                 ||
-            extSps->bitDepthChromaMinus8 != 0                               ||
             extSps->qpprimeYZeroTransformBypassFlag != 0                    ||
             extSps->picOrderCntType == 1                                    ||
             /*extSps->gapsInFrameNumValueAllowedFlag != 0                     ||*/
@@ -9193,7 +9193,9 @@ namespace
                 pps[view] = extPps;
 
                 if (numViews > 1 && view == 0) // MVC base view
+                {
                     sps[view].profileIdc = MFX_PROFILE_AVC_HIGH;
+                }
 
                 sps[view].seqParameterSetId = mfxU8(!!view) & 0x1f;
                 pps[view].picParameterSetId = mfxU8(!!view);

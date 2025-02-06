@@ -1519,7 +1519,9 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     GUID guid,
     mfxU32 width,
     mfxU32 height,
-    bool /*isTemporal*/)
+    bool /*isTemporal*/,
+    mfxU16 /*chromaFormat*/,
+    mfxU16 /*bitDepth*/)
 {
     MFX_CHECK_NULL_PTR1(core);
 

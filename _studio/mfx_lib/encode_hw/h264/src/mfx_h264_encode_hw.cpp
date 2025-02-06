@@ -609,8 +609,11 @@ mfxStatus ImplementationAvc::Query(
     {
         MfxVideoParam tmp = *in;
         (void)SetLowPowerDefault(tmp, platform);
-        if(IsOn(tmp.mfx.LowPower))
-            return QueryGuid(core, DXVA2_INTEL_LOWPOWERENCODE_AVC);
+        if (IsOn(tmp.mfx.LowPower))
+        {
+            GUID guid = DXVA2_INTEL_LOWPOWERENCODE_AVC;
+            return QueryGuid(core, guid);
+        }
         return QueryGuid(core, DXVA2_Intel_Encode_AVC);
     }
 
@@ -1019,7 +1022,9 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         m_core,
         guid,
         GetFrameWidth(m_video),
-        GetFrameHeight(m_video));
+        GetFrameHeight(m_video),
+        m_video.mfx.FrameInfo.ChromaFormat,
+        m_video.mfx.FrameInfo.BitDepthChroma);
         if (sts != MFX_ERR_NONE)
             return MFX_ERR_UNSUPPORTED;
 
@@ -1240,7 +1245,8 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     request.Info.Width = width;
     request.Info.Height = height;
 
-    sts = m_ddi->Register(m_rec.NumFrameActual ? m_rec : m_raw, D3DDDIFMT_NV12);
+    D3DDDIFORMAT type = D3DDDIFMT_NV12;
+    sts = m_ddi->Register(m_rec.NumFrameActual ? m_rec : m_raw, type);
     MFX_CHECK_STS(sts);
 
     m_recFrameOrder.resize(request.NumFrameMin, 0xffffffff);
