@@ -70,7 +70,7 @@ private:
         const mfxFrameInfo& inInfo,
         const mfxFrameInfo& outInfo);
     mfxStatus InitFrameInterpolator(VideoCORE* core, const mfxFrameInfo& outInfo);
-    bool      IsVppNeededForVfi(const mfxFrameInfo& inInfo, const mfxFrameInfo& outInfo);
+    std::tuple<bool, bool> IsVppNeededForVfi(const mfxFrameInfo& inInfo, const mfxFrameInfo& outInfo);
     mfxStatus InitVppAndAllocateSurface(
         const mfxFrameInfo& inInfo,
         const mfxFrameInfo& outInfo,

@@ -206,22 +206,23 @@ mfxStatus MFXVideoFrameInterpolation::InitScd(const mfxFrameInfo& inFrameInfo, c
     return MFX_ERR_NONE;
 }
 
-bool MFXVideoFrameInterpolation::IsVppNeededForVfi(const mfxFrameInfo& inInfo, const mfxFrameInfo& outInfo)
+std::tuple<bool, bool> MFXVideoFrameInterpolation::IsVppNeededForVfi(const mfxFrameInfo& inInfo, const mfxFrameInfo& outInfo)
 {
+    bool isCscNeeded = false, isScalingNeed = true;
     // kernel only support RGB
     if (outInfo.FourCC != MFX_FOURCC_RGB4 &&
         outInfo.FourCC != MFX_FOURCC_BGR4)
     {
-        return true;
+        isCscNeeded = true;
     }
 
     // kernel only support 1080p and 1440p
     if ((outInfo.Width == WIDTH1 && outInfo.Height == HEIGHT1) ||
         (outInfo.Width == WIDTH2 && outInfo.Height == HEIGHT2))
     {
-        return false;
+        isScalingNeed = false;
     }
-    return true;
+    return std::make_tuple(isCscNeeded, isScalingNeed);
 }
 
 mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
@@ -279,9 +280,20 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
         extBufferPost.push_back(&vsOutPost.Header);
     }
 
-    m_vppForFi = IsVppNeededForVfi(inInfo, outInfo);
+    auto [isCscNeeded, isScalingNeed] = IsVppNeededForVfi(inInfo, outInfo);
+    m_vppForFi = isCscNeeded || isScalingNeed;
+
     if (m_vppForFi)
     {
+        mfxU16 scalingWidth = WIDTH1, scalingHeight = HEIGHT1;
+
+        if (outInfo.Height >= HEIGHT2 || outInfo.Width >= WIDTH2)
+        {
+            scalingWidth = WIDTH2;
+            scalingHeight = HEIGHT2;
+        }
+
+        // pre processing
         {
             mfxStatus sts = MFX_ERR_NONE;
             m_vppBeforeFi0.reset(new MfxVppHelper(m_core, &sts));
@@ -295,10 +307,10 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
             vppParams.vpp.In            = outInfo;
             vppParams.vpp.In.PicStruct  = inInfo.PicStruct;
             vppParams.vpp.Out           = outInfo;
-            vppParams.vpp.Out.Width     = WIDTH1;
-            vppParams.vpp.Out.Height    = mfx::align2_value(HEIGHT1);
-            vppParams.vpp.Out.CropW     = WIDTH1;
-            vppParams.vpp.Out.CropH     = HEIGHT1;
+            vppParams.vpp.Out.Width     = scalingWidth;
+            vppParams.vpp.Out.Height    = mfx::align2_value(scalingHeight);
+            vppParams.vpp.Out.CropW     = scalingWidth;
+            vppParams.vpp.Out.CropH     = scalingHeight;
             vppParams.vpp.Out.FourCC    = MFX_FOURCC_BGR4;
             vppParams.vpp.Out.PicStruct = inInfo.PicStruct;
 
@@ -311,10 +323,10 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
             MFX_CHECK_STS(sts);
 
             mfxFrameAllocRequest requestRGB = {};
-            requestRGB.Info = vppParams.vpp.Out;
-            requestRGB.Type = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_SHARED_RESOURCE;
-            requestRGB.NumFrameMin = (mfxU16)m_ratio + 1;
-            requestRGB.NumFrameSuggested = (mfxU16)m_ratio + 1;
+            requestRGB.Info                 = vppParams.vpp.Out;
+            requestRGB.Type                 = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_SHARED_RESOURCE;
+            requestRGB.NumFrameMin          = (mfxU16)m_ratio + 1;
+            requestRGB.NumFrameSuggested    = (mfxU16)m_ratio + 1;
             MFX_CHECK_STS(m_core->AllocFrames(&requestRGB, &m_rgbSurfForFiIn));
 
             for (int i = 0; i <= (mfxU16)m_ratio; i++)
@@ -324,6 +336,7 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
             }
         }
 
+        // post processing
         {
             mfxStatus sts = MFX_ERR_NONE;
             m_vppAfterFi.reset(new MfxVppHelper(m_core, &sts));
@@ -333,10 +346,10 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
             vppParams.AsyncDepth       = 1;
             vppParams.IOPattern        = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
             vppParams.vpp.In           = outInfo;
-            vppParams.vpp.In.Width     = WIDTH1;
-            vppParams.vpp.In.Height    = mfx::align2_value(HEIGHT1);
-            vppParams.vpp.In.CropW     = WIDTH1;
-            vppParams.vpp.In.CropH     = HEIGHT1;
+            vppParams.vpp.In.Width     = scalingWidth;
+            vppParams.vpp.In.Height    = mfx::align2_value(scalingHeight);
+            vppParams.vpp.In.CropW     = scalingWidth;
+            vppParams.vpp.In.CropH     = scalingHeight;
             vppParams.vpp.In.PicStruct = inInfo.PicStruct;
             vppParams.vpp.In.FourCC    = MFX_FOURCC_BGR4;
             vppParams.vpp.Out          = outInfo;
@@ -357,6 +370,23 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
             m_fiOut = MakeSurface(m_fiOut.Info, m_outSurfForFi.mids[0]);
         }
     }
+    else
+    {
+        mfxFrameAllocRequest requestRGB = {};
+        mfxFrameInfo         info       = outInfo;
+        requestRGB.Info                 = info;
+        requestRGB.Type                 = MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_FROM_VPPOUT | MFX_MEMTYPE_SHARED_RESOURCE;
+        requestRGB.NumFrameMin          = (mfxU16)m_ratio + 1;
+        requestRGB.NumFrameSuggested    = (mfxU16)m_ratio + 1;
+        MFX_CHECK_STS(m_core->AllocFrames(&requestRGB, &m_rgbSurfForFiIn));
+
+        for (int i = 0; i <= (mfxU16)m_ratio; i++)
+        {
+            m_rgbSurfArray[i].Info = info;
+            m_rgbSurfArray[i] = MakeSurface(m_rgbSurfArray[i].Info, m_rgbSurfForFiIn.mids[i]);
+        }
+    }
+
     return MFX_ERR_NONE;
 }
 
@@ -714,7 +744,6 @@ mfxStatus MFXVideoFrameInterpolation::InterpolateAi(mfxFrameSurface1& bwd, mfxFr
         MFX_RETURN(MFX_ERR_UNKNOWN);
     }
 #endif
-
     return MFX_ERR_NONE;
 }
 
