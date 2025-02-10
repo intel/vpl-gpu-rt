@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2020 Intel Corporation
+// Copyright (c) 2010-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -160,6 +160,9 @@ enum mfxTraceTaskType
     MFX_TRACE_API_GET_TASK,
     MFX_TRACE_API_QUERY_TASK,
     MFX_TRACE_API_MARK_TASK,
+#if defined(ONEVPL_EXPERIMENTAL)
+    MFX_TRACE_API_MFXQUERYIMPLSPROPERTIES_TASK,
+#endif
 };
 
 // list of output modes
@@ -896,5 +899,9 @@ template <>
 struct TraceTaskType2TraceLevel<MFX_TRACE_API_MFXINITIALIZE_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
 template <>
 struct TraceTaskType2TraceLevel<MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
+#if defined(ONEVPL_EXPERIMENTAL)
+template <>
+struct TraceTaskType2TraceLevel<MFX_TRACE_API_MFXQUERYIMPLSPROPERTIES_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
+#endif
 
 #endif // #ifndef __MFX_TRACE_H__

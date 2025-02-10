@@ -625,7 +625,7 @@ struct DHandlers {
 };
 typedef std::map<mfxU32, DHandlers> CodecId2Handlers;
 
-mfxStatus QueryImplsDescription(VideoCORE& core, mfxDecoderDescription& caps, mfx::PODArraysHolder& ah)
+mfxStatus QueryImplsDescription(VideoCORE& core, mfxDecoderDescription& caps, mfx::PODArraysHolder& ah, const std::vector<mfxU32>& codecIds)
 {
     static const CodecId2Handlers codecId2Handlers =
     {
@@ -739,16 +739,39 @@ mfxStatus QueryImplsDescription(VideoCORE& core, mfxDecoderDescription& caps, mf
     #endif
     };
 
-    for (auto& c : codecId2Handlers)
+    auto queryCodec = [&](auto& handler, const mfxU32& codecId)
     {
-        if (!c.second.QueryImplsDescription)
-            continue;
+        if (!handler.QueryImplsDescription)
+            return;
 
-        auto& dec = ah.PushBack(caps.Codecs);
-        dec.CodecID = c.first;
+        mfxDecoderDescription::decoder dec = {};
+        dec.CodecID = codecId;
 
-        MFX_SAFE_CALL(c.second.QueryImplsDescription(core, dec, ah));
+        if (MFX_ERR_NONE != handler.QueryImplsDescription(core, dec, ah))
+            return;
+
+        ah.PushBack(caps.Codecs) = dec;
         ++caps.NumCodecs;
+    };
+
+    if (codecIds.size() == 0)
+    {
+        for (auto& c : codecId2Handlers)
+        {
+            queryCodec(c.second, c.first);
+        }
+    }
+    else
+    {
+        for (auto& codecId : codecIds)
+        {
+            auto c = codecId2Handlers.find(codecId);
+
+            if (c == codecId2Handlers.end())
+                continue;
+
+            queryCodec(c->second, codecId);
+        }
     }
 
     return MFX_ERR_NONE;

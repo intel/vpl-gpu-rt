@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2024 Intel Corporation
+﻿// Copyright (c) 2007-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -596,9 +596,9 @@ namespace mfx
     };
 };
 
-mfxStatus QueryImplsDescription(VideoCORE&, mfxEncoderDescription&, mfx::PODArraysHolder&);
-mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription&, mfx::PODArraysHolder&);
-mfxStatus QueryImplsDescription(VideoCORE&, mfxVPPDescription&, mfx::PODArraysHolder&);
+mfxStatus QueryImplsDescription(VideoCORE&, mfxEncoderDescription&, mfx::PODArraysHolder&, const std::vector<mfxU32>& = {});
+mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription&, mfx::PODArraysHolder&, const std::vector<mfxU32>& = {});
+mfxStatus QueryImplsDescription(VideoCORE&, mfxVPPDescription&, mfx::PODArraysHolder&, const std::vector<mfxU32>& = {});
 
 inline
 std::tuple<mfxU32 /*Domain*/, mfxU32 /*Bus*/, mfxU32 /*Device*/, mfxU32 /*Function*/, mfxU16 /*RevisionID*/>
@@ -943,6 +943,244 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
         return impl;
     }
 }
+
+#if defined(ONEVPL_EXPERIMENTAL)
+typedef enum
+{
+    // Only fill top-level shallow fields in mfxImplDescription, not query into decoder/encoder/vpp
+    QueryProp_ImplDescription = 0,
+
+    // Query any codec or set of codecs for decode/encoder
+    // Query any VPP filter or set of filters​
+    QueryProp_DecCodecID,
+    QueryProp_EncCodecID,
+    QueryProp_VPPFilterFourCC,
+
+    // Query all decoder or encoder or VPP capabilities​
+    QueryProp_DecAll,
+    QueryProp_EncAll,
+    QueryProp_VPPAll,
+
+    // Query all and fill all fields in mfxImplDescription
+    QueryProp_All,
+
+    QueryProp_TotalProps
+} QueryPropAction;
+
+static const std::map<std::string, QueryPropAction> QueryPropMap
+{
+    { "mfxImplDescription"                                      , QueryProp_ImplDescription},
+
+    { "mfxImplDescription.mfxDecoderDescription.decoder.CodecID", QueryProp_DecCodecID},
+    { "mfxImplDescription.mfxEncoderDescription.encoder.CodecID", QueryProp_EncCodecID},
+    { "mfxImplDescription.mfxVPPDescription.filter.FilterFourCC", QueryProp_VPPFilterFourCC},
+
+    { "mfxImplDescription.mfxDecoderDescription",                 QueryProp_DecAll},
+    { "mfxImplDescription.mfxEncoderDescription",                 QueryProp_EncAll},
+    { "mfxImplDescription.mfxVPPDescription",                     QueryProp_VPPAll},
+};
+
+static mfxStatus ProcessQueryPropToAction(mfxQueryProperty** properties, mfxU32 num_properties, bool propAction[], std::map<QueryPropAction, std::vector<mfxU32>>& propAction2Data)
+{
+    for (mfxU32 i = 0; i < num_properties; i++)
+    {
+        if (properties[i] != nullptr && properties[i]->PropName != nullptr)
+        {
+            std::string query_prop_string(reinterpret_cast<char*>(properties[i]->PropName));
+            QueryPropAction query_action;
+
+            auto it = QueryPropMap.find(query_prop_string);
+
+            if (it != QueryPropMap.end())
+            {
+                query_action = it->second;
+            }
+            else
+            {
+                MFX_RETURN(MFX_ERR_UNSUPPORTED);
+            }
+
+            propAction[query_action] = true;
+
+            switch (query_action)
+            {
+            case QueryProp_DecCodecID:
+            case QueryProp_EncCodecID:
+            case QueryProp_VPPFilterFourCC:
+            {
+                if (properties[i]->PropVar.Type != MFX_VARIANT_TYPE_U32)
+                    MFX_RETURN(MFX_ERR_UNKNOWN);
+
+                propAction2Data[query_action].push_back(properties[i]->PropVar.Data.U32);
+
+                break;
+            }
+            case QueryProp_ImplDescription:
+            case QueryProp_DecAll:
+            case QueryProp_EncAll:
+            case QueryProp_VPPAll:
+            {
+                if (properties[i]->PropVar.Type != MFX_VARIANT_TYPE_QUERY)
+                    MFX_RETURN(MFX_ERR_UNKNOWN);
+
+                break;
+            }
+            default:
+                MFX_RETURN(MFX_ERR_UNSUPPORTED);
+            }
+        }
+        else
+        {
+            MFX_RETURN(MFX_ERR_NULL_PTR);
+        }
+    }
+
+    bool query_into_codecs = propAction[QueryProp_DecCodecID] || propAction[QueryProp_DecAll]
+        || propAction[QueryProp_EncCodecID] || propAction[QueryProp_EncAll]
+        || propAction[QueryProp_VPPFilterFourCC] || propAction[QueryProp_VPPAll];
+
+    if (propAction[QueryProp_ImplDescription] && query_into_codecs)
+        MFX_RETURN(MFX_ERR_UNKNOWN);
+
+    if (propAction[QueryProp_DecCodecID] && propAction[QueryProp_DecAll])
+        MFX_RETURN(MFX_ERR_UNKNOWN);
+
+    if (propAction[QueryProp_EncCodecID] && propAction[QueryProp_EncAll])
+        MFX_RETURN(MFX_ERR_UNKNOWN);
+
+    if (propAction[QueryProp_VPPFilterFourCC] && propAction[QueryProp_VPPAll])
+        MFX_RETURN(MFX_ERR_UNKNOWN);
+
+    // QueryProp_All may be used for future property granularity extension, which will
+    // be the default behavior if none of codecs or shallow capability are queried.
+    propAction[QueryProp_All] = !propAction[QueryProp_ImplDescription] && !query_into_codecs;
+
+    return MFX_ERR_NONE;
+}
+
+mfxHDL* MFX_CDECL MFXQueryImplsProperties(mfxQueryProperty** properties, mfxU32 num_properties, mfxU32* num_impls)
+{
+    PERF_UTILITY_AUTO(__FUNCTION__, PERF_LEVEL_API);
+    mfxHDL* impl = nullptr;
+    if (!num_impls)
+        return impl;
+
+    if ((num_properties == 0) || !properties)
+        return impl;
+
+    MFX_TRACE_INIT();
+    MFXTrace_EventInit();
+    TRACE_EVENT(MFX_TRACE_API_MFXQUERYIMPLSPROPERTIES_TASK, EVENT_TYPE_START, 0, make_event_data(num_properties));
+
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  num_properties = ", MFX_TRACE_FORMAT_I, num_properties);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In:  first property name = ", MFX_TRACE_FORMAT_S, (*properties)->PropName);
+
+    bool propAction[QueryProp_TotalProps] = { false };
+    std::map<QueryPropAction, std::vector<mfxU32>> propAction2Data;
+
+    if (MFX_FAILED(ProcessQueryPropToAction(properties, num_properties, propAction, propAction2Data)))
+        return impl;
+
+    try
+    {
+        std::unique_ptr<mfx::ImplDescriptionHolder> holder(new mfx::ImplDescriptionHolder);
+
+        auto QueryImplProp = [&](VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum, mfxU64, const std::vector<bool>& subDevMask) -> bool
+        {
+            if (!CommonCaps::IsVplHW(core.GetHWType(), deviceId))
+                return true;
+
+            if (propAction[QueryProp_ImplDescription])
+            {
+                // Only do the shallow query
+                auto& impl = holder->PushBack();
+
+                FillImplsDescription(impl, core, deviceId, adapterNum, subDevMask);
+
+                return true;
+            }
+
+            mfx::ImplDescription impl(nullptr);
+
+            FillImplsDescription(impl, core, deviceId, adapterNum, subDevMask);
+
+            impl.Dec.Version.Version = MFX_STRUCT_VERSION(1, 0);
+            impl.Enc.Version.Version = MFX_STRUCT_VERSION(1, 0);
+            impl.VPP.Version.Version = MFX_STRUCT_VERSION(1, 0);
+
+            if (propAction[QueryProp_EncCodecID])
+            {
+                QueryImplsDescription(core, impl.Enc, impl, propAction2Data[QueryProp_EncCodecID]);
+            }
+            else if (propAction[QueryProp_EncAll] || propAction[QueryProp_All])
+            {
+                QueryImplsDescription(core, impl.Enc, impl);
+            }
+
+            if (propAction[QueryProp_DecCodecID])
+            {
+                QueryImplsDescription(core, impl.Dec, impl, propAction2Data[QueryProp_DecCodecID]);
+            }
+            else if (propAction[QueryProp_DecAll] || propAction[QueryProp_All])
+            {
+                QueryImplsDescription(core, impl.Dec, impl);
+            }
+
+            if (propAction[QueryProp_VPPFilterFourCC])
+            {
+                QueryImplsDescription(core, impl.VPP, impl, propAction2Data[QueryProp_VPPFilterFourCC]);
+            }
+            else if (propAction[QueryProp_VPPAll] || propAction[QueryProp_All])
+            {
+                QueryImplsDescription(core, impl.VPP, impl);
+            }
+
+            if (impl.Enc.NumCodecs || impl.Dec.NumCodecs || impl.VPP.NumFilters)
+            {
+                // Copy and store info only if there is any match to requested configuration
+                auto& impl_to_fill = holder->PushBack();
+
+                // Copy the mfxImplDescription part of impl to the mfxImplDescription part of impl_to_fill
+                static_cast<mfxImplDescription&>(impl_to_fill) = static_cast<mfxImplDescription>(impl);
+
+                // Move the PODArraysHolder part of impl to the PODArraysHolder part of impl_to_fill
+                // The ownership of container's content will be transferred to PODArraysHolder of impl_to_fill
+                static_cast<mfx::PODArraysHolder&>(impl_to_fill) = static_cast<mfx::PODArraysHolder&&>(impl);
+            }
+
+            return true;
+        };
+
+        {
+            auto logSkip = GetMfxLogSkip();
+            std::ignore = logSkip;
+
+            InitMfxLogging();
+            MFX_LOG_API_TRACE("----------------MFXQueryImplsProperties----------------\n");
+
+            if (!QueryImplCaps(QueryImplProp))
+                return impl;
+        }
+
+        if (!holder->GetSize())
+            return impl;
+
+        *num_impls = mfxU32(holder->GetSize());
+
+        MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "Out:  num_impls = ", MFX_TRACE_FORMAT_I, *num_impls);
+
+        holder->Detach();
+        impl = holder.release()->GetArray();
+
+        return impl;
+    }
+    catch (...)
+    {
+        return impl;
+    }
+}
+#endif // defined(ONEVPL_EXPERIMENTAL)
 
 mfxStatus MFX_CDECL MFXReleaseImplDescription(mfxHDL hdl)
 {

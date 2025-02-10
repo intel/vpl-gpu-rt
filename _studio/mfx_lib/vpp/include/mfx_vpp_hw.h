@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2020 Intel Corporation
+// Copyright (c) 2008-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -896,7 +896,7 @@ namespace MfxHwVideoProcessing
         static
         mfxStatus Query(VideoCORE* core,mfxVideoParam *par);
         static
-        mfxStatus QueryImplsDescription(VideoCORE* core, mfxVPPDescription& caps, mfx::PODArraysHolder& arrayHolder);
+        mfxStatus QueryImplsDescription(VideoCORE* core, mfxVPPDescription& caps, mfx::PODArraysHolder& arrayHolder, const std::vector<mfxU32>& filterIds = {});
         static
         mfxStatus CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32& formatSupport);
         static

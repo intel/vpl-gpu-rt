@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Intel Corporation
+// Copyright (c) 2021-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -127,6 +127,9 @@ Since session object differs between RT and dispatcher this can lead to seg. fau
 #define MFXInitialize                        APIImpl_MFXInitialize
 #define MFXQueryImplsDescription             APIImpl_MFXQueryImplsDescription
 #define MFXReleaseImplDescription            APIImpl_MFXReleaseImplDescription
+#if defined(ONEVPL_EXPERIMENTAL)
+#define MFXQueryImplsProperties              APIImpl_MFXQueryImplsProperties
+#endif
 
 #endif //defined(MFX_DECLARE_API_FUNCTIONS_WRAPPERS)
 
@@ -220,6 +223,9 @@ MFX_API_FUNCTION_IMPL(MFXVideoDECODE_VPP_GetChannelParam, mfxStatus, (mfxSession
 MFX_API_FUNCTION_IMPL(MFXInitialize, mfxStatus, (mfxInitializationParam param, mfxSession* session), (param, session))
 MFX_API_FUNCTION_IMPL(MFXQueryImplsDescription, mfxHDL*, (mfxImplCapsDeliveryFormat format, mfxU32* num_impls), (format, num_impls))
 MFX_API_FUNCTION_IMPL(MFXReleaseImplDescription, mfxStatus, (mfxHDL hdl), (hdl))
+#if defined(ONEVPL_EXPERIMENTAL)
+MFX_API_FUNCTION_IMPL(MFXQueryImplsProperties, mfxHDL*, (mfxQueryProperty** properties, mfxU32 num_properties, mfxU32* num_impls), (properties, num_properties, num_impls))
+#endif
 
 #undef MFX_API_FUNCTION_IMPL
 

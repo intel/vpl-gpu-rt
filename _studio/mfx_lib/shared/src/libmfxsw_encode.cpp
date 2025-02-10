@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2022 Intel Corporation
+// Copyright (c) 2008-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -858,22 +858,45 @@ mfxStatus MFXMemory_GetSurfaceForEncode(mfxSession session, mfxFrameSurface1** o
     MFX_RETURN(session->m_pENCODE->GetSurface(output_surf, nullptr));
 }
 
-mfxStatus QueryImplsDescription(VideoCORE& core, mfxEncoderDescription& caps, mfx::PODArraysHolder& ah)
+mfxStatus QueryImplsDescription(VideoCORE& core, mfxEncoderDescription& caps, mfx::PODArraysHolder& ah, const std::vector<mfxU32>& codecIds)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    for (auto& c : codecId2Handlers)
+
+    auto queryCodec = [&](auto& handler, const mfxU32& codecId)
     {
-        if (!c.second.primary.QueryImplsDescription)
-            continue;
+        if (!handler.QueryImplsDescription)
+            return;
 
         mfxEncoderDescription::encoder enc = {};
-        enc.CodecID = c.first.codecId;
+        enc.CodecID = codecId;
 
-        if (MFX_ERR_NONE != c.second.primary.QueryImplsDescription(core, enc, ah))
-            continue;
+        if (MFX_ERR_NONE != handler.QueryImplsDescription(core, enc, ah))
+            return;
 
         ah.PushBack(caps.Codecs) = enc;
         ++caps.NumCodecs;
+    };
+
+    if (codecIds.size() == 0)
+    {
+        for (auto& c : codecId2Handlers)
+        {
+            queryCodec(c.second.primary, c.first.codecId);
+        }
+    }
+    else
+    {
+        for (auto& codecId : codecIds)
+        {
+            CodecKey searchKey(codecId);
+
+            auto c = codecId2Handlers.find(searchKey);
+
+            if (c == codecId2Handlers.end())
+                continue;
+
+            queryCodec(c->second.primary, codecId);
+        }
     }
 
     return MFX_ERR_NONE;

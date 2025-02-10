@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2024 Intel Corporation
+// Copyright (c) 2014-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -59,6 +59,9 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtThreadsParam        ,132  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxPlatform               ,32   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxStructVersion          ,2    )
+    #if defined(ONEVPL_EXPERIMENTAL)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxQueryProperty          ,24   )
+    #endif // defined(ONEVPL_EXPERIMENTAL)
 #endif //defined (__MFXCOMMON_H__)
 
 //mfxdefs.h
@@ -365,6 +368,11 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,CodeName                      ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,DeviceId                      ,2    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,MediaAdapterType              ,4    )
+
+    #if defined(ONEVPL_EXPERIMENTAL)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxQueryProperty                   ,PropName                      ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxQueryProperty                   ,PropVar                       ,8    )
+    #endif // defined(ONEVPL_EXPERIMENTAL)
 #endif //defined (__MFXCOMMON_H__)
 
 //mfxdefs.h

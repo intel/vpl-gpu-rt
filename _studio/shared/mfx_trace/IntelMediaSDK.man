@@ -234,6 +234,8 @@
           <event symbol="MFX_MARK_TASK_Info" value="356" version="0" task="MFX_MARK_TASK" opcode="win:Info" template="t_MFX_MARK_TASK_Info"></event>
           <event symbol="MFX_MARK_TASK_Entry" value="357" version="0" task="MFX_MARK_TASK" opcode="win:Start" ></event>
           <event symbol="MFX_MARK_TASK_Exit" value="358" version="0" task="MFX_MARK_TASK" opcode="win:Stop" ></event>
+          <event symbol="MFXQueryImplsPropertiesEntry" value="360" version="0" task="MFXQueryImplsProperties" opcode="win:Start" template="MFXQueryImplsProperties_Entry" />
+          <event symbol="MFXQueryImplsPropertiesExit" value="361" version="0" task="MFXQueryImplsProperties" opcode="win:Stop" template="MFXQueryImplsProperties_Exit" />
 
         </events>
         <tasks>
@@ -326,6 +328,7 @@
           <task name="MFX_GET_TASK" symbol="MFX_TRACE_API_GET_TASK" value="87" eventGUID="{00000000-0000-0000-0000-000000000000}" />
           <task name="MFX_QUERY_TASK" symbol="MFX_TRACE_API_QUERY_TASK" value="88" eventGUID="{00000000-0000-0000-0000-000000000000}" />
           <task name="MFX_MARK_TASK" symbol="MFX_TRACE_API_MARK_TASK" value="89" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="MFXQueryImplsProperties" symbol="MFX_TRACE_API_MFXQUERYIMPLSPROPERTIES_TASK_ETW" value="90" eventGUID="{00000000-0000-0000-0000-000000000000}" />
 
             
         </tasks>
@@ -2208,6 +2211,12 @@
                 <data name="TaskId" inType="win:UInt32" outType="xs:unsignedInt" />
                 <data name="ThreadNum" inType="win:UInt32" outType="xs:unsignedInt" />
                 <data name="call.res" inType="win:UInt32" map="mfxStatus" />
+            </template>
+            <template tid="MFXQueryImplsProperties_Entry">
+                <data name="num_properties" inType="win:UInt32" outType="xs:unsignedInt" />
+            </template>
+            <template tid="MFXQueryImplsProperties_Exit">
+                <data name="num_impls" inType="win:UInt32" outType="xs:unsignedInt" />
             </template>
         </templates>
       </provider>

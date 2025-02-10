@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2021 Intel Corporation
+// Copyright (c) 2008-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <limits>
 #include "math.h"
+#include <unordered_set>
 
 #include "libmfx_core.h"
 #include "libmfx_core_interface.h"
@@ -2224,16 +2225,15 @@ mfxStatus VideoVPPHW::Query(VideoCORE *core, mfxVideoParam *par)
     return sts;
 }
 
-mfxStatus VideoVPPHW::QueryImplsDescription(VideoCORE* core, mfxVPPDescription& caps, mfx::PODArraysHolder& arrayHolder)
+mfxStatus VideoVPPHW::QueryImplsDescription(VideoCORE* core, mfxVPPDescription& caps, mfx::PODArraysHolder& arrayHolder, const std::vector<mfxU32>& filterIds)
 {
     MfxHwVideoProcessing::mfxVppCaps vppCaps;
     QueryCaps(core, vppCaps);
     std::vector<mfxU32> capsList;
     ConvertCaps2ListDoUse(vppCaps, capsList);
 
-    for(auto &filterId : capsList)
+    auto queryFilter = [&](const mfxU32& filterId)
     {
-
         mfxVPPDescription::filter filter = { };
         filter.FilterFourCC = filterId;
 
@@ -2250,7 +2250,7 @@ mfxStatus VideoVPPHW::QueryImplsDescription(VideoCORE* core, mfxVPPDescription& 
             {
                 auto& formatIn = arrayHolder.PushBack(memCaps.Formats);
                 formatIn.InFormat = fourcc;
-                
+
                 for (auto fourccOut : g_TABLE_SUPPORTED_FOURCC)
                 {
                     mfxU32 outputFormat = 0;
@@ -2271,6 +2271,26 @@ mfxStatus VideoVPPHW::QueryImplsDescription(VideoCORE* core, mfxVPPDescription& 
 
         arrayHolder.PushBack(caps.Filters) = filter;
         caps.NumFilters++;
+    };
+
+    if (filterIds.size() == 0)
+    {
+        for (auto& filterId : capsList)
+        {
+            queryFilter(filterId);
+        }
+    }
+    else
+    {
+        std::unordered_set<mfxU32> capsSet(capsList.begin(), capsList.end());
+
+        for (auto& filterId : filterIds)
+        {
+            if (capsSet.find(filterId) == capsSet.end())
+                continue;
+
+            queryFilter(filterId);
+        }
     }
 
     return MFX_ERR_NONE;
