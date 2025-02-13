@@ -699,7 +699,6 @@ namespace UMC_AV1_DECODER
                 uint32_t lst_shift;
                 bs.ReadOBUInfo(obuInfo);
                 const AV1_OBU_TYPE obuType = obuInfo.header.obu_type;
-                auto frame_source = dynamic_cast<SurfaceSource*>(allocator);
 
                 if (obuInfo.header.obu_type > OBU_PADDING)
                     return UMC::UMC_ERR_INVALID_PARAMS;
@@ -743,11 +742,8 @@ namespace UMC_AV1_DECODER
                         Update_drc(sequence_header.get());
                         m_RecreateSurfaceFlag = IsNeedRecreateSurface(old_seqHdr.get(), sequence_header.get());
 
-                        if ((frame_source && !frame_source->GetSurfaceType()) || (frame_source->GetSurfaceType() && m_RecreateSurfaceFlag))
-                        {
-                            // new resolution required
-                            return UMC::UMC_NTF_NEW_RESOLUTION;
-                        }
+                        // new resolution required
+                        return UMC::UMC_NTF_NEW_RESOLUTION;
                     }
 
                     set_seq_header_ready();
@@ -786,11 +782,9 @@ namespace UMC_AV1_DECODER
                         PreFrame_id = OldPreFrame_id;
 
                         m_RecreateSurfaceFlag = IsNeedRecreateSurface(old_seqHdr.get(), sequence_header.get());
-                        if ((frame_source && !frame_source->GetSurfaceType()) || (frame_source->GetSurfaceType() && m_RecreateSurfaceFlag))
-                        {
-                            // new resolution required
-                            return UMC::UMC_NTF_NEW_RESOLUTION;
-                        }
+
+                        // new resolution required
+                        return UMC::UMC_NTF_NEW_RESOLUTION;
                     }
 
                     fh.output_frame_width_in_tiles  = tlInfo.frameWidthInTiles;

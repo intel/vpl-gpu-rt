@@ -331,16 +331,7 @@ UMC::Status MFXTaskSupplier_H265::DecodeHeaders(UMC::MediaDataEx *nalUnit)
                 m_firstVideoParams.mfx.FrameInfo.Height < (currSPS->pic_height_in_luma_samples) ||
                 (currSPS->m_pcPTL.GetGeneralPTL()->level_idc && m_firstVideoParams.mfx.CodecLevel && m_firstVideoParams.mfx.CodecLevel < currSPS->m_pcPTL.GetGeneralPTL()->level_idc))
             {
-                auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
-                if (frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag)
-                {
-                    return UMC::UMC_OK;
-                }
-                else
-                {
-                    return UMC::UMC_NTF_NEW_RESOLUTION;
-                }
-
+                return UMC::UMC_NTF_NEW_RESOLUTION;
             }
         }
 

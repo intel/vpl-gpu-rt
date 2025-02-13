@@ -1871,16 +1871,7 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
                         {
                             int32_t nalIndex = pMediaDataEx->index;
                             int32_t size = pMediaDataEx->offsets[nalIndex + 1] - pMediaDataEx->offsets[nalIndex];
-
-                            auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
-                            if (frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag)
-                            {
-                                m_checkCRAInsideResetProcess = false;
-                            }
-                            else
-                            {
-                                m_checkCRAInsideResetProcess = true;
-                            }
+                            m_checkCRAInsideResetProcess = true;
 
                             if (AddSlice(0, !pSource) == UMC::UMC_OK)
                             {

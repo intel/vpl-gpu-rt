@@ -165,15 +165,7 @@ UMC::Status VATaskSupplier::AllocateFrameData(H265DecoderFrame * pFrame, mfxSize
     auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
     if (sts != UMC::UMC_OK)
     {
-        if (sts == UMC::UMC_ERR_NOT_ENOUGH_BUFFER && frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag)
-        {
-            m_drcFrameWidth = (uint16_t)dimensions.width;
-            m_drcFrameHeight = (uint16_t)dimensions.height;
-        }
-        else
-        {
-            throw h265_exception(UMC::UMC_ERR_ALLOC);
-        }
+        throw h265_exception(UMC::UMC_ERR_ALLOC);
     }
 
     if (frame_source)

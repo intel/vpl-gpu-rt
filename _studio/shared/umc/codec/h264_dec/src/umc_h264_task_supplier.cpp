@@ -3352,29 +3352,16 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
             umsRes = DecodeHeaders(nalUnit);
             if (umsRes != UMC_OK)
             {
-                auto frame_source = dynamic_cast<SurfaceSource*>(m_pFrameAllocator);
-                bool flag = false;
                 if (umsRes == UMC_NTF_NEW_RESOLUTION && pSource)
                 {
-                    //surface can reallocate when mem2.0 resolution changed, the status don't need to return
-                    //surface need to recreate when mem1.0 or sps params changed of mem2.0, the status need to return 
-                    if (frame_source && frame_source->GetSurfaceType() && !m_RecreateSurfaceFlag) 
-                    {
-                        flag = true;
-                    }
-                    else 
-                    {
-                        int32_t size = (int32_t)nalUnit->GetDataSize();
-                        pSource->MoveDataPointer(-size - 3);
-                    }
+                    int32_t size = (int32_t)nalUnit->GetDataSize();
+                    pSource->MoveDataPointer(-size - 3);
                 }
                 else if (pDecodeErrorReport && umsRes == UMC_ERR_INVALID_STREAM)
                 {
                     SetDecodeErrorTypes(nalUnit->GetNalUnitType(), pDecodeErrorReport);
                 }
-
-                if(!flag)
-                    return umsRes;
+                return umsRes;
             }
 
             if (nalUnit->GetNalUnitType() == NAL_UT_SPS || nalUnit->GetNalUnitType() == NAL_UT_PPS)
