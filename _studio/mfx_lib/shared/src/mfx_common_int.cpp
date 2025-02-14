@@ -357,6 +357,7 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId)
         }
 #endif
     case MFX_CODEC_HEVC:
+    case MFX_CODEC_AVC:
         break;
     default:
         if (info->FourCC == MFX_FOURCC_P010
