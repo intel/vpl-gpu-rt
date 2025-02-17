@@ -675,6 +675,7 @@ namespace MfxHwH264Encode
         mfxExtPartialBitstreamParam m_po;
 #endif
 
+
         std::vector<mfxMVCViewDependency> m_storageView;
         std::vector<mfxMVCOperationPoint> m_storageOp;
         std::vector<mfxU16>               m_storageViewId;
