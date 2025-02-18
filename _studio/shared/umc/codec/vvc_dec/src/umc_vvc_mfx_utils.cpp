@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023 Intel Corporation
+// Copyright (c) 2022-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -102,8 +102,8 @@ namespace UMC_VVC_DECODER
         par->mfx.FrameInfo.PicStruct = static_cast<mfxU16>(pSps->sps_field_seq_flag ? MFX_PICSTRUCT_FIELD_SINGLE : MFX_PICSTRUCT_PROGRESSIVE);
         par->mfx.FrameInfo.ChromaFormat = (mfxU16)(pSps->sps_chroma_format_idc);
 
-        par->mfx.FrameInfo.AspectRatioW = (mfxU16)(pPps->pps_pic_width_in_luma_samples);;
-        par->mfx.FrameInfo.AspectRatioH = (mfxU16)(pPps->pps_pic_height_in_luma_samples);
+        par->mfx.FrameInfo.AspectRatioW = 1; // There is a known gap in VVC VPL, which does not implement to parse VUI messages,so AspectRatioW and AspectRatioH are set 1 by default.
+        par->mfx.FrameInfo.AspectRatioH = 1;
 
         par->mfx.FrameInfo.FrameRateExtN = (mfxU32)(pSps->general_timing_hrd_parameters.time_scale);
         par->mfx.FrameInfo.FrameRateExtD = (mfxU32)(pSps->general_timing_hrd_parameters.num_units_in_tick);
