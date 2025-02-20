@@ -357,12 +357,7 @@ typedef struct {
         mfxU32 CodecID;                                  /*!< Encoder ID in FourCC format. */
         mfxU16 MaxcodecLevel;                            /*!< Maximum supported codec level. See the CodecProfile enumerator for possible values. */
         mfxU16 BiDirectionalPrediction;                  /*!< Indicates B-frames support. */
-#ifdef ONEVPL_EXPERIMENTAL
-        mfxU16 ReportedStats;                            /*!< Indicates what type of statistics can be reported: block/slice/tile/frame. */
-        mfxU16 reserved[6];                              /*!< Reserved for future use. */
-#else
         mfxU16 reserved[7];                              /*!< Reserved for future use. */
-#endif
         mfxU16 NumProfiles;                              /*!< Number of supported profiles. */
         /*! This structure represents the codec profile description. */
         struct encprofile {
