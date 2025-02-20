@@ -58,6 +58,11 @@ namespace CommonCaps {
         return platform <= MFX_HW_XE_HP_SDV;
     }
 
+    inline bool IsSrAlgorithm2Unsupported(eMFXHWType platform)
+    {
+        return (platform != MFX_HW_DG2);
+    }
+
     inline bool IsVAEncSliceLPSupported(eMFXHWType platform)
     {
         return (platform < MFX_HW_MTL);

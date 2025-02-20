@@ -5489,6 +5489,15 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
                 {
                     sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
                 }
+
+                if(extSr->SRAlgorithm == MFX_AI_SUPER_RESOLUTION_ALGORITHM_2)
+                { 
+                    if (((inputWidth > 1280) || (inputHeight > 720)) &&
+                        (CommonCaps::IsSrAlgorithm2Unsupported(core->GetHWType())))
+                    {
+                        sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+                    }
+                }
             }
             break;
         }
