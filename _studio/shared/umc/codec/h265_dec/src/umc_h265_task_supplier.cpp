@@ -2305,10 +2305,10 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
             !IsPictureTheSame(firstSlice, pSlice);
         if (changed)
         {
+            m_pLastSlice = pSlice;
             CompleteFrame(view.pCurFrame);
             OnFullFrame(view.pCurFrame);
             view.pCurFrame = NULL;
-            m_pLastSlice = pSlice;
             return UMC::UMC_OK;
         }
     }
