@@ -280,7 +280,8 @@ mfxStatus MFXVideoFrameInterpolation::InitVppAndAllocateSurface(
         extBufferPost.push_back(&vsOutPost.Header);
     }
 
-    auto [isCscNeeded, isScalingNeed] = IsVppNeededForVfi(inInfo, outInfo);
+    auto bools = IsVppNeededForVfi(inInfo, outInfo);
+    bool isCscNeeded = std::get<0>(bools), isScalingNeed = std::get<1>(bools);
     m_vppForFi = isCscNeeded || isScalingNeed;
 
     if (m_vppForFi)

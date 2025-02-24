@@ -35,11 +35,6 @@ target_link_libraries(vpp_hw
     $<$<AND:$<PLATFORM_ID:Windows>,$<BOOL:${MFX_ENABLE_EXT}>>:ai_vfi_ext>
   )
 
-target_compile_features (vpp_hw
-  PRIVATE
-    cxx_std_17
-)
-
 add_library(vpp_hw_avx2
   STATIC
     src/mfx_perc_enc_vpp_avx2.cpp)
