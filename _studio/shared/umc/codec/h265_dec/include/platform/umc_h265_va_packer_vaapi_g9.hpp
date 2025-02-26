@@ -181,8 +181,6 @@ namespace UMC_HEVC_DECODER
             pic_fields.NoBiPredFlag                                          = 0;
 
             pp->sps_max_dec_pic_buffering_minus1                             = (uint8_t)(sps->sps_max_dec_pic_buffering[sh->nuh_temporal_id] - 1);
-            pp->bit_depth_luma_minus8                                        = (uint8_t)(sps->bit_depth_luma - 8);
-            pp->bit_depth_chroma_minus8                                      = (uint8_t)(sps->bit_depth_chroma - 8);
             pp->pcm_sample_bit_depth_luma_minus1                             = (uint8_t)(sps->pcm_sample_bit_depth_luma - 1);
             pp->pcm_sample_bit_depth_chroma_minus1                           = (uint8_t)(sps->pcm_sample_bit_depth_chroma - 1);
             pp->log2_min_luma_coding_block_size_minus3                       = (uint8_t)(sps->log2_min_luma_coding_block_size- 3);
@@ -441,6 +439,11 @@ namespace UMC_HEVC_DECODER
 
                 VAPictureParameterBufferHEVC* pp = nullptr;
                 PeekParamsBuffer(m_va, &pp);
+                // XXX: Get bit_depth from mfxParam instead of bitstream so that we can configure
+                // the output bit format.
+                pp->bit_depth_luma_minus8 = color_format2bit_depth(supplier->GetColorformat()) - 8;
+                pp->bit_depth_chroma_minus8 = color_format2bit_depth(supplier->GetColorformat()) - 8;
+
                 PackPicHeader(m_va, frame, dpb, pp);
             }
 
