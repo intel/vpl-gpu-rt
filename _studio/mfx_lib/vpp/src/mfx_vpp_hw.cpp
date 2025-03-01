@@ -7160,6 +7160,16 @@ mfxStatus ConfigureExecuteParams(
         }
     }
 
+    if ( (0 == memcmp(&videoParam.vpp.In, &videoParam.vpp.Out, sizeof(mfxFrameInfo))) &&
+         executeParams.IsDoNothing() )
+    {
+        config.m_bCopyPassThroughEnable = true;
+    }
+    else
+    {
+        config.m_bCopyPassThroughEnable = false; // after Reset() parameters may be changed,
+                                                 // flag should be disabled
+    }
 
     if (inDNRatio == outDNRatio && !executeParams.bVarianceEnable && !executeParams.bComposite &&
             !(config.m_extConfig.mode == IS_REFERENCES) )
