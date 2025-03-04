@@ -4838,6 +4838,8 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
     else
     {
         sts = (*m_ddi)->Execute(&execParams);
+        // VPL query driver stautus and get back
+        m_executeParams.srGetParams = execParams.srGetParams;
     }
 
     if (sts != MFX_ERR_NONE)
