@@ -2321,9 +2321,11 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
             && par.calcParam.cqpHrdMode == 0)
         {
-            if (!CheckRange(par.mfx.QPI, 10, 51)) changed = true;
-            if (!CheckRange(par.mfx.QPP, 10, 51)) changed = true;
-            if (!CheckRange(par.mfx.QPB, 10, 51)) changed = true;
+            mfxU8 minQP = 10;
+            mfxU8 maxQP = 51;
+            if (!CheckRange(par.mfx.QPI, minQP, maxQP)) changed = true;
+            if (!CheckRange(par.mfx.QPP, minQP, maxQP)) changed = true;
+            if (!CheckRange(par.mfx.QPB, minQP, maxQP)) changed = true;
         }
     }
 
@@ -3902,9 +3904,11 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
         && par.calcParam.cqpHrdMode == 0)
     {
-        if (!CheckRange(par.mfx.QPI, 0, 51)) changed = true;
-        if (!CheckRange(par.mfx.QPP, 0, 51)) changed = true;
-        if (!CheckRange(par.mfx.QPB, 0, 51)) changed = true;
+        mfxU8 maxQP = 51;
+        mfxU8 minQP = 0;
+        if (!CheckRange(par.mfx.QPI, minQP, maxQP)) changed = true;
+        if (!CheckRange(par.mfx.QPP, minQP, maxQP)) changed = true;
+        if (!CheckRange(par.mfx.QPB, minQP, maxQP)) changed = true;
     }
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR &&
@@ -4038,8 +4042,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                 //Check of weightedPredFlag is actually not needed, as it was read from 1 bit in extBits->PPSBuffer
                 extPps->weightedPredFlag > 1                           ||
                 extPps->weightedBipredIdc > 2                          ||
-                extPps->picInitQpMinus26 < -26                         ||
-                extPps->picInitQpMinus26 > 25                          ||
                 extPps->picInitQsMinus26 != 0                          ||
                 extPps->chromaQpIndexOffset < -12                      ||
                 extPps->chromaQpIndexOffset > 12                       ||
@@ -4724,12 +4726,15 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         || extOpt2->MinQPP || extOpt2->MaxQPP
         || extOpt2->MinQPB || extOpt2->MaxQPB)
     {
-        if (!CheckRangeDflt(extOpt2->MaxQPI, 0, 51, 0)) changed = true;
-        if (!CheckRangeDflt(extOpt2->MaxQPP, 0, 51, 0)) changed = true;
-        if (!CheckRangeDflt(extOpt2->MaxQPB, 0, 51, 0)) changed = true;
-        if (!CheckRangeDflt(extOpt2->MinQPI, 0, (extOpt2->MaxQPI ? extOpt2->MaxQPI : 51), 0)) changed = true;
-        if (!CheckRangeDflt(extOpt2->MinQPP, 0, (extOpt2->MaxQPP ? extOpt2->MaxQPP : 51), 0)) changed = true;
-        if (!CheckRangeDflt(extOpt2->MinQPB, 0, (extOpt2->MaxQPB ? extOpt2->MaxQPB : 51), 0)) changed = true;
+        mfxU8 maxQP = 51;
+        mfxU8 minQP = 0;
+        mfxU8 deflt = 0;
+        if (!CheckRangeDflt(extOpt2->MaxQPI, minQP, maxQP, deflt)) changed = true;
+        if (!CheckRangeDflt(extOpt2->MaxQPP, minQP, maxQP, deflt)) changed = true;
+        if (!CheckRangeDflt(extOpt2->MaxQPB, minQP, maxQP, deflt)) changed = true;
+        if (!CheckRangeDflt(extOpt2->MinQPI, minQP, (extOpt2->MaxQPI ? extOpt2->MaxQPI : maxQP), deflt)) changed = true;
+        if (!CheckRangeDflt(extOpt2->MinQPP, minQP, (extOpt2->MaxQPP ? extOpt2->MaxQPP : maxQP), deflt)) changed = true;
+        if (!CheckRangeDflt(extOpt2->MinQPB, minQP, (extOpt2->MaxQPB ? extOpt2->MaxQPB : maxQP), deflt)) changed = true;
     }
 
     if (!CheckTriStateOption(extOpt3->BRCPanicMode)) changed = true;
@@ -9786,7 +9791,8 @@ mfxU32 HeaderPacker::WriteSlice(
     }
     if (pps.entropyCodingModeFlag && sliceType != SLICE_TYPE_I)
         obs.PutUe(m_cabacInitIdc);
-    obs.PutSe(task.m_cqpValue[fieldId] - (pps.picInitQpMinus26 + 26));
+    mfxI8 sliceDeltaQp = task.m_cqpValue[fieldId] - (pps.picInitQpMinus26 + 26);
+    obs.PutSe(sliceDeltaQp);
     if (pps.deblockingFilterControlPresentFlag)
     {
         mfxU32 disableDeblockingFilterIdc = task.m_disableDeblockingIdc[fieldId][sliceId];

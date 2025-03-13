@@ -329,8 +329,10 @@ namespace MfxHwH264Encode
     {
         const mfxExtCodingOption2& CO2 = GetExtBufferRef(par);
         const mfxExtCodingOption3& CO3 = GetExtBufferRef(par);
-        const mfxU8 minQP = 1;
-        const mfxU8 maxQP = 51;
+        mfxI8 tempMin = 1;
+        mfxI8 tempMax = 51;
+        const mfxI8 minQP = tempMin;
+        const mfxI8 maxQP = tempMax;
         mfxU8 QP = 0;
 
         if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP /*||

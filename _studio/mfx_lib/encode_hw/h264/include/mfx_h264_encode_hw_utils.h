@@ -260,6 +260,7 @@ namespace MfxHwH264Encode
     }
 
     typedef Pair<mfxU8>  PairU8;
+    typedef Pair<mfxI8>  PairI8;
     typedef Pair<mfxU16> PairU16;
     typedef Pair<mfxU32> PairU32;
     typedef Pair<mfxI32> PairI32;
@@ -1250,7 +1251,7 @@ namespace MfxHwH264Encode
         mfxU32  m_idxReconOffset;       // offset for multi-view coding
         mfxU16  m_idrPicId;
         PairU8  m_subMbPartitionAllowed;
-        PairU8  m_cqpValue;
+        PairI8  m_cqpValue;
         PairU8  m_insertAud;
         PairU8  m_insertSps;
         PairU8  m_insertPps;
