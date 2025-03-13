@@ -53,12 +53,15 @@ public:
 
     virtual void PackAU(std::vector<TileSet>&, AV1DecoderFrame const&, bool) = 0;
     virtual void RegisterAnchor(UMC::FrameMemID) = 0;
+    mfxU16 GetBitDepth() { return m_bitDepth; }
+    void SetBitDepth(mfxU16 bitDepth) { m_bitDepth = bitDepth; }
 
     static Packer* CreatePacker(UMC::VideoAccelerator * va);
 
 protected:
 
     UMC::VideoAccelerator *m_va;
+    mfxU16 m_bitDepth = 8;
 };
 
 } // namespace UMC_AV1_DECODER
