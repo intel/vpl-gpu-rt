@@ -1026,11 +1026,21 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
 
         // Check for invalid cases
         if (out->vpp.In.PicStruct != MFX_PICSTRUCT_PROGRESSIVE &&
-            out->vpp.In.PicStruct != MFX_PICSTRUCT_FIELD_TFF   &&
-            out->vpp.In.PicStruct != MFX_PICSTRUCT_FIELD_BFF   &&
+            out->vpp.In.PicStruct != (MFX_PICSTRUCT_PROGRESSIVE | MFX_PICSTRUCT_FRAME_DOUBLING) &&
+            out->vpp.In.PicStruct != (MFX_PICSTRUCT_PROGRESSIVE | MFX_PICSTRUCT_FRAME_TRIPLING) &&
+            out->vpp.In.PicStruct != (MFX_PICSTRUCT_PROGRESSIVE | MFX_PICSTRUCT_FIELD_BFF) &&
+            out->vpp.In.PicStruct != (MFX_PICSTRUCT_PROGRESSIVE | MFX_PICSTRUCT_FIELD_TFF) &&
+            out->vpp.In.PicStruct != (MFX_PICSTRUCT_PROGRESSIVE | MFX_PICSTRUCT_FIELD_BFF | MFX_PICSTRUCT_FIELD_REPEATED) &&
+            out->vpp.In.PicStruct != (MFX_PICSTRUCT_PROGRESSIVE | MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_REPEATED) &&
+            out->vpp.In.PicStruct != MFX_PICSTRUCT_FIELD_BFF &&
+            out->vpp.In.PicStruct != MFX_PICSTRUCT_FIELD_TFF &&
             out->vpp.In.PicStruct != MFX_PICSTRUCT_FIELD_SINGLE &&
             out->vpp.In.PicStruct != MFX_PICSTRUCT_FIELD_TOP && // Field pass-through
+            out->vpp.In.PicStruct != (MFX_PICSTRUCT_FIELD_TOP | MFX_PICSTRUCT_FIELD_PAIRED_NEXT) &&
+            out->vpp.In.PicStruct != (MFX_PICSTRUCT_FIELD_TOP | MFX_PICSTRUCT_FIELD_PAIRED_PREV) &&
             out->vpp.In.PicStruct != MFX_PICSTRUCT_FIELD_BOTTOM &&
+            out->vpp.In.PicStruct != (MFX_PICSTRUCT_FIELD_BOTTOM | MFX_PICSTRUCT_FIELD_PAIRED_NEXT) &&
+            out->vpp.In.PicStruct != (MFX_PICSTRUCT_FIELD_BOTTOM | MFX_PICSTRUCT_FIELD_PAIRED_PREV) &&
             out->vpp.In.PicStruct != MFX_PICSTRUCT_UNKNOWN)
         {
 
