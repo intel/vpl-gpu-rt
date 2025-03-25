@@ -2272,9 +2272,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                 changed = true;
         }
     }
-    if (hwCaps.ddi_caps.MaxNum_TemporalLayer != 0 &&
-        hwCaps.ddi_caps.MaxNum_TemporalLayer < par.calcParam.numTemporalLayer)
-        MFX_RETURN(Error(MFX_ERR_UNSUPPORTED));
 
     if (!CheckTriStateOption(par.mfx.LowPower)) changed = true;
 
