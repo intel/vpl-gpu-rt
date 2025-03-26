@@ -1276,6 +1276,7 @@ enum {
     /*! @{ */
     /* VVC Profiles */
     MFX_PROFILE_VVC_MAIN10                  = 1,
+    MFX_PROFILE_VVC_MAIN10_STILL_PICTURE    = 65,
     /*! @} */
 
     /*! @{ */
@@ -1293,6 +1294,7 @@ enum {
     MFX_LEVEL_VVC_6                         = 96,
     MFX_LEVEL_VVC_61                        = 99,
     MFX_LEVEL_VVC_62                        = 102,
+    MFX_LEVEL_VVC_63                        = 105,
     MFX_LEVEL_VVC_155                       = 255,
     /*! @} */
 
