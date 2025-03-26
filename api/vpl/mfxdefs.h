@@ -210,7 +210,7 @@ typedef enum {
     MFX_VARIANT_TYPE_FP16  = MFX_DATA_TYPE_FP16,                         /*!< 16-bit half precision floating point. */
 
 #ifdef ONEVPL_EXPERIMENTAL
-    MFX_VARIANT_TYPE_QUERY = 1000,                                       /*!< May be added to other datatype to skip filtering, or used alone for query-only properties */
+    MFX_VARIANT_TYPE_QUERY = 0x00000100,                                 /*!< Bitmask to OR with other variant types when using property-based query API */
 #endif
 } mfxVariantType;
 
