@@ -192,8 +192,6 @@ namespace UMC_VVC_DECODER
         // Initialize mfxVideoParam structure based on decoded bitstream header values
         virtual UMC::Status FillVideoParam(mfxVideoParam *par/*, bool full*/);
 
-        virtual UMC::Status getWinUit(int chromaIdc, int* unitX, int* unitY);
-
         // Return raw sequence header
         virtual RawHeader_VVC *GetSeqHeader() { return &m_rawHeaders; }
 

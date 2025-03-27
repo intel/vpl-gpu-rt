@@ -94,10 +94,15 @@ namespace UMC_VVC_DECODER
         par->mfx.FrameInfo.BitDepthChroma = (mfxU16)(pSps->sps_bitdepth_minus8 + 8);
         par->mfx.FrameInfo.Shift = 0;
 
-        par->mfx.FrameInfo.CropX = (mfxU16)(pPps->pps_conf_win_left_offset);
-        par->mfx.FrameInfo.CropY = (mfxU16)(pPps->pps_conf_win_top_offset);
-        par->mfx.FrameInfo.CropH = (mfxU16)(pPps->pps_pic_height_in_luma_samples - (pPps->pps_conf_win_top_offset + pPps->pps_conf_win_bottom_offset));
-        par->mfx.FrameInfo.CropW = (mfxU16)(pPps->pps_pic_width_in_luma_samples - (pPps->pps_conf_win_left_offset + pPps->pps_conf_win_right_offset));
+        int unitX = 1;
+        int unitY = 1;
+        if (getWinUnit(pSps->sps_chroma_format_idc, unitX, unitY) != UMC::UMC_OK)
+            return UMC::UMC_ERR_FAILED;
+
+        par->mfx.FrameInfo.CropX = (mfxU16)(pPps->pps_conf_win_left_offset * unitX);
+        par->mfx.FrameInfo.CropY = (mfxU16)(pPps->pps_conf_win_top_offset * unitY);
+        par->mfx.FrameInfo.CropH = (mfxU16)(pPps->pps_pic_height_in_luma_samples - (pPps->pps_conf_win_top_offset + pPps->pps_conf_win_bottom_offset) * unitY);
+        par->mfx.FrameInfo.CropW = (mfxU16)(pPps->pps_pic_width_in_luma_samples - (pPps->pps_conf_win_left_offset + pPps->pps_conf_win_right_offset) * unitX);
 
         par->mfx.FrameInfo.PicStruct = static_cast<mfxU16>(pSps->sps_field_seq_flag ? MFX_PICSTRUCT_FIELD_SINGLE : MFX_PICSTRUCT_PROGRESSIVE);
         par->mfx.FrameInfo.ChromaFormat = (mfxU16)(pSps->sps_chroma_format_idc);
@@ -157,8 +162,14 @@ namespace UMC_VVC_DECODER
 
         par->mfx.FrameInfo.Width = (mfxU16)(pPps->pps_pic_width_in_luma_samples);
         par->mfx.FrameInfo.Height = (mfxU16)(pPps->pps_pic_height_in_luma_samples);
-        par->mfx.FrameInfo.CropH = (mfxU16)(pPps->pps_pic_height_in_luma_samples - (pPps->pps_conf_win_top_offset + pPps->pps_conf_win_bottom_offset));
-        par->mfx.FrameInfo.CropW = (mfxU16)(pPps->pps_pic_width_in_luma_samples - (pPps->pps_conf_win_left_offset + pPps->pps_conf_win_right_offset));
+
+        int unitX = 1;
+        int unitY = 1;
+        if (getWinUnit(pSps->sps_chroma_format_idc, unitX, unitY) != UMC::UMC_OK)
+            return UMC::UMC_ERR_FAILED;
+
+        par->mfx.FrameInfo.CropH = (mfxU16)(pPps->pps_pic_height_in_luma_samples - (pPps->pps_conf_win_top_offset + pPps->pps_conf_win_bottom_offset) * unitY);
+        par->mfx.FrameInfo.CropW = (mfxU16)(pPps->pps_pic_width_in_luma_samples - (pPps->pps_conf_win_left_offset + pPps->pps_conf_win_right_offset) * unitX);
 
         par->mfx.FrameInfo.BitDepthLuma = (mfxU16)(pSps->sps_bitdepth_minus8 + 8);
         par->mfx.FrameInfo.BitDepthChroma = (mfxU16)(pSps->sps_bitdepth_minus8 + 8);
@@ -713,6 +724,19 @@ namespace UMC_VVC_DECODER
             default:
                 return MFX_LEVEL_UNKNOWN;
         }
+    }
+
+    UMC::Status getWinUnit(int chromaIdc, int& unitX, int& unitY)
+    {
+        const int winUnitX[] = { 1,2,2,1 };
+        const int WinUnitY[] = { 1,2,1,1 };
+
+        if (chromaIdc < CHROMA_FORMAT_400 || chromaIdc > CHROMA_FORMAT_444)
+            return UMC::UMC_ERR_FAILED;
+
+        unitX = winUnitX[chromaIdc];
+        unitY = WinUnitY[chromaIdc];
+        return UMC::UMC_OK;
     }
 
     }

@@ -43,6 +43,7 @@ namespace UMC_VVC_DECODER
         void GetMfxFrameRate(uint8_t frame_rate_value, mfxU32 & frameRateN, mfxU32 & frameRateD);
         mfxU8 GetMfxCodecProfile(uint8_t profile);
         mfxU8 GetMfxCodecLevel(uint8_t level);
+        UMC::Status getWinUnit(int chromaIdc, int& unitX, int& unitY);
     }
 }
 

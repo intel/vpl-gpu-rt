@@ -409,20 +409,7 @@ namespace UMC_VVC_DECODER
             return true;
         }
         return false;
-    }
-
-    UMC::Status VVCDecoder::getWinUit(int chromaIdc, int* unitX, int* unitY)
-    {
-        const int winUnitX[] = { 1,2,2,1 };
-        const int WinUnitY[] = { 1,2,1,1 };
-
-        if (chromaIdc < CHROMA_FORMAT_400 || chromaIdc > CHROMA_FORMAT_444)
-            return UMC::UMC_ERR_FAILED;
-
-        *unitX = winUnitX[chromaIdc];
-        *unitY = WinUnitY[chromaIdc];
-        return UMC::UMC_OK;
-    }
+    }      
 
     UMC::Status VVCDecoder::DecodeHeader(mfxBitstream *bs, mfxVideoParam *par)
     {
@@ -1581,7 +1568,7 @@ namespace UMC_VVC_DECODER
         pFrame->Init(&info);
         int unitX = 1;
         int unitY = 1;
-        umcRes = getWinUit(pSeqParam->sps_chroma_format_idc, &unitX, &unitY);
+        umcRes = UMC_VVC_DECODER::MFX_Utility::getWinUnit(pSeqParam->sps_chroma_format_idc, unitX, unitY);
         if (umcRes != UMC::UMC_OK)
             return UMC::UMC_ERR_FAILED;
         if (pPicParam->pps_conformance_window_flag)
