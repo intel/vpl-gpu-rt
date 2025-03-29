@@ -757,6 +757,10 @@ static void FillImplsDescription(mfx::ImplDescription& impl, VideoCORE& core, mf
         }
     }
 
+    impl.Dec.Version.Version = MFX_STRUCT_VERSION(1, 0);
+    impl.Enc.Version.Version = MFX_STRUCT_VERSION(1, 0);
+    impl.VPP.Version.Version = MFX_STRUCT_VERSION(1, 0);
+
     return;
 };
 
@@ -901,10 +905,6 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
                 FillImplsDescription(impl, core, deviceId, adapterNum, subDevMask);
 
-                impl.Dec.Version.Version = MFX_STRUCT_VERSION(1, 0);
-                impl.Enc.Version.Version = MFX_STRUCT_VERSION(1, 0);
-                impl.VPP.Version.Version = MFX_STRUCT_VERSION(1, 0);
-
                 return (MFX_ERR_NONE == QueryImplsDescription(core, impl.Enc, impl) &&
                     MFX_ERR_NONE == QueryImplsDescription(core, impl.Dec, impl) &&
                     MFX_ERR_NONE == QueryImplsDescription(core, impl.VPP, impl));
@@ -1020,7 +1020,7 @@ static mfxStatus ProcessQueryPropToAction(mfxQueryProperty** properties, mfxU32 
             case QueryProp_EncAll:
             case QueryProp_VPPAll:
             {
-                if (properties[i]->PropVar.Type != MFX_VARIANT_TYPE_QUERY)
+                if (properties[i]->PropVar.Type != MFX_VARIANT_TYPE_U32)
                     MFX_RETURN(MFX_ERR_UNKNOWN);
 
                 break;
@@ -1039,17 +1039,21 @@ static mfxStatus ProcessQueryPropToAction(mfxQueryProperty** properties, mfxU32 
         || propAction[QueryProp_EncCodecID] || propAction[QueryProp_EncAll]
         || propAction[QueryProp_VPPFilterFourCC] || propAction[QueryProp_VPPAll];
 
+    // If request shallow query and query into codecs/vpp, will ignore shallow query
     if (propAction[QueryProp_ImplDescription] && query_into_codecs)
-        MFX_RETURN(MFX_ERR_UNKNOWN);
+        propAction[QueryProp_ImplDescription] = false;
 
+    // If request to query set of decoders and all decoders, will query all decoders
     if (propAction[QueryProp_DecCodecID] && propAction[QueryProp_DecAll])
-        MFX_RETURN(MFX_ERR_UNKNOWN);
+        propAction[QueryProp_DecCodecID] = false;
 
+    // If request to query set of encoders and all encoders, will query all encoders
     if (propAction[QueryProp_EncCodecID] && propAction[QueryProp_EncAll])
-        MFX_RETURN(MFX_ERR_UNKNOWN);
+        propAction[QueryProp_EncCodecID] = false;
 
+    // If request to query set of VPP filters and all VPP filters, will query all VPP filters
     if (propAction[QueryProp_VPPFilterFourCC] && propAction[QueryProp_VPPAll])
-        MFX_RETURN(MFX_ERR_UNKNOWN);
+        propAction[QueryProp_VPPFilterFourCC] = false;
 
     // QueryProp_All may be used for future property granularity extension, which will
     // be the default behavior if none of codecs or shallow capability are queried.
@@ -1104,10 +1108,6 @@ mfxHDL* MFX_CDECL MFXQueryImplsProperties(mfxQueryProperty** properties, mfxU32 
             mfx::ImplDescription impl(nullptr);
 
             FillImplsDescription(impl, core, deviceId, adapterNum, subDevMask);
-
-            impl.Dec.Version.Version = MFX_STRUCT_VERSION(1, 0);
-            impl.Enc.Version.Version = MFX_STRUCT_VERSION(1, 0);
-            impl.VPP.Version.Version = MFX_STRUCT_VERSION(1, 0);
 
             if (propAction[QueryProp_EncCodecID])
             {
