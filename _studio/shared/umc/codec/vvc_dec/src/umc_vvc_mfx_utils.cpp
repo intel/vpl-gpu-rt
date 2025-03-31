@@ -127,7 +127,10 @@ namespace UMC_VVC_DECODER
             }
         }
 
-        par->mfx.CodecProfile = (mfxU16)pSps->profile_tier_level.general_profile_idc;
+        if (pSps->profile_tier_level.general_profile_idc == (VVC_STILL_PICTURE | VVC_MAIN_10))
+            par->mfx.CodecProfile = MFX_PROFILE_VVC_MAIN10;
+        else
+            par->mfx.CodecProfile = (mfxU16)pSps->profile_tier_level.general_profile_idc;
         par->mfx.CodecLevel = (mfxU16)pSps->profile_tier_level.general_level_idc;
         if (pSps->profile_tier_level.general_profile_idc == (VVC_STILL_PICTURE | VVC_MAIN_10))
         {
@@ -295,8 +298,7 @@ namespace UMC_VVC_DECODER
             return false;
         }
 
-        if (in->mfx.CodecProfile != MFX_PROFILE_VVC_MAIN10 && 
-            in->mfx.CodecProfile != MFX_PROFILE_VVC_MAIN10_STILL_PICTURE)
+        if (in->mfx.CodecProfile != MFX_PROFILE_VVC_MAIN10)
         {
             return false;
         }
@@ -368,7 +370,7 @@ namespace UMC_VVC_DECODER
     inline
     bool CheckChromaFormat(mfxU16 profile, mfxU16 format)
     {
-        MFX_CHECK_WITH_ASSERT(profile == MFX_PROFILE_VVC_MAIN10 || profile == MFX_PROFILE_VVC_MAIN10_STILL_PICTURE, 0);
+        MFX_CHECK_WITH_ASSERT(profile == MFX_PROFILE_VVC_MAIN10, 0);
 
         if (format > MFX_CHROMAFORMAT_YUV444)
             return false;
@@ -379,8 +381,7 @@ namespace UMC_VVC_DECODER
             mfxI8  chroma[4];
         } static const supported[] =
         {
-            { MFX_PROFILE_VVC_MAIN10,                 {    -1, MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV422, MFX_CHROMAFORMAT_YUV444 } },
-            { MFX_PROFILE_VVC_MAIN10_STILL_PICTURE,   {    -1, MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV422, MFX_CHROMAFORMAT_YUV444 } }
+            { MFX_PROFILE_VVC_MAIN10,   {                      -1, MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV422, MFX_CHROMAFORMAT_YUV444 } },
         };
 
         supported_t const
@@ -396,7 +397,7 @@ namespace UMC_VVC_DECODER
     inline
     bool CheckBitDepth(mfxU16 profile, mfxU16 bit_depth)
     {
-        MFX_CHECK_WITH_ASSERT(profile == MFX_PROFILE_VVC_MAIN10 || profile == MFX_PROFILE_VVC_MAIN10_STILL_PICTURE, 0);
+        MFX_CHECK_WITH_ASSERT(profile == MFX_PROFILE_VVC_MAIN10, 0);
 
         struct minmax_t
         {
@@ -405,7 +406,6 @@ namespace UMC_VVC_DECODER
         } static const minmax[] =
         {
             { MFX_PROFILE_VVC_MAIN10,  8, 10 },
-            { MFX_PROFILE_VVC_MAIN10_STILL_PICTURE,  8, 10 },
         };
 
         minmax_t const
@@ -448,8 +448,7 @@ namespace UMC_VVC_DECODER
             }
 
             mfxU16 profile = MFX_PROFILE_VVC_MAIN10;
-            if ((in->mfx.CodecProfile == MFX_PROFILE_VVC_MAIN10) || 
-                (in->mfx.CodecProfile == MFX_PROFILE_VVC_MAIN10_STILL_PICTURE))
+            if (in->mfx.CodecProfile == MFX_PROFILE_VVC_MAIN10)
             {
                 out->mfx.CodecProfile = in->mfx.CodecProfile;
             }
@@ -479,7 +478,6 @@ namespace UMC_VVC_DECODER
             case MFX_LEVEL_VVC_6:
             case MFX_LEVEL_VVC_61:
             case MFX_LEVEL_VVC_62:
-            case MFX_LEVEL_VVC_63:
             case MFX_LEVEL_VVC_155:
                 out->mfx.CodecLevel = in->mfx.CodecLevel;
                 break;
