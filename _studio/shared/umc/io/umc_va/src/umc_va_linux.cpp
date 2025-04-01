@@ -356,7 +356,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "LinuxVideoAccelerator::Init");
     Status         umcRes = UMC_OK;
     VAStatus       va_res = VA_STATUS_SUCCESS;
-    VAConfigAttrib va_attributes[UMC_VA_LINUX_ATTRIB_SIZE];
+    std::vector<VAConfigAttrib> va_attributes;
 
     LinuxVideoAcceleratorParams* pParams = DynamicCast<LinuxVideoAcceleratorParams>(pInfo);
     int32_t width = 0, height = 0;
@@ -497,27 +497,20 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         }
         if (UMC_OK == umcRes)
         {
-            int nattr = 0;
             // Assuming finding VLD, find out the format for the render target
-            va_attributes[nattr++].type = VAConfigAttribRTFormat;
-
-            va_attributes[nattr].type = VAConfigAttribDecSliceMode;
-            va_attributes[nattr].value = VA_DEC_SLICE_MODE_NORMAL;
-            nattr++;
-
-            va_attributes[nattr++].type = VAConfigAttribDecProcessing;
-
-            va_attributes[nattr++].type = VAConfigAttribEncryption;
+            va_attributes.push_back({VAConfigAttribRTFormat, 0});
+            va_attributes.push_back({VAConfigAttribDecSliceMode, VA_DEC_SLICE_MODE_NORMAL});
+            va_attributes.push_back({VAConfigAttribDecProcessing, 0});
+            va_attributes.push_back({VAConfigAttribEncryption, 0});
 
             PERF_UTILITY_AUTO("vaGetConfigAttributes", PERF_LEVEL_DDI);
-            va_res = vaGetConfigAttributes(m_dpy, va_profile, va_entrypoint, va_attributes, nattr);
+            va_res = vaGetConfigAttributes(m_dpy, va_profile, va_entrypoint, va_attributes.data(), va_attributes.size());
             umcRes = va_to_umc_res(va_res);
         }
 
-        int32_t attribsNumber = 2;
         if (UMC_OK == umcRes)
         {
-            umcRes = SetAttributes(va_profile, pParams, va_attributes, &attribsNumber);
+            umcRes = SetAttributes(va_profile, pParams, va_attributes);
         }
 
         if (UMC_OK == umcRes)
@@ -526,7 +519,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             if (*m_pConfigId == VA_INVALID_ID)
             {
                 PERF_UTILITY_AUTO("vaCreateConfig", PERF_LEVEL_DDI);
-                va_res = vaCreateConfig(m_dpy, va_profile, va_entrypoint, va_attributes, attribsNumber, m_pConfigId);
+                va_res = vaCreateConfig(m_dpy, va_profile, va_entrypoint, va_attributes.data(), va_attributes.size(), m_pConfigId);
                 umcRes = va_to_umc_res(va_res);
                 needRecreateContext = true;
             }
@@ -559,34 +552,34 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
     return umcRes;
 }
 
-Status LinuxVideoAccelerator::SetAttributes(VAProfile va_profile, LinuxVideoAcceleratorParams* pParams, VAConfigAttrib *attribute, int32_t *attribsNumber)
+Status LinuxVideoAccelerator::SetAttributes(VAProfile va_profile, LinuxVideoAcceleratorParams* pParams, std::vector<VAConfigAttrib>& attributes)
 {
     MFX_CHECK(pParams != nullptr, UMC_ERR_INVALID_PARAMS);
-    MFX_CHECK(attribute != nullptr, UMC_ERR_INVALID_PARAMS);
-    MFX_CHECK(attribsNumber != nullptr, UMC_ERR_INVALID_PARAMS);
 
-    attribute[1].value = VA_DEC_SLICE_MODE_NORMAL;
+    attributes.push_back({VAConfigAttribDecSliceMode, VA_DEC_SLICE_MODE_NORMAL});
 
     if (pParams->m_needVideoProcessingVA)
     {
-        if (attribute[2].value == VA_DEC_PROCESSING)
+        auto found = std::find_if(attributes.begin(), attributes.end(), [](const VAConfigAttrib& item) {
+            return item.type == VAConfigAttribDecProcessing;
+        });
+
+        if (found != attributes.end())
         {
+            if (VA_DEC_PROCESSING == (*found).value)
+            {
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
-            m_videoProcessingVA = new VideoProcessingVA();
+                m_videoProcessingVA = new VideoProcessingVA();
 #endif
-            (*attribsNumber)++;
-        }
-        // VA_DEC_PROCESSING_NONE returned, but for VAProfileJPEGBaseline
-        // current driver doesn't report VAConfigAttribDecProcessing status correctly:
-        // decoding and CSC to ARGB in SFC mode works despite VA_DEC_PROCESSING_NONE.
-        // Do not create m_videoProcessingVA in this case, because it's not used during jpeg decode.
-        else if (va_profile == VAProfileJPEGBaseline)
-        {
-            (*attribsNumber)++;
-        }
-        else
-        {
-            return UMC_ERR_FAILED;
+            }
+            // VA_DEC_PROCESSING_NONE returned, but for VAProfileJPEGBaseline
+            // current driver doesn't report VAConfigAttribDecProcessing status correctly:
+            // decoding and CSC to ARGB in SFC mode works despite VA_DEC_PROCESSING_NONE.
+            // Do not create m_videoProcessingVA in this case, because it's not used during jpeg decode.
+            else if (va_profile != VAProfileJPEGBaseline)
+            {
+                return UMC_ERR_FAILED;
+            }
         }
     }
 
