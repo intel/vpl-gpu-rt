@@ -82,6 +82,7 @@ protected:
 #include "av1ehw_block_queues.h"
 #undef DEF_BLOCK_Q
     typedef TPushQ1NC TPushQ1;
+    typedef TPushCLOSE TPushCLS;
 
     FeatureBase(mfxU32 id)
         : FeatureBaseCommon<FeatureBlocks>(id)

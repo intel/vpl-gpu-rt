@@ -103,7 +103,7 @@ void FeatureBase::Init(
         nQ += InitQueue<ST>(&FeatureBase::SubmitTask, blocks);
         nQ += InitQueue<QT>(&FeatureBase::QueryTask, blocks);
         nQ += InitQueue<FT>(&FeatureBase::FreeTask, blocks);
-        nQ += InitQueue<CLS>(&FeatureBase::Close, blocks);
+        nQ += InitQueue<CLOSE>(&FeatureBase::Close, blocks);
         nQ += InitQueue<GVP>(&FeatureBase::GetVideoParam, blocks);
     }
 
