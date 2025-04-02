@@ -1011,7 +1011,11 @@ static mfxStatus ProcessQueryPropToAction(mfxQueryProperty** properties, mfxU32 
                 if (properties[i]->PropVar.Type != MFX_VARIANT_TYPE_U32)
                     MFX_RETURN(MFX_ERR_UNKNOWN);
 
-                propAction2Data[query_action].push_back(properties[i]->PropVar.Data.U32);
+                if (std::find(propAction2Data[query_action].begin(), propAction2Data[query_action].end(),
+                    properties[i]->PropVar.Data.U32) == propAction2Data[query_action].end())
+                {
+                    propAction2Data[query_action].push_back(properties[i]->PropVar.Data.U32);
+                }
 
                 break;
             }
