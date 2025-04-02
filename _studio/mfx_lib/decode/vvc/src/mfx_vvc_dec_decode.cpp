@@ -166,7 +166,8 @@ mfxStatus VideoDECODEVVC::QueryImplsDescription(
 {
     const mfxU16 SupportedProfiles[] =
     {
-        MFX_PROFILE_VVC_MAIN10
+        MFX_PROFILE_VVC_MAIN10,
+        MFX_PROFILE_VVC_MAIN10_STILL_PICTURE
     };
     const mfxResourceType SupportedMemTypes[] =
     {
