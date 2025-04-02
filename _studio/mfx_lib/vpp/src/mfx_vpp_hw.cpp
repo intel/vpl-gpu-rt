@@ -7167,8 +7167,8 @@ mfxStatus ConfigureExecuteParams(
     }
     else
     {
-        config.m_bCopyPassThroughEnable = false; // after Reset() parameters may be changed,
-                                                 // flag should be disabled
+        config.m_bCopyPassThroughEnable = false;// after Reset() parameters may be changed,
+                                            // flag should be disabled
     }
 
     if (inDNRatio == outDNRatio && !executeParams.bVarianceEnable && !executeParams.bComposite &&
