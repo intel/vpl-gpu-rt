@@ -111,3 +111,8 @@ LIBMFXGEN_1.2.1 {
     MFXVideoDECODE_VPP_Close;
     MFXVideoDECODE_VPP_GetChannelParam;
 } LIBMFXHW_1.19;
+
+LIBMFXGEN_1.2.15 {
+  global:
+    MFXQueryImplsProperties;
+} LIBMFXGEN_1.2.1;
