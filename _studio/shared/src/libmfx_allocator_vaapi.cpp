@@ -517,6 +517,8 @@ static inline mfxU32 SupportedVAfourccToMFXfourcc(mfxU32 va_fourcc)
         return VA_FOURCC_Y216;
     case VA_FOURCC_Y412:
         return VA_FOURCC_Y416;
+    case VA_FOURCC_XYUV:
+        return VA_FOURCC_AYUV;
     default:
         return va_fourcc;
     }
@@ -615,6 +617,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         frame_data.V = frame_data.U + sizeof(mfxU16);
         break;
 
+    case VA_FOURCC_XYUV:
     case VA_FOURCC_AYUV:
         frame_data.V = p_buffer + va_image.offsets[0];
         frame_data.U = frame_data.V + 1;
