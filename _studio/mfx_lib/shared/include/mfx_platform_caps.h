@@ -63,6 +63,11 @@ namespace CommonCaps {
         return (platform != MFX_HW_DG2);
     }
 
+    inline bool IsSrAYUVorYUY2FormatSupported(eMFXHWType platform)
+    {
+        return (platform >= MFX_HW_LNL);
+    }
+
     inline bool IsVAEncSliceLPSupported(eMFXHWType platform)
     {
         return (platform < MFX_HW_MTL);
