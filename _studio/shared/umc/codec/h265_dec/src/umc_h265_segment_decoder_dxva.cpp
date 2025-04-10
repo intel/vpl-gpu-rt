@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2019 Intel Corporation
+// Copyright (c) 2013-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -136,7 +136,7 @@ void TaskBrokerSingleThreadDXVA::Start()
 
 enum
 {
-    NUMBER_OF_STATUS = 512,
+    NUMBER_OF_STATUS = 32,
 };
 
 bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H265Task *)
