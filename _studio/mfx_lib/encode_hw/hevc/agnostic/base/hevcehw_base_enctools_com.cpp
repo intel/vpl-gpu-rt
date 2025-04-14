@@ -365,6 +365,7 @@ void HevcEncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII P
             m_EncToolCtrl.ExtParam = ExtParam;
             m_EncToolCtrl.NumExtParam = 2;
         }
+        m_hwType = Glob::VideoCore::Get(strg).GetHWType();
         auto sts = InitEncToolsCtrl(par, &m_EncToolCtrl);
         MFX_CHECK_STS(sts);
 
@@ -434,7 +435,7 @@ void HevcEncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII P
 
             if (StorageW* pTask = tm.GetTask(tm.Stage(S_ET_SUBMIT)))
             {
-                SubmitPreEncTask(global, *pTask);
+                MFX_CHECK_STS(SubmitPreEncTask(global, *pTask));
                 tm.MoveTaskForward(tm.Stage(S_ET_SUBMIT), tm.FixedTask(*pTask));
             }
 

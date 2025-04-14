@@ -83,6 +83,12 @@ namespace CommonCaps {
     {
         return (platform >= MFX_HW_MTL);
     }
+
+    inline bool IsFastPassLASupported(eMFXHWType platform, mfxU16 ChromaFormat)
+    {
+        return ((platform == MFX_HW_BMG || platform >= MFX_HW_PTL)
+            && (ChromaFormat == MFX_CHROMAFORMAT_YUV420));
+    }
 }
 
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE

@@ -114,7 +114,7 @@ namespace Base
         virtual mfxU32 CorrectVideoParams(mfxVideoParam& video, mfxExtEncToolsConfig& supportedConfig) = 0;
         virtual mfxStatus QueryPreEncTask(StorageW&  global, StorageW& s_task) = 0;
         virtual mfxStatus InitEncToolsCtrl(mfxVideoParam const& par, mfxEncToolsCtrl* ctrl);
-
+        eMFXHWType m_hwType = MFX_HW_UNKNOWN;
 #define DECL_BLOCK_LIST\
     DECL_BLOCK(Check)\
     DECL_BLOCK(Init)\

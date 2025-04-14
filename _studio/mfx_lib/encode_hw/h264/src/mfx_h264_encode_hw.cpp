@@ -1104,7 +1104,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
             extBufAlloc.pAllocator = pFrameAlloc;
         }
 
-        sts = m_encTools.Init(m_video);
+        sts = m_encTools.Init(m_video, m_currentPlatform);
         MFX_CHECK_STS(sts);
 
         m_enabledEncTools = true;

@@ -158,6 +158,7 @@ namespace Base
         virtual mfxU32 CorrectVideoParams(mfxVideoParam& video, mfxExtEncToolsConfig& supportedConfig) = 0;
         virtual mfxStatus InitEncToolsCtrl(mfxVideoParam const& par, mfxEncToolsCtrl* ctrl);
         bool IsSwEncToolsOn(const mfxVideoParam& video);
+        eMFXHWType m_hwType = MFX_HW_UNKNOWN;
 #define DECL_BLOCK_LIST\
     DECL_BLOCK(SetDefaultsCallChain)\
     DECL_BLOCK(Check)\

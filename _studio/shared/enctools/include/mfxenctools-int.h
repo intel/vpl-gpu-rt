@@ -139,6 +139,7 @@ typedef struct
 
         mfxU16  reserved5[60];
     };
+    mfxU16 LAMode;
     mfxU16 NumExtParam;
     mfxExtBuffer** ExtParam;
 } mfxEncToolsCtrl;
@@ -228,6 +229,12 @@ enum
     MFX_QUANT_MATRIX_MEDIUM,
     MFX_QUANT_MATRIX_STRONG,
     MFX_QUANT_MATRIX_EXTREME
+};
+
+enum
+{
+    MFX_VPP_LOOKAHEAD = 0,
+    MFX_FASTPASS_LOOKAHEAD = 1
 };
 
 MFX_PACK_BEGIN_USUAL_STRUCT()

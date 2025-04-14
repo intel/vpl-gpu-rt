@@ -1886,7 +1886,7 @@ inline void ResetEncToolsPar(mfxExtEncToolsConfig &config, mfxU16 value)
         config.BRC = value;
 
 }
-static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
+static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl, mfxU16 laMode = MFX_VPP_LOOKAHEAD)
 {
     MFX_CHECK_NULL_PTR1(ctrl);
 
@@ -1997,7 +1997,7 @@ static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
         }
         ctrl->LaQp = 26;
     }
-
+    ctrl->LAMode = laMode;
     return MFX_ERR_NONE;
 }
 class H264EncTools
@@ -2158,7 +2158,7 @@ public:
         return sts;
     }
 
-    mfxStatus  Init(MfxVideoParam &video)
+    mfxStatus  Init(MfxVideoParam &video, eMFXHWType platform)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "class H264EncTools::Init");
         mfxExtEncToolsConfig requiredConf = {};
@@ -2172,7 +2172,8 @@ public:
 
 #if defined(MFX_ENABLE_ENCTOOLS)
 #endif
-        mfxStatus sts = InitCtrl(video, &m_EncToolCtrl);
+        mfxU16 laMode = CommonCaps::IsFastPassLASupported(platform, video.mfx.FrameInfo.ChromaFormat) ? (mfxU16)MFX_FASTPASS_LOOKAHEAD : (mfxU16)MFX_VPP_LOOKAHEAD;
+        mfxStatus sts = InitCtrl(video, &m_EncToolCtrl, laMode);
         MFX_CHECK_STS(sts);
 
         sts = CreateEncTools(video, m_pEncTools, m_bEncToolsCreated);
