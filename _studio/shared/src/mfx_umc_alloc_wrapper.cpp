@@ -2252,6 +2252,7 @@ mfxStatus SurfaceSource::PrepareToOutput(mfxFrameSurface1 *surface_out, UMC::Fra
                 });
                 m_output_work_surface_skip_frames.erase(itSkipFrame);
             }
+            guard.Unlock();
 
             MFX_SAFE_CALL(m_core->DoFastCopyWrapper(surface_out,
                 // When this is user provided SW memory surface it might not have correct type set
@@ -2260,6 +2261,7 @@ mfxStatus SurfaceSource::PrepareToOutput(mfxFrameSurface1 *surface_out, UMC::Fra
                 srcSurface->Data.MemType,
                 gpuCopyMode
             ));
+            guard.Lock();
         }
 
         return MFX_ERR_NONE;
