@@ -200,7 +200,7 @@ jobs:
         sudo ninja install
 
   clang12:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       CC: /usr/bin/clang-12
       CXX: /usr/bin/clang++-12
@@ -313,7 +313,7 @@ jobs:
         sudo ninja install
 
   gcc10:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       CC: /usr/bin/gcc-10
       CXX: /usr/bin/g++-10
