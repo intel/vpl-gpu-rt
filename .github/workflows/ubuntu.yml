@@ -199,58 +199,6 @@ jobs:
         ninja
         sudo ninja install
 
-  clang12:
-    runs-on: ubuntu-22.04
-    env:
-      CC: /usr/bin/clang-12
-      CXX: /usr/bin/clang++-12
-      ASM: /usr/bin/clang-12
-    steps:
-    - name: checkout libmfxgen
-      uses: actions/checkout@v4
-      with:
-        path: libmfxgen
-    - name: checkout libva
-      uses: actions/checkout@v4
-      with:
-        repository: intel/libva
-        path: libva
-    - name: install prerequisites
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
-          cmake \
-          libdrm-dev \
-          libegl1-mesa-dev \
-          libgl1-mesa-dev \
-          libx11-dev \
-          libx11-xcb-dev \
-          libxcb-dri3-dev \
-          libxcb-present-dev \
-          libxext-dev \
-          libxfixes-dev \
-          libwayland-dev \
-          ninja-build \
-          make
-    - name: print tools versions
-      run: |
-        cmake --version
-        $CC --version
-        $CXX --version
-    - name: build libva
-      run: |
-        cd libva
-        ./autogen.sh --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu
-        make -j$(nproc)
-        sudo make install
-    - name: build libmfxgen
-      run: |
-        cd libmfxgen
-        mkdir build && cd build
-        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DMFX_ENABLE_PXP=ON -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" ..
-        ninja
-        sudo ninja install
-
   gcc11:
     runs-on: ubuntu-22.04
     env:
