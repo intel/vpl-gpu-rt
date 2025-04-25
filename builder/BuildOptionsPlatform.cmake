@@ -22,12 +22,13 @@ message( STATUS "Configuration of Supported Platforms" )
 
 include(CMakeDependentOption)
 
+option( DG2 "Enabled DG2 support" ON)
+option( MTL "Enabled MTL support" ON)
+option( ARL "Enabled ARL support" ON)
+option( BMG "Enabled BMG support" ON)
+option( LNL "Enabled LNL support" ON)
 
 
-  option( DG2 "Enabled DG2 support" ON)
-  option( MTL "Enabled MTL support" ON)
-  option( ARL "Enabled ARL support" ON)
-  option( BMG "Enabled BMG support" ON)
-  option( LNL "Enabled LNL support" ON)
+
   option( PTL "Enabled PTL support" ON)
 
