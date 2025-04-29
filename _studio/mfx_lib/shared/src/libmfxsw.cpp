@@ -642,7 +642,7 @@ static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfx
             FILE* file = fopen(path.c_str(), "r");
 
             if (!file)
-                break;
+                continue;
 
             int nread = fscanf(file, "%x", &vendorId);
             fclose(file);
@@ -657,7 +657,7 @@ static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfx
 
             FILE* file = fopen(path.c_str(), "r");
             if (!file)
-                break;
+                continue;
 
             int nread = fscanf(file, "%x", &deviceId);
             fclose(file);
