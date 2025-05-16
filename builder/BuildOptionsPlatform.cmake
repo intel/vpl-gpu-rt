@@ -20,15 +20,16 @@
 
 message( STATUS "Configuration of Supported Platforms" )
 
-include(CMakeDependentOption)
 
-option( DG2 "Enabled DG2 support" ON)
-option( MTL "Enabled MTL support" ON)
-option( ARL "Enabled ARL support" ON)
-option( BMG "Enabled BMG support" ON)
-option( LNL "Enabled LNL support" ON)
+  # Supported Platforms
+  set(BS_GFX_PLATFORMS_SUPPORTED
+      "TGL" "RKL" "DG1" "ADL" "RPL" "DG2" "MTL" "ARL"
+      "LNL" "BMG" "PTL"
+  )
 
+message( STATUS "Supported platforms = ${BS_GFX_PLATFORMS_SUPPORTED}" )
 
-
-  option( PTL "Enabled PTL support" ON)
+foreach(platform ${BS_GFX_PLATFORMS_SUPPORTED})
+  option(${platform} "Enabled ${platform} support" ON)
+endforeach()
 
