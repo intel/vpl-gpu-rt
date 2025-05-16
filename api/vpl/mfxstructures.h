@@ -2472,6 +2472,12 @@ enum {
         See the mfxExtAlphaChannelSurface structure for more details.
     */
     MFX_EXTBUFF_ALPHA_CHANNEL_SURFACE = MFX_MAKEFOURCC('A', 'C', 'S', 'F'),
+#ifdef ONEVPL_EXPERIMENTAL
+    /*!
+        See the mfxExtAIEncCtrl structure for more details.
+    */
+    MFX_EXTBUFF_AI_ENC_CTRL = MFX_MAKEFOURCC('A', 'I', 'E', 'C'),
+#endif
 };
 
 /* VPP Conf: Do not use certain algorithms  */
@@ -5354,6 +5360,35 @@ typedef struct {
     mfxU16              reserved[8];
 } mfxExtAlphaChannelSurface;
 MFX_PACK_END()
+
+#ifdef ONEVPL_EXPERIMENTAL
+MFX_PACK_BEGIN_USUAL_STRUCT()
+/*!
+   Used by the encoder to switch to ai assisted encoder solutions.
+   @note Not all implementations of the encoder support this extended buffer. The application must use query mode 1 to determine if
+         the functionality is supported. To do this, the application must attach this extended buffer to the mfxVideoParam structure and
+         call the MFXVideoENCODE_Query function. If the function returns MFX_ERR_NONE then the functionality is supported.
+*/
+typedef struct {
+    mfxExtBuffer        Header;         /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_AI_ENC_CTRL. */
+    /*!
+       Set this flag to MFX_CODINGOPTION_ON to enable saliency encoder solution. Set this flag to MFX_CODINGOPTION_OFF to disable it.
+       If this flag is set to any other value, the default value OFF will be used.
+       See the CodingOptionValue enumerator for values of this option. This parameter is valid only during initialization.
+       @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported.
+    */
+    mfxU16              SaliencyEncoder;
+    /*!
+       Set this flag to MFX_CODINGOPTION_ON to enable ML-based adaptive target usage solution. Set this flag to MFX_CODINGOPTION_OFF to disable it.
+       If this flag is set to any other value, the default value will be used which can be obtained from the MFXVideoENCODE_GetVideoParam function after encoding initialization.
+       See the CodingOptionValue enumerator for values of this option. This parameter is valid only during initialization.
+       @note Not all codecs and implementations support this value. Use the Query API function to check if this feature is supported.
+    */
+    mfxU16              AdaptiveTargetUsage;
+    mfxU16              reserved[26];   /*!< Reserved for future use. */
+} mfxExtAIEncCtrl;
+MFX_PACK_END()
+#endif
 
 #ifdef __cplusplus
 } // extern "C"
