@@ -39,6 +39,7 @@ Intel® VPL Gen Runtime implementation supports the following hardware platforms
 - MTL/ARL (MTL: Meteor Lake, ARL-S/H: Arrow Lake)
 - LNL (Lunar Lake)
 - BMG (Battlemage)
+- PTL (Panther Lake)
 
 # Dependencies
 Intel® VPL GPU Runtime depends on [LibVA](https://github.com/intel/libva/).
