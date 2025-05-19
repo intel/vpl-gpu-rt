@@ -1040,7 +1040,7 @@ namespace
     mfxU32 GetMaxCodedFrameSizeInKB(MfxVideoParam const & par)
     {
         mfxU64 mvcMultiplier = 1;
-        const mfxU32 maxMBBytes = 3200 / 8;
+        mfxU32 maxMBBytes = 3200 / 8;
 
         if (IsMvcProfile(par.mfx.CodecProfile))
         {
