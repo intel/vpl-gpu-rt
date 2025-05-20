@@ -102,4 +102,10 @@
 #define MFX_ENABLE_ENCODE_QUALITYINFO
 #endif
 
+#ifdef ONEVPL_EXPERIMENTAL
+#if (!defined(LINUX32) && !defined(LINUX64))
+#define MFX_ENABLE_AI_ENC_CTRL
+#endif
+#endif
+
 #endif // _MFX_CONFIG_ENCODE_H_

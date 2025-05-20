@@ -1028,3 +1028,9 @@ STRUCT(mfxExtQualityInfoOutput,
 STRUCT(mfxExtAV1ScreenContentTools,
     FIELD_S(mfxExtBuffer, Header)
 )
+
+#ifdef MFX_ENABLE_AI_ENC_CTRL
+STRUCT(mfxExtAIEncCtrl,
+    FIELD_S(mfxExtBuffer, Header)
+)
+#endif

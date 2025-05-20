@@ -250,6 +250,7 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtQualityInfoMode        ,32   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtQualityInfoOutput      ,256  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtAV1ScreenContentTools  ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtAIEncCtrl              ,64   )
 #endif //defined (__MFXSTRUCTURES_H__)
 
 //mfxvideo.h
@@ -1068,6 +1069,11 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAV1ScreenContentTools        ,Palette                       ,8    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAV1ScreenContentTools        ,IntraBlockCopy                ,10   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAV1ScreenContentTools        ,reserved                      ,12   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAIEncCtrl                    ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAIEncCtrl                    ,SaliencyEncoder               ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAIEncCtrl                    ,AdaptiveTargetUsage           ,10   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtAIEncCtrl                    ,reserved                      ,12   )
 #endif //defined (__MFXSTRUCTURES_H__)
 
 //mfxvideo.h

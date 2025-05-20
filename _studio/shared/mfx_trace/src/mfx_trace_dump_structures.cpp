@@ -1106,4 +1106,14 @@ std::string DumpContext::dump(const std::string structName, const  mfxExtAlphaCh
     str += structName + ".reserved[]=" + DUMP_RESERVED_ARRAY(ExtAlphaCtrl.reserved) + "\n";
     return str;
 }
+
+std::string DumpContext::dump(const std::string structName, const mfxExtAIEncCtrl& _struct)
+{
+    std::string str;
+    str += dump(structName + ".Header", _struct.Header) + "\n";
+    DUMP_FIELD(SaliencyEncoder);
+    DUMP_FIELD_RESERVED(reserved);
+
+    return str;
+}
 #endif

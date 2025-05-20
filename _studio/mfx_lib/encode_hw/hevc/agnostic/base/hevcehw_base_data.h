@@ -809,6 +809,7 @@ namespace Base
         bool                bRecode             = false;
         bool                bFreed              = false;
         bool                bForceLongStartCode = false;
+        bool                bSaliencyEncEnabled = false;
         IntraRefreshState   IRState             = {};
         mfxLastKeyFrameInfo LastKeyFrameInfo    = {};
         mfxI32              PrevRAP             = -1;
@@ -1374,6 +1375,9 @@ namespace Base
         , FEATURE_PXP
 #endif
         , FEATURE_QUALITYINFO
+#if defined(MFX_ENABLE_AI_ENC_CTRL)
+        , FEATURE_AIENC
+#endif
         , NUM_FEATURES
     };
 
