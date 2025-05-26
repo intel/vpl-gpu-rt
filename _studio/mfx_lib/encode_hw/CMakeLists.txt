@@ -155,6 +155,9 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/linux/base/hevcehw_base_rext_lin.cpp
     hevc/linux/base/hevcehw_base_qp_modulation_lin.cpp
     hevc/linux/g12/hevcehw_g12_lin.cpp
+ 
+    hevc/linux/base/hevcehw_base_next_lin.cpp
+    hevc/linux/base/hevcehw_base_next_lin.h
   )
 
   if(DG2)
@@ -279,6 +282,9 @@ if (MFX_ENABLE_AV1_VIDEO_ENCODE)
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_scc.h
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_cdef.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/av1/agnostic/base/av1ehw_base_cdef.h
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_next_lin.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/linux/base/av1ehw_base_next_lin.cpp
   )
 
   if(DG2)

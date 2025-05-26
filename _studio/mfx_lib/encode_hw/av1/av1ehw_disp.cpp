@@ -43,6 +43,11 @@
         namespace Xe2 { using namespace AV1EHW::Linux::Xe2; };
     };
 
+    #include "av1ehw_base_next_lin.h"
+    namespace AV1EHWDisp
+    {
+        namespace Base_Next {using namespace AV1EHW::Linux::Base_Next; };
+    }
 
 namespace AV1EHW
 {
@@ -65,6 +70,9 @@ static ImplBase* CreateSpecific(
         impl = new AV1EHWDisp::Xe_LPM_Plus::MFXVideoENCODEAV1_HW(core, status, mode);
     if (hw == MFX_HW_BMG || hw == MFX_HW_LNL)
         impl = new AV1EHWDisp::Xe2::MFXVideoENCODEAV1_HW(core, status, mode);
+    if (hw >= MFX_HW_PTL)
+        impl = new AV1EHWDisp::Base_Next::MFXVideoENCODEAV1_HW(core, status, mode);
+
 
 
     if (impl == nullptr)

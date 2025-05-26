@@ -51,6 +51,11 @@ namespace HEVCEHWDisp
         namespace Xe2 { using namespace HEVCEHW::Linux::Xe2; };
     };
 
+    #include "hevcehw_base_next_lin.h"
+    namespace HEVCEHWDisp
+    {
+        namespace Base_Next { using namespace HEVCEHW::Linux::Base_Next; };
+    };
 
 namespace HEVCEHW
 {
@@ -61,6 +66,8 @@ static ImplBase* CreateSpecific(
     , mfxStatus& status
     , eFeatureMode mode)
 {
+    if (HW >= MFX_HW_PTL)
+        return new HEVCEHWDisp::Base_Next::MFXVideoENCODEH265_HW(core, status, mode);
     if (HW >= MFX_HW_BMG)
         return new HEVCEHWDisp::Xe2::MFXVideoENCODEH265_HW(core, status, mode);
     if (HW >= MFX_HW_MTL)
