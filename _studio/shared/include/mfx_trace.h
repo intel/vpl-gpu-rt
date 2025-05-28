@@ -794,7 +794,7 @@ public:
     {
         std::error_code code = mfx::make_error_code(_arg1);
         std::stringstream ss;
-        if (_arg1 > 0) 
+        if (_arg1 > 0 || _arg1 == -10 || _arg1 == -11 || _arg1 == -14) //MFX_ERR_MORE_DATA, MFX_ERR_MORE_SURFACE and MFX_ERR_INCOMPATIBLE_VIDEO_PARAM are warning status
         {
             ss << "[Warning]  ";
         }

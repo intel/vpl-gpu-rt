@@ -60,15 +60,16 @@ static inline T mfx_sts_trace(const char* fileName, const uint32_t lineNum, cons
 {
     const std::string stsString = GetMFXStatusInString(sts);
     std::string mfxSts;
-    if (sts < MFX_ERR_NONE)
-    {
-        MFX_LOG(LEVEL_ERROR, fileName, lineNum, "%s: returns %s\n", funcName, stsString.c_str());
-        mfxSts = "[critical]  mfxRes = ";
-    }
-    else if (sts > MFX_ERR_NONE)
+    if (sts > MFX_ERR_NONE || sts == MFX_ERR_MORE_DATA || sts == MFX_ERR_MORE_SURFACE || sts == MFX_ERR_INCOMPATIBLE_VIDEO_PARAM) //MFX_ERR_MORE_DATA, MFX_ERR_MORE_SURFACE and MFX_ERR_INCOMPATIBLE_VIDEO_PARAM are warning status
     {
         MFX_LOG(LEVEL_WARN, fileName, lineNum, "%s: returns %s\n", funcName, stsString.c_str());
         mfxSts = "[warning]  mfxRes = ";
+    }
+
+    else if (sts < MFX_ERR_NONE)
+    {
+        MFX_LOG(LEVEL_ERROR, fileName, lineNum, "%s: returns %s\n", funcName, stsString.c_str());
+        mfxSts = "[critical]  mfxRes = ";
     }
     return sts;
 }
