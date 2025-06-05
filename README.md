@@ -55,7 +55,7 @@ Dispatcher and Samples code hosted in [Intel® VPL](https://github.com/intel/lib
     * [Build steps](#build-steps)
     * [Enabling Instrumentation and Tracing Technology (ITT)](#enabling-instrumentation-and-tracing-technology-itt)
   * [Recommendations](#recommendations)
-  * [See also](#see-also)
+  * [Backward Compatibility](#backward-compatibility)
 
 # License
 Intel® VPL GPU Runtime is licensed under MIT license. See [LICENSE](./LICENSE) for details.
@@ -132,7 +132,7 @@ Output=0x10
 
 * In case of GCC compiler it is strongly recommended to use GCC version 6 or later since that's the first GCC version which has non-experimental support of C++14 being used in Intel® VPL GPU Runtime.
 
-## Backward Compatibility
+# Backward Compatibility
 No code changes may be introduced that would regress support for any currently supported hardware.
 All contributions must ensure continued compatibility and functionality across all supported hardware platforms.
 Failure to maintain hardware compatibility may result in the rejection or reversion of the contribution.
