@@ -596,6 +596,11 @@ typedef struct {
     { 0xE211, MFX_HW_BMG, MFX_GT4 },
     { 0xE212, MFX_HW_BMG, MFX_GT4 },
     { 0xE216, MFX_HW_BMG, MFX_GT4 },
+    /* BMG Plus */
+    { 0xE220, MFX_HW_BMG, MFX_GT4 },
+    { 0xE221, MFX_HW_BMG, MFX_GT4 },
+    { 0xE222, MFX_HW_BMG, MFX_GT4 },
+    { 0xE223, MFX_HW_BMG, MFX_GT4 },
 
     /* LNL */
     { 0x6420, MFX_HW_LNL, MFX_GT2 },
