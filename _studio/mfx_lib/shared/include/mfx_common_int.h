@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2024 Intel Corporation
+// Copyright (c) 2008-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -146,6 +146,7 @@ mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const&);
 mfxU8* GetFramePointer(const mfxFrameSurface1& surf);
 mfxStatus GetFramePointerChecked(mfxFrameInfo const& info, mfxFrameData const&, mfxU8**);
 bool IsSurfaceEmpty(const mfxFrameSurface1 & surface);
+mfxU32 GetMinPitch(mfxU32 fourcc, mfxU16 width);
 
 mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, const mfxFrameSurface1& surface);
 mfxFrameSurface1 MakeSurface(mfxFrameInfo const& fi, mfxMemId mid);

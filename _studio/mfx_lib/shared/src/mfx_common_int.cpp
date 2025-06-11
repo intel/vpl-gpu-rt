@@ -1016,7 +1016,6 @@ void mfxVideoParamWrapper::CopyVideoParam(const mfxVideoParam & par)
     ExtParam = NumExtParam ? m_buffers.GetBuffers() : 0;
 }
 
-inline
 mfxU32 GetMinPitch(mfxU32 fourcc, mfxU16 width)
 {
     switch (fourcc)
