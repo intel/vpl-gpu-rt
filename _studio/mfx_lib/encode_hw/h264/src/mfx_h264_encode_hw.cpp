@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 Intel Corporation
+// Copyright (c) 2009-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -163,14 +163,94 @@ mfxStatus MFXHWVideoENCODEH264::QueryImplsDescription(
         MFX_RESOURCE_SYSTEM_SURFACE
         , MFX_RESOURCE_VA_SURFACE
     };
-    const mfxU32 SupportedFourCC[] =
+
+#ifdef ONEVPL_EXPERIMENTAL
+    const std::map<mfxU32, std::vector<mfxU32>> Profile_FourCC =
     {
-        MFX_FOURCC_NV12
-        , MFX_FOURCC_RGB4
-        , MFX_FOURCC_BGR4
-        , MFX_FOURCC_YUY2
-        , MFX_FOURCC_AYUV
+        {MFX_PROFILE_AVC_BASELINE,                 {MFX_FOURCC_NV12, MFX_FOURCC_RGB4
+                                                    , MFX_FOURCC_BGR4 , MFX_FOURCC_YUY2
+                                                    , MFX_FOURCC_AYUV }}
+        , {MFX_PROFILE_AVC_CONSTRAINED_BASELINE,   {MFX_FOURCC_NV12, MFX_FOURCC_RGB4
+                                                    , MFX_FOURCC_BGR4 , MFX_FOURCC_YUY2
+                                                    , MFX_FOURCC_AYUV }}
+        , {MFX_PROFILE_AVC_MAIN,                   {MFX_FOURCC_NV12, MFX_FOURCC_RGB4
+                                                    , MFX_FOURCC_BGR4 , MFX_FOURCC_YUY2
+                                                    , MFX_FOURCC_AYUV }}
+        , {MFX_PROFILE_AVC_HIGH,                   {MFX_FOURCC_NV12, MFX_FOURCC_RGB4
+                                                    , MFX_FOURCC_BGR4 , MFX_FOURCC_YUY2
+                                                    , MFX_FOURCC_AYUV }}
+        , {MFX_PROFILE_AVC_CONSTRAINED_HIGH,       {MFX_FOURCC_NV12, MFX_FOURCC_RGB4
+                                                    , MFX_FOURCC_BGR4 , MFX_FOURCC_YUY2
+                                                    , MFX_FOURCC_AYUV }}
+        , {MFX_PROFILE_AVC_PROGRESSIVE_HIGH,       {MFX_FOURCC_NV12, MFX_FOURCC_RGB4
+                                                    , MFX_FOURCC_BGR4 , MFX_FOURCC_YUY2
+                                                    , MFX_FOURCC_AYUV }}
     };
+
+    const std::map<mfxU32, std::pair<std::vector<mfxU16>, mfxU16>> Profile_TargetChroma_BitDepth =
+    {
+        {MFX_PROFILE_AVC_BASELINE,                {{MFX_CHROMAFORMAT_YUV420}, 8}}
+        , {MFX_PROFILE_AVC_CONSTRAINED_BASELINE,  {{MFX_CHROMAFORMAT_YUV420}, 8}}
+        , {MFX_PROFILE_AVC_MAIN,                  {{MFX_CHROMAFORMAT_YUV420}, 8}}
+        , {MFX_PROFILE_AVC_HIGH,                  {{MFX_CHROMAFORMAT_YUV420}, 8}}
+        , {MFX_PROFILE_AVC_CONSTRAINED_HIGH,      {{MFX_CHROMAFORMAT_YUV420}, 8}}
+        , {MFX_PROFILE_AVC_PROGRESSIVE_HIGH,      {{MFX_CHROMAFORMAT_YUV420}, 8}}
+    };
+
+    const mfxU16 RateControl[] =
+    {
+        MFX_RATECONTROL_CBR
+        , MFX_RATECONTROL_VBR
+        , MFX_RATECONTROL_CQP
+        , MFX_RATECONTROL_AVBR
+        , MFX_RATECONTROL_LA
+        , MFX_RATECONTROL_ICQ
+        , MFX_RATECONTROL_VCM
+#ifdef MFX_ENABLE_QVBR
+        , MFX_RATECONTROL_QVBR
+#endif
+    };
+
+    const mfxU32 ExtendedBuffer[] =
+    {
+        MFX_EXTBUFF_CODING_OPTION
+        , MFX_EXTBUFF_CODING_OPTION_SPSPPS
+#if defined(__MFXBRC_H__)
+        , MFX_EXTBUFF_BRC
+#endif
+        , MFX_EXTBUFF_MVC_SEQ_DESC
+        , MFX_EXTBUFF_VIDEO_SIGNAL_INFO
+        , MFX_EXTBUFF_AVC_REFLIST_CTRL
+        , MFX_EXTBUFF_PICTURE_TIMING_SEI
+        , MFX_EXTBUFF_AVC_TEMPORAL_LAYERS
+        , MFX_EXTBUFF_CODING_OPTION2
+        , MFX_EXTBUFF_ENCODER_CAPABILITY
+        , MFX_EXTBUFF_ENCODER_RESET_OPTION
+        , MFX_EXTBUFF_ENCODED_FRAME_INFO
+        , MFX_EXTBUFF_ENCODER_ROI
+        , MFX_EXTBUFF_AVC_REFLISTS
+        , MFX_EXTBUFF_CODING_OPTION3
+        , MFX_EXTBUFF_CHROMA_LOC_INFO
+        , MFX_EXTBUFF_MBQP
+        , MFX_EXTBUFF_MB_FORCE_INTRA
+        , MFX_EXTBUFF_MB_DISABLE_SKIP_MAP
+        , MFX_EXTBUFF_PRED_WEIGHT_TABLE
+        , MFX_EXTBUFF_DIRTY_RECTANGLES
+        , MFX_EXTBUFF_MOVING_RECTANGLES
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+        , MFX_EXTBUFF_ENCODED_UNITS_INFO
+#endif
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
+        , MFX_EXTBUFF_AVC_ROUNDING_OFFSET
+#endif
+#if defined(MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT)
+        , MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM
+#endif
+#if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
+        , MFX_EXTBUFF_ENCODED_QUALITY_INFO_MODE
+#endif
+    };
+#endif
 
     caps.CodecID                 = MFX_CODEC_AVC;
     caps.MaxcodecLevel           = MFX_LEVEL_AVC_52;
@@ -181,28 +261,101 @@ mfxStatus MFXHWVideoENCODEH264::QueryImplsDescription(
 #endif
         ;
 
+#ifdef ONEVPL_EXPERIMENTAL
+    auto IsUnsupportedRC = [&](mfxU16 rc)
+    {
+        switch (rc)
+        {
+            case MFX_RATECONTROL_CBR:
+                return (!hwCaps.CBRSupport);
+            case MFX_RATECONTROL_VBR:
+                return (!hwCaps.VBRSupport);
+            case MFX_RATECONTROL_CQP:
+                return (!hwCaps.CQPSupport);
+            case MFX_RATECONTROL_AVBR:
+                return (!hwCaps.AVBRSupport);
+            case MFX_RATECONTROL_LA:
+            case MFX_RATECONTROL_LA_ICQ:
+            case MFX_RATECONTROL_LA_HRD:
+                return (hwCaps.ddi_caps.LookaheadBRCSupport == 0x0);
+            case MFX_RATECONTROL_ICQ:
+                return (hwCaps.ddi_caps.ICQBRCSupport == 0x0);
+            case MFX_RATECONTROL_VCM:
+                return (hwCaps.ddi_caps.VCMBitrateControl == 0x0);
+#ifdef MFX_ENABLE_QVBR
+            case MFX_RATECONTROL_QVBR:
+                return (hwCaps.ddi_caps.QVBRBRCSupport == 0x0);
+#endif
+            default:
+                return true;
+        }
+    };
+
+    std::list<mfxU16> SupportedRC(std::begin(RateControl), std::end(RateControl));
+    SupportedRC.remove_if(IsUnsupportedRC);
+#endif
+
     for (mfxU32 profile : SupportedProfiles)
     {
         auto& pfCaps = ah.PushBack(caps.Profiles);
 
         pfCaps.Profile = profile;
 
-        for (auto memType : SupportedMemTypes)
         {
             auto& memCaps = ah.PushBack(pfCaps.MemDesc);
-            memCaps.MemHandleType = memType;
             memCaps.Width  = {16, hwCaps.ddi_caps.MaxPicWidth,  16};
             memCaps.Height = {16, hwCaps.ddi_caps.MaxPicHeight, 16};
+
+            auto SupportedFourCC = Profile_FourCC.at(profile);
 
             for (auto fcc : SupportedFourCC)
             {
                 ah.PushBack(memCaps.ColorFormats) = fcc;
                 ++memCaps.NumColorFormats;
             }
-            ++pfCaps.NumMemTypes;
+
+#ifdef ONEVPL_EXPERIMENTAL
+            auto& memCapsExt = ah.PushBack(memCaps.MemExtDesc);
+            memCapsExt.Version.Version = MFX_STRUCT_VERSION(1, 0);
+
+            auto SupportedChromaSubsamplings = (Profile_TargetChroma_BitDepth.at(profile)).first;
+
+            for (auto chroma_format : SupportedChromaSubsamplings)
+            {
+                ah.PushBack(memCapsExt.TargetChromaSubsamplings) = chroma_format;
+                ++memCapsExt.NumTargetChromaSubsamplings;
+            }
+
+            memCapsExt.TargetMaxBitDepth = (Profile_TargetChroma_BitDepth.at(profile)).second;
+#endif
         }
+
+        ah.PushBack(pfCaps.MemDesc);
+        pfCaps.MemDesc[1] = pfCaps.MemDesc[0];
+        pfCaps.MemDesc[0].MemHandleType = SupportedMemTypes[0];
+        pfCaps.MemDesc[1].MemHandleType = SupportedMemTypes[1];
+
+        pfCaps.NumMemTypes = 2;
+
         ++caps.NumProfiles;
     }
+
+#ifdef ONEVPL_EXPERIMENTAL
+    auto& extDesc = ah.PushBack(caps.EncExtDesc);
+    extDesc.Version.Version = MFX_STRUCT_VERSION(1, 0);
+
+    for (mfxU16 rc : SupportedRC)
+    {
+        ah.PushBack(extDesc.RateControlMethods) = rc;
+        ++extDesc.NumRateControlMethods;
+    }
+
+    for (mfxU32 ext_buf_id : ExtendedBuffer)
+    {
+        ah.PushBack(extDesc.ExtBufferIDs) = ext_buf_id;
+        ++extDesc.NumExtBufferIDs;
+    }
+#endif
 
     return MFX_ERR_NONE;
 }
