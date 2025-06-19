@@ -1981,7 +1981,9 @@ static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl, mfxU
     if (ctrl->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING) 
     {
         mfxU16 crW = par.mfx.FrameInfo.CropW ? par.mfx.FrameInfo.CropW : par.mfx.FrameInfo.Width;
-        if (crW >= 720) ctrl->LaScale = 2;
+        mfxU16 crH = par.mfx.FrameInfo.CropH ? par.mfx.FrameInfo.CropH : par.mfx.FrameInfo.Height;
+        if (crW * crH >= 1920 * 1080) ctrl->LaScale = 2;
+        else if (crW * crH >= 1280 * 720) ctrl->LaScale = 1;
     }
     else 
     {
