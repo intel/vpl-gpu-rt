@@ -1675,6 +1675,9 @@ void Legacy::PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Push)
         auto sts = GetSliceHeader(par, task, sps, pps, Task::SSH::Get(s_task));
         MFX_CHECK_STS(sts);
 
+        //Update m_prevTask value after GetSliceHeaderLTRs
+        m_prevTask = task;
+
         return sts;
     });
 }
@@ -2479,7 +2482,6 @@ void Legacy::ConfigureTask(
         task.m_maxQP = CO2.MaxQPB;
     }
 
-    m_prevTask = task;
 }
 
 static mfxU32 CountL1(DpbArray const & dpb, mfxI32 poc)
@@ -4628,7 +4630,6 @@ mfxU16 GetSliceHeaderLTRs(
 
     std::sort(DPBLT.begin(), DPBLT.begin() + nDPBLT, std::greater<mfxI32>()); // sort for DeltaPocMsbCycleLt (may only increase)
 
-    bool ltr_present_flag = 0;
     // insert LTR using lt_ref_pic_poc_lsb_sps
     std::for_each(DPBLT.begin(), DPBLT.begin() + nDPBLT, [&](mfxI32& ltpoc) {
         mfxU32 dPocCycleMSB = (task.POC / MaxPocLsb - ltpoc / MaxPocLsb);
@@ -4655,10 +4656,6 @@ mfxU16 GetSliceHeaderLTRs(
         curlt.delta_poc_msb_cycle_lt        = dPocCycleMSB - dPocCycleMSBprev;
         curlt.delta_poc_msb_present_flag    =
             !!curlt.delta_poc_msb_cycle_lt || isForcedDeltaPocMsbPresent(prevTask, ltpoc, MaxPocLsb);
-        //once find delta_poc_msb_present_flag set 1,  delta_poc_msb_present_flag always set 1.
-        ltr_present_flag |= curlt.delta_poc_msb_present_flag; 
-        curlt.delta_poc_msb_present_flag = ltr_present_flag;
-
         dPocCycleMSBprev                    = dPocCycleMSB;
 
         ++s.num_long_term_sps;
@@ -4676,7 +4673,6 @@ mfxU16 GetSliceHeaderLTRs(
         , [InvalidPOC](mfxI32 x) { return x == InvalidPOC; }) - DPBLT.begin();
     dPocCycleMSBprev = 0;
 
-    ltr_present_flag = 0;
     std::for_each(DPBLT.begin(), DPBLT.begin() + nDPBLT, [&](mfxI32 ltpoc) {
         auto& curlt = s.lt[s.num_long_term_sps + s.num_long_term_pics];
         mfxU32 dPocCycleMSB = (task.POC / MaxPocLsb - ltpoc / MaxPocLsb);
@@ -4689,9 +4685,6 @@ mfxU16 GetSliceHeaderLTRs(
         curlt.delta_poc_msb_cycle_lt        = dPocCycleMSB - dPocCycleMSBprev;
         curlt.delta_poc_msb_present_flag    =
             !!curlt.delta_poc_msb_cycle_lt || isForcedDeltaPocMsbPresent(prevTask, ltpoc, MaxPocLsb);
-        //once find delta_poc_msb_present_flag set 1,  delta_poc_msb_present_flag always set 1.
-        ltr_present_flag |= curlt.delta_poc_msb_present_flag;
-        curlt.delta_poc_msb_present_flag = ltr_present_flag;
         dPocCycleMSBprev                    = dPocCycleMSB;
 
         ++s.num_long_term_pics;
