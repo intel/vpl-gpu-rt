@@ -52,7 +52,31 @@
 #include <malloc.h>
 #include <cstdlib>
 
+
+// MFX_LOG output to the console in Debug mode;
+// MFX_LTRACE output to vpl log file in Release and Debug modes.
+template <
+    typename T
+    , typename std::enable_if<!std::is_same<T, mfxStatus>::value, int>::type = 0>
+static inline T mfx_sts_trace(const char* fileName, const uint32_t lineNum, const char* funcName, T sts)
+{
+    const int mSts = static_cast<int>(sts);
 #if defined(MFX_ENABLE_LOG_UTILITY)
+    if (mSts)
+    {
+        MFX_LOG(LEVEL_ERROR, fileName, lineNum, "%s: returns %d\n", funcName, sts);
+    }
+#endif
+    if (mSts != 0)
+    {
+        std::string mfxSts = (mSts > 0) ? "[warning]  Status = " : "[critical]  Status = ";
+
+        MFX_LTRACE((&_trace_static_handle, fileName, lineNum, funcName, MFX_TRACE_CATEGORY, MFX_TRACE_LEVEL_INTERNAL, mfxSts.c_str(), MFX_TRACE_FORMAT_I, sts));
+    }
+
+    return sts;
+}
+
 template <
     typename T
     , typename = typename std::enable_if<std::is_same<T, mfxStatus>::value>::type>
@@ -62,33 +86,27 @@ static inline T mfx_sts_trace(const char* fileName, const uint32_t lineNum, cons
     std::string mfxSts;
     if (sts > MFX_ERR_NONE || sts == MFX_ERR_MORE_DATA || sts == MFX_ERR_MORE_SURFACE || sts == MFX_ERR_INCOMPATIBLE_VIDEO_PARAM) //MFX_ERR_MORE_DATA, MFX_ERR_MORE_SURFACE and MFX_ERR_INCOMPATIBLE_VIDEO_PARAM are warning status
     {
+#if defined(MFX_ENABLE_LOG_UTILITY)
         MFX_LOG(LEVEL_WARN, fileName, lineNum, "%s: returns %s\n", funcName, stsString.c_str());
+#endif
         mfxSts = "[warning]  mfxRes = ";
     }
 
     else if (sts < MFX_ERR_NONE)
     {
+#if defined(MFX_ENABLE_LOG_UTILITY)
         MFX_LOG(LEVEL_ERROR, fileName, lineNum, "%s: returns %s\n", funcName, stsString.c_str());
+#endif
         mfxSts = "[critical]  mfxRes = ";
     }
-    return sts;
-}
-template <
-    typename T
-    , typename std::enable_if<!std::is_same<T, mfxStatus>::value, int>::type = 0>
-static inline T mfx_sts_trace(const char* fileName, const uint32_t lineNum, const char* funcName, T sts)
-{
-    if (sts)
+    if(sts != MFX_ERR_NONE)
     {
-        MFX_LOG(LEVEL_ERROR, fileName, lineNum, "%s: returns %d\n", funcName, sts);
+       MFX_LTRACE((&_trace_static_handle, fileName, lineNum, funcName, MFX_TRACE_CATEGORY, MFX_TRACE_LEVEL_INTERNAL, mfxSts.c_str(), MFX_TRACE_FORMAT_S, stsString.c_str()));
     }
-
     return sts;
 }
+
 #define MFX_STS_TRACE(sts) mfx_sts_trace(__FILE__, __LINE__, __FUNCTION__, sts)
-#else
-#define MFX_STS_TRACE(sts) sts
-#endif
 
 #define MFX_SUCCEEDED(sts)          (MFX_STS_TRACE(sts) == MFX_ERR_NONE)
 #define MFX_FAILED(sts)             (MFX_STS_TRACE(sts) != MFX_ERR_NONE)
