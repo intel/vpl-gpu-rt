@@ -117,16 +117,16 @@ enum mfxTraceTaskType
     MFX_TRACE_API_AVC_DISPLAYINFO_TASK,
     MFX_TRACE_API_AV1_DISPLAYINFO_TASK,
     MFX_TRACE_API_VP9_DISPLAYINFO_TASK,
-    MFX_TRACE_API_HEVC_PICTUREPARAMETER_TASK,   
+    MFX_TRACE_API_HEVC_PICTUREPARAMETER_TASK,
     MFX_TRACE_API_HEVC_SLICEPARAMETER_TASK,
     MFX_TRACE_API_HEVC_QMATRIXARAMETER_TASK,
     MFX_TRACE_API_AVC_PICTUREPARAMETER_TASK,
     MFX_TRACE_API_AVC_SLICEPARAMETER_TASK,
     MFX_TRACE_API_AVC_QMATRIXARAMETER_TASK,
     MFX_TRACE_API_AV1_PICTUREPARAMETER_TASK,
-    MFX_TRACE_API_AV1_TILECONTROLPARAMETER_TASK,      
+    MFX_TRACE_API_AV1_TILECONTROLPARAMETER_TASK,
     MFX_TRACE_API_VP9_PICTUREPARAMETER_TASK,
-    MFX_TRACE_API_VP9_SEGMENTPARAMETER_TASK,   
+    MFX_TRACE_API_VP9_SEGMENTPARAMETER_TASK,
     MFX_TRACE_API_BITSTREAM_TASK,
     MFX_TRACE_API_HEVC_DPBPARAMETER_TASK,
     MFX_TRACE_API_AVC_DPBPARAMETER_TASK,
@@ -649,7 +649,7 @@ else {                                                                  \
 }
 #else
 #define MFX_LTRACE_BUFFER(_level, _buffer) \
-    MFX_LTRACE_BUFFER_S(_level, #_buffer, _buffer, sizeof(*_buffer)) 
+    MFX_LTRACE_BUFFER_S(_level, #_buffer, _buffer, sizeof(*_buffer))
 #endif
 
 #define MFX_LTRACE_GUID(_level, _guid) \
@@ -817,7 +817,7 @@ private:
     _MFX_AUTO_LTRACE_(MFX_TRACE_LEVEL, _task_name, MFX_TRACE_DEFAULT_TASK, true)
 
 #ifdef MFX_TRACE_ENABLE
-class MFXLTraceI 
+class MFXLTraceI
 {
 public:
     template <typename T>
@@ -856,7 +856,7 @@ public:
         ss << _mesg << " = ";
         MFX_LTRACE((&_trace_static_handle, _filename, _line, _function, MFX_TRACE_CATEGORY, _level, ss.str().c_str(), MFX_TRACE_FORMAT_I, _arg1))
     }
-        
+
     void mfx_ltrace_i(mfxTraceLevel _level, const char* _mesg, const char* _function, const char* _filename, mfxTraceU32 _line, mfxStatus _arg1)
     {
         std::error_code code = mfx::make_error_code(_arg1);

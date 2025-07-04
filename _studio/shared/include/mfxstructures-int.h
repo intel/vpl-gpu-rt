@@ -622,7 +622,7 @@ typedef struct {
     { 0xB0A0, MFX_HW_PTL, MFX_GT2 },
     { 0xB0B0, MFX_HW_PTL, MFX_GT2 },
 
-    
+
     /* WCL / Wildcat Lake */
     { 0xFD80, MFX_HW_PTL, MFX_GT2 },
     { 0xFD81, MFX_HW_PTL, MFX_GT2 },
