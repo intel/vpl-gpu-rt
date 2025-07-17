@@ -1,18 +1,18 @@
-* jie.xia@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
+* jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com jon.recker@intel.com
 
 # API
-/api/**                                 miroslav.goncharenko@intel.com vasily.aristarkhov@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com chunbo.chen@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
+/api/**                                 miroslav.goncharenko@intel.com vasily.aristarkhov@intel.com jon.recker@intel.com chunbo.chen@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
 
 # Quick Build buildplans and scripts
-/config/**                              zhijie.zhang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
+/config/**                              zhijie.zhang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com jon.recker@intel.com
 
 # core & plugin:
-/_studio/mfx_lib/shared/**              lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
-/_studio/shared/**                      lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
-/_studio/shared/umc/core/**             lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
-/_studio/shared/umc/io/**               lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
-/_studio/mfx_lib/cmrt_cross_platform/** lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
-/_studio/mfx_lib/scheduler/**           lijuan.wang@intel.com vitaliy.ilichev@intel.com andrei.kochergin@intel.com jie.xia@intel.com rachel.liu@intel.com fish.jiang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com
+/_studio/mfx_lib/shared/**              lijuan.wang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com jon.recker@intel.com
+/_studio/shared/**                      lijuan.wang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com jon.recker@intel.com
+/_studio/shared/umc/core/**             lijuan.wang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com jon.recker@intel.com
+/_studio/shared/umc/io/**               lijuan.wang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com jon.recker@intel.com
+/_studio/mfx_lib/cmrt_cross_platform/** lijuan.wang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com jon.recker@intel.com
+/_studio/mfx_lib/scheduler/**           lijuan.wang@intel.com jenny.yuan@intel.com arshad.ali@intel.com shengkuan.xiao@intel.com saurav.bandyopadhyay@intel.com jon.recker@intel.com
 
 # decoders
 /_studio/mfx_lib/decode/**                          yan.wang@intel.com will.guo@intel.com yuchen.wang@intel.com
