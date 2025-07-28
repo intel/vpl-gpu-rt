@@ -1551,6 +1551,25 @@ void General::SubmitTask(const FeatureBlocks& blocks, TPushST Push)
             , &surfSrc
             , MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY);
     });
+
+    Push(BLK_GetLaDataHDL
+        , [this, &blocks](
+            StorageW& global
+            , StorageW& s_task) -> mfxStatus
+        {
+            auto& core = Glob::VideoCore::Get(global);
+            auto& task = Task::Common::Get(s_task);
+
+            if (global.Contains(Glob::LplaDataBuffer::Key))
+            {
+                auto& LADataSurfaces = Glob::LplaDataBuffer::Get(global);
+                return core.GetFrameHDL(LADataSurfaces.Data.MemId, &task.HDLLPLAData.first);
+            }
+            else
+            {
+                return MFX_ERR_NONE;
+            }
+        });
 }
 
 void General::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)

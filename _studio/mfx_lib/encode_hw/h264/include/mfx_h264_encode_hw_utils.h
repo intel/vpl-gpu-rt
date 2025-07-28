@@ -1121,6 +1121,7 @@ namespace MfxHwH264Encode
             Zero(m_ctrl);
             Zero(m_internalListCtrl);
             Zero(m_handleRaw);
+            Zero(m_handleLpla);
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
             Zero(m_handleMCTF);
 #endif
@@ -1320,6 +1321,7 @@ namespace MfxHwH264Encode
         mfxMemId        m_midRec;       // reconstruction
         Pair<mfxMemId>  m_midBit;       // output bitstream
         mfxHDLPair      m_handleRaw;    // native handle to raw surface (self-allocated or given by app)
+        mfxHDLPair      m_handleLpla;
 #if defined(MFX_ENABLE_MCTF_IN_AVC)
         mfxMemId        m_midMCTF;
         mfxHDLPair      m_handleMCTF;   // Handle to MCTF denoised surface
@@ -2175,6 +2177,7 @@ public:
 #if defined(MFX_ENABLE_ENCTOOLS)
 #endif
         mfxU16 laMode = CommonCaps::IsFastPassLASupported(platform, video.mfx.FrameInfo.ChromaFormat) ? (mfxU16)MFX_FASTPASS_LOOKAHEAD : (mfxU16)MFX_VPP_LOOKAHEAD;
+        m_EncToolCtrl.LADataSurfaces = &m_laSurf;
         mfxStatus sts = InitCtrl(video, &m_EncToolCtrl, laMode);
         MFX_CHECK_STS(sts);
 
@@ -2765,6 +2768,7 @@ public:
     inline bool isLAHWBRC() { return m_LAHWBRC; }
 #if defined(MFX_ENABLE_ENCTOOLS)
 #endif
+    mfxFrameSurface1        m_laSurf = {};
 
 private:
     mfxEncTools*            m_pEncTools = nullptr;
@@ -3306,6 +3310,8 @@ private:
 #if defined(MFX_ENABLE_ENCODE_QUALITYINFO)
         bool m_frameLevelQualityEn = false;
 #endif
+        mfxFrameSurface1        m_pLADataSurfaces = {};
+        MfxFrameAllocResponse   m_LADataFrameResponse = {};
     };
 
 

@@ -108,6 +108,7 @@ namespace Base
     DECL_BLOCK(GetRawHDL            )\
     DECL_BLOCK(CopySysToRaw         )\
     DECL_BLOCK(FillCUQPSurf         )\
+    DECL_BLOCK(GetLaDataHDL         )\
     DECL_BLOCK(CopyBS               )\
     DECL_BLOCK(DoPadding            )\
     DECL_BLOCK(UpdateBsInfo         )\

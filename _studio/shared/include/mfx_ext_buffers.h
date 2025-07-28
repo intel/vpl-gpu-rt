@@ -121,7 +121,8 @@ typedef struct {
     mfxU32       codecTypeInEncodePass;
     mfxU16       FastPassEnable;
     mfxU16       FastPassRatio;
-    mfxU16       reserved[16];
+    mfxU64       LADataHDL;
+    mfxU16       reserved[12];
 } mfxExtLplaParam;
 
 #define MFX_EXTBUFF_LPLA_STATUS MFX_MAKEFOURCC('L', 'P', 'L', 'S')

@@ -89,6 +89,11 @@ namespace CommonCaps {
         return ((platform == MFX_HW_BMG || platform >= MFX_HW_PTL)
             && (ChromaFormat == MFX_CHROMAFORMAT_YUV420));
     }
+
+    inline bool IsLADataBufferSupported(eMFXHWType platform)
+    {
+        return (platform >= MFX_HW_PTL);
+    }
 }
 
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE

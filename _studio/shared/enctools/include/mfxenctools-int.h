@@ -40,7 +40,9 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-
+#define LA_DATA_ENTRY_NUM    128
+#define LA_STATS_SIZE        32 * 2 //enlarge the size to 2 * sizeof(VdencHevcLaStats) for further usage
+#define LA_DATA_BUFFER_SIZE  LA_DATA_ENTRY_NUM * LA_STATS_SIZE
 
 /* Extended Buffer Ids */
 enum {
@@ -140,6 +142,7 @@ typedef struct
         mfxU16  reserved5[60];
     };
     mfxU16 LAMode;
+    mfxFrameSurface1* LADataSurfaces;
     mfxU16 NumExtParam;
     mfxExtBuffer** ExtParam;
 } mfxEncToolsCtrl;

@@ -1986,7 +1986,9 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
         m_rawSys.Unlock();
         m_rec.Unlock();
         m_bit.Unlock();
-
+#if defined(MFX_ENABLE_ENCTOOLS)
+        m_LADataFrameResponse.Unlock();
+#endif
         m_recNonRef[0] = m_recNonRef[1] = 0xffffffff;
 
         // reset of Intra refresh
@@ -3839,7 +3841,10 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         sts = CopyRawSurfaceToVideoMemory(*m_core, m_video, *task, m_isD3D9SimWithVideoMem);
         if (sts != MFX_ERR_NONE)
             MFX_RETURN(Error(sts));
-
+#if defined(MFX_ENABLE_ENCTOOLS)
+        if(extOpt2.LookAheadDepth)
+            task->m_handleLpla.first = GetNativeHandle(*m_core,m_pLADataSurfaces);
+#endif
 #ifdef MFX_ENABLE_EXT
         if (bIntRateControlLA(m_video.mfx.RateControlMethod))
         {

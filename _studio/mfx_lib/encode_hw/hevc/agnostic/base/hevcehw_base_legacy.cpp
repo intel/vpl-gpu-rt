@@ -1927,6 +1927,26 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         task.bCUQPMap = true;
         return MFX_ERR_NONE;
     });
+
+    Push(BLK_GetLaDataHDL
+        , [](
+            StorageW& global
+            , StorageW& s_task) -> mfxStatus
+        {
+            auto& core = Glob::VideoCore::Get(global);
+            auto& task = Task::Common::Get(s_task);
+
+            if (global.Contains(Glob::LplaDataBuffer::Key))
+            {
+                auto& LADataSurfaces = Glob::LplaDataBuffer::Get(global);
+                return core.GetFrameHDL(LADataSurfaces.Data.MemId, &task.HDLLPLAData.first);
+            }
+            else
+            {
+                return MFX_ERR_NONE;
+            }
+
+        });
 }
 
 void Legacy::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)

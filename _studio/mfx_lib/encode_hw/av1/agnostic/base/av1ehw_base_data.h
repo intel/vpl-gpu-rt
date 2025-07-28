@@ -823,6 +823,7 @@ namespace Base
         Resource          BS;
         Resource          CUQP;
         mfxHDLPair        HDLRaw                 = {};
+        mfxHDLPair        HDLLPLAData            = {};
         bool              bCUQPMap               = false;
 #if defined(MFX_ENABLE_ENCTOOLS_BASE)
         mfxLplastatus     LplaStatus           = {};
@@ -1360,6 +1361,7 @@ namespace Base
         using AllocRaw            = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocRec            = StorageVar<__LINE__ - _KD, IAllocation>;
         using AllocBS             = StorageVar<__LINE__ - _KD, IAllocation>;
+        using LplaDataBuffer      = StorageVar<__LINE__ - _KD, mfxFrameSurface1>;
         using PackedHeaders       = StorageVar<__LINE__ - _KD, Base::PackedHeaders>;
         using DDI_Resources       = StorageVar<__LINE__ - _KD, std::list<DDIExecParam>>;
         using DDI_SubmitParam     = StorageVar<__LINE__ - _KD, std::list<DDIExecParam>>;

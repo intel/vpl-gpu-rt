@@ -99,6 +99,7 @@ namespace Base
     DECL_BLOCK(ConfigureTask                        )\
     DECL_BLOCK(GetRawHDL                            )\
     DECL_BLOCK(CopySysToRaw                         )\
+    DECL_BLOCK(GetLaDataHDL                         )\
     DECL_BLOCK(CopyBS                               )\
     DECL_BLOCK(UpdateBsInfo                         )\
     DECL_BLOCK(SetRecInfo                           )\
