@@ -1729,6 +1729,11 @@ void VideoDECODEMJPEGBase_HW::AdjustFourCC(mfxFrameInfo *requestFrameInfo, const
             }
             break;
         case MFX_CHROMAFORMAT_YUV422H:
+            if (requestFrameInfo->FourCC == MFX_FOURCC_RGB4 && !isVideoPostprocEnabled)
+            {
+                requestFrameInfo->FourCC = MFX_FOURCC_YUV422H;
+                *needVpp = true;
+            }
             break;
         case MFX_CHROMAFORMAT_YUV422V:
             // 422V can not do hw decode to YUY2/RGB4 directly, so use VPP to do csc
