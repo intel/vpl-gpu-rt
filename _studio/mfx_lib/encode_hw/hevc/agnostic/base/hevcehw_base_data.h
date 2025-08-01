@@ -118,7 +118,8 @@ namespace Base
                 mfxU32 intra            : 1;
                 mfxU32 one_picture_only : 1;
                 mfxU32 lower_bit_rate   : 1;
-                mfxU32                  : 23;
+                mfxU32 max_14bit        : 1;
+                mfxU32                  : 22;
             } constraint;
         };
         mfxU32 rext_constraint_flags_32_42  : 11;
