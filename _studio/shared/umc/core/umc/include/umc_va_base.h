@@ -1,4 +1,4 @@
-// Copyright (c) 2006-2020 Intel Corporation
+// Copyright (c) 2006-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -353,6 +353,8 @@ public:
     { return m_H265ScalingListScanOrder; }
 
     virtual void GetVideoDecoder(void **handle) = 0;
+
+    virtual Status SetDecodeSysMemTarget(void *sysMemTarget) { UNREFERENCED_PARAMETER(sysMemTarget); return UMC_ERR_NOT_IMPLEMENTED; }
 
     /* Contains private data for the [ExecuteExtension] method */
     struct ExtensionData
