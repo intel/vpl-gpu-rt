@@ -86,7 +86,7 @@ namespace CommonCaps {
 
     inline bool IsFastPassLASupported(eMFXHWType platform, mfxU16 ChromaFormat)
     {
-        return ((platform == MFX_HW_BMG || platform >= MFX_HW_PTL)
+        return ((platform == MFX_HW_BMG)
             && (ChromaFormat == MFX_CHROMAFORMAT_YUV420));
     }
 
