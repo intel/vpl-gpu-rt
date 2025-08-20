@@ -2158,6 +2158,11 @@ inline bool CheckQpInRangeOrClip(mfxI32 qp, T& delta)
     return true;
 }
 
+inline void SetDeltaQp(const mfxVideoParam& par, FH& fh, eMFXHWType hw)
+{
+    return;
+}
+
 inline void ClipDeltaQp(const mfxVideoParam& par, FH& fh)
 {
     if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
@@ -3134,7 +3139,7 @@ inline INTERP_FILTER MapMfxInterpFilter(mfxU16 filter)
 
 void General::SetFH(
     const ExtBuffer::Param<mfxVideoParam>& par
-    , eMFXHWType /*hw*/
+    , eMFXHWType hw
     , const SH& sh
     , FH& fh)
 {
@@ -3161,6 +3166,7 @@ void General::SetFH(
     fh.quantization_params.DeltaQUAc = auxPar.QP.UAcDeltaQ;
     fh.quantization_params.DeltaQVDc = auxPar.QP.VDcDeltaQ;
     fh.quantization_params.DeltaQVAc = auxPar.QP.VAcDeltaQ;
+    SetDeltaQp(par, fh, hw);
 
     // Loop Filter params
     if (IsOn(auxPar.EnableLoopFilter))
