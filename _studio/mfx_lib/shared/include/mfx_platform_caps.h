@@ -94,6 +94,11 @@ namespace CommonCaps {
     {
         return (platform >= MFX_HW_PTL);
     }
+
+    inline bool IsNewLASupported(eMFXHWType platform)
+    {
+        return (platform >= MFX_HW_PTL);
+    }
 }
 
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE
