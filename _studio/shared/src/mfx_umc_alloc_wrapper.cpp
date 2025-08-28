@@ -771,7 +771,8 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
         || surf->Info.FourCC == MFX_FOURCC_Y210
         || surf->Info.FourCC == MFX_FOURCC_P016
         || surf->Info.FourCC == MFX_FOURCC_Y216
-        || surf->Info.FourCC == MFX_FOURCC_Y416)
+        || surf->Info.FourCC == MFX_FOURCC_Y416
+        )
     {
         if (m_isSWDecode)
         {

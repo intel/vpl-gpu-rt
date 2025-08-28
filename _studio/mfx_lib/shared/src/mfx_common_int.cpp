@@ -140,7 +140,8 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 codecId)
         if (   info->FourCC != MFX_FOURCC_P010 && info->FourCC != MFX_FOURCC_P210
             && info->FourCC != MFX_FOURCC_Y210
             && info->FourCC != MFX_FOURCC_P016 && info->FourCC != MFX_FOURCC_Y216
-            && info->FourCC != MFX_FOURCC_Y416 && info->FourCC != MFX_FOURCC_R16)
+            && info->FourCC != MFX_FOURCC_Y416 && info->FourCC != MFX_FOURCC_R16
+            )
             MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
     if (codecId != MFX_CODEC_JPEG)
@@ -471,7 +472,8 @@ static mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
         || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
         || in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016
         || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216
-        || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416)
+        || in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416
+        )
     {
         if (type == MFX_HW_UNKNOWN)
         {
