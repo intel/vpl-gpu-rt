@@ -240,6 +240,13 @@ enum
     MFX_FASTPASS_LOOKAHEAD = 1
 };
 
+enum
+{
+    MFX_LPLA_NO_DS = 0,
+    MFX_LPLA_DS_2X = 1,
+    MFX_LPLA_DS_4X = 2,
+};
+
 MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer     Header;
