@@ -344,7 +344,7 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId)
         break;
     }
 
-    switch (codecId) 
+    switch (codecId)
     {
 #if defined(MFX_ENABLE_VVC_VIDEO_DECODE)
     case MFX_CODEC_VVC:
@@ -366,7 +366,7 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId)
             || info->FourCC == MFX_FOURCC_Y210
             || info->FourCC == MFX_FOURCC_P016
             || info->FourCC == MFX_FOURCC_Y216
-            || info->FourCC == MFX_FOURCC_Y416) 
+            || info->FourCC == MFX_FOURCC_Y416)
         {
             MFX_CHECK(info->Shift == 1, MFX_ERR_INVALID_VIDEO_PARAM);
         }
@@ -1046,7 +1046,7 @@ mfxU32 GetMinPitch(mfxU32 fourcc, mfxU16 width)
         case MFX_FOURCC_A2RGB10:     return width * 4;
 
         case MFX_FOURCC_ARGB16:
-        case MFX_FOURCC_ABGR16:  
+        case MFX_FOURCC_ABGR16:
         case MFX_FOURCC_ABGR16F:     return width * 8;
 
         case MFX_FOURCC_YUY2:

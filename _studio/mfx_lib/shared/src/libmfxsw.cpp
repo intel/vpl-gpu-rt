@@ -866,7 +866,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
                 }
             };
 
-            for (auto type : { MFX_SURFACE_TYPE_VAAPI 
+            for (auto type : { MFX_SURFACE_TYPE_VAAPI
                 })
             {
                 auto& surface_type = holder->PushBack(holder->SurfaceTypes);
