@@ -95,6 +95,7 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/agnostic/base/hevcehw_base_caps.h
     hevc/agnostic/base/hevcehw_base_recon422.h
     hevc/agnostic/base/hevcehw_base_recon422_ext.h
+    hevc/agnostic/base/hevcehw_base_padding.h
     hevc/agnostic/g12/hevcehw_g12_caps.h
     hevc/agnostic/g12/hevcehw_g12_data.h
 
@@ -141,6 +142,7 @@ if (MFX_ENABLE_H265_VIDEO_ENCODE)
     hevc/agnostic/base/hevcehw_base_scc.cpp
     hevc/agnostic/base/hevcehw_base_extddi.cpp
     hevc/agnostic/base/hevcehw_base_caps.cpp
+    hevc/agnostic/base/hevcehw_base_padding.cpp
     hevc/agnostic/g12/hevcehw_g12_caps.cpp
 
     hevc/linux/base/hevcehw_base_interlace_lin.cpp

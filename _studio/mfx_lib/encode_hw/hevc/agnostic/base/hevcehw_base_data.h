@@ -1379,6 +1379,7 @@ namespace Base
 #if defined(MFX_ENABLE_AI_ENC_CTRL)
         , FEATURE_AIENC
 #endif
+        , FEATURE_PADDING
         , NUM_FEATURES
     };
 
