@@ -1921,22 +1921,24 @@ VAAPIVideoCORE_VPL::DoFastCopyExtended(
     // Check if requested copy backend is CM and CM is capable to perform copy
     bool canUseCMCopy = (gpuCopyMode & MFX_COPY_USE_CM) && m_pCmCopy && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF) && CmCopyWrapper::CanUseCmCopy(pDst, pSrc);
 
-    if (m_pVaCopy && (VACopyWrapper::IsVaCopySupportSurface(*pDst, *pSrc, m_HWType)) && (gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF))
     {
-        auto vacopyMode = VACopyWrapper::DEFAULT;
-
-        if (m_HWType == MFX_HW_DG2)
+        UMC::AutomaticUMCMutex guard(this->m_guard);
+        if (m_pVaCopy && (VACopyWrapper::IsVaCopySupportSurface(*pDst, *pSrc, m_HWType)) && (gpuCopyMode & MFX_COPY_USE_VACOPY_ANY) && (m_ForcedGpuCopyState != MFX_GPUCOPY_OFF))
         {
-            vacopyMode = VACopyWrapper::BLT;
-        }
+            auto vacopyMode = VACopyWrapper::DEFAULT;
 
-        auto vaCopySts = m_pVaCopy->Copy(*pSrc, *pDst, vacopyMode);
-        MFX_RETURN_IF_ERR_NONE(vaCopySts);
+            if (m_HWType == MFX_HW_DG2)
+            {
+                vacopyMode = VACopyWrapper::BLT;
+            }
 
-        if (vaCopySts == MFX_ERR_DEVICE_FAILED)
-        {
-            UMC::AutomaticUMCMutex guard(this->m_guard);
-            m_pVaCopy.reset(); //once failed, don't try to use it anymore
+            auto vaCopySts = m_pVaCopy->Copy(*pSrc, *pDst, vacopyMode);
+            MFX_RETURN_IF_ERR_NONE(vaCopySts);
+
+            if (vaCopySts == MFX_ERR_DEVICE_FAILED)
+            {
+                m_pVaCopy.reset(); //once failed, don't try to use it anymore
+            }
         }
     }
 
