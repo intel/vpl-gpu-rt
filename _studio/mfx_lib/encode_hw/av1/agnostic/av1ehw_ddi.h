@@ -104,7 +104,8 @@ typedef struct tagENCODE_CAPS_AV1
             uint32_t   enable_cdef                : 1;
             uint32_t   enable_restoration         : 1;
             uint32_t   allow_intrabc              : 1;
-            uint32_t   ReservedBits               : 16;
+            uint32_t   allow_full_tx_set          : 1; // Enable full transform set for best quality (target usage 1)
+            uint32_t   ReservedBits               : 15;
         } fields;
         uint32_t value;
     } AV1ToolSupportFlags;

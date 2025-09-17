@@ -203,7 +203,8 @@ namespace Base
             const ExtBuffer::Param<mfxVideoParam>& par
             , eMFXHWType hw
             , const SH& sh
-            , FH& fh);
+            , FH& fh
+            , const EncodeCapsAv1& caps);
 
         void ConfigureTask(
             TaskCommonPar& task

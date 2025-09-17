@@ -962,11 +962,13 @@ void General::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         if (!strg.Contains(Glob::FH::Key))
         {
             std::unique_ptr<MakeStorable<FH>> pFH(new MakeStorable<FH>);
+            const auto& caps = Glob::EncodeCaps::Get(strg);
             SetFH(
                 Glob::VideoParam::Get(strg)
                 , Glob::VideoCore::Get(strg).GetHWType()
                 , Glob::SH::Get(strg)
-                , *pFH);
+                , *pFH
+                , caps);
             strg.Insert(Glob::FH::Key, std::move(pFH));
         }
 
@@ -3141,7 +3143,8 @@ void General::SetFH(
     const ExtBuffer::Param<mfxVideoParam>& par
     , eMFXHWType hw
     , const SH& sh
-    , FH& fh)
+    , FH& fh
+    , const EncodeCapsAv1& caps)
 {
     // this functions sets "static" parameters which can be changed via Reset
     fh = {};
@@ -3198,7 +3201,15 @@ void General::SetFH(
     }
 
     fh.TxMode = TX_MODE_SELECT;
-    fh.reduced_tx_set = 1;
+    
+    // Set reduced_tx_set based on target usage and hardware capability
+    // Use full transform set (reduced_tx_set = 0) when target usage is best quality and hardware supports it
+    if (par.mfx.TargetUsage == MFX_TARGETUSAGE_1 && caps.AV1ToolSupportFlags.fields.allow_full_tx_set) {
+        fh.reduced_tx_set = 0;  // Use full transform set for best quality
+    } else {
+        fh.reduced_tx_set = 1;  // Use reduced transform set
+    }
+    
     fh.delta_lf_present = 0;
     fh.delta_lf_multi = 0;
 
