@@ -22,7 +22,6 @@
 #if defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
 
 #include "av1ehw_base_qmatrix.h"
-
 using namespace AV1EHW;
 using namespace AV1EHW::Base;
 
@@ -164,7 +163,6 @@ void QMatrix::PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Push)
             fh.quantization_params.qm_u = nQMatrix;
             fh.quantization_params.qm_v = nQMatrix;
         }
-
         return MFX_ERR_NONE;
     });
 }
