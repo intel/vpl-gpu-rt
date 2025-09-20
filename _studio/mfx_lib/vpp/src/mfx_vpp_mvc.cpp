@@ -119,6 +119,11 @@ mfxStatus ImplementationMvc::Init(mfxVideoParam *par)
         VideoVPPBase* pNewVPP = CreateAndInitVPPImpl(par, m_core, &mfxSts);
         if (mfxSts < MFX_ERR_NONE || !pNewVPP)
         {
+            if (pNewVPP)
+            {
+                delete pNewVPP;
+                pNewVPP = NULL;
+            }
             return mfxSts;
         }
 
@@ -131,6 +136,8 @@ mfxStatus ImplementationMvc::Init(mfxVideoParam *par)
         std::pair<mfxMultiViewVPP_Iterator, bool> insertSts = m_VPP.insert( std::make_pair(viewId, pNewVPP) );
         if( !insertSts.second )
         {
+            delete pNewVPP;
+            pNewVPP = NULL;
             return MFX_ERR_UNDEFINED_BEHAVIOR;
         }
     }
