@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2020 Intel Corporation
+// Copyright (c) 2007-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -89,7 +89,10 @@ public:
 
     // Get Video Accelerator.
     virtual void  GetVA(mfxHDL* phdl, mfxU16)                   override { *phdl = nullptr; }
+    virtual void  GetVaArray(std::vector<mfxHDL>* phdl_array, mfxU16) override { phdl_array = nullptr; }
     virtual mfxStatus CreateVA(mfxVideoParam *, mfxFrameAllocRequest *, mfxFrameAllocResponse *, UMC::FrameAllocator *) override { MFX_RETURN(MFX_ERR_UNSUPPORTED); }
+    virtual mfxStatus CreateVaArray(mfxVideoParam*, mfxFrameAllocRequest*, mfxFrameAllocResponse*, UMC::FrameAllocator*, mfxU8) override { MFX_RETURN(MFX_ERR_UNSUPPORTED); }
+
     // Get the current working adapter's number
     virtual mfxU32 GetAdapterNumber()                           override { return 0; }
 #ifdef _MSVC_LANG

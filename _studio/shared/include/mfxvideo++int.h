@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2024 Intel Corporation
+// Copyright (c) 2018-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -163,7 +163,9 @@ public:
 
     // Check HW property
     virtual void  GetVA(mfxHDL* phdl, mfxU16 type) = 0;
+    virtual void  GetVaArray(std::vector<mfxHDL>* phdl_array, mfxU16 type) = 0;
     virtual mfxStatus CreateVA(mfxVideoParam * , mfxFrameAllocRequest *, mfxFrameAllocResponse *, UMC::FrameAllocator *) = 0;
+    virtual mfxStatus CreateVaArray(mfxVideoParam*, mfxFrameAllocRequest*, mfxFrameAllocResponse*, UMC::FrameAllocator*, mfxU8) = 0;
     // Get the current working adapter's number
     virtual mfxU32 GetAdapterNumber(void) = 0;
 
