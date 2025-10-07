@@ -1202,13 +1202,11 @@ namespace UMC_AV1_DECODER
             else
             {
                 // For no display frame, it decrementReference here and frame.completedecoding() in working thread
-                if(pCurrFrame)
-                {
-                    if (lastest_submitted_frame->UID == -1)
-                        lastest_submitted_frame = nullptr;
-                    else if(lastest_submitted_frame != pCurrFrame)
-                        AV1DecrementReference(__FUNCTION__, __LINE__, lastest_submitted_frame);
-                }
+                // If there is not enough frame(pCurrFrame = nullptr) in decode output array(DPB), it also need to decrease refcounter for last submitted non-display frame
+                if (lastest_submitted_frame->UID == -1)
+                    lastest_submitted_frame = nullptr;
+                else if(lastest_submitted_frame != pCurrFrame)
+                    AV1DecrementReference(__FUNCTION__, __LINE__, lastest_submitted_frame);
             }
         }
 
