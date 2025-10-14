@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2024 Intel Corporation
+// Copyright (c) 2003-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,7 @@
 
 #include "mfx_enc_common.h"
 #include "mfx_umc_alloc_wrapper.h"
+#include "mfx_platform_caps.h"
 
 namespace UMC
 {
@@ -1142,6 +1143,27 @@ void CheckDimensions(T &info_in, T &info_out, mfxStatus & sts)
    }
 }
 
+inline bool CheckFourcc(mfxU32 fourcc, mfxU16 codecProfile, eMFXHWType type)
+{
+    switch (codecProfile)
+    {
+    case MFX_PROFILE_UNKNOWN:
+    case MFX_PROFILE_AVC_BASELINE:
+    case MFX_PROFILE_AVC_MAIN:
+    case MFX_PROFILE_AVC_HIGH:
+    case MFX_PROFILE_AVC_EXTENDED:
+#ifdef MFX_ENABLE_SVC_VIDEO_DECODE
+    case MFX_PROFILE_AVC_SCALABLE_BASELINE: 
+    case MFX_PROFILE_AVC_SCALABLE_HIGH:
+#endif
+    case MFX_PROFILE_AVC_MULTIVIEW_HIGH:
+    case MFX_PROFILE_AVC_STEREO_HIGH:
+        return fourcc == MFX_FOURCC_NV12;
+    default:
+        return false;
+    }
+}
+
 mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out, eMFXHWType type)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MFX_Utility::Query");
@@ -1283,7 +1305,7 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
 
         if (in->mfx.FrameInfo.FourCC)
         {
-            if (in->mfx.FrameInfo.FourCC == MFX_FOURCC_NV12)
+            if (CheckFourcc(in->mfx.FrameInfo.FourCC, in->mfx.CodecProfile, type))
                 out->mfx.FrameInfo.FourCC = in->mfx.FrameInfo.FourCC;
             else
                 sts = MFX_ERR_UNSUPPORTED;

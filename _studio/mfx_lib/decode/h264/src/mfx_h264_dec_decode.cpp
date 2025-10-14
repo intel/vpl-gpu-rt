@@ -1,4 +1,4 @@
-// Copyright (c) 2004-2024 Intel Corporation
+// Copyright (c) 2004-2025 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -430,7 +430,8 @@ mfxStatus VideoDECODEH264::QueryImplsDescription(
         par.mfx.CodecProfile = profile;
         // Set FourCC to pass IsNeedPartialAcceleration check
         par.mfx.FrameInfo.FourCC = MFX_FOURCC_NV12;
-
+        // Set PicStruct to pass GetPlatform check during query caps w/o bitstream
+        par.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
         sts = VideoDECODEH264::Query(&core, &par, &par);
         if (sts != MFX_ERR_NONE) continue;
 
