@@ -222,6 +222,14 @@ namespace VP8DCaps {
 
 #ifdef MFX_ENABLE_AV1_VIDEO_DECODE
 namespace AV1DCaps {
+    inline bool IsPlatformSupported(eMFXHWType platform)
+    {
+        return platform >= MFX_HW_TGL_LP;
+    }
+    inline bool IsDec420Supported(eMFXHWType platform)
+    {
+        return platform >= MFX_HW_TGL_LP;
+    }
     inline bool IsPostProcessSupported(eMFXHWType platform)
     {
         return platform >= MFX_HW_MTL;

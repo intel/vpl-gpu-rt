@@ -310,11 +310,14 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
 }
 
 mfxStatus VideoDECODEAV1::QueryImplsDescription(
-    VideoCORE&,
+    VideoCORE& core,
     mfxDecoderDescription::decoder& caps,
     mfx::PODArraysHolder& ah)
 {
-    const mfxU32 SupportedProfiles[] =
+    if (!AV1DCaps::IsPlatformSupported(core.GetHWType()))
+        return MFX_ERR_UNSUPPORTED;
+
+    const mfxU16 SupportedProfiles[] =
     {
         MFX_PROFILE_AV1_MAIN
         , MFX_PROFILE_AV1_HIGH
@@ -325,35 +328,53 @@ mfxStatus VideoDECODEAV1::QueryImplsDescription(
         MFX_RESOURCE_SYSTEM_SURFACE
         , MFX_RESOURCE_VA_SURFACE
     };
-    const mfxU32 SupportedFourCC[] =
+    const mfxU32 SupportedFourCCChromaFormat[][2] =
     {
-        MFX_FOURCC_NV12
-        , MFX_FOURCC_P010
+        { MFX_FOURCC_NV12, MFX_CHROMAFORMAT_YUV420 }
+      , { MFX_FOURCC_P010, MFX_CHROMAFORMAT_YUV420 }
     };
 
     caps.CodecID = MFX_CODEC_AV1;
     caps.MaxcodecLevel = MFX_LEVEL_AV1_63;
 
-    for (mfxU32 profile : SupportedProfiles)
-    {
-        auto& pfCaps = ah.PushBack(caps.Profiles);
-        pfCaps.Profile = profile;
+    mfxVideoParam par;
+    memset(&par, 0, sizeof(par));
+    par.mfx.CodecId = caps.CodecID;
+    par.mfx.CodecLevel = caps.MaxcodecLevel;
 
+    mfxStatus sts = MFX_ERR_NONE;
+    for (mfxU16 profile : SupportedProfiles)
+    {
+        par.mfx.CodecProfile = profile;
+        auto& pfCaps = ah.PushBack(caps.Profiles);        
+        pfCaps.Profile = profile;
+        bool bSupportedProfile = false;
         for (auto memType : SupportedMemTypes)
         {
+            bool bSupportedMemType = false;
             auto& memCaps = ah.PushBack(pfCaps.MemDesc);
             memCaps.MemHandleType = memType;
             memCaps.Width = { 16, 16384, 16 };
             memCaps.Height = { 16, 16384, 16 };
 
-            for (auto fcc : SupportedFourCC)
+            for (auto fcc : SupportedFourCCChromaFormat)
             {
-                ah.PushBack(memCaps.ColorFormats) = fcc;
+                par.mfx.FrameInfo.FourCC = fcc[0];
+                par.mfx.FrameInfo.ChromaFormat = mfxU16(fcc[1]);
+
+                mfxVideoParam parOut;
+                sts = VideoDECODEAV1::Query(&core, &par, &parOut);
+                if (sts != MFX_ERR_NONE) continue;
+
+                bSupportedProfile = bSupportedMemType = true;
+                ah.PushBack(memCaps.ColorFormats) = fcc[0];
                 ++memCaps.NumColorFormats;
             }
-            ++pfCaps.NumMemTypes;
+            if (bSupportedMemType)
+              ++pfCaps.NumMemTypes;
         }
-        ++caps.NumProfiles;
+        if (bSupportedProfile)
+          ++caps.NumProfiles;
     }
 
     return MFX_ERR_NONE;
@@ -582,6 +603,20 @@ mfxStatus CheckLevel(mfxVideoParam* in, mfxVideoParam* out)
     return sts;
 }
 
+inline
+mfxStatus CheckFourCCProfile(mfxVideoParam* in, eMFXHWType hwType)
+{
+    mfxU32 fcc = in->mfx.FrameInfo.FourCC;
+    switch(in->mfx.CodecProfile)
+    {
+    case MFX_PROFILE_AV1_MAIN:
+        return (AV1DCaps::IsDec420Supported(hwType) && (fcc == MFX_FOURCC_NV12 || fcc == MFX_FOURCC_P010)) ? MFX_ERR_NONE : MFX_ERR_UNSUPPORTED;
+    default:
+        return MFX_ERR_UNSUPPORTED;
+    }
+}
+
+
 mfxStatus VideoDECODEAV1::Query(VideoCORE* core, mfxVideoParam* in, mfxVideoParam* out)
 {
     MFX_CHECK(core, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -605,6 +640,9 @@ mfxStatus VideoDECODEAV1::Query(VideoCORE* core, mfxVideoParam* in, mfxVideoPara
     }
 
     sts = CheckLevel(in, out);
+    MFX_CHECK_STS(sts);
+
+    sts = CheckFourCCProfile(in, core->GetHWType());
     MFX_CHECK_STS(sts);
 
     if (in)

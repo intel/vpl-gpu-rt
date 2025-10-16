@@ -339,6 +339,10 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId)
                   || info->ChromaFormat == MFX_CHROMAFORMAT_YUV444
                   , MFX_ERR_INVALID_VIDEO_PARAM);
         break;
+    case MFX_CODEC_AV1:
+        MFX_CHECK(info->ChromaFormat == MFX_CHROMAFORMAT_YUV420
+            , MFX_ERR_INVALID_VIDEO_PARAM);
+        break;
     default:
         MFX_CHECK(info->ChromaFormat == MFX_CHROMAFORMAT_YUV420 || info->ChromaFormat == MFX_CHROMAFORMAT_YUV400, MFX_ERR_INVALID_VIDEO_PARAM);
         break;

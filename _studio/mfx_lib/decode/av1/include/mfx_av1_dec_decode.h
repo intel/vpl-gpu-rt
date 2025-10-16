@@ -61,7 +61,7 @@ public:
     static mfxStatus Query(VideoCORE*, mfxVideoParam* in, mfxVideoParam* out);
     static mfxStatus QueryIOSurf(VideoCORE*, mfxVideoParam*, mfxFrameAllocRequest*);
     static mfxStatus DecodeHeader(VideoCORE*, mfxBitstream*, mfxVideoParam*);
-    static mfxStatus QueryImplsDescription(VideoCORE&, mfxDecoderDescription::decoder&, mfx::PODArraysHolder&);
+    static mfxStatus QueryImplsDescription(VideoCORE& core, mfxDecoderDescription::decoder&, mfx::PODArraysHolder&);
 
     virtual mfxStatus Init(mfxVideoParam*) override;
     virtual mfxStatus Reset(mfxVideoParam*) override;
