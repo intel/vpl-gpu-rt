@@ -20,6 +20,7 @@
 
 #ifndef __UMC_VIDEO_DECODER_H__
 #define __UMC_VIDEO_DECODER_H__
+#include <vector>
 
 #include "umc_structures.h"
 #include "umc_video_data.h"
@@ -47,6 +48,9 @@ public:
     BaseCodec               *pPostProcessing;               // (BaseCodec*) pointer to post processing
 
     VideoAccelerator        *pVideoAccelerator;             // pointer to video accelerator
+    VideoAccelerator**      pCurrentVideoAccelerator;
+    std::vector<VideoAccelerator*>   pVideoAcceleratorArray;
+    mfxU8                   VACount;
 };
 
 /******************************************************************************/

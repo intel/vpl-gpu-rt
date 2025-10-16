@@ -32,6 +32,8 @@ VideoDecoderParams::VideoDecoderParams(void)
     pPostProcessing = NULL;
     lpMemoryAllocator = NULL;
     pVideoAccelerator = NULL;
+    pCurrentVideoAccelerator = NULL;
+    VACount = 0;
 } // VideoDecoderParams::VideoDecoderParams(void)
 
 VideoDecoderParams::~VideoDecoderParams(void)
