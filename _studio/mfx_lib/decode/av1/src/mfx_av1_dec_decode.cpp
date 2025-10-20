@@ -240,7 +240,7 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
                 || videoProcessing->Out.FourCC == MFX_FOURCC_Y416
                 || videoProcessing->Out.FourCC == MFX_FOURCC_P016
                 );
-        
+
         MFX_CHECK(is_fourcc_supported, MFX_ERR_UNSUPPORTED);
         if (m_core->GetVAType() == MFX_HW_VAAPI)
             internal = 1;
@@ -346,7 +346,7 @@ mfxStatus VideoDECODEAV1::QueryImplsDescription(
     for (mfxU16 profile : SupportedProfiles)
     {
         par.mfx.CodecProfile = profile;
-        auto& pfCaps = ah.PushBack(caps.Profiles);        
+        auto& pfCaps = ah.PushBack(caps.Profiles);
         pfCaps.Profile = profile;
         bool bSupportedProfile = false;
         for (auto memType : SupportedMemTypes)

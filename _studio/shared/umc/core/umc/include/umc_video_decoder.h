@@ -43,7 +43,7 @@ public:
     virtual ~VideoDecoderParams();
 
     VideoStreamInfo         info;                           // (VideoStreamInfo) compressed video info
-    uint32_t                  lFlags;                         // (uint32_t) decoding flag(s)
+    uint32_t                lFlags;                         // (uint32_t) decoding flag(s)
 
     BaseCodec               *pPostProcessing;               // (BaseCodec*) pointer to post processing
 
