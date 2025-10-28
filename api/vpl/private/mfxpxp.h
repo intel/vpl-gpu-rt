@@ -81,13 +81,24 @@ MFX_PACK_BEGIN_STRUCT_W_PTR()
     PXP parameter point to VAEncryptionParameters on linux.
     {bitstream_ptr | pxp_param_ptr | pOutput | outputSize}
 */
-typedef struct {
-    mfxBitstream            *pMfxBitstream;     /*!< Pointer to output bitstream buffer. */
-    mfxHDL                   pPXPParams;        /*!< Pointer to PXP parameters */
-    mfxHDL                   pOutput;           /*!< Pointer to encode output meta data. */
-    mfxU32                   outputSize;        /*!< size of encode output meta data. */
-    mfxU8                    reserved[16];      /*!< Reserved for future use. */
-} *mfxEncodeParamMapHDL, mfxEncodeParamMap;
+struct mfxEncodeParamMap{
+    std::reference_wrapper<mfxBitstream*>   rMfxBitstream;     /*!< Pointer to output bitstream buffer. */
+    mfxHDL                                  pPXPParams;        /*!< Pointer to PXP parameters */
+    mfxHDL                                  pOutput;           /*!< Pointer to encode output meta data. */
+    mfxU32                                  outputSize;        /*!< size of encode output meta data. */
+    mfxU8                                   reserved[16];      /*!< Reserved for future use. */
+    mfxEncodeParamMap(mfxBitstream*& bs)
+        : rMfxBitstream(bs)
+        , pPXPParams(nullptr)
+        , pOutput(nullptr)
+        , outputSize(0)
+    {
+        memset(reserved, 0, sizeof(reserved));
+    }
+};
+
+using mfxEncodeParamMapHDL = mfxEncodeParamMap*;
+
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
