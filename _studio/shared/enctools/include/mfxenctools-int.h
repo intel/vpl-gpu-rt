@@ -142,6 +142,7 @@ typedef struct
         mfxU16  reserved5[60];
     };
     mfxU16 LAMode;
+    mfxU8 SkipLAHintQuery;
     mfxFrameSurface1* LADataSurfaces;
     mfxU16 NumExtParam;
     mfxExtBuffer** ExtParam;
