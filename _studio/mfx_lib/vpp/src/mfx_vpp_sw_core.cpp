@@ -1015,7 +1015,8 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             out->vpp.In.FourCC != MFX_FOURCC_R16 &&
             out->vpp.In.FourCC != MFX_FOURCC_ARGB16 &&
             // A2RGB10 supported as input in case of passthru copy
-            out->vpp.In.FourCC != MFX_FOURCC_A2RGB10)
+            out->vpp.In.FourCC != MFX_FOURCC_A2RGB10
+            )
         {
             if( out->vpp.In.FourCC )
             {
