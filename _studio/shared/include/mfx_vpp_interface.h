@@ -400,7 +400,7 @@ namespace MfxHwVideoProcessing
                ,bCameraTCC(false)
                ,CameraTCC()
                ,bCameraRGBtoYUV(false)
-               ,CameraRGBToYUV()               
+               ,CameraRGBToYUV()
                ,bCameraGammaCorrection(false)
                ,CameraForwardGammaCorrection()
                ,bCameraVignetteCorrection(false)
