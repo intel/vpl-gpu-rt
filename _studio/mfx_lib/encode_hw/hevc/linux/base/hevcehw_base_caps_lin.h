@@ -38,7 +38,8 @@ class Caps
 public:
     Caps(mfxU32 FeatureId)
         : HEVCEHW::Base::Caps(FeatureId)
-    {}
+    {
+    }
 
 protected:
     virtual void SetSpecificCaps(HEVCEHW::Base::EncodeCapsHevc& caps) override

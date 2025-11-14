@@ -29,6 +29,7 @@ using namespace HEVCEHW::Base;
 
 void Linux::Base::DirtyRect::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 {
+    
     Push(BLK_SetCallChains
         , [this](StorageRW& global, StorageRW& /*local*/) -> mfxStatus
     {

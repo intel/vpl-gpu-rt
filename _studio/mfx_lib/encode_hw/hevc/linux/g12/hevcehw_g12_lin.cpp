@@ -49,6 +49,7 @@ MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
     , eFeatureMode mode)
     : TBaseGen(core, status, mode)
 {
+    
     TFeatureList newFeatures;
 
     newFeatures.emplace_back(new HEVCEHW::Linux::Base::RExt(HEVCEHW::Base::FEATURE_REXT));
@@ -65,6 +66,7 @@ void MFXVideoENCODEH265_HW::InternalInitFeatures(
     , eFeatureMode mode
     , TFeatureList& newFeatures)
 {
+    
     status = MFX_ERR_UNKNOWN;
 
     for (auto& pFeature : newFeatures)
@@ -128,6 +130,7 @@ void MFXVideoENCODEH265_HW::InternalInitFeatures(
 
 mfxStatus MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)
 {
+    
     auto sts = TBaseGen::Init(par);
     MFX_CHECK_STS(sts);
 

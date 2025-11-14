@@ -43,7 +43,8 @@ public:
 
     Allocator(mfxU32 FeatureId)
         : FeatureBase(FeatureId)
-    {}
+    {
+    }
 
 protected:
     virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override;

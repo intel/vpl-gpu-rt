@@ -39,7 +39,8 @@ public:
 
     DirtyRect(mfxU32 FeatureId)
         : HEVCEHW::Base::DirtyRect(FeatureId)
-    {}
+    {
+    }
 
 protected:
     virtual void InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push) override;
