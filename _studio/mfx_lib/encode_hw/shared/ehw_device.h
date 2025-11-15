@@ -22,6 +22,7 @@
 #include "feature_blocks/mfx_feature_blocks_utils.h"
 #include "libmfx_core_interface.h"
 #include <list>
+#include <unordered_map>
 
 namespace MfxEncodeHW
 {
@@ -99,6 +100,8 @@ public:
     virtual mfxU32    GetLastErr() const = 0;
     virtual void      Trace(const DDIExecParam&, bool /*bAfterExec*/, mfxU32 /*res*/) {}
     virtual GUID      GetGUID() const = 0;
+    virtual void      SetVaCount(mfxU8) {}
+    virtual mfxStatus UpdateContext(std::unordered_map<uint32_t, uint32_t>&, mfxU32) { return MFX_ERR_NONE; }
 
 };
 
