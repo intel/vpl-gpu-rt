@@ -613,6 +613,13 @@ void General::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         return CheckOrderHintBits(out);
     });
 
+    Push(BLK_CheckRefFrameMvs
+        , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW& strg) -> mfxStatus
+    {
+        const auto& caps = Glob::EncodeCaps::Get(strg);
+        return CheckRefFrameMvs(out, caps);
+    });
+
     Push(BLK_CheckCDEF
         , [this](const mfxVideoParam&, mfxVideoParam& out, StorageW& strg) -> mfxStatus
     {
@@ -3073,6 +3080,7 @@ void General::SetSH(
     sh.enable_intra_edge_filter   = caps.AV1ToolSupportFlags.fields.enable_intra_edge_filter;
     sh.enable_jnt_comp            = caps.AV1ToolSupportFlags.fields.enable_jnt_comp;
     sh.enable_masked_compound     = caps.AV1ToolSupportFlags.fields.enable_masked_compound;
+    sh.enable_ref_frame_mvs       = caps.AV1ToolSupportFlags.fields.enable_ref_frame_mvs;
 
     const mfxExtCodingOption3& CO3      = ExtBuffer::Get(par);
     sh.color_config.BitDepth            = CO3.TargetBitDepthLuma;
@@ -3209,6 +3217,10 @@ void General::SetFH(
     } else {
         fh.reduced_tx_set = 1;  // Use reduced transform set
     }
+    
+    // Set use_ref_frame_mvs based on sequence header capability, user setting, and target usage
+    // Enabled when: sequence header supports it AND (user enables it OR target usage is best quality)
+    fh.use_ref_frame_mvs = (sh.enable_ref_frame_mvs == 0) ? 0 : ((IsOn(auxPar.EnableRefFrameMvs) || par.mfx.TargetUsage == MFX_TARGETUSAGE_1) ? 1 : 0);
     
     fh.delta_lf_present = 0;
     fh.delta_lf_multi = 0;
@@ -3494,6 +3506,7 @@ void General::SetDefaults(
         SetDefault(pAuxPar->LoopFilter.ModeRefDeltaUpdate, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->DisplayFormatSwizzle, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->ErrorResilientMode, MFX_CODINGOPTION_OFF);
+        SetDefault(pAuxPar->EnableRefFrameMvs, MFX_CODINGOPTION_OFF);
     }
 
     SetDefaultOrderHint(pAuxPar);
@@ -4021,6 +4034,31 @@ mfxStatus General::CheckOrderHintBits(mfxVideoParam& par)
     mfxU32 changed = 0;
     changed += CheckMaxOrClip(pAuxPar->OrderHintBits, 8);
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus General::CheckRefFrameMvs(mfxVideoParam& par, const ENCODE_CAPS_AV1& caps)
+{
+    mfxExtAV1AuxData* pAuxPar = ExtBuffer::Get(par);
+    MFX_CHECK(pAuxPar, MFX_ERR_NONE);
+
+    mfxU32 invalid = 0;
+
+    if (IsOn(pAuxPar->EnableRefFrameMvs) && caps.AV1ToolSupportFlags.fields.enable_ref_frame_mvs == false)
+    {
+        pAuxPar->EnableRefFrameMvs = MFX_CODINGOPTION_OFF;
+        invalid = 1;
+    }
+
+    MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
+
+    // enable_ref_frame_mvs can only be enabled when enable_order_hint is enabled
+    if (IsOn(pAuxPar->EnableRefFrameMvs) && !IsOn(pAuxPar->EnableOrderHint))
+    {
+        pAuxPar->EnableRefFrameMvs = MFX_CODINGOPTION_OFF;
+        return MFX_ERR_INVALID_VIDEO_PARAM;
+    }
 
     return MFX_ERR_NONE;
 }
