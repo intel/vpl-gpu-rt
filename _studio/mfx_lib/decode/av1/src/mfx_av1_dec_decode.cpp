@@ -363,6 +363,7 @@ mfxStatus VideoDECODEAV1::QueryImplsDescription(
                 par.mfx.FrameInfo.ChromaFormat = mfxU16(fcc[1]);
 
                 mfxVideoParam parOut;
+                memset(&parOut, 0, sizeof(parOut));
                 sts = VideoDECODEAV1::Query(&core, &par, &parOut);
                 if (sts != MFX_ERR_NONE) continue;
 
