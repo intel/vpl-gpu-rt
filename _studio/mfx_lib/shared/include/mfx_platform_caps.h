@@ -26,8 +26,7 @@
 namespace CommonCaps {
     inline bool IsPreSiPlatform(eMFXHWType platform, mfxU16 /*deviceId*/)
     {
-
-        return platform >= MFX_HW_ARL;
+        return platform >= MFX_HW_NVL_XE3G;
     }
 
     inline bool IsVppSkipQuerySupported(eMFXHWType platform, mfxU16 deviceId)

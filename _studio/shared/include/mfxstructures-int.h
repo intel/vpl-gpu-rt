@@ -92,6 +92,8 @@ enum eMFXHWType
 
     MFX_HW_PTL       = 0x1800000,
 
+    MFX_HW_NVL_XE3G  = MFX_HW_PTL + 2,
+
 };
 
 enum eMFXGTConfig
@@ -626,6 +628,14 @@ typedef struct {
     /* WCL / Wildcat Lake */
     { 0xFD80, MFX_HW_PTL, MFX_GT2 },
     { 0xFD81, MFX_HW_PTL, MFX_GT2 },
+
+    /* NVL-XE3G / Novalake-S/HX/UL/U/H */
+    { 0xD740, MFX_HW_NVL_XE3G, MFX_GT2 },
+    { 0xD741, MFX_HW_NVL_XE3G, MFX_GT2 },
+    { 0xD742, MFX_HW_NVL_XE3G, MFX_GT2 },
+    { 0xD743, MFX_HW_NVL_XE3G, MFX_GT2 },
+    { 0xD744, MFX_HW_NVL_XE3G, MFX_GT2 },
+    { 0xD745, MFX_HW_NVL_XE3G, MFX_GT2 },
 
 };
 
