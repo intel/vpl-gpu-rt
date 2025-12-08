@@ -1571,7 +1571,7 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request)
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
-    if ( (info->Width & 15 ) != 0 )
+    if ( (info->Width & 7 ) != 0 )
     {
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
@@ -1586,7 +1586,7 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request)
     if (MFX_PICSTRUCT_PROGRESSIVE & info->PicStruct ||
         MFX_PICSTRUCT_FIELD_SINGLE & info->PicStruct)
     {
-        if ((info->Height  & 15) !=0)
+        if ((info->Height  & 7) !=0)
         {
             return MFX_ERR_INVALID_VIDEO_PARAM;
         }
@@ -1595,7 +1595,7 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request)
         MFX_PICSTRUCT_FIELD_TFF & info->PicStruct ||
         (MFX_PICSTRUCT_UNKNOWN   == info->PicStruct))
     {
-        if ((info->Height  & 15) != 0 )
+        if ((info->Height  & 7) != 0 )
         {
             return MFX_ERR_INVALID_VIDEO_PARAM;
         }
