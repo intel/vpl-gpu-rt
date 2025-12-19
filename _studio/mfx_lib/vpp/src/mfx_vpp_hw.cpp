@@ -2239,8 +2239,8 @@ mfxStatus VideoVPPHW::QueryImplsDescription(VideoCORE* core, mfxVPPDescription& 
 
         auto& memCaps = arrayHolder.PushBack(filter.MemDesc);
         memCaps.MemHandleType = MFX_RESOURCE_SYSTEM_SURFACE;
-        memCaps.Width = {vppCaps.uMinWidth, vppCaps.uMaxWidth, 1};
-        memCaps.Height = {vppCaps.uMinHeight, vppCaps.uMaxHeight, 1};
+        memCaps.Width = {vppCaps.uMinWidth, vppCaps.uMaxWidth, 8};
+        memCaps.Height = {vppCaps.uMinHeight, vppCaps.uMaxHeight, 8};
 
         for (auto fourcc : g_TABLE_SUPPORTED_FOURCC)
         {
