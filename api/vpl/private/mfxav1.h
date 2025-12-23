@@ -115,7 +115,8 @@ typedef struct {
     mfxU16 SegmentTemporalUpdate;       /* tri-state option */
 
     mfxU16 EnableRefFrameMvs;           /* tri-state option */
-    mfxU8  reserved[32];
+    mfxU16 ReducedTxSetUsed;            /* tri-state option */
+    mfxU8  reserved[30];
 } mfxExtAV1AuxData;
 MFX_PACK_END()
 

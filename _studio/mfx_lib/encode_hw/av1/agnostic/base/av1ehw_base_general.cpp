@@ -3210,13 +3210,9 @@ void General::SetFH(
 
     fh.TxMode = TX_MODE_SELECT;
     
-    // Set reduced_tx_set based on target usage and hardware capability
-    // Use full transform set (reduced_tx_set = 0) when target usage is best quality and hardware supports it
-    if (par.mfx.TargetUsage == MFX_TARGETUSAGE_1 && caps.AV1ToolSupportFlags.fields.allow_full_tx_set) {
-        fh.reduced_tx_set = 0;  // Use full transform set for best quality
-    } else {
-        fh.reduced_tx_set = 1;  // Use reduced transform set
-    }
+    // Set reduced_tx_set based on target usage and hardware capability and user setting
+    // Enable when: hardware capability support it AND (target usage is NOT best quality AND user enables it)
+    fh.reduced_tx_set = (caps.AV1ToolSupportFlags.fields.allow_full_tx_set == 0) ? 1 : (par.mfx.TargetUsage == MFX_TARGETUSAGE_1 ? 0 : (IsOn(auxPar.ReducedTxSetUsed) ? 1 : 0));
     
     // Set use_ref_frame_mvs based on sequence header capability, user setting, and target usage
     // Enabled when: sequence header supports it AND (user enables it OR target usage is best quality)
@@ -3507,6 +3503,7 @@ void General::SetDefaults(
         SetDefault(pAuxPar->DisplayFormatSwizzle, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->ErrorResilientMode, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->EnableRefFrameMvs, MFX_CODINGOPTION_OFF);
+        SetDefault(pAuxPar->ReducedTxSetUsed, MFX_CODINGOPTION_ON);
     }
 
     SetDefaultOrderHint(pAuxPar);

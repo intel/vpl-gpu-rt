@@ -455,6 +455,8 @@ void UpdatePPS(
 #endif
 
     pps.skip_frames_reduced_size = static_cast<mfxI32>(task.RepeatedFrameBytes);
+
+    pps.picture_flags.bits.reduced_tx_set = bs_fh.reduced_tx_set;
 }
 
 inline void AddVaMiscHRD(
