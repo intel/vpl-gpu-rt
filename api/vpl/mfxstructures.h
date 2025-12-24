@@ -2033,6 +2033,14 @@ enum {
        this means that the application does not have any additional bitstream data to send to decoder.
     */
     MFX_BITSTREAM_EOS               = 0x0002
+#if defined(ONEVPL_EXPERIMENTAL)    
+    /*!
+       The bitstream buffer is in video memory. This flag is set by runtime internally when the bitstream buffer is from the mfxMemoryInterface::GetBitstreamBuffer.
+       @note When this flag is set, app shouldn't alloc/release the buffer. It is managed by runtime internally.
+       It will be allocated when app calls mfxMemoryInterface::GetBitstreamBuffer successfully and released automatically when corresponding DecodeFrameAsync succeeds.
+    */
+    , MFX_BITSTREAM_IN_VIDEO_MEMORY = 0x0004
+#endif
 };
 /*! The ExtendedBufferID enumerator itemizes and defines identifiers (BufferId) for extended buffers or video processing algorithm identifiers. */
 enum {
