@@ -641,6 +641,7 @@ namespace UMC
         UMC_ERR_INVALID_PARAMS        =-876,
         UMC_ERR_NEED_FORCE_OUTPUT     =-875,
         UMC_ERR_GPU_HANG              =-874,
+        UMC_ERR_DEVICE_FAIL           =-2000,                       // device operation failure
         UMC_WRN_INVALID_STREAM        = 1,
         UMC_WRN_REPOSITION_INPROGRESS = 2,
         UMC_WRN_INFO_NOT_READY        = 3,

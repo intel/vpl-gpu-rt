@@ -1010,7 +1010,7 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
     {
         bool workSfsIsEmpty = IsSurfaceEmpty(*surface_work);
 
-        MFX_CHECK(!workSfsIsEmpty, MFX_ERR_LOCK_MEMORY);
+        MFX_CHECK(!workSfsIsEmpty, MFX_ERR_INVALID_VIDEO_PARAM);
 
         mfxStatus sts = MFX_ERR_NONE;
         if (m_is_cscInUse != true)

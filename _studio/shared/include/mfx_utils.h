@@ -154,6 +154,7 @@ mfxStatus ConvertStatusUmc2Mfx(UMC::Status umcStatus)
     case UMC::UMC_ERR_LOCK:              return MFX_ERR_LOCK_MEMORY;
     case UMC::UMC_ERR_NOT_IMPLEMENTED:   return MFX_ERR_NOT_IMPLEMENTED;
     case UMC::UMC_ERR_GPU_HANG:          return MFX_ERR_GPU_HANG;
+    case UMC::UMC_ERR_DEVICE_FAIL:       return MFX_ERR_DEVICE_FAILED;
     case UMC::UMC_ERR_NOT_ENOUGH_BUFFER: return MFX_ERR_NOT_ENOUGH_BUFFER;
     case UMC::UMC_ERR_NOT_ENOUGH_DATA:   return MFX_ERR_MORE_DATA;
     case UMC::UMC_ERR_SYNC:              return MFX_ERR_MORE_DATA; // need to skip bad frames
