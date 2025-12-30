@@ -607,14 +607,19 @@ mfxStatus CheckLevel(mfxVideoParam* in, mfxVideoParam* out)
 inline
 mfxStatus CheckFourCCProfile(mfxVideoParam* in, eMFXHWType hwType)
 {
-    mfxU32 fcc = in->mfx.FrameInfo.FourCC;
-    switch(in->mfx.CodecProfile)
+    if (in)
     {
-    case MFX_PROFILE_AV1_MAIN:
-        return (AV1DCaps::IsDec420Supported(hwType) && (fcc == MFX_FOURCC_NV12 || fcc == MFX_FOURCC_P010)) ? MFX_ERR_NONE : MFX_ERR_UNSUPPORTED;
-    default:
-        return MFX_ERR_UNSUPPORTED;
+        mfxU32 fcc = in->mfx.FrameInfo.FourCC;
+        switch (in->mfx.CodecProfile)
+        {
+        case MFX_PROFILE_AV1_MAIN:
+            return (AV1DCaps::IsDec420Supported(hwType) && (fcc == MFX_FOURCC_NV12 || fcc == MFX_FOURCC_P010)) ? MFX_ERR_NONE : MFX_ERR_UNSUPPORTED;
+        default:
+            return MFX_ERR_UNSUPPORTED;
+        }
     }
+    else
+        return MFX_ERR_NONE;
 }
 
 
