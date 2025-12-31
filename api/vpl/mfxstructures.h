@@ -337,7 +337,9 @@ typedef struct {
     mfxU16      reserved[9]; /*!< Reserved for future use. */
     mfxU16      MemType;     /*!< Allocated memory type. See the ExtMemFrameType enumerator for details. Used for better integration of
                                   3rd party plugins into the pipeline. */
-    mfxU16      PitchHigh;   /*!< Distance in bytes between the start of two consecutive rows in a frame. */
+    mfxU16      PitchHigh;   /*!< High 16 bits of the Distance in bytes between the start of two consecutive rows in a frame.
+                                  App should combine with the low 16 bits which is stored in PitchLow to get the final Pitch.
+                                  finalPitch = (PitchHigh << 16) + PitchLow. */
 
     mfxU64      TimeStamp;   /*!< Time stamp of the video frame in units of 90KHz. Divide TimeStamp by 90,000 (90 KHz) to obtain the time in seconds.
                                   A value of MFX_TIMESTAMP_UNKNOWN indicates that there is no time stamp. */
@@ -347,7 +349,9 @@ typedef struct {
                                   Do not move, alter or delete the frame. */
     union{
         mfxU16  Pitch;
-        mfxU16  PitchLow;    /*!< Distance in bytes between the start of two consecutive rows in a frame. */
+        mfxU16  PitchLow;    /*!< Low 16 bits of the Distance in bytes between the start of two consecutive rows in a frame. 
+                                  App should combine with the high 16 bits which is stored in PitchHigh to get the final Pitch.
+                                  finalPitch = (PitchHigh << 16) + PitchLow. */
     };
     /*! @} */
 
