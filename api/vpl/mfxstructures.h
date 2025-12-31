@@ -67,10 +67,20 @@ typedef struct {
     mfxU32  FourCC;     /*!< FourCC code of the color format. See the ColorFourCC enumerator for details. */
     union {
         struct { /* Frame parameters */
-            /*! Width of the video frame in pixels. Must be a multiple of 16.
+            /*! Width of the video frame in pixels. 
+                Actual alignment requirements depend on the installed runtime (driver) version and specific codec/vpp implementation.
+                Applications should use the query interface (e.g., MFXVideoENCODE_Query, MFXVideoDECODE_Query, MFXVideoVPP_Query) 
+                to determine if a specific resolution is supported before attempting to use it.
+                Applications may also call MFXEnumImplementations() to access detailed capabilities and alignment requirements for codecs and filters.
+                Minimum alignment: multiples of 8 in all cases.
                 In case of fused operation of decode plus VPP it can be set to zero to signalize that scaling operation is not requested. */
             mfxU16  Width;
-            /*! Height of the video frame in pixels. Must be a multiple of 16 for progressive frame sequence and a multiple of 32 otherwise.
+            /*! Height of the video frame in pixels. 
+                Actual alignment requirements depend on the installed runtime (driver) version and specific codec/vpp implementation.
+                Applications should use the query interface (e.g., MFXVideoENCODE_Query, MFXVideoDECODE_Query, MFXVideoVPP_Query) 
+                to determine if a specific resolution is supported before attempting to use it.
+                Applications may also call MFXEnumImplementations() to access detailed capabilities and alignment requirements for codecs and filters.
+                Minimum alignment: multiples of 8 in all cases.
                 In case of fused operation of decode plus VPP it can be set to zero to signalize that scaling operation is not requested. */
             mfxU16  Height;
 
