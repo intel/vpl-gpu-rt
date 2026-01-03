@@ -349,7 +349,7 @@ typedef struct {
                                   Do not move, alter or delete the frame. */
     union{
         mfxU16  Pitch;
-        mfxU16  PitchLow;    /*!< Low 16 bits of the Distance in bytes between the start of two consecutive rows in a frame. 
+        mfxU16  PitchLow;    /*!< Low 16 bits of the Distance in bytes between the start of two consecutive rows in a frame.
                                   App should combine with the high 16 bits which is stored in PitchHigh to get the final Pitch.
                                   finalPitch = (PitchHigh << 16) + PitchLow. */
     };
