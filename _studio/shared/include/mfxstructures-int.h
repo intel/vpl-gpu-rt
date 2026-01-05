@@ -636,6 +636,8 @@ typedef struct {
     { 0xD743, MFX_HW_NVL_XE3G, MFX_GT2 },
     { 0xD744, MFX_HW_NVL_XE3G, MFX_GT2 },
     { 0xD745, MFX_HW_NVL_XE3G, MFX_GT2 },
+    { 0xD74A, MFX_HW_NVL_XE3G, MFX_GT2 },
+    { 0xD74B, MFX_HW_NVL_XE3G, MFX_GT2 },
 
 };
 
