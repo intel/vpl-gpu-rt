@@ -261,6 +261,7 @@ protected:
             Context            = session;
             Version.Version    = MFX_MEMORYINTERFACE_VERSION;
             ImportFrameSurface = ImportFrameSurface_impl;
+            GetBitstreamBuffer = GetBitstreamBuffer_impl;
         }
 
         static mfxStatus ImportFrameSurface_impl(mfxMemoryInterface* memory_interface, mfxSurfaceComponent surf_component, mfxSurfaceHeader* ext_surface, mfxFrameSurface1** imported_surface)
@@ -295,6 +296,19 @@ protected:
             default:
                 MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
             }
+        }
+
+        static mfxStatus GetBitstreamBuffer_impl(mfxMemoryInterface* memory_interface, mfxBitstream* queried_bsBuffer)
+        {
+            MFX_CHECK(memory_interface, MFX_ERR_INVALID_HANDLE);
+            MFX_CHECK_NULL_PTR1(queried_bsBuffer);
+
+            auto session = reinterpret_cast<mfxSession>(memory_interface->Context);
+            MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
+
+            MFX_CHECK(session->m_pDECODE, MFX_ERR_NOT_INITIALIZED);
+
+            MFX_RETURN(session->m_pDECODE->GetBitstreamBuffer(queried_bsBuffer));
         }
     } m_memory_interface;
 
