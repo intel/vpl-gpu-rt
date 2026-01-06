@@ -2377,8 +2377,11 @@ public:
         auto      CRPY_c   = CRPY;
         auto&     CRPW     = par.mfx.FrameInfo.CropW;
         auto&     CRPH     = par.mfx.FrameInfo.CropH;
-        auto      AW       = mfx::align2_value(W, HW_SURF_ALIGN_W);
-        auto      AH       = mfx::align2_value(H, HW_SURF_ALIGN_H);
+        
+        MFX_CHECK(dpar.hw != MFX_HW_UNKNOWN, MFX_ERR_NULL_PTR);
+        
+        auto      AW       = mfx::align2_value(W, GetHWSurfAlignW(dpar.hw));
+        auto      AH       = mfx::align2_value(H, GetHWSurfAlignH(dpar.hw));
         mfxU32    changed  = 0;
         mfxStatus UnsSts   = MFX_ERR_NONE;
         bool      bVDEnc64 = IsOn(par.mfx.LowPower) && (64 == dpar.base.GetLCUSize(dpar));

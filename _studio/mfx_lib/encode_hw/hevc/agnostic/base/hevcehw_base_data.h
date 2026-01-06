@@ -47,6 +47,20 @@ namespace Base
     constexpr mfxU8  IDX_INVALID                = 0xff;
     constexpr mfxU8  HW_SURF_ALIGN_W            = 16;
     constexpr mfxU8  HW_SURF_ALIGN_H            = 16;
+
+    // Helper functions to get platform-specific alignment values at runtime
+    inline mfxU8 GetHWSurfAlignW(eMFXHWType hw)
+    {
+        return (hw == MFX_HW_BMG
+                ) ? 8 : HW_SURF_ALIGN_W;
+    }
+
+    inline mfxU8 GetHWSurfAlignH(eMFXHWType hw)
+    {
+        return (hw == MFX_HW_BMG
+                ) ? 8 : HW_SURF_ALIGN_H;
+    }
+
     constexpr mfxU16 MAX_SLICES                 = 600; // conforms to level 6 limits
     constexpr mfxU8  DEFAULT_LTR_INTERVAL       = 16;
     constexpr mfxU8  DEFAULT_PPYR_INTERVAL      = 3;
