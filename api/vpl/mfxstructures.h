@@ -211,7 +211,34 @@ enum {
     /*! 8bit per sample 4:4:4 format packed in 32 bits, X=unused/undefined, 'X' channel is 8 MSBs, then 'Y', then 'U', and then 'V' channels. This format should be mapped to VA_FOURCC_XYUV. */
     MFX_FOURCC_XYUV         = MFX_MAKEFOURCC('X','Y','U','V'),
     MFX_FOURCC_ABGR16F      = MFX_MAKEFOURCC('B', 'G', 'R', 'F'),  /*!< 16 bits float point ABGR color format packed in 64 bits. 'A' channel is 16 MSBs, then 'B', then 'G' and then 'R' channels. This format should be mapped to DXGI_FORMAT_R16G16B16A16_FLOAT or D3DFMT_A16B16G16R16F formats.. */
+    MFX_FOURCC_AYUV_RGBA8   = MFX_MAKEFOURCC('Y', 'R', 'A', '8'), /*!< R8G8B8A8 stored in AYUV surface, `R` channel is the LSB. This format should be mapped to DXGI_FORMAT_AYUV. */
+    MFX_FOURCC_Y416_RGBA16  = MFX_MAKEFOURCC('Y', 'R', 'A', '6'), /*!< R16G16B16A16 stored in Y416 surface, `R` channel is the LSB. This format should be mapped to DXGI_FORMAT_Y416. */
 };
+
+#if defined(ONEVPL_EXPERIMENTAL)
+/*! The OutputCscCaps enumerator, bit-wise. */
+enum {
+    DEC_CSC_NOT_SUPPORTED = 0,                 /*!< color space conversion is not supported. */
+    DEC_CSC_NV12_SUPPORTED_BIT = 0x1,          /*!< support color space conversion to MFX_FOURCC_NV12. */
+    DEC_CSC_P016_SUPPORTED_BIT = 0x2,          /*!< support color space conversion to MFX_FOURCC_P016. */
+    DEC_CSC_YUY2_SUPPORTED_BIT = 0x4,          /*!< support color space conversion to MFX_FOURCC_YUY2. */
+    DEC_CSC_Y216_SUPPORTED_BIT = 0x8,          /*!< support color space conversion to MFX_FOURCC_Y216. */
+    DEC_CSC_AYUV_SUPPORTED_BIT = 0x10,         /*!< support color space conversion to MFX_FOURCC_AYUV. */
+    DEC_CSC_Y416_SUPPORTED_BIT = 0x20,         /*!< support color space conversion to MFX_FOURCC_Y416. */
+    DEC_CSC_AYUV_RGBA8_SUPPORTED_BIT = 0x40,   /*!< support color space conversion to MFX_FOURCC_AYUV_RGBA8. */
+    DEC_CSC_Y416_RGBA16_SUPPORTED_BIT = 0x80,  /*!< support color space conversion to MFX_FOURCC_Y416_RGBA16. */
+    DEC_CSC_RGBA8_SUPPORTED_BIT = 0x100,       /*!< support color space conversion to MFX_FOURCC_BGR4. */
+    DEC_CSC_RGBA16_SUPPORTED_BIT = 0x200,      /*!< support color space conversion to MFX_FOURCC_ABGR16. */
+    DEC_CSC_RGBA16F_SUPPORTED_BIT = 0x400,     /*!< support color space conversion to MFX_FOURCC_ABGR16F. */
+};
+
+/*! The OutputScalingRatioCaps enumerator, bit-wise. */
+enum {
+    DEC_SCALING_NOT_SUPPORTED = 0,                   /*!< resolution scaling is not supported. */
+    DEC_DOWNSCALING_RATIO_W2_H2_SUPPORTED_BIT = 0x1,  /*!< support downscaling ratio width = 2, height = 2. */
+    DEC_DOWNSCALING_RATIO_W4_H4_SUPPORTED_BIT = 0x2,  /*!< support downscaling ratio width = 4, height = 4. */
+};
+#endif
 
 /* PicStruct */
 enum {
@@ -1007,7 +1034,20 @@ typedef struct {
             mfxU16  IgnoreLevelConstrain;
             /*! This flag is used to disable output of main decoding channel. When it's ON SkipOutput = MFX_CODINGOPTION_ON decoder outputs only video processed channels. For pure decode this flag should be always disabled. */
             mfxU16  SkipOutput;
+#if defined(ONEVPL_EXPERIMENTAL)
+            /*! Output CSC Cap list low 16bit, it's bit-wise and will be updated by MFXVideoDECODE_DecodeHeader, see OutputCscCaps enumerator for the definition. */
+            mfxU16  OutputCscCapsLow;
+            /*! Output CSC Cap list high 16bit, it's bit-wise and will be updated by MFXVideoDECODE_DecodeHeader, see OutputCscCaps enumerator for the definition. */
+            mfxU16  OutputCscCapsHigh;
+            struct {
+                /*! Output ScalingRatio Cap list, it's bit-wise and will be updated by MFXVideoDECODE_DecodeHeader, see OutputScalingRatioCaps enumerator for the definition. */
+                mfxU16  OutputScalingRatioCaps : 8;
+                mfxU16  reservedByte0 : 8;
+            };
+            mfxU16  reserved2[1];
+#else
             mfxU16  reserved2[4];
+#endif
         };
         struct {   /* JPEG Decoding Options */
             /*! Specify the chroma sampling format that has been used to encode a JPEG picture. See the ChromaFormat enumerator for details. */
