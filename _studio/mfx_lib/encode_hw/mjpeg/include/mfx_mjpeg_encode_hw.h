@@ -102,7 +102,7 @@ public:
         MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
-    mfxU16 GetMemType(mfxVideoParam par) override
+    mfxU16 GetMemType(const mfxVideoParam& par) override
     {
         mfxU16 memory_type = mfxU16(par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ? MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
 

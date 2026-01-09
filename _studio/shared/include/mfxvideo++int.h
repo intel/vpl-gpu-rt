@@ -451,7 +451,7 @@ public:
     }
 
     virtual
-    mfxU16 GetMemType(mfxVideoParam par)
+    mfxU16 GetMemType(const mfxVideoParam& par)
     {
         return mfxU16(par.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ? MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_SYSTEM_MEMORY : MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
     }
