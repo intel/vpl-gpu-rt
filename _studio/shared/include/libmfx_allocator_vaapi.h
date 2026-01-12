@@ -325,6 +325,9 @@ class mfxSurfaceVAAPIImpl
 {
 public:
 
+    mfxSurfaceVAAPIImpl(const mfxSurfaceVAAPIImpl&) = delete;
+    mfxSurfaceVAAPIImpl& operator=(const mfxSurfaceVAAPIImpl&) = delete;
+
     static mfxSurfaceVAAPIImpl* Create(const mfxSurfaceHeader& export_header, mfxFrameSurfaceInterfaceImpl* p_base_surface, std::shared_ptr<VADisplayWrapper>& display, VASurfaceID surface_id)
     {
         auto surface = new mfxSurfaceVAAPIImpl(export_header, p_base_surface, display, surface_id);
