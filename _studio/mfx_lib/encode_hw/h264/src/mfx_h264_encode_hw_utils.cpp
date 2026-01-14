@@ -325,7 +325,8 @@ namespace MfxHwH264Encode
     mfxU8 GetQpValue(
         DdiTask const &       task,
         MfxVideoParam const & par,
-        mfxU32                frameType)
+        mfxU32                frameType,
+        MFX_ENCODE_CAPS const & hwCaps)
     {
         const mfxExtCodingOption2& CO2 = GetExtBufferRef(par);
         const mfxExtCodingOption3& CO3 = GetExtBufferRef(par);
@@ -341,7 +342,9 @@ namespace MfxHwH264Encode
             if (task.m_ctrl.QP > 0)
             {
                 if (IsOn(par.mfx.LowPower) && (task.m_ctrl.QP < 10))
-                    return 10;
+                {
+                        return 10; // Enforce minQP=10 if ExtendedRhoQp not supported
+                }
                 // get per frame qp
                 return std::min(mfxU8(task.m_ctrl.QP), mfxU8(maxQP));
             }

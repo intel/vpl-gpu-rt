@@ -344,7 +344,8 @@ namespace MfxHwH264Encode
     mfxU8 GetQpValue(
         DdiTask const &       task,
         MfxVideoParam const & par,
-        mfxU32                frameType);
+        mfxU32                frameType,
+        MFX_ENCODE_CAPS const & hwCaps = {});
 
     PairU16 GetPicStruct(
         MfxVideoParam const & video,
