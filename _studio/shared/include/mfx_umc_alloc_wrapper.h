@@ -285,7 +285,7 @@ protected:
 
 private:
 
-    void CreateUMCAllocator(const mfxVideoParam & video_param, eMFXPlatform platform, bool needVppJPEG);
+    void CreateUMCAllocator(const mfxVideoParam & video_param, eMFXPlatform platform, bool needVpp);
 
     bool CreateCorrespondence(mfxFrameSurface1& surface_work, mfxFrameSurface1& surface_out);
     void RemoveCorrespondence(mfxFrameSurface1& surface_work);

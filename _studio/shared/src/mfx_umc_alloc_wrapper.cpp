@@ -1367,9 +1367,9 @@ SurfaceSource::SurfaceSource(VideoCORE* core, const mfxVideoParam& video_param, 
 
 }
 
-void SurfaceSource::CreateUMCAllocator(const mfxVideoParam & video_param, eMFXPlatform platform, bool needVppJPEG)
+void SurfaceSource::CreateUMCAllocator(const mfxVideoParam & video_param, eMFXPlatform platform, bool needVpp)
 {
-    (void) needVppJPEG;
+    (void) needVpp;
 
     if (MFX_PLATFORM_SOFTWARE == platform)
     {
@@ -1387,7 +1387,7 @@ void SurfaceSource::CreateUMCAllocator(const mfxVideoParam & video_param, eMFXPl
             break;
         case MFX_CODEC_JPEG:
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
-            if (!needVppJPEG)
+            if (!needVpp)
                 m_umc_allocator_adapter.reset(new mfx_UMC_FrameAllocator_D3D());
 #if defined (MFX_ENABLE_VPP)
             else
