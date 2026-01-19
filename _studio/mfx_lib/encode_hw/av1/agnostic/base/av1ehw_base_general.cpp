@@ -4050,8 +4050,7 @@ mfxStatus General::CheckRefFrameMvs(mfxVideoParam& par, const ENCODE_CAPS_AV1& c
 
     MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
 
-    // enable_ref_frame_mvs can only be enabled when enable_order_hint is enabled
-    if (IsOn(pAuxPar->EnableRefFrameMvs) && !IsOn(pAuxPar->EnableOrderHint))
+    if (IsOn(pAuxPar->EnableRefFrameMvs) && IsOff(pAuxPar->EnableOrderHint))
     {
         pAuxPar->EnableRefFrameMvs = MFX_CODINGOPTION_OFF;
         return MFX_ERR_INVALID_VIDEO_PARAM;
