@@ -712,7 +712,7 @@ static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfx
 
 static void FillImplsDescription(mfx::ImplDescription& impl, VideoCORE& core, mfxU32 deviceId, mfxU32 adapterNum, const std::vector<bool>& subDevMask)
 {
-    impl.Version.Version = MFX_STRUCT_VERSION(1, 2);
+    impl.Version.Version = MFX_IMPLDESCRIPTION_VERSION;
     impl.Impl = MFX_IMPL_TYPE_HARDWARE;
     impl.ApiVersion = { { MFX_VERSION_MINOR, MFX_VERSION_MAJOR } };
     impl.VendorID = 0x8086;
@@ -720,17 +720,17 @@ static void FillImplsDescription(mfx::ImplDescription& impl, VideoCORE& core, mf
     impl.VendorImplID = adapterNum;
     impl.AccelerationMode = core.GetVAType() == MFX_HW_VAAPI ? MFX_ACCEL_MODE_VIA_VAAPI : MFX_ACCEL_MODE_VIA_D3D11;
 
-    impl.AccelerationModeDescription.Version.Version = MFX_STRUCT_VERSION(1, 0);
+    impl.AccelerationModeDescription.Version.Version = MFX_ACCELERATIONMODESCRIPTION_VERSION;
     mfx::PODArraysHolder& ah = impl;
     ah.PushBack(impl.AccelerationModeDescription.Mode) = impl.AccelerationMode;
     impl.AccelerationModeDescription.NumAccelerationModes++;
-    impl.PoolPolicies.Version.Version = MFX_STRUCT_VERSION(1, 0);
+    impl.PoolPolicies.Version.Version = MFX_POOLPOLICYDESCRIPTION_VERSION;
     impl.PoolPolicies.NumPoolPolicies = 3;
     ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_OPTIMAL;
     ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_UNLIMITED;
     ah.PushBack(impl.PoolPolicies.Policy) = MFX_ALLOCATION_LIMITED;
 
-    impl.Dev.Version.Version = MFX_STRUCT_VERSION(1, 1);
+    impl.Dev.Version.Version = MFX_DEVICEDESCRIPTION_VERSION;
     impl.Dev.MediaAdapterType = MFX_MEDIA_UNKNOWN;
 
     if (auto pCore1_19 = QueryCoreInterface<IVideoCore_API_1_19>(&core, MFXICORE_API_1_19_GUID))
@@ -757,9 +757,9 @@ static void FillImplsDescription(mfx::ImplDescription& impl, VideoCORE& core, mf
         }
     }
 
-    impl.Dec.Version.Version = MFX_STRUCT_VERSION(1, 0);
-    impl.Enc.Version.Version = MFX_STRUCT_VERSION(1, 0);
-    impl.VPP.Version.Version = MFX_STRUCT_VERSION(1, 0);
+    impl.Dec.Version.Version = MFX_DECODERDESCRIPTION_VERSION;
+    impl.Enc.Version.Version = MFX_ENCODERDESCRIPTION_VERSION;
+    impl.VPP.Version.Version = MFX_VPPDESCRIPTION_VERSION;
 
     return;
 };
@@ -813,7 +813,7 @@ mfxHDL* MFX_CDECL MFXQueryImplsDescription(mfxImplCapsDeliveryFormat format, mfx
 
                 auto& device = holder->PushBack();
 
-                device.Version.Version = MFX_STRUCT_VERSION(1, 0);
+                device.Version.Version = MFX_EXTENDEDDEVICEID_VERSION;
                 device.VendorID = 0x8086;
                 device.DeviceID = mfxU16(deviceId);
 
