@@ -208,6 +208,23 @@ namespace VppCaps
     {
         return platform >= MFX_HW_DG2;
     }
+
+    inline bool IsAIFrameInterpolationSupported(eMFXHWType platform)
+    {
+        switch (platform)
+        {
+            case MFX_HW_DG2:
+            case MFX_HW_MTL:
+            case MFX_HW_ARL:
+            case MFX_HW_LNL:
+            case MFX_HW_BMG:
+            case MFX_HW_PTL:
+            case MFX_HW_NVL_XE3G:
+                return true;
+            default:
+                return false;
+        }
+    }
 }
 
 #ifdef MFX_ENABLE_VP8_VIDEO_DECODE

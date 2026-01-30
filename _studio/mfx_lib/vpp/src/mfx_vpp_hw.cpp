@@ -5513,6 +5513,15 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             }
             break;
         }
+        case MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION:
+        {
+            if (!VppCaps::IsAIFrameInterpolationSupported(core->GetHWType()))
+            {
+                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+            }
+            
+            break;
+        }
         case MFX_EXTBUFF_ALLOCATION_HINTS:
         {
             if (++n_hints_buf > 2)
