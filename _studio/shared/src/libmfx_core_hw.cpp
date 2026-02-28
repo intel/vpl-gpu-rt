@@ -29,9 +29,11 @@
 
 using namespace UMC;
 
-mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
+mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType hwType)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "ChooseProfile");
+
+    (void*)hwType;
 
     mfxU32 profile = UMC::VA_VLD;
 
