@@ -78,10 +78,10 @@ enum VideoAccelerationProfile
 #endif
 
     // Entry points
-    VA_ENTRY_POINT  = 0xfff00,
+    VA_ENTRY_POINT  = 0xffff00,
     VA_VLD          = 0x00400,
 
-    VA_PROFILE                  = 0xff000,
+    VA_PROFILE                  = 0xfff000,
 	VA_PROFILE_MVC              = 0x04000,
     VA_PROFILE_MVC_MV           = 0x05000,
     VA_PROFILE_MVC_STEREO       = 0x06000,
@@ -95,10 +95,10 @@ enum VideoAccelerationProfile
     VA_PROFILE_SCC              = 0x80000,
 
     // configurations
-    VA_CONFIGURATION            = 0x0ff00000,
-    VA_LONG_SLICE_MODE          = 0x00100000,
-    VA_SHORT_SLICE_MODE         = 0x00200000,
-    VA_ANY_SLICE_MODE           = 0x00300000,
+    VA_CONFIGURATION            = 0xff000000,
+    VA_LONG_SLICE_MODE          = 0x01000000,
+    VA_SHORT_SLICE_MODE         = 0x02000000,
+    VA_ANY_SLICE_MODE           = 0x03000000,
 
     MPEG2_VLD       = VA_MPEG2 | VA_VLD,
     H264_VLD        = VA_H264 | VA_VLD,
