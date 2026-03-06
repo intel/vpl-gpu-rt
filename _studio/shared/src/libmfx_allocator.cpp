@@ -154,6 +154,8 @@ mfxStatus mfxDefaultAllocator::FreeBuffer(mfxHDL pthis, mfxMemId mid)
 
 mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height, mfxU32 fourCC, mfxU32& nBytes)
 {
+    mfxU64 tempBytes = 0;
+
     switch (fourCC)
     {
     case MFX_FOURCC_YV12:
@@ -162,29 +164,29 @@ mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height
     case MFX_FOURCC_P016:
     case MFX_FOURCC_YUV411:
     case MFX_FOURCC_IMC3:
-        nBytes = pitch * height + (pitch >> 1) * (height >> 1) + (pitch >> 1) * (height >> 1);
+        tempBytes = (mfxU64)pitch * height + (mfxU64)(pitch >> 1) * (height >> 1) + (mfxU64)(pitch >> 1) * (height >> 1);
         break;
     case MFX_FOURCC_P210:
     case MFX_FOURCC_YUY2:
     case MFX_FOURCC_YUV422H:
     case MFX_FOURCC_YUV422V:
     case MFX_FOURCC_UYVY:
-        nBytes = pitch * height + (pitch >> 1) * height + (pitch >> 1) * height;
+        tempBytes = (mfxU64)pitch * height + (mfxU64)(pitch >> 1) * height + (mfxU64)(pitch >> 1) * height;
         break;
     case MFX_FOURCC_YUV444:
     case MFX_FOURCC_RGB3:
     case MFX_FOURCC_RGBP:
     case MFX_FOURCC_BGRP:
-        nBytes = pitch * height + pitch * height + pitch * height;
+        tempBytes = (mfxU64)pitch * height + (mfxU64)pitch * height + (mfxU64)pitch * height;
         break;
     case MFX_FOURCC_RGB565:
-        nBytes = 2 * pitch * height;
+        tempBytes = (mfxU64)2 * pitch * height;
         break;
     case MFX_FOURCC_BGR4:
     case MFX_FOURCC_RGB4:
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_A2RGB10:
-        nBytes = pitch * height + pitch * height + pitch * height + pitch * height;
+        tempBytes = (mfxU64)pitch * height + (mfxU64)pitch * height + (mfxU64)pitch * height + (mfxU64)pitch * height;
         break;
     case MFX_FOURCC_Y410:
     case MFX_FOURCC_Y416:
@@ -196,15 +198,21 @@ mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height
     case MFX_FOURCC_R16:
     case MFX_FOURCC_ARGB16:
     case MFX_FOURCC_ABGR16:
-        nBytes = pitch * height;
+        tempBytes = (mfxU64)pitch * height;
         break;
     case MFX_FOURCC_ABGR16F:
-        nBytes = (pitch * height + pitch * height + pitch * height + pitch * height) * 2;
+        tempBytes = ((mfxU64)pitch * height + (mfxU64)pitch * height + (mfxU64)pitch * height + (mfxU64)pitch * height) * 2;
         break;
     default:
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
         break;
     }
+
+    // Check for overflow before narrowing to mfxU32
+    if (tempBytes > UINT32_MAX)
+        MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
+
+    nBytes = static_cast<mfxU32>(tempBytes);
     return MFX_ERR_NONE;
 }
 
