@@ -439,11 +439,16 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
     else
     {
         // Some of vaCreateBuffer calls failed
+        mfxStatus cleanup_sts = MFX_ERR_NONE;
         for (VABufferID& coded_buf : allocated_surfaces)
         {
             mfxStatus sts = CheckAndDestroyVAbuffer(self->m_pVADisplay, coded_buf);
-            MFX_CHECK_STS(sts);
+            if ((MFX_ERR_NONE != sts) && (cleanup_sts == MFX_ERR_NONE))
+            {
+                cleanup_sts = sts; // Preserve the first failure encountered
+            }
         }
+        MFX_CHECK_STS(cleanup_sts);
     }
 
     return mfx_res;
