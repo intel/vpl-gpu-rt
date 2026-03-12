@@ -56,8 +56,11 @@ namespace MfxEncodeHW
     private:
         std::map<mfxU32, std::deque<CachedBitstream>> m_cachedBitstream  = {};
         std::map<mfxU32, bool>                        m_outputReady      = {};
-        std::mutex                                    m_mtx, m_closeMtx;
+        std::mutex                                    m_mtx;
         std::condition_variable                       m_cv;
+
+    protected:
+        std::mutex                                    m_closeMtx;
 
     public:
 
