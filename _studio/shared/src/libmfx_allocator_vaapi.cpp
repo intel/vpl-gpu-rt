@@ -385,7 +385,7 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
         {
             int aligned_width  = mfx::align2_value(request->Info.Width,  32);
             int aligned_height = mfx::align2_value(request->Info.Height, 32);
-            codedbuf_size = static_cast<mfxU32>((aligned_width * aligned_height) * 400LL / (16 * 16));
+            codedbuf_size = static_cast<mfxU32>((static_cast<mfxU64>(aligned_width) * aligned_height) * 400LL / (16 * 16));
 
             codedbuf_num  = 1;
             codedbuf_type = VAEncCodedBufferType;
@@ -826,7 +826,7 @@ vaapi_buffer_wrapper::vaapi_buffer_wrapper(const mfxFrameInfo &info, VADisplayWr
     {
         mfxI32 aligned_width  = mfx::align2_value(info.Width,  32);
         mfxI32 aligned_height = mfx::align2_value(info.Height, 32);
-        codedbuf_size = static_cast<mfxU32>((aligned_width * aligned_height) * 400LL / (16 * 16));
+        codedbuf_size = static_cast<mfxU32>((static_cast<mfxU64>(aligned_width) * aligned_height) * 400LL / (16 * 16));
 
         codedbuf_num  = 1;
         codedbuf_type = VAEncCodedBufferType;

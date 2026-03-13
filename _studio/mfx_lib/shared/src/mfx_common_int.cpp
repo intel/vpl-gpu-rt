@@ -531,7 +531,7 @@ mfxStatus CheckBitstream(const mfxBitstream *bs)
     if (!bs || !bs->Data)
         MFX_RETURN(MFX_ERR_NULL_PTR);
 
-    if (bs->DataOffset + bs->DataLength > bs->MaxLength)
+    if (static_cast<mfxU64>(bs->DataOffset) + bs->DataLength > bs->MaxLength)
         MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
 
     return MFX_ERR_NONE;
