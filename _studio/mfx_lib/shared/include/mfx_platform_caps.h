@@ -225,6 +225,11 @@ namespace VppCaps
                 return false;
         }
     }
+
+    inline bool Is3DLutABGR16FSupported(eMFXHWType platform)
+    {
+        return platform >= MFX_HW_NVL_XE3G;
+    }
 }
 
 #ifdef MFX_ENABLE_VP8_VIDEO_DECODE

@@ -210,6 +210,7 @@ namespace MfxHwVideoProcessing
         mfxU32 uFieldProcessing;
 
         mfxU32 u3DLut;
+        mfxU32 u3DLutTetrahedralInterpolation;
         mfxU32 uDenoise2Filter;   // mfxExtVPPDenoise2
 
         mfxU32 uSuperResolution;
@@ -250,6 +251,7 @@ namespace MfxHwVideoProcessing
             , uMirroring(0)
             , uFieldProcessing(0)
             , u3DLut(0)
+            , u3DLutTetrahedralInterpolation(0)
             , uDenoise2Filter(0)
             , uSuperResolution(0)
             , uSrMaxInWidth(0)

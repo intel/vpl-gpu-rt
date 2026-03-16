@@ -2245,7 +2245,7 @@ mfxStatus VideoVPPHW::QueryImplsDescription(VideoCORE* core, mfxVPPDescription& 
         for (auto fourcc : g_TABLE_SUPPORTED_FOURCC)
         {
             mfxU32 inputFormat = 0;
-            CheckFormatLimitation(filterId, fourcc, inputFormat);
+            CheckFormatLimitation(filterId, fourcc, inputFormat, core->GetHWType());
             if (inputFormat & MFX_FORMAT_SUPPORT_INPUT)
             {
                 auto& formatIn = arrayHolder.PushBack(memCaps.Formats);
@@ -2254,7 +2254,7 @@ mfxStatus VideoVPPHW::QueryImplsDescription(VideoCORE* core, mfxVPPDescription& 
                 for (auto fourccOut : g_TABLE_SUPPORTED_FOURCC)
                 {
                     mfxU32 outputFormat = 0;
-                    CheckFormatLimitation(filterId, fourccOut, outputFormat);
+                    CheckFormatLimitation(filterId, fourccOut, outputFormat, core->GetHWType());
                     if (outputFormat & MFX_FORMAT_SUPPORT_OUTPUT)
                     {
                         arrayHolder.PushBack(formatIn.OutFormats) = fourccOut;
@@ -2296,7 +2296,7 @@ mfxStatus VideoVPPHW::QueryImplsDescription(VideoCORE* core, mfxVPPDescription& 
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32& formatSupport)
+mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32& formatSupport, eMFXHWType platform)
 {
     switch(filter)
     {
@@ -2328,6 +2328,12 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
                 format == MFX_FOURCC_BGRP)
             {
                 formatSupport = MFX_FORMAT_SUPPORT_OUTPUT;
+            }
+
+            if (filter == MFX_EXTBUFF_VPP_3DLUT && format == MFX_FOURCC_ABGR16F
+                && VppCaps::Is3DLutABGR16FSupported(platform))
+            {
+                formatSupport = MFX_FORMAT_SUPPORT_INPUT | MFX_FORMAT_SUPPORT_OUTPUT;
             }
             break;
         case MFX_EXTBUFF_VPP_PROCAMP:
@@ -5236,6 +5242,19 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             }
             break;
         }
+        case MFX_EXTBUFF_VPP_3DLUT:
+        {
+#ifdef ONEVPL_EXPERIMENTAL
+            mfxExtVPP3DLut *ext3DLUT = (mfxExtVPP3DLut*)data;
+            if (ext3DLUT->InterpolationMethod != MFX_3DLUT_INTERPOLATION_DEFAULT
+                && !caps->u3DLutTetrahedralInterpolation)
+            {
+                ext3DLUT->InterpolationMethod = MFX_3DLUT_INTERPOLATION_DEFAULT;
+                sts = GetWorstSts(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+            }
+#endif
+            break;
+        }
         case MFX_EXTBUFF_VPP_MIRRORING:
         {
             mfxExtVPPMirroring* extMir = (mfxExtVPPMirroring*)data;
@@ -6333,7 +6352,15 @@ mfxStatus ConfigureExecuteParams(
                                 executeParams.lut3DInfo.ChannelMapping        = ext3DLUT->ChannelMapping;
                                 executeParams.lut3DInfo.BufferType            = ext3DLUT->BufferType;
 #ifdef ONEVPL_EXPERIMENTAL
-                                executeParams.lut3DInfo.InterpolationMethod   = ext3DLUT->InterpolationMethod;
+                                if (ext3DLUT->InterpolationMethod != MFX_3DLUT_INTERPOLATION_DEFAULT
+                                    && !caps.u3DLutTetrahedralInterpolation)
+                                {
+                                    executeParams.lut3DInfo.InterpolationMethod = MFX_3DLUT_INTERPOLATION_DEFAULT;
+                                }
+                                else
+                                {
+                                    executeParams.lut3DInfo.InterpolationMethod = ext3DLUT->InterpolationMethod;
+                                }
 #endif
                                 if (ext3DLUT->BufferType == MFX_RESOURCE_VA_SURFACE || ext3DLUT->BufferType == MFX_RESOURCE_DX11_TEXTURE)
                                 {

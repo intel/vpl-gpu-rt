@@ -898,7 +898,7 @@ namespace MfxHwVideoProcessing
         static
         mfxStatus QueryImplsDescription(VideoCORE* core, mfxVPPDescription& caps, mfx::PODArraysHolder& arrayHolder, const std::vector<mfxU32>& filterIds = {});
         static
-        mfxStatus CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32& formatSupport);
+        mfxStatus CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32& formatSupport, eMFXHWType platform = MFX_HW_UNKNOWN);
         static
         mfxStatus QueryTaskRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber);
         static
