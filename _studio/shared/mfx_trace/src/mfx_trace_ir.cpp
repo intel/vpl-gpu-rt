@@ -59,7 +59,12 @@ mfxTraceU32 MFXTrace_EventInit()
 // It dumps traces to binary format (internal representation) for future offline processing
 mfxTraceU32 MFXTraceEvent(uint16_t task, uint8_t opcode, uint8_t level, uint64_t size, const void *ptr)
 {
-    if (perf_ctx.ftrace_fd == -1) {
+    int32_t fd;
+    {
+        std::lock_guard<std::mutex> lock(perf_ctx.perf_mutex);
+        fd = perf_ctx.ftrace_fd;
+    }
+    if (fd == -1) {
         return 0;
     }
     uint64_t thread_id = syscall(SYS_gettid);
@@ -84,7 +89,7 @@ mfxTraceU32 MFXTraceEvent(uint16_t task, uint8_t opcode, uint8_t level, uint64_t
         buf_len += size;
     }
 
-    size_t written_bytes = write(perf_ctx.ftrace_fd, trace_buf, buf_len);
+    size_t written_bytes = write(fd, trace_buf, buf_len);
     if (written_bytes != buf_len) {
         return 1;
     }

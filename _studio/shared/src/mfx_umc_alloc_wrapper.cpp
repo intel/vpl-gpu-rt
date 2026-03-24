@@ -219,7 +219,7 @@ void mfx_UMC_FrameAllocator::InternalFrameData::AddNewFrame(mfx_UMC_FrameAllocat
     m_frameDataRefs.push_back(refInfo);
 
     FrameInfo  frameInfo;
-    m_frameData.push_back(frameInfo);
+    m_frameData.push_back(std::move(frameInfo));
 
     mfxU32 index = (mfxU32)(m_frameData.size() - 1);;
 

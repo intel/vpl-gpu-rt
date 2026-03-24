@@ -956,7 +956,7 @@ ASC_LTR_DEC ASC::Continue_LTR_Mode(mfxU16 goodLTRLimit, mfxU16 badLTRLimit) {
     }
     if (goodLTRCounter >= goodLTRLimit)
         return FORCE_LTR;
-    else if (goodLTRRelativeCount >= (size_t)NMIN(badLTRLimit, list_size - 1) && badLTRCounter < goodLTRRelativeCount)
+    else if (list_size > 0 && goodLTRRelativeCount >= (size_t)NMIN(badLTRLimit, list_size - 1) && badLTRCounter < goodLTRRelativeCount)
         return YES_LTR;
     else
         return NO_LTR;

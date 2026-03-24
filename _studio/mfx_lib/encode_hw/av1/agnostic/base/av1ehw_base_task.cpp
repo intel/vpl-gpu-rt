@@ -138,12 +138,12 @@ TTaskIt TaskManager::GetNextTaskToEncode(TTaskIt begin, TTaskIt end, bool bFlush
 
 TTaskIt TaskManager::GetDestToPushQuery(TTaskIt begin, TTaskIt end, StorageW& task)
 {
-    auto taskPar = Task::Common::Get(task);
+    const auto& taskPar = Task::Common::Get(task);
     // Move current task to some location after first shown frame
     TTaskIt it = begin;
     for (; it != end; it++)
     {
-        auto tempPar = Task::Common::Get(*it);
+        const auto& tempPar = Task::Common::Get(*it);
         if (tempPar.DisplayOrder == taskPar.DisplayOrder)
             continue;
 
@@ -156,7 +156,7 @@ TTaskIt TaskManager::GetDestToPushQuery(TTaskIt begin, TTaskIt end, StorageW& ta
 
     for (; it != end; it++)
     {
-        auto tempPar = Task::Common::Get(*it);
+        const auto& tempPar = Task::Common::Get(*it);
         if (tempPar.DisplayOrder > taskPar.DisplayOrder)
             break;
     }
