@@ -373,7 +373,7 @@ namespace mfx_reflect
                     if (!field1.Equal(field2))
                     {
                         FieldComparisonResult fields = { field1 , field2, subtypeResult };
-                        result->push_back(fields);
+                        result->push_back(std::move(fields));
                     }
                 }
             }

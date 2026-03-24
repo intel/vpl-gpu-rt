@@ -215,13 +215,11 @@ mfxU32 mfx_UMC_FrameAllocator::InternalFrameData::GetSize() const
 
 void mfx_UMC_FrameAllocator::InternalFrameData::AddNewFrame(mfx_UMC_FrameAllocator * alloc, mfxFrameSurface1 *surface, UMC::VideoDataInfo * info)
 {
-    FrameRefInfo refInfo;
-    m_frameDataRefs.push_back(refInfo);
+    m_frameDataRefs.emplace_back();
 
-    FrameInfo  frameInfo;
-    m_frameData.push_back(frameInfo);
+    m_frameData.emplace_back();
 
-    mfxU32 index = (mfxU32)(m_frameData.size() - 1);;
+    mfxU32 index = (mfxU32)(m_frameData.size() - 1);
 
     memset(&(m_frameData[index].first), 0, sizeof(m_frameData[index].first));
     m_frameData[index].first.Data.MemId = surface->Data.MemId;
