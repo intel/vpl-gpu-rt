@@ -240,9 +240,9 @@ Status MPEG2BRC::CheckHRDParams()
     }
   }
   mParams.HRDBufferSizeBytes = mHRD.bufSize / 8;
-  mHRD.bufSize = mParams.HRDBufferSizeBytes * 8;
+  mHRD.bufSize = (uint32_t)mParams.HRDBufferSizeBytes * 8;
   mParams.HRDInitialDelayBytes = (int32_t)(mHRD.bufFullness / 8);
-  mHRD.bufFullness = mParams.HRDInitialDelayBytes * 8;
+  mHRD.bufFullness = (double)mParams.HRDInitialDelayBytes * 8;
 
   if (mHRD.bufSize < mHRD.inputBitsPerFrame)
     return UMC_ERR_INVALID_PARAMS;
