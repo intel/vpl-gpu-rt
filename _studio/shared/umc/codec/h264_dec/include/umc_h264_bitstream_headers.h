@@ -391,7 +391,7 @@ inline bool DecodeExpGolombOne_H264_1u32s (uint32_t **ppBitStream,
         if ((bool)(isSigned) == true)
             *pDst = (sval & 1UL) ? (int32_t)((sval >> 1) + 1) : -(int32_t)(sval >> 1);
         else
-            *pDst = sval;
+            *pDst = (int32_t)sval;
     }
    return true;
 }

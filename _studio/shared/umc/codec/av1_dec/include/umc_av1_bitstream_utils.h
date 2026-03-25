@@ -43,6 +43,8 @@ namespace UMC_AV1_DECODER
     inline int32_t read_uniform(AV1Bitstream& bs, uint32_t n)
     {
         const uint32_t l = UMC_VP9_DECODER::GetUnsignedBits(n);
+        if (l == 0)
+            return 0;
         const uint32_t m = (1 << l) - n;
         const uint32_t v = bs.GetBits(l - 1);
         if (v < m)

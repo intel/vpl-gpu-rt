@@ -163,7 +163,10 @@ namespace UMC_AV1_DECODER
         AV1DecoderFrame* DecodeFrameID(UMC::FrameMemID);
         AV1DecoderFrame* FindFrameInProgress();
         AV1DecoderFrame* GetCurrFrame()
-        { return lastest_submitted_frame; }
+        {
+            std::lock_guard<std::mutex> lg(guard);
+            return lastest_submitted_frame;
+        }
         UMC::FrameMemID  GetRepeatedFrame(){return repeateFrame;}
         void SetInFrameRate(mfxF64 rate)
         { in_framerate = rate; }

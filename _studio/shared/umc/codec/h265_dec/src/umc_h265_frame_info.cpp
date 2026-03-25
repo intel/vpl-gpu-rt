@@ -102,14 +102,14 @@ void H265DecoderFrameInfo::EliminateErrors()
         return;
 
     // Remove dependent slices without a corresponding independent slice
-    for (uint32_t sliceId = 0; sliceId < GetSliceCount(); sliceId++)
+    for (int32_t sliceId = 0; sliceId < static_cast<int32_t>(GetSliceCount()); sliceId++)
     {
         H265Slice * slice = GetSlice(sliceId);
 
         if (slice->GetSliceHeader()->dependent_slice_segment_flag)
         {
             RemoveSlice(sliceId);
-            sliceId = uint32_t(-1);
+            sliceId = -1;
             continue;
         }
         else
@@ -121,7 +121,7 @@ void H265DecoderFrameInfo::EliminateErrors()
         H265Slice *baseSlice = GetSlice(0); // after the for() loop above ,the first slice is treated as 'base' slice
 
         bool bIndepSliceMissing = false;
-        for (uint32_t sliceId = 1; sliceId < GetSliceCount(); sliceId++)
+        for (int32_t sliceId = 1; sliceId < static_cast<int32_t>(GetSliceCount()); sliceId++)
         {
             H265SliceHeader *sliceHeader = GetSlice(sliceId)->GetSliceHeader();
 
@@ -144,7 +144,7 @@ void H265DecoderFrameInfo::EliminateErrors()
     }
 
     // Remove slices with duplicated slice_segment_address syntax
-    for (uint32_t sliceId = 0; sliceId < GetSliceCount(); sliceId++)
+    for (int32_t sliceId = 0; sliceId < static_cast<int32_t>(GetSliceCount()); sliceId++)
     {
         H265Slice * slice     = m_pSliceQueue[sliceId];
         H265Slice * nextSlice = GetSlice(sliceId + 1);
@@ -154,7 +154,7 @@ void H265DecoderFrameInfo::EliminateErrors()
 
         if (slice->GetFirstMB() == slice->GetMaxMB())
         {
-            uint32_t sliceIdToRemove;
+            int32_t sliceIdToRemove;
 
             // Heuristic logic:
             if (slice->GetSliceHeader()->dependent_slice_segment_flag && !nextSlice->GetSliceHeader()->dependent_slice_segment_flag)
@@ -168,7 +168,7 @@ void H265DecoderFrameInfo::EliminateErrors()
                 sliceIdToRemove = sliceId + 1;
             }
             RemoveSlice(sliceIdToRemove);
-            sliceId = uint32_t(-1);
+            sliceId = -1;
             continue;
         }
     }
