@@ -594,12 +594,13 @@ public:
 
     std::chrono::milliseconds GetTimeout() const
     {
+        std::lock_guard<std::mutex> guard(m_mutex);
         return m_time_to_wait;
     }
 
     mfxStatus GetSurface(mfxFrameSurface1*& output_surface, bool emulate_zero_refcount_base = false, mfxSurfaceHeader* import_surface = nullptr)
     {
-        return GetSurface(output_surface, m_time_to_wait, emulate_zero_refcount_base, import_surface);
+        return GetSurface(output_surface, GetTimeout(), emulate_zero_refcount_base, import_surface);
     }
 
     mfxStatus GetSurface(mfxFrameSurface1* & output_surface, std::chrono::milliseconds current_time_to_wait, bool emulate_zero_refcount_base = false, mfxSurfaceHeader* import_surface = nullptr)

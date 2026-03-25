@@ -1193,6 +1193,7 @@ std::pair<mfxHDL, mfxResourceType> mfxFrameSurface1_hw_vaapi::GetNativeHandle() 
 
 std::pair<mfxHDL, mfxHandleType> mfxFrameSurface1_hw_vaapi::GetDeviceHandle() const
 {
+    std::shared_lock<std::shared_timed_mutex> guard(m_hdl_mutex);
     return { reinterpret_cast<mfxHDL>((VADisplay)(m_resource_wrapper->GetDevice())), MFX_HANDLE_VA_DISPLAY };
 }
 
