@@ -266,8 +266,28 @@ static bool isSWLACondition(const mfxVideoParam& video)
         (pExtOpt2->LookAheadDepth > video.mfx.GopRefDist));
 }
 
+void AV1EncTools::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
+{
+    Push(BLK_SetDefaults
+        , [this](mfxVideoParam& par, StorageW& global, StorageRW&)
+        {
+            MFX_CHECK(IsFeatureEnabled(par), MFX_ERR_NONE);
+
+            mfxExtEncToolsConfig* pConfig = ExtBuffer::Get(par);
+            auto& caps = Glob::EncodeCaps::Get(global);
+
+            if (pConfig)
+                SetDefaultConfig(par, *pConfig, caps.ForcedSegmentationSupport);
+
+            return MFX_ERR_NONE;
+        });
+}
+
 void AV1EncTools::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsConfig &config, bool bMBQPSupport)
 {
+
+    if (!IsFeatureEnabled(video))
+        return;
 
 
     const mfxExtCodingOption2  *pExtOpt2 = ExtBuffer::Get(video);
@@ -1398,7 +1418,10 @@ void AV1EncTools::FreeTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
 
 bool AV1EncTools::IsFeatureEnabled(const mfxVideoParam& par)
 {
-    return true;
+    const mfxExtEncToolsConfig* pExtConfig = AV1EHW::ExtBuffer::Get(par);
+    const mfxExtCodingOption2* pExtOpt2 = AV1EHW::ExtBuffer::Get(par);
+
+    return (pExtOpt2 && pExtOpt2->LookAheadDepth > 0) && (IsEncToolsConfigDefined(pExtConfig) || IsOn(pExtOpt2->ExtBRC));
 }
 
 #endif //defined(MFX_ENABLE_ENCTOOLS)

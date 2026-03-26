@@ -151,7 +151,6 @@ void QMatrix::PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Push)
         const auto& par = Glob::VideoParam::Get(global);
         const mfxExtCodingOption2* CO2 = ExtBuffer::Get(par);
         MFX_CHECK(!(CO2 && CO2->LookAheadDepth > 0), MFX_ERR_NONE);
-
         const mfxU8 nQMatrix = GetAdaptiveCQM(par, m_qpHistory);
         auto&       fh       = Task::FH::Get(s_task);
         MFX_CHECK(fh.quantization_params.using_qmatrix == 0, MFX_ERR_NONE);

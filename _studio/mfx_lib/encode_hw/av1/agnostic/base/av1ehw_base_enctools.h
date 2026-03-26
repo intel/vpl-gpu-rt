@@ -67,6 +67,7 @@ namespace Base
     virtual void SetSupported(ParamSupport& par) override;
     void SetInherited(ParamInheritance& par) override;
     virtual void Reset(const FeatureBlocks& blocks, TPushR Push) override;
+    virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
     virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
     virtual void FreeTask(const FeatureBlocks& blocks, TPushQT Push) override;
 

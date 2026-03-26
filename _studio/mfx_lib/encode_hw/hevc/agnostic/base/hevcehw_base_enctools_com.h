@@ -38,6 +38,24 @@ inline bool IsGameStreaming(const mfxVideoParam& video)
     const mfxExtCodingOption3* pExtOpt3 = HEVCEHW::ExtBuffer::Get(video);
     return (pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING);
 }
+
+inline bool IsEncToolsConfigDefined(const mfxExtEncToolsConfig* config) {
+    //this code is based on definition of MFX_CODINGOPTION_UNKNOWN=0 
+    if (!config)
+        return false;
+
+    return
+        config->AdaptiveI | config->AdaptiveB
+        | config->AdaptiveRefP | config->AdaptiveRefB
+        | config->SceneChange
+        | config->AdaptiveLTR
+        | config->AdaptivePyramidQuantP | config->AdaptivePyramidQuantB
+        | config->AdaptiveQuantMatrices
+        | config->AdaptiveMBQP
+        | config->BRCBufferHints
+        | config->BRC;
+}
+
 inline mfxU32 GetNumTempLayers(const mfxVideoParam& video)
 {
     const  mfxExtAvcTemporalLayers* tempLayers = HEVCEHW::ExtBuffer::Get(video);
@@ -102,8 +120,6 @@ namespace Base
     class HevcEncToolsCommon : public FeatureBase
     {
     public:
-        bool SelectPureHWPath(const mfxVideoParam& par) { return IsGameStreaming(par);}
-
         bool isEncTools(const mfxVideoParam& par);
         mfxStatus SubmitPreEncTask(StorageW&  global, StorageW& s_task);
 
@@ -139,7 +155,6 @@ namespace Base
 
     protected:
         virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
-        virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
         virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
         virtual void FreeTask(const FeatureBlocks& blocks, TPushQT Push) override;
         virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;

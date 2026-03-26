@@ -23,6 +23,7 @@
 #include "mfx_enctools_stub.h"
 #include "mfx_enctools_loader.h"
 
+
 mfxEncTools* MFXVideoENCODE_CreateEncTools(const mfxVideoParam&)
 {
     std::unique_ptr<mfxEncTools> et(new mfxEncTools);

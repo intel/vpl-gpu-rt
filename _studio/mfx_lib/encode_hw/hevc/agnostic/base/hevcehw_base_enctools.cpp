@@ -97,7 +97,10 @@ void HevcEncTools::SetInherited(ParamInheritance& par)
 
 bool HevcEncTools::isFeatureEnabled(const mfxVideoParam& par)
 {
-    return true;
+    const mfxExtEncToolsConfig* pExtConfig = HEVCEHW::ExtBuffer::Get(par);
+    const mfxExtCodingOption2* pExtOpt2 = HEVCEHW::ExtBuffer::Get(par);
+
+    return (pExtOpt2 && pExtOpt2->LookAheadDepth > 0) && (IsEncToolsConfigDefined(pExtConfig) || IsOn(pExtOpt2->ExtBRC));
 }
 
 inline bool IsLookAhead(const mfxExtEncToolsConfig &config, bool bGameStreaming)
@@ -333,6 +336,21 @@ bool isSWLACondition(const mfxVideoParam& video)
         (pExtOpt2->LookAheadDepth > video.mfx.GopRefDist));
 }
 
+void HevcEncTools::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
+{
+    Push(BLK_SetDefaults
+        , [this](mfxVideoParam& par, StorageW& global, StorageRW&)
+        {
+            if (!isFeatureEnabled(par))
+                return;
+        
+            mfxExtEncToolsConfig * pConfig = ExtBuffer::Get(par);
+            auto & caps = Glob::EncodeCaps::Get(global);
+            if (pConfig)
+                SetDefaultConfig(par, *pConfig, caps.MBBRCSupport);
+        });
+}
+
 void HevcEncTools::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsConfig &config, bool bMBQPSupport)
 {
     const mfxExtCodingOption   *pExtOpt = ExtBuffer::Get(video);
@@ -418,7 +436,7 @@ void HevcEncTools::SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsCo
        SetDefaultOpt(config.BRCBufferHints, bLA);
        SetDefaultOpt(config.AdaptivePyramidQuantP, bLA);
        SetDefaultOpt(config.AdaptivePyramidQuantB, bLA);
-       SetDefaultOpt(config.AdaptiveQuantMatrices, bLA && !IsOff(pExtOpt3->AdaptiveCQM));
+       SetDefaultOpt(config.AdaptiveQuantMatrices, bLA && !(pExtOpt3 && IsOff(pExtOpt3->AdaptiveCQM)));
        SetDefaultOpt(config.AdaptiveI, bLA && bAdaptiveI);
        SetDefaultOpt(config.AdaptiveB, bLA && bAdaptiveB);
        SetDefaultOpt(config.AdaptiveMBQP, bLA && bMBQPSupport && IsOn(pExtOpt2->MBBRC) );

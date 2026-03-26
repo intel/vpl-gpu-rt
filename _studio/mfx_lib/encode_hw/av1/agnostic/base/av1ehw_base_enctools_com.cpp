@@ -202,22 +202,6 @@ void AV1EncToolsCommon::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
     });
 }
 
-void AV1EncToolsCommon::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
-{
-    Push(BLK_SetDefaults
-        , [this](mfxVideoParam& par, StorageW& global, StorageRW&)
-    {
-        if (IsHwEncToolsOn(par))
-            SetDefault(par.mfx.GopOptFlag, MFX_GOP_CLOSED);
-
-        mfxExtEncToolsConfig *pConfig = ExtBuffer::Get(par);
-        auto& caps = Glob::EncodeCaps::Get(global);
-
-        if (pConfig)
-            SetDefaultConfig(par, *pConfig, caps.ForcedSegmentationSupport);
-    });
-}
-
 void AV1EncToolsCommon::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
 {
     Push(BLK_Reset
@@ -410,7 +394,7 @@ void AV1EncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Pu
             m_pEncTools->GetSupportedConfig(m_pEncTools->Context, &supportedConfig, &m_EncToolCtrl);
 
             if (CorrectVideoParams(par, supportedConfig))
-                MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
             SetDefaultConfig(par, m_EncToolConfig, caps.ForcedSegmentationSupport);
 
@@ -493,39 +477,7 @@ void AV1EncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Pu
 
         return MFX_ERR_NONE;
     });
-
-    Push(BLK_UpdateTask
-        , [this](StorageRW& global, StorageRW&) -> mfxStatus
-    {
-        auto& par = Glob::VideoParam::Get(global);
-        MFX_CHECK(IsFeatureEnabled(par), MFX_ERR_NONE);
-
-        MFX_CHECK(m_pEncTools, MFX_ERR_NONE);
-        auto& tm = Glob::TaskManager::Get(global).m_tm;
-        auto  UpdateTask = [&](
-            MfxEncodeHW::TaskManager::TUpdateTask::TExt
-            , StorageW&  global
-            , StorageW* dstTask) -> mfxStatus
-        {
-            global; dstTask;
-            return MFX_ERR_NONE;
-        };
-
-        tm.UpdateTask.Push(UpdateTask);
-
-        return MFX_ERR_NONE;
-    });
-
-    Push(BLK_SetCallChains
-        , [this](StorageRW& global, StorageRW&) -> mfxStatus
-        {
-            auto& par1 = Glob::VideoParam::Get(global);
-            MFX_CHECK(IsFeatureEnabled(par1), MFX_ERR_NONE);
-            return MFX_ERR_NONE;
-        });
 }
-
-
 
 void AV1EncToolsCommon::FreeTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
 {

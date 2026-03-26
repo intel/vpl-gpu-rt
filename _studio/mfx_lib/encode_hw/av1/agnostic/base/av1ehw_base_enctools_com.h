@@ -152,8 +152,7 @@ namespace Base
     public:
         virtual mfxStatus SubmitPreEncTask(StorageW&  global, StorageW& s_task);
         virtual mfxStatus QueryPreEncTask(StorageW&  global, StorageW& s_task) = 0;
-        virtual bool IsFeatureEnabled(const mfxVideoParam& par) = 0;
-        bool SelectPureHWPath(const mfxVideoParam& par) { return IsGameStreaming(par);}
+        virtual bool IsFeatureEnabled(const mfxVideoParam& par) = 0;     
         virtual void SetDefaultConfig(const mfxVideoParam &video, mfxExtEncToolsConfig &config, bool bMBQPSupport) = 0;
         virtual mfxU32 CorrectVideoParams(mfxVideoParam& video, mfxExtEncToolsConfig& supportedConfig) = 0;
         virtual mfxStatus InitEncToolsCtrl(mfxVideoParam const& par, mfxEncToolsCtrl* ctrl);
@@ -185,7 +184,6 @@ namespace Base
 
     protected:
         virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
-        virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override; 
         virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
         virtual void FreeTask(const FeatureBlocks& blocks, TPushQT Push) override; 
         virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;

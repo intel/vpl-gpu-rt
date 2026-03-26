@@ -57,6 +57,7 @@ namespace Base
         virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
         virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override;
         virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
+        virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
         virtual void Reset(const FeatureBlocks& blocks, TPushR Push) override;
 
     };

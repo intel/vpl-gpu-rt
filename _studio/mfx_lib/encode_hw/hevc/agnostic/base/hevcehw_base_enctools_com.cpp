@@ -215,21 +215,6 @@ void HevcEncToolsCommon::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
         });
 }
 
-void HevcEncToolsCommon::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
-{
-    Push(BLK_SetDefaults
-        , [this](mfxVideoParam& par, StorageW& global, StorageRW&)
-    {
-        if (!isFeatureEnabled(par))
-            return;
-
-        mfxExtEncToolsConfig *pConfig = ExtBuffer::Get(par);
-        auto& caps = Glob::EncodeCaps::Get(global);
-        if (pConfig)
-            SetDefaultConfig(par, *pConfig, caps.MBBRCSupport);
-    });
-}
-
 void HevcEncToolsCommon::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
 {
     Push(BLK_Reset
@@ -333,10 +318,6 @@ void HevcEncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII P
         mfxExtEncToolsConfig* pConfig = ExtBuffer::Get(par);
 
 
-        bool bEncTools = (pConfig) ?
-            IsEncToolsConfigOn(*pConfig, IsGameStreaming(par)) :
-            false;
-        MFX_CHECK(bEncTools, MFX_ERR_NONE);
         MFX_CHECK(!m_pEncTools, MFX_ERR_NONE);
 
         m_pEncTools = GetEncTools(par);
@@ -393,7 +374,7 @@ void HevcEncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII P
 
 
             if (CorrectVideoParams(par, supportedConfig))
-                MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_RETURN(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
             SetDefaultConfig(par, m_EncToolConfig,caps.MbQpDataSupport);
 
