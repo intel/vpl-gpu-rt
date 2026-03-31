@@ -3215,8 +3215,8 @@ void General::SetFH(
     fh.reduced_tx_set = (caps.AV1ToolSupportFlags.fields.allow_full_tx_set == 0) ? 1 : (par.mfx.TargetUsage == MFX_TARGETUSAGE_1 ? 0 : (IsOn(auxPar.ReducedTxSetUsed) ? 1 : 0));
     
     // Set use_ref_frame_mvs based on sequence header capability, user setting, and target usage
-    // Enabled when: sequence header supports it AND user has not explicitly disabled it AND (user enables it OR target usage is best quality)
-    fh.use_ref_frame_mvs = (sh.enable_ref_frame_mvs == 0 || IsOff(auxPar.EnableRefFrameMvs)) ? 0 : ((IsOn(auxPar.EnableRefFrameMvs) || par.mfx.TargetUsage == MFX_TARGETUSAGE_1) ? 1 : 0);
+    // Enabled when: sequence header supports it AND (user enables it OR target usage is best quality)
+    fh.use_ref_frame_mvs = (sh.enable_ref_frame_mvs == 0) ? 0 : ((IsOn(auxPar.EnableRefFrameMvs) || par.mfx.TargetUsage == MFX_TARGETUSAGE_1) ? 1 : 0);
     
     fh.delta_lf_present = 0;
     fh.delta_lf_multi = 0;
