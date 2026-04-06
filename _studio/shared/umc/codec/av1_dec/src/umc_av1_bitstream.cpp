@@ -1421,7 +1421,7 @@ namespace UMC_AV1_DECODER
                 sh.seq_force_integer_mv = 2;
 
             sh.order_hint_bits_minus1 =
-                sh.enable_order_hint ? GetBits(3) : -1;
+                sh.enable_order_hint ? static_cast<int32_t>(GetBits(3)) : -1;
         }
 
         sh.enable_superres = GetBit();
