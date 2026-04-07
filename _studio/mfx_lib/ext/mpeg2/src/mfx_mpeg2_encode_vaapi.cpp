@@ -1406,7 +1406,7 @@ mfxStatus VAAPIEncoder::SetFrames (ExecuteBuffers* pExecuteBuffers)
     }
     else
     {
-        ind = 0xff;
+        ind = 0x7f; // max value for 7-bit Index7Bits field (invalid frame sentinel)
     }
 
     pExecuteBuffers->m_pps.CurrReconstructedPic.Index7Bits     =  mfxU8(ind < 0 ? 0 : ind);
