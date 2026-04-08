@@ -953,7 +953,7 @@ namespace UMC_VVC_DECODER
         PackSliceStructParams(sliceStruct, pFirstSlice);
 
         // slice control buffer packing
-        PackSliceParam(picParam,dpb,pSliceInfo);
+        PackSliceParam(picParam,std::move(dpb),pSliceInfo);
 
         // Mark APS after sending buffer pack
         pFirstSlice->MarkAPS();
