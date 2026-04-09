@@ -78,8 +78,12 @@ public:
 
     ~SurfaceScopedLock()
     {
-        if (m_mapped)        std::ignore = MFX_STS_TRACE(Unmap());
-        if (m_image_created) std::ignore = MFX_STS_TRACE(DestroyImage());
+        try
+        {
+            if (m_mapped)        std::ignore = MFX_STS_TRACE(Unmap());
+            if (m_image_created) std::ignore = MFX_STS_TRACE(DestroyImage());
+        }
+        catch (...) {}
     }
 
     mfxStatus DeriveImage()

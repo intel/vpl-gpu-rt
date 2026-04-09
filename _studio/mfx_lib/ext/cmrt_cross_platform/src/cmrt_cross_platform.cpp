@@ -521,6 +521,7 @@ INT CreateCmDevice(CmDevice *& pD, UINT & version, VADisplay va_dpy, UINT mode)
     CreateCmDeviceLinuxFuncTypeEx createFunc = (CreateCmDeviceLinuxFuncTypeEx)so_get_addr(device->m_dll, FUNC_NAME_CREATE_CM_DEVICE_EX);
     if (createFunc == 0)
     {
+        so_free(device->m_dll);
         delete device;
         return CM_FAILURE;
     }
@@ -528,6 +529,7 @@ INT CreateCmDevice(CmDevice *& pD, UINT & version, VADisplay va_dpy, UINT mode)
     INT res = createFunc(device->m_linux, version, va_dpy, mode);
     if (res != CM_SUCCESS)
     {
+        so_free(device->m_dll);
         delete device;
         return CM_FAILURE;
     }

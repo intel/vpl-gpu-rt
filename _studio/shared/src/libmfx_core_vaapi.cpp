@@ -173,8 +173,12 @@ public:
 
         ~SurfaceWrapper()
         {
-            if (m_id != VA_INVALID_SURFACE && m_bDestroySurface)
-                std::ignore = MFX_STS_TRACE(vaDestroySurfaces(m_dpy, &m_id, 1));
+            try
+            {
+                if (m_id != VA_INVALID_SURFACE && m_bDestroySurface)
+                    std::ignore = MFX_STS_TRACE(vaDestroySurfaces(m_dpy, &m_id, 1));
+            }
+            catch (...) {}
         }
 
         VASurfaceID GetId() const

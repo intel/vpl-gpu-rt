@@ -348,7 +348,11 @@ LinuxVideoAccelerator::LinuxVideoAccelerator(void)
 
 LinuxVideoAccelerator::~LinuxVideoAccelerator(void)
 {
-    Close();
+    try
+    {
+        Close();
+    }
+    catch (...) {}
 }
 
 Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
