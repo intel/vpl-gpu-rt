@@ -109,7 +109,7 @@ elseif( Windows )
   set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
   set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
   set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE})
-  
+
   foreach(config_type ${CMAKE_CONFIGURATION_TYPES})
     string(TOUPPER ${config_type} config_type_capital)
     set( CMAKE_LIBRARY_OUTPUT_DIRECTORY_${config_type_capital} ${CMAKE_BIN_DIR}/${config_type})
@@ -143,6 +143,21 @@ elseif( Windows )
     INTERFACE
       /guard:cf
   )
+
+  # Use /MANIFEST:NO to prevent CMake's vs_link_exe wrapper from invoking
+  # mt.exe as a separate step, and /INCREMENTAL:NO to avoid the linker
+  # modifying an existing binary in-place. Both avoid failures when security
+  # software (e.g. CrowdStrike) locks freshly written binaries.
+  # These must go in config-specific flags because CMake's Ninja generator
+  # strips /MANIFEST:NO from the base CMAKE_EXE_LINKER_FLAGS, and CMake's
+  # default CMAKE_EXE_LINKER_FLAGS_DEBUG contains /INCREMENTAL which
+  # overrides any /INCREMENTAL:NO in the base flags.
+  foreach(config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+    set(CMAKE_EXE_LINKER_FLAGS_${config}
+        "${CMAKE_EXE_LINKER_FLAGS_${config}} /MANIFEST:NO /INCREMENTAL:NO")
+    set(CMAKE_SHARED_LINKER_FLAGS_${config}
+        "${CMAKE_SHARED_LINKER_FLAGS_${config}} /MANIFEST:NO /INCREMENTAL:NO")
+  endforeach()
 
 endif( )
 
