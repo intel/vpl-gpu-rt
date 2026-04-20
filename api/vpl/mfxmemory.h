@@ -266,7 +266,7 @@ typedef struct {
 } mfxSurfaceTypesSupported;
 MFX_PACK_END()
 
-#define MFX_MEMORYINTERFACE_VERSION MFX_STRUCT_VERSION(1, 0)
+#define MFX_MEMORYINTERFACE_VERSION MFX_STRUCT_VERSION(1, 1)
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
 /* Specifies memory interface. */
