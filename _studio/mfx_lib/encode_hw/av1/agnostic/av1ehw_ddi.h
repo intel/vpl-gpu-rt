@@ -162,7 +162,8 @@ typedef struct tagENCODE_CAPS_AV1
             uint32_t  LookaheadBRCSupport      : 1;  
             uint32_t  LookaheadAnalysisSupport : 1;  
             uint32_t  TCBRCSupport             : 1;
-            uint32_t  reserved2                : 11; // [0]
+            uint32_t  reserved               : 1; // FGLookaheadBRCSupport
+            uint32_t  reserved2              : 10; // [0]
         } fields;
         uint32_t value;
     } SupportedRateControlMethods;
@@ -175,7 +176,15 @@ typedef struct tagENCODE_CAPS_AV1
         } fields;
         uint8_t value;
     } QualityInfoSupportFlags;
-    uint8_t    reserved8b2[3];
+    union {
+        struct {
+            uint8_t  Scale2x2    : 1;  // [0..1]
+            uint8_t  Scale4x4    : 1;  // [0..1]
+            uint8_t  reserved6b  : 6;
+        };
+        uint8_t  FastPassRatioCaps;
+    };
+    uint16_t   reserved16b2;
 
     uint32_t   reserved32b[15];
 

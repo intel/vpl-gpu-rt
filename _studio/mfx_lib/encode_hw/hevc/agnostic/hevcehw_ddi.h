@@ -125,17 +125,45 @@ typedef struct tagENCODE_CAPS_HEVC
         uint16_t CodingLimits3;
     };
 
-    uint32_t reserved32bits1;
+    union {
+        struct {
+            uint32_t CQP          : 1;
+            uint32_t CBR          : 1;
+            uint32_t VBR          : 1;
+            uint32_t AVBR         : 1;
+            uint32_t ICQ          : 1;
+            uint32_t VCM          : 1;
+            uint32_t QVBR         : 1;
+            uint32_t CQL          : 1;
+            uint32_t TCBRC        : 1;
+            uint32_t reserved1    : 7;  // [0]
+            uint32_t SlidingWindow: 1;
+            uint32_t LowDelay     : 1;
+            uint32_t reserved2    : 14; // [0]
+        } fields;
+        uint32_t value;
+    } SupportedRateControlMethods;
 
     union {
         struct {
-            uint8_t   enable_frame : 1;  // support frame level quality info
-            uint8_t   reserved3 : 7;  // [0]
+            uint8_t enable_frame : 1;  // support frame level quality info
+            uint8_t reserved7b   : 7; // [0]
         } fields;
         uint8_t value;
     } QualityInfoSupportFlags;
 
-    uint8_t reserved8bits[3];
+    union {
+        struct {
+            uint8_t Scale2x2    : 1;  // [0..1]
+            uint8_t Scale4x4    : 1;  // [0..1]
+            uint8_t reserved6b  : 6;
+        };
+        uint8_t FastPassRatioCaps;
+    };
+
+    uint8_t reserved8b_border; // BorderOpsSupportFlags
+
+    uint8_t reserved8bits;
     uint32_t reserved32bits2;
 
 } ENCODE_CAPS_HEVC;
