@@ -87,7 +87,7 @@ namespace UMC_VVC_DECODER
                 m_scanOrders[SCAN_UNGROUPED][SCAN_DIAG][blkWidthIdx][blkHeightIdx] = scan;
                 ScanElement* scanEnd = scan + totalValues;
 
-                uint32_t x = 0, y = 0;
+                int32_t x = 0, y = 0;
                 scan->idx = 0;
                 scan->x = 0;
                 scan->y = 0;
@@ -95,15 +95,15 @@ namespace UMC_VVC_DECODER
 
                 while (scan < scanEnd)
                 {
-                    if (y == 0 || x == blkWidth - 1)
+                    if (y == 0 || x == (int32_t)blkWidth - 1)
                     {
                         y += x + 1;
                         x = 0;
 
-                        if (y >= blkHeight)
+                        if (y >= (int32_t)blkHeight)
                         {
-                            x += y - (blkHeight - 1);
-                            y = blkHeight - 1;
+                            x += y - ((int32_t)blkHeight - 1);
+                            y = (int32_t)blkHeight - 1;
                         }
                     }
                     else
@@ -112,9 +112,9 @@ namespace UMC_VVC_DECODER
                         x++;
                     }
 
-                    scan->idx = y * blkWidth + x;
-                    scan->x = x;
-                    scan->y = y;
+                    scan->idx = (uint32_t)(y * (int32_t)blkWidth + x);
+                    scan->x = (uint32_t)x;
+                    scan->y = (uint32_t)y;
                     scan++;
                 }
             }
