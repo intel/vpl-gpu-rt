@@ -71,14 +71,18 @@ add_library(mfxcore OBJECT)
 target_sources(mfxcore PRIVATE ${sources_common})
 target_sources(mfxcore PRIVATE ${sources_hw})
 
+target_sources(mfxcore
+  PRIVATE
+    scheduler/agnostic/src/mfx_scheduler_core_iunknown.cpp
+    scheduler/agnostic/src/mfx_scheduler_core_task.cpp
+    scheduler/agnostic/src/mfx_scheduler_core_task_management.cpp
+)
+
 if (CMAKE_SYSTEM_NAME MATCHES Linux)
   target_sources(mfxcore
     PRIVATE
       scheduler/linux/src/mfx_scheduler_core.cpp
       scheduler/linux/src/mfx_scheduler_core_ischeduler.cpp
-      scheduler/linux/src/mfx_scheduler_core_iunknown.cpp
-      scheduler/linux/src/mfx_scheduler_core_task.cpp
-      scheduler/linux/src/mfx_scheduler_core_task_management.cpp
       scheduler/linux/src/mfx_scheduler_core_thread.cpp
   )
 endif()
@@ -117,9 +121,9 @@ target_compile_definitions(mfxcore
 
 target_include_directories(mfxcore
   PUBLIC
-    scheduler/include
     ${OPENCL_INCLUDE}
     ${VULKAN_INCLUDE}
+    scheduler/agnostic/include
   )
   
 if (CMAKE_SYSTEM_NAME MATCHES Linux)

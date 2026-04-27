@@ -1,15 +1,15 @@
-// Copyright (c) 2018-2020 Intel Corporation
-// 
+// Copyright (c) 2009-2026 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -36,7 +36,7 @@ MFX_SCHEDULER_TASK::MFX_SCHEDULER_TASK(mfxU32 taskID, mfxSchedulerCore *pSchedul
     memset(&param, 0, sizeof(param));
 }
 
-MFX_SCHEDULER_TASK::~MFX_SCHEDULER_TASK(void) {}
+MFX_SCHEDULER_TASK::~MFX_SCHEDULER_TASK(void){}
 
 mfxStatus MFX_SCHEDULER_TASK::Reset(void)
 {
@@ -69,7 +69,7 @@ void MFX_SCHEDULER_TASK::OnDependencyResolved(mfxStatus result)
         //    curStatus = MFX_ERR_ABORTED;
         //}
 
-        // need to update dependency table for all tasks dependent from failed 
+        // need to update dependency table for all tasks dependent from failed
         m_pSchedulerCore->ResolveDependencyTable(this);
         done.notify_all();
 
@@ -77,7 +77,8 @@ void MFX_SCHEDULER_TASK::OnDependencyResolved(mfxStatus result)
         ReleaseResources();
 
         CompleteTask(MFX_ERR_ABORTED);
-    } else {
+    }
+    else {
         // Notify the scheduler that task got resolved dependencies.
         // Scheduler will reevaluate whether it needs to wake up threads to
         // handle this task.

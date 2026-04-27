@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2010-2026 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -58,6 +58,7 @@ int mfxSchedulerCore::GetTaskPriority(mfxTaskHandle task)
     // THE EXECUTION IS ALREADY IN SECURE SECTION.
     // Just do what need to do.
     //
+
     const MFX_SCHEDULER_TASK *pTask = m_ppTaskLookUpTable.at(task.taskID);
     if ((pTask) &&
         (pTask->jobID == task.jobID) &&
@@ -118,88 +119,99 @@ mfxStatus mfxSchedulerCore::GetTask(MFX_CALL_INFO &callInfo,
                                     mfxTaskHandle previousTask,
                                     const mfxU32 threadNum)
 {
-    int prevTaskPriority = -1;
-    mfxU32 run;
-    mfxU64 totalTimeSpent[MFX_PRIORITY_NUMBER], timeSpent[MFX_PRIORITY_NUMBER];
+    MFX_AUTO_TRACE(__FUNCTION__);
 
-    // get the current time stamp
-    m_currentTimeStamp = GetHighPerformanceCounter();
-
-    // get time spent statistic
-    GetTimeStat(timeSpent, totalTimeSpent);
-
-    // get the priority of the previous task
-    prevTaskPriority = GetTaskPriority(previousTask);
-
-    // there are three runs over the tasks lists. On the 1st run,
-    // the scheduler keeping workload balance, which is described by
-    // the TaskPriorityRatio table. On the 2nd run, the scheduler chooses
-    // any ready task.
-    for (run = 0; run < NUMBER_OF_RUNS; run += 1)
+    try
     {
-        int priority;
+        int prevTaskPriority = -1;
+        mfxU32 run;
+        mfxU64 totalTimeSpent[MFX_PRIORITY_NUMBER], timeSpent[MFX_PRIORITY_NUMBER];
 
-        for (priority = MFX_PRIORITY_HIGH;
-             priority >= MFX_PRIORITY_LOW;
-             priority -= 1)
+        // get the current time stamp
+        m_currentTimeStamp = GetHighPerformanceCounter();
+
+        // get time spent statistic
+        GetTimeStat(timeSpent, totalTimeSpent);
+
+        // get the priority of the previous task
+        prevTaskPriority = GetTaskPriority(previousTask);
+
+        // there are three runs over the tasks lists. On the 1st run,
+        // the scheduler keeping workload balance, which is described by
+        // the TaskPriorityRatio table. On the 2nd run, the scheduler chooses
+        // any ready task.
+        for (run = 0; run < NUMBER_OF_RUNS; run += 1)
         {
-            //
-            // check the number of assigned task by the particular priority
-            //
+            int priority;
 
-            // the second run always examines tasks
-            if ((PRIORITY_RUN != run) ||
-                // during the first run we subscribe tasks only,
-                // if the kind of tasks does not utilize its share
-                // of CPU performance.
-                (TaskPriorityRatio[priority] * totalTimeSpent[priority] >=
-                 100 * timeSpent[priority]))
+            for (priority = MFX_PRIORITY_HIGH;
+                 priority >= MFX_PRIORITY_LOW;
+                 priority -= 1)
             {
-                int type;
+                //
+                // check the number of assigned task by the particular priority
+                //
 
-                for (type = (threadNum) ? (MFX_TYPE_SOFTWARE) : (MFX_TYPE_HARDWARE);
-                     type <= MFX_TYPE_SOFTWARE;
-                     type += 1)
+                // the second run always examines tasks
+                if ((PRIORITY_RUN != run) ||
+                    // during the first run we subscribe tasks only,
+                    // if the kind of tasks does not utilize its share
+                    // of CPU performance.
+                    (TaskPriorityRatio[priority] * totalTimeSpent[priority] >=
+                     100 * timeSpent[priority]))
                 {
-                    MFX_SCHEDULER_TASK *pTask = m_pTasks[priority][type];
+                    int type;
 
-                    // try to continue the previous task
-                    if (prevTaskPriority == priority)
+                    for (type = (threadNum) ? (MFX_TYPE_SOFTWARE) : (MFX_TYPE_HARDWARE);
+                         type <= MFX_TYPE_SOFTWARE;
+                         type += 1)
                     {
-                        mfxStatus mfxRes;
+                        MFX_SCHEDULER_TASK *pTask = m_pTasks[priority][type];
 
-                        // try get the same task again
-                        mfxRes = CanContinuePreviousTask(callInfo,
-                                                         previousTask,
-                                                         threadNum);
-                        if (MFX_ERR_NONE == mfxRes)
+                        // try to continue the previous task
+                        if (prevTaskPriority == priority)
                         {
-                            return mfxRes;
-                        }
-                    }
+                            mfxStatus mfxRes;
 
-                    // run over the tasks list
-                    while (pTask)
-                    {
-                        mfxStatus mfxRes;
-
-                        // is this task ready?
-                        mfxRes = WrapUpTask(callInfo, pTask, threadNum);
-                        if (MFX_ERR_NONE == mfxRes)
-                        {
-                            return mfxRes;
+                            // try get the same task again
+                            mfxRes = CanContinuePreviousTask(callInfo,
+                                                             previousTask,
+                                                             threadNum);
+                            if (MFX_ERR_NONE == mfxRes)
+                            {
+                                return mfxRes;
+                            }
                         }
 
-                        // get the next task
-                        pTask = pTask->pNext;
+                        // run over the tasks list
+                        while (pTask)
+                        {
+
+                            mfxStatus mfxRes;
+
+                            // is this task ready?
+                            mfxRes = WrapUpTask(callInfo, pTask, threadNum);
+                            if (MFX_ERR_NONE == mfxRes)
+                            {
+                                return mfxRes;
+                            }
+
+                            // get the next task
+                            pTask = pTask->pNext;
+                        }
                     }
                 }
             }
         }
-    }
 
-    // print task parameters for DEBUG purposes
-    PrintTaskInfoUnsafe();
+        // print task parameters for DEBUG purposes
+        PrintTaskInfoUnsafe();
+    }
+    catch(...)
+    {
+        MFX_LTRACE_MSG_1(MFX_TRACE_LEVEL_SCHED,"exception handled");
+        MFX_RETURN(MFX_ERR_NOT_FOUND);
+    }
 
     return MFX_ERR_NOT_FOUND;
 
@@ -270,7 +282,7 @@ mfxU32 GetFreeThreadNumber(MFX_THREAD_ASSIGNMENT &occupancyInfo,
 
 bool mfxSchedulerCore::IsReadyToRun(MFX_SCHEDULER_TASK *pTask)
 {
-    // task is not ready to run (ro should not be run)
+    // task is not ready to run (or should not be run)
     // if task is already done
     if (MFX_TASK_NEED_CONTINUE != pTask->curStatus) {
         return false;
@@ -325,13 +337,13 @@ mfxStatus mfxSchedulerCore::WrapUpTask(MFX_CALL_INFO &callInfo,
         return MFX_ERR_NOT_FOUND;
     }
 
+    callInfo.threadNum = GetFreeThreadNumber(occupancyInfo, pTask);
+    callInfo.callNum = pTask->param.numberOfCalls;
+
     //
     // everything is OK.
     // Update the task and return the parameters
     //
-
-    callInfo.threadNum = GetFreeThreadNumber(occupancyInfo, pTask);
-    callInfo.callNum = pTask->param.numberOfCalls;
 
     // update the scheduler
     m_numAssignedTasks[pTask->param.task.priority] += 1;
@@ -360,6 +372,8 @@ mfxStatus mfxSchedulerCore::WrapUpTask(MFX_CALL_INFO &callInfo,
     // set the time stamp of task release
     callInfo.timeStamp = m_currentTimeStamp;
 
+    MFX_NORMAL_MSG("GetTask: TaskId = %d, jobID = %d, threadNum = %d", callInfo.pTask->nTaskId, pTask->jobID, callInfo.threadNum);
+    TRACE_EVENT(MFX_TRACE_API_GET_TASK, EVENT_TYPE_INFO, TR_KEY_INTERNAl, make_event_data(callInfo.pTask->nTaskId, pTask->jobID, callInfo.threadNum));
 
     return MFX_ERR_NONE;
 
@@ -367,22 +381,33 @@ mfxStatus mfxSchedulerCore::WrapUpTask(MFX_CALL_INFO &callInfo,
 
 void mfxSchedulerCore::ResetWaitingTasks(const void *pOwner)
 {
-    ForEachTask(
-        [pOwner](MFX_SCHEDULER_TASK* task)
+    for (int priority = MFX_PRIORITY_HIGH; priority >= MFX_PRIORITY_LOW; priority -= 1)
+    {
+        for (int type = MFX_TYPE_HARDWARE; type <= MFX_TYPE_SOFTWARE; type += 1)
         {
-            // reset the 'waiting' flag
-            if ((task->param.task.pOwner == pOwner) &&
-                (MFX_TASK_NEED_CONTINUE == task->curStatus))
-            {
-                // resetting 'waiting' flag should help waking up permanent tasks
-                task->param.bWaiting = false;
+            MFX_SCHEDULER_TASK *pTask = m_pTasks[priority][type];
 
-                // set new time of the last call processed to avoid overwriting
-                // 'waiting' status flag.
-                task->param.timing.timeLastCallProcessed = task->param.timing.timeLastCallIssued + 1;
+            // run over the tasks with particular priority
+            while (pTask)
+            {
+                // reset the 'waiting' flag
+                if ((pTask->param.task.pOwner == pOwner) &&
+                    (MFX_TASK_NEED_CONTINUE == pTask->curStatus))
+                {
+                    // resetting 'waiting' flag should help waking up permanent tasks
+                    pTask->param.bWaiting = false;
+
+                    // set new time of the last call processed to avoid overwriting
+                    // 'waiting' status flag.
+                    pTask->param.timing.timeLastCallProcessed = pTask->param.timing.timeLastCallIssued + 1;
+                }
+
+                // advance the task pointer
+                pTask = pTask->pNext;
             }
         }
-    );
+    }
+
 } // void mfxSchedulerCore::ResetWaitingTasks(const void *pOwner)
 
 void mfxSchedulerCore::OnDependencyResolved(MFX_SCHEDULER_TASK *pTask)
@@ -399,6 +424,8 @@ void mfxSchedulerCore::OnDependencyResolved(MFX_SCHEDULER_TASK *pTask)
 void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
                                          const mfxU32 threadNum)
 {
+    MFX_AUTO_TRACE(__FUNCTION__);
+
     (void)pCallInfo;
     (void)threadNum;
 
@@ -524,23 +551,11 @@ void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
         // update the failed task status
         if (isFailed(pTask->curStatus))
         {
-            //mfxU32 i;
-
             // save the status
             pTask->opRes = pTask->curStatus;
 
             pTask->done.notify_all();
 
-            // update dependencies produced from the dependency table
-            //for (i = 0; i < MFX_TASK_NUM_DEPENDENCIES; i += 1)
-            //{
-            //    if (pTask->param.task.pDst[i])
-            //    {
-            //        mfxU32 idx = pTask->param.dependencies.dstIdx[i];
-
-            //        m_pDependencyTable[idx].mfxRes = pTask->curStatus;
-            //    }
-            //}
             ResolveDependencyTable(pTask);
 
             // mark all dependent task as 'failed'
@@ -552,7 +567,6 @@ void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
         else if (MFX_TASK_DONE == pTask->curStatus)
         {
             mfxU32 i;
-
 
             // reset jobID to avoid false waiting on complete tasks, which were reused
             pTask->jobID = 0;
@@ -582,7 +596,6 @@ void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
         }
     }
 
-
     // wake up additional threads for this task and tasks dependent
     if (m_DedicatedThreadsToWakeUp || m_RegularThreadsToWakeUp) {
         WakeUpThreads(m_DedicatedThreadsToWakeUp, m_RegularThreadsToWakeUp);
@@ -601,7 +614,8 @@ void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
         MFX_LTRACE_1(MFX_TRACE_LEVEL_SCHED, "^Completed^", "%d", nTraceTaskId);
     }
 
-}
+
+} // void mfxSchedulerCore::MarkTaskCompleted(mfxTaskHandle handle,
 
 // update dependencies produced from the dependency table
 void mfxSchedulerCore::ResolveDependencyTable(MFX_SCHEDULER_TASK *pTask)
@@ -617,3 +631,4 @@ void mfxSchedulerCore::ResolveDependencyTable(MFX_SCHEDULER_TASK *pTask)
         }
     }
 }
+
