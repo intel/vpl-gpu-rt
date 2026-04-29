@@ -343,7 +343,7 @@ namespace MfxHwH264Encode
             {
                 if (IsOn(par.mfx.LowPower) && (task.m_ctrl.QP < 10))
                 {
-                        return 10; // Enforce minQP=10 if ExtendedRhoQp not supported
+                        return 10;
                 }
                 // get per frame qp
                 return std::min(mfxU8(task.m_ctrl.QP), mfxU8(maxQP));

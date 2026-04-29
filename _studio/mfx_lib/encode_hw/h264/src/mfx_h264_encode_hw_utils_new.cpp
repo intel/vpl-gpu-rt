@@ -2408,7 +2408,6 @@ void MfxHwH264Encode::ConfigureTask(
         task.m_nalRefIdc[sfid] = task.m_reference[sfid] ? 2 : 0;
     }
 
-    // Pass caps to GetQpValue for FullQpRangeSupport capability check
     task.m_cqpValue[0] = GetQpValue(task, video, task.m_type[0], caps);
     task.m_cqpValue[1] = GetQpValue(task, video, task.m_type[1], caps);
 
