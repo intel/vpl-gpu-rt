@@ -3209,15 +3209,37 @@ void General::SetFH(
     }
 
     fh.TxMode = TX_MODE_SELECT;
-    
-    // Set reduced_tx_set based on target usage and hardware capability and user setting
-    // Enable when: hardware capability support it AND (target usage is NOT best quality AND user enables it)
-    fh.reduced_tx_set = (caps.AV1ToolSupportFlags.fields.allow_full_tx_set == 0) ? 1 : (par.mfx.TargetUsage == MFX_TARGETUSAGE_1 ? 0 : (IsOn(auxPar.ReducedTxSetUsed) ? 1 : 0));
-    
+    // Resolve reduced_tx_set (owned by VPL; AV1 §5.9.12):
+    //   1. cap unsupported        -> force 1 (HW can't do full set)
+    //   2. APP override           -> accept both MFX tristate 0x10/0x20
+    //   3. default                -> TU1 ON, TU2..TU7 OFF
+    if (!caps.AV1ToolSupportFlags.fields.allow_full_tx_set)
+    {
+        fh.reduced_tx_set = 1;
+        MFX_LOG_INFO("SetFH reduced_tx_set=1 (reason=cap_unsupported)\n");
+    }
+    else if (auxPar.ReducedTxSetUsed == MFX_CODINGOPTION_ON)
+    {
+        fh.reduced_tx_set = 1;
+        MFX_LOG_INFO("SetFH reduced_tx_set=1 (reason=app_override_on, ReducedTxSetUsed=%d)\n",
+            (int)auxPar.ReducedTxSetUsed);
+    }
+    else if (auxPar.ReducedTxSetUsed == MFX_CODINGOPTION_OFF)
+    {
+        fh.reduced_tx_set = 0;
+        MFX_LOG_INFO("SetFH reduced_tx_set=0 (reason=app_override_off, ReducedTxSetUsed=%d)\n",
+            (int)auxPar.ReducedTxSetUsed);
+    }
+    else if (auxPar.ReducedTxSetUsed == 0)
+    {
+        fh.reduced_tx_set = (par.mfx.TargetUsage == MFX_TARGETUSAGE_1) ? 0 : 1;
+        MFX_LOG_INFO("SetFH reduced_tx_set=%u (reason=tu_default, TU=%u)\n",
+            fh.reduced_tx_set, (unsigned)par.mfx.TargetUsage);
+    }
+
     // Set use_ref_frame_mvs based on sequence header capability, user setting, and target usage
     // Enabled when: sequence header supports it AND (user enables it OR target usage is best quality)
     fh.use_ref_frame_mvs = (sh.enable_ref_frame_mvs == 0) ? 0 : ((IsOn(auxPar.EnableRefFrameMvs) || par.mfx.TargetUsage == MFX_TARGETUSAGE_1) ? 1 : 0);
-    
     fh.delta_lf_present = 0;
     fh.delta_lf_multi = 0;
 
@@ -3503,7 +3525,6 @@ void General::SetDefaults(
         SetDefault(pAuxPar->DisplayFormatSwizzle, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->ErrorResilientMode, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->EnableRefFrameMvs, MFX_CODINGOPTION_OFF);
-        SetDefault(pAuxPar->ReducedTxSetUsed, MFX_CODINGOPTION_ON);
     }
 
     SetDefaultOrderHint(pAuxPar);
