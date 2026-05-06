@@ -1300,6 +1300,8 @@ mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id)
     // From Pantherlake platform.CodeName will be filled with MFX_PLATFORM_MAXIMUM. NOT to create any new CodeName values.
     case MFX_HW_PTL    : platform.CodeName = MFX_PLATFORM_MAXIMUM;       break;
     case MFX_HW_NVL_XE3G : platform.CodeName = MFX_PLATFORM_MAXIMUM;     break;
+    case MFX_HW_CRI    : platform.MediaAdapterType = MFX_MEDIA_DISCRETE;
+                         platform.CodeName = MFX_PLATFORM_MAXIMUM;       break;
     default:
                          platform.MediaAdapterType = MFX_MEDIA_UNKNOWN;
                          platform.CodeName = MFX_PLATFORM_UNKNOWN;       break;

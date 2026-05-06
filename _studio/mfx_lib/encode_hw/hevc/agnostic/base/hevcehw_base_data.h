@@ -52,12 +52,14 @@ namespace Base
     inline mfxU8 GetHWSurfAlignW(eMFXHWType hw)
     {
         return (hw == MFX_HW_BMG
+                || hw >= MFX_HW_NVL_XE3G
                 ) ? 8 : HW_SURF_ALIGN_W;
     }
 
     inline mfxU8 GetHWSurfAlignH(eMFXHWType hw)
     {
         return (hw == MFX_HW_BMG
+                || hw >= MFX_HW_NVL_XE3G
                 ) ? 8 : HW_SURF_ALIGN_H;
     }
 
