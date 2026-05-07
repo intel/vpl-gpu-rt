@@ -230,6 +230,14 @@ namespace VppCaps
     {
         return platform >= MFX_HW_NVL_XE3G;
     }
+
+    inline bool IsSuperResolutionSupported(eMFXHWType platform)
+    {
+        return platform >= MFX_HW_PTL;
+    }
+
+    constexpr mfxU32 SR_MAX_IN_WIDTH  = 2560;
+    constexpr mfxU32 SR_MAX_IN_HEIGHT = 1440;
 }
 
 #ifdef MFX_ENABLE_VP8_VIDEO_DECODE
