@@ -437,10 +437,6 @@ mfxStatus ExtendedQuery(VideoCORE *core, mfxU32 filterName, mfxExtBuffer* pHint)
     {
         MFX_RETURN(CheckScalingParam(pHint));
     }
-    else if (MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION == filterName)
-    {
-        MFX_RETURN(MFXVideoFrameInterpolation::Query(core));
-    }
     else // ignore
     {
         return MFX_ERR_NONE;

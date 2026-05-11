@@ -54,7 +54,6 @@
 #include "asc.h"
 #endif
 
-#include "mfx_vpp_ai_frame_interpolation.h"
 
 #if defined (ONEVPL_EXPERIMENTAL)
 namespace PercEncPrefilter
@@ -740,7 +739,6 @@ namespace MfxHwVideoProcessing
         //mfxU32 GetSubTask(DdiTask *pTask);
         mfxStatus DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx);
 
-        void SetAiFi(std::shared_ptr<MFXVideoFrameInterpolation>& interpolator) { m_aiFrameInterpolator = interpolator; }
     private:
 #ifdef MFX_ENABLE_MCTF
         std::weak_ptr<CMC> pMCTF;
@@ -853,7 +851,6 @@ namespace MfxHwVideoProcessing
 #ifdef MFX_ENABLE_MCTF
         mfxU32  m_MCTFSurfacesInQueue;
 #endif
-        std::shared_ptr<MFXVideoFrameInterpolation> m_aiFrameInterpolator;
     }; // class TaskManager
 
     class VideoVPPHW
@@ -1042,7 +1039,6 @@ namespace MfxHwVideoProcessing
         std::unique_ptr<PercEncPrefilter::PercEncFilter> m_PercEncFilter;
 #endif
 
-        std::shared_ptr<MFXVideoFrameInterpolation> m_aiVfiFilter;
 
     };
 

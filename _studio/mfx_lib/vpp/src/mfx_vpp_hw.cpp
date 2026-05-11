@@ -1252,11 +1252,6 @@ mfxStatus TaskManager::DoCpuFRC_AndUpdatePTS(
     mfxFrameSurface1 *output,
     mfxStatus *intSts)
 {
-    if (FRC_AI_INTERPOLATION & m_extMode)
-    {
-        return m_aiFrameInterpolator->UpdateTsAndGetStatus(input, output, intSts);
-    }
-    else
     {
         return m_cpuFrc.DoCpuFRC_AndUpdatePTS(input, output, intSts);
     }
@@ -2751,15 +2746,6 @@ mfxStatus  VideoVPPHW::Init(
                 m_executeParams.srSetParams.Algorithm = extSR->SRAlgorithm;
             }
         }
-        else if (m_params.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION)
-        {
-            mfxExtVPPAIFrameInterpolation* extFrc = (mfxExtVPPAIFrameInterpolation*)m_params.ExtParam[i];
-            if (extFrc)
-            {
-                m_executeParams.bAiVfi = true;
-                m_executeParams.m_aiFiMode = extFrc->FIMode;
-            }
-        }
     }
 
     m_config.m_IOPattern = 0;
@@ -2925,13 +2911,6 @@ mfxStatus  VideoVPPHW::Init(
     }
 #endif
 
-    if (m_executeParams.bAiVfi)
-    {
-        m_aiVfiFilter = std::make_shared<MFXVideoFrameInterpolation>();
-        sts = m_aiVfiFilter->Init(m_pCore, par->vpp.In, par->vpp.Out, m_IOPattern, m_executeParams.m_outVideoSignalInfo);
-        MFX_CHECK_STS(sts);
-        m_taskMngr.SetAiFi(m_aiVfiFilter);
-    }
 
     return (bIsFilterSkipped) ? MFX_WRN_FILTER_SKIPPED : MFX_ERR_NONE;
 
@@ -3972,8 +3951,6 @@ mfxStatus VideoVPPHW::PostWorkOutSurface(ExtSurface & output)
             && !m_PercEncFilter
 #endif
             ;
-        if (m_executeParams.bAiVfi && m_aiVfiFilter)
-            copy = false;
         if (copy)
         {
              // the reason for this is as follows:
@@ -5030,17 +5007,6 @@ mfxStatus VideoVPPHW::QueryTaskRoutine(void *pState, void *pParam, mfxU32 thread
     }
 #endif
 
-    if (pHwVpp->m_executeParams.bAiVfi && pHwVpp->m_aiVfiFilter)
-    {
-        if (SYS_TO_SYS == pHwVpp->m_ioMode || D3D_TO_SYS == pHwVpp->m_ioMode)
-        {
-            pHwVpp->m_aiVfiFilter->ReturnSurface(pTask->output.pSurf, pHwVpp->m_internalVidSurf[VPP_OUT].mids[pTask->output.resIdx]);
-        }
-        else
-        {
-            pHwVpp->m_aiVfiFilter->ReturnSurface(pTask->output.pSurf, 0);
-        }
-    }
 
     // [4] Complete task
     sts = pHwVpp->m_taskMngr.CompleteTask(pTask);
@@ -6976,22 +6942,6 @@ mfxStatus ConfigureExecuteParams(
                     }
                 }
                 break;
-            case MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION:
-            {
-                config.m_extConfig.mode = FRC_ENABLED | FRC_AI_INTERPOLATION;
-                config.m_extConfig.frcRational[VPP_IN].FrameRateExtN = videoParam.vpp.In.FrameRateExtN;
-                config.m_extConfig.frcRational[VPP_IN].FrameRateExtD = videoParam.vpp.In.FrameRateExtD;
-                config.m_extConfig.frcRational[VPP_OUT].FrameRateExtN = videoParam.vpp.Out.FrameRateExtN;
-                config.m_extConfig.frcRational[VPP_OUT].FrameRateExtD = videoParam.vpp.Out.FrameRateExtD;
-
-                inDNRatio = (mfxF64)videoParam.vpp.In.FrameRateExtD / videoParam.vpp.In.FrameRateExtN;
-                outDNRatio = (mfxF64)videoParam.vpp.Out.FrameRateExtD / videoParam.vpp.Out.FrameRateExtN;
-
-                mfxExtVPPAIFrameInterpolation* extFrc = (mfxExtVPPAIFrameInterpolation*)videoParam.ExtParam[0];
-                executeParams.bAiVfi = true;
-                executeParams.m_aiFiMode = extFrc->FIMode;
-                break;
-            }
 #ifdef MFX_ENABLE_MCTF
             case MFX_EXTBUFF_VPP_MCTF:
             {
