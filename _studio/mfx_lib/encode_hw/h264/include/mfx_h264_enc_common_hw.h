@@ -31,7 +31,7 @@
 
 #include "mfx_ext_buffers.h"
 
-#ifdef MFX_ENABLE_ENCTOOLS
+#ifdef MFX_ENABLE_ENCTOOLS_BASE
 #include "mfxenctools-int.h"
 #else
 #include "mfxbrc.h"
@@ -51,6 +51,17 @@
 
 #ifdef MFX_ENABLE_ENCODE_STATS
 #include "mfxencodestats.h"
+#endif
+
+#ifdef MFX_ENABLE_LPLA_BASE
+inline mfxU16 GetLpLaDsRatio(const mfxFrameInfo& fi)
+{
+    mfxU16 crW = fi.CropW ? fi.CropW : fi.Width;
+    mfxU16 crH = fi.CropH ? fi.CropH : fi.Height;
+    if (crW * crH >= 1920 * 1080) return MFX_LPLA_DS_4X;
+    if (crW * crH >= 1280 * 720) return MFX_LPLA_DS_2X;
+    return MFX_LPLA_NO_DS;
+}
 #endif
 
 #define D3DFMT_NV12 (D3DFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))

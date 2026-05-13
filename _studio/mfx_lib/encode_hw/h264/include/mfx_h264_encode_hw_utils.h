@@ -2006,10 +2006,9 @@ static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl, mfxU
     ctrl->LaQp = 30;
     if (isHWLPLA)
     {
-        mfxU16 crW = par.mfx.FrameInfo.CropW ? par.mfx.FrameInfo.CropW : par.mfx.FrameInfo.Width;
-        mfxU16 crH = par.mfx.FrameInfo.CropH ? par.mfx.FrameInfo.CropH : par.mfx.FrameInfo.Height;
-        if (crW * crH >= 1920 * 1080) ctrl->LaScale = 2;
-        else if (crW * crH >= 1280 * 720) ctrl->LaScale = 1;
+#ifdef MFX_ENABLE_LPLA_BASE
+        ctrl->LaScale = GetLpLaDsRatio(par.mfx.FrameInfo);
+#endif
     }
     else if (isEnctoolLA)
     {

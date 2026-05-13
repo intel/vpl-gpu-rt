@@ -3580,9 +3580,13 @@ void SetupAdaptiveCQM(const MfxVideoParam &par, DdiTask &task, const QpHistory q
         const mfxExtSpsHeader& extSps = GetExtBufferRef(par);
         const std::vector<mfxExtPpsHeader>& extCqmPps = par.GetCqmPps();
         const mfxU32 averageQP = qpHistory.GetAverageQp();
+        bool bRGscenario = (opt3.ScenarioInfo == MFX_SCENARIO_REMOTE_GAMING);
 
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
-        if (task.m_lplastatus.CqmHint != CQM_HINT_INVALID && par.mfx.GopRefDist >= 4 && H264ECaps::IsAcqmSupported(task.m_hwType)) // LPLA based ACQM
+        mfxExtCodingOption2 const& opt2 = GetExtBufferRef(par);
+        bool isNewLa = CommonCaps::IsLADataBufferSupported(task.m_hwType);
+        bool skipAnalysisKernelCall = isNewLa && !IsOn(opt2.AdaptiveI) && !IsOn(opt2.AdaptiveB);
+        if (task.m_lplastatus.CqmHint != CQM_HINT_INVALID && par.mfx.GopRefDist >= 4 && H264ECaps::IsAcqmSupported(task.m_hwType) && !skipAnalysisKernelCall) // LPLA based ACQM
         {
             if (task.m_type.top & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_P))
             {
@@ -3593,40 +3597,86 @@ void SetupAdaptiveCQM(const MfxVideoParam &par, DdiTask &task, const QpHistory q
         else
 #endif // MFX_ENABLE_ENCTOOLS_LPLA
         {   // History based ACQM
-            if (par.mfx.GopRefDist >= 4 && H264ECaps::IsAcqmSupported(task.m_hwType) && (task.m_type.top & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_P)))
+            if (H264ECaps::IsAcqmSupported(task.m_hwType))
             {
-                task.m_adaptiveCQMHint = CQM_HINT_USE_FLAT_MATRIX;
-            }
-            else
-            {
-                if (averageQP == 0) // not enough history QP
+                if (bRGscenario)
                 {
-                    const mfxU32 MBSIZE = 16;
-                    const mfxU32 BITRATE_SCALE = 2000;
-                    const mfxU32 numMB = (par.mfx.FrameInfo.Width / MBSIZE) * (par.mfx.FrameInfo.Height / MBSIZE);
-                    const mfxU32 normalizedBitrate = mfxU32(mfxU64(BITRATE_SCALE) * par.calcParam.targetKbps
-                        * par.mfx.FrameInfo.FrameRateExtD / par.mfx.FrameInfo.FrameRateExtN / numMB);
+                    if (par.mfx.GopRefDist >= 4 && (task.m_type.top & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_P)))
+                    {
+                        task.m_adaptiveCQMHint = CQM_HINT_USE_FLAT_MATRIX;
+                    }
+                    else
+                    {
+                        if (averageQP == 0)
+                        {
+                            const mfxU32 MBSIZE = 16;
+                            const mfxU32 BITRATE_SCALE = 2000;
+                            const mfxU32 numMB = (par.mfx.FrameInfo.Width / MBSIZE) * (par.mfx.FrameInfo.Height / MBSIZE);
+                            const mfxU32 normalizedBitrate = mfxU32(mfxU64(BITRATE_SCALE) * par.calcParam.targetKbps
+                                * par.mfx.FrameInfo.FrameRateExtD / par.mfx.FrameInfo.FrameRateExtN / numMB);
 
-                    const mfxU32 STRONG_QM_BR_THRESHOLD = 25;
-                    const mfxU32 MEDIUM_QM_BR_THRESHOLD = 50;
+                            const mfxU32 STRONG_QM_BR_THRESHOLD = 25;
+                            const mfxU32 MEDIUM_QM_BR_THRESHOLD = 50;
 
-                    task.m_adaptiveCQMHint
-                        = (normalizedBitrate < STRONG_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX3
-                        : (normalizedBitrate < MEDIUM_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX2
-                        : CQM_HINT_USE_CUST_MATRIX1;
+                            task.m_adaptiveCQMHint
+                                = (normalizedBitrate < STRONG_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX3
+                                : (normalizedBitrate < MEDIUM_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX2
+                                : CQM_HINT_USE_CUST_MATRIX1;
+                        }
+                        else
+                        {
+                            const mfxU32 FLAT_QM_QP_THRESHOLD = 32;
+                            const mfxU32 WEAK_QM_QP_THRESHOLD = 38;
+                            const mfxU32 MEDIUM_QM_QP_THRESHOLD = 44;
+                            const mfxU32 STRONG_QM_QP_THRESHOLD = 50;
+                            task.m_adaptiveCQMHint
+                                = averageQP < FLAT_QM_QP_THRESHOLD ? CQM_HINT_USE_FLAT_MATRIX
+                                : averageQP < WEAK_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX1
+                                : averageQP < MEDIUM_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX2
+                                : averageQP < STRONG_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX3
+                                : CQM_HINT_USE_CUST_MATRIX4;
+                        }
+                    }
                 }
                 else
                 {
-                    const mfxU32 FLAT_QM_QP_THRESHOLD = 32;
-                    const mfxU32 WEAK_QM_QP_THRESHOLD = 38;
-                    const mfxU32 MEDIUM_QM_QP_THRESHOLD = 44;
-                    const mfxU32 STRONG_QM_QP_THRESHOLD = 50;
-                    task.m_adaptiveCQMHint
-                        = averageQP < FLAT_QM_QP_THRESHOLD ? CQM_HINT_USE_FLAT_MATRIX
-                        : averageQP < WEAK_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX1
-                        : averageQP < MEDIUM_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX2
-                        : averageQP < STRONG_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX3
-                        : CQM_HINT_USE_CUST_MATRIX4;
+                    bool isIorIDR = !!(task.m_type.top & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR));
+                    bool useFlatMatrix = (par.mfx.GopRefDist >= 2 && (isIorIDR || (task.m_type.top & MFX_FRAMETYPE_P)))
+                                      || (par.mfx.GopRefDist == 1 && isIorIDR);
+                    if (useFlatMatrix)
+                        task.m_adaptiveCQMHint = CQM_HINT_USE_FLAT_MATRIX;
+                    else
+                    {
+                        if (averageQP == 0)
+                        {
+                            const mfxU32 MBSIZE = 16;
+                            const mfxU32 BITRATE_SCALE = 2000;
+                            const mfxU32 numMB = (par.mfx.FrameInfo.Width / MBSIZE) * (par.mfx.FrameInfo.Height / MBSIZE);
+                            const mfxU32 normalizedBitrate = mfxU32(mfxU64(BITRATE_SCALE) * par.calcParam.targetKbps
+                                * par.mfx.FrameInfo.FrameRateExtD / par.mfx.FrameInfo.FrameRateExtN / numMB);
+
+                            const mfxU32 STRONG_QM_BR_THRESHOLD = 25;
+                            const mfxU32 MEDIUM_QM_BR_THRESHOLD = 50;
+
+                            task.m_adaptiveCQMHint
+                                = (normalizedBitrate < STRONG_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX3
+                                : (normalizedBitrate < MEDIUM_QM_BR_THRESHOLD) ? CQM_HINT_USE_CUST_MATRIX2
+                                : CQM_HINT_USE_CUST_MATRIX1;
+                        }
+                        else
+                        {
+                            const mfxU32 FLAT_QM_QP_THRESHOLD = 34;
+                            const mfxU32 WEAK_QM_QP_THRESHOLD = 38;
+                            const mfxU32 MEDIUM_QM_QP_THRESHOLD = 42;
+                            const mfxU32 STRONG_QM_QP_THRESHOLD = 46;
+                            task.m_adaptiveCQMHint
+                                = averageQP < FLAT_QM_QP_THRESHOLD ? CQM_HINT_USE_FLAT_MATRIX
+                                : averageQP < WEAK_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX1
+                                : averageQP < MEDIUM_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX2
+                                : averageQP < STRONG_QM_QP_THRESHOLD ? CQM_HINT_USE_CUST_MATRIX3
+                                : CQM_HINT_USE_CUST_MATRIX4;
+                        }
+                    }
                 }
             }
 

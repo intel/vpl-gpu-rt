@@ -2519,6 +2519,11 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)//HWLPLA
                 if (!hwCaps.ddi_caps.LookaheadBRCSupport)
                     unsupported = true;
+                if (extOpt2 && extOpt2->LookAheadDepth > 0 && extOpt2->LookAheadDepth < 8)
+                {
+                    extOpt2->LookAheadDepth = 8;
+                    changed = true;
+                }
 #endif
             }
 #if defined(MFX_ENABLE_ENCTOOLS)
