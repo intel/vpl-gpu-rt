@@ -281,6 +281,14 @@ namespace H264DCaps {
     {
         return platform < MFX_HW_XE_HP_SDV;
     }
+    inline bool IsDec420TenBitSupported(eMFXHWType platform)
+    {
+        return (platform >= MFX_HW_PTL);
+    }
+    inline bool IsDec422TenBitSupported(eMFXHWType platform)
+    {
+        return (platform >= MFX_HW_PTL);
+    }
 }
 #endif // MFX_ENABLE_H264_VIDEO_DECODE
 #endif // __MFX_PLATFORM_CAPS_H__
