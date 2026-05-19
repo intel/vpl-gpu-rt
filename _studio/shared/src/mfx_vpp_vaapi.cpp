@@ -1810,6 +1810,9 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         pParams->srSetParams.Mode != MFX_AI_SUPER_RESOLUTION_MODE_DISABLED)
     {
         m_pipelineParam[0].processing_mode = static_cast<VAProcMode>(VA_PROC_MODE_HIGH_QUALITY);
+        // VAAPI has no hardware readback for SR params; mirror srSetParams so that
+        // GetVideoParam reflects the active SR mode (cf. D3D11 GetSuperResolutionParam).
+        pParams->srGetParams = pParams->srSetParams;
     }
 
         uint8_t& chromaSitingMode = m_pipelineParam[0].input_color_properties.chroma_sample_location;
