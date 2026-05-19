@@ -1558,6 +1558,9 @@ mfxStatus VideoDECODEMJPEGBase_HW::Close(void)
         }
     }
 
+    delete[] m_dst;
+    m_dst = nullptr;
+
     memset(&m_stat, 0, sizeof(mfxDecodeStat));
 
     m_va = 0;
