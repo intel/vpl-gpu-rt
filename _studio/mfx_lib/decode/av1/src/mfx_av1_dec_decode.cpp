@@ -148,7 +148,7 @@ VideoDECODEAV1::~VideoDECODEAV1()
 {
     if (m_is_init)
     {
-        Close();
+        try { Close(); } catch (...) {}
     }
 }
 

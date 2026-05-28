@@ -138,7 +138,7 @@ VideoDECODEH265::VideoDECODEH265(VideoCORE *core, mfxStatus * sts)
 
 VideoDECODEH265::~VideoDECODEH265(void)
 {
-    Close();
+    try { Close(); } catch (...) {}
 }
 
 // Initialize decoder instance

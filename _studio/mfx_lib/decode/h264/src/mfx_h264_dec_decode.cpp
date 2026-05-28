@@ -205,7 +205,7 @@ VideoDECODEH264::VideoDECODEH264(VideoCORE *core, mfxStatus * sts)
 
 VideoDECODEH264::~VideoDECODEH264(void)
 {
-    Close();
+    try { Close(); } catch (...) {}
 }
 
 mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
