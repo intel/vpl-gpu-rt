@@ -39,7 +39,8 @@ namespace Base
 
         virtual ~MFXVideoENCODEH265_HW()
         {
-            Close();
+            try { Close(); }
+            catch (...) {}
         }
 
         void InternalInitFeatures(

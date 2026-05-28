@@ -40,7 +40,8 @@ namespace Base
 
         virtual ~MFXVideoENCODEAV1_HW()
         {
-            Close();
+            try { Close(); }
+            catch (...) {}
         }
 
         void InternalInitFeatures(
