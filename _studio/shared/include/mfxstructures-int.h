@@ -94,6 +94,7 @@ enum eMFXHWType
 
     MFX_HW_NVL_XE3G  = MFX_HW_PTL + 1,
     MFX_HW_CRI       = MFX_HW_PTL + 2,
+    MFX_HW_NVL       = MFX_HW_PTL + 3,
 
 };
 
@@ -646,6 +647,17 @@ typedef struct {
     { 0x674E, MFX_HW_CRI, MFX_GT2 },
     { 0x674F, MFX_HW_CRI, MFX_GT2 },
     { 0x6750, MFX_HW_CRI, MFX_GT2 },
+
+    /* NVL / Novalake-P */
+    { 0xD750, MFX_HW_NVL, MFX_GT2 },
+    { 0xD751, MFX_HW_NVL, MFX_GT2 },
+    { 0xD752, MFX_HW_NVL, MFX_GT2 },
+    { 0xD753, MFX_HW_NVL, MFX_GT2 },
+    { 0xD754, MFX_HW_NVL, MFX_GT2 },
+    { 0xD755, MFX_HW_NVL, MFX_GT2 },
+    { 0xD756, MFX_HW_NVL, MFX_GT2 },
+    { 0xD757, MFX_HW_NVL, MFX_GT2 },
+    { 0xD75F, MFX_HW_NVL, MFX_GT2 },
 
 };
 

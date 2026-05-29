@@ -1302,6 +1302,7 @@ mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id)
     case MFX_HW_NVL_XE3G : platform.CodeName = MFX_PLATFORM_MAXIMUM;     break;
     case MFX_HW_CRI    : platform.MediaAdapterType = MFX_MEDIA_DISCRETE;
                          platform.CodeName = MFX_PLATFORM_MAXIMUM;       break;
+    case MFX_HW_NVL    : platform.CodeName = MFX_PLATFORM_MAXIMUM;       break;
     default:
                          platform.MediaAdapterType = MFX_MEDIA_UNKNOWN;
                          platform.CodeName = MFX_PLATFORM_UNKNOWN;       break;
