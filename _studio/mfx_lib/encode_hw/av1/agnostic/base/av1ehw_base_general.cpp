@@ -3237,9 +3237,9 @@ void General::SetFH(
             fh.reduced_tx_set, (unsigned)par.mfx.TargetUsage);
     }
 
-    // Set use_ref_frame_mvs based on sequence header capability, user setting, and target usage
-    // Enabled when: sequence header supports it AND (user enables it OR target usage is best quality)
-    fh.use_ref_frame_mvs = (sh.enable_ref_frame_mvs == 0) ? 0 : ((IsOn(auxPar.EnableRefFrameMvs) || par.mfx.TargetUsage == MFX_TARGETUSAGE_1) ? 1 : 0);
+    // Set use_ref_frame_mvs based on sequence header capability and user setting.
+    // TU1 default (ON) is resolved at SetDefaults time, so no TU check needed here.
+    fh.use_ref_frame_mvs = (sh.enable_ref_frame_mvs != 0 && IsOn(auxPar.EnableRefFrameMvs)) ? 1 : 0;
     fh.delta_lf_present = 0;
     fh.delta_lf_multi = 0;
 
@@ -3524,7 +3524,7 @@ void General::SetDefaults(
         SetDefault(pAuxPar->LoopFilter.ModeRefDeltaUpdate, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->DisplayFormatSwizzle, MFX_CODINGOPTION_OFF);
         SetDefault(pAuxPar->ErrorResilientMode, MFX_CODINGOPTION_OFF);
-        SetDefault(pAuxPar->EnableRefFrameMvs, MFX_CODINGOPTION_OFF);
+        SetDefaultOpt(pAuxPar->EnableRefFrameMvs, par.mfx.TargetUsage == MFX_TARGETUSAGE_1 && defPar.caps.AV1ToolSupportFlags.fields.enable_ref_frame_mvs);
     }
 
     SetDefaultOrderHint(pAuxPar);
