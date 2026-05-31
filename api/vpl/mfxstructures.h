@@ -1042,7 +1042,13 @@ typedef struct {
             struct {
                 /*! Output ScalingRatio Cap list, it's bit-wise and will be updated by MFXVideoDECODE_DecodeHeader, see OutputScalingRatioCaps enumerator for the definition. */
                 mfxU16  OutputScalingRatioCaps : 8;
-                mfxU16  reservedByte0 : 8;
+                /*! Set by MFXVideoDECODE_DecodeHeader. Nonzero value indicates that the input bitstream carries an alpha channel. */
+                mfxU16  AlphaChannelExist     : 1;
+                /*! Set by MFXVideoDECODE_DecodeHeader. Nonzero value indicates that the alpha channel is encoded losslessly. Valid only when AlphaChannelExist is nonzero. */
+                mfxU16  LosslessAlpha         : 1;
+                /*! Set by MFXVideoDECODE_DecodeHeader. Nonzero value indicates that the video channels have been pre-multiplied with alpha prior to encoding. */
+                mfxU16  PreMultipliedAlpha    : 1;
+                mfxU16  reservedByte0         : 5;
             };
             mfxU16  reserved2[1];
 #else
