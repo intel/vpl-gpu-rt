@@ -7,7 +7,7 @@ API for Intel Gen GPUs. Runtime provides access to hardware-accelerated video de
 **Supported video decoders**: HEVC, AVC, VP8, VP9, MPEG-2, VC1, JPEG, AV1, VVC  
 **Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate, Composition  
 
-Implementation is written in C++ 14 with parts in C-for-Media (CM).
+Implementation is written in C++ 14 with parts in C-for-Metal (CM).
 
 Intel® VPL GPU Runtime is a part of Intel software stack for graphics:
 * [Linux Graphics Drivers](https://intel.com/linux-graphics-drivers) - General Purpose GPU Drivers for Linux Operating Systems
