@@ -2545,6 +2545,10 @@ enum {
         See the mfxExtAIEncCtrl structure for more details.
     */
     MFX_EXTBUFF_AI_ENC_CTRL = MFX_MAKEFOURCC('A', 'I', 'E', 'C'),
+    /*!
+        See the mfxExtEncPreProcessing structure for more details.
+    */
+    MFX_EXTBUFF_ENC_PREPROCESSING = MFX_MAKEFOURCC('E', 'P', 'P', 'C'),
 #endif
 };
 
@@ -5449,6 +5453,22 @@ typedef struct {
     mfxU16              AdaptiveTargetUsage;
     mfxU16              reserved[26];   /*!< Reserved for future use. */
 } mfxExtAIEncCtrl;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+/*! The structure is used to configure encoder pre-processing presets (temporal filter) applied before encoding. */
+typedef struct {
+    mfxExtBuffer        Header;         /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_ENC_PREPROCESSING. */
+    /*!
+        Temporal filter (TF) preset level. Value range of 0 to 4 (inclusive). Zero means the filter is disabled;
+        values from 1 to 4 represent the filtering level, where a higher value yields better encoding quality
+        at the cost of increased latency, which may vary across platform configurations.
+        This feature is not supported in constant QP mode (CQP), or when reference frames are managed by
+        the external application.
+    */
+    mfxU16              TFLevel;
+    mfxU16              reserved[27];   /*!< Reserved for future use. */
+} mfxExtEncPreProcessing;
 MFX_PACK_END()
 #endif
 
