@@ -211,6 +211,7 @@ enum {
     /*! 8bit per sample 4:4:4 format packed in 32 bits, X=unused/undefined, 'X' channel is 8 MSBs, then 'Y', then 'U', and then 'V' channels. This format should be mapped to VA_FOURCC_XYUV. */
     MFX_FOURCC_XYUV         = MFX_MAKEFOURCC('X','Y','U','V'),
     MFX_FOURCC_ABGR16F      = MFX_MAKEFOURCC('B', 'G', 'R', 'F'),  /*!< 16 bits float point ABGR color format packed in 64 bits. 'A' channel is 16 MSBs, then 'B', then 'G' and then 'R' channels. This format should be mapped to DXGI_FORMAT_R16G16B16A16_FLOAT or D3DFMT_A16B16G16R16F formats.. */
+    MFX_FOURCC_ARGB16F      = MFX_MAKEFOURCC('R', 'G', 'B', 'F'),  /*!< 16 bits float point ARGB color format packed in 64 bits. 'A' channel is 16 MSBs, then 'R', then 'G' and then 'B' channels. Memory layout is B(LSB), G, R, A(MSB). This format should be mapped to DXGI_FORMAT_R16G16B16A16_FLOAT with RB channels swapped.*/
     MFX_FOURCC_AYUV_RGBA8   = MFX_MAKEFOURCC('Y', 'R', 'A', '8'), /*!< R8G8B8A8 stored in AYUV surface, `R` channel is the LSB. This format should be mapped to DXGI_FORMAT_AYUV. */
     MFX_FOURCC_Y416_RGBA16  = MFX_MAKEFOURCC('Y', 'R', 'A', '6'), /*!< R16G16B16A16 stored in Y416 surface, `R` channel is the LSB. This format should be mapped to DXGI_FORMAT_Y416. */
 };
