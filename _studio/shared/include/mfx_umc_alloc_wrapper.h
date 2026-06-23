@@ -247,9 +247,9 @@ public:
     mfxI32 FindSurface(mfxFrameSurface1 *surf);
 
     // Adding new surface to cache
-    mfxStatus SetCurrentMFXSurface(mfxFrameSurface1 *surf);
+    virtual mfxStatus SetCurrentMFXSurface(mfxFrameSurface1 *surf);
 
-    mfxFrameSurface1 * GetSurface(UMC::FrameMemID index, mfxFrameSurface1 *surface, const mfxVideoParam * videoPar);
+    virtual mfxFrameSurface1 * GetSurface(UMC::FrameMemID index, mfxFrameSurface1 *surface, const mfxVideoParam * videoPar);
     mfxFrameSurface1 * GetInternalSurface(UMC::FrameMemID index);
 
     mfxStatus GetSurface(mfxFrameSurface1* & surf, mfxSurfaceHeader* import_surface);
@@ -259,6 +259,10 @@ public:
 
     mfxStatus PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam * videoPar, mfxU32 gpuCopyMode = MFX_COPY_USE_ANY);
 
+    bool CreateCorrespondence(mfxFrameSurface1& surface_work, mfxFrameSurface1& surface_out);
+
+    mfxFrameSurface1* GetCurrentWorkSurface() const { return m_current_work_surface; }
+
     bool HasFreeSurface();
 
     bool GetSurfaceType();
@@ -266,6 +270,15 @@ public:
     void SetFreeSurfaceAllowedFlag(bool flag);
 
 protected:
+#if defined(MFX_ENABLE_UNIT_TEST_DECODE_NEXT)
+    struct TestCtorTag {};
+    SurfaceSource(TestCtorTag, mfxFrameAllocResponse& resp, mfxFrameAllocResponse& respAlien)
+        : m_core(nullptr)
+        , m_response(resp)
+        , m_response_alien(respAlien)
+    {}
+#endif
+
     VideoCORE*                                    m_core;
 
     // Decoder works with these surfaces
@@ -287,7 +300,6 @@ private:
 
     void CreateUMCAllocator(const mfxVideoParam & video_param, eMFXPlatform platform, bool needVpp);
 
-    bool CreateCorrespondence(mfxFrameSurface1& surface_work, mfxFrameSurface1& surface_out);
     void RemoveCorrespondence(mfxFrameSurface1& surface_work);
 
     void CreateBinding(const mfxFrameSurface1 & surf);
@@ -404,4 +416,53 @@ private:
 
 #endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE) && defined (MFX_VA_WIN)
 
+class DecVppSfc;
+class SurfaceSourceDecodeVpp : public SurfaceSource
+{
+public:
+    SurfaceSourceDecodeVpp(VideoCORE* core, const mfxVideoParam& video_param, eMFXPlatform platform, mfxFrameAllocRequest& request, mfxFrameAllocRequest& request_internal,
+        mfxFrameAllocResponse& response, mfxFrameAllocResponse& response_alien);
+
+    // suppose that Close() calls Reset(), so override only Reset()
+    virtual UMC::Status Reset() override;
+
+    virtual mfxStatus StartPreparingToOutput(mfxFrameSurface1* surface_work, UMC::FrameData* in, const mfxVideoParam* par, mfxU16* taskId);
+    virtual mfxStatus CheckPreparingToOutput(mfxFrameSurface1* surface_work, UMC::FrameData* in, const mfxVideoParam* par, mfxU16 taskId);
+
+#if defined(MFX_ENABLE_UNIT_TEST_DECODE_NEXT)
+    SurfaceSourceDecodeVpp(TestCtorTag, mfxFrameAllocResponse& resp, mfxFrameAllocResponse& respAlien);
+#endif
+
+private:
+    std::unique_ptr<DecVppSfc> m_pCc;
+
+    mfxStatus InitVideoVpp(const mfxVideoParam* params);
+    mfxStatus FindSurfaceByMemId(const UMC::FrameData* in, const mfxHDLPair& hdlPair, mfxFrameSurface1& out_surface);
+};
+
+class mfx_UMC_FrameAllocator_Decode_Vpp : public mfx_UMC_FrameAllocator_D3D
+{
+public:
+    virtual UMC::Status InitMfx(UMC::FrameAllocatorParams* pParams,
+        VideoCORE* mfxCore,
+        const mfxVideoParam* params,
+        const mfxFrameAllocRequest* request,
+        mfxFrameAllocResponse* response,
+        bool isUseExternalFrames,
+        bool isSWplatform) override;
+
+    // suppose that Close() calls Reset(), so override only Reset()
+    virtual UMC::Status Reset() override;
+
+    mfxStatus StartPreparingToOutput(mfxFrameSurface1* surface_work, UMC::FrameData* in, const mfxVideoParam* par, mfxU16* taskId);
+    mfxStatus CheckPreparingToOutput(mfxFrameSurface1* surface_work, UMC::FrameData* in, const mfxVideoParam* par, mfxU16 taskId);
+
+private:
+    std::unique_ptr<DecVppSfc> m_pCc;
+
+    mfxStatus InitVideoVpp(const mfxVideoParam* params);
+    mfxStatus FindSurfaceByMemId(const UMC::FrameData* in, const mfxHDLPair& hdlPair, mfxFrameSurface1& out_surface);
+
+    friend class SurfaceSourceDecodeVpp;
+};
 #endif //_MFX_ALLOC_WRAPPER_H_

@@ -201,4 +201,13 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FN
 install( FILES ${PKG_CONFIG_FNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
 endif()
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/decode_next/framework/CMakeLists.txt")
+  add_subdirectory(decode_next/framework)
+  add_subdirectory(decode_next/vesfc)
+  target_link_libraries(mfxcore PUBLIC mfx_decode_next_framework mfx_decode_next_vesfc)
+  target_include_directories(mfxcore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/decode_next/registry)
+  target_sources(mfxcore PRIVATE decode_next/registry/decode_codecs_registry.cpp)
+  target_compile_definitions(mfxcore PRIVATE MFX_ENABLE_DECODE_NEXT)
+endif()
+
 include(sources_ext.cmake OPTIONAL)
