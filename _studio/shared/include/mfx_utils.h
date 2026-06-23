@@ -903,6 +903,7 @@ inline mfxU32 GetNumDataPlanesFromFourcc(mfxU32 fourcc)
     case MFX_FOURCC_Y410:
     case MFX_FOURCC_Y416:
     case MFX_FOURCC_ABGR16F:
+    case MFX_FOURCC_ARGB16F:
     case MFX_FOURCC_XYUV:
         return 1u;
 

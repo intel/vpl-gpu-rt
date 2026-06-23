@@ -2325,7 +2325,8 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
                 formatSupport = MFX_FORMAT_SUPPORT_OUTPUT;
             }
 
-            if (filter == MFX_EXTBUFF_VPP_3DLUT && format == MFX_FOURCC_ABGR16F
+            if (filter == MFX_EXTBUFF_VPP_3DLUT
+                && (format == MFX_FOURCC_ABGR16F || format == MFX_FOURCC_ARGB16F)
                 && VppCaps::Is3DLutABGR16FSupported(platform))
             {
                 formatSupport = MFX_FORMAT_SUPPORT_INPUT | MFX_FORMAT_SUPPORT_OUTPUT;

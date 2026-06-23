@@ -1536,6 +1536,7 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request)
         case MFX_FOURCC_Y416:
             break;
         case MFX_FOURCC_ABGR16F:
+        case MFX_FOURCC_ARGB16F:
         case MFX_FOURCC_I420:
         case MFX_FOURCC_UYVY:
             break;

@@ -201,6 +201,7 @@ mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height
         tempBytes = (mfxU64)pitch * height;
         break;
     case MFX_FOURCC_ABGR16F:
+    case MFX_FOURCC_ARGB16F:
         tempBytes = ((mfxU64)pitch * height + (mfxU64)pitch * height + (mfxU64)pitch * height + (mfxU64)pitch * height) * 2;
         break;
     default:
@@ -469,6 +470,7 @@ static inline mfxStatus SetPointers(mfxFrameData& frame_data, const mfxFrameInfo
         frame_data.A   = (mfxU8 *)(frame_data.V16 + 1);
         break;
     case MFX_FOURCC_ABGR16F:
+    case MFX_FOURCC_ARGB16F:
         std::tie(frame_data.PitchHigh, frame_data.PitchLow) = pitch_from_width(info.Width, 8u);
         frame_data.R = frame_data.G = frame_data.B = frame_data.A = bytes;
         break;

@@ -1002,6 +1002,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             out->vpp.In.FourCC != MFX_FOURCC_RGB4 &&
             out->vpp.In.FourCC != MFX_FOURCC_BGR4 &&
             out->vpp.In.FourCC != MFX_FOURCC_ABGR16F &&
+            out->vpp.In.FourCC != MFX_FOURCC_ARGB16F &&
             out->vpp.In.FourCC != MFX_FOURCC_P010 &&
             out->vpp.In.FourCC != MFX_FOURCC_UYVY &&
             out->vpp.In.FourCC != MFX_FOURCC_I420 &&
@@ -1075,6 +1076,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             out->vpp.Out.FourCC != MFX_FOURCC_RGB4 &&
             out->vpp.Out.FourCC != MFX_FOURCC_BGR4 &&
             out->vpp.Out.FourCC != MFX_FOURCC_ABGR16F &&
+            out->vpp.Out.FourCC != MFX_FOURCC_ARGB16F &&
 #ifdef MFX_ENABLE_RGBP
             out->vpp.Out.FourCC != MFX_FOURCC_RGBP &&
 #endif
