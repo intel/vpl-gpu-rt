@@ -164,6 +164,9 @@ mfxStatus VideoDECODEVVC::QueryImplsDescription(
     mfxDecoderDescription::decoder& caps,
     mfx::PODArraysHolder& ah)
 {
+    if (!VVCDCaps::IsPlatformSupported(core.GetHWType()))
+        return MFX_ERR_UNSUPPORTED;
+
     const mfxU16 SupportedProfiles[] =
     {
         MFX_PROFILE_VVC_MAIN10,
