@@ -270,14 +270,6 @@ public:
     void SetFreeSurfaceAllowedFlag(bool flag);
 
 protected:
-#if defined(MFX_ENABLE_UNIT_TEST_DECODE_NEXT)
-    struct TestCtorTag {};
-    SurfaceSource(TestCtorTag, mfxFrameAllocResponse& resp, mfxFrameAllocResponse& respAlien)
-        : m_core(nullptr)
-        , m_response(resp)
-        , m_response_alien(respAlien)
-    {}
-#endif
 
     VideoCORE*                                    m_core;
 
@@ -416,53 +408,4 @@ private:
 
 #endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE) && defined (MFX_VA_WIN)
 
-class DecVppSfc;
-class SurfaceSourceDecodeVpp : public SurfaceSource
-{
-public:
-    SurfaceSourceDecodeVpp(VideoCORE* core, const mfxVideoParam& video_param, eMFXPlatform platform, mfxFrameAllocRequest& request, mfxFrameAllocRequest& request_internal,
-        mfxFrameAllocResponse& response, mfxFrameAllocResponse& response_alien);
-
-    // suppose that Close() calls Reset(), so override only Reset()
-    virtual UMC::Status Reset() override;
-
-    virtual mfxStatus StartPreparingToOutput(mfxFrameSurface1* surface_work, UMC::FrameData* in, const mfxVideoParam* par, mfxU16* taskId);
-    virtual mfxStatus CheckPreparingToOutput(mfxFrameSurface1* surface_work, UMC::FrameData* in, const mfxVideoParam* par, mfxU16 taskId);
-
-#if defined(MFX_ENABLE_UNIT_TEST_DECODE_NEXT)
-    SurfaceSourceDecodeVpp(TestCtorTag, mfxFrameAllocResponse& resp, mfxFrameAllocResponse& respAlien);
-#endif
-
-private:
-    std::unique_ptr<DecVppSfc> m_pCc;
-
-    mfxStatus InitVideoVpp(const mfxVideoParam* params);
-    mfxStatus FindSurfaceByMemId(const UMC::FrameData* in, const mfxHDLPair& hdlPair, mfxFrameSurface1& out_surface);
-};
-
-class mfx_UMC_FrameAllocator_Decode_Vpp : public mfx_UMC_FrameAllocator_D3D
-{
-public:
-    virtual UMC::Status InitMfx(UMC::FrameAllocatorParams* pParams,
-        VideoCORE* mfxCore,
-        const mfxVideoParam* params,
-        const mfxFrameAllocRequest* request,
-        mfxFrameAllocResponse* response,
-        bool isUseExternalFrames,
-        bool isSWplatform) override;
-
-    // suppose that Close() calls Reset(), so override only Reset()
-    virtual UMC::Status Reset() override;
-
-    mfxStatus StartPreparingToOutput(mfxFrameSurface1* surface_work, UMC::FrameData* in, const mfxVideoParam* par, mfxU16* taskId);
-    mfxStatus CheckPreparingToOutput(mfxFrameSurface1* surface_work, UMC::FrameData* in, const mfxVideoParam* par, mfxU16 taskId);
-
-private:
-    std::unique_ptr<DecVppSfc> m_pCc;
-
-    mfxStatus InitVideoVpp(const mfxVideoParam* params);
-    mfxStatus FindSurfaceByMemId(const UMC::FrameData* in, const mfxHDLPair& hdlPair, mfxFrameSurface1& out_surface);
-
-    friend class SurfaceSourceDecodeVpp;
-};
 #endif //_MFX_ALLOC_WRAPPER_H_

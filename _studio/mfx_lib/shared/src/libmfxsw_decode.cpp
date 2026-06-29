@@ -69,17 +69,8 @@
 
 #include "mfx_unified_decode_logging.h"
 
-#if defined(MFX_ENABLE_DECODE_NEXT)
-#include "video_decode.h"
-#include "decode_codecs_registry.h"
-#endif
 
 
-#if defined(MFX_ENABLE_DECODE_NEXT)
-using mfx::decode_next::IsDecodeNextEnabled;
-using mfx::decode_next::RegisterAllDecodeImpls;
-using mfx::decode_next::ReportDecodeNextStatus;
-#endif
 
 template<>
 VideoDECODE* _mfxSession::Create<VideoDECODE>(mfxVideoParam& par)
@@ -88,14 +79,6 @@ VideoDECODE* _mfxSession::Create<VideoDECODE>(mfxVideoParam& par)
     VideoCORE*   core    = m_pCORE.get();
     mfxStatus    mfxRes  = MFX_ERR_MEMORY_ALLOC;
 
-#if defined(MFX_ENABLE_DECODE_NEXT)
-    if (IsDecodeNextEnabled(core->GetHWType(), par.mfx.CodecId))
-    {
-        RegisterAllDecodeImpls();
-        pDECODE = new mfx::decode_next::VideoDECODENext(core, par.mfx.CodecId, &mfxRes);
-    }
-    else
-#endif
     {
         // create a codec instance
         switch (par.mfx.CodecId)
@@ -197,14 +180,6 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 
     try
     {
-#if defined(MFX_ENABLE_DECODE_NEXT)
-        if (IsDecodeNextEnabled(session->m_pCORE->GetHWType(), out->mfx.CodecId))
-        {
-            RegisterAllDecodeImpls();
-            mfxRes = mfx::decode_next::DecodeAdapter::Query(session->m_pCORE.get(), out->mfx.CodecId, in, out);
-        }
-        else
-#endif
         {
             switch (out->mfx.CodecId)
             {
@@ -297,14 +272,6 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
 
     try
     {
-#if defined(MFX_ENABLE_DECODE_NEXT)
-        if (IsDecodeNextEnabled(session->m_pCORE->GetHWType(), par->mfx.CodecId))
-        {
-            RegisterAllDecodeImpls();
-            mfxRes = mfx::decode_next::DecodeAdapter::QueryIOSurf(session->m_pCORE.get(), par->mfx.CodecId, par, request);
-        }
-        else
-#endif
         {
             switch (par->mfx.CodecId)
             {
@@ -400,14 +367,6 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
 
     try
     {
-#if defined(MFX_ENABLE_DECODE_NEXT)
-        if (IsDecodeNextEnabled(session->m_pCORE->GetHWType(), par->mfx.CodecId))
-        {
-            RegisterAllDecodeImpls();
-            mfxRes = mfx::decode_next::DecodeAdapter::DecodeHeader(session->m_pCORE.get(), par->mfx.CodecId, bs, par);
-        }
-        else
-#endif
         {
             switch (par->mfx.CodecId)
             {
@@ -500,16 +459,14 @@ mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
 
     try
     {
-        // Create new decode instance
+        // check existence of component
         if (!session->m_pDECODE)
         {
+            // create a new instance
             session->m_pDECODE.reset(session->Create<VideoDECODE>(*par));
             MFX_CHECK(session->m_pDECODE.get(), MFX_ERR_INVALID_VIDEO_PARAM);
         }
 
-#if defined(MFX_ENABLE_DECODE_NEXT)
-        ReportDecodeNextStatus(session->m_pCORE->GetHWType(), par->mfx.CodecId);
-#endif
 
         // Init decode instance
         mfxRes = session->m_pDECODE->Init(par);
