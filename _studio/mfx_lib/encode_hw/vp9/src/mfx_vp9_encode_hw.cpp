@@ -23,6 +23,7 @@
 #include "mfx_vp9_encode_hw_par.h"
 #include "mfx_vp9_encode_hw_ddi.h"
 #include "mfx_platform_caps.h"
+#include "mfx_utils_perf.h" // VPL PERF LOG (PERF_UTILITY_AUTO); VP9 does not pull mfx_common.h transitively
 
 #include "umc_defs.h"
 #include "fast_copy.h"
@@ -850,6 +851,13 @@ mfxStatus MFXVideoENCODEVP9_HW::ConfigTask(Task &task)
 
 mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mfxU32 /*uid_a*/)
 {
+    // VPL PERF LOG: time the scheduler's per-frame async-routine entry point
+    // (pEntryPoint->pRoutine). Execute is a single resumable routine the scheduler
+    // re-dispatches -- it submits the pending frame to the driver then queries prior frames in
+    // the same call -- so one probe brackets the whole per-invocation async-routine boundary.
+    // PERF_LEVEL_INTERNAL nests it one indent below the scheduler's PERF_LEVEL_ROUTINE
+    // "SchedulerRoutine".
+    PERF_UTILITY_AUTO("VP9eAsyncRoutine", PERF_LEVEL_INTERNAL);
     if (m_initialized == false)
     {
         MFX_RETURN(MFX_ERR_NOT_INITIALIZED);

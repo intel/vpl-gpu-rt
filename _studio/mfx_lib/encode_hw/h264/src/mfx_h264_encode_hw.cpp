@@ -4721,6 +4721,14 @@ mfxStatus ImplementationAvc::UpdateBitstreamData(void * state, void * param)
 
 mfxStatus ImplementationAvc::AsyncRoutineHelper(void * state, void * param, mfxU32, mfxU32)
 {
+    // VPL PERF LOG: time the scheduler's per-frame async-routine entry point. This static
+    // helper is the function registered as entryPoints[0].pRoutine; it wraps the member
+    // AsyncRoutine (the frame submit + status query state machine), so timing it here brackets
+    // the whole per-invocation async-routine boundary. PERF_LEVEL_INTERNAL nests it one indent
+    // below the scheduler's PERF_LEVEL_ROUTINE "SchedulerRoutine" without disturbing its
+    // async-task-id accounting. Placed before RT_FUNC_ENTER so the RAII span covers the entire
+    // body.
+    PERF_UTILITY_AUTO("AVCeAsyncRoutine", PERF_LEVEL_INTERNAL);
     ImplementationAvc & impl = *(ImplementationAvc *)state;
 
     if (impl.m_failedStatus != MFX_ERR_NONE)

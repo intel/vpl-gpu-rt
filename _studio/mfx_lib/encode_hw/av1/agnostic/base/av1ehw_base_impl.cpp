@@ -298,6 +298,13 @@ mfxStatus MFXVideoENCODEAV1_HW::EncodeFrameCheck(
 
 mfxStatus MFXVideoENCODEAV1_HW::Execute(mfxThreadTask ptask, mfxU32 /*uid_p*/, mfxU32 /*uid_a*/)
 {
+    // VPL PERF LOG: time the scheduler's per-frame async-routine entry point
+    // (pEntryPoint->pRoutine). Execute is a single resumable routine the scheduler
+    // re-dispatches until the BQ_AsyncRoutine block queue (frame submit + status query)
+    // reports done, so one probe brackets the whole per-invocation async-routine boundary.
+    // PERF_LEVEL_INTERNAL nests it one indent below the scheduler's PERF_LEVEL_ROUTINE
+    // "SchedulerRoutine" without disturbing that routine's async-task-id accounting.
+    PERF_UTILITY_AUTO("AV1eAsyncRoutine", PERF_LEVEL_INTERNAL);
     MFX_CHECK(!m_storage.Empty(), MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK_NULL_PTR1(ptask);
     MFX_CHECK_STS(m_runtimeErr);
