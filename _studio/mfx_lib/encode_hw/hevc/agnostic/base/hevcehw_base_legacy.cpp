@@ -983,19 +983,36 @@ void Legacy::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 
         auto pReorderer = make_storable<Reorderer>();
 
-        pReorderer->BufferSize = par.mfx.GopRefDist - 1;
-        pReorderer->MaxReorder = par.mfx.GopRefDist - 1;
-        pReorderer->DPB        = &m_prevTask.DPB.After;
+        // PreProc/TF buffers future frames in the reorder window; grow BufferSize and
+        // MaxReorder by the largest future-ref requirement so those frames stay live
+        // (and the reorder sanity window stays consistent). Mirrors the raw-pool growth
+        // in GetMaxRaw and the Interlace precedent.
+        PreProcSettings preproc;
+        mfxU16 preprocExtra = preproc.Enabled
+            ? std::max({ preproc.NumRefFuture[0], preproc.NumRefFuture[1], preproc.NumRefFuture[2] })
+            : mfxU16(0);
+
+        pReorderer->BufferSize     = par.mfx.GopRefDist - 1 + preprocExtra;
+        pReorderer->MaxReorder     = par.mfx.GopRefDist - 1 + preprocExtra;
+        pReorderer->PreProcEnabled = preproc.Enabled;
+        pReorderer->DPB            = &m_prevTask.DPB.After;
 
         pReorderer->Push(
-            [&](Reorderer::TExt, const DpbArray& DPB, TTaskIt begin, TTaskIt end, bool bFlush)
+            [&, preproc](Reorderer::TExt, const DpbArray& DPB, TTaskIt begin, TTaskIt end, bool bFlush)
         {
             auto IsIdrFrame = [](TItWrap::reference fi) { return IsIdr(fi.FrameType); };
-            auto newEnd = std::find_if(TItWrap(begin), TItWrap(end), IsIdrFrame);
+
+            // PreProc/TF: skip a leading IDR so the IDR-scan doesn't collapse the window
+            // before its future frames are buffered (mirrors the task-manager skip).
+            // Gated on preproc.Enabled -> non-PreProc path unchanged.
+            auto scanFrom = TItWrap(begin);
+            if (preproc.Enabled && scanFrom != TItWrap(end) && IsIdrFrame(*scanFrom))
+                ++scanFrom;
+            auto newEnd = std::find_if(scanFrom, TItWrap(end), IsIdrFrame);
 
             bFlush |= (newEnd != begin && newEnd != end);
 
-            return Reorder(par, DPB, TItWrap(begin), newEnd, bFlush).it;
+            return Reorder(par, DPB, TItWrap(begin), newEnd, bFlush, preproc).it;
         });
 
         strg.Insert(Glob::Reorder::Key, std::move(pReorderer));
@@ -2570,7 +2587,8 @@ Legacy::TItWrap Legacy::Reorder(
     , DpbArray const & dpb
     , TItWrap begin
     , TItWrap end
-    , bool flush)
+    , bool flush
+    , const PreProcSettings& preproc)
 {
     using TRef = TItWrap::reference;
 
@@ -2613,6 +2631,29 @@ Legacy::TItWrap Legacy::Reorder(
     {
         --top;
         top->FrameType = mfxU16(MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF);
+    }
+
+    // PreProc/TF delay: hold back a P/I frame until its future-list refs (assigned at
+    // PostReorder) are buffered. Skipped while flushing, where deferring would deadlock.
+    // `end` here is the container end; returning it signals "encode nothing yet".
+    if (top != end && preproc.Enabled && !flush)
+    {
+        mfxI32 requiredFutureFrames = 0;
+        if (IsP(top->FrameType))
+            requiredFutureFrames = preproc.NumRefFuture[1];
+        else if (IsI(top->FrameType))
+            requiredFutureFrames = preproc.NumRefFuture[0];
+
+        if (requiredFutureFrames > 0)
+        {
+            mfxI32 framesAfterTop = 0;
+            for (auto it = begin; it != end; ++it)
+                if (it->POC > top->POC)
+                    ++framesAfterTop;
+
+            if (framesAfterTop < requiredFutureFrames)
+                return end; // defer: encode no frame yet
+        }
     }
 
     return top;

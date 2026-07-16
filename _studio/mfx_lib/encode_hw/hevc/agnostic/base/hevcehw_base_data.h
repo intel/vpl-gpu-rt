@@ -794,6 +794,19 @@ namespace Base
         mfxU16              LaDistToNextI = 0;            /* First I Frame in Lookahead frames (0 if not found) */
     };
 
+    // ---- PreProcessing / Temporal Filter (TF) ------------------------------
+    // Resolved PreProc config + per-task reference-slot bounds, shared by Legacy
+    // (reorder delay + raw-surface pool sizing) and the PreProcessing feature.
+    struct PreProcSettings
+    {
+        bool   Enabled         = false;
+        mfxU16 NumRefPast[3]   = { 0, 0, 0 };   // [I, P, B0]
+        mfxU16 NumRefFuture[3] = { 0, 0, 0 };
+    };
+
+    constexpr mfxU16 MAX_PREPROC_REF_L0 = 4;
+    constexpr mfxU16 MAX_PREPROC_REF_L1 = 6;
+
     struct TaskCommonPar
         : DpbFrame
     {
@@ -811,6 +824,9 @@ namespace Base
         Resource            CUQP;
         mfxHDLPair          HDLRaw              = {};
         mfxHDLPair          HDLLPLAData         = {};
+        // PreProc/TF refs: raw pointers into live tasks, dereferenced at SubmitTask.
+        TaskCommonPar*      PreProcRef_L0[MAX_PREPROC_REF_L0] = {};
+        TaskCommonPar*      PreProcRef_L1[MAX_PREPROC_REF_L1] = {};
         bool                bCUQPMap            = false;
 #if defined(MFX_ENABLE_ENCTOOLS_BASE)
         mfxLplastatus       LplaStatus          = {};
@@ -1073,6 +1089,8 @@ namespace Base
     {
         mfxU16 BufferSize = 0;
         mfxU16 MaxReorder = 0;
+        bool   PreProcEnabled = false; // when set, a leading IDR is not treated as a flush
+                                       // boundary so PreProc/TF can buffer its future frames
         NotNull<DpbArray*> DPB;
 
         using TBaseCC = CallChain<TTaskIt, const DpbArray&, TTaskIt, TTaskIt, bool>;
@@ -1395,6 +1413,7 @@ namespace Base
 #if defined(MFX_ENABLE_AI_ENC_CTRL)
         , FEATURE_AIENC
 #endif
+        , FEATURE_PREPROC
         , FEATURE_PADDING
         , NUM_FEATURES
     };

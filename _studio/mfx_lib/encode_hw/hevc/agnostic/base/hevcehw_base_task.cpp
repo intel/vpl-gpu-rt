@@ -69,7 +69,14 @@ bool TaskManager::IsReorderBypass() const
 TTaskIt TaskManager::GetNextTaskToEncode(TTaskIt begin, TTaskIt end, bool bFlush)
 {
     auto IsIdrTask = [](const StorageR& rTask) { return IsIdr(Task::Common::Get(rTask).FrameType); };
-    auto it = std::find_if(begin, end, IsIdrTask);
+
+    // PreProc/TF: skip a leading IDR before the IDR-scan, else find_if hits it at begin,
+    // collapses the window and force-flushes before its future frames are buffered.
+    // Gated on PreProcEnabled -> non-PreProc path unchanged.
+    auto scanFrom = begin;
+    if (m_pReorder->PreProcEnabled && scanFrom != end && IsIdrTask(*scanFrom))
+        ++scanFrom;
+    auto it = std::find_if(scanFrom, end, IsIdrTask);
     bFlush |= (it != end);
     return (*m_pReorder)(begin, it, bFlush);
 }
