@@ -479,8 +479,10 @@ public:
         }
 
         bool bUseMaxKbps =
-            mfx.RateControlMethod == MFX_RATECONTROL_CBR
-            || mfx.RateControlMethod == MFX_RATECONTROL_VBR;
+             mfx.RateControlMethod == MFX_RATECONTROL_CBR
+             || mfx.RateControlMethod == MFX_RATECONTROL_VBR
+             || mfx.RateControlMethod == MFX_RATECONTROL_QVBR;
+
         mfxU32 minSize         = bUseMaxKbps * InitialDelayInKB(mfx);
         mfxU32 defaultSize     = 0;
         auto   GetFromMaxKbps  = [&]() { return defPar.base.GetMaxKbps(defPar) / 4; };

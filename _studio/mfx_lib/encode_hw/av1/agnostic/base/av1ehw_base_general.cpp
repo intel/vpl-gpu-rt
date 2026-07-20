@@ -129,7 +129,7 @@ void General::SetSupported(ParamSupport& blocks)
         MFX_COPY_FIELD(TimingInfoPresent);
         MFX_COPY_FIELD(WinBRCSize);
         MFX_COPY_FIELD(WinBRCMaxAvgKbps);
-        
+        MFX_COPY_FIELD(QVBRQuality);
     });
 
     // keep it temporally for backward compability
@@ -328,6 +328,7 @@ void General::SetInherited(ParamInheritance& par)
                     INHERIT_BRC(InitialDelayInKB);
                     INHERIT_BRC(TargetKbps);
                     INHERIT_BRC(MaxKbps);
+                    INHERIT_OPT(mfx.ICQQuality);
                 }
             }
         };
@@ -410,6 +411,7 @@ void General::SetInherited(ParamInheritance& par)
         INHERIT_OPT(TimingInfoPresent);
         INHERIT_OPT(WinBRCSize);
         INHERIT_OPT(WinBRCMaxAvgKbps);
+        INHERIT_OPT(QVBRQuality);
     });
 #undef INIT_EB
 #undef INHERIT_OPT
@@ -3390,7 +3392,8 @@ void SetDefaultBRC(
     bool bSetQP = par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
         && !(par.mfx.QPI && par.mfx.QPP && par.mfx.QPB);
     bool bSetRCPar = (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR);
+        || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR
+        || par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR);
     bool bSetICQ  = (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ);
 
     if (bSetQP)
@@ -3762,6 +3765,7 @@ mfxStatus General::CheckRateControl(
         , !!defPar.caps.msdk.VBRSupport * MFX_RATECONTROL_VBR
         , !!defPar.caps.msdk.CQPSupport * MFX_RATECONTROL_CQP
         , !!defPar.caps.msdk.ICQSupport * MFX_RATECONTROL_ICQ
+        , !!defPar.caps.msdk.QVBRSupport * MFX_RATECONTROL_QVBR
         );
     MFX_CHECK(bSupported, MFX_ERR_UNSUPPORTED);
 
