@@ -3404,7 +3404,10 @@ void SetDefaultBRC(
     if (bSetRCPar)
     {
         MaxKbps(par.mfx) = defPar.base.GetMaxKbps(defPar);
-        SetDefault<mfxU16>(par.mfx.InitialDelayInKB, par.mfx.BufferSizeInKB / 2);
+        if (par.mfx.RateControlMethod != MFX_RATECONTROL_QVBR)
+            SetDefault<mfxU16>(par.mfx.InitialDelayInKB, par.mfx.BufferSizeInKB / 2);
+        else
+            par.mfx.InitialDelayInKB = par.mfx.BufferSizeInKB >> 1; // Set QVBR default init delay
     }
     SetDefault(par.mfx.BRCParamMultiplier, 1);
 

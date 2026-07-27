@@ -473,19 +473,20 @@ public:
         , const Defaults::Param& defPar)
     {
         const auto& mfx = defPar.mvp.mfx;
-        if (mfx.BufferSizeInKB)
+        if (mfx.BufferSizeInKB && mfx.RateControlMethod != MFX_RATECONTROL_QVBR) // QVBR will overwrite user's setting below.
         {
             return mfx.BufferSizeInKB * std::max<const mfxU32>(1, mfx.BRCParamMultiplier);
         }
 
         bool bUseMaxKbps =
              mfx.RateControlMethod == MFX_RATECONTROL_CBR
-             || mfx.RateControlMethod == MFX_RATECONTROL_VBR
-             || mfx.RateControlMethod == MFX_RATECONTROL_QVBR;
+             || mfx.RateControlMethod == MFX_RATECONTROL_VBR;
+        bool bUseMaxKbpsQVBR = mfx.RateControlMethod == MFX_RATECONTROL_QVBR;
 
         mfxU32 minSize         = bUseMaxKbps * InitialDelayInKB(mfx);
         mfxU32 defaultSize     = 0;
         auto   GetFromMaxKbps  = [&]() { return defPar.base.GetMaxKbps(defPar) / 4; };
+        auto   GetFromMaxKbpsQVBR = [&]() { return defPar.base.GetMaxKbps(defPar) / 19; }; // Set it to 0.5x by default at QVBR (1.2*8/0.5=19)
         auto   GetFromRawBytes = [&]()
         {
             const mfxU32 numCacheFrames = defPar.base.GetTemporalUnitCacheSize(defPar);
@@ -493,6 +494,7 @@ public:
         };
 
         SetIf(defaultSize, bUseMaxKbps, GetFromMaxKbps);
+        SetIf(defaultSize, bUseMaxKbpsQVBR, GetFromMaxKbpsQVBR);
         SetDefault(defaultSize, GetFromRawBytes);
 
         return std::max<mfxU32>(minSize, defaultSize);
