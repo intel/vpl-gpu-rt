@@ -2700,7 +2700,15 @@ typedef struct {
         mfx3DLutVideoBuffer  VideoBuffer;      /*!< The 3DLUT video buffer. mfx3DLutVideoBuffer describes the details of 3DLUT video buffer.*/
     };
     mfx3DLutInterpolationMethod     InterpolationMethod;       /*!< Indicates 3DLUT Interpolation Method. mfx3DLutInterpolationMethod enumerator.*/
+#ifdef ONEVPL_EXPERIMENTAL
+    mfxU32                          LutUpdated;                /*!< Indicates whether the 3DLUT content has changed since the previous frame.
+                                                                    Only relevant when BufferType is MFX_RESOURCE_DX11_TEXTURE with a row-major Texture3D resource.
+                                                                    0 = LUT content NOT changed, 1 = LUT content changed. Default at init: 1.
+                                                                    Can be attached per-frame via input surface Data.ExtParam.*/
+    mfxU32                          reserved[2];               /*!< Reserved for future extension.*/
+#else
     mfxU32                          reserved[3];               /*!< Reserved for future extension.*/
+#endif
 } mfxExtVPP3DLut;
 MFX_PACK_END()
 
