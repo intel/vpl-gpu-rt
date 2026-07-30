@@ -1993,6 +1993,26 @@ mfxStatus Packer::Reset(
     sts = PackHeader(rbsp, pESBegin, pESEnd, ph.PPS);
     MFX_CHECK_STS(sts);
     pESBegin += ph.PPS.BitLen / 8;
+
+    // Pack a 2nd PPS (id=1) for streams that keep current-pic referencing only on the key frame.
+    // The PPS-ext packer emits curr_pic_ref=0 for any id != 0, so inter slices pointing at this
+    // PPS carry no current-pic self-ref. ph.PPS2.BitLen stays 0 otherwise (gates its insertion).
+    // Limited to the fastest target usages (TU 6/7); see IsInterCurrPicRefDisabled.
+    if (IsInterCurrPicRefDisabled(*m_pGlob))
+    {
+        PPS pps2 = pps;
+        pps2.pic_parameter_set_id = 1;
+        PackPPS(rbsp, pps2);
+        sts = PackHeader(rbsp, pESBegin, pESEnd, ph.PPS2);
+        MFX_CHECK_STS(sts);
+        pESBegin += ph.PPS2.BitLen / 8;
+    }
+    else
+    {
+        // No 2nd PPS for this config; clear any stale length from a prior Reset so it is not inserted.
+        ph.PPS2 = PackedData{};
+    }
+
     bool bPackedCqmPPS = false;
 #if defined(MFX_ENABLE_ENCTOOLS_SW)
     // Pack cqm PPS header for ETSW adaptive cqm

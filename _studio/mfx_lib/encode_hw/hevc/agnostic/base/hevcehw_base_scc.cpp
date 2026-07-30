@@ -110,14 +110,16 @@ bool SCC::PackSpsExt(StorageRW& strg, const Base::SPS&, mfxU8 id, Base::IBsWrite
     return true;
 }
 
-bool SCC::PackPpsExt(StorageRW& strg, const Base::PPS&, mfxU8 id, Base::IBsWriter& bs)
+bool SCC::PackPpsExt(StorageRW& strg, const Base::PPS& basePps, mfxU8 id, Base::IBsWriter& bs)
 {
     if (id != SCC_EXT_ID)
         return false;
 
     auto& pps = PpsExt::Get(strg);
 
-    bs.PutBit(pps.curr_pic_ref_enabled_flag);
+    // The base PPS (id 0) keeps current-pic referencing on; any additional PPS (id != 0)
+    // is the inter-only variant that turns it off, so inter slices pointing at it carry no self-ref.
+    bs.PutBit(basePps.pic_parameter_set_id == 0 ? pps.curr_pic_ref_enabled_flag : 0);
     bs.PutBit(0); // Gen12: pps.residual_adaptive_colour_transform_enabled_flag - MBZ
     bs.PutBit(0); // Gen12: pps.palette_predictor_initializer_present_flag - MBZ
 
@@ -307,9 +309,15 @@ void SCC::PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Push)
         if (ssh.type == 2)
         {
             // Change slice type from I to P and disable temporal MV prediction
-            // to enable IBC
+            // to enable current-pic referencing on the key frame
             ssh.type = 1;
             ssh.temporal_mvp_enabled_flag = 0;
+        }
+        else if (IsInterCurrPicRefDisabled(global))
+        {
+            // TU 6/7: inter slices point at the 2nd PPS (curr_pic_ref = 0) so no current-pic
+            // self-ref is added; keep num_ref_idx at the temporal-ref count.
+            ssh.pic_parameter_set_id = 1;
         }
         else
         {

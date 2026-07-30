@@ -922,6 +922,11 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
         AddPackedHeaderIf(!!(task.InsertHeaders & INSERT_PPS)
             , ph.PPS, par, VAEncPackedHeaderHEVC_PPS);
+
+        // Insert the 2nd PPS (id=1, curr_pic_ref=0) right after the base PPS when present
+        // (BitLen != 0 only when current-pic ref is kept on the key frame only).
+        AddPackedHeaderIf((task.InsertHeaders & INSERT_PPS) && ph.PPS2.BitLen
+            , ph.PPS2, par, VAEncPackedHeaderHEVC_PPS);
 #if defined(MFX_ENABLE_ENCTOOLS_SW)
         if (cc.PackETSWAdaptiveCqmPPS && cc.PackETSWAdaptiveCqmPPS(global, s_task))
         {

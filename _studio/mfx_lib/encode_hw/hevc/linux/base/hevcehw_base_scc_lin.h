@@ -54,6 +54,20 @@ protected:
             MFX_CHECK(itPPS != std::end(ddiPar) && itPPS->In.pData, MFX_ERR_NOT_FOUND);
             auto& ddiPPS    = *(VAEncPictureParameterBufferHEVC*)itPPS->In.pData;
 
+            auto& sccflags = Glob::SCCFlags::Get(global);
+
+            // Per-frame current-pic referencing (TU 6/7 only): keep it on for the key frame
+            // (coding_type I), turn it off for inter frames so the driver builds the HW ref list
+            // from temporal refs (no current-pic self-ref); the inter slices then reference the
+            // 2nd PPS (curr_pic_ref=0). Other target usages keep it on for every frame (legacy).
+            if (sccflags.IBCEnable)
+            {
+                ddiPPS.scc_fields.bits.pps_curr_pic_ref_enabled_flag =
+                    (IsInterCurrPicRefDisabled(global) && ddiPPS.pic_fields.bits.coding_type != 1 /*CODING_TYPE_I*/)
+                        ? 0
+                        : PpsExt::Get(global).curr_pic_ref_enabled_flag;
+            }
+
             if(m_bPatchNextDDITask)
             {
                 m_bPatchNextDDITask = false;
@@ -63,7 +77,6 @@ protected:
                 auto& ddiSPS    = *(VAEncSequenceParameterBufferHEVC*)itSPS->In.pData;
 
                 ddiSPS.scc_fields.bits.palette_mode_enabled_flag = SpsExt::Get(global).palette_mode_enabled_flag;
-                ddiPPS.scc_fields.bits.pps_curr_pic_ref_enabled_flag = PpsExt::Get(global).curr_pic_ref_enabled_flag;
             }
             return MFX_ERR_NONE;
         });

@@ -969,6 +969,7 @@ namespace Base
         PackedData VPS;
         PackedData SPS;
         PackedData PPS;
+        PackedData PPS2;        // 2nd PPS (id=1, curr_pic_ref=0) for inter frames when current-pic ref is kept on the key frame only
         std::vector<PackedData> CqmPPS;
         PackedData AUD[3];
         PackedData PrefixSEI;
@@ -1514,6 +1515,27 @@ namespace Base
         if (pEB)
             return *pEB;
         return ExtBuffer::Get(Glob::VideoParam::Get(glob));
+    }
+
+    // SCC current-picture referencing is kept on the key frame only (disabled on inter frames)
+    // via a 2nd PPS (curr_pic_ref=0) exclusively for the fastest target usages (TU 6/7) on
+    // MFX_HW_LNL and later platforms. Other target usages / earlier platforms retain the legacy
+    // single-PPS behavior (current-pic ref on for every frame). Every 2nd-PPS site must gate on
+    // this single predicate so the packed PPS, the slice header, and the DDI flag stay consistent.
+    inline bool IsInterCurrPicRefDisabled(StorageW& glob)
+    {
+        const auto& par = Glob::VideoParam::Get(glob);
+        // Current-picture referencing only exists in the SCC profile. SCCFlags (IBCEnable=1
+        // by default) is constructed for every HEVC stream while loading SPS/PPS, so gate on
+        // the profile first to keep non-SCC streams (e.g. REXT) on the legacy single PPS.
+        if (par.mfx.CodecProfile != MFX_PROFILE_HEVC_SCC)
+            return false;
+        if (!glob.Contains(Glob::SCCFlags::Key) || !Glob::SCCFlags::Get(glob).IBCEnable)
+            return false;
+        if (Glob::VideoCore::Get(glob).GetHWType() < MFX_HW_LNL)
+            return false;
+        const mfxU16 tu = par.mfx.TargetUsage;
+        return tu == MFX_TARGETUSAGE_6 || tu == MFX_TARGETUSAGE_7;
     }
 
 } //namespace Base
