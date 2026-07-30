@@ -307,22 +307,39 @@ inline void PackFrameSizeInfo(BitstreamWriter& bs, FH const& fh)
     bs.PutBits(4, frame_height_bits_minus_1);
 
     // max width/height of the stream
-    mfxU32 max_frame_width_minus_1 = fh.UpscaledWidth - 1;
+    mfxU32 max_frame_width_minus_1;
+    mfxU32 max_frame_height_minus_1;
+    mfxU16 fpDsRatio = 0; // 0=off, 2=2x, 4=4x
+    if (fpDsRatio)
+    {
+        // FastPass fake header: shrink signalled resolution by the divisor, 8-aligned
+        mfxU8 shift = (fpDsRatio == 2) ? 1 : 2;
+        max_frame_width_minus_1  = ((fh.UpscaledWidth >> shift) / 8) * 8 - 1;
+        max_frame_height_minus_1 = ((fh.FrameHeight   >> shift) / 8) * 8 - 1;
+    }
+    else
+    {
+        max_frame_width_minus_1  = fh.UpscaledWidth - 1;
+        max_frame_height_minus_1 = fh.FrameHeight - 1;
+    }
     bs.PutBits(frame_width_bits_minus_1 + 1, max_frame_width_minus_1);
-    mfxU32 max_frame_height_minus_1 = fh.FrameHeight - 1;
     bs.PutBits(frame_height_bits_minus_1 + 1, max_frame_height_minus_1);
 }
 
 inline void PackColorConfig(BitstreamWriter& bs, SH const& sh)
 {
 
-    const bool high_bitdepth = sh.color_config.BitDepth == BITDEPTH_10;
+    mfxU16 fpDsRatio = 0; // 0=off, 2=2x, 4=4x
+    // FastPass fake header: force Main profile (4:2:0) and 8-bit so the color_config
+    // OBU bits stay self-consistent with the forced seq_profile written in PackSPS.
+    const uint32_t seq_profile = fpDsRatio ? 0 : sh.seq_profile;
+    const bool high_bitdepth = fpDsRatio ? false : (sh.color_config.BitDepth == BITDEPTH_10);
     bs.PutBit(high_bitdepth ? 1 : 0); //high_bitdepth
 
-    if (sh.seq_profile == 2 && high_bitdepth)
+    if (seq_profile == 2 && high_bitdepth)
         bs.PutBit(0); //twelve_bit
 
-    if (sh.seq_profile != 1)
+    if (seq_profile != 1)
         bs.PutBit(0); //mono_chrome
 
     bs.PutBit(sh.color_config.color_description_present_flag);
@@ -335,7 +352,7 @@ inline void PackColorConfig(BitstreamWriter& bs, SH const& sh)
     }
 
     bs.PutBit(sh.color_config.color_range); //color_range
-    if (sh.seq_profile == 0)
+    if (seq_profile == 0)
         bs.PutBits(2, 0); //chroma_sample_position
 
     bs.PutBit(sh.color_config.separate_uv_delta_q); //separate_uv_delta_q
@@ -349,7 +366,11 @@ void Packer::PackSPS(BitstreamWriter& bs, SH const& sh, FH const& fh, ObuExtensi
     BitstreamWriter tmpBitstream(&tmpBuf[0], av1_max_header_size);
 
     //adding header data to tmp_buff to calculate size before adding to bitstream
-    tmpBitstream.PutBits(3, sh.seq_profile); //seq_profile
+    mfxU16 fpDsRatio = 0; // 0=off, 2=2x, 4=4x
+    if (fpDsRatio)
+        tmpBitstream.PutBits(3, 0);              // FastPass fake header: force seq_profile = 0 (4:2:0 Main)
+    else
+        tmpBitstream.PutBits(3, sh.seq_profile); //seq_profile
     tmpBitstream.PutBit(sh.still_picture); //still_picture
     tmpBitstream.PutBit(0); //reduced_still_picture_header
     tmpBitstream.PutBit(sh.timing_info_present_flag); //timing_info_present_flag

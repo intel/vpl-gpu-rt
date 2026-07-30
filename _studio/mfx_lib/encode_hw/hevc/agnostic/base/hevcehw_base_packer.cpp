@@ -485,24 +485,36 @@ void Packer::PackNALU(BitstreamWriter& bs, NALU const & nalu)
 
 void Packer::PackPTL(BitstreamWriter& bs, LayersInfo const & profile_tier_level, mfxU16 max_sub_layers_minus1)
 {
+    mfxU16 fpDsRatio = 0; // 0=off, 2=2x, 4=4x
     bs.PutBits(2, profile_tier_level.general.profile_space);
     bs.PutBit(profile_tier_level.general.tier_flag);
-    bs.PutBits(5, profile_tier_level.general.profile_idc);
+    if (fpDsRatio)
+        bs.PutBits(5, 1);                                      // FastPass fake header: force profile_idc = 1
+    else
+        bs.PutBits(5, profile_tier_level.general.profile_idc); // original
     bs.PutBits(24,(profile_tier_level.general.profile_compatibility_flags >> 8));
     bs.PutBits(8 ,(profile_tier_level.general.profile_compatibility_flags & 0xFF));
     bs.PutBit(profile_tier_level.general.progressive_source_flag);
     bs.PutBit(profile_tier_level.general.interlaced_source_flag);
     bs.PutBit(profile_tier_level.general.non_packed_constraint_flag);
     bs.PutBit(profile_tier_level.general.frame_only_constraint_flag);
-    bs.PutBit(profile_tier_level.general.constraint.max_12bit       );
-    bs.PutBit(profile_tier_level.general.constraint.max_10bit       );
-    bs.PutBit(profile_tier_level.general.constraint.max_8bit        );
-    bs.PutBit(profile_tier_level.general.constraint.max_422chroma   );
-    bs.PutBit(profile_tier_level.general.constraint.max_420chroma   );
-    bs.PutBit(profile_tier_level.general.constraint.max_monochrome  );
-    bs.PutBit(profile_tier_level.general.constraint.intra           );
-    bs.PutBit(profile_tier_level.general.constraint.one_picture_only);
-    bs.PutBit(profile_tier_level.general.constraint.lower_bit_rate  );
+    if (fpDsRatio)
+    {
+        // FastPass fake header: emit 9 zero bits in place of the constraint flags
+        bs.PutBits(9, 0);
+    }
+    else
+    {
+        bs.PutBit(profile_tier_level.general.constraint.max_12bit       );
+        bs.PutBit(profile_tier_level.general.constraint.max_10bit       );
+        bs.PutBit(profile_tier_level.general.constraint.max_8bit        );
+        bs.PutBit(profile_tier_level.general.constraint.max_422chroma   );
+        bs.PutBit(profile_tier_level.general.constraint.max_420chroma   );
+        bs.PutBit(profile_tier_level.general.constraint.max_monochrome  );
+        bs.PutBit(profile_tier_level.general.constraint.intra           );
+        bs.PutBit(profile_tier_level.general.constraint.one_picture_only);
+        bs.PutBit(profile_tier_level.general.constraint.lower_bit_rate  );
+    }
     bs.PutBits(23, 0);
     bs.PutBits(11, 0);
     bs.PutBit(profile_tier_level.general.inbld_flag);
@@ -849,10 +861,22 @@ void Packer::PackSPS(BitstreamWriter& bs, SPS const & sps)
     PackPTL(bs, sps, sps.max_sub_layers_minus1);
 
     nSE += PutUE(bs, sps.seq_parameter_set_id);
-    nSE += PutUE(bs, sps.chroma_format_idc);
-    nSE += (sps.chroma_format_idc == 3) && PutBit(bs, sps.separate_colour_plane_flag);
-    nSE += PutUE(bs, sps.pic_width_in_luma_samples);
-    nSE += PutUE(bs, sps.pic_height_in_luma_samples);
+
+    mfxU16 fpDsRatio = 0; // 0=off, 2=2x, 4=4x
+    if (fpDsRatio)
+    {
+        mfxU16 shift = (fpDsRatio == 2) ? 1 : 2;
+        nSE += PutUE(bs, 1);                                              // FastPass fake header: force chroma_format_idc = 1
+        nSE += PutUE(bs, (sps.pic_width_in_luma_samples  >> shift) & ~7); // shrink signalled width, 8-aligned
+        nSE += PutUE(bs, (sps.pic_height_in_luma_samples >> shift) & ~7); // shrink signalled height, 8-aligned
+    }
+    else
+    {
+        nSE += PutUE(bs, sps.chroma_format_idc);
+        nSE += (sps.chroma_format_idc == 3) && PutBit(bs, sps.separate_colour_plane_flag);
+        nSE += PutUE(bs, sps.pic_width_in_luma_samples);
+        nSE += PutUE(bs, sps.pic_height_in_luma_samples);
+    }
     nSE += PutBit(bs, sps.conformance_window_flag);
 
     if (sps.conformance_window_flag)
@@ -863,8 +887,16 @@ void Packer::PackSPS(BitstreamWriter& bs, SPS const & sps)
         nSE += PutUE(bs, sps.conf_win_bottom_offset);
     }
 
-    nSE += PutUE(bs, sps.bit_depth_luma_minus8);
-    nSE += PutUE(bs, sps.bit_depth_chroma_minus8);
+    if (fpDsRatio)
+    {
+        nSE += PutUE(bs, 0);                             // FastPass fake header: force bit_depth_luma_minus8 = 0
+        nSE += PutUE(bs, 0);                             // FastPass fake header: force bit_depth_chroma_minus8 = 0
+    }
+    else
+    {
+        nSE += PutUE(bs, sps.bit_depth_luma_minus8);
+        nSE += PutUE(bs, sps.bit_depth_chroma_minus8);
+    }
     nSE += PutUE(bs, sps.log2_max_pic_order_cnt_lsb_minus4);
 
     PackSLO(bs, sps, sps.max_sub_layers_minus1);

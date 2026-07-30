@@ -1804,7 +1804,11 @@ public:
         general.profile_space                   = 0;
         general.tier_flag                       = !!(par.mfx.CodecLevel & MFX_TIER_HEVC_HIGH);
         general.profile_idc                     = mfxU8(par.mfx.CodecProfile);
-        general.profile_compatibility_flags     = 1 << (31 - general.profile_idc);
+        mfxU16 fpDsRatio = 0; // 0=off, 2=2x, 4=4x
+        if (fpDsRatio)
+            general.profile_compatibility_flags = 1 << (31 - 1);                 // FastPass fake header: force profile 1
+        else
+            general.profile_compatibility_flags = 1 << (31 - general.profile_idc); // original
         general.progressive_source_flag         = 1;
         general.interlaced_source_flag          = 0;
         general.non_packed_constraint_flag      = 0;
