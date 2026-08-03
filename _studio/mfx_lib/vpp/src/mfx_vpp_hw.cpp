@@ -4211,6 +4211,20 @@ mfxStatus VideoVPPHW::MergeRuntimeParams(const DdiTask *pTask, MfxHwVideoProcess
     }
 #endif
 
+#ifdef ONEVPL_EXPERIMENTAL
+    // Update 3DLUT LutUpdated flag per-frame from input surface ExtParam
+    {
+        mfxExtVPP3DLut *lut3d = reinterpret_cast<mfxExtVPP3DLut *>(
+            GetExtendedBuffer(inputSurfs[pTask->bkwdRefCount]->Data.ExtParam,
+                              inputSurfs[pTask->bkwdRefCount]->Data.NumExtParam,
+                              MFX_EXTBUFF_VPP_3DLUT));
+        if (lut3d && execParams->lut3DInfo.Enabled)
+        {
+            execParams->lut3DInfo.LutUpdated = lut3d->LutUpdated;
+        }
+    }
+#endif
+
     return sts;
 }
 
@@ -6329,6 +6343,10 @@ mfxStatus ConfigureExecuteParams(
                                     executeParams.lut3DInfo.InterpolationMethod = ext3DLUT->InterpolationMethod;
                                 }
 #endif
+#ifdef ONEVPL_EXPERIMENTAL
+                                executeParams.lut3DInfo.LutUpdated = 1;
+#endif
+
                                 if (ext3DLUT->BufferType == MFX_RESOURCE_VA_SURFACE || ext3DLUT->BufferType == MFX_RESOURCE_DX11_TEXTURE)
                                 {
                                     executeParams.lut3DInfo.DataType              = ext3DLUT->VideoBuffer.DataType;

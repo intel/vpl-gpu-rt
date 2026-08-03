@@ -332,6 +332,7 @@ namespace MfxHwVideoProcessing
             mfxChannel                Channel[3];
 #ifdef ONEVPL_EXPERIMENTAL
             mfx3DLutInterpolationMethod InterpolationMethod;
+            mfxU32                    LutUpdated;
 #endif
         };
 
