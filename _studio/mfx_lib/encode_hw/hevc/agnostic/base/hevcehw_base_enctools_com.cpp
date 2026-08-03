@@ -318,6 +318,8 @@ void HevcEncToolsCommon::InitInternal(const FeatureBlocks& /*blocks*/, TPushII P
         mfxExtEncToolsConfig* pConfig = ExtBuffer::Get(par);
 
 
+        bool bEncTools = isEncTools(par);
+        MFX_CHECK(bEncTools, MFX_ERR_NONE);
         MFX_CHECK(!m_pEncTools, MFX_ERR_NONE);
 
         m_pEncTools = GetEncTools(par);
