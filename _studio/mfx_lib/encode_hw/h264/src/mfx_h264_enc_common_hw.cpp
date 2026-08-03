@@ -8630,17 +8630,6 @@ namespace
         }
         writer.PutUe(sps.maxNumRefFrames);
         writer.PutBit(sps.gapsInFrameNumValueAllowedFlag);
-        mfxU16 fpDsRatio = 0; // 0=off, 2=2x, 4=4x
-        if (fpDsRatio)
-        {
-            // FastPass fake header: shrink the coded picture size by the downscale
-            // ratio (2 or 4) so the VDENC first-pass bitstream passes conformance.
-            auto originPicWidthInMbs = sps.picWidthInMbsMinus1 + 1;
-            auto originPicHeighInMbs = sps.picHeightInMapUnitsMinus1 + 1;
-            writer.PutUe(originPicWidthInMbs / fpDsRatio - 1);
-            writer.PutUe(originPicHeighInMbs / fpDsRatio - 1);
-        }
-        else
         {
             writer.PutUe(sps.picWidthInMbsMinus1);
             writer.PutUe(sps.picHeightInMapUnitsMinus1);
