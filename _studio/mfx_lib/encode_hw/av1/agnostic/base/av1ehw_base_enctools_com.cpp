@@ -39,12 +39,11 @@ bool AV1EHW::Base::IsHwEncToolsOn(const mfxVideoParam& video)
 {
 
 
-    const mfxExtCodingOption3* pExtOpt3 = ExtBuffer::Get(video);
     const mfxExtCodingOption2* pExtOpt2 = ExtBuffer::Get(video);
     const mfxExtEncToolsConfig* pExtConfig = ExtBuffer::Get(video);
-    bool bGameStreaming = pExtOpt3 && pExtOpt3->ScenarioInfo == MFX_SCENARIO_GAME_STREAMING;
     bool bLA = false;
-    if ((bGameStreaming && pExtOpt2 && pExtOpt2->LookAheadDepth > 0) || (pExtConfig && IsHwLookAhead(*pExtConfig, bGameStreaming)))
+    if ((pExtOpt2 && pExtOpt2->LookAheadDepth > 0)
+        || (pExtConfig && IsHwLookAhead(*pExtConfig)))
         bLA = true;
     return  bLA ;
 }

@@ -56,10 +56,8 @@ inline bool IsSwEncToolsImplicit(const mfxVideoParam& video)
     return false;
 }
 
-inline bool IsHwLookAhead(const mfxExtEncToolsConfig &config, bool bGameStreaming)
+inline bool IsHwLookAhead(const mfxExtEncToolsConfig &config)
 {
-    if (!bGameStreaming)
-        return false;
     return
         (IsOn(config.AdaptiveI)
         || IsOn(config.AdaptiveB)
