@@ -58,33 +58,33 @@ UMC::Status PXPLinuxVideoAccelerator::Init(UMC::VideoAcceleratorParams* pInfo)
     return umcRes;
 }
 
-UMC::Status PXPLinuxVideoAccelerator::SetAttributes(VAProfile va_profile, UMC::LinuxVideoAcceleratorParams* pParams, VAConfigAttrib *attribute, int32_t *attribsNumber)
+UMC::Status PXPLinuxVideoAccelerator::SetAttributes(VAProfile va_profile, UMC::LinuxVideoAcceleratorParams* pParams,
+                                                    std::vector<VAConfigAttrib>& attributes)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "PXPLinuxVideoAccelerator::SetAttributes");
 
     UMC_CHECK(pParams != nullptr, UMC::UMC_ERR_INVALID_PARAMS);
-    UMC_CHECK(attribute != nullptr, UMC::UMC_ERR_INVALID_PARAMS);
-    UMC_CHECK(attribsNumber != nullptr, UMC::UMC_ERR_INVALID_PARAMS);
-    UMC_CHECK((*attribsNumber >= 0 && *attribsNumber < UMC_VA_LINUX_ATTRIB_SIZE), UMC::UMC_ERR_INVALID_PARAMS);
+    UMC_CHECK(attributes.size() > 0, UMC::UMC_ERR_INVALID_PARAMS);
 
     // Check PXP handle and secure decode context handle
     UMC_CHECK(m_PXPCtxHdl != nullptr, UMC::UMC_ERR_INVALID_PARAMS);
 
-    UMC::Status umcRes = LinuxVideoAccelerator::SetAttributes(va_profile, pParams, attribute, attribsNumber);
+    UMC::Status umcRes = LinuxVideoAccelerator::SetAttributes(va_profile, pParams, attributes);
 
     if (UMC::UMC_OK == umcRes)
     {
         //check pxp capablity by attribute[3], and set pxp attribute to attribute[*attribsNumber]
         VAConfigAttrib *pxpAttrib = reinterpret_cast<VAConfigAttrib *>(m_PXPCtxHdl->secureDecodeCfg.pxpAttributesHdl);
 
-        if (pxpAttrib 
-        && (attribute[3].value & 
-            (VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR | VA_ENCRYPTION_TYPE_SUBSAMPLE_CBC | VA_ENCRYPTION_TYPE_FULLSAMPLE_CTR | VA_ENCRYPTION_TYPE_FULLSAMPLE_CBC))
-        )
+        auto found = std::find_if(attributes.begin(), attributes.end(), [](const VAConfigAttrib& item) {
+            return item.value & (VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR | VA_ENCRYPTION_TYPE_SUBSAMPLE_CBC |
+                                VA_ENCRYPTION_TYPE_FULLSAMPLE_CTR | VA_ENCRYPTION_TYPE_FULLSAMPLE_CBC);
+        });
+
+        if (pxpAttrib && found != attributes.end())
         {
-            attribute[*attribsNumber].type = pxpAttrib->type;
-            attribute[*attribsNumber].value = pxpAttrib->value;
-            (*attribsNumber)++;
+            found->type = pxpAttrib->type;
+            found->value = pxpAttrib->value;
         }
     }
 
