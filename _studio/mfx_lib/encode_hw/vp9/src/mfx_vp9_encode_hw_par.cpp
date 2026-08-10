@@ -1850,9 +1850,14 @@ mfxStatus CheckAndFixCtrl(
         checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }
 
-    if (ctrl.FrameType > MFX_FRAMETYPE_P)
+    if (ctrl.FrameType & 0xFF00) {
+        ctrl.FrameType = (ctrl.FrameType & 0xFF);
+        checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+    }
+
+    if ((ctrl.FrameType & 0xF) > MFX_FRAMETYPE_P)
     {
-        ctrl.FrameType = MFX_FRAMETYPE_P;
+        ctrl.FrameType = (MFX_FRAMETYPE_P | (ctrl.FrameType & 0xF0));
         checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }
 
