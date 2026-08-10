@@ -516,10 +516,13 @@ bool MFX_Utility::IsNeedPartialAcceleration(mfxVideoParam * par, eMFXHWType )
     if (par->mfx.SliceGroupsPresent) // Is FMO
         return true;
 
-    if (par->mfx.FrameInfo.FourCC != MFX_FOURCC_NV12) // yuv422 in SW only
+    if (par->mfx.FrameInfo.FourCC != MFX_FOURCC_NV12
+        && par->mfx.FrameInfo.FourCC != MFX_FOURCC_P210
+        && par->mfx.FrameInfo.FourCC != MFX_FOURCC_P010
+        && par->mfx.FrameInfo.FourCC != MFX_FOURCC_Y210)
         return true;
 
-    if (par->mfx.FrameInfo.BitDepthLuma > 8 || par->mfx.FrameInfo.BitDepthChroma > 8) // yuv422 in SW only
+    if (par->mfx.FrameInfo.BitDepthLuma > 10 || par->mfx.FrameInfo.BitDepthChroma > 10)
         return true;
 
     mfxExtMVCSeqDesc * points = (mfxExtMVCSeqDesc*)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_MVC_SEQ_DESC);
@@ -568,6 +571,17 @@ UMC::Status MFX_Utility::FillVideoParam(UMC::TaskSupplier * supplier, mfxVideoPa
     const UMC_H264_DECODER::H264PicParamSet * pps = supplier->GetHeaders()->m_PicParams.GetCurrentHeader();
     if (pps)
         par->mfx.SliceGroupsPresent = pps->num_slice_groups > 1;
+
+    if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
+        || par->mfx.FrameInfo.FourCC == MFX_FOURCC_P210
+        || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210)
+    {
+        par->mfx.FrameInfo.Shift = 1;
+    }
+    else
+    {
+        par->mfx.FrameInfo.Shift = 0;
+    }
 
     return UMC::UMC_OK;
 }
@@ -1158,7 +1172,11 @@ inline bool CheckFourcc(mfxU32 fourcc, mfxU16 codecProfile, eMFXHWType type)
 #endif
     case MFX_PROFILE_AVC_MULTIVIEW_HIGH:
     case MFX_PROFILE_AVC_STEREO_HIGH:
-        return fourcc == MFX_FOURCC_NV12;
+        return (fourcc == MFX_FOURCC_NV12);
+    case MFX_PROFILE_AVC_HIGH10: //High10 may have 8bit clip.
+        return H264DCaps::IsDec420TenBitSupported(type) ?  (fourcc == MFX_FOURCC_NV12 || fourcc == MFX_FOURCC_P010) : (fourcc == MFX_FOURCC_NV12);
+    case MFX_PROFILE_AVC_HIGH_422: //HIGH_422 may have 420 clip
+        return H264DCaps::IsDec422TenBitSupported(type) ? (fourcc == MFX_FOURCC_NV12 || fourcc == MFX_FOURCC_P010 || fourcc == MFX_FOURCC_Y210) : (fourcc == MFX_FOURCC_NV12);
     default:
         return false;
     }
@@ -1196,7 +1214,9 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
             (MFX_PROFILE_AVC_SCALABLE_HIGH == in->mfx.CodecProfile) ||
 #endif
             (MFX_PROFILE_AVC_MULTIVIEW_HIGH == in->mfx.CodecProfile) ||
-            (MFX_PROFILE_AVC_STEREO_HIGH == in->mfx.CodecProfile)
+            (MFX_PROFILE_AVC_STEREO_HIGH == in->mfx.CodecProfile) ||
+            (MFX_PROFILE_AVC_HIGH_422 == in->mfx.CodecProfile) ||
+            (MFX_PROFILE_AVC_HIGH10 == in->mfx.CodecProfile)
             )
             out->mfx.CodecProfile = in->mfx.CodecProfile;
         else
@@ -1339,6 +1359,9 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
             out->mfx.FrameInfo.AspectRatioH = 0;
             sts = MFX_ERR_UNSUPPORTED;
         }
+
+        out->mfx.FrameInfo.BitDepthLuma = in->mfx.FrameInfo.BitDepthLuma;
+        out->mfx.FrameInfo.BitDepthChroma = in->mfx.FrameInfo.BitDepthChroma;
 
         out->mfx.FrameInfo.Shift = in->mfx.FrameInfo.Shift;
         switch (in->mfx.FrameInfo.PicStruct)
@@ -1772,6 +1795,8 @@ bool MFX_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType type)
     case MFX_PROFILE_AVC_MAIN:
     case MFX_PROFILE_AVC_EXTENDED:
     case MFX_PROFILE_AVC_HIGH:
+    case MFX_PROFILE_AVC_HIGH10:
+    case MFX_PROFILE_AVC_HIGH_422:
     case MFX_PROFILE_AVC_STEREO_HIGH:
     case MFX_PROFILE_AVC_MULTIVIEW_HIGH:
 #ifdef MFX_ENABLE_SVC_VIDEO_DECODE
@@ -1814,9 +1839,8 @@ bool MFX_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType type)
     if (in->mfx.FrameInfo.Height > 16384 || (in->mfx.FrameInfo.Height % 16))
         return false;
 
-
     if (in->mfx.FrameInfo.FourCC != MFX_FOURCC_NV12 && in->mfx.FrameInfo.FourCC != MFX_FOURCC_NV16 &&
-        in->mfx.FrameInfo.FourCC != MFX_FOURCC_P010 && in->mfx.FrameInfo.FourCC != MFX_FOURCC_P210)
+        in->mfx.FrameInfo.FourCC != MFX_FOURCC_P010 && in->mfx.FrameInfo.FourCC != MFX_FOURCC_P210 && in->mfx.FrameInfo.FourCC != MFX_FOURCC_Y210)
         return false;
 
     // both zero or not zero
@@ -1842,7 +1866,7 @@ bool MFX_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType type)
 
     if (in->mfx.FrameInfo.ChromaFormat == MFX_CHROMAFORMAT_YUV422)
     {
-        if (in->mfx.FrameInfo.FourCC != MFX_FOURCC_P210 && in->mfx.FrameInfo.FourCC != MFX_FOURCC_NV16)
+        if (in->mfx.FrameInfo.FourCC != MFX_FOURCC_P210 && in->mfx.FrameInfo.FourCC != MFX_FOURCC_Y210 && in->mfx.FrameInfo.FourCC != MFX_FOURCC_NV16)
             return false;
     }
 

@@ -222,6 +222,11 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
     eMFXHWType type = m_core->GetHWType();
 
+    if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010 ||
+        par->mfx.FrameInfo.FourCC == MFX_FOURCC_P210 ||
+        par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210)
+        par->mfx.FrameInfo.Shift = 1;
+
     mfxStatus mfxSts = CheckVideoParamDecoders(par, type);
     MFX_CHECK(mfxSts >= MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
 
@@ -405,6 +410,8 @@ mfxStatus VideoDECODEH264::QueryImplsDescription(
 #endif
         , MFX_PROFILE_AVC_MULTIVIEW_HIGH
         , MFX_PROFILE_AVC_STEREO_HIGH
+        , MFX_PROFILE_AVC_HIGH10
+        , MFX_PROFILE_AVC_HIGH_422
     };
     const mfxResourceType SupportedMemTypes[] =
     {
@@ -414,6 +421,8 @@ mfxStatus VideoDECODEH264::QueryImplsDescription(
     const mfxU32 SupportedFourCC[] =
     {
         MFX_FOURCC_NV12
+        , MFX_FOURCC_P010
+        , MFX_FOURCC_Y210
     };
 
     caps.CodecID = MFX_CODEC_AVC;
@@ -807,6 +816,15 @@ mfxStatus VideoDECODEH264::GetVideoParam(mfxVideoParam *par)
         }
     }
 
+    switch (par->mfx.FrameInfo.FourCC)
+    {
+    case MFX_FOURCC_P010:
+    case MFX_FOURCC_P210:
+    case MFX_FOURCC_Y210:
+        par->mfx.FrameInfo.Shift = 1;
+    default:
+        break;
+    }
 
     TRACE_EVENT(MFX_TRACE_API_DECODE_GETVIDEOPARAM_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(MFX_ERR_NONE));
 
