@@ -151,6 +151,9 @@ public:
 
     MFXIPtr & operator = (const MFXIPtr &iPtr)
     {
+        if (this == &iPtr)
+            return *this;
+
         // release the interface before setting new one
         Release();
 

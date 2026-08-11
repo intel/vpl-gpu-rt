@@ -2015,6 +2015,7 @@ mfxI32 CMC::MCTF_RUN_ME_MC_H(
     threadSpace = 0;
 
     res = MCTF_RUN_TASK(kernelMeB, task != 0);
+    MCTF_CHECK_CM_ERR(res, res);
     res = e->WaitForTaskFinished();
     MCTF_CHECK_CM_ERR(res, res);
     e->GetExecutionTime(executionTime);

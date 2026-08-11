@@ -159,7 +159,7 @@ public:
         if (_struct.ExtParam) {
             for (mfxU16 i = 0; i < _struct.NumExtParam; ++i)
             {
-                if ((!_IsBadReadPtr(_struct.ExtParam, sizeof(mfxExtBuffer**))) && (!_IsBadReadPtr(_struct.ExtParam[i], sizeof(mfxExtBuffer*))))
+                if ((!_IsBadReadPtr(_struct.ExtParam, sizeof(mfxExtBuffer**))) && (!_IsBadReadPtr(_struct.ExtParam[i], sizeof(mfxExtBuffer))))
                 {
                     name = structName + ".ExtParam[" + ToString(i) + "]";
                     str += name + "=" + ToString(_struct.ExtParam[i]) + "\n";
