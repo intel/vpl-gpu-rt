@@ -1138,6 +1138,7 @@ namespace UMC_VVC_DECODER
 
             if (!sps || !pps) // undefined behavior
             {
+                delete pSlice;
                 return UMC::UMC_ERR_FAILED;
             }
 
@@ -1162,6 +1163,7 @@ namespace UMC_VVC_DECODER
 
             if (!sps || !pps) // undefined behavior
             {
+                delete pSlice;
                 return UMC::UMC_ERR_FAILED;
             }
 

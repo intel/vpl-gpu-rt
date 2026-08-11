@@ -1289,7 +1289,7 @@ mfxStatus MFXVideoDECODEVC1::DecodeHeader(VideoCORE *, mfxBitstream *bs, mfxVide
     mfxExtVideoSignalInfo *pVideoSignal = (mfxExtVideoSignalInfo *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
     mfxExtCodingOptionSPSPPS *pSPS = (mfxExtCodingOptionSPSPPS *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_CODING_OPTION_SPSPPS);
 
-    mfxVideoParam temp;
+    mfxVideoParam temp = {};
     MFXSts = MFXVC1DecCommon::ParseSeqHeader(bs, &temp, pVideoSignal, pSPS);
     if(MFXSts == MFX_ERR_NOT_INITIALIZED) MFX_RETURN(MFX_ERR_MORE_DATA);
     if((MFXSts == MFX_ERR_MORE_DATA) && (bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME || bs->DataFlag & MFX_BITSTREAM_EOS))

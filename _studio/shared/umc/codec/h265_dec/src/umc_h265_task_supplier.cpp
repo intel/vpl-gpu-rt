@@ -1875,10 +1875,12 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
 
                             if (AddSlice(0, !pSource) == UMC::UMC_OK)
                             {
-                                pSource->MoveDataPointer(- size - 3);
+                                if (pSource)
+                                    pSource->MoveDataPointer(- size - 3);
                                 return UMC::UMC_OK;
                             }
-                            moveToSpsOffset = pSource->GetDataSize() + size + 3;
+                            if (pSource)
+                                moveToSpsOffset = pSource->GetDataSize() + size + 3;
                             continue;
                         }
                         if (pDecodeErrorReport && umsRes == UMC::UMC_ERR_INVALID_STREAM)

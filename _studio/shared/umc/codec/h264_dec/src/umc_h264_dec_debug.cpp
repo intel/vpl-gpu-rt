@@ -39,6 +39,7 @@ void Trace(vm_char const* format, ...)
 #pragma warning(disable : 4996)
 #endif
     vm_string_vsnprintf(cStr, sizeof(cStr)-1, format, arglist);
+    cStr[sizeof(cStr)/sizeof(cStr[0]) - 1] = 0;
 #ifdef _MSVC_LANG
 #pragma warning(pop)
 #endif
