@@ -429,6 +429,7 @@ namespace MfxHwVideoProcessing
                ,bDeinterlace30i60p(false)
                ,bAiVfi(false)
                ,m_aiFiMode(MFX_AI_FRAME_INTERPOLATION_MODE_DISABLE)
+               ,m_aiFiEnableScd(1)
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
                ,gpuHangTrigger(false)
 #endif
@@ -632,6 +633,7 @@ namespace MfxHwVideoProcessing
 
         bool                        bAiVfi;
         mfxAIFrameInterpolationMode m_aiFiMode;
+        mfxU16                      m_aiFiEnableScd; // mfxExtVPPAIFrameInterpolation::EnableScd, 0 = off, 1 = on
 
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
         bool       gpuHangTrigger;

@@ -2174,6 +2174,7 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
             mfxExtVPPAIFrameInterpolation* bufFrc = reinterpret_cast<mfxExtVPPAIFrameInterpolation*>(par->ExtParam[i]);
             MFX_CHECK_NULL_PTR1(bufFrc);
             bufFrc->FIMode = m_executeParams.m_aiFiMode;
+            bufFrc->EnableScd = m_executeParams.m_aiFiEnableScd;
         }
     }
 
