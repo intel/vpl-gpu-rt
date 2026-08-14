@@ -2381,9 +2381,7 @@ mfxStatus CmCopyWrapper::Initialize(mfxU16 hwDeviceId, eMFXHWType hwtype)
 
     cmSts = m_pCmDevice->CreateQueue(m_pCmQueue);
     CHECK_CM_STATUS(cmSts, MFX_ERR_DEVICE_FAILED);
-    m_tableCmRelations.clear();
-
-    m_tableSysRelations.clear();
+    CleanUpCache();
 
     return MFX_ERR_NONE;
 
