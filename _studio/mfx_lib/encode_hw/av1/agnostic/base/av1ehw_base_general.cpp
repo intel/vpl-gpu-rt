@@ -3283,7 +3283,7 @@ void General::SetFH(
     }
     else if (auxPar.ReducedTxSetUsed == 0)
     {
-        fh.reduced_tx_set = (par.mfx.TargetUsage == MFX_TARGETUSAGE_1) ? 0 : 1;
+        fh.reduced_tx_set = 1;
         MFX_LOG_INFO("SetFH reduced_tx_set=%u (reason=tu_default, TU=%u)\n",
             fh.reduced_tx_set, (unsigned)par.mfx.TargetUsage);
     }
