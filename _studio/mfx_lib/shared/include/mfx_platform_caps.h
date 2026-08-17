@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2025 Intel Corporation
+// Copyright (c) 2022-2026 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -190,6 +190,11 @@ namespace HEVCECaps {
     inline bool IsPreProcSupported(eMFXHWType platform)
     {
         return (platform == MFX_HW_NVL_XE3G);
+    }
+    
+    inline bool IsBestQualityRefSupported(eMFXHWType platform)
+    {
+        return (platform >= MFX_HW_NVL_XE3G);
     }
 }
 

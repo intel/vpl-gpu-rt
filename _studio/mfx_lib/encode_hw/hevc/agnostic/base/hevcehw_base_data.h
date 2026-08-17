@@ -1415,6 +1415,7 @@ namespace Base
         , FEATURE_AIENC
 #endif
         , FEATURE_PREPROC
+        , FEATURE_BEST_QUALITY_REF
         , FEATURE_PADDING
         , NUM_FEATURES
     };

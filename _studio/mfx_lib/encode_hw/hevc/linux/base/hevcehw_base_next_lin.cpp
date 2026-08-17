@@ -35,6 +35,7 @@
 #include "hevcehw_base_recon_info_lin.h"
 #include "hevcehw_base_extddi.h"
 #include "hevcehw_base_recon422.h"
+#include "hevcehw_base_best_quality_ref.h"
 
 namespace HEVCEHW
 {
@@ -60,6 +61,7 @@ MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
     newFeatures.emplace_back(new QpModulation(FEATURE_QP_MODULATION));
     newFeatures.emplace_back(new ExtDDI(FEATURE_EXTDDI));
     newFeatures.emplace_back(new HEVCEHW::Base::Recon422(FEATURE_RECON422));
+    newFeatures.emplace_back(new BestQualityRef(FEATURE_BEST_QUALITY_REF));
 
     InternalInitFeatures(status, mode, newFeatures);
 }

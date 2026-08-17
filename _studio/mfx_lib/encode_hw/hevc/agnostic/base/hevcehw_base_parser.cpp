@@ -296,7 +296,9 @@ void ParseSTRPS(
         mfxU32 RefRpsIdx = idx - (strps.delta_idx_minus1 + 1);
         STRPS& ref = sps.strps[RefRpsIdx];
         mfxI16 NumDeltaPocs = 0;
-        mfxI16 RefNumDeltaPocs = NumDeltaPocs;
+        // Initialize RefNumDeltaPocs from reference STRPS picture count
+        // This ensures the loop iterates the correct number of times in inter-prediction mode
+        mfxI16 RefNumDeltaPocs = ref.num_negative_pics + ref.num_positive_pics;
         mfxI16 deltaRps = (1 - 2 * strps.delta_rps_sign) * (strps.abs_delta_rps_minus1 + 1);
         bool used_by_curr_pic_flag[std::extent<decltype(cur.pic)>::value] = {};
         bool use_delta_flag[std::extent<decltype(cur.pic)>::value] = {};
@@ -336,24 +338,31 @@ void ParseSTRPS(
         strps.num_negative_pics = bs.GetUE();
         strps.num_positive_pics = bs.GetUE();
 
-        mfxI16 sign = -1;
-        auto ParseIntraPic = [&](STRPS::Pic& pic)
+        // Calculate DeltaPocSX as cumulative sums instead of independent values
+        // According to HEVC spec, DeltaPocSX values must be accumulated
+        mfxI16 prevDeltaPocSX = 0;
+
+        // Parse negative pictures (S0)
+        for (mfxU8 i = 0; i < strps.num_negative_pics; i++)
         {
-            pic.delta_poc_sx_minus1      = bs.GetUE();
-            pic.used_by_curr_pic_sx_flag = bs.GetBit();
-            pic.DeltaPocSX = mfxI16(sign * (pic.delta_poc_sx_minus1 + 1));
-        };
+            strps.pic[i].delta_poc_sx_minus1      = bs.GetUE();
+            strps.pic[i].used_by_curr_pic_sx_flag = bs.GetBit();
+            prevDeltaPocSX -= (strps.pic[i].delta_poc_sx_minus1 + 1);
+            strps.pic[i].DeltaPocSX = prevDeltaPocSX;
+        }
 
-        std::for_each(
-            strps.pic
-            , strps.pic + strps.num_negative_pics
-            , ParseIntraPic);
+        // Reset for positive pictures (S1)
+        prevDeltaPocSX = 0;
 
-        sign = 1;
-        std::for_each(
-            strps.pic + strps.num_negative_pics
-            , strps.pic + strps.num_negative_pics + strps.num_positive_pics
-            , ParseIntraPic);
+        // Parse positive pictures (S1)
+        for (mfxU8 i = 0; i < strps.num_positive_pics; i++)
+        {
+            mfxU8 idxPos = strps.num_negative_pics + i;
+            strps.pic[idxPos].delta_poc_sx_minus1      = bs.GetUE();
+            strps.pic[idxPos].used_by_curr_pic_sx_flag = bs.GetBit();
+            prevDeltaPocSX += (strps.pic[idxPos].delta_poc_sx_minus1 + 1);
+            strps.pic[idxPos].DeltaPocSX = prevDeltaPocSX;
+        }
     }
 }
 
