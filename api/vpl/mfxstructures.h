@@ -5315,8 +5315,23 @@ typedef struct {
     mfxU16                              EnableScd;                        /*!< Indicates if enabling scene change detection(SCD) of the library. Recommend to enable this flag for
                                                                                better quality. Value 0 means disable SCD, Value 1 means enable SCD.*/
 
+#ifdef ONEVPL_EXPERIMENTAL
+    mfxU32                              TimestepCount;                    /*!< Number of values in pTimesteps. Must be no greater than
+                                                                               (FRC_ratio - 1), where FRC_ratio is determined by the
+                                                                               output/input frame rate. When both TimestepCount is 0 and
+                                                                               pTimesteps is NULL, the implementation uses its default schedule. */
+    mfxU32                              reserved1[23];                    /*!< Reserved for future use. */
+    mfxF32*                             pTimesteps;                       /*!< Pointer to a strictly increasing array of TimestepCount values,
+                                                                               each in the open interval (0, 1). On mfxVideoParam this sets
+                                                                               the session default. On an input surface's mfxFrameData it
+                                                                               overrides the schedule for that frame pair. The runtime value
+                                                                               has priority over the session value. The pointer and array must
+                                                                               remain valid until the corresponding RunFrameVPPAsync call returns. */
+    mfxHDL                              reserved2[7];                     /*!< Reserved for future use. */
+#else
     mfxU32                              reserved1[24];                    /*!< Reserved for future use. */
     mfxHDL                              reserved2[8];                     /*!< Reserved for future use. */
+#endif
 } mfxExtVPPAIFrameInterpolation;
 MFX_PACK_END()
 
