@@ -2447,6 +2447,7 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
             break;
 #endif
         case MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION:
+
             if (format == MFX_FOURCC_NV12)
             {
                 formatSupport = MFX_FORMAT_SUPPORT_INPUT | MFX_FORMAT_SUPPORT_OUTPUT;

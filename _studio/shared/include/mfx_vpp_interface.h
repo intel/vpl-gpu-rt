@@ -349,6 +349,19 @@ namespace MfxHwVideoProcessing
             }
         };
 
+        // Driver Video Frame Interpolation (arbitrary-EU path) blt params.
+        // Only MFX-level fields here; MFX->VPE mapping (Mode=ARBITARY_EU, Stage) is done in D3D11VideoProcessor::SetVfiParam.
+        struct VFIInfo {
+            bool                                 Enabled;
+            mfxF32                               TimeStep;   // target timestamp in (0,1) for the interpolated frame
+
+            bool operator!=(const VFIInfo& other) const
+            {
+                return Enabled        != other.Enabled
+                       || TimeStep    != other.TimeStep;
+            }
+        };
+
     public:
             mfxExecuteParams():
                 targetSurface()
@@ -467,6 +480,9 @@ namespace MfxHwVideoProcessing
                    srSetParams.Mode = MFX_AI_SUPER_RESOLUTION_MODE_DISABLED;
                    srSetParams.Algorithm = MFX_AI_SUPER_RESOLUTION_ALGORITHM_DEFAULT;
                    srGetParams = srSetParams;
+
+                   vfiSetParams.Enabled  = false;
+                   vfiSetParams.TimeStep = 0.0f;
             };
 
             bool IsDoNothing()
@@ -630,6 +646,8 @@ namespace MfxHwVideoProcessing
 
         SRInfo      srSetParams;
         SRInfo      srGetParams;
+
+        VFIInfo     vfiSetParams;
 
         bool                        bAiVfi;
         mfxAIFrameInterpolationMode m_aiFiMode;

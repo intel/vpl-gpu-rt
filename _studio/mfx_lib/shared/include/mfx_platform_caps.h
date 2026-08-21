@@ -237,6 +237,7 @@ namespace VppCaps
             case MFX_HW_BMG:
             case MFX_HW_PTL:
             case MFX_HW_NVL_XE3G:
+            case MFX_HW_NVL:
                 return true;
             default:
                 return false;
