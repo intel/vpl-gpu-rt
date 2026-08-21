@@ -1245,12 +1245,10 @@ namespace MfxHwH264Encode
             reset(0);
         }
 
-        T * reset(T * arr)
+        void reset(T * arr)
         {
-            T * tmp(m_arr);
             delete [] m_arr;
             m_arr = arr;
-            return tmp;
         }
 
         T * cptr()

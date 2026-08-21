@@ -7681,6 +7681,9 @@ MfxVideoParam::MfxVideoParam(mfxVideoParam const & par)
 
 MfxVideoParam& MfxVideoParam::operator=(MfxVideoParam const & par)
 {
+    if (this == &par)
+        return *this;
+
     Construct(par);
 #if defined(MFX_ENABLE_AVC_CUSTOM_QMATRIX)
     std::copy(par.m_extCqmPps.begin(), par.m_extCqmPps.end(), m_extCqmPps.begin());

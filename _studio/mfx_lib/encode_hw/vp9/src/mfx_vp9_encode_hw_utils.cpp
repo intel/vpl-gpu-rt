@@ -69,6 +69,9 @@ VP9MfxVideoParam::VP9MfxVideoParam(mfxVideoParam const & par, eMFXHWType const &
 
 VP9MfxVideoParam& VP9MfxVideoParam::operator=(VP9MfxVideoParam const & par)
 {
+    if (this == &par)
+        return *this;
+
     m_platform = par.m_platform;
     Construct(par);
 
