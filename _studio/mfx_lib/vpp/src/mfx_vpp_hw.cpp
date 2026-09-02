@@ -2447,6 +2447,17 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
             break;
 #endif
         case MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION:
+            // The wider format set comes from the pre/post FC of the driver backend. Platform
+            // capability only: a session takes that path only if the app also supplied a
+            // timestep schedule. Otherwise the OCL backend runs and stays NV12-only.
+            if (VppCaps::IsAIFrameInterpolationSupportedDriver(platform))
+            {
+                MFX_RETURN(CheckFormatLimitation(
+                    MFX_EXTBUFF_VPP_COLOR_CONVERSION,
+                    format,
+                    formatSupport,
+                    platform));
+            }
 
             if (format == MFX_FOURCC_NV12)
             {
@@ -5517,11 +5528,21 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         }
         case MFX_EXTBUFF_VPP_AI_FRAME_INTERPOLATION:
         {
-            if (!VppCaps::IsAIFrameInterpolationSupported(core->GetHWType()))
+            // The only admission point for AI VFI: an explicit timestep schedule needs the
+            // driver backend, a multiplier-only request the OCL one. A platform carrying just
+            // one of the two rejects the request the other would have handled.
+            const mfxExtBuffer* extFi    = (const mfxExtBuffer*)data;
+            const eMFXHWType    platform = core->GetHWType();
+
+            const bool supported = VppCaps::HasAIFrameInterpolationUserTimesteps(extFi)
+                ? VppCaps::IsAIFrameInterpolationSupportedDriver(platform)
+                : VppCaps::IsAIFrameInterpolationSupportedOcl(platform);
+
+            if (!supported)
             {
                 sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
             }
-            
+
             break;
         }
         case MFX_EXTBUFF_ALLOCATION_HINTS:

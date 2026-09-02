@@ -226,7 +226,9 @@ namespace VppCaps
         return platform >= MFX_HW_DG2;
     }
 
-    inline bool IsAIFrameInterpolationSupported(eMFXHWType platform)
+    // AI VFI has two backends behind one ext buffer; keep both platform lists here only.
+    // VFI 1.0 (OCL): uniform schedule from the frame rate ratio, cannot honour app timesteps.
+    inline bool IsAIFrameInterpolationSupportedOcl(eMFXHWType platform)
     {
         switch (platform)
         {
@@ -237,11 +239,37 @@ namespace VppCaps
             case MFX_HW_BMG:
             case MFX_HW_PTL:
             case MFX_HW_NVL_XE3G:
-            case MFX_HW_NVL:
                 return true;
             default:
                 return false;
         }
+    }
+
+    // VFI 2.0 (driver arbitrary-EU): interpolates at arbitrary timestamps, so it is the only
+    // backend that can honour an app timestep schedule. Windows-only DDI.
+    inline bool IsAIFrameInterpolationSupportedDriver(eMFXHWType platform)
+    {
+        (void)platform;
+        return false;
+    }
+
+    // True when the app attached an explicit timestep schedule. These fields were carved out of
+    // the reserved area, so an app built on the older layout arrives here zeroed; the size check
+    // only guards against a BufferSz that does not match the actual allocation.
+    inline bool HasAIFrameInterpolationUserTimesteps(const mfxExtBuffer* fiBuffer)
+    {
+#ifdef ONEVPL_EXPERIMENTAL
+        if (!fiBuffer || fiBuffer->BufferSz != sizeof(mfxExtVPPAIFrameInterpolation))
+        {
+            return false;
+        }
+
+        const auto* fiParams = reinterpret_cast<const mfxExtVPPAIFrameInterpolation*>(fiBuffer);
+        return fiParams->TimestepCount != 0 && fiParams->pTimesteps != nullptr;
+#else
+        (void)fiBuffer;
+        return false;
+#endif
     }
 
     inline bool Is3DLutABGR16FSupported(eMFXHWType platform)
