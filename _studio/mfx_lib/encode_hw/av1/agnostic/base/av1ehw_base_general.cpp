@@ -22,6 +22,7 @@
 #if defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
 
 #include "av1ehw_base_general.h"
+#include <new>
 #include "av1ehw_base_data.h"
 #include "av1ehw_base_constraints.h"
 #include "av1ehw_base_task.h"
@@ -1386,10 +1387,25 @@ void General::InitTask(const FeatureBlocks& blocks, TPushIT Push)
             tpar.ctrl = *pCtrl;
             if(pCtrl->NumExtParam)
             {
-                mfxExtBuffer** tEB = new mfxExtBuffer*[pCtrl->NumExtParam];
+                mfxExtBuffer** tEB = new (std::nothrow) mfxExtBuffer*[pCtrl->NumExtParam]();
+                if (!tEB)
+                {
+                    core.DecreaseReference(*tpar.pSurfIn);
+                    tpar.pSurfIn = nullptr;
+                    MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
+                }
                 for(mfxU32 i = 0;i < pCtrl->NumExtParam;i++)
                 {
-                    tEB[i] = (mfxExtBuffer*) new mfxU8[pCtrl->ExtParam[i]->BufferSz];
+                    tEB[i] = (mfxExtBuffer*) new (std::nothrow) mfxU8[pCtrl->ExtParam[i]->BufferSz];
+                    if (!tEB[i])
+                    {
+                        for (mfxU32 j = 0; j < i; ++j)
+                            delete[] reinterpret_cast<mfxU8*>(tEB[j]);
+                        delete[] tEB;
+                        core.DecreaseReference(*tpar.pSurfIn);
+                        tpar.pSurfIn = nullptr;
+                        MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
+                    }
                     memcpy(tEB[i], pCtrl->ExtParam[i], pCtrl->ExtParam[i]->BufferSz);
                 }
                 tpar.ctrl.ExtParam = tEB;
