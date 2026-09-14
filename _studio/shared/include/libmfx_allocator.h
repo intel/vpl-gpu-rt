@@ -58,7 +58,12 @@ namespace mfxDefaultAllocator
     mfxStatus UnlockFrame(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr=0);
     mfxStatus FreeFrames(mfxHDL pthis, mfxFrameAllocResponse *response);
 
+    // 'pitch' is the REAL BYTE STRIDE (bytes per row, bytes-per-pixel already
+    // included) -- the same value SetPointers publishes as Data.Pitch. Never
+    // pass a luma-width sample count. See the contract comment in the .cpp.
     mfxStatus GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height, mfxU32 fourCC, mfxU32& nBytes);
+    // Derives the real byte stride (matching SetPointers) from Info and calls
+    // GetSurfaceSizeInBytes. See the contract comment in the .cpp.
     mfxStatus GetNumBytesRequired(const mfxFrameInfo& Info, mfxU32& nbytes, size_t power_of_2_alignment = BASE_SIZE_ALIGN);
 
     struct BufferStruct

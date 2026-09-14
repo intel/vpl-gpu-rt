@@ -152,6 +152,21 @@ mfxStatus mfxDefaultAllocator::FreeBuffer(mfxHDL pthis, mfxMemId mid)
     }
 }
 
+// PITCH CONVENTION (read before editing any branch below):
+//   'pitch' is ALWAYS the REAL BYTE STRIDE of the surface, i.e. the number of
+//   bytes between consecutive rows, with the bytes-per-pixel factor ALREADY
+//   included. This is the exact value SetPointers publishes as Data.Pitch
+//   (= pitch_from_width() = multiplier * align(Width,32)), and the value every
+//   caller passes (e.g. media copy, GetNumBytesRequired).
+//
+//   Therefore, for a packed single-plane format the size is simply
+//   pitch * height -- do NOT multiply by bytes-per-pixel again (that treats
+//   'pitch' as a luma-width sample count and over-sizes the surface by 2x/4x/8x).
+//   Only planar / semi-planar formats add extra plane terms, and those terms are
+//   still expressed as fractions of the real byte stride (e.g. pitch>>1).
+//
+//   Keep this consistent with SetPointers and GetNumBytesRequired: all three
+//   must agree that pitch == real byte stride.
 mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height, mfxU32 fourCC, mfxU32& nBytes)
 {
     mfxU64 tempBytes = 0;
@@ -167,26 +182,17 @@ mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height
         tempBytes = (mfxU64)pitch * height + (mfxU64)(pitch >> 1) * (height >> 1) + (mfxU64)(pitch >> 1) * (height >> 1);
         break;
     case MFX_FOURCC_P210:
-    case MFX_FOURCC_YUY2:
     case MFX_FOURCC_YUV422H:
     case MFX_FOURCC_YUV422V:
-    case MFX_FOURCC_UYVY:
+        // Semi-planar (P210) or planar (YUV422H/V) 4:2:2. 'pitch' is the real
+        // luma byte stride; chroma contributes two half-width planes.
         tempBytes = (mfxU64)pitch * height + (mfxU64)(pitch >> 1) * height + (mfxU64)(pitch >> 1) * height;
         break;
     case MFX_FOURCC_YUV444:
-    case MFX_FOURCC_RGB3:
     case MFX_FOURCC_RGBP:
     case MFX_FOURCC_BGRP:
+        // Planar 4:4:4 / planar RGB: three full-size planes.
         tempBytes = (mfxU64)pitch * height + (mfxU64)pitch * height + (mfxU64)pitch * height;
-        break;
-    case MFX_FOURCC_RGB565:
-        tempBytes = (mfxU64)2 * pitch * height;
-        break;
-    case MFX_FOURCC_BGR4:
-    case MFX_FOURCC_RGB4:
-    case MFX_FOURCC_AYUV:
-    case MFX_FOURCC_A2RGB10:
-        tempBytes = (mfxU64)pitch * height + (mfxU64)pitch * height + (mfxU64)pitch * height + (mfxU64)pitch * height;
         break;
     case MFX_FOURCC_Y410:
     case MFX_FOURCC_Y416:
@@ -198,11 +204,22 @@ mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height
     case MFX_FOURCC_R16:
     case MFX_FOURCC_ARGB16:
     case MFX_FOURCC_ABGR16:
-        tempBytes = (mfxU64)pitch * height;
-        break;
+    // Packed single-plane formats. 'pitch' is the real byte stride, which
+    // already includes the bytes-per-pixel factor, so the total size is simply
+    // pitch * height. Callers such as media copy pass the real Data.Pitch
+    // published by SetPointers; do NOT multiply by bpp again here
+    // (that double-count over-sized these surfaces by 2x/4x/8x).
+    case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_UYVY:
+    case MFX_FOURCC_RGB3:
+    case MFX_FOURCC_RGB565:
+    case MFX_FOURCC_BGR4:
+    case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_AYUV:
+    case MFX_FOURCC_A2RGB10:
     case MFX_FOURCC_ABGR16F:
     case MFX_FOURCC_ARGB16F:
-        tempBytes = ((mfxU64)pitch * height + (mfxU64)pitch * height + (mfxU64)pitch * height + (mfxU64)pitch * height) * 2;
+        tempBytes = (mfxU64)pitch * height;
         break;
     default:
         MFX_RETURN(MFX_ERR_UNSUPPORTED);
@@ -217,6 +234,23 @@ mfxStatus mfxDefaultAllocator::GetSurfaceSizeInBytes(mfxU32 pitch, mfxU32 height
     return MFX_ERR_NONE;
 }
 
+// PITCH CONVENTION (read before editing the switch below):
+//   This function derives the surface's REAL BYTE STRIDE from Info.Width and
+//   passes it to GetSurfaceSizeInBytes, which expects the real byte stride
+//   (see the contract on that function).
+//
+//   The stride MUST match what SetPointers will publish as Data.Pitch for the
+//   same format, i.e. multiplier * align(Width,32) (see pitch_from_width), where
+//   'multiplier' is the format's bytes-per-pixel / bytes-per-luma-sample. Any
+//   format whose stride is NOT 1 byte per luma sample must have an explicit case
+//   here; the default branch produces align(Width,32) (1 byte/sample) only.
+//
+//   NOTE: write the packed-format stride as `multiplier * align(Width,32)`
+//   (NOT `align(Width * multiplier, 32)`) so it is byte-for-byte identical to
+//   the SetPointers layout for every width. Do NOT "fix" a packed format by
+//   leaving it on the default branch and relying on GetSurfaceSizeInBytes to
+//   multiply by bpp -- that reintroduces the pitch-convention mismatch this
+//   pairing was written to remove.
 mfxStatus mfxDefaultAllocator::GetNumBytesRequired(const mfxFrameInfo & Info, mfxU32& nbytes, size_t power_of_2_alignment)
 {
     mfxU32 Pitch = mfx::align2_value(Info.Width, 32), Height2 = mfx::align2_value(Info.Height, 32);
@@ -239,6 +273,31 @@ mfxStatus mfxDefaultAllocator::GetNumBytesRequired(const mfxFrameInfo & Info, mf
         break;
     case MFX_FOURCC_Y416:
         Pitch = mfx::align2_value(Info.Width * 8, 32);
+        break;
+    // Packed single-plane formats: GetSurfaceSizeInBytes now treats 'pitch' as
+    // the real byte stride, so feed the same real stride SetPointers publishes
+    // (multiplier * align(Width,32), i.e. pitch_from_width) instead of the bare
+    // luma width. Written as multiplier * align(Width,32) rather than
+    // align(Width * multiplier, 32) so the internal SW allocation size stays
+    // byte-for-byte identical to before and exactly matches the SetPointers
+    // layout for every width.
+    case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_UYVY:
+    case MFX_FOURCC_RGB565:
+        Pitch = 2 * mfx::align2_value(Info.Width, 32);
+        break;
+    case MFX_FOURCC_RGB3:
+        Pitch = 3 * mfx::align2_value(Info.Width, 32);
+        break;
+    case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_BGR4:
+    case MFX_FOURCC_A2RGB10:
+    case MFX_FOURCC_AYUV:
+        Pitch = 4 * mfx::align2_value(Info.Width, 32);
+        break;
+    case MFX_FOURCC_ABGR16F:
+    case MFX_FOURCC_ARGB16F:
+        Pitch = 8 * mfx::align2_value(Info.Width, 32);
         break;
     default:
         break;
@@ -318,6 +377,9 @@ static inline size_t pitch_from_frame_data(const mfxFrameData& frame_data)
     return (size_t(frame_data.PitchHigh) << 16) + frame_data.PitchLow;
 }
 
+// The Data.Pitch published here (via pitch_from_width = multiplier*align(Width,32))
+// is the REAL BYTE STRIDE consumed by GetSurfaceSizeInBytes / GetNumBytesRequired;
+// all three must agree on that convention.
 static inline mfxStatus SetPointers(mfxFrameData& frame_data, const mfxFrameInfo & info, mfxU8* bytes)
 {
     clear_frame_data(frame_data);
