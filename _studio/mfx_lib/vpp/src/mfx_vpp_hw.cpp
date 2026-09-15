@@ -1193,7 +1193,8 @@ TaskManager::~TaskManager()
 
 mfxStatus TaskManager::Init(
     VideoCORE* core,
-    Config & config)
+    Config & config,
+    bool driverVfiStage)
 {
     m_taskIndex    = 0;
     m_actualNumber = 0;
@@ -1211,6 +1212,9 @@ mfxStatus TaskManager::Init(
     m_resMngr.Init(config, this->m_core);
 
     m_tasks.resize(config.m_surfCount[VPP_OUT]);
+    m_isDriverVfiStage = driverVfiStage;
+    if (m_isDriverVfiStage)
+        m_driverVfiReferencesHeld.assign(m_tasks.size(), 0);
 
 
 #ifdef MFX_ENABLE_MCTF
@@ -1227,6 +1231,8 @@ mfxStatus TaskManager::Close(void)
     m_actualNumber = m_taskIndex = 0;
 
     Clear(m_tasks);
+    m_driverVfiReferencesHeld.clear();
+    m_isDriverVfiStage = false;
 
     m_core     = NULL;
 
@@ -1463,9 +1469,84 @@ mfxStatus TaskManager::AssignTask(
 } // mfxStatus TaskManager::AssignTask(...)
 
 
+mfxStatus TaskManager::CompleteDriverVfiTask(DdiTask* pTask)
+{
+    const size_t taskIndex = pTask - m_tasks.data();
+    if (!m_driverVfiReferencesHeld[taskIndex])
+        return MFX_TASK_DONE;
+
+    // Claim cleanup before releasing anything so cancellation cannot retry a
+    // task after a partial failure.
+    m_driverVfiReferencesHeld[taskIndex] = 0;
+
+    mfxFrameSurface1* input = pTask->input.pSurf;
+    mfxFrameSurface1* output = pTask->output.pSurf;
+    const mfxU32 inputFreeIdx = pTask->input.resIdx;
+#ifdef MFX_ENABLE_MCTF
+    mfxFrameSurface1* outputForApp = pTask->outputForApp.pSurf;
+    const mfxU32 outputFreeIdx = pTask->outputForApp.resIdx;
+#else
+    const mfxU32 outputFreeIdx = pTask->output.resIdx;
+#endif
+
+    // A failed DecreaseReference may already have decremented Data.Locked.
+    // Attempt each release once, finish the remaining cleanup, and report the first error.
+    mfxStatus firstError = MFX_ERR_NONE;
+    mfxStatus sts = MFX_ERR_NONE;
+
+#ifdef MFX_ENABLE_MCTF
+    if (output != outputForApp && outputForApp)
+    {
+        sts = m_core->DecreaseReference(*outputForApp);
+        if (MFX_FAILED(sts) && MFX_SUCCEEDED(firstError))
+            firstError = sts;
+    }
+#endif
+
+    sts = m_core->DecreaseReference(*output);
+    if (MFX_FAILED(sts) && MFX_SUCCEEDED(firstError))
+        firstError = sts;
+
+    if(NO_INDEX != outputFreeIdx && m_resMngr.m_surf[VPP_OUT].size() > 0)
+    {
+        m_resMngr.m_surf[VPP_OUT][outputFreeIdx].SetFree(true);
+    }
+
+    if(pTask->bAdvGfxEnable || m_mode30i60p.IsEnabled() )
+    {
+        sts = m_resMngr.CompleteTask(pTask);
+        if (MFX_FAILED(sts) && MFX_SUCCEEDED(firstError))
+            firstError = sts;
+    }
+    else // simple mode
+    {
+        if(NO_INDEX != inputFreeIdx && m_resMngr.m_surf[VPP_IN].size() > 0)
+        {
+            m_resMngr.m_surf[VPP_IN][inputFreeIdx].SetFree(true);
+        }
+    }
+
+    if (input)
+    {
+        sts = m_core->DecreaseReference(*input);
+        if (MFX_FAILED(sts) && MFX_SUCCEEDED(firstError))
+            firstError = sts;
+    }
+
+
+    FreeTask(pTask);
+
+    return MFX_FAILED(firstError) ? firstError : MFX_TASK_DONE;
+
+} // mfxStatus TaskManager::CompleteDriverVfiTask(DdiTask* pTask)
+
+
 mfxStatus TaskManager::CompleteTask(DdiTask* pTask)
 {
     UMC::AutomaticUMCMutex guard(m_mutex);
+
+    if (m_isDriverVfiStage)
+        return CompleteDriverVfiTask(pTask);
 
 #ifdef MFX_ENABLE_MCTF
     if (pTask->output.pSurf != pTask->outputForApp.pSurf && pTask->outputForApp.pSurf)
@@ -1672,6 +1753,11 @@ mfxStatus TaskManager::FillTask(
     }
 
     sts = m_core->IncreaseReference(*pTask->output.pSurf);
+    if (m_isDriverVfiStage && sts != MFX_ERR_NONE)
+    {
+        if (pTask->input.pSurf)
+            m_core->DecreaseReference(*pTask->input.pSurf);
+    }
     MFX_CHECK_STS(sts);
 
 #ifdef MFX_ENABLE_MCTF
@@ -1679,9 +1765,18 @@ mfxStatus TaskManager::FillTask(
     if (pTask->output.pSurf != pTask->outputForApp.pSurf && pTask->outputForApp.pSurf)
     {
         sts = m_core->IncreaseReference(*pTask->outputForApp.pSurf);
+        if (m_isDriverVfiStage && sts != MFX_ERR_NONE)
+        {
+            m_core->DecreaseReference(*pTask->output.pSurf);
+            if (pTask->input.pSurf)
+                m_core->DecreaseReference(*pTask->input.pSurf);
+        }
         MFX_CHECK_STS(sts);
     }
 #endif
+
+    if (m_isDriverVfiStage)
+        m_driverVfiReferencesHeld[pTask - m_tasks.data()] = 1;
 
     pTask->SetFree(false);
 
@@ -1899,6 +1994,7 @@ VideoVPPHW::VideoVPPHW(IOMode mode, VideoCORE *core)
 ,m_critical_error(MFX_ERR_NONE)
 ,m_ddi(NULL)
 ,m_bMultiView(false)
+,m_isDriverVfiStage(false)
 
 #ifdef MFX_ENABLE_EXT
 #ifdef MFX_ENABLE_MCTF
@@ -2512,7 +2608,7 @@ mfxStatus  VideoVPPHW::Init(
     mfxExtBuffer* pHint = NULL;
     GetFilterParam(par, MFX_EXTBUFF_MVC_SEQ_DESC, &pHint);
 
-    if( pHint )
+    if( pHint || m_isDriverVfiStage )
     {
         /* Multi-view processing needs separate devices for each view. Using one device is not possible since
          * backward/forward references from different views will be messed up. Thus each VPPHW instance needs to
@@ -2530,7 +2626,7 @@ mfxStatus  VideoVPPHW::Init(
         sts = m_ddi->CreateDevice(m_pCore);
         MFX_CHECK_STS(sts);
 
-        m_bMultiView = true;
+        m_bMultiView = pHint != nullptr;
 
     }
     else
@@ -2835,7 +2931,7 @@ mfxStatus  VideoVPPHW::Init(
     //-----------------------------------------------------
     // [4] resource and task manager
     //-----------------------------------------------------
-    sts = m_taskMngr.Init(m_pCore, m_config);
+    sts = m_taskMngr.Init(m_pCore, m_config, m_isDriverVfiStage);
     MFX_CHECK_STS(sts);
 
     //-----------------------------------------------------
@@ -2929,6 +3025,7 @@ mfxStatus  VideoVPPHW::Init(
     return (bIsFilterSkipped) ? MFX_WRN_FILTER_SKIPPED : MFX_ERR_NONE;
 
 } // mfxStatus VideoVPPHW::Init(mfxVideoParam *par, mfxU32 *tabUsedFiltersID, mfxU32 numOfFilters)
+
 
 #ifdef MFX_ENABLE_MCTF
 mfxStatus VideoVPPHW::InitMCTF(const mfxFrameInfo& info, const IntMctfParams& MctfConfig)
@@ -3173,6 +3270,7 @@ mfxStatus VideoVPPHW::QueryIOSurf(
     }
     MFX_CHECK_STS(sts);
 
+
     request[VPP_IN].NumFrameMin  = request[VPP_IN].NumFrameSuggested  = config.m_surfCount[VPP_IN];
     request[VPP_OUT].NumFrameMin = request[VPP_OUT].NumFrameSuggested = config.m_surfCount[VPP_OUT];
 
@@ -3335,7 +3433,7 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
     //-----------------------------------------------------
     // [5] resource and task manager
     //-----------------------------------------------------
-    sts = m_taskMngr.Init(m_pCore, m_config);
+    sts = m_taskMngr.Init(m_pCore, m_config, m_isDriverVfiStage);
     MFX_CHECK_STS(sts);
 
 #ifdef MFX_ENABLE_MCTF
@@ -3375,12 +3473,17 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
     }
 #endif
 
+
     return (bIsFilterSkipped) ? MFX_WRN_FILTER_SKIPPED : MFX_ERR_NONE;
 } // mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
 
 mfxStatus VideoVPPHW::Close()
 {
     mfxStatus sts = MFX_ERR_NONE;
+
+
+    if (m_isDriverVfiStage)
+        m_taskMngr.CancelDriverVfiStageTasks();
 
     m_internalVidSurf[VPP_IN].Free();
     m_internalVidSurf[VPP_OUT].Free();
@@ -3443,8 +3546,15 @@ mfxStatus VideoVPPHW::Close()
     */
 #endif
 
+    if (m_isDriverVfiStage)
+    {
+        // The Driver VFI stage owns this device and may be closed again by its destructor.
+        delete m_ddi;
+        m_ddi = nullptr;
+        m_bMultiView = false;
+    }
     /* Device close semantic is different for multi-view and single view */
-    if ( m_bMultiView )
+    else if ( m_bMultiView )
     {
         /* In case of multi-view, VPPHW created dedicated resource manager with
          * device on Init, so need to close it be deleting resource manager
@@ -3475,9 +3585,11 @@ mfxStatus VideoVPPHW::VppFrameCheck(
                                     mfxFrameSurface1 *output,
                                     mfxExtVppAuxData *aux,
                                     MFX_ENTRY_POINT pEntryPoint[],
-                                    mfxU32 &numEntryPoints)
+                                    mfxU32 &numEntryPoints,
+                                    mfxU32 *taskIndex)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
+
 
     mfxStatus sts;
     mfxStatus intSts = MFX_ERR_NONE;
@@ -3676,6 +3788,9 @@ mfxStatus VideoVPPHW::VppFrameCheck(
             numEntryPoints = 1;
         }
     }
+
+    if (taskIndex)
+        *taskIndex = pTask->taskIndex;
 
     return intSts;
 
@@ -4979,6 +5094,11 @@ mfxStatus VideoVPPHW::QueryTaskRoutine(void *pState, void *pParam, mfxU32 thread
 
             MFX_CHECK_STS(sts);
         }
+
+        // An owned driver-VFI stage may resume after downstream work returns
+        // BUSY. Its auto-reset GPU event has already been consumed here.
+        if (pHwVpp->m_isDriverVfiStage)
+            pTask->skipQueryStatus = true;
 
         //[2] Variance
         if (pTask->bVariance)

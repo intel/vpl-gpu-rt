@@ -1396,10 +1396,12 @@ mfxStatus VideoVPP_HW::VppFrameCheck(mfxFrameSurface1 *in, mfxFrameSurface1 *out
     mfxStatus sts = VideoVPPBase::VppFrameCheck(in, out, aux, pEntryPoints, numEntryPoints);
     MFX_CHECK_STS( sts );
 
-    mfxStatus internalSts = m_pHWVPP.get()->VppFrameCheck( in, out, aux, pEntryPoints, numEntryPoints);
+    // Task parameters belong to the selected VPP implementation. Obtain only
+    // the output index needed for metadata instead of assuming a DdiTask layout.
+    mfxU32 taskIndex = 0;
+    mfxStatus internalSts = m_pHWVPP.get()->VppFrameCheck( in, out, aux, pEntryPoints, numEntryPoints, &taskIndex);
 
     bool isInverseTelecinedEnabled = false;
-    const DdiTask* pTask = (DdiTask*)pEntryPoints[0].pParam ;
 
     isInverseTelecinedEnabled = IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_ITC);
 
@@ -1408,9 +1410,9 @@ mfxStatus VideoVPP_HW::VppFrameCheck(mfxFrameSurface1 *in, mfxFrameSurface1 *out
         //internalSts = (mfxStatus) MFX_ERR_MORE_DATA_SUBMIT_TASK;
     }
 
-    if( out && pTask && (MFX_ERR_NONE == internalSts || MFX_ERR_MORE_SURFACE == internalSts) )
+    if( out && pEntryPoints[0].pParam && (MFX_ERR_NONE == internalSts || MFX_ERR_MORE_SURFACE == internalSts) )
     {
-        sts = PassThrough(NULL != in ? &(in->Info) : NULL, &(out->Info), pTask->taskIndex);
+        sts = PassThrough(NULL != in ? &(in->Info) : NULL, &(out->Info), taskIndex);
         //MFX_CHECK_STS( sts );
     }
 

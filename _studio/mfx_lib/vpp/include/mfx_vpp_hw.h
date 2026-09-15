@@ -714,7 +714,8 @@ namespace MfxHwVideoProcessing
 
         mfxStatus Init(
             VideoCORE* core,
-            Config & config);
+            Config & config,
+            bool driverVfiStage = false);
 
         mfxStatus Close(void);
 
@@ -729,6 +730,15 @@ namespace MfxHwVideoProcessing
             mfxStatus & intSts);
 
         mfxStatus CompleteTask(DdiTask* pTask);
+
+        void CancelDriverVfiStageTasks()
+        {
+            if (!m_isDriverVfiStage)
+                return;
+            for (size_t i = 0; i < m_driverVfiReferencesHeld.size(); ++i)
+                if (m_driverVfiReferencesHeld[i])
+                    CompleteTask(&m_tasks[i]);
+        }
 
         SubTask GetSubTask(DdiTask *pTask);
 #ifdef MFX_ENABLE_MCTF
@@ -754,6 +764,9 @@ namespace MfxHwVideoProcessing
             mfxStatus *intSts);
 
         DdiTask* GetTask(void);
+
+        // Called only for Driver VFI stages, with m_mutex held.
+        mfxStatus CompleteDriverVfiTask(DdiTask* pTask);
 
         void FreeTask(DdiTask *pTask)
         {
@@ -814,6 +827,10 @@ namespace MfxHwVideoProcessing
             mfxFrameSurface1 *ouput);
 
         std::vector<DdiTask> m_tasks;
+        // Populated only for Driver VFI's internal VPP stages. Ordinary VPP
+        // and OCL helpers retain the original task/reference cleanup behavior.
+        bool m_isDriverVfiStage = false;
+        std::vector<mfxU8> m_driverVfiReferencesHeld;
         VideoCORE*            m_core;
 
         mfxI32 m_taskIndex;
@@ -874,6 +891,17 @@ namespace MfxHwVideoProcessing
             mfxVideoParam *par,
             bool isTemporal = false);
 
+        // Internal driver-VFI processing stages own their device and completion.
+        mfxStatus InitDriverVfiStage(mfxVideoParam* par)
+        {
+            m_isDriverVfiStage = true;
+            return Init(par);
+        }
+        void CancelDriverVfiStageTasks()
+        {
+            m_taskMngr.CancelDriverVfiStageTasks();
+        }
+
         mfxStatus GetVideoParams(mfxVideoParam *par) const;
 
         static
@@ -908,7 +936,8 @@ namespace MfxHwVideoProcessing
             mfxFrameSurface1 *output,
             mfxExtVppAuxData *aux,
             MFX_ENTRY_POINT pEntryPoint[],
-            mfxU32 &numEntryPoints);
+            mfxU32 &numEntryPoints,
+            mfxU32 *taskIndex = nullptr);
 
         mfxStatus RunFrameVPP(mfxFrameSurface1 * /*in*/, mfxFrameSurface1 * /*out*/, mfxExtVppAuxData * /*aux*/)
         {
@@ -992,6 +1021,7 @@ namespace MfxHwVideoProcessing
         // Not a smart pointer anymore since core owns create/delete semantic now.
         VPPHWResMng * m_ddi;
         bool          m_bMultiView;
+        bool          m_isDriverVfiStage;
 
 #ifdef MFX_ENABLE_EXT
 #ifdef MFX_ENABLE_MCTF
