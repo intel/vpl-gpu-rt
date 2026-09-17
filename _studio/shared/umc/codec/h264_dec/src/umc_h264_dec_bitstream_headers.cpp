@@ -1919,7 +1919,6 @@ Status H264HeadersBitstream::GetPredWeightTable(
         {
             pPredWeight_L0[refindex].luma_weight = (int8_t)GetVLCElement(true);
             pPredWeight_L0[refindex].luma_offset = (int8_t)GetVLCElement(true);
-            pPredWeight_L0[refindex].luma_offset <<= (sps->bit_depth_luma - 8);
         }
         else
         {
@@ -1939,9 +1938,6 @@ Status H264HeadersBitstream::GetPredWeightTable(
             pPredWeight_L0[refindex].chroma_offset[0] = (int8_t)GetVLCElement(true);
             pPredWeight_L0[refindex].chroma_weight[1] = (int8_t)GetVLCElement(true);
             pPredWeight_L0[refindex].chroma_offset[1] = (int8_t)GetVLCElement(true);
-
-            pPredWeight_L0[refindex].chroma_offset[0] <<= (sps->bit_depth_chroma - 8);
-            pPredWeight_L0[refindex].chroma_offset[1] <<= (sps->bit_depth_chroma - 8);
         }
         else
         {
@@ -1961,7 +1957,6 @@ Status H264HeadersBitstream::GetPredWeightTable(
             {
                 pPredWeight_L1[refindex].luma_weight = (int8_t)GetVLCElement(true);
                 pPredWeight_L1[refindex].luma_offset = (int8_t)GetVLCElement(true);
-                pPredWeight_L1[refindex].luma_offset <<= (sps->bit_depth_luma - 8);
             }
             else
             {
@@ -1979,9 +1974,6 @@ Status H264HeadersBitstream::GetPredWeightTable(
                 pPredWeight_L1[refindex].chroma_offset[0] = (int8_t)GetVLCElement(true);
                 pPredWeight_L1[refindex].chroma_weight[1] = (int8_t)GetVLCElement(true);
                 pPredWeight_L1[refindex].chroma_offset[1] = (int8_t)GetVLCElement(true);
-
-                pPredWeight_L1[refindex].chroma_offset[0] <<= (sps->bit_depth_chroma - 8);
-                pPredWeight_L1[refindex].chroma_offset[1] <<= (sps->bit_depth_chroma - 8);
             }
             else
             {
