@@ -253,22 +253,9 @@ mfxStatus VideoVPPBase::VppFrameCheck(mfxFrameSurface1 *in, mfxFrameSurface1 *ou
         sts = CheckInputPicStruct( in->Info.PicStruct );
         MFX_CHECK_STS(sts);
 
-        /* we have special case for composition:
-         * if composition enabled sub stream's picture (WxH)
-         * can be less than primary stream (WxH)
-         * So, do check frame info only if composition is not enabled */
-        if (m_errPrtctState.isCompositionModeEnabled == false)
-        {
-            sts = CompareFrameInfo( &(in->Info), &(m_errPrtctState.In));
-            MFX_CHECK_STS(sts);
-        }
-
         sts = CheckCropParam( &(in->Info) );
         MFX_CHECK_STS( sts );
     }
-
-    sts = CompareFrameInfo( &(out->Info), &(m_errPrtctState.Out));
-    MFX_CHECK_STS(sts);
 
     sts = CheckCropParam( &(out->Info) );
     MFX_CHECK_STS( sts );
