@@ -30,7 +30,8 @@
 #ifdef MFX_ENABLE_ENCTOOLS_BASE
 #include "mfxenctools-int.h"
 #endif
-
+#include <iostream>
+#include "mfxav1.h"
 
 #ifdef MFX_ENABLE_ENCODE_STATS
 #include "mfxencodestats.h"
@@ -55,10 +56,20 @@ namespace MfxExtBuffer
 
     inline mfxU32 IdToSize(mfxU32 Id)
     {
+        std::cout << sizeof(IdSizePairs) / sizeof(IdSizePairs[0]) << std::endl;
+        for(int i = 0; i < sizeof(IdSizePairs) / sizeof(IdSizePairs[0]); i++)
+        {
+            std::cout << IdSizePairs[i][0] << std::endl;
+        }
+        std::cout << Id << std::endl;
+
         auto IsIdEq = [Id](const mfxU32 (&p)[2]) { return p[0] == Id; };
         auto pIt    = std::find_if(std::begin(IdSizePairs), std::end(IdSizePairs), IsIdEq);
         if (pIt == std::end(IdSizePairs))
-            throw std::logic_error("unknown ext. buffer Id");
+            throw std::logic_error("unknown ext. buffer Id: " + std::to_string(Id));
+        else
+            std::cout << pIt[0][0] << std::endl;
+
         return pIt[0][1];
     }
 
