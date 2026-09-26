@@ -3263,7 +3263,7 @@ void General::SetFH(
     // Resolve reduced_tx_set (owned by VPL; AV1 §5.9.12):
     //   1. cap unsupported        -> force 1 (HW can't do full set)
     //   2. APP override           -> accept both MFX tristate 0x10/0x20
-    //   3. default                -> TU1 ON, TU2..TU7 OFF
+    //   3. default                -> full transform set for TU1, reduced set for TU2..TU7
     if (!caps.AV1ToolSupportFlags.fields.allow_full_tx_set)
     {
         fh.reduced_tx_set = 1;
@@ -3283,7 +3283,7 @@ void General::SetFH(
     }
     else if (auxPar.ReducedTxSetUsed == 0)
     {
-        fh.reduced_tx_set = 1;
+        fh.reduced_tx_set = (par.mfx.TargetUsage == MFX_TARGETUSAGE_1) ? 0 : 1;
         MFX_LOG_INFO("SetFH reduced_tx_set=%u (reason=tu_default, TU=%u)\n",
             fh.reduced_tx_set, (unsigned)par.mfx.TargetUsage);
     }
