@@ -43,6 +43,7 @@ Intel® VPL Gen Runtime implementation supports the following hardware platforms
 - BMG (Battlemage)
 - PTLx (PTL: Panther Lake, WCL: Wildcat Lake)
 - NVL (Nova Lake)
+- CRI (Crescent Island)
 
 # Dependencies
 Intel® VPL GPU Runtime depends on [LibVA](https://github.com/intel/libva/).
