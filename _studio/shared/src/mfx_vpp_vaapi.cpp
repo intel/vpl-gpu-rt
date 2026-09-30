@@ -190,6 +190,12 @@ mfxStatus VAAPIVideoProcessing::Close(void)
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_hdrtmFilterID);
     std::ignore = MFX_STS_TRACE(sts);
 
+    for (VABufferID& id : m_pipelineParamID)
+    {
+        sts = CheckAndDestroyVAbuffer(m_vaDisplay, id);
+        std::ignore = MFX_STS_TRACE(sts);
+    }
+
     if (m_vaContextVPP != VA_INVALID_ID)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaDestroyContext");
@@ -210,13 +216,19 @@ mfxStatus VAAPIVideoProcessing::Close(void)
     for(int i = 0; i < VAProcFilterCount; i++)
         m_filterBufs[i] = VA_INVALID_ID;
 
-    m_denoiseFilterID   = VA_INVALID_ID;
-    m_deintFilterID     = VA_INVALID_ID;
-    m_procampFilterID   = VA_INVALID_ID;
-
-    m_3dlutFilterID     = VA_INVALID_ID;
-    m_hvsDenoiseFilterID= VA_INVALID_ID;
-    m_hdrtmFilterID     = VA_INVALID_ID;
+    m_denoiseFilterID    = VA_INVALID_ID;
+    m_detailFilterID     = VA_INVALID_ID;
+    m_deintFilterID      = VA_INVALID_ID;
+    m_procampFilterID    = VA_INVALID_ID;
+    m_frcFilterID        = VA_INVALID_ID;
+    m_3dlutFilterID      = VA_INVALID_ID;
+    m_hvsDenoiseFilterID = VA_INVALID_ID;
+    m_hdrtmFilterID      = VA_INVALID_ID;
+    m_numFilterBufs      = 0;
+    m_pipelineParamID.clear();
+    m_pipelineParam.clear();
+    m_feedbackCache.clear();
+    m_bRunning = false;
 
     memset( (void*)&m_pipelineCaps, 0, sizeof(m_pipelineCaps));
     memset( (void*)&m_denoiseCaps, 0, sizeof(m_denoiseCaps));
