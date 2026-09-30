@@ -41,17 +41,18 @@ inline void SetDefaultContentLightLevel(mfxExtContentLightLevelInfo* pCLLI)
 
 inline mfxStatus CheckAndFixMasteringDisplayColourVolumeInfo(mfxExtMasteringDisplayColourVolume* pMDCV)
 {
+    constexpr mfxU32 AV1_CHROMATICITY_MAX = 65535u;
     mfxU32 changed = 0;
 
     changed += CheckOrZero<mfxU16, MFX_PAYLOAD_OFF, MFX_PAYLOAD_IDR>(pMDCV->InsertPayloadToggle);
-    changed += CheckMaxOrClip(pMDCV->WhitePointX, 50000u);
-    changed += CheckMaxOrClip(pMDCV->WhitePointY, 50000u);
-    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesX[0], 50000u);
-    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesX[1], 50000u);
-    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesX[2], 50000u);
-    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[0], 50000u);
-    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[1], 50000u);
-    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[2], 50000u);
+    changed += CheckMaxOrClip(pMDCV->WhitePointX, AV1_CHROMATICITY_MAX);
+    changed += CheckMaxOrClip(pMDCV->WhitePointY, AV1_CHROMATICITY_MAX);
+    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesX[0], AV1_CHROMATICITY_MAX);
+    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesX[1], AV1_CHROMATICITY_MAX);
+    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesX[2], AV1_CHROMATICITY_MAX);
+    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[0], AV1_CHROMATICITY_MAX);
+    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[1], AV1_CHROMATICITY_MAX);
+    changed += CheckMaxOrClip(pMDCV->DisplayPrimariesY[2], AV1_CHROMATICITY_MAX);
 
     return changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
 }
