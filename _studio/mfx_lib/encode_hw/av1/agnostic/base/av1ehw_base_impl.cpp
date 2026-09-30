@@ -22,6 +22,7 @@
 #if defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
 
 #include "av1ehw_base_impl.h"
+#include <new>
 #include "av1ehw_base_data.h"
 #include "av1ehw_base_general.h"
 #include "av1ehw_base_packer.h"
@@ -182,6 +183,8 @@ private:
 
 mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
 {
+    try
+    {
     MFX_CHECK_NULL_PTR1(par);
     MFX_CHECK(m_storage.Empty(), MFX_ERR_UNDEFINED_BEHAVIOR);
     mfxStatus sts = MFX_ERR_NONE, wrn = MFX_ERR_NONE;
@@ -261,6 +264,11 @@ mfxStatus MFXVideoENCODEAV1_HW::Init(mfxVideoParam *par)
 #endif
 
     return wrn;
+    }
+    catch (const std::bad_alloc&)
+    {
+        return MFX_ERR_MEMORY_ALLOC;
+    }
 }
 
 mfxStatus MFXVideoENCODEAV1_HW::EncodeFrameCheck(
@@ -271,6 +279,8 @@ mfxStatus MFXVideoENCODEAV1_HW::EncodeFrameCheck(
     , mfxEncodeInternalParams * /*pInternalParams*/
     , MFX_ENTRY_POINT *pEntryPoint)
 {
+    try
+    {
     MFX_CHECK(!m_storage.Empty(), MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK_NULL_PTR2(bs, pEntryPoint);
     MFX_CHECK_STS(m_runtimeErr);
@@ -294,10 +304,17 @@ mfxStatus MFXVideoENCODEAV1_HW::EncodeFrameCheck(
     pEntryPoint->pParam = &Tmp::CurrTask::Get(local);
 
     return sts;
+    }
+    catch (const std::bad_alloc&)
+    {
+        return MFX_ERR_MEMORY_ALLOC;
+    }
 }
 
 mfxStatus MFXVideoENCODEAV1_HW::Execute(mfxThreadTask ptask, mfxU32 /*uid_p*/, mfxU32 /*uid_a*/)
 {
+    try
+    {
     // VPL PERF LOG: time the scheduler's per-frame async-routine entry point
     // (pEntryPoint->pRoutine). Execute is a single resumable routine the scheduler
     // re-dispatches until the BQ_AsyncRoutine block queue (frame submit + status query)
@@ -312,6 +329,11 @@ mfxStatus MFXVideoENCODEAV1_HW::Execute(mfxThreadTask ptask, mfxU32 /*uid_p*/, m
     auto& task = *(StorageRW*)ptask;
 
     return RunBlocks(Check<mfxStatus, MFX_ERR_NONE>, BQ<BQ_AsyncRoutine>::Get(*this), m_storage, task);
+    }
+    catch (const std::bad_alloc&)
+    {
+        return MFX_ERR_MEMORY_ALLOC;
+    }
 }
 
 mfxStatus MFXVideoENCODEAV1_HW::FreeResources(mfxThreadTask /*task*/, mfxStatus /*sts*/)

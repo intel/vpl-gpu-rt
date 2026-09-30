@@ -71,7 +71,7 @@ namespace Base
     virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
     virtual void FreeTask(const FeatureBlocks& blocks, TPushQT Push) override;
 
-    void AllocSegmentationData(mfxU16 frame_width, mfxU16 frame_height, mfxU8 blockSize);
+    mfxStatus AllocSegmentationData(mfxU16 frame_width, mfxU16 frame_height, mfxU8 blockSize);
     void ReleaseSegmentationData(void); //m_destroy
 
     bool m_enablePercEncPrefilter = false;
