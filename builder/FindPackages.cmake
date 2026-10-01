@@ -29,7 +29,7 @@ if( Linux )
   find_package(PkgConfig REQUIRED)
 
   # required:
-  pkg_check_modules(PKG_LIBVA     REQUIRED libva>=1.9 IMPORTED_TARGET)
+  pkg_check_modules(PKG_LIBVA     REQUIRED libva>=1.12 IMPORTED_TARGET)
   pkg_check_modules(PKG_LIBDRM    REQUIRED libdrm>=2.4 IMPORTED_TARGET)
   pkg_check_modules(PKG_LIBVA_DRM REQUIRED libva-drm>=1.9 IMPORTED_TARGET)
 
