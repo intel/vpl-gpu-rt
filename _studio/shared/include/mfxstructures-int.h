@@ -647,6 +647,7 @@ typedef struct {
     { 0x674E, MFX_HW_CRI, MFX_GT2 },
     { 0x674F, MFX_HW_CRI, MFX_GT2 },
     { 0x6750, MFX_HW_CRI, MFX_GT2 },
+    { 0x6751, MFX_HW_CRI, MFX_GT2 },
 
     /* NVL / Novalake-P */
     { 0xD750, MFX_HW_NVL, MFX_GT2 },
