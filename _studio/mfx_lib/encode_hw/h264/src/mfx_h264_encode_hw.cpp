@@ -3892,8 +3892,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         if (sts != MFX_ERR_NONE)
             MFX_RETURN(Error(sts));
 #if defined(MFX_ENABLE_ENCTOOLS)
-        // The LA data surface is optional (cf. LplaDataBuffer in HEVC/AV1). Without it, Data.MemId
-        // is NULL and the handle lookup falls through to the application's frame allocator.
         if (extOpt2.LookAheadDepth && (m_pLADataSurfaces.Data.MemId || m_pLADataSurfaces.FrameInterface))
             task->m_handleLpla.first = GetNativeHandle(*m_core,m_pLADataSurfaces);
 #endif
