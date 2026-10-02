@@ -3892,7 +3892,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         if (sts != MFX_ERR_NONE)
             MFX_RETURN(Error(sts));
 #if defined(MFX_ENABLE_ENCTOOLS)
-        if(extOpt2.LookAheadDepth)
+        if (extOpt2.LookAheadDepth && (m_pLADataSurfaces.Data.MemId || m_pLADataSurfaces.FrameInterface))
             task->m_handleLpla.first = GetNativeHandle(*m_core,m_pLADataSurfaces);
 #endif
 #ifdef MFX_ENABLE_EXT
