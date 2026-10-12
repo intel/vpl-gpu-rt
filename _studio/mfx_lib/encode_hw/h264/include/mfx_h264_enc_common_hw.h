@@ -54,10 +54,15 @@
 #endif
 
 #ifdef MFX_ENABLE_LPLA_BASE
-inline mfxU16 GetLpLaDsRatio(const mfxFrameInfo& fi)
+inline mfxU16 GetLpLaDsRatio(const mfxFrameInfo& fi, mfxU16 targetUsage)
 {
     mfxU16 crW = fi.CropW ? fi.CropW : fi.Width;
     mfxU16 crH = fi.CropH ? fi.CropH : fi.Height;
+    if (targetUsage <= 2)
+    {
+        if (crW * crH >= 1920 * 1080) return MFX_LPLA_DS_2X;
+        return MFX_LPLA_NO_DS;
+    }
     if (crW * crH >= 1920 * 1080) return MFX_LPLA_DS_4X;
     if (crW * crH >= 1280 * 720) return MFX_LPLA_DS_2X;
     return MFX_LPLA_NO_DS;

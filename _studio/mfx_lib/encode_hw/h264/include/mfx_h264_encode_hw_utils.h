@@ -1849,6 +1849,11 @@ namespace MfxHwH264Encode
 #endif
 
 
+inline bool IsLADataBufferRequired(eMFXHWType platform, eMFXVAType vaType, mfxU16 lookAheadDepth)
+{
+    return lookAheadDepth && vaType != MFX_HW_NO && vaType != MFX_HW_VAAPI && CommonCaps::IsLADataBufferSupported(platform);
+}
+
 #if defined(MFX_ENABLE_ENCTOOLS)
 
 constexpr mfxU32 ENCTOOLS_QUERY_TIMEOUT = 5000;
@@ -2007,7 +2012,7 @@ static mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl, mfxU
     if (isHWLPLA)
     {
 #ifdef MFX_ENABLE_LPLA_BASE
-        ctrl->LaScale = GetLpLaDsRatio(par.mfx.FrameInfo);
+        ctrl->LaScale = GetLpLaDsRatio(par.mfx.FrameInfo, par.mfx.TargetUsage);
 #endif
     }
     else if (isEnctoolLA)

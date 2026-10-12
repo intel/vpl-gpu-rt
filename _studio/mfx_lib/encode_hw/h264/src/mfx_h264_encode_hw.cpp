@@ -1241,6 +1241,8 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     m_hrd.Setup(m_video);
 
 #if defined(MFX_ENABLE_ENCTOOLS)
+#endif
+#if defined(MFX_ENABLE_ENCTOOLS)
     if (H264EncTools::isEncToolNeeded(m_video))
     {
         if (MFX_HW_D3D11 == m_currentVaType || MFX_HW_D3D9 == m_currentVaType || MFX_HW_VAAPI == m_currentVaType)
@@ -1265,6 +1267,8 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
             m_enabledSwBrc = true;
 
     }
+#endif
+#if defined(MFX_ENABLE_ENCTOOLS)
 #endif
     if (m_enabledSwBrc)
     {
@@ -1877,6 +1881,8 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
     mfxStatus checkStatus = ProcessAndCheckNewParameters(newPar, isBRCReset, isIdrRequired, par);
     if (checkStatus < MFX_ERR_NONE)
         return checkStatus;
+#if defined(MFX_ENABLE_ENCTOOLS)
+#endif
 
     mfxExtCodingOption3 & extOpt3New = GetExtBufferRef(newPar);
     mfxExtCodingOption3 & extOpt3Old = GetExtBufferRef(m_video);
