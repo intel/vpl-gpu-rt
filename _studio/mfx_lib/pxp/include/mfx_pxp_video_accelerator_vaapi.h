@@ -39,7 +39,8 @@ public:
     // VideoAccelerator methods
     virtual UMC::Status Init         (UMC::VideoAcceleratorParams* pInfo) override;
     virtual UMC::Status Execute      () override;
-    virtual UMC::Status SetAttributes(VAProfile va_profile, UMC::LinuxVideoAcceleratorParams* pParams, VAConfigAttrib *attribute, int32_t *attribsNumber) override;
+    virtual UMC::Status SetAttributes(VAProfile va_profile, UMC::LinuxVideoAcceleratorParams* pParams,
+                                        std::vector<VAConfigAttrib>& attributes) override;
 
 protected:
     mfxPXPCtxHDL m_PXPCtxHdl;
