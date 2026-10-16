@@ -354,11 +354,15 @@ namespace MfxHwVideoProcessing
         struct VFIInfo {
             bool                                 Enabled;
             mfxF32                               TimeStep;   // target timestamp in (0,1) for the interpolated frame
+            mfxU32                               PastFrameId;
+            mfxU32                               CurrentFrameId;
 
             bool operator!=(const VFIInfo& other) const
             {
-                return Enabled        != other.Enabled
-                       || TimeStep    != other.TimeStep;
+                return Enabled           != other.Enabled
+                       || TimeStep       != other.TimeStep
+                       || PastFrameId    != other.PastFrameId
+                       || CurrentFrameId != other.CurrentFrameId;
             }
         };
 
@@ -481,8 +485,10 @@ namespace MfxHwVideoProcessing
                    srSetParams.Algorithm = MFX_AI_SUPER_RESOLUTION_ALGORITHM_DEFAULT;
                    srGetParams = srSetParams;
 
-                   vfiSetParams.Enabled  = false;
-                   vfiSetParams.TimeStep = 0.0f;
+                   vfiSetParams.Enabled        = false;
+                   vfiSetParams.TimeStep       = 0.0f;
+                   vfiSetParams.PastFrameId    = 0;
+                   vfiSetParams.CurrentFrameId = 0;
             };
 
             bool IsDoNothing()
