@@ -31,6 +31,7 @@
 #include "mfxenctools-int.h"
 #endif
 
+#include "mfxav1.h"
 
 #ifdef MFX_ENABLE_ENCODE_STATS
 #include "mfxencodestats.h"
