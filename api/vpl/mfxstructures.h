@@ -5484,7 +5484,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-/*! The structure is used to configure encoder pre-processing presets (temporal filter) applied before encoding. */
+/*! The structure is used to configure encoder pre-processing presets (temporal filter and block QP) applied before encoding. */
 typedef struct {
     mfxExtBuffer        Header;         /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_ENC_PREPROCESSING. */
     /*!
@@ -5495,7 +5495,18 @@ typedef struct {
         the external application.
     */
     mfxU16              TFLevel;
-    mfxU16              reserved[27];   /*!< Reserved for future use. */
+    /*!    
+        Block QP (BQ) preset level. Value range of 0 to 4 (inclusive). Zero means the filter is disabled;
+        values from 1 to 4 represent the filtering level, where a higher value yields better encoding quality
+        at the cost of increased latency, which may vary across platform configurations.
+        This feature is not supported in constant QP mode (CQP), or when reference frames are managed by
+        the external application.
+	    TFLevel and BQLevel can be set independently. When both are non-zero, the resources shared by
+        the two features (such as the reference frames used for pre-processing) are allocated according
+        to the higher of the two levels, i.e. max(TFLevel, BQLevel).
+    */
+    mfxU16              BQLevel;
+    mfxU16              reserved[26];   /*!< Reserved for future use. */
 } mfxExtEncPreProcessing;
 MFX_PACK_END()
 #endif
