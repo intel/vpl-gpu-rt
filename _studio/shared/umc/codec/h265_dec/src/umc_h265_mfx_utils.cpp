@@ -107,10 +107,12 @@ bool CheckGUID(VideoCORE * core, eMFXHWType type, mfxVideoParam const* param)
 // Returns implementation platform
 eMFXPlatform GetPlatform_H265(VideoCORE * core, mfxVideoParam * par)
 {
-    if (!par)
-        return MFX_PLATFORM_SOFTWARE;
-
     eMFXPlatform platform = core->GetPlatformType();
+
+    // Query Mode-A (in == NULL): report the core platform, as H.264 does,
+    // so the capability enumeration reflects the real HW type.
+    if (!par)
+        return platform;
     eMFXHWType typeHW = MFX_HW_UNKNOWN;
     typeHW = core->GetHWType();
 

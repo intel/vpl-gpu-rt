@@ -205,11 +205,6 @@ namespace UMC_VVC_DECODER
 
     eMFXPlatform GetPlatform_VVC(VideoCORE * core, mfxVideoParam * par)
     {
-        if (!par)
-        {
-            return MFX_PLATFORM_SOFTWARE;
-        }
-
         eMFXPlatform platform = core->GetPlatformType();
         eMFXHWType typeHW = core->GetHWType();
 
@@ -218,7 +213,9 @@ namespace UMC_VVC_DECODER
             platform = MFX_PLATFORM_SOFTWARE;
         }
 
-        if (platform != MFX_PLATFORM_SOFTWARE && !CheckGUID(core, typeHW, par))
+        // Query Mode-A (par == NULL) has no params to check the GUID against;
+        // report the core platform so the capability enumeration works on HW.
+        if (par && platform != MFX_PLATFORM_SOFTWARE && !CheckGUID(core, typeHW, par))
         {
             platform = MFX_PLATFORM_SOFTWARE;
         }
