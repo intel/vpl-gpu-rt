@@ -2179,7 +2179,7 @@ inline bool CheckQpInRangeOrClip(mfxI32 qp, T& delta)
     return true;
 }
 
-inline void SetDeltaQp(const mfxVideoParam& par, FH& fh, eMFXHWType hw)
+inline void SetAdaptiveChromaDeltaQP(const mfxVideoParam& par, FH& fh, eMFXHWType hw, const EncodeCapsAv1& caps)
 {
     return;
 }
@@ -3228,7 +3228,7 @@ void General::SetFH(
     fh.quantization_params.DeltaQUAc = auxPar.QP.UAcDeltaQ;
     fh.quantization_params.DeltaQVDc = auxPar.QP.VDcDeltaQ;
     fh.quantization_params.DeltaQVAc = auxPar.QP.VAcDeltaQ;
-    SetDeltaQp(par, fh, hw);
+    SetAdaptiveChromaDeltaQP(par, fh, hw, caps);
 
     // Loop Filter params
     if (IsOn(auxPar.EnableLoopFilter))

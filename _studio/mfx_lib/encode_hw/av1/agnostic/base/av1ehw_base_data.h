@@ -344,7 +344,7 @@ namespace Base
 
     struct QuantizationParams
     {
-        uint32_t allow_delta_q;
+        uint32_t allow_adaptive_chroma_delta_q;
         uint32_t base_q_idx;
         int32_t DeltaQYDc;
         int32_t DeltaQUDc;
