@@ -303,6 +303,7 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
     UMC::Status umcSts = m_decoder->Init(&vp);
     MFX_CHECK(umcSts == UMC::UMC_OK, MFX_ERR_NOT_INITIALIZED);
 
+    m_stat = {};
     m_first_run = true;
     m_is_init = true;
 
@@ -524,6 +525,7 @@ mfxStatus VideoDECODEAV1::Reset(mfxVideoParam* par)
 
     MFX_CHECK(m_surface_source->Reset() == UMC::UMC_OK, MFX_ERR_MEMORY_ALLOC);
 
+    m_stat = {};
     m_first_par = *par;
 
     m_in_framerate = (m_first_par.mfx.FrameInfo.FrameRateExtD && m_first_par.mfx.FrameInfo.FrameRateExtN) ?
@@ -767,6 +769,7 @@ mfxStatus VideoDECODEAV1::GetVideoParam(mfxVideoParam *par)
     sts = FillVideoParam(&vp, par);
     MFX_CHECK_STS(sts);
 
+    par->mfx.CodecId = MFX_CODEC_AV1;
     par->AsyncDepth = static_cast<mfxU16>(vp.async_depth);
     par->IOPattern = static_cast<mfxU16>(vp.io_pattern  & (
           MFX_IOPATTERN_OUT_VIDEO_MEMORY
@@ -818,9 +821,14 @@ mfxStatus VideoDECODEAV1::GetVideoParam(mfxVideoParam *par)
 
 mfxStatus VideoDECODEAV1::GetDecodeStat(mfxDecodeStat* stat)
 {
+    std::lock_guard<std::mutex> guard(m_guard);
+
     TRACE_EVENT(MFX_TRACE_API_DECODE_GETSTAT_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(0));
 
+    MFX_CHECK(m_is_init, MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK_NULL_PTR1(stat);
+
+    *stat = m_stat;
 
     TRACE_EVENT(MFX_TRACE_API_DECODE_GETSTAT_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(stat ? stat->NumFrame : 0, MFX_ERR_NONE));
 
@@ -1411,6 +1419,8 @@ mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFram
 
     mfxFrameSurface1* surface_out = *surf_out;
     MFX_CHECK(surface_out, MFX_ERR_INVALID_HANDLE);
+
+    m_stat.NumFrame++;
 
     SetFrameType(*pFrame, *surface_out);
 

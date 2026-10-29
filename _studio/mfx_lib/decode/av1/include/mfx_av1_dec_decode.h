@@ -101,6 +101,8 @@ private:
 
     bool                                         m_first_run;
 
+    mfxDecodeStat                                m_stat = {};
+
     mfxVideoParamWrapper                         m_video_par;
     mfxVideoParamWrapper                         m_init_par;
     mfxVideoParamWrapper                         m_first_par;

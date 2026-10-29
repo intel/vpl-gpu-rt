@@ -200,6 +200,10 @@ namespace UMC_AV1_DECODER
                 if (obuInfo.header.obu_type > OBU_PADDING)
                     return UMC::UMC_ERR_INVALID_PARAMS;
 
+                // OBU is not complete yet, wait for more data
+                if (obuInfo.size > in->GetDataSize())
+                    return UMC::UMC_ERR_NOT_ENOUGH_DATA;
+
                 if (obuInfo.header.obu_type == OBU_SEQUENCE_HEADER)
                 {
                     bs.ReadSequenceHeader(sh);
@@ -216,6 +220,14 @@ namespace UMC_AV1_DECODER
             }
             catch (av1_exception const& e)
             {
+                return e.GetStatus();
+            }
+            catch (UMC_VP9_DECODER::vp9_exception const& e)
+            {
+                // AV1Bitstream reads bits through the VP9 bit reader, which throws vp9_exception
+                // (not av1_exception) when it overruns the data, e.g. a truncated OBU header, size
+                // field or sequence header. Catch it here: otherwise it escapes to the catch(...) in
+                // MFXVideoDECODE_DecodeHeader as MFX_ERR_UNKNOWN instead of MFX_ERR_MORE_DATA.
                 return e.GetStatus();
             }
         }
