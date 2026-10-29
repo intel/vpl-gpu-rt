@@ -784,12 +784,6 @@ mfxStatus VideoDECODEH264::GetVideoParam(mfxVideoParam *par)
     {
         par->mfx.FrameInfo.FrameRateExtD = m_vPar.mfx.FrameInfo.FrameRateExtD;
         par->mfx.FrameInfo.FrameRateExtN = m_vPar.mfx.FrameInfo.FrameRateExtN;
-
-        if (!par->mfx.FrameInfo.FrameRateExtD && !par->mfx.FrameInfo.FrameRateExtN)
-        {
-            par->mfx.FrameInfo.FrameRateExtN = 30;
-            par->mfx.FrameInfo.FrameRateExtD = 1;
-        }
     }
 
     par->mfx.FrameInfo.AspectRatioW = m_vFirstPar.mfx.FrameInfo.AspectRatioW;

@@ -175,7 +175,7 @@ Status FillVideoParam(const UMC_H264_DECODER::H264SeqParamSet * seq, mfxVideoPar
         par->mfx.FrameInfo.AspectRatioH = 0;
     }
 
-    if (seq->vui.timing_info_present_flag || full)
+    if (seq->vui.timing_info_present_flag)
     {
         par->mfx.FrameInfo.FrameRateExtD = seq->vui.num_units_in_tick * 2;
         par->mfx.FrameInfo.FrameRateExtN = seq->vui.time_scale;
