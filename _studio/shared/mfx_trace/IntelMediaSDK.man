@@ -236,6 +236,10 @@
           <event symbol="MFX_MARK_TASK_Exit" value="358" version="0" task="MFX_MARK_TASK" opcode="win:Stop" ></event>
           <event symbol="MFXQueryImplsPropertiesEntry" value="360" version="0" task="MFXQueryImplsProperties" opcode="win:Start" template="MFXQueryImplsProperties_Entry" />
           <event symbol="MFXQueryImplsPropertiesExit" value="361" version="0" task="MFXQueryImplsProperties" opcode="win:Stop" template="MFXQueryImplsProperties_Exit" />
+          <event symbol="EncodeSubmitRoutineEntry" value="365" version="0" task="EncodeSubmitRoutine" opcode="win:Start" template="EncodeRoutine_Entry" />
+          <event symbol="EncodeSubmitRoutineExit" value="366" version="0" task="EncodeSubmitRoutine" opcode="win:Stop" template="MfxStatus_exit" />
+          <event symbol="EncodeQueryRoutineEntry" value="369" version="0" task="EncodeQueryRoutine" opcode="win:Start" template="EncodeRoutine_Entry" />
+          <event symbol="EncodeQueryRoutineExit" value="370" version="0" task="EncodeQueryRoutine" opcode="win:Stop" template="MfxStatus_exit" />
 
         </events>
         <tasks>
@@ -329,6 +333,8 @@
           <task name="MFX_QUERY_TASK" symbol="MFX_TRACE_API_QUERY_TASK" value="88" eventGUID="{00000000-0000-0000-0000-000000000000}" />
           <task name="MFX_MARK_TASK" symbol="MFX_TRACE_API_MARK_TASK" value="89" eventGUID="{00000000-0000-0000-0000-000000000000}" />
           <task name="MFXQueryImplsProperties" symbol="MFX_TRACE_API_MFXQUERYIMPLSPROPERTIES_TASK_ETW" value="90" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="EncodeSubmitRoutine" symbol="MFX_TRACE_HOTSPOT_ENCODE_SUBMIT_ROUTINE_ETW" value="91" eventGUID="{00000000-0000-0000-0000-000000000000}" />
+          <task name="EncodeQueryRoutine" symbol="MFX_TRACE_HOTSPOT_ENCODE_QUERY_ROUTINE_ETW" value="92" eventGUID="{00000000-0000-0000-0000-000000000000}" />
 
             
         </tasks>
@@ -555,6 +561,10 @@
           </template>
           <template tid="MfxStatus_exit">
             <data name="mfxStatus" inType="win:UInt32" map="mfxStatus"></data>
+          </template>
+          <template tid="EncodeRoutine_Entry">
+            <data name="impl" inType="win:Pointer" outType="win:HexInt64" />
+            <data name="task" inType="win:Pointer" outType="win:HexInt64" />
           </template>
           <template tid="MFX_DecodeQuery_Entry">
             <data name="session" inType="win:Pointer" outType="win:HexInt64" />

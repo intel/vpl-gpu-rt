@@ -678,7 +678,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
     mfxStatus mfxRes;
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, __FUNCTION__);
-    TRACE_EVENT(MFX_TRACE_API_ENCODE_FRAME_ASYNC_TASK, EVENT_TYPE_INFO, 0, make_event_data(session, surface));
+    TRACE_EVENT(MFX_TRACE_API_ENCODE_FRAME_ASYNC_TASK, EVENT_TYPE_START, TR_KEY_MFX_API, make_event_data(session, surface));
     MFX_LTRACE_1(MFX_TRACE_LEVEL_API_PARAMS, "In: session = ", MFX_TRACE_FORMAT_P, session);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", ctrl);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API_PARAMS, "In:  ", surface);
@@ -844,6 +844,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
         MFX_LTRACE_P(MFX_TRACE_LEVEL_API, *syncp);
     }
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
+    TRACE_EVENT(MFX_TRACE_API_ENCODE_FRAME_ASYNC_TASK, EVENT_TYPE_END, TR_KEY_MFX_API, make_event_data(mfxRes, syncp ? *syncp : nullptr));
     return mfxRes;
 
 } // mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxFrameSurface1 *surface, mfxBitstream *bs, mfxSyncPoint *syncp)

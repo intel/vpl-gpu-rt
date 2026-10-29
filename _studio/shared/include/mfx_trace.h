@@ -163,6 +163,11 @@ enum mfxTraceTaskType
 #if defined(ONEVPL_EXPERIMENTAL)
     MFX_TRACE_API_MFXQUERYIMPLSPROPERTIES_TASK,
 #endif
+    // Values are assigned explicitly: the entry above is conditional, so implicit ordinals
+    // here would depend on ONEVPL_EXPERIMENTAL. They must stay equal to the matching
+    // <task value="..."> in IntelMediaSDK.man (enforced by CHECK_TYPE_MATCH in mfx_trace_etw.cpp).
+    MFX_TRACE_HOTSPOT_ENCODE_SUBMIT_ROUTINE = 91,
+    MFX_TRACE_HOTSPOT_ENCODE_QUERY_ROUTINE  = 92,
 };
 
 // list of output modes
@@ -970,5 +975,9 @@ struct TraceTaskType2TraceLevel<MFX_TRACE_API_MFXQUERYIMPLSDESCRIPTION_TASK> : s
 template <>
 struct TraceTaskType2TraceLevel<MFX_TRACE_API_MFXQUERYIMPLSPROPERTIES_TASK> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_API> {};
 #endif
+template <>
+struct TraceTaskType2TraceLevel<MFX_TRACE_HOTSPOT_ENCODE_SUBMIT_ROUTINE> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_HOTSPOTS> {};
+template <>
+struct TraceTaskType2TraceLevel<MFX_TRACE_HOTSPOT_ENCODE_QUERY_ROUTINE> : std::integral_constant<mfxTraceLevel, MFX_TRACE_LEVEL_HOTSPOTS> {};
 
 #endif // #ifndef __MFX_TRACE_H__
