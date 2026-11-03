@@ -709,7 +709,17 @@ namespace UMC_AV1_DECODER
                 OBUInfo obuInfo;
                 TileListInfo tlInfo = {};
                 uint32_t lst_shift;
-                bs.ReadOBUInfo(obuInfo);
+                try
+                {
+                    bs.ReadOBUInfo(obuInfo);
+                }
+                catch (UMC_VP9_DECODER::vp9_exception const& ex)
+                {
+                    // OBU header or obu_size cut at the end of the buffer: same as an incomplete OBU, wait for more data
+                    if (ex.GetStatus() != UMC::UMC_ERR_NOT_ENOUGH_DATA)
+                        throw;
+                    break;
+                }
                 const AV1_OBU_TYPE obuType = obuInfo.header.obu_type;
 
                 if (obuInfo.header.obu_type > OBU_PADDING)
@@ -938,18 +948,26 @@ namespace UMC_AV1_DECODER
             }
             else
             {
-                if (!updated_refs.empty())
+                if (pFrameInProgress)
                 {
-                    pCurrFrame = pFrameInProgress ?
-                        pFrameInProgress : StartFrame(fh, updated_refs, pPrevFrame);
+                    // the frame was started by an earlier call, this buffer carries more of its tile groups
+                    // (pPrevFrame is the frame in progress itself, so updated_refs is empty here)
+                    pCurrFrame = pFrameInProgress;
                 }
- 
-                CompleteDecodedFrames(fh, pCurrFrame, pPrevFrame);
-                if (repeatedFrame)
+                else
                 {
-                    pCurrFrame->ShowAsExisting(true);
+                    if (!updated_refs.empty())
+                    {
+                        pCurrFrame = StartFrame(fh, updated_refs, pPrevFrame);
+                    }
+
+                    CompleteDecodedFrames(fh, pCurrFrame, pPrevFrame);
+                    if (repeatedFrame)
+                    {
+                        pCurrFrame->ShowAsExisting(true);
+                    }
+                    CalcFrameTime(pCurrFrame);
                 }
-                CalcFrameTime(pCurrFrame);
 
                 if (!pCurrFrame)
                     return UMC::UMC_ERR_NOT_ENOUGH_BUFFER;
