@@ -291,6 +291,13 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
 
     ConvertMFXParamsToUMC(par, &vp);
     vp.info.profile = av1_mfx_profile_to_native_profile(par->mfx.CodecProfile);
+    // ConvertMFXParamsToUMC sets the display size to the aligned Width/Height; keep the Init crop
+    // so GetVideoParam echoes it (it is replaced when a sequence header triggers DRC)
+    if (par->mfx.FrameInfo.CropW && par->mfx.FrameInfo.CropH)
+    {
+        vp.info.disp_clip_info.width  = par->mfx.FrameInfo.CropW;
+        vp.info.disp_clip_info.height = par->mfx.FrameInfo.CropH;
+    }
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     if (m_va->GetVideoProcessingVA())
@@ -770,6 +777,15 @@ mfxStatus VideoDECODEAV1::GetVideoParam(mfxVideoParam *par)
     MFX_CHECK_STS(sts);
 
     par->mfx.CodecId = MFX_CODEC_AV1;
+    // AV1 has no crop offset syntax: keep the Init/Reset CropX/CropY while the display size is
+    // still the one set by the application
+    if (par->mfx.FrameInfo.CropW == m_first_par.mfx.FrameInfo.CropW &&
+        par->mfx.FrameInfo.CropH == m_first_par.mfx.FrameInfo.CropH)
+    {
+        par->mfx.FrameInfo.CropX = m_first_par.mfx.FrameInfo.CropX;
+        par->mfx.FrameInfo.CropY = m_first_par.mfx.FrameInfo.CropY;
+    }
+
     par->AsyncDepth = static_cast<mfxU16>(vp.async_depth);
     par->IOPattern = static_cast<mfxU16>(vp.io_pattern  & (
           MFX_IOPATTERN_OUT_VIDEO_MEMORY
@@ -1433,6 +1449,9 @@ mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFram
     surface_out->Data.FrameOrder = pFrame->FrameOrder();
     surface_out->Data.Corrupted = 0;
     surface_out->Info.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+    // AV1 has no crop offset syntax; do not leave the surface's allocation-time offset in place
+    surface_out->Info.CropX = 0;
+    surface_out->Info.CropY = 0;
     surface_out->Info.CropW = static_cast<mfxU16>(m_anchorFramesSource > 0 ? pFrame->GetRenderWidth() : pFrame->GetUpscaledWidth());
     surface_out->Info.CropH = static_cast<mfxU16>(m_anchorFramesSource > 0 ? pFrame->GetRenderHeight() : pFrame->GetFrameHeight());
     surface_out->Info.AspectRatioW = 1;
