@@ -530,9 +530,26 @@ mfxStatus VideoDECODEAV1::Reset(mfxVideoParam* par)
     MFX_CHECK(MFX_VPX_Utility::CheckVideoParam(par, MFX_CODEC_AV1, platform), MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(IsNeedChangeVideoParam(par, &m_init_par, type), MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
+    // UMC AV1Decoder has no Reset(): recreate it so the DPB of the previous sequence (holding the
+    // surfaces released below) is dropped, and the new display size (crop) takes effect
+    UMC_AV1_DECODER::AV1DecoderParams vp{};
+    MFX_CHECK(m_decoder->GetInfo(&vp) == UMC::UMC_OK, MFX_ERR_UNKNOWN);
+    ConvertMFXParamsToUMC(par, &vp);
+    vp.info.profile = av1_mfx_profile_to_native_profile(par->mfx.CodecProfile);
+    if (par->mfx.FrameInfo.CropW && par->mfx.FrameInfo.CropH)
+    {
+        vp.info.disp_clip_info.width  = par->mfx.FrameInfo.CropW;
+        vp.info.disp_clip_info.height = par->mfx.FrameInfo.CropH;
+    }
+    m_decoder.reset();
+
     MFX_CHECK(m_surface_source->Reset() == UMC::UMC_OK, MFX_ERR_MEMORY_ALLOC);
 
     m_stat = {};
+    m_decoder.reset(new UMC_AV1_DECODER::AV1DecoderVA());
+    MFX_CHECK(m_decoder->Init(&vp) == UMC::UMC_OK, MFX_ERR_NOT_INITIALIZED);
+    m_first_run = true;
+
     m_first_par = *par;
 
     m_in_framerate = (m_first_par.mfx.FrameInfo.FrameRateExtD && m_first_par.mfx.FrameInfo.FrameRateExtN) ?
