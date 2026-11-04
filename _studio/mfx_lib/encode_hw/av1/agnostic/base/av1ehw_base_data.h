@@ -877,6 +877,20 @@ namespace Base
         // Pre-processing ref slots
         TaskCommonPar* PreProcRef_L0[MAX_PREPROC_REF_L0] = {};
         TaskCommonPar* PreProcRef_L1[MAX_PREPROC_REF_L1] = {};
+
+        // Next-anchor pre-run. On a TF anchor N: the next anchor (and its PreProc refs) whose
+        // downscale/ME/MC the driver runs inside N's submission. On that next anchor: the refs
+        // and hierarchy level the pre-run assumed, checked against its own assignment before it
+        // asks the driver to skip its downscale/ME/MC (bUsePreRunResult).
+        TaskCommonPar* PreRunNext                           = nullptr;
+        TaskCommonPar* PreRunNextRef_L0[MAX_PREPROC_REF_L0] = {};
+        TaskCommonPar* PreRunNextRef_L1[MAX_PREPROC_REF_L1] = {};
+        mfxU8          PreRunNextHLP1                       = 0;
+        bool           bPreRunPending                       = false;
+        TaskCommonPar* PreRunExpRef_L0[MAX_PREPROC_REF_L0]  = {};
+        TaskCommonPar* PreRunExpRef_L1[MAX_PREPROC_REF_L1]  = {};
+        mfxU8          PreRunExpHLP1                        = 0;
+        bool           bUsePreRunResult                     = false;
     };
 
     inline void Invalidate(TaskCommonPar& par)

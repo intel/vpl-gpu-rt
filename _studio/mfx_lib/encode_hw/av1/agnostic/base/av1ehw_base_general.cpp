@@ -951,12 +951,20 @@ void General::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         });
         // Reorder buffer must stay aligned with the raw-surface pool: BLK_AdjustRawNum
         // adds the same `preprocExtra` to QueryIOSurf, so app/encoder buffering match.
+        // PreProc also keeps GopRefDist + 2 more source frames buffered, so the next
+        // anchor's PreProc refs are already live when the current anchor is submitted:
+        // the buffer also holds the anchor and its GopRefDist - 1 B frames, so the anchor
+        // sees BufferSize - GopRefDist - 1 later frames, which must cover GopRefDist plus
+        // the next anchor's NumRefFuture.
+        // Only later-display frames are added: coding order is unchanged.
         mfxU16 preprocExtra = 0;
         if (sh.preproc_setting.Enabled)
         {
             preprocExtra = std::max({ sh.preproc_setting.NumRefFuture[0]
                                     , sh.preproc_setting.NumRefFuture[1]
                                     , sh.preproc_setting.NumRefFuture[2] });
+            if (par.mfx.GopRefDist > 1)
+                preprocExtra = mfxU16(preprocExtra + par.mfx.GopRefDist + 2);
         }
         pReorderer->BufferSize = par.mfx.GopRefDist > 1 ? par.mfx.GopRefDist - 1 + preprocExtra : 0;
         //pReorderer->DPB = &m_prevTask.DPB.After;
