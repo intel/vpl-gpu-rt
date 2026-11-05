@@ -71,6 +71,19 @@ namespace MfxHwVideoProcessing
 
         virtual mfxStatus Execute_Composition_TiledVideoWall(mfxExecuteParams *pParams);
 
+        // Input layers the driver composites in one VA-API picture (batch).
+        // 7 new layers + the previous batch's output = 8, the driver's
+        // per-pass limit (VPHAL_COMP_MAX_LAYERS).
+        static constexpr mfxU32 MAX_COMPOSITION_LAYERS_PER_BATCH = 7;
+
+        static mfxU32 ComputeCompositionBatchCount(mfxU32 totalLayers, mfxU32 maxLayersPerBatch = MAX_COMPOSITION_LAYERS_PER_BATCH);
+
+        static VASurfaceID* SelectCompositionBatchTarget(
+            mfxU32 batchNumber,
+            mfxU32 numBatches,
+            VASurfaceID* outputSurface,
+            VASurfaceID* stagingSurface);
+
     private:
 
         // VideoSignalInfo contains infor for backward reference, current and forward reference
@@ -155,6 +168,10 @@ namespace MfxHwVideoProcessing
         } ExtVASurface;
 
         VASurfaceID* m_primarySurface4Composition ;
+
+        VASurfaceID m_compositionStagingSurface;
+        mfxU32 m_compositionStagingSurfaceWidth;
+        mfxU32 m_compositionStagingSurfaceHeight;
 
         std::vector<ExtVASurface> m_feedbackCache;
 

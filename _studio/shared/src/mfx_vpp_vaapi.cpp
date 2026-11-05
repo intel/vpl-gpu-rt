@@ -96,6 +96,9 @@ VAAPIVideoProcessing::VAAPIVideoProcessing():
 #endif
 , m_numFilterBufs(0)
 , m_primarySurface4Composition(NULL)
+, m_compositionStagingSurface(VA_INVALID_ID)
+, m_compositionStagingSurfaceWidth(0)
+, m_compositionStagingSurfaceHeight(0)
 , m_3dlutFilterID(VA_INVALID_ID)
 , m_hvsDenoiseFilterID(VA_INVALID_ID)
 , m_hdrtmFilterID(VA_INVALID_ID)
@@ -164,6 +167,16 @@ mfxStatus VAAPIVideoProcessing::Close(void)
 
         free(m_primarySurface4Composition);
         m_primarySurface4Composition = NULL;
+    }
+
+    if (m_compositionStagingSurface != VA_INVALID_ID)
+    {
+        vaSts = vaDestroySurfaces(m_vaDisplay, &m_compositionStagingSurface, 1);
+        std::ignore = MFX_STS_TRACE(vaSts);
+
+        m_compositionStagingSurface = VA_INVALID_ID;
+        m_compositionStagingSurfaceWidth = 0;
+        m_compositionStagingSurfaceHeight = 0;
     }
 
     mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_denoiseFilterID);
@@ -2352,6 +2365,41 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
     return MFX_ERR_NONE;
 } // mfxStatus VAAPIVideoProcessing::Execute_Composition_TileVideoWall(mfxExecuteParams *pParams)
 
+/*!
+ A single Execute_Composition() call may need to submit more than one
+ VA-API picture (batch) when there are more input layers than the driver
+ can composite in one pass. numBatches is the number of batches needed to
+ composite totalLayers layers, maxLayersPerBatch at a time.
+ */
+mfxU32 VAAPIVideoProcessing::ComputeCompositionBatchCount(mfxU32 totalLayers, mfxU32 maxLayersPerBatch)
+{
+    if (maxLayersPerBatch == 0)
+        return 0;
+    return (totalLayers + (maxLayersPerBatch - 1)) / maxLayersPerBatch;
+}
+
+/*!
+ Picks the render target for one composition batch. batchNumber is 1-based.
+ The final batch (batchNumber == numBatches) targets outputSurface, the
+ surface that is handed to the display; every other batch targets
+ stagingSurface. This keeps outputSurface from ever being written with a
+ partially-composited frame, which a display reading it asynchronously
+ could otherwise observe.
+
+ With 3+ batches, stagingSurface is both source and target of a batch.
+ This is safe: all batches go through the same VA context, so they run in
+ submission order and the driver tracks the surface dependency between
+ them.
+ */
+VASurfaceID* VAAPIVideoProcessing::SelectCompositionBatchTarget(
+    mfxU32 batchNumber,
+    mfxU32 numBatches,
+    VASurfaceID* outputSurface,
+    VASurfaceID* stagingSurface)
+{
+    return (batchNumber == numBatches) ? outputSurface : stagingSurface;
+}
+
 mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIVideoProcessing::Execute_Composition");
@@ -2546,6 +2594,147 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
     output_region.resize(pParams->refCount + 1);
     VASurfaceID *outputSurface = (VASurfaceID*)(pParams->targetSurface.hdl.first);
 
+    /* A frame needs more than one VA-API picture (batch) when it has more
+     * input layers than the driver can composite in one pass. Computed
+     * here, before batch 1's own vaBeginPicture, because batch 1's render
+     * target depends on numBatches -- see SelectCompositionBatchTarget(). */
+    const mfxU32 numBatches = ComputeCompositionBatchCount(refCount + 1);
+
+    mfxFrameInfo *outInfo = &(pParams->targetSurface.frameInfo);
+
+    /* The staging surface outlives Reset(), which can change the output
+     * resolution. Recreate it at the new size, since it holds real
+     * composited pixels. */
+    if ((m_compositionStagingSurface != VA_INVALID_ID) &&
+        ((m_compositionStagingSurfaceWidth != outInfo->Width) ||
+         (m_compositionStagingSurfaceHeight != outInfo->Height)))
+    {
+        vaSts = vaDestroySurfaces(m_vaDisplay, &m_compositionStagingSurface, 1);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+        m_compositionStagingSurface = VA_INVALID_ID;
+        m_compositionStagingSurfaceWidth = 0;
+        m_compositionStagingSurfaceHeight = 0;
+    }
+
+    if ((numBatches > 1) && (m_compositionStagingSurface == VA_INVALID_ID))
+    {
+        /* Render target for every non-final batch. Unlike
+         * m_primarySurface4Composition, it must match the output's size and
+         * format exactly, since it holds composited content rather than a
+         * background fill. Formats without a VA_RT_FORMAT_* use the
+         * va_fourcc as rt_format. */
+
+        unsigned int staging_va_fourcc;
+        unsigned int staging_rt_format;
+
+        switch (outInfo->FourCC)
+        {
+        case MFX_FOURCC_RGB4:
+            staging_va_fourcc = VA_FOURCC_ARGB;
+            staging_rt_format = VA_RT_FORMAT_RGB32;
+            break;
+        case MFX_FOURCC_BGR4:
+            staging_va_fourcc = VA_FOURCC_ABGR;
+            staging_rt_format = VA_RT_FORMAT_RGB32;
+            break;
+        case MFX_FOURCC_A2RGB10:
+            staging_va_fourcc = VA_FOURCC_ARGB;
+            staging_rt_format = VA_RT_FORMAT_RGB32_10BPP;
+            break;
+#ifdef MFX_ENABLE_RGBP
+        case MFX_FOURCC_RGBP:
+            staging_va_fourcc = VA_FOURCC_RGBP;
+            staging_rt_format = VA_RT_FORMAT_RGBP;
+            break;
+#endif
+        case MFX_FOURCC_BGRP:
+            staging_va_fourcc = VA_FOURCC_BGRP;
+            staging_rt_format = VA_RT_FORMAT_RGBP;
+            break;
+        case MFX_FOURCC_YUY2:
+            staging_va_fourcc = VA_FOURCC_YUY2;
+            staging_rt_format = VA_RT_FORMAT_YUV422;
+            break;
+        case MFX_FOURCC_UYVY:
+            staging_va_fourcc = VA_FOURCC_UYVY;
+            staging_rt_format = VA_RT_FORMAT_YUV422;
+            break;
+        case MFX_FOURCC_AYUV:
+            staging_va_fourcc = VA_FOURCC_AYUV;
+            staging_rt_format = VA_FOURCC_AYUV;
+            break;
+        case MFX_FOURCC_P010:
+            staging_va_fourcc = VA_FOURCC_P010;
+            staging_rt_format = VA_FOURCC_P010;
+            break;
+        case MFX_FOURCC_Y210:
+            staging_va_fourcc = VA_FOURCC_Y210;
+            staging_rt_format = VA_FOURCC_Y210;
+            break;
+        case MFX_FOURCC_Y410:
+            staging_va_fourcc = VA_FOURCC_Y410;
+            staging_rt_format = VA_FOURCC_Y410;
+            break;
+        case MFX_FOURCC_P016:
+            staging_va_fourcc = VA_FOURCC_P016;
+            staging_rt_format = VA_FOURCC_P016;
+            break;
+        case MFX_FOURCC_Y216:
+            staging_va_fourcc = VA_FOURCC_Y216;
+            staging_rt_format = VA_FOURCC_Y216;
+            break;
+        case MFX_FOURCC_Y416:
+            staging_va_fourcc = VA_FOURCC_Y416;
+            staging_rt_format = VA_FOURCC_Y416;
+            break;
+        case MFX_FOURCC_NV12:
+            staging_va_fourcc = VA_FOURCC_NV12;
+            staging_rt_format = VA_RT_FORMAT_YUV420;
+            break;
+        case MFX_FOURCC_YV12:
+            staging_va_fourcc = VA_FOURCC_YV12;
+            staging_rt_format = VA_RT_FORMAT_YUV420;
+            break;
+        case MFX_FOURCC_I420:
+            staging_va_fourcc = VA_FOURCC_I420;
+            staging_rt_format = VA_RT_FORMAT_YUV420;
+            break;
+        case MFX_FOURCC_P210:
+            /* No native VA surface FourCC exists for 4:2:2 10-bit
+             * semi-planar on this driver; fall back to the nearest
+             * available 10-bit format. Not expected to be reachable since
+             * P210 output surfaces can't be allocated here in the first
+             * place. */
+            staging_va_fourcc = VA_FOURCC_P010;
+            staging_rt_format = VA_FOURCC_P010;
+            break;
+        default:
+            staging_va_fourcc = VA_FOURCC_NV12;
+            staging_rt_format = VA_RT_FORMAT_YUV420;
+            break;
+        }
+
+        VASurfaceAttrib stagingAttrib;
+        stagingAttrib.type          = VASurfaceAttribPixelFormat;
+        stagingAttrib.flags         = VA_SURFACE_ATTRIB_SETTABLE;
+        stagingAttrib.value.type    = VAGenericValueTypeInteger;
+        stagingAttrib.value.value.i = staging_va_fourcc;
+
+        vaSts = vaCreateSurfaces(m_vaDisplay, staging_rt_format, outInfo->Width, outInfo->Height,
+                &m_compositionStagingSurface, 1, &stagingAttrib, 1);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+        m_compositionStagingSurfaceWidth  = outInfo->Width;
+        m_compositionStagingSurfaceHeight = outInfo->Height;
+    }
+
+    /* Batch 1's render target: the staging surface unless numBatches == 1,
+     * in which case it IS the final batch and targets outputSurface
+     * directly. */
+    VASurfaceID* prevBatchTarget = SelectCompositionBatchTarget(
+        1, numBatches, outputSurface, &m_compositionStagingSurface);
+
     for( refIdx = 0; refIdx < SampleCount; refIdx++ )
     {
         mfxDrvSurface* pRefSurf = &(pParams->targetSurface);
@@ -2562,7 +2751,6 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 
         // source cropping
         //mfxFrameInfo *inInfo = &(pRefSurf->frameInfo);
-        mfxFrameInfo *outInfo = &(pParams->targetSurface.frameInfo);
         input_region[refIdx].y   = 0;
         input_region[refIdx].x   = 0;
         input_region[refIdx].height = outInfo->CropH;
@@ -2571,6 +2759,8 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 
         // destination cropping
         //mfxFrameInfo *outInfo = &(pParams->targetSurface.frameInfo);
+        // Assumes CropX == CropY == 0; a non-zero crop origin is not
+        // reflected in output_region.
         output_region[refIdx].y  = 0; //outInfo->CropY;
         output_region[refIdx].x   = 0; //outInfo->CropX;
         output_region[refIdx].height= outInfo->CropH;
@@ -2660,7 +2850,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "vaBeginPicture");
             vaSts = vaBeginPicture(m_vaDisplay,
                                 m_vaContextVPP,
-                                *outputSurface);
+                                *prevBatchTarget);
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         }
     }
@@ -2691,35 +2881,34 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
     std::vector<VAProcPipelineParameterBuffer> m_pipelineParamComp;
     std::vector<VABufferID> m_pipelineParamCompID;
     /* for new buffers for Begin Picture*/
-    m_pipelineParamComp.resize(pParams->fwdRefCount/7);
-    m_pipelineParamCompID.resize(pParams->fwdRefCount/7, VA_INVALID_ID);
+    m_pipelineParamComp.resize(pParams->fwdRefCount / MAX_COMPOSITION_LAYERS_PER_BATCH);
+    m_pipelineParamCompID.resize(pParams->fwdRefCount / MAX_COMPOSITION_LAYERS_PER_BATCH, VA_INVALID_ID);
 
     /* pParams->fwdRefCount actually is number of sub stream*/
     for( refIdx = 1; refIdx <= (refCount + 1); refIdx++ )
     {
         /*for frames 8, 15, 22, 29,... */
-        if ((refIdx != 1) && ((refIdx %7) == 1) )
+        if ((refIdx != 1) && ((refIdx % MAX_COMPOSITION_LAYERS_PER_BATCH) == 1) )
         {
+            /* Starting a new continuation batch. Batch 1 was handled
+             * separately above (outside this loop), so the first
+             * continuation batch (uBeginPictureCounter == 0) is batch
+             * number 2 overall. */
+            const mfxU32 batchNumber = uBeginPictureCounter + 2;
+            VASurfaceID* thisBatchTarget = SelectCompositionBatchTarget(
+                batchNumber, numBatches, outputSurface, &m_compositionStagingSurface);
+
             {
                 vaSts = vaBeginPicture(m_vaDisplay,
                                     m_vaContextVPP,
-                                    *outputSurface);
+                                    *thisBatchTarget);
             }
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
             /*to copy initial properties of primary surface... */
             m_pipelineParamComp[uBeginPictureCounter] = m_pipelineParam[0];
-            /* ... and to In-place output*/
-            //m_pipelineParamComp[uBeginPictureCounter].surface = m_primarySurface4Composition[uInputIndex];
-            m_pipelineParamComp[uBeginPictureCounter].surface = *outputSurface;
-            //m_pipelineParam[0].surface = *outputSurface;
-            /* As used IN-PLACE variant of Composition
-             * this values does not used*/
-            //uOutputIndex++;
-            //uInputIndex++;
-            //if (uOutputIndex > 2)
-            //    uOutputIndex = 0;
-            //if (uInputIndex > 2)
-            //    uInputIndex = 0;
+            /* Primary input for this continuation batch is the content
+             * produced by the immediately preceding batch. */
+            m_pipelineParamComp[uBeginPictureCounter].surface = *prevBatchTarget;
 
             switch (pParams->targetSurface.frameInfo.FourCC)
             {
@@ -2746,6 +2935,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
             uBeginPictureCounter++;
+            prevBatchTarget = thisBatchTarget;
         }
 
         m_pipelineParam[refIdx] = m_pipelineParam[0];
@@ -2907,7 +3097,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 
         /*for frames 7, 14, 21, ...
          * or for the last frame*/
-        if ( ((refIdx % 7) ==0) || ((refCount + 1) == refIdx) )
+        if ( ((refIdx % MAX_COMPOSITION_LAYERS_PER_BATCH) == 0) || ((refCount + 1) == refIdx) )
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "vaEndPicture");
             vaSts = vaEndPicture(m_vaDisplay, m_vaContextVPP);
