@@ -340,6 +340,8 @@ namespace MfxHwVideoProcessing
             bool                                 Enabled;
             mfxAISuperResolutionMode             Mode;
             mfxAISuperResolutionAlgorithm        Algorithm;
+            // Input frame rate for the driver's SR model choice (VAAPI only); not an SR setting.
+            RateRational                         InputFrameRate;
 
             bool operator!=(const SRInfo& other) const
             {
@@ -483,6 +485,7 @@ namespace MfxHwVideoProcessing
                    srSetParams.Enabled = false;
                    srSetParams.Mode = MFX_AI_SUPER_RESOLUTION_MODE_DISABLED;
                    srSetParams.Algorithm = MFX_AI_SUPER_RESOLUTION_ALGORITHM_DEFAULT;
+                   srSetParams.InputFrameRate = {};
                    srGetParams = srSetParams;
 
                    vfiSetParams.Enabled        = false;

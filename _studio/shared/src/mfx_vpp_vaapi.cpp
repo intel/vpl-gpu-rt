@@ -102,9 +102,12 @@ VAAPIVideoProcessing::VAAPIVideoProcessing():
 , m_3dlutFilterID(VA_INVALID_ID)
 , m_hvsDenoiseFilterID(VA_INVALID_ID)
 , m_hdrtmFilterID(VA_INVALID_ID)
+, m_srPrivateFilterSupported(false)
+, m_srFilterID(VA_INVALID_ID)
+, m_srFilterParams()
 {
 
-    for(int i = 0; i < VAProcFilterCount; i++)
+    for(int i = 0; i < VPP_MAX_FILTER_BUFS; i++)
         m_filterBufs[i] = VA_INVALID_ID;
 
     memset( (void*)&m_pipelineCaps, 0, sizeof(m_pipelineCaps));
@@ -203,6 +206,9 @@ mfxStatus VAAPIVideoProcessing::Close(void)
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_hdrtmFilterID);
     std::ignore = MFX_STS_TRACE(sts);
 
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_srFilterID);
+    std::ignore = MFX_STS_TRACE(sts);
+
     if (m_vaContextVPP != VA_INVALID_ID)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaDestroyContext");
@@ -220,7 +226,7 @@ mfxStatus VAAPIVideoProcessing::Close(void)
         m_vaConfig = VA_INVALID_ID;
     }
 
-    for(int i = 0; i < VAProcFilterCount; i++)
+    for(int i = 0; i < VPP_MAX_FILTER_BUFS; i++)
         m_filterBufs[i] = VA_INVALID_ID;
 
     m_denoiseFilterID   = VA_INVALID_ID;
@@ -230,6 +236,10 @@ mfxStatus VAAPIVideoProcessing::Close(void)
     m_3dlutFilterID     = VA_INVALID_ID;
     m_hvsDenoiseFilterID= VA_INVALID_ID;
     m_hdrtmFilterID     = VA_INVALID_ID;
+
+    m_srPrivateFilterSupported = false;
+    m_srFilterID               = VA_INVALID_ID;
+    m_srFilterParams           = {};
 
     memset( (void*)&m_pipelineCaps, 0, sizeof(m_pipelineCaps));
     memset( (void*)&m_denoiseCaps, 0, sizeof(m_denoiseCaps));
@@ -300,6 +310,17 @@ mfxStatus VAAPIVideoProcessing::Init(_mfxPlatformAccelerationService* pVADisplay
                                     &m_vaContextVPP);
         }
         MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+        // Drivers that take the private SR filter buffer report it with zero caps;
+        // older ones fail the query and only understand processing_mode=HIGH_QUALITY.
+        VAProcFilterCap srCap        = {};
+        mfxU32          numSrCaps    = 1;
+        vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
+                                           m_vaContextVPP,
+                                           static_cast<VAProcFilterType>(VA_PROC_FILTER_SUPER_RESOLUTION_PRIVATE),
+                                           &srCap,
+                                           &numSrCaps);
+        m_srPrivateFilterSupported = (VA_STATUS_SUCCESS == vaSts);
     }
 
     return MFX_ERR_NONE;
@@ -655,6 +676,103 @@ mfxStatus VAAPIVideoProcessing::ConfigHVSDenoise(mfxExecuteParams *pParams)
 
         m_filterBufs[m_numFilterBufs++] = m_hvsDenoiseFilterID;
     }
+
+    return MFX_ERR_NONE;
+}
+
+// Called after m_pipelineParam[0].filters has been pointed at m_filterBufs.
+mfxStatus VAAPIVideoProcessing::ConfigSuperResolution(mfxExecuteParams *pParams)
+{
+    MFX_CHECK_NULL_PTR1(pParams);
+
+    if (!pParams->srSetParams.Enabled ||
+        pParams->srSetParams.Mode == MFX_AI_SUPER_RESOLUTION_MODE_DISABLED)
+    {
+        if (m_srFilterID != VA_INVALID_ID)
+        {
+            mfxStatus sts = RemoveBufferFromPipe(m_srFilterID);
+            MFX_CHECK_STS(sts);
+            m_srFilterParams = {};
+            m_pipelineParam[0].num_filters = m_numFilterBufs;
+        }
+        return MFX_ERR_NONE;
+    }
+
+    // Same mapping and error codes as D3D11VideoProcessor::SetSuperResolutionParam.
+    // Scenario and model values are the driver's SR_SCENARIO_MODE / SR_MODEL_VERSION.
+    VAProcFilterParameterBufferSuperResolutionPrivate srParam = {};
+    srParam.type    = VA_PROC_FILTER_SUPER_RESOLUTION_PRIVATE;
+    srParam.version = VA_SR_PRIVATE_PARAMS_VERSION;
+    srParam.enable  = 1;
+    switch (pParams->srSetParams.Mode)
+    {
+    case MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT:
+        srParam.scenario_mode = 0x00;
+        break;
+#ifdef ONEVPL_EXPERIMENTAL
+    case MFX_AI_SUPER_RESOLUTION_MODE_SHARPEN:
+        MFX_RETURN(MFX_ERR_NOT_IMPLEMENTED);
+    case MFX_AI_SUPER_RESOLUTION_MODE_ARTIFACTREMOVAL:
+        srParam.scenario_mode = 0x12;
+        break;
+#endif
+    default:
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+    }
+
+    switch (pParams->srSetParams.Algorithm)
+    {
+    case MFX_AI_SUPER_RESOLUTION_ALGORITHM_DEFAULT:
+        srParam.model_version = 0;
+        break;
+    case MFX_AI_SUPER_RESOLUTION_ALGORITHM_1:
+        srParam.model_version = 1;
+        break;
+    case MFX_AI_SUPER_RESOLUTION_ALGORITHM_2:
+        srParam.model_version = 2;
+        break;
+    default:
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+    }
+
+    // VAAPI has no hardware readback for SR params; mirror srSetParams so that
+    // GetVideoParam reflects the active SR mode (cf. D3D11 GetSuperResolutionParam).
+    pParams->srGetParams = pParams->srSetParams;
+
+    if (!m_srPrivateFilterSupported)
+    {
+        // Older drivers only take an on/off request and pick everything else themselves.
+        m_pipelineParam[0].processing_mode = static_cast<VAProcMode>(VA_PROC_MODE_HIGH_QUALITY);
+        return MFX_ERR_NONE;
+    }
+
+    srParam.input_frame_rate_numerator   = pParams->srSetParams.InputFrameRate.FrameRateExtN;
+    srParam.input_frame_rate_denominator = pParams->srSetParams.InputFrameRate.FrameRateExtD;
+
+    if (m_srFilterID != VA_INVALID_ID &&
+        0 == memcmp(&srParam, &m_srFilterParams, sizeof(srParam)))
+    {
+        return MFX_ERR_NONE;
+    }
+
+    if (m_srFilterID != VA_INVALID_ID)
+    {
+        mfxStatus sts = RemoveBufferFromPipe(m_srFilterID);
+        MFX_CHECK_STS(sts);
+    }
+
+    VAStatus vaSts = vaCreateBuffer((void*)m_vaDisplay,
+                                    m_vaContextVPP,
+                                    VAProcFilterParameterBufferType,
+                                    sizeof(srParam),
+                                    1,
+                                    &srParam,
+                                    &m_srFilterID);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    m_srFilterParams = srParam;
+    m_filterBufs[m_numFilterBufs++] = m_srFilterID;
+    m_pipelineParam[0].num_filters  = m_numFilterBufs;
 
     return MFX_ERR_NONE;
 }
@@ -1819,14 +1937,8 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     }
     MFX_CHECK_STS(mfxSts);
 
-    if (pParams->srSetParams.Enabled &&
-        pParams->srSetParams.Mode != MFX_AI_SUPER_RESOLUTION_MODE_DISABLED)
-    {
-        m_pipelineParam[0].processing_mode = static_cast<VAProcMode>(VA_PROC_MODE_HIGH_QUALITY);
-        // VAAPI has no hardware readback for SR params; mirror srSetParams so that
-        // GetVideoParam reflects the active SR mode (cf. D3D11 GetSuperResolutionParam).
-        pParams->srGetParams = pParams->srSetParams;
-    }
+    mfxSts = ConfigSuperResolution(pParams);
+    MFX_CHECK_STS(mfxSts);
 
         uint8_t& chromaSitingMode = m_pipelineParam[0].input_color_properties.chroma_sample_location;
         chromaSitingMode = VA_CHROMA_SITING_UNKNOWN;

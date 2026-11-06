@@ -2854,6 +2854,7 @@ mfxStatus  VideoVPPHW::Init(
                 m_executeParams.srSetParams.Enabled = true;
                 m_executeParams.srSetParams.Mode = extSR->SRMode;
                 m_executeParams.srSetParams.Algorithm = extSR->SRAlgorithm;
+                m_executeParams.srSetParams.InputFrameRate = {m_params.vpp.In.FrameRateExtN, m_params.vpp.In.FrameRateExtD};
             }
         }
     }
@@ -5622,11 +5623,6 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
                 mfxU32 outputWidth = bVerticalRotation ? std::min(par->vpp.Out.Height, par->vpp.Out.CropH) : std::min(par->vpp.Out.Width, par->vpp.Out.CropW);
                 mfxU32 outputHeight = bVerticalRotation ? std::min(par->vpp.Out.Width, par->vpp.Out.CropW) : std::min(par->vpp.Out.Height, par->vpp.Out.CropH);
                 //add rotation support next
-                if (inputWidth > caps->uSrMaxInWidth ||
-                    inputHeight > caps->uSrMaxInHeight)
-                {
-                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
-                }
                 mfxF32 fScaleX = (mfxF32)outputWidth / inputWidth;
                 mfxF32 fScaleY = (mfxF32)outputHeight / inputHeight;
                 if (fScaleX < 1.4f ||
@@ -5635,14 +5631,6 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
                     sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
                 }
 
-                if(extSr->SRAlgorithm == MFX_AI_SUPER_RESOLUTION_ALGORITHM_2)
-                { 
-                    if (((inputWidth > 1280) || (inputHeight > 720)) &&
-                        (CommonCaps::IsSrAlgorithm2Unsupported(core->GetHWType())))
-                    {
-                        sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
-                    }
-                }
             }
             break;
         }
@@ -7101,6 +7089,7 @@ mfxStatus ConfigureExecuteParams(
                         executeParams.srSetParams.Enabled = true;
                         executeParams.srSetParams.Mode = extSR->SRMode;
                         executeParams.srSetParams.Algorithm = extSR->SRAlgorithm;
+                        executeParams.srSetParams.InputFrameRate = {videoParam.vpp.In.FrameRateExtN, videoParam.vpp.In.FrameRateExtD};
                     }
                 }
                 break;

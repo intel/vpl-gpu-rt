@@ -35,6 +35,30 @@
 #include <assert.h>
 #include <set>
 
+// Driver-private filter type for AI super resolution, outside the public VAProcFilterType
+// range (-1 is taken by the legacy VAProcFilter3PInfo). Not in upstream libva.
+#define VA_PROC_FILTER_SUPER_RESOLUTION_PRIVATE (-2)
+#define VA_SR_PRIVATE_PARAMS_VERSION 1
+
+// Mirror of the iHD VP_DDI_SR_PARAMS layout (vp_sr_ddi_private.h); a 64-byte ABI contract.
+typedef struct _VAProcFilterParameterBufferSuperResolutionPrivate
+{
+    int32_t  type;                       // VA_PROC_FILTER_SUPER_RESOLUTION_PRIVATE
+    uint32_t version;                    // VA_SR_PRIVATE_PARAMS_VERSION
+    uint32_t enable;                     // 0 / 1
+    uint32_t scenario_mode;              // 0x00 default, 0x12 artifact removal (surveillance camera)
+    uint32_t model_version;              // 0 default, 1 algorithm 1, 2 algorithm 2
+    uint32_t input_frame_rate_numerator; // 0/0 if unknown
+    uint32_t input_frame_rate_denominator;
+    uint32_t va_reserved[9];             // must be zero
+} VAProcFilterParameterBufferSuperResolutionPrivate;
+
+static_assert(sizeof(VAProcFilterParameterBufferSuperResolutionPrivate) == 64,
+              "VAProcFilterParameterBufferSuperResolutionPrivate is an ABI contract with iHD");
+
+// Room for every filter buffer Execute can attach, including the private ones above.
+#define VPP_MAX_FILTER_BUFS (VAProcFilterCount + 4)
+
 namespace MfxHwVideoProcessing
 {
     class VAAPIVideoProcessing : public DriverVideoProcessing
@@ -153,7 +177,7 @@ namespace MfxHwVideoProcessing
         mfxU32     m_deintFrameCount;
         VASurfaceID m_refForFRC[5];
 
-        VABufferID m_filterBufs[VAProcFilterCount];
+        VABufferID m_filterBufs[VPP_MAX_FILTER_BUFS];
         mfxU32 m_numFilterBufs;
 
         std::vector<VAProcPipelineParameterBuffer> m_pipelineParam;
@@ -185,6 +209,12 @@ namespace MfxHwVideoProcessing
         VABufferID m_hdrtmFilterID;
         VAProcFilterCapHighDynamicRange m_hdrtm_caps[VAProcHighDynamicRangeMetadataTypeCount];
 
+        // AI super resolution through the driver-private filter buffer. Drivers without
+        // it only get the legacy processing_mode=VA_PROC_MODE_HIGH_QUALITY request.
+        bool       m_srPrivateFilterSupported;
+        VABufferID m_srFilterID;
+        VAProcFilterParameterBufferSuperResolutionPrivate m_srFilterParams;
+
         mfxStatus Init( _mfxPlatformAccelerationService* pVADisplay, mfxVideoParam *pParams);
 
         mfxStatus Close( void );
@@ -192,6 +222,8 @@ namespace MfxHwVideoProcessing
         mfxStatus RemoveBufferFromPipe(VABufferID & id);
 
         virtual mfxStatus ConfigHVSDenoise(mfxExecuteParams *pParams);
+
+        mfxStatus ConfigSuperResolution(mfxExecuteParams *pParams);
     };
 
 }; // namespace
