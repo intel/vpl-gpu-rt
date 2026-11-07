@@ -3187,6 +3187,15 @@ Status TaskSupplier::AddSource(MediaData * pSource)
             return UMC_WRN_INFO_NOT_READY;
         }
 
+        // frame is already picked for output and owned by a pending frame task,
+        // which drives decoding and frees a slot. Wait for it instead of
+        // submitting a task without output surface (same as H265 isInDisplayngStage).
+        for (H264DecoderFrame *pFrame = pDPB->head(); pFrame; pFrame = pFrame->future())
+        {
+            if (pFrame->wasOutputted() && !pFrame->wasDisplayed())
+                return UMC_WRN_INFO_NOT_READY;
+        }
+
         // frame is finished, but still referenced.
         // Wait for asynchronous complete.
         if (pDPB->IsAlmostDisposableExist())
