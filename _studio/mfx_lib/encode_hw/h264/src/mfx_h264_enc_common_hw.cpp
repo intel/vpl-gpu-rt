@@ -2064,6 +2064,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
     if (IsLpLookaheadSupported(extOpt3.ScenarioInfo, extOpt2.LookAheadDepth, par.mfx.RateControlMethod))
     {
         MFX_CHECK(hwCaps.ddi_caps.LookaheadBRCSupport, MFX_ERR_INVALID_VIDEO_PARAM);
+
     }
 #endif
 
