@@ -847,7 +847,8 @@ mfxStatus AV1EncTools::QueryPreEncTask(StorageW&  /*global*/, StorageW& s_task)
     MFX_CHECK_STS(sts);
 
     task.GopHints.MiniGopSize = preEncodeGOP.MiniGopSize;
-    task.GopHints.FrameType = preEncodeGOP.FrameType;
+    if (preEncodeGOP.FrameType)
+        task.GopHints.FrameType = preEncodeGOP.FrameType;
     task.GopHints.SceneChange = preEncodeSChg.SceneChangeFlag;
     task.GopHints.SpatialComplexity = preEncodeSChg.SpatialComplexity;
     task.GopHints.PersistenceMapNZ = preEncodeSChg.PersistenceMapNZ;
