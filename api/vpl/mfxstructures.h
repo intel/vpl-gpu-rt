@@ -5249,8 +5249,8 @@ typedef enum {
     MFX_AI_SUPER_RESOLUTION_ALGORITHM_DEFAULT = 0,        /*!< Super Resolution algorithm by default. The library selects the most appropriate super resolution algorithm.*/
     MFX_AI_SUPER_RESOLUTION_ALGORITHM_1       = 1,        /*!< Super Resolution algorithm1.*/
     MFX_AI_SUPER_RESOLUTION_ALGORITHM_2       = 2,        /*!< Super Resolution algorithm2, MFX_AI_SUPER_RESOLUTION_ALGORITHM_2 video quality is expected to be better than MFX_AI_SUPER_RESOLUTION_ALGORITHM_1.*/
-    MFX_AI_SUPER_RESOLUTION_ALGORITHM_NPU_SPEED = 3,      /*!< Super Resolution algorithm optimized for speed on NPU. Valid only with MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT.*/
-    MFX_AI_SUPER_RESOLUTION_ALGORITHM_NPU_QUALITY = 4,    /*!< Super Resolution algorithm optimized for quality on NPU. Valid only with MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT.*/
+    MFX_AI_SUPER_RESOLUTION_ALGORITHM_XPU_SPEED = 3,      /*!< Super Resolution algorithm optimized for speed on XPU, with inference primarily performed on the NPU. Valid only with MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT.*/
+    MFX_AI_SUPER_RESOLUTION_ALGORITHM_XPU_QUALITY = 4,    /*!< Super Resolution algorithm optimized for quality on XPU, with inference primarily performed on the NPU. Valid only with MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT.*/
 } mfxAISuperResolutionAlgorithm;
 #endif
 
@@ -5265,7 +5265,7 @@ MFX_PACK_BEGIN_STRUCT_W_PTR()
     of them are attached during runtime, the mfxExtVPPAISuperResolution will override the upscaling mode and use super resolution.
     If the application needs to switch on and off, the application can set the MFX_AI_SUPER_RESOLUTION_MODE_DISABLED to switch off, MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT
     to switch on.
-    MFX_AI_SUPER_RESOLUTION_ALGORITHM_NPU_SPEED and MFX_AI_SUPER_RESOLUTION_ALGORITHM_NPU_QUALITY are valid only when SRMode is
+    MFX_AI_SUPER_RESOLUTION_ALGORITHM_XPU_SPEED and MFX_AI_SUPER_RESOLUTION_ALGORITHM_XPU_QUALITY are valid only when SRMode is
     MFX_AI_SUPER_RESOLUTION_MODE_DEFAULT.
 */
 typedef struct {
