@@ -317,4 +317,12 @@ namespace H264DCaps {
     }
 }
 #endif // MFX_ENABLE_H264_VIDEO_DECODE
+
+namespace SchedulerCaps {
+    inline bool IsSchedulerNextSupported(eMFXHWType platform)
+    {
+        (void)platform;
+        return false;
+    }
+}
 #endif // __MFX_PLATFORM_CAPS_H__

@@ -87,6 +87,18 @@ if (CMAKE_SYSTEM_NAME MATCHES Linux)
   )
 endif()
 
+# refactored scheduler, selected at runtime (see mfx_scheduler_core_next_factory.h)
+target_sources(mfxcore
+  PRIVATE
+    scheduler/next/src/mfx_scheduler_core_next.cpp
+    scheduler/next/src/mfx_scheduler_core_next_ischeduler.cpp
+    scheduler/next/src/mfx_scheduler_core_next_iunknown.cpp
+    scheduler/next/src/mfx_scheduler_core_next_select.cpp
+    scheduler/next/src/mfx_scheduler_core_next_task.cpp
+    scheduler/next/src/mfx_scheduler_core_next_task_management.cpp
+    scheduler/next/src/mfx_scheduler_core_next_thread.cpp
+)
+
 set(HW_ONLY_LIBS
   asc
   $<$<BOOL:${MFX_ENABLE_EXT}>:mfx_ext>
@@ -124,6 +136,7 @@ target_include_directories(mfxcore
     ${OPENCL_INCLUDE}
     ${VULKAN_INCLUDE}
     scheduler/agnostic/include
+    scheduler/next/include
   )
   
 if (CMAKE_SYSTEM_NAME MATCHES Linux)

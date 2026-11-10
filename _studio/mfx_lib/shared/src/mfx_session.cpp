@@ -28,6 +28,7 @@
 
 #include <libmfx_core_vaapi.h>
 #include "mfx_platform_caps.h"
+#include <mfx_scheduler_core_next_factory.h>
 
 #define TRY_GET_SESSION(verMax,verMin) MFXIPtr<MFXISession_##verMax##_##verMin> TryGetSession_##verMax##_##verMin(mfxSession session) \
 { \
@@ -39,6 +40,17 @@
 }
 
 constexpr mfxU32 default_threads_limit = 16;
+
+// Returns mfxSchedulerCoreNext if it is selected for this process (hardware sessions only),
+// otherwise nullptr so that QueryInterface creates the legacy mfxSchedulerCore
+static MFXIUnknown* CreateSchedulerNextIfSelected(eMFXPlatform platform)
+{
+
+    if (MFX_PLATFORM_SOFTWARE != platform && mfx_sched_next::IsSelected())
+        return mfx_sched_next::CreateScheduler();
+
+    return nullptr;
+}
 
 TRY_GET_SESSION(1,10)
 TRY_GET_SESSION(2,1)
@@ -173,6 +185,7 @@ mfxStatus _mfxSession::Init(mfxIMPL implInterface, mfxVersion *ver)
 
 
     // query the scheduler interface
+    m_pSchedulerAllocated = CreateSchedulerNextIfSelected(m_currentPlatform);
     m_pScheduler = QueryInterface<MFXIScheduler> (m_pSchedulerAllocated,
                                                   MFXIScheduler_GUID);
     if (NULL == m_pScheduler)
@@ -207,6 +220,7 @@ mfxStatus _mfxSession::RestoreScheduler(void)
     }
 
     // query the scheduler interface
+    m_pSchedulerAllocated = CreateSchedulerNextIfSelected(m_currentPlatform);
     m_pScheduler = QueryInterface<MFXIScheduler> (m_pSchedulerAllocated,
                                                   MFXIScheduler_GUID);
     if (NULL == m_pScheduler)
@@ -394,6 +408,7 @@ mfxStatus _mfxVersionedSessionImpl::InitEx(mfxInitParam& par, bool isSingleThrea
     }
 
     // query the scheduler interface
+    m_pSchedulerAllocated = CreateSchedulerNextIfSelected(m_currentPlatform);
     m_pScheduler = ::QueryInterface<MFXIScheduler>(m_pSchedulerAllocated, MFXIScheduler_GUID);
     if (NULL == m_pScheduler)
     {
