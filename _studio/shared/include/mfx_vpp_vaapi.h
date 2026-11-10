@@ -56,6 +56,27 @@ typedef struct _VAProcFilterParameterBufferSuperResolutionPrivate
 static_assert(sizeof(VAProcFilterParameterBufferSuperResolutionPrivate) == 64,
               "VAProcFilterParameterBufferSuperResolutionPrivate is an ABI contract with iHD");
 
+// Driver-private filter type for driver VFI 2.0 (arbitrary timestep). One blt produces one
+// interpolated frame between forward_references[0] (previous) and surface (current).
+#define VA_PROC_FILTER_FRAME_INTERPOLATION_PRIVATE (-3)
+#define VA_VFI_PRIVATE_PARAMS_VERSION 1
+
+// Mirror of the iHD VP_DDI_VFI_PARAMS layout (vp_vfi_ddi_private.h); a 64-byte ABI contract.
+typedef struct _VAProcFilterParameterBufferFrameInterpolationPrivate
+{
+    int32_t  type;                       // VA_PROC_FILTER_FRAME_INTERPOLATION_PRIVATE
+    uint32_t version;                    // VA_VFI_PRIVATE_PARAMS_VERSION
+    uint32_t enable;                     // 0 / 1
+    uint32_t scd;                        // 1: driver scene change detection
+    float    timestep;                   // (0, 1): 0 is forward_references[0], 1 is surface
+    uint32_t past_frame_id;              // content ID of forward_references[0], 0 if unknown
+    uint32_t current_frame_id;           // content ID of surface, 0 if unknown
+    uint32_t va_reserved[9];             // must be zero
+} VAProcFilterParameterBufferFrameInterpolationPrivate;
+
+static_assert(sizeof(VAProcFilterParameterBufferFrameInterpolationPrivate) == 64,
+              "VAProcFilterParameterBufferFrameInterpolationPrivate is an ABI contract with iHD");
+
 // Room for every filter buffer Execute can attach, including the private ones above.
 #define VPP_MAX_FILTER_BUFS (VAProcFilterCount + 4)
 
@@ -215,6 +236,13 @@ namespace MfxHwVideoProcessing
         VABufferID m_srFilterID;
         VAProcFilterParameterBufferSuperResolutionPrivate m_srFilterParams;
 
+        // Driver VFI 2.0 through the driver-private filter buffer, recreated per blt since
+        // the timestep changes. Drivers without it reject driver VFI at VPP Init.
+        bool       m_vfiPrivateFilterSupported;
+        VABufferID m_vfiFilterID;
+
+        bool IsPrivateFilterSupported(int32_t type);
+
         mfxStatus Init( _mfxPlatformAccelerationService* pVADisplay, mfxVideoParam *pParams);
 
         mfxStatus Close( void );
@@ -224,6 +252,8 @@ namespace MfxHwVideoProcessing
         virtual mfxStatus ConfigHVSDenoise(mfxExecuteParams *pParams);
 
         mfxStatus ConfigSuperResolution(mfxExecuteParams *pParams);
+
+        mfxStatus ConfigFrameInterpolation(mfxExecuteParams *pParams);
     };
 
 }; // namespace

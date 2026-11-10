@@ -234,11 +234,18 @@ namespace VppCaps
     }
 
     // VFI 2.0 (driver arbitrary-EU): interpolates at arbitrary timestamps, so it is the only
-    // backend that can honour an app timestep schedule. Windows-only DDI.
+    // backend that can honour an app timestep schedule. VPE DDI on Windows, private VA filter on Linux.
     inline bool IsAIFrameInterpolationSupportedDriver(eMFXHWType platform)
     {
-        (void)platform;
-        return false;
+        switch (platform)
+        {
+            case MFX_HW_PTL:
+            case MFX_HW_NVL_XE3G:
+            case MFX_HW_NVL:
+                return true;
+            default:
+                return false;
+        }
     }
 
     // True when the app attached an explicit timestep schedule. These fields were carved out of

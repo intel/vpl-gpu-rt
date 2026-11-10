@@ -105,6 +105,8 @@ VAAPIVideoProcessing::VAAPIVideoProcessing():
 , m_srPrivateFilterSupported(false)
 , m_srFilterID(VA_INVALID_ID)
 , m_srFilterParams()
+, m_vfiPrivateFilterSupported(false)
+, m_vfiFilterID(VA_INVALID_ID)
 {
 
     for(int i = 0; i < VPP_MAX_FILTER_BUFS; i++)
@@ -209,6 +211,9 @@ mfxStatus VAAPIVideoProcessing::Close(void)
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_srFilterID);
     std::ignore = MFX_STS_TRACE(sts);
 
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_vfiFilterID);
+    std::ignore = MFX_STS_TRACE(sts);
+
     if (m_vaContextVPP != VA_INVALID_ID)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaDestroyContext");
@@ -240,6 +245,9 @@ mfxStatus VAAPIVideoProcessing::Close(void)
     m_srPrivateFilterSupported = false;
     m_srFilterID               = VA_INVALID_ID;
     m_srFilterParams           = {};
+
+    m_vfiPrivateFilterSupported = false;
+    m_vfiFilterID               = VA_INVALID_ID;
 
     memset( (void*)&m_pipelineCaps, 0, sizeof(m_pipelineCaps));
     memset( (void*)&m_denoiseCaps, 0, sizeof(m_denoiseCaps));
@@ -313,14 +321,8 @@ mfxStatus VAAPIVideoProcessing::Init(_mfxPlatformAccelerationService* pVADisplay
 
         // Drivers that take the private SR filter buffer report it with zero caps;
         // older ones fail the query and only understand processing_mode=HIGH_QUALITY.
-        VAProcFilterCap srCap        = {};
-        mfxU32          numSrCaps    = 1;
-        vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
-                                           m_vaContextVPP,
-                                           static_cast<VAProcFilterType>(VA_PROC_FILTER_SUPER_RESOLUTION_PRIVATE),
-                                           &srCap,
-                                           &numSrCaps);
-        m_srPrivateFilterSupported = (VA_STATUS_SUCCESS == vaSts);
+        m_srPrivateFilterSupported  = IsPrivateFilterSupported(VA_PROC_FILTER_SUPER_RESOLUTION_PRIVATE);
+        m_vfiPrivateFilterSupported = IsPrivateFilterSupported(VA_PROC_FILTER_FRAME_INTERPOLATION_PRIVATE);
     }
 
     return MFX_ERR_NONE;
@@ -622,6 +624,19 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
 
 } // mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
 
+// A driver reports the private filter types it takes with zero caps; others fail the query.
+bool VAAPIVideoProcessing::IsPrivateFilterSupported(int32_t type)
+{
+    VAProcFilterCap cap     = {};
+    mfxU32          numCaps = 1;
+    VAStatus vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
+                                                m_vaContextVPP,
+                                                static_cast<VAProcFilterType>(type),
+                                                &cap,
+                                                &numCaps);
+    return VA_STATUS_SUCCESS == vaSts;
+}
+
 mfxStatus VAAPIVideoProcessing::QueryVariance(
             mfxU32 frameIndex,
             std::vector<mfxU32> &variance)
@@ -773,6 +788,57 @@ mfxStatus VAAPIVideoProcessing::ConfigSuperResolution(mfxExecuteParams *pParams)
     m_srFilterParams = srParam;
     m_filterBufs[m_numFilterBufs++] = m_srFilterID;
     m_pipelineParam[0].num_filters  = m_numFilterBufs;
+
+    return MFX_ERR_NONE;
+}
+
+// Driver VFI 2.0, the twin of D3D11VideoProcessor::SetVfiParam: one interpolated frame per blt.
+// Called after m_pipelineParam[0].filters has been pointed at m_filterBufs.
+mfxStatus VAAPIVideoProcessing::ConfigFrameInterpolation(mfxExecuteParams *pParams)
+{
+    MFX_CHECK_NULL_PTR1(pParams);
+
+    // The VFI buffer is per blt; drop one left over by a failed blt before deciding on this one.
+    if (m_vfiFilterID != VA_INVALID_ID)
+    {
+        mfxStatus sts = RemoveBufferFromPipe(m_vfiFilterID);
+        MFX_CHECK_STS(sts);
+        m_pipelineParam[0].num_filters = m_numFilterBufs;
+    }
+
+    if (!pParams->vfiSetParams.Enabled)
+        return MFX_ERR_NONE;
+
+    MFX_CHECK(m_vfiPrivateFilterSupported, MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(pParams->vfiSetParams.TimeStep > 0.0f && pParams->vfiSetParams.TimeStep < 1.0f, MFX_ERR_INVALID_VIDEO_PARAM);
+    MFX_CHECK(pParams->refCount == 2 && pParams->bkwdRefCount == 1, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    VAProcFilterParameterBufferFrameInterpolationPrivate vfiParam = {};
+    vfiParam.type             = VA_PROC_FILTER_FRAME_INTERPOLATION_PRIVATE;
+    vfiParam.version          = VA_VFI_PRIVATE_PARAMS_VERSION;
+    vfiParam.enable           = 1;
+    vfiParam.scd              = 0; // same as Windows bSCD = 0: the runtime runs scene change detection
+    vfiParam.timestep         = pParams->vfiSetParams.TimeStep;
+    // Lets the driver reuse a frame's EU preprocessing across blts, as on Windows.
+    vfiParam.past_frame_id    = pParams->vfiSetParams.PastFrameId;
+    vfiParam.current_frame_id = pParams->vfiSetParams.CurrentFrameId;
+
+    VAStatus vaSts = vaCreateBuffer((void*)m_vaDisplay,
+                                    m_vaContextVPP,
+                                    VAProcFilterParameterBufferType,
+                                    sizeof(vfiParam),
+                                    1,
+                                    &vfiParam,
+                                    &m_vfiFilterID);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    m_filterBufs[m_numFilterBufs++] = m_vfiFilterID;
+    m_pipelineParam[0].num_filters  = m_numFilterBufs;
+
+    // pRefSurfaces = { previous, current }, bkwdRefCount = 1. VA forward references are
+    // past frames; the driver binds forward_references[0] as the VFI reference.
+    m_pipelineParam[0].forward_references     = (VASurfaceID *)(pParams->pRefSurfaces[0].hdl.first);
+    m_pipelineParam[0].num_forward_references = 1;
 
     return MFX_ERR_NONE;
 }
@@ -1940,6 +2006,9 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     mfxSts = ConfigSuperResolution(pParams);
     MFX_CHECK_STS(mfxSts);
 
+    mfxSts = ConfigFrameInterpolation(pParams);
+    MFX_CHECK_STS(mfxSts);
+
         uint8_t& chromaSitingMode = m_pipelineParam[0].input_color_properties.chroma_sample_location;
         chromaSitingMode = VA_CHROMA_SITING_UNKNOWN;
 
@@ -2064,6 +2133,9 @@ if (pParams->mirroringExt)
     }
 
     mfxSts = RemoveBufferFromPipe(m_deintFilterID);
+    MFX_CHECK_STS(mfxSts);
+
+    mfxSts = RemoveBufferFromPipe(m_vfiFilterID);
     MFX_CHECK_STS(mfxSts);
     // (3) info needed for sync operation
     //-------------------------------------------------------
