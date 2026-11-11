@@ -671,6 +671,7 @@ namespace UMC_AV1_DECODER
                 updated_refs, AV1DecodeDpbInfo, DPBINFO_AV1D);
         }
 
+        uint32_t frameIdBeforeParsing = PreFrame_id;
         bool gotFullFrame = false;
         bool repeatedFrame = false;
         bool skipFrame = false;
@@ -970,7 +971,12 @@ namespace UMC_AV1_DECODER
                 }
 
                 if (!pCurrFrame)
+                {
+                    // no free frame in DPB: the same frame header is parsed again on the next call,
+                    // so restore PreFrame_id, otherwise the current_frame_id check fails (current_frame_id == PreFrame_id)
+                    PreFrame_id = OldPreFrame_id = frameIdBeforeParsing;
                     return UMC::UMC_ERR_NOT_ENOUGH_BUFFER;
+                }
 
                 if (params.lst_mode)
                 {
