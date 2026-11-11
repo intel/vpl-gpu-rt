@@ -225,6 +225,7 @@ public:  // DEBUG !!!! should remove dependence
     bool m_bPermanentTurnOffDeblocking;                         // (bool) "disable deblocking" flag
     bool m_bError;                                              // (bool) there is an error in decoding
     bool m_isInitialized;
+    bool m_bRecoveryPoint;                                      // (bool) I slice after a recovery point SEI with recovery_frame_cnt 0
 
     UMC_H264_DECODER::AdaptiveMarkingInfo     m_AdaptiveMarkingInfo;
     UMC_H264_DECODER::AdaptiveMarkingInfo     m_BaseAdaptiveMarkingInfo;

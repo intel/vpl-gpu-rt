@@ -3592,6 +3592,11 @@ H264Slice * TaskSupplier::DecodeSliceHeader(NalUnit *nalUnit)
         memset(&pSlice->GetSliceHeader()->nal_ext, 0, sizeof(H264NalExtension));
     }
 
+    // The SEI is removed when the next non-I slice header is parsed, which can be before
+    // the frame of this slice is initialized (InitFrameCounter), so keep it with the slice.
+    pSlice->m_bRecoveryPoint = spl && pSlice->GetSliceHeader()->slice_type == INTRASLICE &&
+        spl->SEI_messages.recovery_point.recovery_frame_cnt == 0;
+
     if (spl)
     {
         if (m_WaitForIDR)
@@ -4046,9 +4051,13 @@ void TaskSupplier::InitFrameCounter(H264DecoderFrame * pFrame, const H264Slice *
             // Reference lists are generated incorrectly. A potential recovery point can be at next I frame (if GOP is closed).
             // So let's mark these potentially dangereous ST frames
             // to remove them later from DPB in UpdateRefPicMarking() (if they're still there) at next I frame or SEI recovery point.
+            // An I frame with a recovery point SEI (recovery_frame_cnt == 0) after the gap is an exact random access point:
+            // pictures from it on in output order do not use the frames before the gap. Those frames keep their old POC,
+            // which can equal the POC of the new frames, so mark all of them, not only the ones with a larger frame_num.
+            const bool recoveryPoint = pSlice->m_bRecoveryPoint;
             for (H264DecoderFrame *pFrm = view.GetDPBList(0)->head(); pFrm; pFrm = pFrm->future())
             {
-                if ((pFrm->FrameNum() > sliceHeader->frame_num) && pFrm->isShortTermRef())
+                if ((recoveryPoint || pFrm->FrameNum() > sliceHeader->frame_num) && pFrm->isShortTermRef())
                 {
                     pFrm->SetErrorFlagged(ERROR_FRAME_SHORT_TERM_STUCK);
                 }

@@ -114,6 +114,7 @@ void H264Slice::ZeroedMembers()
 
     m_bInited = false;
     m_isInitialized = false;
+    m_bRecoveryPoint = false;
 }
 
 void H264Slice::Release()
