@@ -779,9 +779,9 @@ mfxStatus VideoDECODEAV1::GetVideoParam(mfxVideoParam *par)
         par ? par->mfx.FrameInfo.Height : 0, par ? par->mfx.CodecId : 0));
 
     MFX_CHECK_NULL_PTR1(par);
+    MFX_CHECK(m_decoder, MFX_ERR_NOT_INITIALIZED);
 
     std::lock_guard<std::mutex> guard(m_guard);
-    MFX_CHECK(m_decoder, MFX_ERR_NOT_INITIALIZED);
 
     mfxStatus sts = MFX_ERR_NONE;
     UMC_AV1_DECODER::AV1DecoderParams vp;
@@ -976,7 +976,6 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
 {
     MFX_CHECK_NULL_PTR1(task);
 
-    std::lock_guard<std::mutex> guard(m_guard);
     MFX_CHECK(m_core, MFX_ERR_UNDEFINED_BEHAVIOR);
     MFX_CHECK(m_decoder, MFX_ERR_NOT_INITIALIZED);
 
