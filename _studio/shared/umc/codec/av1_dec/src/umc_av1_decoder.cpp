@@ -200,12 +200,11 @@ namespace UMC_AV1_DECODER
                 if (obuInfo.header.obu_type > OBU_PADDING)
                     return UMC::UMC_ERR_INVALID_PARAMS;
 
-                // OBU is not complete yet, wait for more data
-                if (obuInfo.size > in->GetDataSize())
-                    return UMC::UMC_ERR_NOT_ENOUGH_DATA;
-
                 if (obuInfo.header.obu_type == OBU_SEQUENCE_HEADER)
                 {
+                    // parse the sequence header from the data present, a truncated one overruns the bit reader
+                    // and gives NOT_ENOUGH_DATA below; don't require obu_size to fit the data: a corrupted
+                    // stream can carry a wrong obu_size, waiting for more data would never complete it
                     bs.ReadSequenceHeader(sh);
 
                     in->MoveDataPointer(static_cast<int32_t>(obuInfo.size));
@@ -213,6 +212,10 @@ namespace UMC_AV1_DECODER
                     if (FillVideoParam(sh, par) == UMC::UMC_OK)
                         return UMC::UMC_OK;
                 }
+
+                // OBU is not complete yet, wait for more data
+                if (obuInfo.size > in->GetDataSize())
+                    return UMC::UMC_ERR_NOT_ENOUGH_DATA;
 
                 if(in->MoveDataPointer(static_cast<int32_t>(obuInfo.size)) != UMC::UMC_OK)
                     return UMC::UMC_ERR_NOT_ENOUGH_DATA;
