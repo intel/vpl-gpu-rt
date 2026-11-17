@@ -987,10 +987,10 @@ void Legacy::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         // MaxReorder by the largest future-ref requirement so those frames stay live
         // (and the reorder sanity window stays consistent). Mirrors the raw-pool growth
         // in GetMaxRaw and the Interlace precedent.
+        // PreProc may keep extra source frames buffered. Only later-display frames are
+        // added: coding order is unchanged.
         PreProcSettings preproc;
-        mfxU16 preprocExtra = preproc.Enabled
-            ? std::max({ preproc.NumRefFuture[0], preproc.NumRefFuture[1], preproc.NumRefFuture[2] })
-            : mfxU16(0);
+        mfxU16 preprocExtra = GetPreProcExtraRaw(par, preproc);
 
         pReorderer->BufferSize     = par.mfx.GopRefDist - 1 + preprocExtra;
         pReorderer->MaxReorder     = par.mfx.GopRefDist - 1 + preprocExtra;
@@ -2643,6 +2643,15 @@ Legacy::TItWrap Legacy::Reorder(
             requiredFutureFrames = preproc.NumRefFuture[1];
         else if (IsI(top->FrameType))
             requiredFutureFrames = preproc.NumRefFuture[0];
+
+        // PreProc pre-run: also wait for the next anchor and its future refs. The extra frames
+        // are covered by GetPreProcExtraRaw.
+        bool bPreRunNext = requiredFutureFrames > 0
+            && par.mfx.GopRefDist > 1
+            && par.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY
+            && !preproc.NumRefPast[2] && !preproc.NumRefFuture[2];
+        if (bPreRunNext)
+            requiredFutureFrames = par.mfx.GopRefDist + std::max(preproc.NumRefFuture[0], preproc.NumRefFuture[1]);
 
         if (requiredFutureFrames > 0)
         {

@@ -257,6 +257,17 @@ namespace Base
             mfxU16 preprocExtra = 0;
             return par.AsyncDepth + (par.mfx.GopRefDist - 1) + (par.AsyncDepth > 1) + extRaw + preprocExtra;
         }
+        // Source frames PreProc keeps buffered beyond the B-pyramid window (BLK_SetReorder).
+        static mfxU16 GetPreProcExtraRaw(const mfxVideoParam& par, const PreProcSettings& preproc)
+        {
+            if (!preproc.Enabled)
+                return 0;
+
+            mfxU16 extra = std::max({ preproc.NumRefFuture[0], preproc.NumRefFuture[1], preproc.NumRefFuture[2] });
+            if (par.mfx.GopRefDist > 1)
+                extra = mfxU16(extra + par.mfx.GopRefDist + 2);
+            return extra;
+        }
         mfxU16 GetMaxMBMaps(mfxVideoParam const& par)
         {
             // Extend extra Raw for frames buffered between LA submit and LA Query stage

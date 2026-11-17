@@ -827,6 +827,14 @@ namespace Base
         // PreProc/TF refs: raw pointers into live tasks, dereferenced at SubmitTask.
         TaskCommonPar*      PreProcRef_L0[MAX_PREPROC_REF_L0] = {};
         TaskCommonPar*      PreProcRef_L1[MAX_PREPROC_REF_L1] = {};
+        // PreProc pre-run state, managed by the PreProcessing feature.
+        TaskCommonPar*      PreRunNext                           = nullptr;
+        TaskCommonPar*      PreRunNextRef_L0[MAX_PREPROC_REF_L0] = {};
+        TaskCommonPar*      PreRunNextRef_L1[MAX_PREPROC_REF_L1] = {};
+        bool                bPreRunPending                       = false;
+        TaskCommonPar*      PreRunExpRef_L0[MAX_PREPROC_REF_L0]  = {};
+        TaskCommonPar*      PreRunExpRef_L1[MAX_PREPROC_REF_L1]  = {};
+        bool                bUsePreRunResult                     = false;
         bool                bCUQPMap            = false;
 #if defined(MFX_ENABLE_ENCTOOLS_BASE)
         mfxLplastatus       LplaStatus          = {};
