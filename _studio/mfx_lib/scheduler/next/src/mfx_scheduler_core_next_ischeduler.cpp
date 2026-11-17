@@ -659,6 +659,9 @@ mfxStatus mfxSchedulerCoreNext::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyn
         {
             mfxSchedulerCoreNext *pCore;
             bool committed;
+            FreeSlotGuard(mfxSchedulerCoreNext *p, bool c) : pCore(p), committed(c) {}
+            FreeSlotGuard(const FreeSlotGuard&) = delete;
+            FreeSlotGuard& operator=(const FreeSlotGuard&) = delete;
             ~FreeSlotGuard()
             {
                 if (!committed)
