@@ -116,10 +116,11 @@ static inline T mfx_sts_trace(const char* fileName, const uint32_t lineNum, cons
 
 #define MFX_CHECK_NO_RET(EXPR, STS, ERR){ if (!(EXPR)) { std::ignore = MFX_STS_TRACE(ERR); STS = ERR; } }
 
-#define MFX_CHECK_STS(sts)              MFX_CHECK(MFX_SUCCEEDED(sts), sts)
+// Evaluate sts exactly once: it may be a function call with side effects
+#define MFX_CHECK_STS(sts)              { auto mfx_chk_sts_ = (sts); if (mfx_chk_sts_ != MFX_ERR_NONE) MFX_RETURN(mfx_chk_sts_); }
 #define MFX_CHECK_STS_RET(sts, ret)     { if (MFX_FAILED(sts)) return ret; }
 #define MFX_CHECK_STS_RET_NULL(sts)     MFX_CHECK_STS_RET(sts, nullptr)
-#define MFX_SAFE_CALL(FUNC)             { mfxStatus _sts = FUNC; MFX_CHECK_STS(_sts); }
+#define MFX_SAFE_CALL(FUNC)             MFX_CHECK_STS(FUNC)
 #define MFX_CHECK_NULL_PTR1(pointer)    MFX_CHECK(pointer, MFX_ERR_NULL_PTR)
 #define MFX_CHECK_NULL_PTR2(p1, p2)     { MFX_CHECK(p1, MFX_ERR_NULL_PTR); MFX_CHECK(p2, MFX_ERR_NULL_PTR); }
 #define MFX_CHECK_NULL_PTR3(p1, p2, p3) { MFX_CHECK(p1, MFX_ERR_NULL_PTR); MFX_CHECK(p2, MFX_ERR_NULL_PTR); MFX_CHECK(p3, MFX_ERR_NULL_PTR); }
