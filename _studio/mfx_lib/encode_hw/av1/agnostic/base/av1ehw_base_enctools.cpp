@@ -26,6 +26,7 @@
 #include "av1ehw_base.h"
 #include "av1ehw_base_data.h"
 #include "av1ehw_base_enctools.h"
+#include <new>
 #include "av1ehw_base_task.h"
 
 #include "av1ehw_base_packer.h"
@@ -591,7 +592,8 @@ mfxStatus AV1EncTools::SubmitPreEncTask(StorageW& global, StorageW& s_task)
         task.saliencyMap.AllocatedSize = (mfxU32)m_saliencyMapSize;
 
         //task should be POD, so we can't use unique_ptr here
-        task.saliencyMap.SaliencyMap = new mfxF32[m_saliencyMapSize];
+        task.saliencyMap.SaliencyMap = new (std::nothrow) mfxF32[m_saliencyMapSize];
+        MFX_CHECK(task.saliencyMap.SaliencyMap, MFX_ERR_MEMORY_ALLOC);
 
         std::vector<mfxExtBuffer*> extQueryParams;
         extQueryParams.push_back(&task.saliencyMap.Header);
@@ -607,7 +609,9 @@ mfxStatus AV1EncTools::SubmitPreEncTask(StorageW& global, StorageW& s_task)
             m_saliencyMapSize = task.saliencyMap.Width * task.saliencyMap.Height;
             task.saliencyMap.AllocatedSize = (mfxU32)m_saliencyMapSize;
             delete[] task.saliencyMap.SaliencyMap;
-            task.saliencyMap.SaliencyMap = new mfxF32[m_saliencyMapSize];
+            task.saliencyMap.SaliencyMap = nullptr;
+            task.saliencyMap.SaliencyMap = new (std::nothrow) mfxF32[m_saliencyMapSize];
+            MFX_CHECK(task.saliencyMap.SaliencyMap, MFX_ERR_MEMORY_ALLOC);
             sts = m_pEncTools->Query(m_pEncTools->Context, &param, 0 /*timeout*/);
         }
         MFX_CHECK_STS(sts);
@@ -696,7 +700,12 @@ mfxStatus AV1EncTools::BRCGetCtrl(StorageW& global, StorageW& s_task,
 
             // Allocate memory for segmentation, if not allocated yet
             if (m_pSegmentQPMap == nullptr)
-                AllocSegmentationData(par.mfx.FrameInfo.Width, par.mfx.FrameInfo.Height, caps.MinSegIdBlockSizeAccepted);
+            {
+                MFX_CHECK_STS(AllocSegmentationData(
+                    par.mfx.FrameInfo.Width
+                    , par.mfx.FrameInfo.Height
+                    , caps.MinSegIdBlockSizeAccepted));
+            }
 
             // Get QP map
             qpMapHint.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_HINT_QPMAP;
@@ -974,7 +983,10 @@ mfxStatus AV1EncTools::BRCUpdate(StorageW&  , StorageW& s_task, mfxEncToolsBRCSt
     return MFX_ERR_NONE;
 }
 
-void AV1EncTools::AllocSegmentationData(mfxU16 frame_width, mfxU16 frame_height, mfxU8 blockSize)
+mfxStatus AV1EncTools::AllocSegmentationData(
+    mfxU16 frame_width
+    , mfxU16 frame_height
+    , mfxU8 blockSize)
 {
     mfxU16 numSegBlksInWidth = (mfxU16)((frame_width + blockSize - 1) / blockSize);
     mfxU16 numSegBlksIHeight = (mfxU16)((frame_height + blockSize - 1) / blockSize);
@@ -983,8 +995,16 @@ void AV1EncTools::AllocSegmentationData(mfxU16 frame_width, mfxU16 frame_height,
     m_SegmentationInfo.SegmentIdBlockSize = blockSize;
     m_SegmentationInfo.NumSegments = 8;   //enctools needs all 8 segments
 
-    m_pSegmentQPMap = new mfxU8[m_SegmentationInfo.NumSegmentIdAlloc];
-    m_pSegmentIDMap = new mfxU8[m_SegmentationInfo.NumSegmentIdAlloc];
+    m_pSegmentQPMap = new (std::nothrow) mfxU8[m_SegmentationInfo.NumSegmentIdAlloc];
+    m_pSegmentIDMap = new (std::nothrow) mfxU8[m_SegmentationInfo.NumSegmentIdAlloc];
+    if (!m_pSegmentQPMap || !m_pSegmentIDMap)
+    {
+        ReleaseSegmentationData();
+        m_SegmentationInfo.NumSegmentIdAlloc = 0;
+        return MFX_ERR_MEMORY_ALLOC;
+    }
+
+    return MFX_ERR_NONE;
 }
 
 void AV1EncTools::ReleaseSegmentationData(void)

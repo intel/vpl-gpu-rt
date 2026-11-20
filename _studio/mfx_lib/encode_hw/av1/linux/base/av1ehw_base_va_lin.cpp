@@ -198,7 +198,16 @@ mfxStatus DDI_VA::CreateVABuffers(
         , [this](const DDIExecParam& p){ return CreateVABuffer(p); });
 
     bool bFailed = pool.end() != std::find(pool.begin(), pool.end(), VA_INVALID_ID);
-    MFX_CHECK(!bFailed, MFX_ERR_DEVICE_FAILED);
+    if (bFailed)
+    {
+        for (VABufferID id : pool)
+        {
+            if (id != VA_INVALID_ID)
+                DestroyVABuffer(id);
+        }
+        pool.clear();
+        return MFX_ERR_DEVICE_FAILED;
+    }
 
     return MFX_ERR_NONE;
 }

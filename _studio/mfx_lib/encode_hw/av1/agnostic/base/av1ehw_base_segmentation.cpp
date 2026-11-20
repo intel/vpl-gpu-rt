@@ -23,6 +23,7 @@
 
 #include "av1ehw_base_general.h"
 #include "av1ehw_base_segmentation.h"
+#include <new>
 
 namespace AV1EHW
 {
@@ -580,11 +581,14 @@ mfxStatus UpdateFrameHeader(
     return MFX_ERR_NONE;
 }
 
-static void RetainSegMap(mfxExtAV1Segmentation& segPar)
+static mfxStatus RetainSegMap(mfxExtAV1Segmentation& segPar)
 {
     const mfxU8* pMap = segPar.SegmentIds;
-    segPar.SegmentIds = new mfxU8[segPar.NumSegmentIdAlloc];
-    std::copy_n(pMap, segPar.NumSegmentIdAlloc, segPar.SegmentIds);
+    mfxU8* pRetainedMap = new (std::nothrow) mfxU8[segPar.NumSegmentIdAlloc];
+    MFX_CHECK(pRetainedMap, MFX_ERR_MEMORY_ALLOC);
+    std::copy_n(pMap, segPar.NumSegmentIdAlloc, pRetainedMap);
+    segPar.SegmentIds = pRetainedMap;
+    return MFX_ERR_NONE;
 }
 
 static void PutSegParamToDPB(
@@ -629,7 +633,7 @@ mfxStatus Segmentation::PostUpdateSegmentParam(
 
     if (fh.refresh_frame_flags)
     {
-        RetainSegMap(segPar);
+        MFX_CHECK_STS(RetainSegMap(segPar));
 
         PutSegParamToDPB(segPar, numRefFrame, refreshFrameFlags, segDpb);
     }
